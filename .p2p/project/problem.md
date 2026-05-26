@@ -127,3 +127,7 @@ P2P can request local review for managed Work, but it cannot yet publish the rev
 ## PROP-036 - Managed Work Accept MVP
 
 P2P can publish reviewed managed Work branches, but it cannot yet perform the owner-controlled local merge that accepts a Work item into the base branch.
+
+## PROP-037 - Managed Work Status Summary MVP
+
+The managed Work lifecycle now spans plan, branch, submit, review, publish, and accept, but users lack a single read-only view that explains each Work item state and next action.

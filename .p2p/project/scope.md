@@ -401,3 +401,13 @@ Generated from accepted proposal goals and non-goals.
 ### Non-Goals
 
 - Not provided.
+
+## PROP-037 - Managed Work Status Summary MVP
+
+### Goals
+
+- Provide a readable p2p work status summary that reports Work state, branch, target, remote/acceptance metadata, and the next suggested command.
+
+### Non-Goals
+
+- Not provided.

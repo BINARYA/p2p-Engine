@@ -154,3 +154,8 @@ decisions:
   status: accepted
   feature: managed-work-accept-mvp
   source: .p2p/proposals/PROP-036-managed-work-accept-mvp
+- proposal: PROP-037
+  title: Managed Work Status Summary MVP
+  status: accepted
+  feature: managed-work-status-summary-mvp
+  source: .p2p/proposals/PROP-037-managed-work-status-summary-mvp
