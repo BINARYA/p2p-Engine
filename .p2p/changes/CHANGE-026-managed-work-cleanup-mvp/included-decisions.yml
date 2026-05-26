@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-040
+  decision_file: .p2p/proposals/PROP-040-managed-work-cleanup-mvp/decision.md

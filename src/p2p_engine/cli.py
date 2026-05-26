@@ -1292,6 +1292,28 @@ def work_finalize(
     console.print("  cleanup: disabled")
 
 
+@work_app.command("cleanup")
+def work_cleanup(
+    work_id: str = typer.Argument(..., help="Work ID, e.g. WORK-001"),
+    delete_remote: bool = typer.Option(False, "--remote", help="Also delete the remote managed Work branch"),
+    remote: str = typer.Option("origin", "--remote-name", help="Git remote used for cleanup metadata and optional branch deletion"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Clean up finalized managed Work branches."""
+    try:
+        cleanup = _workspace(root).cleanup_work(work_id, delete_remote=delete_remote, remote=remote)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Managed work cleaned.[/green]")
+    console.print(f"  work: {cleanup.work_id}")
+    console.print(f"  branch: {cleanup.branch_name}")
+    console.print(f"  base_branch: {cleanup.base_branch}")
+    console.print(f"  remote: {cleanup.remote}")
+    console.print(f"  cleanup_commit: {cleanup.cleanup_commit}")
+    console.print(f"  local_deleted: {str(cleanup.local_deleted).lower()}")
+    console.print(f"  remote_deleted: {str(cleanup.remote_deleted).lower()}")
+
+
 @work_app.command("show")
 def work_show(
     work_id: str = typer.Argument(..., help="Work ID, e.g. WORK-001"),

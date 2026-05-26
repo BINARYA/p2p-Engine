@@ -28,6 +28,8 @@ from p2p_engine.storage.git import (
     commit_all,
     conflicted_files,
     create_and_checkout_branch,
+    delete_local_branch,
+    delete_remote_branch,
     get_git_status,
     head_commit,
     list_files_at_ref,
@@ -344,6 +346,18 @@ class WorkFinalize:
     remote: str
     remote_url: str
     finalize_commit: str
+    path: Path
+
+
+@dataclass(frozen=True)
+class WorkCleanup:
+    work_id: str
+    branch_name: str
+    base_branch: str
+    remote: str
+    cleanup_commit: str
+    local_deleted: bool
+    remote_deleted: bool
     path: Path
 
 
@@ -1967,6 +1981,94 @@ class P2PWorkspace:
             remote=remote,
             remote_url=resolved_remote_url,
             finalize_commit=finalize_commit,
+            path=work_dir.relative_to(self.root),
+        )
+
+    def cleanup_work(self, work_id: str, delete_remote: bool = False, remote: str = "origin") -> WorkCleanup:
+        work_dir = self._find_work_dir(work_id)
+        manifest_path = work_dir / "manifest.yml"
+        manifest = _read_yaml_mapping(manifest_path, default={})
+        status = str(manifest.get("status") or "unknown")
+        if status != "finalized":
+            raise ValueError(f"Work item must be finalized before cleanup. Current status: {status}")
+
+        git = manifest.get("git", {})
+        if not isinstance(git, dict):
+            git = {}
+        finalize = manifest.get("finalize", {})
+        if not isinstance(finalize, dict):
+            finalize = {}
+        publish = manifest.get("publish", {})
+        if not isinstance(publish, dict):
+            publish = {}
+        acceptance = manifest.get("acceptance", {})
+        if not isinstance(acceptance, dict):
+            acceptance = {}
+
+        branch_name = str(
+            acceptance.get("source_branch")
+            or publish.get("remote_branch")
+            or git.get("branch_name")
+            or ""
+        )
+        if not branch_name:
+            raise ValueError("Invalid Work manifest: managed branch is required before cleanup")
+        base_branch = str(finalize.get("base_branch") or acceptance.get("merged_into") or git.get("base_branch") or "main")
+        remote = str(finalize.get("remote") or publish.get("remote") or remote)
+
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError("Cannot cleanup managed work outside a Git repository")
+        if git_status.branch != base_branch:
+            raise ValueError(f"Cannot cleanup managed work from {git_status.branch}; expected base branch {base_branch}")
+        if not git_status.is_clean:
+            raise ValueError("Cannot cleanup managed work with uncommitted changes")
+        if not branch_exists(self.root, branch_name):
+            raise ValueError(f"Managed work branch not found: {branch_name}")
+
+        resolved_remote_url = remote_url(self.root, remote)
+        if resolved_remote_url is None:
+            raise ValueError(f"Cannot cleanup managed work: Git remote not found: {remote}")
+
+        if not delete_local_branch(self.root, branch_name):
+            raise ValueError(f"Failed to delete local managed work branch: {branch_name}")
+        remote_deleted = False
+        if delete_remote:
+            if not delete_remote_branch(self.root, branch_name, remote):
+                raise ValueError(f"Failed to delete remote managed work branch from {remote}: {branch_name}")
+            remote_deleted = True
+
+        manifest["status"] = "cleaned"
+        git["mode"] = "managed_cleanup"
+        git["cleaned_at"] = date.today().isoformat()
+        manifest["git"] = git
+        finalize["cleanup"] = True
+        manifest["finalize"] = finalize
+        manifest["cleanup"] = {
+            "mode": "branch_cleanup",
+            "source_branch": branch_name,
+            "base_branch": base_branch,
+            "remote": remote,
+            "remote_url": resolved_remote_url,
+            "local_deleted": True,
+            "remote_deleted": remote_deleted,
+        }
+        manifest_path.write_text(_yaml_dump(manifest), encoding="utf-8")
+
+        cleanup_commit = commit_all(self.root, f"P2P cleanup {work_id}")
+        if cleanup_commit is None:
+            raise ValueError("Failed to create managed work cleanup commit")
+        if not push_branch(self.root, base_branch, remote):
+            raise ValueError(f"Failed to push cleanup metadata to {remote}: {base_branch}")
+
+        return WorkCleanup(
+            work_id=str(manifest.get("work_id") or work_id),
+            branch_name=branch_name,
+            base_branch=base_branch,
+            remote=remote,
+            cleanup_commit=cleanup_commit,
+            local_deleted=True,
+            remote_deleted=remote_deleted,
             path=work_dir.relative_to(self.root),
         )
 
@@ -4599,7 +4701,9 @@ def _work_next_action(
             return "p2p work finalize {work_id}".format(work_id=work_id), "push the accepted base branch"
         return "none", "accepted"
     if status == "finalized":
-        return "future: p2p work cleanup {work_id}".format(work_id=work_id), "cleanup is not implemented yet"
+        return "p2p work cleanup {work_id}".format(work_id=work_id), "delete finalized Work branches"
+    if status == "cleaned":
+        return "none", "cleaned"
     return "inspect", "unknown Work status"
 
 

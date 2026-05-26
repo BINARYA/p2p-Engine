@@ -80,6 +80,14 @@ def push_branch(root: Path, branch_name: str, remote: str = "origin") -> bool:
     return _run_git(root, "push", "-u", remote, branch_name) is not None
 
 
+def delete_local_branch(root: Path, branch_name: str) -> bool:
+    return _run_git(root, "branch", "-d", branch_name) is not None
+
+
+def delete_remote_branch(root: Path, branch_name: str, remote: str = "origin") -> bool:
+    return _run_git(root, "push", remote, "--delete", branch_name) is not None
+
+
 def merge_branch_no_commit(root: Path, branch_name: str) -> bool:
     return _run_git(root, "merge", "--no-ff", "--no-commit", branch_name) is not None
 

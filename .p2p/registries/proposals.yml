@@ -1097,3 +1097,32 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-040
+  title: Managed Work Cleanup MVP
+  status: accepted
+  path: .p2p/proposals/PROP-040-managed-work-cleanup-mvp
+  summary: Add p2p work cleanup WORK-XXX. The command requires Work status finalized,
+    a clean worktree, and the current branch to be the Work base branch. It deletes
+    the local managed Work branch by default, can delete the remote Work branch with
+    an explicit --remote flag, records cleanup metadata in the Work manifest, creates
+    a local cleanup metadata commit, and optionally pushes the base branch so cleanup
+    state is persisted remotely.
+  decision_file: .p2p/proposals/PROP-040-managed-work-cleanup-mvp/decision.md
+  related_changes:
+  - CHANGE-026
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

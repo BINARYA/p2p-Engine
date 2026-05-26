@@ -278,3 +278,10 @@ decisions:
   path: .p2p/proposals/PROP-039-managed-work-finalize-mvp/decision.md
   reason: Finalize is the explicit post-accept publication step and keeps base-branch
     push separate from cleanup and PR creation.
+- proposal: PROP-040
+  title: Managed Work Cleanup MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-040-managed-work-cleanup-mvp/decision.md
+  reason: Cleanup is the explicit post-finalize branch housekeeping step and keeps
+    branch deletion separate from accept/finalize.

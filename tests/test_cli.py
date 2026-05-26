@@ -1484,7 +1484,25 @@ def test_cli_work_accept_merges_published_branch(tmp_path: Path) -> None:
     result = runner.invoke(app, ["work", "status", "--root", str(tmp_path)])
     assert result.exit_code == 0
     assert "WORK-001  finalized" in result.output
-    assert "next: future: p2p work cleanup WORK-001" in result.output
+    assert "next: p2p work cleanup WORK-001" in result.output
+
+    result = runner.invoke(app, ["work", "cleanup", "WORK-001", "--remote", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Managed work cleaned" in result.output
+    assert "local_deleted: true" in result.output
+    assert "remote_deleted: true" in result.output
+    assert _git(tmp_path, "status", "--porcelain").stdout.strip() == ""
+    assert _git(tmp_path, "log", "-1", "--pretty=%s").stdout.strip() == "P2P cleanup WORK-001"
+    assert _git(tmp_path, "branch", "--list", "p2p/work/work-001-change-001-speckit").stdout.strip() == ""
+    remote_work_branch = _git(
+        tmp_path,
+        "ls-remote",
+        "--heads",
+        "origin",
+        "p2p/work/work-001-change-001-speckit",
+    ).stdout
+    assert remote_work_branch.strip() == ""
+    assert "status: cleaned" in manifest.read_text(encoding="utf-8")
 
 
 def test_cli_work_accept_requires_published_base_branch(tmp_path: Path) -> None:
@@ -1582,6 +1600,42 @@ def test_cli_work_finalize_requires_accepted_and_remote(tmp_path: Path) -> None:
     result = runner.invoke(app, ["work", "finalize", "WORK-001", "--root", str(tmp_path)])
     assert result.exit_code != 0
     assert "Git remote not found: origin" in result.output
+
+
+def test_cli_work_cleanup_requires_finalized_branch(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Managed Work Cleanup",
+            "--problem",
+            "Need branch cleanup.",
+            "--proposal",
+            "Cleanup finalized work.",
+            "--acceptance",
+            "The Work branch is deleted.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "plan", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+
+    result = runner.invoke(app, ["work", "cleanup", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code != 0
+    assert "Work item must be finalized before cleanup" in result.output
 
 
 def test_cli_work_accept_conflict_continue_and_abort(tmp_path: Path) -> None:

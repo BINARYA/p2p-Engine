@@ -396,3 +396,20 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-026
+  title: Managed Work Cleanup MVP
+  status: completed
+  path: .p2p/changes/CHANGE-026-managed-work-cleanup-mvp
+  included_proposals:
+  - PROP-040
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0
