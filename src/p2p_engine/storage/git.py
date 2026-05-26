@@ -68,6 +68,10 @@ def commit_all(root: Path, message: str) -> str | None:
     return head_commit(root)
 
 
+def stage_all(root: Path) -> bool:
+    return _run_git(root, "add", "-A") is not None
+
+
 def remote_url(root: Path, remote: str = "origin") -> str | None:
     return _run_git(root, "remote", "get-url", remote)
 
@@ -78,6 +82,25 @@ def push_branch(root: Path, branch_name: str, remote: str = "origin") -> bool:
 
 def merge_branch_no_commit(root: Path, branch_name: str) -> bool:
     return _run_git(root, "merge", "--no-ff", "--no-commit", branch_name) is not None
+
+
+def conflicted_files(root: Path) -> list[str]:
+    output = _run_git(root, "diff", "--name-only", "--diff-filter=U")
+    if output is None:
+        return []
+    return [line.strip() for line in output.splitlines() if line.strip()]
+
+
+def merge_in_progress(root: Path) -> bool:
+    return (root / ".git" / "MERGE_HEAD").exists()
+
+
+def abort_merge(root: Path) -> bool:
+    return _run_git(root, "merge", "--abort") is not None
+
+
+def restore_path(root: Path, path: str) -> bool:
+    return _run_git(root, "checkout", "--", path) is not None
 
 
 def list_local_work_branches(root: Path) -> list[str]:

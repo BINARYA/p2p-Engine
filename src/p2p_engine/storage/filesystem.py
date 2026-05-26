@@ -21,19 +21,24 @@ from p2p_engine.prompts.synthesize import render_synthesize_prompt
 from p2p_engine.prompts.swot import render_swot_prompt
 from p2p_engine.prompts.tasks import render_tasks_prompt
 from p2p_engine.storage.git import (
+    abort_merge,
     branch_exists,
     changed_files,
     checkout_branch,
     commit_all,
+    conflicted_files,
     create_and_checkout_branch,
     get_git_status,
     head_commit,
     list_files_at_ref,
     list_local_work_branches,
     merge_branch_no_commit,
+    merge_in_progress,
     push_branch,
     read_file_at_ref,
     remote_url,
+    stage_all,
+    restore_path,
 )
 
 PromptKind = Literal["explore", "digest", "clarify", "synthesize", "plan", "tasks", "swot", "impact"]
@@ -320,6 +325,15 @@ class WorkAccept:
     branch_name: str
     base_branch: str
     merge_commit: str
+    path: Path
+
+
+@dataclass(frozen=True)
+class WorkAcceptConflict:
+    work_id: str
+    branch_name: str
+    base_branch: str
+    conflicted_files: list[str]
     path: Path
 
 
@@ -1696,7 +1710,7 @@ class P2PWorkspace:
             path=work_dir.relative_to(self.root),
         )
 
-    def accept_work(self, work_id: str) -> WorkAccept:
+    def accept_work(self, work_id: str) -> WorkAccept | WorkAcceptConflict:
         work_dir = self._find_work_dir(work_id)
         manifest_path = work_dir / "manifest.yml"
         local_manifest = _read_yaml_mapping(manifest_path, default={})
@@ -1733,7 +1747,32 @@ class P2PWorkspace:
             raise ValueError(f"Work item must be published before accept. Current status: {status}")
 
         if not merge_branch_no_commit(self.root, branch_name):
-            raise ValueError(f"Failed to merge managed work branch: {branch_name}")
+            conflicts = conflicted_files(self.root)
+            if not conflicts:
+                raise ValueError(f"Failed to merge managed work branch: {branch_name}")
+            conflict_manifest = dict(branch_manifest)
+            conflict_git = conflict_manifest.get("git", {})
+            if not isinstance(conflict_git, dict):
+                conflict_git = {}
+            conflict_manifest["status"] = "merge_conflict"
+            conflict_git["mode"] = "managed_accept_conflict"
+            conflict_git["merge_conflict_at"] = date.today().isoformat()
+            conflict_manifest["git"] = conflict_git
+            conflict_manifest["merge_conflict"] = {
+                "source_branch": branch_name,
+                "base_branch": base_branch,
+                "conflicted_files": conflicts,
+                "continue_command": f"p2p work accept --continue {work_id}",
+                "abort_command": f"p2p work accept --abort {work_id}",
+            }
+            manifest_path.write_text(_yaml_dump(conflict_manifest), encoding="utf-8")
+            return WorkAcceptConflict(
+                work_id=str(conflict_manifest.get("work_id") or work_id),
+                branch_name=branch_name,
+                base_branch=base_branch,
+                conflicted_files=conflicts,
+                path=work_dir.relative_to(self.root),
+            )
 
         merged_manifest = _read_yaml_mapping(manifest_path, default={})
         merged_git = merged_manifest.get("git", {})
@@ -1770,6 +1809,98 @@ class P2PWorkspace:
             merge_commit=merge_commit,
             path=work_dir.relative_to(self.root),
         )
+
+    def continue_accept_work(self, work_id: str) -> WorkAccept:
+        work_dir = self._find_work_dir(work_id)
+        manifest_path = work_dir / "manifest.yml"
+        manifest = _read_yaml_mapping(manifest_path, default={})
+        status = str(manifest.get("status") or "unknown")
+        if status != "merge_conflict":
+            raise ValueError(f"Work item must be merge_conflict before accept --continue. Current status: {status}")
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError("Cannot continue managed work accept outside a Git repository")
+        if not merge_in_progress(self.root):
+            raise ValueError("Cannot continue managed work accept: no merge is in progress")
+        unresolved = [path for path in conflicted_files(self.root) if _file_has_conflict_markers(self.root / path)]
+        if unresolved:
+            raise ValueError("Cannot continue managed work accept with unresolved conflicts: " + ", ".join(unresolved))
+        stage_all(self.root)
+        conflicts = conflicted_files(self.root)
+        if conflicts:
+            raise ValueError("Cannot continue managed work accept with unresolved conflicts: " + ", ".join(conflicts))
+
+        git = manifest.get("git", {})
+        if not isinstance(git, dict):
+            git = {}
+        conflict = manifest.get("merge_conflict", {})
+        if not isinstance(conflict, dict):
+            conflict = {}
+        branch_name = str(conflict.get("source_branch") or git.get("branch_name") or "")
+        base_branch = str(conflict.get("base_branch") or git.get("base_branch") or git_status.branch or "main")
+        manifest["status"] = "accepted"
+        levels = manifest.get("managed_git_levels", [])
+        if isinstance(levels, list):
+            for level in levels:
+                if isinstance(level, dict) and level.get("level") == 5:
+                    level["enabled"] = True
+        git["mode"] = "managed_accept"
+        git["accepted_at"] = date.today().isoformat()
+        manifest["git"] = git
+        manifest.pop("merge_conflict", None)
+        manifest["acceptance"] = {
+            "mode": "local_merge",
+            "source_branch": branch_name,
+            "merged_into": base_branch,
+            "pushed": False,
+            "cleanup": False,
+            "resolved_conflict": True,
+        }
+        manifest_path.write_text(_yaml_dump(manifest), encoding="utf-8")
+        merge_commit = commit_all(self.root, f"P2P accept {work_id}")
+        if merge_commit is None:
+            raise ValueError("Failed to create managed work accept merge commit")
+        return WorkAccept(
+            work_id=str(manifest.get("work_id") or work_id),
+            branch_name=branch_name,
+            base_branch=base_branch,
+            merge_commit=merge_commit,
+            path=work_dir.relative_to(self.root),
+        )
+
+    def abort_accept_work(self, work_id: str) -> WorkDetail:
+        work_dir = self._find_work_dir(work_id)
+        manifest_path = work_dir / "manifest.yml"
+        manifest = _read_yaml_mapping(manifest_path, default={})
+        status = str(manifest.get("status") or "unknown")
+        if status != "merge_conflict":
+            raise ValueError(f"Work item must be merge_conflict before accept --abort. Current status: {status}")
+        conflict = manifest.get("merge_conflict", {})
+        if not isinstance(conflict, dict):
+            conflict = {}
+        manifest_rel = manifest_path.relative_to(self.root).as_posix()
+        if merge_in_progress(self.root):
+            restore_path(self.root, manifest_rel)
+            if not abort_merge(self.root):
+                raise ValueError("Failed to abort managed work merge")
+        restored = _read_yaml_mapping(manifest_path, default=manifest)
+        restored["status"] = "published"
+        git = restored.get("git", {})
+        if not isinstance(git, dict):
+            git = {}
+        git["mode"] = "managed_publish"
+        git["accept_aborted_at"] = date.today().isoformat()
+        restored["git"] = git
+        restored.pop("merge_conflict", None)
+        restored["acceptance_abort"] = {
+            "source_branch": str(conflict.get("source_branch") or git.get("branch_name") or ""),
+            "base_branch": str(conflict.get("base_branch") or git.get("base_branch") or "main"),
+            "aborted": True,
+        }
+        manifest_path.write_text(_yaml_dump(restored), encoding="utf-8")
+        if commit_all(self.root, f"P2P abort accept {work_id}") is None:
+            raise ValueError("Failed to create managed work accept abort commit")
+        return self.show_work(work_id)
 
     def _scanned_work_items(self) -> list[dict[str, object]]:
         path = self.p2p_dir / "registries" / "work.yml"
@@ -4393,11 +4524,23 @@ def _work_next_action(
         return f"p2p work publish {work_id}", "publish the managed branch to the remote"
     if status == "published":
         return f"checkout {base_branch}; p2p work accept {work_id}", "owner-controlled local merge"
+    if status == "merge_conflict":
+        return f"resolve conflicts; p2p work accept --continue {work_id}", "or abort with p2p work accept --abort"
     if status == "accepted":
         if accepted and not pushed:
             return "future: p2p work finalize {work_id}".format(work_id=work_id), "push base branch and cleanup are not implemented yet"
         return "none", "accepted"
     return "inspect", "unknown Work status"
+
+
+def _file_has_conflict_markers(path: Path) -> bool:
+    if not path.exists() or not path.is_file():
+        return False
+    try:
+        content = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return True
+    return "<<<<<<<" in content or "=======" in content or ">>>>>>>" in content
 
 
 def _vote_status_from_data(proposal_id: str, data: object) -> VoteStatus:

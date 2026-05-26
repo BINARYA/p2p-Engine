@@ -1041,3 +1041,31 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-038
+  title: Managed Work Merge Conflict Guidance MVP
+  status: accepted
+  path: .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp
+  summary: Enhance p2p work accept with conflict guidance. On merge conflict, mark
+    the Work manifest as merge_conflict, record source/base branches and conflicted
+    files, and show recovery commands. Add p2p work accept --continue WORK-XXX to
+    finalize after manual conflict resolution, and p2p work accept --abort WORK-XXX
+    to abort the merge and restore the Work item to published.
+  decision_file: .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp/decision.md
+  related_changes:
+  - CHANGE-024
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

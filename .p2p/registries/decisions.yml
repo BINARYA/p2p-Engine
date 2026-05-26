@@ -264,3 +264,10 @@ decisions:
   path: .p2p/proposals/PROP-037-managed-work-status-summary-mvp/decision.md
   reason: 'This is the safest next refinement: a read-only operational view before
     conflict handling, finalize, or GitHub PR work.'
+- proposal: PROP-038
+  title: Managed Work Merge Conflict Guidance MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp/decision.md
+  reason: Accept/merge is the riskiest step in the managed Work lifecycle; conflicts
+    need explicit P2P guidance before finalize or GitHub handoff.

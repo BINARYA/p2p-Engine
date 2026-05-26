@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-038
+  decision_file: .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp/decision.md

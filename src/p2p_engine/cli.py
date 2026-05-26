@@ -8,7 +8,7 @@ from rich.console import Console
 
 from p2p_engine.core.contribution import ContributionType
 from p2p_engine.core.decision import DecisionOutcome
-from p2p_engine.storage.filesystem import P2PWorkspace
+from p2p_engine.storage.filesystem import P2PWorkspace, WorkAcceptConflict
 
 app = typer.Typer(help="P2P Engine CLI")
 proposal_app = typer.Typer(help="Manage proposals")
@@ -1231,13 +1231,38 @@ def work_publish(
 @work_app.command("accept")
 def work_accept(
     work_id: str = typer.Argument(..., help="Work ID, e.g. WORK-001"),
+    continue_: bool = typer.Option(False, "--continue", help="Continue accept after manual conflict resolution"),
+    abort: bool = typer.Option(False, "--abort", help="Abort a conflicted accept merge"),
     root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
 ) -> None:
     """Accept a published Work item by merging its managed branch into the base branch locally."""
+    if continue_ and abort:
+        _fail("Use either --continue or --abort, not both.")
     try:
-        accept = _workspace(root).accept_work(work_id)
+        if continue_:
+            accept = _workspace(root).continue_accept_work(work_id)
+        elif abort:
+            work = _workspace(root).abort_accept_work(work_id)
+            console.print("[yellow]Managed work accept aborted.[/yellow]")
+            console.print(f"  work: {work.work_id}")
+            console.print(f"  status: {work.status}")
+            console.print(f"  branch: {work.branch_name}")
+            return
+        else:
+            accept = _workspace(root).accept_work(work_id)
     except ValueError as exc:
         _fail(str(exc))
+    if isinstance(accept, WorkAcceptConflict):
+        console.print("[yellow]Managed work accept blocked by merge conflicts.[/yellow]")
+        console.print(f"  work: {accept.work_id}")
+        console.print(f"  source_branch: {accept.branch_name}")
+        console.print(f"  base: {accept.base_branch}")
+        console.print("  conflicts:")
+        for path in accept.conflicted_files:
+            console.print(f"    {path}")
+        console.print(f"  continue: p2p work accept --continue {accept.work_id}")
+        console.print(f"  abort: p2p work accept --abort {accept.work_id}")
+        raise typer.Exit(1)
     console.print("[green]Managed work accepted.[/green]")
     console.print(f"  work: {accept.work_id}")
     console.print(f"  source_branch: {accept.branch_name}")

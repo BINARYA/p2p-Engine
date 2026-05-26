@@ -311,6 +311,7 @@ p2p work show WORK-001
 `p2p work review WORK-XXX` is the local review-request step. It requires Work status `submitted`, requires the current branch to match the Work manifest branch, requires a clean worktree, records the commit to review, updates the manifest to `review_requested`, and creates one local metadata commit. It must not push, open PRs, or merge.
 `p2p work publish WORK-XXX` is the remote handoff step. It requires Work status `review_requested`, requires the current branch to match the Work manifest branch, requires a clean worktree and a configured Git remote, updates the manifest to `published`, creates one local publish metadata commit, and pushes the managed branch to the remote. It must not open PRs or merge.
 `p2p work accept WORK-XXX` is the owner-controlled local merge step. It requires Work status `published` on the managed branch, requires the current branch to be the manifest base branch, requires a clean worktree, merges the managed Work branch locally, updates the manifest to `accepted`, and creates one local merge commit. It must not push the base branch or delete Work branches.
+If `p2p work accept` reports merge conflicts, do not continue with publish/finalize/cleanup. Resolve the listed files manually, then run `p2p work accept --continue WORK-XXX`; or run `p2p work accept --abort WORK-XXX` to abort the merge and return the Work item to `published`.
 
 Future managed Git levels must stay separate:
 

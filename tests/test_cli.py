@@ -1510,6 +1510,88 @@ def test_cli_work_accept_requires_published_base_branch(tmp_path: Path) -> None:
     assert "Work item must be published before accept" in result.output
 
 
+def test_cli_work_accept_conflict_continue_and_abort(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Managed Work Conflict",
+            "--problem",
+            "Need guided merge conflict recovery.",
+            "--proposal",
+            "Mark conflicts and support continue/abort.",
+            "--acceptance",
+            "The Work item records merge_conflict.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "plan", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+
+    conflict_file = tmp_path / "conflict.txt"
+    conflict_file.write_text("base\n", encoding="utf-8")
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+
+    runner.invoke(app, ["work", "branch", "WORK-001", "--root", str(tmp_path)])
+    conflict_file.write_text("work branch\n", encoding="utf-8")
+    runner.invoke(app, ["work", "submit", "WORK-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "review", "WORK-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "publish", "WORK-001", "--root", str(tmp_path)])
+
+    _git(tmp_path, "checkout", "main")
+    conflict_file.write_text("main branch\n", encoding="utf-8")
+    _git(tmp_path, "add", "conflict.txt")
+    _git(tmp_path, "commit", "-m", "main conflict")
+
+    result = runner.invoke(app, ["work", "accept", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code != 0
+    assert "Managed work accept blocked by merge conflicts" in result.output
+    assert "conflict.txt" in result.output
+    assert "p2p work accept --continue WORK-001" in result.output
+    manifest = tmp_path / ".p2p" / "work" / "WORK-001" / "manifest.yml"
+    manifest_text = manifest.read_text(encoding="utf-8")
+    assert "status: merge_conflict" in manifest_text
+    assert "conflicted_files:" in manifest_text
+
+    result = runner.invoke(app, ["work", "accept", "--abort", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Managed work accept aborted" in result.output
+    assert _git(tmp_path, "status", "--porcelain").stdout.strip() == ""
+    assert _git(tmp_path, "log", "-1", "--pretty=%s").stdout.strip() == "P2P abort accept WORK-001"
+    assert "status: published" in manifest.read_text(encoding="utf-8")
+
+    result = runner.invoke(app, ["work", "accept", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code != 0
+    assert "Managed work accept blocked by merge conflicts" in result.output
+
+    result = runner.invoke(app, ["work", "accept", "--continue", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code != 0
+    assert "unresolved conflicts:" in result.output
+    assert "conflict.txt" in result.output
+
+    conflict_file.write_text("resolved\n", encoding="utf-8")
+    result = runner.invoke(app, ["work", "accept", "--continue", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Managed work accepted" in result.output
+    assert _git(tmp_path, "status", "--porcelain").stdout.strip() == ""
+    assert _git(tmp_path, "log", "-1", "--pretty=%s").stdout.strip() == "P2P accept WORK-001"
+    assert "status: accepted" in manifest.read_text(encoding="utf-8")
+
+
 def test_cli_work_scan_reads_local_branch_without_checkout(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     _git(tmp_path, "init")
