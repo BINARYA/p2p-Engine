@@ -1086,6 +1086,97 @@ def test_cli_work_branch_requires_clean_worktree(tmp_path: Path) -> None:
     assert _git(tmp_path, "branch", "--show-current").stdout.strip() == "main"
 
 
+def test_cli_work_submit_creates_local_commit(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Managed Work Submit",
+            "--problem",
+            "Need a local submit commit.",
+            "--proposal",
+            "Submit managed branch work as a commit.",
+            "--acceptance",
+            "The Work item is submitted.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "plan", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    runner.invoke(app, ["work", "branch", "WORK-001", "--root", str(tmp_path)])
+
+    feature_file = tmp_path / "feature.txt"
+    feature_file.write_text("submitted work\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["work", "submit", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Managed work submitted" in result.output
+    assert "branch: p2p/work/work-001-change-001-speckit" in result.output
+    assert "changed_files: 1" in result.output
+    assert "feature.txt" in result.output
+    assert "push: disabled" in result.output
+
+    manifest = tmp_path / ".p2p" / "work" / "WORK-001" / "manifest.yml"
+    manifest_text = manifest.read_text(encoding="utf-8")
+    assert "status: submitted" in manifest_text
+    assert "mode: managed_submit" in manifest_text
+    assert "pushed: false" in manifest_text
+    assert "merged: false" in manifest_text
+    assert "feature.txt" in manifest_text
+    assert _git(tmp_path, "status", "--porcelain").stdout.strip() == ""
+    assert _git(tmp_path, "log", "-1", "--pretty=%s").stdout.strip() == "P2P submit WORK-001: CHANGE-001"
+
+
+def test_cli_work_submit_requires_non_manifest_changes(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Managed Work Submit",
+            "--problem",
+            "Need a local submit commit.",
+            "--proposal",
+            "Submit managed branch work as a commit.",
+            "--acceptance",
+            "The Work item is submitted.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "plan", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    runner.invoke(app, ["work", "branch", "WORK-001", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["work", "submit", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code != 0
+    assert "Cannot submit managed work with only Work manifest changes" in result.output
+
+
 def test_cli_work_scan_reads_local_branch_without_checkout(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     _git(tmp_path, "init")

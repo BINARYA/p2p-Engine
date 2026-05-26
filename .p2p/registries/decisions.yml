@@ -229,3 +229,10 @@ decisions:
   path: .p2p/proposals/PROP-032-managed-work-branch-creation-mvp/decision.md
   reason: 'This is the next incremental step toward invisible managed Git: isolate
     operational work in P2P-managed branches without automatic commit or merge.'
+- proposal: PROP-033
+  title: Managed Work Submit MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-033-managed-work-submit-mvp/decision.md
+  reason: 'This is the next incremental managed Git level: local auditable submit
+    without push or merge.'

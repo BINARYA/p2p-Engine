@@ -277,3 +277,20 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-019
+  title: Managed Work Submit MVP
+  status: completed
+  path: .p2p/changes/CHANGE-019-managed-work-submit-mvp
+  included_proposals:
+  - PROP-033
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

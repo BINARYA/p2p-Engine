@@ -287,11 +287,12 @@ Level 4: managed review
 Level 5: owner-controlled merge
 ```
 
-The current safe level is Level 2:
+The current safe level is Level 3:
 
 ```bash
 p2p work plan --change CHANGE-XXX --target speckit
 p2p work branch WORK-001
+p2p work submit WORK-001
 p2p work scan
 p2p work list
 p2p work show WORK-001
@@ -300,6 +301,7 @@ p2p work show WORK-001
 `p2p work plan` requires a validated export bundle and writes `.p2p/work/WORK-XXX/manifest.yml`. It does not create Git branches, commits, PRs, or merges. Future branch visibility should read P2P-managed work manifests from `p2p/work/*` branches through the Git adapter without requiring checkout.
 `p2p work scan` is the first branch-visibility step: it reads local `p2p/work/*` branches without checkout and writes `.p2p/registries/work.yml`. It is read-only with respect to Git and must not fetch remote branches, create branches, commit, submit, or merge.
 `p2p work branch WORK-XXX` is the first managed-write step. It creates and checks out the P2P-managed branch declared in the Work manifest, updates that manifest to `branched`, and keeps commit, submit, and merge disabled. It requires a clean Git worktree, a non-detached base branch, and an unused branch name. It must not be used to decide between proposals by itself; create branches only for accepted Change Sets or owner-authorized spikes.
+`p2p work submit WORK-XXX` is the local commit step. It requires the current branch to match the Work manifest branch, requires Work status `branched`, refuses submissions that only contain Work manifest bookkeeping, updates the manifest to `submitted`, and creates one local commit. It must not push, open PRs, submit reviews, or merge; those belong to later owner-controlled levels.
 
 After implementation and verification:
 

@@ -40,6 +40,30 @@ def create_and_checkout_branch(root: Path, branch_name: str) -> bool:
     return _run_git(root, "checkout", "-b", branch_name) is not None
 
 
+def changed_files(root: Path) -> list[str]:
+    output = _run_git(root, "status", "--porcelain")
+    if output is None:
+        return []
+    files: list[str] = []
+    for line in output.splitlines():
+        if len(line) < 4:
+            continue
+        path = line[2:].strip()
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1]
+        if path:
+            files.append(path)
+    return files
+
+
+def commit_all(root: Path, message: str) -> str | None:
+    if _run_git(root, "add", "-A") is None:
+        return None
+    if _run_git(root, "commit", "-m", message) is None:
+        return None
+    return head_commit(root)
+
+
 def list_local_work_branches(root: Path) -> list[str]:
     output = _run_git(root, "for-each-ref", "--format=%(refname:short)", "refs/heads/p2p/work")
     if output is None:

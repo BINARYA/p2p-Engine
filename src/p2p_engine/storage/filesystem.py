@@ -22,6 +22,8 @@ from p2p_engine.prompts.swot import render_swot_prompt
 from p2p_engine.prompts.tasks import render_tasks_prompt
 from p2p_engine.storage.git import (
     branch_exists,
+    changed_files,
+    commit_all,
     create_and_checkout_branch,
     get_git_status,
     head_commit,
@@ -263,6 +265,15 @@ class WorkBranch:
     base_branch: str
     base_commit: str
     head_commit: str
+    path: Path
+
+
+@dataclass(frozen=True)
+class WorkSubmit:
+    work_id: str
+    branch_name: str
+    commit: str
+    changed_files: list[str]
     path: Path
 
 
@@ -1370,6 +1381,68 @@ class P2PWorkspace:
             base_branch=base_branch,
             base_commit=base_commit,
             head_commit=new_head_commit,
+            path=work_dir.relative_to(self.root),
+        )
+
+    def submit_work(self, work_id: str) -> WorkSubmit:
+        work_dir = self._find_work_dir(work_id)
+        manifest_path = work_dir / "manifest.yml"
+        manifest_rel = manifest_path.relative_to(self.root).as_posix()
+        manifest = _read_yaml_mapping(manifest_path, default={})
+        status = str(manifest.get("status") or "unknown")
+        if status != "branched":
+            raise ValueError(f"Work item must be branched before submit. Current status: {status}")
+
+        source = manifest.get("source", {})
+        change_id = str(source.get("change") if isinstance(source, dict) else "unknown")
+        git = manifest.get("git", {})
+        if not isinstance(git, dict):
+            raise ValueError("Invalid Work manifest: git must be a mapping")
+        branch_name = str(git.get("branch_name") or "")
+        if not branch_name:
+            raise ValueError("Invalid Work manifest: git.branch_name is required")
+
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError("Cannot submit managed work outside a Git repository")
+        if git_status.branch != branch_name:
+            raise ValueError(f"Cannot submit managed work from {git_status.branch}; expected branch {branch_name}")
+
+        changed = changed_files(self.root)
+        if not changed:
+            raise ValueError("Cannot submit managed work without changes")
+        work_changes = [path for path in changed if path != manifest_rel]
+        if not work_changes:
+            raise ValueError("Cannot submit managed work with only Work manifest changes")
+
+        manifest["status"] = "submitted"
+        levels = manifest.get("managed_git_levels", [])
+        if isinstance(levels, list):
+            for level in levels:
+                if isinstance(level, dict) and level.get("level") == 3:
+                    level["enabled"] = True
+        git["mode"] = "managed_submit"
+        git["submitted_at"] = date.today().isoformat()
+        manifest["git"] = git
+        manifest["submission"] = {
+            "mode": "local_commit",
+            "pushed": False,
+            "merged": False,
+            "changed_files": changed,
+            "work_changes": work_changes,
+        }
+        manifest_path.write_text(_yaml_dump(manifest), encoding="utf-8")
+
+        message = f"P2P submit {work_id}: {change_id}"
+        commit = commit_all(self.root, message)
+        if commit is None:
+            raise ValueError("Failed to create managed work submit commit")
+
+        return WorkSubmit(
+            work_id=str(manifest.get("work_id") or work_id),
+            branch_name=branch_name,
+            commit=commit,
+            changed_files=work_changes,
             path=work_dir.relative_to(self.root),
         )
 

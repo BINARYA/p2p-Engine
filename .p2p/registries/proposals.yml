@@ -905,3 +905,30 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-033
+  title: Managed Work Submit MVP
+  status: accepted
+  path: .p2p/proposals/PROP-033-managed-work-submit-mvp
+  summary: Add p2p work submit WORK-XXX. The command verifies the current branch is
+    the Work branch, validates that the Work item is branched, requires changed files,
+    records the changed file list, updates the Work manifest to submitted, stages
+    the Work branch changes, and creates a local commit with a P2P-standard message.
+  decision_file: .p2p/proposals/PROP-033-managed-work-submit-mvp/decision.md
+  related_changes:
+  - CHANGE-019
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

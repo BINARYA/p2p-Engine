@@ -1146,6 +1146,27 @@ def work_branch(
     console.print("  merge: owner-controlled")
 
 
+@work_app.command("submit")
+def work_submit(
+    work_id: str = typer.Argument(..., help="Work ID, e.g. WORK-001"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Create a local managed submit commit for a branched Work item."""
+    try:
+        submit = _workspace(root).submit_work(work_id)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Managed work submitted.[/green]")
+    console.print(f"  work: {submit.work_id}")
+    console.print(f"  branch: {submit.branch_name}")
+    console.print(f"  commit: {submit.commit}")
+    console.print(f"  changed_files: {len(submit.changed_files)}")
+    for path in submit.changed_files:
+        console.print(f"    {path}")
+    console.print("  push: disabled")
+    console.print("  merge: owner-controlled")
+
+
 @work_app.command("show")
 def work_show(
     work_id: str = typer.Argument(..., help="Work ID, e.g. WORK-001"),
