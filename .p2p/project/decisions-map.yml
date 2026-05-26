@@ -104,3 +104,53 @@ decisions:
   status: accepted
   feature: p2p-software-spec-generator-mvp
   source: .p2p/proposals/PROP-026-p2p-software-spec-generator-mvp
+- proposal: PROP-027
+  title: Software Spec Exporter MVP
+  status: accepted
+  feature: software-spec-exporter-mvp
+  source: .p2p/proposals/PROP-027-software-spec-exporter-mvp
+- proposal: PROP-028
+  title: Spec Kit Export Mapping MVP
+  status: accepted
+  feature: spec-kit-export-mapping-mvp
+  source: .p2p/proposals/PROP-028-spec-kit-export-mapping-mvp
+- proposal: PROP-029
+  title: Spec Export Validation MVP
+  status: accepted
+  feature: spec-export-validation-mvp
+  source: .p2p/proposals/PROP-029-spec-export-validation-mvp
+- proposal: PROP-030
+  title: Managed Work and Multi-Branch Visibility Policy
+  status: accepted
+  feature: managed-work-and-multi-branch-visibility-policy
+  source: .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy
+- proposal: PROP-031
+  title: Multi-Branch Work Scan MVP
+  status: accepted
+  feature: multi-branch-work-scan-mvp
+  source: .p2p/proposals/PROP-031-multi-branch-work-scan-mvp
+- proposal: PROP-032
+  title: Managed Work Branch Creation MVP
+  status: accepted
+  feature: managed-work-branch-creation-mvp
+  source: .p2p/proposals/PROP-032-managed-work-branch-creation-mvp
+- proposal: PROP-033
+  title: Managed Work Submit MVP
+  status: accepted
+  feature: managed-work-submit-mvp
+  source: .p2p/proposals/PROP-033-managed-work-submit-mvp
+- proposal: PROP-034
+  title: Managed Work Review MVP
+  status: accepted
+  feature: managed-work-review-mvp
+  source: .p2p/proposals/PROP-034-managed-work-review-mvp
+- proposal: PROP-035
+  title: Managed Work Publish MVP
+  status: accepted
+  feature: managed-work-publish-mvp
+  source: .p2p/proposals/PROP-035-managed-work-publish-mvp
+- proposal: PROP-036
+  title: Managed Work Accept MVP
+  status: accepted
+  feature: managed-work-accept-mvp
+  source: .p2p/proposals/PROP-036-managed-work-accept-mvp

@@ -301,3 +301,103 @@ Generated from accepted proposal goals and non-goals.
 - Do not implement OpenSpec or Spec Kit export in this MVP.
 - Do not invoke AI directly.
 - Do not invent missing requirements beyond source artifacts.
+
+## PROP-027 - Software Spec Exporter MVP
+
+### Goals
+
+- Provide a conservative exporter MVP that writes generic and OpenSpec-oriented export bundles from an existing P2P software spec.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-028 - Spec Kit Export Mapping MVP
+
+### Goals
+
+- Define and implement a conservative Spec Kit export mapping from P2P-native software specs without invoking Spec Kit or creating branches.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-029 - Spec Export Validation MVP
+
+### Goals
+
+- Provide a read-only CLI validator for generated software spec export bundles.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-030 - Managed Work and Multi-Branch Visibility Policy
+
+### Goals
+
+- Define a level-based managed Git policy and implement the first safe step: read-only handoff planning through P2P Work manifests.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-031 - Multi-Branch Work Scan MVP
+
+### Goals
+
+- Let P2P scan local P2P-managed Git branches for Work manifests without checkout or mutation.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-032 - Managed Work Branch Creation MVP
+
+### Goals
+
+- Allow an owner or agent to explicitly create a P2P-managed branch for a planned Work item without committing, submitting, or merging.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-033 - Managed Work Submit MVP
+
+### Goals
+
+- Allow a branched Work item to be submitted as a local managed commit without pushing or merging.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-034 - Managed Work Review MVP
+
+### Goals
+
+- Allow a submitted Work item to enter a local review_requested state with a clear review commit and no remote side effects.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-035 - Managed Work Publish MVP
+
+### Goals
+
+- Allow a review_requested Work item to push its managed branch to origin without opening a PR or merging.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-036 - Managed Work Accept MVP
+
+### Goals
+
+- Allow an owner to accept a published Work item by merging its managed branch locally into the base branch.
+
+### Non-Goals
+
+- Not provided.

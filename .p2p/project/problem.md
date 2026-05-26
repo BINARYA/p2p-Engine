@@ -87,3 +87,43 @@ Intake analysis can recommend actions, but there is no controlled, auditable wor
 ## PROP-026 - P2P Software Spec Generator MVP
 
 P2P can model proposals, decisions and Change Sets, but it cannot yet generate a normalized software specification suitable for downstream OpenSpec, Spec Kit, or code generation workflows.
+
+## PROP-027 - Software Spec Exporter MVP
+
+P2P can generate and refine P2P-native software specs, but it cannot yet export those specs into downstream code-generation or specification tool formats.
+
+## PROP-028 - Spec Kit Export Mapping MVP
+
+P2P can export generic and OpenSpec-oriented bundles from P2P-native software specs, but the declared Spec Kit export target still has no concrete mapping.
+
+## PROP-029 - Spec Export Validation MVP
+
+P2P can generate generic, OpenSpec-oriented, and Spec Kit-oriented export bundles, but it cannot yet validate whether an existing export bundle is complete and internally consistent before downstream use.
+
+## PROP-030 - Managed Work and Multi-Branch Visibility Policy
+
+P2P is moving toward managed Git under the hood, but users still lack a P2P-native work abstraction that can represent future branch, commit, review, and merge operations without exposing Git as the user interface.
+
+## PROP-031 - Multi-Branch Work Scan MVP
+
+P2P Work manifests can represent handoff plans locally, but P2P still cannot discover Work manifests that live on parallel P2P-managed branches without checking them out.
+
+## PROP-032 - Managed Work Branch Creation MVP
+
+P2P Work manifests can plan downstream work but cannot yet create an isolated managed branch for implementation.
+
+## PROP-033 - Managed Work Submit MVP
+
+P2P can create managed branches for Work items, but it cannot yet package completed branch work into an auditable managed commit.
+
+## PROP-034 - Managed Work Review MVP
+
+P2P can submit managed branch work as a local commit, but it cannot yet mark that submitted work as ready for owner review.
+
+## PROP-035 - Managed Work Publish MVP
+
+P2P can request local review for managed Work, but it cannot yet publish the reviewed branch to the configured remote for downstream owner inspection.
+
+## PROP-036 - Managed Work Accept MVP
+
+P2P can publish reviewed managed Work branches, but it cannot yet perform the owner-controlled local merge that accepts a Work item into the base branch.
