@@ -263,6 +263,20 @@ class WorkDetail:
 
 
 @dataclass(frozen=True)
+class WorkSummary:
+    work_id: str
+    status: str
+    change_id: str
+    target: str
+    branch_name: str
+    base_branch: str
+    remote: str | None
+    next_action: str
+    note: str
+    path: Path
+
+
+@dataclass(frozen=True)
 class WorkBranch:
     work_id: str
     branch_name: str
@@ -1334,6 +1348,18 @@ class P2PWorkspace:
             )
         return statuses
 
+    def work_summaries(self) -> list[WorkSummary]:
+        summaries: list[WorkSummary] = []
+        work_root = self.p2p_dir / "work"
+        for path in sorted(work_root.iterdir()) if work_root.exists() else []:
+            if not path.is_dir():
+                continue
+            manifest = _read_yaml_mapping(path / "manifest.yml", default={})
+            summaries.append(self._work_summary_from_manifest(manifest, path.relative_to(self.root), scanned=False))
+        for item in self._scanned_work_items():
+            summaries.append(self._work_summary_from_scan(item))
+        return summaries
+
     def show_work(self, work_id: str) -> WorkDetail:
         work_dir = self._find_work_dir(work_id)
         manifest = _read_yaml_mapping(work_dir / "manifest.yml", default={})
@@ -1348,6 +1374,77 @@ class P2PWorkspace:
             branch_name=str(git.get("branch_name") if isinstance(git, dict) else ""),
             path=work_dir.relative_to(self.root),
             manifest=manifest,
+        )
+
+    def _work_summary_from_manifest(
+        self,
+        manifest: dict[str, object],
+        path: Path,
+        *,
+        scanned: bool,
+    ) -> WorkSummary:
+        source = manifest.get("source", {})
+        handoff = manifest.get("handoff", {})
+        git = manifest.get("git", {})
+        publish = manifest.get("publish", {})
+        acceptance = manifest.get("acceptance", {})
+        status = str(manifest.get("status") or "unknown")
+        work_id = str(manifest.get("work_id") or path.name)
+        branch_name = str(git.get("branch_name") if isinstance(git, dict) else "")
+        base_branch = str(git.get("base_branch") if isinstance(git, dict) else "main")
+        remote = None
+        if isinstance(publish, dict):
+            remote_value = publish.get("remote")
+            if remote_value:
+                remote = str(remote_value)
+        if status == "accepted" and isinstance(acceptance, dict):
+            pushed = bool(acceptance.get("pushed"))
+        else:
+            pushed = bool(publish.get("remote_branch")) if isinstance(publish, dict) else False
+        next_action, note = _work_next_action(
+            work_id=work_id,
+            status=status,
+            base_branch=base_branch,
+            pushed=pushed,
+            accepted=bool(acceptance) if isinstance(acceptance, dict) else False,
+            scanned=scanned,
+        )
+        return WorkSummary(
+            work_id=work_id,
+            status=status,
+            change_id=str(source.get("change") if isinstance(source, dict) else "unknown"),
+            target=str(handoff.get("target") if isinstance(handoff, dict) else "none"),
+            branch_name=branch_name,
+            base_branch=base_branch,
+            remote=remote,
+            next_action=next_action,
+            note=note,
+            path=path,
+        )
+
+    def _work_summary_from_scan(self, item: dict[str, object]) -> WorkSummary:
+        work_id = str(item.get("work_id") or "unknown")
+        status = str(item.get("status") or "unknown")
+        branch_name = str(item.get("branch_name") or item.get("branch") or "")
+        next_action, note = _work_next_action(
+            work_id=work_id,
+            status=status,
+            base_branch="main",
+            pushed=False,
+            accepted=False,
+            scanned=True,
+        )
+        return WorkSummary(
+            work_id=work_id,
+            status=status,
+            change_id=str(item.get("change") or "unknown"),
+            target=str(item.get("target") or "none"),
+            branch_name=branch_name,
+            base_branch="main",
+            remote=None,
+            next_action=next_action,
+            note=note,
+            path=Path(str(item.get("path") or ".")),
         )
 
     def branch_work(self, work_id: str) -> WorkBranch:
@@ -4273,6 +4370,34 @@ def _string_list(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return [str(item) for item in value]
+
+
+def _work_next_action(
+    *,
+    work_id: str,
+    status: str,
+    base_branch: str,
+    pushed: bool,
+    accepted: bool,
+    scanned: bool,
+) -> tuple[str, str]:
+    if scanned:
+        return "p2p work show {work_id}".format(work_id=work_id), "scanned from a managed branch registry"
+    if status == "planned":
+        return f"p2p work branch {work_id}", "create the managed implementation branch"
+    if status == "branched":
+        return f"p2p work submit {work_id}", "submit actual work changes as a local commit"
+    if status == "submitted":
+        return f"p2p work review {work_id}", "request local owner review"
+    if status == "review_requested":
+        return f"p2p work publish {work_id}", "publish the managed branch to the remote"
+    if status == "published":
+        return f"checkout {base_branch}; p2p work accept {work_id}", "owner-controlled local merge"
+    if status == "accepted":
+        if accepted and not pushed:
+            return "future: p2p work finalize {work_id}".format(work_id=work_id), "push base branch and cleanup are not implemented yet"
+        return "none", "accepted"
+    return "inspect", "unknown Work status"
 
 
 def _vote_status_from_data(proposal_id: str, data: object) -> VoteStatus:

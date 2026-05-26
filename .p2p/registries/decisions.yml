@@ -257,3 +257,10 @@ decisions:
   path: .p2p/proposals/PROP-036-managed-work-accept-mvp/decision.md
   reason: This completes the local owner-controlled managed Work lifecycle before
     optional base-branch push and cleanup.
+- proposal: PROP-037
+  title: Managed Work Status Summary MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-037-managed-work-status-summary-mvp/decision.md
+  reason: 'This is the safest next refinement: a read-only operational view before
+    conflict handling, finalize, or GitHub PR work.'

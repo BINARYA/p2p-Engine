@@ -993,6 +993,14 @@ def test_cli_work_plan_list_and_show(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "WORK-001  planned  CHANGE-001  speckit" in result.output
 
+    result = runner.invoke(app, ["work", "status", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Work status" in result.output
+    assert "WORK-001  planned" in result.output
+    assert "change: CHANGE-001" in result.output
+    assert "branch: p2p/work/work-001-change-001-speckit" in result.output
+    assert "next: p2p work branch WORK-001" in result.output
+
     result = runner.invoke(app, ["work", "show", "WORK-001", "--root", str(tmp_path)])
     assert result.exit_code == 0
     assert "WORK-001 - planned" in result.output
@@ -1448,6 +1456,13 @@ def test_cli_work_accept_merges_published_branch(tmp_path: Path) -> None:
     assert "merged_into: main" in manifest_text
     assert "pushed: false" in manifest_text
     assert "cleanup: false" in manifest_text
+
+    result = runner.invoke(app, ["work", "status", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "WORK-001  accepted" in result.output
+    assert "base: main" in result.output
+    assert "remote: origin" in result.output
+    assert "next: future: p2p work finalize WORK-001" in result.output
 
 
 def test_cli_work_accept_requires_published_base_branch(tmp_path: Path) -> None:

@@ -111,6 +111,11 @@ relations:
   type: includes
   rationale: Change Set includes accepted proposal.
   source_artifact: .p2p/changes/CHANGE-022-managed-work-accept-mvp
+- source: CHANGE-023
+  target: PROP-037
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-023-managed-work-status-summary-mvp
 - source: PROP-013
   target: CHANGE-001
   type: implemented_by
@@ -221,3 +226,8 @@ relations:
   type: implemented_by
   rationale: Proposal appears in Change Set source metadata.
   source_artifact: .p2p/proposals/PROP-036-managed-work-accept-mvp
+- source: PROP-037
+  target: CHANGE-023
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-037-managed-work-status-summary-mvp

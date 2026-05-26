@@ -1015,3 +1015,29 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-037
+  title: Managed Work Status Summary MVP
+  status: accepted
+  path: .p2p/proposals/PROP-037-managed-work-status-summary-mvp
+  summary: Add p2p work status. The command reads local Work manifests and scanned
+    branch registry entries, summarizes each Work item, and derives a conservative
+    next command from status without modifying project or Git state.
+  decision_file: .p2p/proposals/PROP-037-managed-work-status-summary-mvp/decision.md
+  related_changes:
+  - CHANGE-023
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

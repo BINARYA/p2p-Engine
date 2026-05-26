@@ -1111,6 +1111,26 @@ def work_list(root: Path = typer.Option(Path.cwd(), "--root", help="Project root
         console.print(f"  {work.work_id}  {work.status}  {work.change_id}  {work.target}")
 
 
+@work_app.command("status")
+def work_status(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+    """Show an operational read-only summary of P2P Work items."""
+    works = _workspace(root).work_summaries()
+    console.print("Work status")
+    if not works:
+        console.print("  none")
+        return
+    for work in works:
+        console.print(f"{work.work_id}  {work.status}")
+        console.print(f"  change: {work.change_id}")
+        console.print(f"  target: {work.target}")
+        console.print(f"  branch: {work.branch_name or 'none'}")
+        console.print(f"  base: {work.base_branch}")
+        if work.remote:
+            console.print(f"  remote: {work.remote}")
+        console.print(f"  next: {work.next_action}")
+        console.print(f"  note: {work.note}")
+
+
 @work_app.command("scan")
 def work_scan(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
     """Scan local P2P-managed work branches without checkout."""

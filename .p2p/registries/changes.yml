@@ -345,3 +345,20 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-023
+  title: Managed Work Status Summary MVP
+  status: completed
+  path: .p2p/changes/CHANGE-023-managed-work-status-summary-mvp
+  included_proposals:
+  - PROP-037
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0
