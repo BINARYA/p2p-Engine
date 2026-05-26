@@ -959,3 +959,31 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-035
+  title: Managed Work Publish MVP
+  status: accepted
+  path: .p2p/proposals/PROP-035-managed-work-publish-mvp
+  summary: Add p2p work publish WORK-XXX. The command verifies the current branch
+    matches the Work branch, requires Work status review_requested, requires a clean
+    worktree, requires an origin remote, updates the Work manifest to published with
+    remote branch metadata, creates a local publish metadata commit, pushes the managed
+    branch to origin, and leaves PR and merge disabled.
+  decision_file: .p2p/proposals/PROP-035-managed-work-publish-mvp/decision.md
+  related_changes:
+  - CHANGE-021
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

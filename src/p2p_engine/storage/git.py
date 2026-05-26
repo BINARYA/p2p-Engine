@@ -64,6 +64,14 @@ def commit_all(root: Path, message: str) -> str | None:
     return head_commit(root)
 
 
+def remote_url(root: Path, remote: str = "origin") -> str | None:
+    return _run_git(root, "remote", "get-url", remote)
+
+
+def push_branch(root: Path, branch_name: str, remote: str = "origin") -> bool:
+    return _run_git(root, "push", "-u", remote, branch_name) is not None
+
+
 def list_local_work_branches(root: Path) -> list[str]:
     output = _run_git(root, "for-each-ref", "--format=%(refname:short)", "refs/heads/p2p/work")
     if output is None:

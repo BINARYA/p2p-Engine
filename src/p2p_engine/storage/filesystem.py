@@ -29,7 +29,9 @@ from p2p_engine.storage.git import (
     head_commit,
     list_files_at_ref,
     list_local_work_branches,
+    push_branch,
     read_file_at_ref,
+    remote_url,
 )
 
 PromptKind = Literal["explore", "digest", "clarify", "synthesize", "plan", "tasks", "swot", "impact"]
@@ -283,6 +285,16 @@ class WorkReview:
     branch_name: str
     review_commit: str
     metadata_commit: str
+    path: Path
+
+
+@dataclass(frozen=True)
+class WorkPublish:
+    work_id: str
+    branch_name: str
+    remote: str
+    remote_url: str
+    publish_commit: str
     path: Path
 
 
@@ -1511,6 +1523,68 @@ class P2PWorkspace:
             branch_name=branch_name,
             review_commit=review_commit,
             metadata_commit=metadata_commit,
+            path=work_dir.relative_to(self.root),
+        )
+
+    def publish_work(self, work_id: str, remote: str = "origin") -> WorkPublish:
+        work_dir = self._find_work_dir(work_id)
+        manifest_path = work_dir / "manifest.yml"
+        manifest = _read_yaml_mapping(manifest_path, default={})
+        status = str(manifest.get("status") or "unknown")
+        if status != "review_requested":
+            raise ValueError(f"Work item must be review_requested before publish. Current status: {status}")
+
+        git = manifest.get("git", {})
+        if not isinstance(git, dict):
+            raise ValueError("Invalid Work manifest: git must be a mapping")
+        branch_name = str(git.get("branch_name") or "")
+        if not branch_name:
+            raise ValueError("Invalid Work manifest: git.branch_name is required")
+
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError("Cannot publish managed work outside a Git repository")
+        if git_status.branch != branch_name:
+            raise ValueError(f"Cannot publish managed work from {git_status.branch}; expected branch {branch_name}")
+        if not git_status.is_clean:
+            raise ValueError("Cannot publish managed work with uncommitted changes")
+
+        resolved_remote_url = remote_url(self.root, remote)
+        if resolved_remote_url is None:
+            raise ValueError(f"Cannot publish managed work: Git remote not found: {remote}")
+
+        review = manifest.get("review", {})
+        review_commit = str(review.get("review_commit") if isinstance(review, dict) else "")
+        if not review_commit:
+            raise ValueError("Invalid Work manifest: review.review_commit is required before publish")
+
+        manifest["status"] = "published"
+        git["mode"] = "managed_publish"
+        git["published_at"] = date.today().isoformat()
+        manifest["git"] = git
+        manifest["publish"] = {
+            "mode": "remote_branch",
+            "remote": remote,
+            "remote_url": resolved_remote_url,
+            "remote_branch": branch_name,
+            "review_commit": review_commit,
+            "pull_request": None,
+            "merged": False,
+        }
+        manifest_path.write_text(_yaml_dump(manifest), encoding="utf-8")
+
+        publish_commit = commit_all(self.root, f"P2P publish {work_id}")
+        if publish_commit is None:
+            raise ValueError("Failed to create managed work publish metadata commit")
+        if not push_branch(self.root, branch_name, remote):
+            raise ValueError(f"Failed to push managed work branch to {remote}: {branch_name}")
+
+        return WorkPublish(
+            work_id=str(manifest.get("work_id") or work_id),
+            branch_name=branch_name,
+            remote=remote,
+            remote_url=resolved_remote_url,
+            publish_commit=publish_commit,
             path=work_dir.relative_to(self.root),
         )
 

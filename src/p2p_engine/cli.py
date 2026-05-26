@@ -1187,6 +1187,27 @@ def work_review(
     console.print("  merge: owner-controlled")
 
 
+@work_app.command("publish")
+def work_publish(
+    work_id: str = typer.Argument(..., help="Work ID, e.g. WORK-001"),
+    remote: str = typer.Option("origin", "--remote", help="Git remote to publish the managed branch to"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Publish a reviewed managed Work branch to a remote without opening a PR or merging."""
+    try:
+        publish = _workspace(root).publish_work(work_id, remote)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Managed work published.[/green]")
+    console.print(f"  work: {publish.work_id}")
+    console.print(f"  branch: {publish.branch_name}")
+    console.print(f"  remote: {publish.remote}")
+    console.print(f"  remote_url: {publish.remote_url}")
+    console.print(f"  publish_commit: {publish.publish_commit}")
+    console.print("  pull_request: disabled")
+    console.print("  merge: owner-controlled")
+
+
 @work_app.command("show")
 def work_show(
     work_id: str = typer.Argument(..., help="Work ID, e.g. WORK-001"),
