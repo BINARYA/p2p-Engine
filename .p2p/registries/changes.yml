@@ -260,3 +260,20 @@ changes:
   - openspec
   - speckit
   task_count: 5
+- id: CHANGE-018
+  title: Managed Work Branch Creation MVP
+  status: completed
+  path: .p2p/changes/CHANGE-018-managed-work-branch-creation-mvp
+  included_proposals:
+  - PROP-032
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

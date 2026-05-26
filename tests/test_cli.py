@@ -999,6 +999,93 @@ def test_cli_work_plan_list_and_show(tmp_path: Path) -> None:
     assert "managed_branch_candidate" in result.output
 
 
+def test_cli_work_branch_creates_managed_branch(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Managed Work Branch",
+            "--problem",
+            "Need an isolated implementation branch.",
+            "--proposal",
+            "Create a managed branch from a Work manifest.",
+            "--acceptance",
+            "The Work item is marked branched.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(
+        app,
+        ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)],
+    )
+    runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "plan", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+
+    _git(tmp_path, "init")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "-c", "user.email=test@example.com", "-c", "user.name=Test User", "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+
+    result = runner.invoke(app, ["work", "branch", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Managed work branch created" in result.output
+    assert "branch: p2p/work/work-001-change-001-speckit" in result.output
+    assert "commits: disabled" in result.output
+    assert _git(tmp_path, "branch", "--show-current").stdout.strip() == "p2p/work/work-001-change-001-speckit"
+
+    manifest = tmp_path / ".p2p" / "work" / "WORK-001" / "manifest.yml"
+    manifest_text = manifest.read_text(encoding="utf-8")
+    assert "status: branched" in manifest_text
+    assert "mode: managed_branch" in manifest_text
+    assert "current_branch: p2p/work/work-001-change-001-speckit" in manifest_text
+    assert "head_commit:" in manifest_text
+    assert "base_commit:" in manifest_text
+
+
+def test_cli_work_branch_requires_clean_worktree(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Managed Work Branch",
+            "--problem",
+            "Need an isolated implementation branch.",
+            "--proposal",
+            "Create a managed branch from a Work manifest.",
+            "--acceptance",
+            "The Work item is marked branched.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(
+        app,
+        ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)],
+    )
+    runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "plan", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+
+    _git(tmp_path, "init")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "-c", "user.email=test@example.com", "-c", "user.name=Test User", "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    (tmp_path / "dirty.txt").write_text("uncommitted\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["work", "branch", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code != 0
+    assert "Cannot create managed work branch with uncommitted changes" in result.output
+    assert _git(tmp_path, "branch", "--show-current").stdout.strip() == "main"
+
+
 def test_cli_work_scan_reads_local_branch_without_checkout(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     _git(tmp_path, "init")

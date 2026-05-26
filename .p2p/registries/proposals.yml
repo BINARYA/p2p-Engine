@@ -879,3 +879,29 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-032
+  title: Managed Work Branch Creation MVP
+  status: accepted
+  path: .p2p/proposals/PROP-032-managed-work-branch-creation-mvp
+  summary: Add p2p work branch WORK-XXX. The command validates a clean Git repository,
+    reads the Work manifest branch name, creates and checks out the managed branch,
+    updates the manifest to branched, and keeps commit/merge actions disabled.
+  decision_file: .p2p/proposals/PROP-032-managed-work-branch-creation-mvp/decision.md
+  related_changes:
+  - CHANGE-018
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

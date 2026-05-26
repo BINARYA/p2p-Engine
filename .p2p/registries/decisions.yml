@@ -222,3 +222,10 @@ decisions:
   path: .p2p/proposals/PROP-031-multi-branch-work-scan-mvp/decision.md
   reason: Accepted to add read-only visibility into P2P-managed work manifests on
     parallel local branches.
+- proposal: PROP-032
+  title: Managed Work Branch Creation MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-032-managed-work-branch-creation-mvp/decision.md
+  reason: 'This is the next incremental step toward invisible managed Git: isolate
+    operational work in P2P-managed branches without automatic commit or merge.'

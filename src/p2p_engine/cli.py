@@ -1126,6 +1126,26 @@ def work_scan(root: Path = typer.Option(Path.cwd(), "--root", help="Project root
         )
 
 
+@work_app.command("branch")
+def work_branch(
+    work_id: str = typer.Argument(..., help="Work ID, e.g. WORK-001"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Create and switch to the P2P-managed branch for a planned Work item."""
+    try:
+        branch = _workspace(root).branch_work(work_id)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Managed work branch created.[/green]")
+    console.print(f"  work: {branch.work_id}")
+    console.print(f"  branch: {branch.branch_name}")
+    console.print(f"  base: {branch.base_branch}")
+    console.print(f"  base_commit: {branch.base_commit}")
+    console.print(f"  path: {branch.path}")
+    console.print("  commits: disabled")
+    console.print("  merge: owner-controlled")
+
+
 @work_app.command("show")
 def work_show(
     work_id: str = typer.Argument(..., help="Work ID, e.g. WORK-001"),

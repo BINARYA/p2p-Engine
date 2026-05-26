@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-032
+  decision_file: .p2p/proposals/PROP-032-managed-work-branch-creation-mvp/decision.md

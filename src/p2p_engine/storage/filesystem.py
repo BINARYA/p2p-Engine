@@ -20,7 +20,15 @@ from p2p_engine.prompts.plan import render_plan_prompt
 from p2p_engine.prompts.synthesize import render_synthesize_prompt
 from p2p_engine.prompts.swot import render_swot_prompt
 from p2p_engine.prompts.tasks import render_tasks_prompt
-from p2p_engine.storage.git import list_files_at_ref, list_local_work_branches, read_file_at_ref
+from p2p_engine.storage.git import (
+    branch_exists,
+    create_and_checkout_branch,
+    get_git_status,
+    head_commit,
+    list_files_at_ref,
+    list_local_work_branches,
+    read_file_at_ref,
+)
 
 PromptKind = Literal["explore", "digest", "clarify", "synthesize", "plan", "tasks", "swot", "impact"]
 ImportKind = Literal["clarify", "synthesize", "plan", "tasks"]
@@ -246,6 +254,16 @@ class WorkDetail:
     branch_name: str
     path: Path
     manifest: dict[str, object]
+
+
+@dataclass(frozen=True)
+class WorkBranch:
+    work_id: str
+    branch_name: str
+    base_branch: str
+    base_commit: str
+    head_commit: str
+    path: Path
 
 
 @dataclass(frozen=True)
@@ -1287,6 +1305,72 @@ class P2PWorkspace:
             branch_name=str(git.get("branch_name") if isinstance(git, dict) else ""),
             path=work_dir.relative_to(self.root),
             manifest=manifest,
+        )
+
+    def branch_work(self, work_id: str) -> WorkBranch:
+        work_dir = self._find_work_dir(work_id)
+        manifest_path = work_dir / "manifest.yml"
+        manifest = _read_yaml_mapping(manifest_path, default={})
+        status = str(manifest.get("status") or "unknown")
+        if status != "planned":
+            raise ValueError(f"Work item must be planned before branching. Current status: {status}")
+
+        git = manifest.get("git", {})
+        if not isinstance(git, dict):
+            raise ValueError("Invalid Work manifest: git must be a mapping")
+        branch_name = str(git.get("branch_name") or "")
+        if not branch_name:
+            raise ValueError("Invalid Work manifest: git.branch_name is required")
+        if not branch_name.startswith("p2p/work/"):
+            raise ValueError("Invalid Work manifest: git.branch_name must start with p2p/work/")
+
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError("Cannot create managed work branch outside a Git repository")
+        if not git_status.branch:
+            raise ValueError("Cannot create managed work branch from detached HEAD")
+        if not git_status.is_clean:
+            raise ValueError("Cannot create managed work branch with uncommitted changes")
+
+        base_branch = str(git.get("base_branch") or git_status.branch)
+        if git_status.branch != base_branch:
+            raise ValueError(
+                f"Cannot create managed work branch from {git_status.branch}; expected base branch {base_branch}"
+            )
+        if branch_exists(self.root, branch_name):
+            raise ValueError(f"Managed work branch already exists: {branch_name}")
+
+        base_commit = head_commit(self.root)
+        if base_commit is None:
+            raise ValueError("Cannot resolve current Git commit")
+        if not create_and_checkout_branch(self.root, branch_name):
+            raise ValueError(f"Failed to create managed work branch: {branch_name}")
+        new_head_commit = head_commit(self.root)
+        if new_head_commit is None:
+            raise ValueError("Cannot resolve managed work branch commit")
+
+        manifest["status"] = "branched"
+        levels = manifest.get("managed_git_levels", [])
+        if isinstance(levels, list):
+            for level in levels:
+                if isinstance(level, dict) and level.get("level") == 2:
+                    level["enabled"] = True
+        git["mode"] = "managed_branch"
+        git["base_branch"] = base_branch
+        git["base_commit"] = base_commit
+        git["head_commit"] = new_head_commit
+        git["current_branch"] = branch_name
+        git["branched_at"] = date.today().isoformat()
+        manifest["git"] = git
+        manifest_path.write_text(_yaml_dump(manifest), encoding="utf-8")
+
+        return WorkBranch(
+            work_id=str(manifest.get("work_id") or work_id),
+            branch_name=branch_name,
+            base_branch=base_branch,
+            base_commit=base_commit,
+            head_commit=new_head_commit,
+            path=work_dir.relative_to(self.root),
         )
 
     def _scanned_work_items(self) -> list[dict[str, object]]:
