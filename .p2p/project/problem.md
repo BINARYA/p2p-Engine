@@ -131,3 +131,11 @@ P2P can publish reviewed managed Work branches, but it cannot yet perform the ow
 ## PROP-037 - Managed Work Status Summary MVP
 
 The managed Work lifecycle now spans plan, branch, submit, review, publish, and accept, but users lack a single read-only view that explains each Work item state and next action.
+
+## PROP-038 - Managed Work Merge Conflict Guidance MVP
+
+p2p work accept can attempt a local merge, but merge conflicts are not represented clearly in P2P state and the user does not get guided recovery commands.
+
+## PROP-039 - Managed Work Finalize MVP
+
+After p2p work accept, the base branch merge remains local and P2P has no command to publish that accepted state to the remote.

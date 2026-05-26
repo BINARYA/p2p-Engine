@@ -9,11 +9,11 @@ next_actions:
     priority: medium
     kind: inspect_intake
     target: INTAKE-001
-    reason: INTAKE-001 has a controlled apply plan with pending actions that may or may not still be relevant after managed Work Level 5.
+    reason: INTAKE-001 has a controlled apply plan with pending actions that may or may not still be relevant after managed Work finalization.
     command: .venv/bin/p2p intake apply show INTAKE-001
   - id: NEXT-003
     priority: medium
     kind: other
     target: managed-work-hardening
-    reason: Managed Work has reached owner-controlled local accept and now has a readable status summary; the owner should choose the next hardening slice, such as merge-conflict guidance, finalize/push-main, cleanup, or GitHub PR handoff.
+    reason: Managed Work has reached finalize; the owner should choose the next hardening slice, such as branch cleanup, GitHub PR handoff, richer multi-branch visibility, or retiring/staging WORK-001.
     command: .venv/bin/p2p work status

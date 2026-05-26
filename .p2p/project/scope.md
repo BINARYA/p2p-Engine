@@ -411,3 +411,23 @@ Generated from accepted proposal goals and non-goals.
 ### Non-Goals
 
 - Not provided.
+
+## PROP-038 - Managed Work Merge Conflict Guidance MVP
+
+### Goals
+
+- Make merge conflicts during p2p work accept explicit, inspectable, and recoverable.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-039 - Managed Work Finalize MVP
+
+### Goals
+
+- Allow an owner to finalize an accepted Work item by pushing the base branch to the configured remote.
+
+### Non-Goals
+
+- Not provided.

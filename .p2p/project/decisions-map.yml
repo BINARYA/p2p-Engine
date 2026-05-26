@@ -159,3 +159,13 @@ decisions:
   status: accepted
   feature: managed-work-status-summary-mvp
   source: .p2p/proposals/PROP-037-managed-work-status-summary-mvp
+- proposal: PROP-038
+  title: Managed Work Merge Conflict Guidance MVP
+  status: accepted
+  feature: managed-work-merge-conflict-guidance-mvp
+  source: .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp
+- proposal: PROP-039
+  title: Managed Work Finalize MVP
+  status: accepted
+  feature: managed-work-finalize-mvp
+  source: .p2p/proposals/PROP-039-managed-work-finalize-mvp

@@ -2,9 +2,9 @@
 
 ## Where We Are
 
-P2P Engine now has the complete local managed Work lifecycle plus a read-only operational status view.
+P2P Engine now has the managed Work lifecycle through finalization, plus read-only status and guided merge-conflict recovery.
 
-The managed Work flow currently supported by the CLI is:
+The supported managed Work flow is:
 
 ```text
 p2p work plan
@@ -14,19 +14,26 @@ p2p work submit
 p2p work review
 p2p work publish
 p2p work accept
+p2p work accept --continue
+p2p work accept --abort
+p2p work finalize
 ```
 
-The project state is current at 37 proposals and 23 Change Sets. All recorded Change Sets are completed, including `CHANGE-023` / `PROP-037` for Managed Work Status Summary MVP. Registries are not stale.
+The project state is current at 39 proposals and 25 Change Sets. All recorded Change Sets are completed, including `CHANGE-025` / `PROP-039` for Managed Work Finalize MVP. Registries are not stale.
 
 ## Accepted Direction
 
 - P2P remains CLI-first, file-based, and Git-native.
 - Change Sets remain the operational unit for implementation and export.
 - Work items are the user-facing abstraction over managed Git operations.
-- Current managed Git safe level is Level 5: owner-controlled local accept / merge.
+- Current managed Git safe level includes finalization: accepted Work can be pushed to the configured remote base branch through `p2p work finalize`.
 - `p2p work status` is the default read-only view before choosing any Work lifecycle command.
-- Publishing and accepting remain separate: `p2p work publish` pushes the managed branch, while `p2p work accept` merges locally into the base branch and does not push the base branch or delete branches.
-- Optional PR creation, base branch push, cleanup, and conflict recovery are future refinements, not current behavior.
+- Merge conflicts during `p2p work accept` are explicit and recoverable through `--continue` and `--abort`.
+- Publishing, accepting, and finalizing remain separate:
+  - `p2p work publish` pushes the managed Work branch.
+  - `p2p work accept` merges locally into the base branch.
+  - `p2p work finalize` pushes the accepted base branch.
+- Branch cleanup and GitHub PR creation are future refinements, not current behavior.
 
 ## Active Work
 
@@ -51,15 +58,15 @@ The project state is current at 37 proposals and 23 Change Sets. All recorded Ch
    Command: `.venv/bin/p2p intake status`
 
 2. Review the controlled apply plan for `INTAKE-001`.
-   Reason: `INTAKE-001` already has an analyzed apply plan with pending actions; the owner should decide whether any apply action is still relevant after managed Work Level 5.
+   Reason: `INTAKE-001` already has an analyzed apply plan with pending actions; the owner should decide whether any apply action is still relevant after the managed Work lifecycle reached finalization.
    Command: `.venv/bin/p2p intake apply show INTAKE-001`
 
 3. Decide the next managed Work hardening slice.
-   Reason: the base Work lifecycle is complete and readable. The next likely refinements are merge-conflict guidance, finalize/push-main, cleanup, or GitHub PR handoff.
+   Reason: the base lifecycle is complete through finalize. The next likely refinements are branch cleanup, GitHub PR handoff, richer multi-branch visibility, or retiring/staging `WORK-001`.
    Command: `.venv/bin/p2p work status`
 
 ## Not Yet
 
-- Do not add automatic PR creation, base branch push, branch deletion, cleanup, or conflict recovery without a new accepted proposal and Change Set.
+- Do not add automatic PR creation, branch deletion, or cleanup without a new accepted proposal and Change Set.
 - Do not treat draft proposals or pending intake as accepted direction.
 - Do not move from prompt-only/Codex-assisted workflows to direct provider integration without revisiting the accepted AI integration choice.
