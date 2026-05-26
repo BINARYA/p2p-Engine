@@ -1,0 +1,13 @@
+contributions:
+- id: C001
+  type: architectural_principle
+  author: local
+  relevance_hint: high
+  text: 'Distinguere triage da exploration: triage decide dove collocare una nuova
+    idea nel patrimonio proposal; exploration interroga una proposal gia individuata.'
+- id: C002
+  type: constraint
+  author: local
+  relevance_hint: high
+  text: 'Per MVP evitare embeddings/database: usare scan file-based delle proposal
+    e prompt strutturato con output importabile.'

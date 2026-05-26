@@ -1,0 +1,20 @@
+contributions:
+- id: C001
+  type: architectural_principle
+  author: local
+  relevance_hint: high
+  text: 'La governance deve essere separata dai privilegi reali: prima modelliamo
+    decisioni e audit file-based, poi integriamo permessi GitHub/GitLab o web app.'
+- id: C002
+  type: constraint
+  author: local
+  relevance_hint: high
+  text: Quando alternative sono contrapposte, il sistema deve supportare una scelta
+    esclusiva e registrare il precedente per evitare riproposizioni future senza nuove
+    evidenze.
+- id: C003
+  type: objective
+  author: local
+  relevance_hint: high
+  text: La fase alternative deve produrre SWOT analysis per aiutare la scelta umana
+    o governance-defined, senza far decidere l'AI.

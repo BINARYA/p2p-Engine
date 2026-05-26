@@ -1,0 +1,24 @@
+# Python environments and caches
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# P2P local/generated scratch areas
+.p2p/prompts/
+.p2p/tmp/
+.p2p/cache/

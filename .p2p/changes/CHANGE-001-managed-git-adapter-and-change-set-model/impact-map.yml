@@ -1,0 +1,30 @@
+impact:
+  proposal: PROP-013
+  features:
+    - impact-map-and-conflict-memory
+    - project-refresh-mvp
+  commands:
+    - p2p change create
+    - p2p change status
+    - p2p change policy
+    - p2p status --verbose
+    - p2p doctor
+  files:
+    - docs/p2p-engine-foundation.md
+    - .p2p/changes/
+    - .p2p/project/decisions-map.yml
+  governance:
+    - managed Git policy should be explainable
+    - branch/commit/tag creation should not be arbitrary
+    - Git details should be hidden from default UX
+  project_artifacts:
+    - .p2p/changes/
+    - .p2p/project/conflicts.yml
+    - .p2p/project/decisions-map.yml
+  dependencies:
+    - PROP-010
+    - PROP-011
+    - PROP-012
+  risks:
+    - managed Git policy may become arbitrary without thresholds
+    - real Git operations may be unsafe if implemented too early

@@ -1,0 +1,18 @@
+generated: true
+source: .p2p/choices and proposal votes
+choices:
+- id: CHOICE-001
+  title: Initial AI Integration Strategy
+  status: decided
+  options:
+  - A
+  - B
+  - C
+  selected_option: C - Prompt-only first, Codex adapter later
+  path: .p2p/choices/CHOICE-001-initial-ai-integration-strategy
+- id: CHOICE-PROP-008
+  proposal: PROP-008
+  status: draft
+  options: []
+  selected_option: null
+  path: .p2p/proposals/PROP-008-governance-model/votes.yml

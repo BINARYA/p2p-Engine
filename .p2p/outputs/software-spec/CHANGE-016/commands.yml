@@ -1,0 +1,7 @@
+commands:
+- name: Create Work manifest from validated export
+  purpose: Not specified yet.
+  status: completed
+- name: Inspect Work manifests
+  purpose: Not specified yet.
+  status: completed

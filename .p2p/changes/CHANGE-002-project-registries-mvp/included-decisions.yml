@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-016
+  decision_file: .p2p/proposals/PROP-016-project-registries-mvp/decision.md

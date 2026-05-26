@@ -1,0 +1,40 @@
+tasks:
+  - id: T001
+    title: "Add read-only Git branch scan helpers"
+    status: completed
+    domain: software
+    acceptance:
+      - "Local p2p/work/* branches can be listed without checkout."
+      - "Files can be read from branch refs without checkout."
+
+  - id: T002
+    title: "Implement p2p work scan"
+    status: completed
+    domain: software
+    acceptance:
+      - "p2p work scan writes .p2p/registries/work.yml."
+      - "The command reports scanned branches and discovered Work items."
+
+  - id: T003
+    title: "Expose scanned Work items"
+    status: completed
+    domain: software
+    acceptance:
+      - "p2p work list includes scanned branch Work items after scan."
+
+  - id: T004
+    title: "Preserve read-only Git boundary"
+    status: completed
+    domain: governance
+    acceptance:
+      - "The command does not checkout branches."
+      - "The command does not fetch remotes."
+      - "The command does not create branches, commits, PRs, tags, or merges."
+
+  - id: T005
+    title: "Update P2P skill and tests"
+    status: completed
+    domain: quality
+    acceptance:
+      - "P2P skill documents work scan usage and limits."
+      - "Automated tests cover scanning a P2P-managed branch without checkout."

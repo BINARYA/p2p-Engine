@@ -1,0 +1,262 @@
+generated: true
+source: .p2p/changes
+changes:
+- id: CHANGE-001
+  title: Managed Git Adapter and Change Set Model
+  status: completed
+  path: .p2p/changes/CHANGE-001-managed-git-adapter-and-change-set-model
+  included_proposals:
+  - PROP-013
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 4
+- id: CHANGE-002
+  title: Project Registries MVP
+  status: completed
+  path: .p2p/changes/CHANGE-002-project-registries-mvp
+  included_proposals:
+  - PROP-016
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets: []
+  export_targets: []
+  task_count: 6
+- id: CHANGE-003
+  title: Proposal Intake and Context Analysis MVP
+  status: completed
+  path: .p2p/changes/CHANGE-003-proposal-intake-and-context-analysis-mvp
+  included_proposals:
+  - PROP-017
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets: []
+  export_targets: []
+  task_count: 5
+- id: CHANGE-004
+  title: Choice Management CLI MVP
+  status: completed
+  path: .p2p/changes/CHANGE-004-choice-management-cli-mvp
+  included_proposals:
+  - PROP-018
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets: []
+  export_targets: []
+  task_count: 5
+- id: CHANGE-005
+  title: Proposal Decision Shortcut Commands
+  status: completed
+  path: .p2p/changes/CHANGE-005-proposal-decision-shortcut-commands
+  included_proposals:
+  - PROP-019
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets: []
+  export_targets: []
+  task_count: 4
+- id: CHANGE-006
+  title: Proposal Inspection CLI MVP
+  status: completed
+  path: .p2p/changes/CHANGE-006-proposal-inspection-cli-mvp
+  included_proposals:
+  - PROP-020
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets: []
+  export_targets: []
+  task_count: 4
+- id: CHANGE-007
+  title: Agent Skill Real Commands Update
+  status: completed
+  path: .p2p/changes/CHANGE-007-agent-skill-real-commands-update
+  included_proposals:
+  - PROP-021
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets: []
+  export_targets: []
+  task_count: 5
+- id: CHANGE-008
+  title: Operational Brief Prompt Workflow
+  status: completed
+  path: .p2p/changes/CHANGE-008-operational-brief-prompt-workflow
+  included_proposals:
+  - PROP-022
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets: []
+  export_targets: []
+  task_count: 4
+- id: CHANGE-009
+  title: Next Action Recommender MVP
+  status: completed
+  path: .p2p/changes/CHANGE-009-next-action-recommender-mvp
+  included_proposals:
+  - PROP-023
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets: []
+  export_targets: []
+  task_count: 4
+- id: CHANGE-010
+  title: Choice Blocking and Discovery MVP
+  status: completed
+  path: .p2p/changes/CHANGE-010-choice-blocking-and-discovery-mvp
+  included_proposals:
+  - PROP-024
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets: []
+  export_targets: []
+  task_count: 5
+- id: CHANGE-011
+  title: Controlled Intake Apply Workflow
+  status: completed
+  path: .p2p/changes/CHANGE-011-controlled-intake-apply-workflow
+  included_proposals:
+  - PROP-025
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets: []
+  export_targets: []
+  task_count: 5
+- id: CHANGE-012
+  title: P2P Software Spec Generator MVP
+  status: completed
+  path: .p2p/changes/CHANGE-012-p2p-software-spec-generator-mvp
+  included_proposals:
+  - PROP-026
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 5
+- id: CHANGE-013
+  title: Software Spec Exporter MVP
+  status: completed
+  path: .p2p/changes/CHANGE-013-software-spec-exporter-mvp
+  included_proposals:
+  - PROP-027
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 5
+- id: CHANGE-014
+  title: Spec Kit Export Mapping MVP
+  status: completed
+  path: .p2p/changes/CHANGE-014-spec-kit-export-mapping-mvp
+  included_proposals:
+  - PROP-028
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 4
+- id: CHANGE-015
+  title: Spec Export Validation MVP
+  status: completed
+  path: .p2p/changes/CHANGE-015-spec-export-validation-mvp
+  included_proposals:
+  - PROP-029
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 5
+- id: CHANGE-016
+  title: Managed Work and Multi-Branch Visibility Policy
+  status: completed
+  path: .p2p/changes/CHANGE-016-managed-work-and-multi-branch-visibility-policy
+  included_proposals:
+  - PROP-030
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 5
+- id: CHANGE-017
+  title: Multi-Branch Work Scan MVP
+  status: completed
+  path: .p2p/changes/CHANGE-017-multi-branch-work-scan-mvp
+  included_proposals:
+  - PROP-031
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 5

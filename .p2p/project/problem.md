@@ -1,0 +1,89 @@
+# Project Problem
+
+Generated from accepted proposal problem statements.
+
+## PROP-001 - CLI Foundation
+
+P2P Engine does not exist yet as an executable tool. The project has a solid foundation document, but no CLI, no generated `.p2p/` structure, no automated proposal workflow, and no prompt generation.
+
+Without a first working CLI, every proposal must be created manually. That is acceptable for the bootstrap phase, but it must become automated quickly so the project can start using its own method.
+
+## PROP-004 - Prompt-only Import Workflow
+
+P2P Engine genera prompt per varie fasi, ma non importa ancora in modo uniforme gli output prodotti da AI o agenti esterni.
+
+## PROP-005 - Codex Skill Integration
+
+Codex oggi non ha istruzioni formali per usare P2P Engine come metodo operativo e rischia di lasciare decisioni e interlocuzioni solo nella chat.
+
+## PROP-009 - Governance CLI Commands
+
+P2P Engine ha un modello di governance file-based, ma non ha ancora comandi CLI per inizializzare governance, generare SWOT, registrare voti, mostrare risultati e registrare precedenti decisionali.
+
+## PROP-010 - P2P Project State Model
+
+Accepted P2P proposals are not yet transformed into a single rationalized project state that can guide implementation, feature tracking, task planning, or downstream export.
+
+## PROP-011 - Project Refresh MVP
+
+P2P Engine has accepted the .p2p/project state model, but the CLI cannot yet generate or inspect that rationalized project layer.
+
+## PROP-012 - Impact Map and Conflict Memory
+
+P2P Engine can generate a rationalized project state, but it does not yet capture what a proposal touches or whether it overlaps, depends on, supersedes, or conflicts with other proposals.
+
+## PROP-013 - Managed Git Adapter and Change Set Model
+
+P2P Engine distinguishes proposals from project state, but it does not yet define how accepted decisions become operational change sets or how Git operations should be managed under the hood without exposing branch/commit/merge complexity to users.
+
+## PROP-014 - Change Set Metadata MVP
+
+P2P Engine has accepted the Change Set and managed Git model, but the CLI cannot yet create or inspect .p2p/changes metadata.
+
+## PROP-015 - Change Set Lifecycle and Task Tracking
+
+P2P Engine can create metadata-only Change Sets, but it cannot yet move them through an operational lifecycle or inspect their tasks/actions.
+
+## PROP-016 - Project Registries MVP
+
+P2P Engine stores proposals, decisions, project state, conflicts and change sets, but it lacks explicit global registries for indexing and relating these artifacts.
+
+## PROP-017 - Proposal Intake and Context Analysis MVP
+
+P2P Engine can store proposals and registries, but it does not yet help agents or users decide whether a new idea should become a new proposal, enrich an existing one, open a choice, or be marked as overlapping/conflicting.
+
+## PROP-018 - Choice Management CLI MVP
+
+P2P Engine can represent a choice manually, but the CLI cannot yet create, list, or decide choices.
+
+## PROP-019 - Proposal Decision Shortcut Commands
+
+Users and agents must use p2p decision record with explicit outcomes to accept, reject, or defer proposals, which makes the workflow less natural.
+
+## PROP-020 - Proposal Inspection CLI MVP
+
+Users and agents can inspect proposals through p2p status or registries, but there are no dedicated p2p proposal list/show commands.
+
+## PROP-021 - Agent Skill Real Commands Update
+
+The local P2P Codex skill does not yet describe the current CLI capabilities: registries, intake, choices, proposal inspection and proposal decision shortcuts.
+
+## PROP-022 - Operational Brief Prompt Workflow
+
+Project status is currently technical and descriptive; agents can summarize it in chat, but the project lacks a versioned prompt/import workflow for operational synthesis.
+
+## PROP-023 - Next Action Recommender MVP
+
+The project now stores operational next-actions, but there is no top-level command that answers what to do next, and project status does not surface the operational brief state.
+
+## PROP-024 - Choice Blocking and Discovery MVP
+
+Choices can be created and decided, but they do not expose operational discovery, proposal-local choice candidates, or formal blockers for proposals and Change Sets.
+
+## PROP-025 - Controlled Intake Apply Workflow
+
+Intake analysis can recommend actions, but there is no controlled, auditable workflow to turn selected suggestions into P2P state changes.
+
+## PROP-026 - P2P Software Spec Generator MVP
+
+P2P can model proposals, decisions and Change Sets, but it cannot yet generate a normalized software specification suitable for downstream OpenSpec, Spec Kit, or code generation workflows.

@@ -1,0 +1,106 @@
+decisions:
+- proposal: PROP-001
+  title: CLI Foundation
+  status: accepted
+  feature: cli-foundation
+  source: .p2p/proposals/PROP-001-cli-foundation
+- proposal: PROP-004
+  title: Prompt-only Import Workflow
+  status: accepted
+  feature: prompt-only-import-workflow
+  source: .p2p/proposals/PROP-004-prompt-only-import-workflow
+- proposal: PROP-005
+  title: Codex Skill Integration
+  status: accepted
+  feature: codex-skill-integration
+  source: .p2p/proposals/PROP-005-codex-skill-integration
+- proposal: PROP-009
+  title: Governance CLI Commands
+  status: accepted
+  feature: governance-cli-commands
+  source: .p2p/proposals/PROP-009-governance-cli-commands
+- proposal: PROP-010
+  title: P2P Project State Model
+  status: accepted
+  feature: p2p-project-state-model
+  source: .p2p/proposals/PROP-010-p2p-software-specification-model
+- proposal: PROP-011
+  title: Project Refresh MVP
+  status: accepted
+  feature: project-refresh-mvp
+  source: .p2p/proposals/PROP-011-project-refresh-mvp
+- proposal: PROP-012
+  title: Impact Map and Conflict Memory
+  status: accepted
+  feature: impact-map-and-conflict-memory
+  source: .p2p/proposals/PROP-012-impact-map-and-conflict-memory
+- proposal: PROP-013
+  title: Managed Git Adapter and Change Set Model
+  status: accepted
+  feature: managed-git-adapter-and-change-set-model
+  source: .p2p/proposals/PROP-013-change-set-and-git-branch-model
+- proposal: PROP-014
+  title: Change Set Metadata MVP
+  status: accepted
+  feature: change-set-metadata-mvp
+  source: .p2p/proposals/PROP-014-change-set-metadata-mvp
+- proposal: PROP-015
+  title: Change Set Lifecycle and Task Tracking
+  status: accepted
+  feature: change-set-lifecycle-and-task-tracking
+  source: .p2p/proposals/PROP-015-change-set-lifecycle-and-task-tracking
+- proposal: PROP-016
+  title: Project Registries MVP
+  status: accepted
+  feature: project-registries-mvp
+  source: .p2p/proposals/PROP-016-project-registries-mvp
+- proposal: PROP-017
+  title: Proposal Intake and Context Analysis MVP
+  status: accepted
+  feature: proposal-intake-and-context-analysis-mvp
+  source: .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp
+- proposal: PROP-018
+  title: Choice Management CLI MVP
+  status: accepted
+  feature: choice-management-cli-mvp
+  source: .p2p/proposals/PROP-018-choice-management-cli-mvp
+- proposal: PROP-019
+  title: Proposal Decision Shortcut Commands
+  status: accepted
+  feature: proposal-decision-shortcut-commands
+  source: .p2p/proposals/PROP-019-proposal-decision-shortcut-commands
+- proposal: PROP-020
+  title: Proposal Inspection CLI MVP
+  status: accepted
+  feature: proposal-inspection-cli-mvp
+  source: .p2p/proposals/PROP-020-proposal-inspection-cli-mvp
+- proposal: PROP-021
+  title: Agent Skill Real Commands Update
+  status: accepted
+  feature: agent-skill-real-commands-update
+  source: .p2p/proposals/PROP-021-agent-skill-real-commands-update
+- proposal: PROP-022
+  title: Operational Brief Prompt Workflow
+  status: accepted
+  feature: operational-brief-prompt-workflow
+  source: .p2p/proposals/PROP-022-operational-brief-prompt-workflow
+- proposal: PROP-023
+  title: Next Action Recommender MVP
+  status: accepted
+  feature: next-action-recommender-mvp
+  source: .p2p/proposals/PROP-023-next-action-recommender-mvp
+- proposal: PROP-024
+  title: Choice Blocking and Discovery MVP
+  status: accepted
+  feature: choice-blocking-and-discovery-mvp
+  source: .p2p/proposals/PROP-024-choice-blocking-and-discovery-mvp
+- proposal: PROP-025
+  title: Controlled Intake Apply Workflow
+  status: accepted
+  feature: controlled-intake-apply-workflow
+  source: .p2p/proposals/PROP-025-controlled-intake-apply-workflow
+- proposal: PROP-026
+  title: P2P Software Spec Generator MVP
+  status: accepted
+  feature: p2p-software-spec-generator-mvp
+  source: .p2p/proposals/PROP-026-p2p-software-spec-generator-mvp

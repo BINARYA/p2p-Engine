@@ -1,0 +1,7 @@
+conflicts:
+  - type: supersedes_policy
+    proposals:
+      - PROP-001
+      - PROP-013
+    reason: PROP-001 originally suggested proposal branch strategy, while PROP-013 refines it into managed Git under the hood with change sets as the visible operational model.
+    suggested_resolution: update_foundation_to_managed_git_model

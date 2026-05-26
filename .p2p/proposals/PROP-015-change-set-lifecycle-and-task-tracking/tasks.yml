@@ -1,0 +1,56 @@
+tasks:
+  - id: T001
+    title: Implement Change Set lifecycle transitions
+    workstream: WS1
+    type: software
+    status: done
+    priority: high
+    dependencies: []
+    deliverable: update_change_set_status
+    evidence_required: Tests verify valid and invalid transitions
+    actions:
+      - Define transition table
+      - Update change.md frontmatter
+      - Reject invalid transitions
+  - id: T002
+    title: Add Change Set show command
+    workstream: WS2
+    type: software
+    status: done
+    priority: medium
+    dependencies:
+      - T001
+    deliverable: p2p change show
+    evidence_required: Test displays Change Set summary
+    actions:
+      - Parse frontmatter
+      - Display summary and refs
+  - id: T003
+    title: Add Change Set tasks command
+    workstream: WS2
+    type: software
+    status: done
+    priority: medium
+    dependencies:
+      - T001
+    deliverable: p2p change tasks
+    evidence_required: Test displays actions checklist
+    actions:
+      - Read tasks.yml
+      - Read actions.yml
+      - Render checklist markers
+  - id: T004
+    title: Update docs and verify
+    workstream: WS3
+    type: verification
+    status: done
+    priority: high
+    dependencies:
+      - T001
+      - T002
+      - T003
+    deliverable: README update and passing tests
+    evidence_required: pytest passes
+    actions:
+      - Update README
+      - Run pytest

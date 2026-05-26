@@ -1,0 +1,9 @@
+source:
+  change: CHANGE-015
+  included_proposals:
+  - PROP-029
+  accepted_decisions: []
+generated_from:
+- .p2p/changes/CHANGE-015-spec-export-validation-mvp/change.md
+- .p2p/changes/CHANGE-015-spec-export-validation-mvp/tasks.yml
+- .p2p/proposals/PROP-029-spec-export-validation-mvp/proposal.md

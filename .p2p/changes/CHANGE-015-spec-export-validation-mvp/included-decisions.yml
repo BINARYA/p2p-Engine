@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-029
+  decision_file: .p2p/proposals/PROP-029-spec-export-validation-mvp/decision.md

@@ -1,0 +1,13 @@
+contributions:
+- id: C001
+  type: architectural_principle
+  author: local
+  relevance_hint: high
+  text: I registri devono essere viste derivate e rigenerabili, non la sorgente primaria
+    della verita progettuale.
+- id: C002
+  type: objective
+  author: local
+  relevance_hint: high
+  text: proposal-registry, decision-registry, change-registry e relations devono aiutare
+    intake, overlap analysis, export e navigazione del progetto.

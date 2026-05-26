@@ -1,0 +1,19 @@
+next_actions:
+  - id: NEXT-001
+    priority: high
+    kind: create_proposal
+    target: Managed Work Branch Creation MVP
+    reason: "Work manifests and read-only branch scan now exist; the next incremental step is creating an internal branch from a Work manifest with safety checks."
+    command: ".venv/bin/p2p proposal create \"Managed Work Branch Creation MVP\""
+  - id: NEXT-002
+    priority: medium
+    kind: inspect_work
+    target: WORK-001
+    reason: "WORK-001 is the first planned handoff manifest and is the natural candidate for branch creation."
+    command: ".venv/bin/p2p work show WORK-001"
+  - id: NEXT-003
+    priority: medium
+    kind: inspect_intake_apply
+    target: INTAKE-001
+    reason: "INTAKE-001 has a controlled apply plan with pending actions; review it before applying any project-state changes."
+    command: ".venv/bin/p2p intake apply show INTAKE-001"

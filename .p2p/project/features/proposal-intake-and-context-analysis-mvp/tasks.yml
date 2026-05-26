@@ -1,0 +1,43 @@
+tasks:
+  - id: T001
+    title: "Define intake artifact model"
+    status: pending
+    domain: design
+    acceptance:
+      - "Intake ID format is defined."
+      - "Artifact location is defined."
+      - "Suggested action schema is documented."
+
+  - id: T002
+    title: "Implement intake prompt generation"
+    status: pending
+    domain: software
+    acceptance:
+      - "`p2p intake prompt` creates an intake directory."
+      - "Prompt includes registry and project context."
+      - "Prompt makes governance boundary explicit."
+
+  - id: T003
+    title: "Implement intake import and status"
+    status: pending
+    domain: software
+    acceptance:
+      - "`p2p intake import` stores AI/human analysis artifacts."
+      - "`p2p intake status` lists intake records and recommendations."
+
+  - id: T004
+    title: "Document agent workflow"
+    status: pending
+    domain: documentation
+    acceptance:
+      - "README explains how agents use intake before creating proposals."
+      - "The A/B/C multi-agent scenario is documented."
+
+  - id: T005
+    title: "Add tests"
+    status: pending
+    domain: quality
+    acceptance:
+      - "CLI tests cover prompt creation."
+      - "CLI tests cover import/status."
+      - "Tests confirm intake does not mutate proposal decisions."

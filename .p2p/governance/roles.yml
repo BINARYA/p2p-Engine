@@ -1,0 +1,4 @@
+roles:
+- id: owner
+  description: Project owner or maintainer
+  can_decide: true

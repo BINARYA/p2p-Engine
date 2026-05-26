@@ -1,0 +1,69 @@
+tasks:
+  - id: T001
+    title: Add impact prompt renderer
+    workstream: WS1
+    type: software
+    status: done
+    priority: high
+    dependencies: []
+    deliverable: p2p impact prompt
+    evidence_required: CLI test verifies impact prompt generation
+    actions:
+      - Add render_impact_prompt
+      - Include project decisions and conflicts in prompt context
+  - id: T002
+    title: Add impact import
+    workstream: WS1
+    type: software
+    status: done
+    priority: high
+    dependencies:
+      - T001
+    deliverable: p2p impact import
+    evidence_required: CLI test imports impact-map.yml, related-proposals.yml and conflict-analysis.yml
+    actions:
+      - Validate required YAML top-level keys
+      - Copy artifacts into proposal folder
+  - id: T003
+    title: Add conflict memory commands
+    workstream: WS2
+    type: software
+    status: done
+    priority: high
+    dependencies: []
+    deliverable: p2p conflict record/status
+    evidence_required: CLI test records and displays CONFLICT-001
+    actions:
+      - Record conflicts in .p2p/project/conflicts.yml
+      - Support overlap and mutually exclusive relationships
+      - Optionally record a winner
+  - id: T004
+    title: Preserve conflicts during project refresh
+    workstream: WS3
+    type: software
+    status: done
+    priority: high
+    dependencies:
+      - T003
+    deliverable: project refresh does not erase conflicts.yml
+    evidence_required: CLI test refreshes after conflict record and keeps CONFLICT-001
+    actions:
+      - Create conflicts.yml only if missing
+  - id: T005
+    title: Update documentation and proposal artifacts
+    workstream: WS4
+    type: documentation
+    status: done
+    priority: medium
+    dependencies:
+      - T001
+      - T002
+      - T003
+    deliverable: README, foundation, impact artifacts
+    evidence_required: Docs include impact/conflict commands
+    actions:
+      - Update README
+      - Update foundation
+      - Add impact-map.yml
+      - Add related-proposals.yml
+      - Add conflict-analysis.yml

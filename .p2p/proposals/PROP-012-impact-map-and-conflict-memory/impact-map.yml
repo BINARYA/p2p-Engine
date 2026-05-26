@@ -1,0 +1,28 @@
+impact:
+  proposal: PROP-012
+  features:
+    - p2p-project-state-model
+    - project-refresh-mvp
+  commands:
+    - p2p impact prompt
+    - p2p impact import
+    - p2p conflict record
+    - p2p conflict status
+  files:
+    - src/p2p_engine/storage/filesystem.py
+    - src/p2p_engine/cli.py
+    - src/p2p_engine/prompts/impact.py
+    - tests/test_cli.py
+    - .p2p/project/conflicts.yml
+  governance:
+    - conflict detection is advisory
+    - final decision remains human/governance-defined
+  project_artifacts:
+    - .p2p/project/conflicts.yml
+    - .p2p/project/decisions-map.yml
+  dependencies:
+    - PROP-010
+    - PROP-011
+  risks:
+    - project refresh must not erase conflict memory
+    - conflict suggestions must not become automatic rejection

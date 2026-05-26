@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-027
+  decision_file: .p2p/proposals/PROP-027-software-spec-exporter-mvp/decision.md

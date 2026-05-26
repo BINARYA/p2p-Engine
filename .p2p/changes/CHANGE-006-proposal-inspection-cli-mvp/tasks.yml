@@ -1,0 +1,31 @@
+tasks:
+  - id: T001
+    title: "Implement proposal list"
+    status: completed
+    domain: software
+    acceptance:
+      - "`p2p proposal list` shows proposal IDs, statuses and titles."
+      - "`p2p proposal list --status accepted` filters by status."
+
+  - id: T002
+    title: "Implement proposal show"
+    status: completed
+    domain: software
+    acceptance:
+      - "`p2p proposal show PROP-ID` displays status, path, problem, proposal and decision summary."
+
+  - id: T003
+    title: "Improve choice registry display"
+    status: completed
+    domain: software
+    acceptance:
+      - "`p2p registry show choices` prints stable readable rows instead of raw dictionaries."
+
+  - id: T004
+    title: "Add tests and README documentation"
+    status: completed
+    domain: quality
+    acceptance:
+      - "CLI tests cover proposal list/show."
+      - "CLI tests cover readable choice registry output."
+      - "README documents proposal inspection commands."

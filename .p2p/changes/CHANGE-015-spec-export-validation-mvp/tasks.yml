@@ -1,0 +1,38 @@
+tasks:
+  - id: T001
+    title: "Validate generic export bundles"
+    status: completed
+    domain: software
+    acceptance:
+      - "p2p spec export-validate CHANGE-XXX --target generic checks required files and manifest coherence."
+
+  - id: T002
+    title: "Validate OpenSpec-oriented export bundles"
+    status: completed
+    domain: software
+    acceptance:
+      - "p2p spec export-validate CHANGE-XXX --target openspec checks required files and manifest coherence."
+
+  - id: T003
+    title: "Validate Spec Kit-oriented export bundles"
+    status: completed
+    domain: software
+    acceptance:
+      - "p2p spec export-validate CHANGE-XXX --target speckit checks feature directory artifacts and manifest coherence."
+
+  - id: T004
+    title: "Report invalid export bundles"
+    status: completed
+    domain: quality
+    acceptance:
+      - "Missing required files fail explicitly."
+      - "Manifest source.change mismatch fails explicitly."
+      - "Unsupported targets fail explicitly."
+
+  - id: T005
+    title: "Update P2P skill and tests"
+    status: completed
+    domain: quality
+    acceptance:
+      - "P2P skill documents export validation before downstream use."
+      - "Automated tests cover valid and invalid export validation paths."

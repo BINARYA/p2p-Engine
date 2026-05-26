@@ -1,0 +1,19 @@
+contributions:
+- id: C001
+  type: suggestion
+  author: local
+  relevance_hint: high
+  text: Gli output razionalizzati dovrebbero vivere in una cartella dedicata, ad esempio
+    .p2p/outputs, separata dalle singole proposal.
+- id: C002
+  type: architectural_principle
+  author: local
+  relevance_hint: high
+  text: Quando una proposal viene accettata, P2P Engine dovrebbe aggiornare automaticamente
+    gli output derivati, senza confondere gli artefatti sorgente con quelli generati.
+- id: C003
+  type: architectural_principle
+  author: local
+  relevance_hint: high
+  text: OpenSpec e Spec Kit dovrebbero consumare una software spec P2P gia razionalizzata,
+    non le proposal grezze.

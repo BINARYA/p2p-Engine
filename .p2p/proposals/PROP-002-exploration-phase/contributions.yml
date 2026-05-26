@@ -1,0 +1,17 @@
+contributions:
+  - id: C001
+    type: architectural_principle
+    author: local
+    relevance_hint: high
+    text: >
+      La fase di interlocuzione va formalizzata come Exploration Phase autonoma
+      e ripetibile, non come semplice digest.
+
+  - id: C002
+    type: scope_boundary
+    author: local
+    relevance_hint: high
+    text: >
+      La conversazione puo avvenire via CLI, skill Codex/Claude o futura web app,
+      ma gli output validi devono essere salvati negli artefatti P2P versionati.
+

@@ -1,0 +1,57 @@
+tasks:
+  - id: T001
+    title: Generate project state from accepted proposals
+    workstream: WS1
+    type: software
+    status: done
+    priority: high
+    dependencies: []
+    deliverable: P2PWorkspace.refresh_project_state
+    evidence_required: CLI test verifies generated .p2p/project files
+    actions:
+      - Collect accepted proposals
+      - Generate overview, problem, scope, project-swot
+      - Generate feature folders and decisions-map
+  - id: T002
+    title: Add project CLI commands
+    workstream: WS2
+    type: software
+    status: done
+    priority: high
+    dependencies:
+      - T001
+    deliverable: p2p project refresh/status/show
+    evidence_required: CLI test invokes all three commands
+    actions:
+      - Add project Typer app
+      - Add refresh command
+      - Add status command
+      - Add show command
+  - id: T003
+    title: Document project refresh MVP
+    workstream: WS3
+    type: documentation
+    status: done
+    priority: medium
+    dependencies:
+      - T002
+    deliverable: README and foundation updates
+    evidence_required: Documentation includes command examples
+    actions:
+      - Update README
+      - Update foundation project-state section
+  - id: T004
+    title: Verify implementation
+    workstream: WS3
+    type: verification
+    status: done
+    priority: high
+    dependencies:
+      - T001
+      - T002
+      - T003
+    deliverable: Passing test suite
+    evidence_required: pytest passes
+    actions:
+      - Run pytest
+      - Run compileall

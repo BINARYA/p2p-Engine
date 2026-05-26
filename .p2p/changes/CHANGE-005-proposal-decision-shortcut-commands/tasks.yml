@@ -1,0 +1,29 @@
+tasks:
+  - id: T001
+    title: "Implement proposal accept shortcut"
+    status: completed
+    domain: software
+    acceptance:
+      - "`p2p proposal accept` records an accepted decision."
+
+  - id: T002
+    title: "Implement proposal reject shortcut"
+    status: completed
+    domain: software
+    acceptance:
+      - "`p2p proposal reject` records a rejected decision."
+
+  - id: T003
+    title: "Implement proposal defer shortcut"
+    status: completed
+    domain: software
+    acceptance:
+      - "`p2p proposal defer` records a deferred decision."
+
+  - id: T004
+    title: "Add tests and documentation"
+    status: completed
+    domain: quality
+    acceptance:
+      - "CLI tests cover all shortcut commands."
+      - "README documents the shortcut workflow."

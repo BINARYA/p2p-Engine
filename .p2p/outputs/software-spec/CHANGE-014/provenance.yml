@@ -1,0 +1,9 @@
+source:
+  change: CHANGE-014
+  included_proposals:
+  - PROP-028
+  accepted_decisions: []
+generated_from:
+- .p2p/changes/CHANGE-014-spec-kit-export-mapping-mvp/change.md
+- .p2p/changes/CHANGE-014-spec-kit-export-mapping-mvp/tasks.yml
+- .p2p/proposals/PROP-028-spec-kit-export-mapping-mvp/proposal.md

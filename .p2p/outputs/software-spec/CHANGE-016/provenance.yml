@@ -1,0 +1,9 @@
+source:
+  change: CHANGE-016
+  included_proposals:
+  - PROP-030
+  accepted_decisions: []
+generated_from:
+- .p2p/changes/CHANGE-016-managed-work-and-multi-branch-visibility-policy/change.md
+- .p2p/changes/CHANGE-016-managed-work-and-multi-branch-visibility-policy/tasks.yml
+- .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/proposal.md

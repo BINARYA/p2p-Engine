@@ -1,0 +1,394 @@
+---
+name: p2p-engine
+description: Use when working inside a repository that contains a `.p2p/` workspace or when the user asks to use the P2P Engine method. Guides Codex to turn conversations into versioned P2P proposals, intake analyses, choices, decisions, Change Sets, plans, and tasks using the `p2p` CLI as the source of truth.
+---
+
+# P2P Engine Skill
+
+Use this skill when the user wants to design, discuss, plan, decide, or implement work through P2P Engine.
+
+## Core Rule
+
+Do not leave important P2P work only in chat.
+
+```text
+CLI / engine = source of truth
+Codex skill = conversational guide
+Filesystem/Git = memory and audit trail
+```
+
+If P2P artifacts are created or changed, use the `p2p` CLI when practical and keep outputs under `.p2p/`.
+
+## First Checks
+
+From the repository root:
+
+```bash
+p2p check
+p2p status
+p2p registry refresh
+p2p registry status
+```
+
+If `p2p` is unavailable but the project has `.venv/bin/p2p`, use:
+
+```bash
+.venv/bin/p2p check
+.venv/bin/p2p status
+```
+
+If no `.p2p/` workspace exists, ask whether to initialize it before proceeding:
+
+```bash
+p2p init "Project Name"
+```
+
+Before creating new proposal artifacts, inspect current state:
+
+```bash
+p2p proposal list
+p2p proposal list --status accepted
+p2p registry show choices
+p2p change status
+```
+
+When the user asks where the project stands or what to do next, prefer the operational brief workflow over leaving the synthesis only in chat:
+
+```bash
+p2p project brief prompt
+p2p project brief import brief-output/
+p2p project brief show
+p2p next
+p2p next --top 1
+```
+
+The skill guides the agent's synthesis behavior. The CLI owns the repeatable project context and stores the resulting `operational-brief.md` and optional `next-actions.yml` under `.p2p/project/`.
+`p2p next` is advisory only: it reads stored next actions when available and falls back to conservative project-state checks, but it must not modify project state or decide on behalf of the owner.
+
+## When To Create A Proposal
+
+Create or update a proposal when the conversation introduces:
+
+- a new feature or product direction;
+- an architectural decision;
+- a process or governance change;
+- a research topic;
+- a substantial implementation plan;
+- a meaningful risk, alternative, or trade-off.
+
+Prefer updating an existing proposal when the new discussion clearly belongs to it. If the new idea may overlap existing work, use intake first.
+
+## Intake Before New Proposals
+
+Use intake for raw ideas, observations, or potential overlaps:
+
+```bash
+p2p intake prompt "Raw idea or observation"
+p2p intake status
+```
+
+As Codex, if you can see the generated prompt, you may produce the intake artifacts directly:
+
+```text
+.p2p/intake/INTAKE-XXX/
+  recommendation.md
+  related-proposals.yml
+  suggested-actions.yml
+```
+
+Intake is advisory. It can recommend `create_proposal`, `add_contribution`, `open_choice`, `record_conflict`, `defer`, or `duplicate`, but it must not decide proposal outcomes.
+
+To apply intake recommendations, use the controlled apply workflow. Do not apply intake output directly from chat:
+
+```bash
+p2p intake apply plan INTAKE-XXX
+p2p intake apply show INTAKE-XXX
+p2p intake apply run INTAKE-XXX --action APPLY-XXX
+```
+
+`add_contribution` can be applied explicitly. `open_choice` requires at least two explicit `--option` values:
+
+```bash
+p2p intake apply run INTAKE-XXX --action APPLY-XXX \
+  --option "Keep current direction" \
+  --option "Explore intake alternative"
+```
+
+Governance outcomes such as accept, reject, and defer are preview-only in intake apply. They still require explicit proposal decision commands from the owner.
+
+## Recommended Workflow
+
+For a new topic:
+
+```bash
+p2p proposal create "Title" \
+  --problem "Problem statement" \
+  --context "Context" \
+  --goal "Goal" \
+  --proposal "Proposed direction" \
+  --acceptance "Acceptance criterion"
+
+p2p contribution add PROP-XXX "Contribution text" --type objective --relevance high
+p2p explore prompt PROP-XXX
+```
+
+Then conduct the conversation. Ask focused questions, identify missing decisions, and produce artifacts that can be imported.
+
+Prompt-only workflow:
+
+```bash
+p2p explore import PROP-XXX exploration-output.md
+p2p explore status PROP-XXX
+
+p2p clarify prompt PROP-XXX
+p2p clarify import PROP-XXX clarification-output.md
+
+p2p synthesize prompt PROP-XXX
+p2p synthesize import PROP-XXX proposal-output.md
+
+p2p proposal accept PROP-XXX --reason "Reason"
+
+p2p plan prompt PROP-XXX
+p2p plan import PROP-XXX plan-output.md
+
+p2p tasks prompt PROP-XXX
+p2p tasks import PROP-XXX tasks-output.yml
+```
+
+Use shortcut proposal decision commands when possible:
+
+```bash
+p2p proposal accept PROP-XXX --reason "Reason"
+p2p proposal reject PROP-XXX --reason "Reason"
+p2p proposal defer PROP-XXX --reason "Reason"
+```
+
+Use `p2p decision record` only when a non-shortcut outcome is needed, such as `accepted_with_changes`, `split`, `merged_into_other`, or `superseded`.
+
+## Choices
+
+When alternatives conflict or a decision has multiple options, create a choice:
+
+```bash
+p2p choice create \
+  --title "Initial AI Integration Strategy" \
+  --option "Prompt-only first" \
+  --option "Direct integration now" \
+  --option "Prompt-only first, adapter later" \
+  --related PROP-XXX \
+  --source INTAKE-XXX
+
+p2p choice list
+p2p choice status
+p2p choice discover
+p2p choice show CHOICE-XXX
+p2p choice decide CHOICE-XXX --option C --reason "Reason"
+```
+
+Do not hide rejected alternatives in chat. Preserve them as choices, related proposals, conflicts, or decision rationale.
+
+Use choice discovery before treating registry-only or proposal-local vote choices as project-level blockers:
+
+```bash
+p2p choice discover
+```
+
+Discovery is advisory and must not decide or modify state. When the owner explicitly decides that an unresolved project choice blocks a proposal or Change Set, record the formal blocker:
+
+```bash
+p2p choice block CHOICE-XXX --change CHANGE-XXX --reason "Reason"
+p2p choice block CHOICE-XXX --proposal PROP-XXX --reason "Reason"
+p2p choice unblock CHOICE-XXX --change CHANGE-XXX
+```
+
+Keep the distinction clear:
+
+```text
+related = informational connection
+discovery finding = advisory candidate
+block = explicit owner-controlled blocker in links.yml
+```
+
+## Change Sets
+
+Do not implement accepted project intent directly from a proposal. Use a Change Set:
+
+```bash
+p2p change create --from PROP-XXX --title "Operational title"
+p2p change set-status CHANGE-XXX planned
+p2p change set-status CHANGE-XXX implementation_ready
+p2p change tasks CHANGE-XXX
+```
+
+Interpret Change Set target fields precisely:
+
+```text
+execution_domains = type of work, such as software, documentation, governance, research, operations, commercial, or mixed
+implementation_targets = where work is implemented, such as local_cli, docs, p2p_governance, or project_metadata
+spec_targets = normalized P2P specification outputs to produce before export, such as p2p_spec
+export_targets = downstream formats/tools, such as openspec, speckit, markdown, or task_board
+```
+
+Do not treat `p2p_spec` as generated code. It is the P2P-native normalized spec layer that downstream exporters consume. OpenSpec and Spec Kit are export targets, not the internal source of truth.
+
+For software Change Sets that need implementation or downstream export, generate a P2P-native software spec before using OpenSpec, Spec Kit, or code generators:
+
+```bash
+p2p spec refresh --change CHANGE-XXX
+p2p spec status
+p2p spec show CHANGE-XXX
+```
+
+Use the optional prompt/import refinement workflow when deterministic source data is too sparse or needs human/AI normalization:
+
+```bash
+p2p spec prompt --change CHANGE-XXX
+p2p spec import CHANGE-XXX spec-output/
+```
+
+Spec import must validate the required artifact set and YAML top-level keys. Do not export raw proposal folders directly to downstream code-generation tools.
+
+When a refined P2P-native software spec is ready for downstream tools, export from `.p2p/outputs/software-spec/CHANGE-XXX/` instead of reading proposal folders:
+
+```bash
+p2p spec export --change CHANGE-XXX --target generic
+p2p spec export --change CHANGE-XXX --target openspec
+p2p spec export --change CHANGE-XXX --target speckit
+p2p spec export-status
+p2p spec export-show CHANGE-XXX --target speckit
+p2p spec export-validate CHANGE-XXX --target speckit
+```
+
+The exporter MVP supports `generic`, `openspec`, and `speckit`. The Spec Kit mapping is conservative: it writes a feature directory with `spec.md`, `plan.md`, `research.md`, `data-model.md`, `quickstart.md`, `tasks.md`, and `contracts/README.md`, but it does not invoke Spec Kit, create branches, or decide unresolved implementation details. Resolve `NEEDS CLARIFICATION` markers through P2P governance before implementation.
+Before handing an export bundle to downstream tooling, validate it with `p2p spec export-validate`. Validation is read-only and checks the export directory, manifest coherence, and target-specific required files.
+
+## Managed Work And Invisible Git
+
+P2P Work is the user-facing abstraction for future managed Git operations. Users should work with proposals, choices, Change Sets, exports, and Work items; Git branches, commits, PRs, and merges remain internal adapter details unless verbose/debug inspection is explicitly needed.
+
+Use this routing:
+
+```text
+discussion, clarification, concern -> proposal contribution/comment
+incompatible alternatives -> choice or alternative proposal
+accepted operational work -> Change Set
+validated downstream handoff -> Work manifest
+owner-approved integration -> future managed submit/accept workflow
+```
+
+The managed Git path is incremental:
+
+```text
+Level 0: advisory only
+Level 1: handoff plan / Work manifest
+Level 2: managed branch
+Level 3: managed commit
+Level 4: managed review
+Level 5: owner-controlled merge
+```
+
+The current safe level is Level 1:
+
+```bash
+p2p work plan --change CHANGE-XXX --target speckit
+p2p work scan
+p2p work list
+p2p work show WORK-001
+```
+
+`p2p work plan` requires a validated export bundle and writes `.p2p/work/WORK-XXX/manifest.yml`. It does not create Git branches, commits, PRs, or merges. Future branch visibility should read P2P-managed work manifests from `p2p/work/*` branches through the Git adapter without requiring checkout.
+`p2p work scan` is the first branch-visibility step: it reads local `p2p/work/*` branches without checkout and writes `.p2p/registries/work.yml`. It is read-only with respect to Git and must not fetch remote branches, create branches, commit, submit, or merge.
+
+After implementation and verification:
+
+```bash
+p2p change set-status CHANGE-XXX in_progress
+p2p change set-status CHANGE-XXX in_review
+p2p change set-status CHANGE-XXX completed
+p2p registry refresh
+```
+
+## Exploration Behavior
+
+Use exploration before synthesis and whenever new information changes the shape of the problem.
+
+Exploration should surface:
+
+- hidden decisions;
+- alternatives;
+- assumptions;
+- risks;
+- open questions;
+- suggested scope;
+- execution domains.
+
+Expected artifacts:
+
+```text
+exploration.md
+findings.md
+alternatives.md
+open-questions.md
+risks.md
+assumptions.md
+suggested-scope.md
+```
+
+## Import Discipline
+
+When you generate content as Codex, save it to an appropriate temporary or proposal-local file and import it with the CLI instead of only describing it.
+
+Examples:
+
+```bash
+p2p explore import PROP-XXX exploration-output.md
+p2p synthesize import PROP-XXX proposal-output.md
+p2p tasks import PROP-XXX tasks-output.yml
+```
+
+For `tasks import`, produce valid YAML with a top-level `tasks` list.
+
+For intake output, write the expected files under `.p2p/intake/INTAKE-XXX/` when operating inside Codex, or use:
+
+```bash
+p2p intake import INTAKE-XXX output-dir/
+```
+
+## Do Not
+
+- Do not treat AI output as a final decision.
+- Do not skip human decision recording for accepted/rejected proposals.
+- Do not accept, reject, defer, merge, or supersede proposals from intake alone.
+- Do not create plans or tasks before exploration/synthesis unless the user explicitly asks for a shortcut.
+- Do not use P2P artifacts as decoration; keep them actionable and versioned.
+- Do not introduce web app, MCP, or direct AI adapters unless the active proposal covers that work.
+
+## Useful Commands
+
+```bash
+p2p check
+p2p status
+p2p registry refresh
+p2p proposal list
+p2p proposal show PROP-XXX
+p2p proposal create "Title"
+p2p proposal update PROP-XXX --problem "..." --goal "..."
+p2p proposal accept PROP-XXX --reason "..."
+p2p proposal reject PROP-XXX --reason "..."
+p2p proposal defer PROP-XXX --reason "..."
+p2p contribution add PROP-XXX "Text" --type suggestion --relevance medium
+p2p intake prompt "Raw idea"
+p2p intake status
+p2p explore prompt PROP-XXX
+p2p explore status PROP-XXX
+p2p digest prompt PROP-XXX
+p2p clarify prompt PROP-XXX
+p2p synthesize prompt PROP-XXX
+p2p choice create --title "Title" --option "A" --option "B"
+p2p choice list
+p2p choice decide CHOICE-XXX --option A --reason "..."
+p2p change create --from PROP-XXX
+p2p change status
+p2p plan prompt PROP-XXX
+p2p tasks prompt PROP-XXX
+```

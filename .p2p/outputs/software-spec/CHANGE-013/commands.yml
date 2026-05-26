@@ -1,0 +1,10 @@
+commands:
+- name: Export generic software spec bundle
+  purpose: Not specified yet.
+  status: completed
+- name: Export OpenSpec-oriented software spec bundle
+  purpose: Not specified yet.
+  status: completed
+- name: Inspect software spec export bundles
+  purpose: Not specified yet.
+  status: completed

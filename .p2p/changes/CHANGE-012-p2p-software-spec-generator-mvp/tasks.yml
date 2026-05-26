@@ -1,0 +1,39 @@
+tasks:
+  - id: T001
+    title: "Generate deterministic software spec"
+    status: completed
+    domain: software
+    acceptance:
+      - "p2p spec refresh --change CHANGE-XXX creates required spec artifacts."
+      - "Generated artifacts preserve provenance to source Change Set and proposals."
+
+  - id: T002
+    title: "Inspect generated software specs"
+    status: completed
+    domain: software
+    acceptance:
+      - "p2p spec status lists generated specs."
+      - "p2p spec show CHANGE-XXX prints index.md."
+
+  - id: T003
+    title: "Generate refinement prompt"
+    status: completed
+    domain: software
+    acceptance:
+      - "p2p spec prompt --change CHANGE-XXX writes a prompt using source context and generated spec."
+
+  - id: T004
+    title: "Import refined software spec"
+    status: completed
+    domain: software
+    acceptance:
+      - "p2p spec import CHANGE-XXX output-dir validates required files."
+      - "YAML artifacts are validated before import."
+
+  - id: T005
+    title: "Update skill and tests"
+    status: completed
+    domain: quality
+    acceptance:
+      - "P2P skill documents spec refresh/prompt/import."
+      - "Tests cover deterministic generation and import validation."

@@ -1,0 +1,7 @@
+contributions:
+- id: C001
+  type: objective
+  author: local
+  relevance_hint: high
+  text: Rendere i prompt generator piu stabili, testabili e aderenti agli artefatti
+    P2P

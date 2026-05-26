@@ -1,0 +1,38 @@
+tasks:
+  - id: T001
+    title: "Update first-check workflow"
+    status: completed
+    domain: documentation
+    acceptance:
+      - "Skill instructs agents to run check/status and registry refresh/status."
+
+  - id: T002
+    title: "Document intake-before-proposal behavior"
+    status: completed
+    domain: documentation
+    acceptance:
+      - "Skill tells agents to use intake for raw ideas and overlaps."
+      - "Skill preserves governance boundary for intake."
+
+  - id: T003
+    title: "Document proposal and choice commands"
+    status: completed
+    domain: documentation
+    acceptance:
+      - "Skill references proposal list/show and accept/reject/defer."
+      - "Skill references choice create/list/decide."
+
+  - id: T004
+    title: "Document Change Set implementation workflow"
+    status: completed
+    domain: documentation
+    acceptance:
+      - "Skill tells agents to implement accepted intent through Change Sets."
+
+  - id: T005
+    title: "Verify skill command coverage"
+    status: completed
+    domain: quality
+    acceptance:
+      - "Skill contains current core CLI commands."
+      - "Skill avoids stale decision-record-first guidance."

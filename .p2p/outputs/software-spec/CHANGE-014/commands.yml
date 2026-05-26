@@ -1,0 +1,7 @@
+commands:
+- name: Support speckit export target
+  purpose: Not specified yet.
+  status: completed
+- name: Generate Spec Kit feature directory
+  purpose: Not specified yet.
+  status: completed

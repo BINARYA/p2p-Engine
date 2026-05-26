@@ -1,0 +1,10 @@
+commands:
+- name: Validate generic export bundles
+  purpose: Not specified yet.
+  status: completed
+- name: Validate OpenSpec-oriented export bundles
+  purpose: Not specified yet.
+  status: completed
+- name: Validate Spec Kit-oriented export bundles
+  purpose: Not specified yet.
+  status: completed

@@ -1,0 +1,224 @@
+generated: true
+source: .p2p/proposals/*/decision.md
+decisions:
+- proposal: PROP-001
+  title: CLI Foundation
+  outcome: Build the first P2P Engine CLI as a local, Git-native, prompt-only Python
+    application.
+  status: accepted
+  path: .p2p/proposals/PROP-001-cli-foundation/decision.md
+  reason: The project needs a minimal executable workflow before adding AI adapters,
+    exporters, MCP, or a web interface. Automating the manually bootstrapped `.p2p/`
+    structure is the shortest path to dogfooding.
+- proposal: PROP-002
+  title: Exploration Phase
+  outcome: pending
+  status: draft
+  path: .p2p/proposals/PROP-002-exploration-phase/decision.md
+  reason: ''
+- proposal: PROP-003
+  title: Prompt generator hardening
+  outcome: deferred
+  status: deferred
+  path: .p2p/proposals/PROP-003-prompt-generator-hardening/decision.md
+  reason: Prompt hardening remains useful but is deferred after intake, choices and
+    proposal decision shortcuts.
+- proposal: PROP-004
+  title: Prompt-only Import Workflow
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-004-prompt-only-import-workflow/decision.md
+  reason: 'Il workflow prompt-only deve essere completo: ogni fase che genera prompt
+    deve poter importare l''output prodotto da AI, agenti esterni o dall''utente.'
+- proposal: PROP-005
+  title: Codex Skill Integration
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-005-codex-skill-integration/decision.md
+  reason: P2P Engine now has enough CLI workflow surface for Codex to use it as a
+    structured method. A local skill makes the expected behavior explicit and reduces
+    the risk of leaving decisions only in chat.
+- proposal: PROP-006
+  title: Multi-Agent Integration Model
+  outcome: pending
+  status: draft
+  path: .p2p/proposals/PROP-006-multi-agent-integration-model/decision.md
+  reason: ''
+- proposal: PROP-007
+  title: Proposal Intake and Overlap Analysis
+  outcome: pending
+  status: draft
+  path: .p2p/proposals/PROP-007-proposal-intake-and-overlap-analysis/decision.md
+  reason: ''
+- proposal: PROP-008
+  title: Governance Model
+  outcome: pending
+  status: draft
+  path: .p2p/proposals/PROP-008-governance-model/decision.md
+  reason: ''
+- proposal: PROP-009
+  title: Governance CLI Commands
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-009-governance-cli-commands/decision.md
+  reason: PROP-008 ha definito il modello di governance, ma senza comandi CLI il workflow
+    resta solo documentale. I comandi governance, swot, vote e precedent rendono il
+    modello provabile nel repository senza introdurre ancora un sistema di privilegi
+    applicativi.
+- proposal: PROP-010
+  title: P2P Project State Model
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-010-p2p-software-specification-model/decision.md
+  reason: P2P Engine needs an internal rationalized project state before exporting
+    to OpenSpec, Spec Kit, or task systems. Raw proposal folders contain discussion,
+    governance, alternatives, and decision history; they should not be treated directly
+    as implementation specifications.
+- proposal: PROP-011
+  title: Project Refresh MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-011-project-refresh-mvp/decision.md
+  reason: Project refresh MVP is implemented with deterministic .p2p/project generation
+    and CLI inspection commands.
+- proposal: PROP-012
+  title: Impact Map and Conflict Memory
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-012-impact-map-and-conflict-memory/decision.md
+  reason: Impact analysis and conflict memory are implemented as prompt-only impact
+    artifacts plus persistent .p2p/project/conflicts.yml commands.
+- proposal: PROP-013
+  title: Managed Git Adapter and Change Set Model
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-013-change-set-and-git-branch-model/decision.md
+  reason: P2P Engine should expose proposal, choice, decision, change, and task concepts
+    to users. Git remains the internal layer for persistence, audit, synchronization,
+    and collaboration, but users should not need to reason about branches, commits,
+    merges, or tags during normal workflows.
+- proposal: PROP-014
+  title: Change Set Metadata MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-014-change-set-metadata-mvp/decision.md
+  reason: Change Set metadata MVP is implemented with create/status/policy commands
+    and metadata-only managed Git policy.
+- proposal: PROP-015
+  title: Change Set Lifecycle and Task Tracking
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-015-change-set-lifecycle-and-task-tracking/decision.md
+  reason: Change Set lifecycle transitions and task/action inspection are implemented
+    with validated status changes and metadata-only behavior.
+- proposal: PROP-016
+  title: Project Registries MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-016-project-registries-mvp/decision.md
+  reason: Accepted as the next MVP step to introduce generated project registries
+    for proposals, decisions, changes, choices, relations and artifacts.
+- proposal: PROP-017
+  title: Proposal Intake and Context Analysis MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/decision.md
+  reason: Accepted to add registry-backed proposal intake and context analysis as
+    the next usability layer for multi-user and multi-agent P2P workflows.
+- proposal: PROP-018
+  title: Choice Management CLI MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-018-choice-management-cli-mvp/decision.md
+  reason: Accepted to make choices first-class CLI-managed artifacts after INTAKE-001
+    required opening CHOICE-001.
+- proposal: PROP-019
+  title: Proposal Decision Shortcut Commands
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-019-proposal-decision-shortcut-commands/decision.md
+  reason: Accepted to make proposal lifecycle decisions easier for users and AI agents.
+- proposal: PROP-020
+  title: Proposal Inspection CLI MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-020-proposal-inspection-cli-mvp/decision.md
+  reason: Accepted to provide stable proposal inspection commands needed before updating
+    agent skills.
+- proposal: PROP-021
+  title: Agent Skill Real Commands Update
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-021-agent-skill-real-commands-update/decision.md
+  reason: Accepted to align the Codex skill with the current P2P CLI before using
+    agents more heavily.
+- proposal: PROP-022
+  title: Operational Brief Prompt Workflow
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-022-operational-brief-prompt-workflow/decision.md
+  reason: Accepted to introduce intelligence through a prompt-only operational brief
+    workflow while preserving CLI-owned context and owner-controlled decisions.
+- proposal: PROP-023
+  title: Next Action Recommender MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-023-next-action-recommender-mvp/decision.md
+  reason: Accepted to connect operational brief next-actions to a top-level advisory
+    p2p next command and concise project status summary.
+- proposal: PROP-024
+  title: Choice Blocking and Discovery MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-024-choice-blocking-and-discovery-mvp/decision.md
+  reason: Accepted to make choices operational through advisory discovery first and
+    explicit owner-controlled blockers second.
+- proposal: PROP-025
+  title: Controlled Intake Apply Workflow
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-025-controlled-intake-apply-workflow/decision.md
+  reason: Accepted to implement intake apply as an auditable plan/show/run workflow
+    rather than direct automatic application.
+- proposal: PROP-026
+  title: P2P Software Spec Generator MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-026-p2p-software-spec-generator-mvp/decision.md
+  reason: Accepted to introduce the P2P-native software spec layer before downstream
+    OpenSpec or Spec Kit export.
+- proposal: PROP-027
+  title: Software Spec Exporter MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-027-software-spec-exporter-mvp/decision.md
+  reason: Accepted to add the first downstream export layer after the refined P2P-native
+    software spec MVP.
+- proposal: PROP-028
+  title: Spec Kit Export Mapping MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-028-spec-kit-export-mapping-mvp/decision.md
+  reason: Accepted to complete the declared Spec Kit export target with a conservative
+    P2P-spec-derived mapping.
+- proposal: PROP-029
+  title: Spec Export Validation MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-029-spec-export-validation-mvp/decision.md
+  reason: Accepted to add read-only validation before downstream use of generated
+    export bundles.
+- proposal: PROP-030
+  title: Managed Work and Multi-Branch Visibility Policy
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/decision.md
+  reason: Accepted to introduce P2P Work as the user-facing abstraction for the incremental
+    path toward invisible managed Git.
+- proposal: PROP-031
+  title: Multi-Branch Work Scan MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-031-multi-branch-work-scan-mvp/decision.md
+  reason: Accepted to add read-only visibility into P2P-managed work manifests on
+    parallel local branches.

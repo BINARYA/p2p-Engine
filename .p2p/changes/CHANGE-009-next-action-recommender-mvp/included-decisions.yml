@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-023
+  decision_file: .p2p/proposals/PROP-023-next-action-recommender-mvp/decision.md

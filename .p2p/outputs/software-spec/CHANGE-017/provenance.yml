@@ -1,0 +1,9 @@
+source:
+  change: CHANGE-017
+  included_proposals:
+  - PROP-031
+  accepted_decisions: []
+generated_from:
+- .p2p/changes/CHANGE-017-multi-branch-work-scan-mvp/change.md
+- .p2p/changes/CHANGE-017-multi-branch-work-scan-mvp/tasks.yml
+- .p2p/proposals/PROP-031-multi-branch-work-scan-mvp/proposal.md

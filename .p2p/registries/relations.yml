@@ -1,0 +1,173 @@
+generated: true
+source: .p2p proposal and change metadata
+relations:
+- source: CHANGE-001
+  target: PROP-013
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-001-managed-git-adapter-and-change-set-model
+- source: CHANGE-002
+  target: PROP-016
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-002-project-registries-mvp
+- source: CHANGE-003
+  target: PROP-017
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-003-proposal-intake-and-context-analysis-mvp
+- source: CHANGE-004
+  target: PROP-018
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-004-choice-management-cli-mvp
+- source: CHANGE-005
+  target: PROP-019
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-005-proposal-decision-shortcut-commands
+- source: CHANGE-006
+  target: PROP-020
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-006-proposal-inspection-cli-mvp
+- source: CHANGE-007
+  target: PROP-021
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-007-agent-skill-real-commands-update
+- source: CHANGE-008
+  target: PROP-022
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-008-operational-brief-prompt-workflow
+- source: CHANGE-009
+  target: PROP-023
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-009-next-action-recommender-mvp
+- source: CHANGE-010
+  target: PROP-024
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-010-choice-blocking-and-discovery-mvp
+- source: CHANGE-011
+  target: PROP-025
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-011-controlled-intake-apply-workflow
+- source: CHANGE-012
+  target: PROP-026
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-012-p2p-software-spec-generator-mvp
+- source: CHANGE-013
+  target: PROP-027
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-013-software-spec-exporter-mvp
+- source: CHANGE-014
+  target: PROP-028
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-014-spec-kit-export-mapping-mvp
+- source: CHANGE-015
+  target: PROP-029
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-015-spec-export-validation-mvp
+- source: CHANGE-016
+  target: PROP-030
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-016-managed-work-and-multi-branch-visibility-policy
+- source: CHANGE-017
+  target: PROP-031
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-017-multi-branch-work-scan-mvp
+- source: PROP-013
+  target: CHANGE-001
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-013-change-set-and-git-branch-model
+- source: PROP-016
+  target: CHANGE-002
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-016-project-registries-mvp
+- source: PROP-017
+  target: CHANGE-003
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp
+- source: PROP-018
+  target: CHANGE-004
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-018-choice-management-cli-mvp
+- source: PROP-019
+  target: CHANGE-005
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-019-proposal-decision-shortcut-commands
+- source: PROP-020
+  target: CHANGE-006
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-020-proposal-inspection-cli-mvp
+- source: PROP-021
+  target: CHANGE-007
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-021-agent-skill-real-commands-update
+- source: PROP-022
+  target: CHANGE-008
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-022-operational-brief-prompt-workflow
+- source: PROP-023
+  target: CHANGE-009
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-023-next-action-recommender-mvp
+- source: PROP-024
+  target: CHANGE-010
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-024-choice-blocking-and-discovery-mvp
+- source: PROP-025
+  target: CHANGE-011
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-025-controlled-intake-apply-workflow
+- source: PROP-026
+  target: CHANGE-012
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-026-p2p-software-spec-generator-mvp
+- source: PROP-027
+  target: CHANGE-013
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-027-software-spec-exporter-mvp
+- source: PROP-028
+  target: CHANGE-014
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-028-spec-kit-export-mapping-mvp
+- source: PROP-029
+  target: CHANGE-015
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-029-spec-export-validation-mvp
+- source: PROP-030
+  target: CHANGE-016
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy
+- source: PROP-031
+  target: CHANGE-017
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-031-multi-branch-work-scan-mvp

@@ -1,0 +1,8 @@
+contributions:
+- id: C001
+  type: alternative_proposal
+  author: local
+  relevance_hint: high
+  text: INTAKE-001 introduced direct Codex integration as an alternative to the accepted
+    prompt-only workflow. This should be handled through CHOICE-001 before changing
+    MVP scope.

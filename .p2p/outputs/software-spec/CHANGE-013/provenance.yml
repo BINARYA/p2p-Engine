@@ -1,0 +1,9 @@
+source:
+  change: CHANGE-013
+  included_proposals:
+  - PROP-027
+  accepted_decisions: []
+generated_from:
+- .p2p/changes/CHANGE-013-software-spec-exporter-mvp/change.md
+- .p2p/changes/CHANGE-013-software-spec-exporter-mvp/tasks.yml
+- .p2p/proposals/PROP-027-software-spec-exporter-mvp/proposal.md

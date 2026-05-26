@@ -1,0 +1,23 @@
+conflicts:
+- id: CONFLICT-001
+  type: overlaps
+  proposals:
+  - PROP-010
+  - PROP-011
+  - PROP-012
+  winner: null
+  rejected: []
+  reason: These proposals all define or modify .p2p/project state, refresh behavior,
+    or conflict memory.
+  recorded_on: '2026-05-20'
+- id: CONFLICT-002
+  type: supersedes_policy
+  proposals:
+  - PROP-001
+  - PROP-013
+  winner: PROP-013
+  rejected:
+  - PROP-001
+  reason: PROP-013 refines the original branch-per-proposal assumption into a hybrid
+    proposal/change-set branch policy.
+  recorded_on: '2026-05-20'

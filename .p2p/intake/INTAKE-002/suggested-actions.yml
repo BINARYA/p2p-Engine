@@ -1,0 +1,4 @@
+suggested_actions:
+- type: needs_analysis
+  target: null
+  rationale: Import intake output to populate recommendations.

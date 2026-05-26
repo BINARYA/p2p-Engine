@@ -1,0 +1,36 @@
+tasks:
+  - id: T001
+    title: "Implement choice artifact creation"
+    status: completed
+    domain: software
+    acceptance:
+      - "`p2p choice create` creates choice.md, options.yml, decision.md and links.yml."
+
+  - id: T002
+    title: "Implement choice listing"
+    status: completed
+    domain: software
+    acceptance:
+      - "`p2p choice list` displays open and decided choices."
+
+  - id: T003
+    title: "Implement choice decision"
+    status: completed
+    domain: software
+    acceptance:
+      - "`p2p choice decide` records selected option, reason, decider and date."
+
+  - id: T004
+    title: "Index choices in registries"
+    status: completed
+    domain: software
+    acceptance:
+      - "`p2p registry show choices` includes .p2p/choices artifacts."
+
+  - id: T005
+    title: "Add tests and documentation"
+    status: completed
+    domain: quality
+    acceptance:
+      - "Tests cover create/list/decide."
+      - "README documents choice workflow."

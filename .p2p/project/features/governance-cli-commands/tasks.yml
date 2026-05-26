@@ -1,0 +1,57 @@
+tasks:
+  - id: T001
+    title: Implement governance storage methods
+    workstream: WS1
+    type: software
+    status: done
+    priority: high
+    dependencies: []
+    deliverable: P2PWorkspace methods for governance, votes, and precedents
+    evidence_required: Tests cover governance file creation and vote status
+    actions:
+      - Add governance status dataclasses
+      - Add init_governance, governance_status, record_vote, vote_status, record_precedent
+  - id: T002
+    title: Add governance CLI commands
+    workstream: WS2
+    type: software
+    status: done
+    priority: high
+    dependencies:
+      - T001
+    deliverable: Typer command groups for governance, swot, vote, and precedent
+    evidence_required: CLI tests pass
+    actions:
+      - Add p2p governance init/status
+      - Add p2p swot prompt
+      - Add p2p vote record/status
+      - Add p2p precedent record
+  - id: T003
+    title: Add SWOT prompt renderer
+    workstream: WS3
+    type: software
+    status: done
+    priority: medium
+    dependencies:
+      - T001
+    deliverable: swot.prompt.md generation
+    evidence_required: Prompt includes governance mode and decision-relevant sections
+    actions:
+      - Add render_swot_prompt
+      - Include governance.yml, roles.yml, decision-precedents.yml and votes.yml context
+  - id: T004
+    title: Update documentation and verification
+    workstream: WS4
+    type: documentation
+    status: done
+    priority: medium
+    dependencies:
+      - T001
+      - T002
+      - T003
+    deliverable: README and foundation governance command examples
+    evidence_required: pytest and compileall pass
+    actions:
+      - Update README governance MVP section
+      - Update foundation governance section
+      - Run test suite

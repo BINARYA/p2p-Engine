@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-028
+  decision_file: .p2p/proposals/PROP-028-spec-kit-export-mapping-mvp/decision.md

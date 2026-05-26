@@ -1,0 +1,15 @@
+tasks:
+  - id: T001
+    title: Example task
+    workstream: WS1
+    type: software
+    status: todo
+    priority: medium
+    dependencies: []
+    deliverable: ""
+    evidence_required: ""
+    actions:
+      - id: A001
+        title: Example action
+        status: todo
+

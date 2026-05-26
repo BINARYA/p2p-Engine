@@ -1,0 +1,57 @@
+tasks:
+  - id: T001
+    title: Define output directory semantics
+    workstream: WS1
+    type: design
+    status: todo
+    priority: high
+    dependencies: []
+    deliverable: Documented .p2p/outputs structure
+    evidence_required: Foundation and proposal describe source vs derived artifacts
+    actions:
+      - Define .p2p/outputs/software-spec
+      - Define .p2p/outputs/exports
+      - Define provenance expectations
+  - id: T002
+    title: Define minimal P2P software spec model
+    workstream: WS2
+    type: design
+    status: todo
+    priority: high
+    dependencies:
+      - T001
+    deliverable: Minimal software spec file model
+    evidence_required: Proposed file names and required sections are documented
+    actions:
+      - Define index.md
+      - Define modules/<module>.md
+      - Define decisions-map.yml
+  - id: T003
+    title: Define output refresh behavior
+    workstream: WS3
+    type: design
+    status: todo
+    priority: high
+    dependencies:
+      - T001
+      - T002
+    deliverable: Refresh workflow specification
+    evidence_required: Proposal explains explicit and automatic refresh modes
+    actions:
+      - Define p2p output refresh
+      - Define decision acceptance trigger
+      - Define conflict behavior
+  - id: T004
+    title: Define export boundary
+    workstream: WS4
+    type: architecture
+    status: todo
+    priority: medium
+    dependencies:
+      - T002
+    deliverable: Export boundary notes for OpenSpec and Spec Kit
+    evidence_required: Proposal states exporters consume normalized P2P specs
+    actions:
+      - Map P2P spec to OpenSpec concepts
+      - Map P2P spec to Spec Kit concepts
+      - Exclude raw proposal direct export as default path

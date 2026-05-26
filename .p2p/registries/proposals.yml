@@ -1,0 +1,881 @@
+generated: true
+source: .p2p/proposals
+proposals:
+- id: PROP-001
+  title: CLI Foundation
+  status: accepted
+  path: .p2p/proposals/PROP-001-cli-foundation
+  summary: 'Build the first P2P Engine CLI using Python and Typer.
+
+
+    The CLI should focus on local file generation and workflow guidance:
+
+
+    ```text
+
+    p2p init
+
+    p2p proposal create
+
+    p2p contribution add
+
+    p2p digest prompt
+
+    p2p clarify prompt
+
+    p2p decision record
+
+    p2p plan prompt
+
+    p2p tasks prompt
+
+    p2p status
+
+    ```
+
+
+    The first version should implement prompt generation instead of direct AI integration.
+    A command such as:
+
+
+    ```bash
+
+    p2p digest prompt PROP-001
+
+    ```
+
+
+    should generate:
+
+
+    ```text
+
+    .p2p/prompts/PROP-001/digest.prompt.md
+
+    ```
+
+
+    The user can then provide that prompt to Codex, ChatGPT, Claude, Llama, or another
+    model manually and paste the output into the correct artifact.'
+  decision_file: .p2p/proposals/PROP-001-cli-foundation/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - proposal.md
+  - tasks.yml
+- id: PROP-002
+  title: Exploration Phase
+  status: draft
+  path: .p2p/proposals/PROP-002-exploration-phase
+  summary: 'Introdurre una fase autonoma e ripetibile chiamata `explore`.
+
+
+    `explore` non riassume e non decide. Serve a interrogare la proposta e generare
+    materiale che alimenta clarify, synthesize, decision, plan e tasks.
+
+
+    Gli output validi devono essere salvati negli artefatti P2P versionati:
+
+
+    ```text
+
+    exploration.md
+
+    findings.md
+
+    alternatives.md
+
+    open-questions.md
+
+    risks.md
+
+    assumptions.md
+
+    suggested-scope.md
+
+    ```
+
+
+    La CLI deve supportare:
+
+
+    ```bash
+
+    p2p explore prompt PROP-002
+
+    p2p explore import PROP-002 exploration-output.md
+
+    p2p explore status PROP-002
+
+    ```'
+  decision_file: .p2p/proposals/PROP-002-exploration-phase/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-003
+  title: Prompt generator hardening
+  status: deferred
+  path: .p2p/proposals/PROP-003-prompt-generator-hardening
+  summary: Estendere la CLI con opzioni strutturate per create/update e rendere i
+    prompt piu robusti includendo governance e istruzioni esplicite sulle informazioni
+    mancanti.
+  decision_file: .p2p/proposals/PROP-003-prompt-generator-hardening/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - proposal.md
+  - tasks.yml
+- id: PROP-004
+  title: Prompt-only Import Workflow
+  status: accepted
+  path: .p2p/proposals/PROP-004-prompt-only-import-workflow
+  summary: Implementare comandi import uniformi per le fasi successive a explore e
+    aggiungere synthesize prompt/import.
+  decision_file: .p2p/proposals/PROP-004-prompt-only-import-workflow/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-005
+  title: Codex Skill Integration
+  status: accepted
+  path: .p2p/proposals/PROP-005-codex-skill-integration
+  summary: Aggiungere una skill locale .codex/skills/p2p-engine/SKILL.md che istruisca
+    Codex a usare P2P Engine come sorgente di verita operativa.
+  decision_file: .p2p/proposals/PROP-005-codex-skill-integration/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-006
+  title: Multi-Agent Integration Model
+  status: draft
+  path: .p2p/proposals/PROP-006-multi-agent-integration-model
+  summary: Introdurre un P2P Agent Integration Layer con profili agent, comandi install/list/use/update
+    e template di skill o command files per Codex, Claude, generic agent e futuri
+    tool.
+  decision_file: .p2p/proposals/PROP-006-multi-agent-integration-model/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-007
+  title: Proposal Intake and Overlap Analysis
+  status: draft
+  path: .p2p/proposals/PROP-007-proposal-intake-and-overlap-analysis
+  summary: Introdurre un workflow prompt-only di proposal triage che legge le proposal
+    esistenti, genera un prompt di analisi, importa il risultato e suggerisce l'azione
+    P2P successiva.
+  decision_file: .p2p/proposals/PROP-007-proposal-intake-and-overlap-analysis/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - overlap-analysis.md
+  - proposal.md
+  - related-proposals.yml
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-008
+  title: Governance Model
+  status: draft
+  path: .p2p/proposals/PROP-008-governance-model
+  summary: Introdurre una governance file-based con governance.yml, roles.yml, votes.yml,
+    swot-analysis.md e decision-precedents.yml, usando owner_decides come default
+    bootstrap e rimandando i permessi reali a fasi successive.
+  decision_file: .p2p/proposals/PROP-008-governance-model/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - governance-model.yml
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - swot-analysis.md
+  - tasks.yml
+  - votes.yml
+- id: PROP-009
+  title: Governance CLI Commands
+  status: accepted
+  path: .p2p/proposals/PROP-009-governance-cli-commands
+  summary: Aggiungere comandi governance file-based per rendere operativo il modello
+    di PROP-008, mantenendo Git come audit layer e rimandando enforcement permessi
+    a fasi future.
+  decision_file: .p2p/proposals/PROP-009-governance-cli-commands/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-010
+  title: P2P Project State Model
+  status: accepted
+  path: .p2p/proposals/PROP-010-p2p-software-specification-model
+  summary: Add a P2P project state model that turns accepted proposals into versioned
+    project artifacts under `.p2p/project/`. The MVP uses explicit refresh via `p2p
+    project refresh`; automatic refresh after acceptance can be added later.
+  decision_file: .p2p/proposals/PROP-010-p2p-software-specification-model/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-011
+  title: Project Refresh MVP
+  status: accepted
+  path: .p2p/proposals/PROP-011-project-refresh-mvp
+  summary: Add deterministic project-state generation from accepted proposals, starting
+    with overview, problem, scope, project SWOT placeholder, features, decisions-map,
+    and conflicts.
+  decision_file: .p2p/proposals/PROP-011-project-refresh-mvp/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-012
+  title: Impact Map and Conflict Memory
+  status: accepted
+  path: .p2p/proposals/PROP-012-impact-map-and-conflict-memory
+  summary: Add impact and conflict artifacts that allow P2P Engine to understand which
+    project areas a proposal touches and preserve memory of competing or mutually
+    exclusive alternatives.
+  decision_file: .p2p/proposals/PROP-012-impact-map-and-conflict-memory/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - conflict-analysis.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - impact-map.yml
+  - open-questions.md
+  - proposal.md
+  - related-proposals.yml
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-013
+  title: Managed Git Adapter and Change Set Model
+  status: accepted
+  path: .p2p/proposals/PROP-013-change-set-and-git-branch-model
+  summary: 'Adopt a managed Git model: proposals and change sets are the public P2P
+    concepts, while Git branches, commits, merges, and tags are internal operations
+    selected by a configurable policy. Git details are visible only in verbose/debug
+    modes.'
+  decision_file: .p2p/proposals/PROP-013-change-set-and-git-branch-model/decision.md
+  related_changes:
+  - CHANGE-001
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - conflict-analysis.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - impact-map.yml
+  - open-questions.md
+  - proposal.md
+  - related-proposals.yml
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-014
+  title: Change Set Metadata MVP
+  status: accepted
+  path: .p2p/proposals/PROP-014-change-set-metadata-mvp
+  summary: Add deterministic Change Set metadata generation from accepted proposals
+    and decisions, preserving managed Git as metadata-only.
+  decision_file: .p2p/proposals/PROP-014-change-set-metadata-mvp/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-015
+  title: Change Set Lifecycle and Task Tracking
+  status: accepted
+  path: .p2p/proposals/PROP-015-change-set-lifecycle-and-task-tracking
+  summary: Add lifecycle commands and task/action inspection for Change Sets so P2P
+    can track operational progress.
+  decision_file: .p2p/proposals/PROP-015-change-set-lifecycle-and-task-tracking/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-016
+  title: Project Registries MVP
+  status: accepted
+  path: .p2p/proposals/PROP-016-project-registries-mvp
+  summary: Add .p2p/registries as a generated index layer for proposals, decisions,
+    changes, choices and relations.
+  decision_file: .p2p/proposals/PROP-016-project-registries-mvp/decision.md
+  related_changes:
+  - CHANGE-002
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-017
+  title: Proposal Intake and Context Analysis MVP
+  status: accepted
+  path: .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp
+  summary: Introduce a proposal intake and context analysis workflow backed by generated
+    registries and prompt-only AI output.
+  decision_file: .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/decision.md
+  related_changes:
+  - CHANGE-003
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-018
+  title: Choice Management CLI MVP
+  status: accepted
+  path: .p2p/proposals/PROP-018-choice-management-cli-mvp
+  summary: Add first-class CLI commands for project choices under .p2p/choices/.
+  decision_file: .p2p/proposals/PROP-018-choice-management-cli-mvp/decision.md
+  related_changes:
+  - CHANGE-004
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-019
+  title: Proposal Decision Shortcut Commands
+  status: accepted
+  path: .p2p/proposals/PROP-019-proposal-decision-shortcut-commands
+  summary: Implement dedicated proposal decision shortcut commands that call the existing
+    decision recording mechanism.
+  decision_file: .p2p/proposals/PROP-019-proposal-decision-shortcut-commands/decision.md
+  related_changes:
+  - CHANGE-005
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-020
+  title: Proposal Inspection CLI MVP
+  status: accepted
+  path: .p2p/proposals/PROP-020-proposal-inspection-cli-mvp
+  summary: Expose proposal inspection through dedicated CLI commands and make choice
+    registry output stable for humans and agents.
+  decision_file: .p2p/proposals/PROP-020-proposal-inspection-cli-mvp/decision.md
+  related_changes:
+  - CHANGE-006
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-021
+  title: Agent Skill Real Commands Update
+  status: accepted
+  path: .p2p/proposals/PROP-021-agent-skill-real-commands-update
+  summary: Refresh .codex/skills/p2p-engine/SKILL.md so agents use the current CLI
+    as the source of truth.
+  decision_file: .p2p/proposals/PROP-021-agent-skill-real-commands-update/decision.md
+  related_changes:
+  - CHANGE-007
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-022
+  title: Operational Brief Prompt Workflow
+  status: accepted
+  path: .p2p/proposals/PROP-022-operational-brief-prompt-workflow
+  summary: 'Add a prompt-only operational brief workflow under project commands: the
+    CLI gathers project state, registries, conflicts, choices, intake and changes
+    into a context file, generates instructions for an AI/human synthesis, and imports
+    the resulting operational brief and optional next-actions YAML.'
+  decision_file: .p2p/proposals/PROP-022-operational-brief-prompt-workflow/decision.md
+  related_changes:
+  - CHANGE-008
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-023
+  title: Next Action Recommender MVP
+  status: accepted
+  path: .p2p/proposals/PROP-023-next-action-recommender-mvp
+  summary: Implement an advisory next-action recommender. The command should prefer
+    imported next-actions.yml, fall back to deterministic project state checks, support
+    --top N, and project status should summarize whether an operational brief exists
+    plus the first suggested action.
+  decision_file: .p2p/proposals/PROP-023-next-action-recommender-mvp/decision.md
+  related_changes:
+  - CHANGE-009
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-024
+  title: Choice Blocking and Discovery MVP
+  status: accepted
+  path: .p2p/proposals/PROP-024-choice-blocking-and-discovery-mvp
+  summary: Implement choice blocking and discovery in two steps. First add deterministic
+    advisory inspection commands that surface project choices, proposal-local choice
+    candidates, and unresolved discovery findings. Then add formal block/unblock commands
+    that write links.yml for project choices, distinguishing related metadata from
+    active blockers.
+  decision_file: .p2p/proposals/PROP-024-choice-blocking-and-discovery-mvp/decision.md
+  related_changes:
+  - CHANGE-010
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-025
+  title: Controlled Intake Apply Workflow
+  status: accepted
+  path: .p2p/proposals/PROP-025-controlled-intake-apply-workflow
+  summary: Implement a two-phase controlled intake apply workflow. The plan command
+    converts suggested-actions.yml into a versioned apply-plan.yml with support classifications.
+    The show command displays the plan. The run command applies one explicit supported
+    action and writes applied-actions.yml, while governance-only actions remain preview-only.
+  decision_file: .p2p/proposals/PROP-025-controlled-intake-apply-workflow/decision.md
+  related_changes:
+  - CHANGE-011
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-026
+  title: P2P Software Spec Generator MVP
+  status: accepted
+  path: .p2p/proposals/PROP-026-p2p-software-spec-generator-mvp
+  summary: Add p2p spec refresh/status/show/prompt/import. The refresh command deterministically
+    generates a minimal software spec from a Change Set. The prompt command generates
+    an AI/human refinement prompt from the deterministic spec and source context.
+    The import command validates and imports refined spec artifacts.
+  decision_file: .p2p/proposals/PROP-026-p2p-software-spec-generator-mvp/decision.md
+  related_changes:
+  - CHANGE-012
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-027
+  title: Software Spec Exporter MVP
+  status: accepted
+  path: .p2p/proposals/PROP-027-software-spec-exporter-mvp
+  summary: Add p2p spec export/status/show support for software spec export bundles.
+    The MVP should export from .p2p/outputs/software-spec/CHANGE-XXX/ into .p2p/outputs/spec-export/CHANGE-XXX/TARGET/,
+    starting with generic and openspec targets. Spec Kit remains a downstream target
+    but is not implemented in this MVP unless the mapping becomes explicit.
+  decision_file: .p2p/proposals/PROP-027-software-spec-exporter-mvp/decision.md
+  related_changes:
+  - CHANGE-013
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-028
+  title: Spec Kit Export Mapping MVP
+  status: accepted
+  path: .p2p/proposals/PROP-028-spec-kit-export-mapping-mvp
+  summary: Add speckit as a supported p2p spec export target. Export to .p2p/outputs/spec-export/CHANGE-XXX/speckit/specs/CHANGE-XXX-slug/
+    with spec.md, plan.md, research.md, data-model.md, quickstart.md, tasks.md, contracts/README.md,
+    and manifest.yml. The mapping should preserve P2P provenance and mark unresolved
+    implementation details as NEEDS CLARIFICATION instead of inventing them.
+  decision_file: .p2p/proposals/PROP-028-spec-kit-export-mapping-mvp/decision.md
+  related_changes:
+  - CHANGE-014
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-029
+  title: Spec Export Validation MVP
+  status: accepted
+  path: .p2p/proposals/PROP-029-spec-export-validation-mvp
+  summary: Add p2p spec export-validate CHANGE-XXX --target TARGET. The command validates
+    that the export directory exists, manifest.yml is valid and coherent, index.md
+    exists, and target-specific required files are present for generic, openspec,
+    and speckit bundles.
+  decision_file: .p2p/proposals/PROP-029-spec-export-validation-mvp/decision.md
+  related_changes:
+  - CHANGE-015
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-030
+  title: Managed Work and Multi-Branch Visibility Policy
+  status: accepted
+  path: .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy
+  summary: Introduce P2P Work as the user-facing abstraction over future Git branches.
+    Define levels from advisory to handoff plan, managed branch, managed commit, managed
+    review, and owner-controlled merge. Implement p2p work plan/list/show to create
+    and inspect .p2p/work/WORK-XXX/manifest.yml for validated spec exports. This first
+    MVP must not create branches, commits, PRs, or merges.
+  decision_file: .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/decision.md
+  related_changes:
+  - CHANGE-016
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-031
+  title: Multi-Branch Work Scan MVP
+  status: accepted
+  path: .p2p/proposals/PROP-031-multi-branch-work-scan-mvp
+  summary: 'Add p2p work scan to read local branches matching p2p/work/* through Git
+    plumbing, discover .p2p/work/WORK-XXX/manifest.yml files on those branches, and
+    write an aggregated .p2p/registries/work.yml. The command must be read-only with
+    respect to Git: no checkout, fetch, branch creation, commit, PR, or merge.'
+  decision_file: .p2p/proposals/PROP-031-multi-branch-work-scan-mvp/decision.md
+  related_changes:
+  - CHANGE-017
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

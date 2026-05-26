@@ -1,0 +1,40 @@
+options:
+- id: A
+  title: Prompt-only first
+  status: not_selected
+  description: 'Keep the current accepted MVP path: P2P generates prompts and imports
+    AI/human output.'
+  pros:
+  - Small implementation surface.
+  - Deterministic and easy to test.
+  - No provider credentials or billing concerns.
+  cons:
+  - Less fluid user experience.
+  - Requires manual copy/import loop.
+- id: B
+  title: Direct Codex integration now
+  status: not_selected
+  description: Add direct Codex invocation inside the CLI immediately.
+  pros:
+  - More automated workflow.
+  - Faster feedback from the CLI.
+  - Closer to the future agent-assisted experience.
+  cons:
+  - Expands MVP scope.
+  - Requires provider configuration and credentials.
+  - Harder to test deterministically.
+  - Risks coupling P2P Engine to one AI provider too early.
+- id: C
+  title: Prompt-only first, Codex adapter later
+  status: selected
+  description: Preserve prompt-only MVP and explicitly plan direct Codex integration
+    as a later adapter-oriented Change Set.
+  pros:
+  - Keeps the current MVP stable.
+  - Preserves the accepted prompt-only workflow.
+  - Keeps Codex integration visible as a planned evolution.
+  - Allows the adapter interface to be designed after intake, choices and registries
+    mature.
+  cons:
+  - Direct automation is deferred.
+  - Users still need skill/agent workflow in the short term.

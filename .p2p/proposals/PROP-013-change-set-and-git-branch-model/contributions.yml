@@ -1,0 +1,19 @@
+contributions:
+- id: C001
+  type: architectural_principle
+  author: local
+  relevance_hint: high
+  text: Proposal non deve essere sinonimo di branch. La proposal e un'unita decisionale,
+    il branch e uno spazio operativo Git opzionale.
+- id: C002
+  type: risk
+  author: local
+  relevance_hint: high
+  text: 'Il rischio principale e l''alea nel decidere se creare un branch: servono
+    criteri espliciti che rendano la scelta prevedibile e revisionabile.'
+- id: C003
+  type: suggestion
+  author: local
+  relevance_hint: high
+  text: Il change set deve essere il pacchetto operativo che collega proposal accettate,
+    decisioni, piano, task e branch di implementazione.

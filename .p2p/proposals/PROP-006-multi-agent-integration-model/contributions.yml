@@ -1,0 +1,19 @@
+contributions:
+- id: C001
+  type: architectural_principle
+  author: local
+  relevance_hint: high
+  text: Prendere spunto da Spec Kit per un registro di integrazioni con agent key,
+    install/list/use/switch/upgrade e stato locale delle integrazioni installate.
+- id: C002
+  type: architectural_principle
+  author: local
+  relevance_hint: high
+  text: Prendere spunto da OpenSpec per slash command, skills, refresh degli agent
+    instructions e supporto a molti tool senza legare il core a un solo provider AI.
+- id: C003
+  type: suggestion
+  author: local
+  relevance_hint: high
+  text: INTAKE-001 suggests preserving direct Codex invocation as input for the future
+    multi-agent / AI adapter model, after the prompt-only MVP remains stable.
