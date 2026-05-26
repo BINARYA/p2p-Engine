@@ -1208,6 +1208,25 @@ def work_publish(
     console.print("  merge: owner-controlled")
 
 
+@work_app.command("accept")
+def work_accept(
+    work_id: str = typer.Argument(..., help="Work ID, e.g. WORK-001"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Accept a published Work item by merging its managed branch into the base branch locally."""
+    try:
+        accept = _workspace(root).accept_work(work_id)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Managed work accepted.[/green]")
+    console.print(f"  work: {accept.work_id}")
+    console.print(f"  source_branch: {accept.branch_name}")
+    console.print(f"  merged_into: {accept.base_branch}")
+    console.print(f"  merge_commit: {accept.merge_commit}")
+    console.print("  push: disabled")
+    console.print("  cleanup: disabled")
+
+
 @work_app.command("show")
 def work_show(
     work_id: str = typer.Argument(..., help="Work ID, e.g. WORK-001"),

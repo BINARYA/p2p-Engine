@@ -23,12 +23,14 @@ from p2p_engine.prompts.tasks import render_tasks_prompt
 from p2p_engine.storage.git import (
     branch_exists,
     changed_files,
+    checkout_branch,
     commit_all,
     create_and_checkout_branch,
     get_git_status,
     head_commit,
     list_files_at_ref,
     list_local_work_branches,
+    merge_branch_no_commit,
     push_branch,
     read_file_at_ref,
     remote_url,
@@ -295,6 +297,15 @@ class WorkPublish:
     remote: str
     remote_url: str
     publish_commit: str
+    path: Path
+
+
+@dataclass(frozen=True)
+class WorkAccept:
+    work_id: str
+    branch_name: str
+    base_branch: str
+    merge_commit: str
     path: Path
 
 
@@ -1585,6 +1596,81 @@ class P2PWorkspace:
             remote=remote,
             remote_url=resolved_remote_url,
             publish_commit=publish_commit,
+            path=work_dir.relative_to(self.root),
+        )
+
+    def accept_work(self, work_id: str) -> WorkAccept:
+        work_dir = self._find_work_dir(work_id)
+        manifest_path = work_dir / "manifest.yml"
+        local_manifest = _read_yaml_mapping(manifest_path, default={})
+        git = local_manifest.get("git", {})
+        if not isinstance(git, dict):
+            raise ValueError("Invalid Work manifest: git must be a mapping")
+        branch_name = str(git.get("branch_name") or "")
+        if not branch_name:
+            raise ValueError("Invalid Work manifest: git.branch_name is required")
+        base_branch = str(git.get("base_branch") or "main")
+
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError("Cannot accept managed work outside a Git repository")
+        if git_status.branch != base_branch:
+            raise ValueError(f"Cannot accept managed work from {git_status.branch}; expected base branch {base_branch}")
+        if not git_status.is_clean:
+            raise ValueError("Cannot accept managed work with uncommitted changes")
+        if not branch_exists(self.root, branch_name):
+            raise ValueError(f"Managed work branch not found: {branch_name}")
+
+        manifest_rel = manifest_path.relative_to(self.root).as_posix()
+        branch_file = read_file_at_ref(self.root, branch_name, manifest_rel)
+        if branch_file is None:
+            raise ValueError(f"Managed work branch does not contain manifest: {manifest_rel}")
+        try:
+            branch_manifest = yaml.safe_load(branch_file.content) or {}
+        except yaml.YAMLError as exc:
+            raise ValueError(f"Invalid Work manifest on branch {branch_name}") from exc
+        if not isinstance(branch_manifest, dict):
+            raise ValueError(f"Invalid Work manifest on branch {branch_name}")
+        status = str(branch_manifest.get("status") or "unknown")
+        if status != "published":
+            raise ValueError(f"Work item must be published before accept. Current status: {status}")
+
+        if not merge_branch_no_commit(self.root, branch_name):
+            raise ValueError(f"Failed to merge managed work branch: {branch_name}")
+
+        merged_manifest = _read_yaml_mapping(manifest_path, default={})
+        merged_git = merged_manifest.get("git", {})
+        if not isinstance(merged_git, dict):
+            merged_git = {}
+        merged_manifest["status"] = "accepted"
+        levels = merged_manifest.get("managed_git_levels", [])
+        if isinstance(levels, list):
+            for level in levels:
+                if isinstance(level, dict) and level.get("level") == 5:
+                    level["enabled"] = True
+        merged_git["mode"] = "managed_accept"
+        merged_git["accepted_at"] = date.today().isoformat()
+        merged_manifest["git"] = merged_git
+        merged_manifest["acceptance"] = {
+            "mode": "local_merge",
+            "source_branch": branch_name,
+            "merged_into": base_branch,
+            "pushed": False,
+            "cleanup": False,
+        }
+        manifest_path.write_text(_yaml_dump(merged_manifest), encoding="utf-8")
+
+        merge_commit = commit_all(self.root, f"P2P accept {work_id}")
+        if merge_commit is None:
+            raise ValueError("Failed to create managed work accept merge commit")
+        if not checkout_branch(self.root, base_branch):
+            raise ValueError(f"Failed to stay on base branch after accept: {base_branch}")
+
+        return WorkAccept(
+            work_id=str(merged_manifest.get("work_id") or work_id),
+            branch_name=branch_name,
+            base_branch=base_branch,
+            merge_commit=merge_commit,
             path=work_dir.relative_to(self.root),
         )
 

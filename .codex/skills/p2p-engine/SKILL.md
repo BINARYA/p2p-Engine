@@ -288,7 +288,7 @@ Level 4.5: remote handoff
 Level 5: owner-controlled merge
 ```
 
-The current safe level is Level 4.5:
+The current safe level is Level 5:
 
 ```bash
 p2p work plan --change CHANGE-XXX --target speckit
@@ -296,6 +296,7 @@ p2p work branch WORK-001
 p2p work submit WORK-001
 p2p work review WORK-001
 p2p work publish WORK-001
+p2p work accept WORK-001
 p2p work scan
 p2p work list
 p2p work show WORK-001
@@ -307,6 +308,7 @@ p2p work show WORK-001
 `p2p work submit WORK-XXX` is the local commit step. It requires the current branch to match the Work manifest branch, requires Work status `branched`, refuses submissions that only contain Work manifest bookkeeping, updates the manifest to `submitted`, and creates one local commit. It must not push, open PRs, submit reviews, or merge; those belong to later owner-controlled levels.
 `p2p work review WORK-XXX` is the local review-request step. It requires Work status `submitted`, requires the current branch to match the Work manifest branch, requires a clean worktree, records the commit to review, updates the manifest to `review_requested`, and creates one local metadata commit. It must not push, open PRs, or merge.
 `p2p work publish WORK-XXX` is the remote handoff step. It requires Work status `review_requested`, requires the current branch to match the Work manifest branch, requires a clean worktree and a configured Git remote, updates the manifest to `published`, creates one local publish metadata commit, and pushes the managed branch to the remote. It must not open PRs or merge.
+`p2p work accept WORK-XXX` is the owner-controlled local merge step. It requires Work status `published` on the managed branch, requires the current branch to be the manifest base branch, requires a clean worktree, merges the managed Work branch locally, updates the manifest to `accepted`, and creates one local merge commit. It must not push the base branch or delete Work branches.
 
 Future managed Git levels must stay separate:
 
@@ -314,6 +316,7 @@ Future managed Git levels must stay separate:
 Level 4.5: remote handoff / push branch
 Level 4.6: optional PR creation
 Level 5: owner-controlled accept / merge
+Level 5.5: optional base branch push / cleanup
 ```
 
 After implementation and verification:

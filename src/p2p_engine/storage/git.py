@@ -40,6 +40,10 @@ def create_and_checkout_branch(root: Path, branch_name: str) -> bool:
     return _run_git(root, "checkout", "-b", branch_name) is not None
 
 
+def checkout_branch(root: Path, branch_name: str) -> bool:
+    return _run_git(root, "checkout", branch_name) is not None
+
+
 def changed_files(root: Path) -> list[str]:
     output = _run_git(root, "status", "--porcelain")
     if output is None:
@@ -70,6 +74,10 @@ def remote_url(root: Path, remote: str = "origin") -> str | None:
 
 def push_branch(root: Path, branch_name: str, remote: str = "origin") -> bool:
     return _run_git(root, "push", "-u", remote, branch_name) is not None
+
+
+def merge_branch_no_commit(root: Path, branch_name: str) -> bool:
+    return _run_git(root, "merge", "--no-ff", "--no-commit", branch_name) is not None
 
 
 def list_local_work_branches(root: Path) -> list[str]:

@@ -987,3 +987,31 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-036
+  title: Managed Work Accept MVP
+  status: accepted
+  path: .p2p/proposals/PROP-036-managed-work-accept-mvp
+  summary: Add p2p work accept WORK-XXX. The command requires Work status published,
+    a clean Git worktree, the Work branch to exist locally, and the current branch
+    to be the manifest base branch. It performs a local no-ff merge from the managed
+    branch, records accepted/merged metadata in the Work manifest, commits that metadata
+    on the base branch, and leaves push and cleanup disabled.
+  decision_file: .p2p/proposals/PROP-036-managed-work-accept-mvp/decision.md
+  related_changes:
+  - CHANGE-022
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

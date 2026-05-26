@@ -1387,6 +1387,114 @@ def test_cli_work_publish_requires_review_and_remote(tmp_path: Path) -> None:
     assert "Git remote not found: origin" in result.output
 
 
+def test_cli_work_accept_merges_published_branch(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Managed Work Accept",
+            "--problem",
+            "Need owner-controlled merge.",
+            "--proposal",
+            "Accept published work locally.",
+            "--acceptance",
+            "The Work branch is merged into main.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "plan", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+
+    runner.invoke(app, ["work", "branch", "WORK-001", "--root", str(tmp_path)])
+    (tmp_path / "feature.txt").write_text("accepted work\n", encoding="utf-8")
+    runner.invoke(app, ["work", "submit", "WORK-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "review", "WORK-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "publish", "WORK-001", "--root", str(tmp_path)])
+    _git(tmp_path, "checkout", "main")
+
+    result = runner.invoke(app, ["work", "accept", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Managed work accepted" in result.output
+    assert "source_branch: p2p/work/work-001-change-001-speckit" in result.output
+    assert "merged_into: main" in result.output
+    assert "push: disabled" in result.output
+    assert "cleanup: disabled" in result.output
+    assert _git(tmp_path, "branch", "--show-current").stdout.strip() == "main"
+    assert _git(tmp_path, "status", "--porcelain").stdout.strip() == ""
+    assert _git(tmp_path, "log", "-1", "--pretty=%s").stdout.strip() == "P2P accept WORK-001"
+    assert (tmp_path / "feature.txt").read_text(encoding="utf-8") == "accepted work\n"
+
+    manifest = tmp_path / ".p2p" / "work" / "WORK-001" / "manifest.yml"
+    manifest_text = manifest.read_text(encoding="utf-8")
+    assert "status: accepted" in manifest_text
+    assert "mode: managed_accept" in manifest_text
+    assert "source_branch: p2p/work/work-001-change-001-speckit" in manifest_text
+    assert "merged_into: main" in manifest_text
+    assert "pushed: false" in manifest_text
+    assert "cleanup: false" in manifest_text
+
+
+def test_cli_work_accept_requires_published_base_branch(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Managed Work Accept",
+            "--problem",
+            "Need owner-controlled merge.",
+            "--proposal",
+            "Accept published work locally.",
+            "--acceptance",
+            "The Work branch is merged into main.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "plan", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    runner.invoke(app, ["work", "branch", "WORK-001", "--root", str(tmp_path)])
+    (tmp_path / "feature.txt").write_text("reviewed work\n", encoding="utf-8")
+    runner.invoke(app, ["work", "submit", "WORK-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "review", "WORK-001", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["work", "accept", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code != 0
+    assert "expected base branch main" in result.output
+
+    _git(tmp_path, "checkout", "main")
+    result = runner.invoke(app, ["work", "accept", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code != 0
+    assert "Work item must be published before accept" in result.output
+
+
 def test_cli_work_scan_reads_local_branch_without_checkout(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     _git(tmp_path, "init")

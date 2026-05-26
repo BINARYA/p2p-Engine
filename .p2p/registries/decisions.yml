@@ -250,3 +250,10 @@ decisions:
   path: .p2p/proposals/PROP-035-managed-work-publish-mvp/decision.md
   reason: This adds the remote handoff step after local review while keeping PR creation
     and merge separate.
+- proposal: PROP-036
+  title: Managed Work Accept MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-036-managed-work-accept-mvp/decision.md
+  reason: This completes the local owner-controlled managed Work lifecycle before
+    optional base-branch push and cleanup.
