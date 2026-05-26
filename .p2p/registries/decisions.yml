@@ -271,3 +271,10 @@ decisions:
   path: .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp/decision.md
   reason: Accept/merge is the riskiest step in the managed Work lifecycle; conflicts
     need explicit P2P guidance before finalize or GitHub handoff.
+- proposal: PROP-039
+  title: Managed Work Finalize MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-039-managed-work-finalize-mvp/decision.md
+  reason: Finalize is the explicit post-accept publication step and keeps base-branch
+    push separate from cleanup and PR creation.

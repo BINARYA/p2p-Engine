@@ -298,6 +298,7 @@ p2p work submit WORK-001
 p2p work review WORK-001
 p2p work publish WORK-001
 p2p work accept WORK-001
+p2p work finalize WORK-001
 p2p work scan
 p2p work list
 p2p work show WORK-001
@@ -312,6 +313,7 @@ p2p work show WORK-001
 `p2p work publish WORK-XXX` is the remote handoff step. It requires Work status `review_requested`, requires the current branch to match the Work manifest branch, requires a clean worktree and a configured Git remote, updates the manifest to `published`, creates one local publish metadata commit, and pushes the managed branch to the remote. It must not open PRs or merge.
 `p2p work accept WORK-XXX` is the owner-controlled local merge step. It requires Work status `published` on the managed branch, requires the current branch to be the manifest base branch, requires a clean worktree, merges the managed Work branch locally, updates the manifest to `accepted`, and creates one local merge commit. It must not push the base branch or delete Work branches.
 If `p2p work accept` reports merge conflicts, do not continue with publish/finalize/cleanup. Resolve the listed files manually, then run `p2p work accept --continue WORK-XXX`; or run `p2p work accept --abort WORK-XXX` to abort the merge and return the Work item to `published`.
+`p2p work finalize WORK-XXX` is the post-accept publication step. It requires Work status `accepted`, requires the current branch to be the manifest base branch, requires a clean worktree and configured remote, updates the manifest to `finalized`, creates one local finalize metadata commit, and pushes the base branch. It must not delete local or remote Work branches.
 
 Future managed Git levels must stay separate:
 
@@ -319,7 +321,7 @@ Future managed Git levels must stay separate:
 Level 4.5: remote handoff / push branch
 Level 4.6: optional PR creation
 Level 5: owner-controlled accept / merge
-Level 5.5: optional base branch push / cleanup
+Level 5.5: optional cleanup
 ```
 
 After implementation and verification:

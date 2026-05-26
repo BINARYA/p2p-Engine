@@ -338,6 +338,16 @@ class WorkAcceptConflict:
 
 
 @dataclass(frozen=True)
+class WorkFinalize:
+    work_id: str
+    base_branch: str
+    remote: str
+    remote_url: str
+    finalize_commit: str
+    path: Path
+
+
+@dataclass(frozen=True)
 class WorkScan:
     scanned_branches: list[str]
     work_items: list[dict[str, object]]
@@ -1901,6 +1911,64 @@ class P2PWorkspace:
         if commit_all(self.root, f"P2P abort accept {work_id}") is None:
             raise ValueError("Failed to create managed work accept abort commit")
         return self.show_work(work_id)
+
+    def finalize_work(self, work_id: str, remote: str = "origin") -> WorkFinalize:
+        work_dir = self._find_work_dir(work_id)
+        manifest_path = work_dir / "manifest.yml"
+        manifest = _read_yaml_mapping(manifest_path, default={})
+        status = str(manifest.get("status") or "unknown")
+        if status != "accepted":
+            raise ValueError(f"Work item must be accepted before finalize. Current status: {status}")
+
+        git = manifest.get("git", {})
+        if not isinstance(git, dict):
+            git = {}
+        acceptance = manifest.get("acceptance", {})
+        if not isinstance(acceptance, dict):
+            acceptance = {}
+        base_branch = str(acceptance.get("merged_into") or git.get("base_branch") or "main")
+
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError("Cannot finalize managed work outside a Git repository")
+        if git_status.branch != base_branch:
+            raise ValueError(f"Cannot finalize managed work from {git_status.branch}; expected base branch {base_branch}")
+        if not git_status.is_clean:
+            raise ValueError("Cannot finalize managed work with uncommitted changes")
+
+        resolved_remote_url = remote_url(self.root, remote)
+        if resolved_remote_url is None:
+            raise ValueError(f"Cannot finalize managed work: Git remote not found: {remote}")
+
+        manifest["status"] = "finalized"
+        git["mode"] = "managed_finalize"
+        git["finalized_at"] = date.today().isoformat()
+        manifest["git"] = git
+        acceptance["pushed"] = True
+        manifest["acceptance"] = acceptance
+        manifest["finalize"] = {
+            "mode": "base_branch_push",
+            "remote": remote,
+            "remote_url": resolved_remote_url,
+            "base_branch": base_branch,
+            "cleanup": False,
+        }
+        manifest_path.write_text(_yaml_dump(manifest), encoding="utf-8")
+
+        finalize_commit = commit_all(self.root, f"P2P finalize {work_id}")
+        if finalize_commit is None:
+            raise ValueError("Failed to create managed work finalize commit")
+        if not push_branch(self.root, base_branch, remote):
+            raise ValueError(f"Failed to push base branch to {remote}: {base_branch}")
+
+        return WorkFinalize(
+            work_id=str(manifest.get("work_id") or work_id),
+            base_branch=base_branch,
+            remote=remote,
+            remote_url=resolved_remote_url,
+            finalize_commit=finalize_commit,
+            path=work_dir.relative_to(self.root),
+        )
 
     def _scanned_work_items(self) -> list[dict[str, object]]:
         path = self.p2p_dir / "registries" / "work.yml"
@@ -4528,8 +4596,10 @@ def _work_next_action(
         return f"resolve conflicts; p2p work accept --continue {work_id}", "or abort with p2p work accept --abort"
     if status == "accepted":
         if accepted and not pushed:
-            return "future: p2p work finalize {work_id}".format(work_id=work_id), "push base branch and cleanup are not implemented yet"
+            return "p2p work finalize {work_id}".format(work_id=work_id), "push the accepted base branch"
         return "none", "accepted"
+    if status == "finalized":
+        return "future: p2p work cleanup {work_id}".format(work_id=work_id), "cleanup is not implemented yet"
     return "inspect", "unknown Work status"
 
 

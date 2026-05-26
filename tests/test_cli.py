@@ -1462,7 +1462,29 @@ def test_cli_work_accept_merges_published_branch(tmp_path: Path) -> None:
     assert "WORK-001  accepted" in result.output
     assert "base: main" in result.output
     assert "remote: origin" in result.output
-    assert "next: future: p2p work finalize WORK-001" in result.output
+    assert "next: p2p work finalize WORK-001" in result.output
+
+    result = runner.invoke(app, ["work", "finalize", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Managed work finalized" in result.output
+    assert "base_branch: main" in result.output
+    assert "remote: origin" in result.output
+    assert "cleanup: disabled" in result.output
+    assert _git(tmp_path, "status", "--porcelain").stdout.strip() == ""
+    assert _git(tmp_path, "log", "-1", "--pretty=%s").stdout.strip() == "P2P finalize WORK-001"
+    remote_main = _git(tmp_path, "ls-remote", "--heads", "origin", "main").stdout
+    assert "refs/heads/main" in remote_main
+
+    manifest_text = manifest.read_text(encoding="utf-8")
+    assert "status: finalized" in manifest_text
+    assert "mode: managed_finalize" in manifest_text
+    assert "base_branch: main" in manifest_text
+    assert "cleanup: false" in manifest_text
+
+    result = runner.invoke(app, ["work", "status", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "WORK-001  finalized" in result.output
+    assert "next: future: p2p work cleanup WORK-001" in result.output
 
 
 def test_cli_work_accept_requires_published_base_branch(tmp_path: Path) -> None:
@@ -1508,6 +1530,58 @@ def test_cli_work_accept_requires_published_base_branch(tmp_path: Path) -> None:
     result = runner.invoke(app, ["work", "accept", "WORK-001", "--root", str(tmp_path)])
     assert result.exit_code != 0
     assert "Work item must be published before accept" in result.output
+
+
+def test_cli_work_finalize_requires_accepted_and_remote(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Managed Work Finalize",
+            "--problem",
+            "Need base branch push.",
+            "--proposal",
+            "Finalize accepted work.",
+            "--acceptance",
+            "The base branch is pushed.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "plan", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+
+    result = runner.invoke(app, ["work", "finalize", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code != 0
+    assert "Work item must be accepted before finalize" in result.output
+
+    runner.invoke(app, ["work", "branch", "WORK-001", "--root", str(tmp_path)])
+    (tmp_path / "feature.txt").write_text("accepted work\n", encoding="utf-8")
+    runner.invoke(app, ["work", "submit", "WORK-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "review", "WORK-001", "--root", str(tmp_path)])
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(app, ["work", "publish", "WORK-001", "--root", str(tmp_path)])
+    _git(tmp_path, "checkout", "main")
+    runner.invoke(app, ["work", "accept", "WORK-001", "--root", str(tmp_path)])
+    _git(tmp_path, "remote", "remove", "origin")
+
+    result = runner.invoke(app, ["work", "finalize", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code != 0
+    assert "Git remote not found: origin" in result.output
 
 
 def test_cli_work_accept_conflict_continue_and_abort(tmp_path: Path) -> None:

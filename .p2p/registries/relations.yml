@@ -121,6 +121,11 @@ relations:
   type: includes
   rationale: Change Set includes accepted proposal.
   source_artifact: .p2p/changes/CHANGE-024-managed-work-merge-conflict-guidance-mvp
+- source: CHANGE-025
+  target: PROP-039
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-025-managed-work-finalize-mvp
 - source: PROP-013
   target: CHANGE-001
   type: implemented_by
@@ -241,3 +246,8 @@ relations:
   type: implemented_by
   rationale: Proposal appears in Change Set source metadata.
   source_artifact: .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp
+- source: PROP-039
+  target: CHANGE-025
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-039-managed-work-finalize-mvp

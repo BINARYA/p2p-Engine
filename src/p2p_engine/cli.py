@@ -1272,6 +1272,26 @@ def work_accept(
     console.print("  cleanup: disabled")
 
 
+@work_app.command("finalize")
+def work_finalize(
+    work_id: str = typer.Argument(..., help="Work ID, e.g. WORK-001"),
+    remote: str = typer.Option("origin", "--remote", help="Git remote to push the base branch to"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Finalize an accepted Work item by pushing the base branch to a remote."""
+    try:
+        finalize = _workspace(root).finalize_work(work_id, remote)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Managed work finalized.[/green]")
+    console.print(f"  work: {finalize.work_id}")
+    console.print(f"  base_branch: {finalize.base_branch}")
+    console.print(f"  remote: {finalize.remote}")
+    console.print(f"  remote_url: {finalize.remote_url}")
+    console.print(f"  finalize_commit: {finalize.finalize_commit}")
+    console.print("  cleanup: disabled")
+
+
 @work_app.command("show")
 def work_show(
     work_id: str = typer.Argument(..., help="Work ID, e.g. WORK-001"),

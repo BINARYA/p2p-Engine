@@ -1069,3 +1069,31 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-039
+  title: Managed Work Finalize MVP
+  status: accepted
+  path: .p2p/proposals/PROP-039-managed-work-finalize-mvp
+  summary: Add p2p work finalize WORK-XXX. The command requires Work status accepted,
+    the current branch to match the Work base branch, a clean worktree, and a configured
+    remote. It updates the Work manifest to finalized, records remote/base metadata,
+    creates a local finalize metadata commit, pushes the base branch to the remote,
+    and leaves branch cleanup disabled.
+  decision_file: .p2p/proposals/PROP-039-managed-work-finalize-mvp/decision.md
+  related_changes:
+  - CHANGE-025
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
