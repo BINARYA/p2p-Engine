@@ -236,3 +236,10 @@ decisions:
   path: .p2p/proposals/PROP-033-managed-work-submit-mvp/decision.md
   reason: 'This is the next incremental managed Git level: local auditable submit
     without push or merge.'
+- proposal: PROP-034
+  title: Managed Work Review MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-034-managed-work-review-mvp/decision.md
+  reason: This completes the local review-request level before remote handoff and
+    owner merge.

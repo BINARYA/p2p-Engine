@@ -294,3 +294,20 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-020
+  title: Managed Work Review MVP
+  status: completed
+  path: .p2p/changes/CHANGE-020-managed-work-review-mvp
+  included_proposals:
+  - PROP-034
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

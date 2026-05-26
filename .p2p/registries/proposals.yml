@@ -932,3 +932,30 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-034
+  title: Managed Work Review MVP
+  status: accepted
+  path: .p2p/proposals/PROP-034-managed-work-review-mvp
+  summary: Add p2p work review WORK-XXX. The command verifies the current branch matches
+    the Work branch, requires Work status submitted, requires a clean worktree, records
+    the commit to review, updates the Work manifest to review_requested, creates a
+    local metadata commit, and leaves push/PR/merge disabled.
+  decision_file: .p2p/proposals/PROP-034-managed-work-review-mvp/decision.md
+  related_changes:
+  - CHANGE-020
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

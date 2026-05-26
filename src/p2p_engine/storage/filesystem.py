@@ -278,6 +278,15 @@ class WorkSubmit:
 
 
 @dataclass(frozen=True)
+class WorkReview:
+    work_id: str
+    branch_name: str
+    review_commit: str
+    metadata_commit: str
+    path: Path
+
+
+@dataclass(frozen=True)
 class WorkScan:
     scanned_branches: list[str]
     work_items: list[dict[str, object]]
@@ -1443,6 +1452,65 @@ class P2PWorkspace:
             branch_name=branch_name,
             commit=commit,
             changed_files=work_changes,
+            path=work_dir.relative_to(self.root),
+        )
+
+    def review_work(self, work_id: str) -> WorkReview:
+        work_dir = self._find_work_dir(work_id)
+        manifest_path = work_dir / "manifest.yml"
+        manifest = _read_yaml_mapping(manifest_path, default={})
+        status = str(manifest.get("status") or "unknown")
+        if status != "submitted":
+            raise ValueError(f"Work item must be submitted before review. Current status: {status}")
+
+        git = manifest.get("git", {})
+        if not isinstance(git, dict):
+            raise ValueError("Invalid Work manifest: git must be a mapping")
+        branch_name = str(git.get("branch_name") or "")
+        if not branch_name:
+            raise ValueError("Invalid Work manifest: git.branch_name is required")
+
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError("Cannot request managed work review outside a Git repository")
+        if git_status.branch != branch_name:
+            raise ValueError(
+                f"Cannot request managed work review from {git_status.branch}; expected branch {branch_name}"
+            )
+        if not git_status.is_clean:
+            raise ValueError("Cannot request managed work review with uncommitted changes")
+
+        review_commit = head_commit(self.root)
+        if review_commit is None:
+            raise ValueError("Cannot resolve managed work review commit")
+
+        manifest["status"] = "review_requested"
+        levels = manifest.get("managed_git_levels", [])
+        if isinstance(levels, list):
+            for level in levels:
+                if isinstance(level, dict) and level.get("level") == 4:
+                    level["enabled"] = True
+        git["mode"] = "managed_review"
+        git["review_requested_at"] = date.today().isoformat()
+        manifest["git"] = git
+        manifest["review"] = {
+            "mode": "local_review",
+            "review_commit": review_commit,
+            "pushed": False,
+            "pull_request": None,
+            "merged": False,
+        }
+        manifest_path.write_text(_yaml_dump(manifest), encoding="utf-8")
+
+        metadata_commit = commit_all(self.root, f"P2P review {work_id}")
+        if metadata_commit is None:
+            raise ValueError("Failed to create managed work review metadata commit")
+
+        return WorkReview(
+            work_id=str(manifest.get("work_id") or work_id),
+            branch_name=branch_name,
+            review_commit=review_commit,
+            metadata_commit=metadata_commit,
             path=work_dir.relative_to(self.root),
         )
 

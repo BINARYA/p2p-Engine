@@ -1177,6 +1177,104 @@ def test_cli_work_submit_requires_non_manifest_changes(tmp_path: Path) -> None:
     assert "Cannot submit managed work with only Work manifest changes" in result.output
 
 
+def test_cli_work_review_requests_local_review(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Managed Work Review",
+            "--problem",
+            "Need a local review request.",
+            "--proposal",
+            "Request owner review for submitted work.",
+            "--acceptance",
+            "The Work item is review_requested.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "plan", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    runner.invoke(app, ["work", "branch", "WORK-001", "--root", str(tmp_path)])
+    (tmp_path / "feature.txt").write_text("submitted work\n", encoding="utf-8")
+    runner.invoke(app, ["work", "submit", "WORK-001", "--root", str(tmp_path)])
+    review_commit = _git(tmp_path, "rev-parse", "HEAD").stdout.strip()
+
+    result = runner.invoke(app, ["work", "review", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Managed work review requested" in result.output
+    assert f"review_commit: {review_commit}" in result.output
+    assert "pull_request: disabled" in result.output
+    assert "merge: owner-controlled" in result.output
+    assert _git(tmp_path, "status", "--porcelain").stdout.strip() == ""
+    assert _git(tmp_path, "log", "-1", "--pretty=%s").stdout.strip() == "P2P review WORK-001"
+
+    manifest = tmp_path / ".p2p" / "work" / "WORK-001" / "manifest.yml"
+    manifest_text = manifest.read_text(encoding="utf-8")
+    assert "status: review_requested" in manifest_text
+    assert "mode: managed_review" in manifest_text
+    assert f"review_commit: {review_commit}" in manifest_text
+    assert "pull_request: null" in manifest_text
+    assert "merged: false" in manifest_text
+
+
+def test_cli_work_review_requires_submitted_clean_branch(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Managed Work Review",
+            "--problem",
+            "Need a local review request.",
+            "--proposal",
+            "Request owner review for submitted work.",
+            "--acceptance",
+            "The Work item is review_requested.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "plan", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+
+    result = runner.invoke(app, ["work", "review", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code != 0
+    assert "Work item must be submitted before review" in result.output
+
+    runner.invoke(app, ["work", "branch", "WORK-001", "--root", str(tmp_path)])
+    (tmp_path / "feature.txt").write_text("submitted work\n", encoding="utf-8")
+    runner.invoke(app, ["work", "submit", "WORK-001", "--root", str(tmp_path)])
+    (tmp_path / "dirty.txt").write_text("dirty\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["work", "review", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code != 0
+    assert "Cannot request managed work review with uncommitted changes" in result.output
+
+
 def test_cli_work_scan_reads_local_branch_without_checkout(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     _git(tmp_path, "init")

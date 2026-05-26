@@ -1167,6 +1167,26 @@ def work_submit(
     console.print("  merge: owner-controlled")
 
 
+@work_app.command("review")
+def work_review(
+    work_id: str = typer.Argument(..., help="Work ID, e.g. WORK-001"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Request local owner review for a submitted Work item."""
+    try:
+        review = _workspace(root).review_work(work_id)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Managed work review requested.[/green]")
+    console.print(f"  work: {review.work_id}")
+    console.print(f"  branch: {review.branch_name}")
+    console.print(f"  review_commit: {review.review_commit}")
+    console.print(f"  metadata_commit: {review.metadata_commit}")
+    console.print("  push: disabled")
+    console.print("  pull_request: disabled")
+    console.print("  merge: owner-controlled")
+
+
 @work_app.command("show")
 def work_show(
     work_id: str = typer.Argument(..., help="Work ID, e.g. WORK-001"),
