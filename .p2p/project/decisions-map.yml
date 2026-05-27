@@ -189,3 +189,8 @@ decisions:
   status: accepted
   feature: managed-work-retire-mvp
   source: .p2p/proposals/PROP-043-managed-work-retire-mvp
+- proposal: PROP-044
+  title: P2P MCP Server MVP
+  status: accepted
+  feature: p2p-mcp-server-mvp
+  source: .p2p/proposals/PROP-044-p2p-mcp-server-mvp

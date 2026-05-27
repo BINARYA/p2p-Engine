@@ -483,3 +483,18 @@ Generated from accepted proposal goals and non-goals.
 
 - Retire branched, submitted, published, accepted, finalized, or cleaned Work items in this MVP.
 - Delete Work manifests or generated exports.
+
+## PROP-044 - P2P MCP Server MVP
+
+### Goals
+
+- Add a local stdio MCP server inside this repository.
+- Expose a minimal read-only tool surface over P2PWorkspace.
+- Keep governance and Work mutation commands out of the MCP MVP.
+- Avoid web server, cloud deployment, auth, container, direct AI invocation, and mediator logic.
+
+### Non-Goals
+
+- Implement MCP over HTTP.
+- Expose proposal accept, choice decide, work accept, Git branch, commit, merge, cleanup, or provider actions.
+- Implement P2P Mediator or Web.

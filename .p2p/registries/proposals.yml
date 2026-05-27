@@ -1208,3 +1208,30 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-044
+  title: P2P MCP Server MVP
+  status: accepted
+  path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp
+  summary: Add src/p2p_engine/mcp with a small JSON-RPC stdio MCP server and a p2p-mcp-server
+    entrypoint. The server exposes read-only tools for project status, next actions,
+    proposal list/show, choice list/show, change status, work status, and registry
+    show. Each tool returns structured JSON derived from P2PWorkspace.
+  decision_file: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/decision.md
+  related_changes:
+  - CHANGE-029
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

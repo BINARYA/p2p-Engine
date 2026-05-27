@@ -155,3 +155,7 @@ P2P Engine needs a clear product and architecture boundary before adding MCP, me
 ## PROP-043 - Managed Work Retire MVP
 
 Obsolete planned Work manifests can remain in project status even after their source Change Set or export has already been completed, causing stale next actions.
+
+## PROP-044 - P2P MCP Server MVP
+
+Agents should access P2P project state through structured tools instead of parsing CLI text or reading .p2p files directly.

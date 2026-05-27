@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-044
+  decision_file: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/decision.md

@@ -21,6 +21,7 @@ dev = [
 
 [project.scripts]
 p2p = "p2p_engine.cli:app"
+p2p-mcp-server = "p2p_engine.mcp.server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/p2p_engine"]

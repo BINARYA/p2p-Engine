@@ -306,3 +306,10 @@ decisions:
   path: .p2p/proposals/PROP-043-managed-work-retire-mvp/decision.md
   reason: Obsolete planned Work manifests should be retired through an explicit metadata-only
     command instead of manual manifest edits.
+- proposal: PROP-044
+  title: P2P MCP Server MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/decision.md
+  reason: A local read-only MCP server is the safest first agent-facing interface
+    over the deterministic P2P Core.

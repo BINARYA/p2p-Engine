@@ -1,19 +1,19 @@
 next_actions:
   - id: NEXT-001
     priority: high
-    kind: define_proposal
-    target: p2p-mcp-server-mvp
-    reason: PROP-042 established the Core / CLI / MCP / Mediator / Web boundary; the next logical implementation slice is a small MCP server exposing deterministic P2P Core tools to agents.
-    command: .venv/bin/p2p proposal create "P2P MCP Server MVP"
+    kind: verify_integration
+    target: mcp-client-configuration
+    reason: The read-only local MCP server is implemented and tested through JSON-RPC; next it should be verified from an actual MCP-capable client configuration.
+    command: p2p-mcp-server --root /path/to/project
   - id: NEXT-002
     priority: medium
     kind: define_scope
-    target: p2p-mcp-tool-surface
-    reason: The MCP MVP should start with a small deterministic tool surface and keep governance decisions owner-controlled.
-    command: .venv/bin/p2p proposal create "P2P MCP Server MVP"
+    target: mcp-write-safe-tools
+    reason: The MCP MVP is intentionally read-only; the next product decision is which low-risk mutations can be exposed safely.
+    command: .venv/bin/p2p proposal create "P2P MCP Write-Safe Tools"
   - id: NEXT-003
     priority: medium
     kind: review_policy
     target: ai-provider-boundary
-    reason: Direct AI/provider invocation should remain outside Core/MCP MVP and belong to future mediator or adapter layers.
+    reason: Direct AI/provider invocation should remain outside Core/MCP and belong to future mediator or adapter layers.
     command: .venv/bin/p2p project show p2p-core-cli-mcp-mediator-web-boundary
