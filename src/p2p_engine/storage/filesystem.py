@@ -469,12 +469,27 @@ class ChoiceDiscoveryFinding:
     suggested_command: str
 
 
+@dataclass(frozen=True)
+class AgentInstructionsResult:
+    profile: str
+    created: list[Path]
+    updated: list[Path]
+    policy_path: Path
+
+
 class P2PWorkspace:
     def __init__(self, root: Path) -> None:
         self.root = root.resolve()
         self.p2p_dir = self.root / ".p2p"
 
-    def init_project(self, name: str) -> list[Path]:
+    def init_project(
+        self,
+        name: str,
+        agent_profile: str = "generic",
+        repository_mode: str = "local",
+    ) -> list[Path]:
+        agent_profile = _normalize_agent_profile(agent_profile)
+        repository_mode = _normalize_repository_mode(repository_mode)
         project_id = _slugify(name)
         files: dict[Path, str] = {
             self.p2p_dir / "project.yml": _yaml_dump(
@@ -492,6 +507,10 @@ class P2PWorkspace:
                     },
                     "workflow": {"current_phase": "cli_managed"},
                     "ai": {"mode": "prompt_only", "direct_invocation": False},
+                    "repository": {
+                        "mode": repository_mode,
+                        "managed_by_p2p": False,
+                    },
                 }
             ),
             self.p2p_dir / "governance" / "constitution.md": "# Constitution\n\nPending.\n",
@@ -513,7 +532,98 @@ class P2PWorkspace:
             if not directory.exists():
                 directory.mkdir(parents=True)
                 created.append(directory.relative_to(self.root))
+        instructions = self.refresh_agent_instructions(
+            profile=agent_profile,
+            repository_mode=repository_mode,
+        )
+        for path in [*instructions.created, *instructions.updated]:
+            if path not in created:
+                created.append(path)
         return created
+
+    def refresh_agent_instructions(
+        self,
+        profile: str = "generic",
+        repository_mode: str | None = None,
+    ) -> AgentInstructionsResult:
+        profile = _normalize_agent_profile(profile)
+        project_name = self._project_name()
+        repository_mode = _normalize_repository_mode(
+            repository_mode or self._repository_mode(default="local")
+        )
+        profiles = _expanded_agent_profiles(profile)
+        policy_path = self.p2p_dir / "agent-policy.yml"
+        existing_policy = _read_yaml_mapping(policy_path, default={}) if policy_path.exists() else {}
+        existing_profiles = existing_policy.get("agent_profiles", [])
+        if not isinstance(existing_profiles, list):
+            existing_profiles = []
+        merged_profiles = sorted({str(item) for item in existing_profiles} | set(profiles))
+        files = _agent_instruction_files(project_name, merged_profiles, repository_mode)
+        created: list[Path] = []
+        updated: list[Path] = []
+
+        for relative_path, content in files.items():
+            path = self.root / relative_path
+            relative = path.relative_to(self.root)
+            if path.exists() and path.read_text(encoding="utf-8") == content:
+                continue
+            path.parent.mkdir(parents=True, exist_ok=True)
+            existed = path.exists()
+            path.write_text(content, encoding="utf-8")
+            if existed:
+                updated.append(relative)
+            else:
+                created.append(relative)
+
+        policy = _agent_policy(project_name, merged_profiles, repository_mode)
+        policy_content = _yaml_dump(policy)
+        relative_policy = policy_path.relative_to(self.root)
+        if not policy_path.exists():
+            policy_path.parent.mkdir(parents=True, exist_ok=True)
+            policy_path.write_text(policy_content, encoding="utf-8")
+            created.append(relative_policy)
+        elif policy_path.read_text(encoding="utf-8") != policy_content:
+            policy_path.write_text(policy_content, encoding="utf-8")
+            updated.append(relative_policy)
+
+        self._set_repository_mode(repository_mode)
+        return AgentInstructionsResult(
+            profile=profile,
+            created=created,
+            updated=updated,
+            policy_path=relative_policy,
+        )
+
+    def _project_name(self) -> str:
+        project_file = self.p2p_dir / "project.yml"
+        if not project_file.exists():
+            return self.root.name
+        data = _read_yaml_mapping(project_file, default={})
+        name = data.get("project", {}).get("name") if isinstance(data.get("project"), dict) else None
+        return str(name or self.root.name)
+
+    def _repository_mode(self, default: str = "local") -> str:
+        project_file = self.p2p_dir / "project.yml"
+        if not project_file.exists():
+            return default
+        data = _read_yaml_mapping(project_file, default={})
+        repo_data = data.get("repository", {})
+        if not isinstance(repo_data, dict):
+            return default
+        return str(repo_data.get("mode") or default)
+
+    def _set_repository_mode(self, mode: str) -> None:
+        mode = _normalize_repository_mode(mode)
+        project_file = self.p2p_dir / "project.yml"
+        data = _read_yaml_mapping(project_file, default={})
+        repo_data = data.get("repository", {})
+        if not isinstance(repo_data, dict):
+            repo_data = {}
+        repo_data["mode"] = mode
+        repo_data.setdefault("managed_by_p2p", False)
+        data["repository"] = repo_data
+        project_file.parent.mkdir(parents=True, exist_ok=True)
+        project_file.write_text(_yaml_dump(data), encoding="utf-8")
 
     def status(self) -> WorkspaceStatus:
         project_name = "Unknown"
@@ -3854,6 +3964,215 @@ class P2PWorkspace:
         if not path.is_dir():
             raise ValueError(f"Work item not found: {work_id}")
         return path
+
+
+AGENT_PROFILES = {"generic", "codex", "claude", "all"}
+REPOSITORY_MODES = {"local", "cloud"}
+
+
+def _normalize_agent_profile(profile: str) -> str:
+    normalized = profile.strip().lower().replace("_", "-")
+    aliases = {
+        "claude-code": "claude",
+        "anthropic": "claude",
+        "openai-codex": "codex",
+    }
+    normalized = aliases.get(normalized, normalized)
+    if normalized not in AGENT_PROFILES:
+        raise ValueError("Agent profile must be generic, codex, claude, or all")
+    return normalized
+
+
+def _expanded_agent_profiles(profile: str) -> list[str]:
+    if profile == "all":
+        return ["generic", "codex", "claude"]
+    return [profile]
+
+
+def _normalize_repository_mode(mode: str) -> str:
+    normalized = mode.strip().lower()
+    aliases = {"remote": "cloud", "hosted": "cloud"}
+    normalized = aliases.get(normalized, normalized)
+    if normalized not in REPOSITORY_MODES:
+        raise ValueError("Repository mode must be local or cloud")
+    return normalized
+
+
+def _agent_instruction_files(
+    project_name: str,
+    profiles: list[str],
+    repository_mode: str,
+) -> dict[Path, str]:
+    files = {Path("AGENTS.md"): _agents_markdown(project_name, profiles, repository_mode)}
+    if "codex" in profiles:
+        files[Path(".codex/skills/p2p-project/SKILL.md")] = _codex_project_skill(
+            project_name,
+            repository_mode,
+        )
+    if "claude" in profiles:
+        files[Path("CLAUDE.md")] = _claude_markdown(project_name, repository_mode)
+    return files
+
+
+def _agent_policy(project_name: str, profiles: list[str], repository_mode: str) -> dict[str, object]:
+    return {
+        "p2p_agent_policy": {
+            "version": "1.0",
+            "project_name": project_name,
+            "source_of_truth": "p2p_cli",
+            "missing_primitive_behavior": "stop_and_report",
+            "direct_p2p_file_edits": "forbidden",
+            "owner_controls_governance": True,
+        },
+        "repository": {
+            "mode": repository_mode,
+            "cloud_is_advisory_until_configured": repository_mode == "cloud",
+        },
+        "agent_profiles": profiles,
+        "mcp": {
+            "default_mode": "read_only",
+            "write_tools_require_explicit_tool_schema": True,
+            "missing_write_tool_behavior": "stop_and_report",
+        },
+        "owner_controlled_actions": [
+            "proposal_accept",
+            "proposal_reject",
+            "proposal_defer",
+            "choice_decide",
+            "work_accept",
+            "work_finalize",
+            "work_cleanup",
+            "direct_git_merge",
+        ],
+        "allowed_mutation_boundary": {
+            "use_p2p_cli_commands": True,
+            "use_mcp_write_tools_only_when_available": True,
+            "invent_internal_p2p_files": False,
+            "invent_ids_or_registry_entries": False,
+            "write_decision_files_directly": False,
+        },
+    }
+
+
+def _agents_markdown(project_name: str, profiles: list[str], repository_mode: str) -> str:
+    profile_text = ", ".join(profiles)
+    return f"""# Agent Instructions - {project_name}
+
+This project uses P2P Engine.
+
+## Source Of Truth
+
+- Use the `p2p` CLI as the public write interface.
+- Treat `.p2p/` as managed project state.
+- Do not create, edit, rename, or delete files under `.p2p/` by hand unless the owner explicitly asks for a repair.
+- Do not invent proposal IDs, choice IDs, change IDs, work IDs, registry entries, or internal P2P file layouts.
+
+## Missing Primitive Rule
+
+If the requested action cannot be performed with an available `p2p` command or an explicit MCP write tool, stop and report the limitation.
+
+Do not satisfy the request by reverse-engineering `.p2p/` and writing files directly.
+
+## Governance Boundary
+
+The owner controls governance decisions. Agents may draft, analyze, compare, and suggest actions, but must not decide on behalf of the owner.
+
+Owner-controlled actions include:
+
+- accepting, rejecting, or deferring proposals;
+- deciding choices;
+- accepting, finalizing, cleaning up, or merging managed work;
+- changing governance policy;
+- creating direct Git merges into the main branch.
+
+## MCP Boundary
+
+Assume MCP tools are read-only unless the tool schema explicitly describes a write action.
+
+When MCP is read-only, use it for status and inspection only. For mutations, use `p2p` CLI commands when available.
+
+## Recommended Start
+
+Run or request:
+
+```bash
+p2p status
+p2p registry refresh
+p2p next
+```
+
+For a new idea, prefer:
+
+```bash
+p2p intake prompt "idea"
+```
+
+or, when the owner explicitly wants a new proposal:
+
+```bash
+p2p proposal create "Title" --problem "..." --goal "..." --proposal "..." --acceptance "..."
+```
+
+## Project Bootstrap
+
+- Initial agent profiles: {profile_text}
+- Repository mode: {repository_mode}
+- Additional agent instructions can be added later with `p2p agent instructions refresh`.
+"""
+
+
+def _codex_project_skill(project_name: str, repository_mode: str) -> str:
+    return f"""---
+name: p2p-project
+description: Use when working in this P2P-managed project. Enforces P2P Engine boundaries for Codex.
+---
+
+# P2P Project Skill - {project_name}
+
+Use P2P Engine as the source of truth for project governance and planning.
+
+## Required Behavior
+
+- Read `AGENTS.md` and `.p2p/agent-policy.yml` before modifying project state.
+- Use `p2p` CLI commands for P2P mutations.
+- Use MCP only within the tool schema; read-only MCP tools do not authorize filesystem writes.
+- If no CLI command or MCP write tool exists for the requested operation, stop and report the missing primitive.
+- Do not edit `.p2p/` internals directly, invent IDs, or synthesize decision files.
+- Do not accept, reject, defer, decide, merge, finalize, or cleanup without explicit owner instruction.
+
+## Useful Commands
+
+```bash
+p2p status
+p2p registry refresh
+p2p next
+p2p proposal list
+p2p choice list
+p2p change status
+p2p work status
+```
+
+Repository mode: `{repository_mode}`.
+"""
+
+
+def _claude_markdown(project_name: str, repository_mode: str) -> str:
+    return f"""# Claude Instructions - {project_name}
+
+This repository is managed with P2P Engine.
+
+Follow `AGENTS.md` and `.p2p/agent-policy.yml`.
+
+Key rules:
+
+- Use `p2p` CLI commands for P2P writes.
+- Do not modify `.p2p/` internals directly.
+- If a requested P2P action has no available command or MCP write tool, stop and explain the missing primitive.
+- Do not make owner-controlled governance decisions unless the owner explicitly instructs the exact decision.
+- Treat MCP as read-only unless a tool explicitly declares a write operation.
+
+Repository mode: `{repository_mode}`.
+"""
 
 
 def _slugify(value: str) -> str:

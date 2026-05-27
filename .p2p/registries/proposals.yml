@@ -1235,3 +1235,86 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-045
+  title: Agent-Safe Project Bootstrap MVP
+  status: accepted
+  path: .p2p/proposals/PROP-045-agent-safe-project-bootstrap-mvp
+  summary: Extend p2p init with an optional agent profile and repository mode. Generate
+    generic AGENTS.md plus .p2p/agent-policy.yml. Add p2p agent instructions refresh
+    so Codex, Claude, generic, or all profiles can be added later without replacing
+    previous profiles. Instructions must state that .p2p is managed by P2P commands,
+    missing primitives require stop-and-report, MCP is read-only unless tools explicitly
+    say otherwise, and owner-controlled decisions cannot be made by agents.
+  decision_file: .p2p/proposals/PROP-045-agent-safe-project-bootstrap-mvp/decision.md
+  related_changes:
+  - CHANGE-030
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-046
+  title: MCP Write-Safe Bootstrap Tools MVP
+  status: accepted
+  path: .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp
+  summary: Add p2p_init_project, p2p_agent_instructions_refresh, and p2p_registry_refresh
+    MCP tools. Keep owner-controlled actions such as proposal accept/reject/defer,
+    choice decide, work accept/finalize/cleanup, and direct Git merge out of MCP.
+    Tool descriptions must make the governance boundary explicit.
+  decision_file: .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp/decision.md
+  related_changes:
+  - CHANGE-031
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-047
+  title: Guided Init Wizard MVP
+  status: accepted
+  path: .p2p/proposals/PROP-047-guided-init-wizard-mvp
+  summary: When p2p init is called without a project name, run a small interactive
+    wizard that asks project name, initial agent profile, repository mode, and whether
+    to show an MCP setup hint. Keep p2p init NAME --agent ... --repository ... as
+    the scriptable path. Print concrete next steps after initialization.
+  decision_file: .p2p/proposals/PROP-047-guided-init-wizard-mvp/decision.md
+  related_changes:
+  - CHANGE-032
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

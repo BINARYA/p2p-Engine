@@ -194,3 +194,18 @@ decisions:
   status: accepted
   feature: p2p-mcp-server-mvp
   source: .p2p/proposals/PROP-044-p2p-mcp-server-mvp
+- proposal: PROP-045
+  title: Agent-Safe Project Bootstrap MVP
+  status: accepted
+  feature: agent-safe-project-bootstrap-mvp
+  source: .p2p/proposals/PROP-045-agent-safe-project-bootstrap-mvp
+- proposal: PROP-046
+  title: MCP Write-Safe Bootstrap Tools MVP
+  status: accepted
+  feature: mcp-write-safe-bootstrap-tools-mvp
+  source: .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp
+- proposal: PROP-047
+  title: Guided Init Wizard MVP
+  status: accepted
+  feature: guided-init-wizard-mvp
+  source: .p2p/proposals/PROP-047-guided-init-wizard-mvp

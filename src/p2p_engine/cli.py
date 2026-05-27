@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shlex
 from pathlib import Path
 
 import typer
@@ -37,6 +38,8 @@ intake_app = typer.Typer(help="Analyze raw ideas against project context")
 intake_apply_app = typer.Typer(help="Plan and run controlled intake applications")
 choice_app = typer.Typer(help="Manage project choices")
 work_app = typer.Typer(help="Manage P2P work manifests")
+agent_app = typer.Typer(help="Manage agent-facing project instructions")
+agent_instructions_app = typer.Typer(help="Generate and refresh agent instructions")
 
 proposal_app.add_typer(proposal_contribution_app, name="contribution")
 app.add_typer(proposal_app, name="proposal")
@@ -61,9 +64,11 @@ app.add_typer(registry_app, name="registry")
 app.add_typer(intake_app, name="intake")
 app.add_typer(choice_app, name="choice")
 app.add_typer(work_app, name="work")
+app.add_typer(agent_app, name="agent")
 project_app.add_typer(project_brief_app, name="brief")
 project_app.add_typer(project_remote_app, name="remote")
 intake_app.add_typer(intake_apply_app, name="apply")
+agent_app.add_typer(agent_instructions_app, name="instructions")
 
 console = Console()
 
@@ -83,15 +88,135 @@ def _yaml_dump_for_cli(data: object) -> str:
 
 @app.command()
 def init(
-    name: str = typer.Argument("P2P Engine", help="Project name"),
+    name: str | None = typer.Argument(None, help="Project name"),
+    agent: str = typer.Option(
+        "generic",
+        "--agent",
+        help="Initial agent profile: generic, codex, claude, or all",
+    ),
+    repository: str = typer.Option(
+        "local",
+        "--repository",
+        help="Repository mode: local or cloud",
+    ),
+    mcp_hint: bool | None = typer.Option(
+        None,
+        "--mcp-hint/--no-mcp-hint",
+        help="Show an MCP setup command after initialization",
+    ),
     root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
 ) -> None:
     """Initialize a P2P workspace."""
+    if name is None:
+        console.print("[bold]P2P project initialization[/bold]")
+        name = typer.prompt("Project name", default=root.resolve().name)
+        agent = _prompt_choice(
+            "Initial agent profile",
+            choices=("generic", "codex", "claude", "all"),
+            default=agent,
+        )
+        repository = _prompt_choice(
+            "Repository mode",
+            choices=("local", "cloud"),
+            default=repository,
+        )
+        if mcp_hint is None:
+            mcp_hint = typer.confirm("Show MCP setup hint?", default=True)
+    else:
+        mcp_hint = bool(mcp_hint)
+
     workspace = _workspace(root)
-    created = workspace.init_project(name=name)
+    try:
+        created = workspace.init_project(
+            name=name,
+            agent_profile=agent,
+            repository_mode=repository,
+        )
+    except ValueError as exc:
+        _fail(str(exc))
     console.print("[green]P2P workspace initialized.[/green]")
     for path in created:
         console.print(f"  created {path}")
+    _print_init_next_steps(root.resolve(), agent, show_mcp_hint=mcp_hint)
+
+
+def _prompt_choice(prompt: str, choices: tuple[str, ...], default: str) -> str:
+    normalized_default = default.strip().lower()
+    if normalized_default not in choices:
+        normalized_default = choices[0]
+    choices_text = "/".join(choices)
+    while True:
+        value = typer.prompt(f"{prompt} ({choices_text})", default=normalized_default)
+        normalized = value.strip().lower()
+        if normalized in choices:
+            return normalized
+        console.print(f"[red]Invalid value:[/red] {value}. Choose one of: {choices_text}")
+
+
+def _print_init_next_steps(root: Path, agent: str, show_mcp_hint: bool = False) -> None:
+    console.print("Next steps:")
+    console.print("  1. p2p registry refresh")
+    console.print("  2. p2p status")
+    console.print("  3. p2p next")
+    console.print("  4. Create or intake the first idea with p2p proposal create or p2p intake prompt")
+    if show_mcp_hint:
+        server_name = f"p2p-{root.name}"
+        console.print("MCP setup hint:")
+        console.print(
+            "  "
+            + " ".join(
+                [
+                    "codex",
+                    "mcp",
+                    "add",
+                    shlex.quote(server_name),
+                    "--",
+                    "p2p-mcp-server",
+                    "--root",
+                    shlex.quote(str(root)),
+                ]
+            )
+        )
+        if agent != "codex":
+            console.print("  Use the same stdio command in other MCP clients.")
+
+
+@agent_instructions_app.command("refresh")
+def agent_instructions_refresh(
+    profile: str = typer.Option(
+        "generic",
+        "--profile",
+        "--agent",
+        help="Agent profile to add or refresh: generic, codex, claude, or all",
+    ),
+    repository: str | None = typer.Option(
+        None,
+        "--repository",
+        help="Repository mode override: local or cloud",
+    ),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Refresh agent-safe project instructions without removing other profiles."""
+    try:
+        result = _workspace(root).refresh_agent_instructions(
+            profile=profile,
+            repository_mode=repository,
+        )
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Agent instructions refreshed.[/green]")
+    console.print(f"  profile: {result.profile}")
+    console.print(f"  policy: {result.policy_path}")
+    if result.created:
+        console.print("  created:")
+        for path in result.created:
+            console.print(f"    {path}")
+    if result.updated:
+        console.print("  updated:")
+        for path in result.updated:
+            console.print(f"    {path}")
+    if not result.created and not result.updated:
+        console.print("  no changes")
 
 
 @app.command()

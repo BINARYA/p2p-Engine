@@ -39,10 +39,51 @@ def _setup_project(tmp_path: Path) -> None:
 def test_mcp_tool_definitions_are_read_only() -> None:
     names = {tool["name"] for tool in tool_definitions()}
 
+    assert "p2p_init_project" in names
+    assert "p2p_agent_instructions_refresh" in names
+    assert "p2p_registry_refresh" in names
     assert "p2p_project_status" in names
     assert "p2p_next" in names
     assert "p2p_proposal_show" in names
     assert not any("accept" in name or "decide" in name or "cleanup" in name for name in names)
+
+
+def test_mcp_write_safe_bootstrap_tools(tmp_path: Path) -> None:
+    initialized = call_tool(
+        "p2p_init_project",
+        {
+            "root": str(tmp_path),
+            "name": "MCP Bootstrap",
+            "agent": "codex",
+            "repository": "cloud",
+        },
+    )
+
+    assert initialized["initialized"] is True
+    assert (tmp_path / "AGENTS.md").exists()
+    assert (tmp_path / ".p2p" / "agent-policy.yml").exists()
+    assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+
+    refreshed = call_tool(
+        "p2p_agent_instructions_refresh",
+        {"root": str(tmp_path), "profile": "claude"},
+    )
+
+    assert refreshed["agent_instructions"]["profile"] == "claude"
+    assert (tmp_path / "CLAUDE.md").exists()
+    policy = (tmp_path / ".p2p" / "agent-policy.yml").read_text(encoding="utf-8")
+    assert "- codex" in policy
+    assert "- claude" in policy
+
+
+def test_mcp_registry_refresh_tool(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+
+    result = call_tool("p2p_registry_refresh", {"root": str(tmp_path)})
+
+    written = result["written"]
+    assert ".p2p/registries/proposals.yml" in written
+    assert (tmp_path / ".p2p" / "registries" / "proposals.yml").exists()
 
 
 def test_mcp_call_tool_reads_project_state(tmp_path: Path) -> None:

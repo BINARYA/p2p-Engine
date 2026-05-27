@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-045
+  decision_file: .p2p/proposals/PROP-045-agent-safe-project-bootstrap-mvp/decision.md

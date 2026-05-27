@@ -18,6 +18,11 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     result = runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     assert result.exit_code == 0
     assert "P2P workspace initialized" in result.output
+    assert (tmp_path / "AGENTS.md").exists()
+    assert (tmp_path / ".p2p" / "agent-policy.yml").exists()
+    agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+    assert "Do not create, edit, rename, or delete files under `.p2p/` by hand" in agents
+    assert "stop and report the limitation" in agents
 
     result = runner.invoke(app, ["status", "--root", str(tmp_path)])
     assert result.exit_code == 0
@@ -86,6 +91,70 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "Exploration status for PROP-001" in result.output
     assert "open-questions.md" in result.output
+
+
+def test_cli_init_without_name_runs_guided_wizard(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app,
+        ["init", "--root", str(tmp_path)],
+        input="Wizard Project\ncodex\ncloud\ny\n",
+    )
+
+    assert result.exit_code == 0
+    assert "P2P project initialization" in result.output
+    assert "P2P workspace initialized" in result.output
+    assert "MCP setup hint" in result.output
+    assert "codex mcp add" in result.output
+    assert (tmp_path / "AGENTS.md").exists()
+    assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    project = (tmp_path / ".p2p" / "project.yml").read_text(encoding="utf-8")
+    assert "name: Wizard Project" in project
+    assert "mode: cloud" in project
+
+
+def test_cli_init_can_generate_agent_specific_instructions(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "init",
+            "Demo Project",
+            "--agent",
+            "codex",
+            "--repository",
+            "cloud",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0
+    assert (tmp_path / "AGENTS.md").exists()
+    assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+
+    policy = (tmp_path / ".p2p" / "agent-policy.yml").read_text(encoding="utf-8")
+    assert "missing_primitive_behavior: stop_and_report" in policy
+    assert "direct_p2p_file_edits: forbidden" in policy
+    assert "mode: cloud" in policy
+
+
+def test_cli_agent_instructions_refresh_adds_profiles_without_removing_existing(
+    tmp_path: Path,
+) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--agent", "codex", "--root", str(tmp_path)])
+
+    result = runner.invoke(
+        app,
+        ["agent", "instructions", "refresh", "--profile", "claude", "--root", str(tmp_path)],
+    )
+
+    assert result.exit_code == 0
+    assert "Agent instructions refreshed" in result.output
+    assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    assert (tmp_path / "CLAUDE.md").exists()
+
+    policy = (tmp_path / ".p2p" / "agent-policy.yml").read_text(encoding="utf-8")
+    assert "- claude" in policy
+    assert "- codex" in policy
+    assert "write_decision_files_directly: false" in policy
 
 
 def test_cli_import_exploration_file_and_record_decision(tmp_path: Path) -> None:

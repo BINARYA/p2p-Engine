@@ -313,3 +313,25 @@ decisions:
   path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/decision.md
   reason: A local read-only MCP server is the safest first agent-facing interface
     over the deterministic P2P Core.
+- proposal: PROP-045
+  title: Agent-Safe Project Bootstrap MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-045-agent-safe-project-bootstrap-mvp/decision.md
+  reason: Accepted as the immediate hardening step after the MCP local test showed
+    that agents need explicit project-level boundaries before write-capable MCP tools
+    are added.
+- proposal: PROP-046
+  title: MCP Write-Safe Bootstrap Tools MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp/decision.md
+  reason: 'Accepted as the next controlled MCP increment after agent-safe init: expose
+    only bootstrap and registry refresh primitives, not governance decisions.'
+- proposal: PROP-047
+  title: Guided Init Wizard MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-047-guided-init-wizard-mvp/decision.md
+  reason: Accepted to make the newly hardened init path usable for first-time users
+    before broadening MCP mutations.

@@ -498,3 +498,33 @@ Generated from accepted proposal goals and non-goals.
 - Implement MCP over HTTP.
 - Expose proposal accept, choice decide, work accept, Git branch, commit, merge, cleanup, or provider actions.
 - Implement P2P Mediator or Web.
+
+## PROP-045 - Agent-Safe Project Bootstrap MVP
+
+### Goals
+
+- Generate agent-safe project instructions during init and provide a repeatable command to add or refresh instructions for additional agent profiles later.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-046 - MCP Write-Safe Bootstrap Tools MVP
+
+### Goals
+
+- Allow MCP clients to initialize P2P projects, refresh agent instructions, and refresh registries through explicit controlled tools.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-047 - Guided Init Wizard MVP
+
+### Goals
+
+- Make p2p init usable without memorizing flags, while preserving non-interactive CLI usage.
+
+### Non-Goals
+
+- Not provided.

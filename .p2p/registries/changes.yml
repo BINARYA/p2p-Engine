@@ -464,3 +464,54 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-030
+  title: Agent-Safe Project Bootstrap MVP
+  status: completed
+  path: .p2p/changes/CHANGE-030-agent-safe-project-bootstrap-mvp
+  included_proposals:
+  - PROP-045
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0
+- id: CHANGE-031
+  title: MCP Write-Safe Bootstrap Tools MVP
+  status: completed
+  path: .p2p/changes/CHANGE-031-mcp-write-safe-bootstrap-tools-mvp
+  included_proposals:
+  - PROP-046
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0
+- id: CHANGE-032
+  title: Guided Init Wizard MVP
+  status: completed
+  path: .p2p/changes/CHANGE-032-guided-init-wizard-mvp
+  included_proposals:
+  - PROP-047
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

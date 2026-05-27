@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-046
+  decision_file: .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp/decision.md

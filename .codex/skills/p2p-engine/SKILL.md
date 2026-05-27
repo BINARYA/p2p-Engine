@@ -43,6 +43,36 @@ If no `.p2p/` workspace exists, ask whether to initialize it before proceeding:
 p2p init "Project Name"
 ```
 
+For new user projects, prefer an agent-safe bootstrap. Select the first agent profile without treating it as permanent:
+
+```bash
+p2p init
+p2p init "Project Name" --agent codex --repository local
+p2p agent instructions refresh --profile claude
+```
+
+Calling `p2p init` without a project name starts the guided wizard for project name, initial agent profile, repository mode, and MCP setup hint. Passing a project name keeps the command scriptable.
+
+Generated project instructions are part of the operating boundary:
+
+```text
+AGENTS.md
+.p2p/agent-policy.yml
+optional: CLAUDE.md, .codex/skills/p2p-project/SKILL.md
+```
+
+In projects initialized this way, read `AGENTS.md` and `.p2p/agent-policy.yml` before changing project state. If an available CLI command or explicit MCP write tool cannot perform the requested P2P mutation, stop and report the missing primitive. Do not reverse-engineer `.p2p/`, invent IDs, write decision files, or accept/reject/defer/decide on behalf of the owner.
+
+When using the P2P MCP server, the bootstrap and maintenance write-safe tools are:
+
+```text
+p2p_init_project
+p2p_agent_instructions_refresh
+p2p_registry_refresh
+```
+
+These tools may initialize projects, refresh agent instructions, and regenerate deterministic registries. They do not authorize governance decisions or managed-work lifecycle actions.
+
 Before creating new proposal artifacts, inspect current state:
 
 ```bash

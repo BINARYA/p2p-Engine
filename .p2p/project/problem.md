@@ -159,3 +159,15 @@ Obsolete planned Work manifests can remain in project status even after their so
 ## PROP-044 - P2P MCP Server MVP
 
 Agents should access P2P project state through structured tools instead of parsing CLI text or reading .p2p files directly.
+
+## PROP-045 - Agent-Safe Project Bootstrap MVP
+
+New P2P projects do not give Codex, Claude, or other agents explicit boundaries. Agents can infer .p2p internals, edit files directly, invent IDs, or make owner-controlled decisions when an MCP or CLI primitive is missing.
+
+## PROP-046 - MCP Write-Safe Bootstrap Tools MVP
+
+The MCP server can read project state but cannot perform safe bootstrap operations. When an agent is asked to initialize or harden a project through MCP, it may fall back to manual filesystem edits if no explicit MCP primitive exists.
+
+## PROP-047 - Guided Init Wizard MVP
+
+P2P init can now generate safe project and agent boundaries, but non-technical users still need to know which flags to pass for project name, agent profile, repository mode, and MCP setup hints.
