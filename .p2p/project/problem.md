@@ -139,3 +139,11 @@ p2p work accept can attempt a local merge, but merge conflicts are not represent
 ## PROP-039 - Managed Work Finalize MVP
 
 After p2p work accept, the base branch merge remains local and P2P has no command to publish that accepted state to the remote.
+
+## PROP-040 - Managed Work Cleanup MVP
+
+After p2p work finalize, managed Work branches remain locally and remotely, and P2P has no explicit owner-controlled cleanup step.
+
+## PROP-041 - Remote Project Profile and Review Request Policy
+
+P2P can publish managed Work branches, but it does not yet distinguish local-only projects from remote-backed projects or express external review handoff without binding the core workflow to GitHub PRs.

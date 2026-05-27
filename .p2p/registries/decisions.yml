@@ -285,3 +285,10 @@ decisions:
   path: .p2p/proposals/PROP-040-managed-work-cleanup-mvp/decision.md
   reason: Cleanup is the explicit post-finalize branch housekeeping step and keeps
     branch deletion separate from accept/finalize.
+- proposal: PROP-041
+  title: Remote Project Profile and Review Request Policy
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy/decision.md
+  reason: Remote review must remain optional and provider-agnostic; publish should
+    stay separate from PR/MR handoff.

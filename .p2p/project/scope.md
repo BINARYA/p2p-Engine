@@ -431,3 +431,26 @@ Generated from accepted proposal goals and non-goals.
 ### Non-Goals
 
 - Not provided.
+
+## PROP-040 - Managed Work Cleanup MVP
+
+### Goals
+
+- Allow an owner to clean up finalized Work branches without changing accepted project content.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-041 - Remote Project Profile and Review Request Policy
+
+### Goals
+
+- Record whether a P2P project is local-only or remote-backed.
+- Keep p2p work publish separate from external review/PR creation.
+- Introduce an advisory request-review step that can later be implemented by provider adapters.
+
+### Non-Goals
+
+- Create GitHub Pull Requests automatically in this MVP.
+- Require PRs for P2P accept/finalize/cleanup.

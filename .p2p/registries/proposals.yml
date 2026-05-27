@@ -1126,3 +1126,30 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-041
+  title: Remote Project Profile and Review Request Policy
+  status: accepted
+  path: .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy
+  summary: Add a Remote Project Profile and a provider-agnostic review-request command.
+    The profile records mode, provider, remote name, and remote URL. p2p work request-review
+    WORK-XXX records that a published Work item is ready for external review, emits
+    provider-specific guidance, and leaves merge/accept owner-controlled.
+  decision_file: .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy/decision.md
+  related_changes:
+  - CHANGE-027
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

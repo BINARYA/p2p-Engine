@@ -312,6 +312,17 @@ class WorkReview:
 
 
 @dataclass(frozen=True)
+class RemoteProjectProfile:
+    mode: str
+    provider: str
+    remote: str | None
+    url: str | None
+    review_request_mode: str
+    opens_external_request: bool
+    path: Path
+
+
+@dataclass(frozen=True)
 class WorkPublish:
     work_id: str
     branch_name: str
@@ -358,6 +369,18 @@ class WorkCleanup:
     cleanup_commit: str
     local_deleted: bool
     remote_deleted: bool
+    path: Path
+
+
+@dataclass(frozen=True)
+class WorkReviewRequest:
+    work_id: str
+    branch_name: str
+    provider: str
+    remote: str
+    remote_url: str
+    metadata_commit: str
+    suggested_next: str
     path: Path
 
 
@@ -510,6 +533,71 @@ class P2PWorkspace:
                         )
                 )
         return WorkspaceStatus(root=self.root, project_name=project_name, proposals=proposals)
+
+    def remote_profile(self) -> RemoteProjectProfile:
+        project_file = self.p2p_dir / "project.yml"
+        data = _read_yaml_mapping(project_file, default={})
+        remote_data = data.get("remote", {})
+        if not isinstance(remote_data, dict):
+            remote_data = {}
+        review_data = remote_data.get("review_request", {})
+        if not isinstance(review_data, dict):
+            review_data = {}
+        mode = str(remote_data.get("mode") or "local")
+        provider = str(remote_data.get("provider") or ("local" if mode == "local" else "generic"))
+        remote = remote_data.get("remote")
+        url = remote_data.get("url")
+        return RemoteProjectProfile(
+            mode=mode,
+            provider=provider,
+            remote=str(remote) if remote else None,
+            url=str(url) if url else None,
+            review_request_mode=str(review_data.get("mode") or "advisory"),
+            opens_external_request=bool(review_data.get("opens_external_request", False)),
+            path=project_file.relative_to(self.root),
+        )
+
+    def configure_remote_profile(
+        self,
+        *,
+        mode: str,
+        provider: str | None = None,
+        remote: str = "origin",
+        url: str | None = None,
+    ) -> RemoteProjectProfile:
+        mode = mode.strip().lower()
+        if mode not in {"local", "remote"}:
+            raise ValueError("Remote project mode must be local or remote")
+
+        provider = (provider or ("local" if mode == "local" else "generic")).strip().lower()
+        if provider not in {"local", "generic", "github", "gitlab"}:
+            raise ValueError("Remote provider must be local, generic, github, or gitlab")
+        if mode == "local":
+            provider = "local"
+            remote = ""
+            url = None
+        else:
+            if provider == "local":
+                raise ValueError("Remote-backed projects cannot use provider local")
+            if not url:
+                url = remote_url(self.root, remote)
+            if not url:
+                raise ValueError(f"Remote URL is required and Git remote was not found: {remote}")
+
+        project_file = self.p2p_dir / "project.yml"
+        data = _read_yaml_mapping(project_file, default={})
+        data["remote"] = {
+            "mode": mode,
+            "provider": provider,
+            "remote": remote or None,
+            "url": url,
+            "review_request": {
+                "mode": "advisory",
+                "opens_external_request": False,
+            },
+        }
+        project_file.write_text(_yaml_dump(data), encoding="utf-8")
+        return self.remote_profile()
 
     def proposal_summaries(self, status: str | None = None) -> list[ProposalSummary]:
         proposals = self.status().proposals
@@ -1731,6 +1819,86 @@ class P2PWorkspace:
             remote=remote,
             remote_url=resolved_remote_url,
             publish_commit=publish_commit,
+            path=work_dir.relative_to(self.root),
+        )
+
+    def request_external_work_review(
+        self,
+        work_id: str,
+        provider: str | None = None,
+    ) -> WorkReviewRequest:
+        work_dir = self._find_work_dir(work_id)
+        manifest_path = work_dir / "manifest.yml"
+        manifest = _read_yaml_mapping(manifest_path, default={})
+        status = str(manifest.get("status") or "unknown")
+        if status != "published":
+            raise ValueError(f"Work item must be published before external review request. Current status: {status}")
+
+        git = manifest.get("git", {})
+        if not isinstance(git, dict):
+            raise ValueError("Invalid Work manifest: git must be a mapping")
+        branch_name = str(git.get("branch_name") or "")
+        if not branch_name:
+            raise ValueError("Invalid Work manifest: git.branch_name is required")
+
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError("Cannot request external work review outside a Git repository")
+        if git_status.branch != branch_name:
+            raise ValueError(
+                f"Cannot request external work review from {git_status.branch}; expected branch {branch_name}"
+            )
+        if not git_status.is_clean:
+            raise ValueError("Cannot request external work review with uncommitted changes")
+
+        publish = manifest.get("publish", {})
+        if not isinstance(publish, dict):
+            raise ValueError("Invalid Work manifest: publish metadata is required before external review request")
+        remote = str(publish.get("remote") or "origin")
+        resolved_remote_url = str(publish.get("remote_url") or "")
+        if not resolved_remote_url:
+            resolved_remote_url = remote_url(self.root, remote) or ""
+        if not resolved_remote_url:
+            raise ValueError(f"Cannot request external work review: Git remote not found: {remote}")
+
+        profile = self.remote_profile()
+        if profile.url:
+            resolved_remote_url = profile.url
+        selected_provider = (provider or profile.provider or "generic").strip().lower()
+        if selected_provider == "local":
+            selected_provider = "generic"
+        if selected_provider not in {"generic", "github", "gitlab"}:
+            raise ValueError("External review provider must be generic, github, or gitlab")
+
+        suggested_next = _review_request_suggestion(
+            provider=selected_provider,
+            remote_url=resolved_remote_url,
+            branch_name=branch_name,
+        )
+        manifest["external_review"] = {
+            "mode": "provider_advisory",
+            "provider": selected_provider,
+            "remote": remote,
+            "remote_url": resolved_remote_url,
+            "remote_branch": branch_name,
+            "opens_external_request": False,
+            "requested_at": date.today().isoformat(),
+            "suggested_next": suggested_next,
+        }
+        manifest_path.write_text(_yaml_dump(manifest), encoding="utf-8")
+
+        metadata_commit = commit_all(self.root, f"P2P request review {work_id}")
+        if metadata_commit is None:
+            raise ValueError("Failed to create external review request metadata commit")
+
+        return WorkReviewRequest(
+            work_id=str(manifest.get("work_id") or work_id),
+            branch_name=branch_name,
+            provider=selected_provider,
+            remote=remote,
+            remote_url=resolved_remote_url,
+            metadata_commit=metadata_commit,
+            suggested_next=suggested_next,
             path=work_dir.relative_to(self.root),
         )
 
@@ -4705,6 +4873,40 @@ def _work_next_action(
     if status == "cleaned":
         return "none", "cleaned"
     return "inspect", "unknown Work status"
+
+
+def _review_request_suggestion(provider: str, remote_url: str, branch_name: str) -> str:
+    if provider == "github":
+        web_url = _github_web_url(remote_url)
+        if web_url:
+            return f"Open a GitHub pull request from {branch_name}: {web_url}/compare/{branch_name}?expand=1"
+        return f"Open a GitHub pull request from branch {branch_name}."
+    if provider == "gitlab":
+        web_url = _gitlab_web_url(remote_url)
+        if web_url:
+            return f"Open a GitLab merge request from {branch_name}: {web_url}/-/merge_requests/new?merge_request[source_branch]={branch_name}"
+        return f"Open a GitLab merge request from branch {branch_name}."
+    return f"Ask for external review of remote branch {branch_name} at {remote_url}."
+
+
+def _github_web_url(remote_url: str) -> str | None:
+    match = re.match(r"git@github\.com:(?P<owner>[^/]+)/(?P<repo>.+?)(?:\.git)?$", remote_url)
+    if match:
+        return f"https://github.com/{match.group('owner')}/{match.group('repo')}"
+    match = re.match(r"https://github\.com/(?P<owner>[^/]+)/(?P<repo>.+?)(?:\.git)?$", remote_url)
+    if match:
+        return f"https://github.com/{match.group('owner')}/{match.group('repo')}"
+    return None
+
+
+def _gitlab_web_url(remote_url: str) -> str | None:
+    match = re.match(r"git@gitlab\.com:(?P<path>.+?)(?:\.git)?$", remote_url)
+    if match:
+        return f"https://gitlab.com/{match.group('path')}"
+    match = re.match(r"https://gitlab\.com/(?P<path>.+?)(?:\.git)?$", remote_url)
+    if match:
+        return f"https://gitlab.com/{match.group('path')}"
+    return None
 
 
 def _file_has_conflict_markers(path: Path) -> bool:

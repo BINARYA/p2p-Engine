@@ -4,28 +4,31 @@ project:
   meaning: Proposal-to-Plan Engine
   version: 0.1.0-bootstrap
   status: bootstrap_manual
-
 storage:
   mode: file_based
   documents_format: markdown
   structured_data_format: yaml
-
 git:
   enabled: true
   default_branch: main
   proposal_branch_prefix: proposal/
-
 workflow:
   current_phase: bootstrap_manual
   first_proposal: PROP-001
   next_goal: implement_minimal_cli
-
 ai:
   mode: prompt_only
   direct_invocation: false
   supported_future_modes:
-    - agent_files
-    - cli_adapter
-    - api_adapter
-    - mcp_server
-
+  - agent_files
+  - cli_adapter
+  - api_adapter
+  - mcp_server
+remote:
+  mode: remote
+  provider: github
+  remote: origin
+  url: git@github.com:BINARYA/p2p-Engine.git
+  review_request:
+    mode: advisory
+    opens_external_request: false

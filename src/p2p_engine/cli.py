@@ -27,6 +27,7 @@ vote_app = typer.Typer(help="Record and inspect governance votes")
 precedent_app = typer.Typer(help="Record governance decision precedents")
 project_app = typer.Typer(help="Manage rationalized project state")
 project_brief_app = typer.Typer(help="Generate and import operational project briefs")
+project_remote_app = typer.Typer(help="Manage project remote profile")
 impact_app = typer.Typer(help="Analyze proposal impact")
 conflict_app = typer.Typer(help="Record and inspect project conflicts")
 change_app = typer.Typer(help="Manage operational Change Set metadata")
@@ -61,6 +62,7 @@ app.add_typer(intake_app, name="intake")
 app.add_typer(choice_app, name="choice")
 app.add_typer(work_app, name="work")
 project_app.add_typer(project_brief_app, name="brief")
+project_app.add_typer(project_remote_app, name="remote")
 intake_app.add_typer(intake_apply_app, name="apply")
 
 console = Console()
@@ -721,6 +723,50 @@ def project_show(
     console.print(content)
 
 
+@project_remote_app.command("show")
+def project_remote_show(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+    """Show local/remote project profile."""
+    try:
+        profile = _workspace(root).remote_profile()
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("Project remote profile")
+    console.print(f"  mode: {profile.mode}")
+    console.print(f"  provider: {profile.provider}")
+    console.print(f"  remote: {profile.remote or 'none'}")
+    console.print(f"  url: {profile.url or 'none'}")
+    console.print(f"  review_request: {profile.review_request_mode}")
+    console.print(f"  opens_external_request: {str(profile.opens_external_request).lower()}")
+    console.print(f"  path: {profile.path}")
+
+
+@project_remote_app.command("configure")
+def project_remote_configure(
+    mode: str = typer.Option(..., "--mode", help="Project remote mode: local or remote"),
+    provider: str | None = typer.Option(None, "--provider", help="Provider: generic, github, or gitlab"),
+    remote: str = typer.Option("origin", "--remote", help="Git remote name for remote-backed projects"),
+    url: str | None = typer.Option(None, "--url", help="Remote repository URL"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Configure local/remote project profile without creating provider resources."""
+    try:
+        profile = _workspace(root).configure_remote_profile(
+            mode=mode,
+            provider=provider,
+            remote=remote,
+            url=url,
+        )
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Project remote profile configured.[/green]")
+    console.print(f"  mode: {profile.mode}")
+    console.print(f"  provider: {profile.provider}")
+    console.print(f"  remote: {profile.remote or 'none'}")
+    console.print(f"  url: {profile.url or 'none'}")
+    console.print("  creates_remote_repository: false")
+    console.print("  opens_external_request: false")
+
+
 @project_brief_app.command("prompt")
 def project_brief_prompt(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
     """Create an operational brief prompt from project state and registries."""
@@ -1226,6 +1272,29 @@ def work_publish(
     console.print(f"  publish_commit: {publish.publish_commit}")
     console.print("  pull_request: disabled")
     console.print("  merge: owner-controlled")
+
+
+@work_app.command("request-review")
+def work_request_review(
+    work_id: str = typer.Argument(..., help="Work ID, e.g. WORK-001"),
+    provider: str | None = typer.Option(None, "--provider", help="External provider: generic, github, or gitlab"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Record provider-agnostic external review handoff for a published Work item."""
+    try:
+        review = _workspace(root).request_external_work_review(work_id, provider)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]External review request recorded.[/green]")
+    console.print(f"  work: {review.work_id}")
+    console.print(f"  branch: {review.branch_name}")
+    console.print(f"  provider: {review.provider}")
+    console.print(f"  remote: {review.remote}")
+    console.print(f"  remote_url: {review.remote_url}")
+    console.print(f"  metadata_commit: {review.metadata_commit}")
+    console.print("  opens_external_request: false")
+    console.print("  merge: owner-controlled")
+    console.print(f"  suggested_next: {review.suggested_next}")
 
 
 @work_app.command("accept")

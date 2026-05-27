@@ -285,18 +285,24 @@ Level 2: managed branch
 Level 3: managed commit
 Level 4: managed review
 Level 4.5: remote handoff
+Level 4.6: optional external review request
 Level 5: owner-controlled merge
+Level 5.5: cleanup
 ```
 
-The current safe level is Level 5:
+The current safe level is Level 5.5:
 
 ```bash
+p2p project remote show
+p2p project remote configure --mode local
+p2p project remote configure --mode remote --provider generic --remote origin --url git@example.com:owner/repo.git
 p2p work status
 p2p work plan --change CHANGE-XXX --target speckit
 p2p work branch WORK-001
 p2p work submit WORK-001
 p2p work review WORK-001
 p2p work publish WORK-001
+p2p work request-review WORK-001
 p2p work accept WORK-001
 p2p work finalize WORK-001
 p2p work cleanup WORK-001
@@ -312,6 +318,8 @@ p2p work show WORK-001
 `p2p work submit WORK-XXX` is the local commit step. It requires the current branch to match the Work manifest branch, requires Work status `branched`, refuses submissions that only contain Work manifest bookkeeping, updates the manifest to `submitted`, and creates one local commit. It must not push, open PRs, submit reviews, or merge; those belong to later owner-controlled levels.
 `p2p work review WORK-XXX` is the local review-request step. It requires Work status `submitted`, requires the current branch to match the Work manifest branch, requires a clean worktree, records the commit to review, updates the manifest to `review_requested`, and creates one local metadata commit. It must not push, open PRs, or merge.
 `p2p work publish WORK-XXX` is the remote handoff step. It requires Work status `review_requested`, requires the current branch to match the Work manifest branch, requires a clean worktree and a configured Git remote, updates the manifest to `published`, creates one local publish metadata commit, and pushes the managed branch to the remote. It must not open PRs or merge.
+`p2p project remote configure/show` records whether the P2P project is local-only or remote-backed and which provider profile applies (`generic`, `github`, or `gitlab`). This is project metadata only: it must not create remote repositories, authenticate providers, open PRs/MRs, or push.
+`p2p work request-review WORK-XXX` is the optional external review handoff step. It requires Work status `published`, requires the current branch to match the Work manifest branch, requires a clean worktree, records `external_review` metadata, and prints provider-specific advisory guidance. It must not create a GitHub PR, GitLab MR, merge, accept, finalize, or cleanup.
 `p2p work accept WORK-XXX` is the owner-controlled local merge step. It requires Work status `published` on the managed branch, requires the current branch to be the manifest base branch, requires a clean worktree, merges the managed Work branch locally, updates the manifest to `accepted`, and creates one local merge commit. It must not push the base branch or delete Work branches.
 If `p2p work accept` reports merge conflicts, do not continue with publish/finalize/cleanup. Resolve the listed files manually, then run `p2p work accept --continue WORK-XXX`; or run `p2p work accept --abort WORK-XXX` to abort the merge and return the Work item to `published`.
 `p2p work finalize WORK-XXX` is the post-accept publication step. It requires Work status `accepted`, requires the current branch to be the manifest base branch, requires a clean worktree and configured remote, updates the manifest to `finalized`, creates one local finalize metadata commit, and pushes the base branch. It must not delete local or remote Work branches.
@@ -321,7 +329,8 @@ Future managed Git levels must stay separate:
 
 ```text
 Level 4.5: remote handoff / push branch
-Level 4.6: optional PR creation
+Level 4.6: optional external review request
+Future Level 4.7: provider adapter can create PR/MR only after explicit accepted proposal
 Level 5: owner-controlled accept / merge
 Level 5.5: cleanup
 ```

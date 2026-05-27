@@ -169,3 +169,13 @@ decisions:
   status: accepted
   feature: managed-work-finalize-mvp
   source: .p2p/proposals/PROP-039-managed-work-finalize-mvp
+- proposal: PROP-040
+  title: Managed Work Cleanup MVP
+  status: accepted
+  feature: managed-work-cleanup-mvp
+  source: .p2p/proposals/PROP-040-managed-work-cleanup-mvp
+- proposal: PROP-041
+  title: Remote Project Profile and Review Request Policy
+  status: accepted
+  feature: remote-project-profile-and-review-request-policy
+  source: .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy

@@ -2,38 +2,44 @@
 
 ## Where We Are
 
-P2P Engine now has the managed Work lifecycle through finalization, plus read-only status and guided merge-conflict recovery.
+P2P Engine now has the managed Work lifecycle through cleanup, plus a provider-agnostic remote project profile and optional external review handoff.
 
 The supported managed Work flow is:
 
 ```text
+p2p project remote show
+p2p project remote configure
 p2p work plan
 p2p work status
 p2p work branch
 p2p work submit
 p2p work review
 p2p work publish
+p2p work request-review
 p2p work accept
 p2p work accept --continue
 p2p work accept --abort
 p2p work finalize
+p2p work cleanup
 ```
 
-The project state is current at 39 proposals and 25 Change Sets. All recorded Change Sets are completed, including `CHANGE-025` / `PROP-039` for Managed Work Finalize MVP. Registries are not stale.
+The project state is current at 41 proposals and 27 Change Sets. All recorded Change Sets are completed, including `CHANGE-027` / `PROP-041` for Remote Project Profile and Review Request Policy. Registries are not stale.
 
 ## Accepted Direction
 
 - P2P remains CLI-first, file-based, and Git-native.
 - Change Sets remain the operational unit for implementation and export.
 - Work items are the user-facing abstraction over managed Git operations.
-- Current managed Git safe level includes finalization: accepted Work can be pushed to the configured remote base branch through `p2p work finalize`.
-- `p2p work status` is the default read-only view before choosing any Work lifecycle command.
-- Merge conflicts during `p2p work accept` are explicit and recoverable through `--continue` and `--abort`.
-- Publishing, accepting, and finalizing remain separate:
+- GitHub/GitLab integration remains optional and adapter-based.
+- The core workflow remains provider-agnostic: `publish` pushes a managed branch, while `request-review` records an external review handoff without opening a PR/MR.
+- The current project remote profile is remote-backed with provider `github`, remote `origin`, and URL `git@github.com:BINARYA/p2p-Engine.git`.
+- Work lifecycle responsibilities remain separated:
+  - `p2p work review` requests local owner review.
   - `p2p work publish` pushes the managed Work branch.
+  - `p2p work request-review` records optional external review guidance.
   - `p2p work accept` merges locally into the base branch.
   - `p2p work finalize` pushes the accepted base branch.
-- Branch cleanup and GitHub PR creation are future refinements, not current behavior.
+  - `p2p work cleanup` deletes finalized Work branches, with remote deletion only when explicitly requested through `--remote`.
 
 ## Active Work
 
@@ -58,15 +64,15 @@ The project state is current at 39 proposals and 25 Change Sets. All recorded Ch
    Command: `.venv/bin/p2p intake status`
 
 2. Review the controlled apply plan for `INTAKE-001`.
-   Reason: `INTAKE-001` already has an analyzed apply plan with pending actions; the owner should decide whether any apply action is still relevant after the managed Work lifecycle reached finalization.
+   Reason: `INTAKE-001` already has an analyzed apply plan with pending actions; the owner should decide whether any apply action is still relevant after the managed Work lifecycle reached cleanup and remote review handoff.
    Command: `.venv/bin/p2p intake apply show INTAKE-001`
 
-3. Decide the next managed Work hardening slice.
-   Reason: the base lifecycle is complete through finalize. The next likely refinements are branch cleanup, GitHub PR handoff, richer multi-branch visibility, or retiring/staging `WORK-001`.
+3. Decide the next integration slice.
+   Reason: the base managed Work lifecycle now has local review, remote publish, optional external review handoff, owner-controlled accept/finalize, and cleanup. The next likely refinements are real provider adapters for PR/MR creation/observation, richer remote multi-branch visibility, or retiring/staging `WORK-001`.
    Command: `.venv/bin/p2p work status`
 
 ## Not Yet
 
-- Do not add automatic PR creation, branch deletion, or cleanup without a new accepted proposal and Change Set.
+- Do not add automatic PR/MR creation without a new accepted proposal and Change Set.
 - Do not treat draft proposals or pending intake as accepted direction.
 - Do not move from prompt-only/Codex-assisted workflows to direct provider integration without revisiting the accepted AI integration choice.

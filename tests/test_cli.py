@@ -1395,6 +1395,117 @@ def test_cli_work_publish_requires_review_and_remote(tmp_path: Path) -> None:
     assert "Git remote not found: origin" in result.output
 
 
+def test_cli_project_remote_configure_and_show(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+
+    result = runner.invoke(
+        app,
+        [
+            "project",
+            "remote",
+            "configure",
+            "--mode",
+            "remote",
+            "--provider",
+            "github",
+            "--remote",
+            "origin",
+            "--url",
+            "git@github.com:example/demo.git",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Project remote profile configured" in result.output
+    assert "provider: github" in result.output
+    assert "opens_external_request: false" in result.output
+
+    show = runner.invoke(app, ["project", "remote", "show", "--root", str(tmp_path)])
+    assert show.exit_code == 0
+    assert "mode: remote" in show.output
+    assert "provider: github" in show.output
+    assert "url: git@github.com:example/demo.git" in show.output
+
+    project_text = (tmp_path / ".p2p" / "project.yml").read_text(encoding="utf-8")
+    assert "remote:" in project_text
+    assert "provider: github" in project_text
+    assert "opens_external_request: false" in project_text
+
+
+def test_cli_work_request_review_records_provider_handoff(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Remote Review Request",
+            "--problem",
+            "Need optional external review handoff.",
+            "--proposal",
+            "Record provider-agnostic review request metadata.",
+            "--acceptance",
+            "The Work item keeps published status and records external_review.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "plan", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+
+    runner.invoke(
+        app,
+        [
+            "project",
+            "remote",
+            "configure",
+            "--mode",
+            "remote",
+            "--provider",
+            "github",
+            "--url",
+            "git@github.com:example/demo.git",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+
+    runner.invoke(app, ["work", "branch", "WORK-001", "--root", str(tmp_path)])
+    (tmp_path / "feature.txt").write_text("published work\n", encoding="utf-8")
+    runner.invoke(app, ["work", "submit", "WORK-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "review", "WORK-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "publish", "WORK-001", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["work", "request-review", "WORK-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "External review request recorded" in result.output
+    assert "provider: github" in result.output
+    assert "opens_external_request: false" in result.output
+    assert "https://github.com/example/demo/compare/p2p/work/work-001-change-001-speckit" in result.output
+    assert _git(tmp_path, "status", "--porcelain").stdout.strip() == ""
+    assert _git(tmp_path, "log", "-1", "--pretty=%s").stdout.strip() == "P2P request review WORK-001"
+
+    manifest = tmp_path / ".p2p" / "work" / "WORK-001" / "manifest.yml"
+    manifest_text = manifest.read_text(encoding="utf-8")
+    assert "status: published" in manifest_text
+    assert "external_review:" in manifest_text
+    assert "provider: github" in manifest_text
+    assert "opens_external_request: false" in manifest_text
+
+
 def test_cli_work_accept_merges_published_branch(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     runner.invoke(
