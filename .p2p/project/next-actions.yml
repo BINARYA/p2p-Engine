@@ -7,13 +7,13 @@ next_actions:
     command: .venv/bin/p2p proposal create "P2P MCP Server MVP"
   - id: NEXT-002
     priority: medium
-    kind: inspect_intake
-    target: INTAKE-001
-    reason: INTAKE-001 still has pending controlled apply actions, but much of it is now covered by CHOICE-001 and the applied INTAKE-002 contribution to PROP-006.
-    command: .venv/bin/p2p intake apply show INTAKE-001
+    kind: define_scope
+    target: p2p-mcp-tool-surface
+    reason: The MCP MVP should start with a small deterministic tool surface and keep governance decisions owner-controlled.
+    command: .venv/bin/p2p proposal create "P2P MCP Server MVP"
   - id: NEXT-003
     priority: medium
-    kind: work_review
-    target: WORK-001
-    reason: WORK-001 is still planned for CHANGE-012 / speckit and should be validated before branching because it predates the completed managed Work lifecycle.
-    command: .venv/bin/p2p work status
+    kind: review_policy
+    target: ai-provider-boundary
+    reason: Direct AI/provider invocation should remain outside Core/MCP MVP and belong to future mediator or adapter layers.
+    command: .venv/bin/p2p project show p2p-core-cli-mcp-mediator-web-boundary

@@ -1212,6 +1212,25 @@ def work_branch(
     console.print("  merge: owner-controlled")
 
 
+@work_app.command("retire")
+def work_retire(
+    work_id: str = typer.Argument(..., help="Work ID, e.g. WORK-001"),
+    reason: str = typer.Option(..., "--reason", help="Why this planned Work item is obsolete"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Retire an obsolete planned Work manifest without touching Git branches."""
+    try:
+        retired = _workspace(root).retire_work(work_id, reason)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Managed work retired.[/green]")
+    console.print(f"  work: {retired.work_id}")
+    console.print(f"  status: {retired.status}")
+    console.print(f"  reason: {retired.reason}")
+    console.print(f"  path: {retired.path}")
+    console.print("  git: unchanged")
+
+
 @work_app.command("submit")
 def work_submit(
     work_id: str = typer.Argument(..., help="Work ID, e.g. WORK-001"),

@@ -470,3 +470,16 @@ Generated from accepted proposal goals and non-goals.
 - Implement the MCP server in this proposal.
 - Implement the mediator or web application in this proposal.
 - Allow AI or mediator layers to decide governance outcomes by default.
+
+## PROP-043 - Managed Work Retire MVP
+
+### Goals
+
+- Add an explicit p2p work retire command for obsolete planned Work manifests.
+- Record retired status, reason, and date in the Work manifest.
+- Keep retirement metadata-only and avoid Git branch, commit, push, merge, or cleanup side effects.
+
+### Non-Goals
+
+- Retire branched, submitted, published, accepted, finalized, or cleaned Work items in this MVP.
+- Delete Work manifests or generated exports.

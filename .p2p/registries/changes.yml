@@ -430,3 +430,20 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-028
+  title: Managed Work Retire MVP
+  status: completed
+  path: .p2p/changes/CHANGE-028-managed-work-retire-mvp
+  included_proposals:
+  - PROP-043
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

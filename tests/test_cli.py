@@ -1007,6 +1007,99 @@ def test_cli_work_plan_list_and_show(tmp_path: Path) -> None:
     assert "managed_branch_candidate" in result.output
 
 
+def test_cli_work_retire_marks_planned_work_retired(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Managed Work Retire",
+            "--problem",
+            "Need to retire obsolete handoffs.",
+            "--proposal",
+            "Retire planned Work without touching Git.",
+            "--acceptance",
+            "The Work item is marked retired.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "plan", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+
+    result = runner.invoke(
+        app,
+        [
+            "work",
+            "retire",
+            "WORK-001",
+            "--reason",
+            "Superseded by later implementation.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Managed work retired" in result.output
+    assert "status: retired" in result.output
+    assert "git: unchanged" in result.output
+
+    manifest_text = (tmp_path / ".p2p" / "work" / "WORK-001" / "manifest.yml").read_text(encoding="utf-8")
+    assert "status: retired" in manifest_text
+    assert "retirement:" in manifest_text
+    assert "Superseded by later implementation." in manifest_text
+
+    status = runner.invoke(app, ["work", "status", "--root", str(tmp_path)])
+    assert status.exit_code == 0
+    assert "WORK-001  retired" in status.output
+    assert "next: none" in status.output
+    assert "note: retired" in status.output
+
+
+def test_cli_work_retire_requires_planned_status(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Managed Work Retire",
+            "--problem",
+            "Need to retire obsolete handoffs.",
+            "--proposal",
+            "Retire planned Work without touching Git.",
+            "--acceptance",
+            "The Work item is marked retired.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+    runner.invoke(app, ["work", "plan", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
+
+    _git(tmp_path, "init")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "-c", "user.email=test@example.com", "-c", "user.name=Test User", "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    runner.invoke(app, ["work", "branch", "WORK-001", "--root", str(tmp_path)])
+
+    result = runner.invoke(
+        app,
+        ["work", "retire", "WORK-001", "--reason", "Obsolete.", "--root", str(tmp_path)],
+    )
+
+    assert result.exit_code != 0
+    assert "Work item must be planned before retire" in result.output
+
+
 def test_cli_work_branch_creates_managed_branch(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     runner.invoke(

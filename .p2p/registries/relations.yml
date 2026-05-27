@@ -136,6 +136,11 @@ relations:
   type: includes
   rationale: Change Set includes accepted proposal.
   source_artifact: .p2p/changes/CHANGE-027-remote-project-profile-and-review-request-policy
+- source: CHANGE-028
+  target: PROP-043
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-028-managed-work-retire-mvp
 - source: PROP-013
   target: CHANGE-001
   type: implemented_by
@@ -271,3 +276,8 @@ relations:
   type: implemented_by
   rationale: Proposal appears in Change Set source metadata.
   source_artifact: .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy
+- source: PROP-043
+  target: CHANGE-028
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-043-managed-work-retire-mvp

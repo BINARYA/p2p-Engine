@@ -1182,3 +1182,29 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-043
+  title: Managed Work Retire MVP
+  status: accepted
+  path: .p2p/proposals/PROP-043-managed-work-retire-mvp
+  summary: Add p2p work retire WORK-XXX --reason TEXT. The command requires Work status
+    planned, updates the manifest status to retired, records retirement metadata,
+    and makes p2p work status report no next action for retired Work.
+  decision_file: .p2p/proposals/PROP-043-managed-work-retire-mvp/decision.md
+  related_changes:
+  - CHANGE-028
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

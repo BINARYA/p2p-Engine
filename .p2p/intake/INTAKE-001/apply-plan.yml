@@ -19,13 +19,14 @@ apply_plan:
   type: add_contribution
   target: PROP-004
   support: supported
-  status: pending
+  status: applied
   reason: Record direct Codex integration as an explicit alternative to prompt-only
     import.
   command_preview: p2p contribution add PROP-004 "Record direct Codex integration
     as an explicit alternative to prompt-only import." --type suggestion --relevance
     medium
   required_inputs: []
+  applied_on: '2026-05-27'
 - id: APPLY-003
   source_action_index: 3
   type: add_contribution

@@ -294,6 +294,14 @@ class WorkBranch:
 
 
 @dataclass(frozen=True)
+class WorkRetire:
+    work_id: str
+    status: str
+    reason: str
+    path: Path
+
+
+@dataclass(frozen=True)
 class WorkSubmit:
     work_id: str
     branch_name: str
@@ -1636,6 +1644,31 @@ class P2PWorkspace:
             base_branch=base_branch,
             base_commit=base_commit,
             head_commit=new_head_commit,
+            path=work_dir.relative_to(self.root),
+        )
+
+    def retire_work(self, work_id: str, reason: str) -> WorkRetire:
+        reason = reason.strip()
+        if not reason:
+            raise ValueError("Work retire reason is required")
+        work_dir = self._find_work_dir(work_id)
+        manifest_path = work_dir / "manifest.yml"
+        manifest = _read_yaml_mapping(manifest_path, default={})
+        status = str(manifest.get("status") or "unknown")
+        if status != "planned":
+            raise ValueError(f"Work item must be planned before retire. Current status: {status}")
+
+        manifest["status"] = "retired"
+        manifest["retirement"] = {
+            "reason": reason,
+            "retired_at": date.today().isoformat(),
+            "mode": "metadata_only",
+        }
+        manifest_path.write_text(_yaml_dump(manifest), encoding="utf-8")
+        return WorkRetire(
+            work_id=str(manifest.get("work_id") or work_id),
+            status="retired",
+            reason=reason,
             path=work_dir.relative_to(self.root),
         )
 
@@ -4854,6 +4887,8 @@ def _work_next_action(
         return "p2p work show {work_id}".format(work_id=work_id), "scanned from a managed branch registry"
     if status == "planned":
         return f"p2p work branch {work_id}", "create the managed implementation branch"
+    if status == "retired":
+        return "none", "retired"
     if status == "branched":
         return f"p2p work submit {work_id}", "submit actual work changes as a local commit"
     if status == "submitted":

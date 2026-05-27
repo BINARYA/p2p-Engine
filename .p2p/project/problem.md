@@ -151,3 +151,7 @@ P2P can publish managed Work branches, but it does not yet distinguish local-onl
 ## PROP-042 - P2P Core CLI MCP Mediator Web Boundary
 
 P2P Engine needs a clear product and architecture boundary before adding MCP, mediator, web UI, or direct AI integrations. Without this boundary, the deterministic engine risks being coupled to optional AI or web infrastructure too early.
+
+## PROP-043 - Managed Work Retire MVP
+
+Obsolete planned Work manifests can remain in project status even after their source Change Set or export has already been completed, causing stale next actions.

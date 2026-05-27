@@ -1,0 +1,10 @@
+applied_actions:
+- id: APPLIED-001
+  intake: INTAKE-001
+  plan_action: APPLY-002
+  type: add_contribution
+  target: PROP-004
+  status: applied
+  command: p2p contribution add PROP-004 "Record direct Codex integration as an explicit
+    alternative to prompt-only import." --type suggestion --relevance medium
+  applied_on: '2026-05-27'

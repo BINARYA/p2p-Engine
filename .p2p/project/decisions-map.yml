@@ -184,3 +184,8 @@ decisions:
   status: accepted
   feature: p2p-core-cli-mcp-mediator-web-boundary
   source: .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary
+- proposal: PROP-043
+  title: Managed Work Retire MVP
+  status: accepted
+  feature: managed-work-retire-mvp
+  source: .p2p/proposals/PROP-043-managed-work-retire-mvp

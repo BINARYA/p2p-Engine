@@ -298,6 +298,7 @@ p2p project remote configure --mode local
 p2p project remote configure --mode remote --provider generic --remote origin --url git@example.com:owner/repo.git
 p2p work status
 p2p work plan --change CHANGE-XXX --target speckit
+p2p work retire WORK-001 --reason "Obsolete planned handoff"
 p2p work branch WORK-001
 p2p work submit WORK-001
 p2p work review WORK-001
@@ -314,6 +315,7 @@ p2p work show WORK-001
 `p2p work plan` requires a validated export bundle and writes `.p2p/work/WORK-XXX/manifest.yml`. It does not create Git branches, commits, PRs, or merges. Future branch visibility should read P2P-managed work manifests from `p2p/work/*` branches through the Git adapter without requiring checkout.
 `p2p work status` is the read-only operational summary. Use it before choosing the next lifecycle command. It reports status, change, target, branch, remote/base metadata, and the next suggested command. It must not mutate project files or Git state.
 `p2p work scan` is the first branch-visibility step: it reads local `p2p/work/*` branches without checkout and writes `.p2p/registries/work.yml`. It is read-only with respect to Git and must not fetch remote branches, create branches, commit, submit, or merge.
+`p2p work retire WORK-XXX --reason "..."` is the metadata-only retirement step for obsolete planned Work manifests. It requires Work status `planned`, records retirement metadata, updates status to `retired`, and must not create/delete branches, commit, push, merge, or remove generated exports.
 `p2p work branch WORK-XXX` is the first managed-write step. It creates and checks out the P2P-managed branch declared in the Work manifest, updates that manifest to `branched`, and keeps commit, submit, and merge disabled. It requires a clean Git worktree, a non-detached base branch, and an unused branch name. It must not be used to decide between proposals by itself; create branches only for accepted Change Sets or owner-authorized spikes.
 `p2p work submit WORK-XXX` is the local commit step. It requires the current branch to match the Work manifest branch, requires Work status `branched`, refuses submissions that only contain Work manifest bookkeeping, updates the manifest to `submitted`, and creates one local commit. It must not push, open PRs, submit reviews, or merge; those belong to later owner-controlled levels.
 `p2p work review WORK-XXX` is the local review-request step. It requires Work status `submitted`, requires the current branch to match the Work manifest branch, requires a clean worktree, records the commit to review, updates the manifest to `review_requested`, and creates one local metadata commit. It must not push, open PRs, or merge.
