@@ -11,6 +11,15 @@ TOOL_NAMES = (
     "p2p_init_project",
     "p2p_agent_instructions_refresh",
     "p2p_registry_refresh",
+    "p2p_proposal_create",
+    "p2p_proposal_update",
+    "p2p_intake_prompt",
+    "p2p_intake_status",
+    "p2p_project_brief_prompt",
+    "p2p_project_brief_show",
+    "p2p_choice_discover",
+    "p2p_conflict_status",
+    "p2p_impact_prompt",
     "p2p_project_status",
     "p2p_next",
     "p2p_proposal_list",
@@ -74,6 +83,99 @@ def tool_definitions() -> list[dict[str, object]]:
                 "from existing project state. Does not decide or mutate proposals."
             ),
             "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_proposal_create",
+            "description": (
+                "Write-safe draft tool: create a draft P2P proposal using the core "
+                "proposal scaffold. Does not accept, reject, defer, or decide."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "title": {"type": "string"},
+                    "problem": {"type": "string"},
+                    "context": {"type": "string"},
+                    "goals": {"type": "array", "items": {"type": "string"}},
+                    "non_goals": {"type": "array", "items": {"type": "string"}},
+                    "proposal": {"type": "string"},
+                    "acceptance_criteria": {"type": "array", "items": {"type": "string"}},
+                },
+                ["title"],
+            ),
+        },
+        {
+            "name": "p2p_proposal_update",
+            "description": (
+                "Write-safe refinement tool: update structured sections of an existing "
+                "P2P proposal. Does not accept, reject, defer, or decide."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "proposal_id": {"type": "string"},
+                    "problem": {"type": "string"},
+                    "context": {"type": "string"},
+                    "goals": {"type": "array", "items": {"type": "string"}},
+                    "non_goals": {"type": "array", "items": {"type": "string"}},
+                    "proposal": {"type": "string"},
+                    "acceptance_criteria": {"type": "array", "items": {"type": "string"}},
+                },
+                ["proposal_id"],
+            ),
+        },
+        {
+            "name": "p2p_intake_prompt",
+            "description": (
+                "Write-safe draft tool: create an intake prompt for a raw idea. "
+                "Does not apply recommendations or make governance decisions."
+            ),
+            "inputSchema": _schema(
+                {"root": {"type": "string"}, "idea": {"type": "string"}},
+                ["idea"],
+            ),
+        },
+        {
+            "name": "p2p_intake_status",
+            "description": "List intake records and whether analysis artifacts are populated.",
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_project_brief_prompt",
+            "description": (
+                "Advisory workflow tool: create project brief context and prompt artifacts "
+                "from current project state. Does not import or decide."
+            ),
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_project_brief_show",
+            "description": "Show the stored operational project brief if one has been imported.",
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_choice_discover",
+            "description": (
+                "Advisory analysis tool: discover choice candidates and blockers without "
+                "creating, deciding, blocking, or unblocking choices."
+            ),
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_conflict_status",
+            "description": "Read recorded project conflicts without recording new conflicts.",
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_impact_prompt",
+            "description": (
+                "Advisory analysis tool: generate an impact-analysis prompt for an "
+                "existing proposal. Does not import impact output or change decisions."
+            ),
+            "inputSchema": _schema(
+                {"root": {"type": "string"}, "proposal_id": {"type": "string"}},
+                ["proposal_id"],
+            ),
         },
         {
             "name": "p2p_project_status",
@@ -148,6 +250,57 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, o
         return {"agent_instructions": _to_jsonable(result)}
     if name == "p2p_registry_refresh":
         return {"written": _to_jsonable(workspace.refresh_registries())}
+    if name == "p2p_proposal_create":
+        proposal = workspace.create_proposal_with_details(
+            title=_required(arguments, "title"),
+            problem=_optional_string(arguments, "problem"),
+            context=_optional_string(arguments, "context"),
+            goals=_optional_string_list(arguments, "goals"),
+            non_goals=_optional_string_list(arguments, "non_goals"),
+            proposal=_optional_string(arguments, "proposal"),
+            acceptance_criteria=_optional_string_list(arguments, "acceptance_criteria"),
+        )
+        return {
+            "proposal": _to_jsonable(proposal),
+            "governance": {
+                "status": "draft",
+                "owner_decision_required": True,
+                "decision_made": False,
+            },
+        }
+    if name == "p2p_proposal_update":
+        path = workspace.update_proposal(
+            proposal_id=_required(arguments, "proposal_id"),
+            problem=_optional_string(arguments, "problem"),
+            context=_optional_string(arguments, "context"),
+            goals=_optional_string_list(arguments, "goals"),
+            non_goals=_optional_string_list(arguments, "non_goals"),
+            proposal=_optional_string(arguments, "proposal"),
+            acceptance_criteria=_optional_string_list(arguments, "acceptance_criteria"),
+        )
+        return {
+            "updated": _to_jsonable(path),
+            "proposal": _to_jsonable(workspace.show_proposal(_required(arguments, "proposal_id"))),
+            "governance": {
+                "owner_decision_required": True,
+                "decision_made": False,
+            },
+        }
+    if name == "p2p_intake_prompt":
+        return {"intake": _to_jsonable(workspace.create_intake_prompt(_required(arguments, "idea")))}
+    if name == "p2p_intake_status":
+        return {"intake_status": _to_jsonable(workspace.intake_statuses())}
+    if name == "p2p_project_brief_prompt":
+        return {"project_brief_prompt": _to_jsonable(workspace.create_project_brief_prompt())}
+    if name == "p2p_project_brief_show":
+        return {"operational_brief": workspace.show_project_brief()}
+    if name == "p2p_choice_discover":
+        return {"choice_discovery": _to_jsonable(workspace.discover_choices())}
+    if name == "p2p_conflict_status":
+        return {"conflicts": _to_jsonable(workspace.conflict_status())}
+    if name == "p2p_impact_prompt":
+        path = workspace.generate_prompt(_required(arguments, "proposal_id"), "impact")
+        return {"impact_prompt": _to_jsonable({"path": path})}
     if name == "p2p_project_status":
         return {"project_status": _to_jsonable(workspace.project_state_status())}
     if name == "p2p_next":
@@ -187,6 +340,24 @@ def _required(arguments: dict[str, Any], name: str) -> str:
     if value is None or str(value).strip() == "":
         raise ValueError(f"Missing required argument: {name}")
     return str(value)
+
+
+def _optional_string(arguments: dict[str, Any], name: str) -> str | None:
+    value = arguments.get(name)
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _optional_string_list(arguments: dict[str, Any], name: str) -> list[str] | None:
+    value = arguments.get(name)
+    if value is None:
+        return None
+    if not isinstance(value, list):
+        raise ValueError(f"Expected list argument: {name}")
+    items = [str(item).strip() for item in value if str(item).strip()]
+    return items or None
 
 
 def _to_jsonable(value: Any) -> Any:

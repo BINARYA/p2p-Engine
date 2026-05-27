@@ -161,6 +161,26 @@ relations:
   type: includes
   rationale: Change Set includes accepted proposal.
   source_artifact: .p2p/changes/CHANGE-032-guided-init-wizard-mvp
+- source: CHANGE-033
+  target: PROP-048
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-033-mcp-level-3-proposal-and-intake-draft-tools
+- source: CHANGE-034
+  target: PROP-049
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-034-mcp-level-4a-proposal-refinement-tools
+- source: CHANGE-035
+  target: PROP-050
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-035-mcp-level-4b-choice-conflict-impact-advisory-tools
+- source: CHANGE-036
+  target: PROP-051
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-036-draft-proposal-next-action-and-agent-explanation-guard
 - source: PROP-013
   target: CHANGE-001
   type: implemented_by
@@ -321,3 +341,23 @@ relations:
   type: implemented_by
   rationale: Proposal appears in Change Set source metadata.
   source_artifact: .p2p/proposals/PROP-047-guided-init-wizard-mvp
+- source: PROP-048
+  target: CHANGE-033
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools
+- source: PROP-049
+  target: CHANGE-034
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-049-mcp-level-4a-proposal-refinement-tools
+- source: PROP-050
+  target: CHANGE-035
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-050-mcp-level-4b-choice-conflict-impact-advisory-tools
+- source: PROP-051
+  target: CHANGE-036
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-051-draft-proposal-next-action-and-agent-explanation-guard

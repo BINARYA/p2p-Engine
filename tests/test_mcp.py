@@ -42,10 +42,29 @@ def test_mcp_tool_definitions_are_read_only() -> None:
     assert "p2p_init_project" in names
     assert "p2p_agent_instructions_refresh" in names
     assert "p2p_registry_refresh" in names
+    assert "p2p_proposal_create" in names
+    assert "p2p_proposal_update" in names
+    assert "p2p_intake_prompt" in names
+    assert "p2p_intake_status" in names
+    assert "p2p_project_brief_prompt" in names
+    assert "p2p_project_brief_show" in names
+    assert "p2p_choice_discover" in names
+    assert "p2p_conflict_status" in names
+    assert "p2p_impact_prompt" in names
     assert "p2p_project_status" in names
     assert "p2p_next" in names
     assert "p2p_proposal_show" in names
-    assert not any("accept" in name or "decide" in name or "cleanup" in name for name in names)
+    assert not any(
+        "accept" in name
+        or "reject" in name
+        or "defer" in name
+        or "decide" in name
+        or "cleanup" in name
+        or "merge" in name
+        or "record_conflict" in name
+        or "block" in name
+        for name in names
+    )
 
 
 def test_mcp_write_safe_bootstrap_tools(tmp_path: Path) -> None:
@@ -84,6 +103,152 @@ def test_mcp_registry_refresh_tool(tmp_path: Path) -> None:
     written = result["written"]
     assert ".p2p/registries/proposals.yml" in written
     assert (tmp_path / ".p2p" / "registries" / "proposals.yml").exists()
+
+
+def test_mcp_proposal_create_creates_draft_only(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+
+    result = call_tool(
+        "p2p_proposal_create",
+        {
+            "root": str(tmp_path),
+            "title": "Perfect Box",
+            "problem": "The box is undefined.",
+            "goals": ["Define measurable quality criteria."],
+            "proposal": "Create a draft specification.",
+            "acceptance_criteria": ["Proposal remains draft until owner decision."],
+        },
+    )
+
+    proposal = result["proposal"]
+    assert proposal["proposal_id"] == "PROP-001"
+    assert proposal["status"] == "draft"
+    assert result["governance"]["owner_decision_required"] is True
+    assert result["governance"]["decision_made"] is False
+
+    detail = call_tool("p2p_proposal_show", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+    assert detail["proposal"]["status"] == "draft"
+    assert detail["proposal"]["decision_status"] == "pending"
+
+
+def test_mcp_proposal_update_refines_draft_without_deciding(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    created = call_tool(
+        "p2p_proposal_create",
+        {"root": str(tmp_path), "title": "Refinable Proposal"},
+    )
+
+    result = call_tool(
+        "p2p_proposal_update",
+        {
+            "root": str(tmp_path),
+            "proposal_id": created["proposal"]["proposal_id"],
+            "problem": "The draft needs measurable requirements.",
+            "goals": ["Add measurable acceptance criteria."],
+            "acceptance_criteria": ["Decision remains pending after refinement."],
+        },
+    )
+
+    assert result["updated"] == ".p2p/proposals/PROP-001-refinable-proposal/proposal.md"
+    assert result["proposal"]["status"] == "draft"
+    assert result["proposal"]["decision_status"] == "pending"
+    assert result["governance"]["owner_decision_required"] is True
+
+    proposal_text = (
+        tmp_path / ".p2p" / "proposals" / "PROP-001-refinable-proposal" / "proposal.md"
+    ).read_text(encoding="utf-8")
+    assert "The draft needs measurable requirements." in proposal_text
+    assert "- Add measurable acceptance criteria." in proposal_text
+    assert "- Decision remains pending after refinement." in proposal_text
+
+
+def test_mcp_intake_prompt_and_status(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
+
+    prompt = call_tool(
+        "p2p_intake_prompt",
+        {"root": str(tmp_path), "idea": "A new idea that may overlap existing work."},
+    )
+
+    assert prompt["intake"]["intake_id"] == "INTAKE-001"
+    assert (tmp_path / ".p2p" / "intake" / "INTAKE-001" / "intake.prompt.md").exists()
+
+    status = call_tool("p2p_intake_status", {"root": str(tmp_path)})
+    assert status["intake_status"][0]["intake_id"] == "INTAKE-001"
+
+
+def test_mcp_project_brief_prompt_and_show(tmp_path: Path) -> None:
+    _setup_project(tmp_path)
+
+    prompt = call_tool("p2p_project_brief_prompt", {"root": str(tmp_path)})
+
+    assert prompt["project_brief_prompt"]["context_path"] == ".p2p/project/brief-context.md"
+    assert prompt["project_brief_prompt"]["prompt_path"] == ".p2p/project/brief.prompt.md"
+    assert (tmp_path / ".p2p" / "project" / "brief.prompt.md").exists()
+
+    brief_path = tmp_path / ".p2p" / "project" / "operational-brief.md"
+    brief_path.write_text("# Operational Brief\n\nDraft summary.\n", encoding="utf-8")
+
+    shown = call_tool("p2p_project_brief_show", {"root": str(tmp_path)})
+
+    assert "Draft summary." in shown["operational_brief"]
+
+
+def test_mcp_choice_discover_is_advisory(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "choice",
+            "create",
+            "--title",
+            "Open direction",
+            "--option",
+            "A",
+            "--option",
+            "B",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    result = call_tool("p2p_choice_discover", {"root": str(tmp_path)})
+
+    assert result["choice_discovery"][0]["kind"] == "open_project_choice"
+    assert result["choice_discovery"][0]["target"] == "CHOICE-001"
+    detail = call_tool("p2p_choice_show", {"root": str(tmp_path), "choice_id": "CHOICE-001"})
+    assert detail["choice"]["status"] == "open"
+
+
+def test_mcp_conflict_status_reads_without_recording(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+
+    result = call_tool("p2p_conflict_status", {"root": str(tmp_path)})
+
+    assert result["conflicts"]["conflicts_count"] == 0
+    assert result["conflicts"]["conflicts"] == []
+
+
+def test_mcp_impact_prompt_generates_prompt_only(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    created = call_tool(
+        "p2p_proposal_create",
+        {"root": str(tmp_path), "title": "Impact Candidate"},
+    )
+
+    result = call_tool(
+        "p2p_impact_prompt",
+        {"root": str(tmp_path), "proposal_id": created["proposal"]["proposal_id"]},
+    )
+
+    assert result["impact_prompt"]["path"] == ".p2p/prompts/PROP-001/impact.prompt.md"
+    assert (tmp_path / ".p2p" / "prompts" / "PROP-001" / "impact.prompt.md").exists()
+    assert not (
+        tmp_path / ".p2p" / "proposals" / "PROP-001-impact-candidate" / "impact-map.yml"
+    ).exists()
+    detail = call_tool("p2p_proposal_show", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+    assert detail["proposal"]["decision_status"] == "pending"
 
 
 def test_mcp_call_tool_reads_project_state(tmp_path: Path) -> None:

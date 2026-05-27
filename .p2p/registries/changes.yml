@@ -515,3 +515,71 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-033
+  title: MCP Level 3 Proposal and Intake Draft Tools
+  status: completed
+  path: .p2p/changes/CHANGE-033-mcp-level-3-proposal-and-intake-draft-tools
+  included_proposals:
+  - PROP-048
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0
+- id: CHANGE-034
+  title: MCP Level 4A Proposal Refinement Tools
+  status: completed
+  path: .p2p/changes/CHANGE-034-mcp-level-4a-proposal-refinement-tools
+  included_proposals:
+  - PROP-049
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0
+- id: CHANGE-035
+  title: MCP Level 4B Choice Conflict Impact Advisory Tools
+  status: completed
+  path: .p2p/changes/CHANGE-035-mcp-level-4b-choice-conflict-impact-advisory-tools
+  included_proposals:
+  - PROP-050
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0
+- id: CHANGE-036
+  title: Draft Proposal Next Action and Agent Explanation Guard
+  status: completed
+  path: .p2p/changes/CHANGE-036-draft-proposal-next-action-and-agent-explanation-guard
+  included_proposals:
+  - PROP-051
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

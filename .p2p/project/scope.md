@@ -528,3 +528,43 @@ Generated from accepted proposal goals and non-goals.
 ### Non-Goals
 
 - Not provided.
+
+## PROP-048 - MCP Level 3 Proposal and Intake Draft Tools
+
+### Goals
+
+- Allow MCP clients to create draft proposals and intake prompts through explicit write-safe tools.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-049 - MCP Level 4A Proposal Refinement Tools
+
+### Goals
+
+- Allow MCP clients to update draft proposal content and generate/show project brief artifacts while keeping governance owner-controlled.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-050 - MCP Level 4B Choice Conflict Impact Advisory Tools
+
+### Goals
+
+- Expose choice, conflict, and impact advisory workflows through MCP without adding decision-making mutations.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-051 - Draft Proposal Next Action and Agent Explanation Guard
+
+### Goals
+
+- Make draft proposals visible as actionable next steps and require agents to read existing artifacts before explaining them.
+
+### Non-Goals
+
+- Not provided.

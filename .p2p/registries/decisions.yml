@@ -335,3 +335,32 @@ decisions:
   path: .p2p/proposals/PROP-047-guided-init-wizard-mvp/decision.md
   reason: Accepted to make the newly hardened init path usable for first-time users
     before broadening MCP mutations.
+- proposal: PROP-048
+  title: MCP Level 3 Proposal and Intake Draft Tools
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools/decision.md
+  reason: 'Accepted as MCP Level 3: safe contribution draft tools are needed after
+    bootstrap hardening, while governance decisions remain out of MCP.'
+- proposal: PROP-049
+  title: MCP Level 4A Proposal Refinement Tools
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-049-mcp-level-4a-proposal-refinement-tools/decision.md
+  reason: 'Accepted as MCP Level 4A: support advisory draft refinement and brief prompt/show
+    without opening governance mutations.'
+- proposal: PROP-050
+  title: MCP Level 4B Choice Conflict Impact Advisory Tools
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-050-mcp-level-4b-choice-conflict-impact-advisory-tools/decision.md
+  reason: 'Accepted as MCP Level 4B: expose advisory analysis for choices, conflicts,
+    and impact without governance mutations.'
+- proposal: PROP-051
+  title: Draft Proposal Next Action and Agent Explanation Guard
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-051-draft-proposal-next-action-and-agent-explanation-guard/decision.md
+  reason: 'Accepted to tighten the observed MCP test behavior: draft proposals should
+    produce useful next actions, and explanations should be grounded in show/read
+    tools.'

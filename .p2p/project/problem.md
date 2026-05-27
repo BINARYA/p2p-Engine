@@ -171,3 +171,19 @@ The MCP server can read project state but cannot perform safe bootstrap operatio
 ## PROP-047 - Guided Init Wizard MVP
 
 P2P init can now generate safe project and agent boundaries, but non-technical users still need to know which flags to pass for project name, agent profile, repository mode, and MCP setup hints.
+
+## PROP-048 - MCP Level 3 Proposal and Intake Draft Tools
+
+Agents can now initialize projects and refresh registries through MCP, but cannot create draft proposals or intake prompts without a local p2p CLI in PATH. This keeps common contribution workflows dependent on shell setup and can push agents toward stopping even for safe draft creation.
+
+## PROP-049 - MCP Level 4A Proposal Refinement Tools
+
+MCP can create draft proposals and intake prompts, but agents still cannot refine an existing draft proposal or generate/show the operational project brief through MCP. This limits iterative proposal development after Level 3.
+
+## PROP-050 - MCP Level 4B Choice Conflict Impact Advisory Tools
+
+MCP can create and refine draft proposals, but agents still cannot use existing advisory analysis commands for choice discovery, conflict inspection, or impact prompt generation through MCP.
+
+## PROP-051 - Draft Proposal Next Action and Agent Explanation Guard
+
+After MCP creates a draft proposal, p2p next can still fall back to generic project status instead of pointing the owner or agent at the draft proposal. Agent instructions also do not explicitly require show/read commands before explaining existing P2P artifacts.

@@ -209,3 +209,23 @@ decisions:
   status: accepted
   feature: guided-init-wizard-mvp
   source: .p2p/proposals/PROP-047-guided-init-wizard-mvp
+- proposal: PROP-048
+  title: MCP Level 3 Proposal and Intake Draft Tools
+  status: accepted
+  feature: mcp-level-3-proposal-and-intake-draft-tools
+  source: .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools
+- proposal: PROP-049
+  title: MCP Level 4A Proposal Refinement Tools
+  status: accepted
+  feature: mcp-level-4a-proposal-refinement-tools
+  source: .p2p/proposals/PROP-049-mcp-level-4a-proposal-refinement-tools
+- proposal: PROP-050
+  title: MCP Level 4B Choice Conflict Impact Advisory Tools
+  status: accepted
+  feature: mcp-level-4b-choice-conflict-impact-advisory-tools
+  source: .p2p/proposals/PROP-050-mcp-level-4b-choice-conflict-impact-advisory-tools
+- proposal: PROP-051
+  title: Draft Proposal Next Action and Agent Explanation Guard
+  status: accepted
+  feature: draft-proposal-next-action-and-agent-explanation-guard
+  source: .p2p/proposals/PROP-051-draft-proposal-next-action-and-agent-explanation-guard

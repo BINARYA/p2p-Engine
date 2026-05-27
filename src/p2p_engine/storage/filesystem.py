@@ -3811,6 +3811,20 @@ class P2PWorkspace:
                 )
                 break
 
+        for proposal in self.proposal_summaries(status="draft"):
+            actions.append(
+                NextAction(
+                    action_id=f"NEXT-FALLBACK-{len(actions) + 1:03d}",
+                    priority="medium",
+                    kind="review_draft_proposal",
+                    target=proposal.proposal_id,
+                    reason="Draft proposal exists and has no owner decision yet.",
+                    command=f"p2p proposal show {proposal.proposal_id}",
+                    source="fallback",
+                )
+            )
+            break
+
         for choice in self._choice_registry_records():
             status = str(choice.get("status") or "unknown")
             selected = choice.get("selected_option")
@@ -4051,6 +4065,17 @@ def _agent_policy(project_name: str, profiles: list[str], repository_mode: str) 
             "invent_ids_or_registry_entries": False,
             "write_decision_files_directly": False,
         },
+        "explain_existing_artifacts": {
+            "read_before_explaining": True,
+            "allowed_sources": [
+                "p2p proposal show",
+                "p2p choice show",
+                "p2p change show",
+                "p2p work show",
+                "equivalent MCP show/read tools",
+            ],
+            "avoid_memory_only_explanations": True,
+        },
     }
 
 
@@ -4090,6 +4115,12 @@ Owner-controlled actions include:
 Assume MCP tools are read-only unless the tool schema explicitly describes a write action.
 
 When MCP is read-only, use it for status and inspection only. For mutations, use `p2p` CLI commands when available.
+
+## Explaining Existing P2P Artifacts
+
+Before explaining an existing proposal, choice, Change Set, or Work item, read it from P2P state first.
+
+Use `p2p proposal show`, `p2p choice show`, `p2p change show`, `p2p work show`, or an equivalent MCP show/read tool. Do not explain existing P2P artifacts only from conversation memory.
 
 ## Recommended Start
 
@@ -4139,6 +4170,7 @@ Use P2P Engine as the source of truth for project governance and planning.
 - If no CLI command or MCP write tool exists for the requested operation, stop and report the missing primitive.
 - Do not edit `.p2p/` internals directly, invent IDs, or synthesize decision files.
 - Do not accept, reject, defer, decide, merge, finalize, or cleanup without explicit owner instruction.
+- Before explaining existing proposals, choices, Change Sets, or Work items, use the relevant `p2p ... show` command or equivalent MCP read tool.
 
 ## Useful Commands
 
@@ -4170,6 +4202,7 @@ Key rules:
 - If a requested P2P action has no available command or MCP write tool, stop and explain the missing primitive.
 - Do not make owner-controlled governance decisions unless the owner explicitly instructs the exact decision.
 - Treat MCP as read-only unless a tool explicitly declares a write operation.
+- Before explaining existing proposals, choices, Change Sets, or Work items, read them with the relevant `p2p ... show` command or equivalent MCP read tool.
 
 Repository mode: `{repository_mode}`.
 """

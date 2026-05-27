@@ -1318,3 +1318,114 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-048
+  title: MCP Level 3 Proposal and Intake Draft Tools
+  status: accepted
+  path: .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools
+  summary: Add MCP tools p2p_proposal_create, p2p_intake_prompt, and p2p_intake_status.
+    These tools may create draft proposals and intake prompts using existing core
+    methods, and may list intake records. They must not accept, reject, defer, decide
+    choices, apply intake recommendations, or manage work merges.
+  decision_file: .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools/decision.md
+  related_changes:
+  - CHANGE-033
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-049
+  title: MCP Level 4A Proposal Refinement Tools
+  status: accepted
+  path: .p2p/proposals/PROP-049-mcp-level-4a-proposal-refinement-tools
+  summary: Add MCP tools p2p_proposal_update, p2p_project_brief_prompt, and p2p_project_brief_show.
+    Proposal update may replace structured proposal sections. Project brief prompt
+    may create prompt/context artifacts, and brief show may read an imported brief.
+    No brief import, proposal decision, choice decision, or work lifecycle mutation
+    is added in this level.
+  decision_file: .p2p/proposals/PROP-049-mcp-level-4a-proposal-refinement-tools/decision.md
+  related_changes:
+  - CHANGE-034
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-050
+  title: MCP Level 4B Choice Conflict Impact Advisory Tools
+  status: accepted
+  path: .p2p/proposals/PROP-050-mcp-level-4b-choice-conflict-impact-advisory-tools
+  summary: Add MCP tools p2p_choice_discover, p2p_conflict_status, and p2p_impact_prompt.
+    choice_discover returns advisory findings only. conflict_status reads recorded
+    conflicts only. impact_prompt generates an impact analysis prompt for an existing
+    proposal. Do not add conflict record, choice decide, choice block/unblock, impact
+    import, intake apply, or change/work state transitions.
+  decision_file: .p2p/proposals/PROP-050-mcp-level-4b-choice-conflict-impact-advisory-tools/decision.md
+  related_changes:
+  - CHANGE-035
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-051
+  title: Draft Proposal Next Action and Agent Explanation Guard
+  status: accepted
+  path: .p2p/proposals/PROP-051-draft-proposal-next-action-and-agent-explanation-guard
+  summary: Update fallback next actions to recommend reviewing the first draft proposal
+    when no stronger action exists. Update generated AGENTS.md, Codex project skill,
+    Claude instructions, .p2p/agent-policy.yml, and the repository P2P skill so agents
+    must use proposal/choice/change/work show or MCP equivalents before explaining
+    existing artifacts.
+  decision_file: .p2p/proposals/PROP-051-draft-proposal-next-action-and-agent-explanation-guard/decision.md
+  related_changes:
+  - CHANGE-036
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

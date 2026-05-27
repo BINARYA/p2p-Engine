@@ -23,6 +23,7 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
     assert "Do not create, edit, rename, or delete files under `.p2p/` by hand" in agents
     assert "stop and report the limitation" in agents
+    assert "Do not explain existing P2P artifacts only from conversation memory" in agents
 
     result = runner.invoke(app, ["status", "--root", str(tmp_path)])
     assert result.exit_code == 0
@@ -133,6 +134,7 @@ def test_cli_init_can_generate_agent_specific_instructions(tmp_path: Path) -> No
     policy = (tmp_path / ".p2p" / "agent-policy.yml").read_text(encoding="utf-8")
     assert "missing_primitive_behavior: stop_and_report" in policy
     assert "direct_p2p_file_edits: forbidden" in policy
+    assert "read_before_explaining: true" in policy
     assert "mode: cloud" in policy
 
 
@@ -2520,3 +2522,16 @@ def test_cli_next_falls_back_without_imported_next_actions(tmp_path: Path) -> No
     assert "target: CHANGE-001" in result.output
     assert "p2p change tasks CHANGE-001" in result.output
     assert "source: fallback" in result.output
+
+
+def test_cli_next_falls_back_to_draft_proposal_review(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Draft Work", "--root", str(tmp_path)])
+    runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["next", "--top", "1", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "review_draft_proposal" in result.output
+    assert "target: PROP-001" in result.output
+    assert "p2p proposal show PROP-001" in result.output

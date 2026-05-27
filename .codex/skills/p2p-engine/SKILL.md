@@ -63,15 +63,26 @@ optional: CLAUDE.md, .codex/skills/p2p-project/SKILL.md
 
 In projects initialized this way, read `AGENTS.md` and `.p2p/agent-policy.yml` before changing project state. If an available CLI command or explicit MCP write tool cannot perform the requested P2P mutation, stop and report the missing primitive. Do not reverse-engineer `.p2p/`, invent IDs, write decision files, or accept/reject/defer/decide on behalf of the owner.
 
+When explaining existing P2P artifacts, read them from project state first. Use `p2p proposal show`, `p2p choice show`, `p2p change show`, `p2p work show`, or equivalent MCP show/read tools before summarizing. Do not explain saved proposals, choices, Change Sets, or Work items only from conversation memory.
+
 When using the P2P MCP server, the bootstrap and maintenance write-safe tools are:
 
 ```text
 p2p_init_project
 p2p_agent_instructions_refresh
 p2p_registry_refresh
+p2p_proposal_create
+p2p_proposal_update
+p2p_intake_prompt
+p2p_intake_status
+p2p_project_brief_prompt
+p2p_project_brief_show
+p2p_choice_discover
+p2p_conflict_status
+p2p_impact_prompt
 ```
 
-These tools may initialize projects, refresh agent instructions, and regenerate deterministic registries. They do not authorize governance decisions or managed-work lifecycle actions.
+These tools may initialize projects, refresh agent instructions, regenerate deterministic registries, create and refine draft proposals, create/list intake prompts, generate/show operational brief artifacts, discover choice candidates, inspect recorded conflicts, and generate impact prompts. They do not authorize governance decisions, conflict recording, choice blocking/deciding, intake apply actions, brief imports, impact imports, or managed-work lifecycle actions.
 
 Before creating new proposal artifacts, inspect current state:
 
