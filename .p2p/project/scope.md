@@ -454,3 +454,19 @@ Generated from accepted proposal goals and non-goals.
 
 - Create GitHub Pull Requests automatically in this MVP.
 - Require PRs for P2P accept/finalize/cleanup.
+
+## PROP-042 - P2P Core CLI MCP Mediator Web Boundary
+
+### Goals
+
+- Define P2P Core as the deterministic library for models, rules, validation, .p2p memory, proposal, choice, change, work, and registry operations.
+- Define P2P CLI as the terminal interface for users, agents, scripts, and local automations.
+- Define Skill, MCP, and Agent Interfaces as optional ways for agents to use P2P without owning project decisions.
+- Define P2P Mediator as an optional intelligent assistant layer that helps contributors but uses Core/CLI/MCP as source of truth.
+- Define P2P Web as a later product UI over the same source-of-truth operations.
+
+### Non-Goals
+
+- Implement the MCP server in this proposal.
+- Implement the mediator or web application in this proposal.
+- Allow AI or mediator layers to decide governance outcomes by default.

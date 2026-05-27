@@ -1,0 +1,11 @@
+applied_actions:
+- id: APPLIED-001
+  intake: INTAKE-002
+  plan_action: APPLY-002
+  type: add_contribution
+  target: PROP-006
+  status: applied
+  command: p2p contribution add PROP-006 "Preserve direct Codex integration as future
+    adapter-oriented input for the Multi-Agent Integration Model, after the prompt-only
+    MVP boundary." --type suggestion --relevance medium
+  applied_on: '2026-05-27'

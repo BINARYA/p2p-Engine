@@ -1,0 +1,37 @@
+intake: INTAKE-002
+generated_on: '2026-05-27'
+apply_plan:
+- id: APPLY-001
+  source_action_index: 1
+  type: duplicate
+  target: CHOICE-001
+  support: preview_only
+  status: pending
+  reason: The direct-Codex-now idea was already evaluated by CHOICE-001 and is not
+    the selected current direction.
+  command_preview: Manual review required.
+  required_inputs: []
+- id: APPLY-002
+  source_action_index: 2
+  type: add_contribution
+  target: PROP-006
+  support: supported
+  status: applied
+  reason: Preserve direct Codex integration as future adapter-oriented input for the
+    Multi-Agent Integration Model, after the prompt-only MVP boundary.
+  command_preview: p2p contribution add PROP-006 "Preserve direct Codex integration
+    as future adapter-oriented input for the Multi-Agent Integration Model, after
+    the prompt-only MVP boundary." --type suggestion --relevance medium
+  required_inputs: []
+  applied_on: '2026-05-27'
+- id: APPLY-003
+  source_action_index: 3
+  type: defer
+  target: PROP-006
+  support: governance_only
+  status: pending
+  reason: Do not implement direct Codex invocation now; keep it as a later adapter-oriented
+    evolution.
+  command_preview: p2p proposal defer PROP-006 --reason "Do not implement direct Codex
+    invocation now; keep it as a later adapter-oriented evolution."
+  required_inputs: []

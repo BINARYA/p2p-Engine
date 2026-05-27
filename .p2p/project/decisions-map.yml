@@ -179,3 +179,8 @@ decisions:
   status: accepted
   feature: remote-project-profile-and-review-request-policy
   source: .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy
+- proposal: PROP-042
+  title: P2P Core CLI MCP Mediator Web Boundary
+  status: accepted
+  feature: p2p-core-cli-mcp-mediator-web-boundary
+  source: .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary

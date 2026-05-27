@@ -292,3 +292,10 @@ decisions:
   path: .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy/decision.md
   reason: Remote review must remain optional and provider-agnostic; publish should
     stay separate from PR/MR handoff.
+- proposal: PROP-042
+  title: P2P Core CLI MCP Mediator Web Boundary
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary/decision.md
+  reason: The five-layer boundary keeps the core deterministic and open-source usable
+    while allowing optional MCP, mediator, and web layers to evolve independently.

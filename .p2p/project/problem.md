@@ -147,3 +147,7 @@ After p2p work finalize, managed Work branches remain locally and remotely, and 
 ## PROP-041 - Remote Project Profile and Review Request Policy
 
 P2P can publish managed Work branches, but it does not yet distinguish local-only projects from remote-backed projects or express external review handoff without binding the core workflow to GitHub PRs.
+
+## PROP-042 - P2P Core CLI MCP Mediator Web Boundary
+
+P2P Engine needs a clear product and architecture boundary before adding MCP, mediator, web UI, or direct AI integrations. Without this boundary, the deterministic engine risks being coupled to optional AI or web infrastructure too early.

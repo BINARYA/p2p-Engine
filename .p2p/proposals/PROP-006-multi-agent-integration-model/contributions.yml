@@ -17,3 +17,9 @@ contributions:
   relevance_hint: high
   text: INTAKE-001 suggests preserving direct Codex invocation as input for the future
     multi-agent / AI adapter model, after the prompt-only MVP remains stable.
+- id: C004
+  type: suggestion
+  author: intake:INTAKE-002
+  relevance_hint: medium
+  text: Preserve direct Codex integration as future adapter-oriented input for the
+    Multi-Agent Integration Model, after the prompt-only MVP boundary.

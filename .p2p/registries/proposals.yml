@@ -1153,3 +1153,32 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-042
+  title: P2P Core CLI MCP Mediator Web Boundary
+  status: accepted
+  path: .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary
+  summary: 'Adopt a five-layer architecture: Level 1 P2P Core, Level 2 P2P CLI, Level
+    3 Skill/MCP/Agent Interfaces, Level 4 P2P Mediator, Level 5 P2P Web. Core remains
+    deterministic and provider-neutral. Intelligence lives in optional mediator or
+    agent-facing layers. MCP exposes core capabilities to agents and mediators. Governance
+    decisions remain owner-controlled unless an explicit future policy permits bounded
+    automation.'
+  decision_file: .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - architecture-boundary.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

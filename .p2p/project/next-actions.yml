@@ -1,19 +1,19 @@
 next_actions:
   - id: NEXT-001
     priority: high
-    kind: inspect_intake
-    target: INTAKE-002
-    reason: INTAKE-002 is pending and should be understood before opening the next product-direction Change Set.
-    command: .venv/bin/p2p intake status
+    kind: define_proposal
+    target: p2p-mcp-server-mvp
+    reason: PROP-042 established the Core / CLI / MCP / Mediator / Web boundary; the next logical implementation slice is a small MCP server exposing deterministic P2P Core tools to agents.
+    command: .venv/bin/p2p proposal create "P2P MCP Server MVP"
   - id: NEXT-002
     priority: medium
     kind: inspect_intake
     target: INTAKE-001
-    reason: INTAKE-001 has a controlled apply plan with pending actions that may or may not still be relevant after managed Work cleanup and remote review handoff.
+    reason: INTAKE-001 still has pending controlled apply actions, but much of it is now covered by CHOICE-001 and the applied INTAKE-002 contribution to PROP-006.
     command: .venv/bin/p2p intake apply show INTAKE-001
   - id: NEXT-003
     priority: medium
-    kind: other
-    target: post-review-handoff-integration
-    reason: Managed Work now has cleanup plus optional provider-agnostic external review handoff; the owner should choose the next integration slice, such as real PR/MR provider adapters, richer remote/multi-branch visibility, or retiring/staging WORK-001.
+    kind: work_review
+    target: WORK-001
+    reason: WORK-001 is still planned for CHANGE-012 / speckit and should be validated before branching because it predates the completed managed Work lifecycle.
     command: .venv/bin/p2p work status
