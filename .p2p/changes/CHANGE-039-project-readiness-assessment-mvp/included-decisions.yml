@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-054
+  decision_file: .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/decision.md

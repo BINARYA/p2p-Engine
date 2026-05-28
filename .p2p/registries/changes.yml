@@ -600,3 +600,37 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-038
+  title: Core Validation Layer MVP
+  status: completed
+  path: .p2p/changes/CHANGE-038-core-validation-layer-mvp
+  included_proposals:
+  - PROP-053
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0
+- id: CHANGE-039
+  title: Project Readiness Assessment MVP
+  status: completed
+  path: .p2p/changes/CHANGE-039-project-readiness-assessment-mvp
+  included_proposals:
+  - PROP-054
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

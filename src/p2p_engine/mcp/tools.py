@@ -12,6 +12,9 @@ TOOL_NAMES = (
     "p2p_init_project",
     "p2p_agent_instructions_refresh",
     "p2p_registry_refresh",
+    "p2p_validate",
+    "p2p_assess_refresh",
+    "p2p_assess_show",
     "p2p_proposal_create",
     "p2p_proposal_update",
     "p2p_proposal_contribution_add",
@@ -83,6 +86,30 @@ def tool_definitions() -> list[dict[str, object]]:
             "description": (
                 "Write-safe maintenance tool: regenerate deterministic P2P registries "
                 "from existing project state. Does not decide or mutate proposals."
+            ),
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_validate",
+            "description": (
+                "Read-only validation tool: report structural and semantic P2P "
+                "findings. Does not repair, refresh, or mutate project state."
+            ),
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_assess_refresh",
+            "description": (
+                "Write-safe analysis tool: generate a deterministic project readiness "
+                "assessment from current P2P state. Does not make governance decisions."
+            ),
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_assess_show",
+            "description": (
+                "Read-only analysis tool: show the stored project readiness assessment. "
+                "Does not refresh or mutate project state."
             ),
             "inputSchema": _schema({"root": {"type": "string"}}),
         },
@@ -273,6 +300,12 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, o
         return {"agent_instructions": _to_jsonable(result)}
     if name == "p2p_registry_refresh":
         return {"written": _to_jsonable(workspace.refresh_registries())}
+    if name == "p2p_validate":
+        return {"validation": _to_jsonable(workspace.validate())}
+    if name == "p2p_assess_refresh":
+        return {"assessment": _to_jsonable(workspace.refresh_project_assessment())}
+    if name == "p2p_assess_show":
+        return {"assessment": _to_jsonable(workspace.show_project_assessment())}
     if name == "p2p_proposal_create":
         proposal = workspace.create_proposal_with_details(
             title=_required(arguments, "title"),

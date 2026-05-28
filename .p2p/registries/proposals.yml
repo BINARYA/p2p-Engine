@@ -1457,3 +1457,64 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-053
+  title: Core Validation Layer MVP
+  status: accepted
+  path: .p2p/proposals/PROP-053-core-validation-layer-mvp
+  summary: Implement p2p validate with stable findings. The MVP validates required
+    project structure, YAML readability for known structured files, proposal directory
+    naming, required proposal sections, decision status presence, proposal/decision
+    status consistency, and registry freshness. Findings have severity error/warning/info,
+    stable codes, paths, messages, and optional suggested commands. Add --format text/json
+    and exit code 1 when errors exist. Add p2p_validate MCP as read-only/advisory.
+    Keep p2p check as minimal bootstrap validation.
+  decision_file: .p2p/proposals/PROP-053-core-validation-layer-mvp/decision.md
+  related_changes:
+  - CHANGE-038
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-054
+  title: Project Readiness and Maturity Assessment
+  status: accepted
+  path: .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment
+  summary: 'Adopt a hybrid assessment model. Level 1 computes a deterministic completion/readiness
+    score from P2P state: validation results, stale registries, draft proposals, accepted
+    proposals, open choices, blockers, change/work lifecycle status and operational
+    brief availability. Level 2 adds domain maturity rubrics through explicit criteria
+    files and prompt/import workflows. Software rubrics may cover architecture, security,
+    usability, testability, maintainability, packaging and documentation. Generic
+    or non-software rubrics can be added per supported project type. Assessment output
+    must include score, confidence, factors, gaps and suggested next actions.'
+  decision_file: .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/decision.md
+  related_changes:
+  - CHANGE-039
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

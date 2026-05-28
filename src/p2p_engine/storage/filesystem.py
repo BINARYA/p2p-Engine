@@ -118,6 +118,24 @@ class WorkspaceCheck:
 
 
 @dataclass(frozen=True)
+class ValidationFinding:
+    code: str
+    severity: str
+    path: Path
+    message: str
+    suggested_command: str = ""
+
+
+@dataclass(frozen=True)
+class ValidationResult:
+    ok: bool
+    errors: int
+    warnings: int
+    infos: int
+    findings: list[ValidationFinding]
+
+
+@dataclass(frozen=True)
 class GovernanceStatus:
     mode: str
     roles_count: int
@@ -142,6 +160,21 @@ class ProjectStateStatus:
     operational_brief_available: bool
     next_actions_count: int
     first_next_action: "NextAction | None"
+
+
+@dataclass(frozen=True)
+class ProjectAssessment:
+    path: Path
+    generated_on: str
+    assessment_type: str
+    completion_score: int
+    completion_status: str
+    confidence: str
+    factors: list[dict[str, object]]
+    gaps: list[str]
+    suggested_actions: list[str]
+    maturity_status: str
+    maturity_score: int | None
 
 
 @dataclass(frozen=True)
@@ -754,6 +787,149 @@ class P2PWorkspace:
         missing = [path.relative_to(self.root) for path in required if not path.exists()]
         return WorkspaceCheck(ok=not missing, missing=missing)
 
+    def validate(self) -> ValidationResult:
+        findings: list[ValidationFinding] = []
+
+        def add(
+            code: str,
+            severity: str,
+            path: Path,
+            message: str,
+            suggested_command: str = "",
+        ) -> None:
+            findings.append(
+                ValidationFinding(
+                    code=code,
+                    severity=severity,
+                    path=_relative_to_root(path, self.root),
+                    message=message,
+                    suggested_command=suggested_command,
+                )
+            )
+
+        required_paths = [
+            self.p2p_dir / "project.yml",
+            self.p2p_dir / "governance" / "constitution.md",
+            self.p2p_dir / "governance" / "decision-rules.md",
+            self.p2p_dir / "governance" / "relevance-criteria.md",
+            self.p2p_dir / "templates" / "proposal-template.md",
+            self.p2p_dir / "templates" / "decision-template.md",
+            self.p2p_dir / "templates" / "execution-plan-template.md",
+            self.p2p_dir / "templates" / "tasks-template.yml",
+            self.p2p_dir / "proposals",
+            self.p2p_dir / "prompts",
+        ]
+        for path in required_paths:
+            if not path.exists():
+                add("P2P001_MISSING_REQUIRED_PATH", "error", path, "Required P2P path is missing.")
+
+        structured_files = [self.p2p_dir / "project.yml", self.p2p_dir / "agent-policy.yml"]
+        structured_files.extend(self.p2p_dir.glob("registries/*.yml"))
+        structured_files.extend(self.p2p_dir.glob("project/*.yml"))
+        structured_files.extend(self.p2p_dir.glob("proposals/*/*.yml"))
+        structured_files.extend(self.p2p_dir.glob("changes/*/*.yml"))
+        structured_files.extend(self.p2p_dir.glob("choices/*/*.yml"))
+        structured_files.extend(self.p2p_dir.glob("work/*/*.yml"))
+        for path in sorted(set(structured_files)):
+            if path.exists() and path.is_file():
+                try:
+                    yaml.safe_load(path.read_text(encoding="utf-8"))
+                except yaml.YAMLError as exc:
+                    add("P2P010_INVALID_YAML", "error", path, f"Invalid YAML: {exc}")
+
+        proposals_dir = self.p2p_dir / "proposals"
+        if proposals_dir.exists():
+            for proposal_dir in sorted(path for path in proposals_dir.iterdir() if path.is_dir()):
+                match = re.match(r"^(PROP-\d{3})-[a-z0-9][a-z0-9-]*$", proposal_dir.name)
+                if not match:
+                    add(
+                        "P2P100_INVALID_PROPOSAL_DIRECTORY",
+                        "error",
+                        proposal_dir,
+                        "Proposal directory must be named PROP-XXX-slug.",
+                    )
+                    proposal_id = proposal_dir.name.split("-", 2)[0]
+                else:
+                    proposal_id = match.group(1)
+                proposal_path = proposal_dir / "proposal.md"
+                decision_path = proposal_dir / "decision.md"
+                if not proposal_path.exists():
+                    add("P2P101_MISSING_PROPOSAL_FILE", "error", proposal_path, "proposal.md is missing.")
+                    continue
+                proposal_text = proposal_path.read_text(encoding="utf-8")
+                for section in ("Status", "Problem", "Proposal", "Decision"):
+                    if not _markdown_has_section(proposal_text, section):
+                        add(
+                            "P2P102_MISSING_PROPOSAL_SECTION",
+                            "error",
+                            proposal_path,
+                            f"proposal.md is missing required section: {section}.",
+                        )
+                proposal_status = _read_proposal_status(proposal_path)
+                if proposal_status == "unknown":
+                    add(
+                        "P2P103_MISSING_PROPOSAL_STATUS",
+                        "error",
+                        proposal_path,
+                        "proposal.md is missing a machine-readable status.",
+                    )
+
+                if not decision_path.exists():
+                    add("P2P110_MISSING_DECISION_FILE", "warning", decision_path, "decision.md is missing.")
+                else:
+                    decision_text = decision_path.read_text(encoding="utf-8")
+                    if not _markdown_has_section(decision_text, "Status"):
+                        add(
+                            "P2P111_MISSING_DECISION_STATUS",
+                            "warning",
+                            decision_path,
+                            "decision.md is missing Status section.",
+                        )
+                    decision_status = (_read_markdown_section(decision_text, "Status") or "").strip("`")
+                    if (
+                        proposal_status in {"accepted", "rejected", "deferred"}
+                        and decision_status
+                        and decision_status != proposal_status
+                    ):
+                        add(
+                            "P2P112_STATUS_MISMATCH",
+                            "warning",
+                            decision_path,
+                            f"Proposal status is {proposal_status}, but decision status is {decision_status}.",
+                            suggested_command=f"p2p proposal show {proposal_id}",
+                        )
+
+        try:
+            registry_status = self.registry_status()
+        except ValueError as exc:
+            add(
+                "P2P200_REGISTRY_STATUS_ERROR",
+                "warning",
+                self.p2p_dir / "registries",
+                f"Could not inspect registries: {exc}",
+                suggested_command="p2p registry refresh",
+            )
+        else:
+            if registry_status.stale:
+                add(
+                    "P2P201_STALE_REGISTRY",
+                    "warning",
+                    registry_status.registries_dir,
+                    "Generated registries are missing or stale.",
+                    suggested_command="p2p registry refresh",
+                )
+
+        errors = sum(1 for finding in findings if finding.severity == "error")
+        warnings = sum(1 for finding in findings if finding.severity == "warning")
+        infos = sum(1 for finding in findings if finding.severity == "info")
+        return ValidationResult(
+            ok=errors == 0,
+            errors=errors,
+            warnings=warnings,
+            infos=infos,
+            findings=findings,
+        )
+
     def create_proposal(self, title: str) -> Proposal:
         return self.create_proposal_with_details(title=title)
 
@@ -1301,6 +1477,202 @@ class P2PWorkspace:
         if not path.exists():
             raise ValueError("Project brief not found. Run `p2p project brief import` first.")
         return path.read_text(encoding="utf-8")
+
+    def refresh_project_assessment(self) -> ProjectAssessment:
+        assessment = self._compute_project_assessment()
+        path = self.p2p_dir / "project" / "assessment.yml"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(_yaml_dump(_project_assessment_payload(assessment)), encoding="utf-8")
+        return assessment
+
+    def show_project_assessment(self) -> ProjectAssessment:
+        path = self.p2p_dir / "project" / "assessment.yml"
+        if not path.exists():
+            raise ValueError("Project assessment not found. Run `p2p assess refresh` first.")
+        data = _read_yaml_mapping(path, default={})
+        completion = data.get("completion", {})
+        maturity = data.get("maturity", {})
+        if not isinstance(completion, dict):
+            completion = {}
+        if not isinstance(maturity, dict):
+            maturity = {}
+        factors = data.get("factors", [])
+        gaps = data.get("gaps", [])
+        suggested_actions = data.get("suggested_actions", [])
+        return ProjectAssessment(
+            path=path.relative_to(self.root),
+            generated_on=str(data.get("generated_on") or ""),
+            assessment_type=str(data.get("assessment_type") or "deterministic_readiness"),
+            completion_score=int(completion.get("score") or 0),
+            completion_status=str(completion.get("status") or "unknown"),
+            confidence=str(completion.get("confidence") or "unknown"),
+            factors=[item for item in factors if isinstance(item, dict)] if isinstance(factors, list) else [],
+            gaps=[str(item) for item in gaps] if isinstance(gaps, list) else [],
+            suggested_actions=[str(item) for item in suggested_actions]
+            if isinstance(suggested_actions, list)
+            else [],
+            maturity_status=str(maturity.get("status") or "not_assessed"),
+            maturity_score=maturity.get("score") if isinstance(maturity.get("score"), int) else None,
+        )
+
+    def _compute_project_assessment(self) -> ProjectAssessment:
+        validation = self.validate()
+        registry_status = self.registry_status()
+        proposals = self.proposal_summaries()
+        choices = self.choice_statuses()
+        changes = self.change_set_statuses()
+        works = self.work_summaries()
+        project_status = self.project_state_status()
+        next_actions = self.next_actions(limit=3)
+
+        draft_proposals = [proposal for proposal in proposals if proposal.status == "draft"]
+        accepted_proposals = [proposal for proposal in proposals if proposal.status == "accepted"]
+        open_choices = [
+            choice for choice in choices if choice.status in {"open", "draft", "pending"} and not choice.selected_option
+        ]
+        terminal_changes = {"completed", "cancelled", "superseded"}
+        active_changes = [change for change in changes if change.status not in terminal_changes]
+        blocked_changes = [change for change in changes if change.status == "blocked"]
+        terminal_work = {"accepted", "finalized", "cleaned", "retired", "completed", "cancelled", "superseded"}
+        active_work = [work for work in works if work.status not in terminal_work]
+
+        factors: list[dict[str, object]] = []
+        gaps: list[str] = []
+        suggested_actions = [action.command for action in next_actions if action.command]
+
+        def factor(
+            factor_id: str,
+            label: str,
+            value: int | bool,
+            impact: int,
+            reason: str,
+            gap: str | None = None,
+        ) -> None:
+            factors.append(
+                {
+                    "id": factor_id,
+                    "label": label,
+                    "value": value,
+                    "impact": impact,
+                    "reason": reason,
+                }
+            )
+            if gap and impact < 0:
+                gaps.append(gap)
+
+        factor(
+            "validation_errors",
+            "Validation errors",
+            validation.errors,
+            -min(validation.errors * 30, 60),
+            "Validation errors make project state unreliable.",
+            "Resolve validation errors with `p2p validate`.",
+        )
+        factor(
+            "validation_warnings",
+            "Validation warnings",
+            validation.warnings,
+            -min(validation.warnings * 5, 20),
+            "Validation warnings indicate recoverable project-state issues.",
+            "Review validation warnings with `p2p validate`.",
+        )
+        factor(
+            "stale_registries",
+            "Registry freshness",
+            registry_status.stale,
+            -10 if registry_status.stale else 0,
+            "Fresh registries are required for reliable assessment.",
+            "Refresh registries with `p2p registry refresh`.",
+        )
+        factor(
+            "draft_proposals",
+            "Draft proposals",
+            len(draft_proposals),
+            -min(len(draft_proposals) * 4, 20),
+            "Draft proposals still need owner review or refinement.",
+            "Review draft proposals before treating project direction as settled.",
+        )
+        factor(
+            "accepted_proposals",
+            "Accepted proposals",
+            len(accepted_proposals),
+            0 if accepted_proposals else -15,
+            "Accepted proposals define committed project direction.",
+            "Accept at least one proposal when the project direction is clear.",
+        )
+        factor(
+            "open_choices",
+            "Open choices",
+            len(open_choices),
+            -min(len(open_choices) * 10, 30),
+            "Open choices represent unresolved alternatives.",
+            "Resolve or document open choices.",
+        )
+        factor(
+            "active_changes",
+            "Active Change Sets",
+            len(active_changes),
+            -min(len(active_changes) * 8, 24),
+            "Active Change Sets still need lifecycle progress.",
+            "Continue or complete active Change Sets.",
+        )
+        factor(
+            "blocked_changes",
+            "Blocked Change Sets",
+            len(blocked_changes),
+            -min(len(blocked_changes) * 12, 36),
+            "Blocked Change Sets prevent implementation readiness.",
+            "Resolve blockers before implementation.",
+        )
+        factor(
+            "active_work",
+            "Active Work items",
+            len(active_work),
+            -min(len(active_work) * 5, 20),
+            "Active Work items still need review, acceptance, or cleanup.",
+            "Finish or retire active Work items.",
+        )
+        factor(
+            "operational_brief",
+            "Operational brief",
+            project_status.operational_brief_available,
+            0 if project_status.operational_brief_available else -5,
+            "An operational brief helps agents and owners understand current state.",
+            "Refresh/import an operational brief.",
+        )
+
+        score = max(0, min(100, 100 + sum(int(item["impact"]) for item in factors)))
+        if validation.errors:
+            status = "blocked"
+        elif not proposals:
+            status = "not_started"
+        elif score >= 85:
+            status = "ready"
+        elif score >= 60:
+            status = "needs_review"
+        else:
+            status = "at_risk"
+
+        if validation.errors or registry_status.stale:
+            confidence = "low" if validation.errors else "medium"
+        elif validation.warnings:
+            confidence = "medium"
+        else:
+            confidence = "high"
+
+        return ProjectAssessment(
+            path=(self.p2p_dir / "project" / "assessment.yml").relative_to(self.root),
+            generated_on=date.today().isoformat(),
+            assessment_type="deterministic_readiness",
+            completion_score=score,
+            completion_status=status,
+            confidence=confidence,
+            factors=factors,
+            gaps=gaps,
+            suggested_actions=suggested_actions,
+            maturity_status="not_assessed",
+            maturity_score=None,
+        )
 
     def refresh_software_spec(self, change_id: str) -> SoftwareSpecStatus:
         change_dir = self._find_change_dir(change_id)
@@ -4217,6 +4589,32 @@ def _yaml_dump(data: object) -> str:
     return yaml.safe_dump(data, sort_keys=False, allow_unicode=False)
 
 
+def _project_assessment_payload(assessment: ProjectAssessment) -> dict[str, object]:
+    return {
+        "generated_on": assessment.generated_on,
+        "assessment_type": assessment.assessment_type,
+        "completion": {
+            "score": assessment.completion_score,
+            "status": assessment.completion_status,
+            "confidence": assessment.confidence,
+        },
+        "maturity": {
+            "status": assessment.maturity_status,
+            "score": assessment.maturity_score,
+        },
+        "factors": assessment.factors,
+        "gaps": assessment.gaps,
+        "suggested_actions": assessment.suggested_actions,
+    }
+
+
+def _relative_to_root(path: Path, root: Path) -> Path:
+    try:
+        return path.relative_to(root)
+    except ValueError:
+        return path
+
+
 def _proposal_markdown(
     proposal_id: str,
     title: str,
@@ -4302,6 +4700,10 @@ def _read_markdown_section(text: str, section: str) -> str | None:
     if not value or value in {"Pending.", "- Pending."}:
         return None
     return value
+
+
+def _markdown_has_section(text: str, section: str) -> bool:
+    return re.search(rf"^## {re.escape(section)}\s*$", text, flags=re.MULTILINE) is not None
 
 
 def _clean_proposal_title(title: str, proposal_id: str) -> str:

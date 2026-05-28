@@ -26,6 +26,8 @@ From the repository root:
 ```bash
 p2p check
 p2p status
+p2p validate
+p2p assess refresh
 p2p registry refresh
 p2p registry status
 ```
@@ -71,6 +73,9 @@ When using the P2P MCP server, the bootstrap and maintenance write-safe tools ar
 p2p_init_project
 p2p_agent_instructions_refresh
 p2p_registry_refresh
+p2p_validate
+p2p_assess_refresh
+p2p_assess_show
 p2p_proposal_create
 p2p_proposal_update
 p2p_proposal_contribution_add
@@ -83,7 +88,7 @@ p2p_conflict_status
 p2p_impact_prompt
 ```
 
-These tools may initialize projects, refresh agent instructions, regenerate deterministic registries, create and refine draft proposals, append proposal contributions, create/list intake prompts, generate/show operational brief artifacts, discover choice candidates, inspect recorded conflicts, and generate impact prompts. They do not authorize governance decisions, conflict recording, choice blocking/deciding, intake apply actions, brief imports, impact imports, or managed-work lifecycle actions.
+These tools may initialize projects, refresh agent instructions, regenerate deterministic registries, validate project state, generate/show deterministic readiness assessments, create and refine draft proposals, append proposal contributions, create/list intake prompts, generate/show operational brief artifacts, discover choice candidates, inspect recorded conflicts, and generate impact prompts. They do not authorize governance decisions, conflict recording, choice blocking/deciding, intake apply actions, brief imports, impact imports, or managed-work lifecycle actions.
 
 Before creating new proposal artifacts, inspect current state:
 
@@ -102,10 +107,13 @@ p2p project brief import brief-output/
 p2p project brief show
 p2p next
 p2p next --top 1
+p2p assess refresh
+p2p assess show
 ```
 
 The skill guides the agent's synthesis behavior. The CLI owns the repeatable project context and stores the resulting `operational-brief.md` and optional `next-actions.yml` under `.p2p/project/`.
 `p2p next` is advisory only: it reads stored next actions when available and falls back to conservative project-state checks, but it must not modify project state or decide on behalf of the owner.
+`p2p assess refresh` is deterministic readiness analysis. It may report completion score, confidence, gaps, and suggested commands, but the MVP maturity score remains `not_assessed` until project-domain rubrics are explicitly defined and accepted.
 
 ## When To Create A Proposal
 

@@ -42,6 +42,9 @@ def test_mcp_tool_definitions_are_read_only() -> None:
     assert "p2p_init_project" in names
     assert "p2p_agent_instructions_refresh" in names
     assert "p2p_registry_refresh" in names
+    assert "p2p_validate" in names
+    assert "p2p_assess_refresh" in names
+    assert "p2p_assess_show" in names
     assert "p2p_proposal_create" in names
     assert "p2p_proposal_update" in names
     assert "p2p_proposal_contribution_add" in names
@@ -105,6 +108,37 @@ def test_mcp_registry_refresh_tool(tmp_path: Path) -> None:
     written = result["written"]
     assert ".p2p/registries/proposals.yml" in written
     assert (tmp_path / ".p2p" / "registries" / "proposals.yml").exists()
+
+
+def test_mcp_validate_returns_structured_findings(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Draft Work", "--root", str(tmp_path)])
+
+    result = call_tool("p2p_validate", {"root": str(tmp_path)})
+
+    validation = result["validation"]
+    assert validation["ok"] is True
+    assert validation["errors"] == 0
+    assert any(finding["code"] == "P2P201_STALE_REGISTRY" for finding in validation["findings"])
+
+
+def test_mcp_assess_refresh_and_show(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    call_tool("p2p_proposal_create", {"root": str(tmp_path), "title": "Draft Work"})
+    call_tool("p2p_registry_refresh", {"root": str(tmp_path)})
+
+    result = call_tool("p2p_assess_refresh", {"root": str(tmp_path)})
+
+    assessment = result["assessment"]
+    assert assessment["completion_score"] < 100
+    assert assessment["completion_status"] in {"needs_review", "at_risk"}
+    assert assessment["maturity_status"] == "not_assessed"
+    assert "Accept at least one proposal when the project direction is clear." in assessment["gaps"]
+
+    shown = call_tool("p2p_assess_show", {"root": str(tmp_path)})
+
+    assert shown["assessment"]["completion_score"] == assessment["completion_score"]
+    assert shown["assessment"]["path"] == ".p2p/project/assessment.yml"
 
 
 def test_mcp_proposal_create_creates_draft_only(tmp_path: Path) -> None:

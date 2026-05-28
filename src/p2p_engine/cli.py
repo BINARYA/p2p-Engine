@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shlex
 from pathlib import Path
 
@@ -40,6 +41,7 @@ choice_app = typer.Typer(help="Manage project choices")
 work_app = typer.Typer(help="Manage P2P work manifests")
 agent_app = typer.Typer(help="Manage agent-facing project instructions")
 agent_instructions_app = typer.Typer(help="Generate and refresh agent instructions")
+assess_app = typer.Typer(help="Assess project readiness and maturity")
 
 proposal_app.add_typer(proposal_contribution_app, name="contribution")
 app.add_typer(proposal_app, name="proposal")
@@ -65,6 +67,7 @@ app.add_typer(intake_app, name="intake")
 app.add_typer(choice_app, name="choice")
 app.add_typer(work_app, name="work")
 app.add_typer(agent_app, name="agent")
+app.add_typer(assess_app, name="assess")
 project_app.add_typer(project_brief_app, name="brief")
 project_app.add_typer(project_remote_app, name="remote")
 intake_app.add_typer(intake_apply_app, name="apply")
@@ -268,6 +271,106 @@ def check(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) 
     for path in result.missing:
         console.print(f"  missing {path}")
     raise typer.Exit(code=1)
+
+
+@app.command()
+def validate(
+    output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Run read-only structural and semantic validation."""
+    try:
+        result = _workspace(root).validate()
+    except ValueError as exc:
+        _fail(str(exc))
+    if output_format == "json":
+        console.print(json.dumps(_validation_result_to_dict(result), indent=2))
+    elif output_format == "text":
+        console.print("Validation")
+        console.print(f"  errors: {result.errors}")
+        console.print(f"  warnings: {result.warnings}")
+        console.print(f"  infos: {result.infos}")
+        if not result.findings:
+            console.print("  findings: none")
+        else:
+            console.print("Findings:")
+            for finding in result.findings:
+                console.print(
+                    f"  {finding.severity.upper()} {finding.code} {finding.path}"
+                )
+                console.print(f"    {finding.message}")
+                if finding.suggested_command:
+                    console.print(f"    command: {finding.suggested_command}")
+    else:
+        _fail("Validation format must be text or json")
+    if result.errors:
+        raise typer.Exit(code=1)
+
+
+def _validation_result_to_dict(result: object) -> object:
+    if hasattr(result, "__dataclass_fields__"):
+        return {
+            key: _validation_result_to_dict(getattr(result, key))
+            for key in result.__dataclass_fields__
+        }
+    if isinstance(result, Path):
+        return result.as_posix()
+    if isinstance(result, list):
+        return [_validation_result_to_dict(item) for item in result]
+    if isinstance(result, dict):
+        return {str(key): _validation_result_to_dict(value) for key, value in result.items()}
+    return result
+
+
+@assess_app.command("refresh")
+def assess_refresh(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+    """Generate a deterministic readiness assessment."""
+    try:
+        assessment = _workspace(root).refresh_project_assessment()
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Project assessment refreshed.[/green]")
+    _print_assessment_summary(assessment)
+
+
+@assess_app.command("show")
+def assess_show(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+    """Show the stored project readiness assessment."""
+    try:
+        assessment = _workspace(root).show_project_assessment()
+    except ValueError as exc:
+        _fail(str(exc))
+    _print_assessment_summary(assessment)
+
+
+def _print_assessment_summary(assessment: object) -> None:
+    console.print("Project readiness assessment")
+    console.print(f"  path: {assessment.path}")
+    console.print(f"  generated_on: {assessment.generated_on}")
+    console.print(f"  assessment_type: {assessment.assessment_type}")
+    console.print(
+        "  completion: "
+        f"{assessment.completion_score}/100 "
+        f"{assessment.completion_status} "
+        f"(confidence: {assessment.confidence})"
+    )
+    console.print(
+        "  maturity: "
+        f"{assessment.maturity_score if assessment.maturity_score is not None else 'n/a'} "
+        f"{assessment.maturity_status}"
+    )
+    if assessment.gaps:
+        console.print("  gaps:")
+        for gap in assessment.gaps:
+            console.print(f"    - {gap}")
+    else:
+        console.print("  gaps: none")
+    if assessment.suggested_actions:
+        console.print("  suggested actions:")
+        for command in assessment.suggested_actions:
+            console.print(f"    - {command}")
+    else:
+        console.print("  suggested actions: none")
 
 
 @proposal_app.command("create")

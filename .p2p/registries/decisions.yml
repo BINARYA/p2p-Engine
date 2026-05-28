@@ -371,3 +371,17 @@ decisions:
   path: .p2p/proposals/PROP-052-mcp-proposal-contribution-tool/decision.md
   reason: 'Accepted as MCP Level 5A: adding contributions is a safe way to reduce
     duplicate proposal proliferation without opening governance decisions.'
+- proposal: PROP-053
+  title: Core Validation Layer MVP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-053-core-validation-layer-mvp/decision.md
+  reason: Accepted to harden the deterministic core before packaging, Rust migration
+    planning, or owner-gated MCP mutations.
+- proposal: PROP-054
+  title: Project Readiness and Maturity Assessment
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/decision.md
+  reason: Accepted to add an explainable deterministic project readiness assessment
+    before subjective maturity rubrics, packaging, or owner-gated automation.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+import json
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -92,6 +93,75 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "Exploration status for PROP-001" in result.output
     assert "open-questions.md" in result.output
+
+
+def test_cli_validate_valid_project_and_json_output(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["validate", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "Validation" in result.output
+    assert "errors: 0" in result.output
+
+    result = runner.invoke(app, ["validate", "--format", "json", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["ok"] is True
+    assert payload["errors"] == 0
+
+
+def test_cli_validate_reports_invalid_yaml_as_error(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    (tmp_path / ".p2p" / "project.yml").write_text("project: [\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["validate", "--root", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert "P2P010_INVALID_YAML" in result.output
+
+
+def test_cli_validate_reports_stale_registries_as_warning(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Draft Work", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["validate", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "P2P201_STALE_REGISTRY" in result.output
+    assert "command: p2p registry refresh" in result.output
+
+
+def test_cli_assess_refresh_and_show(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Draft Work", "--root", str(tmp_path)])
+    runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["assess", "refresh", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "Project assessment refreshed" in result.output
+    assert "Project readiness assessment" in result.output
+    assert "completion:" in result.output
+    assert "Accept at least one proposal" in result.output
+    assert (tmp_path / ".p2p" / "project" / "assessment.yml").exists()
+
+    result = runner.invoke(app, ["assess", "show", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "Project readiness assessment" in result.output
+    assert "maturity: n/a not_assessed" in result.output
+
+
+def test_cli_assess_show_requires_refresh(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["assess", "show", "--root", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert "Project assessment not found" in result.output
 
 
 def test_cli_init_without_name_runs_guided_wizard(tmp_path: Path) -> None:

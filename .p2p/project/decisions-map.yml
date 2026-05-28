@@ -234,3 +234,13 @@ decisions:
   status: accepted
   feature: mcp-proposal-contribution-tool
   source: .p2p/proposals/PROP-052-mcp-proposal-contribution-tool
+- proposal: PROP-053
+  title: Core Validation Layer MVP
+  status: accepted
+  feature: core-validation-layer-mvp
+  source: .p2p/proposals/PROP-053-core-validation-layer-mvp
+- proposal: PROP-054
+  title: Project Readiness and Maturity Assessment
+  status: accepted
+  feature: project-readiness-and-maturity-assessment
+  source: .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment

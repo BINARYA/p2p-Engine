@@ -578,3 +578,26 @@ Generated from accepted proposal goals and non-goals.
 ### Non-Goals
 
 - Not provided.
+
+## PROP-053 - Core Validation Layer MVP
+
+### Goals
+
+- Add a read-only core validation layer and CLI/MCP entry points that report project-state issues without mutating files.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-054 - Project Readiness and Maturity Assessment
+
+### Goals
+
+- Define a readiness and maturity assessment model that separates deterministic completion from domain-specific quality assessment.
+- Provide scores and gaps that are explainable, versioned and grounded in explicit criteria.
+- Keep P2P Core deterministic while allowing optional AI-assisted maturity review through prompt/import workflows.
+
+### Non-Goals
+
+- Do not let P2P automatically decide that a project is ready or block work solely from a maturity score.
+- Do not produce a single opaque score without criteria, confidence and known gaps.

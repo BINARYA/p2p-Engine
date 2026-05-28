@@ -191,3 +191,11 @@ After MCP creates a draft proposal, p2p next can still fall back to generic proj
 ## PROP-052 - MCP Proposal Contribution Tool
 
 Agents can create new draft proposals through MCP, but cannot safely attach new information to an existing proposal. This encourages proposal proliferation when a comment, criterion, objection, or suggestion should be recorded as a contribution instead.
+
+## PROP-053 - Core Validation Layer MVP
+
+P2P projects can now be manipulated through CLI and MCP, but there is no deeper read-only validation layer to detect malformed YAML, missing proposal sections, stale registries, or basic status inconsistencies before agents, CI, or future packaging workflows rely on the state.
+
+## PROP-054 - Project Readiness and Maturity Assessment
+
+P2P can track proposals, choices, changes, work, validation and MCP workflows, but it does not yet provide a structured assessment of how complete or mature a project is. Users need a way to understand whether a project is ready to proceed and which gaps matter most in the project context.
