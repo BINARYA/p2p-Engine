@@ -211,3 +211,7 @@ P2P assess currently measures deterministic structural readiness: validation, re
 ## PROP-057 - Guided Rubric Selection During Init
 
 The init wizard now asks for a project domain and generates domain rubrics automatically, but the owner cannot confirm which suggested criteria should actually drive project definition maturity. This makes the rubric feel imposed by the system instead of selected as part of project governance.
+
+## PROP-058 - Project README and Installation Guide
+
+P2P Engine now has a mature Core/CLI/MCP MVP with init wizard, context packets, validation, readiness assessment, project definition rubrics, maturity assessment, spec/export flows, and managed work lifecycle. The repository README and installation guidance need to become an accurate entry point for new users instead of relying on chat history or internal project state.

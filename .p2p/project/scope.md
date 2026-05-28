@@ -647,3 +647,18 @@ Generated from accepted proposal goals and non-goals.
 - Do not support custom criteria in the wizard yet.
 - Do not support editing criterion keywords or descriptions yet.
 - Do not change non-interactive p2p init defaults.
+
+## PROP-058 - Project README and Installation Guide
+
+### Goals
+
+- Update README.md as the product entry point.
+- Add a practical installation guide.
+- Document current architecture, quick start, init wizard, context discipline, rubrics, assessment, and MCP local setup.
+- Be explicit about current limits and future packaging direction.
+
+### Non-Goals
+
+- Do not implement packaging changes in this proposal.
+- Do not add a full website or generated docs site.
+- Do not document unstable internals exhaustively.

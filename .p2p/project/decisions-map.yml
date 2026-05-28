@@ -259,3 +259,8 @@ decisions:
   status: accepted
   feature: guided-rubric-selection-during-init
   source: .p2p/proposals/PROP-057-guided-rubric-selection-during-init
+- proposal: PROP-058
+  title: Project README and Installation Guide
+  status: accepted
+  feature: project-readme-and-installation-guide
+  source: .p2p/proposals/PROP-058-project-readme-and-installation-guide

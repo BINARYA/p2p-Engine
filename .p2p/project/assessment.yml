@@ -30,7 +30,7 @@ factors:
   reason: Draft proposals still need owner review or refinement.
 - id: accepted_proposals
   label: Accepted proposals
-  value: 52
+  value: 53
   impact: 0
   reason: Accepted proposals define committed project direction.
 - id: open_choices

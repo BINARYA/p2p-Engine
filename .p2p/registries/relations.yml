@@ -211,6 +211,11 @@ relations:
   type: includes
   rationale: Change Set includes accepted proposal.
   source_artifact: .p2p/changes/CHANGE-042-guided-rubric-selection-mvp
+- source: CHANGE-043
+  target: PROP-058
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-043-readme-and-install-documentation-mvp
 - source: PROP-013
   target: CHANGE-001
   type: implemented_by
@@ -421,3 +426,8 @@ relations:
   type: implemented_by
   rationale: Proposal appears in Change Set source metadata.
   source_artifact: .p2p/proposals/PROP-057-guided-rubric-selection-during-init
+- source: PROP-058
+  target: CHANGE-043
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-058-project-readme-and-installation-guide

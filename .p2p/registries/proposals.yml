@@ -1616,3 +1616,32 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-058
+  title: Project README and Installation Guide
+  status: accepted
+  path: .p2p/proposals/PROP-058-project-readme-and-installation-guide
+  summary: Create a concise README and docs/INSTALL.md. README should explain what
+    P2P Engine is, core principles, five-layer architecture, current implementation
+    status, quick start commands, token-aware context, project definition maturity,
+    MCP overview, and roadmap. docs/INSTALL.md should provide source install steps
+    with Python venv, editable install, verification commands, project initialization,
+    MCP local setup for Codex/compatible clients, troubleshooting, and current limitations.
+  decision_file: .p2p/proposals/PROP-058-project-readme-and-installation-guide/decision.md
+  related_changes:
+  - CHANGE-043
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

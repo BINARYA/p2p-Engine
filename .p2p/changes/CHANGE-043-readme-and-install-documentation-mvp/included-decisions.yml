@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-058
+  decision_file: .p2p/proposals/PROP-058-project-readme-and-installation-guide/decision.md

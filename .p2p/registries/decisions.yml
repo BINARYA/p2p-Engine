@@ -407,3 +407,10 @@ decisions:
   path: .p2p/proposals/PROP-057-guided-rubric-selection-during-init/decision.md
   reason: Accepted to close the domain-to-rubric onboarding loop by letting the owner
     confirm which suggested criteria drive project definition maturity.
+- proposal: PROP-058
+  title: Project README and Installation Guide
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-058-project-readme-and-installation-guide/decision.md
+  reason: Accepted to make the repository self-explanatory for new users now that
+    Core, CLI, MCP, context, and maturity rubric MVPs are implemented.

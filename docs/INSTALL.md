@@ -1,0 +1,230 @@
+# Installing P2P Engine
+
+This guide describes the current installation path for P2P Engine.
+
+Current status:
+
+```text
+Supported today: install from source with Python virtualenv.
+Future target: packaged or compiled CLI distribution.
+```
+
+## Requirements
+
+- Python 3.11 or newer
+- Git
+- A shell with virtualenv support
+- Optional: an MCP-capable client such as Codex
+
+## Install From Source
+
+Clone the repository:
+
+```bash
+git clone git@github.com:BINARYA/p2p-Engine.git
+cd p2p-Engine
+```
+
+Create and activate a virtual environment:
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+```
+
+Install P2P Engine in editable mode:
+
+```bash
+pip install -e ".[dev]"
+```
+
+Verify the CLI:
+
+```bash
+p2p --help
+python -m p2p_engine.mcp.server --help
+python -m pytest -q
+```
+
+If `p2p` is not on `PATH`, call it through the virtualenv:
+
+```bash
+/path/to/p2p-Engine/.venv/bin/p2p --help
+```
+
+## Initialize A New Project
+
+Create a project directory:
+
+```bash
+mkdir my-project
+cd my-project
+```
+
+Run the guided wizard:
+
+```bash
+/path/to/p2p-Engine/.venv/bin/p2p init
+```
+
+The wizard asks for:
+
+```text
+Project name
+Initial agent profile: generic, codex, claude, all
+Repository mode: local, cloud
+Project domain: generic, software, grant_document, board_game
+Rubric criteria customization
+MCP setup hint
+```
+
+For a scriptable non-interactive setup:
+
+```bash
+/path/to/p2p-Engine/.venv/bin/p2p init "My Project" \
+  --agent codex \
+  --repository local \
+  --domain software \
+  --mcp-hint
+```
+
+## Verify A Project
+
+From inside the project directory:
+
+```bash
+/path/to/p2p-Engine/.venv/bin/p2p context --budget small
+/path/to/p2p-Engine/.venv/bin/p2p validate
+/path/to/p2p-Engine/.venv/bin/p2p registry refresh
+/path/to/p2p-Engine/.venv/bin/p2p next
+```
+
+Assess structural readiness:
+
+```bash
+/path/to/p2p-Engine/.venv/bin/p2p assess refresh
+/path/to/p2p-Engine/.venv/bin/p2p assess show
+```
+
+Assess project definition maturity:
+
+```bash
+/path/to/p2p-Engine/.venv/bin/p2p project rubrics show
+/path/to/p2p-Engine/.venv/bin/p2p assess maturity refresh
+/path/to/p2p-Engine/.venv/bin/p2p assess maturity show
+```
+
+## Configure MCP Locally
+
+If `p2p-mcp-server` is available on `PATH`:
+
+```bash
+codex mcp add p2p-my-project -- \
+  p2p-mcp-server \
+  --root /path/to/my-project
+```
+
+If it is not on `PATH`, or if your editable install did not refresh console scripts yet, use the Python module from the source checkout:
+
+```bash
+codex mcp add p2p-my-project -- \
+  /path/to/p2p-Engine/.venv/bin/python \
+  -m p2p_engine.mcp.server \
+  --root /path/to/my-project
+```
+
+List configured MCP servers:
+
+```bash
+codex mcp list
+```
+
+In an MCP-capable agent, ask for a compact status first:
+
+```text
+Use the P2P MCP server and show p2p_context for this project.
+```
+
+The agent should use compact context before broad file reads.
+
+## Typical First Commands
+
+Create a proposal:
+
+```bash
+p2p proposal create "First project direction" \
+  --problem "The project needs a clear initial direction." \
+  --goal "Define the first accepted scope." \
+  --proposal "Start with a small verified project definition." \
+  --acceptance "The owner can review and decide the proposal."
+```
+
+Inspect it:
+
+```bash
+p2p proposal show PROP-001
+```
+
+Accept it when the owner decides:
+
+```bash
+p2p proposal accept PROP-001 --reason "This is the initial direction."
+```
+
+Create a Change Set:
+
+```bash
+p2p change create --from PROP-001
+```
+
+## Troubleshooting
+
+`p2p: command not found`
+
+Use the virtualenv binary:
+
+```bash
+/path/to/p2p-Engine/.venv/bin/p2p --help
+```
+
+or activate the virtualenv:
+
+```bash
+. /path/to/p2p-Engine/.venv/bin/activate
+```
+
+MCP server cannot start
+
+Use the explicit Python module command:
+
+```bash
+/path/to/p2p-Engine/.venv/bin/python -m p2p_engine.mcp.server --root /path/to/project
+```
+
+Agent tries to edit `.p2p/` by hand
+
+Tell it to use CLI or MCP primitives only:
+
+```text
+Use p2p_context first. If a write primitive is missing, stop and report what is missing.
+Do not create or edit .p2p files manually.
+```
+
+Project looks stale
+
+Run:
+
+```bash
+p2p validate
+p2p registry refresh
+p2p project refresh
+p2p assess refresh
+```
+
+## Current Limitations
+
+- Installation is source-based.
+- Packaged or compiled CLI distribution is future work.
+- MCP support is local stdio MVP.
+- Rubric maturity scoring is deterministic and conservative, not AI semantic review.
+- Mediator and Web layers are not implemented.
