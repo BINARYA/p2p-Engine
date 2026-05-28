@@ -4,6 +4,7 @@ import subprocess
 import json
 from pathlib import Path
 
+import yaml
 from typer.testing import CliRunner
 
 from p2p_engine.cli import app
@@ -21,10 +22,12 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert "P2P workspace initialized" in result.output
     assert (tmp_path / "AGENTS.md").exists()
     assert (tmp_path / ".p2p" / "agent-policy.yml").exists()
+    assert (tmp_path / ".p2p" / "project" / "rubrics.yml").exists()
     agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
     assert "Do not create, edit, rename, or delete files under `.p2p/` by hand" in agents
     assert "stop and report the limitation" in agents
     assert "Do not explain existing P2P artifacts only from conversation memory" in agents
+    assert "p2p context --budget small" in agents
 
     result = runner.invoke(app, ["status", "--root", str(tmp_path)])
     assert result.exit_code == 0
@@ -164,11 +167,111 @@ def test_cli_assess_show_requires_refresh(tmp_path: Path) -> None:
     assert "Project assessment not found" in result.output
 
 
+def test_cli_project_rubrics_and_definition_maturity(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Security Model",
+            "--problem",
+            "Security and privacy need explicit permission boundaries.",
+            "--proposal",
+            "Define auth, sandbox permissions, and privacy expectations.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Needed.", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["project", "rubrics", "show", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "domain: software" in result.output
+    assert "security_privacy" in result.output
+
+    result = runner.invoke(app, ["assess", "maturity", "refresh", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "Project definition maturity refreshed" in result.output
+    assert "security_privacy  covered  100/100" in result.output
+    assert "implementation completeness" not in result.output
+    assert (tmp_path / ".p2p" / "project" / "maturity-assessment.yml").exists()
+
+    result = runner.invoke(app, ["assess", "maturity", "show", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "Project definition maturity" in result.output
+
+
+def test_cli_context_returns_compact_packet(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Draft Work", "--root", str(tmp_path)])
+    runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["context", "--budget", "small", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "P2P compact context" in result.output
+    assert "budget: small" in result.output
+    assert "Do not scan all .p2p/" in result.output
+    assert "p2p proposal show PROP-001" in result.output
+
+
+def test_cli_context_target_limits_artifact_details(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Draft Work",
+            "--problem",
+            "This is a long problem statement that should not be printed in small budget context.",
+            "--proposal",
+            "This is a long proposal body that should not be printed in small budget context.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        ["context", "--target", "PROP-001", "--budget", "small", "--root", str(tmp_path)],
+    )
+
+    assert result.exit_code == 0
+    assert "target: PROP-001" in result.output
+    assert "p2p proposal show PROP-001" in result.output
+    assert "long problem statement" not in result.output
+
+    result = runner.invoke(
+        app,
+        [
+            "context",
+            "--target",
+            "PROP-001",
+            "--budget",
+            "medium",
+            "--format",
+            "yaml",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = yaml.safe_load(result.output)
+    assert payload["target"] == "PROP-001"
+    assert payload["relevant_artifacts"][0]["problem"].startswith("This is a long problem")
+
+
 def test_cli_init_without_name_runs_guided_wizard(tmp_path: Path) -> None:
     result = runner.invoke(
         app,
         ["init", "--root", str(tmp_path)],
-        input="Wizard Project\ncodex\ncloud\ny\n",
+        input="Wizard Project\ncodex\ncloud\nsoftware\nn\ny\n",
     )
 
     assert result.exit_code == 0
@@ -176,11 +279,42 @@ def test_cli_init_without_name_runs_guided_wizard(tmp_path: Path) -> None:
     assert "P2P workspace initialized" in result.output
     assert "MCP setup hint" in result.output
     assert "codex mcp add" in result.output
+    assert "Project domain" in result.output
+    assert "Customize rubric criteria" in result.output
     assert (tmp_path / "AGENTS.md").exists()
     assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+
+
+def test_cli_init_guided_wizard_can_disable_rubric_criteria(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app,
+        ["init", "--root", str(tmp_path)],
+        input=(
+            "Wizard Project\n"
+            "generic\n"
+            "local\n"
+            "generic\n"
+            "y\n"
+            "y\n"
+            "n\n"
+            "y\n"
+            "y\n"
+            "y\n"
+            "n\n"
+        ),
+    )
+
+    assert result.exit_code == 0
+    rubrics = yaml.safe_load(
+        (tmp_path / ".p2p" / "project" / "rubrics.yml").read_text(encoding="utf-8")
+    )
+    criteria = {item["id"]: item["enabled"] for item in rubrics["criteria"]}
+    assert criteria["problem_definition"] is True
+    assert criteria["scope_boundaries"] is False
+    assert criteria["requirements"] is True
     project = (tmp_path / ".p2p" / "project.yml").read_text(encoding="utf-8")
     assert "name: Wizard Project" in project
-    assert "mode: cloud" in project
+    assert "mode: local" in project
 
 
 def test_cli_init_can_generate_agent_specific_instructions(tmp_path: Path) -> None:

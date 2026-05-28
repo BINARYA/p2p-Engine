@@ -5,8 +5,8 @@ completion:
   status: needs_review
   confidence: high
 maturity:
-  status: not_assessed
-  score: null
+  status: well_defined
+  score: 100
 factors:
 - id: validation_errors
   label: Validation errors
@@ -30,7 +30,7 @@ factors:
   reason: Draft proposals still need owner review or refinement.
 - id: accepted_proposals
   label: Accepted proposals
-  value: 49
+  value: 52
   impact: 0
   reason: Accepted proposals define committed project direction.
 - id: open_choices

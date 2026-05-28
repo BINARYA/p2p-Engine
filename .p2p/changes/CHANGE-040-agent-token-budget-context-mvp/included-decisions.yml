@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-055
+  decision_file: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/decision.md

@@ -43,8 +43,13 @@ def test_mcp_tool_definitions_are_read_only() -> None:
     assert "p2p_agent_instructions_refresh" in names
     assert "p2p_registry_refresh" in names
     assert "p2p_validate" in names
+    assert "p2p_context" in names
     assert "p2p_assess_refresh" in names
     assert "p2p_assess_show" in names
+    assert "p2p_project_rubrics_init" in names
+    assert "p2p_project_rubrics_show" in names
+    assert "p2p_maturity_refresh" in names
+    assert "p2p_maturity_show" in names
     assert "p2p_proposal_create" in names
     assert "p2p_proposal_update" in names
     assert "p2p_proposal_contribution_add" in names
@@ -80,12 +85,14 @@ def test_mcp_write_safe_bootstrap_tools(tmp_path: Path) -> None:
             "name": "MCP Bootstrap",
             "agent": "codex",
             "repository": "cloud",
+            "domain": "software",
         },
     )
 
     assert initialized["initialized"] is True
     assert (tmp_path / "AGENTS.md").exists()
     assert (tmp_path / ".p2p" / "agent-policy.yml").exists()
+    assert (tmp_path / ".p2p" / "project" / "rubrics.yml").exists()
     assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
 
     refreshed = call_tool(
@@ -139,6 +146,63 @@ def test_mcp_assess_refresh_and_show(tmp_path: Path) -> None:
 
     assert shown["assessment"]["completion_score"] == assessment["completion_score"]
     assert shown["assessment"]["path"] == ".p2p/project/assessment.yml"
+
+
+def test_mcp_context_returns_compact_packet(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    call_tool("p2p_proposal_create", {"root": str(tmp_path), "title": "Draft Work"})
+    call_tool("p2p_registry_refresh", {"root": str(tmp_path)})
+
+    result = call_tool("p2p_context", {"root": str(tmp_path), "budget": "small"})
+
+    packet = result["context"]
+    assert packet["budget"] == "small"
+    assert packet["current_state"]["proposals"] == 1
+    assert "Do not scan all .p2p/ directories." in packet["do_not_read"]
+    assert any(item["id"] == "PROP-001" for item in packet["relevant_artifacts"])
+
+    targeted = call_tool(
+        "p2p_context",
+        {"root": str(tmp_path), "budget": "small", "target": "PROP-001"},
+    )
+
+    assert targeted["context"]["target"] == "PROP-001"
+    assert targeted["context"]["relevant_artifacts"][0]["command"] == "p2p proposal show PROP-001"
+
+
+def test_mcp_project_definition_maturity(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    rubrics = call_tool(
+        "p2p_project_rubrics_init",
+        {"root": str(tmp_path), "domain": "software", "force": True},
+    )
+
+    assert rubrics["rubrics"]["domain"] == "software"
+    assert any(item["id"] == "security_privacy" for item in rubrics["rubrics"]["criteria"])
+
+    call_tool(
+        "p2p_proposal_create",
+        {
+            "root": str(tmp_path),
+            "title": "Security Model",
+            "problem": "Security and privacy need explicit permission boundaries.",
+            "proposal": "Define sandbox permissions.",
+        },
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Needed.", "--root", str(tmp_path)])
+
+    maturity = call_tool("p2p_maturity_refresh", {"root": str(tmp_path)})
+
+    assert maturity["maturity"]["domain"] == "software"
+    assert maturity["maturity"]["score"] > 0
+    security = [
+        item for item in maturity["maturity"]["criteria"] if item["id"] == "security_privacy"
+    ][0]
+    assert security["status"] == "covered"
+
+    shown = call_tool("p2p_maturity_show", {"root": str(tmp_path)})
+
+    assert shown["maturity"]["path"] == ".p2p/project/maturity-assessment.yml"
 
 
 def test_mcp_proposal_create_creates_draft_only(tmp_path: Path) -> None:

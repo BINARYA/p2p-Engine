@@ -385,3 +385,25 @@ decisions:
   path: .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/decision.md
   reason: Accepted to add an explainable deterministic project readiness assessment
     before subjective maturity rubrics, packaging, or owner-gated automation.
+- proposal: PROP-055
+  title: Agent Token Budget and Context Discipline
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/decision.md
+  reason: 'Accepted as the C-light MVP: combine skill policy, CLI compact context,
+    and MCP compact context to reduce agent token consumption without adding advanced
+    token estimation yet.'
+- proposal: PROP-056
+  title: Project Definition Maturity Rubrics
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-056-project-definition-maturity-rubrics/decision.md
+  reason: Accepted to distinguish structural readiness from project definition maturity
+    and introduce extensible domain rubrics as deterministic drivers for export readiness.
+- proposal: PROP-057
+  title: Guided Rubric Selection During Init
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-057-guided-rubric-selection-during-init/decision.md
+  reason: Accepted to close the domain-to-rubric onboarding loop by letting the owner
+    confirm which suggested criteria drive project definition maturity.

@@ -30,6 +30,7 @@ precedent_app = typer.Typer(help="Record governance decision precedents")
 project_app = typer.Typer(help="Manage rationalized project state")
 project_brief_app = typer.Typer(help="Generate and import operational project briefs")
 project_remote_app = typer.Typer(help="Manage project remote profile")
+project_rubrics_app = typer.Typer(help="Manage project definition rubrics")
 impact_app = typer.Typer(help="Analyze proposal impact")
 conflict_app = typer.Typer(help="Record and inspect project conflicts")
 change_app = typer.Typer(help="Manage operational Change Set metadata")
@@ -42,6 +43,7 @@ work_app = typer.Typer(help="Manage P2P work manifests")
 agent_app = typer.Typer(help="Manage agent-facing project instructions")
 agent_instructions_app = typer.Typer(help="Generate and refresh agent instructions")
 assess_app = typer.Typer(help="Assess project readiness and maturity")
+assess_maturity_app = typer.Typer(help="Assess project definition maturity")
 
 proposal_app.add_typer(proposal_contribution_app, name="contribution")
 app.add_typer(proposal_app, name="proposal")
@@ -70,6 +72,8 @@ app.add_typer(agent_app, name="agent")
 app.add_typer(assess_app, name="assess")
 project_app.add_typer(project_brief_app, name="brief")
 project_app.add_typer(project_remote_app, name="remote")
+project_app.add_typer(project_rubrics_app, name="rubrics")
+assess_app.add_typer(assess_maturity_app, name="maturity")
 intake_app.add_typer(intake_apply_app, name="apply")
 agent_app.add_typer(agent_instructions_app, name="instructions")
 
@@ -102,6 +106,11 @@ def init(
         "--repository",
         help="Repository mode: local or cloud",
     ),
+    domain: str = typer.Option(
+        "generic",
+        "--domain",
+        help="Project domain: generic, software, grant_document, or board_game",
+    ),
     mcp_hint: bool | None = typer.Option(
         None,
         "--mcp-hint/--no-mcp-hint",
@@ -110,6 +119,7 @@ def init(
     root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
 ) -> None:
     """Initialize a P2P workspace."""
+    rubric_enabled: dict[str, bool] | None = None
     if name is None:
         console.print("[bold]P2P project initialization[/bold]")
         name = typer.prompt("Project name", default=root.resolve().name)
@@ -123,6 +133,12 @@ def init(
             choices=("local", "cloud"),
             default=repository,
         )
+        domain = _prompt_choice(
+            "Project domain",
+            choices=("generic", "software", "grant_document", "board_game"),
+            default=domain,
+        )
+        rubric_enabled = _prompt_rubric_selection(domain)
         if mcp_hint is None:
             mcp_hint = typer.confirm("Show MCP setup hint?", default=True)
     else:
@@ -134,6 +150,8 @@ def init(
             name=name,
             agent_profile=agent,
             repository_mode=repository,
+            project_domain=domain,
+            rubric_enabled=rubric_enabled,
         )
     except ValueError as exc:
         _fail(str(exc))
@@ -154,6 +172,25 @@ def _prompt_choice(prompt: str, choices: tuple[str, ...], default: str) -> str:
         if normalized in choices:
             return normalized
         console.print(f"[red]Invalid value:[/red] {value}. Choose one of: {choices_text}")
+
+
+def _prompt_rubric_selection(domain: str) -> dict[str, bool] | None:
+    preview = P2PWorkspace(Path.cwd()).init_project_rubrics_preview(domain)
+    console.print("Project definition rubric criteria:")
+    for criterion in preview:
+        console.print(f"  - {criterion['id']}: {criterion['title']}")
+    if not typer.confirm("Customize rubric criteria?", default=False):
+        return None
+    selected: dict[str, bool] = {}
+    for criterion in preview:
+        selected[str(criterion["id"])] = typer.confirm(
+            f"Enable {criterion['title']}?",
+            default=True,
+        )
+    enabled_count = sum(1 for enabled in selected.values() if enabled)
+    disabled_count = len(selected) - enabled_count
+    console.print(f"Rubric selection: {enabled_count} enabled, {disabled_count} disabled")
+    return selected
 
 
 def _print_init_next_steps(root: Path, agent: str, show_mcp_hint: bool = False) -> None:
@@ -258,6 +295,67 @@ def next_action(
         console.print(f"  reason: {action.reason}")
         console.print(f"  command: {action.command or 'none'}")
         console.print(f"  source: {action.source}")
+
+
+@app.command("context")
+def context(
+    budget: str = typer.Option("small", "--budget", help="Context budget: small or medium"),
+    target: str | None = typer.Option(None, "--target", help="Optional PROP/CHANGE/CHOICE/WORK ID"),
+    output_format: str = typer.Option("text", "--format", help="Output format: text or yaml"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Show a compact, token-aware context packet for agents."""
+    try:
+        packet = _workspace(root).context_packet(budget=budget, target=target)
+    except ValueError as exc:
+        _fail(str(exc))
+    if output_format == "yaml":
+        typer.echo(_yaml_dump_for_cli(_validation_result_to_dict(packet)))
+    elif output_format == "text":
+        _print_context_packet(packet)
+    else:
+        _fail("Context format must be text or yaml")
+
+
+def _print_context_packet(packet: object) -> None:
+    console.print("P2P compact context")
+    console.print(f"  budget: {packet.budget}")
+    console.print(f"  target: {packet.target or 'none'}")
+    console.print("Current state:")
+    for key, value in packet.current_state.items():
+        if isinstance(value, dict):
+            console.print(f"  {key}:")
+            for child_key, child_value in value.items():
+                console.print(f"    {child_key}: {child_value}")
+        else:
+            console.print(f"  {key}: {value}")
+    console.print("Next actions:")
+    if not packet.next_actions:
+        console.print("  none")
+    for action in packet.next_actions:
+        console.print(
+            f"  {action.get('id')} {action.get('priority')} {action.get('kind')} "
+            f"{action.get('target') or ''}".rstrip()
+        )
+        console.print(f"    command: {action.get('command') or 'none'}")
+    console.print("Relevant artifacts:")
+    if not packet.relevant_artifacts:
+        console.print("  none")
+    for artifact in packet.relevant_artifacts:
+        title = artifact.get("title") or artifact.get("change_id") or artifact.get("target") or ""
+        console.print(
+            f"  {artifact.get('type')} {artifact.get('id')} "
+            f"{artifact.get('status')} {title}".rstrip()
+        )
+        console.print(f"    path: {artifact.get('path')}")
+        console.print(f"    command: {artifact.get('command')}")
+    console.print("Allowed commands:")
+    for command in packet.allowed_commands:
+        console.print(f"  - {command}")
+    console.print("Do not read:")
+    for item in packet.do_not_read:
+        console.print(f"  - {item}")
+    console.print(f"Bounded next step: {packet.bounded_next_step}")
 
 
 @app.command()
@@ -371,6 +469,60 @@ def _print_assessment_summary(assessment: object) -> None:
             console.print(f"    - {command}")
     else:
         console.print("  suggested actions: none")
+
+
+@assess_maturity_app.command("refresh")
+def assess_maturity_refresh(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+    """Generate project definition maturity from configured rubrics."""
+    try:
+        maturity = _workspace(root).refresh_definition_maturity()
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Project definition maturity refreshed.[/green]")
+    _print_definition_maturity(maturity)
+
+
+@assess_maturity_app.command("show")
+def assess_maturity_show(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+    """Show stored project definition maturity."""
+    try:
+        maturity = _workspace(root).show_definition_maturity()
+    except ValueError as exc:
+        _fail(str(exc))
+    _print_definition_maturity(maturity)
+
+
+def _print_definition_maturity(maturity: object) -> None:
+    console.print("Project definition maturity")
+    console.print(f"  path: {maturity.path}")
+    console.print(f"  generated_on: {maturity.generated_on}")
+    console.print(f"  domain: {maturity.domain}")
+    console.print(f"  score: {maturity.score}/100")
+    console.print(f"  status: {maturity.status}")
+    console.print("Criteria:")
+    for criterion in maturity.criteria:
+        console.print(
+            f"  {criterion.get('id')}  {criterion.get('status')}  "
+            f"{criterion.get('score')}/100  {criterion.get('title')}"
+        )
+        evidence = criterion.get("evidence", [])
+        if isinstance(evidence, list) and evidence:
+            first = evidence[0]
+            if isinstance(first, dict):
+                console.print(
+                    f"    evidence: {first.get('type')} {first.get('id')} "
+                    f"{first.get('state')}"
+                )
+    if maturity.gaps:
+        console.print("Gaps:")
+        for gap in maturity.gaps:
+            console.print(f"  - {gap}")
+    else:
+        console.print("Gaps: none")
+    if maturity.suggested_actions:
+        console.print("Suggested actions:")
+        for action in maturity.suggested_actions:
+            console.print(f"  - {action}")
 
 
 @proposal_app.command("create")
@@ -993,6 +1145,39 @@ def project_remote_configure(
     console.print(f"  url: {profile.url or 'none'}")
     console.print("  creates_remote_repository: false")
     console.print("  opens_external_request: false")
+
+
+@project_rubrics_app.command("init")
+def project_rubrics_init(
+    domain: str = typer.Option("generic", "--domain", help="generic, software, grant_document, or board_game"),
+    force: bool = typer.Option(False, "--force", help="Replace existing project rubrics"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Create or replace project definition maturity rubrics."""
+    try:
+        rubrics = _workspace(root).init_project_rubrics(domain=domain, force=force)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Project rubrics initialized.[/green]")
+    console.print(f"  path: {rubrics.path}")
+    console.print(f"  domain: {rubrics.domain}")
+    console.print(f"  criteria: {len(rubrics.criteria)}")
+
+
+@project_rubrics_app.command("show")
+def project_rubrics_show(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+    """Show configured project definition maturity rubrics."""
+    try:
+        rubrics = _workspace(root).show_project_rubrics()
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("Project rubrics")
+    console.print(f"  path: {rubrics.path}")
+    console.print(f"  domain: {rubrics.domain}")
+    console.print("Criteria:")
+    for criterion in rubrics.criteria:
+        enabled = "enabled" if criterion.get("enabled") is not False else "disabled"
+        console.print(f"  {criterion.get('id')}  {enabled}  {criterion.get('title')}")
 
 
 @project_brief_app.command("prompt")

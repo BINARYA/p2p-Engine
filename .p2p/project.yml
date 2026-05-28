@@ -4,6 +4,7 @@ project:
   meaning: Proposal-to-Plan Engine
   version: 0.1.0-bootstrap
   status: bootstrap_manual
+  domain: software
 storage:
   mode: file_based
   documents_format: markdown

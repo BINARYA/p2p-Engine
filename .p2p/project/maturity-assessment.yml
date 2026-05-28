@@ -1,0 +1,419 @@
+generated_on: '2026-05-28'
+assessment_type: project_definition_maturity
+domain: software
+score: 100
+status: well_defined
+criteria:
+- id: problem_definition
+  title: Problem Definition
+  status: covered
+  score: 100
+  required: true
+  evidence:
+  - type: proposal
+    id: PROP-001
+    title: CLI Foundation
+    state: accepted
+    matched: problem, need, goal, context
+  - type: proposal
+    id: PROP-004
+    title: Prompt-only Import Workflow
+    state: accepted
+    matched: problem, need, goal, context
+  - type: proposal
+    id: PROP-005
+    title: Codex Skill Integration
+    state: accepted
+    matched: problem, goal, context
+  - type: proposal
+    id: PROP-009
+    title: Governance CLI Commands
+    state: accepted
+    matched: problem, goal, context
+  - type: proposal
+    id: PROP-010
+    title: P2P Project State Model
+    state: accepted
+    matched: problem, need, goal, context
+  suggested_action: ''
+- id: scope_boundaries
+  title: Scope Boundaries
+  status: covered
+  score: 100
+  required: true
+  evidence:
+  - type: proposal
+    id: PROP-001
+    title: CLI Foundation
+    state: accepted
+    matched: scope, non-goal, boundary, out of scope
+  - type: proposal
+    id: PROP-004
+    title: Prompt-only Import Workflow
+    state: accepted
+    matched: non-goal
+  - type: proposal
+    id: PROP-005
+    title: Codex Skill Integration
+    state: accepted
+    matched: non-goal
+  - type: proposal
+    id: PROP-009
+    title: Governance CLI Commands
+    state: accepted
+    matched: scope, non-goal
+  - type: proposal
+    id: PROP-010
+    title: P2P Project State Model
+    state: accepted
+    matched: scope, non-goal
+  suggested_action: ''
+- id: user_workflows
+  title: User Roles and Workflows
+  status: covered
+  score: 100
+  required: true
+  evidence:
+  - type: proposal
+    id: PROP-001
+    title: CLI Foundation
+    state: accepted
+    matched: user, workflow
+  - type: proposal
+    id: PROP-004
+    title: Prompt-only Import Workflow
+    state: accepted
+    matched: workflow
+  - type: proposal
+    id: PROP-005
+    title: Codex Skill Integration
+    state: accepted
+    matched: workflow
+  - type: proposal
+    id: PROP-009
+    title: Governance CLI Commands
+    state: accepted
+    matched: workflow, role
+  - type: proposal
+    id: PROP-013
+    title: Managed Git Adapter and Change Set Model
+    state: accepted
+    matched: user, workflow
+  suggested_action: ''
+- id: functional_requirements
+  title: Functional Requirements
+  status: covered
+  score: 100
+  required: true
+  evidence:
+  - type: proposal
+    id: PROP-001
+    title: CLI Foundation
+    state: accepted
+    matched: command, acceptance
+  - type: proposal
+    id: PROP-004
+    title: Prompt-only Import Workflow
+    state: accepted
+    matched: command, acceptance
+  - type: proposal
+    id: PROP-005
+    title: Codex Skill Integration
+    state: accepted
+    matched: acceptance
+  - type: proposal
+    id: PROP-009
+    title: Governance CLI Commands
+    state: accepted
+    matched: command, acceptance
+  - type: proposal
+    id: PROP-010
+    title: P2P Project State Model
+    state: accepted
+    matched: feature, acceptance
+  suggested_action: ''
+- id: non_functional_requirements
+  title: Non-Functional Requirements
+  status: covered
+  score: 100
+  required: true
+  evidence:
+  - type: proposal
+    id: PROP-001
+    title: CLI Foundation
+    state: accepted
+    matched: compatibility
+  - type: proposal
+    id: PROP-054
+    title: Project Readiness and Maturity Assessment
+    state: accepted
+    matched: maintainability
+  - type: proposal
+    id: PROP-055
+    title: Agent Token Budget and Context Discipline
+    state: accepted
+    matched: performance
+  - type: change
+    id: CHANGE-039
+    title: Project Readiness Assessment MVP
+    state: completed
+    matched: maintainability
+  suggested_action: ''
+- id: security_privacy
+  title: Security and Privacy
+  status: covered
+  score: 100
+  required: true
+  evidence:
+  - type: proposal
+    id: PROP-001
+    title: CLI Foundation
+    state: accepted
+    matched: security, permission, auth
+  - type: proposal
+    id: PROP-018
+    title: Choice Management CLI MVP
+    state: accepted
+    matched: permission
+  - type: proposal
+    id: PROP-044
+    title: P2P MCP Server MVP
+    state: accepted
+    matched: auth
+  - type: proposal
+    id: PROP-054
+    title: Project Readiness and Maturity Assessment
+    state: accepted
+    matched: security
+  - type: proposal
+    id: PROP-056
+    title: Project Definition Maturity Rubrics
+    state: accepted
+    matched: security, privacy
+  suggested_action: ''
+- id: data_model
+  title: Data Model
+  status: covered
+  score: 100
+  required: true
+  evidence:
+  - type: proposal
+    id: PROP-001
+    title: CLI Foundation
+    state: accepted
+    matched: schema, yaml
+  - type: proposal
+    id: PROP-013
+    title: Managed Git Adapter and Change Set Model
+    state: accepted
+    matched: yaml
+  - type: proposal
+    id: PROP-016
+    title: Project Registries MVP
+    state: accepted
+    matched: registry
+  - type: proposal
+    id: PROP-017
+    title: Proposal Intake and Context Analysis MVP
+    state: accepted
+    matched: registry
+  - type: proposal
+    id: PROP-020
+    title: Proposal Inspection CLI MVP
+    state: accepted
+    matched: registry
+  suggested_action: ''
+- id: integration_boundaries
+  title: Integration Boundaries
+  status: covered
+  score: 100
+  required: true
+  evidence:
+  - type: proposal
+    id: PROP-001
+    title: CLI Foundation
+    state: accepted
+    matched: integration, mcp, api, adapter, boundary
+  - type: proposal
+    id: PROP-004
+    title: Prompt-only Import Workflow
+    state: accepted
+    matched: mcp, adapter
+  - type: proposal
+    id: PROP-005
+    title: Codex Skill Integration
+    state: accepted
+    matched: integration, mcp
+  - type: proposal
+    id: PROP-013
+    title: Managed Git Adapter and Change Set Model
+    state: accepted
+    matched: adapter
+  - type: proposal
+    id: PROP-017
+    title: Proposal Intake and Context Analysis MVP
+    state: accepted
+    matched: mcp, adapter
+  suggested_action: ''
+- id: deployment_operations
+  title: Deployment and Operations
+  status: covered
+  score: 100
+  required: true
+  evidence:
+  - type: proposal
+    id: PROP-001
+    title: CLI Foundation
+    state: accepted
+    matched: install, deploy, local
+  - type: proposal
+    id: PROP-005
+    title: Codex Skill Integration
+    state: accepted
+    matched: local
+  - type: proposal
+    id: PROP-011
+    title: Project Refresh MVP
+    state: accepted
+    matched: local
+  - type: proposal
+    id: PROP-012
+    title: Impact Map and Conflict Memory
+    state: accepted
+    matched: local
+  - type: proposal
+    id: PROP-014
+    title: Change Set Metadata MVP
+    state: accepted
+    matched: local
+  suggested_action: ''
+- id: testing_strategy
+  title: Testing Strategy
+  status: covered
+  score: 100
+  required: true
+  evidence:
+  - type: proposal
+    id: PROP-001
+    title: CLI Foundation
+    state: accepted
+    matched: test, validation
+  - type: proposal
+    id: PROP-004
+    title: Prompt-only Import Workflow
+    state: accepted
+    matched: test
+  - type: proposal
+    id: PROP-027
+    title: Software Spec Exporter MVP
+    state: accepted
+    matched: test
+  - type: proposal
+    id: PROP-028
+    title: Spec Kit Export Mapping MVP
+    state: accepted
+    matched: test
+  - type: proposal
+    id: PROP-029
+    title: Spec Export Validation MVP
+    state: accepted
+    matched: test, validation
+  suggested_action: ''
+- id: ux_accessibility
+  title: UX and Accessibility
+  status: covered
+  score: 100
+  required: true
+  evidence:
+  - type: proposal
+    id: PROP-017
+    title: Proposal Intake and Context Analysis MVP
+    state: accepted
+    matched: usability
+  - type: proposal
+    id: PROP-047
+    title: Guided Init Wizard MVP
+    state: accepted
+    matched: wizard
+  - type: proposal
+    id: PROP-054
+    title: Project Readiness and Maturity Assessment
+    state: accepted
+    matched: usability
+  - type: proposal
+    id: PROP-056
+    title: Project Definition Maturity Rubrics
+    state: accepted
+    matched: ux, accessibility, wizard
+  - type: proposal
+    id: PROP-057
+    title: Guided Rubric Selection During Init
+    state: accepted
+    matched: wizard, onboarding
+  suggested_action: ''
+- id: risks_tradeoffs
+  title: Risks and Tradeoffs
+  status: covered
+  score: 100
+  required: true
+  evidence:
+  - type: proposal
+    id: PROP-001
+    title: CLI Foundation
+    state: accepted
+    matched: risk, alternative
+  - type: proposal
+    id: PROP-005
+    title: Codex Skill Integration
+    state: accepted
+    matched: risk
+  - type: proposal
+    id: PROP-009
+    title: Governance CLI Commands
+    state: accepted
+    matched: alternative, constraint
+  - type: proposal
+    id: PROP-010
+    title: P2P Project State Model
+    state: accepted
+    matched: alternative
+  - type: proposal
+    id: PROP-012
+    title: Impact Map and Conflict Memory
+    state: accepted
+    matched: alternative
+  suggested_action: ''
+- id: acceptance_criteria
+  title: Acceptance Criteria
+  status: covered
+  score: 100
+  required: true
+  evidence:
+  - type: proposal
+    id: PROP-001
+    title: CLI Foundation
+    state: accepted
+    matched: acceptance, criteria
+  - type: proposal
+    id: PROP-004
+    title: Prompt-only Import Workflow
+    state: accepted
+    matched: acceptance, criteria
+  - type: proposal
+    id: PROP-005
+    title: Codex Skill Integration
+    state: accepted
+    matched: acceptance, criteria
+  - type: proposal
+    id: PROP-009
+    title: Governance CLI Commands
+    state: accepted
+    matched: acceptance, criteria
+  - type: proposal
+    id: PROP-010
+    title: P2P Project State Model
+    state: accepted
+    matched: acceptance, criteria
+  suggested_action: ''
+gaps: []
+suggested_actions: []

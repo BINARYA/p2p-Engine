@@ -199,3 +199,15 @@ P2P projects can now be manipulated through CLI and MCP, but there is no deeper 
 ## PROP-054 - Project Readiness and Maturity Assessment
 
 P2P can track proposals, choices, changes, work, validation and MCP workflows, but it does not yet provide a structured assessment of how complete or mature a project is. Users need a way to understand whether a project is ready to proceed and which gaps matter most in the project context.
+
+## PROP-055 - Agent Token Budget and Context Discipline
+
+P2P Engine reduces conversational memory by storing governance state in .p2p and Git, but agents can still consume excessive tokens by scanning broad project context, reading full registries, loading many proposal/change files, or explaining artifacts from conversation memory instead of compact deterministic views. This is especially visible in the P2P Engine repository because the project is using P2P to build P2P, but the risk applies to any large P2P workspace used by CLI or MCP agents.
+
+## PROP-056 - Project Definition Maturity Rubrics
+
+P2P assess currently measures deterministic structural readiness: validation, registries, proposal status, choices, changes, work items, and operational brief availability. This is useful, but it does not evaluate whether the planned project definition covers the important topics for its domain. For P2P exports, the main question is not whether implementation is complete, but whether the project has been sufficiently defined through proposals, decisions, tradeoffs, risks, requirements, and acceptance criteria.
+
+## PROP-057 - Guided Rubric Selection During Init
+
+The init wizard now asks for a project domain and generates domain rubrics automatically, but the owner cannot confirm which suggested criteria should actually drive project definition maturity. This makes the rubric feel imposed by the system instead of selected as part of project governance.

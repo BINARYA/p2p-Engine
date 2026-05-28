@@ -178,6 +178,38 @@ class ProjectAssessment:
 
 
 @dataclass(frozen=True)
+class ProjectRubrics:
+    path: Path
+    domain: str
+    criteria: list[dict[str, object]]
+
+
+@dataclass(frozen=True)
+class ProjectDefinitionMaturity:
+    path: Path
+    generated_on: str
+    domain: str
+    score: int
+    status: str
+    criteria: list[dict[str, object]]
+    gaps: list[str]
+    suggested_actions: list[str]
+
+
+@dataclass(frozen=True)
+class ContextPacket:
+    budget: str
+    target: str | None
+    current_state: dict[str, object]
+    next_actions: list[dict[str, object]]
+    relevant_artifacts: list[dict[str, object]]
+    allowed_commands: list[str]
+    do_not_read: list[str]
+    bounded_next_step: str
+    notes: list[str]
+
+
+@dataclass(frozen=True)
 class NextAction:
     action_id: str
     priority: str
@@ -520,9 +552,12 @@ class P2PWorkspace:
         name: str,
         agent_profile: str = "generic",
         repository_mode: str = "local",
+        project_domain: str = "generic",
+        rubric_enabled: dict[str, bool] | None = None,
     ) -> list[Path]:
         agent_profile = _normalize_agent_profile(agent_profile)
         repository_mode = _normalize_repository_mode(repository_mode)
+        project_domain = _normalize_project_domain(project_domain)
         project_id = _slugify(name)
         files: dict[Path, str] = {
             self.p2p_dir / "project.yml": _yaml_dump(
@@ -532,6 +567,7 @@ class P2PWorkspace:
                         "name": name,
                         "version": "0.1.0",
                         "status": "active",
+                        "domain": project_domain,
                     },
                     "storage": {
                         "mode": "file_based",
@@ -553,6 +589,9 @@ class P2PWorkspace:
             self.p2p_dir / "templates" / "decision-template.md": "# Decision - {{ proposal_id }}\n",
             self.p2p_dir / "templates" / "execution-plan-template.md": "# Execution Plan - {{ proposal_id }}\n",
             self.p2p_dir / "templates" / "tasks-template.yml": "tasks: []\n",
+            self.p2p_dir / "project" / "rubrics.yml": _yaml_dump(
+                _rubrics_payload(project_domain, rubric_enabled=rubric_enabled)
+            ),
         }
         created: list[Path] = []
         for path, content in files.items():
@@ -1515,6 +1554,189 @@ class P2PWorkspace:
             maturity_score=maturity.get("score") if isinstance(maturity.get("score"), int) else None,
         )
 
+    def init_project_rubrics(self, domain: str = "generic", force: bool = False) -> ProjectRubrics:
+        domain = _normalize_project_domain(domain)
+        path = self.p2p_dir / "project" / "rubrics.yml"
+        if path.exists() and not force:
+            raise ValueError("Project rubrics already exist. Use --force to replace them.")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = _rubrics_payload(domain)
+        path.write_text(_yaml_dump(payload), encoding="utf-8")
+        project_file = self.p2p_dir / "project.yml"
+        data = _read_yaml_mapping(project_file, default={})
+        project = data.get("project", {})
+        if not isinstance(project, dict):
+            project = {}
+        project["domain"] = domain
+        data["project"] = project
+        project_file.write_text(_yaml_dump(data), encoding="utf-8")
+        return self.show_project_rubrics()
+
+    def init_project_rubrics_preview(self, domain: str = "generic") -> list[dict[str, object]]:
+        payload = _rubrics_payload(domain)
+        criteria = payload.get("criteria", [])
+        return [item for item in criteria if isinstance(item, dict)] if isinstance(criteria, list) else []
+
+    def show_project_rubrics(self) -> ProjectRubrics:
+        path = self.p2p_dir / "project" / "rubrics.yml"
+        if not path.exists():
+            raise ValueError("Project rubrics not found. Run `p2p project rubrics init` first.")
+        data = _read_yaml_mapping(path, default={})
+        domain = str(data.get("domain") or "generic")
+        criteria = data.get("criteria", [])
+        if not isinstance(criteria, list):
+            criteria = []
+        return ProjectRubrics(
+            path=path.relative_to(self.root),
+            domain=domain,
+            criteria=[item for item in criteria if isinstance(item, dict)],
+        )
+
+    def refresh_definition_maturity(self) -> ProjectDefinitionMaturity:
+        maturity = self._compute_definition_maturity()
+        path = self.p2p_dir / "project" / "maturity-assessment.yml"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(_yaml_dump(_definition_maturity_payload(maturity)), encoding="utf-8")
+        return maturity
+
+    def show_definition_maturity(self) -> ProjectDefinitionMaturity:
+        path = self.p2p_dir / "project" / "maturity-assessment.yml"
+        if not path.exists():
+            raise ValueError("Project definition maturity not found. Run `p2p assess maturity refresh` first.")
+        data = _read_yaml_mapping(path, default={})
+        criteria = data.get("criteria", [])
+        gaps = data.get("gaps", [])
+        suggested = data.get("suggested_actions", [])
+        return ProjectDefinitionMaturity(
+            path=path.relative_to(self.root),
+            generated_on=str(data.get("generated_on") or ""),
+            domain=str(data.get("domain") or "generic"),
+            score=int(data.get("score") or 0),
+            status=str(data.get("status") or "unknown"),
+            criteria=[item for item in criteria if isinstance(item, dict)] if isinstance(criteria, list) else [],
+            gaps=[str(item) for item in gaps] if isinstance(gaps, list) else [],
+            suggested_actions=[str(item) for item in suggested] if isinstance(suggested, list) else [],
+        )
+
+    def _compute_definition_maturity(self) -> ProjectDefinitionMaturity:
+        rubrics = self.show_project_rubrics()
+        evidence = self._definition_evidence_records()
+        results: list[dict[str, object]] = []
+        gaps: list[str] = []
+        suggested_actions: list[str] = []
+        scores: list[int] = []
+
+        for criterion in rubrics.criteria:
+            if criterion.get("enabled") is False:
+                continue
+            criterion_id = str(criterion.get("id") or "unknown")
+            title = str(criterion.get("title") or criterion_id)
+            keywords = [str(item).lower() for item in criterion.get("keywords", []) if str(item).strip()]
+            matches = self._criterion_matches(evidence, keywords)
+            accepted = [item for item in matches if item["state"] in {"accepted", "completed"}]
+            partial = [item for item in matches if item["state"] not in {"accepted", "completed"}]
+            if accepted:
+                status = "covered"
+                score = 100
+                criterion_evidence = accepted[:5]
+            elif partial:
+                status = "partial"
+                score = 50
+                criterion_evidence = partial[:5]
+                gaps.append(f"{title} is only partially covered.")
+                suggested_actions.append(f"Create or accept a proposal covering {title}.")
+            else:
+                status = "missing"
+                score = 0
+                criterion_evidence = []
+                gaps.append(f"{title} has no clear P2P coverage.")
+                suggested_actions.append(f"Create a proposal covering {title}.")
+            scores.append(score)
+            results.append(
+                {
+                    "id": criterion_id,
+                    "title": title,
+                    "status": status,
+                    "score": score,
+                    "required": bool(criterion.get("required", True)),
+                    "evidence": criterion_evidence,
+                    "suggested_action": suggested_actions[-1] if status != "covered" else "",
+                }
+            )
+
+        score = round(sum(scores) / len(scores)) if scores else 0
+        if score >= 85:
+            status = "well_defined"
+        elif score >= 60:
+            status = "partially_defined"
+        elif score > 0:
+            status = "underdefined"
+        else:
+            status = "not_defined"
+        return ProjectDefinitionMaturity(
+            path=(self.p2p_dir / "project" / "maturity-assessment.yml").relative_to(self.root),
+            generated_on=date.today().isoformat(),
+            domain=rubrics.domain,
+            score=score,
+            status=status,
+            criteria=results,
+            gaps=gaps,
+            suggested_actions=list(dict.fromkeys(suggested_actions)),
+        )
+
+    def _definition_evidence_records(self) -> list[dict[str, str]]:
+        records: list[dict[str, str]] = []
+        for proposal in self.proposal_summaries():
+            proposal_dir = self._find_proposal_dir(proposal.proposal_id)
+            text = _read_optional(proposal_dir / "proposal.md") + "\n" + _read_optional(
+                proposal_dir / "decision.md"
+            )
+            records.append(
+                {
+                    "type": "proposal",
+                    "id": proposal.proposal_id,
+                    "title": proposal.title,
+                    "state": proposal.status,
+                    "text": text.lower(),
+                }
+            )
+        for change in self.change_set_statuses():
+            change_dir = self._find_change_dir(change.change_id)
+            text = _read_optional(change_dir / "change.md") + "\n" + _read_optional(
+                change_dir / "tasks.yml"
+            )
+            records.append(
+                {
+                    "type": "change",
+                    "id": change.change_id,
+                    "title": change.title,
+                    "state": change.status,
+                    "text": text.lower(),
+                }
+            )
+        return records
+
+    def _criterion_matches(
+        self,
+        evidence: list[dict[str, str]],
+        keywords: list[str],
+    ) -> list[dict[str, str]]:
+        matches: list[dict[str, str]] = []
+        for item in evidence:
+            text = item["text"]
+            matched = [keyword for keyword in keywords if keyword in text]
+            if matched:
+                matches.append(
+                    {
+                        "type": item["type"],
+                        "id": item["id"],
+                        "title": item["title"],
+                        "state": item["state"],
+                        "matched": ", ".join(matched[:5]),
+                    }
+                )
+        return matches
+
     def _compute_project_assessment(self) -> ProjectAssessment:
         validation = self.validate()
         registry_status = self.registry_status()
@@ -1660,6 +1882,14 @@ class P2PWorkspace:
         else:
             confidence = "high"
 
+        maturity_status = "not_assessed"
+        maturity_score = None
+        maturity_path = self.p2p_dir / "project" / "maturity-assessment.yml"
+        if maturity_path.exists():
+            maturity = self.show_definition_maturity()
+            maturity_status = maturity.status
+            maturity_score = maturity.score
+
         return ProjectAssessment(
             path=(self.p2p_dir / "project" / "assessment.yml").relative_to(self.root),
             generated_on=date.today().isoformat(),
@@ -1670,9 +1900,221 @@ class P2PWorkspace:
             factors=factors,
             gaps=gaps,
             suggested_actions=suggested_actions,
-            maturity_status="not_assessed",
-            maturity_score=None,
+            maturity_status=maturity_status,
+            maturity_score=maturity_score,
         )
+
+    def context_packet(self, budget: str = "small", target: str | None = None) -> ContextPacket:
+        budget = budget.strip().lower()
+        if budget not in {"small", "medium"}:
+            raise ValueError("Context budget must be small or medium")
+        normalized_target = target.strip().upper() if target else None
+        validation = self.validate()
+        registry_status = self.registry_status()
+        project_status = self.project_state_status()
+        proposals = self.proposal_summaries()
+        choices = self.choice_statuses()
+        changes = self.change_set_statuses()
+        works = self.work_summaries()
+        next_actions = self.next_actions(limit=3)
+
+        current_state = {
+            "project": self._project_name(),
+            "validation": {
+                "ok": validation.ok,
+                "errors": validation.errors,
+                "warnings": validation.warnings,
+            },
+            "registries_stale": registry_status.stale,
+            "accepted_proposals": project_status.accepted_proposals,
+            "proposals": len(proposals),
+            "draft_proposals": len([proposal for proposal in proposals if proposal.status == "draft"]),
+            "choices": len(choices),
+            "open_choices": len(
+                [
+                    choice
+                    for choice in choices
+                    if choice.status in {"open", "draft", "pending"} and not choice.selected_option
+                ]
+            ),
+            "changes": len(changes),
+            "active_changes": len(
+                [
+                    change
+                    for change in changes
+                    if change.status not in {"completed", "cancelled", "superseded"}
+                ]
+            ),
+            "work_items": len(works),
+            "operational_brief_available": project_status.operational_brief_available,
+        }
+
+        relevant_artifacts = (
+            [self._context_artifact(normalized_target, budget)] if normalized_target else self._default_context_artifacts()
+        )
+        allowed_commands = self._context_allowed_commands(normalized_target)
+        bounded_next_step = (
+            allowed_commands[0]
+            if normalized_target and allowed_commands
+            else next_actions[0].command
+            if next_actions and next_actions[0].command
+            else "p2p next --top 1"
+        )
+        notes = [
+            "Read compact context first; read full artifacts only by explicit ID.",
+            "Owner-controlled governance decisions still require explicit owner instruction.",
+        ]
+        if budget == "small":
+            notes.append("Small budget omits full document bodies and favors IDs, statuses, paths, and commands.")
+
+        return ContextPacket(
+            budget=budget,
+            target=normalized_target,
+            current_state=current_state,
+            next_actions=[
+                {
+                    "id": action.action_id,
+                    "priority": action.priority,
+                    "kind": action.kind,
+                    "target": action.target,
+                    "reason": action.reason,
+                    "command": action.command,
+                }
+                for action in next_actions
+            ],
+            relevant_artifacts=relevant_artifacts,
+            allowed_commands=allowed_commands,
+            do_not_read=[
+                "Do not scan all .p2p/ directories.",
+                "Do not read all registries when this context packet is sufficient.",
+                "Do not read all proposal, choice, change, or work files without a target ID.",
+                "Do not inspect source code or Git history unless the task explicitly requires implementation details.",
+                "Do not explain saved P2P artifacts from conversation memory; use show/context commands.",
+            ],
+            bounded_next_step=bounded_next_step,
+            notes=notes,
+        )
+
+    def _default_context_artifacts(self) -> list[dict[str, object]]:
+        artifacts: list[dict[str, object]] = []
+        for proposal in self.proposal_summaries(status="draft")[:3]:
+            artifacts.append(
+                {
+                    "type": "proposal",
+                    "id": proposal.proposal_id,
+                    "status": proposal.status,
+                    "title": proposal.title,
+                    "path": proposal.slug,
+                    "command": f"p2p proposal show {proposal.proposal_id}",
+                }
+            )
+        for choice in self.choice_statuses()[:3]:
+            if choice.status in {"open", "draft", "pending"} and not choice.selected_option:
+                artifacts.append(
+                    {
+                        "type": "choice",
+                        "id": choice.choice_id,
+                        "status": choice.status,
+                        "title": choice.title,
+                        "path": choice.path,
+                        "command": f"p2p choice show {choice.choice_id}",
+                    }
+                )
+        for change in self.change_set_statuses()[:3]:
+            if change.status not in {"completed", "cancelled", "superseded"}:
+                artifacts.append(
+                    {
+                        "type": "change",
+                        "id": change.change_id,
+                        "status": change.status,
+                        "title": change.title,
+                        "path": change.path,
+                        "command": f"p2p change show {change.change_id}",
+                    }
+                )
+        return artifacts[:5]
+
+    def _context_artifact(self, target: str, budget: str) -> dict[str, object]:
+        if target.startswith("PROP-"):
+            detail = self.show_proposal(target)
+            artifact: dict[str, object] = {
+                "type": "proposal",
+                "id": detail.proposal_id,
+                "status": detail.status,
+                "title": detail.title,
+                "decision_status": detail.decision_status,
+                "path": detail.path,
+                "command": f"p2p proposal show {detail.proposal_id}",
+            }
+            if budget == "medium":
+                artifact["problem"] = _short_text(detail.problem)
+                artifact["proposal"] = _short_text(detail.proposal)
+            return artifact
+        if target.startswith("CHANGE-"):
+            detail = self.show_change_set(target)
+            artifact = {
+                "type": "change",
+                "id": detail.change_id,
+                "status": detail.status,
+                "title": detail.title,
+                "path": detail.path,
+                "command": f"p2p change show {detail.change_id}",
+            }
+            if budget == "medium":
+                artifact["summary"] = _short_text(detail.summary)
+            return artifact
+        if target.startswith("CHOICE-"):
+            detail = self.show_choice(target)
+            return {
+                "type": "choice",
+                "id": detail.choice_id,
+                "status": detail.status,
+                "title": detail.title,
+                "selected_option": detail.selected_option,
+                "options_count": len(detail.options),
+                "path": detail.path,
+                "command": f"p2p choice show {detail.choice_id}",
+            }
+        if target.startswith("WORK-"):
+            detail = self.show_work(target)
+            return {
+                "type": "work",
+                "id": detail.work_id,
+                "status": detail.status,
+                "change_id": detail.change_id,
+                "target": detail.target,
+                "branch_name": detail.branch_name,
+                "path": detail.path,
+                "command": f"p2p work show {detail.work_id}",
+            }
+        raise ValueError("Context target must start with PROP-, CHANGE-, CHOICE-, or WORK-")
+
+    def _context_allowed_commands(self, target: str | None) -> list[str]:
+        commands = [
+            "p2p context --budget small",
+            "p2p next --top 1",
+            "p2p validate",
+            "p2p assess show",
+        ]
+        if target is None:
+            commands.extend(
+                [
+                    "p2p proposal list",
+                    "p2p choice list",
+                    "p2p change status",
+                    "p2p work status",
+                ]
+            )
+            return commands
+        if target.startswith("PROP-"):
+            return [f"p2p proposal show {target}", f"p2p context --target {target} --budget medium", *commands]
+        if target.startswith("CHANGE-"):
+            return [f"p2p change show {target}", f"p2p context --target {target} --budget medium", *commands]
+        if target.startswith("CHOICE-"):
+            return [f"p2p choice show {target}", f"p2p context --target {target} --budget medium", *commands]
+        if target.startswith("WORK-"):
+            return [f"p2p work show {target}", f"p2p context --target {target} --budget medium", *commands]
+        return commands
 
     def refresh_software_spec(self, change_id: str) -> SoftwareSpecStatus:
         change_dir = self._find_change_dir(change_id)
@@ -4354,6 +4796,148 @@ class P2PWorkspace:
 
 AGENT_PROFILES = {"generic", "codex", "claude", "all"}
 REPOSITORY_MODES = {"local", "cloud"}
+PROJECT_DOMAINS = {"generic", "software", "grant_document", "board_game"}
+
+_BUILT_IN_RUBRICS: dict[str, list[dict[str, object]]] = {
+    "generic": [
+        {
+            "id": "problem_definition",
+            "title": "Problem Definition",
+            "keywords": ["problem", "need", "objective", "goal", "context"],
+        },
+        {
+            "id": "scope_boundaries",
+            "title": "Scope Boundaries",
+            "keywords": ["scope", "non-goal", "boundary", "out of scope"],
+        },
+        {
+            "id": "requirements",
+            "title": "Requirements",
+            "keywords": ["requirement", "criteria", "acceptance", "must"],
+        },
+        {
+            "id": "risks_tradeoffs",
+            "title": "Risks and Tradeoffs",
+            "keywords": ["risk", "tradeoff", "alternative", "constraint"],
+        },
+        {
+            "id": "validation_plan",
+            "title": "Validation Plan",
+            "keywords": ["test", "validation", "verify", "acceptance"],
+        },
+    ],
+    "software": [
+        {
+            "id": "problem_definition",
+            "title": "Problem Definition",
+            "keywords": ["problem", "need", "objective", "goal", "context"],
+        },
+        {
+            "id": "scope_boundaries",
+            "title": "Scope Boundaries",
+            "keywords": ["scope", "non-goal", "boundary", "out of scope"],
+        },
+        {
+            "id": "user_workflows",
+            "title": "User Roles and Workflows",
+            "keywords": ["user", "workflow", "role", "journey", "onboarding"],
+        },
+        {
+            "id": "functional_requirements",
+            "title": "Functional Requirements",
+            "keywords": ["feature", "command", "function", "requirement", "acceptance"],
+        },
+        {
+            "id": "non_functional_requirements",
+            "title": "Non-Functional Requirements",
+            "keywords": ["performance", "reliability", "scalability", "maintainability", "compatibility"],
+        },
+        {
+            "id": "security_privacy",
+            "title": "Security and Privacy",
+            "keywords": ["security", "privacy", "permission", "auth", "malicious", "sandbox"],
+        },
+        {
+            "id": "data_model",
+            "title": "Data Model",
+            "keywords": ["data model", "schema", "yaml", "json", "storage", "registry"],
+        },
+        {
+            "id": "integration_boundaries",
+            "title": "Integration Boundaries",
+            "keywords": ["integration", "mcp", "api", "adapter", "boundary", "interface"],
+        },
+        {
+            "id": "deployment_operations",
+            "title": "Deployment and Operations",
+            "keywords": ["install", "packaging", "deploy", "release", "cloud", "local"],
+        },
+        {
+            "id": "testing_strategy",
+            "title": "Testing Strategy",
+            "keywords": ["test", "pytest", "validation", "verify", "coverage"],
+        },
+        {
+            "id": "ux_accessibility",
+            "title": "UX and Accessibility",
+            "keywords": ["ux", "usability", "accessibility", "wizard", "onboarding"],
+        },
+        {
+            "id": "risks_tradeoffs",
+            "title": "Risks and Tradeoffs",
+            "keywords": ["risk", "tradeoff", "alternative", "constraint"],
+        },
+        {
+            "id": "acceptance_criteria",
+            "title": "Acceptance Criteria",
+            "keywords": ["acceptance", "definition of done", "criteria", "done"],
+        },
+    ],
+    "grant_document": [
+        {
+            "id": "call_requirements",
+            "title": "Call Requirements",
+            "keywords": ["call", "requirement", "eligibility", "deadline"],
+        },
+        {
+            "id": "objectives",
+            "title": "Objectives",
+            "keywords": ["objective", "impact", "beneficiary", "goal"],
+        },
+        {
+            "id": "budget",
+            "title": "Budget",
+            "keywords": ["budget", "cost", "funding", "expense"],
+        },
+        {
+            "id": "evaluation_criteria",
+            "title": "Evaluation Criteria",
+            "keywords": ["evaluation", "score", "criteria", "award"],
+        },
+    ],
+    "board_game": [
+        {
+            "id": "core_loop",
+            "title": "Core Gameplay Loop",
+            "keywords": ["turn", "round", "loop", "gameplay"],
+        },
+        {
+            "id": "components",
+            "title": "Components",
+            "keywords": ["component", "card", "board", "token", "piece"],
+        },
+        {
+            "id": "rules",
+            "title": "Rules",
+            "keywords": ["rule", "action", "phase", "win"],
+        },
+        {
+            "id": "playtesting",
+            "title": "Playtesting",
+            "keywords": ["playtest", "balance", "test", "feedback"],
+        },
+    ],
+}
 
 
 def _normalize_agent_profile(profile: str) -> str:
@@ -4382,6 +4966,48 @@ def _normalize_repository_mode(mode: str) -> str:
     if normalized not in REPOSITORY_MODES:
         raise ValueError("Repository mode must be local or cloud")
     return normalized
+
+
+def _normalize_project_domain(domain: str) -> str:
+    normalized = domain.strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "soft": "software",
+        "software_development": "software",
+        "grant": "grant_document",
+        "bid": "grant_document",
+        "tender": "grant_document",
+        "game": "board_game",
+        "boardgame": "board_game",
+    }
+    normalized = aliases.get(normalized, normalized)
+    if normalized not in PROJECT_DOMAINS:
+        raise ValueError("Project domain must be generic, software, grant_document, or board_game")
+    return normalized
+
+
+def _rubrics_payload(domain: str, rubric_enabled: dict[str, bool] | None = None) -> dict[str, object]:
+    domain = _normalize_project_domain(domain)
+    rubric_enabled = rubric_enabled or {}
+    return {
+        "version": "1.0",
+        "domain": domain,
+        "assessment_type": "project_definition_maturity",
+        "scoring": {
+            "covered": 100,
+            "partial": 50,
+            "missing": 0,
+        },
+        "criteria": [
+            {
+                "id": str(item["id"]),
+                "title": str(item["title"]),
+                "enabled": bool(rubric_enabled.get(str(item["id"]), True)),
+                "required": True,
+                "keywords": list(item.get("keywords", [])),
+            }
+            for item in _BUILT_IN_RUBRICS[domain]
+        ],
+    }
 
 
 def _agent_instruction_files(
@@ -4440,6 +5066,7 @@ def _agent_policy(project_name: str, profiles: list[str], repository_mode: str) 
         "explain_existing_artifacts": {
             "read_before_explaining": True,
             "allowed_sources": [
+                "p2p context",
                 "p2p proposal show",
                 "p2p choice show",
                 "p2p change show",
@@ -4447,6 +5074,14 @@ def _agent_policy(project_name: str, profiles: list[str], repository_mode: str) 
                 "equivalent MCP show/read tools",
             ],
             "avoid_memory_only_explanations": True,
+        },
+        "token_budget": {
+            "compact_context_first": True,
+            "default_command": "p2p context --budget small",
+            "mcp_tool": "p2p_context",
+            "read_details_only_by_id": True,
+            "broad_scans_require_explicit_need": True,
+            "advanced_token_estimation": "deferred",
         },
     }
 
@@ -4494,12 +5129,28 @@ Before explaining an existing proposal, choice, Change Set, or Work item, read i
 
 Use `p2p proposal show`, `p2p choice show`, `p2p change show`, `p2p work show`, or an equivalent MCP show/read tool. Do not explain existing P2P artifacts only from conversation memory.
 
+## Token Budget Discipline
+
+AI is expensive. CLI is cheap. Git is memory. `.p2p` is governance. Owner decides. Agent works in bounded sessions.
+
+Before broad reads, use compact context:
+
+```bash
+p2p context --budget small
+p2p context --target PROP-XXX --budget small
+```
+
+With MCP, use `p2p_context` first.
+
+Read summaries first; read details only by explicit ID. Do not scan all `.p2p/`, all registries, all proposals, all source files, or Git history unless the task explicitly requires it or compact context is insufficient.
+
 ## Recommended Start
 
 Run or request:
 
 ```bash
 p2p status
+p2p context --budget small
 p2p registry refresh
 p2p next
 ```
@@ -4543,11 +5194,14 @@ Use P2P Engine as the source of truth for project governance and planning.
 - Do not edit `.p2p/` internals directly, invent IDs, or synthesize decision files.
 - Do not accept, reject, defer, decide, merge, finalize, or cleanup without explicit owner instruction.
 - Before explaining existing proposals, choices, Change Sets, or Work items, use the relevant `p2p ... show` command or equivalent MCP read tool.
+- Use `p2p context --budget small` or MCP `p2p_context` before broad file reads.
+- Do not scan all `.p2p/`, registries, source files, or Git history unless the task explicitly requires it.
 
 ## Useful Commands
 
 ```bash
 p2p status
+p2p context --budget small
 p2p registry refresh
 p2p next
 p2p proposal list
@@ -4575,6 +5229,8 @@ Key rules:
 - Do not make owner-controlled governance decisions unless the owner explicitly instructs the exact decision.
 - Treat MCP as read-only unless a tool explicitly declares a write operation.
 - Before explaining existing proposals, choices, Change Sets, or Work items, read them with the relevant `p2p ... show` command or equivalent MCP read tool.
+- Use `p2p context --budget small` or MCP `p2p_context` before broad file reads.
+- Do not scan all `.p2p/`, registries, source files, or Git history unless the task explicitly requires it.
 
 Repository mode: `{repository_mode}`.
 """
@@ -4608,11 +5264,31 @@ def _project_assessment_payload(assessment: ProjectAssessment) -> dict[str, obje
     }
 
 
+def _definition_maturity_payload(maturity: ProjectDefinitionMaturity) -> dict[str, object]:
+    return {
+        "generated_on": maturity.generated_on,
+        "assessment_type": "project_definition_maturity",
+        "domain": maturity.domain,
+        "score": maturity.score,
+        "status": maturity.status,
+        "criteria": maturity.criteria,
+        "gaps": maturity.gaps,
+        "suggested_actions": maturity.suggested_actions,
+    }
+
+
 def _relative_to_root(path: Path, root: Path) -> Path:
     try:
         return path.relative_to(root)
     except ValueError:
         return path
+
+
+def _short_text(value: str, limit: int = 360) -> str:
+    text = " ".join(value.split())
+    if len(text) <= limit:
+        return text
+    return text[: limit - 3].rstrip() + "..."
 
 
 def _proposal_markdown(

@@ -13,8 +13,13 @@ TOOL_NAMES = (
     "p2p_agent_instructions_refresh",
     "p2p_registry_refresh",
     "p2p_validate",
+    "p2p_context",
     "p2p_assess_refresh",
     "p2p_assess_show",
+    "p2p_project_rubrics_init",
+    "p2p_project_rubrics_show",
+    "p2p_maturity_refresh",
+    "p2p_maturity_show",
     "p2p_proposal_create",
     "p2p_proposal_update",
     "p2p_proposal_contribution_add",
@@ -57,6 +62,10 @@ def tool_definitions() -> list[dict[str, object]]:
                         "type": "string",
                         "enum": ["local", "cloud"],
                     },
+                    "domain": {
+                        "type": "string",
+                        "enum": ["generic", "software", "grant_document", "board_game"],
+                    },
                 },
                 ["name"],
             ),
@@ -98,6 +107,20 @@ def tool_definitions() -> list[dict[str, object]]:
             "inputSchema": _schema({"root": {"type": "string"}}),
         },
         {
+            "name": "p2p_context",
+            "description": (
+                "Read-only token-aware context tool: return a compact deterministic "
+                "context packet for agents before broad file reads."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "budget": {"type": "string", "enum": ["small", "medium"]},
+                    "target": {"type": "string"},
+                },
+            ),
+        },
+        {
             "name": "p2p_assess_refresh",
             "description": (
                 "Write-safe analysis tool: generate a deterministic project readiness "
@@ -111,6 +134,41 @@ def tool_definitions() -> list[dict[str, object]]:
                 "Read-only analysis tool: show the stored project readiness assessment. "
                 "Does not refresh or mutate project state."
             ),
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_project_rubrics_init",
+            "description": (
+                "Write-safe project setup tool: create deterministic project definition "
+                "rubrics for a domain. Does not make governance decisions."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "domain": {
+                        "type": "string",
+                        "enum": ["generic", "software", "grant_document", "board_game"],
+                    },
+                    "force": {"type": "boolean"},
+                },
+            ),
+        },
+        {
+            "name": "p2p_project_rubrics_show",
+            "description": "Read configured project definition maturity rubrics.",
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_maturity_refresh",
+            "description": (
+                "Write-safe analysis tool: generate deterministic project definition "
+                "maturity from configured rubrics. Does not assess implementation completeness."
+            ),
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_maturity_show",
+            "description": "Read stored project definition maturity assessment.",
             "inputSchema": _schema({"root": {"type": "string"}}),
         },
         {
@@ -285,6 +343,7 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, o
             name=_required(arguments, "name"),
             agent_profile=str(arguments.get("agent") or "generic"),
             repository_mode=str(arguments.get("repository") or "local"),
+            project_domain=str(arguments.get("domain") or "generic"),
         )
         return {
             "initialized": True,
@@ -302,10 +361,34 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, o
         return {"written": _to_jsonable(workspace.refresh_registries())}
     if name == "p2p_validate":
         return {"validation": _to_jsonable(workspace.validate())}
+    if name == "p2p_context":
+        return {
+            "context": _to_jsonable(
+                workspace.context_packet(
+                    budget=str(arguments.get("budget") or "small"),
+                    target=_optional_string(arguments, "target"),
+                )
+            )
+        }
     if name == "p2p_assess_refresh":
         return {"assessment": _to_jsonable(workspace.refresh_project_assessment())}
     if name == "p2p_assess_show":
         return {"assessment": _to_jsonable(workspace.show_project_assessment())}
+    if name == "p2p_project_rubrics_init":
+        return {
+            "rubrics": _to_jsonable(
+                workspace.init_project_rubrics(
+                    domain=str(arguments.get("domain") or "generic"),
+                    force=bool(arguments.get("force") or False),
+                )
+            )
+        }
+    if name == "p2p_project_rubrics_show":
+        return {"rubrics": _to_jsonable(workspace.show_project_rubrics())}
+    if name == "p2p_maturity_refresh":
+        return {"maturity": _to_jsonable(workspace.refresh_definition_maturity())}
+    if name == "p2p_maturity_show":
+        return {"maturity": _to_jsonable(workspace.show_definition_maturity())}
     if name == "p2p_proposal_create":
         proposal = workspace.create_proposal_with_details(
             title=_required(arguments, "title"),

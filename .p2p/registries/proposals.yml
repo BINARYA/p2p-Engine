@@ -1518,3 +1518,101 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-055
+  title: Agent Token Budget and Context Discipline
+  status: accepted
+  path: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline
+  summary: Introduce an Agent Token Budget and Context Discipline with a narrow MVP
+    based on compact deterministic context packets. The first implementation combines
+    skill policy, CLI context view, and MCP context tool. Agents must read compact
+    summaries first, then details only by explicit ID, and stop once the next bounded
+    action is clear. Add p2p context, p2p context --budget small, p2p context --target
+    ID, and an equivalent p2p_context MCP tool. The context output should include
+    current state, next actions, relevant artifacts, allowed commands, explicit do-not-read
+    guidance, and the smallest sufficient next step. Full repository scans, broad
+    .p2p traversal, full registry reads, source-code exploration, and Git history
+    reads are disallowed unless the user task explicitly requires them or the compact
+    context is insufficient. Advanced token estimation, numeric budgets, read tracking,
+    and model-specific optimization are deferred until after the MVP works in practice.
+  decision_file: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/decision.md
+  related_changes:
+  - CHANGE-040
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-056
+  title: Project Definition Maturity Rubrics
+  status: accepted
+  path: .p2p/proposals/PROP-056-project-definition-maturity-rubrics
+  summary: 'Add Project Definition Maturity Rubrics. A project may define a domain
+    and an enabled list of criteria under .p2p/project/rubrics.yml. The first MVP
+    ships deterministic built-in rubrics for at least generic and software domains,
+    with an architecture that can add grant_document, board_game, hardware, service,
+    and other domains later. The init flow should be able to create an initial rubric
+    profile, and a dedicated command should refresh/show maturity assessment. The
+    assessment should scan P2P project artifacts conservatively and report each criterion
+    as covered, partial, or missing, with evidence IDs when available. Scores represent
+    definition maturity: whether the planned project has treated relevant topics enough
+    for export, not whether implementation has been completed.'
+  decision_file: .p2p/proposals/PROP-056-project-definition-maturity-rubrics/decision.md
+  related_changes:
+  - CHANGE-041
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-057
+  title: Guided Rubric Selection During Init
+  status: accepted
+  path: .p2p/proposals/PROP-057-guided-rubric-selection-during-init
+  summary: Add Guided Rubric Selection During Init. When p2p init runs interactively,
+    after project domain selection it should ask whether to customize rubric criteria.
+    If the owner says no, P2P keeps all domain criteria enabled. If the owner says
+    yes, P2P asks an enable/disable confirmation for each suggested criterion and
+    saves the selected enabled flags into .p2p/project/rubrics.yml. Scripted init
+    with a project name remains non-interactive and uses the full default rubric for
+    the selected domain.
+  decision_file: .p2p/proposals/PROP-057-guided-rubric-selection-during-init/decision.md
+  related_changes:
+  - CHANGE-042
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

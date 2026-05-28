@@ -244,3 +244,18 @@ decisions:
   status: accepted
   feature: project-readiness-and-maturity-assessment
   source: .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment
+- proposal: PROP-055
+  title: Agent Token Budget and Context Discipline
+  status: accepted
+  feature: agent-token-budget-and-context-discipline
+  source: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline
+- proposal: PROP-056
+  title: Project Definition Maturity Rubrics
+  status: accepted
+  feature: project-definition-maturity-rubrics
+  source: .p2p/proposals/PROP-056-project-definition-maturity-rubrics
+- proposal: PROP-057
+  title: Guided Rubric Selection During Init
+  status: accepted
+  feature: guided-rubric-selection-during-init
+  source: .p2p/proposals/PROP-057-guided-rubric-selection-during-init

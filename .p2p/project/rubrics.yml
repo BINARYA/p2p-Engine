@@ -1,0 +1,139 @@
+version: '1.0'
+domain: software
+assessment_type: project_definition_maturity
+scoring:
+  covered: 100
+  partial: 50
+  missing: 0
+criteria:
+- id: problem_definition
+  title: Problem Definition
+  enabled: true
+  required: true
+  keywords:
+  - problem
+  - need
+  - objective
+  - goal
+  - context
+- id: scope_boundaries
+  title: Scope Boundaries
+  enabled: true
+  required: true
+  keywords:
+  - scope
+  - non-goal
+  - boundary
+  - out of scope
+- id: user_workflows
+  title: User Roles and Workflows
+  enabled: true
+  required: true
+  keywords:
+  - user
+  - workflow
+  - role
+  - journey
+  - onboarding
+- id: functional_requirements
+  title: Functional Requirements
+  enabled: true
+  required: true
+  keywords:
+  - feature
+  - command
+  - function
+  - requirement
+  - acceptance
+- id: non_functional_requirements
+  title: Non-Functional Requirements
+  enabled: true
+  required: true
+  keywords:
+  - performance
+  - reliability
+  - scalability
+  - maintainability
+  - compatibility
+- id: security_privacy
+  title: Security and Privacy
+  enabled: true
+  required: true
+  keywords:
+  - security
+  - privacy
+  - permission
+  - auth
+  - malicious
+  - sandbox
+- id: data_model
+  title: Data Model
+  enabled: true
+  required: true
+  keywords:
+  - data model
+  - schema
+  - yaml
+  - json
+  - storage
+  - registry
+- id: integration_boundaries
+  title: Integration Boundaries
+  enabled: true
+  required: true
+  keywords:
+  - integration
+  - mcp
+  - api
+  - adapter
+  - boundary
+  - interface
+- id: deployment_operations
+  title: Deployment and Operations
+  enabled: true
+  required: true
+  keywords:
+  - install
+  - packaging
+  - deploy
+  - release
+  - cloud
+  - local
+- id: testing_strategy
+  title: Testing Strategy
+  enabled: true
+  required: true
+  keywords:
+  - test
+  - pytest
+  - validation
+  - verify
+  - coverage
+- id: ux_accessibility
+  title: UX and Accessibility
+  enabled: true
+  required: true
+  keywords:
+  - ux
+  - usability
+  - accessibility
+  - wizard
+  - onboarding
+- id: risks_tradeoffs
+  title: Risks and Tradeoffs
+  enabled: true
+  required: true
+  keywords:
+  - risk
+  - tradeoff
+  - alternative
+  - constraint
+- id: acceptance_criteria
+  title: Acceptance Criteria
+  enabled: true
+  required: true
+  keywords:
+  - acceptance
+  - definition of done
+  - criteria
+  - done

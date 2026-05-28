@@ -634,3 +634,54 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-040
+  title: Agent Token Budget Context MVP
+  status: completed
+  path: .p2p/changes/CHANGE-040-agent-token-budget-context-mvp
+  included_proposals:
+  - PROP-055
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0
+- id: CHANGE-041
+  title: Project Definition Maturity Rubrics MVP
+  status: completed
+  path: .p2p/changes/CHANGE-041-project-definition-maturity-rubrics-mvp
+  included_proposals:
+  - PROP-056
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0
+- id: CHANGE-042
+  title: Guided Rubric Selection MVP
+  status: completed
+  path: .p2p/changes/CHANGE-042-guided-rubric-selection-mvp
+  included_proposals:
+  - PROP-057
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

@@ -26,8 +26,10 @@ From the repository root:
 ```bash
 p2p check
 p2p status
+p2p context --budget small
 p2p validate
 p2p assess refresh
+p2p assess maturity refresh
 p2p registry refresh
 p2p registry status
 ```
@@ -74,8 +76,13 @@ p2p_init_project
 p2p_agent_instructions_refresh
 p2p_registry_refresh
 p2p_validate
+p2p_context
 p2p_assess_refresh
 p2p_assess_show
+p2p_project_rubrics_init
+p2p_project_rubrics_show
+p2p_maturity_refresh
+p2p_maturity_show
 p2p_proposal_create
 p2p_proposal_update
 p2p_proposal_contribution_add
@@ -88,7 +95,28 @@ p2p_conflict_status
 p2p_impact_prompt
 ```
 
-These tools may initialize projects, refresh agent instructions, regenerate deterministic registries, validate project state, generate/show deterministic readiness assessments, create and refine draft proposals, append proposal contributions, create/list intake prompts, generate/show operational brief artifacts, discover choice candidates, inspect recorded conflicts, and generate impact prompts. They do not authorize governance decisions, conflict recording, choice blocking/deciding, intake apply actions, brief imports, impact imports, or managed-work lifecycle actions.
+These tools may initialize projects, refresh agent instructions, regenerate deterministic registries, validate project state, return compact context packets, generate/show deterministic readiness assessments, initialize/show project definition rubrics, generate/show deterministic project definition maturity, create and refine draft proposals, append proposal contributions, create/list intake prompts, generate/show operational brief artifacts, discover choice candidates, inspect recorded conflicts, and generate impact prompts. They do not authorize governance decisions, conflict recording, choice blocking/deciding, intake apply actions, brief imports, impact imports, or managed-work lifecycle actions.
+
+## Token Budget Discipline
+
+AI is expensive. CLI is cheap. Git is memory. `.p2p` is governance. Owner decides. Agent works in bounded sessions.
+
+Before broad reads, ask the engine for compact context:
+
+```bash
+p2p context --budget small
+p2p context --target PROP-XXX --budget small
+```
+
+With MCP, use `p2p_context` first. Treat the context packet as the default boundary for exploration.
+
+Rules:
+
+- Read summaries first; read details only by explicit ID.
+- Prefer IDs, statuses, paths, and commands over full document bodies.
+- Stop once the next bounded action is clear.
+- Do not scan all `.p2p/`, all registries, all proposals, all source files, or Git history unless the task explicitly requires it or compact context is insufficient.
+- If compact context is insufficient, state what is missing before expanding reads.
 
 Before creating new proposal artifacts, inspect current state:
 
@@ -105,6 +133,7 @@ When the user asks where the project stands or what to do next, prefer the opera
 p2p project brief prompt
 p2p project brief import brief-output/
 p2p project brief show
+p2p context --budget small
 p2p next
 p2p next --top 1
 p2p assess refresh
@@ -114,6 +143,7 @@ p2p assess show
 The skill guides the agent's synthesis behavior. The CLI owns the repeatable project context and stores the resulting `operational-brief.md` and optional `next-actions.yml` under `.p2p/project/`.
 `p2p next` is advisory only: it reads stored next actions when available and falls back to conservative project-state checks, but it must not modify project state or decide on behalf of the owner.
 `p2p assess refresh` is deterministic readiness analysis. It may report completion score, confidence, gaps, and suggested commands, but the MVP maturity score remains `not_assessed` until project-domain rubrics are explicitly defined and accepted.
+`p2p assess maturity refresh` is project definition maturity, not implementation completeness. It checks whether enabled rubric topics are covered by P2P proposals, decisions, and Change Sets. Use `p2p project rubrics show` to inspect the domain checklist.
 
 ## When To Create A Proposal
 

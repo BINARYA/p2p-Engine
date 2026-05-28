@@ -601,3 +601,49 @@ Generated from accepted proposal goals and non-goals.
 
 - Do not let P2P automatically decide that a project is ready or block work solely from a maturity score.
 - Do not produce a single opaque score without criteria, confidence and known gaps.
+
+## PROP-055 - Agent Token Budget and Context Discipline
+
+### Goals
+
+- Define a token-aware operating policy for agents.
+- Prefer compact deterministic context views before detailed file reads.
+- Make CLI and MCP expose bounded context packets for common agent tasks.
+- Prevent agents from scanning unrelated .p2p, source, test, or Git history context when a smaller command output is enough.
+
+### Non-Goals
+
+- Do not remove detailed proposal/change/registry commands.
+- Do not introduce autonomous AI decision-making inside the core.
+- Do not optimize runtime performance or rewrite the CLI in Rust as part of this proposal.
+
+## PROP-056 - Project Definition Maturity Rubrics
+
+### Goals
+
+- Separate structural readiness from project definition maturity.
+- Introduce extensible domain rubrics stored as project state.
+- Evaluate whether important project topics have been covered by proposals and decisions.
+- Allow future domains to add their own criteria without changing the assessment model.
+- Prepare init/wizard flow to select a project domain and generate an editable rubric checklist.
+
+### Non-Goals
+
+- Do not evaluate implemented code quality in this proposal.
+- Do not require AI semantic scoring for the MVP.
+- Do not make maturity assessment decide project governance outcomes.
+
+## PROP-057 - Guided Rubric Selection During Init
+
+### Goals
+
+- Let the owner confirm rubric criteria during interactive initialization.
+- Keep all domain criteria enabled by default.
+- Allow disabling suggested criteria with simple yes/no prompts.
+- Store the selected criteria deterministically in .p2p/project/rubrics.yml.
+
+### Non-Goals
+
+- Do not support custom criteria in the wizard yet.
+- Do not support editing criterion keywords or descriptions yet.
+- Do not change non-interactive p2p init defaults.
