@@ -568,3 +568,13 @@ Generated from accepted proposal goals and non-goals.
 ### Non-Goals
 
 - Not provided.
+
+## PROP-052 - MCP Proposal Contribution Tool
+
+### Goals
+
+- Allow MCP clients to add typed contributions to existing proposals without making governance decisions.
+
+### Non-Goals
+
+- Not provided.

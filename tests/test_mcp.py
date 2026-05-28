@@ -44,6 +44,7 @@ def test_mcp_tool_definitions_are_read_only() -> None:
     assert "p2p_registry_refresh" in names
     assert "p2p_proposal_create" in names
     assert "p2p_proposal_update" in names
+    assert "p2p_proposal_contribution_add" in names
     assert "p2p_intake_prompt" in names
     assert "p2p_intake_status" in names
     assert "p2p_project_brief_prompt" in names
@@ -61,6 +62,7 @@ def test_mcp_tool_definitions_are_read_only() -> None:
         or "decide" in name
         or "cleanup" in name
         or "merge" in name
+        or "contribution_accept" in name
         or "record_conflict" in name
         or "block" in name
         for name in names
@@ -160,6 +162,38 @@ def test_mcp_proposal_update_refines_draft_without_deciding(tmp_path: Path) -> N
     assert "The draft needs measurable requirements." in proposal_text
     assert "- Add measurable acceptance criteria." in proposal_text
     assert "- Decision remains pending after refinement." in proposal_text
+
+
+def test_mcp_proposal_contribution_add_does_not_decide(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    created = call_tool(
+        "p2p_proposal_create",
+        {"root": str(tmp_path), "title": "Criteria Proposal"},
+    )
+
+    result = call_tool(
+        "p2p_proposal_contribution_add",
+        {
+            "root": str(tmp_path),
+            "proposal_id": created["proposal"]["proposal_id"],
+            "text": "The box should be easy to position and transport.",
+            "type": "objective",
+            "relevance": "high",
+            "author": "mcp-test",
+        },
+    )
+
+    assert result["contribution"]["contribution_id"] == "C001"
+    assert result["contribution"]["contribution_type"] == "objective"
+    assert result["contribution"]["author"] == "mcp-test"
+    assert result["proposal"]["decision_status"] == "pending"
+    assert result["governance"]["decision_made"] is False
+
+    contributions = (
+        tmp_path / ".p2p" / "proposals" / "PROP-001-criteria-proposal" / "contributions.yml"
+    ).read_text(encoding="utf-8")
+    assert "The box should be easy to position and transport." in contributions
+    assert "relevance_hint: high" in contributions
 
 
 def test_mcp_intake_prompt_and_status(tmp_path: Path) -> None:

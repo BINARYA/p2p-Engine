@@ -73,6 +73,7 @@ p2p_agent_instructions_refresh
 p2p_registry_refresh
 p2p_proposal_create
 p2p_proposal_update
+p2p_proposal_contribution_add
 p2p_intake_prompt
 p2p_intake_status
 p2p_project_brief_prompt
@@ -82,7 +83,7 @@ p2p_conflict_status
 p2p_impact_prompt
 ```
 
-These tools may initialize projects, refresh agent instructions, regenerate deterministic registries, create and refine draft proposals, create/list intake prompts, generate/show operational brief artifacts, discover choice candidates, inspect recorded conflicts, and generate impact prompts. They do not authorize governance decisions, conflict recording, choice blocking/deciding, intake apply actions, brief imports, impact imports, or managed-work lifecycle actions.
+These tools may initialize projects, refresh agent instructions, regenerate deterministic registries, create and refine draft proposals, append proposal contributions, create/list intake prompts, generate/show operational brief artifacts, discover choice candidates, inspect recorded conflicts, and generate impact prompts. They do not authorize governance decisions, conflict recording, choice blocking/deciding, intake apply actions, brief imports, impact imports, or managed-work lifecycle actions.
 
 Before creating new proposal artifacts, inspect current state:
 

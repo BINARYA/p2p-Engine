@@ -364,3 +364,10 @@ decisions:
   reason: 'Accepted to tighten the observed MCP test behavior: draft proposals should
     produce useful next actions, and explanations should be grounded in show/read
     tools.'
+- proposal: PROP-052
+  title: MCP Proposal Contribution Tool
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-052-mcp-proposal-contribution-tool/decision.md
+  reason: 'Accepted as MCP Level 5A: adding contributions is a safe way to reduce
+    duplicate proposal proliferation without opening governance decisions.'

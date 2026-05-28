@@ -1429,3 +1429,31 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-052
+  title: MCP Proposal Contribution Tool
+  status: accepted
+  path: .p2p/proposals/PROP-052-mcp-proposal-contribution-tool
+  summary: Add MCP tool p2p_proposal_contribution_add. It appends a typed contribution
+    to a proposal using the existing core contribution model. It may record suggestion,
+    objective, constraint, risk, objection, alternative proposal, and similar contribution
+    types. It must not accept/reject/defer proposals, merge proposals, decide choices,
+    or alter decision files.
+  decision_file: .p2p/proposals/PROP-052-mcp-proposal-contribution-tool/decision.md
+  related_changes:
+  - CHANGE-037
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

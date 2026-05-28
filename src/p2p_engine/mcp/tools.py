@@ -4,6 +4,7 @@ from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any
 
+from p2p_engine.core.contribution import ContributionType
 from p2p_engine.storage.filesystem import P2PWorkspace
 
 
@@ -13,6 +14,7 @@ TOOL_NAMES = (
     "p2p_registry_refresh",
     "p2p_proposal_create",
     "p2p_proposal_update",
+    "p2p_proposal_contribution_add",
     "p2p_intake_prompt",
     "p2p_intake_status",
     "p2p_project_brief_prompt",
@@ -122,6 +124,27 @@ def tool_definitions() -> list[dict[str, object]]:
                     "acceptance_criteria": {"type": "array", "items": {"type": "string"}},
                 },
                 ["proposal_id"],
+            ),
+        },
+        {
+            "name": "p2p_proposal_contribution_add",
+            "description": (
+                "Write-safe contribution tool: append a typed contribution to an "
+                "existing proposal. Does not accept, reject, defer, merge, or decide."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "proposal_id": {"type": "string"},
+                    "text": {"type": "string"},
+                    "type": {
+                        "type": "string",
+                        "enum": [item.value for item in ContributionType],
+                    },
+                    "relevance": {"type": "string"},
+                    "author": {"type": "string"},
+                },
+                ["proposal_id", "text"],
             ),
         },
         {
@@ -286,6 +309,22 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, o
                 "decision_made": False,
             },
         }
+    if name == "p2p_proposal_contribution_add":
+        contribution = workspace.add_contribution(
+            proposal_id=_required(arguments, "proposal_id"),
+            contribution_type=_contribution_type(arguments),
+            text=_required(arguments, "text"),
+            relevance_hint=str(arguments.get("relevance") or "medium"),
+            author=str(arguments.get("author") or "mcp"),
+        )
+        return {
+            "contribution": _to_jsonable(contribution),
+            "proposal": _to_jsonable(workspace.show_proposal(_required(arguments, "proposal_id"))),
+            "governance": {
+                "owner_decision_required": True,
+                "decision_made": False,
+            },
+        }
     if name == "p2p_intake_prompt":
         return {"intake": _to_jsonable(workspace.create_intake_prompt(_required(arguments, "idea")))}
     if name == "p2p_intake_status":
@@ -358,6 +397,15 @@ def _optional_string_list(arguments: dict[str, Any], name: str) -> list[str] | N
         raise ValueError(f"Expected list argument: {name}")
     items = [str(item).strip() for item in value if str(item).strip()]
     return items or None
+
+
+def _contribution_type(arguments: dict[str, Any]) -> ContributionType:
+    value = str(arguments.get("type") or ContributionType.suggestion.value)
+    try:
+        return ContributionType(value)
+    except ValueError as exc:
+        allowed = ", ".join(item.value for item in ContributionType)
+        raise ValueError(f"Invalid contribution type: {value}. Allowed: {allowed}") from exc
 
 
 def _to_jsonable(value: Any) -> Any:

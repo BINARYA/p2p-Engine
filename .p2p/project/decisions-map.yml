@@ -229,3 +229,8 @@ decisions:
   status: accepted
   feature: draft-proposal-next-action-and-agent-explanation-guard
   source: .p2p/proposals/PROP-051-draft-proposal-next-action-and-agent-explanation-guard
+- proposal: PROP-052
+  title: MCP Proposal Contribution Tool
+  status: accepted
+  feature: mcp-proposal-contribution-tool
+  source: .p2p/proposals/PROP-052-mcp-proposal-contribution-tool

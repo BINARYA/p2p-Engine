@@ -187,3 +187,7 @@ MCP can create and refine draft proposals, but agents still cannot use existing 
 ## PROP-051 - Draft Proposal Next Action and Agent Explanation Guard
 
 After MCP creates a draft proposal, p2p next can still fall back to generic project status instead of pointing the owner or agent at the draft proposal. Agent instructions also do not explicitly require show/read commands before explaining existing P2P artifacts.
+
+## PROP-052 - MCP Proposal Contribution Tool
+
+Agents can create new draft proposals through MCP, but cannot safely attach new information to an existing proposal. This encourages proposal proliferation when a comment, criterion, objection, or suggestion should be recorded as a contribution instead.
