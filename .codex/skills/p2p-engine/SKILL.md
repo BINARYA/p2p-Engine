@@ -93,9 +93,45 @@ p2p_project_brief_show
 p2p_choice_discover
 p2p_conflict_status
 p2p_impact_prompt
+p2p_project_status
+p2p_next
+p2p_proposal_list
+p2p_proposal_show
+p2p_choice_list
+p2p_choice_show
+p2p_change_status
+p2p_change_show
+p2p_change_tasks
+p2p_work_list
+p2p_work_status
+p2p_work_show
+p2p_registry_status
+p2p_registry_show
+p2p_project_show
+p2p_project_remote_show
+p2p_spec_status
+p2p_spec_show
+p2p_spec_export_status
+p2p_spec_export_show
+p2p_change_create
+p2p_project_refresh
+p2p_spec_refresh
+p2p_spec_export
+p2p_spec_export_validate
+p2p_work_plan
+p2p_explore_prompt
+p2p_digest_prompt
+p2p_clarify_prompt
+p2p_synthesize_prompt
+p2p_plan_prompt
+p2p_tasks_prompt
+p2p_swot_prompt
+p2p_spec_prompt
 ```
 
-These tools may initialize projects, refresh agent instructions, regenerate deterministic registries, validate project state, return compact context packets, generate/show deterministic readiness assessments, initialize/show project definition rubrics, generate/show deterministic project definition maturity, create and refine draft proposals, append proposal contributions, create/list intake prompts, generate/show operational brief artifacts, discover choice candidates, inspect recorded conflicts, and generate impact prompts. They do not authorize governance decisions, conflict recording, choice blocking/deciding, intake apply actions, brief imports, impact imports, or managed-work lifecycle actions.
+These tools may initialize projects, refresh agent instructions, regenerate deterministic registries, validate project state, return compact context packets, generate/show deterministic readiness assessments, initialize/show project definition rubrics, generate/show deterministic project definition maturity, create and refine draft proposals, append proposal contributions, create/list intake prompts, generate/show operational brief artifacts, discover choice candidates, inspect recorded conflicts, read Change Sets and Work manifests, refresh generated project/spec artifacts, export and validate spec artifacts, create metadata-only Work plans, and generate advisory prompts.
+
+They do not authorize governance decisions, conflict recording, voting, precedent recording, choice blocking/deciding, intake apply actions, brief imports, impact imports, spec imports, Git branch creation, Work submission, Work review, Work publishing, Work acceptance, Work finalization, Work cleanup, commits, pushes, PRs, or merges.
 
 ## Token Budget Discipline
 

@@ -37,9 +37,76 @@ TOOL_NAMES = (
     "p2p_choice_list",
     "p2p_choice_show",
     "p2p_change_status",
+    "p2p_change_show",
+    "p2p_change_tasks",
+    "p2p_work_list",
     "p2p_work_status",
+    "p2p_work_show",
+    "p2p_registry_status",
     "p2p_registry_show",
+    "p2p_project_show",
+    "p2p_project_remote_show",
+    "p2p_spec_status",
+    "p2p_spec_show",
+    "p2p_spec_export_status",
+    "p2p_spec_export_show",
+    "p2p_change_create",
+    "p2p_project_refresh",
+    "p2p_spec_refresh",
+    "p2p_spec_export",
+    "p2p_spec_export_validate",
+    "p2p_work_plan",
+    "p2p_explore_prompt",
+    "p2p_digest_prompt",
+    "p2p_clarify_prompt",
+    "p2p_synthesize_prompt",
+    "p2p_plan_prompt",
+    "p2p_tasks_prompt",
+    "p2p_swot_prompt",
+    "p2p_spec_prompt",
 )
+
+_PROMPT_TOOL_KINDS = {
+    "p2p_explore_prompt": "explore",
+    "p2p_digest_prompt": "digest",
+    "p2p_clarify_prompt": "clarify",
+    "p2p_synthesize_prompt": "synthesize",
+    "p2p_plan_prompt": "plan",
+    "p2p_tasks_prompt": "tasks",
+    "p2p_swot_prompt": "swot",
+}
+
+
+def _prompt_tool_definitions() -> list[dict[str, object]]:
+    definitions = []
+    for tool_name, kind in _PROMPT_TOOL_KINDS.items():
+        definitions.append(
+            {
+                "name": tool_name,
+                "description": (
+                    f"Advisory prompt tool: generate a {kind} prompt for an existing "
+                    "proposal. Does not import output or change decisions."
+                ),
+                "inputSchema": _schema(
+                    {"root": {"type": "string"}, "proposal_id": {"type": "string"}},
+                    ["proposal_id"],
+                ),
+            }
+        )
+    definitions.append(
+        {
+            "name": "p2p_spec_prompt",
+            "description": (
+                "Advisory prompt tool: generate a software-spec refinement prompt for "
+                "a Change Set. Does not import output or change decisions."
+            ),
+            "inputSchema": _schema(
+                {"root": {"type": "string"}, "change_id": {"type": "string"}},
+                ["change_id"],
+            ),
+        }
+    )
+    return definitions
 
 
 def tool_definitions() -> list[dict[str, object]]:
@@ -321,8 +388,33 @@ def tool_definitions() -> list[dict[str, object]]:
             "inputSchema": _schema({"root": {"type": "string"}}),
         },
         {
+            "name": "p2p_change_show",
+            "description": "Show one Change Set summary.",
+            "inputSchema": _schema({"root": {"type": "string"}, "change_id": {"type": "string"}}, ["change_id"]),
+        },
+        {
+            "name": "p2p_change_tasks",
+            "description": "Show one Change Set task and action view.",
+            "inputSchema": _schema({"root": {"type": "string"}, "change_id": {"type": "string"}}, ["change_id"]),
+        },
+        {
+            "name": "p2p_work_list",
+            "description": "List P2P Work manifests.",
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
             "name": "p2p_work_status",
             "description": "Show operational Work item summaries.",
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_work_show",
+            "description": "Show one P2P Work manifest.",
+            "inputSchema": _schema({"root": {"type": "string"}, "work_id": {"type": "string"}}, ["work_id"]),
+        },
+        {
+            "name": "p2p_registry_status",
+            "description": "Show generated registry availability and freshness checks.",
             "inputSchema": _schema({"root": {"type": "string"}}),
         },
         {
@@ -330,6 +422,113 @@ def tool_definitions() -> list[dict[str, object]]:
             "description": "Show a generated P2P registry.",
             "inputSchema": _schema({"root": {"type": "string"}, "name": {"type": "string"}}, ["name"]),
         },
+        {
+            "name": "p2p_project_show",
+            "description": "Show a generated project definition section or feature document.",
+            "inputSchema": _schema({"root": {"type": "string"}, "section": {"type": "string"}}, ["section"]),
+        },
+        {
+            "name": "p2p_project_remote_show",
+            "description": "Show local/cloud remote project profile metadata.",
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_spec_status",
+            "description": "List generated P2P-native software specs.",
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_spec_show",
+            "description": "Show a generated P2P-native software spec index.",
+            "inputSchema": _schema({"root": {"type": "string"}, "change_id": {"type": "string"}}, ["change_id"]),
+        },
+        {
+            "name": "p2p_spec_export_status",
+            "description": "List generated software spec exports.",
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_spec_export_show",
+            "description": "Show the primary document for an existing software spec export.",
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "change_id": {"type": "string"},
+                    "target": {"type": "string", "enum": ["generic", "openspec", "speckit"]},
+                },
+                ["change_id", "target"],
+            ),
+        },
+        {
+            "name": "p2p_change_create",
+            "description": (
+                "Write-safe deterministic tool: create a metadata-only Change Set from "
+                "an accepted proposal. Does not update status, branch, commit, or merge."
+            ),
+            "inputSchema": _schema(
+                {"root": {"type": "string"}, "source": {"type": "string"}, "title": {"type": "string"}},
+                ["source"],
+            ),
+        },
+        {
+            "name": "p2p_project_refresh",
+            "description": (
+                "Write-safe deterministic tool: refresh generated project definition files "
+                "from accepted P2P state. Does not make governance decisions."
+            ),
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_spec_refresh",
+            "description": (
+                "Write-safe deterministic tool: generate a P2P-native software spec from "
+                "a Change Set. Does not import external edits."
+            ),
+            "inputSchema": _schema({"root": {"type": "string"}, "change_id": {"type": "string"}}, ["change_id"]),
+        },
+        {
+            "name": "p2p_spec_export",
+            "description": (
+                "Write-safe deterministic tool: export generated spec artifacts for "
+                "generic, OpenSpec, or Spec Kit targets."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "change_id": {"type": "string"},
+                    "target": {"type": "string", "enum": ["generic", "openspec", "speckit"]},
+                },
+                ["change_id", "target"],
+            ),
+        },
+        {
+            "name": "p2p_spec_export_validate",
+            "description": "Read-only validation tool: validate an existing software spec export.",
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "change_id": {"type": "string"},
+                    "target": {"type": "string", "enum": ["generic", "openspec", "speckit"]},
+                },
+                ["change_id", "target"],
+            ),
+        },
+        {
+            "name": "p2p_work_plan",
+            "description": (
+                "Write-safe deterministic tool: create a Work manifest from a validated "
+                "spec export. Does not create branches, commits, PRs, or merges."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "change_id": {"type": "string"},
+                    "target": {"type": "string", "enum": ["generic", "openspec", "speckit"]},
+                },
+                ["change_id", "target"],
+            ),
+        },
+        *_prompt_tool_definitions(),
     ]
 
 
@@ -473,10 +672,85 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, o
         return {"choice": _to_jsonable(workspace.show_choice(_required(arguments, "choice_id")))}
     if name == "p2p_change_status":
         return {"changes": _to_jsonable(workspace.change_set_statuses())}
+    if name == "p2p_change_show":
+        return {"change": _to_jsonable(workspace.show_change_set(_required(arguments, "change_id")))}
+    if name == "p2p_change_tasks":
+        return {"tasks": _to_jsonable(workspace.change_set_tasks(_required(arguments, "change_id")))}
+    if name == "p2p_work_list":
+        return {"work": _to_jsonable(workspace.work_statuses())}
     if name == "p2p_work_status":
         return {"work": _to_jsonable(workspace.work_summaries())}
+    if name == "p2p_work_show":
+        return {"work": _to_jsonable(workspace.show_work(_required(arguments, "work_id")))}
+    if name == "p2p_registry_status":
+        return {"registry_status": _to_jsonable(workspace.registry_status())}
     if name == "p2p_registry_show":
         return {"registry": _to_jsonable(workspace.show_registry(_required(arguments, "name")))}
+    if name == "p2p_project_show":
+        section = _required(arguments, "section")
+        return {"section": section, "content": workspace.show_project_state(section)}
+    if name == "p2p_project_remote_show":
+        return {"remote": _to_jsonable(workspace.remote_profile())}
+    if name == "p2p_spec_status":
+        return {"specs": _to_jsonable(workspace.software_spec_statuses())}
+    if name == "p2p_spec_show":
+        change_id = _required(arguments, "change_id")
+        return {"change_id": change_id, "content": workspace.show_software_spec(change_id)}
+    if name == "p2p_spec_export_status":
+        return {"exports": _to_jsonable(workspace.software_spec_export_statuses())}
+    if name == "p2p_spec_export_show":
+        change_id = _required(arguments, "change_id")
+        target = _required(arguments, "target")
+        return {
+            "change_id": change_id,
+            "target": target,
+            "content": workspace.show_software_spec_export(change_id, target),
+        }
+    if name == "p2p_change_create":
+        return {
+            "change": _to_jsonable(
+                workspace.create_change_set(
+                    source=_required(arguments, "source"),
+                    title=_optional_string(arguments, "title"),
+                )
+            )
+        }
+    if name == "p2p_project_refresh":
+        return {"written": _to_jsonable(workspace.refresh_project_state())}
+    if name == "p2p_spec_refresh":
+        return {"spec": _to_jsonable(workspace.refresh_software_spec(_required(arguments, "change_id")))}
+    if name == "p2p_spec_export":
+        return {
+            "export": _to_jsonable(
+                workspace.export_software_spec(
+                    _required(arguments, "change_id"),
+                    _required(arguments, "target"),
+                )
+            )
+        }
+    if name == "p2p_spec_export_validate":
+        return {
+            "validation": _to_jsonable(
+                workspace.validate_software_spec_export(
+                    _required(arguments, "change_id"),
+                    _required(arguments, "target"),
+                )
+            )
+        }
+    if name == "p2p_work_plan":
+        return {
+            "work": _to_jsonable(
+                workspace.create_work_plan(
+                    _required(arguments, "change_id"),
+                    _required(arguments, "target"),
+                )
+            )
+        }
+    if name in _PROMPT_TOOL_KINDS:
+        path = workspace.generate_prompt(_required(arguments, "proposal_id"), _PROMPT_TOOL_KINDS[name])
+        return {_PROMPT_TOOL_KINDS[name] + "_prompt": _to_jsonable({"path": path})}
+    if name == "p2p_spec_prompt":
+        return {"spec_prompt": _to_jsonable(workspace.create_software_spec_prompt(_required(arguments, "change_id")))}
 
     raise ValueError(f"Unknown MCP tool: {name}")
 

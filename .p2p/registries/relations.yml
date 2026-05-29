@@ -231,6 +231,16 @@ relations:
   type: includes
   rationale: Change Set includes accepted proposal.
   source_artifact: .p2p/changes/CHANGE-046-spec-kit-three-prompt-export-model
+- source: CHANGE-047
+  target: PROP-065
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-047-mcp-agent-first-coverage-expansion
+- source: CHANGE-048
+  target: PROP-067
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-048-agent-first-setup-documentation-split
 - source: PROP-013
   target: CHANGE-001
   type: implemented_by
@@ -461,3 +471,13 @@ relations:
   type: implemented_by
   rationale: Proposal appears in Change Set source metadata.
   source_artifact: .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model
+- source: PROP-065
+  target: CHANGE-047
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion
+- source: PROP-067
+  target: CHANGE-048
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-067-agent-first-setup-documentation-split

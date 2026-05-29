@@ -1,6 +1,11 @@
 # Installing P2P Engine
 
-This guide describes the current installation path for P2P Engine.
+This guide describes how to install P2P Engine and use it with a new target
+project.
+
+If you want to contribute to the P2P Engine repository itself, use
+[`CONTRIBUTING.md`](../CONTRIBUTING.md). Contributor setup is intentionally kept
+separate from the normal new-project setup.
 
 Current status:
 
@@ -14,7 +19,7 @@ Future target: packaged or compiled CLI distribution.
 - Python 3.11 or newer
 - Git
 - A shell with virtualenv support
-- Optional: an MCP-capable client such as Codex
+- Optional: an MCP-capable or CLI-capable agent client
 
 ## Install From Source
 
@@ -59,7 +64,11 @@ If `p2p` is not on `PATH`, call it through the virtualenv:
 /path/to/p2p-Engine/.venv/bin/p2p --help
 ```
 
-## Initialize A New Project
+## Initialize A New Target Project
+
+The repository you cloned above is the engine checkout. The target project is a
+different directory: it is the project where `.p2p/` state, generated agent
+instructions, proposals, decisions, Change Sets, and exports will live.
 
 Create a project directory:
 
@@ -95,7 +104,34 @@ For a scriptable non-interactive setup:
   --mcp-hint
 ```
 
-## Verify A Project
+## Connect An Agent
+
+P2P Engine is intended to be agent-mediated. After initialization, point your
+agent at the target project, not at the P2P Engine checkout unless you are
+contributing to P2P Engine itself.
+
+The MCP server command has this shape:
+
+```bash
+/path/to/p2p-Engine/.venv/bin/python \
+  -m p2p_engine.mcp.server \
+  --root /path/to/my-project
+```
+
+Use that command in any MCP-capable client that supports local stdio servers.
+Some clients also let agents invoke the CLI directly from the target project.
+
+In the agent, start with:
+
+```text
+Use the P2P MCP server for this project.
+Start with p2p_context.
+Use CLI/MCP primitives for P2P writes.
+Do not edit .p2p files manually.
+If a primitive is missing, stop and report what is missing.
+```
+
+## Verify A Target Project
 
 From inside the project directory:
 
@@ -121,7 +157,7 @@ Assess project definition maturity:
 /path/to/p2p-Engine/.venv/bin/p2p assess maturity show
 ```
 
-## Configure MCP Locally
+## Configure MCP Locally With Codex CLI
 
 If `p2p-mcp-server` is available on `PATH`:
 
@@ -154,7 +190,11 @@ Use the P2P MCP server and show p2p_context for this project.
 
 The agent should use compact context before broad file reads.
 
-## Typical First Commands
+## Optional Manual CLI Trial
+
+Most users should let agents use these primitives through MCP or CLI access.
+Manual CLI use is useful for inspection, debugging, recovery, and learning the
+P2P object model.
 
 Create a proposal:
 

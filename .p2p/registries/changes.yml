@@ -753,3 +753,37 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-047
+  title: MCP Agent-First Coverage Expansion
+  status: completed
+  path: .p2p/changes/CHANGE-047-mcp-agent-first-coverage-expansion
+  included_proposals:
+  - PROP-065
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0
+- id: CHANGE-048
+  title: Agent-First Setup Documentation Split
+  status: completed
+  path: .p2p/changes/CHANGE-048-agent-first-setup-documentation-split
+  included_proposals:
+  - PROP-067
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

@@ -56,9 +56,22 @@ Packaged binary: not yet available
 
 Current implementation includes proposal lifecycle, decisions, choices, Change Sets, Work metadata, registries, validation, compact context, rubrics, maturity assessment, spec/export MVP, and a guided init wizard.
 
-## 5-Minute Demo
+## 5-Minute Agent Setup
 
-Install from source:
+The normal workflow is to use P2P Engine for a separate target project.
+
+```text
+P2P Engine checkout
+  The local installation of the engine.
+
+Target project
+  The project that gets `.p2p/` state and agent instructions.
+
+Agent client
+  Codex, Claude, or another MCP/CLI-capable agent that uses P2P primitives.
+```
+
+Install P2P Engine once:
 
 ```bash
 git clone https://github.com/BINARYA/p2p-Engine.git
@@ -68,12 +81,16 @@ python3 -m venv .venv
 pip install -e ".[dev]"
 ```
 
-Create a new P2P project:
+Initialize P2P inside the target project:
 
 ```bash
-mkdir /tmp/p2p-demo
-cd /tmp/p2p-demo
-p2p init "Demo Project" --agent codex --repository local --domain software
+mkdir /tmp/my-project
+cd /tmp/my-project
+/path/to/p2p-Engine/.venv/bin/p2p init "My Project" \
+  --agent codex \
+  --repository local \
+  --domain software \
+  --mcp-hint
 ```
 
 Expected output:
@@ -90,53 +107,35 @@ Next steps:
   3. p2p next
 ```
 
-Ask for compact context:
-
-```bash
-p2p context --budget small
-```
-
-Expected output:
+Connect your agent to the target project with MCP, then ask it to start from compact P2P context:
 
 ```text
-P2P compact context
-  budget: small
-Current state:
-  validation:
-    ok: True
-Next actions:
-  ...
-Do not read:
-  - Do not scan all .p2p/ directories.
+Use the P2P MCP server for this project.
+Start with p2p_context.
+Create a draft proposal for the first project direction.
+Do not edit .p2p files by hand.
 ```
 
-Create a proposal:
+The agent should use P2P through MCP or CLI primitives, while you supervise and decide outcomes.
+
+See [docs/INSTALL.md](docs/INSTALL.md) for the source install and new-project setup flow. See [docs/MCP.md](docs/MCP.md) for the MCP server command and tool safety model.
+
+### Optional Manual CLI Trial
+
+You can try P2P manually through the CLI to understand the model, debug setup,
+or recover from agent/client issues. This is not the intended primary workflow
+for normal use.
 
 ```bash
-p2p proposal create "First direction" \
+/path/to/p2p-Engine/.venv/bin/p2p context --budget small
+/path/to/p2p-Engine/.venv/bin/p2p proposal create "First direction" \
   --problem "The project needs an explicit first direction." \
   --goal "Define the initial scope." \
   --proposal "Start with a small owner-reviewed proposal." \
   --acceptance "The owner can review and decide it."
 ```
 
-Inspect and decide:
-
-```bash
-p2p proposal show PROP-001
-p2p proposal accept PROP-001 --reason "This is the initial direction."
-```
-
-Refresh and assess:
-
-```bash
-p2p registry refresh
-p2p validate
-p2p assess refresh
-p2p assess show
-p2p assess maturity refresh
-p2p assess maturity show
-```
+For full manual workflows, use [docs/CLI-GUIDE.md](docs/CLI-GUIDE.md).
 
 ## Install
 
@@ -146,34 +145,22 @@ Current install method:
 source checkout + Python virtualenv
 ```
 
-See [docs/INSTALL.md](docs/INSTALL.md) for full installation, verification, and MCP setup.
+See [docs/INSTALL.md](docs/INSTALL.md) for installing P2P Engine and setting up a new target project.
 
-## Use With Codex Or Claude
+## Use With Agents
 
-P2P Engine can generate agent-facing instructions during `p2p init`.
+P2P Engine can generate project-local agent instructions during `p2p init`.
 
-For Codex:
-
-```bash
-p2p init "My Project" --agent codex --repository local --domain software --mcp-hint
-```
-
-For Claude:
+For a new project, choose the profile that matches the agent environment you
+intend to use:
 
 ```bash
-p2p init "My Project" --agent claude --repository local --domain software --mcp-hint
+/path/to/p2p-Engine/.venv/bin/p2p init "My Project" --agent codex --repository local --domain software --mcp-hint
+/path/to/p2p-Engine/.venv/bin/p2p init "My Project" --agent claude --repository local --domain software --mcp-hint
+/path/to/p2p-Engine/.venv/bin/p2p init "My Project" --agent all --repository local --domain software --mcp-hint
 ```
 
-Local MCP setup example:
-
-```bash
-codex mcp add p2p-my-project -- \
-  /path/to/p2p-Engine/.venv/bin/python \
-  -m p2p_engine.mcp.server \
-  --root /path/to/my-project
-```
-
-Agent rule:
+Core agent rule:
 
 ```text
 Use p2p_context first.
@@ -181,6 +168,11 @@ Use CLI/MCP primitives for P2P writes.
 Do not edit .p2p by hand.
 If a primitive is missing, stop and report what is missing.
 ```
+
+If you want to contribute to P2P Engine itself with an agent, use the contributor
+workflow in [CONTRIBUTING.md](CONTRIBUTING.md). The README intentionally does not
+show repository-contributor setup commands because they are different from the
+normal new-project setup.
 
 ## Core Concepts
 

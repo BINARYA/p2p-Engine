@@ -7,7 +7,7 @@ from typer.testing import CliRunner
 
 from p2p_engine.cli import app
 from p2p_engine.mcp.server import handle_message
-from p2p_engine.mcp.tools import call_tool, tool_definitions
+from p2p_engine.mcp.tools import TOOL_NAMES, call_tool, tool_definitions
 
 runner = CliRunner()
 
@@ -36,33 +36,70 @@ def _setup_project(tmp_path: Path) -> None:
     runner.invoke(app, ["project", "refresh", "--root", str(tmp_path)])
 
 
-def test_mcp_tool_definitions_are_read_only() -> None:
+def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
     names = {tool["name"] for tool in tool_definitions()}
 
-    assert "p2p_init_project" in names
-    assert "p2p_agent_instructions_refresh" in names
-    assert "p2p_registry_refresh" in names
-    assert "p2p_validate" in names
-    assert "p2p_context" in names
-    assert "p2p_assess_refresh" in names
-    assert "p2p_assess_show" in names
-    assert "p2p_project_rubrics_init" in names
-    assert "p2p_project_rubrics_show" in names
-    assert "p2p_maturity_refresh" in names
-    assert "p2p_maturity_show" in names
-    assert "p2p_proposal_create" in names
-    assert "p2p_proposal_update" in names
-    assert "p2p_proposal_contribution_add" in names
-    assert "p2p_intake_prompt" in names
-    assert "p2p_intake_status" in names
-    assert "p2p_project_brief_prompt" in names
-    assert "p2p_project_brief_show" in names
-    assert "p2p_choice_discover" in names
-    assert "p2p_conflict_status" in names
-    assert "p2p_impact_prompt" in names
-    assert "p2p_project_status" in names
-    assert "p2p_next" in names
-    assert "p2p_proposal_show" in names
+    assert set(TOOL_NAMES) == names
+
+    expected = {
+        "p2p_init_project",
+        "p2p_agent_instructions_refresh",
+        "p2p_registry_refresh",
+        "p2p_validate",
+        "p2p_context",
+        "p2p_assess_refresh",
+        "p2p_assess_show",
+        "p2p_project_rubrics_init",
+        "p2p_project_rubrics_show",
+        "p2p_maturity_refresh",
+        "p2p_maturity_show",
+        "p2p_proposal_create",
+        "p2p_proposal_update",
+        "p2p_proposal_contribution_add",
+        "p2p_intake_prompt",
+        "p2p_intake_status",
+        "p2p_project_brief_prompt",
+        "p2p_project_brief_show",
+        "p2p_choice_discover",
+        "p2p_conflict_status",
+        "p2p_impact_prompt",
+        "p2p_project_status",
+        "p2p_next",
+        "p2p_proposal_list",
+        "p2p_proposal_show",
+        "p2p_choice_list",
+        "p2p_choice_show",
+        "p2p_change_status",
+        "p2p_change_show",
+        "p2p_change_tasks",
+        "p2p_work_list",
+        "p2p_work_status",
+        "p2p_work_show",
+        "p2p_registry_status",
+        "p2p_registry_show",
+        "p2p_project_show",
+        "p2p_project_remote_show",
+        "p2p_spec_status",
+        "p2p_spec_show",
+        "p2p_spec_export_status",
+        "p2p_spec_export_show",
+        "p2p_change_create",
+        "p2p_project_refresh",
+        "p2p_spec_refresh",
+        "p2p_spec_export",
+        "p2p_spec_export_validate",
+        "p2p_work_plan",
+        "p2p_explore_prompt",
+        "p2p_digest_prompt",
+        "p2p_clarify_prompt",
+        "p2p_synthesize_prompt",
+        "p2p_plan_prompt",
+        "p2p_tasks_prompt",
+        "p2p_swot_prompt",
+        "p2p_spec_prompt",
+    }
+
+    assert expected <= names
     assert not any(
         "accept" in name
         or "reject" in name
@@ -390,6 +427,113 @@ def test_mcp_call_tool_reads_project_state(tmp_path: Path) -> None:
 
     assert result["project_status"]["accepted_proposals"] == 1
     assert result["project_status"]["operational_brief_available"] is False
+
+
+def test_mcp_change_project_registry_and_remote_read_tools(tmp_path: Path) -> None:
+    _setup_project(tmp_path)
+
+    change = call_tool("p2p_change_show", {"root": str(tmp_path), "change_id": "CHANGE-001"})
+    tasks = call_tool("p2p_change_tasks", {"root": str(tmp_path), "change_id": "CHANGE-001"})
+    registry = call_tool("p2p_registry_status", {"root": str(tmp_path)})
+    project = call_tool("p2p_project_show", {"root": str(tmp_path), "section": "overview"})
+    remote = call_tool("p2p_project_remote_show", {"root": str(tmp_path)})
+
+    assert change["change"]["change_id"] == "CHANGE-001"
+    assert tasks["tasks"]["change_id"] == "CHANGE-001"
+    assert registry["registry_status"]["proposals_count"] == 1
+    assert "# Project State - Demo Project" in project["content"]
+    assert remote["remote"]["mode"] == "local"
+
+
+def test_mcp_write_safe_spec_export_and_work_flow(tmp_path: Path) -> None:
+    _setup_project(tmp_path)
+
+    spec = call_tool("p2p_spec_refresh", {"root": str(tmp_path), "change_id": "CHANGE-001"})
+    export = call_tool(
+        "p2p_spec_export",
+        {"root": str(tmp_path), "change_id": "CHANGE-001", "target": "generic"},
+    )
+    validation = call_tool(
+        "p2p_spec_export_validate",
+        {"root": str(tmp_path), "change_id": "CHANGE-001", "target": "generic"},
+    )
+    work = call_tool(
+        "p2p_work_plan",
+        {"root": str(tmp_path), "change_id": "CHANGE-001", "target": "generic"},
+    )
+
+    assert spec["spec"]["status"] == "generated"
+    assert export["export"]["status"] == "exported"
+    assert validation["validation"]["target"] == "generic"
+    assert work["work"]["work_id"] == "WORK-001"
+    assert work["work"]["status"] == "planned"
+
+    spec_status = call_tool("p2p_spec_status", {"root": str(tmp_path)})
+    spec_show = call_tool("p2p_spec_show", {"root": str(tmp_path), "change_id": "CHANGE-001"})
+    export_status = call_tool("p2p_spec_export_status", {"root": str(tmp_path)})
+    export_show = call_tool(
+        "p2p_spec_export_show",
+        {"root": str(tmp_path), "change_id": "CHANGE-001", "target": "generic"},
+    )
+    work_list = call_tool("p2p_work_list", {"root": str(tmp_path)})
+    work_show = call_tool("p2p_work_show", {"root": str(tmp_path), "work_id": "WORK-001"})
+
+    assert spec_status["specs"][0]["change_id"] == "CHANGE-001"
+    assert "CHANGE-001" in spec_show["content"]
+    assert export_status["exports"][0]["target"] == "generic"
+    assert "# Demo Project Project Definition" in export_show["content"]
+    assert work_list["work"][0]["work_id"] == "WORK-001"
+    assert work_show["work"]["change_id"] == "CHANGE-001"
+
+
+def test_mcp_change_create_is_metadata_only_for_accepted_proposal(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    call_tool("p2p_proposal_create", {"root": str(tmp_path), "title": "Accepted Candidate"})
+    runner.invoke(
+        app,
+        ["proposal", "accept", "PROP-001", "--reason", "Ready for metadata-only change.", "--root", str(tmp_path)],
+    )
+
+    result = call_tool("p2p_change_create", {"root": str(tmp_path), "source": "PROP-001"})
+
+    assert result["change"]["change_id"] == "CHANGE-001"
+    assert result["change"]["status"] == "proposed"
+    assert not (tmp_path / ".git").exists()
+
+
+def test_mcp_project_refresh_writes_generated_project_files(tmp_path: Path) -> None:
+    _setup_project(tmp_path)
+
+    result = call_tool("p2p_project_refresh", {"root": str(tmp_path)})
+
+    assert ".p2p/project/overview.md" in result["written"]
+    assert (tmp_path / ".p2p" / "project" / "overview.md").exists()
+
+
+def test_mcp_prompt_tools_generate_prompts_without_importing_outputs(tmp_path: Path) -> None:
+    _setup_project(tmp_path)
+
+    prompt_tools = {
+        "p2p_explore_prompt": "explore",
+        "p2p_digest_prompt": "digest",
+        "p2p_clarify_prompt": "clarify",
+        "p2p_synthesize_prompt": "synthesize",
+        "p2p_plan_prompt": "plan",
+        "p2p_tasks_prompt": "tasks",
+        "p2p_swot_prompt": "swot",
+    }
+    for tool, kind in prompt_tools.items():
+        result = call_tool(tool, {"root": str(tmp_path), "proposal_id": "PROP-001"})
+        assert result[f"{kind}_prompt"]["path"] == f".p2p/prompts/PROP-001/{kind}.prompt.md"
+        assert (tmp_path / ".p2p" / "prompts" / "PROP-001" / f"{kind}.prompt.md").exists()
+
+    spec_prompt = call_tool("p2p_spec_prompt", {"root": str(tmp_path), "change_id": "CHANGE-001"})
+
+    assert spec_prompt["spec_prompt"]["prompt_path"] == (
+        ".p2p/outputs/software-spec/CHANGE-001/spec-refine.prompt.md"
+    )
+    detail = call_tool("p2p_proposal_show", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+    assert detail["proposal"]["decision_status"] == "accepted"
 
 
 def test_mcp_jsonrpc_lists_and_calls_tools(tmp_path: Path) -> None:

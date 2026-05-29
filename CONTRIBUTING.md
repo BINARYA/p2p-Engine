@@ -15,6 +15,74 @@ python3 -m venv .venv
 pip install -e ".[dev]"
 ```
 
+## Enable Your Agent For This Repository
+
+This section is only for contributors who want an agent to add proposals,
+contributions, or implementation changes to the P2P Engine repository itself.
+Normal users should follow `docs/INSTALL.md` instead and initialize P2P inside
+their own target project.
+
+From the P2P Engine checkout, verify the local engine:
+
+```bash
+.venv/bin/p2p context --budget small
+.venv/bin/p2p validate
+```
+
+If your agent supports MCP local stdio servers, configure the MCP server with
+this repository as the root:
+
+```bash
+/absolute/path/to/p2p-Engine/.venv/bin/python \
+  -m p2p_engine.mcp.server \
+  --root /absolute/path/to/p2p-Engine
+```
+
+For Codex CLI, the command has this shape:
+
+```bash
+codex mcp add p2p-engine -- \
+  /absolute/path/to/p2p-Engine/.venv/bin/python \
+  -m p2p_engine.mcp.server \
+  --root /absolute/path/to/p2p-Engine
+```
+
+Then tell the agent:
+
+```text
+Use the P2P MCP server for this repository.
+Start with p2p_context.
+Use P2P CLI/MCP primitives for proposals, contributions, Change Sets, validation, and registries.
+Do not edit .p2p files manually.
+Do not accept, reject, defer, decide, merge, push, or publish unless the maintainer explicitly instructs that exact action.
+```
+
+For non-MCP agents, let the agent use the repository-local CLI:
+
+```bash
+.venv/bin/p2p context --budget small
+.venv/bin/p2p proposal list
+.venv/bin/p2p change status
+```
+
+When proposing substantial work for P2P Engine, prefer this flow:
+
+```bash
+.venv/bin/p2p proposal create "Short Title" \
+  --problem "What gap or risk this addresses." \
+  --context "Relevant project context." \
+  --goal "What success looks like." \
+  --proposal "Proposed direction." \
+  --acceptance "How maintainers can verify it."
+
+.venv/bin/p2p registry refresh
+.venv/bin/p2p validate
+```
+
+Maintainer governance remains explicit. A contributor or agent may draft,
+refine, and analyze proposals, but proposal decisions and repository-level Git
+operations require maintainer instruction.
+
 ## Checks
 
 Run:

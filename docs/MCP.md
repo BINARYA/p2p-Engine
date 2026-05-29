@@ -61,8 +61,19 @@ the agent what is relevant, what commands are allowed, and what not to scan.
 | `p2p_choice_list` | read-only | no | no | List project choices. |
 | `p2p_choice_show` | read-only | no | no | Inspect one choice. |
 | `p2p_change_status` | read-only | no | no | List Change Set statuses. |
+| `p2p_change_show` | read-only | no | no | Inspect one Change Set. |
+| `p2p_change_tasks` | read-only | no | no | Inspect Change Set tasks and actions. |
+| `p2p_work_list` | read-only | no | no | List Work manifests. |
 | `p2p_work_status` | read-only | no | no | Show operational Work summaries. |
+| `p2p_work_show` | read-only | no | no | Inspect one Work manifest. |
+| `p2p_registry_status` | read-only | no | no | Check generated registry availability and freshness. |
 | `p2p_registry_show` | read-only | no | no | Read a generated registry. |
+| `p2p_project_show` | read-only | no | no | Read generated project sections or feature documents. |
+| `p2p_project_remote_show` | read-only | no | no | Inspect local/cloud remote profile metadata. |
+| `p2p_spec_status` | read-only | no | no | List generated P2P-native software specs. |
+| `p2p_spec_show` | read-only | no | no | Read a generated software spec index. |
+| `p2p_spec_export_status` | read-only | no | no | List generated downstream spec exports. |
+| `p2p_spec_export_show` | read-only | no | no | Read the primary file for a spec export target. |
 | `p2p_assess_show` | read-only | no | no | Show stored readiness assessment. |
 | `p2p_project_rubrics_show` | read-only | no | no | Read configured maturity rubrics. |
 | `p2p_maturity_show` | read-only | no | no | Show stored maturity assessment. |
@@ -78,14 +89,30 @@ the agent what is relevant, what commands are allowed, and what not to scan.
 | `p2p_proposal_create` | write-safe | yes | no | Create a draft proposal. |
 | `p2p_proposal_update` | write-safe | yes | no | Update structured draft/proposal sections. |
 | `p2p_proposal_contribution_add` | write-safe | yes | no | Add a typed contribution to a proposal. |
+| `p2p_change_create` | write-safe | yes | no | Create a metadata-only Change Set from an accepted proposal. |
+| `p2p_project_refresh` | write-safe | yes | no | Refresh generated project definition files. |
+| `p2p_spec_refresh` | write-safe | yes | no | Generate a P2P-native software spec from a Change Set. |
+| `p2p_spec_export` | write-safe | yes | no | Export spec outputs for `generic`, `openspec`, or `speckit`. |
+| `p2p_spec_export_validate` | read-only | no | no | Validate an existing spec export. |
+| `p2p_work_plan` | write-safe | yes | no | Create a Work manifest from a validated export. |
 | `p2p_intake_prompt` | advisory/write-safe | yes | no | Create an intake prompt for a raw idea. |
 | `p2p_project_brief_prompt` | advisory/write-safe | yes | no | Create project brief prompt artifacts. |
 | `p2p_choice_discover` | advisory | no | no | Discover possible choices and blockers. |
+| `p2p_explore_prompt` | advisory/write-safe | yes | no | Generate an exploration prompt for a proposal. |
+| `p2p_digest_prompt` | advisory/write-safe | yes | no | Generate a digest prompt for a proposal. |
+| `p2p_clarify_prompt` | advisory/write-safe | yes | no | Generate a clarification prompt for a proposal. |
+| `p2p_synthesize_prompt` | advisory/write-safe | yes | no | Generate a synthesis prompt for a proposal. |
+| `p2p_plan_prompt` | advisory/write-safe | yes | no | Generate a planning prompt for a proposal. |
+| `p2p_tasks_prompt` | advisory/write-safe | yes | no | Generate a task prompt for a proposal. |
+| `p2p_swot_prompt` | advisory/write-safe | yes | no | Generate a SWOT prompt for a proposal. |
 | `p2p_impact_prompt` | advisory/write-safe | yes | no | Generate an impact-analysis prompt for a proposal. |
+| `p2p_spec_prompt` | advisory/write-safe | yes | no | Generate a software-spec refinement prompt for a Change Set. |
 
 No current MCP tool accepts, rejects, defers, merges, finalizes, or decides
 project governance outcomes. Use CLI commands for owner-directed governance
-actions.
+actions. MCP also does not expose spec imports, conflict recording, voting,
+precedent recording, choice blocking, Work branch creation, Work submission,
+Work review, Work publishing, Work acceptance, Work finalization, or Work cleanup.
 
 ## Example Calls
 

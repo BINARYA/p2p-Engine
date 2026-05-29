@@ -1807,3 +1807,85 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-065
+  title: MCP Agent-First Coverage Expansion
+  status: accepted
+  path: .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion
+  summary: Expand the P2P MCP tool surface with all priority 1, 2, and 3 agent-safe
+    tools. Keep descriptions explicit about read-only, write-safe, advisory, and governance
+    boundaries. Update tests and agent-facing documentation/skill instructions accordingly.
+  decision_file: .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion/decision.md
+  related_changes:
+  - CHANGE-047
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-066
+  title: Permission-Gated MCP Governance And Git Operations
+  status: draft
+  path: .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations
+  summary: Add a future MCP capability set for owner-authorized governance and repository
+    operations, but keep it deferred until P2P has an accepted permission and ownership
+    model for repositories. The future design must specify who owns the repository,
+    who can authorize governance actions, which MCP clients or agents can request
+    privileged operations, how consent is represented, how actions are audited, and
+    which operations require interactive confirmation or explicit owner approval.
+  decision_file: .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-067
+  title: Agent-First Setup Documentation Split
+  status: accepted
+  path: .p2p/proposals/PROP-067-agent-first-setup-documentation-split
+  summary: Revise README and INSTALL around an agent-first new-project setup model.
+    Add or update agent setup guidance so the P2P Engine checkout, target project,
+    and agent client are clearly separated. Move repository-contributor instructions
+    for installing P2P and enabling an agent against the P2P Engine repository into
+    CONTRIBUTING.md, and keep README limited to a concise contribution pointer.
+  decision_file: .p2p/proposals/PROP-067-agent-first-setup-documentation-split/decision.md
+  related_changes:
+  - CHANGE-048
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

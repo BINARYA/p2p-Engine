@@ -456,3 +456,24 @@ decisions:
     discontinuous ideas and contributions into an organized project definition while
     supporting the decision flow. Exports should therefore be agent-first project
     definition and prompt/document outputs derived from accepted P2P memory.
+- proposal: PROP-065
+  title: MCP Agent-First Coverage Expansion
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion/decision.md
+  reason: Accepted to expose priority 1 read-only, priority 2 write-safe deterministic,
+    and priority 3 prompt/advisory MCP tools while preserving owner-only governance
+    boundaries.
+- proposal: PROP-066
+  title: Permission-Gated MCP Governance And Git Operations
+  outcome: pending
+  status: draft
+  path: .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/decision.md
+  reason: ''
+- proposal: PROP-067
+  title: Agent-First Setup Documentation Split
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-067-agent-first-setup-documentation-split/decision.md
+  reason: Accepted to align public setup documentation with the agent-first new-project
+    workflow and move P2P Engine contributor setup into CONTRIBUTING.md.
