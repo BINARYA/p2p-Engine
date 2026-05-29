@@ -18,6 +18,9 @@ build/
 .vscode/
 *.swp
 
+# Local GitHub ruleset exports/backups
+ruleset.json
+
 # P2P local/generated scratch areas
 .p2p/prompts/
 .p2p/tmp/
