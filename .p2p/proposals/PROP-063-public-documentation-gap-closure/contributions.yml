@@ -13,3 +13,10 @@ contributions:
   text: Add examples/minimal-software-project and examples/board-game-project with
     initialized .p2p workspaces, accepted proposal, Change Set, generated registries,
     and local READMEs.
+- id: C003
+  type: suggestion
+  author: local
+  relevance_hint: high
+  text: 'Clarify README positioning: P2P Engine is an operating substrate for coding
+    and planning agents, not primarily a human-operated developer productivity CLI.
+    Add Human / Agent Model section to make agent-mediated usage explicit.'

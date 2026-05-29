@@ -4,6 +4,8 @@ Turn messy project intent into versioned proposals, decisions, specs, and agent-
 
 P2P Engine is a local CLI/core/MCP toolkit for preserving project intent in Git. It helps humans and AI agents move from rough ideas to explicit proposals, owner decisions, Change Sets, project rubrics, and downstream specification artifacts.
 
+P2P Engine is an operating substrate for coding and planning agents, not a traditional developer productivity CLI. Humans remain in charge of supervision and decisions; agents use P2P to structure project intent, memory, and execution context.
+
 ## Why
 
 Project intent is easy to lose.
@@ -30,11 +32,16 @@ P2P Engine keeps the working memory of a project in `.p2p/`, backed by Git.
 
 ## Who It Is For
 
+- AI coding and planning agents that need structured project memory;
+- humans supervising agent-driven project workflows;
 - solo developers using Codex, Claude, or other AI agents;
-- small technical teams that want Git-native project memory;
+- small technical teams that want Git-native project intent and decision history;
 - maintainers who want decisions and tradeoffs to remain auditable;
-- people experimenting with proposal-to-plan workflows;
-- projects that need structured intent before implementation or code generation.
+- people experimenting with proposal-to-plan workflows.
+
+## Human / Agent Model
+
+Humans do not need to operate P2P Engine manually for every step. The intended model is agent-mediated: AI agents use the CLI or MCP server as a structured project cognition layer, while humans supervise outputs and make governance decisions.
 
 ## Status
 
