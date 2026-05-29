@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-071
+  decision_file: .p2p/proposals/PROP-071-custom-domain-definition-workflow/decision.md

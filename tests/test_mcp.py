@@ -144,6 +144,31 @@ def test_mcp_write_safe_bootstrap_tools(tmp_path: Path) -> None:
     assert "- claude" in policy
 
 
+def test_mcp_init_project_can_start_with_unresolved_custom_domain(tmp_path: Path) -> None:
+    initialized = call_tool(
+        "p2p_init_project",
+        {
+            "root": str(tmp_path),
+            "name": "Custom Domain Project",
+            "domain": "custom",
+        },
+    )
+
+    assert initialized["initialized"] is True
+    domain = (tmp_path / ".p2p" / "project" / "domain.yml").read_text(encoding="utf-8")
+    rubrics = (tmp_path / ".p2p" / "project" / "rubrics.yml").read_text(encoding="utf-8")
+
+    assert "status: unresolved" in domain
+    assert "type: custom" in domain
+    assert "status: unresolved" in rubrics
+    assert "criteria: []" in rubrics
+
+    maturity = call_tool("p2p_maturity_refresh", {"root": str(tmp_path)})
+
+    assert maturity["maturity"]["status"] == "rubric_missing"
+    assert maturity["maturity"]["score"] == 0
+
+
 def test_mcp_registry_refresh_tool(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
 

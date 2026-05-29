@@ -30,6 +30,10 @@ p2p init "My Project" \
   --mcp-hint
 ```
 
+`--domain` applies an optional domain template. If omitted, the project starts
+with unresolved domain and rubric state, and `p2p next` will recommend defining
+the domain and rubric before maturity assessment can become meaningful.
+
 Typical first checks:
 
 ```bash

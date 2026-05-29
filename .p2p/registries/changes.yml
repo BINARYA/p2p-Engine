@@ -838,3 +838,20 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-052
+  title: Custom Domain Definition Workflow
+  status: completed
+  path: .p2p/changes/CHANGE-052-custom-domain-definition-workflow
+  included_proposals:
+  - PROP-071
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

@@ -89,8 +89,8 @@ The wizard asks for:
 Project name
 Initial agent profile: generic, codex, claude, all
 Repository mode: local, cloud
-Project domain: generic, software, grant_document, board_game
-Rubric criteria customization
+Domain template: none, custom, generic, software, grant_document, board_game
+Rubric criteria customization, when a template supplies criteria
 MCP setup hint
 ```
 
@@ -103,6 +103,11 @@ For a scriptable non-interactive setup:
   --domain software \
   --mcp-hint
 ```
+
+If you omit `--domain`, P2P starts with unresolved domain and rubric state. The
+first recommended project activities are then to define the domain and define
+the rubric with the user and agent. Use a domain template such as `software`
+when you want P2P to pre-populate rubric criteria at init time.
 
 ## Connect An Agent
 

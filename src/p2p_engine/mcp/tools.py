@@ -131,7 +131,7 @@ def tool_definitions() -> list[dict[str, object]]:
                     },
                     "domain": {
                         "type": "string",
-                        "enum": ["generic", "software", "grant_document", "board_game"],
+                        "enum": ["none", "custom", "generic", "software", "grant_document", "board_game"],
                     },
                 },
                 ["name"],
@@ -214,7 +214,7 @@ def tool_definitions() -> list[dict[str, object]]:
                     "root": {"type": "string"},
                     "domain": {
                         "type": "string",
-                        "enum": ["generic", "software", "grant_document", "board_game"],
+                        "enum": ["none", "custom", "generic", "software", "grant_document", "board_game"],
                     },
                     "force": {"type": "boolean"},
                 },
@@ -542,7 +542,7 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, o
             name=_required(arguments, "name"),
             agent_profile=str(arguments.get("agent") or "generic"),
             repository_mode=str(arguments.get("repository") or "local"),
-            project_domain=str(arguments.get("domain") or "generic"),
+            project_domain=str(arguments.get("domain") or "none"),
         )
         return {
             "initialized": True,

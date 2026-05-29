@@ -178,8 +178,8 @@ p2p assess show
 
 The skill guides the agent's synthesis behavior. The CLI owns the repeatable project context and stores the resulting `operational-brief.md` and optional `next-actions.yml` under `.p2p/project/`.
 `p2p next` is advisory only: it reads stored next actions when available and falls back to conservative project-state checks, but it must not modify project state or decide on behalf of the owner.
-`p2p assess refresh` is deterministic readiness analysis. It may report completion score, confidence, gaps, and suggested commands, but the MVP maturity score remains `not_assessed` until project-domain rubrics are explicitly defined and accepted.
-`p2p assess maturity refresh` is project definition maturity, not implementation completeness. It checks whether enabled rubric topics are covered by P2P proposals, decisions, and Change Sets. Use `p2p project rubrics show` to inspect the domain checklist.
+`p2p assess refresh` is deterministic readiness analysis. It may report completion score, confidence, gaps, and suggested commands. If a project was initialized without a domain template, maturity may remain `rubric_missing` until the domain and rubric are defined.
+`p2p assess maturity refresh` is project definition maturity, not implementation completeness. It checks whether enabled rubric topics are covered by P2P proposals, decisions, and Change Sets. Use `p2p project rubrics show` to inspect whether the rubric is template-selected or unresolved.
 
 ## When To Create A Proposal
 

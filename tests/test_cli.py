@@ -98,6 +98,42 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert "open-questions.md" in result.output
 
 
+def test_cli_init_default_domain_and_rubric_are_unresolved(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    domain = yaml.safe_load((tmp_path / ".p2p" / "project" / "domain.yml").read_text(encoding="utf-8"))
+    rubrics = yaml.safe_load((tmp_path / ".p2p" / "project" / "rubrics.yml").read_text(encoding="utf-8"))
+    next_actions = yaml.safe_load((tmp_path / ".p2p" / "project" / "next-actions.yml").read_text(encoding="utf-8"))
+
+    assert domain["status"] == "unresolved"
+    assert domain["type"] == "none"
+    assert rubrics["status"] == "unresolved"
+    assert rubrics["criteria"] == []
+    assert next_actions["next_actions"][0]["kind"] == "define_domain"
+
+    result = runner.invoke(app, ["assess", "maturity", "refresh", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "status: rubric_missing" in result.output
+    assert "Define the project domain" in result.output
+
+
+def test_cli_init_domain_template_populates_rubric(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    domain = yaml.safe_load((tmp_path / ".p2p" / "project" / "domain.yml").read_text(encoding="utf-8"))
+    rubrics = yaml.safe_load((tmp_path / ".p2p" / "project" / "rubrics.yml").read_text(encoding="utf-8"))
+
+    assert domain["status"] == "template_selected"
+    assert domain["template"] == "software"
+    assert rubrics["status"] == "template_selected"
+    assert rubrics["template"] == "software"
+    assert any(criterion["id"] == "security_privacy" for criterion in rubrics["criteria"])
+    assert not (tmp_path / ".p2p" / "project" / "next-actions.yml").exists()
+
+
 def test_cli_validate_valid_project_and_json_output(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
@@ -279,7 +315,7 @@ def test_cli_init_without_name_runs_guided_wizard(tmp_path: Path) -> None:
     assert "P2P workspace initialized" in result.output
     assert "MCP setup hint" in result.output
     assert "codex mcp add" in result.output
-    assert "Project domain" in result.output
+    assert "Domain template" in result.output
     assert "Customize rubric criteria" in result.output
     assert (tmp_path / "AGENTS.md").exists()
     assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
@@ -2359,7 +2395,7 @@ def test_cli_choice_create_list_and_decide(tmp_path: Path) -> None:
 
 
 def test_cli_choice_discovery_blocking_and_next_integration(tmp_path: Path) -> None:
-    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "Governance Model", "--root", str(tmp_path)])
     runner.invoke(app, ["vote", "record", "PROP-001", "--choice", "A", "--reason", "Prefer A", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Needed.", "--root", str(tmp_path)])
@@ -2695,7 +2731,7 @@ def test_cli_project_brief_prompt_import_and_show(tmp_path: Path) -> None:
 
 
 def test_cli_next_falls_back_without_imported_next_actions(tmp_path: Path) -> None:
-    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "Managed Git", "--root", str(tmp_path)])
     runner.invoke(
         app,
@@ -2730,7 +2766,7 @@ def test_cli_next_falls_back_without_imported_next_actions(tmp_path: Path) -> No
 
 
 def test_cli_next_falls_back_to_draft_proposal_review(tmp_path: Path) -> None:
-    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "Draft Work", "--root", str(tmp_path)])
     runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
 

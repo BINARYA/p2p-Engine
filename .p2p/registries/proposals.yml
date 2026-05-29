@@ -1968,3 +1968,35 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-071
+  title: Custom Domain Definition Workflow
+  status: accepted
+  path: .p2p/proposals/PROP-071-custom-domain-definition-workflow
+  summary: Refactor domain initialization around optional templates. Every project
+    has explicit domain state and rubric state. At init, the user may choose no template,
+    a predefined template such as generic/software/grant_document/board_game, or a
+    custom unresolved path. Applying a template pre-populates domain metadata and
+    rubric criteria. Choosing custom or none leaves domain/rubric setup unresolved
+    and creates or recommends first activities for defining the domain and defining
+    the rubric with the user and agent. Maturity assessment becomes assessable only
+    when an enabled rubric exists; unresolved or empty rubrics report a missing/unresolved
+    rubric state instead of well_defined.
+  decision_file: .p2p/proposals/PROP-071-custom-domain-definition-workflow/decision.md
+  related_changes:
+  - CHANGE-052
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

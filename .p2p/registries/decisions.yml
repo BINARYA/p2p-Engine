@@ -499,3 +499,10 @@ decisions:
   reason: 'Accepted to clarify README quick start semantics: agents can use CLI or
     MCP, and MCP is intentionally limited until permission/ownership governance is
     decided.'
+- proposal: PROP-071
+  title: Custom Domain Definition Workflow
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-071-custom-domain-definition-workflow/decision.md
+  reason: Accepted to make domain and rubric initialization explicit and template-based
+    across all projects, with custom/none treated as unresolved setup work.

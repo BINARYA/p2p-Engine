@@ -107,9 +107,9 @@ def init(
         help="Repository mode: local or cloud",
     ),
     domain: str = typer.Option(
-        "generic",
+        "none",
         "--domain",
-        help="Project domain: generic, software, grant_document, or board_game",
+        help="Domain template: none, custom, generic, software, grant_document, or board_game",
     ),
     mcp_hint: bool | None = typer.Option(
         None,
@@ -134,8 +134,8 @@ def init(
             default=repository,
         )
         domain = _prompt_choice(
-            "Project domain",
-            choices=("generic", "software", "grant_document", "board_game"),
+            "Domain template",
+            choices=("none", "custom", "generic", "software", "grant_document", "board_game"),
             default=domain,
         )
         rubric_enabled = _prompt_rubric_selection(domain)
@@ -176,6 +176,10 @@ def _prompt_choice(prompt: str, choices: tuple[str, ...], default: str) -> str:
 
 def _prompt_rubric_selection(domain: str) -> dict[str, bool] | None:
     preview = P2PWorkspace(Path.cwd()).init_project_rubrics_preview(domain)
+    if not preview:
+        console.print("Project definition rubric criteria: unresolved")
+        console.print("Define the domain and rubric with the user and agent after initialization.")
+        return None
     console.print("Project definition rubric criteria:")
     for criterion in preview:
         console.print(f"  - {criterion['id']}: {criterion['title']}")
@@ -1149,7 +1153,11 @@ def project_remote_configure(
 
 @project_rubrics_app.command("init")
 def project_rubrics_init(
-    domain: str = typer.Option("generic", "--domain", help="generic, software, grant_document, or board_game"),
+    domain: str = typer.Option(
+        "generic",
+        "--domain",
+        help="none, custom, generic, software, grant_document, or board_game",
+    ),
     force: bool = typer.Option(False, "--force", help="Replace existing project rubrics"),
     root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
 ) -> None:
@@ -1161,6 +1169,7 @@ def project_rubrics_init(
     console.print("[green]Project rubrics initialized.[/green]")
     console.print(f"  path: {rubrics.path}")
     console.print(f"  domain: {rubrics.domain}")
+    console.print(f"  status: {rubrics.status}")
     console.print(f"  criteria: {len(rubrics.criteria)}")
 
 
@@ -1174,6 +1183,10 @@ def project_rubrics_show(root: Path = typer.Option(Path.cwd(), "--root", help="P
     console.print("Project rubrics")
     console.print(f"  path: {rubrics.path}")
     console.print(f"  domain: {rubrics.domain}")
+    console.print(f"  status: {rubrics.status}")
+    if not rubrics.criteria:
+        console.print("Criteria: unresolved")
+        return
     console.print("Criteria:")
     for criterion in rubrics.criteria:
         enabled = "enabled" if criterion.get("enabled") is not False else "disabled"

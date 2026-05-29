@@ -181,6 +181,8 @@ class ProjectAssessment:
 class ProjectRubrics:
     path: Path
     domain: str
+    status: str
+    template: str | None
     criteria: list[dict[str, object]]
 
 
@@ -552,7 +554,7 @@ class P2PWorkspace:
         name: str,
         agent_profile: str = "generic",
         repository_mode: str = "local",
-        project_domain: str = "generic",
+        project_domain: str = "none",
         rubric_enabled: dict[str, bool] | None = None,
     ) -> list[Path]:
         agent_profile = _normalize_agent_profile(agent_profile)
@@ -582,6 +584,7 @@ class P2PWorkspace:
                     },
                 }
             ),
+            self.p2p_dir / "project" / "domain.yml": _yaml_dump(_domain_state_payload(project_domain)),
             self.p2p_dir / "governance" / "constitution.md": "# Constitution\n\nPending.\n",
             self.p2p_dir / "governance" / "decision-rules.md": "# Decision Rules\n\nPending.\n",
             self.p2p_dir / "governance" / "relevance-criteria.md": "# Relevance Criteria\n\nPending.\n",
@@ -593,6 +596,10 @@ class P2PWorkspace:
                 _rubrics_payload(project_domain, rubric_enabled=rubric_enabled)
             ),
         }
+        if project_domain not in PROJECT_DOMAIN_TEMPLATES:
+            files[self.p2p_dir / "project" / "next-actions.yml"] = _yaml_dump(
+                _domain_setup_next_actions_payload(project_domain)
+            )
         created: list[Path] = []
         for path, content in files.items():
             if not path.exists():
@@ -1562,6 +1569,8 @@ class P2PWorkspace:
         path.parent.mkdir(parents=True, exist_ok=True)
         payload = _rubrics_payload(domain)
         path.write_text(_yaml_dump(payload), encoding="utf-8")
+        domain_path = self.p2p_dir / "project" / "domain.yml"
+        domain_path.write_text(_yaml_dump(_domain_state_payload(domain)), encoding="utf-8")
         project_file = self.p2p_dir / "project.yml"
         data = _read_yaml_mapping(project_file, default={})
         project = data.get("project", {})
@@ -1583,12 +1592,16 @@ class P2PWorkspace:
             raise ValueError("Project rubrics not found. Run `p2p project rubrics init` first.")
         data = _read_yaml_mapping(path, default={})
         domain = str(data.get("domain") or "generic")
+        status = str(data.get("status") or "template_selected")
+        template = data.get("template")
         criteria = data.get("criteria", [])
         if not isinstance(criteria, list):
             criteria = []
         return ProjectRubrics(
             path=path.relative_to(self.root),
             domain=domain,
+            status=status,
+            template=str(template) if template else None,
             criteria=[item for item in criteria if isinstance(item, dict)],
         )
 
@@ -1626,9 +1639,29 @@ class P2PWorkspace:
         suggested_actions: list[str] = []
         scores: list[int] = []
 
-        for criterion in rubrics.criteria:
-            if criterion.get("enabled") is False:
-                continue
+        enabled_criteria = [
+            criterion for criterion in rubrics.criteria if criterion.get("enabled") is not False
+        ]
+        if rubrics.status in {"unresolved", "missing"} or not enabled_criteria:
+            return ProjectDefinitionMaturity(
+                path=(self.p2p_dir / "project" / "maturity-assessment.yml").relative_to(self.root),
+                generated_on=date.today().isoformat(),
+                domain=rubrics.domain,
+                score=0,
+                status="rubric_missing",
+                criteria=[],
+                gaps=[
+                    "Project definition rubric is unresolved or has no enabled criteria.",
+                    "Define the project domain before assessing maturity.",
+                    "Define the domain rubric and coverage criteria.",
+                ],
+                suggested_actions=[
+                    "Define the project domain with the user and agent.",
+                    "Define the project rubric and coverage criteria.",
+                ],
+            )
+
+        for criterion in enabled_criteria:
             criterion_id = str(criterion.get("id") or "unknown")
             title = str(criterion.get("title") or criterion_id)
             keywords = [str(item).lower() for item in criterion.get("keywords", []) if str(item).strip()]
@@ -4827,7 +4860,8 @@ class P2PWorkspace:
 
 AGENT_PROFILES = {"generic", "codex", "claude", "all"}
 REPOSITORY_MODES = {"local", "cloud"}
-PROJECT_DOMAINS = {"generic", "software", "grant_document", "board_game"}
+PROJECT_DOMAIN_TEMPLATES = {"generic", "software", "grant_document", "board_game"}
+PROJECT_DOMAINS = {"none", "custom", *PROJECT_DOMAIN_TEMPLATES}
 
 _BUILT_IN_RUBRICS: dict[str, list[dict[str, object]]] = {
     "generic": [
@@ -5002,6 +5036,13 @@ def _normalize_repository_mode(mode: str) -> str:
 def _normalize_project_domain(domain: str) -> str:
     normalized = domain.strip().lower().replace("-", "_").replace(" ", "_")
     aliases = {
+        "": "none",
+        "no_template": "none",
+        "no_domain": "none",
+        "unresolved": "none",
+        "blank": "none",
+        "empty": "none",
+        "custom_unresolved": "custom",
         "soft": "software",
         "software_development": "software",
         "grant": "grant_document",
@@ -5012,16 +5053,98 @@ def _normalize_project_domain(domain: str) -> str:
     }
     normalized = aliases.get(normalized, normalized)
     if normalized not in PROJECT_DOMAINS:
-        raise ValueError("Project domain must be generic, software, grant_document, or board_game")
+        raise ValueError(
+            "Project domain must be none, custom, generic, software, grant_document, or board_game"
+        )
     return normalized
+
+
+def _domain_state_payload(domain: str) -> dict[str, object]:
+    domain = _normalize_project_domain(domain)
+    if domain in PROJECT_DOMAIN_TEMPLATES:
+        return {
+            "version": "1.0",
+            "status": "template_selected",
+            "type": "template",
+            "name": domain,
+            "template": domain,
+        }
+    return {
+        "version": "1.0",
+        "status": "unresolved",
+        "type": domain,
+        "name": None,
+        "template": None,
+        "next_actions": [
+            {
+                "kind": "define_custom_domain" if domain == "custom" else "define_domain",
+                "title": "Define the project domain with the user and agent",
+            },
+            {
+                "kind": "define_domain_rubric",
+                "title": "Define the project rubric and coverage criteria",
+            },
+        ],
+    }
+
+
+def _domain_setup_next_actions_payload(domain: str) -> dict[str, object]:
+    domain = _normalize_project_domain(domain)
+    label = "custom" if domain == "custom" else "project"
+    return {
+        "next_actions": [
+            {
+                "id": "NEXT-001",
+                "priority": "high",
+                "kind": "define_domain",
+                "target": "project-domain",
+                "reason": f"The {label} domain is unresolved and must be defined before maturity can be assessed.",
+                "command": "p2p project show overview",
+            },
+            {
+                "id": "NEXT-002",
+                "priority": "high",
+                "kind": "define_domain_rubric",
+                "target": "project-rubric",
+                "reason": "The project rubric is unresolved and has no enabled criteria.",
+                "command": "p2p project rubrics show",
+            },
+        ]
+    }
 
 
 def _rubrics_payload(domain: str, rubric_enabled: dict[str, bool] | None = None) -> dict[str, object]:
     domain = _normalize_project_domain(domain)
     rubric_enabled = rubric_enabled or {}
+    if domain not in PROJECT_DOMAIN_TEMPLATES:
+        return {
+            "version": "1.0",
+            "domain": domain,
+            "status": "unresolved",
+            "template": None,
+            "assessment_type": "project_definition_maturity",
+            "scoring": {
+                "covered": 100,
+                "partial": 50,
+                "missing": 0,
+            },
+            "criteria": [],
+            "next_actions": [
+                {
+                    "kind": "define_domain",
+                    "title": "Define the project domain with the user and agent",
+                },
+                {
+                    "kind": "define_domain_rubric",
+                    "title": "Define the project rubric and coverage criteria",
+                },
+            ],
+        }
     return {
         "version": "1.0",
         "domain": domain,
+        "status": "template_selected",
+        "template": domain,
         "assessment_type": "project_definition_maturity",
         "scoring": {
             "covered": 100,
