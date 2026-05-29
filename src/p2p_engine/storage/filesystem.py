@@ -2255,6 +2255,8 @@ class P2PWorkspace:
 
         change = self.show_change_set(change_id)
         export_dir = self.p2p_dir / "outputs" / "spec-export" / change_id / target
+        if export_dir.exists():
+            shutil.rmtree(export_dir)
         export_dir.mkdir(parents=True, exist_ok=True)
 
         files = _software_spec_export_files(
@@ -2263,6 +2265,7 @@ class P2PWorkspace:
             change.title,
             spec_dir,
             str(spec_dir.relative_to(self.root)),
+            self._project_definition(change_id, change, spec_dir),
         )
         for filename, content in files.items():
             output_path = export_dir / filename
@@ -2291,7 +2294,11 @@ class P2PWorkspace:
             for target_dir in sorted(change_dir.iterdir()):
                 if not target_dir.is_dir():
                     continue
-                status = "exported" if (target_dir / "index.md").exists() else "incomplete"
+                try:
+                    required = _software_spec_export_required_files(change_id, target_dir.name, target_dir)
+                except ValueError:
+                    required = [Path("index.md")]
+                status = "exported" if all((target_dir / path).exists() for path in required) else "incomplete"
                 statuses.append(
                     SoftwareSpecExportStatus(
                         change_id=change_id,
@@ -2305,7 +2312,8 @@ class P2PWorkspace:
 
     def show_software_spec_export(self, change_id: str, target: str) -> str:
         target = target.lower()
-        path = self.p2p_dir / "outputs" / "spec-export" / change_id / target / "index.md"
+        export_dir = self.p2p_dir / "outputs" / "spec-export" / change_id / target
+        path = export_dir / _software_spec_export_show_file(target)
         if not path.exists():
             raise ValueError("Software spec export not found. Run `p2p spec export --change CHANGE-XXX --target TARGET` first.")
         return path.read_text(encoding="utf-8")
@@ -2326,18 +2334,13 @@ class P2PWorkspace:
                 raise ValueError(f"Missing required software spec export artifact: {relative}")
             checked.append(path.relative_to(self.root))
 
-        manifest_path = export_dir / "manifest.yml"
-        manifest = _read_yaml_mapping(manifest_path, default={})
-        source = manifest.get("source", {})
-        if not isinstance(source, dict):
-            raise ValueError("Invalid export manifest: source must be a mapping")
-        if source.get("change") != change_id:
-            raise ValueError(f"Invalid export manifest: source.change must be {change_id}")
-        if manifest.get("target") != target:
-            raise ValueError(f"Invalid export manifest: target must be {target}")
-        artifacts = manifest.get("artifacts", [])
-        if not isinstance(artifacts, list):
-            raise ValueError("Invalid export manifest: artifacts must be a list")
+        if target == "generic":
+            project_text = (export_dir / "project.md").read_text(encoding="utf-8")
+            for section in _project_definition_required_sections():
+                if not _markdown_has_section(project_text, section):
+                    raise ValueError(f"Missing required project definition section: {section}")
+            if "## Source Traceability" not in project_text:
+                raise ValueError("Missing required project definition source traceability")
 
         return SoftwareSpecExportValidation(
             change_id=change_id,
@@ -2345,6 +2348,34 @@ class P2PWorkspace:
             path=export_dir.relative_to(self.root),
             checked=checked,
         )
+
+    def _project_definition(self, change_id: str, change: ChangeSetDetail, spec_dir: Path) -> dict[str, object]:
+        project_data = _read_yaml_mapping(self.p2p_dir / "project.yml", default={})
+        project = project_data.get("project", {})
+        if not isinstance(project, dict):
+            project = {}
+        accepted = self._accepted_proposals()
+        drafts = self.proposal_summaries("draft")
+        source_spec = {filename: _read_optional(spec_dir / filename) for filename in _software_spec_required_files()}
+        return {
+            "project_name": str(project.get("name") or self.status().project_name),
+            "domain": str(project.get("domain") or "generic"),
+            "change_id": change_id,
+            "change_title": change.title,
+            "change_summary": change.summary,
+            "execution_domains": change.execution_domains,
+            "implementation_targets": change.implementation_targets,
+            "spec_targets": change.spec_targets,
+            "export_targets": change.export_targets,
+            "accepted_proposals": accepted,
+            "draft_proposals": drafts,
+            "spec": source_spec,
+            "constitution": _read_optional(self.p2p_dir / "governance" / "constitution.md"),
+            "decision_rules": _read_optional(self.p2p_dir / "governance" / "decision-rules.md"),
+            "rubrics": _read_optional(self.p2p_dir / "project" / "rubrics.yml"),
+            "assessment": _read_optional(self.p2p_dir / "project" / "assessment.yml"),
+            "maturity": _read_optional(self.p2p_dir / "project" / "maturity-assessment.yml"),
+        }
 
     def create_work_plan(self, change_id: str, target: str) -> WorkDetail:
         target = target.lower()
@@ -5625,50 +5656,23 @@ def _software_spec_export_files(
     title: str,
     spec_dir: Path,
     software_spec_path: str,
+    definition: dict[str, object],
 ) -> dict[str, str]:
     spec = {filename: _read_optional(spec_dir / filename) for filename in _software_spec_required_files()}
-    manifest = _yaml_dump(
-        {
-            "source": {
-                "change": change_id,
-                "software_spec": software_spec_path,
-            },
-            "target": target,
-            "artifacts": _software_spec_export_artifacts(target),
-        }
-    )
     if target == "generic":
         return {
-            "index.md": _generic_spec_export_index(change_id, title),
-            "requirements.md": spec["requirements.md"],
-            "design.md": spec["design.md"],
-            "commands.yml": spec["commands.yml"],
-            "data-model.yml": spec["data-model.yml"],
-            "acceptance.md": spec["acceptance.md"],
-            "provenance.yml": spec["provenance.yml"],
-            "manifest.yml": manifest,
+            "project.md": _project_definition_markdown(definition),
+            "propose.md": _generic_propose_markdown(definition),
         }
     if target == "openspec":
         return {
-            "index.md": _openspec_export_index(change_id, title),
-            "spec.md": _openspec_spec_markdown(spec),
-            "commands.yml": spec["commands.yml"],
-            "data-model.yml": spec["data-model.yml"],
-            "provenance.yml": spec["provenance.yml"],
-            "manifest.yml": manifest,
+            "propose.md": _openspec_propose_markdown(definition),
         }
     if target == "speckit":
-        feature_dir = f"specs/{change_id.lower()}-{_slugify(title)}"
         return {
-            "index.md": _speckit_export_index(change_id, title, feature_dir),
-            f"{feature_dir}/spec.md": _speckit_spec_markdown(change_id, title, spec),
-            f"{feature_dir}/plan.md": _speckit_plan_markdown(change_id, title, spec),
-            f"{feature_dir}/research.md": _speckit_research_markdown(change_id, title, spec),
-            f"{feature_dir}/data-model.md": _speckit_data_model_markdown(spec),
-            f"{feature_dir}/quickstart.md": _speckit_quickstart_markdown(change_id),
-            f"{feature_dir}/tasks.md": _speckit_tasks_markdown(change_id, spec),
-            f"{feature_dir}/contracts/README.md": _speckit_contracts_readme(change_id, spec),
-            "manifest.yml": manifest,
+            "speckit.constitution.md": _speckit_constitution_markdown(definition),
+            "speckit.specify.md": _speckit_specify_markdown(definition),
+            "speckit.plan.md": _speckit_plan_prompt_markdown(definition),
         }
     raise ValueError(f"Unsupported software spec export target: {target}")
 
@@ -5676,35 +5680,18 @@ def _software_spec_export_files(
 def _software_spec_export_artifacts(target: str) -> list[str]:
     if target == "generic":
         return [
-            "index.md",
-            "requirements.md",
-            "design.md",
-            "commands.yml",
-            "data-model.yml",
-            "acceptance.md",
-            "provenance.yml",
-            "manifest.yml",
+            "project.md",
+            "propose.md",
         ]
     if target == "openspec":
         return [
-            "index.md",
-            "spec.md",
-            "commands.yml",
-            "data-model.yml",
-            "provenance.yml",
-            "manifest.yml",
+            "propose.md",
         ]
     if target == "speckit":
         return [
-            "index.md",
-            "specs/CHANGE-XXX-slug/spec.md",
-            "specs/CHANGE-XXX-slug/plan.md",
-            "specs/CHANGE-XXX-slug/research.md",
-            "specs/CHANGE-XXX-slug/data-model.md",
-            "specs/CHANGE-XXX-slug/quickstart.md",
-            "specs/CHANGE-XXX-slug/tasks.md",
-            "specs/CHANGE-XXX-slug/contracts/README.md",
-            "manifest.yml",
+            "speckit.constitution.md",
+            "speckit.specify.md",
+            "speckit.plan.md",
         ]
     return []
 
@@ -5712,38 +5699,57 @@ def _software_spec_export_artifacts(target: str) -> list[str]:
 def _software_spec_export_required_files(change_id: str, target: str, export_dir: Path) -> list[Path]:
     if target == "generic":
         return [
-            Path("index.md"),
-            Path("requirements.md"),
-            Path("design.md"),
-            Path("commands.yml"),
-            Path("data-model.yml"),
-            Path("acceptance.md"),
-            Path("provenance.yml"),
-            Path("manifest.yml"),
+            Path("project.md"),
+            Path("propose.md"),
         ]
     if target == "openspec":
         return [
-            Path("index.md"),
-            Path("spec.md"),
-            Path("commands.yml"),
-            Path("data-model.yml"),
-            Path("provenance.yml"),
-            Path("manifest.yml"),
+            Path("propose.md"),
         ]
     if target == "speckit":
-        feature_dir = _speckit_feature_dir(change_id, export_dir)
         return [
-            Path("index.md"),
-            Path("manifest.yml"),
-            feature_dir / "spec.md",
-            feature_dir / "plan.md",
-            feature_dir / "research.md",
-            feature_dir / "data-model.md",
-            feature_dir / "quickstart.md",
-            feature_dir / "tasks.md",
-            feature_dir / "contracts" / "README.md",
+            Path("speckit.constitution.md"),
+            Path("speckit.specify.md"),
+            Path("speckit.plan.md"),
         ]
     raise ValueError(f"Unsupported software spec export target: {target}")
+
+
+def _software_spec_export_show_file(target: str) -> str:
+    if target == "generic":
+        return "project.md"
+    if target == "openspec":
+        return "propose.md"
+    if target == "speckit":
+        return "speckit.constitution.md"
+    return "index.md"
+
+
+def _project_definition_required_sections() -> tuple[str, ...]:
+    return (
+        "Executive Summary",
+        "Vision",
+        "Domain",
+        "Problem",
+        "Goals",
+        "Non-Goals / Exclusions",
+        "Stakeholders / Users",
+        "Workflows",
+        "Accepted Decisions",
+        "Requirements",
+        "Constraints",
+        "Assumptions",
+        "Dependencies",
+        "Operating Model / Architecture",
+        "Data / Knowledge Model",
+        "Priorities",
+        "Success Criteria",
+        "Validation / Evaluation Method",
+        "Risks And Tradeoffs",
+        "Open Questions",
+        "Pending Proposals",
+        "Source Traceability",
+    )
 
 
 def _speckit_feature_dir(change_id: str, export_dir: Path) -> Path:
@@ -5756,6 +5762,273 @@ def _speckit_feature_dir(change_id: str, export_dir: Path) -> Path:
             if candidate.name.startswith(change_id.lower()):
                 return Path("specs") / candidate.name
     return Path("specs") / f"{change_id.lower()}-slug"
+
+
+def _definition_value(definition: dict[str, object], key: str, default: str = "NEEDS CLARIFICATION") -> str:
+    value = definition.get(key)
+    if value is None:
+        return default
+    if isinstance(value, list):
+        return ", ".join(str(item) for item in value) or default
+    text = str(value).strip()
+    return text or default
+
+
+def _definition_spec(definition: dict[str, object], filename: str) -> str:
+    spec = definition.get("spec", {})
+    if not isinstance(spec, dict):
+        return ""
+    return str(spec.get(filename) or "")
+
+
+def _definition_accepted(definition: dict[str, object]) -> list[dict[str, object]]:
+    accepted = definition.get("accepted_proposals", [])
+    return accepted if isinstance(accepted, list) else []
+
+
+def _definition_drafts(definition: dict[str, object]) -> list[ProposalSummary]:
+    drafts = definition.get("draft_proposals", [])
+    return drafts if isinstance(drafts, list) else []
+
+
+def _accepted_bullets(definition: dict[str, object], key: str, limit: int | None = None) -> str:
+    lines: list[str] = []
+    for item in _definition_accepted(definition)[:limit]:
+        if not isinstance(item, dict):
+            continue
+        value = str(item.get(key) or "").strip()
+        proposal_id = str(item.get("proposal_id") or "PROP-???")
+        title = str(item.get("title") or proposal_id)
+        if value:
+            lines.append(f"- **{proposal_id} {title}**: {value}")
+    return "\n".join(lines) or "- NEEDS CLARIFICATION"
+
+
+def _proposal_sources(definition: dict[str, object]) -> str:
+    lines: list[str] = []
+    for item in _definition_accepted(definition):
+        if not isinstance(item, dict):
+            continue
+        proposal_id = str(item.get("proposal_id") or "PROP-???")
+        title = str(item.get("title") or proposal_id)
+        source = str(item.get("source") or "")
+        lines.append(f"- `{proposal_id}` {title} — `{source}`")
+    return "\n".join(lines) or "- No accepted proposals found."
+
+
+def _pending_proposals(definition: dict[str, object]) -> str:
+    lines = [f"- `{item.proposal_id}` {item.title}" for item in _definition_drafts(definition)]
+    return "\n".join(lines) or "- None."
+
+
+def _domain_sections(definition: dict[str, object]) -> str:
+    domain = _definition_value(definition, "domain", "generic")
+    if domain == "software":
+        return (
+            "## Software Domain Extension\n\n"
+            "### Technical Architecture\n\n"
+            f"{_strip_markdown_title(_definition_spec(definition, 'design.md')) or 'NEEDS CLARIFICATION'}\n\n"
+            "### CLI/API/UI Surface\n\n"
+            "```yaml\n"
+            f"{_definition_spec(definition, 'commands.yml').strip() or 'commands: []'}\n"
+            "\n```\n\n"
+            "### Testing Strategy\n\n"
+            f"{_strip_markdown_title(_definition_spec(definition, 'acceptance.md')) or 'NEEDS CLARIFICATION'}\n\n"
+            "### Deployment / Operations\n\n"
+            "NEEDS CLARIFICATION\n\n"
+            "### Integration Boundaries\n\n"
+            f"- Implementation targets: {_definition_value(definition, 'implementation_targets')}\n"
+            f"- Spec targets: {_definition_value(definition, 'spec_targets')}\n"
+            f"- Export targets: {_definition_value(definition, 'export_targets')}\n"
+        )
+    if domain == "board_game":
+        return (
+            "## Board Game Domain Extension\n\n"
+            "### Core Loop\n\nNEEDS CLARIFICATION\n\n"
+            "### Player Roles\n\nNEEDS CLARIFICATION\n\n"
+            "### Components\n\nNEEDS CLARIFICATION\n\n"
+            "### Rules\n\nNEEDS CLARIFICATION\n\n"
+            "### Win / Loss Conditions\n\nNEEDS CLARIFICATION\n\n"
+            "### Playtest Plan\n\nNEEDS CLARIFICATION\n"
+        )
+    if domain == "grant_document":
+        return (
+            "## Grant Document Domain Extension\n\n"
+            "### Funding Objective\n\nNEEDS CLARIFICATION\n\n"
+            "### Eligibility\n\nNEEDS CLARIFICATION\n\n"
+            "### Evaluation Criteria\n\nNEEDS CLARIFICATION\n\n"
+            "### Required Documents\n\nNEEDS CLARIFICATION\n\n"
+            "### Budget Structure\n\nNEEDS CLARIFICATION\n\n"
+            "### Timeline And Milestones\n\nNEEDS CLARIFICATION\n"
+        )
+    return "## Domain Extension\n\nNEEDS CLARIFICATION\n"
+
+
+def _project_definition_markdown(definition: dict[str, object]) -> str:
+    project_name = _definition_value(definition, "project_name", "Project")
+    change_id = _definition_value(definition, "change_id")
+    change_title = _definition_value(definition, "change_title")
+    requirements = _strip_markdown_title(_definition_spec(definition, "requirements.md")) or "NEEDS CLARIFICATION"
+    acceptance = _strip_markdown_title(_definition_spec(definition, "acceptance.md")) or "NEEDS CLARIFICATION"
+    data_model = _definition_spec(definition, "data-model.yml").strip() or "entities: []"
+    return (
+        f"# {project_name} Project Definition\n\n"
+        "This document is synthesized from accepted P2P memory. It is the canonical generic project export. "
+        "Draft or undecided material is listed only as pending or missing information.\n\n"
+        "## Executive Summary\n\n"
+        f"{_definition_value(definition, 'change_summary')}\n\n"
+        "## Vision\n\n"
+        "Organize confused, distributed, and discontinuous project intent into a governed project definition that agents can use without rediscovering context from scratch.\n\n"
+        "## Domain\n\n"
+        f"{_definition_value(definition, 'domain')}\n\n"
+        "## Problem\n\n"
+        f"{_accepted_bullets(definition, 'problem', limit=8)}\n\n"
+        "## Goals\n\n"
+        f"{_accepted_bullets(definition, 'goals', limit=8)}\n\n"
+        "## Non-Goals / Exclusions\n\n"
+        f"{_accepted_bullets(definition, 'non_goals', limit=8)}\n\n"
+        "## Stakeholders / Users\n\n"
+        "- Humans supervise outputs and make governance decisions.\n"
+        "- AI agents use P2P memory and exports as structured project cognition.\n"
+        "- Downstream tools receive initialization prompts or documents, not synthetic ownership of P2P state.\n\n"
+        "## Workflows\n\n"
+        "- Capture rough ideas as intake, proposals, or contributions.\n"
+        "- Decide accepted direction through owner-controlled P2P governance.\n"
+        "- Derive Change Sets and exports from accepted memory.\n"
+        "- Use target-specific outputs to initialize downstream agent workflows.\n\n"
+        "## Accepted Decisions\n\n"
+        f"{_accepted_bullets(definition, 'decision', limit=12)}\n\n"
+        "## Requirements\n\n"
+        f"{requirements}\n\n"
+        "## Constraints\n\n"
+        "- Exports must not invent requirements unsupported by accepted P2P artifacts.\n"
+        "- Missing information must be marked as NEEDS CLARIFICATION.\n"
+        "- Draft proposals must not be treated as accepted project truth.\n\n"
+        "## Assumptions\n\n"
+        "- Accepted P2P proposals and decisions are authoritative project memory.\n"
+        "- Target-specific exports are initialization artifacts for agents or downstream tools.\n\n"
+        "## Dependencies\n\n"
+        f"- Source Change Set: `{change_id}` {change_title}\n"
+        "- P2P software spec artifacts generated before export.\n"
+        "- Downstream tools, if used, run outside P2P export.\n\n"
+        "## Operating Model / Architecture\n\n"
+        f"{_strip_markdown_title(_definition_spec(definition, 'design.md')) or 'NEEDS CLARIFICATION'}\n\n"
+        "## Data / Knowledge Model\n\n"
+        "```yaml\n"
+        f"{data_model}\n"
+        "\n```\n\n"
+        "## Priorities\n\n"
+        "- Preserve accepted project intent and governance first.\n"
+        "- Produce small agent-consumable outputs instead of downstream-shaped folders.\n"
+        "- Keep target-specific exports derived from this project definition.\n\n"
+        "## Success Criteria\n\n"
+        f"{acceptance}\n\n"
+        "## Validation / Evaluation Method\n\n"
+        "- Validate required export files exist.\n"
+        "- Validate required project definition sections exist.\n"
+        "- Validate source traceability is present.\n\n"
+        "## Risks And Tradeoffs\n\n"
+        "- Removing folder-shaped exports may surprise users of the previous MVP export layout.\n"
+        "- Agent-first documents require clear traceability to avoid over-synthesis.\n\n"
+        "## Open Questions\n\n"
+        "- Which legacy bundle outputs, if any, should remain available behind an explicit compatibility flag?\n\n"
+        "## Pending Proposals\n\n"
+        f"{_pending_proposals(definition)}\n\n"
+        f"{_domain_sections(definition)}\n\n"
+        "## Source Traceability\n\n"
+        f"- Source Change Set: `{change_id}` {change_title}\n"
+        f"{_proposal_sources(definition)}\n"
+    )
+
+
+def _generic_propose_markdown(definition: dict[str, object]) -> str:
+    return (
+        "# Generic Project Initialization Prompt\n\n"
+        "Use the accompanying `project.md` as authoritative project context. "
+        "Initialize or continue the project without inventing requirements beyond accepted P2P memory.\n\n"
+        "## Prompt\n\n"
+        f"Build or continue the project described in `project.md`: {_definition_value(definition, 'project_name', 'Project')}.\n\n"
+        "Respect accepted decisions, constraints, non-goals, and source traceability. "
+        "Mark missing details as NEEDS CLARIFICATION.\n"
+    )
+
+
+def _openspec_propose_markdown(definition: dict[str, object]) -> str:
+    return (
+        "# OpenSpec Proposal Input\n\n"
+        "Use this as the proposal-oriented initialization input for OpenSpec or an OpenSpec-aware agent.\n\n"
+        "## Problem\n\n"
+        f"{_accepted_bullets(definition, 'problem', limit=6)}\n\n"
+        "## Proposed Change\n\n"
+        f"{_accepted_bullets(definition, 'proposal', limit=6)}\n\n"
+        "## Scope\n\n"
+        f"{_accepted_bullets(definition, 'goals', limit=6)}\n\n"
+        "## Out Of Scope\n\n"
+        f"{_accepted_bullets(definition, 'non_goals', limit=6)}\n\n"
+        "## Impact\n\n"
+        f"- Source Change Set: `{_definition_value(definition, 'change_id')}` {_definition_value(definition, 'change_title')}\n\n"
+        "## Risks\n\n"
+        "- NEEDS CLARIFICATION: confirm target-specific risks before implementation.\n\n"
+        "## Acceptance Criteria\n\n"
+        f"{_strip_markdown_title(_definition_spec(definition, 'acceptance.md')) or 'NEEDS CLARIFICATION'}\n\n"
+        "## Source Traceability\n\n"
+        f"{_proposal_sources(definition)}\n"
+    )
+
+
+def _speckit_constitution_markdown(definition: dict[str, object]) -> str:
+    return (
+        "# Spec Kit Constitution Prompt\n\n"
+        "Use this content with `/speckit.constitution`. Establish governing principles from accepted P2P memory.\n\n"
+        "## Principles To Establish\n\n"
+        "- Preserve accepted project intent and source traceability.\n"
+        "- Do not treat draft P2P proposals as accepted requirements.\n"
+        "- Mark missing information as NEEDS CLARIFICATION.\n"
+        "- Humans supervise outcomes and make governance decisions.\n"
+        "- Agents use P2P exports as structured cognition, not as authority to bypass governance.\n\n"
+        "## Existing Governance Context\n\n"
+        f"{_definition_value(definition, 'constitution', 'NEEDS CLARIFICATION')}\n\n"
+        "## Decision Rules\n\n"
+        f"{_definition_value(definition, 'decision_rules', 'NEEDS CLARIFICATION')}\n"
+    )
+
+
+def _speckit_specify_markdown(definition: dict[str, object]) -> str:
+    return (
+        "# Spec Kit Specify Prompt\n\n"
+        "Use this content with `/speckit.specify`. Focus on what and why; do not select a tech stack here.\n\n"
+        "## What To Build\n\n"
+        f"{_accepted_bullets(definition, 'proposal', limit=8)}\n\n"
+        "## Why\n\n"
+        f"{_accepted_bullets(definition, 'problem', limit=8)}\n\n"
+        "## Users And Workflows\n\n"
+        "- Humans supervise and decide.\n"
+        "- Agents use P2P memory to preserve project context and propose bounded changes.\n\n"
+        "## Requirements\n\n"
+        f"{_strip_markdown_title(_definition_spec(definition, 'requirements.md')) or 'NEEDS CLARIFICATION'}\n\n"
+        "## Success Criteria\n\n"
+        f"{_strip_markdown_title(_definition_spec(definition, 'acceptance.md')) or 'NEEDS CLARIFICATION'}\n"
+    )
+
+
+def _speckit_plan_prompt_markdown(definition: dict[str, object]) -> str:
+    return (
+        "# Spec Kit Plan Prompt\n\n"
+        "Use this content with `/speckit.plan`. Provide technical implementation choices derived from accepted P2P memory.\n\n"
+        "## Architecture / Operating Model\n\n"
+        f"{_strip_markdown_title(_definition_spec(definition, 'design.md')) or 'NEEDS CLARIFICATION'}\n\n"
+        "## Implementation Targets\n\n"
+        f"{_definition_value(definition, 'implementation_targets')}\n\n"
+        "## Data Model\n\n"
+        "```yaml\n"
+        f"{_definition_spec(definition, 'data-model.yml').strip() or 'entities: []'}\n"
+        "\n```\n\n"
+        "## Testing And Validation\n\n"
+        f"{_strip_markdown_title(_definition_spec(definition, 'acceptance.md')) or 'NEEDS CLARIFICATION'}\n\n"
+        "## Constraints\n\n"
+        "- Preserve P2P provenance.\n"
+        "- Do not introduce implementation scope not supported by accepted P2P memory.\n"
+    )
 
 
 def _generic_spec_export_index(change_id: str, title: str) -> str:

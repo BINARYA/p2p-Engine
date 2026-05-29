@@ -1775,3 +1775,35 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-064
+  title: Spec Kit Three-Prompt Export Model
+  status: accepted
+  path: .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model
+  summary: 'Implement an agent-first project definition export pipeline. Step 1 synthesizes
+    accepted P2P memory into project.md using a required core checklist, domain extensions,
+    evidence labels, and explicit missing-information markers. Step 2 derives target-specific
+    outputs from project.md: generic exports project.md and propose.md; OpenSpec exports
+    propose.md aligned with OpenSpec proposal principles; Spec Kit exports speckit.constitution.md,
+    speckit.specify.md, and speckit.plan.md aligned with the three starting Spec Kit
+    prompts. Legacy bundle-style exports may remain temporarily under a legacy/ or
+    bundle/ path, but they must be labeled secondary and not documented as the primary
+    flow.'
+  decision_file: .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model/decision.md
+  related_changes:
+  - CHANGE-046
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

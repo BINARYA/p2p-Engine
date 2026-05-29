@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-064
+  decision_file: .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model/decision.md

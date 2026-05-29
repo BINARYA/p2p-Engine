@@ -1,0 +1,59 @@
+contributions:
+- id: C001
+  type: architectural_principle
+  author: local
+  relevance_hint: high
+  text: Define generic project.md as the canonical synthesized project document derived
+    from accepted P2P memory. It should include vision, domain, workflows, decisions,
+    constraints, architecture, priorities, exclusions, requirements, success criteria,
+    open questions, and domain-specific sections. OpenSpec propose.md and Spec Kit
+    constitution/specify/plan outputs should be derived views from project.md.
+- id: C002
+  type: architectural_principle
+  author: local
+  relevance_hint: high
+  text: 'Project export should be driven by a project-definition synthesis skill:
+    a generic coverage checklist is always required, and agents extend it with domain-specific
+    sections for software, grant documents, board games, environmental impact assessment,
+    one-day projects, and other verticals. The skill should synthesize accepted P2P
+    memory into project.md before deriving downstream outputs.'
+- id: C003
+  type: implementation_suggestion
+  author: local
+  relevance_hint: high
+  text: 'Implementation detail: project.md synthesis should use a coverage matrix
+    with status values covered, partial, missing, and pending. Each section should
+    include source references such as proposal IDs, decision IDs, choice IDs, Change
+    Set IDs, or rubric evidence. Missing information must be written as NEEDS CLARIFICATION
+    rather than inferred. Draft proposals may only appear under Pending Proposals
+    or Open Questions. Generic propose.md should be a concise initialization prompt
+    derived from project.md. OpenSpec propose.md should emphasize problem, proposed
+    change, scope, out-of-scope, impact, risks, and acceptance criteria. Spec Kit
+    constitution/specify/plan should map project.md sections as follows: constitution
+    from principles, constraints, quality standards, governance and non-negotiables;
+    specify from problem, users, workflows, requirements and success criteria; plan
+    from architecture, dependencies, data model, testing, operations and implementation
+    constraints.'
+- id: C004
+  type: implementation_suggestion
+  author: local
+  relevance_hint: high
+  text: 'Testing and validation detail: add tests that generate exports for at least
+    software and board_game projects, assert that generic/project.md contains all
+    core headings, assert domain sections are present for the selected domain, assert
+    Spec Kit primary output contains only the three prompt files unless legacy output
+    is explicitly requested, assert OpenSpec primary output is propose.md, and assert
+    validation fails when source traceability is missing or when accepted evidence
+    is incorrectly mixed with draft-only content.'
+- id: C005
+  type: implementation_suggestion
+  author: local
+  relevance_hint: high
+  text: 'Suggested implementation shape: introduce a ProjectDefinition model or structured
+    dict that is generated once from P2P memory, then rendered by target-specific
+    renderers. Avoid having each exporter re-read proposals independently. Suggested
+    renderers: render_project_markdown(definition), render_generic_propose(definition),
+    render_openspec_propose(definition), render_speckit_constitution(definition),
+    render_speckit_specify(definition), render_speckit_plan(definition). This keeps
+    target exports consistent and makes project.md the reviewable source for all derived
+    outputs.'

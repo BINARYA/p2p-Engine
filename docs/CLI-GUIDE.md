@@ -178,7 +178,7 @@ accepted project intent; they do not replace Git commits or code review.
 ## 7. Generate And Export Specs
 
 For software projects, a Change Set can produce a P2P-native spec and optional
-downstream export bundle.
+agent-first export documents for generic, OpenSpec, or Spec Kit handoff.
 
 ```bash
 p2p spec refresh --change CHANGE-001
@@ -194,6 +194,22 @@ p2p spec import CHANGE-001 spec-output/
 p2p spec export --change CHANGE-001 --target speckit
 p2p spec export-status
 p2p spec export-validate CHANGE-001 --target speckit
+```
+
+Primary export shapes:
+
+```text
+generic/
+  project.md
+  propose.md
+
+openspec/
+  propose.md
+
+speckit/
+  speckit.constitution.md
+  speckit.specify.md
+  speckit.plan.md
 ```
 
 ## 8. Manage Work Metadata

@@ -1123,10 +1123,14 @@ def test_cli_software_spec_refresh_prompt_import_status_and_show(tmp_path: Path)
     assert ".p2p/outputs/spec-export/CHANGE-001/generic" in result.output
 
     generic_dir = tmp_path / ".p2p" / "outputs" / "spec-export" / "CHANGE-001" / "generic"
-    assert (generic_dir / "index.md").exists()
-    assert (generic_dir / "requirements.md").exists()
-    assert (generic_dir / "manifest.yml").exists()
-    assert "Generic Software Spec Export" in (generic_dir / "index.md").read_text(encoding="utf-8")
+    assert (generic_dir / "project.md").exists()
+    assert (generic_dir / "propose.md").exists()
+    assert not (generic_dir / "manifest.yml").exists()
+    project_text = (generic_dir / "project.md").read_text(encoding="utf-8")
+    assert "Demo Project Project Definition" in project_text
+    assert "## Executive Summary" in project_text
+    assert "## Source Traceability" in project_text
+    assert "Generate a deterministic software spec." in project_text
 
     result = runner.invoke(
         app,
@@ -1135,9 +1139,9 @@ def test_cli_software_spec_refresh_prompt_import_status_and_show(tmp_path: Path)
     assert result.exit_code == 0
 
     openspec_dir = tmp_path / ".p2p" / "outputs" / "spec-export" / "CHANGE-001" / "openspec"
-    assert (openspec_dir / "index.md").exists()
-    assert (openspec_dir / "spec.md").exists()
-    assert "OpenSpec-Oriented Specification" in (openspec_dir / "spec.md").read_text(encoding="utf-8")
+    assert (openspec_dir / "propose.md").exists()
+    assert not (openspec_dir / "manifest.yml").exists()
+    assert "OpenSpec Proposal Input" in (openspec_dir / "propose.md").read_text(encoding="utf-8")
 
     result = runner.invoke(
         app,
@@ -1146,14 +1150,14 @@ def test_cli_software_spec_refresh_prompt_import_status_and_show(tmp_path: Path)
     assert result.exit_code == 0
 
     speckit_dir = tmp_path / ".p2p" / "outputs" / "spec-export" / "CHANGE-001" / "speckit"
-    speckit_feature_dir = speckit_dir / "specs" / "change-001-spec-work"
-    assert (speckit_dir / "index.md").exists()
-    assert (speckit_dir / "manifest.yml").exists()
-    for filename in ("spec.md", "plan.md", "research.md", "data-model.md", "quickstart.md", "tasks.md"):
-        assert (speckit_feature_dir / filename).exists()
-    assert (speckit_feature_dir / "contracts" / "README.md").exists()
-    assert "Feature Specification: Spec Work" in (speckit_feature_dir / "spec.md").read_text(encoding="utf-8")
-    assert "NEEDS CLARIFICATION" in (speckit_feature_dir / "plan.md").read_text(encoding="utf-8")
+    assert (speckit_dir / "speckit.constitution.md").exists()
+    assert (speckit_dir / "speckit.specify.md").exists()
+    assert (speckit_dir / "speckit.plan.md").exists()
+    assert not (speckit_dir / "manifest.yml").exists()
+    assert not (speckit_dir / "specs").exists()
+    assert "Spec Kit Constitution Prompt" in (speckit_dir / "speckit.constitution.md").read_text(encoding="utf-8")
+    assert "Spec Kit Specify Prompt" in (speckit_dir / "speckit.specify.md").read_text(encoding="utf-8")
+    assert "Spec Kit Plan Prompt" in (speckit_dir / "speckit.plan.md").read_text(encoding="utf-8")
 
     result = runner.invoke(app, ["spec", "export-status", "--root", str(tmp_path)])
     assert result.exit_code == 0
@@ -1166,14 +1170,14 @@ def test_cli_software_spec_refresh_prompt_import_status_and_show(tmp_path: Path)
         ["spec", "export-show", "CHANGE-001", "--target", "openspec", "--root", str(tmp_path)],
     )
     assert result.exit_code == 0
-    assert "OpenSpec Export - CHANGE-001 - Spec Work" in result.output
+    assert "OpenSpec Proposal Input" in result.output
 
     result = runner.invoke(
         app,
         ["spec", "export-show", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)],
     )
     assert result.exit_code == 0
-    assert "Spec Kit Export - CHANGE-001 - Spec Work" in result.output
+    assert "Spec Kit Constitution Prompt" in result.output
 
     for target in ("generic", "openspec", "speckit"):
         result = runner.invoke(
@@ -1184,25 +1188,22 @@ def test_cli_software_spec_refresh_prompt_import_status_and_show(tmp_path: Path)
         assert "Software spec export valid" in result.output
         assert f"target: {target}" in result.output
 
-    (openspec_dir / "spec.md").unlink()
+    (openspec_dir / "propose.md").unlink()
     result = runner.invoke(
         app,
         ["spec", "export-validate", "CHANGE-001", "--target", "openspec", "--root", str(tmp_path)],
     )
     assert result.exit_code != 0
-    assert "Missing required software spec export artifact: spec.md" in result.output
+    assert "Missing required software spec export artifact: propose.md" in result.output
 
-    runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "openspec", "--root", str(tmp_path)])
-    (openspec_dir / "manifest.yml").write_text(
-        "source:\n  change: CHANGE-999\ntarget: openspec\nartifacts: []\n",
-        encoding="utf-8",
-    )
+    runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "generic", "--root", str(tmp_path)])
+    (generic_dir / "project.md").write_text("# Broken\n\n## Executive Summary\n\nMissing sections.\n", encoding="utf-8")
     result = runner.invoke(
         app,
-        ["spec", "export-validate", "CHANGE-001", "--target", "openspec", "--root", str(tmp_path)],
+        ["spec", "export-validate", "CHANGE-001", "--target", "generic", "--root", str(tmp_path)],
     )
     assert result.exit_code != 0
-    assert "Invalid export manifest: source.change must be CHANGE-001" in result.output
+    assert "Missing required project definition section" in result.output
 
     result = runner.invoke(
         app,

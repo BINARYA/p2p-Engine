@@ -446,3 +446,13 @@ decisions:
   status: draft
   path: .p2p/proposals/PROP-063-public-documentation-gap-closure/decision.md
   reason: ''
+- proposal: PROP-064
+  title: Spec Kit Three-Prompt Export Model
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model/decision.md
+  reason: Accepted fully. P2P should not imitate downstream tool domains or generate
+    downstream-shaped folder bundles. Its vocation is to turn confused, distributed,
+    discontinuous ideas and contributions into an organized project definition while
+    supporting the decision flow. Exports should therefore be agent-first project
+    definition and prompt/document outputs derived from accepted P2P memory.

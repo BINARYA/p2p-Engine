@@ -1480,7 +1480,7 @@ def spec_export(
     target: str = typer.Option(..., "--target", help="Export target: generic, openspec, or speckit"),
     root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
 ) -> None:
-    """Export a P2P-native software spec to a downstream bundle."""
+    """Export P2P project definition outputs for an agent/downstream target."""
     try:
         status = _workspace(root).export_software_spec(change, target)
     except ValueError as exc:
@@ -1494,7 +1494,7 @@ def spec_export(
 
 @spec_app.command("export-status")
 def spec_export_status(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
-    """List generated software spec export bundles."""
+    """List generated software spec exports."""
     exports = _workspace(root).software_spec_export_statuses()
     console.print("Software Spec Exports")
     if not exports:
@@ -1510,7 +1510,7 @@ def spec_export_show(
     target: str = typer.Option(..., "--target", help="Export target: generic, openspec, or speckit"),
     root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
 ) -> None:
-    """Show a software spec export index."""
+    """Show the primary software spec export document."""
     try:
         content = _workspace(root).show_software_spec_export(change_id, target)
     except ValueError as exc:
@@ -1524,7 +1524,7 @@ def spec_export_validate(
     target: str = typer.Option(..., "--target", help="Export target: generic, openspec, or speckit"),
     root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
 ) -> None:
-    """Validate an existing software spec export bundle."""
+    """Validate an existing software spec export."""
     try:
         validation = _workspace(root).validate_software_spec_export(change_id, target)
     except ValueError as exc:

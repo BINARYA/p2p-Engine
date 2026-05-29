@@ -39,9 +39,9 @@ reject, and defer. Choice decisions select one option and record the rationale.
 
 ## Export Target
 
-A downstream format or tool bundle generated from P2P-native project state.
-Current software spec export targets include generic, OpenSpec, and Spec Kit
-style bundles.
+A downstream-oriented prompt or document generated from P2P-native project
+state. Current software spec export targets include generic, OpenSpec, and Spec
+Kit initialization outputs.
 
 ## Governance
 
