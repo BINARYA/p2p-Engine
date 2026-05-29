@@ -662,3 +662,18 @@ Generated from accepted proposal goals and non-goals.
 - Do not implement packaging changes in this proposal.
 - Do not add a full website or generated docs site.
 - Do not document unstable internals exhaustively.
+
+## PROP-061 - Focused README and Documentation Map
+
+### Goals
+
+- Rewrite README.md as a concise repository entry point for P2P Engine.
+- Keep mediator and web out of the main README scope except as out-of-repo future directions.
+- Add documentation stubs for CLI guide, MCP reference, agent integration, and core API reference.
+- Make README link to each detailed documentation file with a short explanation.
+
+### Non-Goals
+
+- Do not fully document every CLI command in this change.
+- Do not add Python docstrings in this change.
+- Do not implement packaging changes.

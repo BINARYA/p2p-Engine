@@ -216,6 +216,11 @@ relations:
   type: includes
   rationale: Change Set includes accepted proposal.
   source_artifact: .p2p/changes/CHANGE-043-readme-and-install-documentation-mvp
+- source: CHANGE-044
+  target: PROP-061
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-044-focused-readme-and-documentation-map-mvp
 - source: PROP-013
   target: CHANGE-001
   type: implemented_by
@@ -431,3 +436,8 @@ relations:
   type: implemented_by
   rationale: Proposal appears in Change Set source metadata.
   source_artifact: .p2p/proposals/PROP-058-project-readme-and-installation-guide
+- source: PROP-061
+  target: CHANGE-044
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-061-focused-readme-and-documentation-map

@@ -1,76 +1,54 @@
 # P2P Engine
 
-P2P Engine is a deterministic project governance and specification engine for human/AI collaboration.
+P2P Engine is a local project-governance engine for turning ideas into versioned project intent.
 
-It turns ideas, discussions, proposals, decisions, choices, Change Sets, work branches, specs, and assessment criteria into versioned project state under `.p2p/`.
+It provides a deterministic core, a CLI, and an MCP server for managing:
 
-The goal is not to let AI decide for the owner. The goal is to make project intent explicit, inspectable, exportable, and usable by humans, agents, CLIs, MCP clients, and future product interfaces.
+- proposals and owner decisions;
+- choices and alternatives;
+- Change Sets and managed work metadata;
+- project registries and validation;
+- compact context for agents;
+- project definition rubrics and maturity assessment;
+- software spec generation and export metadata.
 
-## Principles
+P2P Engine stores project state under `.p2p/`. Git keeps the history. The owner keeps governance authority.
 
-```text
-AI is expensive.
-CLI is cheap.
-Git is memory.
-.p2p is governance.
-Owner decides.
-Agents work in bounded sessions.
-```
+## What This Repository Contains
 
-P2P Engine is token-aware by design: agents should ask the engine for compact context before reading broad project files.
-
-```bash
-p2p context --budget small
-p2p next --top 1
-```
-
-## Architecture
-
-P2P Engine uses a five-layer architecture:
+This repository is the P2P Engine implementation.
 
 ```text
-Level 1 - P2P Core
-Deterministic Python library for .p2p state, proposals, choices, Change Sets,
-work manifests, registries, validation, context, assessment, rubrics, and specs.
+src/p2p_engine/
+  core/data models and prompt helpers
+  storage/filesystem-backed P2P workspace logic
+  cli.py command-line interface
+  mcp/ local stdio MCP server
 
-Level 2 - P2P CLI
-Terminal interface over the core for users, scripts, local automation, and agents.
+.codex/skills/p2p-engine/
+  Codex skill for working on P2P Engine itself
 
-Level 3 - Skill / MCP / Agent Interfaces
-Agent-facing instructions and MCP tools. Codex skill, generic AGENTS.md,
-Claude instructions, and an MCP stdio server exist in MVP form.
+.p2p/
+  P2P project state for this repository
 
-Level 4 - P2P Mediator
-Future optional assistant layer. It should help users and agents formulate
-proposals, understand overlap, and suggest actions while using Core/CLI/MCP as
-the source of truth.
+docs/
+  installation, CLI, MCP, agent, API, and conceptual documentation
 
-Level 5 - P2P Web
-Future product UI for contribution, review, discussion, governance, and
-collaboration.
+tests/
+  CLI, MCP, storage, and workflow tests
 ```
 
-Current status:
+Out-of-scope for this repository:
 
-```text
-Core: MVP+
-CLI: MVP+
-Skill/MCP/Agent Interfaces: MVP
-Mediator: not implemented
-Web: not implemented
-```
+- a hosted P2P web product;
+- a mediator assistant service;
+- provider-specific AI infrastructure.
 
-## Installation
+Those may use P2P Engine later, but they should be designed as separate layers or repositories.
 
-The current installation method is from source with a Python virtual environment.
+## Install
 
-Packaged or compiled CLI distribution is future work.
-
-See [docs/INSTALL.md](docs/INSTALL.md).
-
-## Quick Start
-
-Clone and install from source:
+Current installation is from source with a Python virtual environment.
 
 ```bash
 git clone git@github.com:BINARYA/p2p-Engine.git
@@ -81,7 +59,11 @@ pip install -e ".[dev]"
 p2p --help
 ```
 
-Initialize a new P2P-managed project:
+Detailed install instructions are in [docs/INSTALL.md](docs/INSTALL.md).
+
+## Quick Start
+
+Create a new P2P-managed project:
 
 ```bash
 mkdir my-project
@@ -89,145 +71,63 @@ cd my-project
 p2p init
 ```
 
-The interactive wizard asks for:
+The wizard asks for:
 
 ```text
 Project name
-Initial agent profile: generic, codex, claude, all
-Repository mode: local, cloud
-Project domain: generic, software, grant_document, board_game
-Rubric criteria selection
+Initial agent profile
+Repository mode
+Project domain
+Rubric criteria
 MCP setup hint
 ```
 
-After initialization:
+Inspect compact project context:
 
 ```bash
 p2p context --budget small
+```
+
+Create a proposal:
+
+```bash
+p2p proposal create "First direction" \
+  --problem "The project needs an explicit first direction." \
+  --goal "Define the initial scope." \
+  --proposal "Start with a small owner-reviewed proposal." \
+  --acceptance "The owner can review and decide it."
+```
+
+Review and decide:
+
+```bash
+p2p proposal show PROP-001
+p2p proposal accept PROP-001 --reason "This is the initial direction."
+```
+
+Check project state:
+
+```bash
 p2p validate
 p2p registry refresh
 p2p next
 p2p assess refresh
 p2p assess show
-p2p project rubrics show
 p2p assess maturity refresh
 p2p assess maturity show
 ```
 
-## Core Workflow
+## Using P2P Engine With Agents
 
-Create a draft proposal:
+Agents should use P2P through CLI or MCP primitives. They should not edit `.p2p/` by hand.
 
-```bash
-p2p proposal create "Define onboarding flow" \
-  --problem "New users need a clear first-run path." \
-  --goal "Make the first project setup understandable." \
-  --proposal "Use a guided init wizard with project-domain rubrics." \
-  --acceptance "A new user can initialize a project without editing .p2p by hand."
-```
-
-Inspect and decide proposals:
-
-```bash
-p2p proposal list
-p2p proposal show PROP-001
-p2p proposal accept PROP-001 --reason "Ready to implement."
-p2p proposal reject PROP-002 --reason "Out of current scope."
-p2p proposal defer PROP-003 --reason "Needs more context."
-```
-
-Create and progress a Change Set:
-
-```bash
-p2p change create --from PROP-001
-p2p change status
-p2p change show CHANGE-001
-p2p change set-status CHANGE-001 planned
-p2p change tasks CHANGE-001
-```
-
-Governance decisions remain owner-controlled. Agents may draft, analyze, compare, and suggest actions, but they must not accept, reject, defer, decide, merge, finalize, or cleanup unless the owner explicitly instructs the exact action.
-
-## Agent Context
-
-Use compact context before broad reads:
+Start with compact context:
 
 ```bash
 p2p context --budget small
-p2p context --target PROP-001 --budget small
-p2p context --target CHANGE-001 --budget medium
-p2p context --format yaml
 ```
 
-Context packets include:
-
-```text
-current state
-next actions
-relevant artifacts
-allowed commands
-do-not-read guidance
-bounded next step
-```
-
-This is intended to reduce token usage for Codex, Claude, MCP clients, and future mediator/web layers.
-
-## Assessment
-
-P2P Engine separates structural readiness from project definition maturity.
-
-Structural readiness:
-
-```bash
-p2p validate
-p2p assess refresh
-p2p assess show
-```
-
-This checks project-state quality: validation errors, stale registries, draft proposals, accepted proposals, choices, Change Sets, Work items, and operational brief availability.
-
-Project definition maturity:
-
-```bash
-p2p project rubrics show
-p2p assess maturity refresh
-p2p assess maturity show
-```
-
-This checks whether enabled rubric topics are covered by P2P proposals, decisions, and Change Sets. It measures how well the project has been defined for export or implementation, not whether implementation is complete.
-
-Rubrics are stored as editable project state:
-
-```text
-.p2p/project/rubrics.yml
-```
-
-Supported MVP domains:
-
-```text
-generic
-software
-grant_document
-board_game
-```
-
-## MCP
-
-P2P Engine includes a local stdio MCP server:
-
-```bash
-p2p-mcp-server --root /path/to/project
-```
-
-Tool coverage includes project status, next actions, proposal reads and draft writes, proposal refinement, contributions, validation, compact context, rubrics, maturity assessment, choice discovery, conflicts, impact prompts, registries, and basic status views.
-
-Example Codex registration:
-
-```bash
-codex mcp add p2p-my-project -- p2p-mcp-server --root /path/to/my-project
-```
-
-If `p2p-mcp-server` is not on `PATH`, use the source checkout Python:
+With MCP, configure the local server:
 
 ```bash
 codex mcp add p2p-my-project -- \
@@ -236,48 +136,59 @@ codex mcp add p2p-my-project -- \
   --root /path/to/my-project
 ```
 
-## Specs And Export
+Then ask the agent to use `p2p_context` before broad file reads.
 
-P2P Engine includes MVP commands for generating and validating project specs for downstream tools.
-
-```bash
-p2p spec refresh --change CHANGE-001
-p2p spec prompt --change CHANGE-001
-p2p spec import CHANGE-001 spec-output/
-p2p spec export --change CHANGE-001 --target openspec
-p2p spec export --change CHANGE-001 --target speckit
-p2p spec export-validate CHANGE-001 --target speckit
-```
-
-The current exporter is still an MVP. The long-term direction is to make P2P project state suitable for downstream code generators, spec tools, and implementation agents.
-
-## Managed Work
-
-P2P Engine has an MVP managed-work lifecycle for Git-backed implementation work:
-
-```bash
-p2p work create --change CHANGE-001
-p2p work status
-p2p work submit WORK-001
-p2p work review WORK-001
-p2p work publish WORK-001
-p2p work accept WORK-001
-p2p work finalize WORK-001
-p2p work cleanup WORK-001
-```
-
-The goal is eventually managed Git under the hood, with owner-controlled accept/merge behavior.
-
-## Current Limits
+Agent rule:
 
 ```text
-Installation is source/venv based.
-Compiled or packaged CLI distribution is future work.
-MCP should still be verified across more real clients.
-Mediator and Web layers are not implemented.
-Rubric maturity scoring is deterministic and keyword/evidence based in the MVP.
-Advanced token estimation is deferred.
+If a CLI command or explicit MCP write tool cannot perform a P2P mutation,
+stop and report the missing primitive. Do not invent .p2p files.
 ```
+
+## Documentation
+
+- [docs/INSTALL.md](docs/INSTALL.md)  
+  How to install from source, initialize a project, verify the CLI, and configure MCP locally.
+
+- [docs/CLI-GUIDE.md](docs/CLI-GUIDE.md)  
+  CLI workflows and command groups. This is the place for command-by-command examples and expected outputs.
+
+- [docs/MCP.md](docs/MCP.md)  
+  MCP server setup, tool categories, safety boundaries, and example agent calls.
+
+- [docs/AGENT-INTEGRATION.md](docs/AGENT-INTEGRATION.md)  
+  How Codex, Claude, and other agents should use P2P Engine without wasting context or bypassing governance.
+
+- [docs/API.md](docs/API.md)  
+  Contributor-facing reference for the core Python API. This is not the primary interface for end-user agents.
+
+- [docs/p2p-engine-foundation.md](docs/p2p-engine-foundation.md)  
+  Conceptual foundation and design rationale.
+
+- [docs/p2p-engine-landscape-and-positioning.md](docs/p2p-engine-landscape-and-positioning.md)  
+  Positioning against adjacent tools and workflows.
+
+## Current Status
+
+Implemented MVP+:
+
+- deterministic filesystem-backed core;
+- CLI;
+- local stdio MCP server;
+- proposal, decision, choice, Change Set, Work, registry, validation workflows;
+- compact context packets for agents;
+- project definition rubrics and maturity assessment;
+- guided init wizard;
+- spec/export MVP;
+- managed work lifecycle MVP.
+
+Current limits:
+
+- source/venv install only;
+- MCP needs broader real-client validation;
+- rubric maturity is deterministic and evidence/keyword based;
+- coverage reporting is planned but not yet implemented;
+- large internal `P2PWorkspace` refactor is planned but not started.
 
 ## Development
 
@@ -288,12 +199,16 @@ Run tests:
 python -m pytest -q
 ```
 
-Validate project state:
+Validate this repository's P2P state:
 
 ```bash
-p2p validate
 p2p context --budget small
+p2p validate
 p2p assess show
 p2p assess maturity show
 ```
+
+## License
+
+See [LICENSE](LICENSE).
 

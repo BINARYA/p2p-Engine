@@ -1645,3 +1645,83 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-059
+  title: P2PWorkspace Modular Refactoring Plan
+  status: draft
+  path: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan
+  summary: Create a refactoring plan that maps current P2PWorkspace methods to cohesive
+    internal managers while keeping P2PWorkspace as the stable facade. Define migration
+    phases, test requirements, risk areas, and rollback strategy before moving code.
+  decision_file: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-060
+  title: Real Test Coverage Reporting
+  status: draft
+  path: .p2p/proposals/PROP-060-real-test-coverage-reporting
+  summary: Introduce pytest coverage reporting, likely via pytest-cov, and document
+    a standard command such as python -m pytest --cov=src/p2p_engine tests/. Use the
+    first report to identify gaps in proposal lifecycle, governance decisions, Change
+    Sets, Work lifecycle, validation, assessment, MCP tools, and file I/O resilience.
+    Define an initial target after measuring the baseline.
+  decision_file: .p2p/proposals/PROP-060-real-test-coverage-reporting/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-061
+  title: Focused README and Documentation Map
+  status: accepted
+  path: .p2p/proposals/PROP-061-focused-readme-and-documentation-map
+  summary: 'Refine documentation with four steps: rewrite README.md around what P2P
+    Engine is, what it does, repository components, installation, quick start, and
+    agent usage; keep docs/INSTALL.md; add docs/CLI-GUIDE.md, docs/MCP.md, docs/AGENT-INTEGRATION.md,
+    and docs/API.md as structured stubs; and create a documentation index in README.md
+    describing each docs file.'
+  decision_file: .p2p/proposals/PROP-061-focused-readme-and-documentation-map/decision.md
+  related_changes:
+  - CHANGE-044
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

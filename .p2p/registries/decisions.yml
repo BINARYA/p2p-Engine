@@ -414,3 +414,22 @@ decisions:
   path: .p2p/proposals/PROP-058-project-readme-and-installation-guide/decision.md
   reason: Accepted to make the repository self-explanatory for new users now that
     Core, CLI, MCP, context, and maturity rubric MVPs are implemented.
+- proposal: PROP-059
+  title: P2PWorkspace Modular Refactoring Plan
+  outcome: pending
+  status: draft
+  path: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/decision.md
+  reason: ''
+- proposal: PROP-060
+  title: Real Test Coverage Reporting
+  outcome: pending
+  status: draft
+  path: .p2p/proposals/PROP-060-real-test-coverage-reporting/decision.md
+  reason: ''
+- proposal: PROP-061
+  title: Focused README and Documentation Map
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-061-focused-readme-and-documentation-map/decision.md
+  reason: Accepted to keep README focused on the p2p-engine repository and add a clear
+    documentation map before expanding detailed guides.

@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-061
+  decision_file: .p2p/proposals/PROP-061-focused-readme-and-documentation-map/decision.md

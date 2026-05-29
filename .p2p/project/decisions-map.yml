@@ -264,3 +264,8 @@ decisions:
   status: accepted
   feature: project-readme-and-installation-guide
   source: .p2p/proposals/PROP-058-project-readme-and-installation-guide
+- proposal: PROP-061
+  title: Focused README and Documentation Map
+  status: accepted
+  feature: focused-readme-and-documentation-map
+  source: .p2p/proposals/PROP-061-focused-readme-and-documentation-map

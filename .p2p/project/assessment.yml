@@ -1,7 +1,7 @@
-generated_on: '2026-05-28'
+generated_on: '2026-05-29'
 assessment_type: deterministic_readiness
 completion:
-  score: 84
+  score: 80
   status: needs_review
   confidence: high
 maturity:
@@ -25,12 +25,12 @@ factors:
   reason: Fresh registries are required for reliable assessment.
 - id: draft_proposals
   label: Draft proposals
-  value: 4
-  impact: -16
+  value: 6
+  impact: -20
   reason: Draft proposals still need owner review or refinement.
 - id: accepted_proposals
   label: Accepted proposals
-  value: 53
+  value: 54
   impact: 0
   reason: Accepted proposals define committed project direction.
 - id: open_choices

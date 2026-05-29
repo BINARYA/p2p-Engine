@@ -702,3 +702,20 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-044
+  title: Focused README and Documentation Map MVP
+  status: completed
+  path: .p2p/changes/CHANGE-044-focused-readme-and-documentation-map-mvp
+  included_proposals:
+  - PROP-061
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0
