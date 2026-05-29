@@ -241,6 +241,16 @@ relations:
   type: includes
   rationale: Change Set includes accepted proposal.
   source_artifact: .p2p/changes/CHANGE-048-agent-first-setup-documentation-split
+- source: CHANGE-049
+  target: PROP-068
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-049-document-agent-mcp-client-setup-commands
+- source: CHANGE-050
+  target: PROP-069
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-050-clarify-mcp-stdio-integration-model
 - source: PROP-013
   target: CHANGE-001
   type: implemented_by
@@ -481,3 +491,13 @@ relations:
   type: implemented_by
   rationale: Proposal appears in Change Set source metadata.
   source_artifact: .p2p/proposals/PROP-067-agent-first-setup-documentation-split
+- source: PROP-068
+  target: CHANGE-049
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands
+- source: PROP-069
+  target: CHANGE-050
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model

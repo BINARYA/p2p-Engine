@@ -6,6 +6,22 @@ hosted product and it does not replace the CLI as the source of truth.
 
 ## Server
 
+P2P Engine currently exposes MCP over local `stdio`.
+
+In `stdio` mode, the MCP client starts the P2P MCP server as a local subprocess.
+The client and server exchange JSON-RPC messages over `stdin` and `stdout`.
+Diagnostic logs must go to `stderr`; `stdout` must contain only valid MCP
+messages.
+
+This is not a single shared daemon. If Codex, Claude, and VS Code all connect to
+the same target project through `stdio`, each client may start its own P2P MCP
+server process. Shared state must therefore live outside the MCP process: in the
+target repository, `.p2p/`, Git history, and P2P core storage.
+
+For a future multi-agent setup that requires one long-running shared service,
+P2P Engine would need a Streamable HTTP MCP server. The current implementation
+is local `stdio`.
+
 Run the stdio server from an installed environment:
 
 ```bash
@@ -20,13 +36,85 @@ Robust source-checkout form:
   --root /path/to/project
 ```
 
-## Codex Example
+## Verified Client Setup
+
+The exact setup differs by client. Do not assume MCP configuration files are
+portable across all clients without adaptation.
+
+### Codex CLI
 
 ```bash
 codex mcp add p2p-my-project -- \
   /path/to/p2p-Engine/.venv/bin/python \
   -m p2p_engine.mcp.server \
   --root /path/to/my-project
+```
+
+Codex CLI and the Codex IDE extension share MCP configuration through
+`config.toml`. Use `codex mcp --help` to inspect available management commands,
+and use `/mcp` inside the Codex terminal UI to inspect active servers.
+
+### Claude Code
+
+```bash
+claude mcp add --transport stdio p2p-my-project -- \
+  /path/to/p2p-Engine/.venv/bin/python \
+  -m p2p_engine.mcp.server \
+  --root /path/to/my-project
+```
+
+Use `claude mcp list`, `claude mcp get p2p-my-project`, and `claude mcp remove
+p2p-my-project` to manage the entry. Inside Claude Code, use `/mcp` to inspect
+connected servers.
+
+### Claude Desktop
+
+Claude Desktop uses a local MCP JSON configuration file. Add the P2P server with
+the same command and arguments:
+
+```json
+{
+  "mcpServers": {
+    "p2p-my-project": {
+      "command": "/path/to/p2p-Engine/.venv/bin/python",
+      "args": [
+        "-m",
+        "p2p_engine.mcp.server",
+        "--root",
+        "/path/to/my-project"
+      ]
+    }
+  }
+}
+```
+
+Documented config paths:
+
+```text
+macOS:   ~/Library/Application Support/Claude/claude_desktop_config.json
+Windows: %APPDATA%\Claude\claude_desktop_config.json
+```
+
+### VS Code With GitHub Copilot Agent
+
+VS Code's MCP configuration is separate from Codex configuration. Use workspace
+`.vscode/mcp.json` or the user profile MCP configuration:
+
+```json
+{
+  "servers": {
+    "p2p-my-project": {
+      "type": "stdio",
+      "command": "/path/to/p2p-Engine/.venv/bin/python",
+      "args": [
+        "-m",
+        "p2p_engine.mcp.server",
+        "--root",
+        "${workspaceFolder}"
+      ]
+    }
+  }
+}
 ```
 
 Then ask the agent to start with compact context:

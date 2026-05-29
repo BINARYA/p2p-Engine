@@ -1889,3 +1889,56 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-068
+  title: Document Agent MCP Client Setup Commands
+  status: accepted
+  path: .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands
+  summary: Update docs/INSTALL.md with an agent MCP setup section covering the common
+    stdio command, Codex CLI, Claude Code, Claude Desktop JSON, and generic MCP clients.
+    Keep README as a pointer to the install/MCP docs.
+  decision_file: .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands/decision.md
+  related_changes:
+  - CHANGE-049
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-069
+  title: Clarify MCP Stdio Integration Model
+  status: accepted
+  path: .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model
+  summary: Update docs/INSTALL.md and docs/MCP.md with a clear MCP stdio model, verified
+    client setup sections, and explicit notes about future Streamable HTTP for shared
+    long-running multi-client services. Keep all examples based on the current Python
+    MCP server command and --root target-project argument.
+  decision_file: .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/decision.md
+  related_changes:
+  - CHANGE-050
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

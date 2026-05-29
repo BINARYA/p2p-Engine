@@ -477,3 +477,17 @@ decisions:
   path: .p2p/proposals/PROP-067-agent-first-setup-documentation-split/decision.md
   reason: Accepted to align public setup documentation with the agent-first new-project
     workflow and move P2P Engine contributor setup into CONTRIBUTING.md.
+- proposal: PROP-068
+  title: Document Agent MCP Client Setup Commands
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands/decision.md
+  reason: Accepted to make new-project MCP client setup copy-pastable for verified
+    agent environments while keeping contributor setup isolated in CONTRIBUTING.md.
+- proposal: PROP-069
+  title: Clarify MCP Stdio Integration Model
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/decision.md
+  reason: Accepted to make MCP stdio setup and client integration semantics precise
+    before public users rely on the install docs.
