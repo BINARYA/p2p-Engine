@@ -1,0 +1,10 @@
+generated: true
+source: .p2p/proposals/*/decision.md
+decisions:
+- proposal: PROP-001
+  title: Start With CLI Task Tracker
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-001-start-with-cli-task-tracker/decision.md
+  reason: A CLI task tracker is small enough to demonstrate proposal-to-change flow
+    without extra infrastructure.

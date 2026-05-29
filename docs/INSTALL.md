@@ -21,6 +21,13 @@ Future target: packaged or compiled CLI distribution.
 Clone the repository:
 
 ```bash
+git clone https://github.com/BINARYA/p2p-Engine.git
+cd p2p-Engine
+```
+
+If you prefer SSH and already have GitHub SSH keys configured:
+
+```bash
 git clone git@github.com:BINARYA/p2p-Engine.git
 cd p2p-Engine
 ```

@@ -1,0 +1,13 @@
+generated: true
+source: .p2p proposal and change metadata
+relations:
+- source: CHANGE-001
+  target: PROP-001
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-001-prototype-cooperative-tile-game
+- source: PROP-001
+  target: CHANGE-001
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-001-prototype-cooperative-tile-game

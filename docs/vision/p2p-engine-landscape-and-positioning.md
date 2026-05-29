@@ -1,5 +1,10 @@
 # P2P Engine — Landscape, riferimenti e posizionamento
 
+> This is a vision and positioning document. It contains implemented, planned,
+> and exploratory ideas. For current usage, start with `../../README.md`,
+> `../INSTALL.md`, `../TUTORIAL.md`, `../CONCEPTS.md`, `../CLI-GUIDE.md`, and
+> `../MCP.md`.
+
 **Versione:** 0.1  
 **Data:** 2026-05-19  
 **Stato:** documento di benchmark e orientamento progettuale  

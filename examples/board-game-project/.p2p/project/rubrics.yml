@@ -1,0 +1,45 @@
+version: '1.0'
+domain: board_game
+assessment_type: project_definition_maturity
+scoring:
+  covered: 100
+  partial: 50
+  missing: 0
+criteria:
+- id: core_loop
+  title: Core Gameplay Loop
+  enabled: true
+  required: true
+  keywords:
+  - turn
+  - round
+  - loop
+  - gameplay
+- id: components
+  title: Components
+  enabled: true
+  required: true
+  keywords:
+  - component
+  - card
+  - board
+  - token
+  - piece
+- id: rules
+  title: Rules
+  enabled: true
+  required: true
+  keywords:
+  - rule
+  - action
+  - phase
+  - win
+- id: playtesting
+  title: Playtesting
+  enabled: true
+  required: true
+  keywords:
+  - playtest
+  - balance
+  - test
+  - feedback

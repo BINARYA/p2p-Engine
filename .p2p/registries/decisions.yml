@@ -433,3 +433,16 @@ decisions:
   path: .p2p/proposals/PROP-061-focused-readme-and-documentation-map/decision.md
   reason: Accepted to keep README focused on the p2p-engine repository and add a clear
     documentation map before expanding detailed guides.
+- proposal: PROP-062
+  title: README Product Landing Page Refinement
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-062-readme-product-landing-page-refinement/decision.md
+  reason: Accepted to make the public README more effective as the p2p-engine landing
+    page while keeping future hosted layers out of scope.
+- proposal: PROP-063
+  title: Public Documentation Gap Closure
+  outcome: pending
+  status: draft
+  path: .p2p/proposals/PROP-063-public-documentation-gap-closure/decision.md
+  reason: ''

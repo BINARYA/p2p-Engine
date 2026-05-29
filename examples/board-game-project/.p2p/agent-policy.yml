@@ -1,0 +1,48 @@
+p2p_agent_policy:
+  version: '1.0'
+  project_name: Board Game Project
+  source_of_truth: p2p_cli
+  missing_primitive_behavior: stop_and_report
+  direct_p2p_file_edits: forbidden
+  owner_controls_governance: true
+repository:
+  mode: local
+  cloud_is_advisory_until_configured: false
+agent_profiles:
+- codex
+mcp:
+  default_mode: read_only
+  write_tools_require_explicit_tool_schema: true
+  missing_write_tool_behavior: stop_and_report
+owner_controlled_actions:
+- proposal_accept
+- proposal_reject
+- proposal_defer
+- choice_decide
+- work_accept
+- work_finalize
+- work_cleanup
+- direct_git_merge
+allowed_mutation_boundary:
+  use_p2p_cli_commands: true
+  use_mcp_write_tools_only_when_available: true
+  invent_internal_p2p_files: false
+  invent_ids_or_registry_entries: false
+  write_decision_files_directly: false
+explain_existing_artifacts:
+  read_before_explaining: true
+  allowed_sources:
+  - p2p context
+  - p2p proposal show
+  - p2p choice show
+  - p2p change show
+  - p2p work show
+  - equivalent MCP show/read tools
+  avoid_memory_only_explanations: true
+token_budget:
+  compact_context_first: true
+  default_command: p2p context --budget small
+  mcp_tool: p2p_context
+  read_details_only_by_id: true
+  broad_scans_require_explicit_need: true
+  advanced_token_estimation: deferred

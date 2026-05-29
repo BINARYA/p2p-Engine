@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-001
+  decision_file: .p2p/proposals/PROP-001-start-with-cli-task-tracker/decision.md

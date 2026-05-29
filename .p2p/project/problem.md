@@ -219,3 +219,7 @@ P2P Engine now has a mature Core/CLI/MCP MVP with init wizard, context packets, 
 ## PROP-061 - Focused README and Documentation Map
 
 The README should be the entry point for the p2p-engine repository, but it currently mixes engine scope with broader future product layers and does not yet provide a clean documentation map for CLI, MCP, agent integration, and core API references.
+
+## PROP-062 - README Product Landing Page Refinement
+
+The README should work as the public landing page for P2P Engine, but the current structure is still repository-oriented and does not lead with why the project exists, who it is for, a 5-minute demo, and a concise glossary.

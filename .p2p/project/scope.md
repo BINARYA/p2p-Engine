@@ -677,3 +677,18 @@ Generated from accepted proposal goals and non-goals.
 - Do not fully document every CLI command in this change.
 - Do not add Python docstrings in this change.
 - Do not implement packaging changes.
+
+## PROP-062 - README Product Landing Page Refinement
+
+### Goals
+
+- Make README.md a concise product-style landing page for the engine.
+- Explain why P2P Engine exists and who it serves.
+- Add a 5-minute demo with commands and expected output.
+- Keep install instructions short and link to docs/INSTALL.md.
+- Clearly mark stable and work-in-progress docs.
+
+### Non-Goals
+
+- Do not expand detailed CLI/API/MCP documentation in this change.
+- Do not describe mediator or web as part of this repository.

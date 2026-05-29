@@ -1,0 +1,28 @@
+generated: true
+source: .p2p/proposals
+proposals:
+- id: PROP-001
+  title: Prototype Cooperative Tile Game
+  status: accepted
+  path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game
+  summary: Prototype a cooperative tile game where players place path tiles to connect
+    three shrines before the storm deck runs out.
+  decision_file: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/decision.md
+  related_changes:
+  - CHANGE-001
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

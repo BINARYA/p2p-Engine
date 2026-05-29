@@ -1,0 +1,15 @@
+contributions:
+- id: C001
+  type: implementation_suggestion
+  author: local
+  relevance_hint: high
+  text: Split public docs into using-oriented docs plus docs/vision for long foundation
+    and landscape documents. Add docs/CONCEPTS.md as the short operational concept
+    guide.
+- id: C002
+  type: implementation_suggestion
+  author: local
+  relevance_hint: high
+  text: Add examples/minimal-software-project and examples/board-game-project with
+    initialized .p2p workspaces, accepted proposal, Change Set, generated registries,
+    and local READMEs.
