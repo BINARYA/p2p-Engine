@@ -2,7 +2,9 @@
 
 This document is the contributor-facing API reference for P2P Engine's Python core.
 
-Status: scaffold. End-user agents should prefer CLI and MCP. Python API documentation is for contributors, future adapters, and maintainers.
+Status: preliminary contributor reference. End-user agents should prefer CLI and
+MCP. Python API documentation is for contributors, future adapters, and
+maintainers.
 
 ## Primary Facade
 
@@ -66,7 +68,7 @@ This file should grow into:
 - notes on which methods are internal helpers despite being visible in Python;
 - migration notes for the planned P2PWorkspace refactor.
 
-## To Be Expanded
+## Planned Additions
 
 - proposal lifecycle API;
 - choice API;
@@ -75,4 +77,3 @@ This file should grow into:
 - assessment/rubric API;
 - MCP/core mapping;
 - refactor boundaries.
-

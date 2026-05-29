@@ -1,5 +1,10 @@
 # P2P Engine — Project Foundation
 
+> This is a vision and design document. It contains implemented, planned, and
+> exploratory ideas. For current usage, start with `../../README.md`,
+> `../INSTALL.md`, `../TUTORIAL.md`, `../CONCEPTS.md`, `../CLI-GUIDE.md`, and
+> `../MCP.md`.
+
 **Versione:** 0.3  
 **Data:** 2026-05-19  
 **Nome provvisorio:** P2P Engine  

@@ -1,0 +1,10 @@
+generated: true
+source: .p2p/proposals/*/decision.md
+decisions:
+- proposal: PROP-001
+  title: Prototype Cooperative Tile Game
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/decision.md
+  reason: A constrained tile-placement loop is the smallest useful board game prototype
+    to test with players.

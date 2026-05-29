@@ -1,0 +1,18 @@
+project:
+  id: board-game-project
+  name: Board Game Project
+  version: 0.1.0
+  status: active
+  domain: board_game
+storage:
+  mode: file_based
+  documents_format: markdown
+  structured_data_format: yaml
+workflow:
+  current_phase: cli_managed
+ai:
+  mode: prompt_only
+  direct_invocation: false
+repository:
+  mode: local
+  managed_by_p2p: false

@@ -1,0 +1,28 @@
+generated: true
+source: .p2p/proposals
+proposals:
+- id: PROP-001
+  title: Start With CLI Task Tracker
+  status: accepted
+  path: .p2p/proposals/PROP-001-start-with-cli-task-tracker
+  summary: Implement a local CLI task tracker with add, list, complete, and export
+    commands.
+  decision_file: .p2p/proposals/PROP-001-start-with-cli-task-tracker/decision.md
+  related_changes:
+  - CHANGE-001
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

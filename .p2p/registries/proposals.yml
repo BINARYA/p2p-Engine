@@ -1725,3 +1725,53 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-062
+  title: README Product Landing Page Refinement
+  status: accepted
+  path: .p2p/proposals/PROP-062-readme-product-landing-page-refinement
+  summary: 'Rewrite README.md with sections: pitch, why, what it does, who it is for,
+    status, 5-minute demo, install, core concepts, docs, roadmap, development. Use
+    HTTPS clone first and keep future hosted product scope out of the engine README.'
+  decision_file: .p2p/proposals/PROP-062-readme-product-landing-page-refinement/decision.md
+  related_changes:
+  - CHANGE-045
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-063
+  title: Public Documentation Gap Closure
+  status: draft
+  path: .p2p/proposals/PROP-063-public-documentation-gap-closure
+  summary: Add a tutorial, glossary, real CLI and MCP guide content, HTTPS-first install
+    instructions, and minimal public repository hygiene files.
+  decision_file: .p2p/proposals/PROP-063-public-documentation-gap-closure/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

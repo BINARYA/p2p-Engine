@@ -269,3 +269,8 @@ decisions:
   status: accepted
   feature: focused-readme-and-documentation-map
   source: .p2p/proposals/PROP-061-focused-readme-and-documentation-map
+- proposal: PROP-062
+  title: README Product Landing Page Refinement
+  status: accepted
+  feature: readme-product-landing-page-refinement
+  source: .p2p/proposals/PROP-062-readme-product-landing-page-refinement
