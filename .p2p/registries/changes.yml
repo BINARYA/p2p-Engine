@@ -821,3 +821,20 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-051
+  title: Clarify README Agent Access Modes
+  status: completed
+  path: .p2p/changes/CHANGE-051-clarify-readme-agent-access-modes
+  included_proposals:
+  - PROP-070
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

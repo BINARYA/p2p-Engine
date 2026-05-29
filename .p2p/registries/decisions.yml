@@ -491,3 +491,11 @@ decisions:
   path: .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/decision.md
   reason: Accepted to make MCP stdio setup and client integration semantics precise
     before public users rely on the install docs.
+- proposal: PROP-070
+  title: Clarify README Agent Access Modes
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-070-clarify-readme-agent-access-modes/decision.md
+  reason: 'Accepted to clarify README quick start semantics: agents can use CLI or
+    MCP, and MCP is intentionally limited until permission/ownership governance is
+    decided.'

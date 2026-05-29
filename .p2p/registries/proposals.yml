@@ -1942,3 +1942,29 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-070
+  title: Clarify README Agent Access Modes
+  status: accepted
+  path: .p2p/proposals/PROP-070-clarify-readme-agent-access-modes
+  summary: 'Update README''s 5-minute agent setup to describe two valid agent connection
+    modes: CLI access and MCP access. Add a short warning that MCP is currently an
+    agent-safe tool surface and not the full P2P command surface.'
+  decision_file: .p2p/proposals/PROP-070-clarify-readme-agent-access-modes/decision.md
+  related_changes:
+  - CHANGE-051
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

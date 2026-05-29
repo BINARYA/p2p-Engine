@@ -107,18 +107,35 @@ Next steps:
   3. p2p next
 ```
 
-Connect your agent to the target project with MCP, then ask it to start from compact P2P context:
+Connect your agent to the target project in one of two ways:
 
 ```text
-Use the P2P MCP server for this project.
-Start with p2p_context.
+CLI access
+  The agent can run P2P CLI commands from the target project.
+  This gives access to the full local command surface when the owner explicitly authorizes actions.
+
+MCP access
+  The agent uses structured P2P MCP tools.
+  This is the recommended structured integration, but it is intentionally limited today.
+```
+
+With either mode, ask the agent to start from compact P2P context:
+
+```text
+Use P2P for this project.
+Start with p2p_context or `p2p context --budget small`.
 Create a draft proposal for the first project direction.
 Do not edit .p2p files by hand.
 ```
 
 The agent should use P2P through MCP or CLI primitives, while you supervise and decide outcomes.
 
-See [docs/INSTALL.md](docs/INSTALL.md) for the source install and new-project setup flow. See [docs/MCP.md](docs/MCP.md) for the MCP server command and tool safety model.
+Current MCP access is agent-safe, not complete. It does not expose proposal
+accept/reject/defer, choice decide/block, spec import, Git branch/commit/push/PR/merge,
+or privileged Work lifecycle operations. Those remain CLI/owner-controlled until
+P2P has an accepted permission and ownership model.
+
+See [docs/INSTALL.md](docs/INSTALL.md) for the source install and new-project setup flow. See [docs/MCP.md](docs/MCP.md) for MCP client setup, `stdio` behavior, and tool boundaries.
 
 ### Optional Manual CLI Trial
 

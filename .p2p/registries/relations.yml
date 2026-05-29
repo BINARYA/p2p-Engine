@@ -251,6 +251,11 @@ relations:
   type: includes
   rationale: Change Set includes accepted proposal.
   source_artifact: .p2p/changes/CHANGE-050-clarify-mcp-stdio-integration-model
+- source: CHANGE-051
+  target: PROP-070
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-051-clarify-readme-agent-access-modes
 - source: PROP-013
   target: CHANGE-001
   type: implemented_by
@@ -501,3 +506,8 @@ relations:
   type: implemented_by
   rationale: Proposal appears in Change Set source metadata.
   source_artifact: .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model
+- source: PROP-070
+  target: CHANGE-051
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-070-clarify-readme-agent-access-modes
