@@ -56,7 +56,7 @@ These tools require matching consent receipts and record audit metadata.
 ## Current Gaps
 
 - MCP has been verified by tests and JSON-RPC paths, but still needs a real MCP client configuration smoke test.
-- README/client setup documentation should be reviewed against the new permission-gated write tools.
+- README, install, MCP, and agent setup documentation now describe permission-gated write tools and should be tested by following them from a real client setup.
 - The current proposal/MCP collaboration tranche is large and should be reviewed and committed before starting another implementation tranche.
 - Work lifecycle MCP parity is not yet decided. Proposal branch lifecycle is complete through permission-gated MCP, but Work publish/finalize/accept/cleanup MCP parity needs an explicit product decision.
 - Provider PR/MR automation is intentionally not implemented.
@@ -69,9 +69,9 @@ These tools require matching consent receipts and record audit metadata.
    Reason: tests cover the internal JSON-RPC path, but agent/client configuration must prove the tool schemas, stdio command, root handling, and permission-gated calls work outside the test harness.
    Command: `p2p-mcp-server --root /path/to/project`
 
-2. Update MCP/client documentation for the new permission-gated write surface.
-   Reason: agent instructions and docs must explain actors, consent receipts, allowed tools, and the no-raw-Git rule for proposal collaboration.
-   Command: review README and agent setup docs for MCP write tools.
+2. Verify the documented MCP setup path.
+   Reason: README, install, MCP, and agent docs now explain permission-gated write tools; the next check is whether a user can follow them successfully from a real MCP client.
+   Command: follow `docs/INSTALL.md` and `docs/MCP.md` to configure a real MCP client.
 
 3. Review remaining draft proposals.
    Reason: readiness is limited mainly by unsettled draft roadmap items, not by active implementation work.

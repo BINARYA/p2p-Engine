@@ -109,6 +109,54 @@ first recommended project activities are then to define the domain and define
 the rubric with the user and agent. Use a domain template such as `software`
 when you want P2P to pre-populate rubric criteria at init time.
 
+### Local vs Remote-Backed Projects
+
+Local projects need only the P2P workspace:
+
+```bash
+/path/to/p2p-Engine/.venv/bin/p2p init "My Project" \
+  --agent codex \
+  --repository local \
+  --domain software \
+  --owner matteo \
+  --mcp-hint
+```
+
+Remote-backed projects add a P2P remote profile and a Git remote. The current
+MVP keeps these as explicit steps:
+
+```bash
+/path/to/p2p-Engine/.venv/bin/p2p init "My Project" \
+  --agent codex \
+  --repository cloud \
+  --domain software \
+  --owner matteo \
+  --mcp-hint
+
+git remote add origin git@github.com:ORG/REPO.git
+
+/path/to/p2p-Engine/.venv/bin/p2p project remote configure \
+  --mode remote \
+  --provider github \
+  --remote origin \
+  --url git@github.com:ORG/REPO.git
+
+/path/to/p2p-Engine/.venv/bin/p2p project remote show
+/path/to/p2p-Engine/.venv/bin/p2p sync status
+```
+
+To modify the remote profile later, run `p2p project remote configure` again.
+To mark the project local-only again:
+
+```bash
+/path/to/p2p-Engine/.venv/bin/p2p project remote configure --mode local
+```
+
+P2P does not create provider repositories, configure SSH keys, create tokens, or
+change GitHub/GitLab branch protection in the MVP. It records P2P profile
+metadata and validates local Git readiness. Proposal `PROP-073` tracks a more
+ergonomic one-command remote initialization flow.
+
 ## Connect An Agent
 
 P2P Engine is intended to be agent-mediated. After initialization, point your
@@ -297,6 +345,59 @@ Do not edit .p2p files manually.
 If a primitive is missing, stop and report what is missing.
 ```
 
+## Permission-Gated MCP Operations
+
+MCP can perform selected privileged operations only when an owner has granted a
+matching consent receipt. The CLI creates and audits those receipts.
+
+Create or inspect project identities:
+
+```bash
+p2p permissions show
+p2p permissions actor add lorenzo --role contributor
+```
+
+Grant one operation:
+
+```bash
+p2p consent grant proposal_publish PROP-001 --actor lorenzo --approved-by matteo
+p2p consent status
+p2p consent show CONSENT-001
+```
+
+Then the MCP client may call the matching tool with:
+
+```json
+{
+  "tool": "p2p_proposal_publish",
+  "arguments": {
+    "root": "/path/to/my-project",
+    "proposal_id": "PROP-001",
+    "actor_id": "lorenzo",
+    "consent_id": "CONSENT-001"
+  }
+}
+```
+
+Common proposal lifecycle operations:
+
+```text
+proposal_publish          -> p2p_proposal_publish
+proposal_request_review   -> p2p_proposal_request_review
+proposal_accept_branch    -> p2p_proposal_accept_branch
+proposal_reject_branch    -> p2p_proposal_reject_branch
+proposal_merge            -> p2p_proposal_merge
+proposal_finalize         -> p2p_proposal_finalize
+proposal_cleanup          -> p2p_proposal_cleanup
+sync_pull                 -> p2p_sync_pull
+sync_push                 -> p2p_sync_push
+```
+
+Consent receipts are declarative audit records. They are not strong
+authentication. In cloud-backed projects, provider permissions, branch
+protection, and token scopes remain the enforcement layer for protected remote
+state.
+
 ## Verify A Target Project
 
 From inside the project directory:
@@ -405,6 +506,10 @@ p2p assess refresh
 
 - Installation is source-based.
 - Packaged or compiled CLI distribution is future work.
-- MCP support is local stdio MVP.
+- MCP support is local stdio. Selected write operations are available only
+  through explicit permission-gated tools.
+- Provider PR/MR creation is not implemented; request-review records handoff
+  metadata and guidance only.
+- Full Work lifecycle parity through permission-gated MCP is not implemented.
 - Rubric maturity scoring is deterministic and conservative, not AI semantic review.
 - Mediator and Web layers are not implemented.

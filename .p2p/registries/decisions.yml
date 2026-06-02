@@ -516,3 +516,9 @@ decisions:
   reason: Accepted as the core CLI-facing collaboration model for concurrent proposal
     branches, managed remote sync, candidate Work selection, safe proposal ID collision
     handling, and agent-safe Git abstraction.
+- proposal: PROP-073
+  title: Ergonomic Remote Project Initialization
+  outcome: pending
+  status: draft
+  path: .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/decision.md
+  reason: ''

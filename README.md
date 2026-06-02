@@ -116,7 +116,8 @@ CLI access
 
 MCP access
   The agent uses structured P2P MCP tools.
-  This is the recommended structured integration, but it is intentionally limited today.
+  This is the recommended structured integration. It includes read/status tools,
+  draft/refinement tools, and selected permission-gated Git/proposal operations.
 ```
 
 With either mode, ask the agent to start from compact P2P context:
@@ -130,10 +131,11 @@ Do not edit .p2p files by hand.
 
 The agent should use P2P through MCP or CLI primitives, while you supervise and decide outcomes.
 
-Current MCP access is agent-safe, not complete. It does not expose proposal
-accept/reject/defer, choice decide/block, spec import, Git branch/commit/push/PR/merge,
-or privileged Work lifecycle operations. Those remain CLI/owner-controlled until
-P2P has an accepted permission and ownership model.
+Current MCP access is agent-safe but not unlimited. Permission-gated tools can
+publish, request review, accept/reject proposal branches, merge, finalize, and
+cleanup proposal branches only with matching consent receipts. MCP still does
+not create provider PR/MR resources, decide choices, import specs, or expose the
+full Work lifecycle as permission-gated tools.
 
 See [docs/INSTALL.md](docs/INSTALL.md) for the source install and new-project setup flow. See [docs/MCP.md](docs/MCP.md) for MCP client setup, `stdio` behavior, and tool boundaries.
 
@@ -176,6 +178,20 @@ intend to use:
 /path/to/p2p-Engine/.venv/bin/p2p init "My Project" --agent claude --repository local --domain software --mcp-hint
 /path/to/p2p-Engine/.venv/bin/p2p init "My Project" --agent all --repository local --domain software --mcp-hint
 ```
+
+For a remote-backed project, initialize the P2P project as cloud-backed, then
+record the remote profile and verify sync readiness:
+
+```bash
+/path/to/p2p-Engine/.venv/bin/p2p init "My Project" --agent codex --repository cloud --domain software --owner matteo --mcp-hint
+git remote add origin git@github.com:ORG/REPO.git
+/path/to/p2p-Engine/.venv/bin/p2p project remote configure --mode remote --provider github --remote origin --url git@github.com:ORG/REPO.git
+/path/to/p2p-Engine/.venv/bin/p2p sync status
+```
+
+`p2p init --repository cloud` records project intent; it does not create a
+GitHub/GitLab repository or configure SSH credentials. Proposal `PROP-073`
+tracks future ergonomic improvements for one-step remote initialization.
 
 Core agent rule:
 

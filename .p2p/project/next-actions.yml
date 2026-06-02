@@ -7,10 +7,10 @@ next_actions:
     command: p2p-mcp-server --root /path/to/project
   - id: NEXT-002
     priority: medium
-    kind: update_documentation
+    kind: verify_documented_setup
     target: mcp-permission-gated-write-tools
-    reason: Agent and client documentation should describe actors, consent receipts, proposal branch lifecycle tools, cleanup behavior, and the no-raw-Git rule.
-    command: review README and agent setup docs for MCP write tools
+    reason: README, install, MCP, and agent setup docs now describe permission-gated write tools; the next step is to follow them from a fresh client setup and fix any gaps found during real use.
+    command: follow docs/INSTALL.md and docs/MCP.md to configure a real MCP client
   - id: NEXT-003
     priority: high
     kind: consolidate_tranche

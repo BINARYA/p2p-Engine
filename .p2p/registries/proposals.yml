@@ -2178,3 +2178,32 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-073
+  title: Ergonomic Remote Project Initialization
+  status: draft
+  path: .p2p/proposals/PROP-073-ergonomic-remote-project-initialization
+  summary: Extend p2p init and remote profile setup with an ergonomic remote initialization
+    flow. Add init options such as --repository cloud, --provider, --remote, and --remote-url.
+    During init, P2P should write the project remote profile, detect whether the named
+    Git remote exists, compare its URL when present, and print actionable follow-up
+    commands when Git state is missing or mismatched. The command should not create
+    provider resources in the MVP. Existing p2p project remote configure remains available
+    for later edits, and p2p sync status remains the validation command after setup.
+  decision_file: .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

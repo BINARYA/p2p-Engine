@@ -130,11 +130,28 @@ MCP tools are grouped by behavior:
 - read-only tools inspect state;
 - write-safe tools create drafts or deterministic generated artifacts;
 - advisory tools create prompts or analysis without deciding;
+- permission-gated tools perform privileged sync/proposal operations only with a matching consent receipt;
 - governance decisions remain owner-controlled;
 - missing write primitives must be reported, not bypassed by manual `.p2p/` edits.
 
 Agents should use `p2p_context` before broad file reads. The context packet tells
 the agent what is relevant, what commands are allowed, and what not to scan.
+
+Permission-gated MCP tools validate:
+
+```text
+consent_id
+operation
+target
+actor_id
+single-use status
+expiry, when present
+```
+
+The tool consumes the receipt after successful execution and stores result
+metadata. Consent receipts are auditable local project records, not strong
+authentication. In cloud-backed projects, Git provider permissions, protected
+branches, and token scopes remain the real enforcement layer for remote state.
 
 ## Tool Matrix
 
@@ -158,6 +175,14 @@ the agent what is relevant, what commands are allowed, and what not to scan.
 | `p2p_registry_show` | read-only | no | no | Read a generated registry. |
 | `p2p_project_show` | read-only | no | no | Read generated project sections or feature documents. |
 | `p2p_project_remote_show` | read-only | no | no | Inspect local/cloud remote profile metadata. |
+| `p2p_permissions_show` | read-only | no | no | Read project-declared actors and role policy. |
+| `p2p_consent_status` | read-only | no | no | List consent receipts without creating or consuming them. |
+| `p2p_consent_show` | read-only | no | no | Inspect one consent receipt. |
+| `p2p_sync_status` | read-only | no | no | Inspect managed Git sync readiness. |
+| `p2p_sync_fetch` | managed sync | yes | no | Fetch configured remote refs without pull/push/merge. |
+| `p2p_proposal_branch` | managed branch | yes | no | Create and check out a managed proposal branch. |
+| `p2p_proposal_branch_status` | read-only | no | no | Inspect one managed proposal branch. |
+| `p2p_proposal_branch_scan` | read-oriented | yes | no | Scan local managed proposal branches and refresh the proposal branch registry. |
 | `p2p_spec_status` | read-only | no | no | List generated P2P-native software specs. |
 | `p2p_spec_show` | read-only | no | no | Read a generated software spec index. |
 | `p2p_spec_export_status` | read-only | no | no | List generated downstream spec exports. |
@@ -183,6 +208,15 @@ the agent what is relevant, what commands are allowed, and what not to scan.
 | `p2p_spec_export` | write-safe | yes | no | Export spec outputs for `generic`, `openspec`, or `speckit`. |
 | `p2p_spec_export_validate` | read-only | no | no | Validate an existing spec export. |
 | `p2p_work_plan` | write-safe | yes | no | Create a Work manifest from a validated export. |
+| `p2p_sync_pull` | permission-gated | yes | yes | Fast-forward pull current branch with `sync_pull` consent. |
+| `p2p_sync_push` | permission-gated | yes | yes | Push current branch with `sync_push` consent. |
+| `p2p_proposal_publish` | permission-gated | yes | yes | Publish current proposal branch with `proposal_publish` consent. |
+| `p2p_proposal_request_review` | permission-gated | yes | yes | Record review handoff metadata with `proposal_request_review` consent. |
+| `p2p_proposal_accept_branch` | permission-gated | yes | yes | Record owner-controlled branch acceptance with `proposal_accept_branch` consent. |
+| `p2p_proposal_reject_branch` | permission-gated | yes | yes | Record owner-controlled branch rejection with `proposal_reject_branch` consent. |
+| `p2p_proposal_merge` | permission-gated | yes | yes | Merge proposal branch into base branch with `proposal_merge` consent. |
+| `p2p_proposal_finalize` | permission-gated | yes | yes | Push finalized base branch with `proposal_finalize` consent. |
+| `p2p_proposal_cleanup` | permission-gated | yes | yes | Delete finalized/rejected/retired proposal branches with `proposal_cleanup` consent. |
 | `p2p_intake_prompt` | advisory/write-safe | yes | no | Create an intake prompt for a raw idea. |
 | `p2p_project_brief_prompt` | advisory/write-safe | yes | no | Create project brief prompt artifacts. |
 | `p2p_choice_discover` | advisory | no | no | Discover possible choices and blockers. |
@@ -196,11 +230,11 @@ the agent what is relevant, what commands are allowed, and what not to scan.
 | `p2p_impact_prompt` | advisory/write-safe | yes | no | Generate an impact-analysis prompt for a proposal. |
 | `p2p_spec_prompt` | advisory/write-safe | yes | no | Generate a software-spec refinement prompt for a Change Set. |
 
-No current MCP tool accepts, rejects, defers, merges, finalizes, or decides
-project governance outcomes. Use CLI commands for owner-directed governance
-actions. MCP also does not expose spec imports, conflict recording, voting,
-precedent recording, choice blocking, Work branch creation, Work submission,
-Work review, Work publishing, Work acceptance, Work finalization, or Work cleanup.
+MCP still does not expose proposal accept/reject/defer decisions, choice
+decisions, spec imports, conflict recording, voting, precedent recording, choice
+blocking, Work branch creation, Work submission, Work review, Work publishing,
+Work acceptance, Work finalization, Work cleanup, provider PR/MR creation, or a
+hosted IAM model.
 
 ## Example Calls
 
@@ -246,6 +280,39 @@ Refresh registries after accepted project state changes:
 }
 ```
 
+Use a permission-gated proposal operation:
+
+```bash
+p2p permissions actor add lorenzo --role contributor
+p2p consent grant proposal_publish PROP-001 --actor lorenzo --approved-by owner
+```
+
+```json
+{
+  "tool": "p2p_proposal_publish",
+  "arguments": {
+    "root": "/path/to/project",
+    "proposal_id": "PROP-001",
+    "actor_id": "lorenzo",
+    "consent_id": "CONSENT-001"
+  }
+}
+```
+
+Common consent operation to tool mapping:
+
+```text
+sync_pull                 -> p2p_sync_pull
+sync_push                 -> p2p_sync_push
+proposal_publish          -> p2p_proposal_publish
+proposal_request_review   -> p2p_proposal_request_review
+proposal_accept_branch    -> p2p_proposal_accept_branch
+proposal_reject_branch    -> p2p_proposal_reject_branch
+proposal_merge            -> p2p_proposal_merge
+proposal_finalize         -> p2p_proposal_finalize
+proposal_cleanup          -> p2p_proposal_cleanup
+```
+
 ## Troubleshooting
 
 Server cannot start:
@@ -263,8 +330,8 @@ Use p2p_context first and follow the "Do not read" guidance in the context packe
 Agent wants to perform a governance decision:
 
 ```text
-Stop. Governance decisions require explicit owner instruction and CLI support.
-Use MCP only for read-only, write-safe, or advisory steps.
+Stop unless the owner has explicitly instructed the action and the MCP tool has
+a matching consent receipt. Use CLI or explicit permission-gated MCP tools only.
 ```
 
 Tool appears missing:

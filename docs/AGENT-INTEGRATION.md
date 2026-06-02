@@ -40,6 +40,8 @@ Agents may:
 - create draft proposals through CLI or MCP write-safe tools;
 - update draft proposal sections through explicit primitives;
 - add proposal contributions;
+- create and inspect managed proposal branches through P2P primitives;
+- use permission-gated MCP tools when the owner has granted a matching consent receipt;
 - generate prompts and advisory analysis;
 - inspect project state, registries, validation, context, and assessment;
 - suggest next actions.
@@ -50,9 +52,65 @@ Agents must not perform these unless the owner explicitly instructs the exact ac
 
 - accept, reject, or defer proposals;
 - decide choices;
+- publish, accept, reject, merge, finalize, or cleanup managed proposal branches unless a CLI owner instruction or matching MCP consent receipt exists;
 - accept, finalize, cleanup, or merge managed work;
 - change governance policy;
 - perform direct Git merges into main.
+
+## Managed Git Boundary
+
+For P2P-managed project state, agents should not run raw `git branch`,
+`git fetch`, `git pull`, `git push`, `git merge`, or provider PR/MR commands.
+Use P2P commands or explicit MCP tools:
+
+```bash
+p2p sync status
+p2p sync fetch
+p2p sync pull
+p2p sync push
+p2p proposal branch PROP-XXX --actor "agent-or-person"
+p2p proposal publish PROP-XXX
+p2p proposal request-review PROP-XXX
+p2p proposal accept-branch PROP-XXX --reason "..."
+p2p proposal reject-branch PROP-XXX --reason "..."
+p2p proposal merge PROP-XXX
+p2p proposal finalize PROP-XXX
+p2p proposal cleanup PROP-XXX
+```
+
+Remote-backed projects should be inspected with:
+
+```bash
+p2p project remote show
+p2p sync status
+```
+
+Provider PR/MR creation is not part of Core/MCP today. `request-review` records
+provider-agnostic handoff metadata and guidance only.
+
+## Consent Receipts
+
+Permission-gated MCP tools require a consent receipt whose operation, target,
+and actor match the tool call.
+
+Owner creates a receipt:
+
+```bash
+p2p consent grant proposal_merge PROP-001 --actor lorenzo --approved-by matteo
+```
+
+Agent calls the matching MCP tool:
+
+```text
+p2p_proposal_merge
+  proposal_id: PROP-001
+  actor_id: lorenzo
+  consent_id: CONSENT-001
+```
+
+The tool consumes the receipt and records result metadata. Local actor names are
+audit identities, not strong authentication. In cloud projects, Git provider
+permissions remain the enforcement layer.
 
 ## Missing Primitive Rule
 
