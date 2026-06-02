@@ -2,82 +2,96 @@
 
 ## Where We Are
 
-P2P Engine now includes the first MCP layer over the deterministic Core.
+P2P Engine now has a complete local Core/CLI/MCP path for concurrent managed proposal collaboration.
 
-The current architecture remains:
+Current state:
 
-```text
-Level 1 - P2P Core
-Level 2 - P2P CLI
-Level 3 - Skill / MCP / Agent Interfaces
-Level 4 - P2P Mediator
-Level 5 - P2P Web
-```
+- validation is clean;
+- registries are current;
+- project definition maturity is well defined;
+- all Change Sets are completed;
+- all Work manifests are retired;
+- draft proposals remain and still need normal product review before treating the roadmap as settled.
 
-The MCP server is local, stdio-based, read-only, and lives in `src/p2p_engine/mcp/`. It is an interface to P2P Core, not a mediator and not a web/cloud service.
-
-The project state is current at 44 proposals and 29 Change Sets. All recorded Change Sets are completed. Registries are not stale.
+The MCP server is local and stdio-based. It now exposes both read/status tools and selected permission-gated write tools. It remains an interface to P2P Core, not a hosted IAM system, mediator, web app, or Git provider automation layer.
 
 ## Accepted Direction
 
-- P2P Core remains deterministic, provider-neutral and usable without AI, MCP, web infrastructure or hosted services.
+- P2P Core remains deterministic, provider-neutral, and usable without AI or hosted infrastructure.
 - P2P CLI remains the reference local interface.
-- MCP exposes structured read-only tools for agents over P2P Core.
-- MCP does not perform governance decisions, Git mutation, direct AI invocation, PR/MR creation, mediation, or web serving.
-- Mediator and Web remain later optional layers.
-- AI-assisted behavior is advisory by default.
-- Owner-controlled governance remains the default.
+- Agents must use P2P CLI or explicit MCP tools for managed project state instead of raw Git commands.
+- Permission-gated MCP operations use project-declared actors and single-use consent receipts.
+- Local/Git-only identity is declarative and auditable, not strong authentication.
+- Cloud enforcement depends on Git provider controls such as branch protection, token scopes, and protected main.
+- Provider PR/MR creation remains outside Core/MCP unless a dedicated adapter layer is accepted later.
 
-## Implemented MCP MVP
+## Implemented Collaboration Surface
 
-Entrypoint:
-
-```text
-p2p-mcp-server
-python -m p2p_engine.mcp.server
-```
-
-Read-only tools:
+CLI now supports:
 
 ```text
-p2p_project_status
-p2p_next
-p2p_proposal_list
-p2p_proposal_show
-p2p_choice_list
-p2p_choice_show
-p2p_change_status
-p2p_work_status
-p2p_registry_show
+p2p sync status/fetch/pull/push
+p2p proposal branch/status/publish/request-review
+p2p proposal accept-branch/reject-branch
+p2p proposal merge/finalize/cleanup
+p2p proposal scan
 ```
 
-## Active Work
+MCP now includes permission-gated tools for:
 
-- No Change Set is currently planned or in progress.
-- `WORK-001` is retired.
-- `INTAKE-001` and `INTAKE-002` have had their useful contributions applied.
-- Draft proposals remain: `PROP-002`, `PROP-006`, `PROP-007`, and `PROP-008`.
+```text
+p2p_sync_pull
+p2p_sync_push
+p2p_proposal_publish
+p2p_proposal_request_review
+p2p_proposal_accept_branch
+p2p_proposal_reject_branch
+p2p_proposal_merge
+p2p_proposal_finalize
+p2p_proposal_cleanup
+```
 
-## Blockers / Inconsistencies
+These tools require matching consent receipts and record audit metadata.
 
-- No active formal choice blockers are recorded.
-- `CHOICE-001` is decided: prompt-only first, Codex adapter later.
-- `CHOICE-PROP-008` remains proposal-local vote metadata rather than a project-level choice.
+## Current Gaps
+
+- MCP has been verified by tests and JSON-RPC paths, but still needs a real MCP client configuration smoke test.
+- README/client setup documentation should be reviewed against the new permission-gated write tools.
+- The current proposal/MCP collaboration tranche is large and should be reviewed and committed before starting another implementation tranche.
+- Work lifecycle MCP parity is not yet decided. Proposal branch lifecycle is complete through permission-gated MCP, but Work publish/finalize/accept/cleanup MCP parity needs an explicit product decision.
+- Provider PR/MR automation is intentionally not implemented.
+- A future API/IAM server remains optional and should be introduced only through a new accepted proposal.
+- Draft proposals remain open and should be reviewed or retired as normal roadmap hygiene.
 
 ## Recommended Next Actions
 
-1. Test MCP from a real agent/client configuration.
-   Reason: the server responds to stdio JSON-RPC locally, but should be verified from an actual MCP-capable client.
-   Command: configure a client to run `p2p-mcp-server --root <project>`.
+1. Verify the MCP server from a real MCP-capable client.
+   Reason: tests cover the internal JSON-RPC path, but agent/client configuration must prove the tool schemas, stdio command, root handling, and permission-gated calls work outside the test harness.
+   Command: `p2p-mcp-server --root /path/to/project`
 
-2. Define MCP write-safe tools.
-   Reason: the MVP is intentionally read-only. The next scope should decide which low-risk mutations can be exposed, such as proposal creation or intake prompt generation.
+2. Update MCP/client documentation for the new permission-gated write surface.
+   Reason: agent instructions and docs must explain actors, consent receipts, allowed tools, and the no-raw-Git rule for proposal collaboration.
+   Command: review README and agent setup docs for MCP write tools.
 
-3. Keep Mediator and Web deferred.
-   Reason: the Core/CLI/MCP boundary should stabilize before adding an intelligent mediator or hosted product UI.
+3. Review remaining draft proposals.
+   Reason: readiness is limited mainly by unsettled draft roadmap items, not by active implementation work.
+   Command: `.venv/bin/p2p proposal list --status draft`
+
+4. Consolidate the completed proposal/MCP collaboration tranche.
+   Reason: the tranche is large, tests pass, and the project state is aligned; review and commit it before adding new scope.
+   Command: review current diff and prepare commit for the completed proposal/MCP collaboration tranche.
+
+5. Decide whether Work lifecycle MCP parity is in scope.
+   Reason: proposal branch lifecycle is complete through permission-gated MCP, but Work publish/finalize/accept/cleanup MCP parity remains a product decision.
+   Command: decide whether to create a proposal for permission-gated Work MCP lifecycle tools.
+
+6. Decide whether provider PR/MR automation belongs in a future adapter.
+   Reason: request-review currently records provider-agnostic handoff metadata only; opening GitHub PRs or GitLab MRs should remain outside Core/MCP unless accepted separately.
+   Command: decide whether provider PR/MR automation belongs in a future adapter proposal.
 
 ## Not Yet
 
-- Do not add MCP governance mutations such as proposal accept, choice decide, or work accept without a dedicated policy.
-- Do not add automatic PR/MR creation without a new accepted proposal and Change Set.
+- Do not add provider PR/MR automation without a new accepted proposal and Change Set.
+- Do not treat local actor names as strong authentication.
 - Do not move direct AI/provider invocation into Core or MCP.
+- Do not bypass P2P-managed Git commands for proposal collaboration unless the owner explicitly authorizes an escape hatch.

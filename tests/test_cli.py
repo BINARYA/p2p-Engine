@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import subprocess
 import json
+import shutil
+import subprocess
 from pathlib import Path
 
 import yaml
@@ -23,10 +24,18 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert (tmp_path / "AGENTS.md").exists()
     assert (tmp_path / ".p2p" / "agent-policy.yml").exists()
     assert (tmp_path / ".p2p" / "project" / "rubrics.yml").exists()
+    permissions = yaml.safe_load((tmp_path / ".p2p" / "project" / "permissions.yml").read_text(encoding="utf-8"))
+    assert permissions["permissions"]["model"] == "role_plus_consent_receipt"
+    assert permissions["identities"]["owner"]["role"] == "owner"
+    assert permissions["identities"]["contributor"]["role"] == "contributor"
     agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
     assert "Do not create, edit, rename, or delete files under `.p2p/` by hand" in agents
     assert "stop and report the limitation" in agents
     assert "Do not explain existing P2P artifacts only from conversation memory" in agents
+    assert "Managed Git Collaboration" in agents
+    assert "p2p sync status" in agents
+    assert "p2p proposal publish PROP-XXX --auto-renumber" in agents
+    assert "Do not run raw `git branch`, `git fetch`, `git pull`, `git push`, `git merge`" in agents
     assert "p2p context --budget small" in agents
 
     result = runner.invoke(app, ["status", "--root", str(tmp_path)])
@@ -96,6 +105,123 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "Exploration status for PROP-001" in result.output
     assert "open-questions.md" in result.output
+
+
+def test_cli_init_owner_populates_permissions_policy(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["init", "Demo Project", "--owner", "Matteo Rossi", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    permissions = yaml.safe_load((tmp_path / ".p2p" / "project" / "permissions.yml").read_text(encoding="utf-8"))
+    assert permissions["identities"]["matteo-rossi"]["role"] == "owner"
+    assert permissions["identities"]["matteo-rossi"]["display_name"] == "Matteo Rossi"
+
+    result = runner.invoke(app, ["permissions", "show", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "matteo-rossi:" in result.output
+    assert "role: owner" in result.output
+
+
+def test_cli_permissions_actor_and_consent_receipts(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
+
+    result = runner.invoke(
+        app,
+        [
+            "permissions",
+            "actor",
+            "add",
+            "lorenzo",
+            "--role",
+            "contributor",
+            "--kind",
+            "person",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Permission actor recorded" in result.output
+    assert "actor: lorenzo" in result.output
+
+    result = runner.invoke(
+        app,
+        [
+            "consent",
+            "grant",
+            "proposal_publish",
+            "PROP-001",
+            "--actor",
+            "lorenzo",
+            "--approved-by",
+            "matteo",
+            "--expires-on",
+            "2026-06-03",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Consent granted" in result.output
+    assert "consent: CONSENT-001" in result.output
+    assert "operation: proposal_publish" in result.output
+
+    consent_path = tmp_path / ".p2p" / "consents" / "CONSENT-001" / "consent.yml"
+    receipt = yaml.safe_load(consent_path.read_text(encoding="utf-8"))
+    assert receipt["actor_id"] == "lorenzo"
+    assert receipt["approved_by"] == "matteo"
+    assert receipt["single_use"] is True
+
+    result = runner.invoke(app, ["consent", "status", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "CONSENT-001  granted  proposal_publish  PROP-001  lorenzo" in result.output
+
+    result = runner.invoke(app, ["consent", "show", "CONSENT-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "approved_by: matteo" in result.output
+
+    result = runner.invoke(app, ["consent", "revoke", "CONSENT-001", "--reason", "No longer needed.", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Consent revoked" in result.output
+    assert "status: revoked" in result.output
+
+
+def test_cli_consent_grant_requires_owner_approver(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
+    runner.invoke(app, ["permissions", "actor", "add", "lorenzo", "--role", "contributor", "--root", str(tmp_path)])
+
+    result = runner.invoke(
+        app,
+        [
+            "consent",
+            "grant",
+            "proposal_publish",
+            "PROP-001",
+            "--actor",
+            "lorenzo",
+            "--approved-by",
+            "lorenzo",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "Only an owner identity can approve consent receipts" in result.output
+
+
+def test_cli_validate_reports_invalid_permissions_policy(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    permissions_path = tmp_path / ".p2p" / "project" / "permissions.yml"
+    data = yaml.safe_load(permissions_path.read_text(encoding="utf-8"))
+    data["identities"]["owner"]["role"] = "superuser"
+    permissions_path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+
+    result = runner.invoke(app, ["validate", "--root", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert "P2P213_INVALID_PERMISSION_ROLE" in result.output
 
 
 def test_cli_init_default_domain_and_rubric_are_unresolved(tmp_path: Path) -> None:
@@ -171,6 +297,439 @@ def test_cli_validate_reports_stale_registries_as_warning(tmp_path: Path) -> Non
     assert result.exit_code == 0
     assert "P2P201_STALE_REGISTRY" in result.output
     assert "command: p2p registry refresh" in result.output
+
+
+def test_cli_validate_reports_duplicate_proposal_ids_as_error(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Draft Work", "--root", str(tmp_path)])
+    proposals_dir = tmp_path / ".p2p" / "proposals"
+    shutil.copytree(proposals_dir / "PROP-001-draft-work", proposals_dir / "PROP-001-other-draft")
+
+    result = runner.invoke(app, ["validate", "--root", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert "P2P104_DUPLICATE_PROPOSAL_ID" in result.output
+    assert "Duplicate proposal ID PROP-001" in result.output
+    assert "PROP-001-draft-work" in result.output
+    assert "PROP-001-other-draft" in result.output
+
+
+def test_cli_registry_refresh_rejects_duplicate_proposal_ids(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Draft Work", "--root", str(tmp_path)])
+    proposals_dir = tmp_path / ".p2p" / "proposals"
+    shutil.copytree(proposals_dir / "PROP-001-draft-work", proposals_dir / "PROP-001-other-draft")
+
+    result = runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert "Duplicate proposal IDs found" in result.output
+    assert "PROP-001" in result.output
+    assert "generated registries would be ambiguous" in result.output
+
+
+def test_cli_proposal_show_reports_ambiguous_duplicate_id_guidance(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Draft Work", "--root", str(tmp_path)])
+    proposals_dir = tmp_path / ".p2p" / "proposals"
+    shutil.copytree(proposals_dir / "PROP-001-draft-work", proposals_dir / "PROP-001-other-draft")
+
+    result = runner.invoke(app, ["proposal", "show", "PROP-001", "--root", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert "Ambiguous proposal ID: PROP-001" in result.output
+    assert "p2p validate" in result.output
+
+
+def test_cli_proposal_branch_creates_managed_branch_metadata(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Chiusura Magnetica", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+
+    result = runner.invoke(app, ["proposal", "branch", "PROP-001", "--actor", "lorenzo", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "Managed proposal branch created" in result.output
+    assert "proposal: PROP-001" in result.output
+    assert "status: branched" in result.output
+    assert "branch: p2p/proposal/PROP-001-chiusura-magnetica-lorenzo-" in result.output
+    branch_name = _git(tmp_path, "branch", "--show-current").stdout.strip()
+    assert branch_name.startswith("p2p/proposal/PROP-001-chiusura-magnetica-lorenzo-")
+    assert len(branch_name.rsplit("-", 1)[1]) == 16
+    assert _git(tmp_path, "status", "--porcelain").stdout.strip() == ""
+    assert _git(tmp_path, "log", "-1", "--pretty=%s").stdout.strip() == "P2P proposal branch PROP-001"
+
+    branch_metadata = tmp_path / ".p2p" / "proposals" / "PROP-001-chiusura-magnetica" / "branch.yml"
+    data = yaml.safe_load(branch_metadata.read_text(encoding="utf-8"))
+    assert data["proposal_id"] == "PROP-001"
+    assert data["status"] == "branched"
+    assert data["actor"] == "lorenzo"
+    assert data["branch_hash16"] == branch_name.rsplit("-", 1)[1]
+
+    result = runner.invoke(app, ["proposal", "status", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Proposal branch status" in result.output
+    assert "status: branched" in result.output
+
+
+def test_cli_proposal_publish_request_review_and_scan(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Chiusura Magnetica", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(
+        app,
+        [
+            "project",
+            "remote",
+            "configure",
+            "--mode",
+            "remote",
+            "--provider",
+            "github",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+
+    runner.invoke(app, ["proposal", "branch", "PROP-001", "--actor", "lorenzo", "--root", str(tmp_path)])
+    branch_name = _git(tmp_path, "branch", "--show-current").stdout.strip()
+
+    result = runner.invoke(app, ["proposal", "publish", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Managed proposal branch published" in result.output
+    assert "status: published" in result.output
+    assert "remote: origin" in result.output
+    assert branch_name in _git(tmp_path, "ls-remote", "--heads", "origin", branch_name).stdout
+    assert _git(tmp_path, "status", "--porcelain").stdout.strip() == ""
+    assert _git(tmp_path, "log", "-1", "--pretty=%s").stdout.strip() == "P2P proposal publish PROP-001"
+
+    result = runner.invoke(app, ["proposal", "request-review", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Managed proposal review requested" in result.output
+    assert "status: review_requested" in result.output
+    assert "suggested_next:" in result.output
+    assert _git(tmp_path, "log", "-1", "--pretty=%s").stdout.strip() == "P2P proposal request review PROP-001"
+
+    result = runner.invoke(app, ["proposal", "scan", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Proposal branch scan" in result.output
+    assert "proposal_branches: 1" in result.output
+    assert "PROP-001  review_requested" in result.output
+    assert (tmp_path / ".p2p" / "registries" / "proposal-branches.yml").exists()
+
+
+def test_cli_proposal_publish_auto_renumbers_on_remote_id_collision(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Chiusura Magnetica", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(
+        app,
+        [
+            "project",
+            "remote",
+            "configure",
+            "--mode",
+            "remote",
+            "--provider",
+            "generic",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    _git(
+        tmp_path,
+        "push",
+        "origin",
+        "main:refs/heads/p2p/proposal/PROP-001-existing-matteo-aaaaaaaaaaaaaaaa",
+    )
+
+    runner.invoke(app, ["proposal", "branch", "PROP-001", "--actor", "lorenzo", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["proposal", "publish", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "Proposal ID collision detected on remote: PROP-001" in result.output
+    assert "--auto-renumber" in result.output
+    assert (tmp_path / ".p2p" / "proposals" / "PROP-001-chiusura-magnetica").exists()
+
+    result = runner.invoke(app, ["proposal", "publish", "PROP-001", "--auto-renumber", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "Managed proposal branch published" in result.output
+    assert "proposal: PROP-002" in result.output
+    assert "status: published" in result.output
+    branch_name = _git(tmp_path, "branch", "--show-current").stdout.strip()
+    assert branch_name.startswith("p2p/proposal/PROP-002-chiusura-magnetica-lorenzo-")
+    assert len(branch_name.rsplit("-", 1)[1]) == 16
+    assert not (tmp_path / ".p2p" / "proposals" / "PROP-001-chiusura-magnetica").exists()
+    branch_metadata = tmp_path / ".p2p" / "proposals" / "PROP-002-chiusura-magnetica" / "branch.yml"
+    data = yaml.safe_load(branch_metadata.read_text(encoding="utf-8"))
+    assert data["proposal_id"] == "PROP-002"
+    assert data["renumbered_from"] == "PROP-001"
+    assert data["id_collision_check"]["old_proposal_id"] == "PROP-001"
+    assert data["id_collision_check"]["new_proposal_id"] == "PROP-002"
+    assert branch_name in _git(tmp_path, "ls-remote", "--heads", "origin", branch_name).stdout
+    assert _git(tmp_path, "status", "--porcelain").stdout.strip() == ""
+    assert _git(tmp_path, "log", "--pretty=%s", "-2").stdout.splitlines() == [
+        "P2P proposal publish PROP-002",
+        "P2P proposal auto-renumber PROP-001 to PROP-002",
+    ]
+
+
+def test_cli_proposal_publish_detects_collision_from_remote_main(tmp_path: Path) -> None:
+    remote_path = tmp_path / "remote.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+
+    seed_path = tmp_path / "seed"
+    seed_path.mkdir()
+    runner.invoke(app, ["init", "Seed Project", "--root", str(seed_path)])
+    runner.invoke(app, ["proposal", "create", "Existing Remote Idea", "--root", str(seed_path)])
+    _git(seed_path, "init")
+    _git(seed_path, "config", "user.email", "test@example.com")
+    _git(seed_path, "config", "user.name", "Test User")
+    _git(seed_path, "remote", "add", "origin", str(remote_path))
+    _git(seed_path, "add", ".")
+    _git(seed_path, "commit", "-m", "remote main proposal")
+    _git(seed_path, "branch", "-M", "main")
+    _git(seed_path, "push", "origin", "main")
+
+    work_path = tmp_path / "work"
+    work_path.mkdir()
+    runner.invoke(app, ["init", "Demo Project", "--root", str(work_path)])
+    runner.invoke(app, ["proposal", "create", "Local Concurrent Idea", "--root", str(work_path)])
+    _git(work_path, "init")
+    _git(work_path, "config", "user.email", "test@example.com")
+    _git(work_path, "config", "user.name", "Test User")
+    _git(work_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(
+        app,
+        [
+            "project",
+            "remote",
+            "configure",
+            "--mode",
+            "remote",
+            "--provider",
+            "generic",
+            "--root",
+            str(work_path),
+        ],
+    )
+    _git(work_path, "add", ".")
+    _git(work_path, "commit", "-m", "local baseline")
+    _git(work_path, "branch", "-M", "main")
+    runner.invoke(app, ["proposal", "branch", "PROP-001", "--actor", "lorenzo", "--root", str(work_path)])
+
+    result = runner.invoke(app, ["proposal", "publish", "PROP-001", "--root", str(work_path)])
+
+    assert result.exit_code == 1
+    assert "Proposal ID collision detected on remote: PROP-001" in result.output
+
+    result = runner.invoke(app, ["proposal", "publish", "PROP-001", "--auto-renumber", "--root", str(work_path)])
+
+    assert result.exit_code == 0
+    assert "proposal: PROP-002" in result.output
+    assert (work_path / ".p2p" / "proposals" / "PROP-002-local-concurrent-idea").exists()
+    assert "PROP-002-local-concurrent-idea" not in _git(seed_path, "ls-tree", "-r", "--name-only", "origin/main").stdout
+
+
+def test_cli_proposal_retire_branch_records_reason(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Chiusura Magnetica", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    runner.invoke(app, ["proposal", "branch", "PROP-001", "--actor", "lorenzo", "--root", str(tmp_path)])
+
+    result = runner.invoke(
+        app,
+        ["proposal", "retire-branch", "PROP-001", "--reason", "Superseded by another idea.", "--root", str(tmp_path)],
+    )
+
+    assert result.exit_code == 0
+    assert "Managed proposal branch retired" in result.output
+    assert "status: retired" in result.output
+    assert _git(tmp_path, "log", "-1", "--pretty=%s").stdout.strip() == "P2P proposal retire PROP-001"
+    branch_metadata = tmp_path / ".p2p" / "proposals" / "PROP-001-chiusura-magnetica" / "branch.yml"
+    data = yaml.safe_load(branch_metadata.read_text(encoding="utf-8"))
+    assert data["retirement"]["reason"] == "Superseded by another idea."
+
+
+def test_cli_proposal_merge_merges_reviewed_branch_into_base(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Chiusura Magnetica", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(app, ["project", "remote", "configure", "--mode", "remote", "--provider", "generic", "--root", str(tmp_path)])
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    runner.invoke(app, ["proposal", "branch", "PROP-001", "--actor", "lorenzo", "--root", str(tmp_path)])
+    proposal_path = tmp_path / ".p2p" / "proposals" / "PROP-001-chiusura-magnetica" / "proposal.md"
+    proposal_path.write_text(proposal_path.read_text(encoding="utf-8") + "\nBranch refinement.\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "refine proposal")
+    runner.invoke(app, ["proposal", "publish", "PROP-001", "--root", str(tmp_path)])
+    _git(tmp_path, "checkout", "main")
+
+    result = runner.invoke(app, ["proposal", "merge", "PROP-001", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "Managed proposal branch merged" in result.output
+    assert "proposal: PROP-001" in result.output
+    assert _git(tmp_path, "branch", "--show-current").stdout.strip() == "main"
+    assert _git(tmp_path, "log", "-1", "--pretty=%s").stdout.strip() == "P2P proposal merge PROP-001"
+    branch_metadata = tmp_path / ".p2p" / "proposals" / "PROP-001-chiusura-magnetica" / "branch.yml"
+    data = yaml.safe_load(branch_metadata.read_text(encoding="utf-8"))
+    assert data["status"] == "merged"
+    assert data["merge"]["source_branch"].startswith("p2p/proposal/PROP-001-chiusura-magnetica-lorenzo-")
+
+
+def test_cli_proposal_accept_branch_records_governance_decision(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Chiusura Magnetica", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(app, ["project", "remote", "configure", "--mode", "remote", "--provider", "generic", "--root", str(tmp_path)])
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    runner.invoke(app, ["proposal", "branch", "PROP-001", "--actor", "lorenzo", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "publish", "PROP-001", "--root", str(tmp_path)])
+
+    result = runner.invoke(
+        app,
+        ["proposal", "accept-branch", "PROP-001", "--reason", "Ready to merge.", "--root", str(tmp_path)],
+    )
+
+    assert result.exit_code == 0
+    assert "Managed proposal branch accepted" in result.output
+    assert "status: accepted" in result.output
+    assert _git(tmp_path, "log", "-1", "--pretty=%s").stdout.strip() == "P2P proposal branch accept PROP-001"
+    branch_metadata = tmp_path / ".p2p" / "proposals" / "PROP-001-chiusura-magnetica" / "branch.yml"
+    data = yaml.safe_load(branch_metadata.read_text(encoding="utf-8"))
+    assert data["status"] == "accepted"
+    assert data["branch_decision"]["outcome"] == "accepted"
+    assert data["branch_decision"]["reason"] == "Ready to merge."
+
+    _git(tmp_path, "checkout", "main")
+    result = runner.invoke(app, ["proposal", "merge", "PROP-001", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "Managed proposal branch merged" in result.output
+
+
+def test_cli_proposal_finalize_pushes_merged_base_branch(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Chiusura Magnetica", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(app, ["project", "remote", "configure", "--mode", "remote", "--provider", "generic", "--root", str(tmp_path)])
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    runner.invoke(app, ["proposal", "branch", "PROP-001", "--actor", "lorenzo", "--root", str(tmp_path)])
+    proposal_path = tmp_path / ".p2p" / "proposals" / "PROP-001-chiusura-magnetica" / "proposal.md"
+    proposal_path.write_text(proposal_path.read_text(encoding="utf-8") + "\nBranch refinement.\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "refine proposal")
+    runner.invoke(app, ["proposal", "publish", "PROP-001", "--root", str(tmp_path)])
+    _git(tmp_path, "checkout", "main")
+    runner.invoke(app, ["proposal", "merge", "PROP-001", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["proposal", "finalize", "PROP-001", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "Managed proposal branch finalized" in result.output
+    assert "proposal: PROP-001" in result.output
+    assert "cleanup: disabled" in result.output
+    assert _git(tmp_path, "branch", "--show-current").stdout.strip() == "main"
+    assert _git(tmp_path, "log", "-1", "--pretty=%s").stdout.strip() == "P2P proposal finalize PROP-001"
+    assert "refs/heads/main" in _git(tmp_path, "ls-remote", "--heads", "origin", "main").stdout
+    branch_metadata = tmp_path / ".p2p" / "proposals" / "PROP-001-chiusura-magnetica" / "branch.yml"
+    data = yaml.safe_load(branch_metadata.read_text(encoding="utf-8"))
+    assert data["status"] == "finalized"
+    assert data["merge"]["pushed"] is True
+    assert data["merge"]["cleanup"] is False
+    assert data["finalize"]["base_branch"] == "main"
+    assert data["finalize"]["cleanup"] is False
+
+
+def test_cli_proposal_cleanup_deletes_local_and_remote_branch(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Chiusura Magnetica", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(app, ["project", "remote", "configure", "--mode", "remote", "--provider", "generic", "--root", str(tmp_path)])
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    runner.invoke(app, ["proposal", "branch", "PROP-001", "--actor", "lorenzo", "--root", str(tmp_path)])
+    branch_name = _git(tmp_path, "branch", "--show-current").stdout.strip()
+    proposal_path = tmp_path / ".p2p" / "proposals" / "PROP-001-chiusura-magnetica" / "proposal.md"
+    proposal_path.write_text(proposal_path.read_text(encoding="utf-8") + "\nBranch refinement.\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "refine proposal")
+    runner.invoke(app, ["proposal", "publish", "PROP-001", "--root", str(tmp_path)])
+    assert branch_name in _git(tmp_path, "ls-remote", "--heads", "origin", branch_name).stdout
+    _git(tmp_path, "checkout", "main")
+    runner.invoke(app, ["proposal", "merge", "PROP-001", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "finalize", "PROP-001", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["proposal", "cleanup", "PROP-001", "--delete-remote", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "Managed proposal branch cleaned" in result.output
+    assert "local_deleted: true" in result.output
+    assert "remote_deleted: true" in result.output
+    assert _git(tmp_path, "log", "-1", "--pretty=%s").stdout.strip() == "P2P proposal cleanup PROP-001"
+    assert branch_name not in _git(tmp_path, "branch", "--list", branch_name).stdout
+    assert branch_name not in _git(tmp_path, "ls-remote", "--heads", "origin", branch_name).stdout
+    branch_metadata = tmp_path / ".p2p" / "proposals" / "PROP-001-chiusura-magnetica" / "branch.yml"
+    data = yaml.safe_load(branch_metadata.read_text(encoding="utf-8"))
+    assert data["status"] == "cleaned"
+    assert data["cleanup"]["previous_status"] == "finalized"
+    assert data["cleanup"]["local_deleted"] is True
+    assert data["cleanup"]["remote_deleted"] is True
 
 
 def test_cli_assess_refresh_and_show(tmp_path: Path) -> None:
@@ -1753,6 +2312,120 @@ def test_cli_work_publish_pushes_reviewed_branch(tmp_path: Path) -> None:
     assert "remote_branch: p2p/work/work-001-change-001-speckit" in manifest_text
     assert "pull_request: null" in manifest_text
     assert "merged: false" in manifest_text
+
+
+def test_cli_sync_status_reports_local_project_without_remote(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["sync", "status", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "Sync status" in result.output
+    assert "repository: false" in result.output
+    assert "mode: local" in result.output
+    assert "can_sync: false" in result.output
+    assert "not a Git repository" in result.output
+
+
+def test_cli_sync_push_fetch_and_pull_wrap_git_remote(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "branch", "-M", "main")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(
+        app,
+        [
+            "project",
+            "remote",
+            "configure",
+            "--mode",
+            "remote",
+            "--provider",
+            "generic",
+            "--remote",
+            "origin",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+
+    result = runner.invoke(app, ["sync", "status", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "repository: true" in result.output
+    assert "branch: main" in result.output
+    assert "clean: true" in result.output
+    assert "remote: origin" in result.output
+    assert "can_sync: true" in result.output
+
+    result = runner.invoke(app, ["sync", "push", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Sync pushed" in result.output
+    assert "action: push" in result.output
+    assert "branch: main" in result.output
+    assert "refs/heads/main" in _git(tmp_path, "ls-remote", "--heads", "origin", "main").stdout
+
+    clone_path = tmp_path.parent / f"{tmp_path.name}-clone"
+    subprocess.run(
+        ["git", "clone", "--branch", "main", str(remote_path), str(clone_path)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    _git(clone_path, "config", "user.email", "test@example.com")
+    _git(clone_path, "config", "user.name", "Test User")
+    (clone_path / "remote-change.txt").write_text("from remote\n", encoding="utf-8")
+    _git(clone_path, "add", ".")
+    _git(clone_path, "commit", "-m", "remote change")
+    _git(clone_path, "push", "origin", "main")
+
+    result = runner.invoke(app, ["sync", "fetch", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Sync fetched" in result.output
+
+    result = runner.invoke(app, ["sync", "pull", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Sync pulled" in result.output
+    assert (tmp_path / "remote-change.txt").read_text(encoding="utf-8") == "from remote\n"
+
+
+def test_cli_sync_pull_requires_clean_worktree(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "branch", "-M", "main")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(
+        app,
+        [
+            "project",
+            "remote",
+            "configure",
+            "--mode",
+            "remote",
+            "--provider",
+            "generic",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    runner.invoke(app, ["sync", "push", "--root", str(tmp_path)])
+    (tmp_path / "dirty.txt").write_text("dirty\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["sync", "pull", "--root", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert "Cannot pull with uncommitted changes" in result.output
 
 
 def test_cli_work_publish_requires_review_and_remote(tmp_path: Path) -> None:

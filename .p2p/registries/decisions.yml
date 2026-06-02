@@ -466,10 +466,12 @@ decisions:
     boundaries.
 - proposal: PROP-066
   title: Permission-Gated MCP Governance And Git Operations
-  outcome: pending
-  status: draft
+  outcome: accepted
+  status: accepted
   path: .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/decision.md
-  reason: ''
+  reason: 'Accepted as the permission-gated MCP model: project-declared roles, owner/contributor
+    fallback identities, consent receipts for privileged operations, audit records,
+    and Git provider enforcement for cloud-backed repositories.'
 - proposal: PROP-067
   title: Agent-First Setup Documentation Split
   outcome: accepted
@@ -506,3 +508,11 @@ decisions:
   path: .p2p/proposals/PROP-071-custom-domain-definition-workflow/decision.md
   reason: Accepted to make domain and rubric initialization explicit and template-based
     across all projects, with custom/none treated as unresolved setup work.
+- proposal: PROP-072
+  title: Concurrent Managed Work and Merge Decision Model
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/decision.md
+  reason: Accepted as the core CLI-facing collaboration model for concurrent proposal
+    branches, managed remote sync, candidate Work selection, safe proposal ID collision
+    handling, and agent-safe Git abstraction.

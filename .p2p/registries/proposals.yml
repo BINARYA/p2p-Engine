@@ -1835,16 +1835,57 @@ proposals:
   - tasks.yml
 - id: PROP-066
   title: Permission-Gated MCP Governance And Git Operations
-  status: draft
+  status: accepted
   path: .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations
-  summary: Add a future MCP capability set for owner-authorized governance and repository
-    operations, but keep it deferred until P2P has an accepted permission and ownership
-    model for repositories. The future design must specify who owns the repository,
-    who can authorize governance actions, which MCP clients or agents can request
-    privileged operations, how consent is represented, how actions are audited, and
-    which operations require interactive confirmation or explicit owner approval.
+  summary: "Adopt a hybrid Role + Consent Receipt model for permission-gated MCP governance\
+    \ and Git operations.\n\nP2P distinguishes three concepts:\n\n- actor_id: the\
+    \ declared person, agent, or client performing work; useful for audit and collaboration\
+    \ but not strong authentication in local/Git-only mode.\n- authorizer: the project\
+    \ role or owner identity that approves a privileged operation.\n- enforcer: the\
+    \ mechanism that actually prevents unauthorized state changes. In local projects\
+    \ this is mostly P2P policy and audit. In cloud-backed projects this must be Git\
+    \ provider permissions, branch protection, required approvals, and token scopes.\n\
+    \nProject-declared roles are stored in versioned P2P project policy, such as `.p2p/project/permissions.yml`\
+    \ or an equivalent generated policy file. On project init, P2P should ask for\
+    \ or accept an owner display name. If no owner is provided, it creates a generic\
+    \ `owner` identity. Contributor identities may be added later; if no contributor\
+    \ name is known, P2P may use generic `contributor` or agent IDs for branch metadata.\n\
+    \nExample policy:\n\n```yaml\npermissions:\n  version: 1\n  identities:\n    owner:\n\
+    \      role: owner\n      kind: person\n      display_name: owner\n    contributor:\n\
+    \      role: contributor\n      kind: person\n      display_name: contributor\n\
+    \  roles:\n    owner:\n      can_grant_consent: true\n      can_manage_permissions:\
+    \ true\n    maintainer:\n      can_request_privileged_operations: true\n    contributor:\n\
+    \      can_create_local_branches: true\n      can_request_review: true\n    agent:\n\
+    \      can_use_safe_tools: true\n    readonly:\n      can_read: true\n```\n\n\
+    Tool classes:\n\n- safe_read: read/status/context/scan tools; no consent required.\n\
+    - write_safe_preparatory: deterministic or local preparatory operations such as\
+    \ fetch and proposal branch creation; no owner consent required by default, but\
+    \ must be audited when they touch Git state.\n- privileged_publish: publish, push,\
+    \ request-review, provider PR/MR handoff; requires a valid consent receipt unless\
+    \ project policy explicitly allows the actor role.\n- owner_controlled_governance:\
+    \ accept, reject, defer, choice decide, select candidate, merge, finalize, cleanup;\
+    \ requires owner consent receipt.\n- destructive_or_external: cleanup, branch\
+    \ deletion, provider side effects, irreversible remote changes; requires owner\
+    \ consent receipt, single-use, and explicit audit.\n\nConsent receipts are versioned\
+    \ audit records granting one bounded privileged operation. They include consent_id,\
+    \ operation, target, actor_id, requested_by, approved_by, role, scope, expiry,\
+    \ single_use flag, created_at, and optional provider metadata. Sensitive MCP tools\
+    \ must refuse execution without a valid unexpired receipt. After single-use execution,\
+    \ the receipt is marked consumed with result metadata.\n\nThe MVP does not require\
+    \ external IAM. Project init should support an owner name but must fall back to\
+    \ generic `owner`. The model is declarative and auditable locally. In cloud-backed\
+    \ projects, robust enforcement depends on Git provider controls protecting main\
+    \ and privileged remote actions. A future P2P API server may replace or augment\
+    \ declarative identities with authenticated users, OAuth, organization membership,\
+    \ signed consent, or IAM-backed policy checks.\n\nSafe MCP surface may remain\
+    \ available before privileged consent implementation: sync status/fetch and proposal\
+    \ branch/status/scan. MCP pull, push, publish, request-review, retire, accept,\
+    \ reject, merge, finalize, cleanup, provider PR/MR handoff, and protected-branch\
+    \ updates remain deferred until role policy, consent receipts, and audit records\
+    \ are implemented."
   decision_file: .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/decision.md
-  related_changes: []
+  related_changes:
+  - CHANGE-054
   source_files:
   - ai-digest.md
   - alternatives.md
@@ -1984,6 +2025,143 @@ proposals:
   decision_file: .p2p/proposals/PROP-071-custom-domain-definition-workflow/decision.md
   related_changes:
   - CHANGE-052
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-072
+  title: Concurrent Managed Work and Merge Decision Model
+  status: accepted
+  path: .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model
+  summary: "Introduce a Concurrent Managed Collaboration model with P2P-owned CLI\
+    \ operations for proposal branches, Work branches, remote synchronization, candidate\
+    \ decisions, and owner-controlled merges.\n\nCore rule: `main` contains accepted\
+    \ project state only. Draft proposals, proposal refinements, alternative proposal\
+    \ candidates, and implementation Work candidates must live on P2P-managed branches\
+    \ until explicitly accepted and merged by an authorized owner or governance process.\n\
+    \nBranch classes:\n\n- `p2p/proposal/<proposal-id>-<slug>-<actor-slug>-<hash16>`:\
+    \ a managed branch for creating or refining proposal state.\n- `p2p/work/<work-id>-<change-id>-<target>`:\
+    \ the existing managed branch class for implementation work.\n\nResolved design\
+    \ choices:\n\n- Draft proposal work stays off `main` by default.\n- Proposal branches\
+    \ use real `PROP-XXX` identifiers, not temporary candidate IDs.\n- Proposal branch\
+    \ names include a stable 16-hex-character hash suffix for branch-name disambiguation.\n\
+    - P2P must mitigate concurrent proposal ID collisions by fetching/scanning accepted\
+    \ and remote proposal state before allocating IDs, then validating again before\
+    \ publish/merge.\n- P2P must expose user-facing remote operations through CLI\
+    \ commands, because users and routine agents should not need to understand fetch,\
+    \ pull, push, or PR/MR mechanics.\n- Work selection is required only when multiple\
+    \ Work candidates exist for one Change Set.\n- Combining candidates creates a\
+    \ new auditable Work item or proposal branch derived from the selected source\
+    \ candidates.\n\nProposal ID allocation and collision rule:\n\nFor cloud-backed\
+    \ projects, `p2p proposal create` and `p2p proposal branch` must perform a remote-aware\
+    \ allocation pass when a remote profile is configured:\n\n```text\n1. fetch configured\
+    \ remote metadata;\n2. scan local main, local P2P proposal branches, remote main,\
+    \ and remote P2P proposal branches;\n3. allocate the next available PROP-XXX ID;\n\
+    4. create a branch name with capped slug, actor slug, and hash-16 suffix;\n5.\
+    \ record actor, allocation, hash, and remote scan metadata in the proposal branch;\n\
+    6. re-check for ID collision before publish and before merge.\n```\n\nConcurrent\
+    \ ID allocation is treated as a recoverable publish-time conflict, not as silent\
+    \ corruption. If publish detects that the remote already contains a conflicting\
+    \ `PROP-XXX` proposal branch or accepted proposal, P2P must stop, fetch, allocate\
+    \ the next available proposal ID, and either ask for confirmation or proceed only\
+    \ when an explicit `--auto-renumber` option or policy allows it. Safe auto-renumber\
+    \ must rewrite the local proposal directory, proposal metadata, title references\
+    \ where applicable, branch metadata, and branch name from the losing ID to the\
+    \ new ID before retrying publication. The old local branch must be retired or\
+    \ deleted only after the new proposal branch is safely created and validated.\n\
+    \nThis fetch/scan/recheck/renumber strategy is sufficient for the MVP but is not\
+    \ a perfect distributed lock. A later enhancement may add a remote lock ref or\
+    \ allocation manifest if strict sequential IDs are required under simultaneous\
+    \ branch creation. Hashing the user or agent into the branch name reduces branch-name\
+    \ collisions, but it does not replace the human-readable `PROP-XXX` ID.\n\nProposal\
+    \ branch lifecycle:\n\n```text\nplanned -> branched -> revised -> review_requested\
+    \ -> published -> accepted -> merged -> finalized\n                          \
+    \         -> rejected -> retired\n                                   -> merge_conflict\
+    \ -> accepted|aborted\n```\n\nWork candidate lifecycle extends the existing Work\
+    \ lifecycle with candidate decision states:\n\n```text\nplanned -> branched ->\
+    \ submitted -> review_requested -> published -> review_handoff\n             \
+    \                                           -> selected -> accepted -> finalized\
+    \ -> cleaned_up\n                                                        -> rejected|retired\n\
+    \                                                        -> merge_conflict ->\
+    \ accepted|aborted\n```\n\nMinimum proposal CLI operations:\n\n```bash\np2p proposal\
+    \ branch PROP-XXX\np2p proposal status PROP-XXX\np2p proposal publish PROP-XXX\n\
+    p2p proposal publish PROP-XXX --auto-renumber\np2p proposal request-review PROP-XXX\n\
+    p2p proposal accept-branch PROP-XXX --reason \"...\"\np2p proposal reject-branch\
+    \ PROP-XXX --reason \"...\"\np2p proposal merge PROP-XXX\np2p proposal merge --continue\
+    \ PROP-XXX\np2p proposal merge --abort PROP-XXX\np2p proposal retire-branch PROP-XXX\
+    \ --reason \"...\"\np2p proposal scan\n```\n\nMinimum P2P-managed remote/sync\
+    \ operations:\n\n```bash\np2p sync fetch\np2p sync status\np2p sync pull\np2p\
+    \ sync push\np2p proposal publish PROP-XXX\np2p work publish WORK-XXX\np2p work\
+    \ request-review WORK-XXX\np2p work finalize WORK-XXX\n```\n\nThese commands wrap\
+    \ Git transport operations and enforce P2P validation, branch policy, remote profile\
+    \ checks, actor attribution, and audit recording. They should never require Matteo,\
+    \ Lorenzo, or routine agents to run raw Git commands.\n\nMinimum candidate CLI\
+    \ operations for concurrent Work:\n\n```bash\np2p work plan CHANGE-XXX --author\
+    \ \"matteo\" --agent \"codex\"\np2p work list --change CHANGE-XXX\np2p work compare\
+    \ WORK-001 WORK-002\np2p work select WORK-001 --reason \"...\"\np2p work reject\
+    \ WORK-002 --reason \"...\"\np2p work combine WORK-001 WORK-003 --reason \"...\"\
+    \n```\n\nExisting implementation commands remain the execution path after candidate\
+    \ selection:\n\n```bash\np2p work branch WORK-XXX\np2p work submit WORK-XXX\n\
+    p2p work review WORK-XXX\np2p work publish WORK-XXX\np2p work request-review WORK-XXX\n\
+    p2p work accept WORK-XXX\np2p work accept --continue WORK-XXX\np2p work accept\
+    \ --abort WORK-XXX\np2p work finalize WORK-XXX\np2p work cleanup WORK-XXX\np2p\
+    \ work retire WORK-XXX\n```\n\nLocal/cloud semantics:\n\n```text\nlocal: branch\
+    \ local, review local, merge local, audit local.\ncloud: fetch remote state, branch\
+    \ local, publish branch to remote, optional PR/MR handoff, merge/finalize against\
+    \ remote-backed base branch, audit local plus remote metadata.\n```\n\nRemote-backed\
+    \ projects must not change the core lifecycle. They add remote profile validation,\
+    \ safe fetch/pull/push wrappers, branch publication, provider-specific review\
+    \ automation or guidance, and final base-branch push.\n\nCandidate decision model:\n\
+    \n- Independent proposal branches may be accepted and merged separately if validation\
+    \ passes and no project-state conflict is detected.\n- Competing proposal branches\
+    \ for the same problem should create or reference a P2P Choice before one is accepted.\n\
+    - Multiple Work candidates may exist for one Change Set.\n- A Work candidate must\
+    \ be selected before owner-controlled accept/merge when more than one candidate\
+    \ exists for the same Change Set.\n- Rejected and retired candidates remain auditable\
+    \ and must not disappear from project history.\n- Combining candidates should\
+    \ create a new Work item or proposal branch that records its source candidates\
+    \ rather than silently mutating one branch.\n\nRequired engine hardening:\n\n\
+    - Validation must report duplicate proposal IDs as an explicit P2P error.\n- Registry\
+    \ generation must fail clearly or mark an error when duplicate proposal IDs exist;\
+    \ it must not silently produce ambiguous project state.\n- Proposal lookup must\
+    \ preserve the current ambiguity guard and user-facing commands must surface actionable\
+    \ recovery guidance.\n- Publish and merge operations must re-run duplicate-ID\
+    \ checks against local and fetched remote state.\n- Auto-renumber must be safe,\
+    \ auditable, and non-destructive until the replacement branch is created and validated.\n\
+    \nAudit metadata required for proposal and Work branch decisions:\n\n```text\n\
+    actor_id\nactor_type: person|agent\nagent_profile, when applicable\nsource_branch\n\
+    base_branch\nproposal_id, when applicable\nchange_id, when applicable\nwork_id,\
+    \ when applicable\nbranch_hash16\ndecision_kind: accept|reject|select|combine|retire|merge|abort|finalize\n\
+    id_allocation_source\nid_collision_check\nremote_scan_commit\nreview_status\n\
+    local_commit\nmerge_commit\nremote_name\nremote_url\nremote_branch\nreview_url,\
+    \ when available\nconflict_files\ncreated_at\ndecided_at\n```\n\nAgent instruction\
+    \ requirements:\n\n- Generated `AGENTS.md`, Codex skill instructions, and Claude/generic\
+    \ agent instructions must state that agents use P2P CLI commands for managed proposal,\
+    \ Work, and sync operations.\n- Agents must not run raw `git branch`, `git merge`,\
+    \ `git fetch`, `git pull`, `git push`, or provider-specific PR commands for managed\
+    \ project state unless a user explicitly authorizes an escape hatch.\n- Agents\
+    \ must inspect P2P status and sync status before creating proposal or Work branches.\n\
+    - Agents must keep draft proposal work off `main` unless the project policy explicitly\
+    \ allows direct-owner drafts on main.\n- Agents must stop and ask for owner approval\
+    \ before accept, merge, finalize, cleanup, or remote publication if policy marks\
+    \ those actions as owner-controlled.\n\nThis proposal intentionally defines the\
+    \ CLI-facing collaboration model. Permission-gated MCP exposure of these operations\
+    \ remains part of PROP-066."
+  decision_file: .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/decision.md
+  related_changes:
+  - CHANGE-053
   source_files:
   - ai-digest.md
   - alternatives.md

@@ -274,3 +274,48 @@ decisions:
   status: accepted
   feature: readme-product-landing-page-refinement
   source: .p2p/proposals/PROP-062-readme-product-landing-page-refinement
+- proposal: PROP-064
+  title: Spec Kit Three-Prompt Export Model
+  status: accepted
+  feature: spec-kit-three-prompt-export-model
+  source: .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model
+- proposal: PROP-065
+  title: MCP Agent-First Coverage Expansion
+  status: accepted
+  feature: mcp-agent-first-coverage-expansion
+  source: .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion
+- proposal: PROP-066
+  title: Permission-Gated MCP Governance And Git Operations
+  status: accepted
+  feature: permission-gated-mcp-governance-and-git-operations
+  source: .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations
+- proposal: PROP-067
+  title: Agent-First Setup Documentation Split
+  status: accepted
+  feature: agent-first-setup-documentation-split
+  source: .p2p/proposals/PROP-067-agent-first-setup-documentation-split
+- proposal: PROP-068
+  title: Document Agent MCP Client Setup Commands
+  status: accepted
+  feature: document-agent-mcp-client-setup-commands
+  source: .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands
+- proposal: PROP-069
+  title: Clarify MCP Stdio Integration Model
+  status: accepted
+  feature: clarify-mcp-stdio-integration-model
+  source: .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model
+- proposal: PROP-070
+  title: Clarify README Agent Access Modes
+  status: accepted
+  feature: clarify-readme-agent-access-modes
+  source: .p2p/proposals/PROP-070-clarify-readme-agent-access-modes
+- proposal: PROP-071
+  title: Custom Domain Definition Workflow
+  status: accepted
+  feature: custom-domain-definition-workflow
+  source: .p2p/proposals/PROP-071-custom-domain-definition-workflow
+- proposal: PROP-072
+  title: Concurrent Managed Work and Merge Decision Model
+  status: accepted
+  feature: concurrent-managed-work-and-merge-decision-model
+  source: .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model

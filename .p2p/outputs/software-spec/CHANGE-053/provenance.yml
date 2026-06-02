@@ -1,0 +1,9 @@
+source:
+  change: CHANGE-053
+  included_proposals:
+  - PROP-072
+  accepted_decisions: []
+generated_from:
+- .p2p/changes/CHANGE-053-concurrent-managed-collaboration-cli/change.md
+- .p2p/changes/CHANGE-053-concurrent-managed-collaboration-cli/tasks.yml
+- .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/proposal.md

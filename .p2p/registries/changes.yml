@@ -855,3 +855,37 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-053
+  title: Concurrent Managed Collaboration CLI
+  status: completed
+  path: .p2p/changes/CHANGE-053-concurrent-managed-collaboration-cli
+  included_proposals:
+  - PROP-072
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0
+- id: CHANGE-054
+  title: Permission-Gated MCP Roles and Consent Receipts
+  status: completed
+  path: .p2p/changes/CHANGE-054-permission-gated-mcp-roles-and-consent-receipts
+  included_proposals:
+  - PROP-066
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

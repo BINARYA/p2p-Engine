@@ -44,6 +44,10 @@ def checkout_branch(root: Path, branch_name: str) -> bool:
     return _run_git(root, "checkout", branch_name) is not None
 
 
+def rename_current_branch(root: Path, branch_name: str) -> bool:
+    return _run_git(root, "branch", "-m", branch_name) is not None
+
+
 def changed_files(root: Path) -> list[str]:
     output = _run_git(root, "status", "--porcelain")
     if output is None:
@@ -76,12 +80,24 @@ def remote_url(root: Path, remote: str = "origin") -> str | None:
     return _run_git(root, "remote", "get-url", remote)
 
 
+def fetch_remote(root: Path, remote: str = "origin") -> bool:
+    return _run_git(root, "fetch", remote) is not None
+
+
+def pull_branch(root: Path, branch_name: str, remote: str = "origin") -> bool:
+    return _run_git(root, "pull", "--ff-only", remote, branch_name) is not None
+
+
 def push_branch(root: Path, branch_name: str, remote: str = "origin") -> bool:
     return _run_git(root, "push", "-u", remote, branch_name) is not None
 
 
 def delete_local_branch(root: Path, branch_name: str) -> bool:
     return _run_git(root, "branch", "-d", branch_name) is not None
+
+
+def delete_local_branch_force(root: Path, branch_name: str) -> bool:
+    return _run_git(root, "branch", "-D", branch_name) is not None
 
 
 def delete_remote_branch(root: Path, branch_name: str, remote: str = "origin") -> bool:
@@ -116,6 +132,29 @@ def list_local_work_branches(root: Path) -> list[str]:
     if output is None:
         return []
     return [line.strip() for line in output.splitlines() if line.strip()]
+
+
+def list_local_proposal_branches(root: Path) -> list[str]:
+    output = _run_git(root, "for-each-ref", "--format=%(refname:short)", "refs/heads/p2p/proposal")
+    if output is None:
+        return []
+    return [line.strip() for line in output.splitlines() if line.strip()]
+
+
+def list_remote_proposal_branches(root: Path, remote: str = "origin") -> list[str]:
+    output = _run_git(root, "ls-remote", "--heads", remote, "p2p/proposal/*")
+    if output is None:
+        return []
+    branches: list[str] = []
+    for line in output.splitlines():
+        parts = line.split()
+        if len(parts) != 2:
+            continue
+        ref = parts[1]
+        prefix = "refs/heads/"
+        if ref.startswith(prefix):
+            branches.append(ref.removeprefix(prefix))
+    return branches
 
 
 def list_files_at_ref(root: Path, ref: str, path: str) -> list[str]:

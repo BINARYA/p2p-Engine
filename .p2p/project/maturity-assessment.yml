@@ -1,4 +1,4 @@
-generated_on: '2026-05-29'
+generated_on: '2026-06-03'
 assessment_type: project_definition_maturity
 domain: software
 score: 100
@@ -153,6 +153,11 @@ criteria:
     title: Agent Token Budget and Context Discipline
     state: accepted
     matched: performance
+  - type: proposal
+    id: PROP-066
+    title: Permission-Gated MCP Governance And Git Operations
+    state: accepted
+    matched: compatibility
   - type: change
     id: CHANGE-039
     title: Project Readiness Assessment MVP

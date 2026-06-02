@@ -119,6 +119,20 @@ p2p_spec_refresh
 p2p_spec_export
 p2p_spec_export_validate
 p2p_work_plan
+p2p_sync_status
+p2p_sync_fetch
+p2p_sync_pull
+p2p_sync_push
+p2p_proposal_branch
+p2p_proposal_branch_status
+p2p_proposal_publish
+p2p_proposal_request_review
+p2p_proposal_accept_branch
+p2p_proposal_reject_branch
+p2p_proposal_merge
+p2p_proposal_finalize
+p2p_proposal_cleanup
+p2p_proposal_branch_scan
 p2p_explore_prompt
 p2p_digest_prompt
 p2p_clarify_prompt
@@ -131,7 +145,56 @@ p2p_spec_prompt
 
 These tools may initialize projects, refresh agent instructions, regenerate deterministic registries, validate project state, return compact context packets, generate/show deterministic readiness assessments, initialize/show project definition rubrics, generate/show deterministic project definition maturity, create and refine draft proposals, append proposal contributions, create/list intake prompts, generate/show operational brief artifacts, discover choice candidates, inspect recorded conflicts, read Change Sets and Work manifests, refresh generated project/spec artifacts, export and validate spec artifacts, create metadata-only Work plans, and generate advisory prompts.
 
-They do not authorize governance decisions, conflict recording, voting, precedent recording, choice blocking/deciding, intake apply actions, brief imports, impact imports, spec imports, Git branch creation, Work submission, Work review, Work publishing, Work acceptance, Work finalization, Work cleanup, commits, pushes, PRs, or merges.
+The managed sync and proposal branch tools may run the specific operation named by their schema. Pull, push, publish, review handoff, accept/reject branch decisions, merge, finalize, and cleanup require a matching consent receipt. They do not authorize raw Git escape hatches, retire, provider PR automation, Work acceptance, Work finalization, Work cleanup, or arbitrary commits.
+
+They do not authorize governance decisions, conflict recording, voting, precedent recording, choice blocking/deciding, intake apply actions, brief imports, impact imports, spec imports, provider PRs, direct raw Git operations, owner-controlled accepts/rejects, or merges.
+
+## Managed Git Collaboration
+
+For managed P2P state, do not run raw `git branch`, `git fetch`, `git pull`, `git push`, `git merge`, or provider-specific PR/MR commands unless the owner explicitly authorizes an escape hatch for that operation.
+
+Use P2P commands instead:
+
+```bash
+p2p sync status
+p2p sync fetch
+p2p sync pull
+p2p sync push
+p2p proposal branch PROP-XXX --actor "codex"
+p2p proposal status PROP-XXX
+p2p proposal publish PROP-XXX
+p2p proposal publish PROP-XXX --auto-renumber
+p2p proposal request-review PROP-XXX
+p2p proposal accept-branch PROP-XXX --reason "..."
+p2p proposal reject-branch PROP-XXX --reason "..."
+p2p proposal cleanup PROP-XXX
+p2p proposal cleanup PROP-XXX --delete-remote
+p2p proposal scan
+p2p proposal retire-branch PROP-XXX --reason "..."
+```
+
+With MCP, use the equivalent explicit tools when available:
+
+```text
+p2p_sync_status
+p2p_sync_fetch
+p2p_sync_pull
+p2p_sync_push
+p2p_proposal_branch
+p2p_proposal_branch_status
+p2p_proposal_publish
+p2p_proposal_request_review
+p2p_proposal_accept_branch
+p2p_proposal_reject_branch
+p2p_proposal_merge
+p2p_proposal_finalize
+p2p_proposal_cleanup
+p2p_proposal_branch_scan
+```
+
+MCP pull, push, publish, request-review, accept-branch, reject-branch, merge, finalize, and cleanup require the matching consent receipt. MCP retire and provider PR/MR tools remain deferred until explicit permission-gated operations are implemented.
+
+Before creating proposal or Work branches, inspect `p2p status`, `p2p context --budget small`, and `p2p sync status` when a remote is configured. Stop for owner approval before remote publication when policy requires it, and always stop before accept, reject, merge, finalize, or cleanup.
 
 ## Token Budget Discipline
 

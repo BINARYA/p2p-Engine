@@ -223,3 +223,41 @@ The README should be the entry point for the p2p-engine repository, but it curre
 ## PROP-062 - README Product Landing Page Refinement
 
 The README should work as the public landing page for P2P Engine, but the current structure is still repository-oriented and does not lead with why the project exists, who it is for, a 5-minute demo, and a concise glossary.
+
+## PROP-064 - Spec Kit Three-Prompt Export Model
+
+The current P2P export model produces downstream-shaped file bundles for generic, OpenSpec, and Spec Kit targets. That makes P2P look like a folder generator and creates low-value handoff files. The intended value is different: P2P should synthesize accepted project memory into a robust project definition, then derive small agent-consumable prompt/document outputs for downstream systems.
+
+## PROP-065 - MCP Agent-First Coverage Expansion
+
+The CLI contains many read-only, write-safe, and prompt/advisory workflows that are useful for agents, but the MCP server exposes only a limited subset. This makes MCP less effective as the primary agent substrate, especially after agent-first project export became central.
+
+## PROP-066 - Permission-Gated MCP Governance And Git Operations
+
+The MCP surface intentionally excludes governance, ownership-sensitive, import, Git lifecycle, and repository publishing operations. These capabilities may become useful for advanced agent workflows, but exposing them before a repository permission and ownership model is defined would let agents perform actions that should remain owner-controlled.
+
+## PROP-067 - Agent-First Setup Documentation Split
+
+Public setup documentation still mixes two workflows: using P2P Engine for a new project and contributing to the P2P Engine repository itself. This can make users think they should operate the CLI manually or initialize work inside the engine repository when the normal workflow is to install P2P once and let an agent use it on a separate target project.
+
+## PROP-068 - Document Agent MCP Client Setup Commands
+
+The new-project setup explains the P2P MCP server command but does not clearly show how to add that server to specific agent environments. Users need concrete setup commands for common MCP-capable clients without confusing target-project setup with P2P Engine contributor setup.
+
+## PROP-069 - Clarify MCP Stdio Integration Model
+
+The installation and MCP documentation show client setup commands but do not explain that MCP stdio is not a shared server process. Users may misunderstand how multiple agents connect to P2P, where shared state lives, and when Streamable HTTP would be needed.
+
+## PROP-070 - Clarify README Agent Access Modes
+
+The README says to connect an agent through MCP but does not clearly distinguish CLI access from MCP access. This can make MCP appear complete even though the current MCP surface is intentionally agent-safe and excludes privileged governance, imports, Git operations, and Work lifecycle actions.
+
+## PROP-071 - Custom Domain Definition Workflow
+
+P2P currently treats project domains as a fixed set of hardcoded identities. This makes predefined domains look authoritative at init time and makes custom domains an exception, even though P2P's broader model is that projects often start from unclear intent and become defined through user-agent collaboration.
+
+## PROP-072 - Concurrent Managed Work and Merge Decision Model
+
+P2P Engine needs a first-class collaboration model for multiple people and agents working through Git without needing to understand Git. Main must represent accepted project state, but new proposal drafts, proposal refinements, and implementation candidates may be produced concurrently by different contributors. Today the managed Work lifecycle covers implementation branches, but proposal-level collaboration, candidate selection, and merge decisions across concurrent contributors are not specified as a single CLI-facing workflow.
+
+Without this model, users may treat main as a shared scratchpad for draft proposals, agents may not know when to branch or publish, and P2P lacks a first-class way to compare, select, reject, combine, or merge competing proposal/work candidates before they alter accepted project state.

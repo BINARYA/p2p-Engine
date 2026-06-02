@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 import shutil
 from dataclasses import dataclass
@@ -29,16 +30,22 @@ from p2p_engine.storage.git import (
     conflicted_files,
     create_and_checkout_branch,
     delete_local_branch,
+    delete_local_branch_force,
     delete_remote_branch,
+    fetch_remote,
     get_git_status,
     head_commit,
     list_files_at_ref,
+    list_local_proposal_branches,
     list_local_work_branches,
+    list_remote_proposal_branches,
     merge_branch_no_commit,
     merge_in_progress,
     push_branch,
     read_file_at_ref,
+    rename_current_branch,
     remote_url,
+    pull_branch,
     stage_all,
     restore_path,
 )
@@ -87,6 +94,69 @@ class ProposalDetail:
     proposal: str
     decision_status: str
     decision_reason: str
+
+
+@dataclass(frozen=True)
+class ProposalBranchDetail:
+    proposal_id: str
+    status: str
+    branch_name: str
+    base_branch: str
+    actor: str
+    branch_hash16: str
+    remote: str | None
+    remote_url: str | None
+    path: Path
+    metadata: dict[str, object]
+
+
+@dataclass(frozen=True)
+class ProposalBranchScan:
+    scanned_branches: list[str]
+    proposals: list[dict[str, object]]
+    path: Path
+
+
+@dataclass(frozen=True)
+class ProposalMerge:
+    proposal_id: str
+    branch_name: str
+    base_branch: str
+    merge_commit: str
+    path: Path
+
+
+@dataclass(frozen=True)
+class ProposalMergeConflict:
+    proposal_id: str
+    branch_name: str
+    base_branch: str
+    conflicted_files: list[str]
+    path: Path
+
+
+@dataclass(frozen=True)
+class ProposalFinalize:
+    proposal_id: str
+    branch_name: str
+    base_branch: str
+    remote: str
+    remote_url: str
+    finalize_commit: str
+    path: Path
+
+
+@dataclass(frozen=True)
+class ProposalCleanup:
+    proposal_id: str
+    branch_name: str
+    base_branch: str
+    remote: str
+    remote_url: str
+    cleanup_commit: str
+    local_deleted: bool
+    remote_deleted: bool
+    path: Path
 
 
 @dataclass(frozen=True)
@@ -398,6 +468,28 @@ class RemoteProjectProfile:
 
 
 @dataclass(frozen=True)
+class SyncStatus:
+    is_repository: bool
+    branch: str | None
+    is_clean: bool
+    mode: str
+    provider: str
+    remote: str | None
+    remote_url: str | None
+    can_sync: bool
+    reason: str
+
+
+@dataclass(frozen=True)
+class SyncResult:
+    action: str
+    status: str
+    branch: str | None
+    remote: str
+    remote_url: str
+
+
+@dataclass(frozen=True)
 class WorkPublish:
     work_id: str
     branch_name: str
@@ -544,6 +636,28 @@ class AgentInstructionsResult:
     policy_path: Path
 
 
+@dataclass(frozen=True)
+class PermissionActor:
+    actor_id: str
+    role: str
+    kind: str
+    display_name: str
+    path: Path
+
+
+@dataclass(frozen=True)
+class ConsentReceipt:
+    consent_id: str
+    operation: str
+    target: str
+    actor_id: str
+    approved_by: str
+    status: str
+    single_use: bool
+    expires_on: str | None
+    path: Path
+
+
 class P2PWorkspace:
     def __init__(self, root: Path) -> None:
         self.root = root.resolve()
@@ -556,6 +670,7 @@ class P2PWorkspace:
         repository_mode: str = "local",
         project_domain: str = "none",
         rubric_enabled: dict[str, bool] | None = None,
+        owner: str | None = None,
     ) -> list[Path]:
         agent_profile = _normalize_agent_profile(agent_profile)
         repository_mode = _normalize_repository_mode(repository_mode)
@@ -594,6 +709,9 @@ class P2PWorkspace:
             self.p2p_dir / "templates" / "tasks-template.yml": "tasks: []\n",
             self.p2p_dir / "project" / "rubrics.yml": _yaml_dump(
                 _rubrics_payload(project_domain, rubric_enabled=rubric_enabled)
+            ),
+            self.p2p_dir / "project" / "permissions.yml": _yaml_dump(
+                _permissions_payload(owner_name=owner, repository_mode=repository_mode)
             ),
         }
         if project_domain not in PROJECT_DOMAIN_TEMPLATES:
@@ -673,6 +791,195 @@ class P2PWorkspace:
             policy_path=relative_policy,
         )
 
+    def permissions_show(self) -> dict[str, object]:
+        path = self._permissions_path()
+        if not path.exists():
+            return _permissions_payload(owner_name=None, repository_mode=self._repository_mode(default="local"))
+        return _read_yaml_mapping(path, default={})
+
+    def permissions_actor_add(
+        self,
+        actor_id: str,
+        role: str = "contributor",
+        kind: str = "person",
+        display_name: str | None = None,
+    ) -> PermissionActor:
+        actor_slug = _identity_slug(actor_id)
+        role = _normalize_permission_role(role)
+        kind = _normalize_actor_kind(kind)
+        path = self._permissions_path()
+        payload = self.permissions_show()
+        identities = payload.setdefault("identities", {})
+        if not isinstance(identities, dict):
+            raise ValueError("Invalid permissions policy: identities must be a mapping")
+        identities[actor_slug] = {
+            "role": role,
+            "kind": kind,
+            "display_name": display_name or actor_id,
+        }
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(_yaml_dump(payload), encoding="utf-8")
+        return PermissionActor(
+            actor_id=actor_slug,
+            role=role,
+            kind=kind,
+            display_name=display_name or actor_id,
+            path=path.relative_to(self.root),
+        )
+
+    def consent_grant(
+        self,
+        operation: str,
+        target: str,
+        actor_id: str,
+        approved_by: str = "owner",
+        *,
+        expires_on: str | None = None,
+        single_use: bool = True,
+        scope: str | None = None,
+    ) -> ConsentReceipt:
+        operation = _normalize_consent_operation(operation)
+        target = target.strip()
+        if not target:
+            raise ValueError("Consent target is required")
+        actor_slug = _identity_slug(actor_id)
+        approved_by_slug = _identity_slug(approved_by)
+        permissions = self.permissions_show()
+        identities = permissions.get("identities", {})
+        if not isinstance(identities, dict):
+            raise ValueError("Invalid permissions policy: identities must be a mapping")
+        if actor_slug not in identities:
+            raise ValueError(f"Unknown consent actor: {actor_slug}. Add it with `p2p permissions actor add`.")
+        if approved_by_slug not in identities:
+            raise ValueError(f"Unknown consent approver: {approved_by_slug}. Add it with `p2p permissions actor add`.")
+        approver = identities[approved_by_slug]
+        if not isinstance(approver, dict) or str(approver.get("role") or "") != "owner":
+            raise ValueError("Only an owner identity can approve consent receipts in the MVP")
+
+        consent_id = self._next_consent_id()
+        receipt_dir = self.p2p_dir / "consents" / consent_id
+        receipt_dir.mkdir(parents=True, exist_ok=False)
+        receipt = {
+            "consent_id": consent_id,
+            "status": "granted",
+            "operation": operation,
+            "target": target,
+            "actor_id": actor_slug,
+            "requested_by": actor_slug,
+            "approved_by": approved_by_slug,
+            "scope": scope or "single_target",
+            "single_use": bool(single_use),
+            "expires_on": expires_on,
+            "created_at": date.today().isoformat(),
+            "consumed_at": None,
+            "revoked_at": None,
+            "result": None,
+            "provider": None,
+        }
+        path = receipt_dir / "consent.yml"
+        path.write_text(_yaml_dump(receipt), encoding="utf-8")
+        return _consent_receipt_from_payload(receipt, path.relative_to(self.root))
+
+    def consent_show(self, consent_id: str) -> ConsentReceipt:
+        path = self._consent_path(consent_id)
+        if not path.exists():
+            raise ValueError(f"Consent receipt not found: {consent_id}")
+        payload = _read_yaml_mapping(path, default={})
+        return _consent_receipt_from_payload(payload, path.relative_to(self.root))
+
+    def consent_statuses(self) -> list[ConsentReceipt]:
+        consents_dir = self.p2p_dir / "consents"
+        if not consents_dir.exists():
+            return []
+        receipts: list[ConsentReceipt] = []
+        for path in sorted(consents_dir.glob("CONSENT-*/consent.yml")):
+            receipts.append(_consent_receipt_from_payload(_read_yaml_mapping(path, default={}), path.relative_to(self.root)))
+        return receipts
+
+    def consent_revoke(self, consent_id: str, reason: str = "") -> ConsentReceipt:
+        path = self._consent_path(consent_id)
+        if not path.exists():
+            raise ValueError(f"Consent receipt not found: {consent_id}")
+        payload = _read_yaml_mapping(path, default={})
+        if str(payload.get("status") or "") == "consumed":
+            raise ValueError(f"Cannot revoke consumed consent receipt: {consent_id}")
+        payload["status"] = "revoked"
+        payload["revoked_at"] = date.today().isoformat()
+        payload["revocation_reason"] = reason or "Not provided."
+        path.write_text(_yaml_dump(payload), encoding="utf-8")
+        return _consent_receipt_from_payload(payload, path.relative_to(self.root))
+
+    def consent_validate(
+        self,
+        consent_id: str,
+        *,
+        operation: str,
+        target: str,
+        actor_id: str,
+    ) -> ConsentReceipt:
+        path = self._consent_path(consent_id)
+        if not path.exists():
+            raise ValueError(f"Consent receipt not found: {consent_id}")
+        payload = _read_yaml_mapping(path, default={})
+        expected_operation = _normalize_consent_operation(operation)
+        expected_actor = _identity_slug(actor_id)
+        if str(payload.get("status") or "") != "granted":
+            raise ValueError(f"Consent receipt is not granted: {consent_id}")
+        if str(payload.get("operation") or "") != expected_operation:
+            raise ValueError(
+                f"Consent receipt operation mismatch: expected {expected_operation}, got {payload.get('operation')}"
+            )
+        if str(payload.get("target") or "") != target:
+            raise ValueError(f"Consent receipt target mismatch: expected {target}, got {payload.get('target')}")
+        if str(payload.get("actor_id") or "") != expected_actor:
+            raise ValueError(
+                f"Consent receipt actor mismatch: expected {expected_actor}, got {payload.get('actor_id')}"
+            )
+        expires_on = payload.get("expires_on")
+        if expires_on:
+            try:
+                expiry = date.fromisoformat(str(expires_on))
+            except ValueError as exc:
+                raise ValueError(f"Invalid consent expiry date: {expires_on}") from exc
+            if expiry < date.today():
+                payload["status"] = "expired"
+                path.write_text(_yaml_dump(payload), encoding="utf-8")
+                raise ValueError(f"Consent receipt expired: {consent_id}")
+        return _consent_receipt_from_payload(payload, path.relative_to(self.root))
+
+    def consent_consume(self, consent_id: str, *, result: dict[str, object]) -> ConsentReceipt:
+        path = self._consent_path(consent_id)
+        if not path.exists():
+            raise ValueError(f"Consent receipt not found: {consent_id}")
+        payload = _read_yaml_mapping(path, default={})
+        if str(payload.get("status") or "") != "granted":
+            raise ValueError(f"Consent receipt is not granted: {consent_id}")
+        payload["status"] = "consumed"
+        payload["consumed_at"] = date.today().isoformat()
+        payload["result"] = result
+        path.write_text(_yaml_dump(payload), encoding="utf-8")
+        return _consent_receipt_from_payload(payload, path.relative_to(self.root))
+
+    def consent_mark_used_with_error(
+        self,
+        consent_id: str,
+        *,
+        error: str,
+        result: dict[str, object] | None = None,
+    ) -> ConsentReceipt:
+        path = self._consent_path(consent_id)
+        if not path.exists():
+            raise ValueError(f"Consent receipt not found: {consent_id}")
+        payload = _read_yaml_mapping(path, default={})
+        if str(payload.get("status") or "") != "granted":
+            return _consent_receipt_from_payload(payload, path.relative_to(self.root))
+        payload["status"] = "used_with_error"
+        payload["consumed_at"] = date.today().isoformat()
+        payload["result"] = result or {}
+        payload["error"] = error
+        path.write_text(_yaml_dump(payload), encoding="utf-8")
+        return _consent_receipt_from_payload(payload, path.relative_to(self.root))
+
     def _project_name(self) -> str:
         project_file = self.p2p_dir / "project.yml"
         if not project_file.exists():
@@ -690,6 +997,25 @@ class P2PWorkspace:
         if not isinstance(repo_data, dict):
             return default
         return str(repo_data.get("mode") or default)
+
+    def _permissions_path(self) -> Path:
+        return self.p2p_dir / "project" / "permissions.yml"
+
+    def _consent_path(self, consent_id: str) -> Path:
+        consent_id = _normalize_consent_id(consent_id)
+        return self.p2p_dir / "consents" / consent_id / "consent.yml"
+
+    def _next_consent_id(self) -> str:
+        consents_dir = self.p2p_dir / "consents"
+        used: set[int] = set()
+        if consents_dir.exists():
+            for path in consents_dir.iterdir():
+                if not path.is_dir():
+                    continue
+                match = re.match(r"^CONSENT-(\d{3})$", path.name)
+                if match:
+                    used.add(int(match.group(1)))
+        return f"CONSENT-{max(used or {0}) + 1:03d}"
 
     def _set_repository_mode(self, mode: str) -> None:
         mode = _normalize_repository_mode(mode)
@@ -796,6 +1122,88 @@ class P2PWorkspace:
         project_file.write_text(_yaml_dump(data), encoding="utf-8")
         return self.remote_profile()
 
+    def sync_status(self, remote: str | None = None) -> SyncStatus:
+        profile = self.remote_profile()
+        git_status = get_git_status(self.root)
+        selected_remote = self._sync_remote(remote)
+        resolved_remote_url = (
+            remote_url(self.root, selected_remote) if git_status.is_repository and selected_remote else None
+        )
+
+        reason = "ready"
+        can_sync = True
+        if not git_status.is_repository:
+            can_sync = False
+            reason = "not a Git repository"
+        elif profile.mode == "local" and remote is None and not profile.remote:
+            can_sync = False
+            reason = "project remote profile is local"
+        elif not selected_remote:
+            can_sync = False
+            reason = "no Git remote configured"
+        elif resolved_remote_url is None:
+            can_sync = False
+            reason = f"Git remote not found: {selected_remote}"
+
+        return SyncStatus(
+            is_repository=git_status.is_repository,
+            branch=git_status.branch,
+            is_clean=git_status.is_clean,
+            mode=profile.mode,
+            provider=profile.provider,
+            remote=selected_remote,
+            remote_url=resolved_remote_url,
+            can_sync=can_sync,
+            reason=reason,
+        )
+
+    def sync_fetch(self, remote: str | None = None) -> SyncResult:
+        status = self.sync_status(remote)
+        selected_remote = self._require_sync_remote(status)
+        if not fetch_remote(self.root, selected_remote):
+            raise ValueError(f"Failed to fetch Git remote: {selected_remote}")
+        return SyncResult(
+            action="fetch",
+            status="fetched",
+            branch=status.branch,
+            remote=selected_remote,
+            remote_url=str(status.remote_url),
+        )
+
+    def sync_pull(self, remote: str | None = None) -> SyncResult:
+        status = self.sync_status(remote)
+        selected_remote = self._require_sync_remote(status)
+        if not status.branch:
+            raise ValueError("Cannot pull from detached HEAD")
+        if not status.is_clean:
+            raise ValueError("Cannot pull with uncommitted changes")
+        if not pull_branch(self.root, status.branch, selected_remote):
+            raise ValueError(f"Failed to pull {selected_remote}/{status.branch} with fast-forward only")
+        return SyncResult(
+            action="pull",
+            status="pulled",
+            branch=status.branch,
+            remote=selected_remote,
+            remote_url=str(status.remote_url),
+        )
+
+    def sync_push(self, remote: str | None = None) -> SyncResult:
+        status = self.sync_status(remote)
+        selected_remote = self._require_sync_remote(status)
+        if not status.branch:
+            raise ValueError("Cannot push from detached HEAD")
+        if not status.is_clean:
+            raise ValueError("Cannot push with uncommitted changes")
+        if not push_branch(self.root, status.branch, selected_remote):
+            raise ValueError(f"Failed to push {status.branch} to {selected_remote}")
+        return SyncResult(
+            action="push",
+            status="pushed",
+            branch=status.branch,
+            remote=selected_remote,
+            remote_url=str(status.remote_url),
+        )
+
     def proposal_summaries(self, status: str | None = None) -> list[ProposalSummary]:
         proposals = self.status().proposals
         if status is None:
@@ -815,6 +1223,593 @@ class P2PWorkspace:
             proposal=_read_markdown_section(proposal_text, "Proposal") or "Not provided.",
             decision_status=(_read_markdown_section(decision_text, "Status") or "pending").strip("`"),
             decision_reason=_read_markdown_section(decision_text, "Reason") or "Not provided.",
+        )
+
+    def branch_proposal(self, proposal_id: str, actor: str = "local") -> ProposalBranchDetail:
+        proposal_dir = self._find_proposal_dir(proposal_id)
+        proposal_text = _read_optional(proposal_dir / "proposal.md")
+        title = _clean_proposal_title(_read_title(proposal_text) or proposal_id, proposal_id)
+        actor_slug = _slugify(actor) or "local"
+
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError("Cannot create managed proposal branch outside a Git repository")
+        if not git_status.branch:
+            raise ValueError("Cannot create managed proposal branch from detached HEAD")
+        if not git_status.is_clean:
+            raise ValueError("Cannot create managed proposal branch with uncommitted changes")
+
+        base_branch = git_status.branch
+        base_commit = head_commit(self.root)
+        if base_commit is None:
+            raise ValueError("Cannot resolve current Git commit")
+        branch_hash16 = _branch_hash16(proposal_id, title, actor_slug, base_commit)
+        branch_name = _proposal_branch_name(proposal_id, title, actor_slug, branch_hash16)
+        if branch_exists(self.root, branch_name):
+            raise ValueError(f"Managed proposal branch already exists: {branch_name}")
+
+        if not create_and_checkout_branch(self.root, branch_name):
+            raise ValueError(f"Failed to create managed proposal branch: {branch_name}")
+        head = head_commit(self.root)
+        if head is None:
+            raise ValueError("Cannot resolve managed proposal branch commit")
+
+        metadata = {
+            "proposal_id": proposal_id,
+            "status": "branched",
+            "branch_name": branch_name,
+            "branch_hash16": branch_hash16,
+            "actor": actor,
+            "actor_slug": actor_slug,
+            "base_branch": base_branch,
+            "base_commit": base_commit,
+            "head_commit": head,
+            "created_at": date.today().isoformat(),
+            "remote": None,
+            "remote_url": None,
+            "remote_branch": None,
+        }
+        metadata_path = proposal_dir / "branch.yml"
+        metadata_path.write_text(_yaml_dump(metadata), encoding="utf-8")
+        if commit_all(self.root, f"P2P proposal branch {proposal_id}") is None:
+            raise ValueError("Failed to create managed proposal branch metadata commit")
+        return self.show_proposal_branch(proposal_id)
+
+    def show_proposal_branch(self, proposal_id: str) -> ProposalBranchDetail:
+        proposal_dir = self._find_proposal_dir(proposal_id)
+        metadata_path = proposal_dir / "branch.yml"
+        metadata = _read_yaml_mapping(metadata_path, default={})
+        if not metadata:
+            return ProposalBranchDetail(
+                proposal_id=proposal_id,
+                status="unbranched",
+                branch_name="",
+                base_branch="",
+                actor="",
+                branch_hash16="",
+                remote=None,
+                remote_url=None,
+                path=proposal_dir.relative_to(self.root),
+                metadata={},
+            )
+        return _proposal_branch_detail_from_metadata(proposal_id, metadata, proposal_dir.relative_to(self.root))
+
+    def publish_proposal_branch(
+        self,
+        proposal_id: str,
+        remote: str | None = None,
+        *,
+        auto_renumber: bool = False,
+    ) -> ProposalBranchDetail:
+        proposal_dir, metadata, metadata_path = self._proposal_branch_metadata(proposal_id)
+        status = str(metadata.get("status") or "unknown")
+        if status not in {"branched", "revised", "review_requested"}:
+            raise ValueError(f"Proposal branch must be branched, revised, or review_requested before publish. Current status: {status}")
+        branch_name = str(metadata.get("branch_name") or "")
+        if not branch_name:
+            raise ValueError("Invalid proposal branch metadata: branch_name is required")
+
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError("Cannot publish managed proposal branch outside a Git repository")
+        if git_status.branch != branch_name:
+            raise ValueError(f"Cannot publish managed proposal branch from {git_status.branch}; expected branch {branch_name}")
+        if not git_status.is_clean:
+            raise ValueError("Cannot publish managed proposal branch with uncommitted changes")
+
+        selected_remote = remote or self.remote_profile().remote or "origin"
+        resolved_remote_url = remote_url(self.root, selected_remote)
+        if resolved_remote_url is None:
+            raise ValueError(f"Cannot publish managed proposal branch: Git remote not found: {selected_remote}")
+
+        if not fetch_remote(self.root, selected_remote):
+            raise ValueError(f"Failed to fetch Git remote before proposal publish: {selected_remote}")
+        remote_ids = self._remote_proposal_ids(selected_remote, str(metadata.get("base_branch") or "main"))
+        if proposal_id in remote_ids:
+            if not auto_renumber:
+                raise ValueError(
+                    f"Proposal ID collision detected on remote: {proposal_id}. "
+                    f"Run `p2p proposal publish {proposal_id} --auto-renumber` to allocate the next available ID."
+                )
+            proposal_id, proposal_dir, metadata, metadata_path = self._auto_renumber_proposal_branch(
+                proposal_id=proposal_id,
+                metadata=metadata,
+                remote_ids=remote_ids,
+            )
+            branch_name = str(metadata.get("branch_name") or "")
+            if not branch_name:
+                raise ValueError("Invalid proposal branch metadata after auto-renumber: branch_name is required")
+            git_status = get_git_status(self.root)
+            if git_status.branch != branch_name:
+                raise ValueError(
+                    f"Cannot publish auto-renumbered proposal branch from {git_status.branch}; expected branch {branch_name}"
+                )
+            if not git_status.is_clean:
+                raise ValueError("Cannot publish auto-renumbered proposal branch with uncommitted changes")
+            if proposal_id in self._remote_proposal_ids(selected_remote, str(metadata.get("base_branch") or "main")):
+                raise ValueError(f"Proposal ID collision remains after auto-renumber: {proposal_id}")
+
+        metadata["status"] = "published"
+        metadata["remote"] = selected_remote
+        metadata["remote_url"] = resolved_remote_url
+        metadata["remote_branch"] = branch_name
+        metadata["published_at"] = date.today().isoformat()
+        metadata_path.write_text(_yaml_dump(metadata), encoding="utf-8")
+        if commit_all(self.root, f"P2P proposal publish {proposal_id}") is None:
+            raise ValueError("Failed to create managed proposal publish metadata commit")
+        if not push_branch(self.root, branch_name, selected_remote):
+            raise ValueError(f"Failed to push managed proposal branch to {selected_remote}: {branch_name}")
+        return self.show_proposal_branch(proposal_id)
+
+    def request_proposal_branch_review(self, proposal_id: str, provider: str | None = None) -> ProposalBranchDetail:
+        proposal_dir, metadata, metadata_path = self._proposal_branch_metadata(proposal_id)
+        status = str(metadata.get("status") or "unknown")
+        if status != "published":
+            raise ValueError(f"Proposal branch must be published before request-review. Current status: {status}")
+        branch_name = str(metadata.get("branch_name") or "")
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError("Cannot request managed proposal review outside a Git repository")
+        if git_status.branch != branch_name:
+            raise ValueError(f"Cannot request managed proposal review from {git_status.branch}; expected branch {branch_name}")
+        if not git_status.is_clean:
+            raise ValueError("Cannot request managed proposal review with uncommitted changes")
+
+        remote = str(metadata.get("remote") or self.remote_profile().remote or "origin")
+        resolved_remote_url = str(metadata.get("remote_url") or remote_url(self.root, remote) or "")
+        if not resolved_remote_url:
+            raise ValueError(f"Cannot request managed proposal review: Git remote not found: {remote}")
+        selected_provider = (provider or self.remote_profile().provider or "generic").strip().lower()
+        if selected_provider == "local":
+            selected_provider = "generic"
+        if selected_provider not in {"generic", "github", "gitlab"}:
+            raise ValueError("Proposal review provider must be generic, github, or gitlab")
+
+        metadata["status"] = "review_requested"
+        metadata["review"] = {
+            "mode": "provider_advisory",
+            "provider": selected_provider,
+            "remote": remote,
+            "remote_url": resolved_remote_url,
+            "remote_branch": branch_name,
+            "opens_external_request": False,
+            "requested_at": date.today().isoformat(),
+            "suggested_next": _review_request_suggestion(selected_provider, resolved_remote_url, branch_name),
+        }
+        metadata_path.write_text(_yaml_dump(metadata), encoding="utf-8")
+        if commit_all(self.root, f"P2P proposal request review {proposal_id}") is None:
+            raise ValueError("Failed to create managed proposal review metadata commit")
+        return self.show_proposal_branch(proposal_id)
+
+    def retire_proposal_branch(self, proposal_id: str, reason: str) -> ProposalBranchDetail:
+        reason = reason.strip()
+        if not reason:
+            raise ValueError("Proposal branch retire reason is required")
+        proposal_dir, metadata, metadata_path = self._proposal_branch_metadata(proposal_id)
+        status = str(metadata.get("status") or "unknown")
+        if status in {"merged", "finalized", "retired"}:
+            raise ValueError(f"Proposal branch cannot be retired from status: {status}")
+        branch_name = str(metadata.get("branch_name") or "")
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError("Cannot retire managed proposal branch outside a Git repository")
+        if git_status.branch != branch_name:
+            raise ValueError(f"Cannot retire managed proposal branch from {git_status.branch}; expected branch {branch_name}")
+        if not git_status.is_clean:
+            raise ValueError("Cannot retire managed proposal branch with uncommitted changes")
+
+        metadata["status"] = "retired"
+        metadata["retirement"] = {
+            "reason": reason,
+            "retired_at": date.today().isoformat(),
+        }
+        metadata_path.write_text(_yaml_dump(metadata), encoding="utf-8")
+        if commit_all(self.root, f"P2P proposal retire {proposal_id}") is None:
+            raise ValueError("Failed to create managed proposal retire metadata commit")
+        return self.show_proposal_branch(proposal_id)
+
+    def accept_proposal_branch(self, proposal_id: str, reason: str) -> ProposalBranchDetail:
+        reason = reason.strip()
+        if not reason:
+            raise ValueError("Proposal branch accept reason is required")
+        return self._decide_proposal_branch(proposal_id, "accepted", reason)
+
+    def reject_proposal_branch(self, proposal_id: str, reason: str) -> ProposalBranchDetail:
+        reason = reason.strip()
+        if not reason:
+            raise ValueError("Proposal branch reject reason is required")
+        return self._decide_proposal_branch(proposal_id, "rejected", reason)
+
+    def _decide_proposal_branch(self, proposal_id: str, outcome: str, reason: str) -> ProposalBranchDetail:
+        proposal_dir, metadata, metadata_path = self._proposal_branch_metadata(proposal_id)
+        status = str(metadata.get("status") or "unknown")
+        if status not in {"published", "review_requested"}:
+            raise ValueError(
+                f"Proposal branch must be published or review_requested before {outcome}. Current status: {status}"
+            )
+        branch_name = str(metadata.get("branch_name") or "")
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError(f"Cannot {outcome} managed proposal branch outside a Git repository")
+        if git_status.branch != branch_name:
+            raise ValueError(f"Cannot {outcome} managed proposal branch from {git_status.branch}; expected branch {branch_name}")
+        if not git_status.is_clean:
+            raise ValueError(f"Cannot {outcome} managed proposal branch with uncommitted changes")
+
+        metadata["status"] = outcome
+        metadata["branch_decision"] = {
+            "outcome": outcome,
+            "reason": reason,
+            "decided_at": date.today().isoformat(),
+            "governance_decision": True,
+        }
+        metadata_path.write_text(_yaml_dump(metadata), encoding="utf-8")
+        verb = "accept" if outcome == "accepted" else "reject"
+        if commit_all(self.root, f"P2P proposal branch {verb} {proposal_id}") is None:
+            raise ValueError(f"Failed to create managed proposal branch {verb} metadata commit")
+        return ProposalBranchDetail(
+            proposal_id=str(metadata.get("proposal_id") or proposal_id),
+            status=outcome,
+            branch_name=branch_name,
+            base_branch=str(metadata.get("base_branch") or "main"),
+            actor=str(metadata.get("actor") or ""),
+            branch_hash16=str(metadata.get("branch_hash16") or ""),
+            remote=str(metadata.get("remote") or ""),
+            remote_url=str(metadata.get("remote_url") or ""),
+            path=proposal_dir.relative_to(self.root),
+            metadata=metadata,
+        )
+
+    def merge_proposal_branch(self, proposal_id: str) -> ProposalMerge | ProposalMergeConflict:
+        branch_name, metadata, branch_metadata_path = self._proposal_branch_metadata_from_local_ref(proposal_id)
+        status = str(metadata.get("status") or "unknown")
+        if status not in {"published", "review_requested", "accepted"}:
+            raise ValueError(
+                f"Proposal branch must be published, review_requested, or accepted before merge. Current status: {status}"
+            )
+        base_branch = str(metadata.get("base_branch") or "main")
+
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError("Cannot merge managed proposal branch outside a Git repository")
+        if git_status.branch != base_branch:
+            raise ValueError(f"Cannot merge managed proposal branch from {git_status.branch}; expected base branch {base_branch}")
+        if not git_status.is_clean:
+            raise ValueError("Cannot merge managed proposal branch with uncommitted changes")
+        if not branch_exists(self.root, branch_name):
+            raise ValueError(f"Managed proposal branch not found: {branch_name}")
+
+        if not merge_branch_no_commit(self.root, branch_name):
+            conflicts = conflicted_files(self.root)
+            if not conflicts:
+                raise ValueError(f"Failed to merge managed proposal branch: {branch_name}")
+            metadata["status"] = "merge_conflict"
+            metadata["merge_conflict"] = {
+                "source_branch": branch_name,
+                "base_branch": base_branch,
+                "conflicted_files": conflicts,
+                "continue_command": f"p2p proposal merge --continue {proposal_id}",
+                "abort_command": f"p2p proposal merge --abort {proposal_id}",
+            }
+            metadata["merge_conflict_at"] = date.today().isoformat()
+            metadata_path = self.root / branch_metadata_path
+            metadata_path.parent.mkdir(parents=True, exist_ok=True)
+            metadata_path.write_text(_yaml_dump(metadata), encoding="utf-8")
+            return ProposalMergeConflict(
+                proposal_id=proposal_id,
+                branch_name=branch_name,
+                base_branch=base_branch,
+                conflicted_files=conflicts,
+                path=branch_metadata_path.parent,
+            )
+
+        metadata_path = self.root / branch_metadata_path
+        merged_metadata = _read_yaml_mapping(metadata_path, default=metadata)
+        merged_metadata["status"] = "merged"
+        merged_metadata["merged_at"] = date.today().isoformat()
+        merged_metadata["merge"] = {
+            "mode": "local_merge",
+            "source_branch": branch_name,
+            "merged_into": base_branch,
+            "pushed": False,
+            "cleanup": False,
+        }
+        metadata_path.write_text(_yaml_dump(merged_metadata), encoding="utf-8")
+        merge_commit = commit_all(self.root, f"P2P proposal merge {proposal_id}")
+        if merge_commit is None:
+            raise ValueError("Failed to create managed proposal merge commit")
+        return ProposalMerge(
+            proposal_id=proposal_id,
+            branch_name=branch_name,
+            base_branch=base_branch,
+            merge_commit=merge_commit,
+            path=branch_metadata_path.parent,
+        )
+
+    def continue_merge_proposal_branch(self, proposal_id: str) -> ProposalMerge:
+        proposal_dir = self._find_proposal_dir(proposal_id)
+        metadata_path = proposal_dir / "branch.yml"
+        metadata = _read_yaml_mapping(metadata_path, default={})
+        status = str(metadata.get("status") or "unknown")
+        if status != "merge_conflict":
+            raise ValueError(f"Proposal branch must be merge_conflict before merge --continue. Current status: {status}")
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError("Cannot continue managed proposal merge outside a Git repository")
+        if not merge_in_progress(self.root):
+            raise ValueError("Cannot continue managed proposal merge: no merge is in progress")
+        unresolved = [path for path in conflicted_files(self.root) if _file_has_conflict_markers(self.root / path)]
+        if unresolved:
+            raise ValueError("Cannot continue managed proposal merge with unresolved conflicts: " + ", ".join(unresolved))
+        stage_all(self.root)
+        conflicts = conflicted_files(self.root)
+        if conflicts:
+            raise ValueError("Cannot continue managed proposal merge with unresolved conflicts: " + ", ".join(conflicts))
+        conflict = metadata.get("merge_conflict", {})
+        if not isinstance(conflict, dict):
+            conflict = {}
+        branch_name = str(conflict.get("source_branch") or metadata.get("branch_name") or "")
+        base_branch = str(conflict.get("base_branch") or metadata.get("base_branch") or git_status.branch or "main")
+        metadata["status"] = "merged"
+        metadata["merged_at"] = date.today().isoformat()
+        metadata.pop("merge_conflict", None)
+        metadata["merge"] = {
+            "mode": "local_merge",
+            "source_branch": branch_name,
+            "merged_into": base_branch,
+            "pushed": False,
+            "cleanup": False,
+            "resolved_conflict": True,
+        }
+        metadata_path.write_text(_yaml_dump(metadata), encoding="utf-8")
+        merge_commit = commit_all(self.root, f"P2P proposal merge {proposal_id}")
+        if merge_commit is None:
+            raise ValueError("Failed to create managed proposal merge commit")
+        return ProposalMerge(
+            proposal_id=proposal_id,
+            branch_name=branch_name,
+            base_branch=base_branch,
+            merge_commit=merge_commit,
+            path=proposal_dir.relative_to(self.root),
+        )
+
+    def abort_merge_proposal_branch(self, proposal_id: str) -> ProposalBranchDetail:
+        proposal_dir = self._find_proposal_dir(proposal_id)
+        metadata_path = proposal_dir / "branch.yml"
+        metadata = _read_yaml_mapping(metadata_path, default={})
+        status = str(metadata.get("status") or "unknown")
+        if status != "merge_conflict":
+            raise ValueError(f"Proposal branch must be merge_conflict before merge --abort. Current status: {status}")
+        branch_name = str(metadata.get("branch_name") or "")
+        if merge_in_progress(self.root):
+            restore_path(self.root, metadata_path.relative_to(self.root).as_posix())
+            if not abort_merge(self.root):
+                raise ValueError("Failed to abort managed proposal merge")
+        if not checkout_branch(self.root, branch_name):
+            raise ValueError(f"Failed to return to managed proposal branch after merge abort: {branch_name}")
+        return self.show_proposal_branch(proposal_id)
+
+    def finalize_proposal_branch(self, proposal_id: str, remote: str | None = None) -> ProposalFinalize:
+        proposal_dir = self._find_proposal_dir(proposal_id)
+        metadata_path = proposal_dir / "branch.yml"
+        metadata = _read_yaml_mapping(metadata_path, default={})
+        status = str(metadata.get("status") or "unknown")
+        if status != "merged":
+            raise ValueError(f"Proposal branch must be merged before finalize. Current status: {status}")
+        merge = metadata.get("merge", {})
+        if not isinstance(merge, dict):
+            merge = {}
+        branch_name = str(metadata.get("branch_name") or merge.get("source_branch") or "")
+        base_branch = str(merge.get("merged_into") or metadata.get("base_branch") or "main")
+
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError("Cannot finalize managed proposal branch outside a Git repository")
+        if git_status.branch != base_branch:
+            raise ValueError(f"Cannot finalize managed proposal branch from {git_status.branch}; expected base branch {base_branch}")
+        if not git_status.is_clean:
+            raise ValueError("Cannot finalize managed proposal branch with uncommitted changes")
+
+        selected_remote = remote or str(metadata.get("remote") or self.remote_profile().remote or "origin")
+        resolved_remote_url = remote_url(self.root, selected_remote)
+        if resolved_remote_url is None:
+            raise ValueError(f"Cannot finalize managed proposal branch: Git remote not found: {selected_remote}")
+
+        metadata["status"] = "finalized"
+        metadata["finalized_at"] = date.today().isoformat()
+        merge["pushed"] = True
+        merge["cleanup"] = False
+        metadata["merge"] = merge
+        metadata["finalize"] = {
+            "mode": "base_branch_push",
+            "remote": selected_remote,
+            "remote_url": resolved_remote_url,
+            "base_branch": base_branch,
+            "source_branch": branch_name,
+            "cleanup": False,
+        }
+        metadata_path.write_text(_yaml_dump(metadata), encoding="utf-8")
+        finalize_commit = commit_all(self.root, f"P2P proposal finalize {proposal_id}")
+        if finalize_commit is None:
+            raise ValueError("Failed to create managed proposal finalize commit")
+        if not push_branch(self.root, base_branch, selected_remote):
+            raise ValueError(f"Failed to push base branch to {selected_remote}: {base_branch}")
+        return ProposalFinalize(
+            proposal_id=proposal_id,
+            branch_name=branch_name,
+            base_branch=base_branch,
+            remote=selected_remote,
+            remote_url=resolved_remote_url,
+            finalize_commit=finalize_commit,
+            path=proposal_dir.relative_to(self.root),
+        )
+
+    def cleanup_proposal_branch(
+        self,
+        proposal_id: str,
+        *,
+        delete_remote: bool = False,
+        remote: str | None = None,
+    ) -> ProposalCleanup:
+        proposal_dir = self._find_proposal_dir(proposal_id)
+        metadata_path = proposal_dir / "branch.yml"
+        metadata = _read_yaml_mapping(metadata_path, default={}) if metadata_path.exists() else {}
+        status = str(metadata.get("status") or "unknown")
+        if status not in {"finalized", "rejected", "retired"}:
+            branch_name_from_ref, metadata_from_ref, ref_metadata_path = self._proposal_branch_metadata_from_local_ref(proposal_id)
+            metadata = metadata_from_ref
+            status = str(metadata.get("status") or "unknown")
+            metadata_path = self.root / ref_metadata_path
+            proposal_dir = metadata_path.parent
+            if not str(metadata.get("branch_name") or ""):
+                metadata["branch_name"] = branch_name_from_ref
+
+        if status not in {"finalized", "rejected", "retired"}:
+            raise ValueError(
+                f"Proposal branch must be finalized, rejected, or retired before cleanup. Current status: {status}"
+            )
+
+        merge = metadata.get("merge", {})
+        if not isinstance(merge, dict):
+            merge = {}
+        finalize = metadata.get("finalize", {})
+        if not isinstance(finalize, dict):
+            finalize = {}
+        branch_name = str(
+            metadata.get("branch_name")
+            or finalize.get("source_branch")
+            or merge.get("source_branch")
+            or metadata.get("remote_branch")
+            or ""
+        )
+        if not branch_name:
+            raise ValueError("Invalid proposal branch metadata: managed branch is required before cleanup")
+        base_branch = str(finalize.get("base_branch") or merge.get("merged_into") or metadata.get("base_branch") or "main")
+        if branch_name == base_branch:
+            raise ValueError("Cannot cleanup managed proposal branch: source branch matches base branch")
+
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError("Cannot cleanup managed proposal branch outside a Git repository")
+        if git_status.branch != base_branch:
+            raise ValueError(f"Cannot cleanup managed proposal branch from {git_status.branch}; expected base branch {base_branch}")
+        if not git_status.is_clean:
+            raise ValueError("Cannot cleanup managed proposal branch with uncommitted changes")
+        if not branch_exists(self.root, branch_name):
+            raise ValueError(f"Managed proposal branch not found: {branch_name}")
+
+        selected_remote = remote or str(finalize.get("remote") or metadata.get("remote") or self.remote_profile().remote or "origin")
+        resolved_remote_url = remote_url(self.root, selected_remote) or ""
+        if delete_remote and not resolved_remote_url:
+            raise ValueError(f"Cannot cleanup managed proposal branch: Git remote not found: {selected_remote}")
+
+        local_deleted = (
+            delete_local_branch(self.root, branch_name)
+            if status == "finalized"
+            else delete_local_branch_force(self.root, branch_name)
+        )
+        if not local_deleted:
+            raise ValueError(f"Failed to delete local managed proposal branch: {branch_name}")
+        remote_deleted = False
+        if delete_remote:
+            if not delete_remote_branch(self.root, branch_name, selected_remote):
+                raise ValueError(f"Failed to delete remote managed proposal branch from {selected_remote}: {branch_name}")
+            remote_deleted = True
+
+        metadata["status"] = "cleaned"
+        metadata["cleaned_at"] = date.today().isoformat()
+        if finalize:
+            finalize["cleanup"] = True
+            metadata["finalize"] = finalize
+        if merge:
+            merge["cleanup"] = True
+            metadata["merge"] = merge
+        metadata["cleanup"] = {
+            "mode": "branch_cleanup",
+            "previous_status": status,
+            "source_branch": branch_name,
+            "base_branch": base_branch,
+            "remote": selected_remote,
+            "remote_url": resolved_remote_url,
+            "local_deleted": True,
+            "remote_deleted": remote_deleted,
+        }
+        metadata_path.parent.mkdir(parents=True, exist_ok=True)
+        metadata_path.write_text(_yaml_dump(metadata), encoding="utf-8")
+        cleanup_commit = commit_all(self.root, f"P2P proposal cleanup {proposal_id}")
+        if cleanup_commit is None:
+            raise ValueError("Failed to create managed proposal cleanup commit")
+        if resolved_remote_url and not push_branch(self.root, base_branch, selected_remote):
+            raise ValueError(f"Failed to push cleanup metadata to {selected_remote}: {base_branch}")
+
+        return ProposalCleanup(
+            proposal_id=str(metadata.get("proposal_id") or proposal_id),
+            branch_name=branch_name,
+            base_branch=base_branch,
+            remote=selected_remote,
+            remote_url=resolved_remote_url,
+            cleanup_commit=cleanup_commit,
+            local_deleted=True,
+            remote_deleted=remote_deleted,
+            path=proposal_dir.relative_to(self.root),
+        )
+
+    def scan_proposal_branches(self) -> ProposalBranchScan:
+        branches = list_local_proposal_branches(self.root)
+        items: list[dict[str, object]] = []
+        for branch in branches:
+            for manifest_path in list_files_at_ref(self.root, branch, ".p2p/proposals"):
+                if not manifest_path.endswith("/branch.yml"):
+                    continue
+                branch_file = read_file_at_ref(self.root, branch, manifest_path)
+                if branch_file is None:
+                    continue
+                try:
+                    metadata = yaml.safe_load(branch_file.content) or {}
+                except yaml.YAMLError:
+                    continue
+                if not isinstance(metadata, dict):
+                    continue
+                items.append(
+                    {
+                        "proposal_id": str(metadata.get("proposal_id") or "PROP-???"),
+                        "status": str(metadata.get("status") or "unknown"),
+                        "branch_name": str(metadata.get("branch_name") or branch),
+                        "actor": str(metadata.get("actor") or ""),
+                        "branch_hash16": str(metadata.get("branch_hash16") or ""),
+                        "path": manifest_path,
+                    }
+                )
+        scan_path = self.p2p_dir / "registries" / "proposal-branches.yml"
+        scan_path.parent.mkdir(parents=True, exist_ok=True)
+        scan_path.write_text(
+            _yaml_dump({"scanned_branches": branches, "proposal_branches": items}),
+            encoding="utf-8",
+        )
+        return ProposalBranchScan(
+            scanned_branches=branches,
+            proposals=items,
+            path=scan_path.relative_to(self.root),
         )
 
     def check(self) -> WorkspaceCheck:
@@ -876,6 +1871,7 @@ class P2PWorkspace:
         structured_files.extend(self.p2p_dir.glob("changes/*/*.yml"))
         structured_files.extend(self.p2p_dir.glob("choices/*/*.yml"))
         structured_files.extend(self.p2p_dir.glob("work/*/*.yml"))
+        structured_files.extend(self.p2p_dir.glob("consents/*/*.yml"))
         for path in sorted(set(structured_files)):
             if path.exists() and path.is_file():
                 try:
@@ -883,8 +1879,64 @@ class P2PWorkspace:
                 except yaml.YAMLError as exc:
                     add("P2P010_INVALID_YAML", "error", path, f"Invalid YAML: {exc}")
 
+        permissions_path = self._permissions_path()
+        if permissions_path.exists():
+            try:
+                permissions = _read_yaml_mapping(permissions_path, default={})
+            except ValueError as exc:
+                add("P2P210_INVALID_PERMISSIONS", "error", permissions_path, str(exc))
+                permissions = {}
+            identities = permissions.get("identities", {})
+            if not isinstance(identities, dict) or not identities:
+                add("P2P211_INVALID_PERMISSIONS_IDENTITIES", "error", permissions_path, "permissions.yml must define identities.")
+            else:
+                has_owner = False
+                for actor_id, actor in identities.items():
+                    if not isinstance(actor, dict):
+                        add("P2P212_INVALID_PERMISSION_ACTOR", "error", permissions_path, f"Actor must be a mapping: {actor_id}")
+                        continue
+                    role = str(actor.get("role") or "")
+                    kind = str(actor.get("kind") or "")
+                    if role not in PERMISSION_ROLES:
+                        add("P2P213_INVALID_PERMISSION_ROLE", "error", permissions_path, f"Invalid role for {actor_id}: {role}")
+                    if kind not in ACTOR_KINDS:
+                        add("P2P214_INVALID_ACTOR_KIND", "error", permissions_path, f"Invalid actor kind for {actor_id}: {kind}")
+                    has_owner = has_owner or role == "owner"
+                if not has_owner:
+                    add("P2P215_MISSING_OWNER_IDENTITY", "error", permissions_path, "permissions.yml must define at least one owner identity.")
+
+        for consent_path in sorted(self.p2p_dir.glob("consents/CONSENT-*/consent.yml")):
+            consent_dir_id = consent_path.parent.name
+            try:
+                consent = _read_yaml_mapping(consent_path, default={})
+            except ValueError as exc:
+                add("P2P220_INVALID_CONSENT", "error", consent_path, str(exc))
+                continue
+            consent_id = str(consent.get("consent_id") or "")
+            if consent_id != consent_dir_id:
+                add("P2P221_CONSENT_ID_MISMATCH", "error", consent_path, f"Consent ID {consent_id} does not match directory {consent_dir_id}.")
+            operation = str(consent.get("operation") or "")
+            if operation not in CONSENT_OPERATIONS:
+                add("P2P222_INVALID_CONSENT_OPERATION", "error", consent_path, f"Invalid consent operation: {operation}")
+            status = str(consent.get("status") or "")
+            if status not in {"granted", "consumed", "revoked", "expired", "used_with_error"}:
+                add("P2P223_INVALID_CONSENT_STATUS", "error", consent_path, f"Invalid consent status: {status}")
+            for required in ("target", "actor_id", "approved_by", "created_at"):
+                if not str(consent.get(required) or "").strip():
+                    add("P2P224_MISSING_CONSENT_FIELD", "error", consent_path, f"Consent receipt missing required field: {required}")
+
         proposals_dir = self.p2p_dir / "proposals"
         if proposals_dir.exists():
+            for proposal_id, paths in self._duplicate_proposal_ids().items():
+                relative_paths = ", ".join(str(_relative_to_root(path, self.root)) for path in paths)
+                add(
+                    "P2P104_DUPLICATE_PROPOSAL_ID",
+                    "error",
+                    proposals_dir,
+                    f"Duplicate proposal ID {proposal_id} found in: {relative_paths}.",
+                    suggested_command="rename or retire duplicate proposal directories, then run p2p registry refresh",
+                )
+
             for proposal_dir in sorted(path for path in proposals_dir.iterdir() if path.is_dir()):
                 match = re.match(r"^(PROP-\d{3})-[a-z0-9][a-z0-9-]*$", proposal_dir.name)
                 if not match:
@@ -3536,6 +4588,10 @@ class P2PWorkspace:
         registries_dir = self.p2p_dir / "registries"
         registries_dir.mkdir(parents=True, exist_ok=True)
 
+        duplicates = self._duplicate_proposal_ids()
+        if duplicates:
+            raise ValueError(_duplicate_proposal_ids_message(duplicates, self.root))
+
         proposals = self._proposal_registry_records()
         changes = self._change_registry_records()
         decisions = self._decision_registry_records(proposals)
@@ -4778,8 +5834,158 @@ class P2PWorkspace:
         if not matches:
             raise ValueError(f"Proposal not found: {proposal_id}")
         if len(matches) > 1:
-            raise ValueError(f"Ambiguous proposal ID: {proposal_id}")
+            relative_paths = ", ".join(str(_relative_to_root(path, self.root)) for path in sorted(matches))
+            raise ValueError(
+                f"Ambiguous proposal ID: {proposal_id}. Matching proposal directories: {relative_paths}. "
+                "Run `p2p validate` to inspect duplicate proposal IDs before continuing."
+            )
         return matches[0]
+
+    def _duplicate_proposal_ids(self) -> dict[str, list[Path]]:
+        proposals_dir = self.p2p_dir / "proposals"
+        grouped: dict[str, list[Path]] = {}
+        for path in sorted(proposals_dir.iterdir()) if proposals_dir.exists() else []:
+            if not path.is_dir():
+                continue
+            proposal_id = _proposal_id_from_dir_name(path.name)
+            if proposal_id is None:
+                continue
+            grouped.setdefault(proposal_id, []).append(path)
+        return {proposal_id: paths for proposal_id, paths in grouped.items() if len(paths) > 1}
+
+    def _proposal_branch_metadata(self, proposal_id: str) -> tuple[Path, dict[str, object], Path]:
+        proposal_dir = self._find_proposal_dir(proposal_id)
+        metadata_path = proposal_dir / "branch.yml"
+        if not metadata_path.exists():
+            raise ValueError(f"Managed proposal branch metadata not found for {proposal_id}. Run `p2p proposal branch {proposal_id}` first.")
+        metadata = _read_yaml_mapping(metadata_path, default={})
+        return proposal_dir, metadata, metadata_path
+
+    def _proposal_branch_metadata_from_local_ref(self, proposal_id: str) -> tuple[str, dict[str, object], Path]:
+        matches: list[tuple[str, dict[str, object], Path]] = []
+        for branch in list_local_proposal_branches(self.root):
+            for metadata_path in list_files_at_ref(self.root, branch, ".p2p/proposals"):
+                if not metadata_path.endswith("/branch.yml"):
+                    continue
+                branch_file = read_file_at_ref(self.root, branch, metadata_path)
+                if branch_file is None:
+                    continue
+                try:
+                    metadata = yaml.safe_load(branch_file.content) or {}
+                except yaml.YAMLError:
+                    continue
+                if not isinstance(metadata, dict):
+                    continue
+                if str(metadata.get("proposal_id") or "") == proposal_id:
+                    matches.append((branch, metadata, Path(metadata_path)))
+        if not matches:
+            raise ValueError(f"Managed proposal branch metadata not found for {proposal_id}. Run `p2p proposal scan`.")
+        if len(matches) > 1:
+            branches = ", ".join(branch for branch, _, _ in matches)
+            raise ValueError(f"Ambiguous managed proposal branches for {proposal_id}: {branches}")
+        return matches[0]
+
+    def _remote_proposal_ids(self, remote: str, base_branch: str) -> set[str]:
+        proposal_ids: set[str] = set()
+        for branch in list_remote_proposal_branches(self.root, remote):
+            proposal_id = _proposal_id_from_branch_name(branch)
+            if proposal_id:
+                proposal_ids.add(proposal_id)
+
+        remote_base = f"{remote}/{base_branch}"
+        for path in list_files_at_ref(self.root, remote_base, ".p2p/proposals"):
+            parts = Path(path).parts
+            if len(parts) < 3:
+                continue
+            proposal_id = _proposal_id_from_dir_name(parts[2])
+            if proposal_id:
+                proposal_ids.add(proposal_id)
+        return proposal_ids
+
+    def _auto_renumber_proposal_branch(
+        self,
+        *,
+        proposal_id: str,
+        metadata: dict[str, object],
+        remote_ids: set[str],
+    ) -> tuple[str, Path, dict[str, object], Path]:
+        old_dir = self._find_proposal_dir(proposal_id)
+        proposal_text = _read_optional(old_dir / "proposal.md")
+        title = _clean_proposal_title(_read_title(proposal_text) or proposal_id, proposal_id)
+        actor_slug = str(metadata.get("actor_slug") or _slugify(str(metadata.get("actor") or "local")) or "local")
+        base_commit = str(metadata.get("base_commit") or head_commit(self.root) or "")
+        if not base_commit:
+            raise ValueError("Cannot auto-renumber proposal branch without a base commit")
+
+        new_id = self._next_available_proposal_id(remote_ids)
+        title_slug = _slugify(title)
+        new_dir = self.p2p_dir / "proposals" / f"{new_id}-{title_slug}"
+        if new_dir.exists():
+            raise ValueError(f"Cannot auto-renumber proposal branch; target proposal already exists: {new_id}")
+
+        branch_hash16 = _branch_hash16(new_id, title, actor_slug, base_commit)
+        new_branch_name = _proposal_branch_name(new_id, title, actor_slug, branch_hash16)
+        if branch_exists(self.root, new_branch_name):
+            raise ValueError(f"Cannot auto-renumber proposal branch; branch already exists: {new_branch_name}")
+
+        shutil.move(str(old_dir), str(new_dir))
+        for path in sorted(new_dir.iterdir()):
+            if path.is_file() and path.suffix in {".md", ".yml", ".yaml"}:
+                text = path.read_text(encoding="utf-8")
+                path.write_text(text.replace(proposal_id, new_id), encoding="utf-8")
+
+        metadata_path = new_dir / "branch.yml"
+        metadata = _read_yaml_mapping(metadata_path, default=metadata)
+        old_branch_name = str(metadata.get("branch_name") or "")
+        metadata["proposal_id"] = new_id
+        metadata["status"] = "branched"
+        metadata["branch_name"] = new_branch_name
+        metadata["branch_hash16"] = branch_hash16
+        metadata["renumbered_from"] = proposal_id
+        metadata["renumbered_at"] = date.today().isoformat()
+        metadata["id_collision_check"] = {
+            "remote_ids": sorted(remote_ids),
+            "old_proposal_id": proposal_id,
+            "new_proposal_id": new_id,
+        }
+        metadata["remote"] = None
+        metadata["remote_url"] = None
+        metadata["remote_branch"] = None
+        metadata_path.write_text(_yaml_dump(metadata), encoding="utf-8")
+
+        if old_branch_name and not rename_current_branch(self.root, new_branch_name):
+            raise ValueError(f"Failed to rename managed proposal branch to {new_branch_name}")
+        if commit_all(self.root, f"P2P proposal auto-renumber {proposal_id} to {new_id}") is None:
+            raise ValueError("Failed to create managed proposal auto-renumber commit")
+        return new_id, new_dir, metadata, metadata_path
+
+    def _next_available_proposal_id(self, extra_ids: set[str] | None = None) -> str:
+        used: set[int] = set()
+        proposals_dir = self.p2p_dir / "proposals"
+        for path in proposals_dir.iterdir() if proposals_dir.exists() else []:
+            proposal_id = _proposal_id_from_dir_name(path.name)
+            if proposal_id:
+                used.add(int(proposal_id.removeprefix("PROP-")))
+        for proposal_id in extra_ids or set():
+            if re.match(r"^PROP-\d{3}$", proposal_id):
+                used.add(int(proposal_id.removeprefix("PROP-")))
+        next_id = max(used or {0}) + 1
+        return f"PROP-{next_id:03d}"
+
+    def _sync_remote(self, remote: str | None) -> str | None:
+        if remote:
+            return remote
+        profile = self.remote_profile()
+        return profile.remote
+
+    def _require_sync_remote(self, status: SyncStatus) -> str:
+        if not status.is_repository:
+            raise ValueError("Cannot sync outside a Git repository")
+        if not status.remote:
+            raise ValueError("Cannot sync project without a configured Git remote")
+        if status.remote_url is None:
+            raise ValueError(f"Cannot sync project: Git remote not found: {status.remote}")
+        return status.remote
 
     def _next_change_id(self) -> str:
         max_id = 0
@@ -5208,8 +6414,58 @@ def _agent_policy(project_name: str, profiles: list[str], repository_mode: str) 
             "work_accept",
             "work_finalize",
             "work_cleanup",
+            "proposal_branch_accept",
+            "proposal_branch_reject",
+            "proposal_branch_merge",
+            "proposal_branch_finalize",
+            "proposal_branch_remote_publish",
             "direct_git_merge",
+            "raw_git_managed_branch",
+            "raw_git_managed_sync",
         ],
+        "managed_git_collaboration": {
+            "raw_git_for_managed_state": "forbidden_without_owner_escape_hatch",
+            "inspect_before_branching": [
+                "p2p status",
+                "p2p sync status",
+            ],
+            "proposal_branch_commands": [
+                "p2p proposal branch PROP-XXX --actor <actor>",
+                "p2p proposal status PROP-XXX",
+                "p2p proposal publish PROP-XXX",
+                "p2p proposal publish PROP-XXX --auto-renumber",
+                "p2p proposal request-review PROP-XXX",
+                "p2p proposal scan",
+                "p2p proposal retire-branch PROP-XXX --reason <reason>",
+            ],
+            "sync_commands": [
+                "p2p sync status",
+                "p2p sync fetch",
+                "p2p sync pull",
+                "p2p sync push",
+            ],
+            "mcp_tools": [
+                "p2p_sync_status",
+                "p2p_sync_fetch",
+                "p2p_sync_pull",
+                "p2p_sync_push",
+                "p2p_proposal_branch",
+                "p2p_proposal_branch_status",
+                "p2p_proposal_publish",
+                "p2p_proposal_request_review",
+                "p2p_proposal_accept_branch",
+                "p2p_proposal_reject_branch",
+                "p2p_proposal_merge",
+                "p2p_proposal_finalize",
+                "p2p_proposal_cleanup",
+                "p2p_proposal_branch_scan",
+            ],
+            "deferred_permission_gated_mcp_tools": [
+                "p2p_proposal_retire_branch",
+                "p2p_work_publish",
+                "p2p_work_finalize",
+            ],
+        },
         "allowed_mutation_boundary": {
             "use_p2p_cli_commands": True,
             "use_mcp_write_tools_only_when_available": True,
@@ -5268,14 +6524,39 @@ Owner-controlled actions include:
 - accepting, rejecting, or deferring proposals;
 - deciding choices;
 - accepting, finalizing, cleaning up, or merging managed work;
+- accepting, rejecting, merging, or finalizing managed proposal branches;
 - changing governance policy;
 - creating direct Git merges into the main branch.
+
+## Managed Git Collaboration
+
+Do not run raw `git branch`, `git fetch`, `git pull`, `git push`, `git merge`, or provider PR/MR commands for managed P2P project state unless the owner explicitly authorizes an escape hatch.
+
+Use P2P-managed commands instead:
+
+```bash
+p2p sync status
+p2p sync fetch
+p2p sync pull
+p2p sync push
+p2p proposal branch PROP-XXX --actor "name-or-agent"
+p2p proposal status PROP-XXX
+p2p proposal publish PROP-XXX
+p2p proposal publish PROP-XXX --auto-renumber
+p2p proposal request-review PROP-XXX
+p2p proposal scan
+p2p proposal retire-branch PROP-XXX --reason "..."
+```
+
+Before creating proposal or Work branches, inspect P2P state and sync state. Stop for owner approval before remote publication, accept, reject, merge, finalize, cleanup, or any operation marked owner-controlled by policy.
 
 ## MCP Boundary
 
 Assume MCP tools are read-only unless the tool schema explicitly describes a write action.
 
-When MCP is read-only, use it for status and inspection only. For mutations, use `p2p` CLI commands when available.
+When MCP is read-only, use it for status and inspection only. For mutations, use `p2p` CLI commands when available or explicit write-safe MCP tools such as `p2p_proposal_branch` and `p2p_sync_fetch` when their schema matches the requested action.
+
+MCP may use implemented permission-gated repository tools only with a valid consent receipt. MCP must not retire or create provider PR/MR handoffs until those operations are explicitly implemented and authorized.
 
 ## Explaining Existing P2P Artifacts
 
@@ -5347,6 +6628,8 @@ Use P2P Engine as the source of truth for project governance and planning.
 - If no CLI command or MCP write tool exists for the requested operation, stop and report the missing primitive.
 - Do not edit `.p2p/` internals directly, invent IDs, or synthesize decision files.
 - Do not accept, reject, defer, decide, merge, finalize, or cleanup without explicit owner instruction.
+- Do not run raw Git commands for managed branch, sync, publish, or merge work unless the owner explicitly authorizes an escape hatch.
+- Use `p2p sync status` before managed branch work, `p2p proposal branch` for proposal branches, and `p2p proposal publish --auto-renumber` only when publish reports a recoverable proposal ID collision.
 - Before explaining existing proposals, choices, Change Sets, or Work items, use the relevant `p2p ... show` command or equivalent MCP read tool.
 - Use `p2p context --budget small` or MCP `p2p_context` before broad file reads.
 - Do not scan all `.p2p/`, registries, source files, or Git history unless the task explicitly requires it.
@@ -5359,6 +6642,16 @@ p2p context --budget small
 p2p registry refresh
 p2p next
 p2p proposal list
+p2p proposal branch PROP-XXX --actor "codex"
+p2p proposal status PROP-XXX
+p2p proposal publish PROP-XXX
+p2p proposal publish PROP-XXX --auto-renumber
+p2p proposal request-review PROP-XXX
+p2p proposal scan
+p2p sync status
+p2p sync fetch
+p2p sync pull
+p2p sync push
 p2p choice list
 p2p change status
 p2p work status
@@ -5381,6 +6674,8 @@ Key rules:
 - Do not modify `.p2p/` internals directly.
 - If a requested P2P action has no available command or MCP write tool, stop and explain the missing primitive.
 - Do not make owner-controlled governance decisions unless the owner explicitly instructs the exact decision.
+- Do not run raw Git commands for managed branch, sync, publish, or merge work unless the owner explicitly authorizes an escape hatch.
+- Use `p2p sync status`, `p2p proposal branch`, `p2p proposal publish`, `p2p proposal request-review`, and `p2p proposal scan` for managed collaboration workflows.
 - Treat MCP as read-only unless a tool explicitly declares a write operation.
 - Before explaining existing proposals, choices, Change Sets, or Work items, read them with the relevant `p2p ... show` command or equivalent MCP read tool.
 - Use `p2p context --budget small` or MCP `p2p_context` before broad file reads.
@@ -5397,6 +6692,136 @@ def _slugify(value: str) -> str:
 
 def _yaml_dump(data: object) -> str:
     return yaml.safe_dump(data, sort_keys=False, allow_unicode=False)
+
+
+PERMISSION_ROLES = {"owner", "maintainer", "contributor", "agent", "readonly"}
+ACTOR_KINDS = {"person", "agent", "client"}
+CONSENT_OPERATIONS = {
+    "proposal_publish",
+    "proposal_request_review",
+    "proposal_retire_branch",
+    "proposal_accept_branch",
+    "proposal_reject_branch",
+    "proposal_merge",
+    "proposal_finalize",
+    "proposal_cleanup",
+    "sync_pull",
+    "sync_push",
+    "work_publish",
+    "work_request_review",
+    "work_accept",
+    "work_finalize",
+    "work_cleanup",
+}
+
+
+def _permissions_payload(owner_name: str | None, repository_mode: str) -> dict[str, object]:
+    owner_id = _identity_slug(owner_name or "owner")
+    owner_display = owner_name or "owner"
+    return {
+        "permissions": {
+            "version": 1,
+            "model": "role_plus_consent_receipt",
+            "identity_strength": "project_declared",
+            "repository_mode": repository_mode,
+            "cloud_enforcement": [
+                "git_provider_permissions",
+                "branch_protection",
+                "required_approvals",
+                "token_scopes",
+            ],
+        },
+        "identities": {
+            owner_id: {
+                "role": "owner",
+                "kind": "person",
+                "display_name": owner_display,
+            },
+            "contributor": {
+                "role": "contributor",
+                "kind": "person",
+                "display_name": "contributor",
+            },
+        },
+        "roles": {
+            "owner": {
+                "can_grant_consent": True,
+                "can_manage_permissions": True,
+            },
+            "maintainer": {
+                "can_request_privileged_operations": True,
+            },
+            "contributor": {
+                "can_create_local_branches": True,
+                "can_request_review": True,
+            },
+            "agent": {
+                "can_use_safe_tools": True,
+            },
+            "readonly": {
+                "can_read": True,
+            },
+        },
+        "tool_classes": {
+            "safe_read": {"consent_required": False},
+            "write_safe_preparatory": {"consent_required": False, "audit_required": True},
+            "privileged_publish": {"consent_required": True},
+            "owner_controlled_governance": {"consent_required": True, "owner_required": True},
+            "destructive_or_external": {"consent_required": True, "single_use_required": True},
+        },
+    }
+
+
+def _identity_slug(value: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        raise ValueError("Actor identity is required")
+    return _slugify(text)
+
+
+def _normalize_permission_role(role: str) -> str:
+    role = str(role or "").strip().lower()
+    if role not in PERMISSION_ROLES:
+        allowed = ", ".join(sorted(PERMISSION_ROLES))
+        raise ValueError(f"Invalid permission role: {role}. Allowed: {allowed}")
+    return role
+
+
+def _normalize_actor_kind(kind: str) -> str:
+    kind = str(kind or "").strip().lower()
+    if kind not in ACTOR_KINDS:
+        allowed = ", ".join(sorted(ACTOR_KINDS))
+        raise ValueError(f"Invalid actor kind: {kind}. Allowed: {allowed}")
+    return kind
+
+
+def _normalize_consent_operation(operation: str) -> str:
+    operation = str(operation or "").strip().lower().replace("-", "_")
+    if operation not in CONSENT_OPERATIONS:
+        allowed = ", ".join(sorted(CONSENT_OPERATIONS))
+        raise ValueError(f"Invalid consent operation: {operation}. Allowed: {allowed}")
+    return operation
+
+
+def _normalize_consent_id(consent_id: str) -> str:
+    consent_id = str(consent_id or "").strip().upper()
+    if not re.match(r"^CONSENT-\d{3}$", consent_id):
+        raise ValueError(f"Invalid consent ID: {consent_id}")
+    return consent_id
+
+
+def _consent_receipt_from_payload(payload: dict[str, object], path: Path) -> ConsentReceipt:
+    return ConsentReceipt(
+        consent_id=str(payload.get("consent_id") or ""),
+        operation=str(payload.get("operation") or ""),
+        target=str(payload.get("target") or ""),
+        actor_id=str(payload.get("actor_id") or ""),
+        approved_by=str(payload.get("approved_by") or ""),
+        status=str(payload.get("status") or "unknown"),
+        single_use=bool(payload.get("single_use")),
+        expires_on=str(payload.get("expires_on")) if payload.get("expires_on") else None,
+        path=path,
+    )
 
 
 def _project_assessment_payload(assessment: ProjectAssessment) -> dict[str, object]:
@@ -5512,6 +6937,57 @@ def _read_proposal_status(path: Path) -> str:
     text = path.read_text(encoding="utf-8")
     match = re.search(r"## Status\s+`([^`]+)`", text)
     return match.group(1) if match else "unknown"
+
+
+def _proposal_id_from_dir_name(name: str) -> str | None:
+    match = re.match(r"^(PROP-\d{3})-", name)
+    return match.group(1) if match else None
+
+
+def _proposal_id_from_branch_name(name: str) -> str | None:
+    match = re.match(r"^p2p/proposal/(PROP-\d{3})-", name)
+    return match.group(1) if match else None
+
+
+def _duplicate_proposal_ids_message(duplicates: dict[str, list[Path]], root: Path) -> str:
+    parts = []
+    for proposal_id, paths in sorted(duplicates.items()):
+        relative_paths = ", ".join(str(_relative_to_root(path, root)) for path in sorted(paths))
+        parts.append(f"{proposal_id}: {relative_paths}")
+    return (
+        "Duplicate proposal IDs found; generated registries would be ambiguous. "
+        + "; ".join(parts)
+        + ". Rename or retire duplicate proposal directories, then run `p2p registry refresh`."
+    )
+
+
+def _proposal_branch_name(proposal_id: str, title: str, actor_slug: str, branch_hash16: str) -> str:
+    title_slug = _slugify(title)[:48].strip("-") or "proposal"
+    return f"p2p/proposal/{proposal_id}-{title_slug}-{actor_slug}-{branch_hash16}"
+
+
+def _branch_hash16(proposal_id: str, title: str, actor_slug: str, base_commit: str) -> str:
+    source = f"{proposal_id}\n{title}\n{actor_slug}\n{base_commit}"
+    return hashlib.sha256(source.encode("utf-8")).hexdigest()[:16]
+
+
+def _proposal_branch_detail_from_metadata(
+    proposal_id: str,
+    metadata: dict[str, object],
+    path: Path,
+) -> ProposalBranchDetail:
+    return ProposalBranchDetail(
+        proposal_id=str(metadata.get("proposal_id") or proposal_id),
+        status=str(metadata.get("status") or "unknown"),
+        branch_name=str(metadata.get("branch_name") or ""),
+        base_branch=str(metadata.get("base_branch") or ""),
+        actor=str(metadata.get("actor") or ""),
+        branch_hash16=str(metadata.get("branch_hash16") or ""),
+        remote=str(metadata.get("remote")) if metadata.get("remote") else None,
+        remote_url=str(metadata.get("remote_url")) if metadata.get("remote_url") else None,
+        path=path,
+        metadata=metadata,
+    )
 
 
 def _read_title(text: str) -> str | None:

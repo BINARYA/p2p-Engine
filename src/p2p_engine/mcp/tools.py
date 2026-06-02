@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import Any
 
 from p2p_engine.core.contribution import ContributionType
-from p2p_engine.storage.filesystem import P2PWorkspace
+from p2p_engine.storage.git import commit_all, head_commit, push_branch
+from p2p_engine.storage.filesystem import P2PWorkspace, ProposalMergeConflict
 
 
 TOOL_NAMES = (
@@ -46,6 +47,23 @@ TOOL_NAMES = (
     "p2p_registry_show",
     "p2p_project_show",
     "p2p_project_remote_show",
+    "p2p_permissions_show",
+    "p2p_consent_status",
+    "p2p_consent_show",
+    "p2p_sync_status",
+    "p2p_sync_fetch",
+    "p2p_sync_pull",
+    "p2p_sync_push",
+    "p2p_proposal_branch",
+    "p2p_proposal_branch_status",
+    "p2p_proposal_publish",
+    "p2p_proposal_request_review",
+    "p2p_proposal_accept_branch",
+    "p2p_proposal_reject_branch",
+    "p2p_proposal_merge",
+    "p2p_proposal_finalize",
+    "p2p_proposal_cleanup",
+    "p2p_proposal_branch_scan",
     "p2p_spec_status",
     "p2p_spec_show",
     "p2p_spec_export_status",
@@ -433,6 +451,225 @@ def tool_definitions() -> list[dict[str, object]]:
             "inputSchema": _schema({"root": {"type": "string"}}),
         },
         {
+            "name": "p2p_permissions_show",
+            "description": "Read project-declared permission identities and role policy.",
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_consent_status",
+            "description": "List permission-gated consent receipts without creating or consuming them.",
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_consent_show",
+            "description": "Show one permission-gated consent receipt without creating or consuming it.",
+            "inputSchema": _schema({"root": {"type": "string"}, "consent_id": {"type": "string"}}, ["consent_id"]),
+        },
+        {
+            "name": "p2p_sync_status",
+            "description": (
+                "Read-only managed Git sync tool: show repository, branch, remote, "
+                "clean-worktree, and sync readiness without running Git transport."
+            ),
+            "inputSchema": _schema({"root": {"type": "string"}, "remote": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_sync_fetch",
+            "description": (
+                "Managed Git sync tool: fetch configured remote refs through P2P "
+                "remote-profile validation. Does not merge, pull, push, or decide."
+            ),
+            "inputSchema": _schema({"root": {"type": "string"}, "remote": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_sync_pull",
+            "description": (
+                "Permission-gated managed Git sync tool: fast-forward pull the current "
+                "branch only with a valid sync_pull consent receipt. Does not merge "
+                "divergent history."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "actor_id": {"type": "string"},
+                    "consent_id": {"type": "string"},
+                    "remote": {"type": "string"},
+                },
+                ["actor_id", "consent_id"],
+            ),
+        },
+        {
+            "name": "p2p_sync_push",
+            "description": (
+                "Permission-gated managed Git sync tool: push the current branch only "
+                "with a valid sync_push consent receipt. Does not merge or open PRs."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "actor_id": {"type": "string"},
+                    "consent_id": {"type": "string"},
+                    "remote": {"type": "string"},
+                },
+                ["actor_id", "consent_id"],
+            ),
+        },
+        {
+            "name": "p2p_proposal_branch",
+            "description": (
+                "Managed proposal collaboration tool: create and check out a P2P "
+                "proposal branch with actor metadata. Does not publish, accept, reject, or merge."
+            ),
+            "inputSchema": _schema(
+                {"root": {"type": "string"}, "proposal_id": {"type": "string"}, "actor": {"type": "string"}},
+                ["proposal_id"],
+            ),
+        },
+        {
+            "name": "p2p_proposal_branch_status",
+            "description": "Show one managed proposal branch status and metadata.",
+            "inputSchema": _schema(
+                {"root": {"type": "string"}, "proposal_id": {"type": "string"}},
+                ["proposal_id"],
+            ),
+        },
+        {
+            "name": "p2p_proposal_publish",
+            "description": (
+                "Permission-gated managed proposal collaboration tool: publish the "
+                "current proposal branch only with a valid consent receipt matching "
+                "operation proposal_publish, target proposal_id, and actor_id. Does not "
+                "open provider PRs or merge."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "proposal_id": {"type": "string"},
+                    "actor_id": {"type": "string"},
+                    "consent_id": {"type": "string"},
+                    "remote": {"type": "string"},
+                    "auto_renumber": {"type": "boolean"},
+                },
+                ["proposal_id", "actor_id", "consent_id"],
+            ),
+        },
+        {
+            "name": "p2p_proposal_request_review",
+            "description": (
+                "Permission-gated managed proposal collaboration tool: record review "
+                "handoff metadata only with a valid proposal_request_review consent "
+                "receipt. Does not open provider PRs or merge."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "proposal_id": {"type": "string"},
+                    "actor_id": {"type": "string"},
+                    "consent_id": {"type": "string"},
+                    "provider": {"type": "string", "enum": ["generic", "github", "gitlab"]},
+                },
+                ["proposal_id", "actor_id", "consent_id"],
+            ),
+        },
+        {
+            "name": "p2p_proposal_accept_branch",
+            "description": (
+                "Permission-gated managed proposal collaboration tool: record an "
+                "owner-controlled governance acceptance for a proposal branch. Does "
+                "not merge, finalize, or cleanup."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "proposal_id": {"type": "string"},
+                    "actor_id": {"type": "string"},
+                    "consent_id": {"type": "string"},
+                    "reason": {"type": "string"},
+                },
+                ["proposal_id", "actor_id", "consent_id", "reason"],
+            ),
+        },
+        {
+            "name": "p2p_proposal_reject_branch",
+            "description": (
+                "Permission-gated managed proposal collaboration tool: record an "
+                "owner-controlled governance rejection for a proposal branch. Does "
+                "not merge, finalize, or cleanup."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "proposal_id": {"type": "string"},
+                    "actor_id": {"type": "string"},
+                    "consent_id": {"type": "string"},
+                    "reason": {"type": "string"},
+                },
+                ["proposal_id", "actor_id", "consent_id", "reason"],
+            ),
+        },
+        {
+            "name": "p2p_proposal_merge",
+            "description": (
+                "Permission-gated managed proposal collaboration tool: merge a proposal "
+                "branch into its base branch with a valid proposal_merge consent receipt. "
+                "Does not finalize or cleanup."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "proposal_id": {"type": "string"},
+                    "actor_id": {"type": "string"},
+                    "consent_id": {"type": "string"},
+                },
+                ["proposal_id", "actor_id", "consent_id"],
+            ),
+        },
+        {
+            "name": "p2p_proposal_finalize",
+            "description": (
+                "Permission-gated managed proposal collaboration tool: finalize a merged "
+                "proposal branch by pushing its base branch with a valid proposal_finalize "
+                "consent receipt. Does not cleanup or delete branches."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "proposal_id": {"type": "string"},
+                    "actor_id": {"type": "string"},
+                    "consent_id": {"type": "string"},
+                    "remote": {"type": "string"},
+                },
+                ["proposal_id", "actor_id", "consent_id"],
+            ),
+        },
+        {
+            "name": "p2p_proposal_cleanup",
+            "description": (
+                "Permission-gated managed proposal collaboration tool: delete a finalized, "
+                "rejected, or retired managed proposal branch with a valid proposal_cleanup "
+                "consent receipt. Deletes the remote branch only when delete_remote is true."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "proposal_id": {"type": "string"},
+                    "actor_id": {"type": "string"},
+                    "consent_id": {"type": "string"},
+                    "delete_remote": {"type": "boolean"},
+                    "remote": {"type": "string"},
+                },
+                ["proposal_id", "actor_id", "consent_id"],
+            ),
+        },
+        {
+            "name": "p2p_proposal_branch_scan",
+            "description": (
+                "Read-oriented managed proposal collaboration tool: scan local "
+                "p2p/proposal/* branches and refresh the proposal branch registry."
+            ),
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
             "name": "p2p_spec_status",
             "description": "List generated P2P-native software specs.",
             "inputSchema": _schema({"root": {"type": "string"}}),
@@ -691,6 +928,465 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, o
         return {"section": section, "content": workspace.show_project_state(section)}
     if name == "p2p_project_remote_show":
         return {"remote": _to_jsonable(workspace.remote_profile())}
+    if name == "p2p_permissions_show":
+        return {"permissions": _to_jsonable(workspace.permissions_show())}
+    if name == "p2p_consent_status":
+        return {"consents": _to_jsonable(workspace.consent_statuses())}
+    if name == "p2p_consent_show":
+        return {"consent": _to_jsonable(workspace.consent_show(_required(arguments, "consent_id")))}
+    if name == "p2p_sync_status":
+        return {"sync": _to_jsonable(workspace.sync_status(_optional_string(arguments, "remote")))}
+    if name == "p2p_sync_fetch":
+        return {"sync": _to_jsonable(workspace.sync_fetch(_optional_string(arguments, "remote")))}
+    if name == "p2p_sync_pull":
+        actor_id = _required(arguments, "actor_id")
+        consent_id = _required(arguments, "consent_id")
+        before_head = _safe_head(workspace)
+        target = _sync_consent_target(workspace, _optional_string(arguments, "remote"))
+        workspace.consent_validate(consent_id, operation="sync_pull", target=target, actor_id=actor_id)
+        try:
+            result = workspace.sync_pull(_optional_string(arguments, "remote"))
+        except ValueError as exc:
+            _mark_consent_error_on_head_change(workspace, consent_id, before_head, str(exc), "sync_pull", target, actor_id)
+            raise
+        consumed = _consume_consent_with_audit(
+            workspace,
+            consent_id,
+            result={
+                "operation": "sync_pull",
+                "target": target,
+                "actor_id": actor_id,
+                "branch": result.branch,
+                "remote": result.remote,
+                "head_before": before_head,
+                "head_after": _safe_head(workspace),
+            },
+            push_remote=result.remote,
+            push_branch_name=result.branch,
+        )
+        return {"sync": _to_jsonable(result), "consent": _to_jsonable(consumed)}
+    if name == "p2p_sync_push":
+        actor_id = _required(arguments, "actor_id")
+        consent_id = _required(arguments, "consent_id")
+        target = _sync_consent_target(workspace, _optional_string(arguments, "remote"))
+        workspace.consent_validate(consent_id, operation="sync_push", target=target, actor_id=actor_id)
+        before_head = _safe_head(workspace)
+        try:
+            result = workspace.sync_push(_optional_string(arguments, "remote"))
+        except ValueError as exc:
+            _mark_consent_error_on_head_change(workspace, consent_id, before_head, str(exc), "sync_push", target, actor_id)
+            raise
+        consumed = _consume_consent_with_audit(
+            workspace,
+            consent_id,
+            result={
+                "operation": "sync_push",
+                "target": target,
+                "actor_id": actor_id,
+                "branch": result.branch,
+                "remote": result.remote,
+                "head_before": before_head,
+                "head_after": _safe_head(workspace),
+            },
+            push_remote=result.remote,
+            push_branch_name=result.branch,
+        )
+        return {"sync": _to_jsonable(result), "consent": _to_jsonable(consumed)}
+    if name == "p2p_proposal_branch":
+        return {
+            "proposal_branch": _to_jsonable(
+                workspace.branch_proposal(
+                    _required(arguments, "proposal_id"),
+                    actor=str(arguments.get("actor") or "local"),
+                )
+            ),
+            "governance": {
+                "owner_decision_required": False,
+                "decision_made": False,
+                "merge_performed": False,
+            },
+        }
+    if name == "p2p_proposal_branch_status":
+        return {"proposal_branch": _to_jsonable(workspace.show_proposal_branch(_required(arguments, "proposal_id")))}
+    if name == "p2p_proposal_publish":
+        proposal_id = _required(arguments, "proposal_id")
+        actor_id = _required(arguments, "actor_id")
+        consent_id = _required(arguments, "consent_id")
+        workspace.consent_validate(
+            consent_id,
+            operation="proposal_publish",
+            target=proposal_id,
+            actor_id=actor_id,
+        )
+        before_head = _safe_head(workspace)
+        try:
+            branch = workspace.publish_proposal_branch(
+                proposal_id,
+                _optional_string(arguments, "remote"),
+                auto_renumber=bool(arguments.get("auto_renumber") or False),
+            )
+        except ValueError as exc:
+            after_head = _safe_head(workspace)
+            if before_head and after_head and before_head != after_head:
+                workspace.consent_mark_used_with_error(
+                    consent_id,
+                    error=str(exc),
+                    result={
+                        "operation": "proposal_publish",
+                        "target": proposal_id,
+                        "actor_id": actor_id,
+                        "head_before": before_head,
+                        "head_after": after_head,
+                    },
+                )
+            raise
+        consumed = workspace.consent_consume(
+            consent_id,
+            result={
+                "operation": "proposal_publish",
+                "target": branch.proposal_id,
+                "actor_id": actor_id,
+                "branch": branch.branch_name,
+                "remote": branch.remote,
+                "remote_branch": branch.metadata.get("remote_branch"),
+            },
+        )
+        _commit_and_push_consent_audit(workspace, consent_id, push_remote=branch.remote, push_branch_name=branch.branch_name)
+        return {
+            "proposal_branch": _to_jsonable(branch),
+            "consent": _to_jsonable(consumed),
+            "governance": {
+                "owner_decision_required": True,
+                "decision_made": False,
+                "merge_performed": False,
+            },
+        }
+    if name == "p2p_proposal_request_review":
+        proposal_id = _required(arguments, "proposal_id")
+        actor_id = _required(arguments, "actor_id")
+        consent_id = _required(arguments, "consent_id")
+        workspace.consent_validate(
+            consent_id,
+            operation="proposal_request_review",
+            target=proposal_id,
+            actor_id=actor_id,
+        )
+        before_head = _safe_head(workspace)
+        try:
+            branch = workspace.request_proposal_branch_review(
+                proposal_id,
+                _optional_string(arguments, "provider"),
+            )
+        except ValueError as exc:
+            _mark_consent_error_on_head_change(
+                workspace,
+                consent_id,
+                before_head,
+                str(exc),
+                "proposal_request_review",
+                proposal_id,
+                actor_id,
+            )
+            raise
+        consumed = _consume_consent_with_audit(
+            workspace,
+            consent_id,
+            result={
+                "operation": "proposal_request_review",
+                "target": branch.proposal_id,
+                "actor_id": actor_id,
+                "branch": branch.branch_name,
+                "remote": branch.remote,
+                "review": branch.metadata.get("review"),
+            },
+            push_remote=branch.remote,
+            push_branch_name=branch.branch_name,
+        )
+        return {
+            "proposal_branch": _to_jsonable(branch),
+            "consent": _to_jsonable(consumed),
+            "governance": {
+                "owner_decision_required": True,
+                "decision_made": False,
+                "merge_performed": False,
+            },
+        }
+    if name == "p2p_proposal_accept_branch":
+        proposal_id = _required(arguments, "proposal_id")
+        actor_id = _required(arguments, "actor_id")
+        consent_id = _required(arguments, "consent_id")
+        workspace.consent_validate(
+            consent_id,
+            operation="proposal_accept_branch",
+            target=proposal_id,
+            actor_id=actor_id,
+        )
+        before_head = _safe_head(workspace)
+        try:
+            branch = workspace.accept_proposal_branch(proposal_id, _required(arguments, "reason"))
+        except ValueError as exc:
+            _mark_consent_error_on_head_change(
+                workspace,
+                consent_id,
+                before_head,
+                str(exc),
+                "proposal_accept_branch",
+                proposal_id,
+                actor_id,
+            )
+            raise
+        consumed = _consume_consent_with_audit(
+            workspace,
+            consent_id,
+            result={
+                "operation": "proposal_accept_branch",
+                "target": branch.proposal_id,
+                "actor_id": actor_id,
+                "branch": branch.branch_name,
+                "status": branch.status,
+                "decision": branch.metadata.get("branch_decision"),
+            },
+            push_remote=branch.remote,
+            push_branch_name=branch.branch_name,
+        )
+        return {
+            "proposal_branch": _to_jsonable(branch),
+            "consent": _to_jsonable(consumed),
+            "governance": {
+                "owner_decision_required": True,
+                "decision_made": True,
+                "decision_outcome": "accepted",
+                "merge_performed": False,
+            },
+        }
+    if name == "p2p_proposal_reject_branch":
+        proposal_id = _required(arguments, "proposal_id")
+        actor_id = _required(arguments, "actor_id")
+        consent_id = _required(arguments, "consent_id")
+        workspace.consent_validate(
+            consent_id,
+            operation="proposal_reject_branch",
+            target=proposal_id,
+            actor_id=actor_id,
+        )
+        before_head = _safe_head(workspace)
+        try:
+            branch = workspace.reject_proposal_branch(proposal_id, _required(arguments, "reason"))
+        except ValueError as exc:
+            _mark_consent_error_on_head_change(
+                workspace,
+                consent_id,
+                before_head,
+                str(exc),
+                "proposal_reject_branch",
+                proposal_id,
+                actor_id,
+            )
+            raise
+        consumed = _consume_consent_with_audit(
+            workspace,
+            consent_id,
+            result={
+                "operation": "proposal_reject_branch",
+                "target": branch.proposal_id,
+                "actor_id": actor_id,
+                "branch": branch.branch_name,
+                "status": branch.status,
+                "decision": branch.metadata.get("branch_decision"),
+            },
+            push_remote=branch.remote,
+            push_branch_name=branch.branch_name,
+        )
+        return {
+            "proposal_branch": _to_jsonable(branch),
+            "consent": _to_jsonable(consumed),
+            "governance": {
+                "owner_decision_required": True,
+                "decision_made": True,
+                "decision_outcome": "rejected",
+                "merge_performed": False,
+            },
+        }
+    if name == "p2p_proposal_merge":
+        proposal_id = _required(arguments, "proposal_id")
+        actor_id = _required(arguments, "actor_id")
+        consent_id = _required(arguments, "consent_id")
+        workspace.consent_validate(
+            consent_id,
+            operation="proposal_merge",
+            target=proposal_id,
+            actor_id=actor_id,
+        )
+        before_head = _safe_head(workspace)
+        try:
+            merge = workspace.merge_proposal_branch(proposal_id)
+        except ValueError as exc:
+            _mark_consent_error_on_head_change(
+                workspace,
+                consent_id,
+                before_head,
+                str(exc),
+                "proposal_merge",
+                proposal_id,
+                actor_id,
+            )
+            raise
+        if isinstance(merge, ProposalMergeConflict):
+            conflict_receipt = workspace.consent_mark_used_with_error(
+                consent_id,
+                error="merge_conflict",
+                result={
+                    "operation": "proposal_merge",
+                    "target": proposal_id,
+                    "actor_id": actor_id,
+                    "branch": merge.branch_name,
+                    "base_branch": merge.base_branch,
+                    "conflicted_files": merge.conflicted_files,
+                    "head_before": before_head,
+                    "head_after": _safe_head(workspace),
+                },
+            )
+            return {
+                "proposal_merge_conflict": _to_jsonable(merge),
+                "consent": _to_jsonable(conflict_receipt),
+                "governance": {
+                    "owner_decision_required": True,
+                    "decision_made": False,
+                    "merge_performed": False,
+                    "manual_resolution_required": True,
+                },
+            }
+        consumed = _consume_consent_with_audit(
+            workspace,
+            consent_id,
+            result={
+                "operation": "proposal_merge",
+                "target": merge.proposal_id,
+                "actor_id": actor_id,
+                "branch": merge.branch_name,
+                "base_branch": merge.base_branch,
+                "merge_commit": merge.merge_commit,
+            },
+        )
+        return {
+            "proposal_merge": _to_jsonable(merge),
+            "consent": _to_jsonable(consumed),
+            "governance": {
+                "owner_decision_required": True,
+                "decision_made": False,
+                "merge_performed": True,
+            },
+        }
+    if name == "p2p_proposal_finalize":
+        proposal_id = _required(arguments, "proposal_id")
+        actor_id = _required(arguments, "actor_id")
+        consent_id = _required(arguments, "consent_id")
+        workspace.consent_validate(
+            consent_id,
+            operation="proposal_finalize",
+            target=proposal_id,
+            actor_id=actor_id,
+        )
+        before_head = _safe_head(workspace)
+        try:
+            finalize = workspace.finalize_proposal_branch(
+                proposal_id,
+                _optional_string(arguments, "remote"),
+            )
+        except ValueError as exc:
+            _mark_consent_error_on_head_change(
+                workspace,
+                consent_id,
+                before_head,
+                str(exc),
+                "proposal_finalize",
+                proposal_id,
+                actor_id,
+            )
+            raise
+        consumed = _consume_consent_with_audit(
+            workspace,
+            consent_id,
+            result={
+                "operation": "proposal_finalize",
+                "target": finalize.proposal_id,
+                "actor_id": actor_id,
+                "branch": finalize.branch_name,
+                "base_branch": finalize.base_branch,
+                "remote": finalize.remote,
+                "finalize_commit": finalize.finalize_commit,
+            },
+            push_remote=finalize.remote,
+            push_branch_name=finalize.base_branch,
+        )
+        return {
+            "proposal_finalize": _to_jsonable(finalize),
+            "consent": _to_jsonable(consumed),
+            "governance": {
+                "owner_decision_required": True,
+                "decision_made": False,
+                "merge_performed": True,
+                "finalized": True,
+                "cleanup_performed": False,
+            },
+        }
+    if name == "p2p_proposal_cleanup":
+        proposal_id = _required(arguments, "proposal_id")
+        actor_id = _required(arguments, "actor_id")
+        consent_id = _required(arguments, "consent_id")
+        workspace.consent_validate(
+            consent_id,
+            operation="proposal_cleanup",
+            target=proposal_id,
+            actor_id=actor_id,
+        )
+        before_head = _safe_head(workspace)
+        try:
+            cleanup = workspace.cleanup_proposal_branch(
+                proposal_id,
+                delete_remote=bool(arguments.get("delete_remote") or False),
+                remote=_optional_string(arguments, "remote"),
+            )
+        except ValueError as exc:
+            _mark_consent_error_on_head_change(
+                workspace,
+                consent_id,
+                before_head,
+                str(exc),
+                "proposal_cleanup",
+                proposal_id,
+                actor_id,
+            )
+            raise
+        consumed = _consume_consent_with_audit(
+            workspace,
+            consent_id,
+            result={
+                "operation": "proposal_cleanup",
+                "target": cleanup.proposal_id,
+                "actor_id": actor_id,
+                "branch": cleanup.branch_name,
+                "base_branch": cleanup.base_branch,
+                "remote": cleanup.remote,
+                "local_deleted": cleanup.local_deleted,
+                "remote_deleted": cleanup.remote_deleted,
+                "cleanup_commit": cleanup.cleanup_commit,
+            },
+            push_remote=cleanup.remote if cleanup.remote_url else None,
+            push_branch_name=cleanup.base_branch if cleanup.remote_url else None,
+        )
+        return {
+            "proposal_cleanup": _to_jsonable(cleanup),
+            "consent": _to_jsonable(consumed),
+            "governance": {
+                "owner_decision_required": True,
+                "decision_made": False,
+                "merge_performed": False,
+                "cleanup_performed": True,
+            },
+        }
+    if name == "p2p_proposal_branch_scan":
+        return {"proposal_branch_scan": _to_jsonable(workspace.scan_proposal_branches())}
     if name == "p2p_spec_status":
         return {"specs": _to_jsonable(workspace.software_spec_statuses())}
     if name == "p2p_spec_show":
@@ -796,6 +1492,76 @@ def _contribution_type(arguments: dict[str, Any]) -> ContributionType:
     except ValueError as exc:
         allowed = ", ".join(item.value for item in ContributionType)
         raise ValueError(f"Invalid contribution type: {value}. Allowed: {allowed}") from exc
+
+
+def _safe_head(workspace: P2PWorkspace) -> str | None:
+    try:
+        return head_commit(workspace.root)
+    except Exception:
+        return None
+
+
+def _sync_consent_target(workspace: P2PWorkspace, remote: str | None) -> str:
+    status = workspace.sync_status(remote)
+    if not status.branch:
+        raise ValueError("Cannot resolve sync consent target from detached HEAD")
+    selected_remote = remote or status.remote or "origin"
+    return f"{selected_remote}/{status.branch}"
+
+
+def _consume_consent_with_audit(
+    workspace: P2PWorkspace,
+    consent_id: str,
+    *,
+    result: dict[str, object],
+    push_remote: str | None = None,
+    push_branch_name: str | None = None,
+) -> object:
+    consumed = workspace.consent_consume(consent_id, result=result)
+    _commit_and_push_consent_audit(
+        workspace,
+        consent_id,
+        push_remote=push_remote,
+        push_branch_name=push_branch_name,
+    )
+    return consumed
+
+
+def _commit_and_push_consent_audit(
+    workspace: P2PWorkspace,
+    consent_id: str,
+    *,
+    push_remote: str | None = None,
+    push_branch_name: str | None = None,
+) -> None:
+    if commit_all(workspace.root, f"P2P consent consume {consent_id}") is None:
+        raise ValueError(f"Failed to commit consent consumption audit for {consent_id}")
+    if push_remote and push_branch_name and not push_branch(workspace.root, push_branch_name, push_remote):
+        raise ValueError(f"Failed to push consent consumption audit for {consent_id}")
+
+
+def _mark_consent_error_on_head_change(
+    workspace: P2PWorkspace,
+    consent_id: str,
+    before_head: str | None,
+    error: str,
+    operation: str,
+    target: str,
+    actor_id: str,
+) -> None:
+    after_head = _safe_head(workspace)
+    if before_head and after_head and before_head != after_head:
+        workspace.consent_mark_used_with_error(
+            consent_id,
+            error=error,
+            result={
+                "operation": operation,
+                "target": target,
+                "actor_id": actor_id,
+                "head_before": before_head,
+                "head_after": after_head,
+            },
+        )
 
 
 def _to_jsonable(value: Any) -> Any:

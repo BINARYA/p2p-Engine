@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
 from pathlib import Path
 
+import yaml
 from typer.testing import CliRunner
 
 from p2p_engine.cli import app
@@ -10,6 +13,10 @@ from p2p_engine.mcp.server import handle_message
 from p2p_engine.mcp.tools import TOOL_NAMES, call_tool, tool_definitions
 
 runner = CliRunner()
+
+
+def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True)
 
 
 def _setup_project(tmp_path: Path) -> None:
@@ -79,6 +86,23 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_registry_show",
         "p2p_project_show",
         "p2p_project_remote_show",
+        "p2p_permissions_show",
+        "p2p_consent_status",
+        "p2p_consent_show",
+        "p2p_sync_status",
+        "p2p_sync_fetch",
+        "p2p_sync_pull",
+        "p2p_sync_push",
+        "p2p_proposal_branch",
+        "p2p_proposal_branch_status",
+        "p2p_proposal_publish",
+        "p2p_proposal_request_review",
+        "p2p_proposal_accept_branch",
+        "p2p_proposal_reject_branch",
+        "p2p_proposal_merge",
+        "p2p_proposal_finalize",
+        "p2p_proposal_cleanup",
+        "p2p_proposal_branch_scan",
         "p2p_spec_status",
         "p2p_spec_show",
         "p2p_spec_export_status",
@@ -100,18 +124,585 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
     }
 
     assert expected <= names
+    allowed_decision_tools = {"p2p_proposal_accept_branch", "p2p_proposal_reject_branch"}
+    allowed_cleanup_tools = {"p2p_proposal_cleanup"}
     assert not any(
-        "accept" in name
-        or "reject" in name
+        ("accept" in name and name not in allowed_decision_tools)
+        or ("reject" in name and name not in allowed_decision_tools)
         or "defer" in name
         or "decide" in name
-        or "cleanup" in name
-        or "merge" in name
+        or ("cleanup" in name and name not in allowed_cleanup_tools)
+        or (("merge" in name) and name != "p2p_proposal_merge")
         or "contribution_accept" in name
         or "record_conflict" in name
         or "block" in name
+        or "retire_branch" in name
+        or "consent_grant" in name
+        or "consent_revoke" in name
         for name in names
     )
+
+
+def test_mcp_safe_managed_sync_and_proposal_branch_tools(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "MCP Branch Demo", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(
+        app,
+        [
+            "project",
+            "remote",
+            "configure",
+            "--mode",
+            "remote",
+            "--provider",
+            "generic",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+
+    sync_status = call_tool("p2p_sync_status", {"root": str(tmp_path)})
+    assert sync_status["sync"]["can_sync"] is True
+    assert sync_status["sync"]["remote"] == "origin"
+
+    fetched = call_tool("p2p_sync_fetch", {"root": str(tmp_path)})
+    assert fetched["sync"]["status"] == "fetched"
+
+    branched = call_tool("p2p_proposal_branch", {"root": str(tmp_path), "proposal_id": "PROP-001", "actor": "agent"})
+
+    branch = branched["proposal_branch"]
+    assert branch["proposal_id"] == "PROP-001"
+    assert branch["status"] == "branched"
+    assert branch["branch_name"].startswith("p2p/proposal/PROP-001-mcp-branch-demo-agent-")
+    assert branched["governance"]["merge_performed"] is False
+
+    scanned = call_tool("p2p_proposal_branch_scan", {"root": str(tmp_path)})
+    assert scanned["proposal_branch_scan"]["proposals"][0]["proposal_id"] == "PROP-001"
+
+    status = call_tool("p2p_proposal_branch_status", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+    assert status["proposal_branch"]["status"] == "branched"
+
+
+def test_mcp_proposal_publish_requires_and_consumes_consent(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
+    runner.invoke(app, ["permissions", "actor", "add", "lorenzo", "--role", "contributor", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "MCP Publish Demo", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(
+        app,
+        [
+            "project",
+            "remote",
+            "configure",
+            "--mode",
+            "remote",
+            "--provider",
+            "generic",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    runner.invoke(app, ["proposal", "branch", "PROP-001", "--actor", "lorenzo", "--root", str(tmp_path)])
+    branch_name = _git(tmp_path, "branch", "--show-current").stdout.strip()
+    runner.invoke(
+        app,
+        [
+            "consent",
+            "grant",
+            "proposal_publish",
+            "PROP-001",
+            "--actor",
+            "lorenzo",
+            "--approved-by",
+            "matteo",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "grant proposal publish consent")
+
+    result = call_tool(
+        "p2p_proposal_publish",
+        {
+            "root": str(tmp_path),
+            "proposal_id": "PROP-001",
+            "actor_id": "lorenzo",
+            "consent_id": "CONSENT-001",
+        },
+    )
+
+    assert result["proposal_branch"]["status"] == "published"
+    assert result["consent"]["status"] == "consumed"
+    assert result["consent"]["operation"] == "proposal_publish"
+    assert branch_name in _git(tmp_path, "ls-remote", "--heads", "origin", branch_name).stdout
+    receipt = yaml.safe_load((tmp_path / ".p2p" / "consents" / "CONSENT-001" / "consent.yml").read_text(encoding="utf-8"))
+    assert receipt["status"] == "consumed"
+    assert receipt["result"]["branch"] == branch_name
+
+
+def test_mcp_proposal_publish_rejects_actor_mismatch_without_consuming_consent(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
+    runner.invoke(app, ["permissions", "actor", "add", "lorenzo", "--role", "contributor", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "consent",
+            "grant",
+            "proposal_publish",
+            "PROP-001",
+            "--actor",
+            "lorenzo",
+            "--approved-by",
+            "matteo",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    try:
+        call_tool(
+            "p2p_proposal_publish",
+            {
+                "root": str(tmp_path),
+                "proposal_id": "PROP-001",
+                "actor_id": "matteo",
+                "consent_id": "CONSENT-001",
+            },
+        )
+    except ValueError as exc:
+        assert "Consent receipt actor mismatch" in str(exc)
+    else:
+        raise AssertionError("Expected actor mismatch to fail")
+
+    receipt = yaml.safe_load((tmp_path / ".p2p" / "consents" / "CONSENT-001" / "consent.yml").read_text(encoding="utf-8"))
+    assert receipt["status"] == "granted"
+
+
+def test_mcp_sync_push_requires_and_consumes_consent(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
+    runner.invoke(app, ["permissions", "actor", "add", "lorenzo", "--role", "contributor", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "branch", "-M", "main")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(app, ["project", "remote", "configure", "--mode", "remote", "--provider", "generic", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "consent",
+            "grant",
+            "sync_push",
+            "origin/main",
+            "--actor",
+            "lorenzo",
+            "--approved-by",
+            "matteo",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline with push consent")
+
+    result = call_tool(
+        "p2p_sync_push",
+        {"root": str(tmp_path), "actor_id": "lorenzo", "consent_id": "CONSENT-001"},
+    )
+
+    assert result["sync"]["status"] == "pushed"
+    assert result["consent"]["status"] == "consumed"
+    assert "refs/heads/main" in _git(tmp_path, "ls-remote", "--heads", "origin", "main").stdout
+
+
+def test_mcp_sync_pull_requires_and_consumes_consent(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
+    runner.invoke(app, ["permissions", "actor", "add", "lorenzo", "--role", "contributor", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "branch", "-M", "main")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(app, ["project", "remote", "configure", "--mode", "remote", "--provider", "generic", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "consent",
+            "grant",
+            "sync_pull",
+            "origin/main",
+            "--actor",
+            "lorenzo",
+            "--approved-by",
+            "matteo",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline with pull consent")
+    _git(tmp_path, "push", "-u", "origin", "main")
+
+    clone_path = tmp_path.parent / f"{tmp_path.name}-clone"
+    subprocess.run(["git", "clone", "--branch", "main", str(remote_path), str(clone_path)], check=True, capture_output=True, text=True)
+    _git(clone_path, "config", "user.email", "test@example.com")
+    _git(clone_path, "config", "user.name", "Test User")
+    (clone_path / "remote-change.txt").write_text("remote\n", encoding="utf-8")
+    _git(clone_path, "add", ".")
+    _git(clone_path, "commit", "-m", "remote change")
+    _git(clone_path, "push", "origin", "main")
+
+    result = call_tool(
+        "p2p_sync_pull",
+        {"root": str(tmp_path), "actor_id": "lorenzo", "consent_id": "CONSENT-001"},
+    )
+
+    assert result["sync"]["status"] == "pulled"
+    assert result["consent"]["status"] == "consumed"
+    assert (tmp_path / "remote-change.txt").read_text(encoding="utf-8") == "remote\n"
+
+
+def test_mcp_proposal_request_review_requires_and_consumes_consent(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
+    runner.invoke(app, ["permissions", "actor", "add", "lorenzo", "--role", "contributor", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "MCP Review Demo", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(app, ["project", "remote", "configure", "--mode", "remote", "--provider", "generic", "--root", str(tmp_path)])
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    runner.invoke(app, ["proposal", "branch", "PROP-001", "--actor", "lorenzo", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "publish", "PROP-001", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "consent",
+            "grant",
+            "proposal_request_review",
+            "PROP-001",
+            "--actor",
+            "lorenzo",
+            "--approved-by",
+            "matteo",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "grant proposal review consent")
+
+    result = call_tool(
+        "p2p_proposal_request_review",
+        {
+            "root": str(tmp_path),
+            "proposal_id": "PROP-001",
+            "actor_id": "lorenzo",
+            "consent_id": "CONSENT-001",
+        },
+    )
+
+    assert result["proposal_branch"]["status"] == "review_requested"
+    assert result["consent"]["status"] == "consumed"
+    assert result["proposal_branch"]["metadata"]["review"]["provider"] == "generic"
+
+
+def test_mcp_proposal_merge_requires_and_consumes_consent(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
+    runner.invoke(app, ["permissions", "actor", "add", "lorenzo", "--role", "contributor", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "MCP Merge Demo", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(app, ["project", "remote", "configure", "--mode", "remote", "--provider", "generic", "--root", str(tmp_path)])
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    runner.invoke(app, ["proposal", "branch", "PROP-001", "--actor", "lorenzo", "--root", str(tmp_path)])
+    proposal_path = tmp_path / ".p2p" / "proposals" / "PROP-001-mcp-merge-demo" / "proposal.md"
+    proposal_path.write_text(proposal_path.read_text(encoding="utf-8") + "\nMCP merge refinement.\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "refine proposal")
+    runner.invoke(app, ["proposal", "publish", "PROP-001", "--root", str(tmp_path)])
+    _git(tmp_path, "checkout", "main")
+    runner.invoke(
+        app,
+        [
+            "consent",
+            "grant",
+            "proposal_merge",
+            "PROP-001",
+            "--actor",
+            "lorenzo",
+            "--approved-by",
+            "matteo",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "grant proposal merge consent")
+
+    result = call_tool(
+        "p2p_proposal_merge",
+        {
+            "root": str(tmp_path),
+            "proposal_id": "PROP-001",
+            "actor_id": "lorenzo",
+            "consent_id": "CONSENT-001",
+        },
+    )
+
+    assert result["proposal_merge"]["proposal_id"] == "PROP-001"
+    assert result["governance"]["merge_performed"] is True
+    assert result["consent"]["status"] == "consumed"
+    assert _git(tmp_path, "branch", "--show-current").stdout.strip() == "main"
+    assert _git(tmp_path, "log", "-1", "--pretty=%s").stdout.strip() == "P2P consent consume CONSENT-001"
+    receipt = yaml.safe_load((tmp_path / ".p2p" / "consents" / "CONSENT-001" / "consent.yml").read_text(encoding="utf-8"))
+    assert receipt["result"]["merge_commit"] == result["proposal_merge"]["merge_commit"]
+
+
+def test_mcp_proposal_finalize_requires_and_consumes_consent(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
+    runner.invoke(app, ["permissions", "actor", "add", "lorenzo", "--role", "contributor", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "MCP Finalize Demo", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(app, ["project", "remote", "configure", "--mode", "remote", "--provider", "generic", "--root", str(tmp_path)])
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    runner.invoke(app, ["proposal", "branch", "PROP-001", "--actor", "lorenzo", "--root", str(tmp_path)])
+    proposal_path = tmp_path / ".p2p" / "proposals" / "PROP-001-mcp-finalize-demo" / "proposal.md"
+    proposal_path.write_text(proposal_path.read_text(encoding="utf-8") + "\nMCP finalize refinement.\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "refine proposal")
+    runner.invoke(app, ["proposal", "publish", "PROP-001", "--root", str(tmp_path)])
+    _git(tmp_path, "checkout", "main")
+    runner.invoke(
+        app,
+        [
+            "consent",
+            "grant",
+            "proposal_merge",
+            "PROP-001",
+            "--actor",
+            "lorenzo",
+            "--approved-by",
+            "matteo",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "grant proposal merge consent")
+    call_tool(
+        "p2p_proposal_merge",
+        {
+            "root": str(tmp_path),
+            "proposal_id": "PROP-001",
+            "actor_id": "lorenzo",
+            "consent_id": "CONSENT-001",
+        },
+    )
+    runner.invoke(
+        app,
+        [
+            "consent",
+            "grant",
+            "proposal_finalize",
+            "PROP-001",
+            "--actor",
+            "lorenzo",
+            "--approved-by",
+            "matteo",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "grant proposal finalize consent")
+
+    result = call_tool(
+        "p2p_proposal_finalize",
+        {
+            "root": str(tmp_path),
+            "proposal_id": "PROP-001",
+            "actor_id": "lorenzo",
+            "consent_id": "CONSENT-002",
+        },
+    )
+
+    assert result["proposal_finalize"]["proposal_id"] == "PROP-001"
+    assert result["proposal_finalize"]["base_branch"] == "main"
+    assert result["governance"]["finalized"] is True
+    assert result["governance"]["cleanup_performed"] is False
+    assert result["consent"]["status"] == "consumed"
+    assert _git(tmp_path, "branch", "--show-current").stdout.strip() == "main"
+    assert _git(tmp_path, "log", "-1", "--pretty=%s").stdout.strip() == "P2P consent consume CONSENT-002"
+    assert "refs/heads/main" in _git(tmp_path, "ls-remote", "--heads", "origin", "main").stdout
+    branch_metadata = tmp_path / ".p2p" / "proposals" / "PROP-001-mcp-finalize-demo" / "branch.yml"
+    data = yaml.safe_load(branch_metadata.read_text(encoding="utf-8"))
+    assert data["status"] == "finalized"
+    assert data["merge"]["pushed"] is True
+    receipt = yaml.safe_load((tmp_path / ".p2p" / "consents" / "CONSENT-002" / "consent.yml").read_text(encoding="utf-8"))
+    assert receipt["result"]["finalize_commit"] == result["proposal_finalize"]["finalize_commit"]
+
+
+def test_mcp_proposal_reject_and_cleanup_require_consent(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
+    runner.invoke(app, ["permissions", "actor", "add", "lorenzo", "--role", "contributor", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "MCP Reject Demo", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(app, ["project", "remote", "configure", "--mode", "remote", "--provider", "generic", "--root", str(tmp_path)])
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    runner.invoke(app, ["proposal", "branch", "PROP-001", "--actor", "lorenzo", "--root", str(tmp_path)])
+    branch_name = _git(tmp_path, "branch", "--show-current").stdout.strip()
+    runner.invoke(app, ["proposal", "publish", "PROP-001", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "consent",
+            "grant",
+            "proposal_reject_branch",
+            "PROP-001",
+            "--actor",
+            "lorenzo",
+            "--approved-by",
+            "matteo",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "grant proposal reject consent")
+
+    rejected = call_tool(
+        "p2p_proposal_reject_branch",
+        {
+            "root": str(tmp_path),
+            "proposal_id": "PROP-001",
+            "actor_id": "lorenzo",
+            "consent_id": "CONSENT-001",
+            "reason": "Not aligned with the current direction.",
+        },
+    )
+
+    assert rejected["proposal_branch"]["status"] == "rejected"
+    assert rejected["governance"]["decision_made"] is True
+    assert rejected["governance"]["decision_outcome"] == "rejected"
+    assert rejected["consent"]["status"] == "consumed"
+    _git(tmp_path, "checkout", "main")
+    runner.invoke(
+        app,
+        [
+            "consent",
+            "grant",
+            "proposal_cleanup",
+            "PROP-001",
+            "--actor",
+            "lorenzo",
+            "--approved-by",
+            "matteo",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "grant proposal cleanup consent")
+
+    cleaned = call_tool(
+        "p2p_proposal_cleanup",
+        {
+            "root": str(tmp_path),
+            "proposal_id": "PROP-001",
+            "actor_id": "lorenzo",
+            "consent_id": "CONSENT-001",
+            "delete_remote": True,
+        },
+    )
+
+    assert cleaned["proposal_cleanup"]["local_deleted"] is True
+    assert cleaned["proposal_cleanup"]["remote_deleted"] is True
+    assert cleaned["governance"]["cleanup_performed"] is True
+    assert cleaned["consent"]["status"] == "consumed"
+    assert branch_name not in _git(tmp_path, "branch", "--list", branch_name).stdout
+    assert branch_name not in _git(tmp_path, "ls-remote", "--heads", "origin", branch_name).stdout
+    branch_metadata = tmp_path / ".p2p" / "proposals" / "PROP-001-mcp-reject-demo" / "branch.yml"
+    data = yaml.safe_load(branch_metadata.read_text(encoding="utf-8"))
+    assert data["status"] == "cleaned"
+    assert data["cleanup"]["previous_status"] == "rejected"
+
+
+def test_mcp_permission_and_consent_read_tools(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
+    runner.invoke(app, ["permissions", "actor", "add", "lorenzo", "--role", "contributor", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "consent",
+            "grant",
+            "proposal_publish",
+            "PROP-001",
+            "--actor",
+            "lorenzo",
+            "--approved-by",
+            "matteo",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    permissions = call_tool("p2p_permissions_show", {"root": str(tmp_path)})
+    assert permissions["permissions"]["identities"]["matteo"]["role"] == "owner"
+    assert permissions["permissions"]["identities"]["lorenzo"]["role"] == "contributor"
+
+    status = call_tool("p2p_consent_status", {"root": str(tmp_path)})
+    assert status["consents"][0]["consent_id"] == "CONSENT-001"
+    assert status["consents"][0]["operation"] == "proposal_publish"
+
+    shown = call_tool("p2p_consent_show", {"root": str(tmp_path), "consent_id": "CONSENT-001"})
+    assert shown["consent"]["actor_id"] == "lorenzo"
 
 
 def test_mcp_write_safe_bootstrap_tools(tmp_path: Path) -> None:
@@ -142,6 +733,12 @@ def test_mcp_write_safe_bootstrap_tools(tmp_path: Path) -> None:
     policy = (tmp_path / ".p2p" / "agent-policy.yml").read_text(encoding="utf-8")
     assert "- codex" in policy
     assert "- claude" in policy
+    assert "managed_git_collaboration" in policy
+    assert "p2p proposal publish PROP-XXX --auto-renumber" in policy
+    assert "deferred_permission_gated_mcp_tools" in policy
+    assert "p2p_proposal_publish" in policy
+    assert "p2p_sync_fetch" in policy
+    assert "raw_git_managed_branch" in policy
 
 
 def test_mcp_init_project_can_start_with_unresolved_custom_domain(tmp_path: Path) -> None:
@@ -189,6 +786,23 @@ def test_mcp_validate_returns_structured_findings(tmp_path: Path) -> None:
     assert validation["ok"] is True
     assert validation["errors"] == 0
     assert any(finding["code"] == "P2P201_STALE_REGISTRY" for finding in validation["findings"])
+
+
+def test_mcp_validate_reports_duplicate_proposal_ids(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Draft Work", "--root", str(tmp_path)])
+    proposals_dir = tmp_path / ".p2p" / "proposals"
+    shutil.copytree(proposals_dir / "PROP-001-draft-work", proposals_dir / "PROP-001-other-draft")
+
+    result = call_tool("p2p_validate", {"root": str(tmp_path)})
+
+    validation = result["validation"]
+    assert validation["ok"] is False
+    assert validation["errors"] == 1
+    duplicate = next(
+        finding for finding in validation["findings"] if finding["code"] == "P2P104_DUPLICATE_PROPOSAL_ID"
+    )
+    assert "Duplicate proposal ID PROP-001" in duplicate["message"]
 
 
 def test_mcp_assess_refresh_and_show(tmp_path: Path) -> None:

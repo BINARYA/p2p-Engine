@@ -10,7 +10,7 @@ from rich.console import Console
 
 from p2p_engine.core.contribution import ContributionType
 from p2p_engine.core.decision import DecisionOutcome
-from p2p_engine.storage.filesystem import P2PWorkspace, WorkAcceptConflict
+from p2p_engine.storage.filesystem import P2PWorkspace, ProposalMergeConflict, WorkAcceptConflict
 
 app = typer.Typer(help="P2P Engine CLI")
 proposal_app = typer.Typer(help="Manage proposals")
@@ -40,6 +40,10 @@ intake_app = typer.Typer(help="Analyze raw ideas against project context")
 intake_apply_app = typer.Typer(help="Plan and run controlled intake applications")
 choice_app = typer.Typer(help="Manage project choices")
 work_app = typer.Typer(help="Manage P2P work manifests")
+sync_app = typer.Typer(help="Synchronize P2P projects through managed Git operations")
+permissions_app = typer.Typer(help="Manage project-declared permission identities")
+permissions_actor_app = typer.Typer(help="Manage permission actors")
+consent_app = typer.Typer(help="Manage permission-gated consent receipts")
 agent_app = typer.Typer(help="Manage agent-facing project instructions")
 agent_instructions_app = typer.Typer(help="Generate and refresh agent instructions")
 assess_app = typer.Typer(help="Assess project readiness and maturity")
@@ -68,6 +72,9 @@ app.add_typer(registry_app, name="registry")
 app.add_typer(intake_app, name="intake")
 app.add_typer(choice_app, name="choice")
 app.add_typer(work_app, name="work")
+app.add_typer(sync_app, name="sync")
+app.add_typer(permissions_app, name="permissions")
+app.add_typer(consent_app, name="consent")
 app.add_typer(agent_app, name="agent")
 app.add_typer(assess_app, name="assess")
 project_app.add_typer(project_brief_app, name="brief")
@@ -76,6 +83,7 @@ project_app.add_typer(project_rubrics_app, name="rubrics")
 assess_app.add_typer(assess_maturity_app, name="maturity")
 intake_app.add_typer(intake_apply_app, name="apply")
 agent_app.add_typer(agent_instructions_app, name="instructions")
+permissions_app.add_typer(permissions_actor_app, name="actor")
 
 console = Console()
 
@@ -110,6 +118,11 @@ def init(
         "none",
         "--domain",
         help="Domain template: none, custom, generic, software, grant_document, or board_game",
+    ),
+    owner: str | None = typer.Option(
+        None,
+        "--owner",
+        help="Project owner display name. Defaults to generic owner.",
     ),
     mcp_hint: bool | None = typer.Option(
         None,
@@ -152,6 +165,7 @@ def init(
             repository_mode=repository,
             project_domain=domain,
             rubric_enabled=rubric_enabled,
+            owner=owner,
         )
     except ValueError as exc:
         _fail(str(exc))
@@ -633,6 +647,230 @@ def proposal_show(
     console.print("Decision:")
     console.print(f"  status: {proposal.decision_status}")
     console.print(f"  reason: {proposal.decision_reason}")
+
+
+@proposal_app.command("branch")
+def proposal_branch(
+    proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
+    actor: str = typer.Option("local", "--actor", help="Person or agent creating the branch"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Create and check out a managed proposal branch."""
+    try:
+        branch = _workspace(root).branch_proposal(proposal_id, actor)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Managed proposal branch created.[/green]")
+    _print_proposal_branch(branch)
+
+
+@proposal_app.command("status")
+def proposal_branch_status(
+    proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Show managed proposal branch status."""
+    try:
+        branch = _workspace(root).show_proposal_branch(proposal_id)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("Proposal branch status")
+    _print_proposal_branch(branch)
+
+
+@proposal_app.command("publish")
+def proposal_publish(
+    proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
+    remote: str | None = typer.Option(None, "--remote", help="Override configured Git remote"),
+    auto_renumber: bool = typer.Option(False, "--auto-renumber", help="Auto-renumber if the proposal ID collides on remote"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Publish a managed proposal branch to the configured remote."""
+    try:
+        branch = _workspace(root).publish_proposal_branch(proposal_id, remote, auto_renumber=auto_renumber)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Managed proposal branch published.[/green]")
+    _print_proposal_branch(branch)
+
+
+@proposal_app.command("request-review")
+def proposal_request_review(
+    proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
+    provider: str | None = typer.Option(None, "--provider", help="Review provider: generic, github, or gitlab"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Record external review handoff metadata for a published proposal branch."""
+    try:
+        branch = _workspace(root).request_proposal_branch_review(proposal_id, provider)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Managed proposal review requested.[/green]")
+    _print_proposal_branch(branch)
+    review = branch.metadata.get("review", {})
+    if isinstance(review, dict) and review.get("suggested_next"):
+        console.print(f"  suggested_next: {review['suggested_next']}")
+
+
+@proposal_app.command("merge")
+def proposal_merge(
+    proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
+    continue_: bool = typer.Option(False, "--continue", help="Continue merge after manual conflict resolution"),
+    abort: bool = typer.Option(False, "--abort", help="Abort a conflicted proposal merge"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Merge a managed proposal branch into its base branch locally."""
+    if continue_ and abort:
+        _fail("Use either --continue or --abort, not both.")
+    try:
+        if continue_:
+            merge = _workspace(root).continue_merge_proposal_branch(proposal_id)
+        elif abort:
+            branch = _workspace(root).abort_merge_proposal_branch(proposal_id)
+            console.print("[yellow]Managed proposal merge aborted.[/yellow]")
+            _print_proposal_branch(branch)
+            return
+        else:
+            merge = _workspace(root).merge_proposal_branch(proposal_id)
+    except ValueError as exc:
+        _fail(str(exc))
+    if isinstance(merge, ProposalMergeConflict):
+        console.print("[yellow]Managed proposal merge blocked by conflicts.[/yellow]")
+        console.print(f"  proposal: {merge.proposal_id}")
+        console.print(f"  source_branch: {merge.branch_name}")
+        console.print(f"  base: {merge.base_branch}")
+        console.print("  conflicts:")
+        for path in merge.conflicted_files:
+            console.print(f"    {path}")
+        console.print(f"  continue: p2p proposal merge --continue {merge.proposal_id}")
+        console.print(f"  abort: p2p proposal merge --abort {merge.proposal_id}")
+        raise typer.Exit(1)
+    console.print("[green]Managed proposal branch merged.[/green]")
+    console.print(f"  proposal: {merge.proposal_id}")
+    console.print(f"  source_branch: {merge.branch_name}")
+    console.print(f"  base: {merge.base_branch}")
+    console.print(f"  merge_commit: {merge.merge_commit}")
+    console.print(f"  path: {merge.path}")
+
+
+@proposal_app.command("accept-branch")
+def proposal_accept_branch(
+    proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
+    reason: str = typer.Option(..., "--reason", help="Governance reason for accepting the branch"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Record an owner-controlled governance acceptance for a proposal branch."""
+    try:
+        branch = _workspace(root).accept_proposal_branch(proposal_id, reason)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Managed proposal branch accepted.[/green]")
+    _print_proposal_branch(branch)
+
+
+@proposal_app.command("reject-branch")
+def proposal_reject_branch(
+    proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
+    reason: str = typer.Option(..., "--reason", help="Governance reason for rejecting the branch"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Record an owner-controlled governance rejection for a proposal branch."""
+    try:
+        branch = _workspace(root).reject_proposal_branch(proposal_id, reason)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Managed proposal branch rejected.[/green]")
+    _print_proposal_branch(branch)
+
+
+@proposal_app.command("finalize")
+def proposal_finalize(
+    proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
+    remote: str | None = typer.Option(None, "--remote", help="Override configured Git remote"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Finalize a merged proposal branch by pushing its base branch."""
+    try:
+        finalize = _workspace(root).finalize_proposal_branch(proposal_id, remote)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Managed proposal branch finalized.[/green]")
+    console.print(f"  proposal: {finalize.proposal_id}")
+    console.print(f"  source_branch: {finalize.branch_name}")
+    console.print(f"  base: {finalize.base_branch}")
+    console.print(f"  remote: {finalize.remote}")
+    console.print(f"  remote_url: {finalize.remote_url}")
+    console.print(f"  finalize_commit: {finalize.finalize_commit}")
+    console.print(f"  path: {finalize.path}")
+    console.print("  cleanup: disabled")
+
+
+@proposal_app.command("cleanup")
+def proposal_cleanup(
+    proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
+    delete_remote: bool = typer.Option(False, "--delete-remote", help="Also delete the remote managed proposal branch"),
+    remote: str | None = typer.Option(None, "--remote", help="Override configured Git remote"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Delete a finalized, rejected, or retired managed proposal branch."""
+    try:
+        cleanup = _workspace(root).cleanup_proposal_branch(proposal_id, delete_remote=delete_remote, remote=remote)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Managed proposal branch cleaned.[/green]")
+    console.print(f"  proposal: {cleanup.proposal_id}")
+    console.print(f"  source_branch: {cleanup.branch_name}")
+    console.print(f"  base: {cleanup.base_branch}")
+    console.print(f"  remote: {cleanup.remote}")
+    console.print(f"  remote_url: {cleanup.remote_url or 'none'}")
+    console.print(f"  cleanup_commit: {cleanup.cleanup_commit}")
+    console.print(f"  local_deleted: {str(cleanup.local_deleted).lower()}")
+    console.print(f"  remote_deleted: {str(cleanup.remote_deleted).lower()}")
+    console.print(f"  path: {cleanup.path}")
+
+
+@proposal_app.command("retire-branch")
+def proposal_retire_branch(
+    proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
+    reason: str = typer.Option(..., "--reason", help="Retirement reason"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Retire a managed proposal branch without merging it."""
+    try:
+        branch = _workspace(root).retire_proposal_branch(proposal_id, reason)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Managed proposal branch retired.[/green]")
+    _print_proposal_branch(branch)
+
+
+@proposal_app.command("scan")
+def proposal_scan(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+    """Scan local P2P-managed proposal branches without checkout."""
+    try:
+        scan = _workspace(root).scan_proposal_branches()
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("Proposal branch scan")
+    console.print(f"  scanned_branches: {len(scan.scanned_branches)}")
+    console.print(f"  proposal_branches: {len(scan.proposals)}")
+    console.print(f"  registry: {scan.path}")
+    for item in scan.proposals:
+        console.print(
+            f"  {item.get('proposal_id')}  {item.get('status')}  {item.get('branch_name')}  {item.get('actor')}"
+        )
+
+
+def _print_proposal_branch(branch: object) -> None:
+    console.print(f"  proposal: {getattr(branch, 'proposal_id')}")
+    console.print(f"  status: {getattr(branch, 'status')}")
+    console.print(f"  branch: {getattr(branch, 'branch_name') or 'none'}")
+    console.print(f"  base_branch: {getattr(branch, 'base_branch') or 'none'}")
+    console.print(f"  actor: {getattr(branch, 'actor') or 'none'}")
+    console.print(f"  hash16: {getattr(branch, 'branch_hash16') or 'none'}")
+    console.print(f"  remote: {getattr(branch, 'remote') or 'none'}")
+    console.print(f"  remote_url: {getattr(branch, 'remote_url') or 'none'}")
+    console.print(f"  path: {getattr(branch, 'path')}")
 
 
 def _record_proposal_decision(
@@ -1149,6 +1387,189 @@ def project_remote_configure(
     console.print(f"  url: {profile.url or 'none'}")
     console.print("  creates_remote_repository: false")
     console.print("  opens_external_request: false")
+
+
+@sync_app.command("status")
+def sync_status(
+    remote: str | None = typer.Option(None, "--remote", help="Override configured Git remote"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Show managed Git synchronization status."""
+    try:
+        status = _workspace(root).sync_status(remote)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("Sync status")
+    console.print(f"  repository: {str(status.is_repository).lower()}")
+    console.print(f"  branch: {status.branch or 'none'}")
+    console.print(f"  clean: {str(status.is_clean).lower()}")
+    console.print(f"  mode: {status.mode}")
+    console.print(f"  provider: {status.provider}")
+    console.print(f"  remote: {status.remote or 'none'}")
+    console.print(f"  remote_url: {status.remote_url or 'none'}")
+    console.print(f"  can_sync: {str(status.can_sync).lower()}")
+    console.print(f"  reason: {status.reason}")
+
+
+@sync_app.command("fetch")
+def sync_fetch(
+    remote: str | None = typer.Option(None, "--remote", help="Override configured Git remote"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Fetch configured remote refs through P2P validation."""
+    try:
+        result = _workspace(root).sync_fetch(remote)
+    except ValueError as exc:
+        _fail(str(exc))
+    _print_sync_result(result)
+
+
+@sync_app.command("pull")
+def sync_pull(
+    remote: str | None = typer.Option(None, "--remote", help="Override configured Git remote"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Fast-forward pull the current branch through P2P validation."""
+    try:
+        result = _workspace(root).sync_pull(remote)
+    except ValueError as exc:
+        _fail(str(exc))
+    _print_sync_result(result)
+
+
+@sync_app.command("push")
+def sync_push(
+    remote: str | None = typer.Option(None, "--remote", help="Override configured Git remote"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Push the current branch through P2P validation."""
+    try:
+        result = _workspace(root).sync_push(remote)
+    except ValueError as exc:
+        _fail(str(exc))
+    _print_sync_result(result)
+
+
+def _print_sync_result(result: object) -> None:
+    console.print(f"[green]Sync {getattr(result, 'status')}.[/green]")
+    console.print(f"  action: {getattr(result, 'action')}")
+    console.print(f"  branch: {getattr(result, 'branch') or 'none'}")
+    console.print(f"  remote: {getattr(result, 'remote')}")
+    console.print(f"  remote_url: {getattr(result, 'remote_url')}")
+
+
+@permissions_app.command("show")
+def permissions_show(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+    """Show project-declared permission identities and roles."""
+    try:
+        permissions = _workspace(root).permissions_show()
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print(_yaml_dump_for_cli(permissions).rstrip())
+
+
+@permissions_actor_app.command("add")
+def permissions_actor_add(
+    actor_id: str = typer.Argument(..., help="Actor identity, e.g. lorenzo"),
+    role: str = typer.Option("contributor", "--role", help="Role: owner, maintainer, contributor, agent, readonly"),
+    kind: str = typer.Option("person", "--kind", help="Actor kind: person, agent, client"),
+    display_name: str | None = typer.Option(None, "--display-name", help="Human-readable actor name"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Add or update a project-declared actor identity."""
+    try:
+        actor = _workspace(root).permissions_actor_add(actor_id, role=role, kind=kind, display_name=display_name)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Permission actor recorded.[/green]")
+    console.print(f"  actor: {actor.actor_id}")
+    console.print(f"  role: {actor.role}")
+    console.print(f"  kind: {actor.kind}")
+    console.print(f"  display_name: {actor.display_name}")
+    console.print(f"  path: {actor.path}")
+
+
+@consent_app.command("grant")
+def consent_grant(
+    operation: str = typer.Argument(..., help="Privileged operation, e.g. proposal_publish"),
+    target: str = typer.Argument(..., help="Operation target, e.g. PROP-001"),
+    actor: str = typer.Option(..., "--actor", help="Actor receiving consent"),
+    approved_by: str = typer.Option("owner", "--approved-by", help="Owner identity approving consent"),
+    expires_on: str | None = typer.Option(None, "--expires-on", help="Optional ISO date expiry"),
+    single_use: bool = typer.Option(True, "--single-use/--multi-use", help="Whether consent is consumed once"),
+    scope: str | None = typer.Option(None, "--scope", help="Optional consent scope label"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Grant a bounded consent receipt for a future privileged operation."""
+    try:
+        consent = _workspace(root).consent_grant(
+            operation,
+            target,
+            actor,
+            approved_by=approved_by,
+            expires_on=expires_on,
+            single_use=single_use,
+            scope=scope,
+        )
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Consent granted.[/green]")
+    _print_consent(consent)
+
+
+@consent_app.command("show")
+def consent_show(
+    consent_id: str = typer.Argument(..., help="Consent ID, e.g. CONSENT-001"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Show one consent receipt."""
+    try:
+        consent = _workspace(root).consent_show(consent_id)
+    except ValueError as exc:
+        _fail(str(exc))
+    _print_consent(consent)
+
+
+@consent_app.command("status")
+def consent_status(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+    """List consent receipts."""
+    try:
+        receipts = _workspace(root).consent_statuses()
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("Consent receipts")
+    if not receipts:
+        console.print("  none")
+        return
+    for receipt in receipts:
+        console.print(f"  {receipt.consent_id}  {receipt.status}  {receipt.operation}  {receipt.target}  {receipt.actor_id}")
+
+
+@consent_app.command("revoke")
+def consent_revoke(
+    consent_id: str = typer.Argument(..., help="Consent ID, e.g. CONSENT-001"),
+    reason: str = typer.Option("", "--reason", help="Revocation reason"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Revoke a non-consumed consent receipt."""
+    try:
+        consent = _workspace(root).consent_revoke(consent_id, reason)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Consent revoked.[/green]")
+    _print_consent(consent)
+
+
+def _print_consent(consent: object) -> None:
+    console.print(f"  consent: {getattr(consent, 'consent_id')}")
+    console.print(f"  status: {getattr(consent, 'status')}")
+    console.print(f"  operation: {getattr(consent, 'operation')}")
+    console.print(f"  target: {getattr(consent, 'target')}")
+    console.print(f"  actor: {getattr(consent, 'actor_id')}")
+    console.print(f"  approved_by: {getattr(consent, 'approved_by')}")
+    console.print(f"  single_use: {str(getattr(consent, 'single_use')).lower()}")
+    console.print(f"  expires_on: {getattr(consent, 'expires_on') or 'none'}")
+    console.print(f"  path: {getattr(consent, 'path')}")
 
 
 @project_rubrics_app.command("init")

@@ -1,4 +1,4 @@
-generated_on: '2026-05-29'
+generated_on: '2026-06-03'
 assessment_type: deterministic_readiness
 completion:
   score: 80
@@ -25,12 +25,12 @@ factors:
   reason: Fresh registries are required for reliable assessment.
 - id: draft_proposals
   label: Draft proposals
-  value: 8
+  value: 7
   impact: -20
   reason: Draft proposals still need owner review or refinement.
 - id: accepted_proposals
   label: Accepted proposals
-  value: 61
+  value: 64
   impact: 0
   reason: Accepted proposals define committed project direction.
 - id: open_choices
@@ -62,5 +62,6 @@ gaps:
 - Review draft proposals before treating project direction as settled.
 suggested_actions:
 - p2p-mcp-server --root /path/to/project
-- .venv/bin/p2p proposal create "P2P MCP Write-Safe Tools"
-- .venv/bin/p2p project show p2p-core-cli-mcp-mediator-web-boundary
+- review README and agent setup docs for MCP write tools
+- review current diff and prepare commit for the completed proposal/MCP collaboration
+  tranche

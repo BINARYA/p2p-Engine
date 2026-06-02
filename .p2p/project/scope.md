@@ -692,3 +692,142 @@ Generated from accepted proposal goals and non-goals.
 
 - Do not expand detailed CLI/API/MCP documentation in this change.
 - Do not describe mediator or web as part of this repository.
+
+## PROP-064 - Spec Kit Three-Prompt Export Model
+
+### Goals
+
+- Define project.md as the canonical synthesized project definition derived from accepted P2P memory.
+- Define a core project coverage checklist that every project.md must cover.
+- Allow domain-specific section extensions for software, grant documents, board games, environmental impact assessment, one-day projects, and future verticals.
+- Derive generic, OpenSpec, and Spec Kit outputs from project.md instead of mirroring downstream folder layouts.
+- Preserve P2P source traceability so agents and humans can see which accepted artifacts support each major section.
+
+### Non-Goals
+
+- Invoke downstream tools directly.
+- Treat draft proposals as accepted truth.
+- Generate downstream folder structures as the primary export UX.
+- Replace P2P governance decisions with export-time synthesis.
+
+## PROP-065 - MCP Agent-First Coverage Expansion
+
+### Goals
+
+- Expose read-only MCP tools for Change Sets, Work, registries, project state, remote profile, and spec/export inspection.
+- Expose write-safe deterministic MCP tools for Change Set creation, project refresh, spec refresh/export/validation, and Work planning.
+- Expose prompt/advisory MCP tools for explore, digest, clarify, synthesize, plan, tasks, swot, and spec refinement prompts.
+
+### Non-Goals
+
+- Expose owner-governance decisions such as proposal accept/reject/defer, choice decide/block/unblock, conflict record, vote record, or work branch/merge/finalize operations.
+- Expose import/apply workflows that ingest external AI output without a separate trust and preview model.
+
+## PROP-066 - Permission-Gated MCP Governance And Git Operations
+
+### Goals
+
+- Preserve the future requirement so missing MCP operations are not forgotten.
+- Define a concrete permission model for privileged MCP operations.
+- Use project-declared roles as the MVP authorization model while acknowledging they are not strong authentication.
+- Require consent receipts for owner-controlled MCP operations.
+- Keep Git provider enforcement as the cloud-backed security boundary for protected branches and main updates.
+- Support generic fallback identities when project init does not know real person names.
+- Keep future API server/IAM integration possible without blocking the MVP.
+
+### Non-Goals
+
+- Implement privileged MCP methods before this proposal is accepted.
+- Treat local actor_id values as strong authentication.
+- Require an external IAM server for the MVP.
+- Allow agents to bypass owner governance decisions.
+- Expose Git commit, push, merge, provider PR/MR creation, or finalization without accepted permission and consent rules.
+
+## PROP-067 - Agent-First Setup Documentation Split
+
+### Goals
+
+- Make public setup documentation primarily about using P2P for a new target project.
+- Keep P2P Engine repository contribution setup exclusively in CONTRIBUTING.md, with README linking there but not showing potentially confusing examples.
+- Make manual CLI usage clearly secondary: useful for inspection, debugging, recovery, and learning the model.
+
+### Non-Goals
+
+- Change runtime behavior or installation code.
+- Document unverified agent-specific desktop integrations as definitive commands.
+
+## PROP-068 - Document Agent MCP Client Setup Commands
+
+### Goals
+
+- Add concrete MCP client setup examples for verified terminal clients.
+- Show Claude Desktop/local MCP JSON using the same target-project server command.
+- Keep unverified desktop or IDE-specific integrations framed as generic MCP client configuration rather than definitive commands.
+
+### Non-Goals
+
+- Document P2P Engine repository contributor MCP setup outside CONTRIBUTING.md.
+- Claim support for unverified Codex desktop, Codex VSCode, or other IDE-specific MCP flows.
+
+## PROP-069 - Clarify MCP Stdio Integration Model
+
+### Goals
+
+- Document the MCP stdio integration model clearly.
+- Clarify that each client may start its own P2P MCP process and that shared state is repository-backed.
+- Refine verified setup examples for Claude Code, Claude Desktop, Codex CLI/config, Codex IDE extension, and VS Code Copilot MCP.
+
+### Non-Goals
+
+- Implement Streamable HTTP MCP support now.
+- Change MCP server runtime behavior.
+
+## PROP-070 - Clarify README Agent Access Modes
+
+### Goals
+
+- Make the README quick start explicit about CLI access versus MCP access.
+- State that current MCP access is intentionally limited and does not expose privileged operations.
+- Point readers to INSTALL and MCP docs for detailed client setup and tool boundaries.
+
+### Non-Goals
+
+- Change MCP behavior or add privileged MCP tools now.
+
+## PROP-071 - Custom Domain Definition Workflow
+
+### Goals
+
+- Represent domain and rubric state explicitly for all projects.
+- Treat predefined domains as optional initialization templates.
+- Make custom/none initialization a first-class unresolved setup path rather than a special-case error path.
+- Base maturity assessability on rubric availability and status, not hardcoded domain identity.
+
+### Non-Goals
+
+- Implement a mediator or AI semantic review inside core.
+- Hardcode every possible vertical in P2P Engine.
+
+## PROP-072 - Concurrent Managed Work and Merge Decision Model
+
+### Goals
+
+- Keep Git invisible for non-technical users and routine agent workflows.
+- Define main as accepted project state rather than shared draft space.
+- Support concurrent proposal branches from multiple people or agents.
+- Support multiple candidate Work items for the same Change Set.
+- Add explicit candidate selection before merge when competing Work items exist.
+- Make local and cloud projects follow the same P2P lifecycle, with cloud adding remote publication and optional external review handoff only.
+- Require explicit P2P decisions before merging proposal or Work branches into main.
+- Record auditable metadata for proposal branch decisions, Work candidate decisions, merge conflicts, and finalization.
+- Generate clear agent instructions for branch, publish, review, accept, merge, conflict, finalize, and cleanup behavior.
+
+### Non-Goals
+
+- Replace Git as the underlying storage or transport mechanism.
+- Bind the core model to GitHub-specific PR semantics.
+- Allow agents to perform owner-sensitive merge, cleanup, or publishing operations without permission.
+- Implement real-time collaboration, distributed locking, or server-side coordination outside Git.
+- Decide the full MCP permission model covered by PROP-066.
+- Require normal users to understand or run raw Git commands.
+- Guarantee automatic semantic conflict resolution between competing proposals.

@@ -1,1 +1,36 @@
-contributions: []
+contributions:
+- id: C001
+  type: architectural_principle
+  author: davide-via-codex
+  relevance_hint: Extends permission-gated MCP/Git operations with a concurrent multi-agent
+    Work and merge-decision model.
+  text: A P2P-managed project should support agents and people working concurrently
+    on isolated branches to produce reviewable candidate changes, usually as PR/MR-style
+    handoffs for cloud-backed repositories or local review artifacts for local-only
+    projects. Local and cloud projects should share the same P2P Work lifecycle and
+    governance semantics; the cloud case only adds remote/profile configuration and
+    external review publication. Merge/accept operations must remain downstream of
+    an explicit P2P decision process, with CLI operations that create, inspect, publish,
+    accept, merge, abort, finalize, and audit those actions from proposal-derived
+    Work items.
+- id: C002
+  type: architectural_principle
+  author: davide-via-codex
+  relevance_hint: Clarifies Git-only collaboration semantics for concurrent proposal
+    creation across people and agents.
+  text: When Git is the only interchange layer, P2P must distinguish accepted project
+    state from collaborative proposal work. Accepted proposals and completed project
+    state can live on the base branch, while new or contested proposal drafts from
+    different people or agents should be created on isolated branches and submitted
+    for owner review before becoming part of main. This avoids using main as a shared
+    scratchpad and allows multiple independent proposal branches to coexist, be reviewed,
+    accepted, rejected, or merged like implementation Work.
+- id: C003
+  type: implementation_suggestion
+  author: codex
+  relevance_hint: high
+  text: 'Step 6 should expose only the safe MCP surface now: sync status/fetch and
+    proposal branch/status/scan. MCP pull, push, publish, request-review, retire,
+    accept, reject, merge, finalize, cleanup, and provider PR/MR handoff remain deferred
+    permission-gated operations until PROP-066 defines accepted repository ownership,
+    consent, and audit rules.'

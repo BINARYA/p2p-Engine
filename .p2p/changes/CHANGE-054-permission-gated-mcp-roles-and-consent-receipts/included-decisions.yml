@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-066
+  decision_file: .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/decision.md
