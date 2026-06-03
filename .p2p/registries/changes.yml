@@ -991,3 +991,20 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-061
+  title: Automated GitHub Release Wheel Publishing
+  status: completed
+  path: .p2p/changes/CHANGE-061-automated-github-release-wheel-publishing
+  included_proposals:
+  - PROP-080
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

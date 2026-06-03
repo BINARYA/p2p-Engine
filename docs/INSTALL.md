@@ -39,10 +39,10 @@ Install a versioned wheel from GitHub Releases:
 
 ```bash
 .venv/bin/python -m pip install \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.1.0/p2p_engine-0.1.0-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.1.1/p2p_engine-0.1.1-py3-none-any.whl
 ```
 
-Replace `v0.1.0` and `p2p_engine-0.1.0-py3-none-any.whl` with the release you
+Replace `v0.1.1` and `p2p_engine-0.1.1-py3-none-any.whl` with the release you
 intend to use. The wheel filename is expected to follow:
 
 ```text
@@ -173,10 +173,44 @@ This upgrades the installed engine runtime. It does not pull or merge the target
 project repository. For project Git synchronization, use the P2P sync commands
 documented for managed collaboration.
 
-## Build A Release Wheel
+## Publish A GitHub Release Wheel
 
-This section is for P2P Engine maintainers preparing a GitHub Release artifact.
+This section is for P2P Engine maintainers publishing a GitHub Release artifact.
 Normal target projects should install the published wheel instead.
+
+The normal release path is automated by GitHub Actions. Update the package
+version, commit and push `main`, then push a matching version tag:
+
+```bash
+# pyproject.toml
+# [project]
+# version = "0.1.1"
+
+git add pyproject.toml
+git commit -m "Bump version to 0.1.1"
+git push origin main
+
+git tag -a v0.1.1 -m "P2P Engine v0.1.1"
+git push origin v0.1.1
+```
+
+The release workflow runs tests, runs `p2p validate`, builds the source
+distribution and wheel, and uploads both files to the matching GitHub Release.
+The tag must match `pyproject.toml`: tag `v0.1.1` requires
+`version = "0.1.1"`. Do not reuse an existing version or tag for different
+contents.
+
+Expected release assets:
+
+```text
+p2p_engine-<version>-py3-none-any.whl
+p2p_engine-<version>.tar.gz
+```
+
+### Manual Build Fallback
+
+Use this only when debugging the release workflow or preparing artifacts
+manually.
 
 From the P2P Engine source checkout:
 
@@ -193,10 +227,11 @@ The expected wheel artifact is:
 dist/p2p_engine-<version>-py3-none-any.whl
 ```
 
-Attach that `.whl` to the matching GitHub Release, for example:
+Attach that `.whl` and the matching `.tar.gz` to the GitHub Release only if the
+automated workflow is unavailable. For example:
 
 ```text
-v0.1.1 -> p2p_engine-0.1.1-py3-none-any.whl
+v0.1.1 -> p2p_engine-0.1.1-py3-none-any.whl, p2p_engine-0.1.1.tar.gz
 ```
 
 ## Connect An Agent

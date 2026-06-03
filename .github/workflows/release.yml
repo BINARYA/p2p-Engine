@@ -1,0 +1,94 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build and publish release artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install project with development dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Check tag matches package version
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import os
+          import tomllib
+
+          version = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+          tag = os.environ["GITHUB_REF_NAME"]
+          expected = f"v{version}"
+          if tag != expected:
+              raise SystemExit(f"Tag/version mismatch: tag {tag!r}, pyproject version {version!r}; expected {expected!r}")
+          print(f"Release version verified: {version}")
+          PY
+
+      - name: Run tests
+        run: pytest -q
+
+      - name: Validate P2P state
+        run: p2p validate
+
+      - name: Build source and wheel distributions
+        run: python -m build
+
+      - name: Verify distribution artifacts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import tomllib
+
+          version = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+          expected = [
+              Path(f"dist/p2p_engine-{version}-py3-none-any.whl"),
+              Path(f"dist/p2p_engine-{version}.tar.gz"),
+          ]
+          missing = [path.as_posix() for path in expected if not path.exists()]
+          if missing:
+              raise SystemExit("Missing release artifacts: " + ", ".join(missing))
+          for path in expected:
+              print(path.as_posix())
+          PY
+
+      - name: Create release notes
+        run: |
+          cat > release-notes.md <<EOF
+          P2P Engine ${GITHUB_REF_NAME}
+
+          Install the project-local wheel:
+
+          \`\`\`bash
+          .venv/bin/python -m pip install \\
+            https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/p2p_engine-${GITHUB_REF_NAME#v}-py3-none-any.whl
+          \`\`\`
+          EOF
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" dist/*.whl dist/*.tar.gz --repo "${GITHUB_REPOSITORY}" --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" dist/*.whl dist/*.tar.gz \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "P2P Engine ${GITHUB_REF_NAME}" \
+              --notes-file release-notes.md
+          fi

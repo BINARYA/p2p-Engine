@@ -573,3 +573,10 @@ decisions:
   path: .p2p/proposals/PROP-079-managed-next-action-lifecycle/decision.md
   reason: Owner selected the hybrid generated plus curated next-action model and requested
     implementation.
+- proposal: PROP-080
+  title: Automated GitHub Release Wheel Publishing
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-080-automated-github-release-wheel-publishing/decision.md
+  reason: Owner approved automated tag-triggered GitHub release publishing to replace
+    the manual wheel upload path.

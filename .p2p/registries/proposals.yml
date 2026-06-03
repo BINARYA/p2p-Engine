@@ -2400,3 +2400,35 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-080
+  title: Automated GitHub Release Wheel Publishing
+  status: accepted
+  path: .p2p/proposals/PROP-080-automated-github-release-wheel-publishing
+  summary: 'Add a GitHub Actions release workflow triggered by version tags matching
+    v*. The workflow should check out the repository, set up Python, install development
+    dependencies, run the test suite, run p2p validate, build the source distribution
+    and wheel with python -m build, verify expected dist artifacts exist, and upload
+    the .whl and .tar.gz as assets to the matching GitHub Release. Document the new
+    release flow: update pyproject.toml version, commit and push main, create and
+    push an annotated tag such as v0.1.1, then GitHub Actions publishes the release
+    assets. Keep manual release notes as a fallback, but make the tag-triggered workflow
+    the normal path.'
+  decision_file: .p2p/proposals/PROP-080-automated-github-release-wheel-publishing/decision.md
+  related_changes:
+  - CHANGE-061
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

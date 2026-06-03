@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-080
+  decision_file: .p2p/proposals/PROP-080-automated-github-release-wheel-publishing/decision.md
