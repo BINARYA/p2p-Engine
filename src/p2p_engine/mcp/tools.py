@@ -34,6 +34,10 @@ TOOL_NAMES = (
     "p2p_impact_prompt",
     "p2p_project_status",
     "p2p_next",
+    "p2p_next_add",
+    "p2p_next_complete",
+    "p2p_next_retire",
+    "p2p_next_refresh",
     "p2p_proposal_list",
     "p2p_proposal_show",
     "p2p_choice_list",
@@ -386,6 +390,52 @@ def tool_definitions() -> list[dict[str, object]]:
             "name": "p2p_next",
             "description": "Show advisory next actions from P2P project state.",
             "inputSchema": _schema({"root": {"type": "string"}, "top": {"type": "integer", "minimum": 1}}),
+        },
+        {
+            "name": "p2p_next_add",
+            "description": (
+                "Write-safe project planning tool: add a curated next action. Does "
+                "not decide governance, publish, merge, or run external provider operations."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "kind": {"type": "string"},
+                    "target": {"type": "string"},
+                    "reason": {"type": "string"},
+                    "command": {"type": "string"},
+                    "priority": {"type": "string"},
+                    "action_id": {"type": "string"},
+                },
+                ["kind", "reason"],
+            ),
+        },
+        {
+            "name": "p2p_next_complete",
+            "description": (
+                "Write-safe project planning tool: complete a curated next action and "
+                "move it to the next-action audit log."
+            ),
+            "inputSchema": _schema(
+                {"root": {"type": "string"}, "action_id": {"type": "string"}, "reason": {"type": "string"}},
+                ["action_id", "reason"],
+            ),
+        },
+        {
+            "name": "p2p_next_retire",
+            "description": (
+                "Write-safe project planning tool: retire a curated next action and "
+                "move it to the next-action audit log."
+            ),
+            "inputSchema": _schema(
+                {"root": {"type": "string"}, "action_id": {"type": "string"}, "reason": {"type": "string"}},
+                ["action_id", "reason"],
+            ),
+        },
+        {
+            "name": "p2p_next_refresh",
+            "description": "Write-safe project planning tool: normalize curated next actions and report generated action count.",
+            "inputSchema": _schema({"root": {"type": "string"}}),
         },
         {
             "name": "p2p_proposal_list",
@@ -1016,6 +1066,36 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, o
         top = arguments.get("top")
         limit = int(top) if top is not None else None
         return {"next_actions": _to_jsonable(workspace.next_actions(limit=limit))}
+    if name == "p2p_next_add":
+        action = workspace.next_action_add(
+            kind=_required(arguments, "kind"),
+            target=str(arguments.get("target") or ""),
+            reason=_required(arguments, "reason"),
+            command=str(arguments.get("command") or ""),
+            priority=str(arguments.get("priority") or "medium"),
+            action_id=_optional_string(arguments, "action_id"),
+        )
+        return {"next_action": _to_jsonable(action)}
+    if name == "p2p_next_complete":
+        return {
+            "next_action_result": _to_jsonable(
+                workspace.next_action_complete(
+                    _required(arguments, "action_id"),
+                    _required(arguments, "reason"),
+                )
+            )
+        }
+    if name == "p2p_next_retire":
+        return {
+            "next_action_result": _to_jsonable(
+                workspace.next_action_retire(
+                    _required(arguments, "action_id"),
+                    _required(arguments, "reason"),
+                )
+            )
+        }
+    if name == "p2p_next_refresh":
+        return {"next_action_refresh": _to_jsonable(workspace.next_actions_refresh())}
     if name == "p2p_proposal_list":
         status = arguments.get("status")
         return {"proposals": _to_jsonable(workspace.proposal_summaries(str(status) if status else None))}

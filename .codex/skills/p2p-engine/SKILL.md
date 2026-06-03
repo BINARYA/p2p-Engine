@@ -95,6 +95,10 @@ p2p_conflict_status
 p2p_impact_prompt
 p2p_project_status
 p2p_next
+p2p_next_add
+p2p_next_complete
+p2p_next_retire
+p2p_next_refresh
 p2p_proposal_list
 p2p_proposal_show
 p2p_choice_list
@@ -247,12 +251,16 @@ p2p project brief show
 p2p context --budget small
 p2p next
 p2p next --top 1
+p2p next add verify_integration mcp-client --priority high --reason "Verify real MCP client setup."
+p2p next complete NEXT-003 --reason "Completed in the current tranche."
+p2p next retire NEXT-004 --reason "Superseded by a newer direction."
+p2p next refresh
 p2p assess refresh
 p2p assess show
 ```
 
 The skill guides the agent's synthesis behavior. The CLI owns the repeatable project context and stores the resulting `operational-brief.md` and optional `next-actions.yml` under `.p2p/project/`.
-`p2p next` is advisory only: it reads stored next actions when available and falls back to conservative project-state checks, but it must not modify project state or decide on behalf of the owner.
+`p2p next` and `p2p_next` read the operational next-action board. Managed lifecycle commands/tools (`p2p next add/complete/retire/refresh` and MCP `p2p_next_add`, `p2p_next_complete`, `p2p_next_retire`, `p2p_next_refresh`) are write-safe project planning operations. They may update curated next actions and the next-action audit log, but they must not be used to decide proposals, merge branches, publish remotes, change governance policy, or bypass owner-controlled actions.
 `p2p assess refresh` is deterministic readiness analysis. It may report completion score, confidence, gaps, and suggested commands. If a project was initialized without a domain template, maturity may remain `rubric_missing` until the domain and rubric are defined.
 `p2p assess maturity refresh` is project definition maturity, not implementation completeness. It checks whether enabled rubric topics are covered by P2P proposals, decisions, and Change Sets. Use `p2p project rubrics show` to inspect whether the rubric is template-selected or unresolved.
 

@@ -72,6 +72,10 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_impact_prompt",
         "p2p_project_status",
         "p2p_next",
+        "p2p_next_add",
+        "p2p_next_complete",
+        "p2p_next_retire",
+        "p2p_next_refresh",
         "p2p_proposal_list",
         "p2p_proposal_show",
         "p2p_choice_list",
@@ -153,6 +157,61 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         or "consent_revoke" in name
         for name in names
     )
+
+
+def test_mcp_managed_next_action_lifecycle(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
+
+    added = call_tool(
+        "p2p_next_add",
+        {
+            "root": str(tmp_path),
+            "kind": "verify_integration",
+            "target": "mcp-client",
+            "priority": "high",
+            "reason": "Verify real MCP client setup.",
+            "command": "p2p-mcp-server --root /path/to/project",
+        },
+    )
+
+    assert added["next_action"]["action_id"] == "NEXT-001"
+    assert added["next_action"]["priority"] == "high"
+    assert added["next_action"]["source"] == ".p2p/project/next-actions.yml"
+
+    listed = call_tool("p2p_next", {"root": str(tmp_path)})
+    assert listed["next_actions"][0]["action_id"] == "NEXT-001"
+    assert listed["next_actions"][0]["kind"] == "verify_integration"
+
+    completed = call_tool(
+        "p2p_next_complete",
+        {"root": str(tmp_path), "action_id": "NEXT-001", "reason": "Verified."},
+    )
+
+    assert completed["next_action_result"]["action"]["status"] == "completed"
+    assert completed["next_action_result"]["path"] == ".p2p/project/next-actions-log.yml"
+    active = yaml.safe_load((tmp_path / ".p2p" / "project" / "next-actions.yml").read_text(encoding="utf-8"))
+    assert active["next_actions"] == []
+    log = yaml.safe_load((tmp_path / ".p2p" / "project" / "next-actions-log.yml").read_text(encoding="utf-8"))
+    assert log["next_action_log"][0]["id"] == "NEXT-001"
+    assert log["next_action_log"][0]["status"] == "completed"
+
+
+def test_mcp_next_retire_and_refresh(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
+    call_tool(
+        "p2p_next_add",
+        {"root": str(tmp_path), "kind": "define_scope", "target": "temporary", "reason": "Temporary item."},
+    )
+
+    retired = call_tool(
+        "p2p_next_retire",
+        {"root": str(tmp_path), "action_id": "NEXT-001", "reason": "Superseded."},
+    )
+
+    assert retired["next_action_result"]["action"]["status"] == "retired"
+    refreshed = call_tool("p2p_next_refresh", {"root": str(tmp_path)})
+    assert refreshed["next_action_refresh"]["active_curated"] == 0
+    assert refreshed["next_action_refresh"]["generated"] >= 1
 
 
 def test_mcp_safe_managed_sync_and_proposal_branch_tools(tmp_path: Path) -> None:

@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-081
+  decision_file: .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions/decision.md

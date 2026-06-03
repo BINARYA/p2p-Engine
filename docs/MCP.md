@@ -161,6 +161,10 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_validate` | read-only | no | no | Check structural and semantic consistency. |
 | `p2p_project_status` | read-only | no | no | Inspect deterministic project status. |
 | `p2p_next` | read-only | no | no | Show advisory next actions. |
+| `p2p_next_add` | write-safe | yes | no | Add a curated next action to the operational board. |
+| `p2p_next_complete` | write-safe | yes | no | Complete a curated next action and audit it in the next-action log. |
+| `p2p_next_retire` | write-safe | yes | no | Retire a curated next action and audit it in the next-action log. |
+| `p2p_next_refresh` | write-safe | yes | no | Normalize curated next actions and report generated action count. |
 | `p2p_proposal_list` | read-only | no | no | List proposals, optionally by status. |
 | `p2p_proposal_show` | read-only | no | no | Inspect one proposal summary. |
 | `p2p_choice_list` | read-only | no | no | List project choices. |

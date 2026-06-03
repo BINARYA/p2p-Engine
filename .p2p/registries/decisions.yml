@@ -580,3 +580,10 @@ decisions:
   path: .p2p/proposals/PROP-080-automated-github-release-wheel-publishing/decision.md
   reason: Owner approved automated tag-triggered GitHub release publishing to replace
     the manual wheel upload path.
+- proposal: PROP-081
+  title: MCP and Skill Support for Managed Next Actions
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions/decision.md
+  reason: Owner requested MCP and skill alignment for the newly implemented managed
+    next-action lifecycle.

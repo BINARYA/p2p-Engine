@@ -1008,3 +1008,20 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-062
+  title: MCP and Skill Support for Managed Next Actions
+  status: completed
+  path: .p2p/changes/CHANGE-062-mcp-and-skill-support-for-managed-next-actions
+  included_proposals:
+  - PROP-081
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0
