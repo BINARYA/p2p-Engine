@@ -43,6 +43,9 @@ jobs:
       - name: Run tests
         run: pytest -q
 
+      - name: Prepare ignored P2P runtime directories
+        run: mkdir -p .p2p/prompts
+
       - name: Validate P2P state
         run: p2p validate
 
