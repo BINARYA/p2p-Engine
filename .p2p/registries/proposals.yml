@@ -2334,3 +2334,35 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-078
+  title: Project-Local Wheel Installation and Upgrade Model
+  status: draft
+  path: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model
+  summary: 'Introduce a packaging and installation model based on versioned wheel
+    artifacts attached to GitHub Releases as the first distribution channel. Project
+    setup documentation should install P2P Engine into the project-local .venv from
+    a release wheel URL, and project upgrade documentation should use python -m pip
+    install --upgrade <wheel-url>, followed by p2p doctor, p2p agent doctor, p2p registry
+    refresh, p2p agent instructions refresh, and p2p validate. This is a transitional
+    distribution model: the long-term target remains a public package such as PyPI,
+    where installation becomes python -m pip install p2p-engine and upgrade becomes
+    python -m pip install --upgrade p2p-engine. The proposal should avoid requiring
+    users to reference external source checkout paths during normal project use.'
+  decision_file: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

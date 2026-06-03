@@ -559,3 +559,9 @@ decisions:
   path: .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/decision.md
   reason: Owner requested this refinement after real MCP usage exposed that draft
     proposal rejection was not available as a permission-gated MCP operation.
+- proposal: PROP-078
+  title: Project-Local Wheel Installation and Upgrade Model
+  outcome: pending
+  status: draft
+  path: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/decision.md
+  reason: ''
