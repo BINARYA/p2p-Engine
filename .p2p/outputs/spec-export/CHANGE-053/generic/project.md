@@ -879,7 +879,7 @@ entities:
 - `PROP-059` P2PWorkspace Modular Refactoring Plan
 - `PROP-060` Real Test Coverage Reporting
 - `PROP-063` Public Documentation Gap Closure
-- `PROP-066` Permission-Gated MCP Governance And Git Operations
+- `PROP-073` Ergonomic Remote Project Initialization
 
 ## Software Domain Extension
 
@@ -989,6 +989,7 @@ NEEDS CLARIFICATION
 - `PROP-062` README Product Landing Page Refinement — `.p2p/proposals/PROP-062-readme-product-landing-page-refinement`
 - `PROP-064` Spec Kit Three-Prompt Export Model — `.p2p/proposals/PROP-064-spec-kit-three-prompt-export-model`
 - `PROP-065` MCP Agent-First Coverage Expansion — `.p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion`
+- `PROP-066` Permission-Gated MCP Governance And Git Operations — `.p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations`
 - `PROP-067` Agent-First Setup Documentation Split — `.p2p/proposals/PROP-067-agent-first-setup-documentation-split`
 - `PROP-068` Document Agent MCP Client Setup Commands — `.p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands`
 - `PROP-069` Clarify MCP Stdio Integration Model — `.p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model`

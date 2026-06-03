@@ -261,3 +261,19 @@ P2P currently treats project domains as a fixed set of hardcoded identities. Thi
 P2P Engine needs a first-class collaboration model for multiple people and agents working through Git without needing to understand Git. Main must represent accepted project state, but new proposal drafts, proposal refinements, and implementation candidates may be produced concurrently by different contributors. Today the managed Work lifecycle covers implementation branches, but proposal-level collaboration, candidate selection, and merge decisions across concurrent contributors are not specified as a single CLI-facing workflow.
 
 Without this model, users may treat main as a shared scratchpad for draft proposals, agents may not know when to branch or publish, and P2P lacks a first-class way to compare, select, reject, combine, or merge competing proposal/work candidates before they alter accepted project state.
+
+## PROP-073 - Ergonomic Remote Project Initialization
+
+Initializing a cloud-backed P2P project currently requires separate mental steps: p2p init declares repository mode, raw Git config creates or attaches the Git remote, and p2p project remote configure records the P2P remote profile. This is workable for experienced users but too implicit for owners, contributors, and agents who should not need to understand raw Git setup details.
+
+## PROP-074 - Agent Runtime Bootstrap Robustness
+
+A P2P-managed repository can be shared with a cloud agent environment where project instructions require p2p CLI mutations, but the p2p executable is not installed or available in PATH. The agent correctly stops because direct .p2p edits are forbidden, but the workflow becomes unusable: it cannot create proposals, refresh registries, read context, or proceed through the documented P2P source-of-truth path.
+
+## PROP-075 - MCP End-To-End Proposal Collaboration Workflow
+
+MCP exposes useful proposal collaboration primitives, but a cloud or agent-only workflow is not yet end-to-end. An agent can create proposals and branches, but publish requires a consent receipt that MCP cannot request or create; remote P2P profile configuration is CLI-only; proposal drafts created through MCP leave a dirty worktree that blocks branch creation; and proposal branches can be accidentally chained from the current branch instead of a stable base branch.
+
+## PROP-076 - P2P Cloud Runner Boundary and Containerized Execution Model
+
+P2P Engine is intentionally a local CLI/core/MCP engine, but future cloud/web product work needs a clear execution boundary. Without an explicit boundary, proposals may drift toward embedding public web APIs, multi-tenant auth, workflow orchestration, or long-running SaaS responsibilities directly inside P2P Engine.

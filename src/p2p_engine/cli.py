@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import shlex
+import shutil
+import sys
 from pathlib import Path
 
 import typer
@@ -10,6 +13,7 @@ from rich.console import Console
 
 from p2p_engine.core.contribution import ContributionType
 from p2p_engine.core.decision import DecisionOutcome
+from p2p_engine.storage.git import get_git_status
 from p2p_engine.storage.filesystem import P2PWorkspace, ProposalMergeConflict, WorkAcceptConflict
 
 app = typer.Typer(help="P2P Engine CLI")
@@ -101,6 +105,93 @@ def _yaml_dump_for_cli(data: object) -> str:
     return yaml.safe_dump(data, sort_keys=False, allow_unicode=False)
 
 
+@app.command("doctor")
+def doctor(
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Diagnose P2P CLI, project, Git, and MCP runtime readiness."""
+    _print_doctor(root, agent_mode=False)
+
+
+@agent_app.command("doctor")
+def agent_doctor(
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Diagnose agent runtime readiness and recovery steps."""
+    _print_doctor(root, agent_mode=True)
+
+
+def _print_doctor(root: Path, *, agent_mode: bool) -> None:
+    resolved_root = root.resolve()
+    p2p_path = shutil.which("p2p")
+    local_p2p = resolved_root / ".venv" / "bin" / "p2p"
+    package_importable = importlib.util.find_spec("p2p_engine") is not None
+    mcp_importable = importlib.util.find_spec("p2p_engine.mcp.server") is not None
+    git_status = get_git_status(resolved_root)
+    project_exists = (resolved_root / ".p2p" / "project.yml").exists()
+
+    console.print("P2P doctor")
+    console.print(f"  root: {resolved_root}")
+    console.print(f"  project: {str(project_exists).lower()}")
+    console.print(f"  p2p_on_path: {str(bool(p2p_path)).lower()}")
+    console.print(f"  p2p_path: {p2p_path or 'none'}")
+    console.print(f"  local_venv_p2p: {local_p2p if local_p2p.exists() else 'none'}")
+    console.print(f"  python: {sys.executable}")
+    console.print(f"  package_importable: {str(package_importable).lower()}")
+    console.print(f"  python_module_cli: python -m p2p_engine")
+    console.print(f"  mcp_server_importable: {str(mcp_importable).lower()}")
+    console.print(f"  mcp_server_module: python -m p2p_engine.mcp.server --root {resolved_root}")
+    console.print(f"  git_repository: {str(git_status.is_repository).lower()}")
+    console.print(f"  git_branch: {git_status.branch or 'none'}")
+    console.print(f"  git_clean: {str(git_status.is_clean).lower()}")
+
+    if project_exists:
+        status = _workspace(resolved_root).sync_status()
+        console.print(f"  repository_mode: {status.mode}")
+        console.print(f"  sync_ready: {str(status.can_sync).lower()}")
+        console.print(f"  sync_reason: {status.reason}")
+    else:
+        console.print("  repository_mode: unknown")
+        console.print("  sync_ready: false")
+        console.print("  sync_reason: no .p2p/project.yml found")
+
+    command = _recommended_p2p_command(resolved_root, p2p_path, local_p2p, package_importable)
+    console.print("Recovery")
+    console.print(f"  recommended_p2p_command: {command}")
+    console.print("  discovery_order: p2p -> .venv/bin/p2p -> python -m p2p_engine -> MCP")
+    if agent_mode:
+        console.print(
+            "  missing_primitive_rule: if no CLI or explicit MCP write tool is available, "
+            "stop and report these diagnostics instead of editing .p2p by hand"
+        )
+    if command != "unavailable":
+        console.print(f"  suggested_start: {command} status")
+        console.print(f"  suggested_context: {command} context --budget small")
+        console.print(f"  suggested_validate: {command} validate")
+    elif mcp_importable:
+        console.print(
+            "  suggested_mcp: configure a local stdio MCP client with "
+            f"python -m p2p_engine.mcp.server --root {resolved_root}"
+        )
+    else:
+        console.print("  suggested_install: install P2P Engine or use the project owner provided runner image")
+
+
+def _recommended_p2p_command(
+    root: Path,
+    p2p_path: str | None,
+    local_p2p: Path,
+    package_importable: bool,
+) -> str:
+    if p2p_path:
+        return "p2p"
+    if local_p2p.exists():
+        return str(local_p2p)
+    if package_importable:
+        return "python -m p2p_engine"
+    return "unavailable"
+
+
 @app.command()
 def init(
     name: str | None = typer.Argument(None, help="Project name"),
@@ -113,6 +204,21 @@ def init(
         "local",
         "--repository",
         help="Repository mode: local or cloud",
+    ),
+    provider: str | None = typer.Option(
+        None,
+        "--provider",
+        help="Cloud remote provider: generic, github, or gitlab",
+    ),
+    remote: str = typer.Option(
+        "origin",
+        "--remote",
+        help="Git remote name for cloud-backed projects",
+    ),
+    remote_url: str | None = typer.Option(
+        None,
+        "--remote-url",
+        help="Remote repository URL for cloud-backed projects",
     ),
     domain: str = typer.Option(
         "none",
@@ -166,13 +272,32 @@ def init(
             project_domain=domain,
             rubric_enabled=rubric_enabled,
             owner=owner,
+            remote_provider=provider,
+            remote_name=remote,
+            remote_url_value=remote_url,
         )
     except ValueError as exc:
         _fail(str(exc))
     console.print("[green]P2P workspace initialized.[/green]")
     for path in created:
         console.print(f"  created {path}")
+    _print_init_remote_status(workspace)
     _print_init_next_steps(root.resolve(), agent, show_mcp_hint=mcp_hint)
+
+
+def _print_init_remote_status(workspace: P2PWorkspace) -> None:
+    profile = workspace.remote_profile()
+    if profile.mode == "local":
+        return
+    status = workspace.sync_status()
+    console.print("Remote profile")
+    console.print(f"  mode: {profile.mode}")
+    console.print(f"  provider: {profile.provider}")
+    console.print(f"  remote: {profile.remote or 'none'}")
+    console.print(f"  profile_url: {profile.url or 'none'}")
+    console.print(f"  git_remote_url: {status.remote_url or 'none'}")
+    console.print(f"  can_sync: {str(status.can_sync).lower()}")
+    console.print(f"  reason: {status.reason}")
 
 
 def _prompt_choice(prompt: str, choices: tuple[str, ...], default: str) -> str:
@@ -1406,6 +1531,7 @@ def sync_status(
     console.print(f"  mode: {status.mode}")
     console.print(f"  provider: {status.provider}")
     console.print(f"  remote: {status.remote or 'none'}")
+    console.print(f"  profile_url: {status.profile_url or 'none'}")
     console.print(f"  remote_url: {status.remote_url or 'none'}")
     console.print(f"  can_sync: {str(status.can_sync).lower()}")
     console.print(f"  reason: {status.reason}")

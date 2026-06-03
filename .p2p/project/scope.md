@@ -831,3 +831,68 @@ Generated from accepted proposal goals and non-goals.
 - Decide the full MCP permission model covered by PROP-066.
 - Require normal users to understand or run raw Git commands.
 - Guarantee automatic semantic conflict resolution between competing proposals.
+
+## PROP-073 - Ergonomic Remote Project Initialization
+
+### Goals
+
+- Let users declare remote project intent during init with provider, remote name, and remote URL options.
+- Guide users when the Git remote is missing, mismatched, or not reachable, without requiring raw Git knowledge.
+- Keep local and cloud project semantics unified: cloud mode only adds remote profile validation and managed sync guidance.
+- Preserve provider-neutral behavior and avoid creating external repositories in the MVP.
+- Generate agent instructions and next-step hints that match the selected repository mode.
+
+### Non-Goals
+
+- Automatically create GitHub/GitLab repositories or provider PR/MR resources.
+- Replace Git provider authentication, SSH setup, branch protection, or IAM.
+- Make local actor identities into strong authentication.
+
+## PROP-074 - Agent Runtime Bootstrap Robustness
+
+### Goals
+
+- Make P2P-managed repositories self-diagnosing for agents when the p2p runtime is missing.
+- Provide clear fallback guidance for PATH, virtualenv, module execution, MCP tools, or installation.
+- Prevent agents from bypassing governance while still making the next recovery step obvious.
+- Support cloud agent environments where the repository is mounted but the Python package is not installed.
+
+### Non-Goals
+
+- Allow agents to create or edit .p2p files manually when the CLI is missing.
+- Bundle a hosted P2P service or require a global package manager.
+- Grant cloud agents repository write permissions or provider credentials automatically.
+
+## PROP-075 - MCP End-To-End Proposal Collaboration Workflow
+
+### Goals
+
+- Make the normal proposal collaboration path coherent and closable through P2P primitives without raw Git.
+- Clarify draft persistence and commit behavior after MCP proposal creation or update.
+- Prevent accidental branch chaining by requiring or defaulting a safe base branch.
+- Define a safe consent-request path for MCP that preserves owner approval.
+- Allow MCP clients to correct remote profile metadata when policy allows it.
+
+### Non-Goals
+
+- Let MCP grant owner consent without an owner-controlled approval path.
+- Open provider PRs/MRs automatically.
+- Bypass clean-worktree requirements by silently committing arbitrary unrelated files.
+
+## PROP-076 - P2P Cloud Runner Boundary and Containerized Execution Model
+
+### Goals
+
+- Keep P2P Engine focused on local deterministic automation: CLI, filesystem .p2p state, Git audit, and local MCP.
+- Define P2P Cloud as a separate product layer that owns web/API, auth, UI, database, workflow orchestration, and multi-tenant state.
+- Define a containerized P2P runner model for cloud workflows that invokes the p2p CLI in isolated Git checkouts.
+- Make cloud execution auditable through .p2p artifacts and Git history without turning the engine into a hosted API service.
+- Clarify which future proposals should be rejected, accepted, or reformulated based on this boundary.
+
+### Non-Goals
+
+- Implement P2P Cloud inside this repository as part of P2P Engine core.
+- Add a public FastAPI/Django/NestJS API server to P2P Engine.
+- Make P2P Engine responsible for users, organizations, billing, sessions, OAuth, cloud IAM, or multi-tenant authorization.
+- Keep one long-running P2P server container per project as the default execution model.
+- Create provider PR/MR automation in the engine core.

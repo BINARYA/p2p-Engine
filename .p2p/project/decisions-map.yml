@@ -319,3 +319,23 @@ decisions:
   status: accepted
   feature: concurrent-managed-work-and-merge-decision-model
   source: .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model
+- proposal: PROP-073
+  title: Ergonomic Remote Project Initialization
+  status: accepted
+  feature: ergonomic-remote-project-initialization
+  source: .p2p/proposals/PROP-073-ergonomic-remote-project-initialization
+- proposal: PROP-074
+  title: Agent Runtime Bootstrap Robustness
+  status: accepted
+  feature: agent-runtime-bootstrap-robustness
+  source: .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness
+- proposal: PROP-075
+  title: MCP End-To-End Proposal Collaboration Workflow
+  status: accepted
+  feature: mcp-end-to-end-proposal-collaboration-workflow
+  source: .p2p/proposals/PROP-075-mcp-end-to-end-proposal-collaboration-workflow
+- proposal: PROP-076
+  title: P2P Cloud Runner Boundary and Containerized Execution Model
+  status: accepted
+  feature: p2p-cloud-runner-boundary-and-containerized-execution-model
+  source: .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model

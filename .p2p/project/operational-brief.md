@@ -57,6 +57,9 @@ These tools require matching consent receipts and record audit metadata.
 
 - MCP has been verified by tests and JSON-RPC paths, but still needs a real MCP client configuration smoke test.
 - README, install, MCP, and agent setup documentation now describe permission-gated write tools and should be tested by following them from a real client setup.
+- Cloud-agent dogfooding found that a repository can contain P2P policy and instructions but no available `p2p` runtime. A compliant agent then stops instead of creating proposals because manual `.p2p/` edits are forbidden.
+- MCP proposal collaboration is not yet end-to-end in agent-only environments: consent can be consumed but not requested, remote profile correction is CLI-only, draft creation can leave a dirty worktree, and branch creation can accidentally chain from the current proposal branch.
+- Remote init ergonomics need refinement: `--repository remote` is accepted as cloud-like behavior without an explicit message, and Git `origin` can diverge from the P2P remote profile.
 - The current proposal/MCP collaboration tranche is large and should be reviewed and committed before starting another implementation tranche.
 - Work lifecycle MCP parity is not yet decided. Proposal branch lifecycle is complete through permission-gated MCP, but Work publish/finalize/accept/cleanup MCP parity needs an explicit product decision.
 - Provider PR/MR automation is intentionally not implemented.
@@ -73,21 +76,33 @@ These tools require matching consent receipts and record audit metadata.
    Reason: README, install, MCP, and agent docs now explain permission-gated write tools; the next check is whether a user can follow them successfully from a real MCP client.
    Command: follow `docs/INSTALL.md` and `docs/MCP.md` to configure a real MCP client.
 
-3. Review remaining draft proposals.
-   Reason: readiness is limited mainly by unsettled draft roadmap items, not by active implementation work.
-   Command: `.venv/bin/p2p proposal list --status draft`
+3. Decide PROP-075 MCP End-To-End Proposal Collaboration Workflow.
+   Reason: real agent/cloud use showed that proposal creation, branch creation, consent, remote profile correction, publish, and review are not yet one coherent P2P/MCP workflow.
+   Command: `.venv/bin/p2p proposal show PROP-075`
 
-4. Consolidate the completed proposal/MCP collaboration tranche.
+4. Decide PROP-074 Agent Runtime Bootstrap Robustness.
+   Reason: cloud agents need actionable recovery when the repository has P2P instructions but no `p2p` executable in PATH.
+   Command: `.venv/bin/p2p proposal show PROP-074`
+
+5. Decide PROP-073 Ergonomic Remote Project Initialization.
+   Reason: remote-backed init, repository mode aliases, Git remote detection, and P2P remote profile correction should be explicit and guided.
+   Command: `.venv/bin/p2p proposal show PROP-073`
+
+6. Consolidate the completed proposal/MCP collaboration tranche.
    Reason: the tranche is large, tests pass, and the project state is aligned; review and commit it before adding new scope.
    Command: review current diff and prepare commit for the completed proposal/MCP collaboration tranche.
 
-5. Decide whether Work lifecycle MCP parity is in scope.
+7. Decide whether Work lifecycle MCP parity is in scope.
    Reason: proposal branch lifecycle is complete through permission-gated MCP, but Work publish/finalize/accept/cleanup MCP parity remains a product decision.
    Command: decide whether to create a proposal for permission-gated Work MCP lifecycle tools.
 
-6. Decide whether provider PR/MR automation belongs in a future adapter.
+8. Decide whether provider PR/MR automation belongs in a future adapter.
    Reason: request-review currently records provider-agnostic handoff metadata only; opening GitHub PRs or GitLab MRs should remain outside Core/MCP unless accepted separately.
    Command: decide whether provider PR/MR automation belongs in a future adapter proposal.
+
+9. Review remaining draft proposals.
+   Reason: readiness is limited mainly by unsettled draft roadmap items, not by active implementation work.
+   Command: `.venv/bin/p2p proposal list --status draft`
 
 ## Not Yet
 

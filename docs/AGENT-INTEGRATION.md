@@ -122,6 +122,22 @@ Do not invent .p2p files.
 Do not reverse-engineer IDs or registry entries.
 ```
 
+## Runtime Bootstrap
+
+When an agent enters a P2P-managed repository, it should discover the runtime in
+this order:
+
+```bash
+p2p agent doctor --root /path/to/project
+.venv/bin/p2p agent doctor --root /path/to/project
+python -m p2p_engine agent doctor --root /path/to/project
+```
+
+If none of those commands is available, the agent may inspect configured MCP
+tools and use explicit write-safe tools when their schema matches the requested
+operation. If neither CLI nor a matching MCP write tool is available, the agent
+must stop and report diagnostics instead of editing `.p2p/` directly.
+
 ## Codex
 
 For a P2P-managed project, use the generated agent instructions:

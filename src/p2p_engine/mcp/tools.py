@@ -47,13 +47,16 @@ TOOL_NAMES = (
     "p2p_registry_show",
     "p2p_project_show",
     "p2p_project_remote_show",
+    "p2p_project_remote_configure",
     "p2p_permissions_show",
+    "p2p_consent_request",
     "p2p_consent_status",
     "p2p_consent_show",
     "p2p_sync_status",
     "p2p_sync_fetch",
     "p2p_sync_pull",
     "p2p_sync_push",
+    "p2p_proposal_draft_commit",
     "p2p_proposal_branch",
     "p2p_proposal_branch_status",
     "p2p_proposal_publish",
@@ -451,9 +454,45 @@ def tool_definitions() -> list[dict[str, object]]:
             "inputSchema": _schema({"root": {"type": "string"}}),
         },
         {
+            "name": "p2p_project_remote_configure",
+            "description": (
+                "Write-safe project setup tool: configure P2P remote profile metadata "
+                "without creating provider repositories, opening PRs, or editing Git remotes."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "mode": {"type": "string", "enum": ["local", "remote"]},
+                    "provider": {"type": "string", "enum": ["local", "generic", "github", "gitlab"]},
+                    "remote": {"type": "string"},
+                    "url": {"type": "string"},
+                },
+                ["mode"],
+            ),
+        },
+        {
             "name": "p2p_permissions_show",
             "description": "Read project-declared permission identities and role policy.",
             "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_consent_request",
+            "description": (
+                "Write-safe consent workflow tool: record a pending consent request for "
+                "an owner-controlled operation. Does not grant consent and cannot authorize execution."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "operation": {"type": "string"},
+                    "target": {"type": "string"},
+                    "actor_id": {"type": "string"},
+                    "requested_by": {"type": "string"},
+                    "scope": {"type": "string"},
+                    "expires_on": {"type": "string"},
+                },
+                ["operation", "target", "actor_id"],
+            ),
         },
         {
             "name": "p2p_consent_status",
@@ -518,7 +557,25 @@ def tool_definitions() -> list[dict[str, object]]:
             "name": "p2p_proposal_branch",
             "description": (
                 "Managed proposal collaboration tool: create and check out a P2P "
-                "proposal branch with actor metadata. Does not publish, accept, reject, or merge."
+                "proposal branch with actor metadata from an explicit safe base branch. "
+                "Does not publish, accept, reject, or merge."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "proposal_id": {"type": "string"},
+                    "actor": {"type": "string"},
+                    "base_branch": {"type": "string"},
+                    "allow_proposal_base": {"type": "boolean"},
+                },
+                ["proposal_id"],
+            ),
+        },
+        {
+            "name": "p2p_proposal_draft_commit",
+            "description": (
+                "Managed proposal collaboration tool: commit current draft proposal "
+                "changes before creating a proposal branch. Does not publish, push, or decide."
             ),
             "inputSchema": _schema(
                 {"root": {"type": "string"}, "proposal_id": {"type": "string"}, "actor": {"type": "string"}},
@@ -928,8 +985,42 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, o
         return {"section": section, "content": workspace.show_project_state(section)}
     if name == "p2p_project_remote_show":
         return {"remote": _to_jsonable(workspace.remote_profile())}
+    if name == "p2p_project_remote_configure":
+        profile = workspace.configure_remote_profile(
+            mode=_required(arguments, "mode"),
+            provider=_optional_string(arguments, "provider"),
+            remote=str(arguments.get("remote") or "origin"),
+            url=_optional_string(arguments, "url"),
+        )
+        return {
+            "remote": _to_jsonable(profile),
+            "sync": _to_jsonable(workspace.sync_status(profile.remote)),
+            "provider_side_effects": {
+                "creates_remote_repository": False,
+                "opens_external_request": False,
+                "changes_git_remote": False,
+            },
+        }
     if name == "p2p_permissions_show":
         return {"permissions": _to_jsonable(workspace.permissions_show())}
+    if name == "p2p_consent_request":
+        consent = workspace.consent_request(
+            operation=_required(arguments, "operation"),
+            target=_required(arguments, "target"),
+            actor_id=_required(arguments, "actor_id"),
+            requested_by=_optional_string(arguments, "requested_by"),
+            scope=_optional_string(arguments, "scope"),
+            expires_on=_optional_string(arguments, "expires_on"),
+        )
+        return {
+            "consent": _to_jsonable(consent),
+            "governance": {
+                "owner_decision_required": True,
+                "consent_granted": False,
+                "execution_authorized": False,
+                "next": "Owner must grant consent through CLI, UI, or an authenticated server workflow.",
+            },
+        }
     if name == "p2p_consent_status":
         return {"consents": _to_jsonable(workspace.consent_statuses())}
     if name == "p2p_consent_show":
@@ -992,12 +1083,28 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, o
             push_branch_name=result.branch,
         )
         return {"sync": _to_jsonable(result), "consent": _to_jsonable(consumed)}
+    if name == "p2p_proposal_draft_commit":
+        return {
+            "proposal_draft_commit": _to_jsonable(
+                workspace.commit_proposal_draft(
+                    _required(arguments, "proposal_id"),
+                    actor=str(arguments.get("actor") or "local"),
+                )
+            ),
+            "governance": {
+                "owner_decision_required": False,
+                "decision_made": False,
+                "published": False,
+            },
+        }
     if name == "p2p_proposal_branch":
         return {
             "proposal_branch": _to_jsonable(
                 workspace.branch_proposal(
                     _required(arguments, "proposal_id"),
                     actor=str(arguments.get("actor") or "local"),
+                    base_branch=str(arguments.get("base_branch") or "main"),
+                    allow_proposal_base=bool(arguments.get("allow_proposal_base") or False),
                 )
             ),
             "governance": {

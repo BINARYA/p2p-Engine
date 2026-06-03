@@ -86,13 +86,16 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_registry_show",
         "p2p_project_show",
         "p2p_project_remote_show",
+        "p2p_project_remote_configure",
         "p2p_permissions_show",
+        "p2p_consent_request",
         "p2p_consent_status",
         "p2p_consent_show",
         "p2p_sync_status",
         "p2p_sync_fetch",
         "p2p_sync_pull",
         "p2p_sync_push",
+        "p2p_proposal_draft_commit",
         "p2p_proposal_branch",
         "p2p_proposal_branch_status",
         "p2p_proposal_publish",
@@ -190,6 +193,142 @@ def test_mcp_safe_managed_sync_and_proposal_branch_tools(tmp_path: Path) -> None
 
     status = call_tool("p2p_proposal_branch_status", {"root": str(tmp_path), "proposal_id": "PROP-001"})
     assert status["proposal_branch"]["status"] == "branched"
+
+
+def test_mcp_remote_configure_and_consent_request_are_write_safe(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
+    runner.invoke(app, ["permissions", "actor", "add", "lorenzo", "--role", "contributor", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+
+    configured = call_tool(
+        "p2p_project_remote_configure",
+        {
+            "root": str(tmp_path),
+            "mode": "remote",
+            "provider": "generic",
+            "remote": "origin",
+        },
+    )
+
+    assert configured["remote"]["mode"] == "remote"
+    assert configured["remote"]["remote"] == "origin"
+    assert configured["provider_side_effects"]["creates_remote_repository"] is False
+
+    requested = call_tool(
+        "p2p_consent_request",
+        {
+            "root": str(tmp_path),
+            "operation": "proposal_publish",
+            "target": "PROP-001",
+            "actor_id": "lorenzo",
+            "requested_by": "lorenzo",
+        },
+    )
+
+    assert requested["consent"]["status"] == "requested"
+    assert requested["governance"]["owner_decision_required"] is True
+    assert requested["governance"]["execution_authorized"] is False
+    receipt = yaml.safe_load((tmp_path / ".p2p" / "consents" / "CONSENT-001" / "consent.yml").read_text(encoding="utf-8"))
+    assert receipt["status"] == "requested"
+    assert receipt["approved_by"] is None
+
+
+def test_mcp_requested_consent_does_not_authorize_publish(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
+    runner.invoke(app, ["permissions", "actor", "add", "lorenzo", "--role", "contributor", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Requested Consent Demo", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    call_tool("p2p_project_remote_configure", {"root": str(tmp_path), "mode": "remote", "provider": "generic"})
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    call_tool("p2p_proposal_branch", {"root": str(tmp_path), "proposal_id": "PROP-001", "actor": "lorenzo"})
+    call_tool(
+        "p2p_consent_request",
+        {"root": str(tmp_path), "operation": "proposal_publish", "target": "PROP-001", "actor_id": "lorenzo"},
+    )
+
+    try:
+        call_tool(
+            "p2p_proposal_publish",
+            {"root": str(tmp_path), "proposal_id": "PROP-001", "actor_id": "lorenzo", "consent_id": "CONSENT-001"},
+        )
+    except ValueError as exc:
+        assert "Consent receipt is not granted" in str(exc)
+    else:
+        raise AssertionError("requested consent should not authorize publish")
+
+
+def test_mcp_proposal_draft_commit_then_branch_from_explicit_base(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Draft Commit Demo", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    call_tool(
+        "p2p_proposal_update",
+        {
+            "root": str(tmp_path),
+            "proposal_id": "PROP-001",
+            "problem": "Updated from MCP and still uncommitted.",
+        },
+    )
+
+    committed = call_tool("p2p_proposal_draft_commit", {"root": str(tmp_path), "proposal_id": "PROP-001", "actor": "agent"})
+
+    assert committed["proposal_draft_commit"]["proposal_id"] == "PROP-001"
+    assert any(
+        "PROP-001-draft-commit-demo/proposal.md" in path
+        for path in committed["proposal_draft_commit"]["changed_files"]
+    )
+
+    branched = call_tool(
+        "p2p_proposal_branch",
+        {"root": str(tmp_path), "proposal_id": "PROP-001", "actor": "agent", "base_branch": "main"},
+    )
+
+    assert branched["proposal_branch"]["base_branch"] == "main"
+    assert _git(tmp_path, "branch", "--show-current").stdout.strip().startswith("p2p/proposal/PROP-001-")
+
+
+def test_mcp_proposal_branch_refuses_proposal_branch_base_without_opt_in(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "First Branch", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Second Branch", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    call_tool("p2p_proposal_branch", {"root": str(tmp_path), "proposal_id": "PROP-001", "actor": "agent"})
+    proposal_branch = _git(tmp_path, "branch", "--show-current").stdout.strip()
+
+    try:
+        call_tool(
+            "p2p_proposal_branch",
+            {
+                "root": str(tmp_path),
+                "proposal_id": "PROP-002",
+                "actor": "agent",
+                "base_branch": proposal_branch,
+            },
+        )
+    except ValueError as exc:
+        assert "Cannot create managed proposal branch from another proposal branch" in str(exc)
+    else:
+        raise AssertionError("proposal branch chaining should require explicit opt-in")
 
 
 def test_mcp_proposal_publish_requires_and_consumes_consent(tmp_path: Path) -> None:

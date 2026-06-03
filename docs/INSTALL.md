@@ -462,7 +462,24 @@ p2p change create --from PROP-001
 
 `p2p: command not found`
 
-Use the virtualenv binary:
+Run the runtime diagnostics with the first available command:
+
+```bash
+p2p agent doctor --root /path/to/project
+.venv/bin/p2p agent doctor --root /path/to/project
+python -m p2p_engine agent doctor --root /path/to/project
+```
+
+Discovery order for agents:
+
+```text
+p2p
+.venv/bin/p2p
+python -m p2p_engine
+available MCP tools
+```
+
+If `p2p` is not on `PATH`, use the virtualenv binary:
 
 ```bash
 /path/to/p2p-Engine/.venv/bin/p2p --help
@@ -472,6 +489,12 @@ or activate the virtualenv:
 
 ```bash
 . /path/to/p2p-Engine/.venv/bin/activate
+```
+
+If the package is importable but the console script is not installed, use:
+
+```bash
+python -m p2p_engine --help
 ```
 
 MCP server cannot start

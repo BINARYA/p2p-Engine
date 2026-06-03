@@ -518,7 +518,37 @@ decisions:
     handling, and agent-safe Git abstraction.
 - proposal: PROP-073
   title: Ergonomic Remote Project Initialization
-  outcome: pending
-  status: draft
+  outcome: accepted
+  status: accepted
   path: .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/decision.md
-  reason: ''
+  reason: 'Accepted to fix dogfooding gaps in remote/cloud project initialization:
+    init must validate repository mode, configure P2P remote profile ergonomically,
+    detect Git origin/profile divergence, and provide actionable recovery without
+    requiring raw Git knowledge.'
+- proposal: PROP-074
+  title: Agent Runtime Bootstrap Robustness
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness/decision.md
+  reason: Accepted to make P2P-managed repositories usable in local and cloud agent
+    runtimes when the p2p executable is missing or not on PATH, by adding runtime
+    diagnostics, documented discovery fallbacks, and actionable recovery while preserving
+    the Missing Primitive Rule.
+- proposal: PROP-075
+  title: MCP End-To-End Proposal Collaboration Workflow
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-075-mcp-end-to-end-proposal-collaboration-workflow/decision.md
+  reason: 'Accepted to close the MCP proposal collaboration workflow discovered during
+    dogfooding: MCP can now configure remote profile metadata, commit proposal drafts,
+    branch from an explicit safe base, request owner consent without granting it,
+    and then use existing permission-gated publish/review tools once owner consent
+    is granted.'
+- proposal: PROP-076
+  title: P2P Cloud Runner Boundary and Containerized Execution Model
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model/decision.md
+  reason: 'Accepted as the architectural boundary for future cloud work: P2P Engine
+    remains local CLI/filesystem/Git/local-MCP, while P2P Cloud owns web/API/auth/UI/workflows/database
+    and invokes P2P through isolated runner containers.'

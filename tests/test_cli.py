@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import yaml
@@ -37,6 +38,9 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert "p2p proposal publish PROP-XXX --auto-renumber" in agents
     assert "Do not run raw `git branch`, `git fetch`, `git pull`, `git push`, `git merge`" in agents
     assert "p2p context --budget small" in agents
+    assert "Runtime Bootstrap" in agents
+    assert ".venv/bin/p2p agent doctor" in agents
+    assert "python -m p2p_engine agent doctor" in agents
 
     result = runner.invoke(app, ["status", "--root", str(tmp_path)])
     assert result.exit_code == 0
@@ -932,9 +936,98 @@ def test_cli_init_can_generate_agent_specific_instructions(tmp_path: Path) -> No
 
     policy = (tmp_path / ".p2p" / "agent-policy.yml").read_text(encoding="utf-8")
     assert "missing_primitive_behavior: stop_and_report" in policy
+    assert "runtime_bootstrap:" in policy
+    assert "python -m p2p_engine" in policy
     assert "direct_p2p_file_edits: forbidden" in policy
     assert "read_before_explaining: true" in policy
     assert "mode: cloud" in policy
+
+
+def test_cli_doctor_reports_runtime_readiness(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+
+    result = runner.invoke(app, ["doctor", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "P2P doctor" in result.output
+    assert "project: true" in result.output
+    assert "package_importable: true" in result.output
+    assert "python_module_cli: python -m p2p_engine" in result.output
+    assert "mcp_server_importable: true" in result.output
+    assert "git_repository: true" in result.output
+    assert "discovery_order: p2p -> .venv/bin/p2p -> python -m p2p_engine -> MCP" in result.output
+    assert "suggested_start:" in result.output
+
+
+def test_cli_agent_doctor_reports_missing_primitive_recovery(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["agent", "doctor", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "missing_primitive_rule:" in result.output
+    assert "stop and report these diagnostics instead of editing .p2p by hand" in result.output
+
+
+def test_python_module_entrypoint_exposes_cli_help() -> None:
+    result = subprocess.run(
+        [sys.executable, "-m", "p2p_engine", "--help"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "P2P Engine CLI" in result.stdout
+    assert "doctor" in result.stdout
+
+
+def test_cli_init_cloud_configures_remote_profile(tmp_path: Path) -> None:
+    _git(tmp_path, "init")
+    remote_url = "git@github.com:example/scatola-perfetta.git"
+    _git(tmp_path, "remote", "add", "origin", remote_url)
+
+    result = runner.invoke(
+        app,
+        [
+            "init",
+            "Scatola Perfetta",
+            "--repository",
+            "cloud",
+            "--provider",
+            "github",
+            "--remote",
+            "origin",
+            "--remote-url",
+            remote_url,
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Remote profile" in result.output
+    assert "provider: github" in result.output
+    assert "profile_url: git@github.com:example/scatola-perfetta.git" in result.output
+    assert "git_remote_url: git@github.com:example/scatola-perfetta.git" in result.output
+    assert "can_sync: true" in result.output
+
+    project = yaml.safe_load((tmp_path / ".p2p" / "project.yml").read_text(encoding="utf-8"))
+    assert project["repository"]["mode"] == "cloud"
+    assert project["remote"]["mode"] == "remote"
+    assert project["remote"]["provider"] == "github"
+    assert project["remote"]["remote"] == "origin"
+    assert project["remote"]["url"] == remote_url
+
+
+def test_cli_init_rejects_ambiguous_repository_remote_alias(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app,
+        ["init", "Demo Project", "--repository", "remote", "--root", str(tmp_path)],
+    )
+
+    assert result.exit_code == 1
+    assert "Repository mode must be local or cloud" in result.output
 
 
 def test_cli_agent_instructions_refresh_adds_profiles_without_removing_existing(
@@ -2325,6 +2418,52 @@ def test_cli_sync_status_reports_local_project_without_remote(tmp_path: Path) ->
     assert "mode: local" in result.output
     assert "can_sync: false" in result.output
     assert "not a Git repository" in result.output
+
+
+def test_cli_sync_status_detects_git_origin_when_p2p_profile_is_local(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "remote", "add", "origin", "git@github.com:example/demo.git")
+
+    result = runner.invoke(app, ["sync", "status", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "repository: true" in result.output
+    assert "mode: local" in result.output
+    assert "can_sync: false" in result.output
+    assert "project remote profile is local, but Git remote origin exists" in result.output
+    normalized_output = result.output.replace("\n", " ")
+    assert "p2p project remote configure --mode remote --remote origin" in normalized_output
+
+
+def test_cli_sync_status_detects_remote_profile_url_mismatch(tmp_path: Path) -> None:
+    _git(tmp_path, "init")
+    _git(tmp_path, "remote", "add", "origin", "git@github.com:example/git-url.git")
+    runner.invoke(
+        app,
+        [
+            "init",
+            "Demo Project",
+            "--repository",
+            "cloud",
+            "--provider",
+            "github",
+            "--remote",
+            "origin",
+            "--remote-url",
+            "git@github.com:example/p2p-url.git",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    result = runner.invoke(app, ["sync", "status", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "profile_url: git@github.com:example/p2p-url.git" in result.output
+    assert "remote_url: git@github.com:example/git-url.git" in result.output
+    assert "can_sync: false" in result.output
+    assert "P2P remote profile URL does not match Git remote origin" in result.output
 
 
 def test_cli_sync_push_fetch_and_pull_wrap_git_remote(tmp_path: Path) -> None:

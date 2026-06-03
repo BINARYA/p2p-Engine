@@ -2180,7 +2180,7 @@ proposals:
   - tasks.yml
 - id: PROP-073
   title: Ergonomic Remote Project Initialization
-  status: draft
+  status: accepted
   path: .p2p/proposals/PROP-073-ergonomic-remote-project-initialization
   summary: Extend p2p init and remote profile setup with an ergonomic remote initialization
     flow. Add init options such as --repository cloud, --provider, --remote, and --remote-url.
@@ -2190,6 +2190,104 @@ proposals:
     provider resources in the MVP. Existing p2p project remote configure remains available
     for later edits, and p2p sync status remains the validation command after setup.
   decision_file: .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/decision.md
+  related_changes:
+  - CHANGE-055
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-074
+  title: Agent Runtime Bootstrap Robustness
+  status: accepted
+  path: .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness
+  summary: 'Introduce an Agent Runtime Bootstrap Robustness model. Generated AGENTS.md,
+    agent policy, and docs should include a runtime discovery sequence: try p2p, try
+    repository-local virtualenv paths when present, try python -m p2p_engine if the
+    package is importable, then check MCP availability. Add a diagnostic command or
+    script such as p2p doctor, p2p agent doctor, or a lightweight repo-local bootstrap
+    hint that reports whether p2p CLI, MCP server, Git, and project root are usable.
+    For cloud environments, provide a documented install/bootstrap path that agents
+    can request from the owner rather than stopping with only p2p command not found.
+    The Missing Primitive Rule remains valid, but the error should include actionable
+    recovery steps.'
+  decision_file: .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness/decision.md
+  related_changes:
+  - CHANGE-056
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-075
+  title: MCP End-To-End Proposal Collaboration Workflow
+  status: accepted
+  path: .p2p/proposals/PROP-075-mcp-end-to-end-proposal-collaboration-workflow
+  summary: 'Define an MCP end-to-end proposal collaboration workflow: create or update
+    draft proposal, persist/commit draft state through an explicit P2P primitive or
+    documented auto-commit policy, create a managed proposal branch from an explicit
+    base branch such as main, request or reference owner consent, publish the branch,
+    and request review. Add MCP tools or behavior such as p2p_project_remote_configure,
+    p2p_consent_request, p2p_proposal_draft_commit, and p2p_proposal_branch with base_branch.
+    Keep p2p_consent_grant owner-controlled; MCP may request consent, but granting
+    consent should remain CLI/UI/server owner action until strong authentication exists.'
+  decision_file: .p2p/proposals/PROP-075-mcp-end-to-end-proposal-collaboration-workflow/decision.md
+  related_changes:
+  - CHANGE-057
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-076
+  title: P2P Cloud Runner Boundary and Containerized Execution Model
+  status: accepted
+  path: .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model
+  summary: 'Adopt a strict boundary: P2P Engine exposes stable local automation primitives
+    through CLI, local project files, Git, and local MCP. P2P Cloud is a separate
+    web/API product that uses P2P Engine by launching isolated runner jobs. The cloud
+    stack may use Caddy, a web/API framework such as Django/DRF or NestJS, PostgreSQL
+    for users/projects/jobs/permissions, Redis or equivalent queues, Prefect or equivalent
+    workflow orchestration, and ephemeral p2p-runner containers. Each runner gets
+    a temporary workspace, checks out or initializes the target Git repository, executes
+    p2p CLI commands, records .p2p state, commits/pushes through Git, emits logs/artifacts,
+    and exits. P2P Engine must not become a public multi-tenant API server, IAM system,
+    web UI, workflow scheduler, provider PR automation service, or hosted database-backed
+    application.'
+  decision_file: .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model/decision.md
   related_changes: []
   source_files:
   - ai-digest.md

@@ -475,6 +475,7 @@ class SyncStatus:
     mode: str
     provider: str
     remote: str | None
+    profile_url: str | None
     remote_url: str | None
     can_sync: bool
     reason: str
@@ -487,6 +488,13 @@ class SyncResult:
     branch: str | None
     remote: str
     remote_url: str
+
+
+@dataclass(frozen=True)
+class ProposalDraftCommit:
+    proposal_id: str
+    commit: str
+    changed_files: list[str]
 
 
 @dataclass(frozen=True)
@@ -671,10 +679,20 @@ class P2PWorkspace:
         project_domain: str = "none",
         rubric_enabled: dict[str, bool] | None = None,
         owner: str | None = None,
+        remote_provider: str | None = None,
+        remote_name: str = "origin",
+        remote_url_value: str | None = None,
     ) -> list[Path]:
         agent_profile = _normalize_agent_profile(agent_profile)
         repository_mode = _normalize_repository_mode(repository_mode)
         project_domain = _normalize_project_domain(project_domain)
+        remote_profile = _init_remote_profile_payload(
+            self.root,
+            repository_mode=repository_mode,
+            provider=remote_provider,
+            remote=remote_name,
+            url=remote_url_value,
+        )
         project_id = _slugify(name)
         files: dict[Path, str] = {
             self.p2p_dir / "project.yml": _yaml_dump(
@@ -697,6 +715,7 @@ class P2PWorkspace:
                         "mode": repository_mode,
                         "managed_by_p2p": False,
                     },
+                    "remote": remote_profile,
                 }
             ),
             self.p2p_dir / "project" / "domain.yml": _yaml_dump(_domain_state_payload(project_domain)),
@@ -869,6 +888,53 @@ class P2PWorkspace:
             "approved_by": approved_by_slug,
             "scope": scope or "single_target",
             "single_use": bool(single_use),
+            "expires_on": expires_on,
+            "created_at": date.today().isoformat(),
+            "consumed_at": None,
+            "revoked_at": None,
+            "result": None,
+            "provider": None,
+        }
+        path = receipt_dir / "consent.yml"
+        path.write_text(_yaml_dump(receipt), encoding="utf-8")
+        return _consent_receipt_from_payload(receipt, path.relative_to(self.root))
+
+    def consent_request(
+        self,
+        operation: str,
+        target: str,
+        actor_id: str,
+        *,
+        requested_by: str | None = None,
+        scope: str | None = None,
+        expires_on: str | None = None,
+    ) -> ConsentReceipt:
+        operation = _normalize_consent_operation(operation)
+        target = target.strip()
+        if not target:
+            raise ValueError("Consent target is required")
+        actor_slug = _identity_slug(actor_id)
+        requested_by_slug = _identity_slug(requested_by or actor_id)
+        permissions = self.permissions_show()
+        identities = permissions.get("identities", {})
+        if not isinstance(identities, dict):
+            raise ValueError("Invalid permissions policy: identities must be a mapping")
+        if actor_slug not in identities:
+            raise ValueError(f"Unknown consent actor: {actor_slug}. Add it with `p2p permissions actor add`.")
+
+        consent_id = self._next_consent_id()
+        receipt_dir = self.p2p_dir / "consents" / consent_id
+        receipt_dir.mkdir(parents=True, exist_ok=False)
+        receipt = {
+            "consent_id": consent_id,
+            "status": "requested",
+            "operation": operation,
+            "target": target,
+            "actor_id": actor_slug,
+            "requested_by": requested_by_slug,
+            "approved_by": None,
+            "scope": scope or "single_target",
+            "single_use": True,
             "expires_on": expires_on,
             "created_at": date.today().isoformat(),
             "consumed_at": None,
@@ -1134,17 +1200,45 @@ class P2PWorkspace:
         can_sync = True
         if not git_status.is_repository:
             can_sync = False
-            reason = "not a Git repository"
+            if profile.mode == "remote":
+                reason = (
+                    "not a Git repository; initialize or clone the repository, then ensure "
+                    f"Git remote {profile.remote or 'origin'} matches the P2P remote profile"
+                )
+            else:
+                reason = "not a Git repository"
         elif profile.mode == "local" and remote is None and not profile.remote:
+            origin_url = remote_url(self.root, "origin") if git_status.is_repository else None
             can_sync = False
-            reason = "project remote profile is local"
+            if origin_url:
+                reason = (
+                    "project remote profile is local, but Git remote origin exists; "
+                    "run p2p project remote configure --mode remote --remote origin"
+                )
+            else:
+                reason = "project remote profile is local"
         elif not selected_remote:
             can_sync = False
             reason = "no Git remote configured"
         elif resolved_remote_url is None:
             can_sync = False
-            reason = f"Git remote not found: {selected_remote}"
-
+            if profile.url:
+                reason = (
+                    f"Git remote not found: {selected_remote}; add it with "
+                    f"git remote add {selected_remote} {profile.url} or update the P2P profile "
+                    "with p2p project remote configure"
+                )
+            else:
+                reason = (
+                    f"Git remote not found: {selected_remote}; configure it locally or run "
+                    "p2p project remote configure with --url"
+                )
+        elif profile.url and resolved_remote_url != profile.url:
+            can_sync = False
+            reason = (
+                f"P2P remote profile URL does not match Git remote {selected_remote}; "
+                "run p2p project remote configure with the intended URL"
+            )
         return SyncStatus(
             is_repository=git_status.is_repository,
             branch=git_status.branch,
@@ -1152,6 +1246,7 @@ class P2PWorkspace:
             mode=profile.mode,
             provider=profile.provider,
             remote=selected_remote,
+            profile_url=profile.url,
             remote_url=resolved_remote_url,
             can_sync=can_sync,
             reason=reason,
@@ -1225,7 +1320,28 @@ class P2PWorkspace:
             decision_reason=_read_markdown_section(decision_text, "Reason") or "Not provided.",
         )
 
-    def branch_proposal(self, proposal_id: str, actor: str = "local") -> ProposalBranchDetail:
+    def commit_proposal_draft(self, proposal_id: str, actor: str = "local") -> ProposalDraftCommit:
+        self._find_proposal_dir(proposal_id)
+        git_status = get_git_status(self.root)
+        if not git_status.is_repository:
+            raise ValueError("Cannot commit proposal draft outside a Git repository")
+        if not git_status.branch:
+            raise ValueError("Cannot commit proposal draft from detached HEAD")
+        changed = changed_files(self.root)
+        if not changed:
+            raise ValueError("Cannot commit proposal draft without uncommitted changes")
+        commit = commit_all(self.root, f"P2P proposal draft {proposal_id} by {_identity_slug(actor)}")
+        if commit is None:
+            raise ValueError("Failed to create proposal draft commit")
+        return ProposalDraftCommit(proposal_id=proposal_id, commit=commit, changed_files=changed)
+
+    def branch_proposal(
+        self,
+        proposal_id: str,
+        actor: str = "local",
+        base_branch: str | None = None,
+        allow_proposal_base: bool = False,
+    ) -> ProposalBranchDetail:
         proposal_dir = self._find_proposal_dir(proposal_id)
         proposal_text = _read_optional(proposal_dir / "proposal.md")
         title = _clean_proposal_title(_read_title(proposal_text) or proposal_id, proposal_id)
@@ -1239,7 +1355,17 @@ class P2PWorkspace:
         if not git_status.is_clean:
             raise ValueError("Cannot create managed proposal branch with uncommitted changes")
 
-        base_branch = git_status.branch
+        selected_base = (base_branch or git_status.branch).strip()
+        if not selected_base:
+            raise ValueError("Base branch is required")
+        if selected_base.startswith("p2p/proposal/") and not allow_proposal_base:
+            raise ValueError("Cannot create managed proposal branch from another proposal branch without explicit allow_proposal_base")
+        if git_status.branch != selected_base:
+            if not checkout_branch(self.root, selected_base):
+                raise ValueError(f"Failed to check out base branch: {selected_base}")
+            git_status = get_git_status(self.root)
+            if not git_status.is_clean:
+                raise ValueError("Cannot create managed proposal branch with uncommitted changes")
         base_commit = head_commit(self.root)
         if base_commit is None:
             raise ValueError("Cannot resolve current Git commit")
@@ -1261,7 +1387,7 @@ class P2PWorkspace:
             "branch_hash16": branch_hash16,
             "actor": actor,
             "actor_slug": actor_slug,
-            "base_branch": base_branch,
+            "base_branch": selected_base,
             "base_commit": base_commit,
             "head_commit": head,
             "created_at": date.today().isoformat(),
@@ -1919,9 +2045,12 @@ class P2PWorkspace:
             if operation not in CONSENT_OPERATIONS:
                 add("P2P222_INVALID_CONSENT_OPERATION", "error", consent_path, f"Invalid consent operation: {operation}")
             status = str(consent.get("status") or "")
-            if status not in {"granted", "consumed", "revoked", "expired", "used_with_error"}:
+            if status not in {"requested", "granted", "consumed", "revoked", "expired", "used_with_error"}:
                 add("P2P223_INVALID_CONSENT_STATUS", "error", consent_path, f"Invalid consent status: {status}")
-            for required in ("target", "actor_id", "approved_by", "created_at"):
+            required_fields = ["target", "actor_id", "created_at"]
+            if status != "requested":
+                required_fields.append("approved_by")
+            for required in required_fields:
                 if not str(consent.get(required) or "").strip():
                     add("P2P224_MISSING_CONSENT_FIELD", "error", consent_path, f"Consent receipt missing required field: {required}")
 
@@ -6232,11 +6361,50 @@ def _expanded_agent_profiles(profile: str) -> list[str]:
 
 def _normalize_repository_mode(mode: str) -> str:
     normalized = mode.strip().lower()
-    aliases = {"remote": "cloud", "hosted": "cloud"}
-    normalized = aliases.get(normalized, normalized)
     if normalized not in REPOSITORY_MODES:
         raise ValueError("Repository mode must be local or cloud")
     return normalized
+
+
+def _init_remote_profile_payload(
+    root: Path,
+    *,
+    repository_mode: str,
+    provider: str | None,
+    remote: str,
+    url: str | None,
+) -> dict[str, object]:
+    if repository_mode == "local":
+        if provider or url:
+            raise ValueError("Remote provider and URL options require --repository cloud")
+        return {
+            "mode": "local",
+            "provider": "local",
+            "remote": None,
+            "url": None,
+            "review_request": {
+                "mode": "advisory",
+                "opens_external_request": False,
+            },
+        }
+
+    selected_provider = (provider or "generic").strip().lower()
+    if selected_provider not in {"generic", "github", "gitlab"}:
+        raise ValueError("Remote provider must be generic, github, or gitlab")
+    selected_remote = (remote or "origin").strip()
+    if not selected_remote:
+        raise ValueError("Remote name is required for cloud-backed projects")
+    resolved_url = url or remote_url(root, selected_remote)
+    return {
+        "mode": "remote",
+        "provider": selected_provider,
+        "remote": selected_remote,
+        "url": resolved_url,
+        "review_request": {
+            "mode": "advisory",
+            "opens_external_request": False,
+        },
+    }
 
 
 def _normalize_project_domain(domain: str) -> str:
@@ -6401,6 +6569,21 @@ def _agent_policy(project_name: str, profiles: list[str], repository_mode: str) 
             "cloud_is_advisory_until_configured": repository_mode == "cloud",
         },
         "agent_profiles": profiles,
+        "runtime_bootstrap": {
+            "discovery_order": [
+                "p2p",
+                ".venv/bin/p2p",
+                "python -m p2p_engine",
+                "available MCP tools",
+            ],
+            "doctor_commands": [
+                "p2p doctor",
+                "p2p agent doctor",
+                ".venv/bin/p2p agent doctor",
+                "python -m p2p_engine agent doctor",
+            ],
+            "when_unavailable": "stop_and_report_diagnostics",
+        },
         "mcp": {
             "default_mode": "read_only",
             "write_tools_require_explicit_tool_schema": True,
@@ -6445,10 +6628,13 @@ def _agent_policy(project_name: str, profiles: list[str], repository_mode: str) 
                 "p2p sync push",
             ],
             "mcp_tools": [
+                "p2p_project_remote_configure",
+                "p2p_consent_request",
                 "p2p_sync_status",
                 "p2p_sync_fetch",
                 "p2p_sync_pull",
                 "p2p_sync_push",
+                "p2p_proposal_draft_commit",
                 "p2p_proposal_branch",
                 "p2p_proposal_branch_status",
                 "p2p_proposal_publish",
@@ -6515,6 +6701,19 @@ If the requested action cannot be performed with an available `p2p` command or a
 
 Do not satisfy the request by reverse-engineering `.p2p/` and writing files directly.
 
+## Runtime Bootstrap
+
+If `p2p` is not available on `PATH`, try this discovery order before stopping:
+
+```bash
+p2p doctor
+.venv/bin/p2p agent doctor
+python -m p2p_engine agent doctor
+python -m p2p_engine.mcp.server --root /path/to/project
+```
+
+Use the first available P2P command as the write interface. If no CLI command or explicit MCP write tool is available, report the diagnostics and ask the owner to install P2P Engine or provide a runner/container with P2P installed. Do not edit `.p2p/` manually as a fallback.
+
 ## Governance Boundary
 
 The owner controls governance decisions. Agents may draft, analyze, compare, and suggest actions, but must not decide on behalf of the owner.
@@ -6554,7 +6753,7 @@ Before creating proposal or Work branches, inspect P2P state and sync state. Sto
 
 Assume MCP tools are read-only unless the tool schema explicitly describes a write action.
 
-When MCP is read-only, use it for status and inspection only. For mutations, use `p2p` CLI commands when available or explicit write-safe MCP tools such as `p2p_proposal_branch` and `p2p_sync_fetch` when their schema matches the requested action.
+When MCP is read-only, use it for status and inspection only. For mutations, use `p2p` CLI commands when available or explicit write-safe MCP tools such as `p2p_project_remote_configure`, `p2p_consent_request`, `p2p_proposal_draft_commit`, `p2p_proposal_branch`, and `p2p_sync_fetch` when their schema matches the requested action.
 
 MCP may use implemented permission-gated repository tools only with a valid consent receipt. MCP must not retire or create provider PR/MR handoffs until those operations are explicitly implemented and authorized.
 
@@ -6624,6 +6823,7 @@ Use P2P Engine as the source of truth for project governance and planning.
 
 - Read `AGENTS.md` and `.p2p/agent-policy.yml` before modifying project state.
 - Use `p2p` CLI commands for P2P mutations.
+- If `p2p` is not on `PATH`, try `.venv/bin/p2p`, then `python -m p2p_engine`, then available MCP tools. Use `p2p agent doctor` or equivalent diagnostics before stopping.
 - Use MCP only within the tool schema; read-only MCP tools do not authorize filesystem writes.
 - If no CLI command or MCP write tool exists for the requested operation, stop and report the missing primitive.
 - Do not edit `.p2p/` internals directly, invent IDs, or synthesize decision files.

@@ -1,0 +1,42 @@
+contributions:
+- id: C001
+  type: implementation_suggestion
+  author: local
+  relevance_hint: Defines the intended operational execution model.
+  text: 'Reference cloud flow: Web/API creates project and job records; workflow engine
+    starts an ephemeral p2p-runner; runner clones or initializes the Git repo in /workspace;
+    runner executes p2p init, p2p project remote configure, p2p validate, proposal/change/spec/export
+    commands as requested; runner commits and pushes; cloud indexes resulting artifacts
+    and logs. The runner is not the source of product auth or durable state.'
+- id: C002
+  type: architectural_principle
+  author: local
+  relevance_hint: Defines how to judge future proposals against the boundary.
+  text: 'Boundary rule: proposals that improve CLI JSON output, deterministic command
+    behavior, runner image packaging, or local MCP are in scope for P2P Engine. Proposals
+    that add public REST APIs, SaaS user management, cloud IAM, billing, workflow
+    orchestration, or multi-tenant database state to the engine core should be rejected
+    or moved to a separate P2P Cloud product proposal.'
+- id: C003
+  type: constraint
+  author: local
+  relevance_hint: Clarifies container packaging requirements without turning the engine
+    into the cloud service.
+  text: 'Runner image minimum: Python runtime, p2p engine installed, git, openssh-client
+    or provider token support, isolated workspace, non-root execution where practical,
+    injected credentials per job, structured logs, and no durable secrets stored in
+    the image. A future Dockerfile or package may live in this repository only as
+    an engine runner distribution artifact, not as a cloud application server.'
+- id: C004
+  type: scope_boundary
+  author: local
+  relevance_hint: Records the post-acceptance conflict check requested by the owner
+    and preserves the architectural boundary in proposal history.
+  text: Coherence review found no accepted system direction that requires P2P Engine
+    to become a public web/API/IAM product. PROP-042 aligns by separating core, CLI,
+    MCP, mediator, and web layers; PROP-044 aligns by keeping MCP local stdio; PROP-066
+    aligns by deferring strong IAM/API enforcement to future external layers; PROP-072
+    aligns by keeping collaboration Git/CLI-managed. Future proposals that add FastAPI/Django/NestJS
+    public APIs, multi-tenant IAM, workflow orchestration, hosted databases, or provider
+    PR automation to engine core should be rejected or reformulated as P2P Cloud or
+    adapter proposals.

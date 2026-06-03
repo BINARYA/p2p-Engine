@@ -1,0 +1,9 @@
+source:
+  change: CHANGE-054
+  included_proposals:
+  - PROP-066
+  accepted_decisions: []
+generated_from:
+- .p2p/changes/CHANGE-054-permission-gated-mcp-roles-and-consent-receipts/change.md
+- .p2p/changes/CHANGE-054-permission-gated-mcp-roles-and-consent-receipts/tasks.yml
+- .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/proposal.md

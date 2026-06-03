@@ -109,6 +109,7 @@ p2p_registry_status
 p2p_registry_show
 p2p_project_show
 p2p_project_remote_show
+p2p_project_remote_configure
 p2p_spec_status
 p2p_spec_show
 p2p_spec_export_status
@@ -119,10 +120,12 @@ p2p_spec_refresh
 p2p_spec_export
 p2p_spec_export_validate
 p2p_work_plan
+p2p_consent_request
 p2p_sync_status
 p2p_sync_fetch
 p2p_sync_pull
 p2p_sync_push
+p2p_proposal_draft_commit
 p2p_proposal_branch
 p2p_proposal_branch_status
 p2p_proposal_publish
@@ -176,10 +179,13 @@ p2p proposal retire-branch PROP-XXX --reason "..."
 With MCP, use the equivalent explicit tools when available:
 
 ```text
+p2p_project_remote_configure
+p2p_consent_request
 p2p_sync_status
 p2p_sync_fetch
 p2p_sync_pull
 p2p_sync_push
+p2p_proposal_draft_commit
 p2p_proposal_branch
 p2p_proposal_branch_status
 p2p_proposal_publish

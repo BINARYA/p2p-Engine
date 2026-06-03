@@ -889,3 +889,54 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-055
+  title: Ergonomic Remote Project Initialization
+  status: completed
+  path: .p2p/changes/CHANGE-055-ergonomic-remote-project-initialization
+  included_proposals:
+  - PROP-073
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0
+- id: CHANGE-056
+  title: Agent Runtime Bootstrap Robustness
+  status: completed
+  path: .p2p/changes/CHANGE-056-agent-runtime-bootstrap-robustness
+  included_proposals:
+  - PROP-074
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0
+- id: CHANGE-057
+  title: MCP End-To-End Proposal Collaboration Workflow
+  status: completed
+  path: .p2p/changes/CHANGE-057-mcp-end-to-end-proposal-collaboration-workflow
+  included_proposals:
+  - PROP-075
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

@@ -175,12 +175,15 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_registry_show` | read-only | no | no | Read a generated registry. |
 | `p2p_project_show` | read-only | no | no | Read generated project sections or feature documents. |
 | `p2p_project_remote_show` | read-only | no | no | Inspect local/cloud remote profile metadata. |
+| `p2p_project_remote_configure` | write-safe | yes | no | Configure P2P remote profile metadata without provider side effects. |
 | `p2p_permissions_show` | read-only | no | no | Read project-declared actors and role policy. |
+| `p2p_consent_request` | write-safe | yes | no | Record a pending owner consent request; does not grant consent. |
 | `p2p_consent_status` | read-only | no | no | List consent receipts without creating or consuming them. |
 | `p2p_consent_show` | read-only | no | no | Inspect one consent receipt. |
 | `p2p_sync_status` | read-only | no | no | Inspect managed Git sync readiness. |
 | `p2p_sync_fetch` | managed sync | yes | no | Fetch configured remote refs without pull/push/merge. |
-| `p2p_proposal_branch` | managed branch | yes | no | Create and check out a managed proposal branch. |
+| `p2p_proposal_draft_commit` | managed branch | yes | no | Commit proposal draft changes before branching. |
+| `p2p_proposal_branch` | managed branch | yes | no | Create and check out a managed proposal branch from an explicit base. |
 | `p2p_proposal_branch_status` | read-only | no | no | Inspect one managed proposal branch. |
 | `p2p_proposal_branch_scan` | read-oriented | yes | no | Scan local managed proposal branches and refresh the proposal branch registry. |
 | `p2p_spec_status` | read-only | no | no | List generated P2P-native software specs. |
@@ -235,6 +238,22 @@ decisions, spec imports, conflict recording, voting, precedent recording, choice
 blocking, Work branch creation, Work submission, Work review, Work publishing,
 Work acceptance, Work finalization, Work cleanup, provider PR/MR creation, or a
 hosted IAM model.
+
+For end-to-end proposal collaboration, MCP can prepare the path but cannot grant
+owner consent:
+
+```text
+p2p_proposal_create or p2p_proposal_update
+p2p_proposal_draft_commit
+p2p_proposal_branch with base_branch, usually main
+p2p_consent_request
+owner grants consent through CLI, UI, or authenticated cloud workflow
+p2p_proposal_publish
+p2p_proposal_request_review
+```
+
+`p2p_consent_request` creates a `requested` receipt. Permission-gated tools
+still require a `granted` receipt, so a request cannot be reused as approval.
 
 ## Example Calls
 
