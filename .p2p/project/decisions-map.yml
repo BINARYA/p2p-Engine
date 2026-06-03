@@ -339,3 +339,13 @@ decisions:
   status: accepted
   feature: p2p-cloud-runner-boundary-and-containerized-execution-model
   source: .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model
+- proposal: PROP-077
+  title: Permission-Gated Draft Proposal Decisions via MCP
+  status: accepted
+  feature: permission-gated-draft-proposal-decisions-via-mcp
+  source: .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp
+- proposal: PROP-078
+  title: Project-Local Wheel Installation and Upgrade Model
+  status: accepted
+  feature: project-local-wheel-installation-and-upgrade-model
+  source: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model

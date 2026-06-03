@@ -3538,7 +3538,7 @@ def test_cli_project_brief_prompt_import_and_show(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "operational:" in result.output
     assert "brief: available" in result.output
-    assert "next actions: 1" in result.output
+    assert "next actions: 2" in result.output
     assert "first next: NEXT-001 high create_change PROP-001" in result.output
 
 
@@ -3574,7 +3574,7 @@ def test_cli_next_falls_back_without_imported_next_actions(tmp_path: Path) -> No
     assert "NEXT-FALLBACK-001  high  continue_change" in result.output
     assert "target: CHANGE-001" in result.output
     assert "p2p change tasks CHANGE-001" in result.output
-    assert "source: fallback" in result.output
+    assert "source: generated" in result.output
 
 
 def test_cli_next_falls_back_to_draft_proposal_review(tmp_path: Path) -> None:
@@ -3588,3 +3588,142 @@ def test_cli_next_falls_back_to_draft_proposal_review(tmp_path: Path) -> None:
     assert "review_draft_proposal" in result.output
     assert "target: PROP-001" in result.output
     assert "p2p proposal show PROP-001" in result.output
+
+
+def test_cli_next_manages_curated_lifecycle_and_log(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
+
+    result = runner.invoke(
+        app,
+        [
+            "next",
+            "add",
+            "verify_integration",
+            "mcp-client",
+            "--priority",
+            "high",
+            "--reason",
+            "Verify real MCP client setup.",
+            "--command",
+            "p2p-mcp-server --root /path/to/project",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Next action added." in result.output
+    assert "id: NEXT-001" in result.output
+
+    result = runner.invoke(app, ["next", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "NEXT-001  high  verify_integration" in result.output
+    assert "source: .p2p/project/next-actions.yml" in result.output
+
+    result = runner.invoke(
+        app,
+        [
+                "next",
+                "complete",
+                "NEXT-001",
+            "--reason",
+            "Verified successfully.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Next action completed." in result.output
+    active = yaml.safe_load((tmp_path / ".p2p" / "project" / "next-actions.yml").read_text(encoding="utf-8"))
+    assert active["next_actions"] == []
+    log = yaml.safe_load((tmp_path / ".p2p" / "project" / "next-actions-log.yml").read_text(encoding="utf-8"))
+    assert log["next_action_log"][0]["id"] == "NEXT-001"
+    assert log["next_action_log"][0]["status"] == "completed"
+    assert log["next_action_log"][0]["closed_reason"] == "Verified successfully."
+
+
+def test_cli_next_retire_and_refresh(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
+
+    result = runner.invoke(
+        app,
+        [
+            "next",
+            "add",
+            "define_scope",
+            "temporary",
+            "--reason",
+            "Temporary scope item.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0
+
+    result = runner.invoke(
+        app,
+        ["next", "retire", "NEXT-001", "--reason", "Superseded.", "--root", str(tmp_path)],
+    )
+    assert result.exit_code == 0
+    assert "Next action retired." in result.output
+
+    log = yaml.safe_load((tmp_path / ".p2p" / "project" / "next-actions-log.yml").read_text(encoding="utf-8"))
+    assert log["next_action_log"][0]["status"] == "retired"
+
+    result = runner.invoke(app, ["next", "refresh", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Next actions refreshed." in result.output
+    assert "active_curated: 0" in result.output
+    assert "generated:" in result.output
+
+
+def test_cli_next_shows_generated_actions_when_curated_actions_exist(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "next",
+            "add",
+            "verify_integration",
+            "mcp-client",
+            "--reason",
+            "Verify MCP client setup.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "create", "Generated Draft", "--root", str(tmp_path)])
+    runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["next", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "NEXT-001  medium  verify_integration" in result.output
+    assert "NEXT-FALLBACK-001  medium  review_draft_proposal" in result.output
+    assert "source: generated" in result.output
+
+
+def test_cli_next_deduplicates_curated_and_generated_actions(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Generated Draft", "--root", str(tmp_path)])
+    runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "next",
+            "add",
+            "review_draft_proposal",
+            "PROP-001",
+            "--reason",
+            "Curated review path.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    result = runner.invoke(app, ["next", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert result.output.count("review_draft_proposal") == 1
+    assert "Curated review path." in result.output

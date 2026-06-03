@@ -1,0 +1,14 @@
+next_action_log:
+- id: NEXT-003
+  priority: high
+  kind: consolidate_tranche
+  target: permission-gated-proposal-collaboration
+  reason: The current tranche is large and already passes tests; before adding new
+    capability, review the diff, prepare a coherent commit, and keep the implementation
+    boundary clear.
+  command: review current diff and prepare commit for the completed proposal/MCP collaboration
+    tranche
+  status: completed
+  closed_reason: Consolidated in commits adea0f0, b75cfce, and 8f450c0; no current
+    tranche remains to consolidate.
+  closed_on: '2026-06-03'

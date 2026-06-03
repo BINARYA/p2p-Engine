@@ -1,37 +1,38 @@
 next_actions:
-  - id: NEXT-001
-    priority: high
-    kind: verify_integration
-    target: mcp-client-configuration
-    reason: Permission-gated MCP read/write tools are implemented and tested internally; they should now be verified from an actual MCP-capable client configuration.
-    command: p2p-mcp-server --root /path/to/project
-  - id: NEXT-002
-    priority: medium
-    kind: verify_documented_setup
-    target: mcp-permission-gated-write-tools
-    reason: README, install, MCP, and agent setup docs now describe permission-gated write tools; the next step is to follow them from a fresh client setup and fix any gaps found during real use.
-    command: follow docs/INSTALL.md and docs/MCP.md to configure a real MCP client
-  - id: NEXT-003
-    priority: high
-    kind: consolidate_tranche
-    target: permission-gated-proposal-collaboration
-    reason: The current tranche is large and already passes tests; before adding new capability, review the diff, prepare a coherent commit, and keep the implementation boundary clear.
-    command: review current diff and prepare commit for the completed proposal/MCP collaboration tranche
-  - id: NEXT-004
-    priority: medium
-    kind: define_scope
-    target: work-mcp-parity
-    reason: Proposal branch lifecycle is now complete through permission-gated MCP, but Work publish/finalize/accept/cleanup MCP parity is still a product decision.
-    command: decide whether to create a proposal for permission-gated Work MCP lifecycle tools
-  - id: NEXT-005
-    priority: medium
-    kind: define_scope
-    target: provider-pr-mr-adapter
-    reason: Core request-review currently records provider-agnostic handoff metadata only; opening GitHub PRs or GitLab MRs should be a separate adapter decision.
-    command: decide whether provider PR/MR automation belongs in a future adapter proposal
-  - id: NEXT-006
-    priority: medium
-    kind: review_backlog
-    target: draft-proposals
-    reason: There are no active Change Sets or Work items; readiness is now limited mainly by draft proposals that should be reviewed, accepted, or retired.
-    command: .venv/bin/p2p proposal list --status draft
+- id: NEXT-001
+  priority: high
+  kind: verify_integration
+  target: mcp-client-configuration
+  reason: Permission-gated MCP read/write tools are implemented and tested internally;
+    they should now be verified from an actual MCP-capable client configuration.
+  command: p2p-mcp-server --root /path/to/project
+- id: NEXT-002
+  priority: medium
+  kind: verify_documented_setup
+  target: mcp-permission-gated-write-tools
+  reason: README, install, MCP, and agent setup docs now describe permission-gated
+    write tools; the next step is to follow them from a fresh client setup and fix
+    any gaps found during real use.
+  command: follow docs/INSTALL.md and docs/MCP.md to configure a real MCP client
+- id: NEXT-004
+  priority: medium
+  kind: define_scope
+  target: work-mcp-parity
+  reason: Proposal branch lifecycle is now complete through permission-gated MCP,
+    but Work publish/finalize/accept/cleanup MCP parity is still a product decision.
+  command: decide whether to create a proposal for permission-gated Work MCP lifecycle
+    tools
+- id: NEXT-005
+  priority: medium
+  kind: define_scope
+  target: provider-pr-mr-adapter
+  reason: Core request-review currently records provider-agnostic handoff metadata
+    only; opening GitHub PRs or GitLab MRs should be a separate adapter decision.
+  command: decide whether provider PR/MR automation belongs in a future adapter proposal
+- id: NEXT-006
+  priority: medium
+  kind: review_backlog
+  target: draft-proposals
+  reason: There are no active Change Sets or Work items; readiness is now limited
+    mainly by draft proposals that should be reviewed, accepted, or retired.
+  command: .venv/bin/p2p proposal list --status draft

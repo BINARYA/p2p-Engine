@@ -4496,18 +4496,79 @@ class P2PWorkspace:
         )
 
     def next_actions(self, limit: int | None = None) -> list[NextAction]:
-        blocker_actions = self._active_choice_blocker_actions()
-        actions = self._next_actions_from_project_file()
-        if not actions:
-            actions = self._fallback_next_actions()
-        if blocker_actions:
-            existing = {(action.kind, action.target) for action in blocker_actions}
-            actions = blocker_actions + [
-                action for action in actions if (action.kind, action.target) not in existing
-            ]
+        actions = self._dedupe_next_actions(
+            self._active_choice_blocker_actions()
+            + self._next_actions_from_project_file()
+            + self._fallback_next_actions()
+        )
         if limit is not None:
             return actions[: max(limit, 0)]
         return actions
+
+    def next_action_add(
+        self,
+        *,
+        kind: str,
+        target: str,
+        reason: str,
+        command: str = "",
+        priority: str = "medium",
+        action_id: str | None = None,
+    ) -> NextAction:
+        kind = kind.strip()
+        if not kind:
+            raise ValueError("Next action kind is required")
+        reason = reason.strip()
+        if not reason:
+            raise ValueError("Next action reason is required")
+        payload = self._read_next_actions_payload()
+        records = payload.setdefault("next_actions", [])
+        if not isinstance(records, list):
+            raise ValueError("Invalid next-actions.yml: next_actions must be a list")
+        existing_ids = {
+            str(record.get("id") or "")
+            for record in records
+            if isinstance(record, dict)
+        }
+        selected_id = action_id.strip() if action_id else self._next_curated_next_action_id(records)
+        if selected_id in existing_ids:
+            raise ValueError(f"Next action already exists: {selected_id}")
+        record = {
+            "id": selected_id,
+            "priority": priority.strip() or "medium",
+            "kind": kind,
+            "target": target.strip(),
+            "reason": reason,
+            "command": command.strip(),
+        }
+        records.append(record)
+        self._write_next_actions_payload(payload)
+        return self._next_action_from_record(record, self._next_actions_path(), len(records))
+
+    def next_action_complete(self, action_id: str, reason: str) -> dict[str, object]:
+        return self._close_next_action(action_id, "completed", reason)
+
+    def next_action_retire(self, action_id: str, reason: str) -> dict[str, object]:
+        return self._close_next_action(action_id, "retired", reason)
+
+    def next_actions_refresh(self) -> dict[str, object]:
+        payload = self._read_next_actions_payload()
+        records = payload.setdefault("next_actions", [])
+        if not isinstance(records, list):
+            raise ValueError("Invalid next-actions.yml: next_actions must be a list")
+        normalized = [
+            self._normalize_next_action_record(record, index)
+            for index, record in enumerate(records, start=1)
+            if isinstance(record, dict)
+        ]
+        payload["next_actions"] = normalized
+        self._write_next_actions_payload(payload)
+        generated = self._dedupe_next_actions(self._active_choice_blocker_actions() + self._fallback_next_actions())
+        return {
+            "active_curated": len(normalized),
+            "generated": len(generated),
+            "path": str(self._next_actions_path().relative_to(self.root)),
+        }
 
     def record_conflict(
         self,
@@ -5801,7 +5862,7 @@ class P2PWorkspace:
         return ("unsupported", "pending", "Unsupported intake apply action.", [])
 
     def _next_actions_from_project_file(self) -> list[NextAction]:
-        path = self.p2p_dir / "project" / "next-actions.yml"
+        path = self._next_actions_path()
         if not path.exists():
             return []
         data = _read_yaml_mapping(path, default={"next_actions": []})
@@ -5812,19 +5873,111 @@ class P2PWorkspace:
         for index, record in enumerate(records, start=1):
             if not isinstance(record, dict):
                 continue
-            action_id = str(record.get("id") or f"NEXT-{index:03d}")
-            actions.append(
-                NextAction(
-                    action_id=action_id,
-                    priority=str(record.get("priority") or "medium"),
-                    kind=str(record.get("kind") or "other"),
-                    target=str(record.get("target") or ""),
-                    reason=str(record.get("reason") or ""),
-                    command=str(record.get("command") or ""),
-                    source=str(path.relative_to(self.root)),
-                )
-            )
+            if str(record.get("status") or "active") != "active":
+                continue
+            actions.append(self._next_action_from_record(record, path, index))
         return actions
+
+    def _next_actions_path(self) -> Path:
+        return self.p2p_dir / "project" / "next-actions.yml"
+
+    def _next_actions_log_path(self) -> Path:
+        return self.p2p_dir / "project" / "next-actions-log.yml"
+
+    def _read_next_actions_payload(self) -> dict[str, object]:
+        path = self._next_actions_path()
+        if not path.exists():
+            return {"next_actions": []}
+        return _read_yaml_mapping(path, default={"next_actions": []})
+
+    def _write_next_actions_payload(self, payload: dict[str, object]) -> None:
+        path = self._next_actions_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(_yaml_dump(payload), encoding="utf-8")
+
+    def _next_action_from_record(self, record: dict[str, object], path: Path, index: int) -> NextAction:
+        return NextAction(
+            action_id=str(record.get("id") or f"NEXT-{index:03d}"),
+            priority=str(record.get("priority") or "medium"),
+            kind=str(record.get("kind") or "other"),
+            target=str(record.get("target") or ""),
+            reason=str(record.get("reason") or ""),
+            command=str(record.get("command") or ""),
+            source=str(path.relative_to(self.root)),
+        )
+
+    def _normalize_next_action_record(self, record: dict[str, object], index: int) -> dict[str, object]:
+        return {
+            "id": str(record.get("id") or f"NEXT-{index:03d}"),
+            "priority": str(record.get("priority") or "medium"),
+            "kind": str(record.get("kind") or "other"),
+            "target": str(record.get("target") or ""),
+            "reason": str(record.get("reason") or ""),
+            "command": str(record.get("command") or ""),
+        }
+
+    def _next_curated_next_action_id(self, records: list[object]) -> str:
+        max_id = 0
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+            match = re.fullmatch(r"NEXT-(\d{3})", str(record.get("id") or ""))
+            if match:
+                max_id = max(max_id, int(match.group(1)))
+        return f"NEXT-{max_id + 1:03d}"
+
+    def _close_next_action(self, action_id: str, status: str, reason: str) -> dict[str, object]:
+        action_id = action_id.strip()
+        reason = reason.strip()
+        if not action_id:
+            raise ValueError("Next action ID is required")
+        if not reason:
+            raise ValueError("Next action close reason is required")
+        payload = self._read_next_actions_payload()
+        records = payload.get("next_actions", [])
+        if not isinstance(records, list):
+            raise ValueError("Invalid next-actions.yml: next_actions must be a list")
+        remaining: list[object] = []
+        closed: dict[str, object] | None = None
+        for index, record in enumerate(records, start=1):
+            if isinstance(record, dict) and str(record.get("id") or f"NEXT-{index:03d}") == action_id:
+                closed = self._normalize_next_action_record(record, index)
+                continue
+            remaining.append(record)
+        if closed is None:
+            raise ValueError(f"Next action not found: {action_id}")
+        payload["next_actions"] = remaining
+        self._write_next_actions_payload(payload)
+
+        log_path = self._next_actions_log_path()
+        log_payload = _read_yaml_mapping(log_path, default={"next_action_log": []}) if log_path.exists() else {"next_action_log": []}
+        log_records = log_payload.setdefault("next_action_log", [])
+        if not isinstance(log_records, list):
+            raise ValueError("Invalid next-actions-log.yml: next_action_log must be a list")
+        entry = {
+            **closed,
+            "status": status,
+            "closed_reason": reason,
+            "closed_on": date.today().isoformat(),
+        }
+        log_records.append(entry)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_path.write_text(_yaml_dump(log_payload), encoding="utf-8")
+        return {
+            "action": entry,
+            "path": str(log_path.relative_to(self.root)),
+        }
+
+    def _dedupe_next_actions(self, actions: list[NextAction]) -> list[NextAction]:
+        deduped: list[NextAction] = []
+        seen: set[tuple[str, str]] = set()
+        for action in actions:
+            key = (action.kind, action.target)
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped.append(action)
+        return deduped
 
     def _fallback_next_actions(self) -> list[NextAction]:
         actions: list[NextAction] = []
@@ -5838,7 +5991,7 @@ class P2PWorkspace:
                     target="registries",
                     reason="Generated registries are missing or stale.",
                     command="p2p registry refresh",
-                    source="fallback",
+                    source="generated",
                 )
             )
 
@@ -5854,7 +6007,7 @@ class P2PWorkspace:
                         target=str(change.get("id") or ""),
                         reason=f"Change Set is {status}, not completed.",
                         command=f"p2p change tasks {change.get('id')}",
-                        source="fallback",
+                        source="generated",
                     )
                 )
                 break
@@ -5869,7 +6022,7 @@ class P2PWorkspace:
                         target=intake.intake_id,
                         reason="Intake record is pending analysis.",
                         command="p2p intake status",
-                        source="fallback",
+                        source="generated",
                     )
                 )
                 break
@@ -5883,7 +6036,7 @@ class P2PWorkspace:
                     target=proposal.proposal_id,
                     reason="Draft proposal exists and has no owner decision yet.",
                     command=f"p2p proposal show {proposal.proposal_id}",
-                    source="fallback",
+                    source="generated",
                 )
             )
             break
@@ -5900,7 +6053,7 @@ class P2PWorkspace:
                         target=str(choice.get("id") or choice.get("proposal") or ""),
                         reason=f"Choice is {status} and has no selected option.",
                         command="p2p registry show choices",
-                        source="fallback",
+                        source="generated",
                     )
                 )
                 break
@@ -5914,7 +6067,7 @@ class P2PWorkspace:
                     target="project",
                     reason="No stored next actions or obvious fallback actions were found.",
                     command="p2p project status",
-                    source="fallback",
+                    source="generated",
                 )
             )
         return actions

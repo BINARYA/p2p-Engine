@@ -52,6 +52,7 @@ agent_app = typer.Typer(help="Manage agent-facing project instructions")
 agent_instructions_app = typer.Typer(help="Generate and refresh agent instructions")
 assess_app = typer.Typer(help="Assess project readiness and maturity")
 assess_maturity_app = typer.Typer(help="Assess project definition maturity")
+next_app = typer.Typer(help="Manage advisory next actions", invoke_without_command=True)
 
 proposal_app.add_typer(proposal_contribution_app, name="contribution")
 app.add_typer(proposal_app, name="proposal")
@@ -81,6 +82,7 @@ app.add_typer(permissions_app, name="permissions")
 app.add_typer(consent_app, name="consent")
 app.add_typer(agent_app, name="agent")
 app.add_typer(assess_app, name="assess")
+app.add_typer(next_app, name="next")
 project_app.add_typer(project_brief_app, name="brief")
 project_app.add_typer(project_remote_app, name="remote")
 project_app.add_typer(project_rubrics_app, name="rubrics")
@@ -417,27 +419,124 @@ def status(root: Path = typer.Option(Path.cwd(), "--root", help="Project root"))
         console.print(f"  {proposal.proposal_id}  {proposal.slug}  {proposal.status}")
 
 
-@app.command("next")
-def next_action(
-    top: int | None = typer.Option(None, "--top", min=1, help="Limit the number of actions shown"),
-    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
-) -> None:
-    """Show advisory next actions."""
-    try:
-        actions = _workspace(root).next_actions(limit=top)
-    except ValueError as exc:
-        _fail(str(exc))
+def _print_next_actions(actions: list[object]) -> None:
     console.print("Next actions")
     if not actions:
         console.print("  none")
         return
     for index, action in enumerate(actions, start=1):
-        target = f"  target: {action.target}" if action.target else "  target: none"
-        console.print(f"{index}. {action.action_id}  {action.priority}  {action.kind}")
+        target = f"  target: {getattr(action, 'target')}" if getattr(action, "target") else "  target: none"
+        console.print(
+            f"{index}. {getattr(action, 'action_id')}  {getattr(action, 'priority')}  {getattr(action, 'kind')}"
+        )
         console.print(target)
-        console.print(f"  reason: {action.reason}")
-        console.print(f"  command: {action.command or 'none'}")
-        console.print(f"  source: {action.source}")
+        console.print(f"  reason: {getattr(action, 'reason')}")
+        console.print(f"  command: {getattr(action, 'command') or 'none'}")
+        console.print(f"  source: {getattr(action, 'source')}")
+
+
+@next_app.callback(invoke_without_command=True)
+def next_action(
+    ctx: typer.Context,
+    top: int | None = typer.Option(None, "--top", min=1, help="Limit the number of actions shown"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Show advisory next actions."""
+    if ctx.invoked_subcommand is not None:
+        return
+    try:
+        actions = _workspace(root).next_actions(limit=top)
+    except ValueError as exc:
+        _fail(str(exc))
+    _print_next_actions(actions)
+
+
+@next_app.command("list")
+def next_list(
+    top: int | None = typer.Option(None, "--top", min=1, help="Limit the number of actions shown"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """List curated and generated next actions."""
+    try:
+        actions = _workspace(root).next_actions(limit=top)
+    except ValueError as exc:
+        _fail(str(exc))
+    _print_next_actions(actions)
+
+
+@next_app.command("add")
+def next_add(
+    kind: str = typer.Argument(..., help="Action kind, e.g. verify_integration"),
+    target: str = typer.Argument("", help="Action target"),
+    reason: str = typer.Option(..., "--reason", help="Why this action is needed"),
+    command: str = typer.Option("", "--command", help="Suggested command or instruction"),
+    priority: str = typer.Option("medium", "--priority", help="Priority: high, medium, low"),
+    action_id: str | None = typer.Option(None, "--id", help="Optional explicit NEXT-XXX ID"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Add a curated next action."""
+    try:
+        action = _workspace(root).next_action_add(
+            kind=kind,
+            target=target,
+            reason=reason,
+            command=command,
+            priority=priority,
+            action_id=action_id,
+        )
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Next action added.[/green]")
+    console.print(f"  id: {action.action_id}")
+    console.print(f"  kind: {action.kind}")
+    console.print(f"  target: {action.target or 'none'}")
+
+
+@next_app.command("complete")
+def next_complete(
+    action_id: str = typer.Argument(..., help="Next action ID, e.g. NEXT-003"),
+    reason: str = typer.Option(..., "--reason", help="Completion reason"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Complete a curated next action and move it to the audit log."""
+    try:
+        result = _workspace(root).next_action_complete(action_id, reason)
+    except ValueError as exc:
+        _fail(str(exc))
+    action = result["action"]
+    console.print("[green]Next action completed.[/green]")
+    console.print(f"  id: {action.get('id')}")
+    console.print(f"  log: {result['path']}")
+
+
+@next_app.command("retire")
+def next_retire(
+    action_id: str = typer.Argument(..., help="Next action ID, e.g. NEXT-003"),
+    reason: str = typer.Option(..., "--reason", help="Retirement reason"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Retire a curated next action and move it to the audit log."""
+    try:
+        result = _workspace(root).next_action_retire(action_id, reason)
+    except ValueError as exc:
+        _fail(str(exc))
+    action = result["action"]
+    console.print("[green]Next action retired.[/green]")
+    console.print(f"  id: {action.get('id')}")
+    console.print(f"  log: {result['path']}")
+
+
+@next_app.command("refresh")
+def next_refresh(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+    """Normalize curated next actions and report generated action count."""
+    try:
+        result = _workspace(root).next_actions_refresh()
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Next actions refreshed.[/green]")
+    console.print(f"  active_curated: {result['active_curated']}")
+    console.print(f"  generated: {result['generated']}")
+    console.print(f"  path: {result['path']}")
 
 
 @app.command("context")

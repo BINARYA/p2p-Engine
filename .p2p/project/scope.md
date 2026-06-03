@@ -896,3 +896,23 @@ Generated from accepted proposal goals and non-goals.
 - Make P2P Engine responsible for users, organizations, billing, sessions, OAuth, cloud IAM, or multi-tenant authorization.
 - Keep one long-running P2P server container per project as the default execution model.
 - Create provider PR/MR automation in the engine core.
+
+## PROP-077 - Permission-Gated Draft Proposal Decisions via MCP
+
+### Goals
+
+- Provide explicit MCP tools for owner-approved draft proposal accept, reject, and defer decisions while preserving the governance boundary through granted consent receipts.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-078 - Project-Local Wheel Installation and Upgrade Model
+
+### Goals
+
+- Make P2P Engine installable and upgradeable inside each project's own virtual environment, starting with GitHub Release wheel artifacts and explicitly preserving a future migration path to a public package registry.
+
+### Non-Goals
+
+- Not provided.

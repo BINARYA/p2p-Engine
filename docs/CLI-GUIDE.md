@@ -44,6 +44,21 @@ p2p registry refresh
 p2p next
 ```
 
+`p2p next` combines curated project actions with generated actions derived from
+project state. Manage curated actions through CLI commands instead of editing
+`.p2p/project/next-actions.yml` by hand:
+
+```bash
+p2p next list
+p2p next add verify_integration mcp-client --priority high --reason "Verify real MCP client setup." --command "p2p-mcp-server --root /path/to/project"
+p2p next complete NEXT-003 --reason "Consolidated in commit abc1234."
+p2p next retire NEXT-004 --reason "Superseded by a newer proposal."
+p2p next refresh
+```
+
+Completed and retired curated actions are moved to
+`.p2p/project/next-actions-log.yml`.
+
 Expected shape:
 
 ```text

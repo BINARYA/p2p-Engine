@@ -277,3 +277,11 @@ MCP exposes useful proposal collaboration primitives, but a cloud or agent-only 
 ## PROP-076 - P2P Cloud Runner Boundary and Containerized Execution Model
 
 P2P Engine is intentionally a local CLI/core/MCP engine, but future cloud/web product work needs a clear execution boundary. Without an explicit boundary, proposals may drift toward embedding public web APIs, multi-tenant auth, workflow orchestration, or long-running SaaS responsibilities directly inside P2P Engine.
+
+## PROP-077 - Permission-Gated Draft Proposal Decisions via MCP
+
+MCP exposes proposal branch accept/reject but does not expose direct draft proposal accept/reject/defer decisions, so agents using MCP cannot complete owner-approved governance on draft proposals without falling back to CLI or raw state edits.
+
+## PROP-078 - Project-Local Wheel Installation and Upgrade Model
+
+P2P Engine is currently practical to update only when the operator understands a separate source checkout or external path. Existing P2P projects need a coherent project-local installation and upgrade path that does not require referencing another folder, cloning the engine inside every project, or rerunning p2p init.

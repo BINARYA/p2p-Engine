@@ -566,3 +566,10 @@ decisions:
   path: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/decision.md
   reason: Owner approved project-local wheel installation as the transitional packaging
     model before public package distribution.
+- proposal: PROP-079
+  title: Managed Next Action Lifecycle
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-079-managed-next-action-lifecycle/decision.md
+  reason: Owner selected the hybrid generated plus curated next-action model and requested
+    implementation.

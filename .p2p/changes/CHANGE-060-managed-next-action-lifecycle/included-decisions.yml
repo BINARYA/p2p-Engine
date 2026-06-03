@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-079
+  decision_file: .p2p/proposals/PROP-079-managed-next-action-lifecycle/decision.md

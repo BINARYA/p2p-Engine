@@ -21,6 +21,9 @@ build/
 # Local GitHub ruleset exports/backups
 ruleset.json
 
+# Local personal release notes/checklists
+release-how-to.md
+
 # P2P local/generated scratch areas
 .p2p/prompts/
 .p2p/tmp/
