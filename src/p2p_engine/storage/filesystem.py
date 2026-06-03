@@ -6897,6 +6897,9 @@ def _yaml_dump(data: object) -> str:
 PERMISSION_ROLES = {"owner", "maintainer", "contributor", "agent", "readonly"}
 ACTOR_KINDS = {"person", "agent", "client"}
 CONSENT_OPERATIONS = {
+    "proposal_accept",
+    "proposal_reject",
+    "proposal_defer",
     "proposal_publish",
     "proposal_request_review",
     "proposal_retire_branch",

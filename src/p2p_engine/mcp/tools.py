@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from p2p_engine.core.contribution import ContributionType
+from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.storage.git import commit_all, head_commit, push_branch
 from p2p_engine.storage.filesystem import P2PWorkspace, ProposalMergeConflict
 
@@ -61,6 +62,9 @@ TOOL_NAMES = (
     "p2p_proposal_branch_status",
     "p2p_proposal_publish",
     "p2p_proposal_request_review",
+    "p2p_proposal_accept",
+    "p2p_proposal_reject",
+    "p2p_proposal_defer",
     "p2p_proposal_accept_branch",
     "p2p_proposal_reject_branch",
     "p2p_proposal_merge",
@@ -626,6 +630,63 @@ def tool_definitions() -> list[dict[str, object]]:
                     "provider": {"type": "string", "enum": ["generic", "github", "gitlab"]},
                 },
                 ["proposal_id", "actor_id", "consent_id"],
+            ),
+        },
+        {
+            "name": "p2p_proposal_accept",
+            "description": (
+                "Permission-gated governance tool: accept a draft proposal with a "
+                "valid proposal_accept consent receipt. This records the same "
+                "proposal decision as the CLI and does not branch, publish, merge, "
+                "or cleanup."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "proposal_id": {"type": "string"},
+                    "actor_id": {"type": "string"},
+                    "consent_id": {"type": "string"},
+                    "reason": {"type": "string"},
+                },
+                ["proposal_id", "actor_id", "consent_id", "reason"],
+            ),
+        },
+        {
+            "name": "p2p_proposal_reject",
+            "description": (
+                "Permission-gated governance tool: reject a draft proposal with a "
+                "valid proposal_reject consent receipt. This records the same "
+                "proposal decision as the CLI and does not branch, publish, merge, "
+                "or cleanup."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "proposal_id": {"type": "string"},
+                    "actor_id": {"type": "string"},
+                    "consent_id": {"type": "string"},
+                    "reason": {"type": "string"},
+                },
+                ["proposal_id", "actor_id", "consent_id", "reason"],
+            ),
+        },
+        {
+            "name": "p2p_proposal_defer",
+            "description": (
+                "Permission-gated governance tool: defer a draft proposal with a "
+                "valid proposal_defer consent receipt. This records the same "
+                "proposal decision as the CLI and does not branch, publish, merge, "
+                "or cleanup."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "proposal_id": {"type": "string"},
+                    "actor_id": {"type": "string"},
+                    "consent_id": {"type": "string"},
+                    "reason": {"type": "string"},
+                },
+                ["proposal_id", "actor_id", "consent_id", "reason"],
             ),
         },
         {
@@ -1218,6 +1279,12 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, o
                 "merge_performed": False,
             },
         }
+    if name == "p2p_proposal_accept":
+        return _proposal_decision_tool(workspace, arguments, "proposal_accept", DecisionOutcome.accepted)
+    if name == "p2p_proposal_reject":
+        return _proposal_decision_tool(workspace, arguments, "proposal_reject", DecisionOutcome.rejected)
+    if name == "p2p_proposal_defer":
+        return _proposal_decision_tool(workspace, arguments, "proposal_defer", DecisionOutcome.deferred)
     if name == "p2p_proposal_accept_branch":
         proposal_id = _required(arguments, "proposal_id")
         actor_id = _required(arguments, "actor_id")
@@ -1614,6 +1681,69 @@ def _sync_consent_target(workspace: P2PWorkspace, remote: str | None) -> str:
         raise ValueError("Cannot resolve sync consent target from detached HEAD")
     selected_remote = remote or status.remote or "origin"
     return f"{selected_remote}/{status.branch}"
+
+
+def _proposal_decision_tool(
+    workspace: P2PWorkspace,
+    arguments: dict[str, Any],
+    operation: str,
+    outcome: DecisionOutcome,
+) -> dict[str, object]:
+    proposal_id = _required(arguments, "proposal_id")
+    actor_id = _required(arguments, "actor_id")
+    consent_id = _required(arguments, "consent_id")
+    reason = _required(arguments, "reason")
+    workspace.consent_validate(
+        consent_id,
+        operation=operation,
+        target=proposal_id,
+        actor_id=actor_id,
+    )
+    before_head = _safe_head(workspace)
+    try:
+        decision = workspace.record_decision(
+            proposal_id=proposal_id,
+            outcome=outcome,
+            reason=reason,
+            approver=actor_id,
+        )
+    except ValueError as exc:
+        _mark_consent_error_on_head_change(
+            workspace,
+            consent_id,
+            before_head,
+            str(exc),
+            operation,
+            proposal_id,
+            actor_id,
+        )
+        raise
+    consumed = _consume_consent_with_audit(
+        workspace,
+        consent_id,
+        result={
+            "operation": operation,
+            "target": proposal_id,
+            "actor_id": actor_id,
+            "decision_outcome": decision.outcome.value,
+        },
+    )
+    return {
+        "proposal_decision": {
+            "proposal_id": decision.proposal_id,
+            "outcome": decision.outcome.value,
+            "reason": decision.reason,
+            "approver": decision.approver,
+            "decided_on": decision.decided_on.isoformat(),
+        },
+        "consent": _to_jsonable(consumed),
+        "governance": {
+            "owner_decision_required": True,
+            "decision_made": True,
+            "decision_outcome": decision.outcome.value,
+            "merge_performed": False,
+        },
+    }
 
 
 def _consume_consent_with_audit(

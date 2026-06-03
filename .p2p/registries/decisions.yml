@@ -552,3 +552,10 @@ decisions:
   reason: 'Accepted as the architectural boundary for future cloud work: P2P Engine
     remains local CLI/filesystem/Git/local-MCP, while P2P Cloud owns web/API/auth/UI/workflows/database
     and invokes P2P through isolated runner containers.'
+- proposal: PROP-077
+  title: Permission-Gated Draft Proposal Decisions via MCP
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/decision.md
+  reason: Owner requested this refinement after real MCP usage exposed that draft
+    proposal rejection was not available as a permission-gated MCP operation.

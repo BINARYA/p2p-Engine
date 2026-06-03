@@ -384,6 +384,9 @@ Common proposal lifecycle operations:
 ```text
 proposal_publish          -> p2p_proposal_publish
 proposal_request_review   -> p2p_proposal_request_review
+proposal_accept           -> p2p_proposal_accept
+proposal_reject           -> p2p_proposal_reject
+proposal_defer            -> p2p_proposal_defer
 proposal_accept_branch    -> p2p_proposal_accept_branch
 proposal_reject_branch    -> p2p_proposal_reject_branch
 proposal_merge            -> p2p_proposal_merge

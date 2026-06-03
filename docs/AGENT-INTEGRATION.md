@@ -50,7 +50,7 @@ Agents may:
 
 Agents must not perform these unless the owner explicitly instructs the exact action:
 
-- accept, reject, or defer proposals;
+- accept, reject, or defer proposals unless a CLI owner instruction or matching MCP consent receipt exists;
 - decide choices;
 - publish, accept, reject, merge, finalize, or cleanup managed proposal branches unless a CLI owner instruction or matching MCP consent receipt exists;
 - accept, finalize, cleanup, or merge managed work;

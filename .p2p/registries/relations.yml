@@ -286,6 +286,11 @@ relations:
   type: includes
   rationale: Change Set includes accepted proposal.
   source_artifact: .p2p/changes/CHANGE-057-mcp-end-to-end-proposal-collaboration-workflow
+- source: CHANGE-058
+  target: PROP-077
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-058-permission-gated-draft-proposal-decisions-via-mcp
 - source: PROP-013
   target: CHANGE-001
   type: implemented_by
@@ -571,3 +576,8 @@ relations:
   type: implemented_by
   rationale: Proposal appears in Change Set source metadata.
   source_artifact: .p2p/proposals/PROP-075-mcp-end-to-end-proposal-collaboration-workflow
+- source: PROP-077
+  target: CHANGE-058
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp

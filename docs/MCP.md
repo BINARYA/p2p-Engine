@@ -215,6 +215,9 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_sync_push` | permission-gated | yes | yes | Push current branch with `sync_push` consent. |
 | `p2p_proposal_publish` | permission-gated | yes | yes | Publish current proposal branch with `proposal_publish` consent. |
 | `p2p_proposal_request_review` | permission-gated | yes | yes | Record review handoff metadata with `proposal_request_review` consent. |
+| `p2p_proposal_accept` | permission-gated | yes | yes | Accept a draft proposal with `proposal_accept` consent. |
+| `p2p_proposal_reject` | permission-gated | yes | yes | Reject a draft proposal with `proposal_reject` consent. |
+| `p2p_proposal_defer` | permission-gated | yes | yes | Defer a draft proposal with `proposal_defer` consent. |
 | `p2p_proposal_accept_branch` | permission-gated | yes | yes | Record owner-controlled branch acceptance with `proposal_accept_branch` consent. |
 | `p2p_proposal_reject_branch` | permission-gated | yes | yes | Record owner-controlled branch rejection with `proposal_reject_branch` consent. |
 | `p2p_proposal_merge` | permission-gated | yes | yes | Merge proposal branch into base branch with `proposal_merge` consent. |
@@ -233,11 +236,11 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_impact_prompt` | advisory/write-safe | yes | no | Generate an impact-analysis prompt for a proposal. |
 | `p2p_spec_prompt` | advisory/write-safe | yes | no | Generate a software-spec refinement prompt for a Change Set. |
 
-MCP still does not expose proposal accept/reject/defer decisions, choice
-decisions, spec imports, conflict recording, voting, precedent recording, choice
-blocking, Work branch creation, Work submission, Work review, Work publishing,
-Work acceptance, Work finalization, Work cleanup, provider PR/MR creation, or a
-hosted IAM model.
+MCP now exposes permission-gated draft proposal accept/reject/defer decisions.
+It still does not expose choice decisions, spec imports, conflict recording,
+voting, precedent recording, choice blocking, Work branch creation, Work
+submission, Work review, Work publishing, Work acceptance, Work finalization,
+Work cleanup, provider PR/MR creation, or a hosted IAM model.
 
 For end-to-end proposal collaboration, MCP can prepare the path but cannot grant
 owner consent:
@@ -325,6 +328,9 @@ sync_pull                 -> p2p_sync_pull
 sync_push                 -> p2p_sync_push
 proposal_publish          -> p2p_proposal_publish
 proposal_request_review   -> p2p_proposal_request_review
+proposal_accept           -> p2p_proposal_accept
+proposal_reject           -> p2p_proposal_reject
+proposal_defer            -> p2p_proposal_defer
 proposal_accept_branch    -> p2p_proposal_accept_branch
 proposal_reject_branch    -> p2p_proposal_reject_branch
 proposal_merge            -> p2p_proposal_merge

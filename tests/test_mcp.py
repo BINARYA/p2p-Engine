@@ -100,6 +100,9 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_proposal_branch_status",
         "p2p_proposal_publish",
         "p2p_proposal_request_review",
+        "p2p_proposal_accept",
+        "p2p_proposal_reject",
+        "p2p_proposal_defer",
         "p2p_proposal_accept_branch",
         "p2p_proposal_reject_branch",
         "p2p_proposal_merge",
@@ -127,12 +130,18 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
     }
 
     assert expected <= names
-    allowed_decision_tools = {"p2p_proposal_accept_branch", "p2p_proposal_reject_branch"}
+    allowed_decision_tools = {
+        "p2p_proposal_accept",
+        "p2p_proposal_reject",
+        "p2p_proposal_defer",
+        "p2p_proposal_accept_branch",
+        "p2p_proposal_reject_branch",
+    }
     allowed_cleanup_tools = {"p2p_proposal_cleanup"}
     assert not any(
         ("accept" in name and name not in allowed_decision_tools)
         or ("reject" in name and name not in allowed_decision_tools)
-        or "defer" in name
+        or ("defer" in name and name not in allowed_decision_tools)
         or "decide" in name
         or ("cleanup" in name and name not in allowed_cleanup_tools)
         or (("merge" in name) and name != "p2p_proposal_merge")
@@ -265,6 +274,125 @@ def test_mcp_requested_consent_does_not_authorize_publish(tmp_path: Path) -> Non
         assert "Consent receipt is not granted" in str(exc)
     else:
         raise AssertionError("requested consent should not authorize publish")
+
+
+def test_mcp_draft_proposal_decision_requires_granted_consent(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
+    runner.invoke(app, ["permissions", "actor", "add", "lorenzo", "--role", "contributor", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "MCP Draft Reject Demo", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+    call_tool(
+        "p2p_consent_request",
+        {"root": str(tmp_path), "operation": "proposal_reject", "target": "PROP-001", "actor_id": "lorenzo"},
+    )
+
+    try:
+        call_tool(
+            "p2p_proposal_reject",
+            {
+                "root": str(tmp_path),
+                "proposal_id": "PROP-001",
+                "actor_id": "lorenzo",
+                "consent_id": "CONSENT-001",
+                "reason": "Out of scope.",
+            },
+        )
+    except ValueError as exc:
+        assert "Consent receipt is not granted" in str(exc)
+    else:
+        raise AssertionError("requested consent should not authorize draft proposal rejection")
+
+    runner.invoke(
+        app,
+        [
+            "consent",
+            "grant",
+            "proposal_reject",
+            "PROP-001",
+            "--actor",
+            "lorenzo",
+            "--approved-by",
+            "matteo",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "grant draft proposal reject consent")
+
+    rejected = call_tool(
+        "p2p_proposal_reject",
+        {
+            "root": str(tmp_path),
+            "proposal_id": "PROP-001",
+            "actor_id": "lorenzo",
+            "consent_id": "CONSENT-002",
+            "reason": "Out of scope.",
+        },
+    )
+
+    assert rejected["proposal_decision"]["outcome"] == "rejected"
+    assert rejected["proposal_decision"]["approver"] == "lorenzo"
+    assert rejected["governance"]["decision_made"] is True
+    assert rejected["governance"]["decision_outcome"] == "rejected"
+    assert rejected["consent"]["status"] == "consumed"
+    proposal_text = next((tmp_path / ".p2p" / "proposals").glob("PROP-001-*/proposal.md")).read_text(encoding="utf-8")
+    assert "## Status\n\n`rejected`" in proposal_text
+
+
+def test_mcp_draft_proposal_accept_and_defer_consume_matching_consent(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
+    runner.invoke(app, ["permissions", "actor", "add", "lorenzo", "--role", "contributor", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "MCP Draft Accept Demo", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "MCP Draft Defer Demo", "--root", str(tmp_path)])
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline")
+    _git(tmp_path, "branch", "-M", "main")
+
+    for operation, tool_name, proposal_id, expected in [
+        ("proposal_accept", "p2p_proposal_accept", "PROP-001", "accepted"),
+        ("proposal_defer", "p2p_proposal_defer", "PROP-002", "deferred"),
+    ]:
+        runner.invoke(
+            app,
+            [
+                "consent",
+                "grant",
+                operation,
+                proposal_id,
+                "--actor",
+                "lorenzo",
+                "--approved-by",
+                "matteo",
+                "--root",
+                str(tmp_path),
+            ],
+        )
+        _git(tmp_path, "add", ".")
+        _git(tmp_path, "commit", "-m", f"grant {operation} consent")
+        consent_id = f"CONSENT-00{1 if proposal_id == 'PROP-001' else 2}"
+        result = call_tool(
+            tool_name,
+            {
+                "root": str(tmp_path),
+                "proposal_id": proposal_id,
+                "actor_id": "lorenzo",
+                "consent_id": consent_id,
+                "reason": "Owner approved through consent.",
+            },
+        )
+
+        assert result["proposal_decision"]["outcome"] == expected
+        assert result["governance"]["decision_outcome"] == expected
+        assert result["consent"]["status"] == "consumed"
 
 
 def test_mcp_proposal_draft_commit_then_branch_from_explicit_base(tmp_path: Path) -> None:

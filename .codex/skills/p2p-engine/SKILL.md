@@ -130,6 +130,9 @@ p2p_proposal_branch
 p2p_proposal_branch_status
 p2p_proposal_publish
 p2p_proposal_request_review
+p2p_proposal_accept
+p2p_proposal_reject
+p2p_proposal_defer
 p2p_proposal_accept_branch
 p2p_proposal_reject_branch
 p2p_proposal_merge
@@ -148,9 +151,9 @@ p2p_spec_prompt
 
 These tools may initialize projects, refresh agent instructions, regenerate deterministic registries, validate project state, return compact context packets, generate/show deterministic readiness assessments, initialize/show project definition rubrics, generate/show deterministic project definition maturity, create and refine draft proposals, append proposal contributions, create/list intake prompts, generate/show operational brief artifacts, discover choice candidates, inspect recorded conflicts, read Change Sets and Work manifests, refresh generated project/spec artifacts, export and validate spec artifacts, create metadata-only Work plans, and generate advisory prompts.
 
-The managed sync and proposal branch tools may run the specific operation named by their schema. Pull, push, publish, review handoff, accept/reject branch decisions, merge, finalize, and cleanup require a matching consent receipt. They do not authorize raw Git escape hatches, retire, provider PR automation, Work acceptance, Work finalization, Work cleanup, or arbitrary commits.
+The managed sync, draft proposal decision, and proposal branch tools may run the specific operation named by their schema. Pull, push, publish, review handoff, draft proposal accept/reject/defer, accept/reject branch decisions, merge, finalize, and cleanup require a matching consent receipt. They do not authorize raw Git escape hatches, retire, provider PR automation, Work acceptance, Work finalization, Work cleanup, or arbitrary commits.
 
-They do not authorize governance decisions, conflict recording, voting, precedent recording, choice blocking/deciding, intake apply actions, brief imports, impact imports, spec imports, provider PRs, direct raw Git operations, owner-controlled accepts/rejects, or merges.
+They do not authorize governance decisions beyond the explicit permission-gated draft proposal and proposal branch decision tools, conflict recording, voting, precedent recording, choice blocking/deciding, intake apply actions, brief imports, impact imports, spec imports, provider PRs, direct raw Git operations, or merges beyond the explicit permission-gated merge tool.
 
 ## Managed Git Collaboration
 
@@ -190,6 +193,9 @@ p2p_proposal_branch
 p2p_proposal_branch_status
 p2p_proposal_publish
 p2p_proposal_request_review
+p2p_proposal_accept
+p2p_proposal_reject
+p2p_proposal_defer
 p2p_proposal_accept_branch
 p2p_proposal_reject_branch
 p2p_proposal_merge
@@ -198,7 +204,7 @@ p2p_proposal_cleanup
 p2p_proposal_branch_scan
 ```
 
-MCP pull, push, publish, request-review, accept-branch, reject-branch, merge, finalize, and cleanup require the matching consent receipt. MCP retire and provider PR/MR tools remain deferred until explicit permission-gated operations are implemented.
+MCP pull, push, publish, request-review, draft proposal accept/reject/defer, accept-branch, reject-branch, merge, finalize, and cleanup require the matching consent receipt. MCP retire and provider PR/MR tools remain deferred until explicit permission-gated operations are implemented.
 
 Before creating proposal or Work branches, inspect `p2p status`, `p2p context --budget small`, and `p2p sync status` when a remote is configured. Stop for owner approval before remote publication when policy requires it, and always stop before accept, reject, merge, finalize, or cleanup.
 

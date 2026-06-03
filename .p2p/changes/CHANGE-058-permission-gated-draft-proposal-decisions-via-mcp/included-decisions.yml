@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-077
+  decision_file: .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/decision.md
