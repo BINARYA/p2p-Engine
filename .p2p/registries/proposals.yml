@@ -2336,7 +2336,7 @@ proposals:
   - tasks.yml
 - id: PROP-078
   title: Project-Local Wheel Installation and Upgrade Model
-  status: draft
+  status: accepted
   path: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model
   summary: 'Introduce a packaging and installation model based on versioned wheel
     artifacts attached to GitHub Releases as the first distribution channel. Project
@@ -2349,7 +2349,8 @@ proposals:
     python -m pip install --upgrade p2p-engine. The proposal should avoid requiring
     users to reference external source checkout paths during normal project use.'
   decision_file: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/decision.md
-  related_changes: []
+  related_changes:
+  - CHANGE-059
   source_files:
   - ai-digest.md
   - alternatives.md

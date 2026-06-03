@@ -10,8 +10,8 @@ learn every command; it is to see why P2P Engine exists.
 5. create a Change Set;
 6. refresh registries and generate agent context.
 
-The example assumes P2P Engine is installed from a source checkout and `p2p` is
-on your `PATH`. If not, use `/path/to/p2p-Engine/.venv/bin/p2p`.
+The example assumes P2P Engine is installed in the project-local `.venv`. If
+`p2p` is not on `PATH`, use `.venv/bin/p2p`.
 
 ## Scenario
 

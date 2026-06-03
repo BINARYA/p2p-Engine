@@ -291,6 +291,11 @@ relations:
   type: includes
   rationale: Change Set includes accepted proposal.
   source_artifact: .p2p/changes/CHANGE-058-permission-gated-draft-proposal-decisions-via-mcp
+- source: CHANGE-059
+  target: PROP-078
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-059-project-local-wheel-installation-and-upgrade-model
 - source: PROP-013
   target: CHANGE-001
   type: implemented_by
@@ -581,3 +586,8 @@ relations:
   type: implemented_by
   rationale: Proposal appears in Change Set source metadata.
   source_artifact: .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp
+- source: PROP-078
+  target: CHANGE-059
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model

@@ -561,7 +561,8 @@ decisions:
     proposal rejection was not available as a permission-gated MCP operation.
 - proposal: PROP-078
   title: Project-Local Wheel Installation and Upgrade Model
-  outcome: pending
-  status: draft
+  outcome: accepted
+  status: accepted
   path: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/decision.md
-  reason: ''
+  reason: Owner approved project-local wheel installation as the transitional packaging
+    model before public package distribution.

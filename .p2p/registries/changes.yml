@@ -957,3 +957,20 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-059
+  title: Project-Local Wheel Installation and Upgrade Model
+  status: completed
+  path: .p2p/changes/CHANGE-059-project-local-wheel-installation-and-upgrade-model
+  included_proposals:
+  - PROP-078
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

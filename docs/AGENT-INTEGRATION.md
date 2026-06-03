@@ -152,7 +152,7 @@ Configure MCP when available:
 
 ```bash
 codex mcp add p2p-my-project -- \
-  /path/to/p2p-Engine/.venv/bin/python \
+  /path/to/my-project/.venv/bin/python \
   -m p2p_engine.mcp.server \
   --root /path/to/my-project
 ```

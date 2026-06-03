@@ -47,46 +47,46 @@ Humans do not need to operate P2P Engine manually for every step. The intended m
 
 ```text
 Status: Alpha / MVP+
-Install: from source with Python virtualenv
+Install: project-local virtualenv from GitHub Release wheel
 CLI: usable
 MCP: local stdio MVP
 Hosted product: not included in this repository
 Packaged binary: not yet available
+Future package target: public package registry, e.g. PyPI
 ```
 
 Current implementation includes proposal lifecycle, decisions, choices, Change Sets, Work metadata, registries, validation, compact context, rubrics, maturity assessment, spec/export MVP, and a guided init wizard.
 
 ## 5-Minute Agent Setup
 
-The normal workflow is to use P2P Engine for a separate target project.
+The normal workflow is to install P2P Engine into the target project's own
+virtualenv. GitHub Release wheels are the transitional distribution channel.
+The future target is a public package registry where setup becomes
+`python -m pip install p2p-engine`.
 
 ```text
-P2P Engine checkout
-  The local installation of the engine.
-
 Target project
-  The project that gets `.p2p/` state and agent instructions.
+  The project that gets `.p2p/` state, agent instructions, and a local `.venv`
+  containing the `p2p` runtime.
 
 Agent client
   Codex, Claude, or another MCP/CLI-capable agent that uses P2P primitives.
 ```
 
-Install P2P Engine once:
+Create a project and install P2P Engine into that project-local virtualenv:
 
 ```bash
-git clone https://github.com/BINARYA/p2p-Engine.git
-cd p2p-Engine
+mkdir /tmp/my-project
+cd /tmp/my-project
 python3 -m venv .venv
-. .venv/bin/activate
-pip install -e ".[dev]"
+.venv/bin/python -m pip install \
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.1.0/p2p_engine-0.1.0-py3-none-any.whl
 ```
 
 Initialize P2P inside the target project:
 
 ```bash
-mkdir /tmp/my-project
-cd /tmp/my-project
-/path/to/p2p-Engine/.venv/bin/p2p init "My Project" \
+.venv/bin/p2p init "My Project" \
   --agent codex \
   --repository local \
   --domain software \
@@ -137,7 +137,7 @@ cleanup proposal branches only with matching consent receipts. MCP still does
 not create provider PR/MR resources, decide choices, import specs, or expose the
 full Work lifecycle as permission-gated tools.
 
-See [docs/INSTALL.md](docs/INSTALL.md) for the source install and new-project setup flow. See [docs/MCP.md](docs/MCP.md) for MCP client setup, `stdio` behavior, and tool boundaries.
+See [docs/INSTALL.md](docs/INSTALL.md) for project-local install, upgrade, and new-project setup. See [docs/MCP.md](docs/MCP.md) for MCP client setup, `stdio` behavior, and tool boundaries.
 
 ### Optional Manual CLI Trial
 
@@ -146,8 +146,8 @@ or recover from agent/client issues. This is not the intended primary workflow
 for normal use.
 
 ```bash
-/path/to/p2p-Engine/.venv/bin/p2p context --budget small
-/path/to/p2p-Engine/.venv/bin/p2p proposal create "First direction" \
+.venv/bin/p2p context --budget small
+.venv/bin/p2p proposal create "First direction" \
   --problem "The project needs an explicit first direction." \
   --goal "Define the initial scope." \
   --proposal "Start with a small owner-reviewed proposal." \
@@ -161,7 +161,7 @@ For full manual workflows, use [docs/CLI-GUIDE.md](docs/CLI-GUIDE.md).
 Current install method:
 
 ```text
-source checkout + Python virtualenv
+project-local Python virtualenv + GitHub Release wheel
 ```
 
 See [docs/INSTALL.md](docs/INSTALL.md) for installing P2P Engine and setting up a new target project.
@@ -174,19 +174,19 @@ For a new project, choose the profile that matches the agent environment you
 intend to use:
 
 ```bash
-/path/to/p2p-Engine/.venv/bin/p2p init "My Project" --agent codex --repository local --domain software --mcp-hint
-/path/to/p2p-Engine/.venv/bin/p2p init "My Project" --agent claude --repository local --domain software --mcp-hint
-/path/to/p2p-Engine/.venv/bin/p2p init "My Project" --agent all --repository local --domain software --mcp-hint
+.venv/bin/p2p init "My Project" --agent codex --repository local --domain software --mcp-hint
+.venv/bin/p2p init "My Project" --agent claude --repository local --domain software --mcp-hint
+.venv/bin/p2p init "My Project" --agent all --repository local --domain software --mcp-hint
 ```
 
 For a remote-backed project, initialize the P2P project as cloud-backed, then
 record the remote profile and verify sync readiness:
 
 ```bash
-/path/to/p2p-Engine/.venv/bin/p2p init "My Project" --agent codex --repository cloud --domain software --owner matteo --mcp-hint
+.venv/bin/p2p init "My Project" --agent codex --repository cloud --domain software --owner matteo --mcp-hint
 git remote add origin git@github.com:ORG/REPO.git
-/path/to/p2p-Engine/.venv/bin/p2p project remote configure --mode remote --provider github --remote origin --url git@github.com:ORG/REPO.git
-/path/to/p2p-Engine/.venv/bin/p2p sync status
+.venv/bin/p2p project remote configure --mode remote --provider github --remote origin --url git@github.com:ORG/REPO.git
+.venv/bin/p2p sync status
 ```
 
 `p2p init --repository cloud` records project intent; it does not create a

@@ -273,8 +273,8 @@ not a measure of implementation completeness.
 Use the virtualenv binary or activate the virtualenv:
 
 ```bash
-/path/to/p2p-Engine/.venv/bin/p2p --help
-. /path/to/p2p-Engine/.venv/bin/activate
+.venv/bin/p2p --help
+. .venv/bin/activate
 ```
 
 Registries look stale:

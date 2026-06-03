@@ -10,8 +10,9 @@ separate from the normal new-project setup.
 Current status:
 
 ```text
-Supported today: install from source with Python virtualenv.
-Future target: packaged or compiled CLI distribution.
+Supported today: project-local install from a GitHub Release wheel.
+Transitional channel: versioned .whl files attached to GitHub Releases.
+Future target: public package registry, e.g. PyPI.
 ```
 
 ## Requirements
@@ -21,66 +22,59 @@ Future target: packaged or compiled CLI distribution.
 - A shell with virtualenv support
 - Optional: an MCP-capable or CLI-capable agent client
 
-## Install From Source
+## Install Into A Project
 
-Clone the repository:
-
-```bash
-git clone https://github.com/BINARYA/p2p-Engine.git
-cd p2p-Engine
-```
-
-If you prefer SSH and already have GitHub SSH keys configured:
-
-```bash
-git clone git@github.com:BINARYA/p2p-Engine.git
-cd p2p-Engine
-```
-
-Create and activate a virtual environment:
-
-```bash
-python3 -m venv .venv
-. .venv/bin/activate
-```
-
-Install P2P Engine in editable mode:
-
-```bash
-pip install -e ".[dev]"
-```
-
-Verify the CLI:
-
-```bash
-p2p --help
-python -m p2p_engine.mcp.server --help
-python -m pytest -q
-```
-
-If `p2p` is not on `PATH`, call it through the virtualenv:
-
-```bash
-/path/to/p2p-Engine/.venv/bin/p2p --help
-```
-
-## Initialize A New Target Project
-
-The repository you cloned above is the engine checkout. The target project is a
-different directory: it is the project where `.p2p/` state, generated agent
-instructions, proposals, decisions, Change Sets, and exports will live.
+Install P2P Engine into the target project's own virtual environment. Do not
+clone or reference a separate P2P Engine source checkout for normal project use.
 
 Create a project directory:
 
 ```bash
 mkdir my-project
 cd my-project
+python3 -m venv .venv
 ```
+
+Install a versioned wheel from GitHub Releases:
+
+```bash
+.venv/bin/python -m pip install \
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.1.0/p2p_engine-0.1.0-py3-none-any.whl
+```
+
+Replace `v0.1.0` and `p2p_engine-0.1.0-py3-none-any.whl` with the release you
+intend to use. The wheel filename is expected to follow:
+
+```text
+p2p_engine-<version>-py3-none-any.whl
+```
+
+Verify the CLI:
+
+```bash
+.venv/bin/p2p --help
+.venv/bin/python -m p2p_engine.mcp.server --help
+.venv/bin/p2p doctor
+```
+
+GitHub Release wheels are a transitional distribution model. The planned public
+package flow is:
+
+```bash
+.venv/bin/python -m pip install p2p-engine
+.venv/bin/python -m pip install --upgrade p2p-engine
+```
+
+## Initialize A New Target Project
+
+The target project is the project where `.p2p/` state, generated agent
+instructions, proposals, decisions, Change Sets, and exports will live. It also
+contains the `.venv` with the `p2p` runtime.
 
 Run the guided wizard:
 
 ```bash
-/path/to/p2p-Engine/.venv/bin/p2p init
+.venv/bin/p2p init
 ```
 
 The wizard asks for:
@@ -97,7 +91,7 @@ MCP setup hint
 For a scriptable non-interactive setup:
 
 ```bash
-/path/to/p2p-Engine/.venv/bin/p2p init "My Project" \
+.venv/bin/p2p init "My Project" \
   --agent codex \
   --repository local \
   --domain software \
@@ -114,7 +108,7 @@ when you want P2P to pre-populate rubric criteria at init time.
 Local projects need only the P2P workspace:
 
 ```bash
-/path/to/p2p-Engine/.venv/bin/p2p init "My Project" \
+.venv/bin/p2p init "My Project" \
   --agent codex \
   --repository local \
   --domain software \
@@ -126,7 +120,7 @@ Remote-backed projects add a P2P remote profile and a Git remote. The current
 MVP keeps these as explicit steps:
 
 ```bash
-/path/to/p2p-Engine/.venv/bin/p2p init "My Project" \
+.venv/bin/p2p init "My Project" \
   --agent codex \
   --repository cloud \
   --domain software \
@@ -135,27 +129,75 @@ MVP keeps these as explicit steps:
 
 git remote add origin git@github.com:ORG/REPO.git
 
-/path/to/p2p-Engine/.venv/bin/p2p project remote configure \
+.venv/bin/p2p project remote configure \
   --mode remote \
   --provider github \
   --remote origin \
   --url git@github.com:ORG/REPO.git
 
-/path/to/p2p-Engine/.venv/bin/p2p project remote show
-/path/to/p2p-Engine/.venv/bin/p2p sync status
+.venv/bin/p2p project remote show
+.venv/bin/p2p sync status
 ```
 
 To modify the remote profile later, run `p2p project remote configure` again.
 To mark the project local-only again:
 
 ```bash
-/path/to/p2p-Engine/.venv/bin/p2p project remote configure --mode local
+.venv/bin/p2p project remote configure --mode local
 ```
 
 P2P does not create provider repositories, configure SSH keys, create tokens, or
 change GitHub/GitLab branch protection in the MVP. It records P2P profile
 metadata and validates local Git readiness. Proposal `PROP-073` tracks a more
 ergonomic one-command remote initialization flow.
+
+## Upgrade An Existing Project
+
+Do not rerun `p2p init` to upgrade an existing P2P project. Upgrade the runtime
+inside the project's `.venv`, then refresh generated P2P artifacts.
+
+From the target project:
+
+```bash
+.venv/bin/python -m pip install --upgrade \
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.1.1/p2p_engine-0.1.1-py3-none-any.whl
+
+.venv/bin/p2p doctor
+.venv/bin/p2p agent doctor
+.venv/bin/p2p registry refresh
+.venv/bin/p2p agent instructions refresh
+.venv/bin/p2p validate
+```
+
+This upgrades the installed engine runtime. It does not pull or merge the target
+project repository. For project Git synchronization, use the P2P sync commands
+documented for managed collaboration.
+
+## Build A Release Wheel
+
+This section is for P2P Engine maintainers preparing a GitHub Release artifact.
+Normal target projects should install the published wheel instead.
+
+From the P2P Engine source checkout:
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -e ".[dev]"
+python -m build
+```
+
+The expected wheel artifact is:
+
+```text
+dist/p2p_engine-<version>-py3-none-any.whl
+```
+
+Attach that `.whl` to the matching GitHub Release, for example:
+
+```text
+v0.1.1 -> p2p_engine-0.1.1-py3-none-any.whl
+```
 
 ## Connect An Agent
 
@@ -172,7 +214,7 @@ core storage.
 The MCP server command has this shape:
 
 ```bash
-/path/to/p2p-Engine/.venv/bin/python \
+.venv/bin/python \
   -m p2p_engine.mcp.server \
   --root /path/to/my-project
 ```
@@ -194,12 +236,11 @@ codex mcp add p2p-my-project -- \
   --root /path/to/my-project
 ```
 
-If it is not on `PATH`, or if your editable install did not refresh console
-scripts yet, use the Python module from the source checkout:
+If it is not on `PATH`, use the Python module from the project-local virtualenv:
 
 ```bash
 codex mcp add p2p-my-project -- \
-  /path/to/p2p-Engine/.venv/bin/python \
+  .venv/bin/python \
   -m p2p_engine.mcp.server \
   --root /path/to/my-project
 ```
@@ -221,7 +262,7 @@ Codex CLI and the Codex IDE extension share MCP configuration through
 
 ```toml
 [mcp_servers.p2p-my-project]
-command = "/path/to/p2p-Engine/.venv/bin/python"
+command = "/path/to/my-project/.venv/bin/python"
 args = ["-m", "p2p_engine.mcp.server", "--root", "/path/to/my-project"]
 startup_timeout_sec = 20
 tool_timeout_sec = 60
@@ -233,7 +274,7 @@ For Claude in the terminal, add the same local stdio server:
 
 ```bash
 claude mcp add --transport stdio p2p-my-project -- \
-  /path/to/p2p-Engine/.venv/bin/python \
+  /path/to/my-project/.venv/bin/python \
   -m p2p_engine.mcp.server \
   --root /path/to/my-project
 ```
@@ -248,7 +289,7 @@ Claude Code also supports project-scoped MCP configuration:
 
 ```bash
 claude mcp add --transport stdio --scope project p2p-my-project -- \
-  /path/to/p2p-Engine/.venv/bin/python \
+  /path/to/my-project/.venv/bin/python \
   -m p2p_engine.mcp.server \
   --root /path/to/my-project
 ```
@@ -272,7 +313,7 @@ entry with the same command and arguments:
 {
   "mcpServers": {
     "p2p-my-project": {
-      "command": "/path/to/p2p-Engine/.venv/bin/python",
+      "command": "/path/to/my-project/.venv/bin/python",
       "args": [
         "-m",
         "p2p_engine.mcp.server",
@@ -307,7 +348,7 @@ VS Code's MCP configuration is separate from Codex configuration. Use workspace
   "servers": {
     "p2p-my-project": {
       "type": "stdio",
-      "command": "/path/to/p2p-Engine/.venv/bin/python",
+      "command": "${workspaceFolder}/.venv/bin/python",
       "args": [
         "-m",
         "p2p_engine.mcp.server",
@@ -327,7 +368,7 @@ MCP configuration UI or config file with these fields:
 ```text
 name: p2p-my-project
 transport: stdio
-command: /path/to/p2p-Engine/.venv/bin/python
+command: /path/to/my-project/.venv/bin/python
 args: -m p2p_engine.mcp.server --root /path/to/my-project
 ```
 
@@ -406,25 +447,25 @@ state.
 From inside the project directory:
 
 ```bash
-/path/to/p2p-Engine/.venv/bin/p2p context --budget small
-/path/to/p2p-Engine/.venv/bin/p2p validate
-/path/to/p2p-Engine/.venv/bin/p2p registry refresh
-/path/to/p2p-Engine/.venv/bin/p2p next
+.venv/bin/p2p context --budget small
+.venv/bin/p2p validate
+.venv/bin/p2p registry refresh
+.venv/bin/p2p next
 ```
 
 Assess structural readiness:
 
 ```bash
-/path/to/p2p-Engine/.venv/bin/p2p assess refresh
-/path/to/p2p-Engine/.venv/bin/p2p assess show
+.venv/bin/p2p assess refresh
+.venv/bin/p2p assess show
 ```
 
 Assess project definition maturity:
 
 ```bash
-/path/to/p2p-Engine/.venv/bin/p2p project rubrics show
-/path/to/p2p-Engine/.venv/bin/p2p assess maturity refresh
-/path/to/p2p-Engine/.venv/bin/p2p assess maturity show
+.venv/bin/p2p project rubrics show
+.venv/bin/p2p assess maturity refresh
+.venv/bin/p2p assess maturity show
 ```
 
 ## Optional Manual CLI Trial
@@ -482,16 +523,16 @@ python -m p2p_engine
 available MCP tools
 ```
 
-If `p2p` is not on `PATH`, use the virtualenv binary:
+If `p2p` is not on `PATH`, use the project-local virtualenv binary:
 
 ```bash
-/path/to/p2p-Engine/.venv/bin/p2p --help
+.venv/bin/p2p --help
 ```
 
 or activate the virtualenv:
 
 ```bash
-. /path/to/p2p-Engine/.venv/bin/activate
+. .venv/bin/activate
 ```
 
 If the package is importable but the console script is not installed, use:
@@ -505,7 +546,7 @@ MCP server cannot start
 Use the explicit Python module command:
 
 ```bash
-/path/to/p2p-Engine/.venv/bin/python -m p2p_engine.mcp.server --root /path/to/project
+.venv/bin/python -m p2p_engine.mcp.server --root /path/to/project
 ```
 
 Agent tries to edit `.p2p/` by hand

@@ -28,10 +28,10 @@ Run the stdio server from an installed environment:
 p2p-mcp-server --root /path/to/project
 ```
 
-Robust source-checkout form:
+Robust project-local virtualenv form:
 
 ```bash
-/path/to/p2p-Engine/.venv/bin/python \
+/path/to/project/.venv/bin/python \
   -m p2p_engine.mcp.server \
   --root /path/to/project
 ```
@@ -45,7 +45,7 @@ portable across all clients without adaptation.
 
 ```bash
 codex mcp add p2p-my-project -- \
-  /path/to/p2p-Engine/.venv/bin/python \
+  /path/to/my-project/.venv/bin/python \
   -m p2p_engine.mcp.server \
   --root /path/to/my-project
 ```
@@ -58,7 +58,7 @@ and use `/mcp` inside the Codex terminal UI to inspect active servers.
 
 ```bash
 claude mcp add --transport stdio p2p-my-project -- \
-  /path/to/p2p-Engine/.venv/bin/python \
+  /path/to/my-project/.venv/bin/python \
   -m p2p_engine.mcp.server \
   --root /path/to/my-project
 ```
@@ -76,7 +76,7 @@ the same command and arguments:
 {
   "mcpServers": {
     "p2p-my-project": {
-      "command": "/path/to/p2p-Engine/.venv/bin/python",
+      "command": "/path/to/my-project/.venv/bin/python",
       "args": [
         "-m",
         "p2p_engine.mcp.server",
@@ -105,7 +105,7 @@ VS Code's MCP configuration is separate from Codex configuration. Use workspace
   "servers": {
     "p2p-my-project": {
       "type": "stdio",
-      "command": "/path/to/p2p-Engine/.venv/bin/python",
+      "command": "${workspaceFolder}/.venv/bin/python",
       "args": [
         "-m",
         "p2p_engine.mcp.server",
@@ -343,7 +343,7 @@ proposal_cleanup          -> p2p_proposal_cleanup
 Server cannot start:
 
 ```bash
-/path/to/p2p-Engine/.venv/bin/python -m p2p_engine.mcp.server --root /path/to/project
+/path/to/project/.venv/bin/python -m p2p_engine.mcp.server --root /path/to/project
 ```
 
 Agent is reading too much:
