@@ -1025,3 +1025,20 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-063
+  title: Readiness Profile And Storage MVP
+  status: proposed
+  path: .p2p/changes/CHANGE-063-readiness-profile-and-storage-mvp
+  included_proposals:
+  - PROP-002
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 15

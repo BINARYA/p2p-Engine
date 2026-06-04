@@ -1,0 +1,4 @@
+commands:
+- name: Implement proposal readiness CLI commands
+  purpose: p2p proposal readiness, refresh, and explain commands.
+  status: todo

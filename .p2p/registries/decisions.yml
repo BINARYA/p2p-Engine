@@ -11,11 +11,11 @@ decisions:
     exporters, MCP, or a web interface. Automating the manually bootstrapped `.p2p/`
     structure is the shortest path to dogfooding.
 - proposal: PROP-002
-  title: Exploration Phase
-  outcome: pending
-  status: draft
+  title: Proposal Exploration And Readiness Workflow
+  outcome: accepted
+  status: accepted
   path: .p2p/proposals/PROP-002-exploration-phase/decision.md
-  reason: ''
+  reason: Owner accepts the proposal exploration and readiness workflow after review.
 - proposal: PROP-003
   title: Prompt generator hardening
   outcome: deferred

@@ -311,6 +311,16 @@ relations:
   type: includes
   rationale: Change Set includes accepted proposal.
   source_artifact: .p2p/changes/CHANGE-062-mcp-and-skill-support-for-managed-next-actions
+- source: CHANGE-063
+  target: PROP-002
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-063-readiness-profile-and-storage-mvp
+- source: PROP-002
+  target: CHANGE-063
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-002-exploration-phase
 - source: PROP-013
   target: CHANGE-001
   type: implemented_by

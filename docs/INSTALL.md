@@ -39,10 +39,10 @@ Install a versioned wheel from GitHub Releases:
 
 ```bash
 .venv/bin/python -m pip install \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.1.1/p2p_engine-0.1.1-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.1.3/p2p_engine-0.1.3-py3-none-any.whl
 ```
 
-Replace `v0.1.1` and `p2p_engine-0.1.1-py3-none-any.whl` with the release you
+Replace `v0.1.3` and `p2p_engine-0.1.3-py3-none-any.whl` with the release you
 intend to use. The wheel filename is expected to follow:
 
 ```text
@@ -160,7 +160,7 @@ From the target project:
 
 ```bash
 .venv/bin/python -m pip install --upgrade \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.1.1/p2p_engine-0.1.1-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.1.3/p2p_engine-0.1.3-py3-none-any.whl
 
 .venv/bin/p2p doctor
 .venv/bin/p2p agent doctor
@@ -184,20 +184,20 @@ version, commit and push `main`, then push a matching version tag:
 ```bash
 # pyproject.toml
 # [project]
-# version = "0.1.1"
+# version = "0.1.3"
 
 git add pyproject.toml
-git commit -m "Bump version to 0.1.1"
+git commit -m "Bump version to 0.1.3"
 git push origin main
 
-git tag -a v0.1.1 -m "P2P Engine v0.1.1"
-git push origin v0.1.1
+git tag -a v0.1.3 -m "P2P Engine v0.1.3"
+git push origin v0.1.3
 ```
 
 The release workflow runs tests, runs `p2p validate`, builds the source
 distribution and wheel, and uploads both files to the matching GitHub Release.
-The tag must match `pyproject.toml`: tag `v0.1.1` requires
-`version = "0.1.1"`. Do not reuse an existing version or tag for different
+The tag must match `pyproject.toml`: tag `v0.1.3` requires
+`version = "0.1.3"`. Do not reuse an existing version or tag for different
 contents.
 
 Expected release assets:
@@ -231,7 +231,7 @@ Attach that `.whl` and the matching `.tar.gz` to the GitHub Release only if the
 automated workflow is unavailable. For example:
 
 ```text
-v0.1.1 -> p2p_engine-0.1.1-py3-none-any.whl, p2p_engine-0.1.1.tar.gz
+v0.1.3 -> p2p_engine-0.1.3-py3-none-any.whl, p2p_engine-0.1.3.tar.gz
 ```
 
 ## Connect An Agent

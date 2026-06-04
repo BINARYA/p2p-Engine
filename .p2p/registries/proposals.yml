@@ -69,52 +69,88 @@ proposals:
   - proposal.md
   - tasks.yml
 - id: PROP-002
-  title: Exploration Phase
-  status: draft
+  title: Proposal Exploration And Readiness Workflow
+  status: accepted
   path: .p2p/proposals/PROP-002-exploration-phase
-  summary: 'Introdurre una fase autonoma e ripetibile chiamata `explore`.
-
-
-    `explore` non riassume e non decide. Serve a interrogare la proposta e generare
-    materiale che alimenta clarify, synthesize, decision, plan e tasks.
-
-
-    Gli output validi devono essere salvati negli artefatti P2P versionati:
-
-
-    ```text
-
-    exploration.md
-
-    findings.md
-
-    alternatives.md
-
-    open-questions.md
-
-    risks.md
-
-    assumptions.md
-
-    suggested-scope.md
-
-    ```
-
-
-    La CLI deve supportare:
-
-
-    ```bash
-
-    p2p explore prompt PROP-002
-
-    p2p explore import PROP-002 exploration-output.md
-
-    p2p explore status PROP-002
-
-    ```'
+  summary: "Introdurre un workflow di **Proposal Exploration And Readiness** composto\
+    \ da:\n\n1. artifact di exploration human-authored;\n2. readiness profile versionati;\n\
+    3. assessment per-proposal con score, evidence, confidence e gate;\n4. snapshot/registry\
+    \ per lookup operativo;\n5. `p2p next` readiness-aware;\n6. agent skill e MCP\
+    \ guidance piu prescrittive;\n7. owner override come evento governance.\n\n###\
+    \ Exploration Artifacts\n\nLe proposal continuano a usare artifact Markdown leggibili\
+    \ da umani e agenti:\n\n```text\nexploration.md\nfindings.md\nalternatives.md\n\
+    open-questions.md\nrisks.md\nassumptions.md\nsuggested-scope.md\n```\n\nQuesti\
+    \ artifact restano fonte di contenuto e discussione. I dati strutturati\nnecessari\
+    \ alla macchina vivono in readiness profile, readiness assessment,\nsnapshot,\
+    \ registries, export o audit record.\n\n### Readiness Profile\n\nLa readiness\
+    \ deve essere profile-based e versioned. Il primo profilo e:\n\n```yaml\nreadiness_profile:\n\
+    \  id: default-readiness-v0.1\n  version: 0.1\n  criteria:\n    problem_clarity:\
+    \ 10\n    goal_clarity: 10\n    scope_boundaries: 10\n    alternatives_quality:\
+    \ 15\n    tradeoff_analysis: 10\n    risk_coverage: 10\n    assumptions_clarity:\
+    \ 10\n    owner_questions_resolution: 10\n    acceptance_criteria_quality: 10\n\
+    \    impact_overlap_analysis: 5\n  thresholds:\n    weak: 0\n    partial: 70\n\
+    \    strong: 85\n    decision_ready: 95\n  gates: {}\n  override_policy: {}\n\
+    ```\n\nOgni readiness assessment deve registrare almeno `profile_id`,\n`profile_version`\
+    \ e `computed_at`, per rendere lo score interpretabile nel\ntempo.\n\n### Readiness\
+    \ Assessment\n\nUna proposal riceve un assessment con:\n\n```yaml\nreadiness:\n\
+    \  profile_id: default-readiness-v0.1\n  profile_version: 0.1\n  computed_at:\
+    \ 2026-06-04T10:30:00Z\n  tier: governance-critical\n  computed_score: 82\n  computed_label:\
+    \ partial\n  effective_status: normal\n  confidence: medium\n  confidence_reasons:\
+    \ []\n  required_score_for_decision: 95\n  failed_gates: []\n  missing: []\n \
+    \ suggested_next: []\n```\n\n`computed_score` misura la qualita dell'esplorazione\
+    \ secondo il profilo.\n`effective_status` rappresenta il risultato governance\
+    \ quando l'owner usa un\noverride.\n\n### Tier And Gates\n\nLe proposal hanno\
+    \ tier suggerito da agente/sistema e confermato dall'owner:\n\n```text\nsmall\n\
+    medium\narchitectural\ngovernance-critical\n```\n\nPROP-002 e `governance-critical`\
+    \ perche definisce come P2P Engine esplora,\nvaluta e muove le proposal future\
+    \ verso decisione.\n\nIl total score non basta per le proposal importanti. Il\
+    \ modello deve supportare:\n\n- required score by tier;\n- minimum gates;\n- required\
+    \ confidence;\n- artifact quality caps;\n- owner override esplicito.\n\n### Artifact\
+    \ Quality\n\n`explore status` deve evolvere oltre il controllo di esistenza file.\
+    \ Gli stati\nartifact iniziali sono:\n\n```text\nmissing\nplaceholder\nthin\n\
+    meaningful\nneeds_owner_input\nready\n```\n\nI cap iniziali sono:\n\n```yaml\n\
+    artifact_quality_caps:\n  missing:\n    max_score_percent: 0\n  placeholder:\n\
+    \    max_score_percent: 0\n  thin:\n    max_score_percent: 50\n  meaningful:\n\
+    \    max_score_percent: 75\n  needs_owner_input:\n    max_score_percent: 75\n\
+    \    blocks_ready_for_decision: true\n  ready:\n    max_score_percent: 100\n```\n\
+    \n`needs_owner_input` e diverso da `thin`: l'artifact puo essere specifico e utile\n\
+    ma non completabile senza una scelta owner.\n\n### Evidence\n\nOgni criterio valutato\
+    \ deve avere evidence strutturata e note leggibili:\n\n```yaml\ncriteria:\n  alternatives_quality:\n\
+    \    max_points: 15\n    awarded_points: 11\n    artifact_quality: meaningful\n\
+    \    evidence:\n      - artifact: alternatives.md\n        section: Alternative\
+    \ F - Hybrid Exploration And Readiness Model\n    notes: \"Alternative reali presenti,\
+    \ ma manca matrice comparativa completa.\"\n```\n\nQuesto evita score opachi e\
+    \ riduce il rischio di artifact lunghi ma generici.\n\n### Governance And Override\n\
+    \nOwner override non modifica il computed score. Crea un evento governance\nauditabile.\n\
+    \nComando primario:\n\n```bash\np2p proposal accept PROP-XXX --override-readiness\
+    \ --reason \"...\"\n```\n\nL'override sotto target richiede:\n\n- authority owner;\n\
+    - `override_reason` obbligatoria;\n- acknowledgement dei failed gates;\n- preservazione\
+    \ del computed score;\n- audit event.\n\n### Commands\n\nIl namespace readiness\
+    \ appartiene a `proposal`:\n\n```bash\np2p proposal readiness PROP-XXX\np2p proposal\
+    \ readiness refresh PROP-XXX\np2p proposal readiness explain PROP-XXX\n```\n\n\
+    Separazione prevista:\n\n```text\np2p explore status      -> artifact quality\n\
+    p2p proposal readiness  -> proposal maturity\np2p next                -> next\
+    \ action recommendation\np2p proposal accept     -> governance decision\n```\n\
+    \n### MCP And Agent Behavior\n\nMCP read tools possono essere accessibili agli\
+    \ agenti. MCP write/governance\ntools devono essere permission-gated e non agent-autonomous.\n\
+    \nLe skill agentiche devono istruire l'agente a:\n\n- ispezionare readiness prima\
+    \ di raccomandare acceptance;\n- non trattare artifact `thin` come completi;\n\
+    - distinguere score, confidence, gates e override;\n- chiedere input owner quando\
+    \ un artifact e `needs_owner_input`;\n- proporre alternative e tradeoff reali;\n\
+    - dire esplicitamente quando una proposal non e metodologicamente pronta.\n\n\
+    ### `p2p next`\n\n`p2p next` deve usare readiness per suggerire azioni concrete:\n\
+    \n```yaml\nreadiness_gap:\n  current_score: 82\n  target_score: 95\n  missing_points:\
+    \ 13\n  failed_gates:\n    - owner_questions_resolution\n    - acceptance_criteria_quality\n\
+    \  highest_impact_actions:\n    - resolve_owner_questions\n    - define_acceptance_criteria\n\
+    \    - improve_alternative_comparison\n```\n\nLe azioni devono essere ordinate\
+    \ gate-first e poi per punti recuperabili.\n\n### Migration\n\nReadiness si applica\
+    \ a nuove proposal e draft aperte. Le draft esistenti\npossono essere marcate\
+    \ `not_assessed` e `p2p next` puo suggerire una readiness\nrefresh.\n\nLe proposal\
+    \ gia accettate non vengono riscritte o invalidate. Possono essere\nmarcate come\
+    \ legacy o ricevere assessment retrospettivo chiaramente indicato."
   decision_file: .p2p/proposals/PROP-002-exploration-phase/decision.md
-  related_changes: []
+  related_changes:
+  - CHANGE-063
   source_files:
   - ai-digest.md
   - alternatives.md

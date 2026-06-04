@@ -1,0 +1,9 @@
+source:
+  change: CHANGE-063
+  included_proposals:
+  - PROP-002
+  accepted_decisions: []
+generated_from:
+- .p2p/changes/CHANGE-063-readiness-profile-and-storage-mvp/change.md
+- .p2p/changes/CHANGE-063-readiness-profile-and-storage-mvp/tasks.yml
+- .p2p/proposals/PROP-002-exploration-phase/proposal.md
