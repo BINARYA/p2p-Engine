@@ -6202,6 +6202,45 @@ class P2PWorkspace:
                 break
 
         for proposal in self.proposal_summaries(status="draft"):
+            readiness = self.read_proposal_readiness(proposal.proposal_id)
+            if readiness.status == "not_assessed":
+                actions.append(
+                    NextAction(
+                        action_id=f"NEXT-FALLBACK-{len(actions) + 1:03d}",
+                        priority="high",
+                        kind="assess_proposal_readiness",
+                        target=proposal.proposal_id,
+                        reason="Draft proposal has no readiness assessment.",
+                        command=f"p2p proposal readiness refresh {proposal.proposal_id}",
+                        source="generated",
+                    )
+                )
+                break
+            if readiness.computed_score is not None and readiness.computed_score < 85:
+                actions.append(
+                    NextAction(
+                        action_id=f"NEXT-FALLBACK-{len(actions) + 1:03d}",
+                        priority="medium",
+                        kind="improve_proposal_readiness",
+                        target=proposal.proposal_id,
+                        reason=(
+                            f"Draft proposal readiness is {readiness.computed_score}, "
+                            "below the default strong threshold."
+                        ),
+                        command=f"p2p proposal readiness explain {proposal.proposal_id}",
+                        source="generated",
+                    )
+                )
+                break
+
+        for proposal in self.proposal_summaries(status="draft"):
+            has_readiness_action = any(
+                action.target == proposal.proposal_id
+                and action.kind in {"assess_proposal_readiness", "improve_proposal_readiness"}
+                for action in actions
+            )
+            if has_readiness_action:
+                continue
             actions.append(
                 NextAction(
                     action_id=f"NEXT-FALLBACK-{len(actions) + 1:03d}",

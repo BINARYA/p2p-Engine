@@ -10,6 +10,7 @@ import yaml
 from typer.testing import CliRunner
 
 from p2p_engine.cli import app
+from p2p_engine.storage.filesystem import P2PWorkspace
 
 runner = CliRunner()
 
@@ -3618,9 +3619,33 @@ def test_cli_next_falls_back_to_draft_proposal_review(tmp_path: Path) -> None:
     result = runner.invoke(app, ["next", "--top", "1", "--root", str(tmp_path)])
 
     assert result.exit_code == 0
-    assert "review_draft_proposal" in result.output
+    assert "assess_proposal_readiness" in result.output
     assert "target: PROP-001" in result.output
-    assert "p2p proposal show PROP-001" in result.output
+    assert "p2p proposal readiness refresh PROP-001" in result.output
+
+
+def test_cli_next_falls_back_to_improve_low_readiness_draft(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Draft Work", "--root", str(tmp_path)])
+    workspace = P2PWorkspace(tmp_path)
+    workspace.write_proposal_readiness(
+        "PROP-001",
+        {
+            "status": "assessed",
+            "profile_id": "default-readiness-v0.1",
+            "profile_version": "0.1",
+            "computed_score": 64,
+            "computed_label": "weak",
+        },
+    )
+    runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["next", "--top", "1", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "improve_proposal_readiness" in result.output
+    assert "target: PROP-001" in result.output
+    assert "p2p proposal readiness explain PROP-001" in result.output
 
 
 def test_cli_next_manages_curated_lifecycle_and_log(tmp_path: Path) -> None:
@@ -3733,7 +3758,8 @@ def test_cli_next_shows_generated_actions_when_curated_actions_exist(tmp_path: P
 
     assert result.exit_code == 0
     assert "NEXT-001  medium  verify_integration" in result.output
-    assert "NEXT-FALLBACK-001  medium  review_draft_proposal" in result.output
+    assert "NEXT-FALLBACK-001  high  assess_proposal_readiness" in result.output
+    assert "p2p proposal readiness refresh PROP-001" in result.output
     assert "source: generated" in result.output
 
 
