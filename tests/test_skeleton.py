@@ -163,6 +163,48 @@ def test_write_and_read_proposal_readiness_assessment(tmp_path) -> None:
     assert readiness.suggested_next == ["define_acceptance_criteria"]
 
 
+def test_refresh_proposal_readiness_computes_score_with_artifact_caps(tmp_path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Demo")
+    proposal = workspace.create_proposal("Exploration Phase")
+    profile = workspace.readiness_profile()
+    criteria = {
+        criterion: {
+            "awarded_points": max_points,
+            "artifact_quality": "ready",
+            "evidence": [{"artifact": "proposal.md"}],
+        }
+        for criterion, max_points in profile.criteria.items()
+    }
+    criteria["alternatives_quality"]["artifact_quality"] = "meaningful"
+    criteria["risk_coverage"]["artifact_quality"] = "thin"
+    criteria["owner_questions_resolution"]["artifact_quality"] = "needs_owner_input"
+    del criteria["acceptance_criteria_quality"]
+    workspace.write_proposal_readiness(
+        proposal.proposal_id,
+        {
+            "status": "assessed",
+            "profile_id": profile.profile_id,
+            "profile_version": profile.version,
+            "confidence": "medium",
+            "criteria": criteria,
+        },
+    )
+
+    readiness = workspace.refresh_proposal_readiness(proposal.proposal_id)
+    readiness_path = tmp_path / proposal.path / "readiness.yml"
+    payload = yaml.safe_load(readiness_path.read_text(encoding="utf-8"))["readiness"]
+
+    assert readiness.computed_score == 78
+    assert readiness.computed_label == "partial"
+    assert readiness.missing == ["acceptance_criteria_quality"]
+    assert readiness.failed_gates == ["owner_questions_resolution:needs_owner_input"]
+    assert payload["criteria"]["alternatives_quality"]["effective_points"] == 11
+    assert payload["criteria"]["risk_coverage"]["effective_points"] == 5
+    assert payload["criteria"]["owner_questions_resolution"]["effective_points"] == 7
+    assert payload["criteria"]["acceptance_criteria_quality"]["effective_points"] == 0
+
+
 def test_validate_rejects_invalid_readiness_profile(tmp_path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Demo")

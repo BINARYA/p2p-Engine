@@ -291,6 +291,7 @@ class ReadinessProfile:
     criteria: dict[str, int]
     thresholds: dict[str, int]
     tier_requirements: dict[str, dict[str, object]]
+    artifact_quality_caps: dict[str, dict[str, object]]
     gates: dict[str, object]
     override_policy: dict[str, object]
 
@@ -2228,6 +2229,7 @@ class P2PWorkspace:
             criteria={str(key): int(value) for key, value in dict(profile["criteria"]).items()},
             thresholds={str(key): int(value) for key, value in dict(profile["thresholds"]).items()},
             tier_requirements=dict(profile.get("tier_requirements") or {}),
+            artifact_quality_caps=dict(profile.get("artifact_quality_caps") or {}),
             gates=dict(profile.get("gates") or {}),
             override_policy=dict(profile.get("override_policy") or {}),
         )
@@ -2275,9 +2277,19 @@ class P2PWorkspace:
         return path.relative_to(self.root)
 
     def refresh_proposal_readiness(self, proposal_id: str) -> ProposalReadiness:
-        current = self.read_proposal_readiness(proposal_id)
-        if current.status != "not_assessed":
-            return current
+        proposal_dir = self._find_proposal_dir(proposal_id)
+        path = proposal_dir / "readiness.yml"
+        if path.exists():
+            data = _read_yaml_mapping(path, default={})
+            _validate_readiness_assessment_payload(data)
+            readiness = dict(data["readiness"])
+            if readiness.get("status") != "not_assessed":
+                profile_id = str(readiness.get("profile_id") or DEFAULT_READINESS_PROFILE_ID)
+                profile = self.readiness_profile(profile_id)
+                refreshed = _refresh_readiness_payload(readiness, profile)
+                self.write_proposal_readiness(proposal_id, refreshed)
+                return self.read_proposal_readiness(proposal_id)
+
         self.write_proposal_readiness(
             proposal_id,
             {
@@ -7555,6 +7567,95 @@ def _validate_readiness_assessment_payload(data: dict[str, object]) -> None:
         awarded = assessment.get("awarded_points")
         if awarded is not None and (not isinstance(awarded, int) or awarded < 0):
             raise ValueError(f"Readiness awarded_points must be a non-negative integer: {criterion}")
+
+
+def _refresh_readiness_payload(readiness: dict[str, object], profile: ReadinessProfile) -> dict[str, object]:
+    criteria = readiness.get("criteria") or {}
+    if not isinstance(criteria, dict):
+        criteria = {}
+
+    refreshed_criteria: dict[str, object] = {}
+    missing = [str(item) for item in readiness.get("missing") or []]
+    suggested_next = [str(item) for item in readiness.get("suggested_next") or []]
+    failed_gates = [str(item) for item in readiness.get("failed_gates") or []]
+    computed_score = 0
+
+    for criterion, max_points in profile.criteria.items():
+        assessment = dict(criteria.get(criterion) or {})
+        if criterion not in criteria:
+            missing.append(criterion)
+            suggested_next.append(f"assess_{criterion}")
+            assessment = {
+                "max_points": max_points,
+                "awarded_points": 0,
+                "artifact_quality": "missing",
+            }
+        artifact_quality = str(assessment.get("artifact_quality") or "missing")
+        awarded_points = assessment.get("awarded_points")
+        if not isinstance(awarded_points, int):
+            awarded_points = 0
+        effective_points = _readiness_effective_points(
+            awarded_points=awarded_points,
+            max_points=max_points,
+            artifact_quality=artifact_quality,
+            profile=profile,
+        )
+        if artifact_quality == "needs_owner_input":
+            failed_gates.append(f"{criterion}:needs_owner_input")
+        assessment["max_points"] = max_points
+        assessment["effective_points"] = effective_points
+        refreshed_criteria[criterion] = assessment
+        computed_score += effective_points
+
+    refreshed = dict(readiness)
+    refreshed["status"] = "assessed"
+    refreshed["profile_id"] = profile.profile_id
+    refreshed["profile_version"] = profile.version
+    refreshed["computed_score"] = min(computed_score, 100)
+    refreshed["computed_label"] = _readiness_label(computed_score, profile.thresholds)
+    refreshed["missing"] = _unique_strings(missing)
+    refreshed["suggested_next"] = _unique_strings(suggested_next)
+    refreshed["failed_gates"] = _unique_strings(failed_gates)
+    refreshed["criteria"] = refreshed_criteria
+    refreshed["computed_at"] = date.today().isoformat()
+    return refreshed
+
+
+def _readiness_effective_points(
+    *,
+    awarded_points: int,
+    max_points: int,
+    artifact_quality: str,
+    profile: ReadinessProfile,
+) -> int:
+    caps = profile.artifact_quality_caps
+    cap = caps.get(artifact_quality) if isinstance(caps, dict) else None
+    cap_percent = 0
+    if isinstance(cap, dict):
+        raw_percent = cap.get("max_score_percent")
+        if isinstance(raw_percent, int):
+            cap_percent = raw_percent
+    cap_points = int(max_points * cap_percent / 100)
+    return max(0, min(awarded_points, max_points, cap_points))
+
+
+def _readiness_label(score: int, thresholds: dict[str, int]) -> str:
+    label = "weak"
+    for candidate, threshold in sorted(thresholds.items(), key=lambda item: item[1]):
+        if score >= threshold:
+            label = candidate
+    return label
+
+
+def _unique_strings(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        result.append(value)
+    return result
 
 
 def _exploration_files(proposal_id: str) -> dict[str, str]:
