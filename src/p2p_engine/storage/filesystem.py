@@ -185,6 +185,7 @@ class ExplorationArtifactStatus:
     filename: str
     exists: bool
     has_content: bool
+    quality_state: str
 
 
 @dataclass(frozen=True)
@@ -2498,6 +2499,7 @@ class P2PWorkspace:
                     filename=filename,
                     exists=path.exists(),
                     has_content=_has_meaningful_content(text),
+                    quality_state=_artifact_quality_state(path, text),
                 )
             )
         questions_text = _read_optional(proposal_dir / "open-questions.md")
@@ -8769,6 +8771,33 @@ def _has_meaningful_content(text: str) -> bool:
     )
     lower = stripped.lower()
     return not any(placeholder in lower for placeholder in placeholders)
+
+
+def _artifact_quality_state(path: Path, text: str) -> str:
+    if not path.exists():
+        return "missing"
+    stripped = text.strip()
+    if not stripped:
+        return "placeholder"
+    lower = stripped.lower()
+    placeholders = (
+        "not explored yet.",
+        "none identified yet.",
+        "not suggested yet.",
+        "findings: []",
+        "pending.",
+    )
+    if any(placeholder in lower for placeholder in placeholders):
+        return "placeholder"
+    content_lines = [
+        line.strip()
+        for line in stripped.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    content_text = " ".join(content_lines)
+    if len(content_text) < 80:
+        return "thin"
+    return "meaningful"
 
 
 def _has_meaningful_intake_recommendation(text: str) -> bool:

@@ -1349,7 +1349,7 @@ def explore_status(
     console.print("Artifacts:")
     for artifact in status.artifacts:
         marker = "[green]✓[/green]" if artifact.has_content else "[red]✗[/red]"
-        console.print(f"  {marker} {artifact.filename}")
+        console.print(f"  {marker} {artifact.filename}  {artifact.quality_state}")
     console.print("")
     console.print(f"Open questions: {status.unresolved_questions} unresolved")
     console.print("")

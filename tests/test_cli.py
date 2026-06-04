@@ -109,6 +109,7 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "Exploration status for PROP-001" in result.output
     assert "open-questions.md" in result.output
+    assert "placeholder" in result.output
 
 
 def test_cli_init_owner_populates_permissions_policy(tmp_path: Path) -> None:

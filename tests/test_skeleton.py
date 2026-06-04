@@ -74,6 +74,7 @@ def test_explore_prompt_and_status_track_exploration_artifacts(tmp_path) -> None
     assert "findings.md" in prompt
     assert "p2p explore prompt PROP-001" == status.suggested_next_command
     assert any(artifact.filename == "findings.md" for artifact in status.artifacts)
+    assert all(artifact.quality_state == "placeholder" for artifact in status.artifacts)
 
 
 def test_import_exploration_file_updates_exploration_artifact(tmp_path) -> None:
@@ -88,6 +89,9 @@ def test_import_exploration_file_updates_exploration_artifact(tmp_path) -> None:
 
     assert imported == [proposal.path / "exploration.md"]
     assert "A concrete finding." in content
+    status = workspace.exploration_status(proposal.proposal_id)
+    exploration = next(artifact for artifact in status.artifacts if artifact.filename == "exploration.md")
+    assert exploration.quality_state == "thin"
 
 
 def test_init_project_creates_default_readiness_profile(tmp_path) -> None:
