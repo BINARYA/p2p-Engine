@@ -1,3 +1,5 @@
+import yaml
+
 from p2p_engine.core.contribution import ContributionType
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.storage.filesystem import P2PWorkspace
@@ -86,3 +88,105 @@ def test_import_exploration_file_updates_exploration_artifact(tmp_path) -> None:
 
     assert imported == [proposal.path / "exploration.md"]
     assert "A concrete finding." in content
+
+
+def test_init_project_creates_default_readiness_profile(tmp_path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Demo")
+
+    profile = workspace.readiness_profile()
+
+    assert profile.profile_id == "default-readiness-v0.1"
+    assert profile.version == "0.1"
+    assert profile.criteria["alternatives_quality"] == 15
+    assert sum(profile.criteria.values()) == 100
+    assert profile.thresholds["decision_ready"] == 95
+    assert "governance-critical" in profile.tier_requirements
+
+
+def test_missing_proposal_readiness_is_not_assessed(tmp_path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Demo")
+    proposal = workspace.create_proposal("Exploration Phase")
+
+    readiness = workspace.read_proposal_readiness(proposal.proposal_id)
+
+    assert readiness.status == "not_assessed"
+    assert readiness.profile_id is None
+    assert readiness.computed_score is None
+    assert readiness.path == proposal.path / "readiness.yml"
+
+
+def test_write_and_read_proposal_readiness_assessment(tmp_path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Demo")
+    proposal = workspace.create_proposal("Exploration Phase")
+
+    path = workspace.write_proposal_readiness(
+        proposal.proposal_id,
+        {
+            "status": "assessed",
+            "profile_id": "default-readiness-v0.1",
+            "profile_version": "0.1",
+            "computed_score": 82,
+            "computed_label": "partial",
+            "confidence": "medium",
+            "failed_gates": ["owner_questions_resolution"],
+            "missing": ["acceptance_criteria_quality"],
+            "suggested_next": ["define_acceptance_criteria"],
+            "criteria": {
+                "alternatives_quality": {
+                    "max_points": 15,
+                    "awarded_points": 11,
+                    "artifact_quality": "meaningful",
+                    "evidence": [{"artifact": "alternatives.md"}],
+                    "notes": "Alternatives are real but not fully scored.",
+                }
+            },
+        },
+    )
+    readiness = workspace.read_proposal_readiness(proposal.proposal_id)
+
+    assert path == proposal.path / "readiness.yml"
+    assert readiness.status == "assessed"
+    assert readiness.profile_id == "default-readiness-v0.1"
+    assert readiness.profile_version == "0.1"
+    assert readiness.computed_score == 82
+    assert readiness.computed_label == "partial"
+    assert readiness.confidence == "medium"
+    assert readiness.failed_gates == ["owner_questions_resolution"]
+    assert readiness.missing == ["acceptance_criteria_quality"]
+    assert readiness.suggested_next == ["define_acceptance_criteria"]
+
+
+def test_validate_rejects_invalid_readiness_profile(tmp_path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Demo")
+    profile_path = tmp_path / ".p2p" / "config" / "readiness-profiles" / "default-readiness-v0.1.yml"
+    data = yaml.safe_load(profile_path.read_text(encoding="utf-8"))
+    data["readiness_profile"]["criteria"]["alternatives_quality"] = 14
+    profile_path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+
+    result = workspace.validate()
+
+    assert result.errors == 1
+    assert result.findings[0].code == "P2P230_INVALID_READINESS_PROFILE"
+
+
+def test_validate_rejects_invalid_readiness_assessment(tmp_path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Demo")
+    proposal = workspace.create_proposal("Exploration Phase")
+    readiness_path = tmp_path / proposal.path / "readiness.yml"
+    readiness_path.write_text(
+        "readiness:\n"
+        "  profile_id: default-readiness-v0.1\n"
+        "  profile_version: '0.1'\n"
+        "  computed_score: 140\n",
+        encoding="utf-8",
+    )
+
+    result = workspace.validate()
+
+    assert result.errors == 1
+    assert result.findings[0].code == "P2P231_INVALID_READINESS_ASSESSMENT"

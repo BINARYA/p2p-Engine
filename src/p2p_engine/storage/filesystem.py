@@ -63,6 +63,20 @@ EXPLORATION_ARTIFACTS = (
     "suggested-scope.md",
 )
 
+DEFAULT_READINESS_PROFILE_ID = "default-readiness-v0.1"
+DEFAULT_READINESS_PROFILE_VERSION = "0.1"
+READINESS_ARTIFACT_QUALITY_STATES = {
+    "missing",
+    "placeholder",
+    "thin",
+    "meaningful",
+    "needs_owner_input",
+    "ready",
+}
+READINESS_CONFIDENCE_LEVELS = {"low", "medium", "high"}
+READINESS_TIERS = {"small", "medium", "architectural", "governance-critical"}
+READINESS_LABELS = {"weak", "partial", "strong", "decision_ready"}
+
 CHANGE_STATUS_TRANSITIONS = {
     "proposed": ["planned", "cancelled", "superseded"],
     "planned": ["implementation_ready", "blocked", "cancelled", "superseded"],
@@ -266,6 +280,33 @@ class ProjectDefinitionMaturity:
     criteria: list[dict[str, object]]
     gaps: list[str]
     suggested_actions: list[str]
+
+
+@dataclass(frozen=True)
+class ReadinessProfile:
+    path: Path
+    profile_id: str
+    version: str
+    criteria: dict[str, int]
+    thresholds: dict[str, int]
+    tier_requirements: dict[str, dict[str, object]]
+    gates: dict[str, object]
+    override_policy: dict[str, object]
+
+
+@dataclass(frozen=True)
+class ProposalReadiness:
+    proposal_id: str
+    status: str
+    path: Path
+    profile_id: str | None
+    profile_version: str | None
+    computed_score: int | None
+    computed_label: str | None
+    confidence: str | None
+    failed_gates: list[str]
+    missing: list[str]
+    suggested_next: list[str]
 
 
 @dataclass(frozen=True)
@@ -726,6 +767,10 @@ class P2PWorkspace:
             self.p2p_dir / "templates" / "decision-template.md": "# Decision - {{ proposal_id }}\n",
             self.p2p_dir / "templates" / "execution-plan-template.md": "# Execution Plan - {{ proposal_id }}\n",
             self.p2p_dir / "templates" / "tasks-template.yml": "tasks: []\n",
+            self.p2p_dir
+            / "config"
+            / "readiness-profiles"
+            / f"{DEFAULT_READINESS_PROFILE_ID}.yml": _yaml_dump(_default_readiness_profile_payload()),
             self.p2p_dir / "project" / "rubrics.yml": _yaml_dump(
                 _rubrics_payload(project_domain, rubric_enabled=rubric_enabled)
             ),
@@ -1991,6 +2036,7 @@ class P2PWorkspace:
                 add("P2P001_MISSING_REQUIRED_PATH", "error", path, "Required P2P path is missing.")
 
         structured_files = [self.p2p_dir / "project.yml", self.p2p_dir / "agent-policy.yml"]
+        structured_files.extend(self.p2p_dir.glob("config/**/*.yml"))
         structured_files.extend(self.p2p_dir.glob("registries/*.yml"))
         structured_files.extend(self.p2p_dir.glob("project/*.yml"))
         structured_files.extend(self.p2p_dir.glob("proposals/*/*.yml"))
@@ -2004,6 +2050,18 @@ class P2PWorkspace:
                     yaml.safe_load(path.read_text(encoding="utf-8"))
                 except yaml.YAMLError as exc:
                     add("P2P010_INVALID_YAML", "error", path, f"Invalid YAML: {exc}")
+
+        for profile_path in sorted(self.p2p_dir.glob("config/readiness-profiles/*.yml")):
+            try:
+                _validate_readiness_profile_payload(_read_yaml_mapping(profile_path, default={}))
+            except ValueError as exc:
+                add("P2P230_INVALID_READINESS_PROFILE", "error", profile_path, str(exc))
+
+        for readiness_path in sorted(self.p2p_dir.glob("proposals/*/readiness.yml")):
+            try:
+                _validate_readiness_assessment_payload(_read_yaml_mapping(readiness_path, default={}))
+            except ValueError as exc:
+                add("P2P231_INVALID_READINESS_ASSESSMENT", "error", readiness_path, str(exc))
 
         permissions_path = self._permissions_path()
         if permissions_path.exists():
@@ -2156,6 +2214,64 @@ class P2PWorkspace:
             infos=infos,
             findings=findings,
         )
+
+    def readiness_profile(self, profile_id: str = DEFAULT_READINESS_PROFILE_ID) -> ReadinessProfile:
+        path = self.p2p_dir / "config" / "readiness-profiles" / f"{profile_id}.yml"
+        data = _read_yaml_mapping(path, default={})
+        _validate_readiness_profile_payload(data)
+        profile = data["readiness_profile"]
+        return ReadinessProfile(
+            path=path.relative_to(self.root),
+            profile_id=str(profile["id"]),
+            version=str(profile["version"]),
+            criteria={str(key): int(value) for key, value in dict(profile["criteria"]).items()},
+            thresholds={str(key): int(value) for key, value in dict(profile["thresholds"]).items()},
+            tier_requirements=dict(profile.get("tier_requirements") or {}),
+            gates=dict(profile.get("gates") or {}),
+            override_policy=dict(profile.get("override_policy") or {}),
+        )
+
+    def read_proposal_readiness(self, proposal_id: str) -> ProposalReadiness:
+        proposal_dir = self._find_proposal_dir(proposal_id)
+        path = proposal_dir / "readiness.yml"
+        if not path.exists():
+            return ProposalReadiness(
+                proposal_id=proposal_id,
+                status="not_assessed",
+                path=path.relative_to(self.root),
+                profile_id=None,
+                profile_version=None,
+                computed_score=None,
+                computed_label=None,
+                confidence=None,
+                failed_gates=[],
+                missing=[],
+                suggested_next=[],
+            )
+        data = _read_yaml_mapping(path, default={})
+        _validate_readiness_assessment_payload(data)
+        readiness = data["readiness"]
+        return ProposalReadiness(
+            proposal_id=proposal_id,
+            status=str(readiness.get("status") or "assessed"),
+            path=path.relative_to(self.root),
+            profile_id=str(readiness.get("profile_id") or ""),
+            profile_version=str(readiness.get("profile_version") or ""),
+            computed_score=int(readiness["computed_score"]) if "computed_score" in readiness else None,
+            computed_label=str(readiness.get("computed_label") or ""),
+            confidence=str(readiness.get("confidence") or ""),
+            failed_gates=[str(item) for item in readiness.get("failed_gates") or []],
+            missing=[str(item) for item in readiness.get("missing") or []],
+            suggested_next=[str(item) for item in readiness.get("suggested_next") or []],
+        )
+
+    def write_proposal_readiness(self, proposal_id: str, readiness: dict[str, object]) -> Path:
+        proposal_dir = self._find_proposal_dir(proposal_id)
+        payload = {"readiness": readiness}
+        _validate_readiness_assessment_payload(payload)
+        path = proposal_dir / "readiness.yml"
+        path.write_text(_yaml_dump(payload), encoding="utf-8")
+        return path.relative_to(self.root)
 
     def create_proposal(self, title: str) -> Proposal:
         return self.create_proposal_with_details(title=title)
@@ -7255,6 +7371,175 @@ def _proposal_markdown(
         "## Decision\n\n"
         "Pending.\n"
     )
+
+
+def _default_readiness_profile_payload() -> dict[str, object]:
+    return {
+        "readiness_profile": {
+            "id": DEFAULT_READINESS_PROFILE_ID,
+            "version": DEFAULT_READINESS_PROFILE_VERSION,
+            "criteria": {
+                "problem_clarity": 10,
+                "goal_clarity": 10,
+                "scope_boundaries": 10,
+                "alternatives_quality": 15,
+                "tradeoff_analysis": 10,
+                "risk_coverage": 10,
+                "assumptions_clarity": 10,
+                "owner_questions_resolution": 10,
+                "acceptance_criteria_quality": 10,
+                "impact_overlap_analysis": 5,
+            },
+            "thresholds": {
+                "weak": 0,
+                "partial": 70,
+                "strong": 85,
+                "decision_ready": 95,
+            },
+            "tier_requirements": {
+                "small": {"required_score_for_decision": 70},
+                "medium": {
+                    "required_score_for_decision": 85,
+                    "minimum_gates": {
+                        "alternatives_quality": 50,
+                        "risk_coverage": 50,
+                        "acceptance_criteria_quality": 50,
+                    },
+                },
+                "architectural": {
+                    "required_score_for_decision": 95,
+                    "minimum_gates": {
+                        "alternatives_quality": 75,
+                        "tradeoff_analysis": 75,
+                        "risk_coverage": 75,
+                        "impact_overlap_analysis": 75,
+                    },
+                },
+                "governance-critical": {
+                    "required_score_for_decision": 95,
+                    "required_confidence": "medium",
+                    "minimum_gates": {
+                        "alternatives_quality": 75,
+                        "owner_questions_resolution": 75,
+                        "acceptance_criteria_quality": 75,
+                        "impact_overlap_analysis": 75,
+                    },
+                },
+            },
+            "artifact_quality_caps": {
+                "missing": {"max_score_percent": 0},
+                "placeholder": {"max_score_percent": 0},
+                "thin": {"max_score_percent": 50},
+                "meaningful": {"max_score_percent": 75},
+                "needs_owner_input": {
+                    "max_score_percent": 75,
+                    "blocks_ready_for_decision": True,
+                },
+                "ready": {"max_score_percent": 100},
+            },
+            "gates": {},
+            "override_policy": {
+                "override_reason_required": True,
+                "preserve_computed_score": True,
+            },
+        }
+    }
+
+
+def _validate_readiness_profile_payload(data: dict[str, object]) -> None:
+    profile = data.get("readiness_profile")
+    if not isinstance(profile, dict):
+        raise ValueError("Readiness profile must define top-level `readiness_profile` mapping.")
+    profile_id = str(profile.get("id") or "").strip()
+    version = str(profile.get("version") or "").strip()
+    if not profile_id:
+        raise ValueError("Readiness profile missing id.")
+    if not version:
+        raise ValueError("Readiness profile missing version.")
+    criteria = profile.get("criteria")
+    if not isinstance(criteria, dict) or not criteria:
+        raise ValueError("Readiness profile must define criteria.")
+    total = 0
+    for criterion, points in criteria.items():
+        if not str(criterion).strip():
+            raise ValueError("Readiness profile contains empty criterion name.")
+        if not isinstance(points, int) or points <= 0:
+            raise ValueError(f"Readiness criterion must have positive integer points: {criterion}")
+        total += points
+    if total != 100:
+        raise ValueError(f"Readiness criteria must total 100 points, got {total}.")
+    thresholds = profile.get("thresholds")
+    if not isinstance(thresholds, dict):
+        raise ValueError("Readiness profile must define thresholds.")
+    for label in READINESS_LABELS:
+        value = thresholds.get(label)
+        if not isinstance(value, int) or value < 0 or value > 100:
+            raise ValueError(f"Readiness threshold must be 0-100 integer: {label}")
+    tier_requirements = profile.get("tier_requirements") or {}
+    if tier_requirements and not isinstance(tier_requirements, dict):
+        raise ValueError("Readiness tier_requirements must be a mapping.")
+    for tier, requirement in dict(tier_requirements).items():
+        if tier not in READINESS_TIERS:
+            raise ValueError(f"Invalid readiness tier: {tier}")
+        if not isinstance(requirement, dict):
+            raise ValueError(f"Readiness tier requirement must be a mapping: {tier}")
+        confidence = requirement.get("required_confidence")
+        if confidence is not None and confidence not in READINESS_CONFIDENCE_LEVELS:
+            raise ValueError(f"Invalid readiness confidence for tier {tier}: {confidence}")
+    caps = profile.get("artifact_quality_caps") or {}
+    if caps and not isinstance(caps, dict):
+        raise ValueError("Readiness artifact_quality_caps must be a mapping.")
+    for state, cap in dict(caps).items():
+        if state not in READINESS_ARTIFACT_QUALITY_STATES:
+            raise ValueError(f"Invalid artifact quality state: {state}")
+        if not isinstance(cap, dict):
+            raise ValueError(f"Artifact quality cap must be a mapping: {state}")
+
+
+def _validate_readiness_assessment_payload(data: dict[str, object]) -> None:
+    readiness = data.get("readiness")
+    if not isinstance(readiness, dict):
+        raise ValueError("Readiness assessment must define top-level `readiness` mapping.")
+    status = str(readiness.get("status") or "assessed")
+    if status == "not_assessed":
+        return
+    profile_id = str(readiness.get("profile_id") or "").strip()
+    profile_version = str(readiness.get("profile_version") or "").strip()
+    if not profile_id:
+        raise ValueError("Readiness assessment missing profile_id.")
+    if not profile_version:
+        raise ValueError("Readiness assessment missing profile_version.")
+    if "computed_score" in readiness:
+        score = readiness["computed_score"]
+        if not isinstance(score, int) or score < 0 or score > 100:
+            raise ValueError("Readiness computed_score must be an integer from 0 to 100.")
+    label = readiness.get("computed_label")
+    if label is not None and label not in READINESS_LABELS:
+        raise ValueError(f"Invalid readiness computed_label: {label}")
+    confidence = readiness.get("confidence")
+    if confidence is not None and confidence not in READINESS_CONFIDENCE_LEVELS:
+        raise ValueError(f"Invalid readiness confidence: {confidence}")
+    tier = readiness.get("tier")
+    if tier is not None and tier not in READINESS_TIERS:
+        raise ValueError(f"Invalid readiness tier: {tier}")
+    for key in ("failed_gates", "missing", "suggested_next", "confidence_reasons"):
+        value = readiness.get(key, [])
+        if value is not None and not isinstance(value, list):
+            raise ValueError(f"Readiness field must be a list: {key}")
+    criteria = readiness.get("criteria") or {}
+    if criteria and not isinstance(criteria, dict):
+        raise ValueError("Readiness criteria must be a mapping.")
+    for criterion, assessment in dict(criteria).items():
+        if not str(criterion).strip():
+            raise ValueError("Readiness criteria contains empty criterion name.")
+        if not isinstance(assessment, dict):
+            raise ValueError(f"Readiness criterion assessment must be a mapping: {criterion}")
+        artifact_quality = assessment.get("artifact_quality")
+        if artifact_quality is not None and artifact_quality not in READINESS_ARTIFACT_QUALITY_STATES:
+            raise ValueError(f"Invalid artifact quality for criterion {criterion}: {artifact_quality}")
+        awarded = assessment.get("awarded_points")
+        if awarded is not None and (not isinstance(awarded, int) or awarded < 0):
+            raise ValueError(f"Readiness awarded_points must be a non-negative integer: {criterion}")
 
 
 def _exploration_files(proposal_id: str) -> dict[str, str]:
