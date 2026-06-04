@@ -1,7 +1,7 @@
 ---
 change_id: CHANGE-063
 title: Readiness Profile And Storage MVP
-status: proposed
+status: completed
 created_at: '2026-06-04'
 created_by: local
 execution_domains:

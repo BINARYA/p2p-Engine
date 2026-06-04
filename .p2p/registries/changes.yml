@@ -1027,7 +1027,7 @@ changes:
   task_count: 0
 - id: CHANGE-063
   title: Readiness Profile And Storage MVP
-  status: proposed
+  status: completed
   path: .p2p/changes/CHANGE-063-readiness-profile-and-storage-mvp
   included_proposals:
   - PROP-002
