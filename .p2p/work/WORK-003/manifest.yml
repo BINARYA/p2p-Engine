@@ -1,5 +1,5 @@
 work_id: WORK-003
-status: finalized
+status: cleaned
 visibility: internal_git
 created_at: '2026-06-04'
 source:
@@ -30,7 +30,7 @@ managed_git_levels:
   name: owner_controlled_merge
   enabled: true
 git:
-  mode: managed_finalize
+  mode: managed_cleanup
   base_branch: main
   branch_name: p2p/work/work-003-change-063-generic
   base_commit: 1a63ddbe5d0e8a03f22e71bfe4e3c6f63526ac32
@@ -42,6 +42,7 @@ git:
   published_at: '2026-06-04'
   accepted_at: '2026-06-04'
   finalized_at: '2026-06-04'
+  cleaned_at: '2026-06-04'
 policy:
   expose_git_details: false
   auto_branch: false
@@ -95,4 +96,12 @@ finalize:
   remote: origin
   remote_url: git@github.com:BINARYA/p2p-Engine.git
   base_branch: main
-  cleanup: false
+  cleanup: true
+cleanup:
+  mode: branch_cleanup
+  source_branch: p2p/work/work-003-change-063-generic
+  base_branch: main
+  remote: origin
+  remote_url: git@github.com:BINARYA/p2p-Engine.git
+  local_deleted: true
+  remote_deleted: false
