@@ -1,5 +1,5 @@
 work_id: WORK-003
-status: submitted
+status: review_requested
 visibility: internal_git
 created_at: '2026-06-04'
 source:
@@ -25,12 +25,12 @@ managed_git_levels:
   enabled: true
 - level: 4
   name: managed_review
-  enabled: false
+  enabled: true
 - level: 5
   name: owner_controlled_merge
   enabled: false
 git:
-  mode: managed_submit
+  mode: managed_review
   base_branch: main
   branch_name: p2p/work/work-003-change-063-generic
   base_commit: 1a63ddbe5d0e8a03f22e71bfe4e3c6f63526ac32
@@ -38,6 +38,7 @@ git:
   current_branch: p2p/work/work-003-change-063-generic
   branched_at: '2026-06-04'
   submitted_at: '2026-06-04'
+  review_requested_at: '2026-06-04'
 policy:
   expose_git_details: false
   auto_branch: false
@@ -66,3 +67,9 @@ submission:
   work_changes:
   - src/p2p_engine/storage/filesystem.py
   - tests/test_skeleton.py
+review:
+  mode: local_review
+  review_commit: f56e286c1c59d095c8fc22251443a9b23c7538b7
+  pushed: false
+  pull_request: null
+  merged: false
