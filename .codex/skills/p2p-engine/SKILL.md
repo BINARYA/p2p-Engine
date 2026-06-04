@@ -86,6 +86,7 @@ p2p_maturity_show
 p2p_proposal_create
 p2p_proposal_update
 p2p_proposal_contribution_add
+p2p_proposal_contribution_list
 p2p_intake_prompt
 p2p_intake_status
 p2p_project_brief_prompt
@@ -102,6 +103,7 @@ p2p_next_refresh
 p2p_proposal_list
 p2p_proposal_show
 p2p_proposal_readiness_get
+p2p_proposal_readiness_init
 p2p_proposal_readiness_refresh
 p2p_proposal_readiness_explain
 p2p_proposal_readiness_list_gaps

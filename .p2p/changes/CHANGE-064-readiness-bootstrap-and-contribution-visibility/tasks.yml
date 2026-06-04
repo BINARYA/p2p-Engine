@@ -1,0 +1,264 @@
+tasks:
+  - id: T001
+    title: Define readiness domain models
+    workstream: WS1-domain-storage
+    type: software
+    status: todo
+    priority: high
+    dependencies: []
+    deliverable: Internal models for readiness profiles, assessments, artifact quality, confidence, gates, and snapshots.
+    evidence_required: Models are covered by unit tests and can serialize/deserialize representative readiness data.
+    actions:
+      - Add readiness profile data model.
+      - Add proposal readiness assessment data model.
+      - Add artifact quality and confidence enums.
+      - Add failed gate, missing dimension, and suggested action structures.
+
+  - id: T002
+    title: Add layered readiness storage
+    workstream: WS1-domain-storage
+    type: software
+    status: todo
+    priority: high
+    dependencies:
+      - T001
+    deliverable: Storage support for default readiness profile, proposal readiness assessment, and readiness registry snapshot.
+    evidence_required: Read/write tests prove readiness files are not confused with source proposal artifacts or governance audit records.
+    actions:
+      - Add default readiness profile path.
+      - Add proposal readiness assessment read/write helpers.
+      - Add generated readiness registry snapshot path.
+      - Represent missing assessment as not_assessed.
+
+  - id: T003
+    title: Implement default-readiness-v0.1 profile validation
+    workstream: WS2-profile-scoring
+    type: software
+    status: todo
+    priority: high
+    dependencies:
+      - T001
+      - T002
+    deliverable: Versioned default readiness profile with criteria, weights, thresholds, tier requirements, and override policy.
+    evidence_required: Validation rejects malformed profiles and unknown profile IDs with clear errors.
+    actions:
+      - Add default criteria and weights.
+      - Add score labels and thresholds.
+      - Add tier requirements for small, medium, architectural, and governance-critical proposals.
+      - Require profile_id, profile_version, and computed_at on assessments.
+
+  - id: T004
+    title: Extend explore status with artifact quality
+    workstream: WS3-artifact-quality
+    type: software
+    status: todo
+    priority: high
+    dependencies:
+      - T001
+    deliverable: Artifact quality states for exploration artifacts, including needs_owner_input.
+    evidence_required: CLI tests show missing, placeholder, thin, meaningful, needs_owner_input, and ready states in stable output.
+    actions:
+      - Detect missing and placeholder artifacts deterministically.
+      - Add obvious thin-content heuristics.
+      - Support recorded/imported richer artifact quality assessment.
+      - Preserve needs_owner_input as distinct from thin.
+
+  - id: T005
+    title: Implement proposal readiness CLI commands
+    workstream: WS4-cli-readiness
+    type: software
+    status: todo
+    priority: high
+    dependencies:
+      - T002
+      - T003
+      - T004
+    deliverable: p2p proposal readiness, refresh, and explain commands.
+    evidence_required: CLI tests verify current snapshot output, not_assessed output, refresh behavior, and explain output.
+    actions:
+      - Add p2p proposal readiness PROP-XXX.
+      - Add p2p proposal readiness refresh PROP-XXX.
+      - Add p2p proposal readiness explain PROP-XXX.
+      - Keep p2p explore status focused on artifact quality.
+
+  - id: T006
+    title: Implement scoring, caps, gates, confidence, and evidence aggregation
+    workstream: WS2-profile-scoring
+    type: software
+    status: todo
+    priority: high
+    dependencies:
+      - T003
+      - T004
+      - T005
+    deliverable: Readiness computation pipeline that validates evidence, applies caps and gates, and produces computed score, label, confidence, failed gates, missing dimensions, and suggested next actions.
+    evidence_required: Unit tests cover cap application, failed gates, high-score low-confidence behavior, and governance-critical requirements.
+    actions:
+      - Define criterion evidence schema.
+      - Aggregate awarded points.
+      - Apply artifact quality caps after assessment.
+      - Apply tier-specific minimum gates.
+      - Apply required confidence gate.
+      - Generate missing dimensions and suggested next actions.
+
+  - id: T007
+    title: Add readiness registry snapshot and staleness detection
+    workstream: WS5-next-registry
+    type: software
+    status: todo
+    priority: medium
+    dependencies:
+      - T005
+      - T006
+    deliverable: Generated readiness registry snapshot for fast status and next-action lookup.
+    evidence_required: Registry refresh tests prove readiness snapshot generation and stale warnings without treating registry as source of truth.
+    actions:
+      - Add .p2p/registries/readiness.yml generation.
+      - Mark snapshots stale when source artifacts or profile changes.
+      - Include readiness summary fields in registry output.
+
+  - id: T008
+    title: Make p2p next readiness-aware
+    workstream: WS5-next-registry
+    type: software
+    status: todo
+    priority: high
+    dependencies:
+      - T006
+      - T007
+    deliverable: p2p next recommendations based on readiness gaps, failed gates, recoverable points, tier importance, and not_assessed drafts.
+    evidence_required: Tests show failed gates outrank raw point gain and not_assessed drafts receive assessment recommendations.
+    actions:
+      - Add readiness_gap output.
+      - Rank actions gate-first, then by recoverable points.
+      - Recommend readiness refresh for open not_assessed drafts.
+      - Surface needs_owner_input as ask_owner or confirm_policy actions.
+
+  - id: T009
+    title: Add owner accept-with-readiness-override governance flow
+    workstream: WS6-governance-override
+    type: software
+    status: todo
+    priority: high
+    dependencies:
+      - T006
+    deliverable: Acceptance command support for override-readiness with mandatory reason and audit record.
+    evidence_required: Tests prove acceptance below target requires override reason and preserves computed_score at decision time.
+    actions:
+      - Extend p2p proposal accept with --override-readiness and --reason.
+      - Preserve computed_score, required_score, failed_gates, and confidence at decision.
+      - Record accept_with_override governance/audit event.
+      - Ensure override does not mutate computed_score.
+
+  - id: T010
+    title: Add MCP readiness read tools and governance-gated write path
+    workstream: WS7-mcp-skill
+    type: mcp
+    status: todo
+    priority: medium
+    dependencies:
+      - T005
+      - T008
+      - T009
+    deliverable: MCP read tools for readiness plus permission-gated accept-with-override capability.
+    evidence_required: MCP tests show read tools are agent-accessible and write/governance operations require explicit permission.
+    actions:
+      - Add p2p_proposal_readiness_get.
+      - Add p2p_proposal_readiness_explain.
+      - Add p2p_proposal_readiness_refresh.
+      - Add p2p_proposal_readiness_list_gaps.
+      - Add or document permission-gated p2p_proposal_accept_with_override.
+
+  - id: T011
+    title: Update agent skills and documentation for readiness behavior
+    workstream: WS7-mcp-skill
+    type: docs
+    status: todo
+    priority: medium
+    dependencies:
+      - T005
+      - T008
+      - T010
+    deliverable: Agent instructions, MCP docs, and CLI docs that explain readiness, confidence, gates, override, and method-guardian behavior.
+    evidence_required: Documentation review confirms agents are instructed to inspect readiness and not decide for the owner.
+    actions:
+      - Update p2p-engine skill instructions.
+      - Update docs/CLI-GUIDE.md.
+      - Update docs/MCP.md.
+      - Add examples for small and governance-critical proposals.
+
+  - id: T012
+    title: Implement migration and legacy handling
+    workstream: WS8-migration-validation
+    type: software
+    status: todo
+    priority: medium
+    dependencies:
+      - T002
+      - T007
+      - T008
+    deliverable: Open drafts marked not_assessed, accepted proposals preserved as historical legacy, optional retrospective assessment model documented.
+    evidence_required: Tests show accepted proposals are not invalidated and open drafts can be assessed progressively.
+    actions:
+      - Mark existing open drafts as not_assessed when no readiness assessment exists.
+      - Add optional accepted_before_readiness marker semantics.
+      - Ensure registry and next handle legacy states safely.
+
+  - id: T013
+    title: Extend validation for readiness profiles and assessments
+    workstream: WS8-migration-validation
+    type: software
+    status: todo
+    priority: high
+    dependencies:
+      - T003
+      - T006
+      - T009
+    deliverable: Validation rules for malformed profiles, malformed assessments, stale registry snapshots, failed gates, and missing override reasons.
+    evidence_required: p2p validate tests cover strict schema/profile errors and warning/gate behavior.
+    actions:
+      - Validate profile schema strictly.
+      - Validate assessment schema strictly.
+      - Warn on stale readiness registry snapshots.
+      - Gate automatic ready_for_decision on failed gates.
+      - Require override reason for acceptance below target.
+
+  - id: T014
+    title: Add end-to-end readiness workflow tests
+    workstream: WS9-tests-docs
+    type: test
+    status: todo
+    priority: high
+    dependencies:
+      - T005
+      - T006
+      - T008
+      - T009
+      - T013
+    deliverable: End-to-end CLI and storage tests for proposal readiness lifecycle.
+    evidence_required: Test suite covers not_assessed draft, readiness refresh, explain, next recommendations, failed gates, and accept-with-override.
+    actions:
+      - Add CLI tests for readiness commands.
+      - Add storage tests for readiness files.
+      - Add next recommender tests.
+      - Add governance override tests.
+      - Add regression tests for legacy accepted proposals.
+
+  - id: T015
+    title: Prepare implementation Change Sets
+    workstream: WS10-change-sets
+    type: planning
+    status: todo
+    priority: medium
+    dependencies:
+      - T001
+      - T002
+      - T003
+    deliverable: Split PROP-002 implementation into focused Change Sets matching execution-plan phases.
+    evidence_required: Change Set plan identifies scope, dependencies, risks, and acceptance for each tranche.
+    actions:
+      - Create Change Set for readiness profile and storage MVP.
+      - Create Change Set for artifact quality and readiness CLI.
+      - Create Change Set for readiness-aware next and registry.
+      - Create Change Set for governance override and migration.
+      - Create Change Set for MCP and skill coverage.

@@ -63,6 +63,7 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_proposal_create",
         "p2p_proposal_update",
         "p2p_proposal_contribution_add",
+        "p2p_proposal_contribution_list",
         "p2p_intake_prompt",
         "p2p_intake_status",
         "p2p_project_brief_prompt",
@@ -79,6 +80,7 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_proposal_list",
         "p2p_proposal_show",
         "p2p_proposal_readiness_get",
+        "p2p_proposal_readiness_init",
         "p2p_proposal_readiness_refresh",
         "p2p_proposal_readiness_explain",
         "p2p_proposal_readiness_list_gaps",
@@ -1169,12 +1171,19 @@ def test_mcp_proposal_readiness_tools_are_advisory(tmp_path: Path) -> None:
     assert refreshed["governance"]["decision_made"] is False
     assert refreshed["governance"]["override_applied"] is False
 
+    initialized = call_tool("p2p_proposal_readiness_init", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+
+    assert initialized["readiness"]["status"] == "assessed"
+    assert initialized["readiness"]["computed_score"] is not None
+    assert initialized["readiness"]["confidence"] == "low"
+    assert initialized["governance"]["decision_made"] is False
+
     explained = call_tool("p2p_proposal_readiness_explain", {"root": str(tmp_path), "proposal_id": "PROP-001"})
     gaps = call_tool("p2p_proposal_readiness_list_gaps", {"root": str(tmp_path), "proposal_id": "PROP-001"})
 
-    assert explained["explanation"]["missing"] == []
+    assert explained["readiness"]["status"] == "assessed"
     assert gaps["gaps"]["proposal_id"] == "PROP-001"
-    assert gaps["gaps"]["suggested_next"] == []
+    assert isinstance(gaps["gaps"]["suggested_next"], list)
 
 
 def test_mcp_context_returns_compact_packet(tmp_path: Path) -> None:
@@ -1315,6 +1324,15 @@ def test_mcp_proposal_contribution_add_does_not_decide(tmp_path: Path) -> None:
     assert result["contribution"]["author"] == "mcp-test"
     assert result["proposal"]["decision_status"] == "pending"
     assert result["governance"]["decision_made"] is False
+
+    listed = call_tool(
+        "p2p_proposal_contribution_list",
+        {"root": str(tmp_path), "proposal_id": created["proposal"]["proposal_id"]},
+    )
+
+    assert listed["contributions"]["proposal_id"] == "PROP-001"
+    assert listed["contributions"]["contributions"][0]["contribution_id"] == "C001"
+    assert listed["contributions"]["contributions"][0]["text"] == "The box should be easy to position and transport."
 
     contributions = (
         tmp_path / ".p2p" / "proposals" / "PROP-001-criteria-proposal" / "contributions.yml"

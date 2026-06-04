@@ -1095,7 +1095,22 @@ def test_cli_import_exploration_file_and_record_decision(tmp_path: Path) -> None
 
 def test_cli_proposal_readiness_status_refresh_and_explain(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
-    runner.invoke(app, ["proposal", "create", "Readiness Workflow", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Readiness Workflow",
+            "--problem",
+            "The proposal workflow needs a visible maturity signal before acceptance.",
+            "--goal",
+            "Expose a conservative readiness assessment.",
+            "--acceptance",
+            "Readiness commands show a computed score.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
 
     result = runner.invoke(app, ["proposal", "readiness", "show", "PROP-001", "--root", str(tmp_path)])
     assert result.exit_code == 0
@@ -1107,12 +1122,50 @@ def test_cli_proposal_readiness_status_refresh_and_explain(tmp_path: Path) -> No
     assert result.exit_code == 0
     assert "Proposal readiness refreshed" in result.output
     assert "status: not_assessed" in result.output
+    assert "suggested_next: p2p proposal readiness init PROP-001" in result.output
     assert (tmp_path / ".p2p" / "proposals" / "PROP-001-readiness-workflow" / "readiness.yml").exists()
+
+    result = runner.invoke(app, ["proposal", "readiness", "init", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Proposal readiness initialized" in result.output
+    assert "status: assessed" in result.output
+    assert "computed_score:" in result.output
 
     result = runner.invoke(app, ["proposal", "readiness", "explain", "PROP-001", "--root", str(tmp_path)])
     assert result.exit_code == 0
     assert "failed_gates:" in result.output
     assert "suggested_next:" in result.output
+
+
+def test_cli_lists_proposal_contributions(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Contribution Visibility", "--root", str(tmp_path)])
+
+    add_result = runner.invoke(
+        app,
+        [
+            "proposal",
+            "contribution",
+            "add",
+            "PROP-001",
+            "Add a concise MVP boundary before accepting.",
+            "--type",
+            "suggestion",
+            "--relevance",
+            "readiness",
+            "--author",
+            "codex",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert add_result.exit_code == 0
+
+    result = runner.invoke(app, ["proposal", "contributions", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Proposal contributions for PROP-001" in result.output
+    assert "C001  suggestion  codex" in result.output
+    assert "Add a concise MVP boundary before accepting." in result.output
 
 
 def test_cli_proposal_accept_can_record_readiness_override(tmp_path: Path) -> None:

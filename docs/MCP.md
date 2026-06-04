@@ -209,6 +209,12 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_proposal_create` | write-safe | yes | no | Create a draft proposal. |
 | `p2p_proposal_update` | write-safe | yes | no | Update structured draft/proposal sections. |
 | `p2p_proposal_contribution_add` | write-safe | yes | no | Add a typed contribution to a proposal. |
+| `p2p_proposal_contribution_list` | read-only | no | no | List contributions recorded for a proposal. |
+| `p2p_proposal_readiness_get` | read-only | no | no | Read stored proposal readiness or `not_assessed`. |
+| `p2p_proposal_readiness_init` | write-safe | yes | no | Bootstrap a conservative readiness assessment from proposal artifacts. |
+| `p2p_proposal_readiness_refresh` | write-safe | yes | no | Recompute readiness score from stored criterion evidence. |
+| `p2p_proposal_readiness_explain` | read-only | no | no | Explain readiness score, failed gates, gaps, and next actions. |
+| `p2p_proposal_readiness_list_gaps` | read-only | no | no | List readiness failed gates, missing criteria, and next actions. |
 | `p2p_change_create` | write-safe | yes | no | Create a metadata-only Change Set from an accepted proposal. |
 | `p2p_project_refresh` | write-safe | yes | no | Refresh generated project definition files. |
 | `p2p_spec_refresh` | write-safe | yes | no | Generate a P2P-native software spec from a Change Set. |

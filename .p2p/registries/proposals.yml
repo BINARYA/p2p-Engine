@@ -151,6 +151,7 @@ proposals:
   decision_file: .p2p/proposals/PROP-002-exploration-phase/decision.md
   related_changes:
   - CHANGE-063
+  - CHANGE-064
   source_files:
   - ai-digest.md
   - alternatives.md

@@ -933,6 +933,22 @@ def proposal_readiness_refresh(
         _fail(str(exc))
     console.print("[green]Proposal readiness refreshed.[/green]")
     _print_proposal_readiness(readiness)
+    if getattr(readiness, "status") == "not_assessed":
+        console.print(f"  suggested_next: p2p proposal readiness init {proposal_id}")
+
+
+@proposal_readiness_app.command("init")
+def proposal_readiness_init(
+    proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Bootstrap proposal readiness from available proposal artifacts."""
+    try:
+        readiness = _workspace(root).initialize_proposal_readiness(proposal_id)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Proposal readiness initialized.[/green]")
+    _print_proposal_readiness(readiness, explain=True)
 
 
 @proposal_readiness_app.command("explain")
@@ -1307,6 +1323,50 @@ def proposal_contribution_add(
         author=author,
         root=root,
     )
+
+
+def _print_contribution_list(contribution_list: object) -> None:
+    console.print(f"Proposal contributions for [bold]{getattr(contribution_list, 'proposal_id')}[/bold]")
+    console.print(f"  path: {getattr(contribution_list, 'path')}")
+    contributions = getattr(contribution_list, "contributions")
+    if not contributions:
+        console.print("  none")
+        return
+    for contribution in contributions:
+        console.print(f"  {contribution.contribution_id}  {contribution.contribution_type.value}  {contribution.author}")
+        console.print(f"    relevance: {contribution.relevance_hint}")
+        console.print(f"    text: {contribution.text}")
+
+
+@contribution_app.command("list")
+def contribution_list(
+    proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """List contributions for a proposal."""
+    try:
+        contributions = _workspace(root).list_contributions(proposal_id)
+    except ValueError as exc:
+        _fail(str(exc))
+    _print_contribution_list(contributions)
+
+
+@proposal_contribution_app.command("list")
+def proposal_contribution_list(
+    proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """List contributions for a proposal."""
+    contribution_list(proposal_id=proposal_id, root=root)
+
+
+@proposal_app.command("contributions")
+def proposal_contributions(
+    proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """List contributions for a proposal."""
+    contribution_list(proposal_id=proposal_id, root=root)
 
 
 @decision_app.command("record")

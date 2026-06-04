@@ -1042,3 +1042,20 @@ changes:
   - openspec
   - speckit
   task_count: 15
+- id: CHANGE-064
+  title: Readiness bootstrap and contribution visibility
+  status: completed
+  path: .p2p/changes/CHANGE-064-readiness-bootstrap-and-contribution-visibility
+  included_proposals:
+  - PROP-002
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 15

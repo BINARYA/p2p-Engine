@@ -25,6 +25,7 @@ TOOL_NAMES = (
     "p2p_proposal_create",
     "p2p_proposal_update",
     "p2p_proposal_contribution_add",
+    "p2p_proposal_contribution_list",
     "p2p_intake_prompt",
     "p2p_intake_status",
     "p2p_project_brief_prompt",
@@ -41,6 +42,7 @@ TOOL_NAMES = (
     "p2p_proposal_list",
     "p2p_proposal_show",
     "p2p_proposal_readiness_get",
+    "p2p_proposal_readiness_init",
     "p2p_proposal_readiness_refresh",
     "p2p_proposal_readiness_explain",
     "p2p_proposal_readiness_list_gaps",
@@ -333,6 +335,11 @@ def tool_definitions() -> list[dict[str, object]]:
             ),
         },
         {
+            "name": "p2p_proposal_contribution_list",
+            "description": "Read-only proposal contribution tool: list contributions recorded for an existing proposal.",
+            "inputSchema": _schema({"root": {"type": "string"}, "proposal_id": {"type": "string"}}, ["proposal_id"]),
+        },
+        {
             "name": "p2p_intake_prompt",
             "description": (
                 "Write-safe draft tool: create an intake prompt for a raw idea. "
@@ -456,6 +463,15 @@ def tool_definitions() -> list[dict[str, object]]:
             "description": (
                 "Read-only proposal readiness tool: show the stored readiness "
                 "assessment or not_assessed status. Does not refresh or decide."
+            ),
+            "inputSchema": _schema({"root": {"type": "string"}, "proposal_id": {"type": "string"}}, ["proposal_id"]),
+        },
+        {
+            "name": "p2p_proposal_readiness_init",
+            "description": (
+                "Write-safe analysis tool: bootstrap a conservative proposal readiness "
+                "assessment from existing proposal artifacts. Does not accept, reject, "
+                "defer, override, or decide."
             ),
             "inputSchema": _schema({"root": {"type": "string"}, "proposal_id": {"type": "string"}}, ["proposal_id"]),
         },
@@ -1082,6 +1098,8 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, o
                 "decision_made": False,
             },
         }
+    if name == "p2p_proposal_contribution_list":
+        return {"contributions": _to_jsonable(workspace.list_contributions(_required(arguments, "proposal_id")))}
     if name == "p2p_intake_prompt":
         return {"intake": _to_jsonable(workspace.create_intake_prompt(_required(arguments, "idea")))}
     if name == "p2p_intake_status":
@@ -1140,6 +1158,16 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, o
         return {"proposal": _to_jsonable(workspace.show_proposal(_required(arguments, "proposal_id")))}
     if name == "p2p_proposal_readiness_get":
         return {"readiness": _to_jsonable(workspace.read_proposal_readiness(_required(arguments, "proposal_id")))}
+    if name == "p2p_proposal_readiness_init":
+        readiness = workspace.initialize_proposal_readiness(_required(arguments, "proposal_id"))
+        return {
+            "readiness": _to_jsonable(readiness),
+            "governance": {
+                "owner_decision_required": False,
+                "decision_made": False,
+                "override_applied": False,
+            },
+        }
     if name == "p2p_proposal_readiness_refresh":
         readiness = workspace.refresh_proposal_readiness(_required(arguments, "proposal_id"))
         return {

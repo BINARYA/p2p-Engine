@@ -132,6 +132,13 @@ class ProposalBranchScan:
 
 
 @dataclass(frozen=True)
+class ProposalContributionList:
+    proposal_id: str
+    path: Path
+    contributions: list[Contribution]
+
+
+@dataclass(frozen=True)
 class ProposalMerge:
     proposal_id: str
     branch_name: str
@@ -2324,6 +2331,117 @@ class P2PWorkspace:
         )
         return self.read_proposal_readiness(proposal_id)
 
+    def initialize_proposal_readiness(self, proposal_id: str) -> ProposalReadiness:
+        proposal_dir = self._find_proposal_dir(proposal_id)
+        profile = self.readiness_profile()
+        proposal_text = _read_optional(proposal_dir / "proposal.md")
+        criteria: dict[str, object] = {}
+        missing: list[str] = []
+        suggested_next: list[str] = []
+        failed_gates: list[str] = []
+
+        def add_criterion(
+            criterion: str,
+            artifact: str,
+            section: str | None,
+            text: str,
+            *,
+            quality_override: str | None = None,
+        ) -> None:
+            max_points = profile.criteria[criterion]
+            quality = quality_override or _readiness_text_quality(text)
+            awarded_points = _initial_readiness_points(max_points, quality)
+            assessment: dict[str, object] = {
+                "max_points": max_points,
+                "awarded_points": awarded_points,
+                "artifact_quality": quality,
+                "evidence": [{"artifact": artifact}],
+            }
+            if section:
+                assessment["evidence"] = [{"artifact": artifact, "section": section}]
+            if quality in {"missing", "placeholder"}:
+                missing.append(criterion)
+                suggested_next.append(f"add_{criterion}")
+            elif quality == "thin":
+                suggested_next.append(f"strengthen_{criterion}")
+            elif quality == "needs_owner_input":
+                failed_gates.append(f"{criterion}:needs_owner_input")
+                suggested_next.append(f"resolve_{criterion}")
+            criteria[criterion] = assessment
+
+        add_criterion(
+            "problem_clarity",
+            "proposal.md",
+            "Problem",
+            _read_markdown_section(proposal_text, "Problem"),
+        )
+        add_criterion(
+            "goal_clarity",
+            "proposal.md",
+            "Goals",
+            _read_markdown_section(proposal_text, "Goals"),
+        )
+        scope_text = "\n".join(
+            item
+            for item in (
+                _read_markdown_section(proposal_text, "Non-Goals"),
+                _read_optional(proposal_dir / "suggested-scope.md"),
+            )
+            if item
+        )
+        add_criterion("scope_boundaries", "proposal.md", "Non-Goals", scope_text)
+        alternatives_text = _read_optional(proposal_dir / "alternatives.md")
+        add_criterion("alternatives_quality", "alternatives.md", None, alternatives_text)
+        tradeoff_text = alternatives_text + "\n" + _read_optional(proposal_dir / "findings.md")
+        add_criterion("tradeoff_analysis", "alternatives.md", None, tradeoff_text)
+        add_criterion("risk_coverage", "risks.md", None, _read_optional(proposal_dir / "risks.md"))
+        add_criterion(
+            "assumptions_clarity",
+            "assumptions.md",
+            None,
+            _read_optional(proposal_dir / "assumptions.md"),
+        )
+        questions_text = _read_optional(proposal_dir / "open-questions.md")
+        question_quality = _readiness_text_quality(questions_text)
+        if question_quality in {"meaningful", "ready"} and _count_open_questions(questions_text) > 0:
+            question_quality = "needs_owner_input"
+        add_criterion(
+            "owner_questions_resolution",
+            "open-questions.md",
+            None,
+            questions_text,
+            quality_override=question_quality,
+        )
+        acceptance_text = "\n".join(
+            item
+            for item in (
+                _read_markdown_section(proposal_text, "Acceptance Criteria"),
+                _read_optional(proposal_dir / "execution-plan.md"),
+            )
+            if item
+        )
+        add_criterion("acceptance_criteria_quality", "proposal.md", "Acceptance Criteria", acceptance_text)
+        impact_text = _read_optional(proposal_dir / "impact-map.yml")
+        add_criterion("impact_overlap_analysis", "impact-map.yml", None, impact_text)
+
+        readiness = {
+            "status": "assessed",
+            "profile_id": profile.profile_id,
+            "profile_version": profile.version,
+            "tier": "medium",
+            "confidence": "low",
+            "confidence_reasons": [
+                "Initial readiness was bootstrapped from proposal artifacts.",
+                "Review criterion evidence before using it for acceptance.",
+            ],
+            "missing": _unique_strings(missing),
+            "suggested_next": _unique_strings(suggested_next),
+            "failed_gates": _unique_strings(failed_gates),
+            "criteria": criteria,
+        }
+        self.write_proposal_readiness(proposal_id, _refresh_readiness_payload(readiness, profile))
+        return self.read_proposal_readiness(proposal_id)
+
     def create_proposal(self, title: str) -> Proposal:
         return self.create_proposal_with_details(title=title)
 
@@ -2430,6 +2548,33 @@ class P2PWorkspace:
             text=text,
             author=author,
             relevance_hint=relevance_hint,
+        )
+
+    def list_contributions(self, proposal_id: str) -> ProposalContributionList:
+        proposal_dir = self._find_proposal_dir(proposal_id)
+        path = proposal_dir / "contributions.yml"
+        data = _read_yaml_mapping(path, default={"contributions": []})
+        raw_contributions = data.get("contributions") or []
+        if not isinstance(raw_contributions, list):
+            raise ValueError("Invalid contributions.yml: expected top-level contributions list.")
+        contributions: list[Contribution] = []
+        for item in raw_contributions:
+            if not isinstance(item, dict):
+                continue
+            contribution_type = ContributionType(str(item.get("type") or ContributionType.suggestion.value))
+            contributions.append(
+                Contribution(
+                    contribution_id=str(item.get("id") or ""),
+                    contribution_type=contribution_type,
+                    text=str(item.get("text") or ""),
+                    author=str(item.get("author") or ""),
+                    relevance_hint=str(item.get("relevance_hint") or ""),
+                )
+            )
+        return ProposalContributionList(
+            proposal_id=proposal_id,
+            path=path.relative_to(self.root),
+            contributions=contributions,
         )
 
     def record_decision(
@@ -7001,11 +7146,13 @@ def _agent_policy(project_name: str, profiles: list[str], repository_mode: str) 
             "inspect_before_acceptance_recommendation": True,
             "commands": [
                 "p2p proposal readiness show PROP-XXX",
+                "p2p proposal readiness init PROP-XXX",
                 "p2p proposal readiness refresh PROP-XXX",
                 "p2p proposal readiness explain PROP-XXX",
             ],
             "mcp_tools": [
                 "p2p_proposal_readiness_get",
+                "p2p_proposal_readiness_init",
                 "p2p_proposal_readiness_refresh",
                 "p2p_proposal_readiness_explain",
                 "p2p_proposal_readiness_list_gaps",
@@ -7140,6 +7287,7 @@ Before recommending proposal acceptance, inspect readiness with:
 
 ```bash
 p2p proposal readiness show PROP-XXX
+p2p proposal readiness init PROP-XXX
 p2p proposal readiness refresh PROP-XXX
 p2p proposal readiness explain PROP-XXX
 ```
@@ -7263,6 +7411,7 @@ p2p registry refresh
 p2p next
 p2p proposal list
 p2p proposal readiness show PROP-XXX
+p2p proposal readiness init PROP-XXX
 p2p proposal readiness refresh PROP-XXX
 p2p proposal readiness explain PROP-XXX
 p2p proposal branch PROP-XXX --actor "codex"
@@ -9027,6 +9176,47 @@ def _artifact_quality_state(path: Path, text: str) -> str:
     if len(content_text) < 80:
         return "thin"
     return "meaningful"
+
+
+def _readiness_text_quality(text: str | None) -> str:
+    stripped = (text or "").strip()
+    if not stripped:
+        return "missing"
+    lower = stripped.lower()
+    placeholders = (
+        "not provided.",
+        "not explored yet.",
+        "none identified yet.",
+        "not suggested yet.",
+        "findings: []",
+        "pending.",
+        "not generated yet.",
+        "none recorded yet.",
+        "tasks: []",
+    )
+    if any(placeholder in lower for placeholder in placeholders):
+        return "placeholder"
+    content_lines = [
+        line.strip()
+        for line in stripped.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    content_text = " ".join(content_lines)
+    if len(content_text) < 80:
+        return "thin"
+    return "meaningful"
+
+
+def _initial_readiness_points(max_points: int, quality: str) -> int:
+    if quality in {"missing", "placeholder"}:
+        return 0
+    if quality == "thin":
+        return max(1, int(max_points * 0.5))
+    if quality in {"meaningful", "needs_owner_input"}:
+        return max(1, int(max_points * 0.75))
+    if quality == "ready":
+        return max_points
+    return 0
 
 
 def _has_meaningful_intake_recommendation(text: str) -> bool:

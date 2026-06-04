@@ -316,8 +316,18 @@ relations:
   type: includes
   rationale: Change Set includes accepted proposal.
   source_artifact: .p2p/changes/CHANGE-063-readiness-profile-and-storage-mvp
+- source: CHANGE-064
+  target: PROP-002
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-064-readiness-bootstrap-and-contribution-visibility
 - source: PROP-002
   target: CHANGE-063
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-002-exploration-phase
+- source: PROP-002
+  target: CHANGE-064
   type: implemented_by
   rationale: Proposal appears in Change Set source metadata.
   source_artifact: .p2p/proposals/PROP-002-exploration-phase
