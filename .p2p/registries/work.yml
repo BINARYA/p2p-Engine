@@ -16,7 +16,7 @@ work_items:
   branch_name: p2p/work/work-002-change-053-generic
   path: .p2p/work/WORK-002/manifest.yml
 - work_id: WORK-003
-  status: submitted
+  status: review_requested
   change: CHANGE-063
   target: generic
   branch: p2p/work/work-003-change-063-generic
