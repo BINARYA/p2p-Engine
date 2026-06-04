@@ -6972,6 +6972,22 @@ def _agent_policy(project_name: str, profiles: list[str], repository_mode: str) 
             "raw_git_managed_branch",
             "raw_git_managed_sync",
         ],
+        "proposal_readiness": {
+            "inspect_before_acceptance_recommendation": True,
+            "commands": [
+                "p2p proposal readiness show PROP-XXX",
+                "p2p proposal readiness refresh PROP-XXX",
+                "p2p proposal readiness explain PROP-XXX",
+            ],
+            "mcp_tools": [
+                "p2p_proposal_readiness_get",
+                "p2p_proposal_readiness_refresh",
+                "p2p_proposal_readiness_explain",
+                "p2p_proposal_readiness_list_gaps",
+            ],
+            "computed_score_is_advisory": True,
+            "owner_override_must_not_falsify_computed_score": True,
+        },
         "managed_git_collaboration": {
             "raw_git_for_managed_state": "forbidden_without_owner_escape_hatch",
             "inspect_before_branching": [
@@ -7093,6 +7109,18 @@ Owner-controlled actions include:
 - changing governance policy;
 - creating direct Git merges into the main branch.
 
+## Proposal Readiness
+
+Before recommending proposal acceptance, inspect readiness with:
+
+```bash
+p2p proposal readiness show PROP-XXX
+p2p proposal readiness refresh PROP-XXX
+p2p proposal readiness explain PROP-XXX
+```
+
+If readiness is missing, weak, below target, or blocked by failed gates, ask focused owner questions and identify concrete missing artifacts before recommending acceptance. Readiness is advisory; the owner may still decide, but an owner override must be described separately from the computed score.
+
 ## Managed Git Collaboration
 
 Do not run raw `git branch`, `git fetch`, `git pull`, `git push`, `git merge`, or provider PR/MR commands for managed P2P project state unless the owner explicitly authorizes an escape hatch.
@@ -7194,6 +7222,7 @@ Use P2P Engine as the source of truth for project governance and planning.
 - If no CLI command or MCP write tool exists for the requested operation, stop and report the missing primitive.
 - Do not edit `.p2p/` internals directly, invent IDs, or synthesize decision files.
 - Do not accept, reject, defer, decide, merge, finalize, or cleanup without explicit owner instruction.
+- Do not recommend proposal acceptance before checking readiness or explicitly stating that readiness is missing.
 - Do not run raw Git commands for managed branch, sync, publish, or merge work unless the owner explicitly authorizes an escape hatch.
 - Use `p2p sync status` before managed branch work, `p2p proposal branch` for proposal branches, and `p2p proposal publish --auto-renumber` only when publish reports a recoverable proposal ID collision.
 - Before explaining existing proposals, choices, Change Sets, or Work items, use the relevant `p2p ... show` command or equivalent MCP read tool.
@@ -7208,6 +7237,9 @@ p2p context --budget small
 p2p registry refresh
 p2p next
 p2p proposal list
+p2p proposal readiness show PROP-XXX
+p2p proposal readiness refresh PROP-XXX
+p2p proposal readiness explain PROP-XXX
 p2p proposal branch PROP-XXX --actor "codex"
 p2p proposal status PROP-XXX
 p2p proposal publish PROP-XXX
@@ -7240,6 +7272,7 @@ Key rules:
 - Do not modify `.p2p/` internals directly.
 - If a requested P2P action has no available command or MCP write tool, stop and explain the missing primitive.
 - Do not make owner-controlled governance decisions unless the owner explicitly instructs the exact decision.
+- Do not recommend proposal acceptance before checking readiness or explicitly stating that readiness is missing.
 - Do not run raw Git commands for managed branch, sync, publish, or merge work unless the owner explicitly authorizes an escape hatch.
 - Use `p2p sync status`, `p2p proposal branch`, `p2p proposal publish`, `p2p proposal request-review`, and `p2p proposal scan` for managed collaboration workflows.
 - Treat MCP as read-only unless a tool explicitly declares a write operation.

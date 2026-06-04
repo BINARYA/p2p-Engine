@@ -33,3 +33,6 @@ remote:
   review_request:
     mode: advisory
     opens_external_request: false
+repository:
+  mode: local
+  managed_by_p2p: false

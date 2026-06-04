@@ -27,13 +27,16 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert (tmp_path / ".p2p" / "agent-policy.yml").exists()
     assert (tmp_path / ".p2p" / "project" / "rubrics.yml").exists()
     permissions = yaml.safe_load((tmp_path / ".p2p" / "project" / "permissions.yml").read_text(encoding="utf-8"))
+    agent_policy = yaml.safe_load((tmp_path / ".p2p" / "agent-policy.yml").read_text(encoding="utf-8"))
     assert permissions["permissions"]["model"] == "role_plus_consent_receipt"
     assert permissions["identities"]["owner"]["role"] == "owner"
     assert permissions["identities"]["contributor"]["role"] == "contributor"
+    assert agent_policy["proposal_readiness"]["inspect_before_acceptance_recommendation"] is True
     agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
     assert "Do not create, edit, rename, or delete files under `.p2p/` by hand" in agents
     assert "stop and report the limitation" in agents
     assert "Do not explain existing P2P artifacts only from conversation memory" in agents
+    assert "Before recommending proposal acceptance, inspect readiness" in agents
     assert "Managed Git Collaboration" in agents
     assert "p2p sync status" in agents
     assert "p2p proposal publish PROP-XXX --auto-renumber" in agents
