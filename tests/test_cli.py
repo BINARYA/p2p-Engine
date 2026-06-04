@@ -1088,6 +1088,28 @@ def test_cli_import_exploration_file_and_record_decision(tmp_path: Path) -> None
     assert "Scope is clear enough." in decision
 
 
+def test_cli_proposal_readiness_status_refresh_and_explain(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Readiness Workflow", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["proposal", "readiness", "show", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Proposal readiness for PROP-001" in result.output
+    assert "status: not_assessed" in result.output
+    assert "profile: none" in result.output
+
+    result = runner.invoke(app, ["proposal", "readiness", "refresh", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Proposal readiness refreshed" in result.output
+    assert "status: not_assessed" in result.output
+    assert (tmp_path / ".p2p" / "proposals" / "PROP-001-readiness-workflow" / "readiness.yml").exists()
+
+    result = runner.invoke(app, ["proposal", "readiness", "explain", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "failed_gates:" in result.output
+    assert "suggested_next:" in result.output
+
+
 def test_cli_proposal_decision_shortcuts(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "Acceptable Work", "--root", str(tmp_path)])

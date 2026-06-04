@@ -2273,6 +2273,19 @@ class P2PWorkspace:
         path.write_text(_yaml_dump(payload), encoding="utf-8")
         return path.relative_to(self.root)
 
+    def refresh_proposal_readiness(self, proposal_id: str) -> ProposalReadiness:
+        current = self.read_proposal_readiness(proposal_id)
+        if current.status != "not_assessed":
+            return current
+        self.write_proposal_readiness(
+            proposal_id,
+            {
+                "status": "not_assessed",
+                "reason": "readiness assessment has not been created yet",
+            },
+        )
+        return self.read_proposal_readiness(proposal_id)
+
     def create_proposal(self, title: str) -> Proposal:
         return self.create_proposal_with_details(title=title)
 
