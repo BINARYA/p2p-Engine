@@ -2226,6 +2226,9 @@ class P2PWorkspace:
 
     def readiness_profile(self, profile_id: str = DEFAULT_READINESS_PROFILE_ID) -> ReadinessProfile:
         path = self.p2p_dir / "config" / "readiness-profiles" / f"{profile_id}.yml"
+        if profile_id == DEFAULT_READINESS_PROFILE_ID and not path.exists():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(_yaml_dump(_default_readiness_profile_payload()), encoding="utf-8")
         data = _read_yaml_mapping(path, default={})
         _validate_readiness_profile_payload(data)
         profile = data["readiness_profile"]

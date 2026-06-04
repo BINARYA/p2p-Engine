@@ -366,6 +366,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-006
   generated: false
+- path: .p2p/proposals/PROP-006-multi-agent-integration-model/readiness.yml
+  artifact_type: readiness.yml
+  owner_type: proposal
+  owner: PROP-006
+  generated: false
 - path: .p2p/proposals/PROP-006-multi-agent-integration-model/risks.md
   artifact_type: risks.md
   owner_type: proposal

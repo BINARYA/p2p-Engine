@@ -108,6 +108,18 @@ def test_init_project_creates_default_readiness_profile(tmp_path) -> None:
     assert "governance-critical" in profile.tier_requirements
 
 
+def test_readiness_profile_is_created_for_existing_workspace(tmp_path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Demo")
+    profile_path = tmp_path / ".p2p" / "config" / "readiness-profiles" / "default-readiness-v0.1.yml"
+    profile_path.unlink()
+
+    profile = workspace.readiness_profile()
+
+    assert profile.profile_id == "default-readiness-v0.1"
+    assert profile_path.exists()
+
+
 def test_missing_proposal_readiness_is_not_assessed(tmp_path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Demo")

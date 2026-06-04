@@ -69,15 +69,21 @@ readiness:
 - proposal: PROP-006
   title: Multi-Agent Integration Model
   proposal_status: draft
-  status: not_assessed
-  profile_id: null
-  profile_version: null
-  computed_score: null
-  computed_label: null
-  confidence: null
-  failed_gates: []
-  missing: []
-  suggested_next: []
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  computed_score: 60
+  computed_label: weak
+  confidence: low
+  failed_gates:
+  - owner_questions_resolution:needs_owner_input
+  missing:
+  - acceptance_criteria_quality
+  - impact_overlap_analysis
+  suggested_next:
+  - resolve_owner_questions_resolution
+  - add_acceptance_criteria_quality
+  - add_impact_overlap_analysis
   path: .p2p/proposals/PROP-006-multi-agent-integration-model/readiness.yml
 - proposal: PROP-007
   title: Proposal Intake and Overlap Analysis

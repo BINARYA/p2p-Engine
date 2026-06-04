@@ -256,6 +256,7 @@ proposals:
   - findings.md
   - open-questions.md
   - proposal.md
+  - readiness.yml
   - risks.md
   - suggested-scope.md
   - tasks.yml
