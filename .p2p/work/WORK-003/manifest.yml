@@ -1,5 +1,5 @@
 work_id: WORK-003
-status: planned
+status: accepted
 visibility: internal_git
 created_at: '2026-06-04'
 source:
@@ -19,22 +19,28 @@ managed_git_levels:
   enabled: true
 - level: 2
   name: managed_branch
-  enabled: false
+  enabled: true
 - level: 3
   name: managed_commit
-  enabled: false
+  enabled: true
 - level: 4
   name: managed_review
-  enabled: false
+  enabled: true
 - level: 5
   name: owner_controlled_merge
-  enabled: false
+  enabled: true
 git:
-  mode: managed_branch_candidate
+  mode: managed_accept
   base_branch: main
   branch_name: p2p/work/work-003-change-063-generic
-  base_commit: null
-  head_commit: null
+  base_commit: 1a63ddbe5d0e8a03f22e71bfe4e3c6f63526ac32
+  head_commit: 1a63ddbe5d0e8a03f22e71bfe4e3c6f63526ac32
+  current_branch: p2p/work/work-003-change-063-generic
+  branched_at: '2026-06-04'
+  submitted_at: '2026-06-04'
+  review_requested_at: '2026-06-04'
+  published_at: '2026-06-04'
+  accepted_at: '2026-06-04'
 policy:
   expose_git_details: false
   auto_branch: false
@@ -52,3 +58,34 @@ next_steps:
 - Enable managed branch creation only after policy approval.
 - Enable selected-file commits only after dirty worktree and recovery checks.
 - Enable owner-controlled accept/merge only after review policy is defined.
+submission:
+  mode: local_commit
+  pushed: false
+  merged: false
+  changed_files:
+  - .p2p/work/WORK-003/manifest.yml
+  - src/p2p_engine/storage/filesystem.py
+  - tests/test_skeleton.py
+  work_changes:
+  - src/p2p_engine/storage/filesystem.py
+  - tests/test_skeleton.py
+review:
+  mode: local_review
+  review_commit: f56e286c1c59d095c8fc22251443a9b23c7538b7
+  pushed: false
+  pull_request: null
+  merged: false
+publish:
+  mode: remote_branch
+  remote: origin
+  remote_url: git@github.com:BINARYA/p2p-Engine.git
+  remote_branch: p2p/work/work-003-change-063-generic
+  review_commit: f56e286c1c59d095c8fc22251443a9b23c7538b7
+  pull_request: null
+  merged: false
+acceptance:
+  mode: local_merge
+  source_branch: p2p/work/work-003-change-063-generic
+  merged_into: main
+  pushed: false
+  cleanup: false

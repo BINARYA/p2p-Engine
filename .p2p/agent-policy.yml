@@ -1,0 +1,122 @@
+p2p_agent_policy:
+  version: '1.0'
+  project_name: P2P Engine
+  source_of_truth: p2p_cli
+  missing_primitive_behavior: stop_and_report
+  direct_p2p_file_edits: forbidden
+  owner_controls_governance: true
+repository:
+  mode: local
+  cloud_is_advisory_until_configured: false
+agent_profiles:
+- claude
+- codex
+- generic
+runtime_bootstrap:
+  discovery_order:
+  - p2p
+  - .venv/bin/p2p
+  - python -m p2p_engine
+  - available MCP tools
+  doctor_commands:
+  - p2p doctor
+  - p2p agent doctor
+  - .venv/bin/p2p agent doctor
+  - python -m p2p_engine agent doctor
+  when_unavailable: stop_and_report_diagnostics
+mcp:
+  default_mode: read_only
+  write_tools_require_explicit_tool_schema: true
+  missing_write_tool_behavior: stop_and_report
+owner_controlled_actions:
+- proposal_accept
+- proposal_reject
+- proposal_defer
+- choice_decide
+- work_accept
+- work_finalize
+- work_cleanup
+- proposal_branch_accept
+- proposal_branch_reject
+- proposal_branch_merge
+- proposal_branch_finalize
+- proposal_branch_remote_publish
+- direct_git_merge
+- raw_git_managed_branch
+- raw_git_managed_sync
+proposal_readiness:
+  inspect_before_acceptance_recommendation: true
+  commands:
+  - p2p proposal readiness show PROP-XXX
+  - p2p proposal readiness refresh PROP-XXX
+  - p2p proposal readiness explain PROP-XXX
+  mcp_tools:
+  - p2p_proposal_readiness_get
+  - p2p_proposal_readiness_refresh
+  - p2p_proposal_readiness_explain
+  - p2p_proposal_readiness_list_gaps
+  computed_score_is_advisory: true
+  owner_override_must_not_falsify_computed_score: true
+managed_git_collaboration:
+  raw_git_for_managed_state: forbidden_without_owner_escape_hatch
+  inspect_before_branching:
+  - p2p status
+  - p2p sync status
+  proposal_branch_commands:
+  - p2p proposal branch PROP-XXX --actor <actor>
+  - p2p proposal status PROP-XXX
+  - p2p proposal publish PROP-XXX
+  - p2p proposal publish PROP-XXX --auto-renumber
+  - p2p proposal request-review PROP-XXX
+  - p2p proposal scan
+  - p2p proposal retire-branch PROP-XXX --reason <reason>
+  sync_commands:
+  - p2p sync status
+  - p2p sync fetch
+  - p2p sync pull
+  - p2p sync push
+  mcp_tools:
+  - p2p_project_remote_configure
+  - p2p_consent_request
+  - p2p_sync_status
+  - p2p_sync_fetch
+  - p2p_sync_pull
+  - p2p_sync_push
+  - p2p_proposal_draft_commit
+  - p2p_proposal_branch
+  - p2p_proposal_branch_status
+  - p2p_proposal_publish
+  - p2p_proposal_request_review
+  - p2p_proposal_accept_branch
+  - p2p_proposal_reject_branch
+  - p2p_proposal_merge
+  - p2p_proposal_finalize
+  - p2p_proposal_cleanup
+  - p2p_proposal_branch_scan
+  deferred_permission_gated_mcp_tools:
+  - p2p_proposal_retire_branch
+  - p2p_work_publish
+  - p2p_work_finalize
+allowed_mutation_boundary:
+  use_p2p_cli_commands: true
+  use_mcp_write_tools_only_when_available: true
+  invent_internal_p2p_files: false
+  invent_ids_or_registry_entries: false
+  write_decision_files_directly: false
+explain_existing_artifacts:
+  read_before_explaining: true
+  allowed_sources:
+  - p2p context
+  - p2p proposal show
+  - p2p choice show
+  - p2p change show
+  - p2p work show
+  - equivalent MCP show/read tools
+  avoid_memory_only_explanations: true
+token_budget:
+  compact_context_first: true
+  default_command: p2p context --budget small
+  mcp_tool: p2p_context
+  read_details_only_by_id: true
+  broad_scans_require_explicit_need: true
+  advanced_token_estimation: deferred

@@ -18,6 +18,7 @@ from p2p_engine.storage.filesystem import P2PWorkspace, ProposalMergeConflict, W
 
 app = typer.Typer(help="P2P Engine CLI")
 proposal_app = typer.Typer(help="Manage proposals")
+proposal_readiness_app = typer.Typer(help="Inspect proposal readiness")
 proposal_contribution_app = typer.Typer(help="Manage proposal contributions")
 contribution_app = typer.Typer(help="Manage contributions")
 decision_app = typer.Typer(help="Record decisions")
@@ -54,6 +55,7 @@ assess_app = typer.Typer(help="Assess project readiness and maturity")
 assess_maturity_app = typer.Typer(help="Assess project definition maturity")
 next_app = typer.Typer(help="Manage advisory next actions", invoke_without_command=True)
 
+proposal_app.add_typer(proposal_readiness_app, name="readiness")
 proposal_app.add_typer(proposal_contribution_app, name="contribution")
 app.add_typer(proposal_app, name="proposal")
 app.add_typer(contribution_app, name="contribution")
@@ -873,6 +875,79 @@ def proposal_show(
     console.print(f"  reason: {proposal.decision_reason}")
 
 
+def _print_proposal_readiness(readiness: object, *, explain: bool = False) -> None:
+    console.print(f"Proposal readiness for [bold]{getattr(readiness, 'proposal_id')}[/bold]")
+    console.print(f"  status: {getattr(readiness, 'status')}")
+    console.print(f"  path: {getattr(readiness, 'path')}")
+    console.print(f"  profile: {getattr(readiness, 'profile_id') or 'none'}")
+    console.print(f"  profile_version: {getattr(readiness, 'profile_version') or 'none'}")
+    console.print(f"  computed_score: {getattr(readiness, 'computed_score') if getattr(readiness, 'computed_score') is not None else 'none'}")
+    console.print(f"  computed_label: {getattr(readiness, 'computed_label') or 'none'}")
+    console.print(f"  confidence: {getattr(readiness, 'confidence') or 'none'}")
+    if explain:
+        failed_gates = getattr(readiness, "failed_gates")
+        missing = getattr(readiness, "missing")
+        suggested_next = getattr(readiness, "suggested_next")
+        console.print("  failed_gates:")
+        if failed_gates:
+            for gate in failed_gates:
+                console.print(f"    - {gate}")
+        else:
+            console.print("    none")
+        console.print("  missing:")
+        if missing:
+            for item in missing:
+                console.print(f"    - {item}")
+        else:
+            console.print("    none")
+        console.print("  suggested_next:")
+        if suggested_next:
+            for item in suggested_next:
+                console.print(f"    - {item}")
+        else:
+            console.print("    none")
+
+
+@proposal_readiness_app.command("show")
+def proposal_readiness_show(
+    proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Show proposal readiness status."""
+    try:
+        readiness = _workspace(root).read_proposal_readiness(proposal_id)
+    except ValueError as exc:
+        _fail(str(exc))
+    _print_proposal_readiness(readiness)
+
+
+@proposal_readiness_app.command("refresh")
+def proposal_readiness_refresh(
+    proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Refresh proposal readiness snapshot."""
+    try:
+        readiness = _workspace(root).refresh_proposal_readiness(proposal_id)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print("[green]Proposal readiness refreshed.[/green]")
+    _print_proposal_readiness(readiness)
+
+
+@proposal_readiness_app.command("explain")
+def proposal_readiness_explain(
+    proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Explain proposal readiness gaps and next actions."""
+    try:
+        readiness = _workspace(root).read_proposal_readiness(proposal_id)
+    except ValueError as exc:
+        _fail(str(exc))
+    _print_proposal_readiness(readiness, explain=True)
+
+
 @proposal_app.command("branch")
 def proposal_branch(
     proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
@@ -1124,9 +1199,37 @@ def proposal_accept(
     proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
     reason: str = typer.Option(..., "--reason", help="Decision reason"),
     approver: str = typer.Option("local", "--approver", help="Decision approver"),
+    override_readiness: bool = typer.Option(
+        False,
+        "--override-readiness",
+        help="Record an explicit owner readiness override while accepting.",
+    ),
     root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
 ) -> None:
     """Accept a proposal."""
+    workspace = _workspace(root)
+    try:
+        readiness = workspace.read_proposal_readiness(proposal_id)
+        if override_readiness:
+            override_path = workspace.record_proposal_readiness_override(
+                proposal_id=proposal_id,
+                reason=reason,
+                approver=approver,
+            )
+            console.print("[yellow]Readiness override recorded.[/yellow]")
+            console.print(f"  readiness: {override_path}")
+        elif (
+            readiness.status == "not_assessed"
+            or readiness.computed_score is None
+            or readiness.computed_score < 85
+            or bool(readiness.failed_gates)
+        ):
+            console.print(
+                "[yellow]Warning: accepting without decision-ready proposal readiness. "
+                "Use --override-readiness to record an explicit owner override.[/yellow]"
+            )
+    except ValueError as exc:
+        _fail(str(exc))
     _record_proposal_decision(proposal_id, DecisionOutcome.accepted, reason, approver, root)
 
 
@@ -1274,7 +1377,7 @@ def explore_status(
     console.print("Artifacts:")
     for artifact in status.artifacts:
         marker = "[green]✓[/green]" if artifact.has_content else "[red]✗[/red]"
-        console.print(f"  {marker} {artifact.filename}")
+        console.print(f"  {marker} {artifact.filename}  {artifact.quality_state}")
     console.print("")
     console.print(f"Open questions: {status.unresolved_questions} unresolved")
     console.print("")
@@ -2524,7 +2627,10 @@ def registry_status(root: Path = typer.Option(Path.cwd(), "--root", help="Projec
 
 @registry_app.command("show")
 def registry_show(
-    name: str = typer.Argument(..., help="Registry name: proposals, decisions, changes, choices, relations, artifacts"),
+    name: str = typer.Argument(
+        ...,
+        help="Registry name: proposals, decisions, changes, choices, relations, artifacts, readiness",
+    ),
     root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
 ) -> None:
     """Show a generated registry."""
@@ -2557,6 +2663,13 @@ def registry_show(
         elif view.name == "artifacts":
             console.print(
                 f"  {record.get('owner_type', '-')}/{record.get('owner', '-')}: {record.get('path', '')}"
+            )
+        elif view.name == "readiness":
+            score = record.get("computed_score")
+            score_text = str(score) if score is not None else "none"
+            console.print(
+                f"  {record.get('proposal', '-')}: {record.get('status', 'unknown')}  "
+                f"{score_text} {record.get('computed_label') or 'none'}"
             )
         else:
             console.print(f"  {record}")

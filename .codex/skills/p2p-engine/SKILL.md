@@ -101,6 +101,10 @@ p2p_next_retire
 p2p_next_refresh
 p2p_proposal_list
 p2p_proposal_show
+p2p_proposal_readiness_get
+p2p_proposal_readiness_refresh
+p2p_proposal_readiness_explain
+p2p_proposal_readiness_list_gaps
 p2p_choice_list
 p2p_choice_show
 p2p_change_status
@@ -153,7 +157,7 @@ p2p_swot_prompt
 p2p_spec_prompt
 ```
 
-These tools may initialize projects, refresh agent instructions, regenerate deterministic registries, validate project state, return compact context packets, generate/show deterministic readiness assessments, initialize/show project definition rubrics, generate/show deterministic project definition maturity, create and refine draft proposals, append proposal contributions, create/list intake prompts, generate/show operational brief artifacts, discover choice candidates, inspect recorded conflicts, read Change Sets and Work manifests, refresh generated project/spec artifacts, export and validate spec artifacts, create metadata-only Work plans, and generate advisory prompts.
+These tools may initialize projects, refresh agent instructions, regenerate deterministic registries, validate project state, return compact context packets, generate/show deterministic readiness assessments, initialize/show project definition rubrics, generate/show deterministic project definition maturity, create and refine draft proposals, inspect and refresh proposal readiness, append proposal contributions, create/list intake prompts, generate/show operational brief artifacts, discover choice candidates, inspect recorded conflicts, read Change Sets and Work manifests, refresh generated project/spec artifacts, export and validate spec artifacts, create metadata-only Work plans, and generate advisory prompts.
 
 The managed sync, draft proposal decision, and proposal branch tools may run the specific operation named by their schema. Pull, push, publish, review handoff, draft proposal accept/reject/defer, accept/reject branch decisions, merge, finalize, and cleanup require a matching consent receipt. They do not authorize raw Git escape hatches, retire, provider PR automation, Work acceptance, Work finalization, Work cleanup, or arbitrary commits.
 
@@ -338,6 +342,8 @@ Prompt-only workflow:
 ```bash
 p2p explore import PROP-XXX exploration-output.md
 p2p explore status PROP-XXX
+p2p proposal readiness refresh PROP-XXX
+p2p proposal readiness explain PROP-XXX
 
 p2p clarify prompt PROP-XXX
 p2p clarify import PROP-XXX clarification-output.md
@@ -363,6 +369,16 @@ p2p proposal defer PROP-XXX --reason "Reason"
 ```
 
 Use `p2p decision record` only when a non-shortcut outcome is needed, such as `accepted_with_changes`, `split`, `merged_into_other`, or `superseded`.
+
+Before recommending acceptance, inspect proposal readiness:
+
+```bash
+p2p proposal readiness show PROP-XXX
+p2p proposal readiness refresh PROP-XXX
+p2p proposal readiness explain PROP-XXX
+```
+
+Treat readiness as advisory but methodologically important. If readiness is `not_assessed`, weak, below the target threshold, or has failed gates, ask focused owner questions and identify concrete missing artifacts before recommending acceptance. The owner can still decide to accept, but the agent must distinguish computed readiness from owner override and must not describe an override as analytical quality.
 
 ## Choices
 
@@ -559,6 +575,8 @@ Exploration should surface:
 - suggested scope;
 - execution domains.
 
+Be deliberately demanding when proposals are thin. Do not accept generic prose as sufficient evidence. Ask for real alternatives, tradeoffs, owner questions, risks, assumptions, impact/overlap, and acceptance criteria. When the owner chooses a direction that is suboptimal by the analysis, record the tradeoff clearly rather than arguing endlessly.
+
 Expected artifacts:
 
 ```text
@@ -596,6 +614,7 @@ p2p intake import INTAKE-XXX output-dir/
 - Do not treat AI output as a final decision.
 - Do not skip human decision recording for accepted/rejected proposals.
 - Do not accept, reject, defer, merge, or supersede proposals from intake alone.
+- Do not recommend proposal acceptance before checking readiness or explicitly stating that readiness is missing.
 - Do not create plans or tasks before exploration/synthesis unless the user explicitly asks for a shortcut.
 - Do not use P2P artifacts as decoration; keep them actionable and versioned.
 - Do not introduce web app, MCP, or direct AI adapters unless the active proposal covers that work.
@@ -610,6 +629,9 @@ p2p proposal list
 p2p proposal show PROP-XXX
 p2p proposal create "Title"
 p2p proposal update PROP-XXX --problem "..." --goal "..."
+p2p proposal readiness show PROP-XXX
+p2p proposal readiness refresh PROP-XXX
+p2p proposal readiness explain PROP-XXX
 p2p proposal accept PROP-XXX --reason "..."
 p2p proposal reject PROP-XXX --reason "..."
 p2p proposal defer PROP-XXX --reason "..."

@@ -10,6 +10,7 @@ import yaml
 from typer.testing import CliRunner
 
 from p2p_engine.cli import app
+from p2p_engine.storage.filesystem import P2PWorkspace
 
 runner = CliRunner()
 
@@ -26,13 +27,16 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert (tmp_path / ".p2p" / "agent-policy.yml").exists()
     assert (tmp_path / ".p2p" / "project" / "rubrics.yml").exists()
     permissions = yaml.safe_load((tmp_path / ".p2p" / "project" / "permissions.yml").read_text(encoding="utf-8"))
+    agent_policy = yaml.safe_load((tmp_path / ".p2p" / "agent-policy.yml").read_text(encoding="utf-8"))
     assert permissions["permissions"]["model"] == "role_plus_consent_receipt"
     assert permissions["identities"]["owner"]["role"] == "owner"
     assert permissions["identities"]["contributor"]["role"] == "contributor"
+    assert agent_policy["proposal_readiness"]["inspect_before_acceptance_recommendation"] is True
     agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
     assert "Do not create, edit, rename, or delete files under `.p2p/` by hand" in agents
     assert "stop and report the limitation" in agents
     assert "Do not explain existing P2P artifacts only from conversation memory" in agents
+    assert "Before recommending proposal acceptance, inspect readiness" in agents
     assert "Managed Git Collaboration" in agents
     assert "p2p sync status" in agents
     assert "p2p proposal publish PROP-XXX --auto-renumber" in agents
@@ -109,6 +113,7 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "Exploration status for PROP-001" in result.output
     assert "open-questions.md" in result.output
+    assert "placeholder" in result.output
 
 
 def test_cli_init_owner_populates_permissions_policy(tmp_path: Path) -> None:
@@ -1088,6 +1093,61 @@ def test_cli_import_exploration_file_and_record_decision(tmp_path: Path) -> None
     assert "Scope is clear enough." in decision
 
 
+def test_cli_proposal_readiness_status_refresh_and_explain(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Readiness Workflow", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["proposal", "readiness", "show", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Proposal readiness for PROP-001" in result.output
+    assert "status: not_assessed" in result.output
+    assert "profile: none" in result.output
+
+    result = runner.invoke(app, ["proposal", "readiness", "refresh", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Proposal readiness refreshed" in result.output
+    assert "status: not_assessed" in result.output
+    assert (tmp_path / ".p2p" / "proposals" / "PROP-001-readiness-workflow" / "readiness.yml").exists()
+
+    result = runner.invoke(app, ["proposal", "readiness", "explain", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "failed_gates:" in result.output
+    assert "suggested_next:" in result.output
+
+
+def test_cli_proposal_accept_can_record_readiness_override(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Override Readiness", "--root", str(tmp_path)])
+
+    result = runner.invoke(
+        app,
+        [
+            "proposal",
+            "accept",
+            "PROP-001",
+            "--reason",
+            "Owner accepts this intentionally as-is.",
+            "--approver",
+            "owner",
+            "--override-readiness",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    readiness_path = tmp_path / ".p2p" / "proposals" / "PROP-001-override-readiness" / "readiness.yml"
+    readiness = yaml.safe_load(readiness_path.read_text(encoding="utf-8"))["readiness"]
+
+    assert result.exit_code == 0
+    assert "Readiness override recorded" in result.output
+    assert readiness["status"] == "not_assessed"
+    assert readiness["owner_override"] is True
+    assert readiness["effective_status"] == "forced_ready"
+    assert readiness["effective_score"] == 100
+    assert readiness["override_reason"] == "Owner accepts this intentionally as-is."
+    assert readiness["override_approver"] == "owner"
+
+
 def test_cli_proposal_decision_shortcuts(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "Acceptable Work", "--root", str(tmp_path)])
@@ -1690,8 +1750,12 @@ def test_cli_registry_refresh_status_and_show(tmp_path: Path) -> None:
     registries_dir = tmp_path / ".p2p" / "registries"
     assert (registries_dir / "proposals.yml").exists()
     assert (registries_dir / "changes.yml").exists()
+    assert (registries_dir / "readiness.yml").exists()
     assert "generated: true" in (registries_dir / "proposals.yml").read_text(encoding="utf-8")
     assert "id: PROP-001" in (registries_dir / "proposals.yml").read_text(encoding="utf-8")
+    readiness_registry = (registries_dir / "readiness.yml").read_text(encoding="utf-8")
+    assert "proposal: PROP-001" in readiness_registry
+    assert "status: not_assessed" in readiness_registry
     changes_registry = (registries_dir / "changes.yml").read_text(encoding="utf-8")
     assert "id: CHANGE-001" in changes_registry
     assert "spec_targets:" in changes_registry
@@ -1705,6 +1769,7 @@ def test_cli_registry_refresh_status_and_show(tmp_path: Path) -> None:
     assert "stale: False" in result.output
     assert "proposals.yml (1 records)" in result.output
     assert "changes.yml (1 records)" in result.output
+    assert "readiness.yml (1 records)" in result.output
 
     result = runner.invoke(app, ["registry", "show", "proposals", "--root", str(tmp_path)])
     assert result.exit_code == 0
@@ -1715,6 +1780,11 @@ def test_cli_registry_refresh_status_and_show(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "Registry: changes" in result.output
     assert "CHANGE-001: proposed  Project Registries" in result.output
+
+    result = runner.invoke(app, ["registry", "show", "readiness", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Registry: readiness" in result.output
+    assert "PROP-001: not_assessed  none none" in result.output
 
 
 def test_cli_software_spec_refresh_prompt_import_status_and_show(tmp_path: Path) -> None:
@@ -3585,9 +3655,33 @@ def test_cli_next_falls_back_to_draft_proposal_review(tmp_path: Path) -> None:
     result = runner.invoke(app, ["next", "--top", "1", "--root", str(tmp_path)])
 
     assert result.exit_code == 0
-    assert "review_draft_proposal" in result.output
+    assert "assess_proposal_readiness" in result.output
     assert "target: PROP-001" in result.output
-    assert "p2p proposal show PROP-001" in result.output
+    assert "p2p proposal readiness refresh PROP-001" in result.output
+
+
+def test_cli_next_falls_back_to_improve_low_readiness_draft(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Draft Work", "--root", str(tmp_path)])
+    workspace = P2PWorkspace(tmp_path)
+    workspace.write_proposal_readiness(
+        "PROP-001",
+        {
+            "status": "assessed",
+            "profile_id": "default-readiness-v0.1",
+            "profile_version": "0.1",
+            "computed_score": 64,
+            "computed_label": "weak",
+        },
+    )
+    runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["next", "--top", "1", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "improve_proposal_readiness" in result.output
+    assert "target: PROP-001" in result.output
+    assert "p2p proposal readiness explain PROP-001" in result.output
 
 
 def test_cli_next_manages_curated_lifecycle_and_log(tmp_path: Path) -> None:
@@ -3700,7 +3794,8 @@ def test_cli_next_shows_generated_actions_when_curated_actions_exist(tmp_path: P
 
     assert result.exit_code == 0
     assert "NEXT-001  medium  verify_integration" in result.output
-    assert "NEXT-FALLBACK-001  medium  review_draft_proposal" in result.output
+    assert "NEXT-FALLBACK-001  high  assess_proposal_readiness" in result.output
+    assert "p2p proposal readiness refresh PROP-001" in result.output
     assert "source: generated" in result.output
 
 

@@ -78,6 +78,10 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_next_refresh",
         "p2p_proposal_list",
         "p2p_proposal_show",
+        "p2p_proposal_readiness_get",
+        "p2p_proposal_readiness_refresh",
+        "p2p_proposal_readiness_explain",
+        "p2p_proposal_readiness_list_gaps",
         "p2p_choice_list",
         "p2p_choice_show",
         "p2p_change_status",
@@ -1148,6 +1152,29 @@ def test_mcp_assess_refresh_and_show(tmp_path: Path) -> None:
 
     assert shown["assessment"]["completion_score"] == assessment["completion_score"]
     assert shown["assessment"]["path"] == ".p2p/project/assessment.yml"
+
+
+def test_mcp_proposal_readiness_tools_are_advisory(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    call_tool("p2p_proposal_create", {"root": str(tmp_path), "title": "Readiness Draft"})
+
+    shown = call_tool("p2p_proposal_readiness_get", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+
+    assert shown["readiness"]["status"] == "not_assessed"
+    assert shown["readiness"]["computed_score"] is None
+
+    refreshed = call_tool("p2p_proposal_readiness_refresh", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+
+    assert refreshed["readiness"]["status"] == "not_assessed"
+    assert refreshed["governance"]["decision_made"] is False
+    assert refreshed["governance"]["override_applied"] is False
+
+    explained = call_tool("p2p_proposal_readiness_explain", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+    gaps = call_tool("p2p_proposal_readiness_list_gaps", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+
+    assert explained["explanation"]["missing"] == []
+    assert gaps["gaps"]["proposal_id"] == "PROP-001"
+    assert gaps["gaps"]["suggested_next"] == []
 
 
 def test_mcp_context_returns_compact_packet(tmp_path: Path) -> None:
