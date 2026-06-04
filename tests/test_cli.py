@@ -1115,6 +1115,39 @@ def test_cli_proposal_readiness_status_refresh_and_explain(tmp_path: Path) -> No
     assert "suggested_next:" in result.output
 
 
+def test_cli_proposal_accept_can_record_readiness_override(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Override Readiness", "--root", str(tmp_path)])
+
+    result = runner.invoke(
+        app,
+        [
+            "proposal",
+            "accept",
+            "PROP-001",
+            "--reason",
+            "Owner accepts this intentionally as-is.",
+            "--approver",
+            "owner",
+            "--override-readiness",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    readiness_path = tmp_path / ".p2p" / "proposals" / "PROP-001-override-readiness" / "readiness.yml"
+    readiness = yaml.safe_load(readiness_path.read_text(encoding="utf-8"))["readiness"]
+
+    assert result.exit_code == 0
+    assert "Readiness override recorded" in result.output
+    assert readiness["status"] == "not_assessed"
+    assert readiness["owner_override"] is True
+    assert readiness["effective_status"] == "forced_ready"
+    assert readiness["effective_score"] == 100
+    assert readiness["override_reason"] == "Owner accepts this intentionally as-is."
+    assert readiness["override_approver"] == "owner"
+
+
 def test_cli_proposal_decision_shortcuts(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "Acceptable Work", "--root", str(tmp_path)])

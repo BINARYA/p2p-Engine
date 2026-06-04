@@ -2276,6 +2276,31 @@ class P2PWorkspace:
         path.write_text(_yaml_dump(payload), encoding="utf-8")
         return path.relative_to(self.root)
 
+    def record_proposal_readiness_override(
+        self,
+        proposal_id: str,
+        reason: str,
+        approver: str,
+    ) -> Path:
+        proposal_dir = self._find_proposal_dir(proposal_id)
+        path = proposal_dir / "readiness.yml"
+        if path.exists():
+            data = _read_yaml_mapping(path, default={})
+            _validate_readiness_assessment_payload(data)
+            readiness = dict(data["readiness"])
+        else:
+            readiness = {
+                "status": "not_assessed",
+                "reason": "readiness assessment has not been created yet",
+            }
+        readiness["owner_override"] = True
+        readiness["effective_status"] = "forced_ready"
+        readiness["effective_score"] = 100
+        readiness["override_reason"] = reason
+        readiness["override_approver"] = approver
+        readiness["override_recorded_at"] = date.today().isoformat()
+        return self.write_proposal_readiness(proposal_id, readiness)
+
     def refresh_proposal_readiness(self, proposal_id: str) -> ProposalReadiness:
         proposal_dir = self._find_proposal_dir(proposal_id)
         path = proposal_dir / "readiness.yml"

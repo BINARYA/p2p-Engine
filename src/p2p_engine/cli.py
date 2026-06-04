@@ -1199,9 +1199,37 @@ def proposal_accept(
     proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
     reason: str = typer.Option(..., "--reason", help="Decision reason"),
     approver: str = typer.Option("local", "--approver", help="Decision approver"),
+    override_readiness: bool = typer.Option(
+        False,
+        "--override-readiness",
+        help="Record an explicit owner readiness override while accepting.",
+    ),
     root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
 ) -> None:
     """Accept a proposal."""
+    workspace = _workspace(root)
+    try:
+        readiness = workspace.read_proposal_readiness(proposal_id)
+        if override_readiness:
+            override_path = workspace.record_proposal_readiness_override(
+                proposal_id=proposal_id,
+                reason=reason,
+                approver=approver,
+            )
+            console.print("[yellow]Readiness override recorded.[/yellow]")
+            console.print(f"  readiness: {override_path}")
+        elif (
+            readiness.status == "not_assessed"
+            or readiness.computed_score is None
+            or readiness.computed_score < 85
+            or bool(readiness.failed_gates)
+        ):
+            console.print(
+                "[yellow]Warning: accepting without decision-ready proposal readiness. "
+                "Use --override-readiness to record an explicit owner override.[/yellow]"
+            )
+    except ValueError as exc:
+        _fail(str(exc))
     _record_proposal_decision(proposal_id, DecisionOutcome.accepted, reason, approver, root)
 
 
