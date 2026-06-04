@@ -2599,7 +2599,10 @@ def registry_status(root: Path = typer.Option(Path.cwd(), "--root", help="Projec
 
 @registry_app.command("show")
 def registry_show(
-    name: str = typer.Argument(..., help="Registry name: proposals, decisions, changes, choices, relations, artifacts"),
+    name: str = typer.Argument(
+        ...,
+        help="Registry name: proposals, decisions, changes, choices, relations, artifacts, readiness",
+    ),
     root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
 ) -> None:
     """Show a generated registry."""
@@ -2632,6 +2635,13 @@ def registry_show(
         elif view.name == "artifacts":
             console.print(
                 f"  {record.get('owner_type', '-')}/{record.get('owner', '-')}: {record.get('path', '')}"
+            )
+        elif view.name == "readiness":
+            score = record.get("computed_score")
+            score_text = str(score) if score is not None else "none"
+            console.print(
+                f"  {record.get('proposal', '-')}: {record.get('status', 'unknown')}  "
+                f"{score_text} {record.get('computed_label') or 'none'}"
             )
         else:
             console.print(f"  {record}")

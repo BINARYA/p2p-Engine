@@ -1713,8 +1713,12 @@ def test_cli_registry_refresh_status_and_show(tmp_path: Path) -> None:
     registries_dir = tmp_path / ".p2p" / "registries"
     assert (registries_dir / "proposals.yml").exists()
     assert (registries_dir / "changes.yml").exists()
+    assert (registries_dir / "readiness.yml").exists()
     assert "generated: true" in (registries_dir / "proposals.yml").read_text(encoding="utf-8")
     assert "id: PROP-001" in (registries_dir / "proposals.yml").read_text(encoding="utf-8")
+    readiness_registry = (registries_dir / "readiness.yml").read_text(encoding="utf-8")
+    assert "proposal: PROP-001" in readiness_registry
+    assert "status: not_assessed" in readiness_registry
     changes_registry = (registries_dir / "changes.yml").read_text(encoding="utf-8")
     assert "id: CHANGE-001" in changes_registry
     assert "spec_targets:" in changes_registry
@@ -1728,6 +1732,7 @@ def test_cli_registry_refresh_status_and_show(tmp_path: Path) -> None:
     assert "stale: False" in result.output
     assert "proposals.yml (1 records)" in result.output
     assert "changes.yml (1 records)" in result.output
+    assert "readiness.yml (1 records)" in result.output
 
     result = runner.invoke(app, ["registry", "show", "proposals", "--root", str(tmp_path)])
     assert result.exit_code == 0
@@ -1738,6 +1743,11 @@ def test_cli_registry_refresh_status_and_show(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "Registry: changes" in result.output
     assert "CHANGE-001: proposed  Project Registries" in result.output
+
+    result = runner.invoke(app, ["registry", "show", "readiness", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Registry: readiness" in result.output
+    assert "PROP-001: not_assessed  none none" in result.output
 
 
 def test_cli_software_spec_refresh_prompt_import_status_and_show(tmp_path: Path) -> None:

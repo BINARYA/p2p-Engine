@@ -4931,6 +4931,7 @@ class P2PWorkspace:
         choices = self._choice_registry_records()
         relations = self._relation_registry_records(proposals, changes)
         artifacts = self._artifact_registry_records(proposals, changes)
+        readiness = self._readiness_registry_records(proposals)
 
         registry_files = {
             "proposals.yml": {
@@ -4963,6 +4964,11 @@ class P2PWorkspace:
                 "source": ".p2p",
                 "artifacts": artifacts,
             },
+            "readiness.yml": {
+                "generated": True,
+                "source": ".p2p/proposals/*/readiness.yml",
+                "readiness": readiness,
+            },
         }
 
         written: list[Path] = []
@@ -4981,6 +4987,7 @@ class P2PWorkspace:
             "choices.yml": "choices",
             "relations.yml": "relations",
             "artifacts.yml": "artifacts",
+            "readiness.yml": "readiness",
         }
         files: list[dict[str, object]] = []
         stale = False
@@ -5040,6 +5047,7 @@ class P2PWorkspace:
             "choices": "choices.yml",
             "relations": "relations.yml",
             "artifacts": "artifacts.yml",
+            "readiness": "readiness.yml",
         }
         if name not in allowed:
             raise ValueError(f"Unsupported registry: {name}")
@@ -5850,6 +5858,29 @@ class P2PWorkspace:
                             "generated": False,
                         }
                     )
+        return records
+
+    def _readiness_registry_records(self, proposals: list[dict[str, object]]) -> list[dict[str, object]]:
+        records: list[dict[str, object]] = []
+        for proposal in proposals:
+            readiness = self.read_proposal_readiness(str(proposal["id"]))
+            records.append(
+                {
+                    "proposal": proposal["id"],
+                    "title": proposal["title"],
+                    "proposal_status": proposal["status"],
+                    "status": readiness.status,
+                    "profile_id": readiness.profile_id,
+                    "profile_version": readiness.profile_version,
+                    "computed_score": readiness.computed_score,
+                    "computed_label": readiness.computed_label,
+                    "confidence": readiness.confidence,
+                    "failed_gates": readiness.failed_gates,
+                    "missing": readiness.missing,
+                    "suggested_next": readiness.suggested_next,
+                    "path": str(readiness.path),
+                }
+            )
         return records
 
     def _changes_for_proposal(self, proposal_id: str) -> list[str]:
