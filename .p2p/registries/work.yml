@@ -1,24 +1,2 @@
-scanned_branches:
-- p2p/work/work-003-change-063-generic
-work_items:
-- work_id: WORK-001
-  status: retired
-  change: CHANGE-012
-  target: speckit
-  branch: p2p/work/work-003-change-063-generic
-  branch_name: p2p/work/work-001-change-012-speckit
-  path: .p2p/work/WORK-001/manifest.yml
-- work_id: WORK-002
-  status: retired
-  change: CHANGE-053
-  target: generic
-  branch: p2p/work/work-003-change-063-generic
-  branch_name: p2p/work/work-002-change-053-generic
-  path: .p2p/work/WORK-002/manifest.yml
-- work_id: WORK-003
-  status: published
-  change: CHANGE-063
-  target: generic
-  branch: p2p/work/work-003-change-063-generic
-  branch_name: p2p/work/work-003-change-063-generic
-  path: .p2p/work/WORK-003/manifest.yml
+scanned_branches: []
+work_items: []
