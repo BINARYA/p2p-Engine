@@ -40,6 +40,10 @@ TOOL_NAMES = (
     "p2p_next_refresh",
     "p2p_proposal_list",
     "p2p_proposal_show",
+    "p2p_proposal_readiness_get",
+    "p2p_proposal_readiness_refresh",
+    "p2p_proposal_readiness_explain",
+    "p2p_proposal_readiness_list_gaps",
     "p2p_choice_list",
     "p2p_choice_show",
     "p2p_change_status",
@@ -445,6 +449,39 @@ def tool_definitions() -> list[dict[str, object]]:
         {
             "name": "p2p_proposal_show",
             "description": "Show one P2P proposal summary.",
+            "inputSchema": _schema({"root": {"type": "string"}, "proposal_id": {"type": "string"}}, ["proposal_id"]),
+        },
+        {
+            "name": "p2p_proposal_readiness_get",
+            "description": (
+                "Read-only proposal readiness tool: show the stored readiness "
+                "assessment or not_assessed status. Does not refresh or decide."
+            ),
+            "inputSchema": _schema({"root": {"type": "string"}, "proposal_id": {"type": "string"}}, ["proposal_id"]),
+        },
+        {
+            "name": "p2p_proposal_readiness_refresh",
+            "description": (
+                "Write-safe analysis tool: refresh a proposal readiness snapshot "
+                "from stored assessment evidence. Does not accept, reject, defer, "
+                "override, or decide."
+            ),
+            "inputSchema": _schema({"root": {"type": "string"}, "proposal_id": {"type": "string"}}, ["proposal_id"]),
+        },
+        {
+            "name": "p2p_proposal_readiness_explain",
+            "description": (
+                "Read-only proposal readiness tool: explain score, failed gates, "
+                "missing criteria, and suggested next actions."
+            ),
+            "inputSchema": _schema({"root": {"type": "string"}, "proposal_id": {"type": "string"}}, ["proposal_id"]),
+        },
+        {
+            "name": "p2p_proposal_readiness_list_gaps",
+            "description": (
+                "Read-only proposal readiness tool: list only failed gates, missing "
+                "criteria, and suggested next actions for an existing proposal."
+            ),
             "inputSchema": _schema({"root": {"type": "string"}, "proposal_id": {"type": "string"}}, ["proposal_id"]),
         },
         {
@@ -1101,6 +1138,38 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, o
         return {"proposals": _to_jsonable(workspace.proposal_summaries(str(status) if status else None))}
     if name == "p2p_proposal_show":
         return {"proposal": _to_jsonable(workspace.show_proposal(_required(arguments, "proposal_id")))}
+    if name == "p2p_proposal_readiness_get":
+        return {"readiness": _to_jsonable(workspace.read_proposal_readiness(_required(arguments, "proposal_id")))}
+    if name == "p2p_proposal_readiness_refresh":
+        readiness = workspace.refresh_proposal_readiness(_required(arguments, "proposal_id"))
+        return {
+            "readiness": _to_jsonable(readiness),
+            "governance": {
+                "owner_decision_required": False,
+                "decision_made": False,
+                "override_applied": False,
+            },
+        }
+    if name == "p2p_proposal_readiness_explain":
+        readiness = workspace.read_proposal_readiness(_required(arguments, "proposal_id"))
+        return {
+            "readiness": _to_jsonable(readiness),
+            "explanation": {
+                "failed_gates": readiness.failed_gates,
+                "missing": readiness.missing,
+                "suggested_next": readiness.suggested_next,
+            },
+        }
+    if name == "p2p_proposal_readiness_list_gaps":
+        readiness = workspace.read_proposal_readiness(_required(arguments, "proposal_id"))
+        return {
+            "gaps": {
+                "proposal_id": readiness.proposal_id,
+                "failed_gates": readiness.failed_gates,
+                "missing": readiness.missing,
+                "suggested_next": readiness.suggested_next,
+            }
+        }
     if name == "p2p_choice_list":
         return {"choices": _to_jsonable(workspace.choice_statuses())}
     if name == "p2p_choice_show":
