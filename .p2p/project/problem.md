@@ -239,6 +239,10 @@ The init wizard now asks for a project domain and generates domain rubrics autom
 
 P2P Engine now has a mature Core/CLI/MCP MVP with init wizard, context packets, validation, readiness assessment, project definition rubrics, maturity assessment, spec/export flows, and managed work lifecycle. The repository README and installation guidance need to become an accurate entry point for new users instead of relying on chat history or internal project state.
 
+## PROP-059 - P2PWorkspace Modular Refactoring Plan
+
+P2PWorkspace has grown into a large monolithic class that contains initialization, proposals, governance, project state, assessment, context, specs, Change Sets, Work lifecycle, registry, and Git-related behavior. This is functional for the MVP but increases cognitive load, regression risk, and difficulty for contributors.
+
 ## PROP-061 - Focused README and Documentation Map
 
 The README should be the entry point for the p2p-engine repository, but it currently mixes engine scope with broader future product layers and does not yet provide a clean documentation map for CLI, MCP, agent integration, and core API references.

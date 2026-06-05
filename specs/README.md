@@ -63,3 +63,18 @@ specs/bindings/_template.md
 The binding method prevents generated project theory from being mistaken for
 implemented code. Tasks may be checked only when `src/`, `tests/`, `docs/`, or
 observed command behavior provide evidence.
+
+## Binding Accepted P2P Proposals
+
+When an accepted P2P proposal is the source and no Change Set generic export is
+appropriate yet, bind from:
+
+- `p2p proposal show PROP-XXX`;
+- `p2p proposal contribution list PROP-XXX`;
+- refreshed `.p2p/project` feature output;
+- existing local steering and feature specs.
+
+Do not force a `spec export generic` only to create binding input. Create a
+binding report under `specs/bindings/` and derive local feature specs from the
+accepted proposal. Implementation tasks remain unchecked until code, tests,
+docs, or observed command behavior prove completion.

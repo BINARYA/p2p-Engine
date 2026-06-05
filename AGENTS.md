@@ -61,6 +61,26 @@ Keep this layer outside P2P governance state:
 Over time, local development specs and implementation tasks may derive from P2P
 outputs, but they must remain a separate local development layer.
 
+## P2PWorkspace Refactoring Architecture
+
+When changing runtime code, do not add new unrelated domain behavior directly to
+`src/p2p_engine/cli.py`, `src/p2p_engine/storage/filesystem.py`, or
+`src/p2p_engine/mcp/tools.py` by default.
+
+Use the local specs and `docs/DEVELOPMENT-GUIDELINES.md` to place new behavior
+behind cohesive services, adapters, renderers, validators, or existing
+boundaries. `P2PWorkspace` remains the compatibility facade while internal
+behavior is extracted.
+
+The large compatibility files may still receive facade delegation,
+orchestration, compatibility glue, small command/tool wiring, or bug fixes when
+an accepted local spec justifies the change and existing CLI/MCP/storage
+behavior is preserved.
+
+These architecture rules do not bypass P2P governance. Owner-controlled
+decisions, consent requirements, managed branch/work boundaries, `.p2p` state
+rules, and public CLI/MCP compatibility remain in force.
+
 ## Proposal Readiness
 
 Before recommending proposal acceptance, inspect readiness with:

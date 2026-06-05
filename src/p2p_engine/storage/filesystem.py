@@ -13,6 +13,19 @@ import yaml
 from p2p_engine.core.contribution import Contribution, ContributionType
 from p2p_engine.core.decision import Decision, DecisionOutcome
 from p2p_engine.core.proposal import Proposal
+from p2p_engine.foundation.markdown import (
+    markdown_has_section as _markdown_has_section,
+    read_frontmatter as _read_frontmatter,
+    read_markdown_section as _read_markdown_section,
+    read_title as _read_title,
+    replace_frontmatter as _replace_frontmatter,
+    replace_section as _replace_section,
+    strip_markdown_title as _strip_markdown_title,
+)
+from p2p_engine.foundation.validators import (
+    validate_tasks_yaml as _validate_tasks_yaml,
+    validate_yaml_key as _validate_yaml_key,
+)
 from p2p_engine.prompts.clarify import render_clarify_prompt
 from p2p_engine.prompts.digest import render_digest_prompt
 from p2p_engine.prompts.explore import render_explore_prompt
@@ -21,6 +34,18 @@ from p2p_engine.prompts.plan import render_plan_prompt
 from p2p_engine.prompts.synthesize import render_synthesize_prompt
 from p2p_engine.prompts.swot import render_swot_prompt
 from p2p_engine.prompts.tasks import render_tasks_prompt
+from p2p_engine.services.consent import ConsentService
+from p2p_engine.services.permissions import PermissionsService
+from p2p_engine.services.proposal_decisions import ProposalDecisionService
+from p2p_engine.services.proposals import ProposalDocumentService
+from p2p_engine.services.project_assessment import ProjectAssessmentService
+from p2p_engine.services.project_state import ProjectStateService
+from p2p_engine.services.readiness import ReadinessService
+from p2p_engine.services.registries import RegistryService
+from p2p_engine.services.remote_profile import RemoteProfileService
+from p2p_engine.services.spec_export import SpecExportService
+from p2p_engine.services.software_spec import SoftwareSpecService
+from p2p_engine.services.work_planning import WorkPlanningService
 from p2p_engine.storage.git import (
     abort_merge,
     branch_exists,
@@ -730,6 +755,158 @@ class P2PWorkspace:
     def __init__(self, root: Path) -> None:
         self.root = root.resolve()
         self.p2p_dir = self.root / ".p2p"
+        self._permissions_service_instance: PermissionsService | None = None
+        self._consent_service_instance: ConsentService | None = None
+        self._proposal_decision_service_instance: ProposalDecisionService | None = None
+        self._proposal_document_service_instance: ProposalDocumentService | None = None
+        self._project_assessment_service_instance: ProjectAssessmentService | None = None
+        self._project_state_service_instance: ProjectStateService | None = None
+        self._readiness_service_instance: ReadinessService | None = None
+        self._registry_service_instance: RegistryService | None = None
+        self._remote_profile_service_instance: RemoteProfileService | None = None
+        self._spec_export_service_instance: SpecExportService | None = None
+        self._software_spec_service_instance: SoftwareSpecService | None = None
+        self._work_planning_service_instance: WorkPlanningService | None = None
+
+    def _permissions_service(self) -> PermissionsService:
+        if self._permissions_service_instance is None:
+            self._permissions_service_instance = PermissionsService(root=self.root, p2p_dir=self.p2p_dir)
+        return self._permissions_service_instance
+
+    def _consent_service(self) -> ConsentService:
+        if self._consent_service_instance is None:
+            self._consent_service_instance = ConsentService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                permissions=self._permissions_service(),
+            )
+        return self._consent_service_instance
+
+    def _proposal_document_service(self) -> ProposalDocumentService:
+        if self._proposal_document_service_instance is None:
+            self._proposal_document_service_instance = ProposalDocumentService(root=self.root, p2p_dir=self.p2p_dir)
+        return self._proposal_document_service_instance
+
+    def _proposal_decision_service(self) -> ProposalDecisionService:
+        if self._proposal_decision_service_instance is None:
+            self._proposal_decision_service_instance = ProposalDecisionService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                find_proposal_dir=self._find_proposal_dir,
+            )
+        return self._proposal_decision_service_instance
+
+    def _project_state_service(self) -> ProjectStateService:
+        if self._project_state_service_instance is None:
+            self._project_state_service_instance = ProjectStateService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                accepted_proposals=self._accepted_proposals,
+                project_name=self._project_name,
+                next_actions=self.next_actions,
+                registry_status=self.registry_status,
+                project_brief_context=self._project_brief_context,
+                validate_yaml_key=_validate_yaml_key,
+            )
+        return self._project_state_service_instance
+
+    def _project_assessment_service(self) -> ProjectAssessmentService:
+        if self._project_assessment_service_instance is None:
+            self._project_assessment_service_instance = ProjectAssessmentService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                validate=self.validate,
+                registry_status=self.registry_status,
+                proposal_summaries=self.proposal_summaries,
+                choice_statuses=self.choice_statuses,
+                change_set_statuses=self.change_set_statuses,
+                work_summaries=self.work_summaries,
+                project_state_status=self.project_state_status,
+                next_actions=lambda limit=3: self.next_actions(limit=limit),
+                maturity_exists=lambda: (self.p2p_dir / "project" / "maturity-assessment.yml").exists(),
+                show_maturity=self.show_definition_maturity,
+            )
+        return self._project_assessment_service_instance
+
+    def _readiness_service(self) -> ReadinessService:
+        if self._readiness_service_instance is None:
+            self._readiness_service_instance = ReadinessService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                find_proposal_dir=self._find_proposal_dir,
+            )
+        return self._readiness_service_instance
+
+    def _registry_service(self) -> RegistryService:
+        if self._registry_service_instance is None:
+            self._registry_service_instance = RegistryService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                duplicate_proposal_ids=self._duplicate_proposal_ids,
+                duplicate_message=lambda duplicates: _duplicate_proposal_ids_message(duplicates, self.root),
+                proposal_records=self._proposal_registry_records,
+                change_records=self._change_registry_records,
+                decision_records=self._decision_registry_records,
+                choice_records=self._choice_registry_records,
+                relation_records=self._relation_registry_records,
+                artifact_records=self._artifact_registry_records,
+                readiness_records=self._readiness_registry_records,
+            )
+        return self._registry_service_instance
+
+    def _remote_profile_service(self) -> RemoteProfileService:
+        if self._remote_profile_service_instance is None:
+            self._remote_profile_service_instance = RemoteProfileService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                remote_url_resolver=remote_url,
+            )
+        return self._remote_profile_service_instance
+
+    def _software_spec_service(self) -> SoftwareSpecService:
+        if self._software_spec_service_instance is None:
+            self._software_spec_service_instance = SoftwareSpecService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                find_change_dir=self._find_change_dir,
+                show_proposal=self.show_proposal,
+                show_change_set=self.show_change_set,
+                find_proposal_dir=self._find_proposal_dir,
+            )
+        return self._software_spec_service_instance
+
+    def _spec_export_service(self) -> SpecExportService:
+        if self._spec_export_service_instance is None:
+            self._spec_export_service_instance = SpecExportService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                show_change_set=self.show_change_set,
+                status=self.status,
+                accepted_proposals=self._accepted_proposals,
+                proposal_summaries=self.proposal_summaries,
+                export_targets=_software_spec_export_targets,
+                required_spec_files=self._software_spec_service().required_files,
+                export_files=_software_spec_export_files,
+                export_required_files=_software_spec_export_required_files,
+                export_show_file=_software_spec_export_show_file,
+                project_definition_sections=_project_definition_required_sections,
+                markdown_has_section=_markdown_has_section,
+                read_yaml_mapping=_read_yaml_mapping,
+                read_optional=_read_optional,
+            )
+        return self._spec_export_service_instance
+
+    def _work_planning_service(self) -> WorkPlanningService:
+        if self._work_planning_service_instance is None:
+            self._work_planning_service_instance = WorkPlanningService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                export_targets=_software_spec_export_targets,
+                validate_export=self.validate_software_spec_export,
+                find_change_dir=self._find_change_dir,
+                scanned_work_items=self._scanned_work_items,
+            )
+        return self._work_planning_service_instance
 
     def init_project(
         self,
@@ -746,8 +923,7 @@ class P2PWorkspace:
         agent_profile = _normalize_agent_profile(agent_profile)
         repository_mode = _normalize_repository_mode(repository_mode)
         project_domain = _normalize_project_domain(project_domain)
-        remote_profile = _init_remote_profile_payload(
-            self.root,
+        remote_profile = self._remote_profile_service().default_payload(
             repository_mode=repository_mode,
             provider=remote_provider,
             remote=remote_name,
@@ -789,12 +965,15 @@ class P2PWorkspace:
             self.p2p_dir
             / "config"
             / "readiness-profiles"
-            / f"{DEFAULT_READINESS_PROFILE_ID}.yml": _yaml_dump(_default_readiness_profile_payload()),
+            / f"{DEFAULT_READINESS_PROFILE_ID}.yml": _yaml_dump(self._readiness_service().default_profile_payload()),
             self.p2p_dir / "project" / "rubrics.yml": _yaml_dump(
                 _rubrics_payload(project_domain, rubric_enabled=rubric_enabled)
             ),
             self.p2p_dir / "project" / "permissions.yml": _yaml_dump(
-                _permissions_payload(owner_name=owner, repository_mode=repository_mode)
+                self._permissions_service().default_policy_payload(
+                    owner_name=owner,
+                    repository_mode=repository_mode,
+                )
             ),
         }
         if project_domain not in PROJECT_DOMAIN_TEMPLATES:
@@ -1173,10 +1352,7 @@ class P2PWorkspace:
         return status
 
     def permissions_show(self) -> dict[str, object]:
-        path = self._permissions_path()
-        if not path.exists():
-            return _permissions_payload(owner_name=None, repository_mode=self._repository_mode(default="local"))
-        return _read_yaml_mapping(path, default={})
+        return self._permissions_service().show(repository_mode=self._repository_mode(default="local"))
 
     def permissions_actor_add(
         self,
@@ -1185,27 +1361,12 @@ class P2PWorkspace:
         kind: str = "person",
         display_name: str | None = None,
     ) -> PermissionActor:
-        actor_slug = _identity_slug(actor_id)
-        role = _normalize_permission_role(role)
-        kind = _normalize_actor_kind(kind)
-        path = self._permissions_path()
-        payload = self.permissions_show()
-        identities = payload.setdefault("identities", {})
-        if not isinstance(identities, dict):
-            raise ValueError("Invalid permissions policy: identities must be a mapping")
-        identities[actor_slug] = {
-            "role": role,
-            "kind": kind,
-            "display_name": display_name or actor_id,
-        }
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(_yaml_dump(payload), encoding="utf-8")
-        return PermissionActor(
-            actor_id=actor_slug,
+        return self._permissions_service().actor_add(
+            actor_id,
             role=role,
             kind=kind,
-            display_name=display_name or actor_id,
-            path=path.relative_to(self.root),
+            display_name=display_name,
+            repository_mode=self._repository_mode(default="local"),
         )
 
     def consent_grant(
@@ -1219,47 +1380,15 @@ class P2PWorkspace:
         single_use: bool = True,
         scope: str | None = None,
     ) -> ConsentReceipt:
-        operation = _normalize_consent_operation(operation)
-        target = target.strip()
-        if not target:
-            raise ValueError("Consent target is required")
-        actor_slug = _identity_slug(actor_id)
-        approved_by_slug = _identity_slug(approved_by)
-        permissions = self.permissions_show()
-        identities = permissions.get("identities", {})
-        if not isinstance(identities, dict):
-            raise ValueError("Invalid permissions policy: identities must be a mapping")
-        if actor_slug not in identities:
-            raise ValueError(f"Unknown consent actor: {actor_slug}. Add it with `p2p permissions actor add`.")
-        if approved_by_slug not in identities:
-            raise ValueError(f"Unknown consent approver: {approved_by_slug}. Add it with `p2p permissions actor add`.")
-        approver = identities[approved_by_slug]
-        if not isinstance(approver, dict) or str(approver.get("role") or "") != "owner":
-            raise ValueError("Only an owner identity can approve consent receipts in the MVP")
-
-        consent_id = self._next_consent_id()
-        receipt_dir = self.p2p_dir / "consents" / consent_id
-        receipt_dir.mkdir(parents=True, exist_ok=False)
-        receipt = {
-            "consent_id": consent_id,
-            "status": "granted",
-            "operation": operation,
-            "target": target,
-            "actor_id": actor_slug,
-            "requested_by": actor_slug,
-            "approved_by": approved_by_slug,
-            "scope": scope or "single_target",
-            "single_use": bool(single_use),
-            "expires_on": expires_on,
-            "created_at": date.today().isoformat(),
-            "consumed_at": None,
-            "revoked_at": None,
-            "result": None,
-            "provider": None,
-        }
-        path = receipt_dir / "consent.yml"
-        path.write_text(_yaml_dump(receipt), encoding="utf-8")
-        return _consent_receipt_from_payload(receipt, path.relative_to(self.root))
+        return self._consent_service().grant(
+            operation,
+            target,
+            actor_id,
+            approved_by=approved_by,
+            expires_on=expires_on,
+            single_use=single_use,
+            scope=scope,
+        )
 
     def consent_request(
         self,
@@ -1271,71 +1400,23 @@ class P2PWorkspace:
         scope: str | None = None,
         expires_on: str | None = None,
     ) -> ConsentReceipt:
-        operation = _normalize_consent_operation(operation)
-        target = target.strip()
-        if not target:
-            raise ValueError("Consent target is required")
-        actor_slug = _identity_slug(actor_id)
-        requested_by_slug = _identity_slug(requested_by or actor_id)
-        permissions = self.permissions_show()
-        identities = permissions.get("identities", {})
-        if not isinstance(identities, dict):
-            raise ValueError("Invalid permissions policy: identities must be a mapping")
-        if actor_slug not in identities:
-            raise ValueError(f"Unknown consent actor: {actor_slug}. Add it with `p2p permissions actor add`.")
-
-        consent_id = self._next_consent_id()
-        receipt_dir = self.p2p_dir / "consents" / consent_id
-        receipt_dir.mkdir(parents=True, exist_ok=False)
-        receipt = {
-            "consent_id": consent_id,
-            "status": "requested",
-            "operation": operation,
-            "target": target,
-            "actor_id": actor_slug,
-            "requested_by": requested_by_slug,
-            "approved_by": None,
-            "scope": scope or "single_target",
-            "single_use": True,
-            "expires_on": expires_on,
-            "created_at": date.today().isoformat(),
-            "consumed_at": None,
-            "revoked_at": None,
-            "result": None,
-            "provider": None,
-        }
-        path = receipt_dir / "consent.yml"
-        path.write_text(_yaml_dump(receipt), encoding="utf-8")
-        return _consent_receipt_from_payload(receipt, path.relative_to(self.root))
+        return self._consent_service().request(
+            operation,
+            target,
+            actor_id,
+            requested_by=requested_by,
+            scope=scope,
+            expires_on=expires_on,
+        )
 
     def consent_show(self, consent_id: str) -> ConsentReceipt:
-        path = self._consent_path(consent_id)
-        if not path.exists():
-            raise ValueError(f"Consent receipt not found: {consent_id}")
-        payload = _read_yaml_mapping(path, default={})
-        return _consent_receipt_from_payload(payload, path.relative_to(self.root))
+        return self._consent_service().show(consent_id)
 
     def consent_statuses(self) -> list[ConsentReceipt]:
-        consents_dir = self.p2p_dir / "consents"
-        if not consents_dir.exists():
-            return []
-        receipts: list[ConsentReceipt] = []
-        for path in sorted(consents_dir.glob("CONSENT-*/consent.yml")):
-            receipts.append(_consent_receipt_from_payload(_read_yaml_mapping(path, default={}), path.relative_to(self.root)))
-        return receipts
+        return self._consent_service().statuses()
 
     def consent_revoke(self, consent_id: str, reason: str = "") -> ConsentReceipt:
-        path = self._consent_path(consent_id)
-        if not path.exists():
-            raise ValueError(f"Consent receipt not found: {consent_id}")
-        payload = _read_yaml_mapping(path, default={})
-        if str(payload.get("status") or "") == "consumed":
-            raise ValueError(f"Cannot revoke consumed consent receipt: {consent_id}")
-        payload["status"] = "revoked"
-        payload["revoked_at"] = date.today().isoformat()
-        payload["revocation_reason"] = reason or "Not provided."
-        path.write_text(_yaml_dump(payload), encoding="utf-8")
-        return _consent_receipt_from_payload(payload, path.relative_to(self.root))
+        return self._consent_service().revoke(consent_id, reason=reason)
 
     def consent_validate(
         self,
@@ -1345,48 +1426,15 @@ class P2PWorkspace:
         target: str,
         actor_id: str,
     ) -> ConsentReceipt:
-        path = self._consent_path(consent_id)
-        if not path.exists():
-            raise ValueError(f"Consent receipt not found: {consent_id}")
-        payload = _read_yaml_mapping(path, default={})
-        expected_operation = _normalize_consent_operation(operation)
-        expected_actor = _identity_slug(actor_id)
-        if str(payload.get("status") or "") != "granted":
-            raise ValueError(f"Consent receipt is not granted: {consent_id}")
-        if str(payload.get("operation") or "") != expected_operation:
-            raise ValueError(
-                f"Consent receipt operation mismatch: expected {expected_operation}, got {payload.get('operation')}"
-            )
-        if str(payload.get("target") or "") != target:
-            raise ValueError(f"Consent receipt target mismatch: expected {target}, got {payload.get('target')}")
-        if str(payload.get("actor_id") or "") != expected_actor:
-            raise ValueError(
-                f"Consent receipt actor mismatch: expected {expected_actor}, got {payload.get('actor_id')}"
-            )
-        expires_on = payload.get("expires_on")
-        if expires_on:
-            try:
-                expiry = date.fromisoformat(str(expires_on))
-            except ValueError as exc:
-                raise ValueError(f"Invalid consent expiry date: {expires_on}") from exc
-            if expiry < date.today():
-                payload["status"] = "expired"
-                path.write_text(_yaml_dump(payload), encoding="utf-8")
-                raise ValueError(f"Consent receipt expired: {consent_id}")
-        return _consent_receipt_from_payload(payload, path.relative_to(self.root))
+        return self._consent_service().validate(
+            consent_id,
+            operation=operation,
+            target=target,
+            actor_id=actor_id,
+        )
 
     def consent_consume(self, consent_id: str, *, result: dict[str, object]) -> ConsentReceipt:
-        path = self._consent_path(consent_id)
-        if not path.exists():
-            raise ValueError(f"Consent receipt not found: {consent_id}")
-        payload = _read_yaml_mapping(path, default={})
-        if str(payload.get("status") or "") != "granted":
-            raise ValueError(f"Consent receipt is not granted: {consent_id}")
-        payload["status"] = "consumed"
-        payload["consumed_at"] = date.today().isoformat()
-        payload["result"] = result
-        path.write_text(_yaml_dump(payload), encoding="utf-8")
-        return _consent_receipt_from_payload(payload, path.relative_to(self.root))
+        return self._consent_service().consume(consent_id, result=result)
 
     def consent_mark_used_with_error(
         self,
@@ -1395,18 +1443,7 @@ class P2PWorkspace:
         error: str,
         result: dict[str, object] | None = None,
     ) -> ConsentReceipt:
-        path = self._consent_path(consent_id)
-        if not path.exists():
-            raise ValueError(f"Consent receipt not found: {consent_id}")
-        payload = _read_yaml_mapping(path, default={})
-        if str(payload.get("status") or "") != "granted":
-            return _consent_receipt_from_payload(payload, path.relative_to(self.root))
-        payload["status"] = "used_with_error"
-        payload["consumed_at"] = date.today().isoformat()
-        payload["result"] = result or {}
-        payload["error"] = error
-        path.write_text(_yaml_dump(payload), encoding="utf-8")
-        return _consent_receipt_from_payload(payload, path.relative_to(self.root))
+        return self._consent_service().mark_used_with_error(consent_id, error=error, result=result)
 
     def _project_name(self) -> str:
         project_file = self.p2p_dir / "project.yml"
@@ -1427,23 +1464,13 @@ class P2PWorkspace:
         return str(repo_data.get("mode") or default)
 
     def _permissions_path(self) -> Path:
-        return self.p2p_dir / "project" / "permissions.yml"
+        return self._permissions_service().path()
 
     def _consent_path(self, consent_id: str) -> Path:
-        consent_id = _normalize_consent_id(consent_id)
-        return self.p2p_dir / "consents" / consent_id / "consent.yml"
+        return self._consent_service().path(consent_id)
 
     def _next_consent_id(self) -> str:
-        consents_dir = self.p2p_dir / "consents"
-        used: set[int] = set()
-        if consents_dir.exists():
-            for path in consents_dir.iterdir():
-                if not path.is_dir():
-                    continue
-                match = re.match(r"^CONSENT-(\d{3})$", path.name)
-                if match:
-                    used.add(int(match.group(1)))
-        return f"CONSENT-{max(used or {0}) + 1:03d}"
+        return self._consent_service().next_consent_id()
 
     def _set_repository_mode(self, mode: str) -> None:
         mode = _normalize_repository_mode(mode)
@@ -1486,27 +1513,7 @@ class P2PWorkspace:
         return WorkspaceStatus(root=self.root, project_name=project_name, proposals=proposals)
 
     def remote_profile(self) -> RemoteProjectProfile:
-        project_file = self.p2p_dir / "project.yml"
-        data = _read_yaml_mapping(project_file, default={})
-        remote_data = data.get("remote", {})
-        if not isinstance(remote_data, dict):
-            remote_data = {}
-        review_data = remote_data.get("review_request", {})
-        if not isinstance(review_data, dict):
-            review_data = {}
-        mode = str(remote_data.get("mode") or "local")
-        provider = str(remote_data.get("provider") or ("local" if mode == "local" else "generic"))
-        remote = remote_data.get("remote")
-        url = remote_data.get("url")
-        return RemoteProjectProfile(
-            mode=mode,
-            provider=provider,
-            remote=str(remote) if remote else None,
-            url=str(url) if url else None,
-            review_request_mode=str(review_data.get("mode") or "advisory"),
-            opens_external_request=bool(review_data.get("opens_external_request", False)),
-            path=project_file.relative_to(self.root),
-        )
+        return self._remote_profile_service().show()
 
     def configure_remote_profile(
         self,
@@ -1516,39 +1523,12 @@ class P2PWorkspace:
         remote: str = "origin",
         url: str | None = None,
     ) -> RemoteProjectProfile:
-        mode = mode.strip().lower()
-        if mode not in {"local", "remote"}:
-            raise ValueError("Remote project mode must be local or remote")
-
-        provider = (provider or ("local" if mode == "local" else "generic")).strip().lower()
-        if provider not in {"local", "generic", "github", "gitlab"}:
-            raise ValueError("Remote provider must be local, generic, github, or gitlab")
-        if mode == "local":
-            provider = "local"
-            remote = ""
-            url = None
-        else:
-            if provider == "local":
-                raise ValueError("Remote-backed projects cannot use provider local")
-            if not url:
-                url = remote_url(self.root, remote)
-            if not url:
-                raise ValueError(f"Remote URL is required and Git remote was not found: {remote}")
-
-        project_file = self.p2p_dir / "project.yml"
-        data = _read_yaml_mapping(project_file, default={})
-        data["remote"] = {
-            "mode": mode,
-            "provider": provider,
-            "remote": remote or None,
-            "url": url,
-            "review_request": {
-                "mode": "advisory",
-                "opens_external_request": False,
-            },
-        }
-        project_file.write_text(_yaml_dump(data), encoding="utf-8")
-        return self.remote_profile()
+        return self._remote_profile_service().configure(
+            mode=mode,
+            provider=provider,
+            remote=remote,
+            url=url,
+        )
 
     def sync_status(self, remote: str | None = None) -> SyncStatus:
         profile = self.remote_profile()
@@ -1668,19 +1648,7 @@ class P2PWorkspace:
         return [proposal for proposal in proposals if proposal.status == status]
 
     def show_proposal(self, proposal_id: str) -> ProposalDetail:
-        proposal_dir = self._find_proposal_dir(proposal_id)
-        proposal_text = _read_optional(proposal_dir / "proposal.md")
-        decision_text = _read_optional(proposal_dir / "decision.md")
-        return ProposalDetail(
-            proposal_id=proposal_id,
-            title=_clean_proposal_title(_read_title(proposal_text) or proposal_id, proposal_id),
-            status=_read_proposal_status(proposal_dir / "proposal.md"),
-            path=proposal_dir.relative_to(self.root),
-            problem=_read_markdown_section(proposal_text, "Problem") or "Not provided.",
-            proposal=_read_markdown_section(proposal_text, "Proposal") or "Not provided.",
-            decision_status=(_read_markdown_section(decision_text, "Status") or "pending").strip("`"),
-            decision_reason=_read_markdown_section(decision_text, "Reason") or "Not provided.",
-        )
+        return self._proposal_document_service().show(proposal_id)
 
     def commit_proposal_draft(self, proposal_id: str, actor: str = "local") -> ProposalDraftCommit:
         self._find_proposal_dir(proposal_id)
@@ -2540,66 +2508,13 @@ class P2PWorkspace:
         )
 
     def readiness_profile(self, profile_id: str = DEFAULT_READINESS_PROFILE_ID) -> ReadinessProfile:
-        path = self.p2p_dir / "config" / "readiness-profiles" / f"{profile_id}.yml"
-        if profile_id == DEFAULT_READINESS_PROFILE_ID and not path.exists():
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(_yaml_dump(_default_readiness_profile_payload()), encoding="utf-8")
-        data = _read_yaml_mapping(path, default={})
-        _validate_readiness_profile_payload(data)
-        profile = data["readiness_profile"]
-        return ReadinessProfile(
-            path=path.relative_to(self.root),
-            profile_id=str(profile["id"]),
-            version=str(profile["version"]),
-            criteria={str(key): int(value) for key, value in dict(profile["criteria"]).items()},
-            thresholds={str(key): int(value) for key, value in dict(profile["thresholds"]).items()},
-            tier_requirements=dict(profile.get("tier_requirements") or {}),
-            artifact_quality_caps=dict(profile.get("artifact_quality_caps") or {}),
-            gates=dict(profile.get("gates") or {}),
-            override_policy=dict(profile.get("override_policy") or {}),
-        )
+        return self._readiness_service().profile(profile_id)
 
     def read_proposal_readiness(self, proposal_id: str) -> ProposalReadiness:
-        proposal_dir = self._find_proposal_dir(proposal_id)
-        path = proposal_dir / "readiness.yml"
-        if not path.exists():
-            return ProposalReadiness(
-                proposal_id=proposal_id,
-                status="not_assessed",
-                path=path.relative_to(self.root),
-                profile_id=None,
-                profile_version=None,
-                computed_score=None,
-                computed_label=None,
-                confidence=None,
-                failed_gates=[],
-                missing=[],
-                suggested_next=[],
-            )
-        data = _read_yaml_mapping(path, default={})
-        _validate_readiness_assessment_payload(data)
-        readiness = data["readiness"]
-        return ProposalReadiness(
-            proposal_id=proposal_id,
-            status=str(readiness.get("status") or "assessed"),
-            path=path.relative_to(self.root),
-            profile_id=str(readiness.get("profile_id") or ""),
-            profile_version=str(readiness.get("profile_version") or ""),
-            computed_score=int(readiness["computed_score"]) if "computed_score" in readiness else None,
-            computed_label=str(readiness.get("computed_label") or ""),
-            confidence=str(readiness.get("confidence") or ""),
-            failed_gates=[str(item) for item in readiness.get("failed_gates") or []],
-            missing=[str(item) for item in readiness.get("missing") or []],
-            suggested_next=[str(item) for item in readiness.get("suggested_next") or []],
-        )
+        return self._readiness_service().read(proposal_id)
 
     def write_proposal_readiness(self, proposal_id: str, readiness: dict[str, object]) -> Path:
-        proposal_dir = self._find_proposal_dir(proposal_id)
-        payload = {"readiness": readiness}
-        _validate_readiness_assessment_payload(payload)
-        path = proposal_dir / "readiness.yml"
-        path.write_text(_yaml_dump(payload), encoding="utf-8")
-        return path.relative_to(self.root)
+        return self._readiness_service().write(proposal_id, readiness)
 
     def record_proposal_readiness_override(
         self,
@@ -2607,161 +2522,16 @@ class P2PWorkspace:
         reason: str,
         approver: str,
     ) -> Path:
-        proposal_dir = self._find_proposal_dir(proposal_id)
-        path = proposal_dir / "readiness.yml"
-        if path.exists():
-            data = _read_yaml_mapping(path, default={})
-            _validate_readiness_assessment_payload(data)
-            readiness = dict(data["readiness"])
-        else:
-            readiness = {
-                "status": "not_assessed",
-                "reason": "readiness assessment has not been created yet",
-            }
-        readiness["owner_override"] = True
-        readiness["effective_status"] = "forced_ready"
-        readiness["effective_score"] = 100
-        readiness["override_reason"] = reason
-        readiness["override_approver"] = approver
-        readiness["override_recorded_at"] = date.today().isoformat()
-        return self.write_proposal_readiness(proposal_id, readiness)
+        return self._readiness_service().record_override(proposal_id, reason, approver)
 
     def refresh_proposal_readiness(self, proposal_id: str) -> ProposalReadiness:
-        proposal_dir = self._find_proposal_dir(proposal_id)
-        path = proposal_dir / "readiness.yml"
-        if path.exists():
-            data = _read_yaml_mapping(path, default={})
-            _validate_readiness_assessment_payload(data)
-            readiness = dict(data["readiness"])
-            if readiness.get("status") != "not_assessed":
-                profile_id = str(readiness.get("profile_id") or DEFAULT_READINESS_PROFILE_ID)
-                profile = self.readiness_profile(profile_id)
-                refreshed = _refresh_readiness_payload(readiness, profile)
-                self.write_proposal_readiness(proposal_id, refreshed)
-                return self.read_proposal_readiness(proposal_id)
-
-        self.write_proposal_readiness(
-            proposal_id,
-            {
-                "status": "not_assessed",
-                "reason": "readiness assessment has not been created yet",
-            },
-        )
-        return self.read_proposal_readiness(proposal_id)
+        return self._readiness_service().refresh(proposal_id)
 
     def initialize_proposal_readiness(self, proposal_id: str) -> ProposalReadiness:
-        proposal_dir = self._find_proposal_dir(proposal_id)
-        profile = self.readiness_profile()
-        proposal_text = _read_optional(proposal_dir / "proposal.md")
-        criteria: dict[str, object] = {}
-        missing: list[str] = []
-        suggested_next: list[str] = []
-        failed_gates: list[str] = []
-
-        def add_criterion(
-            criterion: str,
-            artifact: str,
-            section: str | None,
-            text: str,
-            *,
-            quality_override: str | None = None,
-        ) -> None:
-            max_points = profile.criteria[criterion]
-            quality = quality_override or _readiness_text_quality(text)
-            awarded_points = _initial_readiness_points(max_points, quality)
-            assessment: dict[str, object] = {
-                "max_points": max_points,
-                "awarded_points": awarded_points,
-                "artifact_quality": quality,
-                "evidence": [{"artifact": artifact}],
-            }
-            if section:
-                assessment["evidence"] = [{"artifact": artifact, "section": section}]
-            if quality in {"missing", "placeholder"}:
-                missing.append(criterion)
-                suggested_next.append(f"add_{criterion}")
-            elif quality == "thin":
-                suggested_next.append(f"strengthen_{criterion}")
-            elif quality == "needs_owner_input":
-                failed_gates.append(f"{criterion}:needs_owner_input")
-                suggested_next.append(f"resolve_{criterion}")
-            criteria[criterion] = assessment
-
-        add_criterion(
-            "problem_clarity",
-            "proposal.md",
-            "Problem",
-            _read_markdown_section(proposal_text, "Problem"),
-        )
-        add_criterion(
-            "goal_clarity",
-            "proposal.md",
-            "Goals",
-            _read_markdown_section(proposal_text, "Goals"),
-        )
-        scope_text = "\n".join(
-            item
-            for item in (
-                _read_markdown_section(proposal_text, "Non-Goals"),
-                _read_optional(proposal_dir / "suggested-scope.md"),
-            )
-            if item
-        )
-        add_criterion("scope_boundaries", "proposal.md", "Non-Goals", scope_text)
-        alternatives_text = _read_optional(proposal_dir / "alternatives.md")
-        add_criterion("alternatives_quality", "alternatives.md", None, alternatives_text)
-        tradeoff_text = alternatives_text + "\n" + _read_optional(proposal_dir / "findings.md")
-        add_criterion("tradeoff_analysis", "alternatives.md", None, tradeoff_text)
-        add_criterion("risk_coverage", "risks.md", None, _read_optional(proposal_dir / "risks.md"))
-        add_criterion(
-            "assumptions_clarity",
-            "assumptions.md",
-            None,
-            _read_optional(proposal_dir / "assumptions.md"),
-        )
-        questions_text = _read_optional(proposal_dir / "open-questions.md")
-        question_quality = _readiness_text_quality(questions_text)
-        if question_quality in {"meaningful", "ready"} and _count_open_questions(questions_text) > 0:
-            question_quality = "needs_owner_input"
-        add_criterion(
-            "owner_questions_resolution",
-            "open-questions.md",
-            None,
-            questions_text,
-            quality_override=question_quality,
-        )
-        acceptance_text = "\n".join(
-            item
-            for item in (
-                _read_markdown_section(proposal_text, "Acceptance Criteria"),
-                _read_optional(proposal_dir / "execution-plan.md"),
-            )
-            if item
-        )
-        add_criterion("acceptance_criteria_quality", "proposal.md", "Acceptance Criteria", acceptance_text)
-        impact_text = _read_optional(proposal_dir / "impact-map.yml")
-        add_criterion("impact_overlap_analysis", "impact-map.yml", None, impact_text)
-
-        readiness = {
-            "status": "assessed",
-            "profile_id": profile.profile_id,
-            "profile_version": profile.version,
-            "tier": "medium",
-            "confidence": "low",
-            "confidence_reasons": [
-                "Initial readiness was bootstrapped from proposal artifacts.",
-                "Review criterion evidence before using it for acceptance.",
-            ],
-            "missing": _unique_strings(missing),
-            "suggested_next": _unique_strings(suggested_next),
-            "failed_gates": _unique_strings(failed_gates),
-            "criteria": criteria,
-        }
-        self.write_proposal_readiness(proposal_id, _refresh_readiness_payload(readiness, profile))
-        return self.read_proposal_readiness(proposal_id)
+        return self._readiness_service().initialize(proposal_id)
 
     def create_proposal(self, title: str) -> Proposal:
-        return self.create_proposal_with_details(title=title)
+        return self._proposal_document_service().create(title)
 
     def create_proposal_with_details(
         self,
@@ -2773,42 +2543,14 @@ class P2PWorkspace:
         proposal: str | None = None,
         acceptance_criteria: list[str] | None = None,
     ) -> Proposal:
-        proposals_dir = self.p2p_dir / "proposals"
-        proposals_dir.mkdir(parents=True, exist_ok=True)
-        proposal_id = self._next_proposal_id()
-        slug = _slugify(title)
-        proposal_dir = proposals_dir / f"{proposal_id}-{slug}"
-        proposal_dir.mkdir()
-
-        files = {
-            "proposal.md": _proposal_markdown(
-                proposal_id=proposal_id,
-                title=title,
-                problem=problem,
-                context=context,
-                goals=goals,
-                non_goals=non_goals,
-                proposal=proposal,
-                acceptance_criteria=acceptance_criteria,
-            ),
-            "contributions.yml": "contributions: []\n",
-            "comments.yml": "comments: []\n",
-            "ai-digest.md": f"# AI Digest - {proposal_id}\n\nNot generated yet.\n",
-            "clarifications.md": f"# Clarifications - {proposal_id}\n\nNone recorded yet.\n",
-            "decision.md": f"# Decision - {proposal_id}\n\n## Status\n\n`pending`\n",
-            "execution-plan.md": f"# Execution Plan - {proposal_id}\n\nPending.\n",
-            "tasks.yml": "tasks: []\n",
-        }
-        files.update(_exploration_files(proposal_id))
-        for filename, content in files.items():
-            (proposal_dir / filename).write_text(content, encoding="utf-8")
-
-        return Proposal(
-            proposal_id=proposal_id,
+        return self._proposal_document_service().create_with_details(
             title=title,
-            slug=slug,
-            status="draft",
-            path=proposal_dir.relative_to(self.root),
+            problem=problem,
+            context=context,
+            goals=goals,
+            non_goals=non_goals,
+            proposal=proposal,
+            acceptance_criteria=acceptance_criteria,
         )
 
     def update_proposal(
@@ -2821,22 +2563,15 @@ class P2PWorkspace:
         proposal: str | None = None,
         acceptance_criteria: list[str] | None = None,
     ) -> Path:
-        proposal_dir = self._find_proposal_dir(proposal_id)
-        proposal_path = proposal_dir / "proposal.md"
-        text = proposal_path.read_text(encoding="utf-8")
-        replacements = {
-            "Problem": _paragraph(problem),
-            "Context": _paragraph(context),
-            "Goals": _bullets(goals),
-            "Non-Goals": _bullets(non_goals),
-            "Proposal": _paragraph(proposal),
-            "Acceptance Criteria": _bullets(acceptance_criteria),
-        }
-        for section, replacement in replacements.items():
-            if replacement is not None:
-                text = _replace_section(text, section, replacement)
-        proposal_path.write_text(text, encoding="utf-8")
-        return proposal_path.relative_to(self.root)
+        return self._proposal_document_service().update(
+            proposal_id,
+            problem=problem,
+            context=context,
+            goals=goals,
+            non_goals=non_goals,
+            proposal=proposal,
+            acceptance_criteria=acceptance_criteria,
+        )
 
     def add_contribution(
         self,
@@ -2846,54 +2581,16 @@ class P2PWorkspace:
         relevance_hint: str,
         author: str,
     ) -> Contribution:
-        proposal_dir = self._find_proposal_dir(proposal_id)
-        path = proposal_dir / "contributions.yml"
-        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {"contributions": []}
-        contributions = data.setdefault("contributions", [])
-        contribution_id = f"C{len(contributions) + 1:03d}"
-        contribution = {
-            "id": contribution_id,
-            "type": contribution_type.value,
-            "author": author,
-            "relevance_hint": relevance_hint,
-            "text": text,
-        }
-        contributions.append(contribution)
-        path.write_text(_yaml_dump(data), encoding="utf-8")
-        return Contribution(
-            contribution_id=contribution_id,
-            contribution_type=contribution_type,
+        return self._proposal_document_service().add_contribution(
+            proposal_id,
+            contribution_type,
             text=text,
-            author=author,
             relevance_hint=relevance_hint,
+            author=author,
         )
 
     def list_contributions(self, proposal_id: str) -> ProposalContributionList:
-        proposal_dir = self._find_proposal_dir(proposal_id)
-        path = proposal_dir / "contributions.yml"
-        data = _read_yaml_mapping(path, default={"contributions": []})
-        raw_contributions = data.get("contributions") or []
-        if not isinstance(raw_contributions, list):
-            raise ValueError("Invalid contributions.yml: expected top-level contributions list.")
-        contributions: list[Contribution] = []
-        for item in raw_contributions:
-            if not isinstance(item, dict):
-                continue
-            contribution_type = ContributionType(str(item.get("type") or ContributionType.suggestion.value))
-            contributions.append(
-                Contribution(
-                    contribution_id=str(item.get("id") or ""),
-                    contribution_type=contribution_type,
-                    text=str(item.get("text") or ""),
-                    author=str(item.get("author") or ""),
-                    relevance_hint=str(item.get("relevance_hint") or ""),
-                )
-            )
-        return ProposalContributionList(
-            proposal_id=proposal_id,
-            path=path.relative_to(self.root),
-            contributions=contributions,
-        )
+        return self._proposal_document_service().list_contributions(proposal_id)
 
     def record_decision(
         self,
@@ -2902,24 +2599,7 @@ class P2PWorkspace:
         reason: str,
         approver: str,
     ) -> Decision:
-        proposal_dir = self._find_proposal_dir(proposal_id)
-        decided_on = date.today()
-        content = (
-            f"# Decision - {proposal_id}\n\n"
-            "## Status\n\n"
-            f"`{outcome.value}`\n\n"
-            "## Outcome\n\n"
-            f"{outcome.value}\n\n"
-            "## Reason\n\n"
-            f"{reason}\n\n"
-            "## Date\n\n"
-            f"{decided_on.isoformat()}\n\n"
-            "## Approver\n\n"
-            f"{approver}\n"
-        )
-        (proposal_dir / "decision.md").write_text(content, encoding="utf-8")
-        _replace_status(proposal_dir / "proposal.md", outcome.value)
-        return Decision(proposal_id, outcome, reason, approver, decided_on)
+        return self._proposal_decision_service().record(proposal_id, outcome, reason, approver)
 
     def generate_prompt(self, proposal_id: str, kind: PromptKind) -> Path:
         proposal_dir = self._find_proposal_dir(proposal_id)
@@ -3200,178 +2880,28 @@ class P2PWorkspace:
         return path.relative_to(self.root)
 
     def refresh_project_state(self) -> list[Path]:
-        project_dir = self.p2p_dir / "project"
-        features_dir = project_dir / "features"
-        exports_dir = project_dir / "exports"
-        for directory in (
-            project_dir,
-            features_dir,
-            exports_dir / "markdown",
-            exports_dir / "openspec",
-            exports_dir / "speckit",
-        ):
-            directory.mkdir(parents=True, exist_ok=True)
-
-        accepted = self._accepted_proposals()
-        project_name = self.status().project_name
-        written: list[Path] = []
-
-        files = {
-            project_dir / "overview.md": _project_overview_markdown(project_name, accepted),
-            project_dir / "problem.md": _project_problem_markdown(accepted),
-            project_dir / "scope.md": _project_scope_markdown(accepted),
-            project_dir / "project-swot.md": _project_swot_markdown(),
-            project_dir / "decisions-map.yml": _yaml_dump(
-                {
-                    "decisions": [
-                        {
-                            "proposal": item["proposal_id"],
-                            "title": item["title"],
-                            "status": item["status"],
-                            "feature": item["feature_id"],
-                            "source": item["source"],
-                        }
-                        for item in accepted
-                    ]
-                }
-            ),
-        }
-        for path, content in files.items():
-            path.write_text(content, encoding="utf-8")
-            written.append(path.relative_to(self.root))
-        conflicts_path = project_dir / "conflicts.yml"
-        if not conflicts_path.exists():
-            conflicts_path.write_text(_yaml_dump({"conflicts": []}), encoding="utf-8")
-            written.append(conflicts_path.relative_to(self.root))
-
-        for item in accepted:
-            feature_dir = features_dir / item["feature_id"]
-            feature_dir.mkdir(parents=True, exist_ok=True)
-            feature_files = {
-                feature_dir / "feature.md": _feature_markdown(item),
-                feature_dir / "tasks.yml": _read_optional(item["path"] / "tasks.yml") or "tasks: []\n",
-                feature_dir / "actions.yml": _yaml_dump({"actions": []}),
-            }
-            for path, content in feature_files.items():
-                path.write_text(content, encoding="utf-8")
-                written.append(path.relative_to(self.root))
-        return written
+        return self._project_state_service().refresh()
 
     def project_state_status(self) -> ProjectStateStatus:
-        project_dir = self.p2p_dir / "project"
-        features_dir = project_dir / "features"
-        features = (
-            sorted(path.name for path in features_dir.iterdir() if path.is_dir())
-            if features_dir.exists()
-            else []
-        )
-        next_actions = self.next_actions()
-        return ProjectStateStatus(
-            accepted_proposals=len(self._accepted_proposals()),
-            features=features,
-            project_dir=project_dir.relative_to(self.root),
-            operational_brief_available=(project_dir / "operational-brief.md").exists(),
-            next_actions_count=len(next_actions),
-            first_next_action=next_actions[0] if next_actions else None,
-        )
+        return self._project_state_service().status()
 
     def show_project_state(self, section: str) -> str:
-        project_dir = self.p2p_dir / "project"
-        section_map = {
-            "overview": project_dir / "overview.md",
-            "problem": project_dir / "problem.md",
-            "scope": project_dir / "scope.md",
-            "swot": project_dir / "project-swot.md",
-        }
-        path = section_map.get(section, project_dir / "features" / section / "feature.md")
-        if not path.exists():
-            raise ValueError(f"Project section not found: {section}")
-        return path.read_text(encoding="utf-8")
+        return self._project_state_service().show(section)
 
     def create_project_brief_prompt(self) -> ProjectBriefPrompt:
-        project_dir = self.p2p_dir / "project"
-        project_dir.mkdir(parents=True, exist_ok=True)
-        registry_status = self.registry_status()
-        context = self._project_brief_context(registry_status)
-        context_path = project_dir / "brief-context.md"
-        prompt_path = project_dir / "brief.prompt.md"
-        context_path.write_text(context, encoding="utf-8")
-        prompt_path.write_text(_project_brief_prompt_markdown(context), encoding="utf-8")
-        return ProjectBriefPrompt(
-            context_path=context_path.relative_to(self.root),
-            prompt_path=prompt_path.relative_to(self.root),
-        )
+        return self._project_state_service().create_brief_prompt()
 
     def import_project_brief(self, source: Path) -> list[Path]:
-        project_dir = self.p2p_dir / "project"
-        project_dir.mkdir(parents=True, exist_ok=True)
-        source = source.resolve()
-        imported: list[Path] = []
-        if source.is_dir():
-            mappings = {
-                "operational-brief.md": None,
-                "next-actions.yml": "next_actions",
-            }
-            for filename, key in mappings.items():
-                source_path = source / filename
-                if source_path.exists():
-                    if key is not None:
-                        _validate_yaml_key(source_path.read_text(encoding="utf-8"), key)
-                    target = project_dir / filename
-                    shutil.copyfile(source_path, target)
-                    imported.append(target.relative_to(self.root))
-        elif source.is_file():
-            target = project_dir / "operational-brief.md"
-            target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
-            imported.append(target.relative_to(self.root))
-        else:
-            raise ValueError(f"Project brief source not found: {source}")
-        if not imported:
-            raise ValueError(f"No project brief artifacts found in: {source}")
-        return imported
+        return self._project_state_service().import_brief(source)
 
     def show_project_brief(self) -> str:
-        path = self.p2p_dir / "project" / "operational-brief.md"
-        if not path.exists():
-            raise ValueError("Project brief not found. Run `p2p project brief import` first.")
-        return path.read_text(encoding="utf-8")
+        return self._project_state_service().show_brief()
 
     def refresh_project_assessment(self) -> ProjectAssessment:
-        assessment = self._compute_project_assessment()
-        path = self.p2p_dir / "project" / "assessment.yml"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(_yaml_dump(_project_assessment_payload(assessment)), encoding="utf-8")
-        return assessment
+        return self._project_assessment_service().refresh()
 
     def show_project_assessment(self) -> ProjectAssessment:
-        path = self.p2p_dir / "project" / "assessment.yml"
-        if not path.exists():
-            raise ValueError("Project assessment not found. Run `p2p assess refresh` first.")
-        data = _read_yaml_mapping(path, default={})
-        completion = data.get("completion", {})
-        maturity = data.get("maturity", {})
-        if not isinstance(completion, dict):
-            completion = {}
-        if not isinstance(maturity, dict):
-            maturity = {}
-        factors = data.get("factors", [])
-        gaps = data.get("gaps", [])
-        suggested_actions = data.get("suggested_actions", [])
-        return ProjectAssessment(
-            path=path.relative_to(self.root),
-            generated_on=str(data.get("generated_on") or ""),
-            assessment_type=str(data.get("assessment_type") or "deterministic_readiness"),
-            completion_score=int(completion.get("score") or 0),
-            completion_status=str(completion.get("status") or "unknown"),
-            confidence=str(completion.get("confidence") or "unknown"),
-            factors=[item for item in factors if isinstance(item, dict)] if isinstance(factors, list) else [],
-            gaps=[str(item) for item in gaps] if isinstance(gaps, list) else [],
-            suggested_actions=[str(item) for item in suggested_actions]
-            if isinstance(suggested_actions, list)
-            else [],
-            maturity_status=str(maturity.get("status") or "not_assessed"),
-            maturity_score=maturity.get("score") if isinstance(maturity.get("score"), int) else None,
-        )
+        return self._project_assessment_service().show()
 
     def init_project_rubrics(self, domain: str = "generic", force: bool = False) -> ProjectRubrics:
         domain = _normalize_project_domain(domain)
@@ -3583,171 +3113,7 @@ class P2PWorkspace:
         return matches
 
     def _compute_project_assessment(self) -> ProjectAssessment:
-        validation = self.validate()
-        registry_status = self.registry_status()
-        proposals = self.proposal_summaries()
-        choices = self.choice_statuses()
-        changes = self.change_set_statuses()
-        works = self.work_summaries()
-        project_status = self.project_state_status()
-        next_actions = self.next_actions(limit=3)
-
-        draft_proposals = [proposal for proposal in proposals if proposal.status == "draft"]
-        accepted_proposals = [proposal for proposal in proposals if proposal.status == "accepted"]
-        open_choices = [
-            choice for choice in choices if choice.status in {"open", "draft", "pending"} and not choice.selected_option
-        ]
-        terminal_changes = {"completed", "cancelled", "superseded"}
-        active_changes = [change for change in changes if change.status not in terminal_changes]
-        blocked_changes = [change for change in changes if change.status == "blocked"]
-        terminal_work = {"accepted", "finalized", "cleaned", "retired", "completed", "cancelled", "superseded"}
-        active_work = [work for work in works if work.status not in terminal_work]
-
-        factors: list[dict[str, object]] = []
-        gaps: list[str] = []
-        suggested_actions = [action.command for action in next_actions if action.command]
-
-        def factor(
-            factor_id: str,
-            label: str,
-            value: int | bool,
-            impact: int,
-            reason: str,
-            gap: str | None = None,
-        ) -> None:
-            factors.append(
-                {
-                    "id": factor_id,
-                    "label": label,
-                    "value": value,
-                    "impact": impact,
-                    "reason": reason,
-                }
-            )
-            if gap and impact < 0:
-                gaps.append(gap)
-
-        factor(
-            "validation_errors",
-            "Validation errors",
-            validation.errors,
-            -min(validation.errors * 30, 60),
-            "Validation errors make project state unreliable.",
-            "Resolve validation errors with `p2p validate`.",
-        )
-        factor(
-            "validation_warnings",
-            "Validation warnings",
-            validation.warnings,
-            -min(validation.warnings * 5, 20),
-            "Validation warnings indicate recoverable project-state issues.",
-            "Review validation warnings with `p2p validate`.",
-        )
-        factor(
-            "stale_registries",
-            "Registry freshness",
-            registry_status.stale,
-            -10 if registry_status.stale else 0,
-            "Fresh registries are required for reliable assessment.",
-            "Refresh registries with `p2p registry refresh`.",
-        )
-        factor(
-            "draft_proposals",
-            "Draft proposals",
-            len(draft_proposals),
-            -min(len(draft_proposals) * 4, 20),
-            "Draft proposals still need owner review or refinement.",
-            "Review draft proposals before treating project direction as settled.",
-        )
-        factor(
-            "accepted_proposals",
-            "Accepted proposals",
-            len(accepted_proposals),
-            0 if accepted_proposals else -15,
-            "Accepted proposals define committed project direction.",
-            "Accept at least one proposal when the project direction is clear.",
-        )
-        factor(
-            "open_choices",
-            "Open choices",
-            len(open_choices),
-            -min(len(open_choices) * 10, 30),
-            "Open choices represent unresolved alternatives.",
-            "Resolve or document open choices.",
-        )
-        factor(
-            "active_changes",
-            "Active Change Sets",
-            len(active_changes),
-            -min(len(active_changes) * 8, 24),
-            "Active Change Sets still need lifecycle progress.",
-            "Continue or complete active Change Sets.",
-        )
-        factor(
-            "blocked_changes",
-            "Blocked Change Sets",
-            len(blocked_changes),
-            -min(len(blocked_changes) * 12, 36),
-            "Blocked Change Sets prevent implementation readiness.",
-            "Resolve blockers before implementation.",
-        )
-        factor(
-            "active_work",
-            "Active Work items",
-            len(active_work),
-            -min(len(active_work) * 5, 20),
-            "Active Work items still need review, acceptance, or cleanup.",
-            "Finish or retire active Work items.",
-        )
-        factor(
-            "operational_brief",
-            "Operational brief",
-            project_status.operational_brief_available,
-            0 if project_status.operational_brief_available else -5,
-            "An operational brief helps agents and owners understand current state.",
-            "Refresh/import an operational brief.",
-        )
-
-        score = max(0, min(100, 100 + sum(int(item["impact"]) for item in factors)))
-        if validation.errors:
-            status = "blocked"
-        elif not proposals:
-            status = "not_started"
-        elif score >= 85:
-            status = "ready"
-        elif score >= 60:
-            status = "needs_review"
-        else:
-            status = "at_risk"
-
-        if validation.errors or registry_status.stale:
-            confidence = "low" if validation.errors else "medium"
-        elif validation.warnings:
-            confidence = "medium"
-        else:
-            confidence = "high"
-
-        maturity_status = "not_assessed"
-        maturity_score = None
-        maturity_path = self.p2p_dir / "project" / "maturity-assessment.yml"
-        if maturity_path.exists():
-            maturity = self.show_definition_maturity()
-            maturity_status = maturity.status
-            maturity_score = maturity.score
-
-        return ProjectAssessment(
-            path=(self.p2p_dir / "project" / "assessment.yml").relative_to(self.root),
-            generated_on=date.today().isoformat(),
-            assessment_type="deterministic_readiness",
-            completion_score=score,
-            completion_status=status,
-            confidence=confidence,
-            factors=factors,
-            gaps=gaps,
-            suggested_actions=suggested_actions,
-            maturity_status=maturity_status,
-            maturity_score=maturity_score,
-        )
+        return self._project_assessment_service().compute()
 
     def context_packet(self, budget: str = "small", target: str | None = None) -> ContextPacket:
         budget = budget.strip().lower()
@@ -3962,353 +3328,46 @@ class P2PWorkspace:
         return commands
 
     def refresh_software_spec(self, change_id: str) -> SoftwareSpecStatus:
-        change_dir = self._find_change_dir(change_id)
-        change_text = _read_optional(change_dir / "change.md")
-        frontmatter = _read_frontmatter(change_text)
-        title = str(frontmatter.get("title") or _read_title(change_text) or change_id)
-        source = frontmatter.get("source", {})
-        if not isinstance(source, dict):
-            source = {}
-        included_proposals = _string_list(source.get("accepted_proposals"))
-        spec_dir = self.p2p_dir / "outputs" / "software-spec" / change_id
-        spec_dir.mkdir(parents=True, exist_ok=True)
-
-        proposal_details = [self.show_proposal(proposal_id) for proposal_id in included_proposals]
-        tasks_data = _read_yaml_mapping(change_dir / "tasks.yml", default={"tasks": []})
-        tasks = tasks_data.get("tasks", [])
-        task_list = tasks if isinstance(tasks, list) else []
-
-        files = {
-            "index.md": _software_spec_index_markdown(
-                change_id=change_id,
-                title=title,
-                change_path=change_dir.relative_to(self.root),
-                summary=_read_markdown_section(change_text, "Summary") or "Not specified yet.",
-                frontmatter=frontmatter,
-                included_proposals=included_proposals,
-            ),
-            "requirements.md": _software_spec_requirements_markdown(proposal_details, change_text),
-            "design.md": _software_spec_design_markdown(frontmatter, change_text),
-            "commands.yml": _yaml_dump({"commands": _software_spec_commands(task_list)}),
-            "data-model.yml": _yaml_dump({"entities": _software_spec_entities(frontmatter, proposal_details)}),
-            "acceptance.md": _software_spec_acceptance_markdown(change_text, task_list),
-            "provenance.yml": _yaml_dump(
-                {
-                    "source": {
-                        "change": change_id,
-                        "included_proposals": included_proposals,
-                        "accepted_decisions": source.get("accepted_decisions", []),
-                    },
-                    "generated_from": [
-                        str((change_dir / "change.md").relative_to(self.root)),
-                        str((change_dir / "tasks.yml").relative_to(self.root)),
-                        *[
-                            str((self._find_proposal_dir(proposal_id) / "proposal.md").relative_to(self.root))
-                            for proposal_id in included_proposals
-                        ],
-                    ],
-                }
-            ),
-        }
-        for filename, content in files.items():
-            (spec_dir / filename).write_text(content, encoding="utf-8")
-        return SoftwareSpecStatus(
-            change_id=change_id,
-            title=title,
-            status="generated",
-            path=spec_dir.relative_to(self.root),
-        )
+        return self._software_spec_service().refresh(change_id)
 
     def software_spec_statuses(self) -> list[SoftwareSpecStatus]:
-        specs_dir = self.p2p_dir / "outputs" / "software-spec"
-        statuses: list[SoftwareSpecStatus] = []
-        for path in sorted(specs_dir.iterdir()) if specs_dir.exists() else []:
-            if not path.is_dir():
-                continue
-            change_id = path.name
-            title = change_id
-            try:
-                title = self.show_change_set(change_id).title
-            except ValueError:
-                index_title = _read_title(_read_optional(path / "index.md"))
-                title = index_title or change_id
-            required = _software_spec_required_files()
-            status = "generated" if all((path / filename).exists() for filename in required) else "incomplete"
-            statuses.append(
-                SoftwareSpecStatus(
-                    change_id=change_id,
-                    title=title,
-                    status=status,
-                    path=path.relative_to(self.root),
-                )
-            )
-        return statuses
+        return self._software_spec_service().statuses()
 
     def show_software_spec(self, change_id: str) -> str:
-        path = self.p2p_dir / "outputs" / "software-spec" / change_id / "index.md"
-        if not path.exists():
-            raise ValueError("Software spec not found. Run `p2p spec refresh --change CHANGE-XXX` first.")
-        return path.read_text(encoding="utf-8")
+        return self._software_spec_service().show(change_id)
 
     def create_software_spec_prompt(self, change_id: str) -> SoftwareSpecPrompt:
-        self.refresh_software_spec(change_id)
-        spec_dir = self.p2p_dir / "outputs" / "software-spec" / change_id
-        change = self.show_change_set(change_id)
-        prompt_path = spec_dir / "spec-refine.prompt.md"
-        context = "\n\n".join(
-            [
-                _read_optional(spec_dir / "index.md"),
-                _read_optional(spec_dir / "requirements.md"),
-                _read_optional(spec_dir / "design.md"),
-                _read_optional(spec_dir / "acceptance.md"),
-            ]
-        )
-        prompt_path.write_text(_software_spec_refine_prompt(change, context), encoding="utf-8")
-        return SoftwareSpecPrompt(change_id=change_id, prompt_path=prompt_path.relative_to(self.root))
+        return self._software_spec_service().create_prompt(change_id)
 
     def import_software_spec(self, change_id: str, source: Path) -> list[Path]:
-        source = source.resolve()
-        if not source.is_dir():
-            raise ValueError(f"Software spec source directory not found: {source}")
-        required = _software_spec_required_files()
-        for filename in required:
-            if not (source / filename).exists():
-                raise ValueError(f"Missing required software spec artifact: {filename}")
-        _validate_yaml_key((source / "commands.yml").read_text(encoding="utf-8"), "commands")
-        _validate_yaml_key((source / "data-model.yml").read_text(encoding="utf-8"), "entities")
-        _validate_yaml_key((source / "provenance.yml").read_text(encoding="utf-8"), "source")
-
-        target_dir = self.p2p_dir / "outputs" / "software-spec" / change_id
-        target_dir.mkdir(parents=True, exist_ok=True)
-        imported: list[Path] = []
-        for filename in required:
-            target = target_dir / filename
-            shutil.copyfile(source / filename, target)
-            imported.append(target.relative_to(self.root))
-        return imported
+        return self._software_spec_service().import_spec(change_id, source)
 
     def export_software_spec(self, change_id: str, target: str) -> SoftwareSpecExportStatus:
-        target = target.lower()
-        if target not in _software_spec_export_targets():
-            raise ValueError(f"Unsupported software spec export target: {target}")
-        spec_dir = self.p2p_dir / "outputs" / "software-spec" / change_id
-        if not spec_dir.is_dir():
-            raise ValueError("Software spec not found. Run `p2p spec refresh --change CHANGE-XXX` first.")
-        for filename in _software_spec_required_files():
-            if not (spec_dir / filename).exists():
-                raise ValueError(f"Missing required software spec artifact: {filename}")
-
-        change = self.show_change_set(change_id)
-        export_dir = self.p2p_dir / "outputs" / "spec-export" / change_id / target
-        if export_dir.exists():
-            shutil.rmtree(export_dir)
-        export_dir.mkdir(parents=True, exist_ok=True)
-
-        files = _software_spec_export_files(
-            change_id,
-            target,
-            change.title,
-            spec_dir,
-            str(spec_dir.relative_to(self.root)),
-            self._project_definition(change_id, change, spec_dir),
-        )
-        for filename, content in files.items():
-            output_path = export_dir / filename
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_text(content, encoding="utf-8")
-
-        return SoftwareSpecExportStatus(
-            change_id=change_id,
-            target=target,
-            title=change.title,
-            status="exported",
-            path=export_dir.relative_to(self.root),
-        )
+        return self._spec_export_service().export(change_id, target)
 
     def software_spec_export_statuses(self) -> list[SoftwareSpecExportStatus]:
-        exports_dir = self.p2p_dir / "outputs" / "spec-export"
-        statuses: list[SoftwareSpecExportStatus] = []
-        for change_dir in sorted(exports_dir.iterdir()) if exports_dir.exists() else []:
-            if not change_dir.is_dir():
-                continue
-            change_id = change_dir.name
-            try:
-                title = self.show_change_set(change_id).title
-            except ValueError:
-                title = change_id
-            for target_dir in sorted(change_dir.iterdir()):
-                if not target_dir.is_dir():
-                    continue
-                try:
-                    required = _software_spec_export_required_files(change_id, target_dir.name, target_dir)
-                except ValueError:
-                    required = [Path("index.md")]
-                status = "exported" if all((target_dir / path).exists() for path in required) else "incomplete"
-                statuses.append(
-                    SoftwareSpecExportStatus(
-                        change_id=change_id,
-                        target=target_dir.name,
-                        title=title,
-                        status=status,
-                        path=target_dir.relative_to(self.root),
-                    )
-                )
-        return statuses
+        return self._spec_export_service().statuses()
 
     def show_software_spec_export(self, change_id: str, target: str) -> str:
-        target = target.lower()
-        export_dir = self.p2p_dir / "outputs" / "spec-export" / change_id / target
-        path = export_dir / _software_spec_export_show_file(target)
-        if not path.exists():
-            raise ValueError("Software spec export not found. Run `p2p spec export --change CHANGE-XXX --target TARGET` first.")
-        return path.read_text(encoding="utf-8")
+        return self._spec_export_service().show(change_id, target)
 
     def validate_software_spec_export(self, change_id: str, target: str) -> SoftwareSpecExportValidation:
-        target = target.lower()
-        if target not in _software_spec_export_targets():
-            raise ValueError(f"Unsupported software spec export target: {target}")
-        export_dir = self.p2p_dir / "outputs" / "spec-export" / change_id / target
-        if not export_dir.is_dir():
-            raise ValueError("Software spec export not found. Run `p2p spec export --change CHANGE-XXX --target TARGET` first.")
-
-        checked: list[Path] = []
-        required = _software_spec_export_required_files(change_id, target, export_dir)
-        for relative in required:
-            path = export_dir / relative
-            if not path.exists():
-                raise ValueError(f"Missing required software spec export artifact: {relative}")
-            checked.append(path.relative_to(self.root))
-
-        if target == "generic":
-            project_text = (export_dir / "project.md").read_text(encoding="utf-8")
-            for section in _project_definition_required_sections():
-                if not _markdown_has_section(project_text, section):
-                    raise ValueError(f"Missing required project definition section: {section}")
-            if "## Source Traceability" not in project_text:
-                raise ValueError("Missing required project definition source traceability")
-
-        return SoftwareSpecExportValidation(
-            change_id=change_id,
-            target=target,
-            path=export_dir.relative_to(self.root),
-            checked=checked,
-        )
+        return self._spec_export_service().validate(change_id, target)
 
     def _project_definition(self, change_id: str, change: ChangeSetDetail, spec_dir: Path) -> dict[str, object]:
-        project_data = _read_yaml_mapping(self.p2p_dir / "project.yml", default={})
-        project = project_data.get("project", {})
-        if not isinstance(project, dict):
-            project = {}
-        accepted = self._accepted_proposals()
-        drafts = self.proposal_summaries("draft")
-        source_spec = {filename: _read_optional(spec_dir / filename) for filename in _software_spec_required_files()}
-        return {
-            "project_name": str(project.get("name") or self.status().project_name),
-            "domain": str(project.get("domain") or "generic"),
-            "change_id": change_id,
-            "change_title": change.title,
-            "change_summary": change.summary,
-            "execution_domains": change.execution_domains,
-            "implementation_targets": change.implementation_targets,
-            "spec_targets": change.spec_targets,
-            "export_targets": change.export_targets,
-            "accepted_proposals": accepted,
-            "draft_proposals": drafts,
-            "spec": source_spec,
-            "constitution": _read_optional(self.p2p_dir / "governance" / "constitution.md"),
-            "decision_rules": _read_optional(self.p2p_dir / "governance" / "decision-rules.md"),
-            "rubrics": _read_optional(self.p2p_dir / "project" / "rubrics.yml"),
-            "assessment": _read_optional(self.p2p_dir / "project" / "assessment.yml"),
-            "maturity": _read_optional(self.p2p_dir / "project" / "maturity-assessment.yml"),
-        }
+        return self._spec_export_service().project_definition(change_id, change, spec_dir)
 
     def create_work_plan(self, change_id: str, target: str) -> WorkDetail:
-        target = target.lower()
-        if target not in _software_spec_export_targets():
-            raise ValueError(f"Unsupported work handoff target: {target}")
-        validation = self.validate_software_spec_export(change_id, target)
-        change_dir = self._find_change_dir(change_id)
-        change_text = _read_optional(change_dir / "change.md")
-        change_frontmatter = _read_frontmatter(change_text)
-        source = change_frontmatter.get("source", {})
-        if not isinstance(source, dict):
-            source = {}
-        work_id = self._next_work_id()
-        work_dir = self.p2p_dir / "work" / work_id
-        work_dir.mkdir(parents=True)
-        branch_name = f"p2p/work/{work_id.lower()}-{change_id.lower()}-{target}"
-        manifest = _work_manifest(
-            work_id=work_id,
-            change_id=change_id,
-            target=target,
-            branch_name=branch_name,
-            export_path=str(validation.path),
-            source_proposals=_string_list(source.get("accepted_proposals")),
-            allowed_files=[str(path) for path in validation.checked],
-        )
-        (work_dir / "manifest.yml").write_text(_yaml_dump(manifest), encoding="utf-8")
-        return self.show_work(work_id)
+        return self._work_planning_service().create_plan(change_id, target)
 
     def work_statuses(self) -> list[WorkStatus]:
-        work_root = self.p2p_dir / "work"
-        statuses: list[WorkStatus] = []
-        for path in sorted(work_root.iterdir()) if work_root.exists() else []:
-            if not path.is_dir():
-                continue
-            manifest = _read_yaml_mapping(path / "manifest.yml", default={})
-            source = manifest.get("source", {})
-            handoff = manifest.get("handoff", {})
-            status = str(manifest.get("status") or "unknown")
-            change_id = str(source.get("change") if isinstance(source, dict) else "unknown")
-            target = str(handoff.get("target") if isinstance(handoff, dict) else "none")
-            statuses.append(
-                WorkStatus(
-                    work_id=str(manifest.get("work_id") or path.name),
-                    status=status,
-                    change_id=change_id,
-                    target=target,
-                    path=path.relative_to(self.root),
-                )
-            )
-        for item in self._scanned_work_items():
-            statuses.append(
-                WorkStatus(
-                    work_id=str(item.get("work_id") or "unknown"),
-                    status=str(item.get("status") or "unknown"),
-                    change_id=str(item.get("change") or "unknown"),
-                    target=str(item.get("target") or "none"),
-                    path=Path(str(item.get("path") or ".")),
-                )
-            )
-        return statuses
+        return self._work_planning_service().statuses()
 
     def work_summaries(self) -> list[WorkSummary]:
-        summaries: list[WorkSummary] = []
-        work_root = self.p2p_dir / "work"
-        for path in sorted(work_root.iterdir()) if work_root.exists() else []:
-            if not path.is_dir():
-                continue
-            manifest = _read_yaml_mapping(path / "manifest.yml", default={})
-            summaries.append(self._work_summary_from_manifest(manifest, path.relative_to(self.root), scanned=False))
-        for item in self._scanned_work_items():
-            summaries.append(self._work_summary_from_scan(item))
-        return summaries
+        return self._work_planning_service().summaries()
 
     def show_work(self, work_id: str) -> WorkDetail:
-        work_dir = self._find_work_dir(work_id)
-        manifest = _read_yaml_mapping(work_dir / "manifest.yml", default={})
-        source = manifest.get("source", {})
-        handoff = manifest.get("handoff", {})
-        git = manifest.get("git", {})
-        return WorkDetail(
-            work_id=str(manifest.get("work_id") or work_id),
-            status=str(manifest.get("status") or "unknown"),
-            change_id=str(source.get("change") if isinstance(source, dict) else "unknown"),
-            target=str(handoff.get("target") if isinstance(handoff, dict) else "none"),
-            branch_name=str(git.get("branch_name") if isinstance(git, dict) else ""),
-            path=work_dir.relative_to(self.root),
-            manifest=manifest,
-        )
+        return self._work_planning_service().show(work_id)
 
     def _work_summary_from_manifest(
         self,
@@ -4317,69 +3376,10 @@ class P2PWorkspace:
         *,
         scanned: bool,
     ) -> WorkSummary:
-        source = manifest.get("source", {})
-        handoff = manifest.get("handoff", {})
-        git = manifest.get("git", {})
-        publish = manifest.get("publish", {})
-        acceptance = manifest.get("acceptance", {})
-        status = str(manifest.get("status") or "unknown")
-        work_id = str(manifest.get("work_id") or path.name)
-        branch_name = str(git.get("branch_name") if isinstance(git, dict) else "")
-        base_branch = str(git.get("base_branch") if isinstance(git, dict) else "main")
-        remote = None
-        if isinstance(publish, dict):
-            remote_value = publish.get("remote")
-            if remote_value:
-                remote = str(remote_value)
-        if status == "accepted" and isinstance(acceptance, dict):
-            pushed = bool(acceptance.get("pushed"))
-        else:
-            pushed = bool(publish.get("remote_branch")) if isinstance(publish, dict) else False
-        next_action, note = _work_next_action(
-            work_id=work_id,
-            status=status,
-            base_branch=base_branch,
-            pushed=pushed,
-            accepted=bool(acceptance) if isinstance(acceptance, dict) else False,
-            scanned=scanned,
-        )
-        return WorkSummary(
-            work_id=work_id,
-            status=status,
-            change_id=str(source.get("change") if isinstance(source, dict) else "unknown"),
-            target=str(handoff.get("target") if isinstance(handoff, dict) else "none"),
-            branch_name=branch_name,
-            base_branch=base_branch,
-            remote=remote,
-            next_action=next_action,
-            note=note,
-            path=path,
-        )
+        return self._work_planning_service().summary_from_manifest(manifest, path, scanned=scanned)
 
     def _work_summary_from_scan(self, item: dict[str, object]) -> WorkSummary:
-        work_id = str(item.get("work_id") or "unknown")
-        status = str(item.get("status") or "unknown")
-        branch_name = str(item.get("branch_name") or item.get("branch") or "")
-        next_action, note = _work_next_action(
-            work_id=work_id,
-            status=status,
-            base_branch="main",
-            pushed=False,
-            accepted=False,
-            scanned=True,
-        )
-        return WorkSummary(
-            work_id=work_id,
-            status=status,
-            change_id=str(item.get("change") or "unknown"),
-            target=str(item.get("target") or "none"),
-            branch_name=branch_name,
-            base_branch="main",
-            remote=None,
-            next_action=next_action,
-            note=note,
-            path=Path(str(item.get("path") or ".")),
-        )
+        return self._work_planning_service().summary_from_scan(item)
 
     def branch_work(self, work_id: str) -> WorkBranch:
         work_dir = self._find_work_dir(work_id)
@@ -5406,151 +4406,13 @@ class P2PWorkspace:
         )
 
     def refresh_registries(self) -> list[Path]:
-        registries_dir = self.p2p_dir / "registries"
-        registries_dir.mkdir(parents=True, exist_ok=True)
-
-        duplicates = self._duplicate_proposal_ids()
-        if duplicates:
-            raise ValueError(_duplicate_proposal_ids_message(duplicates, self.root))
-
-        proposals = self._proposal_registry_records()
-        changes = self._change_registry_records()
-        decisions = self._decision_registry_records(proposals)
-        choices = self._choice_registry_records()
-        relations = self._relation_registry_records(proposals, changes)
-        artifacts = self._artifact_registry_records(proposals, changes)
-        readiness = self._readiness_registry_records(proposals)
-
-        registry_files = {
-            "proposals.yml": {
-                "generated": True,
-                "source": ".p2p/proposals",
-                "proposals": proposals,
-            },
-            "decisions.yml": {
-                "generated": True,
-                "source": ".p2p/proposals/*/decision.md",
-                "decisions": decisions,
-            },
-            "changes.yml": {
-                "generated": True,
-                "source": ".p2p/changes",
-                "changes": changes,
-            },
-            "choices.yml": {
-                "generated": True,
-                "source": ".p2p/choices and proposal votes",
-                "choices": choices,
-            },
-            "relations.yml": {
-                "generated": True,
-                "source": ".p2p proposal and change metadata",
-                "relations": relations,
-            },
-            "artifacts.yml": {
-                "generated": True,
-                "source": ".p2p",
-                "artifacts": artifacts,
-            },
-            "readiness.yml": {
-                "generated": True,
-                "source": ".p2p/proposals/*/readiness.yml",
-                "readiness": readiness,
-            },
-        }
-
-        written: list[Path] = []
-        for filename, data in registry_files.items():
-            path = registries_dir / filename
-            path.write_text(_yaml_dump(data), encoding="utf-8")
-            written.append(path.relative_to(self.root))
-        return written
+        return self._registry_service().refresh()
 
     def registry_status(self) -> RegistryStatus:
-        registries_dir = self.p2p_dir / "registries"
-        expected = {
-            "proposals.yml": "proposals",
-            "decisions.yml": "decisions",
-            "changes.yml": "changes",
-            "choices.yml": "choices",
-            "relations.yml": "relations",
-            "artifacts.yml": "artifacts",
-            "readiness.yml": "readiness",
-        }
-        files: list[dict[str, object]] = []
-        stale = False
-        for filename, key in expected.items():
-            path = registries_dir / filename
-            exists = path.exists()
-            count = 0
-            generated = False
-            if exists:
-                data = _read_yaml_mapping(path, default={})
-                generated = bool(data.get("generated", False))
-                records = data.get(key, [])
-                count = len(records) if isinstance(records, list) else 0
-                if not generated:
-                    stale = True
-            else:
-                stale = True
-            files.append(
-                {
-                    "name": filename,
-                    "exists": exists,
-                    "generated": generated,
-                    "records": count,
-                }
-            )
-
-        proposals_count = len(self._proposal_registry_records())
-        changes_count = len(self._change_registry_records())
-        proposals_file = registries_dir / "proposals.yml"
-        changes_file = registries_dir / "changes.yml"
-        if proposals_file.exists():
-            proposals_data = _read_yaml_mapping(proposals_file, default={})
-            proposals_records = proposals_data.get("proposals", [])
-            stale = stale or (
-                isinstance(proposals_records, list) and len(proposals_records) != proposals_count
-            )
-        if changes_file.exists():
-            changes_data = _read_yaml_mapping(changes_file, default={})
-            changes_records = changes_data.get("changes", [])
-            stale = stale or (
-                isinstance(changes_records, list) and len(changes_records) != changes_count
-            )
-
-        return RegistryStatus(
-            registries_dir=registries_dir.relative_to(self.root),
-            files=files,
-            proposals_count=proposals_count,
-            changes_count=changes_count,
-            stale=stale,
-        )
+        return self._registry_service().status()
 
     def show_registry(self, name: str) -> RegistryView:
-        allowed = {
-            "proposals": "proposals.yml",
-            "decisions": "decisions.yml",
-            "changes": "changes.yml",
-            "choices": "choices.yml",
-            "relations": "relations.yml",
-            "artifacts": "artifacts.yml",
-            "readiness": "readiness.yml",
-        }
-        if name not in allowed:
-            raise ValueError(f"Unsupported registry: {name}")
-        path = self.p2p_dir / "registries" / allowed[name]
-        if not path.exists():
-            raise ValueError("Registry not found. Run `p2p registry refresh` first.")
-        data = _read_yaml_mapping(path, default={})
-        records = data.get(name, [])
-        if not isinstance(records, list):
-            raise ValueError(f"Invalid registry file: expected `{name}` list.")
-        return RegistryView(
-            name=name,
-            path=path.relative_to(self.root),
-            records=[record for record in records if isinstance(record, dict)],
-        )
+        return self._registry_service().show(name)
 
     def create_intake_prompt(self, idea: str) -> IntakePrompt:
         intake_id = self._next_intake_id()
@@ -6801,40 +5663,13 @@ class P2PWorkspace:
         return actions
 
     def _next_proposal_id(self) -> str:
-        max_id = 0
-        proposals_dir = self.p2p_dir / "proposals"
-        for path in proposals_dir.iterdir() if proposals_dir.exists() else []:
-            match = re.match(r"PROP-(\d{3})-", path.name)
-            if match:
-                max_id = max(max_id, int(match.group(1)))
-        return f"PROP-{max_id + 1:03d}"
+        return self._proposal_document_service().next_id()
 
     def _find_proposal_dir(self, proposal_id: str) -> Path:
-        proposals_dir = self.p2p_dir / "proposals"
-        if not proposals_dir.exists():
-            raise ValueError("No .p2p/proposals directory found.")
-        matches = [path for path in proposals_dir.iterdir() if path.name.startswith(f"{proposal_id}-")]
-        if not matches:
-            raise ValueError(f"Proposal not found: {proposal_id}")
-        if len(matches) > 1:
-            relative_paths = ", ".join(str(_relative_to_root(path, self.root)) for path in sorted(matches))
-            raise ValueError(
-                f"Ambiguous proposal ID: {proposal_id}. Matching proposal directories: {relative_paths}. "
-                "Run `p2p validate` to inspect duplicate proposal IDs before continuing."
-            )
-        return matches[0]
+        return self._proposal_document_service().find_dir(proposal_id)
 
     def _duplicate_proposal_ids(self) -> dict[str, list[Path]]:
-        proposals_dir = self.p2p_dir / "proposals"
-        grouped: dict[str, list[Path]] = {}
-        for path in sorted(proposals_dir.iterdir()) if proposals_dir.exists() else []:
-            if not path.is_dir():
-                continue
-            proposal_id = _proposal_id_from_dir_name(path.name)
-            if proposal_id is None:
-                continue
-            grouped.setdefault(proposal_id, []).append(path)
-        return {proposal_id: paths for proposal_id, paths in grouped.items() if len(paths) > 1}
+        return self._proposal_document_service().duplicate_ids()
 
     def _proposal_branch_metadata(self, proposal_id: str) -> tuple[Path, dict[str, object], Path]:
         proposal_dir = self._find_proposal_dir(proposal_id)
@@ -7029,22 +5864,10 @@ class P2PWorkspace:
         return matches[0]
 
     def _next_work_id(self) -> str:
-        max_id = 0
-        work_root = self.p2p_dir / "work"
-        for path in work_root.iterdir() if work_root.exists() else []:
-            match = re.match(r"WORK-(\d{3})$", path.name)
-            if match:
-                max_id = max(max_id, int(match.group(1)))
-        return f"WORK-{max_id + 1:03d}"
+        return self._work_planning_service().next_id()
 
     def _find_work_dir(self, work_id: str) -> Path:
-        work_root = self.p2p_dir / "work"
-        if not work_root.exists():
-            raise ValueError("No .p2p/work directory found.")
-        path = work_root / work_id
-        if not path.is_dir():
-            raise ValueError(f"Work item not found: {work_id}")
-        return path
+        return self._work_planning_service().find_dir(work_id)
 
 
 BUILT_IN_AGENT_ADAPTERS = ("generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode")
@@ -8147,25 +6970,6 @@ def _consent_receipt_from_payload(payload: dict[str, object], path: Path) -> Con
     )
 
 
-def _project_assessment_payload(assessment: ProjectAssessment) -> dict[str, object]:
-    return {
-        "generated_on": assessment.generated_on,
-        "assessment_type": assessment.assessment_type,
-        "completion": {
-            "score": assessment.completion_score,
-            "status": assessment.completion_status,
-            "confidence": assessment.confidence,
-        },
-        "maturity": {
-            "status": assessment.maturity_status,
-            "score": assessment.maturity_score,
-        },
-        "factors": assessment.factors,
-        "gaps": assessment.gaps,
-        "suggested_actions": assessment.suggested_actions,
-    }
-
-
 def _definition_maturity_payload(maturity: ProjectDefinitionMaturity) -> dict[str, object]:
     return {
         "generated_on": maturity.generated_on,
@@ -8222,79 +7026,6 @@ def _proposal_markdown(
         "## Decision\n\n"
         "Pending.\n"
     )
-
-
-def _default_readiness_profile_payload() -> dict[str, object]:
-    return {
-        "readiness_profile": {
-            "id": DEFAULT_READINESS_PROFILE_ID,
-            "version": DEFAULT_READINESS_PROFILE_VERSION,
-            "criteria": {
-                "problem_clarity": 10,
-                "goal_clarity": 10,
-                "scope_boundaries": 10,
-                "alternatives_quality": 15,
-                "tradeoff_analysis": 10,
-                "risk_coverage": 10,
-                "assumptions_clarity": 10,
-                "owner_questions_resolution": 10,
-                "acceptance_criteria_quality": 10,
-                "impact_overlap_analysis": 5,
-            },
-            "thresholds": {
-                "weak": 0,
-                "partial": 70,
-                "strong": 85,
-                "decision_ready": 95,
-            },
-            "tier_requirements": {
-                "small": {"required_score_for_decision": 70},
-                "medium": {
-                    "required_score_for_decision": 85,
-                    "minimum_gates": {
-                        "alternatives_quality": 50,
-                        "risk_coverage": 50,
-                        "acceptance_criteria_quality": 50,
-                    },
-                },
-                "architectural": {
-                    "required_score_for_decision": 95,
-                    "minimum_gates": {
-                        "alternatives_quality": 75,
-                        "tradeoff_analysis": 75,
-                        "risk_coverage": 75,
-                        "impact_overlap_analysis": 75,
-                    },
-                },
-                "governance-critical": {
-                    "required_score_for_decision": 95,
-                    "required_confidence": "medium",
-                    "minimum_gates": {
-                        "alternatives_quality": 75,
-                        "owner_questions_resolution": 75,
-                        "acceptance_criteria_quality": 75,
-                        "impact_overlap_analysis": 75,
-                    },
-                },
-            },
-            "artifact_quality_caps": {
-                "missing": {"max_score_percent": 0},
-                "placeholder": {"max_score_percent": 0},
-                "thin": {"max_score_percent": 50},
-                "meaningful": {"max_score_percent": 75},
-                "needs_owner_input": {
-                    "max_score_percent": 75,
-                    "blocks_ready_for_decision": True,
-                },
-                "ready": {"max_score_percent": 100},
-            },
-            "gates": {},
-            "override_policy": {
-                "override_reason_required": True,
-                "preserve_computed_score": True,
-            },
-        }
-    }
 
 
 def _validate_readiness_profile_payload(data: dict[str, object]) -> None:
@@ -8430,84 +7161,6 @@ def _validate_agent_integrations_payload(data: dict[str, object]) -> None:
                 raise ValueError(f"Invalid drift state for agent adapter file: {record.get('path')}")
 
 
-def _refresh_readiness_payload(readiness: dict[str, object], profile: ReadinessProfile) -> dict[str, object]:
-    criteria = readiness.get("criteria") or {}
-    if not isinstance(criteria, dict):
-        criteria = {}
-
-    refreshed_criteria: dict[str, object] = {}
-    missing = [str(item) for item in readiness.get("missing") or []]
-    suggested_next = [str(item) for item in readiness.get("suggested_next") or []]
-    failed_gates = [str(item) for item in readiness.get("failed_gates") or []]
-    computed_score = 0
-
-    for criterion, max_points in profile.criteria.items():
-        assessment = dict(criteria.get(criterion) or {})
-        if criterion not in criteria:
-            missing.append(criterion)
-            suggested_next.append(f"assess_{criterion}")
-            assessment = {
-                "max_points": max_points,
-                "awarded_points": 0,
-                "artifact_quality": "missing",
-            }
-        artifact_quality = str(assessment.get("artifact_quality") or "missing")
-        awarded_points = assessment.get("awarded_points")
-        if not isinstance(awarded_points, int):
-            awarded_points = 0
-        effective_points = _readiness_effective_points(
-            awarded_points=awarded_points,
-            max_points=max_points,
-            artifact_quality=artifact_quality,
-            profile=profile,
-        )
-        if artifact_quality == "needs_owner_input":
-            failed_gates.append(f"{criterion}:needs_owner_input")
-        assessment["max_points"] = max_points
-        assessment["effective_points"] = effective_points
-        refreshed_criteria[criterion] = assessment
-        computed_score += effective_points
-
-    refreshed = dict(readiness)
-    refreshed["status"] = "assessed"
-    refreshed["profile_id"] = profile.profile_id
-    refreshed["profile_version"] = profile.version
-    refreshed["computed_score"] = min(computed_score, 100)
-    refreshed["computed_label"] = _readiness_label(computed_score, profile.thresholds)
-    refreshed["missing"] = _unique_strings(missing)
-    refreshed["suggested_next"] = _unique_strings(suggested_next)
-    refreshed["failed_gates"] = _unique_strings(failed_gates)
-    refreshed["criteria"] = refreshed_criteria
-    refreshed["computed_at"] = date.today().isoformat()
-    return refreshed
-
-
-def _readiness_effective_points(
-    *,
-    awarded_points: int,
-    max_points: int,
-    artifact_quality: str,
-    profile: ReadinessProfile,
-) -> int:
-    caps = profile.artifact_quality_caps
-    cap = caps.get(artifact_quality) if isinstance(caps, dict) else None
-    cap_percent = 0
-    if isinstance(cap, dict):
-        raw_percent = cap.get("max_score_percent")
-        if isinstance(raw_percent, int):
-            cap_percent = raw_percent
-    cap_points = int(max_points * cap_percent / 100)
-    return max(0, min(awarded_points, max_points, cap_points))
-
-
-def _readiness_label(score: int, thresholds: dict[str, int]) -> str:
-    label = "weak"
-    for candidate, threshold in sorted(thresholds.items(), key=lambda item: item[1]):
-        if score >= threshold:
-            label = candidate
-    return label
-
-
 def _unique_strings(values: list[str]) -> list[str]:
     seen: set[str] = set()
     result: list[str] = []
@@ -8608,53 +7261,9 @@ def _proposal_branch_detail_from_metadata(
     )
 
 
-def _read_title(text: str) -> str | None:
-    for line in text.splitlines():
-        if line.startswith("# "):
-            return line.removeprefix("# ").strip()
-    return None
-
-
-def _read_markdown_section(text: str, section: str) -> str | None:
-    pattern = rf"## {re.escape(section)}\n\n(.*?)(?=\n## |\Z)"
-    match = re.search(pattern, text, flags=re.DOTALL)
-    if not match:
-        return None
-    value = match.group(1).strip()
-    if not value or value in {"Pending.", "- Pending."}:
-        return None
-    return value
-
-
-def _markdown_has_section(text: str, section: str) -> bool:
-    return re.search(rf"^## {re.escape(section)}\s*$", text, flags=re.MULTILINE) is not None
-
-
 def _clean_proposal_title(title: str, proposal_id: str) -> str:
     cleaned = re.sub(rf"^{re.escape(proposal_id)}\s*[-—]\s*", "", title).strip()
     return cleaned or title
-
-
-def _read_frontmatter(text: str) -> dict[str, object]:
-    if not text.startswith("---\n"):
-        return {}
-    end = text.find("\n---\n", 4)
-    if end == -1:
-        return {}
-    try:
-        data = yaml.safe_load(text[4:end])
-    except yaml.YAMLError:
-        return {}
-    return data if isinstance(data, dict) else {}
-
-
-def _replace_frontmatter(text: str, frontmatter: dict[str, object]) -> str:
-    body = text
-    if text.startswith("---\n"):
-        end = text.find("\n---\n", 4)
-        if end != -1:
-            body = text[end + len("\n---\n") :]
-    return f"---\n{_yaml_dump(frontmatter)}---\n{body}"
 
 
 def _metadata_only_git_policy() -> dict[str, object]:
@@ -8667,61 +7276,6 @@ def _metadata_only_git_policy() -> dict[str, object]:
             "branches": {"auto_create": False},
             "tags": {"auto_create": False},
         }
-    }
-
-
-def _work_manifest(
-    work_id: str,
-    change_id: str,
-    target: str,
-    branch_name: str,
-    export_path: str,
-    source_proposals: list[str],
-    allowed_files: list[str],
-) -> dict[str, object]:
-    return {
-        "work_id": work_id,
-        "status": "planned",
-        "visibility": "internal_git",
-        "created_at": date.today().isoformat(),
-        "source": {
-            "change": change_id,
-            "proposals": source_proposals,
-        },
-        "handoff": {
-            "target": target,
-            "export_path": export_path,
-            "export_validated": True,
-        },
-        "managed_git_levels": [
-            {"level": 0, "name": "advisory", "enabled": True},
-            {"level": 1, "name": "handoff_plan", "enabled": True},
-            {"level": 2, "name": "managed_branch", "enabled": False},
-            {"level": 3, "name": "managed_commit", "enabled": False},
-            {"level": 4, "name": "managed_review", "enabled": False},
-            {"level": 5, "name": "owner_controlled_merge", "enabled": False},
-        ],
-        "git": {
-            "mode": "managed_branch_candidate",
-            "base_branch": "main",
-            "branch_name": branch_name,
-            "base_commit": None,
-            "head_commit": None,
-        },
-        "policy": {
-            "expose_git_details": False,
-            "auto_branch": False,
-            "auto_commit": False,
-            "auto_merge": False,
-            "owner_approval_required": ["branch", "submit", "accept_merge"],
-        },
-        "allowed_files": allowed_files,
-        "next_steps": [
-            "Implement branch scan for p2p/work/* refs.",
-            "Enable managed branch creation only after policy approval.",
-            "Enable selected-file commits only after dirty worktree and recovery checks.",
-            "Enable owner-controlled accept/merge only after review policy is defined.",
-        ],
     }
 
 
@@ -8804,49 +7358,6 @@ def _intake_prompt_markdown(intake_id: str, idea: str, context: str) -> str:
         "  - type: create_proposal | add_contribution | open_choice | record_conflict | defer | duplicate\n"
         "    target: PROP-000\n"
         "    rationale: Short reason.\n"
-        "```\n"
-    )
-
-
-def _project_brief_prompt_markdown(context: str) -> str:
-    return (
-        "# P2P Operational Brief Prompt\n\n"
-        "You are helping synthesize the current P2P project state into an operational brief.\n\n"
-        "## Governance Boundary\n\n"
-        "Do not accept, reject, defer, merge, supersede, or apply recommendations. "
-        "Do not decide on behalf of the owner. Recommend next actions only and point to "
-        "the P2P commands that would let the owner act explicitly.\n\n"
-        "## Project Context\n\n"
-        f"{context}\n\n"
-        "## Required Output\n\n"
-        "Return artifacts with these shapes:\n\n"
-        "### operational-brief.md\n\n"
-        "```markdown\n"
-        "# Operational Brief\n\n"
-        "## Where We Are\n"
-        "Short synthesis of the current project state.\n\n"
-        "## Accepted Direction\n"
-        "Accepted decisions and constraints that shape the project.\n\n"
-        "## Active Work\n"
-        "Change Sets, draft proposals, pending intake, and work still moving.\n\n"
-        "## Blockers / Inconsistencies\n"
-        "Open choices, conflicts, stale registries, status mismatches, or missing artifacts.\n\n"
-        "## Recommended Next Actions\n"
-        "1. Action title\n"
-        "   Reason: Why this matters now.\n"
-        "   Command: p2p ...\n\n"
-        "## Not Yet\n"
-        "Useful but lower-priority directions.\n"
-        "```\n\n"
-        "### next-actions.yml\n\n"
-        "```yaml\n"
-        "next_actions:\n"
-        "  - id: NEXT-001\n"
-        "    priority: high | medium | low\n"
-        "    kind: continue_change | resolve_choice | refresh_registry | inspect_intake | record_conflict | create_change | other\n"
-        "    target: CHANGE-000\n"
-        "    reason: Short reason.\n"
-        "    command: p2p ...\n"
         "```\n"
     )
 
@@ -9455,15 +7966,6 @@ def _speckit_contracts_readme(change_id: str, spec: dict[str, str]) -> str:
     )
 
 
-def _strip_markdown_title(content: str) -> str:
-    lines = content.splitlines()
-    if lines and lines[0].startswith("# "):
-        lines = lines[1:]
-        if lines and not lines[0].strip():
-            lines = lines[1:]
-    return "\n".join(lines).strip()
-
-
 def _software_spec_index_markdown(
     change_id: str,
     title: str,
@@ -9616,84 +8118,6 @@ def _software_spec_refine_prompt(change: ChangeSetDetail, context: str) -> str:
     )
 
 
-def _project_overview_markdown(project_name: str, accepted: list[dict[str, object]]) -> str:
-    lines = [
-        f"# Project State - {project_name}",
-        "",
-        "This file is generated by `p2p project refresh` from accepted proposals.",
-        "",
-        "## Accepted Proposals",
-        "",
-    ]
-    if accepted:
-        for item in accepted:
-            lines.append(f"- {item['proposal_id']} - {item['title']}")
-    else:
-        lines.append("- None.")
-    lines.extend(["", "## Features", ""])
-    if accepted:
-        for item in accepted:
-            lines.append(f"- `{item['feature_id']}` from {item['proposal_id']}")
-    else:
-        lines.append("- None.")
-    lines.append("")
-    return "\n".join(lines)
-
-
-def _project_problem_markdown(accepted: list[dict[str, object]]) -> str:
-    lines = ["# Project Problem", "", "Generated from accepted proposal problem statements.", ""]
-    for item in accepted:
-        lines.extend([f"## {item['proposal_id']} - {item['title']}", "", str(item["problem"]), ""])
-    if not accepted:
-        lines.append("No accepted proposals yet.\n")
-    return "\n".join(lines)
-
-
-def _project_scope_markdown(accepted: list[dict[str, object]]) -> str:
-    lines = ["# Project Scope", "", "Generated from accepted proposal goals and non-goals.", ""]
-    for item in accepted:
-        lines.extend(
-            [
-                f"## {item['proposal_id']} - {item['title']}",
-                "",
-                "### Goals",
-                "",
-                str(item["goals"]),
-                "",
-                "### Non-Goals",
-                "",
-                str(item["non_goals"]),
-                "",
-            ]
-        )
-    if not accepted:
-        lines.append("No accepted proposals yet.\n")
-    return "\n".join(lines)
-
-
-def _project_swot_markdown() -> str:
-    return (
-        "# Project SWOT\n\n"
-        "Generated placeholder. Use `p2p swot prompt <PROP-ID>` for proposal-level SWOT "
-        "and consolidate project-level findings here during project refresh evolution.\n"
-    )
-
-
-def _feature_markdown(item: dict[str, object]) -> str:
-    return (
-        f"# {item['title']}\n\n"
-        "## Provenance\n\n"
-        f"- Proposal: {item['proposal_id']}\n"
-        f"- Source: {item['source']}\n\n"
-        "## Problem\n\n"
-        f"{item['problem']}\n\n"
-        "## Proposal\n\n"
-        f"{item['proposal']}\n\n"
-        "## Decision\n\n"
-        f"{str(item['decision']).strip() or 'Not provided.'}\n"
-    )
-
-
 def _replace_status(path: Path, status: str) -> None:
     text = path.read_text(encoding="utf-8")
     updated = re.sub(r"(## Status\s+)`[^`]+`", rf"\1`{status}`", text, count=1)
@@ -9714,11 +8138,6 @@ def _bullets(values: list[str] | None) -> str | None:
     if not cleaned:
         return None
     return "\n".join(f"- {value}" for value in cleaned)
-
-
-def _replace_section(text: str, section: str, replacement: str) -> str:
-    pattern = rf"(## {re.escape(section)}\n\n)(.*?)(?=\n## |\Z)"
-    return re.sub(pattern, lambda match: f"{match.group(1)}{replacement}\n", text, count=1, flags=re.DOTALL)
 
 
 def _has_meaningful_content(text: str) -> bool:
@@ -9762,47 +8181,6 @@ def _artifact_quality_state(path: Path, text: str) -> str:
     return "meaningful"
 
 
-def _readiness_text_quality(text: str | None) -> str:
-    stripped = (text or "").strip()
-    if not stripped:
-        return "missing"
-    lower = stripped.lower()
-    placeholders = (
-        "not provided.",
-        "not explored yet.",
-        "none identified yet.",
-        "not suggested yet.",
-        "findings: []",
-        "pending.",
-        "not generated yet.",
-        "none recorded yet.",
-        "tasks: []",
-    )
-    if any(placeholder in lower for placeholder in placeholders):
-        return "placeholder"
-    content_lines = [
-        line.strip()
-        for line in stripped.splitlines()
-        if line.strip() and not line.lstrip().startswith("#")
-    ]
-    content_text = " ".join(content_lines)
-    if len(content_text) < 80:
-        return "thin"
-    return "meaningful"
-
-
-def _initial_readiness_points(max_points: int, quality: str) -> int:
-    if quality in {"missing", "placeholder"}:
-        return 0
-    if quality == "thin":
-        return max(1, int(max_points * 0.5))
-    if quality in {"meaningful", "needs_owner_input"}:
-        return max(1, int(max_points * 0.75))
-    if quality == "ready":
-        return max_points
-    return 0
-
-
 def _has_meaningful_intake_recommendation(text: str) -> bool:
     stripped = text.strip()
     if not stripped:
@@ -9817,24 +8195,6 @@ def _count_open_questions(text: str) -> int:
         if re.match(r"^(\d+\.|-|\*)\s+.+\?", stripped):
             count += 1
     return count
-
-
-def _validate_tasks_yaml(content: str) -> None:
-    try:
-        data = yaml.safe_load(content)
-    except yaml.YAMLError as exc:
-        raise ValueError(f"Invalid tasks YAML: {exc}") from exc
-    if not isinstance(data, dict) or not isinstance(data.get("tasks"), list):
-        raise ValueError("Invalid tasks YAML: expected top-level `tasks` list.")
-
-
-def _validate_yaml_key(content: str, key: str) -> None:
-    try:
-        data = yaml.safe_load(content)
-    except yaml.YAMLError as exc:
-        raise ValueError(f"Invalid YAML: {exc}") from exc
-    if not isinstance(data, dict) or key not in data:
-        raise ValueError(f"Invalid YAML: expected top-level `{key}` key.")
 
 
 def _find_choice_option(options: list[object], value: str) -> dict[str, object] | None:
@@ -9860,42 +8220,6 @@ def _string_list(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return [str(item) for item in value]
-
-
-def _work_next_action(
-    *,
-    work_id: str,
-    status: str,
-    base_branch: str,
-    pushed: bool,
-    accepted: bool,
-    scanned: bool,
-) -> tuple[str, str]:
-    if scanned:
-        return "p2p work show {work_id}".format(work_id=work_id), "scanned from a managed branch registry"
-    if status == "planned":
-        return f"p2p work branch {work_id}", "create the managed implementation branch"
-    if status == "retired":
-        return "none", "retired"
-    if status == "branched":
-        return f"p2p work submit {work_id}", "submit actual work changes as a local commit"
-    if status == "submitted":
-        return f"p2p work review {work_id}", "request local owner review"
-    if status == "review_requested":
-        return f"p2p work publish {work_id}", "publish the managed branch to the remote"
-    if status == "published":
-        return f"checkout {base_branch}; p2p work accept {work_id}", "owner-controlled local merge"
-    if status == "merge_conflict":
-        return f"resolve conflicts; p2p work accept --continue {work_id}", "or abort with p2p work accept --abort"
-    if status == "accepted":
-        if accepted and not pushed:
-            return "p2p work finalize {work_id}".format(work_id=work_id), "push the accepted base branch"
-        return "none", "accepted"
-    if status == "finalized":
-        return "p2p work cleanup {work_id}".format(work_id=work_id), "delete finalized Work branches"
-    if status == "cleaned":
-        return "none", "cleaned"
-    return "inspect", "unknown Work status"
 
 
 def _review_request_suggestion(provider: str, remote_url: str, branch_name: str) -> str:

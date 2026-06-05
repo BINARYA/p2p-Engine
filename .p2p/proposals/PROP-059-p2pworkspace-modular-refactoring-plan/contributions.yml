@@ -1,1 +1,116 @@
-contributions: []
+contributions:
+- id: C001
+  type: architectural_principle
+  author: codex
+  relevance_hint: high
+  text: Target layering should distinguish domain rules, application use cases, persistence
+    adapters, Git adapters, MCP transport/schema handling, and CLI presentation. This
+    reduces coupling and makes agent-generated code easier to review.
+- id: C002
+  type: constraint
+  author: codex
+  relevance_hint: high
+  text: Public CLI commands, MCP tool names, .p2p storage artifacts, consent semantics,
+    and owner-controlled governance boundaries must remain stable unless a separate
+    proposal explicitly authorizes a breaking change.
+- id: C003
+  type: architectural_principle
+  author: codex
+  relevance_hint: high
+  text: New domain behavior should not be added directly to cli.py, storage/filesystem.py,
+    or mcp/tools.py by default. Those files may remain compatibility and orchestration
+    layers, while cohesive services and adapters become the preferred home for behavior.
+- id: C004
+  type: suggestion
+  author: codex
+  relevance_hint: high
+  text: A repository development guide should be introduced or updated before major
+    refactoring so agents know how the codebase should evolve. This guide complements
+    AGENTS.md and does not replace P2P governance boundaries.
+- id: C005
+  type: alternative_proposal
+  author: codex
+  relevance_hint: high
+  text: 'Alternatives to evaluate: keep the monolith and only document conventions;
+    split files mechanically without service boundaries; introduce internal managers
+    behind P2PWorkspace; or redesign public APIs. The preferred direction is internal
+    managers behind the stable facade because it improves maintainability without
+    forcing users or agents to relearn the public surface.'
+- id: C006
+  type: risk
+  author: codex
+  relevance_hint: high
+  text: 'Key risks: accidental behavior drift in CLI output, MCP payloads, validation,
+    consent receipts, Git side effects, and storage artifact layout. Refactoring must
+    therefore be incremental and test-backed, with existing tests used as compatibility
+    contracts before code movement.'
+- id: C007
+  type: scope_boundary
+  author: codex
+  relevance_hint: high
+  text: 'Scope boundary: this proposal should define the architecture contract and
+    refactoring roadmap. It should not itself implement the extraction, change runtime
+    behavior, or generate detailed src task checklists; those belong to later accepted-proposal
+    binding into local specs/.'
+- id: C008
+  type: implementation_suggestion
+  author: codex
+  relevance_hint: medium
+  text: 'Potential roadmap order: create or update development guidance; map current
+    P2PWorkspace methods by responsibility; extract consent/permission behavior; extract
+    proposal/readiness behavior; extract registry/project-state behavior; split CLI
+    command modules; introduce richer Git adapter errors; make MCP tool registration
+    more declarative.'
+- id: C009
+  type: constraint
+  author: codex
+  relevance_hint: high
+  text: 'Assumptions: P2PWorkspace can remain the compatibility entry point while
+    delegating internally; existing tests are broad enough to act as regression guards;
+    the refactor can be performed incrementally by responsibility area; agent instructions
+    can reduce future architectural drift but cannot replace code review and tests.'
+- id: C010
+  type: suggestion
+  author: codex
+  relevance_hint: high
+  text: 'Owner questions to resolve before acceptance: should the first deliverable
+    be documentation-only development guidance or a first code extraction; which area
+    is the safest first extraction; should CLI modularization happen before or after
+    service extraction; should AGENTS.md be changed or should docs/DEVELOPMENT-GUIDELINES.md
+    carry the architectural contract; what compatibility tests are mandatory before
+    each extraction.'
+- id: C011
+  type: suggestion
+  author: codex
+  relevance_hint: high
+  text: 'Recommended first deliverable: an accepted architecture contract before source
+    refactoring. The initial deliverable should update AGENTS.md with non-negotiable
+    agent rules, add docs/DEVELOPMENT-GUIDELINES.md for the full architecture guide,
+    and define a prioritized refactoring roadmap. No runtime behavior should change
+    in this first step.'
+- id: C012
+  type: implementation_suggestion
+  author: codex
+  relevance_hint: high
+  text: 'Recommended first code extraction after the architecture contract: consent/permissions.
+    It has a clearer boundary than proposal/readiness, is critical for agent safety,
+    is less exposed than CLI presentation, and can establish the service-extraction
+    pattern before touching more central domain workflows.'
+- id: C013
+  type: architectural_principle
+  author: codex
+  relevance_hint: high
+  text: 'Recommended sequencing: create the architecture contract, update agent guidance,
+    add the development guidelines, keep P2PWorkspace as the stable facade, extract
+    services/use cases before splitting CLI modules, forbid breaking changes without
+    a separate proposal, and generate implementation tasks only after accepted-proposal
+    binding into specs/.'
+- id: C014
+  type: constraint
+  author: codex
+  relevance_hint: high
+  text: 'Impact and overlap: the refactoring contract must preserve behavior introduced
+    by permission-gated MCP governance, MCP draft proposal decisions, managed next
+    actions, domain-aware project export work, runtime bootstrap work, and the local
+    specs binding workflow. These areas should be treated as compatibility-sensitive
+    during later extraction.'

@@ -1,1 +1,13 @@
-contributions: []
+contributions:
+- id: C001
+  type: risk
+  author: codex
+  relevance_hint: high
+  text: 'Concrete case observed on PROP-059: after the proposal was substantially
+    updated with explicit scope boundaries, alternatives, tradeoff rationale, risk
+    coverage, assumptions, owner-question resolution, acceptance criteria, and impact/overlap
+    notes, p2p proposal readiness refresh still reported score 14/100 weak and continued
+    listing those exact items as missing. The owner accepted PROP-059 with an explicit
+    readiness override in the decision reason. This demonstrates that refresh currently
+    behaves like a conservative snapshot/bootstrap synchronizer rather than an evidence-aware
+    reassessment workflow.'
