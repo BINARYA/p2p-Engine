@@ -1081,3 +1081,63 @@ readiness:
   - resolve_owner_questions_resolution
   - add_impact_overlap_analysis
   path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/readiness.yml
+- proposal: PROP-083
+  title: Domain-Aware Visible Project Definition Export
+  proposal_status: draft
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  computed_score: 7
+  computed_label: weak
+  confidence: low
+  failed_gates: []
+  missing:
+  - goal_clarity
+  - scope_boundaries
+  - alternatives_quality
+  - tradeoff_analysis
+  - risk_coverage
+  - assumptions_clarity
+  - owner_questions_resolution
+  - acceptance_criteria_quality
+  - impact_overlap_analysis
+  suggested_next:
+  - add_goal_clarity
+  - add_scope_boundaries
+  - add_alternatives_quality
+  - add_tradeoff_analysis
+  - add_risk_coverage
+  - add_assumptions_clarity
+  - add_owner_questions_resolution
+  - add_acceptance_criteria_quality
+  - add_impact_overlap_analysis
+  path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/readiness.yml
+- proposal: PROP-084
+  title: Project-Local Runtime Bootstrap And Upgrade Flow
+  proposal_status: draft
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  computed_score: 14
+  computed_label: weak
+  confidence: low
+  failed_gates: []
+  missing:
+  - scope_boundaries
+  - alternatives_quality
+  - tradeoff_analysis
+  - risk_coverage
+  - assumptions_clarity
+  - owner_questions_resolution
+  - acceptance_criteria_quality
+  - impact_overlap_analysis
+  suggested_next:
+  - add_scope_boundaries
+  - add_alternatives_quality
+  - add_tradeoff_analysis
+  - add_risk_coverage
+  - add_assumptions_clarity
+  - add_owner_questions_resolution
+  - add_acceptance_criteria_quality
+  - add_impact_overlap_analysis
+  path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/readiness.yml

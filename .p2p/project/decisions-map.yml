@@ -4,6 +4,11 @@ decisions:
   status: accepted
   feature: cli-foundation
   source: .p2p/proposals/PROP-001-cli-foundation
+- proposal: PROP-002
+  title: Proposal Exploration And Readiness Workflow
+  status: accepted
+  feature: proposal-exploration-and-readiness-workflow
+  source: .p2p/proposals/PROP-002-exploration-phase
 - proposal: PROP-004
   title: Prompt-only Import Workflow
   status: accepted
@@ -14,6 +19,11 @@ decisions:
   status: accepted
   feature: codex-skill-integration
   source: .p2p/proposals/PROP-005-codex-skill-integration
+- proposal: PROP-006
+  title: Multi-Agent Integration Model
+  status: accepted
+  feature: multi-agent-integration-model
+  source: .p2p/proposals/PROP-006-multi-agent-integration-model
 - proposal: PROP-009
   title: Governance CLI Commands
   status: accepted
@@ -349,3 +359,18 @@ decisions:
   status: accepted
   feature: project-local-wheel-installation-and-upgrade-model
   source: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model
+- proposal: PROP-079
+  title: Managed Next Action Lifecycle
+  status: accepted
+  feature: managed-next-action-lifecycle
+  source: .p2p/proposals/PROP-079-managed-next-action-lifecycle
+- proposal: PROP-080
+  title: Automated GitHub Release Wheel Publishing
+  status: accepted
+  feature: automated-github-release-wheel-publishing
+  source: .p2p/proposals/PROP-080-automated-github-release-wheel-publishing
+- proposal: PROP-081
+  title: MCP and Skill Support for Managed Next Actions
+  status: accepted
+  feature: mcp-and-skill-support-for-managed-next-actions
+  source: .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions

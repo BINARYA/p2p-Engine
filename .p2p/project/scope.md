@@ -25,6 +25,54 @@ Generated from accepted proposal goals and non-goals.
 - No automatic code implementation.
 - No advanced governance engine.
 
+## PROP-002 - Proposal Exploration And Readiness Workflow
+
+### Goals
+
+- Reframing di PROP-002 da semplice fase `explore` a workflow di proposal
+  exploration and readiness.
+- Mantenere gli artifact di exploration come memoria durable della proposta:
+  `exploration.md`, `findings.md`, `alternatives.md`, `open-questions.md`,
+  `risks.md`, `assumptions.md`, `suggested-scope.md`.
+- Introdurre un modello di readiness profile-based e versioned.
+- Definire un profilo iniziale `default-readiness-v0.1` con score 0-100,
+  criteri, pesi, soglie, gate e override policy.
+- Separare lifecycle state, computed readiness, confidence ed effective
+  governance status.
+- Introdurre criteri con pesi espliciti, inclusa enfasi su `alternatives
+  quality`.
+- Introdurre minimum gates per impedire che un punteggio alto compensi lacune
+  essenziali nelle proposal importanti.
+- Introdurre artifact quality states:
+  `missing`, `placeholder`, `thin`, `meaningful`, `needs_owner_input`, `ready`.
+- Usare artifact quality gates per limitare il punteggio massimo dei criteri
+  collegati ad artifact deboli o generici.
+- Richiedere evidence strutturata e note leggibili per i punteggi criterio.
+- Introdurre confidence qualitativa basata su qualita delle evidenze, non su
+  qualita retorica del testo.
+- Rendere `p2p next` readiness-aware, con gap concreti, failed gates e azioni ad
+  alto impatto.
+- Aggiornare skill agentiche e MCP workflow per rendere gli agenti
+  metodologicamente piu esigenti.
+- Definire owner override come evento governance auditabile, non come modifica
+  del computed score.
+- Applicare readiness a nuove proposal e draft aperte, preservando le proposal
+  gia accettate come legacy storiche.
+
+### Non-Goals
+
+- Non sostituire le decisioni governance dell'owner con uno score automatico.
+- Non trattare `computed_score: 100` come acceptance automatica.
+- Non modificare `computed_score` quando l'owner usa un override.
+- Non rendere il registry readiness fonte primaria al posto di artifact,
+  profile, assessment e audit record.
+- Non richiedere a ogni proposal piccola lo stesso livello di cerimonia delle
+  proposal architectural o governance-critical.
+- Non riscrivere, invalidare o bloccare retroattivamente proposal gia accettate.
+- Non introdurre una web app.
+- Non introdurre adapter AI diretti come requisito per la readiness.
+- Non cambiare il modello di distribuzione/package del progetto.
+
 ## PROP-004 - Prompt-only Import Workflow
 
 ### Goals
@@ -50,6 +98,28 @@ Generated from accepted proposal goals and non-goals.
 - Non introdurre MCP in questa fase.
 - Non invocare direttamente provider AI dalla CLI.
 - Non sostituire la CLI come sorgente di verita.
+
+## PROP-006 - Multi-Agent Integration Model
+
+### Goals
+
+- Create all supported project-local agent integrations by default during project init, unless the owner explicitly narrows the install set.
+- Keep generic as the mandatory, unremovable common baseline from which agent-specific files are derived.
+- Introduce a versioned project-local .p2p/agent-integrations.yml registry with generated-file manifests, ownership metadata, shared-file flags, template versions, SHA-256 hashes, and drift state.
+- Use built-in package templates for the MVP and defer project-local template overrides.
+- Support safe install, install all, list, show, update, doctor, and uninstall flows without active/default/preferred agent state.
+- Define the initial adapter matrix for generic, Codex, Claude, Cursor, Copilot, Gemini, and OpenCode, including shared files and excluded legacy/conflicting targets.
+- Define common method behavior for generated instructions so agents transform readiness gaps into alternatives, recommendations, owner questions, candidate edits, and readiness re-checks.
+- Keep P2P CLI, MCP tools, .p2p state, validation, readiness, and owner decisions aligned over the same core behavior.
+
+### Non-Goals
+
+- Project-level preferred, default, current, switched, or active agent selection.
+- Direct invocation of AI providers or hosted agent runtimes.
+- Destructive uninstall of files that have been manually modified or are shared with other installed integrations.
+- Automatic edits to user/global agent configuration outside the project without explicit consent.
+- Generation of deprecated .cursorrules files or default opencode.json configuration in the MVP.
+- Full implementation of dedicated readiness refinement commands unless covered by this proposal's implementation scope or a follow-up readiness proposal.
 
 ## PROP-009 - Governance CLI Commands
 
@@ -912,6 +982,36 @@ Generated from accepted proposal goals and non-goals.
 ### Goals
 
 - Make P2P Engine installable and upgradeable inside each project's own virtual environment, starting with GitHub Release wheel artifacts and explicitly preserving a future migration path to a public package registry.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-079 - Managed Next Action Lifecycle
+
+### Goals
+
+- Provide a managed hybrid next-action model that combines curated owner/agent actions with generated actions derived from project state, and expose lifecycle CLI commands so stale next actions can be closed without manual .p2p edits.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-080 - Automated GitHub Release Wheel Publishing
+
+### Goals
+
+- Automate wheel and sdist publishing for GitHub Releases so maintainers can publish installable project-local packages by pushing a version tag.
+
+### Non-Goals
+
+- Not provided.
+
+## PROP-081 - MCP and Skill Support for Managed Next Actions
+
+### Goals
+
+- Expose the managed next-action lifecycle consistently through CLI guidance, agent skill instructions, and MCP write-safe tools.
 
 ### Non-Goals
 

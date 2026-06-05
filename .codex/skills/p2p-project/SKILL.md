@@ -10,6 +10,9 @@ Use P2P Engine as the source of truth for project governance and planning.
 ## Required Behavior
 
 - Read `AGENTS.md` and `.p2p/agent-policy.yml` before modifying project state.
+- When asked to implement code, or to translate an accepted P2P proposal into expanded development context and operational implementation tasks, read `AGENTS-p2p-dev-specs.md` and use local `specs/` files for requirements, design, and tasks.
+- Keep implementation specs outside `.p2p/`; do not write coding steps, branch state, or task checklists into managed P2P state by hand.
+- Treat local specs as repository development aids, not P2P Engine release artifacts, unless the owner explicitly decides otherwise.
 - Use `p2p` CLI commands for P2P mutations.
 - If `p2p` is not on `PATH`, try `.venv/bin/p2p`, then `python -m p2p_engine`, then available MCP tools. Use `p2p agent doctor` or equivalent diagnostics before stopping.
 - Use MCP only within the tool schema; read-only MCP tools do not authorize filesystem writes.

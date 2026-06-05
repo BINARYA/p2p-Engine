@@ -596,3 +596,15 @@ decisions:
   status: draft
   path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/decision.md
   reason: ''
+- proposal: PROP-083
+  title: Domain-Aware Visible Project Definition Export
+  outcome: pending
+  status: draft
+  path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/decision.md
+  reason: ''
+- proposal: PROP-084
+  title: Project-Local Runtime Bootstrap And Upgrade Flow
+  outcome: pending
+  status: draft
+  path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/decision.md
+  reason: ''

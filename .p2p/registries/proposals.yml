@@ -2568,3 +2568,66 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-083
+  title: Domain-Aware Visible Project Definition Export
+  status: draft
+  path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export
+  summary: Replace the Change Set software-spec centered export workflow with a domain-aware
+    project definition export workflow. P2P should generate a complete generic project
+    definition for every domain from accepted P2P memory and project state. OpenSpec
+    and Spec Kit exports should be available only when the project domain or selected
+    export profile is software-compatible. Non-software domains must not generate
+    software-spec, OpenSpec, or Spec Kit outputs by default. The primary generic output
+    must be written to a visible output directory at the project root, not hidden
+    under .p2p/outputs, so humans who install and use P2P Engine can easily find the
+    project definition. .p2p may retain provenance, indexes, or internal metadata,
+    but the human-facing export must live outside the hidden P2P state directory.
+  decision_file: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - readiness.yml
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-084
+  title: Project-Local Runtime Bootstrap And Upgrade Flow
+  status: draft
+  path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow
+  summary: Introduce a dedicated collaborator bootstrap flow. A P2P initialization
+    may generate project-local bootstrap metadata and/or an installer wrapper that
+    records the required P2P Engine version, creates or reuses the project-local virtualenv,
+    installs the expected runtime, verifies the CLI/MCP server, and detects when the
+    project requires a newer runtime. The flow should support human execution and
+    agent-assisted execution, while keeping owner-controlled governance boundaries
+    intact.
+  decision_file: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - open-questions.md
+  - proposal.md
+  - readiness.yml
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

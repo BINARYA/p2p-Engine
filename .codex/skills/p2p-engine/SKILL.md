@@ -67,6 +67,16 @@ optional: CLAUDE.md, .codex/skills/p2p-project/SKILL.md
 
 In projects initialized this way, read `AGENTS.md` and `.p2p/agent-policy.yml` before changing project state. If an available CLI command or explicit MCP write tool cannot perform the requested P2P mutation, stop and report the missing primitive. Do not reverse-engineer `.p2p/`, invent IDs, write decision files, or accept/reject/defer/decide on behalf of the owner.
 
+For this P2P Engine repository, implementation planning is a local development
+layer. When asked to implement code, or to translate an accepted P2P proposal
+into expanded development context and operational implementation tasks, read
+`AGENTS-p2p-dev-specs.md` and create or update local `specs/` files
+(`requirements.md`, `design.md`, `tasks.md`) outside `.p2p/`. Use P2P outputs
+as source direction, but do not put coding steps, branch state, or
+implementation task checklists into managed P2P state by hand. Local specs are
+repository development aids, not P2P Engine release artifacts, unless the owner
+explicitly decides otherwise.
+
 When explaining existing P2P artifacts, read them from project state first. Use `p2p proposal show`, `p2p choice show`, `p2p change show`, `p2p work show`, or equivalent MCP show/read tools before summarizing. Do not explain saved proposals, choices, Change Sets, or Work items only from conversation memory.
 
 When using the P2P MCP server, the bootstrap and maintenance write-safe tools are:

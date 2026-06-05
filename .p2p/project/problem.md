@@ -8,6 +8,25 @@ P2P Engine does not exist yet as an executable tool. The project has a solid fou
 
 Without a first working CLI, every proposal must be created manually. That is acceptable for the bootstrap phase, but it must become automated quickly so the project can start using its own method.
 
+## PROP-002 - Proposal Exploration And Readiness Workflow
+
+P2P Engine deve impedire che una proposta passi troppo rapidamente da idea
+generica a decisione accettata senza una esplorazione sufficiente. Il problema
+non e solo creare file di exploration o generare prompt: il sistema deve aiutare
+owner e agenti a capire se una proposta e davvero matura, quali lacune restano,
+quanto l'agente deve essere pedante, e quando serve una decisione esplicita
+dell'owner.
+
+Senza questo livello, le proposal rischiano di documentare la prima soluzione
+emersa invece di mostrare una scelta consapevole tra alternative reali. Gli
+artifact possono esistere ma restare vuoti, generici o non collegati a criteri
+decisionali. `p2p next` puo limitarsi a suggerire una review generica invece di
+indicare azioni concrete per migliorare la proposta.
+
+P2P Engine ha quindi bisogno di un workflow di exploration e readiness che renda
+visibile la qualita metodologica della proposta senza sostituire la governance
+dell'owner.
+
 ## PROP-004 - Prompt-only Import Workflow
 
 P2P Engine genera prompt per varie fasi, ma non importa ancora in modo uniforme gli output prodotti da AI o agenti esterni.
@@ -15,6 +34,10 @@ P2P Engine genera prompt per varie fasi, ma non importa ancora in modo uniforme 
 ## PROP-005 - Codex Skill Integration
 
 Codex oggi non ha istruzioni formali per usare P2P Engine come metodo operativo e rischia di lasciare decisioni e interlocuzioni solo nella chat.
+
+## PROP-006 - Multi-Agent Integration Model
+
+P2P Engine can already generate basic agent-facing instructions for generic, Codex, and Claude profiles, but it does not yet manage agent integrations as governed, inspectable, updateable project state. Project initialization should create the supported project-local agent file structures by default, but today there is no explicit registry of installed integrations, generated-file manifests, hashes, drift detection, safe update, safe uninstall, conflict detection, or precise adapter matrix for Cursor, Copilot, Gemini, OpenCode, Codex, Claude, and the generic baseline. A second gap is methodological: generated instructions do not yet force agents to turn weak proposal readiness, failed gates, and owner questions into concrete refinement actions, alternatives, recommendations, candidate edits, and readiness re-checks.
 
 ## PROP-009 - Governance CLI Commands
 
@@ -285,3 +308,15 @@ MCP exposes proposal branch accept/reject but does not expose direct draft propo
 ## PROP-078 - Project-Local Wheel Installation and Upgrade Model
 
 P2P Engine is currently practical to update only when the operator understands a separate source checkout or external path. Existing P2P projects need a coherent project-local installation and upgrade path that does not require referencing another folder, cloning the engine inside every project, or rerunning p2p init.
+
+## PROP-079 - Managed Next Action Lifecycle
+
+P2P next actions can become stale because .p2p/project/next-actions.yml is curated project state but the CLI only reads it. There is no managed command to add, complete, retire, or refresh next actions, so agents either leave obsolete items such as completed consolidation tasks visible or must edit .p2p state by hand, which violates the managed-state boundary.
+
+## PROP-080 - Automated GitHub Release Wheel Publishing
+
+Publishing P2P Engine as a project-local wheel currently requires a manual, error-prone release cycle: bump version, build artifacts locally, create a tag, create a GitHub Release, and upload .whl/.tar.gz assets through the UI. This makes frequent updates slow and increases the chance of mismatched version, tag, and wheel filenames.
+
+## PROP-081 - MCP and Skill Support for Managed Next Actions
+
+The CLI now supports managed next-action lifecycle commands, but the agent skill and MCP surface still describe p2p_next as read-only/advisory only. Agents using MCP cannot add, complete, retire, or refresh curated next actions, and agents following the skill may not know the CLI lifecycle exists.

@@ -41,6 +41,26 @@ Owner-controlled actions include:
 - changing governance policy;
 - creating direct Git merges into the main branch.
 
+## Local Code Development Specs
+
+When the owner asks to implement code, or to translate an accepted P2P proposal
+into expanded development context and operational implementation tasks, use
+`AGENTS-p2p-dev-specs.md`.
+
+Keep this layer outside P2P governance state:
+
+- Use P2P only to read the accepted direction, decisions, readiness, and
+  constraints.
+- Put implementation context and delivery tasks under local `specs/` files such
+  as `requirements.md`, `design.md`, and `tasks.md`.
+- Do not write coding steps, branch state, or implementation task checklists into
+  `.p2p/` by hand.
+- Treat local specs as repository development aids, not P2P Engine release
+  artifacts, unless the owner explicitly decides otherwise.
+
+Over time, local development specs and implementation tasks may derive from P2P
+outputs, but they must remain a separate local development layer.
+
 ## Proposal Readiness
 
 Before recommending proposal acceptance, inspect readiness with:
