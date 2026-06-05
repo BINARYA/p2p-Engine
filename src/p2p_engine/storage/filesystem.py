@@ -695,6 +695,16 @@ class AgentInstructionsResult:
 
 
 @dataclass(frozen=True)
+class AgentIntegrationResult:
+    target: str
+    created: list[Path]
+    updated: list[Path]
+    removed: list[Path]
+    skipped: list[dict[str, object]]
+    registry_path: Path
+
+
+@dataclass(frozen=True)
 class PermissionActor:
     actor_id: str
     role: str
@@ -857,12 +867,310 @@ class P2PWorkspace:
             updated.append(relative_policy)
 
         self._set_repository_mode(repository_mode)
+        self._write_agent_integrations_registry(
+            self._build_agent_integrations_registry(merged_profiles, repository_mode)
+        )
         return AgentInstructionsResult(
             profile=profile,
             created=created,
             updated=updated,
             policy_path=relative_policy,
         )
+
+    def agent_integrations_list(self) -> dict[str, object]:
+        registry = self._agent_integrations_registry()
+        adapters = registry.get("adapters", {})
+        if not isinstance(adapters, dict):
+            adapters = {}
+        return {
+            "registry_path": str(self._agent_integrations_path().relative_to(self.root)),
+            "baseline_profile": registry.get("baseline_profile", "generic"),
+            "adapters": [
+                self._agent_integration_status(adapter_id, adapters.get(adapter_id, {}))
+                for adapter_id in BUILT_IN_AGENT_ADAPTERS
+            ],
+        }
+
+    def agent_integration_show(self, adapter: str) -> dict[str, object]:
+        adapter = _normalize_agent_profile(adapter)
+        if adapter == "all":
+            raise ValueError("Use a specific adapter for show.")
+        registry = self._agent_integrations_registry()
+        adapters = registry.get("adapters", {})
+        if not isinstance(adapters, dict):
+            adapters = {}
+        return self._agent_integration_status(adapter, adapters.get(adapter, {}), include_files=True)
+
+    def install_agent_integrations(
+        self,
+        target: str = "all",
+        repository_mode: str | None = None,
+        *,
+        force: bool = False,
+    ) -> AgentIntegrationResult:
+        target = _normalize_agent_profile(target)
+        repository_mode = _normalize_repository_mode(
+            repository_mode or self._repository_mode(default="local")
+        )
+        project_name = self._project_name()
+        registry = self._agent_integrations_registry()
+        existing_adapters = registry.get("adapters", {})
+        existing_profiles = (
+            [str(adapter_id) for adapter_id in existing_adapters.keys()]
+            if isinstance(existing_adapters, dict)
+            else []
+        )
+        profiles = sorted(set(existing_profiles) | set(_expanded_agent_profiles(target)))
+        files = _agent_instruction_files(project_name, profiles, repository_mode)
+        current_files = self._agent_registry_file_map(registry)
+        created: list[Path] = []
+        updated: list[Path] = []
+        skipped: list[dict[str, object]] = []
+
+        for relative_path, content in files.items():
+            path = self.root / relative_path
+            relative = path.relative_to(self.root)
+            existing_record = current_files.get(str(relative_path))
+            if path.exists():
+                current_hash = _sha256_file(path)
+                if existing_record and existing_record.get("sha256") != current_hash and not force:
+                    skipped.append(
+                        {
+                            "path": str(relative),
+                            "reason": "drifted",
+                        }
+                    )
+                    continue
+                if not existing_record and path.read_text(encoding="utf-8") != content and not force:
+                    skipped.append(
+                        {
+                            "path": str(relative),
+                            "reason": "unmanaged_exists",
+                        }
+                    )
+                    continue
+                if path.read_text(encoding="utf-8") == content:
+                    continue
+                path.write_text(content, encoding="utf-8")
+                updated.append(relative)
+            else:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content, encoding="utf-8")
+                created.append(relative)
+
+        policy = _agent_policy(project_name, profiles, repository_mode)
+        policy_path = self.p2p_dir / "agent-policy.yml"
+        policy_content = _yaml_dump(policy)
+        relative_policy = policy_path.relative_to(self.root)
+        if not policy_path.exists():
+            policy_path.parent.mkdir(parents=True, exist_ok=True)
+            policy_path.write_text(policy_content, encoding="utf-8")
+            created.append(relative_policy)
+        elif policy_path.read_text(encoding="utf-8") != policy_content:
+            policy_path.write_text(policy_content, encoding="utf-8")
+            updated.append(relative_policy)
+
+        new_registry = self._build_agent_integrations_registry(profiles, repository_mode)
+        if skipped:
+            old_records = self._agent_registry_file_map(registry)
+            skipped_paths = {str(item["path"]) for item in skipped}
+            for adapter_record in new_registry.get("adapters", {}).values():
+                if not isinstance(adapter_record, dict):
+                    continue
+                file_records = adapter_record.get("files", [])
+                if not isinstance(file_records, list):
+                    continue
+                for index, record in enumerate(file_records):
+                    if not isinstance(record, dict):
+                        continue
+                    path_key = str(record.get("path", ""))
+                    if path_key in skipped_paths and path_key in old_records:
+                        preserved = {**old_records[path_key]}
+                        current_path = self.root / path_key
+                        preserved["drift"] = (
+                            "drifted"
+                            if current_path.exists() and preserved.get("sha256") != _sha256_file(current_path)
+                            else "missing"
+                        )
+                        file_records[index] = preserved
+                    elif path_key in skipped_paths:
+                        current_path = self.root / path_key
+                        record["managed"] = False
+                        record["sha256"] = _sha256_file(current_path) if current_path.exists() else ""
+                        record["drift"] = "unmanaged" if current_path.exists() else "missing"
+        registry = new_registry
+        self._write_agent_integrations_registry(registry)
+        self._set_repository_mode(repository_mode)
+        return AgentIntegrationResult(
+            target=target,
+            created=created,
+            updated=updated,
+            removed=[],
+            skipped=skipped,
+            registry_path=self._agent_integrations_path().relative_to(self.root),
+        )
+
+    def uninstall_agent_integration(self, adapter: str) -> AgentIntegrationResult:
+        adapter = _normalize_agent_profile(adapter)
+        if adapter in {"all", "generic"}:
+            raise ValueError("generic cannot be uninstalled.")
+        registry = self._agent_integrations_registry()
+        adapters = registry.get("adapters", {})
+        if not isinstance(adapters, dict) or adapter not in adapters:
+            raise ValueError(f"Agent integration is not installed: {adapter}")
+        adapter_record = adapters.get(adapter, {})
+        files = adapter_record.get("files", []) if isinstance(adapter_record, dict) else []
+        removed: list[Path] = []
+        skipped: list[dict[str, object]] = []
+        for record in files if isinstance(files, list) else []:
+            if not isinstance(record, dict):
+                continue
+            relative = Path(str(record.get("path", "")))
+            if record.get("shared") is True:
+                skipped.append({"path": str(relative), "reason": "shared"})
+                continue
+            path = self.root / relative
+            if not path.exists():
+                skipped.append({"path": str(relative), "reason": "missing"})
+                continue
+            if record.get("sha256") != _sha256_file(path):
+                skipped.append({"path": str(relative), "reason": "drifted"})
+                continue
+            path.unlink()
+            removed.append(relative)
+            _remove_empty_parents(path.parent, stop_at=self.root)
+
+        adapters.pop(adapter, None)
+        registry["adapters"] = adapters
+        remaining_profiles = sorted({"generic"} | {str(item) for item in adapters.keys()})
+        project_name = self._project_name()
+        repository_mode = self._repository_mode(default="local")
+        shared_files = _agent_instruction_files(project_name, remaining_profiles, repository_mode)
+        for relative_path in (Path("AGENTS.md"),):
+            content = shared_files.get(relative_path)
+            if content is None:
+                continue
+            path = self.root / relative_path
+            path.write_text(content, encoding="utf-8")
+        policy_path = self.p2p_dir / "agent-policy.yml"
+        policy_path.write_text(
+            _yaml_dump(_agent_policy(project_name, remaining_profiles, repository_mode)),
+            encoding="utf-8",
+        )
+        registry = self._build_agent_integrations_registry(remaining_profiles, repository_mode)
+        self._write_agent_integrations_registry(registry)
+        return AgentIntegrationResult(
+            target=adapter,
+            created=[],
+            updated=[],
+            removed=removed,
+            skipped=skipped,
+            registry_path=self._agent_integrations_path().relative_to(self.root),
+        )
+
+    def _agent_integrations_path(self) -> Path:
+        return self.p2p_dir / "agent-integrations.yml"
+
+    def _agent_integrations_registry(self) -> dict[str, object]:
+        path = self._agent_integrations_path()
+        if not path.exists():
+            return {
+                "schema_version": 1,
+                "baseline_profile": "generic",
+                "adapters": {},
+            }
+        return _read_yaml_mapping(path, default={})
+
+    def _write_agent_integrations_registry(self, registry: dict[str, object]) -> None:
+        path = self._agent_integrations_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(_yaml_dump(registry), encoding="utf-8")
+
+    def _agent_registry_file_map(self, registry: dict[str, object]) -> dict[str, dict[str, object]]:
+        adapters = registry.get("adapters", {})
+        records: dict[str, dict[str, object]] = {}
+        if not isinstance(adapters, dict):
+            return records
+        for adapter in adapters.values():
+            if not isinstance(adapter, dict):
+                continue
+            files = adapter.get("files", [])
+            if not isinstance(files, list):
+                continue
+            for record in files:
+                if isinstance(record, dict) and "path" in record:
+                    records[str(record["path"])] = record
+        return records
+
+    def _build_agent_integrations_registry(
+        self,
+        profiles: list[str],
+        repository_mode: str,
+    ) -> dict[str, object]:
+        project_name = self._project_name()
+        installed = sorted(set(_expanded_agent_profiles("generic")) | set(profiles))
+        adapters: dict[str, object] = {}
+        for adapter_id in installed:
+            files = _agent_adapter_files(project_name, adapter_id, installed, repository_mode)
+            file_records = []
+            for relative_path, template_id, shared, owner in files:
+                path = self.root / relative_path
+                file_records.append(
+                    {
+                        "path": str(relative_path),
+                        "shared": shared,
+                        "owner": owner,
+                        "managed": path.exists(),
+                        "template_id": template_id,
+                        "sha256": _sha256_file(path) if path.exists() else "",
+                        "drift": "clean" if path.exists() else "missing",
+                    }
+                )
+            adapters[adapter_id] = {
+                "status": "installed",
+                "maturity": "stable",
+                "template_version": "agent-template-v1",
+                "capabilities": _agent_adapter_capabilities(adapter_id),
+                "files": file_records,
+            }
+        return {
+            "schema_version": 1,
+            "baseline_profile": "generic",
+            "generated_at": date.today().isoformat(),
+            "adapters": adapters,
+        }
+
+    def _agent_integration_status(
+        self,
+        adapter_id: str,
+        record: object,
+        *,
+        include_files: bool = False,
+    ) -> dict[str, object]:
+        installed = isinstance(record, dict) and record.get("status") == "installed"
+        files = record.get("files", []) if isinstance(record, dict) else []
+        file_statuses: list[dict[str, object]] = []
+        if isinstance(files, list):
+            for file_record in files:
+                if not isinstance(file_record, dict):
+                    continue
+                path = self.root / str(file_record.get("path", ""))
+                drift = "missing"
+                if path.exists():
+                    drift = "clean" if file_record.get("sha256") == _sha256_file(path) else "drifted"
+                file_status = {**file_record, "drift": drift}
+                file_statuses.append(file_status)
+        status = {
+            "adapter": adapter_id,
+            "supported": adapter_id in BUILT_IN_AGENT_ADAPTERS,
+            "installed": installed,
+            "maturity": record.get("maturity", "stable") if isinstance(record, dict) else "stable",
+            "drift": "drifted" if any(item.get("drift") == "drifted" for item in file_statuses) else "clean",
+        }
+        if include_files:
+            status["files"] = file_statuses
+            status["capabilities"] = _agent_adapter_capabilities(adapter_id)
+        return status
 
     def permissions_show(self) -> dict[str, object]:
         path = self._permissions_path()
@@ -2071,6 +2379,13 @@ class P2PWorkspace:
                 _validate_readiness_assessment_payload(_read_yaml_mapping(readiness_path, default={}))
             except ValueError as exc:
                 add("P2P231_INVALID_READINESS_ASSESSMENT", "error", readiness_path, str(exc))
+
+        agent_integrations_path = self._agent_integrations_path()
+        if agent_integrations_path.exists():
+            try:
+                _validate_agent_integrations_payload(_read_yaml_mapping(agent_integrations_path, default={}))
+            except ValueError as exc:
+                add("P2P240_INVALID_AGENT_INTEGRATIONS", "error", agent_integrations_path, str(exc))
 
         permissions_path = self._permissions_path()
         if permissions_path.exists():
@@ -6732,7 +7047,8 @@ class P2PWorkspace:
         return path
 
 
-AGENT_PROFILES = {"generic", "codex", "claude", "all"}
+BUILT_IN_AGENT_ADAPTERS = ("generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode")
+AGENT_PROFILES = {*BUILT_IN_AGENT_ADAPTERS, "all"}
 REPOSITORY_MODES = {"local", "cloud"}
 PROJECT_DOMAIN_TEMPLATES = {"generic", "software", "grant_document", "board_game"}
 PROJECT_DOMAINS = {"none", "custom", *PROJECT_DOMAIN_TEMPLATES}
@@ -6881,21 +7197,85 @@ _BUILT_IN_RUBRICS: dict[str, list[dict[str, object]]] = {
 
 def _normalize_agent_profile(profile: str) -> str:
     normalized = profile.strip().lower().replace("_", "-")
+    if "," in normalized:
+        parts = [item.strip() for item in normalized.split(",") if item.strip()]
+        normalized_parts = [_normalize_agent_profile(item) for item in parts]
+        if "all" in normalized_parts:
+            return "all"
+        return ",".join(sorted(set(normalized_parts)))
     aliases = {
         "claude-code": "claude",
         "anthropic": "claude",
         "openai-codex": "codex",
+        "github-copilot": "copilot",
+        "gemini-cli": "gemini",
+        "open-code": "opencode",
     }
     normalized = aliases.get(normalized, normalized)
     if normalized not in AGENT_PROFILES:
-        raise ValueError("Agent profile must be generic, codex, claude, or all")
+        valid = ", ".join([*BUILT_IN_AGENT_ADAPTERS, "all"])
+        raise ValueError(f"Agent profile must be one of: {valid}")
     return normalized
 
 
 def _expanded_agent_profiles(profile: str) -> list[str]:
+    if "," in profile:
+        expanded: set[str] = {"generic"}
+        for item in profile.split(","):
+            expanded.update(_expanded_agent_profiles(item))
+        return sorted(expanded)
     if profile == "all":
-        return ["generic", "codex", "claude"]
-    return [profile]
+        return list(BUILT_IN_AGENT_ADAPTERS)
+    if profile == "generic":
+        return ["generic"]
+    return ["generic", profile]
+
+
+def _remove_empty_parents(path: Path, *, stop_at: Path) -> None:
+    path = path.resolve()
+    stop_at = stop_at.resolve()
+    while path != stop_at and stop_at in path.parents:
+        try:
+            path.rmdir()
+        except OSError:
+            return
+        path = path.parent
+
+
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _managed_markdown_header(adapter: str, template_id: str) -> str:
+    return (
+        "<!--\n"
+        "Managed by P2P Engine.\n"
+        f"Adapter: {adapter}\n"
+        f"Template: {template_id}\n"
+        "Do not edit generated sections unless you accept drift.\n"
+        "-->\n\n"
+    )
+
+
+READINESS_GAP_HANDLING_BLOCK = """When a proposal is weak, low-confidence, below target, or has failed readiness gates, do not stop at diagnosis.
+
+For each failed gate or material gap:
+1. explain why the gate failed in proposal-specific terms;
+2. propose one to three concrete alternatives;
+3. recommend one option when evidence supports a recommendation;
+4. identify the owner decision required;
+5. draft the exact artifact update that would close the gap;
+6. ask for confirmation only where owner authority is required;
+7. re-check or request readiness re-check after refinement."""
+
+
+def _agent_adapter_capabilities(adapter_id: str) -> dict[str, object]:
+    return {
+        "mcp": "supported",
+        "shell": "supported",
+        "project_instructions": True,
+        "skill": adapter_id in {"codex"},
+    }
 
 
 def _normalize_repository_mode(mode: str) -> str:
@@ -7082,14 +7462,59 @@ def _agent_instruction_files(
     profiles: list[str],
     repository_mode: str,
 ) -> dict[Path, str]:
+    profiles = sorted(set(profiles))
     files = {Path("AGENTS.md"): _agents_markdown(project_name, profiles, repository_mode)}
     if "codex" in profiles:
+        files[Path(".agents/skills/p2p-project/SKILL.md")] = _shared_p2p_project_skill(
+            project_name,
+            repository_mode,
+        )
         files[Path(".codex/skills/p2p-project/SKILL.md")] = _codex_project_skill(
             project_name,
             repository_mode,
         )
     if "claude" in profiles:
         files[Path("CLAUDE.md")] = _claude_markdown(project_name, repository_mode)
+    if "cursor" in profiles:
+        files[Path(".cursor/rules/p2p.mdc")] = _cursor_rule(project_name, repository_mode)
+    if "copilot" in profiles:
+        files[Path(".github/copilot-instructions.md")] = _copilot_instructions(
+            project_name,
+            repository_mode,
+        )
+    if "gemini" in profiles:
+        files[Path("GEMINI.md")] = _gemini_markdown(project_name, repository_mode)
+    return files
+
+
+def _agent_adapter_files(
+    project_name: str,
+    adapter_id: str,
+    profiles: list[str],
+    repository_mode: str,
+) -> list[tuple[Path, str, bool, str]]:
+    files: list[tuple[Path, str, bool, str]] = []
+    if adapter_id == "generic":
+        files.append((Path("AGENTS.md"), "generic-agents-md-v1", True, "generic"))
+        files.append((Path(".p2p/agent-policy.yml"), "generic-agent-policy-v1", True, "generic"))
+    elif adapter_id == "codex":
+        files.append((Path("AGENTS.md"), "generic-agents-md-v1", True, "generic"))
+        files.append((Path(".agents/skills/p2p-project/SKILL.md"), "codex-p2p-skill-v1", False, "codex"))
+        files.append((Path(".codex/skills/p2p-project/SKILL.md"), "codex-legacy-p2p-skill-v1", False, "codex"))
+    elif adapter_id == "claude":
+        files.append((Path("AGENTS.md"), "generic-agents-md-v1", True, "generic"))
+        files.append((Path("CLAUDE.md"), "claude-md-v1", False, "claude"))
+    elif adapter_id == "cursor":
+        files.append((Path("AGENTS.md"), "generic-agents-md-v1", True, "generic"))
+        files.append((Path(".cursor/rules/p2p.mdc"), "cursor-p2p-rule-v1", False, "cursor"))
+    elif adapter_id == "copilot":
+        files.append((Path("AGENTS.md"), "generic-agents-md-v1", True, "generic"))
+        files.append((Path(".github/copilot-instructions.md"), "copilot-instructions-v1", False, "copilot"))
+    elif adapter_id == "gemini":
+        files.append((Path("AGENTS.md"), "generic-agents-md-v1", True, "generic"))
+        files.append((Path("GEMINI.md"), "gemini-md-v1", False, "gemini"))
+    elif adapter_id == "opencode":
+        files.append((Path("AGENTS.md"), "generic-agents-md-v1", True, "generic"))
     return files
 
 
@@ -7147,6 +7572,18 @@ def _agent_policy(project_name: str, profiles: list[str], repository_mode: str) 
         ],
         "proposal_readiness": {
             "inspect_before_acceptance_recommendation": True,
+            "gap_handling": {
+                "do_not_stop_at_diagnosis": True,
+                "steps": [
+                    "explain_failed_gate",
+                    "propose_alternatives",
+                    "recommend_when_supported",
+                    "identify_owner_decision",
+                    "draft_candidate_update",
+                    "ask_only_for_owner_authority",
+                    "recheck_readiness",
+                ],
+            },
             "commands": [
                 "p2p proposal readiness show PROP-XXX",
                 "p2p proposal readiness init PROP-XXX",
@@ -7241,7 +7678,7 @@ def _agent_policy(project_name: str, profiles: list[str], repository_mode: str) 
 
 def _agents_markdown(project_name: str, profiles: list[str], repository_mode: str) -> str:
     profile_text = ", ".join(profiles)
-    return f"""# Agent Instructions - {project_name}
+    return f"""{_managed_markdown_header("generic", "generic-agents-md-v1")}# Agent Instructions - {project_name}
 
 This project uses P2P Engine.
 
@@ -7296,6 +7733,10 @@ p2p proposal readiness explain PROP-XXX
 ```
 
 If readiness is missing, weak, below target, or blocked by failed gates, ask focused owner questions and identify concrete missing artifacts before recommending acceptance. Readiness is advisory; the owner may still decide, but an owner override must be described separately from the computed score.
+
+### Readiness Gap Handling
+
+{READINESS_GAP_HANDLING_BLOCK}
 
 ## Managed Git Collaboration
 
@@ -7379,12 +7820,43 @@ p2p proposal create "Title" --problem "..." --goal "..." --proposal "..." --acce
 """
 
 
+def _shared_p2p_project_skill(project_name: str, repository_mode: str) -> str:
+    return f"""---
+name: p2p-project
+description: Use when working in this P2P-managed project. Enforces P2P Engine boundaries for any compatible project skill loader.
+---
+
+{_managed_markdown_header("codex", "codex-p2p-skill-v1")}\
+# P2P Project Skill - {project_name}
+
+Use P2P Engine as the source of truth for project governance and planning.
+
+## Required Behavior
+
+- Read `AGENTS.md` and `.p2p/agent-policy.yml` before modifying project state.
+- Use `p2p` CLI commands or explicit MCP write tools for P2P mutations.
+- If no CLI command or MCP write tool exists for the requested operation, stop and report the missing primitive.
+- Do not edit `.p2p/` internals directly, invent IDs, or synthesize decision files.
+- Do not accept, reject, defer, decide, merge, finalize, or cleanup without explicit owner instruction.
+- Do not recommend proposal acceptance before checking readiness.
+- Do not run raw Git commands for managed branch, sync, publish, or merge work unless the owner explicitly authorizes an escape hatch.
+- Use compact context before broad file reads.
+
+## Readiness Gap Handling
+
+{READINESS_GAP_HANDLING_BLOCK}
+
+Repository mode: `{repository_mode}`.
+"""
+
+
 def _codex_project_skill(project_name: str, repository_mode: str) -> str:
     return f"""---
 name: p2p-project
 description: Use when working in this P2P-managed project. Enforces P2P Engine boundaries for Codex.
 ---
 
+{_managed_markdown_header("codex", "codex-legacy-p2p-skill-v1")}\
 # P2P Project Skill - {project_name}
 
 Use P2P Engine as the source of truth for project governance and planning.
@@ -7404,6 +7876,10 @@ Use P2P Engine as the source of truth for project governance and planning.
 - Before explaining existing proposals, choices, Change Sets, or Work items, use the relevant `p2p ... show` command or equivalent MCP read tool.
 - Use `p2p context --budget small` or MCP `p2p_context` before broad file reads.
 - Do not scan all `.p2p/`, registries, source files, or Git history unless the task explicitly requires it.
+
+## Readiness Gap Handling
+
+{READINESS_GAP_HANDLING_BLOCK}
 
 ## Useful Commands
 
@@ -7437,7 +7913,7 @@ Repository mode: `{repository_mode}`.
 
 
 def _claude_markdown(project_name: str, repository_mode: str) -> str:
-    return f"""# Claude Instructions - {project_name}
+    return f"""{_managed_markdown_header("claude", "claude-md-v1")}# Claude Instructions - {project_name}
 
 This repository is managed with P2P Engine.
 
@@ -7456,6 +7932,74 @@ Key rules:
 - Before explaining existing proposals, choices, Change Sets, or Work items, read them with the relevant `p2p ... show` command or equivalent MCP read tool.
 - Use `p2p context --budget small` or MCP `p2p_context` before broad file reads.
 - Do not scan all `.p2p/`, registries, source files, or Git history unless the task explicitly requires it.
+
+## Readiness Gap Handling
+
+{READINESS_GAP_HANDLING_BLOCK}
+
+Repository mode: `{repository_mode}`.
+"""
+
+
+def _cursor_rule(project_name: str, repository_mode: str) -> str:
+    return f"""---
+description: P2P Engine project governance and agent workflow rules
+alwaysApply: true
+---
+
+{_managed_markdown_header("cursor", "cursor-p2p-rule-v1")}\
+# Cursor P2P Rules - {project_name}
+
+- Use `p2p` CLI commands or explicit MCP write tools for P2P mutations.
+- Do not edit `.p2p/` internals directly.
+- Do not make owner-controlled governance decisions without explicit owner instruction.
+- Inspect proposal readiness before recommending acceptance.
+- Use compact context before broad file reads.
+
+## Readiness Gap Handling
+
+{READINESS_GAP_HANDLING_BLOCK}
+
+Repository mode: `{repository_mode}`.
+"""
+
+
+def _copilot_instructions(project_name: str, repository_mode: str) -> str:
+    return f"""{_managed_markdown_header("copilot", "copilot-instructions-v1")}# GitHub Copilot Instructions - {project_name}
+
+This repository is managed with P2P Engine.
+
+- Use `p2p` CLI commands for P2P writes when shell access is available.
+- Use explicit MCP write tools only when the tool schema supports the requested operation.
+- Do not edit `.p2p/` internals directly.
+- Do not invent proposal, choice, change, work, registry, or decision IDs.
+- Owner-controlled governance decisions require explicit owner instruction.
+- Inspect readiness before recommending proposal acceptance.
+- Prefer compact context before broad reads.
+
+## Readiness Gap Handling
+
+{READINESS_GAP_HANDLING_BLOCK}
+
+Repository mode: `{repository_mode}`.
+"""
+
+
+def _gemini_markdown(project_name: str, repository_mode: str) -> str:
+    return f"""{_managed_markdown_header("gemini", "gemini-md-v1")}# Gemini Instructions - {project_name}
+
+This repository is managed with P2P Engine.
+
+- Use `p2p` CLI commands or explicit MCP write tools for P2P mutations.
+- Do not edit `.p2p/` internals directly.
+- If no write primitive exists, stop and report the limitation.
+- The owner controls governance decisions.
+- Inspect readiness before recommending proposal acceptance.
+- Use compact context before broad file reads.
+
+## Readiness Gap Handling
+
+{READINESS_GAP_HANDLING_BLOCK}
 
 Repository mode: `{repository_mode}`.
 """
@@ -7847,6 +8391,43 @@ def _validate_readiness_assessment_payload(data: dict[str, object]) -> None:
         awarded = assessment.get("awarded_points")
         if awarded is not None and (not isinstance(awarded, int) or awarded < 0):
             raise ValueError(f"Readiness awarded_points must be a non-negative integer: {criterion}")
+
+
+def _validate_agent_integrations_payload(data: dict[str, object]) -> None:
+    if data.get("schema_version") != 1:
+        raise ValueError("Agent integrations registry must use schema_version: 1.")
+    if data.get("baseline_profile") != "generic":
+        raise ValueError("Agent integrations registry baseline_profile must be generic.")
+    forbidden = {"active_agent", "default_agent", "preferred_agent", "current_agent", "use", "switch"}
+    for key in forbidden:
+        if key in data:
+            raise ValueError(f"Agent integrations registry must not define {key}.")
+    adapters = data.get("adapters")
+    if not isinstance(adapters, dict):
+        raise ValueError("Agent integrations registry must define adapters mapping.")
+    for adapter_id, adapter in adapters.items():
+        if adapter_id not in BUILT_IN_AGENT_ADAPTERS:
+            raise ValueError(f"Unknown agent adapter: {adapter_id}")
+        if not isinstance(adapter, dict):
+            raise ValueError(f"Agent adapter record must be a mapping: {adapter_id}")
+        if adapter.get("status") != "installed":
+            raise ValueError(f"Agent adapter status must be installed: {adapter_id}")
+        files = adapter.get("files")
+        if not isinstance(files, list):
+            raise ValueError(f"Agent adapter files must be a list: {adapter_id}")
+        for record in files:
+            if not isinstance(record, dict):
+                raise ValueError(f"Agent adapter file record must be a mapping: {adapter_id}")
+            for required in ("path", "shared", "owner", "managed", "template_id", "sha256", "drift"):
+                if required not in record:
+                    raise ValueError(f"Agent adapter file record missing {required}: {adapter_id}")
+            if record["owner"] not in BUILT_IN_AGENT_ADAPTERS:
+                raise ValueError(f"Invalid agent adapter file owner: {record['owner']}")
+            sha256 = str(record.get("sha256") or "")
+            if sha256 and not re.fullmatch(r"[0-9a-f]{64}", sha256):
+                raise ValueError(f"Invalid SHA-256 for agent adapter file: {record.get('path')}")
+            if record.get("drift") not in {"clean", "missing", "drifted", "unmanaged"}:
+                raise ValueError(f"Invalid drift state for agent adapter file: {record.get('path')}")
 
 
 def _refresh_readiness_payload(readiness: dict[str, object], profile: ReadinessProfile) -> dict[str, object]:

@@ -24,11 +24,20 @@ Scriptable setup:
 
 ```bash
 p2p init "My Project" \
-  --agent codex \
   --repository local \
   --domain software \
   --mcp-hint
 ```
+
+By default, `p2p init` creates the generic baseline plus all built-in
+project-local agent integrations. To narrow the generated adapters, repeat
+`--agent`:
+
+```bash
+p2p init "My Project" --agent codex --agent claude --repository local
+```
+
+`generic` is always included.
 
 `--domain` applies an optional domain template. If omitted, the project starts
 with unresolved domain and rubric state, and `p2p next` will recommend defining
@@ -58,6 +67,30 @@ p2p next refresh
 
 Completed and retired curated actions are moved to
 `.p2p/project/next-actions-log.yml`.
+
+## 2. Manage Agent Integrations
+
+Installed project-local agent integrations are tracked in:
+
+```text
+.p2p/agent-integrations.yml
+```
+
+Use lifecycle commands instead of editing generated files or the registry by
+hand:
+
+```bash
+p2p agent list
+p2p agent show codex
+p2p agent install cursor
+p2p agent update all
+p2p agent doctor all
+p2p agent uninstall cursor
+```
+
+`update` refuses to overwrite drifted generated files unless `--force` is used.
+`uninstall` removes only clean, managed, non-shared files. `generic` cannot be
+uninstalled.
 
 Expected shape:
 

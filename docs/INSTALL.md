@@ -92,10 +92,20 @@ For a scriptable non-interactive setup:
 
 ```bash
 .venv/bin/p2p init "My Project" \
-  --agent codex \
   --repository local \
   --domain software \
   --mcp-hint
+```
+
+By default, `p2p init` creates the generic baseline plus all built-in
+project-local agent integrations. To generate only selected adapters, repeat
+`--agent`:
+
+```bash
+.venv/bin/p2p init "My Project" \
+  --agent codex \
+  --agent claude \
+  --repository local
 ```
 
 If you omit `--domain`, P2P starts with unresolved domain and rubric state. The
@@ -109,7 +119,6 @@ Local projects need only the P2P workspace:
 
 ```bash
 .venv/bin/p2p init "My Project" \
-  --agent codex \
   --repository local \
   --domain software \
   --owner matteo \
@@ -121,7 +130,6 @@ MVP keeps these as explicit steps:
 
 ```bash
 .venv/bin/p2p init "My Project" \
-  --agent codex \
   --repository cloud \
   --domain software \
   --owner matteo \
@@ -164,6 +172,8 @@ From the target project:
 
 .venv/bin/p2p doctor
 .venv/bin/p2p agent doctor
+.venv/bin/p2p agent list
+.venv/bin/p2p agent update all
 .venv/bin/p2p registry refresh
 .venv/bin/p2p agent instructions refresh
 .venv/bin/p2p validate

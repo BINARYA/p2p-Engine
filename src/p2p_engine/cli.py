@@ -119,10 +119,29 @@ def doctor(
 
 @agent_app.command("doctor")
 def agent_doctor(
+    target: str | None = typer.Argument(None, help="Optional agent adapter id or all"),
     root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
 ) -> None:
     """Diagnose agent runtime readiness and recovery steps."""
     _print_doctor(root, agent_mode=True)
+    if target:
+        console.print("Agent integration doctor")
+        workspace = _workspace(root)
+        if target == "all":
+            result = workspace.agent_integrations_list()
+            for adapter in result["adapters"]:
+                console.print(
+                    f"  {adapter['adapter']}: installed={str(adapter['installed']).lower()} "
+                    f"drift={adapter['drift']}"
+                )
+            return
+        try:
+            result = workspace.agent_integration_show(target)
+        except ValueError as exc:
+            _fail(str(exc))
+        console.print(f"  {result['adapter']}: installed={str(result['installed']).lower()} drift={result['drift']}")
+        for record in result.get("files", []):
+            console.print(f"    {record['path']}: {record.get('drift')}")
 
 
 def _print_doctor(root: Path, *, agent_mode: bool) -> None:
@@ -199,10 +218,10 @@ def _recommended_p2p_command(
 @app.command()
 def init(
     name: str | None = typer.Argument(None, help="Project name"),
-    agent: str = typer.Option(
-        "generic",
+    agent: list[str] | None = typer.Option(
+        None,
         "--agent",
-        help="Initial agent profile: generic, codex, claude, or all",
+        help="Initial agent adapter. Repeat for a narrowed install set. Defaults to all built-in adapters.",
     ),
     repository: str = typer.Option(
         "local",
@@ -246,11 +265,12 @@ def init(
     if name is None:
         console.print("[bold]P2P project initialization[/bold]")
         name = typer.prompt("Project name", default=root.resolve().name)
-        agent = _prompt_choice(
+        selected_agent = _prompt_choice(
             "Initial agent profile",
-            choices=("generic", "codex", "claude", "all"),
-            default=agent,
+            choices=("all", "generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode"),
+            default=(agent[0] if agent else "all"),
         )
+        agent = [selected_agent]
         repository = _prompt_choice(
             "Repository mode",
             choices=("local", "cloud"),
@@ -268,10 +288,11 @@ def init(
         mcp_hint = bool(mcp_hint)
 
     workspace = _workspace(root)
+    agent_profile = "all" if not agent else ("all" if "all" in agent else ",".join(agent))
     try:
         created = workspace.init_project(
             name=name,
-            agent_profile=agent,
+            agent_profile=agent_profile,
             repository_mode=repository,
             project_domain=domain,
             rubric_enabled=rubric_enabled,
@@ -286,7 +307,7 @@ def init(
     for path in created:
         console.print(f"  created {path}")
     _print_init_remote_status(workspace)
-    _print_init_next_steps(root.resolve(), agent, show_mcp_hint=mcp_hint)
+    _print_init_next_steps(root.resolve(), agent_profile, show_mcp_hint=mcp_hint)
 
 
 def _print_init_remote_status(workspace: P2PWorkspace) -> None:
@@ -404,6 +425,98 @@ def agent_instructions_refresh(
             console.print(f"    {path}")
     if not result.created and not result.updated:
         console.print("  no changes")
+
+
+@agent_app.command("list")
+def agent_list(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+    """List supported and installed agent integrations."""
+    result = _workspace(root).agent_integrations_list()
+    console.print("Agent integrations")
+    console.print(f"  registry: {result['registry_path']}")
+    console.print(f"  baseline: {result['baseline_profile']}")
+    for adapter in result["adapters"]:
+        console.print(
+            f"  {adapter['adapter']}: installed={str(adapter['installed']).lower()} "
+            f"drift={adapter['drift']}"
+        )
+
+
+@agent_app.command("show")
+def agent_show(
+    adapter: str = typer.Argument(..., help="Agent adapter id"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Show an agent integration and its managed files."""
+    try:
+        result = _workspace(root).agent_integration_show(adapter)
+    except ValueError as exc:
+        _fail(str(exc))
+    console.print(f"Agent integration: {result['adapter']}")
+    console.print(f"  installed: {str(result['installed']).lower()}")
+    console.print(f"  drift: {result['drift']}")
+    console.print("  files:")
+    for record in result.get("files", []):
+        console.print(
+            f"    {record['path']} shared={str(record.get('shared')).lower()} "
+            f"owner={record.get('owner')} drift={record.get('drift')}"
+        )
+
+
+@agent_app.command("install")
+def agent_install(
+    target: str = typer.Argument(..., help="Agent adapter id or all"),
+    force: bool = typer.Option(False, "--force", help="Overwrite drifted or unmanaged files"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Install agent integration files and update the registry."""
+    try:
+        result = _workspace(root).install_agent_integrations(target, force=force)
+    except ValueError as exc:
+        _fail(str(exc))
+    _print_agent_integration_result("Agent integration installed", result)
+
+
+@agent_app.command("update")
+def agent_update(
+    target: str = typer.Argument(..., help="Agent adapter id or all"),
+    force: bool = typer.Option(False, "--force", help="Overwrite drifted or unmanaged files"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Update generated agent integration files when safe."""
+    try:
+        result = _workspace(root).install_agent_integrations(target, force=force)
+    except ValueError as exc:
+        _fail(str(exc))
+    _print_agent_integration_result("Agent integration updated", result)
+
+
+@agent_app.command("uninstall")
+def agent_uninstall(
+    adapter: str = typer.Argument(..., help="Agent adapter id"),
+    root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Uninstall a safe, managed, non-shared agent integration."""
+    try:
+        result = _workspace(root).uninstall_agent_integration(adapter)
+    except ValueError as exc:
+        _fail(str(exc))
+    _print_agent_integration_result("Agent integration uninstalled", result)
+
+
+def _print_agent_integration_result(title: str, result: object) -> None:
+    console.print(f"[green]{title}.[/green]")
+    console.print(f"  target: {result.target}")
+    console.print(f"  registry: {result.registry_path}")
+    for label in ("created", "updated", "removed"):
+        items = getattr(result, label)
+        if items:
+            console.print(f"  {label}:")
+            for path in items:
+                console.print(f"    {path}")
+    if result.skipped:
+        console.print("  skipped:")
+        for item in result.skipped:
+            console.print(f"    {item['path']}: {item['reason']}")
 
 
 @app.command()

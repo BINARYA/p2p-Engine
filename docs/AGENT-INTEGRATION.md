@@ -1,10 +1,11 @@
 # Agent Integration
 
-This guide explains how Codex, Claude, and other agents should use P2P Engine.
+This guide explains how Codex, Claude, Cursor, Copilot, Gemini, OpenCode, and
+generic agents should use P2P Engine.
 
 Status: practical guide. The generated `AGENTS.md`, `.p2p/agent-policy.yml`,
-Codex skill, and MCP tool descriptions are the operational source of truth for a
-specific project.
+agent-specific files, `.p2p/agent-integrations.yml`, and MCP tool descriptions
+are the operational source of truth for a specific project.
 
 ## Core Rules
 
@@ -138,6 +139,57 @@ tools and use explicit write-safe tools when their schema matches the requested
 operation. If neither CLI nor a matching MCP write tool is available, the agent
 must stop and report diagnostics instead of editing `.p2p/` directly.
 
+## Project-Local Agent Integrations
+
+New projects install all built-in project-local adapters by default:
+
+```bash
+p2p init "My Project"
+```
+
+The generated baseline is always `generic`; it cannot be removed. A project can
+also request a narrower setup:
+
+```bash
+p2p init "My Project" --agent codex --agent claude
+```
+
+Manage integrations with:
+
+```bash
+p2p agent list
+p2p agent show codex
+p2p agent install cursor
+p2p agent update all
+p2p agent doctor all
+p2p agent uninstall cursor
+```
+
+P2P records generated files, owners, shared-file status, hashes, and drift in
+`.p2p/agent-integrations.yml`. Do not edit that registry by hand.
+
+Adapter file matrix:
+
+```text
+generic   -> AGENTS.md, .p2p/agent-policy.yml
+codex     -> AGENTS.md, .agents/skills/p2p-project/SKILL.md, .codex/skills/p2p-project/SKILL.md
+claude    -> AGENTS.md, CLAUDE.md
+cursor    -> AGENTS.md, .cursor/rules/p2p.mdc
+copilot   -> AGENTS.md, .github/copilot-instructions.md
+gemini    -> AGENTS.md, GEMINI.md
+opencode  -> AGENTS.md
+```
+
+P2P does not generate `.cursorrules` or `opencode.json` in the MVP.
+
+## Readiness Gap Handling
+
+Generated instructions must make agents methodologically demanding. When a
+proposal is weak, low-confidence, below target, or has failed readiness gates,
+agents should not stop at diagnosis. They should explain each gap, propose
+alternatives, recommend one when justified, identify owner decisions, draft
+candidate updates, and re-check readiness.
+
 ## Codex
 
 For a P2P-managed project, use the generated agent instructions:
@@ -145,6 +197,7 @@ For a P2P-managed project, use the generated agent instructions:
 ```text
 AGENTS.md
 .p2p/agent-policy.yml
+.agents/skills/p2p-project/SKILL.md
 .codex/skills/p2p-project/SKILL.md
 ```
 
@@ -159,9 +212,11 @@ codex mcp add p2p-my-project -- \
 
 ## Claude
 
-For Claude-oriented projects, initialize or refresh instructions with:
+For Claude-oriented projects, use the generated `CLAUDE.md`. Existing projects
+can install or refresh it with:
 
 ```bash
+p2p agent install claude
 p2p agent instructions refresh --profile claude
 ```
 
@@ -186,7 +241,5 @@ or mutate `.p2p/` manually, stop and report the conflict.
 
 ## Planned Additions
 
-- Codex workflow examples;
-- Claude workflow examples;
 - generic MCP client setup;
 - recommended bounded-session patterns.

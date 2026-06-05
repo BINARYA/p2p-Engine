@@ -13,6 +13,11 @@ from p2p_engine.storage.filesystem import P2PWorkspace, ProposalMergeConflict
 TOOL_NAMES = (
     "p2p_init_project",
     "p2p_agent_instructions_refresh",
+    "p2p_agent_list",
+    "p2p_agent_show",
+    "p2p_agent_install",
+    "p2p_agent_update",
+    "p2p_agent_uninstall",
     "p2p_registry_refresh",
     "p2p_validate",
     "p2p_context",
@@ -158,7 +163,7 @@ def tool_definitions() -> list[dict[str, object]]:
                     "name": {"type": "string"},
                     "agent": {
                         "type": "string",
-                        "enum": ["generic", "codex", "claude", "all"],
+                        "enum": ["generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode", "all"],
                     },
                     "repository": {
                         "type": "string",
@@ -183,13 +188,91 @@ def tool_definitions() -> list[dict[str, object]]:
                     "root": {"type": "string"},
                     "profile": {
                         "type": "string",
-                        "enum": ["generic", "codex", "claude", "all"],
+                        "enum": ["generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode", "all"],
                     },
                     "repository": {
                         "type": "string",
                         "enum": ["local", "cloud"],
                     },
                 },
+            ),
+        },
+        {
+            "name": "p2p_agent_list",
+            "description": (
+                "Read-only agent integration tool: list supported and installed "
+                "agent integrations, including drift status."
+            ),
+            "inputSchema": _schema({"root": {"type": "string"}}),
+        },
+        {
+            "name": "p2p_agent_show",
+            "description": (
+                "Read-only agent integration tool: show one adapter's managed files, "
+                "capabilities, and drift status."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "adapter": {
+                        "type": "string",
+                        "enum": ["generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode"],
+                    },
+                },
+                ["adapter"],
+            ),
+        },
+        {
+            "name": "p2p_agent_install",
+            "description": (
+                "Write-safe agent integration tool: install generated project-local "
+                "agent files and update the registry without making governance decisions."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "adapter": {
+                        "type": "string",
+                        "enum": ["generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode", "all"],
+                    },
+                    "force": {"type": "boolean"},
+                },
+                ["adapter"],
+            ),
+        },
+        {
+            "name": "p2p_agent_update",
+            "description": (
+                "Write-safe agent integration tool: update generated files when safe "
+                "and report drifted files instead of overwriting them silently."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "adapter": {
+                        "type": "string",
+                        "enum": ["generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode", "all"],
+                    },
+                    "force": {"type": "boolean"},
+                },
+                ["adapter"],
+            ),
+        },
+        {
+            "name": "p2p_agent_uninstall",
+            "description": (
+                "Write-safe agent integration tool: remove only safe, managed, "
+                "unchanged, non-shared files for one adapter."
+            ),
+            "inputSchema": _schema(
+                {
+                    "root": {"type": "string"},
+                    "adapter": {
+                        "type": "string",
+                        "enum": ["codex", "claude", "cursor", "copilot", "gemini", "opencode"],
+                    },
+                },
+                ["adapter"],
             ),
         },
         {
@@ -1014,6 +1097,38 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, o
             repository_mode=str(repository) if repository is not None else None,
         )
         return {"agent_instructions": _to_jsonable(result)}
+    if name == "p2p_agent_list":
+        return {"agent_integrations": _to_jsonable(workspace.agent_integrations_list())}
+    if name == "p2p_agent_show":
+        return {
+            "agent_integration": _to_jsonable(
+                workspace.agent_integration_show(str(arguments.get("adapter") or "generic"))
+            )
+        }
+    if name == "p2p_agent_install":
+        return {
+            "agent_integration": _to_jsonable(
+                workspace.install_agent_integrations(
+                    str(arguments.get("adapter") or "all"),
+                    force=bool(arguments.get("force") or False),
+                )
+            )
+        }
+    if name == "p2p_agent_update":
+        return {
+            "agent_integration": _to_jsonable(
+                workspace.install_agent_integrations(
+                    str(arguments.get("adapter") or "all"),
+                    force=bool(arguments.get("force") or False),
+                )
+            )
+        }
+    if name == "p2p_agent_uninstall":
+        return {
+            "agent_integration": _to_jsonable(
+                workspace.uninstall_agent_integration(str(arguments.get("adapter") or ""))
+            )
+        }
     if name == "p2p_registry_refresh":
         return {"written": _to_jsonable(workspace.refresh_registries())}
     if name == "p2p_validate":

@@ -169,21 +169,42 @@ See [docs/INSTALL.md](docs/INSTALL.md) for installing P2P Engine and setting up 
 ## Use With Agents
 
 P2P Engine can generate project-local agent instructions during `p2p init`.
+By default a new project gets the generic baseline plus all built-in
+project-local adapters: Codex, Claude, Cursor, Copilot, Gemini, and OpenCode.
 
-For a new project, choose the profile that matches the agent environment you
-intend to use:
+For a new project, use the default when multiple collaborators may use
+different agents:
+
+```bash
+.venv/bin/p2p init "My Project" --repository local --domain software --mcp-hint
+```
+
+You can also narrow the generated adapters:
 
 ```bash
 .venv/bin/p2p init "My Project" --agent codex --repository local --domain software --mcp-hint
-.venv/bin/p2p init "My Project" --agent claude --repository local --domain software --mcp-hint
-.venv/bin/p2p init "My Project" --agent all --repository local --domain software --mcp-hint
+.venv/bin/p2p init "My Project" --agent codex --agent claude --repository local --domain software --mcp-hint
+```
+
+The `generic` baseline is always created and cannot be uninstalled.
+Installed integrations are tracked in `.p2p/agent-integrations.yml`.
+
+Useful lifecycle commands:
+
+```bash
+.venv/bin/p2p agent list
+.venv/bin/p2p agent show codex
+.venv/bin/p2p agent install cursor
+.venv/bin/p2p agent update all
+.venv/bin/p2p agent doctor all
+.venv/bin/p2p agent uninstall cursor
 ```
 
 For a remote-backed project, initialize the P2P project as cloud-backed, then
 record the remote profile and verify sync readiness:
 
 ```bash
-.venv/bin/p2p init "My Project" --agent codex --repository cloud --domain software --owner matteo --mcp-hint
+.venv/bin/p2p init "My Project" --repository cloud --domain software --owner matteo --mcp-hint
 git remote add origin git@github.com:ORG/REPO.git
 .venv/bin/p2p project remote configure --mode remote --provider github --remote origin --url git@github.com:ORG/REPO.git
 .venv/bin/p2p sync status

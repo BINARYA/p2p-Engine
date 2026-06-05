@@ -948,6 +948,98 @@ def test_cli_init_can_generate_agent_specific_instructions(tmp_path: Path) -> No
     assert "mode: cloud" in policy
 
 
+def test_cli_init_defaults_to_all_agent_integrations(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert (tmp_path / "AGENTS.md").exists()
+    assert (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").exists()
+    assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    assert (tmp_path / "CLAUDE.md").exists()
+    assert (tmp_path / ".cursor" / "rules" / "p2p.mdc").exists()
+    assert (tmp_path / ".github" / "copilot-instructions.md").exists()
+    assert (tmp_path / "GEMINI.md").exists()
+    assert not (tmp_path / ".cursorrules").exists()
+    assert not (tmp_path / "opencode.json").exists()
+    assert (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").read_text(
+        encoding="utf-8"
+    ).startswith("---\n")
+    assert (tmp_path / ".cursor" / "rules" / "p2p.mdc").read_text(encoding="utf-8").startswith(
+        "---\n"
+    )
+
+    registry = yaml.safe_load((tmp_path / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
+    assert registry["schema_version"] == 1
+    assert registry["baseline_profile"] == "generic"
+    assert set(registry["adapters"]) == {
+        "generic",
+        "codex",
+        "claude",
+        "cursor",
+        "copilot",
+        "gemini",
+        "opencode",
+    }
+    agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+    assert "do not stop at diagnosis" in agents
+
+
+def test_cli_init_narrow_agent_still_includes_generic(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["init", "Demo Project", "--agent", "cursor", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert (tmp_path / "AGENTS.md").exists()
+    assert (tmp_path / ".cursor" / "rules" / "p2p.mdc").exists()
+    assert not (tmp_path / "CLAUDE.md").exists()
+    registry = yaml.safe_load((tmp_path / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
+    assert set(registry["adapters"]) == {"generic", "cursor"}
+
+
+def test_cli_agent_lifecycle_update_refuses_drift_and_uninstall_preserves_shared(
+    tmp_path: Path,
+) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--agent", "cursor", "--root", str(tmp_path)])
+    cursor_rule = tmp_path / ".cursor" / "rules" / "p2p.mdc"
+    cursor_rule.write_text(cursor_rule.read_text(encoding="utf-8") + "\nmanual edit\n", encoding="utf-8")
+
+    update = runner.invoke(app, ["agent", "update", "cursor", "--root", str(tmp_path)])
+
+    assert update.exit_code == 0
+    assert "drifted" in update.output
+    assert "manual edit" in cursor_rule.read_text(encoding="utf-8")
+
+    uninstall = runner.invoke(app, ["agent", "uninstall", "cursor", "--root", str(tmp_path)])
+
+    assert uninstall.exit_code == 0
+    assert "drifted" in uninstall.output
+    assert cursor_rule.exists()
+    assert (tmp_path / "AGENTS.md").exists()
+
+    forced = runner.invoke(app, ["agent", "update", "cursor", "--force", "--root", str(tmp_path)])
+    assert forced.exit_code == 0
+    clean_uninstall = runner.invoke(app, ["agent", "uninstall", "cursor", "--root", str(tmp_path)])
+    assert clean_uninstall.exit_code == 0
+    assert not cursor_rule.exists()
+    assert (tmp_path / "AGENTS.md").exists()
+
+
+def test_cli_agent_install_does_not_claim_unmanaged_existing_file(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--agent", "generic", "--root", str(tmp_path)])
+    (tmp_path / ".p2p" / "agent-integrations.yml").unlink()
+    agents = tmp_path / "AGENTS.md"
+    agents.write_text("# Custom Agents\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["agent", "install", "cursor", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "unmanaged_exists" in result.output
+    registry = yaml.safe_load((tmp_path / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
+    generic_agents = registry["adapters"]["generic"]["files"][0]
+    assert generic_agents["path"] == "AGENTS.md"
+    assert generic_agents["managed"] is False
+    assert generic_agents["drift"] == "unmanaged"
+
+
 def test_cli_doctor_reports_runtime_readiness(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     _git(tmp_path, "init")

@@ -51,6 +51,11 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
     expected = {
         "p2p_init_project",
         "p2p_agent_instructions_refresh",
+        "p2p_agent_list",
+        "p2p_agent_show",
+        "p2p_agent_install",
+        "p2p_agent_update",
+        "p2p_agent_uninstall",
         "p2p_registry_refresh",
         "p2p_validate",
         "p2p_context",
@@ -1071,6 +1076,41 @@ def test_mcp_write_safe_bootstrap_tools(tmp_path: Path) -> None:
     assert "p2p_proposal_publish" in policy
     assert "p2p_sync_fetch" in policy
     assert "raw_git_managed_branch" in policy
+
+
+def test_mcp_agent_integration_lifecycle_tools(tmp_path: Path) -> None:
+    initialized = call_tool(
+        "p2p_init_project",
+        {
+            "root": str(tmp_path),
+            "name": "MCP Agents",
+            "agent": "cursor",
+        },
+    )
+
+    assert initialized["initialized"] is True
+    listed = call_tool("p2p_agent_list", {"root": str(tmp_path)})
+    adapters = {item["adapter"]: item for item in listed["agent_integrations"]["adapters"]}
+    assert adapters["generic"]["installed"] is True
+    assert adapters["cursor"]["installed"] is True
+    assert adapters["codex"]["installed"] is False
+
+    installed = call_tool("p2p_agent_install", {"root": str(tmp_path), "adapter": "gemini"})
+    assert installed["agent_integration"]["target"] == "gemini"
+    assert (tmp_path / "GEMINI.md").exists()
+
+    shown = call_tool("p2p_agent_show", {"root": str(tmp_path), "adapter": "gemini"})
+    assert shown["agent_integration"]["installed"] is True
+    assert shown["agent_integration"]["files"][1]["path"] == "GEMINI.md"
+
+    gemini = tmp_path / "GEMINI.md"
+    gemini.write_text(gemini.read_text(encoding="utf-8") + "\nmanual edit\n", encoding="utf-8")
+    updated = call_tool("p2p_agent_update", {"root": str(tmp_path), "adapter": "gemini"})
+    assert updated["agent_integration"]["skipped"][0]["reason"] == "drifted"
+
+    uninstalled = call_tool("p2p_agent_uninstall", {"root": str(tmp_path), "adapter": "gemini"})
+    skipped_reasons = {item["reason"] for item in uninstalled["agent_integration"]["skipped"]}
+    assert "drifted" in skipped_reasons
 
 
 def test_mcp_init_project_can_start_with_unresolved_custom_domain(tmp_path: Path) -> None:
