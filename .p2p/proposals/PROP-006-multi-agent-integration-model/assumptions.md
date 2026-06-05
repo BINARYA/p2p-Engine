@@ -1,7 +1,15 @@
 # Assumptions - PROP-006
 
-- Il primo livello resta file-based e prompt-only.
-- P2P Engine non invoca direttamente modelli AI in questa proposal.
-- Ogni agente deve essere un adattatore operativo, non la fonte di verita.
-- La skill Codex attuale puo diventare il primo template del registry.
-- Il supporto generic e importante per non inseguire ogni tool manualmente.
+- P2P Engine remains local-first and file-based for this proposal.
+- P2P Engine does not invoke AI providers directly.
+- Agent integrations produce project-local instructions and metadata.
+- Generated instructions are advisory guardrails, not hard security.
+- P2P CLI, `.p2p` state, validation, readiness, and owner decisions remain the
+  source of truth.
+- Multiple agent integrations may coexist in the same project.
+- `AGENTS.md` is the shared baseline instruction file.
+- Tool-specific files are generated only when they add value for that adapter.
+- Safe update and uninstall require file hashes.
+- Existing generated instruction behavior must remain backward compatible.
+- External adapter packages are deferred until the internal adapter lifecycle is
+  stable.

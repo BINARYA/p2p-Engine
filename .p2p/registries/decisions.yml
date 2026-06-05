@@ -40,10 +40,13 @@ decisions:
     the risk of leaving decisions only in chat.
 - proposal: PROP-006
   title: Multi-Agent Integration Model
-  outcome: pending
-  status: draft
+  outcome: accepted
+  status: accepted
   path: .p2p/proposals/PROP-006-multi-agent-integration-model/decision.md
-  reason: ''
+  reason: Owner accepts PROP-006 after refinement. The proposal is considered ready
+    as-is because remaining low readiness score reflects the current conservative
+    readiness CLI, not unresolved product direction. A separate follow-up proposal
+    will address readiness assessment refresh and review workflow.
 - proposal: PROP-007
   title: Proposal Intake and Overlap Analysis
   outcome: pending
@@ -587,3 +590,9 @@ decisions:
   path: .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions/decision.md
   reason: Owner requested MCP and skill alignment for the newly implemented managed
     next-action lifecycle.
+- proposal: PROP-082
+  title: Readiness Assessment Refresh And Review Workflow
+  outcome: pending
+  status: draft
+  path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/decision.md
+  reason: ''

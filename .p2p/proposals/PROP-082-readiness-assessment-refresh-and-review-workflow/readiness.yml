@@ -7,9 +7,19 @@ readiness:
   confidence_reasons:
   - Initial readiness was bootstrapped from proposal artifacts.
   - Review criterion evidence before using it for acceptance.
-  missing: []
+  missing:
+  - alternatives_quality
+  - tradeoff_analysis
+  - risk_coverage
+  - assumptions_clarity
+  - impact_overlap_analysis
   suggested_next:
+  - add_alternatives_quality
+  - add_tradeoff_analysis
+  - add_risk_coverage
+  - add_assumptions_clarity
   - resolve_owner_questions_resolution
+  - add_impact_overlap_analysis
   failed_gates:
   - owner_questions_resolution:needs_owner_input
   criteria:
@@ -39,32 +49,32 @@ readiness:
       effective_points: 7
     alternatives_quality:
       max_points: 15
-      awarded_points: 11
-      artifact_quality: meaningful
+      awarded_points: 0
+      artifact_quality: placeholder
       evidence:
       - artifact: alternatives.md
-      effective_points: 11
+      effective_points: 0
     tradeoff_analysis:
       max_points: 10
-      awarded_points: 7
-      artifact_quality: meaningful
+      awarded_points: 0
+      artifact_quality: placeholder
       evidence:
       - artifact: alternatives.md
-      effective_points: 7
+      effective_points: 0
     risk_coverage:
       max_points: 10
-      awarded_points: 7
-      artifact_quality: meaningful
+      awarded_points: 0
+      artifact_quality: placeholder
       evidence:
       - artifact: risks.md
-      effective_points: 7
+      effective_points: 0
     assumptions_clarity:
       max_points: 10
-      awarded_points: 7
-      artifact_quality: meaningful
+      awarded_points: 0
+      artifact_quality: placeholder
       evidence:
       - artifact: assumptions.md
-      effective_points: 7
+      effective_points: 0
     owner_questions_resolution:
       max_points: 10
       awarded_points: 7
@@ -82,20 +92,11 @@ readiness:
       effective_points: 7
     impact_overlap_analysis:
       max_points: 5
-      awarded_points: 3
-      artifact_quality: meaningful
+      awarded_points: 0
+      artifact_quality: missing
       evidence:
       - artifact: impact-map.yml
-      effective_points: 3
-  computed_score: 70
-  computed_label: partial
+      effective_points: 0
+  computed_score: 35
+  computed_label: weak
   computed_at: '2026-06-05'
-  owner_override: true
-  effective_status: forced_ready
-  effective_score: 100
-  override_reason: Owner accepts PROP-006 after refinement. The proposal is considered
-    ready as-is because remaining low readiness score reflects the current conservative
-    readiness CLI, not unresolved product direction. A separate follow-up proposal
-    will address readiness assessment refresh and review workflow.
-  override_approver: owner
-  override_recorded_at: '2026-06-05'

@@ -2,32 +2,92 @@
 
 ## R1 - Overengineering
 
-Rischio:
-Replicare troppa complessita di Spec Kit/OpenSpec prima che P2P abbia bisogno reale di molti agent.
+Risk:
+Replicating too much of Spec Kit, OpenSpec, or external agent configuration
+systems before P2P Engine needs it.
 
-Mitigazione:
-Implementare solo registry minimo e due target iniziali: `codex` e `generic`.
+Mitigation:
+Keep the MVP focused on a local registry, generated files, hashes, install all,
+safe update, and safe uninstall. Defer external adapter packages and deep
+provider-specific automation.
 
-## R2 - Agent-specific drift
+## R2 - Shared File Ownership
 
-Rischio:
-Ogni agent richiede convenzioni diverse e i template divergono rapidamente.
+Risk:
+Several adapters may depend on `AGENTS.md`. A naive uninstall could remove a
+baseline file still needed by other integrations.
 
-Mitigazione:
-Separare core workflow P2P da template specifici e aggiungere test snapshot sui file generati.
+Mitigation:
+Track `shared: true` files in `.p2p/agent-integrations.yml`. Uninstalling a
+specific agent must not remove `AGENTS.md` or `.p2p/agent-policy.yml`.
 
-## R3 - Source of truth confusa
+## R3 - Manual Drift And Data Loss
 
-Rischio:
-Gli agenti potrebbero iniziare a modificare file o prendere decisioni senza passare da CLI/artefatti P2P.
+Risk:
+Users may edit generated files manually. Update or uninstall could overwrite or
+delete those changes.
 
-Mitigazione:
-Ogni template deve ribadire che CLI/core e `.p2p/` sono la fonte di verita.
+Mitigation:
+Store generated file hashes. If the current hash differs from the stored hash,
+mark the file as drifted and require explicit `--force` or manual resolution.
 
-## R4 - Install/uninstall fragile
+## R4 - Tool Convention Drift
 
-Rischio:
-Rimuovere o aggiornare file agentici potrebbe cancellare modifiche manuali.
+Risk:
+Cursor, Copilot, Gemini, OpenCode, Claude, or Codex may change their instruction
+file conventions.
 
-Mitigazione:
-Tracciare manifest e hash dei file generati prima di implementare uninstall distruttivo.
+Mitigation:
+Version adapter templates. Keep adapter definitions internal in the MVP. Update
+documentation and tests when external conventions change.
+
+## R5 - False Sense Of Enforcement
+
+Risk:
+Some agents treat instruction files as advisory and may not follow them
+deterministically.
+
+Mitigation:
+Generated instructions must describe P2P boundaries clearly, but P2P Engine
+must still rely on CLI validation, readiness checks, permission gates, and owner
+decisions. Do not treat agent instructions as hard security.
+
+## R6 - Global Configuration Side Effects
+
+Risk:
+Installing an adapter might be interpreted as permission to edit user-level
+agent configuration, home directories, IDE settings, or MCP client config.
+
+Mitigation:
+PROP-006 MVP should only manage project-local files. Any user/global
+configuration requires a separate explicit consent-gated flow.
+
+## R7 - Registry Corruption Or Staleness
+
+Risk:
+The registry may get out of sync with actual files.
+
+Mitigation:
+`p2p agent show`, `p2p agent list`, and `p2p agent doctor` should recompute
+current file hashes and report stale, missing, modified, or orphaned files.
+
+## R8 - Adapter Surface Too Broad
+
+Risk:
+Supporting many agents at once can dilute quality and leave poorly tested
+templates.
+
+Mitigation:
+Implement adapter behavior with a shared test harness and snapshot tests. Keep
+the initial templates small, explicit, and based on documented file conventions.
+
+## R9 - File Target Collisions During Install All
+
+Risk:
+`p2p agent install all` could cause two adapters to manage the same non-shared
+file path.
+
+Mitigation:
+Declare shared vs non-shared file targets in adapter definitions. `install all`
+must fail or warn before writing when two adapters would own the same non-shared
+path.

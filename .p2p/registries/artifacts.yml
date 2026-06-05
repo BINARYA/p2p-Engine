@@ -356,6 +356,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-006
   generated: false
+- path: .p2p/proposals/PROP-006-multi-agent-integration-model/impact-map.yml
+  artifact_type: impact-map.yml
+  owner_type: proposal
+  owner: PROP-006
+  generated: false
 - path: .p2p/proposals/PROP-006-multi-agent-integration-model/open-questions.md
   artifact_type: open-questions.md
   owner_type: proposal
@@ -6071,6 +6076,86 @@ artifacts:
   owner_type: proposal
   owner: PROP-081
   generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/ai-digest.md
+  artifact_type: ai-digest.md
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/alternatives.md
+  artifact_type: alternatives.md
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/assumptions.md
+  artifact_type: assumptions.md
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/clarifications.md
+  artifact_type: clarifications.md
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/comments.yml
+  artifact_type: comments.yml
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/contributions.yml
+  artifact_type: contributions.yml
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/decision.md
+  artifact_type: decision.md
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/execution-plan.md
+  artifact_type: execution-plan.md
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/exploration.md
+  artifact_type: exploration.md
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/findings.md
+  artifact_type: findings.md
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/open-questions.md
+  artifact_type: open-questions.md
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/proposal.md
+  artifact_type: proposal.md
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/readiness.yml
+  artifact_type: readiness.yml
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/risks.md
+  artifact_type: risks.md
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/suggested-scope.md
+  artifact_type: suggested-scope.md
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/tasks.yml
+  artifact_type: tasks.yml
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
 - path: .p2p/changes/CHANGE-001-managed-git-adapter-and-change-set-model/change.md
   artifact_type: change.md
   owner_type: change
@@ -9265,4 +9350,54 @@ artifacts:
   artifact_type: tasks.yml
   owner_type: change
   owner: CHANGE-064
+  generated: false
+- path: .p2p/changes/CHANGE-065-implement-agent-integration-registry-mvp/actions.yml
+  artifact_type: actions.yml
+  owner_type: change
+  owner: CHANGE-065
+  generated: false
+- path: .p2p/changes/CHANGE-065-implement-agent-integration-registry-mvp/change.md
+  artifact_type: change.md
+  owner_type: change
+  owner: CHANGE-065
+  generated: false
+- path: .p2p/changes/CHANGE-065-implement-agent-integration-registry-mvp/excluded-alternatives.yml
+  artifact_type: excluded-alternatives.yml
+  owner_type: change
+  owner: CHANGE-065
+  generated: false
+- path: .p2p/changes/CHANGE-065-implement-agent-integration-registry-mvp/execution-plan.md
+  artifact_type: execution-plan.md
+  owner_type: change
+  owner: CHANGE-065
+  generated: false
+- path: .p2p/changes/CHANGE-065-implement-agent-integration-registry-mvp/git-policy.yml
+  artifact_type: git-policy.yml
+  owner_type: change
+  owner: CHANGE-065
+  generated: false
+- path: .p2p/changes/CHANGE-065-implement-agent-integration-registry-mvp/impact-map.yml
+  artifact_type: impact-map.yml
+  owner_type: change
+  owner: CHANGE-065
+  generated: false
+- path: .p2p/changes/CHANGE-065-implement-agent-integration-registry-mvp/included-decisions.yml
+  artifact_type: included-decisions.yml
+  owner_type: change
+  owner: CHANGE-065
+  generated: false
+- path: .p2p/changes/CHANGE-065-implement-agent-integration-registry-mvp/included-proposals.yml
+  artifact_type: included-proposals.yml
+  owner_type: change
+  owner: CHANGE-065
+  generated: false
+- path: .p2p/changes/CHANGE-065-implement-agent-integration-registry-mvp/referenced-proposals.yml
+  artifact_type: referenced-proposals.yml
+  owner_type: change
+  owner: CHANGE-065
+  generated: false
+- path: .p2p/changes/CHANGE-065-implement-agent-integration-registry-mvp/tasks.yml
+  artifact_type: tasks.yml
+  owner_type: change
+  owner: CHANGE-065
   generated: false

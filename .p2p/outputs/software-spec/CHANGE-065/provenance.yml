@@ -1,0 +1,9 @@
+source:
+  change: CHANGE-065
+  included_proposals:
+  - PROP-006
+  accepted_decisions: []
+generated_from:
+- .p2p/changes/CHANGE-065-implement-agent-integration-registry-mvp/change.md
+- .p2p/changes/CHANGE-065-implement-agent-integration-registry-mvp/tasks.yml
+- .p2p/proposals/PROP-006-multi-agent-integration-model/proposal.md

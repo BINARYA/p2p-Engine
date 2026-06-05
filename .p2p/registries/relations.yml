@@ -321,6 +321,11 @@ relations:
   type: includes
   rationale: Change Set includes accepted proposal.
   source_artifact: .p2p/changes/CHANGE-064-readiness-bootstrap-and-contribution-visibility
+- source: CHANGE-065
+  target: PROP-006
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-065-implement-agent-integration-registry-mvp
 - source: PROP-002
   target: CHANGE-063
   type: implemented_by
@@ -331,6 +336,11 @@ relations:
   type: implemented_by
   rationale: Proposal appears in Change Set source metadata.
   source_artifact: .p2p/proposals/PROP-002-exploration-phase
+- source: PROP-006
+  target: CHANGE-065
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-006-multi-agent-integration-model
 - source: PROP-013
   target: CHANGE-001
   type: implemented_by
