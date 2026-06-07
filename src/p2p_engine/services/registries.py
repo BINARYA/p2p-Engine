@@ -4,7 +4,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-import yaml
+from p2p_engine.foundation.files import (
+    read_yaml_mapping as _read_yaml_mapping,
+    yaml_dump as _yaml_dump,
+)
 
 
 @dataclass(frozen=True)
@@ -40,24 +43,6 @@ REGISTRY_DEFINITIONS: dict[str, dict[str, str]] = {
     "artifacts": {"filename": "artifacts.yml", "source": ".p2p"},
     "readiness": {"filename": "readiness.yml", "source": ".p2p/proposals/*/readiness.yml"},
 }
-
-
-def _yaml_dump(data: object) -> str:
-    return yaml.safe_dump(data, sort_keys=False, allow_unicode=False)
-
-
-def _read_yaml(path: Path, default: object) -> object:
-    if not path.exists():
-        return default
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    return data if data is not None else default
-
-
-def _read_yaml_mapping(path: Path, default: dict[str, object]) -> dict[str, object]:
-    data = _read_yaml(path, default)
-    if not isinstance(data, dict):
-        raise ValueError(f"Invalid YAML mapping: {path}")
-    return data
 
 
 class RegistryService:

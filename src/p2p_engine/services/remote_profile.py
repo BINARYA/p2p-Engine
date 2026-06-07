@@ -4,7 +4,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-import yaml
+from p2p_engine.foundation.files import (
+    read_yaml_mapping_or_default as _read_yaml_mapping,
+    yaml_dump as _yaml_dump,
+)
 
 
 @dataclass(frozen=True)
@@ -16,17 +19,6 @@ class RemoteProjectProfile:
     review_request_mode: str
     opens_external_request: bool
     path: Path
-
-
-def _yaml_dump(data: object) -> str:
-    return yaml.safe_dump(data, sort_keys=False, allow_unicode=False)
-
-
-def _read_yaml_mapping(path: Path, default: dict[str, object] | None = None) -> dict[str, object]:
-    if not path.exists():
-        return default or {}
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    return data if isinstance(data, dict) else (default or {})
 
 
 class RemoteProfileService:

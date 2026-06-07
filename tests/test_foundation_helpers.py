@@ -11,6 +11,15 @@ from p2p_engine.foundation.markdown import (
     replace_section,
     strip_markdown_title,
 )
+from p2p_engine.foundation.files import (
+    identity_slug,
+    read_yaml,
+    read_yaml_mapping,
+    read_yaml_mapping_or_default,
+    relative_to_root,
+    slugify,
+    yaml_dump,
+)
 from p2p_engine.foundation.validators import validate_tasks_yaml, validate_yaml_key
 
 
@@ -80,3 +89,51 @@ def test_validate_tasks_yaml_and_top_level_key() -> None:
         validate_yaml_key("impact: [\n", "impact")
     with pytest.raises(ValueError, match="Invalid YAML: expected top-level `impact` key."):
         validate_yaml_key("other: true\n", "impact")
+
+
+def test_file_foundation_slug_and_identity_contracts() -> None:
+    assert slugify("Demo Project!") == "demo-project"
+    assert slugify("") == "project"
+    assert slugify("", fallback="item") == "item"
+    assert identity_slug("Davide Owner") == "davide-owner"
+
+    with pytest.raises(ValueError, match="Actor identity is required"):
+        identity_slug("  ")
+
+
+def test_file_foundation_yaml_helpers(tmp_path) -> None:
+    path = tmp_path / "data.yml"
+    assert read_yaml(path, default={"fallback": True}) == {"fallback": True}
+    assert read_yaml_mapping(path, default={"items": []}) == {"items": []}
+
+    path.write_text("name: Demo\nitems:\n  - one\n", encoding="utf-8")
+    assert yaml_dump({"name": "Demo", "items": ["one"]}) == "name: Demo\nitems:\n- one\n"
+    assert read_yaml(path, default={}) == {"name": "Demo", "items": ["one"]}
+    assert read_yaml_mapping(path, default={}) == {"name": "Demo", "items": ["one"]}
+
+    path.write_text("- one\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="Invalid YAML mapping:"):
+        read_yaml_mapping(path, default={})
+    with pytest.raises(ValueError, match="YAML document must be a mapping:"):
+        read_yaml_mapping(path, default={}, error_message="YAML document must be a mapping: {path}")
+
+
+def test_file_foundation_tolerant_yaml_mapping_helper(tmp_path) -> None:
+    path = tmp_path / "data.yml"
+    assert read_yaml_mapping_or_default(path) == {}
+    assert read_yaml_mapping_or_default(path, default={"fallback": True}) == {"fallback": True}
+
+    path.write_text("name: Demo\n", encoding="utf-8")
+    assert read_yaml_mapping_or_default(path) == {"name": "Demo"}
+
+    path.write_text("- one\n", encoding="utf-8")
+    assert read_yaml_mapping_or_default(path) == {}
+    assert read_yaml_mapping_or_default(path, default={"fallback": True}) == {"fallback": True}
+
+
+def test_file_foundation_relative_to_root(tmp_path) -> None:
+    child = tmp_path / "nested" / "file.txt"
+    external = tmp_path.parent / "external.txt"
+
+    assert relative_to_root(child, tmp_path) == child.relative_to(tmp_path)
+    assert relative_to_root(external, tmp_path) == external

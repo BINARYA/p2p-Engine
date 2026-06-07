@@ -4,10 +4,14 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-import yaml
-
 from p2p_engine.core.contribution import Contribution, ContributionType
 from p2p_engine.core.proposal import Proposal
+from p2p_engine.foundation.files import (
+    read_yaml_mapping as _read_yaml_mapping,
+    relative_to_root as _relative_to_root,
+    slugify as _slugify,
+    yaml_dump as _yaml_dump,
+)
 from p2p_engine.foundation.markdown import read_markdown_section, read_title, replace_section
 
 
@@ -30,38 +34,8 @@ class ProposalContributionList:
     contributions: list[Contribution]
 
 
-def _yaml_dump(data: object) -> str:
-    return yaml.safe_dump(data, sort_keys=False, allow_unicode=False)
-
-
 def _read_optional(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else ""
-
-
-def _read_yaml(path: Path, default: object) -> object:
-    if not path.exists():
-        return default
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    return data if data is not None else default
-
-
-def _read_yaml_mapping(path: Path, default: dict[str, object]) -> dict[str, object]:
-    data = _read_yaml(path, default)
-    if not isinstance(data, dict):
-        raise ValueError(f"Invalid YAML mapping: {path}")
-    return data
-
-
-def _slugify(value: str) -> str:
-    slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
-    return slug or "project"
-
-
-def _relative_to_root(path: Path, root: Path) -> Path:
-    try:
-        return path.relative_to(root)
-    except ValueError:
-        return path
 
 
 def _read_proposal_status(path: Path) -> str:
@@ -250,7 +224,7 @@ class ProposalDocumentService:
     ) -> Contribution:
         proposal_dir = self.find_dir(proposal_id)
         path = proposal_dir / "contributions.yml"
-        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {"contributions": []}
+        data = _read_yaml_mapping(path, default={"contributions": []})
         contributions = data.setdefault("contributions", [])
         contribution_id = f"C{len(contributions) + 1:03d}"
         contribution = {

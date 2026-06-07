@@ -5,6 +5,8 @@ from pathlib import Path
 import pytest
 
 from p2p_engine.core.decision import DecisionOutcome
+from p2p_engine.services.changes import ChangeSetLifecycleService
+from p2p_engine.services.proposals import ProposalDocumentService
 from p2p_engine.services.software_spec import SoftwareSpecService
 from p2p_engine.storage.filesystem import P2PWorkspace
 
@@ -29,13 +31,19 @@ def _workspace_with_change(root: Path) -> P2PWorkspace:
 
 
 def _service(workspace: P2PWorkspace) -> SoftwareSpecService:
+    proposal_documents = ProposalDocumentService(root=workspace.root, p2p_dir=workspace.p2p_dir)
+    changes = ChangeSetLifecycleService(
+        root=workspace.root,
+        p2p_dir=workspace.p2p_dir,
+        find_proposal_dir=proposal_documents.find_dir,
+    )
     return SoftwareSpecService(
         root=workspace.root,
         p2p_dir=workspace.p2p_dir,
-        find_change_dir=workspace._find_change_dir,
+        find_change_dir=changes.find_dir,
         show_proposal=workspace.show_proposal,
         show_change_set=workspace.show_change_set,
-        find_proposal_dir=workspace._find_proposal_dir,
+        find_proposal_dir=proposal_documents.find_dir,
     )
 
 

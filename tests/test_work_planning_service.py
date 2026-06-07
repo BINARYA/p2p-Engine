@@ -97,6 +97,40 @@ def test_work_planning_service_lists_local_and_scanned_work(tmp_path) -> None:
     assert summaries[1].note == "scanned from a managed branch registry"
 
 
+def test_work_planning_service_retires_planned_work(tmp_path) -> None:
+    service = _service(tmp_path)
+    service.create_plan("CHANGE-001", "generic")
+
+    retired = service.retire("WORK-001", "No longer needed.")
+    shown = service.show("WORK-001")
+    summaries = service.summaries()
+
+    assert retired.work_id == "WORK-001"
+    assert retired.status == "retired"
+    assert retired.reason == "No longer needed."
+    assert retired.path == Path(".p2p/work/WORK-001")
+    assert shown.status == "retired"
+    assert shown.manifest["retirement"]["reason"] == "No longer needed."
+    assert shown.manifest["retirement"]["mode"] == "metadata_only"
+    assert summaries[0].next_action == "none"
+    assert summaries[0].note == "retired"
+
+
+def test_work_planning_service_retire_validation_errors(tmp_path) -> None:
+    service = _service(tmp_path)
+    service.create_plan("CHANGE-001", "generic")
+
+    with pytest.raises(ValueError, match="Work retire reason is required"):
+        service.retire("WORK-001", "  ")
+
+    manifest_path = tmp_path / ".p2p" / "work" / "WORK-001" / "manifest.yml"
+    manifest_text = manifest_path.read_text(encoding="utf-8").replace("status: planned", "status: branched")
+    manifest_path.write_text(manifest_text, encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Work item must be planned before retire. Current status: branched"):
+        service.retire("WORK-001", "Too late.")
+
+
 def test_workspace_work_planning_facade_delegates(tmp_path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Work Planning")

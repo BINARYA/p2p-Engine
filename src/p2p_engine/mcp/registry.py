@@ -1,0 +1,128 @@
+from __future__ import annotations
+
+from p2p_engine.mcp.catalog import agents
+from p2p_engine.mcp.catalog import collaboration
+from p2p_engine.mcp.catalog import maintenance
+from p2p_engine.mcp.catalog import project
+from p2p_engine.mcp.catalog import prompts
+from p2p_engine.mcp.catalog import proposals
+from p2p_engine.mcp.catalog import work_specs
+from p2p_engine.mcp.catalog.prompts import PROMPT_TOOL_KINDS
+
+
+TOOL_NAMES = (
+    'p2p_init_project',
+    'p2p_agent_instructions_refresh',
+    'p2p_agent_list',
+    'p2p_agent_show',
+    'p2p_agent_install',
+    'p2p_agent_update',
+    'p2p_agent_uninstall',
+    'p2p_registry_refresh',
+    'p2p_validate',
+    'p2p_context',
+    'p2p_assess_refresh',
+    'p2p_assess_show',
+    'p2p_project_rubrics_init',
+    'p2p_project_rubrics_show',
+    'p2p_maturity_refresh',
+    'p2p_maturity_show',
+    'p2p_proposal_create',
+    'p2p_proposal_update',
+    'p2p_proposal_contribution_add',
+    'p2p_proposal_contribution_list',
+    'p2p_intake_prompt',
+    'p2p_intake_status',
+    'p2p_project_brief_prompt',
+    'p2p_project_brief_show',
+    'p2p_choice_discover',
+    'p2p_conflict_status',
+    'p2p_impact_prompt',
+    'p2p_project_status',
+    'p2p_next',
+    'p2p_next_add',
+    'p2p_next_complete',
+    'p2p_next_retire',
+    'p2p_next_refresh',
+    'p2p_proposal_list',
+    'p2p_proposal_show',
+    'p2p_proposal_readiness_get',
+    'p2p_proposal_readiness_init',
+    'p2p_proposal_readiness_refresh',
+    'p2p_proposal_readiness_explain',
+    'p2p_proposal_readiness_list_gaps',
+    'p2p_choice_list',
+    'p2p_choice_show',
+    'p2p_change_status',
+    'p2p_change_show',
+    'p2p_change_tasks',
+    'p2p_work_list',
+    'p2p_work_status',
+    'p2p_work_show',
+    'p2p_registry_status',
+    'p2p_registry_show',
+    'p2p_project_show',
+    'p2p_project_remote_show',
+    'p2p_project_remote_configure',
+    'p2p_permissions_show',
+    'p2p_consent_request',
+    'p2p_consent_status',
+    'p2p_consent_show',
+    'p2p_sync_status',
+    'p2p_sync_fetch',
+    'p2p_sync_pull',
+    'p2p_sync_push',
+    'p2p_proposal_branch',
+    'p2p_proposal_draft_commit',
+    'p2p_proposal_branch_status',
+    'p2p_proposal_publish',
+    'p2p_proposal_request_review',
+    'p2p_proposal_accept',
+    'p2p_proposal_reject',
+    'p2p_proposal_defer',
+    'p2p_proposal_accept_branch',
+    'p2p_proposal_reject_branch',
+    'p2p_proposal_merge',
+    'p2p_proposal_finalize',
+    'p2p_proposal_cleanup',
+    'p2p_proposal_branch_scan',
+    'p2p_spec_status',
+    'p2p_spec_show',
+    'p2p_spec_export_status',
+    'p2p_spec_export_show',
+    'p2p_change_create',
+    'p2p_project_refresh',
+    'p2p_spec_refresh',
+    'p2p_spec_export',
+    'p2p_spec_export_validate',
+    'p2p_work_plan',
+    'p2p_explore_prompt',
+    'p2p_digest_prompt',
+    'p2p_clarify_prompt',
+    'p2p_synthesize_prompt',
+    'p2p_plan_prompt',
+    'p2p_tasks_prompt',
+    'p2p_swot_prompt',
+    'p2p_spec_prompt',
+)
+
+def tool_definitions() -> list[dict[str, object]]:
+    definitions = [
+        *maintenance.tool_definitions(),
+        *agents.tool_definitions(),
+        *project.tool_definitions(),
+        *proposals.tool_definitions(),
+        *collaboration.tool_definitions(),
+        *work_specs.tool_definitions(),
+        *prompts.tool_definitions(),
+    ]
+    definitions_by_name = {definition["name"]: definition for definition in definitions}
+    if len(definitions_by_name) != len(definitions):
+        raise RuntimeError("Duplicate MCP tool definition name")
+    missing = [name for name in TOOL_NAMES if name not in definitions_by_name]
+    if missing:
+        raise RuntimeError(f"Missing MCP tool definitions: {missing}")
+    extra = [name for name in definitions_by_name if name not in TOOL_NAMES]
+    if extra:
+        raise RuntimeError(f"Unexpected MCP tool definitions: {extra}")
+    return [definitions_by_name[name] for name in TOOL_NAMES]

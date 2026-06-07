@@ -6,8 +6,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import yaml
-
+from p2p_engine.foundation.files import (
+    read_yaml_mapping_or_default as _read_yaml_mapping,
+    yaml_dump as _yaml_dump,
+)
 from p2p_engine.foundation.markdown import read_frontmatter, read_markdown_section, read_title
 from p2p_engine.foundation.validators import validate_yaml_key
 
@@ -26,19 +28,8 @@ class SoftwareSpecPrompt:
     prompt_path: Path
 
 
-def _yaml_dump(data: object) -> str:
-    return yaml.safe_dump(data, sort_keys=False, allow_unicode=False)
-
-
 def _read_optional(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else ""
-
-
-def _read_yaml_mapping(path: Path, default: dict[str, object]) -> dict[str, object]:
-    if not path.exists():
-        return default
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    return data if isinstance(data, dict) else default
 
 
 def _string_list(value: object) -> list[str]:

@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 from p2p_engine.core.decision import DecisionOutcome
+from p2p_engine.services.registry_records import RegistryRecordBuilderService
 from p2p_engine.services.spec_export import SpecExportService
-from p2p_engine.storage import filesystem as fs
 from p2p_engine.storage.filesystem import P2PWorkspace
 
 
@@ -26,22 +26,19 @@ def _workspace_with_spec(root: Path) -> P2PWorkspace:
 
 
 def _service(workspace: P2PWorkspace) -> SpecExportService:
+    registry_records = RegistryRecordBuilderService(
+        root=workspace.root,
+        p2p_dir=workspace.p2p_dir,
+        read_proposal_readiness=workspace.read_proposal_readiness,
+    )
     return SpecExportService(
         root=workspace.root,
         p2p_dir=workspace.p2p_dir,
         show_change_set=workspace.show_change_set,
         status=workspace.status,
-        accepted_proposals=workspace._accepted_proposals,
+        accepted_proposals=registry_records.accepted_proposals,
         proposal_summaries=workspace.proposal_summaries,
-        export_targets=fs._software_spec_export_targets,
         required_spec_files=workspace._software_spec_service().required_files,
-        export_files=fs._software_spec_export_files,
-        export_required_files=fs._software_spec_export_required_files,
-        export_show_file=fs._software_spec_export_show_file,
-        project_definition_sections=fs._project_definition_required_sections,
-        markdown_has_section=fs._markdown_has_section,
-        read_yaml_mapping=fs._read_yaml_mapping,
-        read_optional=fs._read_optional,
     )
 
 

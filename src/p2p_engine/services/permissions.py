@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from pathlib import Path
 
-import yaml
+from p2p_engine.foundation.files import (
+    identity_slug as _identity_slug,
+    read_yaml_mapping_or_default as _read_yaml_mapping,
+    yaml_dump as _yaml_dump,
+)
 
 PERMISSION_ROLES = {"owner", "maintainer", "contributor", "agent", "readonly"}
 ACTOR_KINDS = {"person", "agent", "client"}
@@ -17,22 +20,6 @@ class PermissionActor:
     kind: str
     display_name: str
     path: Path
-
-
-def _yaml_dump(data: object) -> str:
-    return yaml.safe_dump(data, sort_keys=False, allow_unicode=False)
-
-
-def _read_yaml_mapping(path: Path, default: dict[str, object] | None = None) -> dict[str, object]:
-    if not path.exists():
-        return default or {}
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    return data if isinstance(data, dict) else (default or {})
-
-
-def _slugify(value: str) -> str:
-    slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
-    return slug or "project"
 
 
 class PermissionsService:
@@ -142,10 +129,7 @@ class PermissionsService:
         )
 
     def identity_slug(self, value: str) -> str:
-        text = str(value or "").strip()
-        if not text:
-            raise ValueError("Actor identity is required")
-        return _slugify(text)
+        return _identity_slug(value)
 
     def normalize_role(self, role: str) -> str:
         role = str(role or "").strip().lower()

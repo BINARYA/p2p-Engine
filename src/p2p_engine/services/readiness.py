@@ -6,8 +6,10 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-import yaml
-
+from p2p_engine.foundation.files import (
+    read_yaml_mapping as _read_yaml_mapping,
+    yaml_dump as _yaml_dump,
+)
 from p2p_engine.foundation.markdown import read_markdown_section
 
 DEFAULT_READINESS_PROFILE_ID = "default-readiness-v0.1"
@@ -53,26 +55,8 @@ class ProposalReadiness:
     suggested_next: list[str]
 
 
-def _yaml_dump(data: object) -> str:
-    return yaml.safe_dump(data, sort_keys=False, allow_unicode=False)
-
-
 def _read_optional(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else ""
-
-
-def _read_yaml(path: Path, default: object) -> object:
-    if not path.exists():
-        return default
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    return data if data is not None else default
-
-
-def _read_yaml_mapping(path: Path, default: dict[str, object]) -> dict[str, object]:
-    data = _read_yaml(path, default)
-    if not isinstance(data, dict):
-        raise ValueError(f"Invalid YAML mapping: {path}")
-    return data
 
 
 def default_readiness_profile_payload() -> dict[str, object]:

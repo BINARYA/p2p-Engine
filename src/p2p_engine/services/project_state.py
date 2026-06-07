@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-import yaml
+from p2p_engine.foundation.files import yaml_dump as _yaml_dump
 
 
 class RegistryStatusLike(Protocol):
@@ -30,10 +30,6 @@ class ProjectStateStatus:
 class ProjectBriefPrompt:
     context_path: Path
     prompt_path: Path
-
-
-def _yaml_dump(data: object) -> str:
-    return yaml.safe_dump(data, sort_keys=False, allow_unicode=False)
 
 
 def _read_optional(path: Path) -> str:

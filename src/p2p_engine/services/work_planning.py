@@ -7,8 +7,10 @@ from datetime import date
 from pathlib import Path
 from typing import Protocol
 
-import yaml
-
+from p2p_engine.foundation.files import (
+    read_yaml_mapping as _read_yaml_mapping,
+    yaml_dump as _yaml_dump,
+)
 from p2p_engine.foundation.markdown import read_frontmatter
 
 
@@ -51,26 +53,16 @@ class WorkSummary:
     path: Path
 
 
-def _yaml_dump(data: object) -> str:
-    return yaml.safe_dump(data, sort_keys=False, allow_unicode=False)
+@dataclass(frozen=True)
+class WorkRetire:
+    work_id: str
+    status: str
+    reason: str
+    path: Path
 
 
 def _read_optional(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else ""
-
-
-def _read_yaml(path: Path, default: object) -> object:
-    if not path.exists():
-        return default
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    return data if data is not None else default
-
-
-def _read_yaml_mapping(path: Path, default: dict[str, object]) -> dict[str, object]:
-    data = _read_yaml(path, default)
-    if not isinstance(data, dict):
-        raise ValueError(f"Invalid YAML mapping: {path}")
-    return data
 
 
 def _string_list(value: object) -> list[str]:
@@ -180,6 +172,31 @@ class WorkPlanningService:
             branch_name=str(git.get("branch_name") if isinstance(git, dict) else ""),
             path=work_dir.relative_to(self.root),
             manifest=manifest,
+        )
+
+    def retire(self, work_id: str, reason: str) -> WorkRetire:
+        reason = reason.strip()
+        if not reason:
+            raise ValueError("Work retire reason is required")
+        work_dir = self.find_dir(work_id)
+        manifest_path = work_dir / "manifest.yml"
+        manifest = _read_yaml_mapping(manifest_path, default={})
+        status = str(manifest.get("status") or "unknown")
+        if status != "planned":
+            raise ValueError(f"Work item must be planned before retire. Current status: {status}")
+
+        manifest["status"] = "retired"
+        manifest["retirement"] = {
+            "reason": reason,
+            "retired_at": date.today().isoformat(),
+            "mode": "metadata_only",
+        }
+        manifest_path.write_text(_yaml_dump(manifest), encoding="utf-8")
+        return WorkRetire(
+            work_id=str(manifest.get("work_id") or work_id),
+            status="retired",
+            reason=reason,
+            path=work_dir.relative_to(self.root),
         )
 
     def summary_from_manifest(self, manifest: dict[str, object], path: Path, *, scanned: bool) -> WorkSummary:
