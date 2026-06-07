@@ -33,6 +33,12 @@ tramite gli strumenti P2P disponibili, poi produrre o aggiornare specs locali
 fuori da `.p2p/`. Le specs possono derivare dall'output P2P, ma non devono
 duplicare lo stato P2P né sostituire decisioni del proprietario.
 
+Quando il lavoro include implementazione, refactoring, revisione o cleanup del
+codice runtime in `src/`, leggere e applicare
+`specs/skills/ENGINEERING_QUALITY_SKILL.md`. Questa skill locale definisce la
+policy di qualità per compatibilità pubblica, responsabilità, side effect,
+testabilità, atomicità e disciplina di review.
+
 ## 1) Scopo delle specs
 
 Le specs servono a:
@@ -227,7 +233,9 @@ Un agente AI che lavora con queste specs deve:
    direzione approvata e usare `specs/` per il contesto e i task operativi
 7. non scrivere dettagli implementativi o stato dei task dentro `.p2p/`
 8. non trattare le specs locali come contenuto di release senza richiesta esplicita
-9. quando lavora da un export generato `project.md`/`propose.md`, seguire
+9. quando implementa, refactora, revisiona o pulisce codice in `src/`, seguire
+   `specs/skills/ENGINEERING_QUALITY_SKILL.md`
+10. quando lavora da un export generato `project.md`/`propose.md`, seguire
    `specs/methods/project-output-binding.md` e `specs/skills/project-output-binding.md`;
    segnare task completati solo con evidenza da `src/`, `tests/`, `docs/` o
    comportamento CLI osservato

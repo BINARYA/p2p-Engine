@@ -759,16 +759,32 @@ readiness:
   path: .p2p/proposals/PROP-058-project-readme-and-installation-guide/readiness.yml
 - proposal: PROP-059
   title: P2PWorkspace Modular Refactoring Plan
-  proposal_status: draft
-  status: not_assessed
-  profile_id: null
-  profile_version: null
-  computed_score: null
-  computed_label: null
-  confidence: null
+  proposal_status: accepted
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  computed_score: 14
+  computed_label: weak
+  confidence: low
   failed_gates: []
-  missing: []
-  suggested_next: []
+  missing:
+  - scope_boundaries
+  - alternatives_quality
+  - tradeoff_analysis
+  - risk_coverage
+  - assumptions_clarity
+  - owner_questions_resolution
+  - acceptance_criteria_quality
+  - impact_overlap_analysis
+  suggested_next:
+  - add_scope_boundaries
+  - add_alternatives_quality
+  - add_tradeoff_analysis
+  - add_risk_coverage
+  - add_assumptions_clarity
+  - add_owner_questions_resolution
+  - add_acceptance_criteria_quality
+  - add_impact_overlap_analysis
   path: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/readiness.yml
 - proposal: PROP-060
   title: Real Test Coverage Reporting

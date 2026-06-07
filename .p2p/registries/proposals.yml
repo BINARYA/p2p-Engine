@@ -1718,11 +1718,25 @@ proposals:
   - tasks.yml
 - id: PROP-059
   title: P2PWorkspace Modular Refactoring Plan
-  status: draft
+  status: accepted
   path: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan
-  summary: Create a refactoring plan that maps current P2PWorkspace methods to cohesive
-    internal managers while keeping P2PWorkspace as the stable facade. Define migration
-    phases, test requirements, risk areas, and rollback strategy before moving code.
+  summary: 'Adopt a conservative modular refactoring program. P2PWorkspace remains
+    the stable compatibility facade, but new behavior should move into dedicated services
+    and adapters. cli.py, storage/filesystem.py, and mcp/tools.py become thinner orchestration/facade
+    layers rather than the default home for new domain logic. The first deliverable
+    is documentation and development contract only: update AGENTS.md with short non-negotiable
+    agent rules, create docs/DEVELOPMENT-GUIDELINES.md as the full architecture guide,
+    and define a prioritized refactoring roadmap. Alternatives considered are: keep
+    the monolith and document conventions; split large files mechanically; introduce
+    internal managers behind the stable P2PWorkspace facade; or redesign public APIs.
+    The preferred option is internal managers behind the facade because it improves
+    maintainability while preserving CLI, MCP, storage, governance, and agent compatibility.
+    After acceptance and local specs binding, the recommended first code extraction
+    is consent/permissions because it has a clear boundary, high safety value, lower
+    presentation exposure than CLI, and can establish the extraction pattern before
+    more central proposal/readiness workflows are touched. Services/use cases should
+    be extracted before CLI modularization. Any breaking change requires a separate
+    proposal.'
   decision_file: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/decision.md
   related_changes: []
   source_files:
@@ -1738,6 +1752,7 @@ proposals:
   - findings.md
   - open-questions.md
   - proposal.md
+  - readiness.yml
   - risks.md
   - suggested-scope.md
   - tasks.yml

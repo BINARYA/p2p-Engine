@@ -274,6 +274,11 @@ decisions:
   status: accepted
   feature: project-readme-and-installation-guide
   source: .p2p/proposals/PROP-058-project-readme-and-installation-guide
+- proposal: PROP-059
+  title: P2PWorkspace Modular Refactoring Plan
+  status: accepted
+  feature: p2pworkspace-modular-refactoring-plan
+  source: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan
 - proposal: PROP-061
   title: Focused README and Documentation Map
   status: accepted

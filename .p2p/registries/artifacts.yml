@@ -4411,6 +4411,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-059
   generated: false
+- path: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/readiness.yml
+  artifact_type: readiness.yml
+  owner_type: proposal
+  owner: PROP-059
+  generated: false
 - path: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/risks.md
   artifact_type: risks.md
   owner_type: proposal

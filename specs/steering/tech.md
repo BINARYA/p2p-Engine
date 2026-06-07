@@ -24,6 +24,19 @@
 - `src/p2p_engine/mcp/tools.py`: MCP tool definitions and dispatch.
 - `src/p2p_engine/prompts/`: prompt generators for advisory workflows.
 
+## Refactoring Direction
+
+Accepted proposal `PROP-059` establishes a conservative modular refactoring
+direction:
+
+- keep `P2PWorkspace` as the compatibility facade;
+- extract cohesive services/use cases before modularizing CLI command files;
+- treat `cli.py`, `storage/filesystem.py`, and `mcp/tools.py` as
+  compatibility/orchestration surfaces rather than default homes for new domain
+  logic;
+- use consent/permissions as the preferred first future code extraction after
+  architecture guidance is implemented and bound into local specs.
+
 ## Verification
 
 Use the project test suite for behavior changes:
@@ -48,3 +61,7 @@ Focused tests are acceptable for narrow changes:
   clarify a product boundary.
 - Do not mark tasks complete in `specs/features/*/tasks.md` unless the evidence
   can be traced to `src/`, `tests`, `docs`, or observed CLI behavior.
+- Refactoring work must preserve observable behavior unless a separate proposal
+  explicitly approves a breaking change.
+- Each extraction needs compatibility tests for the touched CLI, MCP, storage,
+  validation, Git/sync, or consent surface.

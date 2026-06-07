@@ -733,6 +733,24 @@ Generated from accepted proposal goals and non-goals.
 - Do not add a full website or generated docs site.
 - Do not document unstable internals exhaustively.
 
+## PROP-059 - P2PWorkspace Modular Refactoring Plan
+
+### Goals
+
+- Approve a modular architecture direction for P2P Engine without changing runtime behavior.
+- Preserve the public CLI, MCP, storage, consent, governance, and P2PWorkspace compatibility surface while extracting cohesive internal modules in later work.
+- Define a layered architecture that separates domain rules, application workflows, persistence adapters, Git effects, MCP transport/schema handling, and CLI presentation.
+- Create development guidance for humans and agents before non-trivial refactoring starts.
+- Select consent/permissions as the preferred first future code extraction after the architecture contract is accepted and bound into local specs.
+
+### Non-Goals
+
+- Do not rewrite the whole engine in one pass.
+- Do not implement source refactoring as part of this proposal decision.
+- Do not break existing CLI commands, MCP tool names, .p2p storage layouts, validation behavior, registry refresh behavior, consent semantics, or owner-controlled governance actions.
+- Do not split cli.py mechanically before service/use-case boundaries are defined.
+- Do not translate this proposal into source-level implementation tasks inside specs/ until the proposal is accepted and intentionally bound.
+
 ## PROP-061 - Focused README and Documentation Map
 
 ### Goals

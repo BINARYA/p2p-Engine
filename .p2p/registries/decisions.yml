@@ -419,10 +419,13 @@ decisions:
     Core, CLI, MCP, context, and maturity rubric MVPs are implemented.
 - proposal: PROP-059
   title: P2PWorkspace Modular Refactoring Plan
-  outcome: pending
-  status: draft
+  outcome: accepted
+  status: accepted
   path: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/decision.md
-  reason: ''
+  reason: Owner accepts the modular refactoring direction after consolidating scope,
+    alternatives, compatibility constraints, first deliverable, first future extraction,
+    and specs binding boundary. This is an explicit owner decision despite the automated
+    readiness score remaining weak.
 - proposal: PROP-060
   title: Real Test Coverage Reporting
   outcome: pending

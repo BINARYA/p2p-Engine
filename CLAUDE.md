@@ -33,6 +33,8 @@ implementation source of truth:
 - Track implementation steps in `specs/features/<feature>/tasks.md`.
 - Do not use `.p2p/changes`, `.p2p/work`, `.p2p/outputs`, or chat history as
   the direct coding plan.
+- When implementing, refactoring, reviewing, or cleaning runtime code in `src/`,
+  read and apply `specs/skills/ENGINEERING_QUALITY_SKILL.md`.
 
 If a requested implementation is not represented in `specs/`, Claude should
 create or update the local specs before editing `src/`.
