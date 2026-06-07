@@ -11,6 +11,8 @@ Use P2P Engine as the source of truth for project governance and planning.
 
 - Read `AGENTS.md` and `.p2p/agent-policy.yml` before modifying project state.
 - When asked to implement code, or to translate an accepted P2P proposal into expanded development context and operational implementation tasks, read `AGENTS-p2p-dev-specs.md` and use local `specs/` files for requirements, design, and tasks.
+- When implementing, refactoring, reviewing, or cleaning runtime code in `src/`, read `specs/skills/ENGINEERING_QUALITY_SKILL.md` and apply it as the local engineering-quality policy.
+- When binding generated project-definition output into local specs, read `specs/methods/project-output-binding.md` and `specs/skills/project-output-binding.md`; mark tasks complete only with evidence from `src/`, `tests/`, `docs/`, or observed CLI behavior.
 - Keep implementation specs outside `.p2p/`; do not write coding steps, branch state, or task checklists into managed P2P state by hand.
 - Treat local specs as repository development aids, not P2P Engine release artifacts, unless the owner explicitly decides otherwise.
 - Use `p2p` CLI commands for P2P mutations.

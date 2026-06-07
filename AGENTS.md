@@ -47,6 +47,11 @@ When the owner asks to implement code, or to translate an accepted P2P proposal
 into expanded development context and operational implementation tasks, use
 `AGENTS-p2p-dev-specs.md`.
 
+When implementing, refactoring, reviewing, or cleaning runtime code in `src/`,
+also read and apply `specs/skills/ENGINEERING_QUALITY_SKILL.md`. Treat it as
+the local engineering-quality policy for maintainability, compatibility,
+testability, responsibility boundaries, side effects, and review discipline.
+
 Keep this layer outside P2P governance state:
 
 - Use P2P only to read the accepted direction, decisions, readiness, and
@@ -60,6 +65,13 @@ Keep this layer outside P2P governance state:
 
 Over time, local development specs and implementation tasks may derive from P2P
 outputs, but they must remain a separate local development layer.
+
+When asked to bind generated project-definition output such as `project.md` and
+`propose.md` into local software development specs, use
+`specs/methods/project-output-binding.md` and
+`specs/skills/project-output-binding.md`. Do not mark implementation tasks
+complete from generated project output alone; require evidence from `src/`,
+`tests/`, `docs/`, or observed CLI behavior.
 
 ## P2PWorkspace Refactoring Architecture
 
