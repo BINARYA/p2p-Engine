@@ -32,11 +32,17 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert permissions["identities"]["owner"]["role"] == "owner"
     assert permissions["identities"]["contributor"]["role"] == "contributor"
     assert agent_policy["proposal_readiness"]["inspect_before_acceptance_recommendation"] is True
+    assert agent_policy["project_vertical_orchestration"]["prioritize_when_missing_or_fallback"] is True
     agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
     assert "Do not create, edit, rename, or delete files under `.p2p/` by hand" in agents
     assert "stop and report the limitation" in agents
     assert "Do not explain existing P2P artifacts only from conversation memory" in agents
     assert "Before recommending proposal acceptance, inspect readiness" in agents
+    assert "ask one focused question at a time" in agents
+    assert "p2p proposal questions next PROP-XXX" in agents
+    assert "Project Vertical Orchestration" in agents
+    assert "p2p project readiness review" in agents
+    assert "p2p project vertical propose" in agents
     assert "Managed Git Collaboration" in agents
     assert "p2p sync status" in agents
     assert "p2p proposal publish PROP-XXX --auto-renumber" in agents
@@ -128,6 +134,57 @@ def test_cli_init_owner_populates_permissions_policy(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "matteo-rossi:" in result.output
     assert "role: owner" in result.output
+
+
+def test_cli_project_export_writes_visible_latest_and_review_snapshot(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Visible Project Output",
+            "--problem",
+            "Project definitions are hard to inspect when hidden under P2P state.",
+            "--goal",
+            "Generate a visible project document.",
+            "--non-goal",
+            "Do not replace managed P2P state.",
+            "--proposal",
+            "Write a chaptered project definition to outputs/latest/project.md.",
+            "--acceptance",
+            "outputs/latest/project.md exists.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["project", "export", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "Project definition exported" in result.output
+    assert "latest: outputs/latest/project.md" in result.output
+    assert "archived: none" in result.output
+    latest = tmp_path / "outputs" / "latest" / "project.md"
+    assert latest.exists()
+    latest_text = latest.read_text(encoding="utf-8")
+    assert "# Demo Project Project Definition" in latest_text
+    assert "source_of_truth: .p2p/" in latest_text
+    assert "## Accepted Proposals And Decisions" in latest_text
+    assert (tmp_path / "outputs" / "latest" / "exports").is_dir()
+
+    latest.write_text("old generated output\n", encoding="utf-8")
+    result = runner.invoke(app, ["project", "export", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "archived: outputs/review-001" in result.output
+    assert (tmp_path / "outputs" / "review-001" / "project.md").read_text(encoding="utf-8") == "old generated output\n"
+
+    status = runner.invoke(app, ["project", "export-status", "--root", str(tmp_path)])
+    assert status.exit_code == 0
+    assert "latest_exists: true" in status.output
+    assert "outputs/review-001" in status.output
 
 
 def test_cli_permissions_actor_and_consent_receipts(tmp_path: Path) -> None:
@@ -295,6 +352,27 @@ def test_cli_validate_reports_invalid_yaml_as_error(tmp_path: Path) -> None:
 
     assert result.exit_code == 1
     assert "P2P010_INVALID_YAML" in result.output
+
+
+def test_cli_validate_reports_invalid_proposal_questions(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Question Validation", "--root", str(tmp_path)])
+    questions_path = tmp_path / ".p2p" / "proposals" / "PROP-001-question-validation" / "questions.yml"
+    questions_path.write_text(
+        "proposal_questions:\n"
+        "  schema_version: 1\n"
+        "  proposal_id: PROP-001\n"
+        "  groups: []\n"
+        "  questions:\n"
+        "    - id: Q001\n"
+        "      state: invalid\n",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["validate", "--root", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert "P2P232_INVALID_PROPOSAL_QUESTIONS" in result.output
 
 
 def test_cli_validate_reports_stale_registries_as_warning(tmp_path: Path) -> None:
@@ -1227,6 +1305,122 @@ def test_cli_proposal_readiness_status_refresh_and_explain(tmp_path: Path) -> No
     assert result.exit_code == 0
     assert "failed_gates:" in result.output
     assert "suggested_next:" in result.output
+
+
+def test_cli_proposal_questions_lifecycle_and_refresh_guidance(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Question Flow", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["proposal", "questions", "status", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "status: not_initialized" in result.output
+    assert "suggested_next: p2p proposal questions init PROP-001" in result.output
+
+    result = runner.invoke(app, ["proposal", "questions", "init", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Proposal question state initialized" in result.output
+
+    result = runner.invoke(
+        app,
+        [
+            "proposal",
+            "questions",
+            "add",
+            "PROP-001",
+            "--gap",
+            "alternatives_quality",
+            "--priority",
+            "high",
+            "--question",
+            "Which alternative should be compared first?",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Q001" in result.output
+    assert "alternatives_quality" in result.output
+
+    result = runner.invoke(app, ["proposal", "questions", "next", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Which alternative should be compared first?" in result.output
+
+    result = runner.invoke(
+        app,
+        [
+            "proposal",
+            "questions",
+            "answer",
+            "PROP-001",
+            "Q001",
+            "Use a first-class deterministic CLI object.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Question answered" in result.output
+
+    result = runner.invoke(app, ["proposal", "questions", "apply", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Answered proposal questions applied to artifact update plan" in result.output
+    assert "Artifact update plan" in result.output
+
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "questions",
+            "add",
+            "PROP-001",
+            "--gap",
+            "risk_coverage",
+            "--question",
+            "Which risk matters most?",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "questions",
+            "add",
+            "PROP-001",
+            "--gap",
+            "risk_coverage",
+            "--question",
+            "Which implementation risk matters most?",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert runner.invoke(app, ["proposal", "questions", "defer", "PROP-001", "Q002", "--root", str(tmp_path)]).exit_code == 0
+    assert runner.invoke(app, ["proposal", "questions", "reopen", "PROP-001", "Q002", "--root", str(tmp_path)]).exit_code == 0
+    assert runner.invoke(app, ["proposal", "questions", "mute", "PROP-001", "Q002", "--root", str(tmp_path)]).exit_code == 0
+    assert runner.invoke(app, ["proposal", "questions", "retire", "PROP-001", "Q003", "--root", str(tmp_path)]).exit_code == 0
+    assert runner.invoke(app, ["proposal", "questions", "supersede", "PROP-001", "Q002", "Q003", "--root", str(tmp_path)]).exit_code == 0
+    assert runner.invoke(app, ["proposal", "questions", "group-status", "PROP-001", "QG002", "--state", "muted", "--root", str(tmp_path)]).exit_code == 0
+    questions_path = tmp_path / ".p2p" / "proposals" / "PROP-001-question-flow" / "questions.yml"
+    assert runner.invoke(app, ["proposal", "questions", "import", "PROP-001", str(questions_path), "--root", str(tmp_path)]).exit_code == 0
+
+    result = runner.invoke(app, ["proposal", "readiness", "init", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    result = runner.invoke(app, ["proposal", "readiness", "refresh", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "guidance: refresh is conservative" in result.output
+
+    result = runner.invoke(app, ["proposal", "readiness", "review", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Proposal readiness review for PROP-001" in result.output
+    assert "question_state: initialized" in result.output
+    assert "assertiveness_guidance:" in result.output
+    assert "acceptance_cautions:" in result.output
+
+    result = runner.invoke(app, ["proposal", "readiness", "assess", "PROP-001", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Proposal readiness assessed" in result.output
 
 
 def test_cli_lists_proposal_contributions(tmp_path: Path) -> None:

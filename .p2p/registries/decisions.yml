@@ -2,7 +2,7 @@ generated: true
 source: .p2p/proposals/*/decision.md
 decisions:
 - proposal: PROP-001
-  title: CLI Foundation
+  title: "\u2014 CLI Foundation"
   outcome: Build the first P2P Engine CLI as a local, Git-native, prompt-only Python
     application.
   status: accepted
@@ -595,19 +595,44 @@ decisions:
     next-action lifecycle.
 - proposal: PROP-082
   title: Readiness Assessment Refresh And Review Workflow
-  outcome: pending
-  status: draft
+  outcome: accepted
+  status: accepted
   path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/decision.md
-  reason: ''
+  reason: Owner confirms the refined second-slice direction for artifact-aware proposal
+    questions, stepped readiness-driven agent assertiveness, evidence-aware readiness
+    recalculation, and proactive low-readiness interview behavior.
 - proposal: PROP-083
   title: Domain-Aware Visible Project Definition Export
-  outcome: pending
-  status: draft
+  outcome: accepted
+  status: accepted
   path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/decision.md
-  reason: ''
+  reason: Owner accepts the domain-aware visible project definition export. Readiness
+    has no missing gaps after refinement, but computed score remains partial because
+    the current readiness profile is conservative and keeps confidence low for artifact-derived
+    assessments.
 - proposal: PROP-084
   title: Project-Local Runtime Bootstrap And Upgrade Flow
   outcome: pending
   status: draft
   path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/decision.md
   reason: ''
+- proposal: PROP-085
+  title: Pluggable Project Verticals And Readiness Orchestration
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/decision.md
+  reason: Accepted by owner after readiness reached decision_ready. The proposal defines
+    pluggable pure-data project verticals, base_project, custom vertical candidate
+    flow, project readiness review, and proposal-to-vertical traceability while preserving
+    backward compatibility.
+- proposal: PROP-086
+  title: Artifact-aware Proposal Readiness And Agent Interview Orchestration
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/decision.md
+  reason: 'Accepted by owner as an explicit readiness override. The current default-readiness-v0.1
+    score remains weak because it is not artifact-aware, but the owner accepts the
+    refined direction: introduce a dedicated artifact-specific CLI/MCP primitive,
+    graduated-by-risk artifact requirements, default coverage for new proposals, advisory
+    absent_legacy handling for old proposals, strict CLI/MCP-only memory mutation,
+    and tests for readiness/context/MCP/missing-primitive behavior.'

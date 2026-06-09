@@ -4,6 +4,12 @@ from typing import Any
 
 from p2p_engine.core.contribution import ContributionType
 from p2p_engine.core.decision import DecisionOutcome
+from p2p_engine.core.proposal_artifact_state import (
+    ProposalArtifactExpectation,
+    ProposalArtifactRiskFlag,
+    ProposalArtifactStatus,
+)
+from p2p_engine.core.proposal_questions import ProposalQuestionPriority
 from p2p_engine.mcp.consent_audit import (
     consume_consent_with_audit,
     mark_consent_error_on_head_change,
@@ -101,6 +107,16 @@ def handle_proposal_tool(
                 "override_applied": False,
             },
         }
+    if name == "p2p_proposal_readiness_assess":
+        readiness = workspace.assess_proposal_readiness(required(arguments, "proposal_id"))
+        return {
+            "readiness": to_jsonable(readiness),
+            "governance": {
+                "owner_decision_required": False,
+                "decision_made": False,
+                "override_applied": False,
+            },
+        }
     if name == "p2p_proposal_readiness_explain":
         readiness = workspace.read_proposal_readiness(required(arguments, "proposal_id"))
         return {
@@ -121,6 +137,113 @@ def handle_proposal_tool(
                 "suggested_next": readiness.suggested_next,
             }
         }
+    if name == "p2p_proposal_readiness_review":
+        return {"review": to_jsonable(workspace.review_proposal_readiness(required(arguments, "proposal_id")))}
+    if name == "p2p_proposal_questions_status":
+        return {"questions": to_jsonable(workspace.read_proposal_questions(required(arguments, "proposal_id")))}
+    if name == "p2p_proposal_questions_init":
+        return {
+            "questions": to_jsonable(
+                workspace.initialize_proposal_questions(
+                    required(arguments, "proposal_id"),
+                    actor=str(arguments.get("actor") or "mcp"),
+                )
+            ),
+            "governance": {"owner_decision_required": False, "decision_made": False},
+        }
+    if name == "p2p_proposal_questions_add":
+        priority = ProposalQuestionPriority(str(arguments.get("priority") or ProposalQuestionPriority.medium.value))
+        return {
+            "question": to_jsonable(
+                workspace.add_proposal_question(
+                    required(arguments, "proposal_id"),
+                    gap=required(arguments, "gap"),
+                    question=required(arguments, "question"),
+                    priority=priority,
+                    rationale=optional_string(arguments, "rationale") or "",
+                    actor=str(arguments.get("actor") or "mcp"),
+                )
+            ),
+            "governance": {"owner_decision_required": False, "decision_made": False},
+        }
+    if name == "p2p_proposal_questions_answer":
+        return {
+            "question": to_jsonable(
+                workspace.answer_proposal_question(
+                    required(arguments, "proposal_id"),
+                    required(arguments, "question_id"),
+                    required(arguments, "answer"),
+                    source=str(arguments.get("source") or "owner"),
+                    actor=str(arguments.get("actor") or "mcp"),
+                )
+            ),
+            "governance": {"owner_decision_required": False, "decision_made": False},
+        }
+    if name == "p2p_proposal_questions_next":
+        return {"question": to_jsonable(workspace.next_proposal_question(required(arguments, "proposal_id")))}
+    if name == "p2p_proposal_questions_apply":
+        return {
+            "apply": to_jsonable(
+                workspace.apply_proposal_question_answers(
+                    required(arguments, "proposal_id"),
+                    actor=str(arguments.get("actor") or "mcp"),
+                )
+            ),
+            "governance": {"owner_decision_required": False, "decision_made": False},
+        }
+    if name == "p2p_proposal_artifact_status":
+        return {"artifact_state": to_jsonable(workspace.read_proposal_artifacts(required(arguments, "proposal_id")))}
+    if name == "p2p_proposal_artifact_init":
+        return {
+            "artifact_state": to_jsonable(
+                workspace.initialize_proposal_artifacts(
+                    required(arguments, "proposal_id"),
+                    actor=str(arguments.get("actor") or "mcp"),
+                )
+            ),
+            "governance": {"owner_decision_required": False, "decision_made": False},
+        }
+    if name == "p2p_proposal_artifact_set":
+        expectation = _artifact_expectation(arguments)
+        status = _artifact_status(arguments)
+        risk_flags = _artifact_risk_flags(arguments)
+        return {
+            "artifact_operation": to_jsonable(
+                workspace.set_proposal_artifact_state(
+                    required(arguments, "proposal_id"),
+                    required(arguments, "artifact_id"),
+                    expectation=expectation,
+                    status=status,
+                    reason=optional_string(arguments, "reason") or "",
+                    actor=str(arguments.get("actor") or "mcp"),
+                    source=str(arguments.get("source") or "mcp"),
+                    risk_flags=risk_flags,
+                )
+            ),
+            "governance": {"owner_decision_required": False, "decision_made": False},
+        }
+    if name == "p2p_proposal_artifact_confirm":
+        return {
+            "artifact_operation": to_jsonable(
+                workspace.confirm_proposal_artifact_state(
+                    required(arguments, "proposal_id"),
+                    required(arguments, "artifact_id"),
+                    actor=str(arguments.get("actor") or "owner"),
+                )
+            ),
+            "governance": {"owner_decision_required": False, "decision_made": False},
+        }
+    if name == "p2p_proposal_artifact_mark_legacy":
+        return {
+            "artifact_state": to_jsonable(
+                workspace.mark_proposal_artifacts_legacy(
+                    required(arguments, "proposal_id"),
+                    reason=optional_string(arguments, "reason") or "Proposal predates artifact-aware state.",
+                    actor=str(arguments.get("actor") or "mcp"),
+                )
+            ),
+            "governance": {"owner_decision_required": False, "decision_made": False},
+        }
     if name == "p2p_proposal_accept":
         return _proposal_decision_tool(workspace, arguments, "proposal_accept", DecisionOutcome.accepted)
     if name == "p2p_proposal_reject":
@@ -139,6 +262,44 @@ def _contribution_type(arguments: dict[str, Any]) -> ContributionType:
     except ValueError as exc:
         allowed = ", ".join(item.value for item in ContributionType)
         raise ValueError(f"Invalid contribution type: {value}. Allowed: {allowed}") from exc
+
+
+def _artifact_expectation(arguments: dict[str, Any]) -> ProposalArtifactExpectation | None:
+    value = optional_string(arguments, "expectation")
+    if value is None:
+        return None
+    try:
+        return ProposalArtifactExpectation(value)
+    except ValueError as exc:
+        allowed = ", ".join(item.value for item in ProposalArtifactExpectation)
+        raise ValueError(f"Invalid artifact expectation: {value}. Allowed: {allowed}") from exc
+
+
+def _artifact_status(arguments: dict[str, Any]) -> ProposalArtifactStatus | None:
+    value = optional_string(arguments, "status")
+    if value is None:
+        return None
+    try:
+        return ProposalArtifactStatus(value)
+    except ValueError as exc:
+        allowed = ", ".join(item.value for item in ProposalArtifactStatus)
+        raise ValueError(f"Invalid artifact status: {value}. Allowed: {allowed}") from exc
+
+
+def _artifact_risk_flags(arguments: dict[str, Any]) -> list[ProposalArtifactRiskFlag] | None:
+    values = arguments.get("risk_flags")
+    if values is None:
+        return None
+    if not isinstance(values, list):
+        raise ValueError("Expected list argument: risk_flags")
+    flags: list[ProposalArtifactRiskFlag] = []
+    for value in values:
+        try:
+            flags.append(ProposalArtifactRiskFlag(str(value)))
+        except ValueError as exc:
+            allowed = ", ".join(item.value for item in ProposalArtifactRiskFlag)
+            raise ValueError(f"Invalid artifact risk flag: {value}. Allowed: {allowed}") from exc
+    return flags
 
 
 def _proposal_decision_tool(

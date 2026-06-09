@@ -1,8 +1,19 @@
+from pathlib import Path
+import tomllib
+
 import yaml
 
+from p2p_engine import __version__
 from p2p_engine.core.contribution import ContributionType
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.storage.filesystem import P2PWorkspace
+
+
+def test_package_version_matches_pyproject() -> None:
+    root = Path(__file__).resolve().parents[1]
+    project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+
+    assert __version__ == project["project"]["version"]
 
 
 def test_domain_enums_expose_expected_values() -> None:

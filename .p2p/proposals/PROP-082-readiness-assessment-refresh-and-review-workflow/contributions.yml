@@ -11,3 +11,142 @@ contributions:
     readiness override in the decision reason. This demonstrates that refresh currently
     behaves like a conservative snapshot/bootstrap synchronizer rather than an evidence-aware
     reassessment workflow.'
+- id: C002
+  type: architectural_principle
+  author: codex
+  relevance_hint: high
+  text: 'Distinguere esplicitamente due capacita diverse: information completeness
+    e agent behavioral guidance. Una readiness o project assessment puo conservare
+    informazioni esaustive, evidence, score, missing items e gate, ma questo non garantisce
+    che un agente si comporti in modo proattivo e pedante. La proposta dovrebbe valutare
+    separatamente se il sistema conserva abbastanza informazioni verificabili per
+    giudicare proposal e progetto, e se il sistema espone istruzioni, next actions,
+    prompt guidance e criteri operativi che obbligano l''agente a sollevare lacune,
+    chiedere chiarimenti, proporre alternative, rifiutare artifact thin e non raccomandare
+    acceptance quando la maturita metodologica e insufficiente.'
+- id: C003
+  type: feature_request
+  author: codex
+  relevance_hint: high
+  text: Add a deterministic clarification interview loop to readiness review. When
+    an agent sees a low-readiness proposal, it should identify the missing elements
+    needed to make the proposal robust and approvable, write relevant owner questions
+    into proposal state with empty answers, ask one question at a time, record each
+    answer, reassess whether the question list should change after every answer, and
+    then use the collected answers to refine the proposal through CLI-supported update/import
+    tools. This requires both a structured memory object for questions and answers,
+    and explicit agent skill guidance; otherwise agents may only record data passively
+    without taking initiative to guide the proposal toward higher readiness.
+- id: C004
+  type: suggestion
+  author: codex
+  relevance_hint: high
+  text: 'Interview queue for readiness improvement. Q001 status=open gap=alternatives_quality
+    priority=high answer='''' question=''Should agent proactivity and deterministic
+    clarification interview live inside PROP-082 as part of readiness review, or should
+    PROP-082 only define the proposal-readiness storage/review model while a separate
+    proposal defines reusable agent guidance across project assessment, maturity,
+    next actions, and MCP context?'' Q002 status=open gap=tradeoff_analysis priority=high
+    answer='''' question=''What tradeoff do you prefer between a lightweight contribution-based
+    interview MVP and a first-class structured question/answer CLI object?'' Q003
+    status=open gap=risk_coverage priority=high answer='''' question=''What risks
+    worry you most: agents becoming too pushy, asking too many questions, storing
+    noisy interview state, overwriting owner intent, or creating governance ambiguity?''
+    Q004 status=open gap=assumptions_clarity priority=medium answer='''' question=''What
+    assumptions should the proposal make about when an agent is allowed or expected
+    to enter interview mode?'' Q005 status=open gap=impact_overlap_analysis priority=high
+    answer='''' question=''Which existing proposals must PROP-082 explicitly integrate
+    with or avoid duplicating, especially PROP-002, PROP-054, PROP-055, PROP-056,
+    and PROP-081?'' Q006 status=open gap=owner_questions_resolution priority=high
+    answer='''' question=''What would make this proposal acceptable to you as owner:
+    CLI question memory, skill guidance, both in one proposal, or an MVP plus deferred
+    extensions?'' After each answer, reassess whether remaining questions are still
+    valid, add follow-ups only when needed, and retire obsolete questions without
+    losing audit trail.'
+- id: C005
+  type: suggestion
+  author: owner-via-codex
+  relevance_hint: high
+  text: 'Interview answer Q001: keep agent proactivity and deterministic clarification
+    interview inside PROP-082 for now. Do not split into a dedicated proposal at this
+    stage. Effect: PROP-082 should include both the readiness storage/review model
+    and the agent behavioral guidance/interview workflow. Impact analysis should still
+    note possible future reuse across project assessment, maturity, p2p next, and
+    MCP context.'
+- id: C006
+  type: architectural_principle
+  author: owner-via-codex
+  relevance_hint: high
+  text: 'Interview answer Q002: choose a first-class deterministic CLI object for
+    proposal questions, not a lightweight contribution-based MVP. Desired direction:
+    commands such as p2p proposal questions add/list/answer/retire/apply or equivalent
+    should manage stable question IDs, empty initial answers, answer state, readiness-gap
+    linkage, audit metadata, question evolution, and application of answers back into
+    proposal text.'
+- id: C007
+  type: constraint
+  author: owner-via-codex
+  relevance_hint: high
+  text: 'Interview answer Q003: primary risk to control is agent passivity. The system
+    should bias agents toward guiding the readiness process; if a user does not want
+    more questions, the user can ask the agent to stop. Questions should have explicit
+    re-ask state so the agent knows whether to bring them back: to_answer means ask
+    when relevant, defer means skip for now but keep available for later, muted means
+    skip by default unless the user explicitly asks to extract/respond to unanswered
+    questions or wants to increase readiness. This state model should apply both to
+    individual questions and to a question set/group generated from an answer or readiness
+    gap, so the agent can decide whether to resume, skip, or suppress questions deterministically.'
+- id: C008
+  type: constraint
+  author: owner-via-codex
+  relevance_hint: high
+  text: 'Interview answer Q004: the agent should be proactive by default. When a proposal
+    has low readiness, failed gates, or unresolved owner questions, the agent should
+    not wait for explicit permission to begin guiding the readiness process. It should
+    explain briefly that readiness is weak, identify the highest-impact gap, and ask
+    the next focused question. The user can always stop, defer, or mute questions,
+    but the default behavior should avoid passivity.'
+- id: C009
+  type: architectural_principle
+  author: owner-via-codex
+  relevance_hint: high
+  text: 'Interview answer Q005: the largest impact/overlap risk is duplicated or near-duplicated
+    proposals causing divergence of useful contributions. Similar proposals may accumulate
+    different contributions, and one may later be rejected even though it contains
+    valuable content. Readiness interview should therefore include overlap detection:
+    when the agent sees that two proposals are similar, overlapping, or mergeable,
+    it should ask the owner whether they should be aggregated. If approved, the workflow
+    should transfer relevant content and contributions into the retained proposal
+    and close the other proposal with an explicit aggregation/merged-into trace. The
+    agent may recommend and prepare the aggregation, but the final close/reject/defer/merge
+    decision remains owner-controlled and must use supported P2P CLI/governance primitives.'
+- id: C010
+  type: objective
+  author: owner-via-codex
+  relevance_hint: high
+  text: 'Interview answer Q006: PROP-082 is acceptable only if it contains the CLI
+    commands, data structures, compatibility behavior, and operational details needed
+    to later implement a production-ready system. The goal is that, once implemented,
+    P2P agents can behave proactively around proposals instead of passively recording
+    data. Backward compatibility is required: if a proposal has no question/interview
+    state file, the CLI must not fail or become brittle. It should report that no
+    question state exists, and agent guidance should instruct the agent to notice
+    this and proactively initialize or propose the appropriate question workflow when
+    readiness is low or owner input is needed.'
+- id: C011
+  type: constraint
+  author: codex
+  relevance_hint: high
+  text: 'Readiness refresh requirement: PROP-082 should explicitly define the role
+    and limits of p2p proposal readiness refresh. Refresh should remain a deterministic
+    synchronization command, not an opaque qualitative reviewer, but it must not silently
+    leave users confused when proposal text, contributions, or question state have
+    changed and the score stays low. Refresh should detect stale or changed readiness
+    inputs where possible, preserve the computed score when it cannot perform evidence-aware
+    reassessment, and emit actionable guidance pointing to the assess/review workflow
+    and question interview commands. In particular, after proposal updates or answered
+    questions, refresh should be able to say that the snapshot was synchronized but
+    qualitative reassessment is still needed, and should list the next command such
+    as p2p proposal readiness assess/review or p2p proposal questions next/apply/reassess.
+    This prevents users and agents from mistaking conservative refresh output for
+    a final readiness judgment.'

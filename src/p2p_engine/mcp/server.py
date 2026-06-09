@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from typing import Any, TextIO
 
+from p2p_engine import __version__
 from p2p_engine.mcp.tools import call_tool, tool_definitions
 
 JSONRPC_VERSION = "2.0"
@@ -57,7 +58,7 @@ def handle_message(message: str, *, default_root: Path) -> dict[str, object] | N
                 request_id,
                 {
                     "protocolVersion": "2024-11-05",
-                    "serverInfo": {"name": "p2p-engine", "version": "0.1.0"},
+                    "serverInfo": {"name": "p2p-engine", "version": __version__},
                     "capabilities": {"tools": {}},
                 },
             )

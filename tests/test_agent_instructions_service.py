@@ -17,6 +17,11 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").exists()
     assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
     assert sorted(policy["agent_profiles"]) == ["codex", "generic"]
+    assert "inspect_artifact_coverage" in policy["proposal_readiness"]["gap_handling"]["steps"]
+    assert "p2p proposal artifact status PROP-XXX" in policy["proposal_readiness"]["commands"]
+    agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+    assert "p2p proposal artifact status PROP-XXX" in agents
+    assert "copying a\nprepared temporary file into an artifact" in agents
 
 
 def test_agent_instruction_service_lists_and_shows_drift(tmp_path: Path) -> None:
@@ -65,4 +70,3 @@ def test_agent_instruction_service_uninstall_preserves_shared_files(tmp_path: Pa
     assert {"path": "AGENTS.md", "reason": "shared"} in result.skipped
     assert (tmp_path / "AGENTS.md").exists()
     assert not (tmp_path / "GEMINI.md").exists()
-

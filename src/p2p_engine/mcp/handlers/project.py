@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from p2p_engine.mcp.handlers.common import optional_string, required, to_jsonable
@@ -46,6 +47,46 @@ def handle_project_tool(
         return {"conflicts": to_jsonable(workspace.conflict_status())}
     if name == "p2p_project_status":
         return {"project_status": to_jsonable(workspace.project_state_status())}
+    if name == "p2p_project_export":
+        return {"export": to_jsonable(workspace.export_visible_project_definition())}
+    if name == "p2p_project_export_status":
+        return {"export_status": to_jsonable(workspace.visible_project_definition_export_status())}
+    if name == "p2p_project_vertical_list":
+        return {
+            "verticals": to_jsonable(workspace.project_verticals()),
+            "active": to_jsonable(workspace.active_project_vertical()),
+        }
+    if name == "p2p_project_vertical_show":
+        return {"vertical": to_jsonable(workspace.show_project_vertical(required(arguments, "vertical_id")))}
+    if name == "p2p_project_vertical_validate":
+        return {"validation": to_jsonable(workspace.validate_project_vertical(required(arguments, "target")))}
+    if name == "p2p_project_vertical_propose":
+        return {"candidate": to_jsonable(workspace.propose_project_vertical(required(arguments, "idea")))}
+    if name == "p2p_project_vertical_add":
+        return {
+            "vertical_add": to_jsonable(
+                workspace.add_project_vertical(
+                    Path(required(arguments, "source")),
+                    activate=bool(arguments.get("activate") or False),
+                    actor=str(arguments.get("actor") or "local"),
+                )
+            )
+        }
+    if name == "p2p_project_vertical_select":
+        return {
+            "active": to_jsonable(
+                workspace.select_project_vertical(
+                    required(arguments, "vertical_id"),
+                    actor=str(arguments.get("actor") or "local"),
+                )
+            )
+        }
+    if name == "p2p_project_readiness_review":
+        return {
+            "readiness_review": to_jsonable(
+                workspace.review_project_readiness(optional_string(arguments, "vertical_id"))
+            )
+        }
     if name == "p2p_next":
         top = arguments.get("top")
         limit = int(top) if top is not None else None

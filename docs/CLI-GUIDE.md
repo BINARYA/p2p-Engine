@@ -68,7 +68,114 @@ p2p next refresh
 Completed and retired curated actions are moved to
 `.p2p/project/next-actions-log.yml`.
 
-## 2. Manage Agent Integrations
+## 2. Define Project Verticals And Capisaldi
+
+Project verticals are pure data packs that describe the capisaldi, rubrics,
+questions, and expected artifacts for a kind of project. `base_project` is the
+cross-domain fallback. More specific verticals can extend it.
+
+List and inspect verticals:
+
+```bash
+p2p project vertical list
+p2p project vertical show base_project
+p2p project vertical show social_impact_program_design
+```
+
+If no active vertical has been selected, project reads use `base_project` as a
+normal fallback. This is not an init failure; it is a signal that an agent or
+owner should define the project skeleton before relying on readiness.
+
+Generate a candidate for a custom or detected vertical:
+
+```bash
+p2p project vertical propose "progettare la scatola perfetta"
+```
+
+The command prints an importable candidate YAML. Save or review that candidate,
+then add/select it explicitly:
+
+```bash
+p2p project vertical validate candidate.yml
+p2p project vertical add candidate.yml --activate --actor owner
+p2p project vertical select packaging_or_physical_product_design --actor owner
+```
+
+Source precedence is deterministic:
+
+```text
+.p2p/project/verticals/<vertical-id>/vertical.yml
+internal package resources
+future remote registry sources
+base_project fallback
+```
+
+Project-local packs override internal packs with the same ID. A valid pack uses
+this shape:
+
+```yaml
+vertical:
+  schema_version: 1
+  id: social_impact_program_design
+  name: Social Impact Program Design
+  version: 1.0.0
+  description: Domain-specific project skeleton.
+  extends: base_project
+  sections:
+    - id: measurement_reporting
+      title: Measurement And Reporting
+      purpose: Define outcome metrics and reporting cadence.
+      required: true
+      priority: 60
+  rubrics:
+    - id: measurement_quality
+      title: Measurement Quality
+      section_id: measurement_reporting
+      required: true
+      keywords: [metric, outcome, report, evidence]
+  questions:
+    - id: measurement_main
+      section_id: measurement_reporting
+      priority: high
+      question: How will real impact be measured?
+  artifacts:
+    - id: outcome_metric_framework
+      title: Outcome Metric Framework
+      section_ids: [measurement_reporting]
+      required: true
+```
+
+Review project readiness against the active vertical:
+
+```bash
+p2p project readiness review
+p2p project readiness review --vertical social_impact_program_design
+```
+
+The review reports section coverage, missing capisaldi, generated questions,
+unmapped proposals, and suggested next commands. It does not mutate governance
+state.
+
+Proposal-to-vertical traceability can be declared with an optional proposal
+artifact:
+
+```yaml
+vertical_coverage:
+  schema_version: 1
+  proposal_id: PROP-001
+  vertical_id: social_impact_program_design
+  sections:
+    - id: measurement_reporting
+      relevance: direct
+      rationale: The proposal defines outcome metrics and reporting cadence.
+      source: declared
+```
+
+`p2p validate` checks project-local vertical packs, active vertical state, and
+declared proposal coverage when present. Remote vertical registries are
+deferred; the current MVP uses internal resources plus project-local packs.
+
+## 3. Manage Agent Integrations
 
 Installed project-local agent integrations are tracked in:
 
@@ -104,7 +211,7 @@ Next actions:
   ...
 ```
 
-## 2. Capture A Rough Idea
+## 4. Capture A Rough Idea
 
 Use intake when the input is messy, overlapping, or not ready to become a
 proposal.
@@ -129,7 +236,7 @@ Only run an apply action after reviewing what it will do:
 p2p intake apply run INTAKE-001 --action APPLY-001
 ```
 
-## 3. Create And Refine A Proposal
+## 5. Create And Refine A Proposal
 
 Create a structured proposal:
 
@@ -161,7 +268,39 @@ p2p contribution add PROP-001 \
   --relevance high
 ```
 
-## 4. Decide A Proposal
+When readiness is weak, use proposal questions to run a deterministic interview:
+
+```bash
+p2p proposal readiness init PROP-001
+p2p proposal readiness review PROP-001
+p2p proposal artifact status PROP-001
+p2p proposal artifact set PROP-001 impact_map \
+  --status not_applicable \
+  --reason "This proposal does not affect other project areas."
+p2p proposal questions init PROP-001
+p2p proposal questions add PROP-001 \
+  --gap alternatives_quality \
+  --priority high \
+  --question "Which alternative should be compared first?"
+p2p proposal questions next PROP-001
+p2p proposal questions answer PROP-001 Q001 "Use a first-class CLI object."
+p2p proposal questions apply PROP-001
+p2p proposal readiness assess PROP-001
+```
+
+`readiness refresh` remains conservative. Use `readiness assess` after proposal
+or question updates when you want evidence-aware recalculation from current
+artifacts. `questions apply` returns an artifact update plan; update the useful
+affected artifacts before relying on the new readiness score.
+
+Artifact state is the structured coverage surface for proposal artifacts. New
+proposals initialize it by default. Older proposals without artifact state are
+reported as advisory `absent_legacy`, not as validation errors. Agents should
+use `p2p proposal artifact ...` commands or explicit MCP write tools to update
+artifact coverage; they should not edit `.p2p` files directly or copy temporary
+files into managed proposal artifacts.
+
+## 6. Decide A Proposal
 
 Proposal decisions are owner-controlled. Use these only when the owner has made
 the corresponding decision.
@@ -179,7 +318,7 @@ p2p registry refresh
 p2p validate
 ```
 
-## 5. Compare Alternatives With Choices
+## 7. Compare Alternatives With Choices
 
 Use choices when the project needs an explicit selection between alternatives.
 
@@ -207,7 +346,7 @@ Advisory discovery does not modify project state:
 p2p choice discover
 ```
 
-## 6. Create A Change Set
+## 8. Create A Change Set
 
 Create Change Sets from accepted intent:
 
@@ -227,10 +366,37 @@ p2p change tasks CHANGE-001
 Change Sets are metadata first. They describe operational work derived from
 accepted project intent; they do not replace Git commits or code review.
 
-## 7. Generate And Export Specs
+## 9. Export The Visible Project Definition
 
-For software projects, a Change Set can produce a P2P-native spec and optional
-agent-first export documents for generic, OpenSpec, or Spec Kit handoff.
+The default human-facing project definition is domain-aware and visible from the
+repository root:
+
+```bash
+p2p project export
+p2p project export-status
+```
+
+The default export writes:
+
+```text
+outputs/
+  latest/
+    project.md
+    exports/
+  review-001/
+```
+
+`outputs/latest/project.md` is generated output for humans and agents. `.p2p/`
+remains the managed source of truth. Re-running the export archives the previous
+`outputs/latest/` under the next `outputs/review-###/` directory before writing
+a new latest version.
+
+## 10. Generate And Export Software Specs
+
+For software projects, a Change Set can still produce a P2P-native spec and
+optional agent-first export documents for generic, OpenSpec, or Spec Kit
+handoff. This is a compatibility/software-oriented workflow, not the default
+project definition export.
 
 ```bash
 p2p spec refresh --change CHANGE-001
@@ -264,7 +430,7 @@ speckit/
   speckit.plan.md
 ```
 
-## 8. Manage Work Metadata
+## 11. Manage Work Metadata
 
 Work commands manage handoff and branch lifecycle metadata for P2P-managed work.
 
@@ -288,7 +454,7 @@ p2p work finalize WORK-001
 p2p work cleanup WORK-001
 ```
 
-## 9. Assess And Validate
+## 12. Assess And Validate
 
 Structural validation:
 
@@ -314,7 +480,7 @@ p2p assess maturity show
 Maturity assessment checks project definition coverage against rubrics. It is
 not a measure of implementation completeness.
 
-## 10. Recover From Common Problems
+## 13. Recover From Common Problems
 
 `p2p: command not found`
 

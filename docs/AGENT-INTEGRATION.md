@@ -188,7 +188,17 @@ Generated instructions must make agents methodologically demanding. When a
 proposal is weak, low-confidence, below target, or has failed readiness gates,
 agents should not stop at diagnosis. They should explain each gap, propose
 alternatives, recommend one when justified, identify owner decisions, draft
-candidate updates, and re-check readiness.
+candidate updates, initialize or resume `p2p proposal questions` when owner
+input is needed, ask one focused question at a time, respect deferred or muted
+questions, apply answered questions through supported tools, and re-check
+readiness.
+
+Agents should inspect artifact coverage with `p2p proposal artifact status
+PROP-XXX` before calling a proposal mature. Artifact state mutations must go
+through `p2p proposal artifact ...` or explicit write-safe MCP tools. If a
+needed artifact mutation has no public primitive, the agent must report the
+missing primitive instead of editing `.p2p` directly, reverse-engineering the
+layout, or copying a temporary file into a managed artifact.
 
 ## Codex
 

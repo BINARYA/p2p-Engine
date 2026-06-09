@@ -55,14 +55,53 @@ def managed_markdown_header(adapter: str, template_id: str) -> str:
 
 READINESS_GAP_HANDLING_BLOCK = """When a proposal is weak, low-confidence, below target, or has failed readiness gates, do not stop at diagnosis.
 
+Use stepped assertiveness:
+- weak, blocked, or very low readiness: challenge the proposal, initialize or update questions, ask the next focused question, and do not recommend acceptance without owner override;
+- partial readiness: focus follow-up on high-impact gaps, unanswered high-priority questions, and artifact updates;
+- strong or near-target readiness: ask only residual high-value questions or request confirmation;
+- muted or deferred question groups: skip by default unless the owner explicitly asks to increase readiness or revisit them.
+
 For each failed gate or material gap:
 1. explain why the gate failed in proposal-specific terms;
 2. propose one to three concrete alternatives;
 3. recommend one option when evidence supports a recommendation;
 4. identify the owner decision required;
-5. draft the exact artifact update that would close the gap;
+5. inspect artifact coverage with `p2p proposal artifact status PROP-XXX`, not only `readiness.missing`;
 6. ask for confirmation only where owner authority is required;
-7. re-check or request readiness re-check after refinement."""
+7. initialize or resume `p2p proposal questions` when owner input is needed;
+8. ask one focused question at a time and record answers with the CLI or MCP;
+9. respect `defer` and `muted` question states;
+10. apply answered questions and review the artifact update plan;
+11. update every useful affected artifact state through `p2p proposal artifact ...` or explicit MCP write tools;
+12. run `p2p proposal readiness assess PROP-XXX` after refinement.
+
+Never update P2P proposal memory by editing `.p2p` files directly, copying a
+prepared temporary file into an artifact, or reverse-engineering managed paths.
+If no CLI command or explicit MCP write tool can perform the needed artifact
+mutation, stop and report the missing primitive.
+
+Default to proactive guidance. If the user wants the interview to stop, they can
+ask you to stop, defer, or mute questions."""
+
+
+PROJECT_VERTICAL_ORCHESTRATION_BLOCK = """When the project is uninitialized, uses the base-project fallback, or has weak capisaldi coverage, treat project definition as the priority context-building task.
+
+Use project vertical commands:
+- `p2p project vertical list`
+- `p2p project vertical show <vertical-id>`
+- `p2p project vertical propose "<project idea>"`
+- `p2p project vertical add <path> --activate`
+- `p2p project vertical select <vertical-id>`
+- `p2p project readiness review`
+
+Behavior:
+1. detect missing active vertical state or fallback usage with `p2p project readiness review`;
+2. propose an existing vertical when one fits, otherwise propose a custom vertical candidate;
+3. ask the owner to confirm before adding or selecting a vertical;
+4. use the vertical skeleton to identify missing capisaldi and focused questions;
+5. connect proposals to vertical sections through supported CLI/MCP artifacts when available;
+6. revisit unanswered project-definition questions proactively until the owner asks to stop, defer, or mute them;
+7. keep `p2p init` deterministic: the agent may guide missing initialization after detecting it, but the CLI init flow itself is not an agent interview."""
 
 
 def agent_adapter_capabilities(adapter_id: str) -> dict[str, object]:
@@ -196,8 +235,11 @@ def agent_policy(project_name: str, profiles: list[str], repository_mode: str) -
                     "propose_alternatives",
                     "recommend_when_supported",
                     "identify_owner_decision",
+                    "inspect_artifact_coverage",
                     "draft_candidate_update",
                     "ask_only_for_owner_authority",
+                    "apply_answers_to_artifacts",
+                    "run_evidence_aware_assess",
                     "recheck_readiness",
                 ],
             },
@@ -205,17 +247,46 @@ def agent_policy(project_name: str, profiles: list[str], repository_mode: str) -
                 "p2p proposal readiness show PROP-XXX",
                 "p2p proposal readiness init PROP-XXX",
                 "p2p proposal readiness refresh PROP-XXX",
+                "p2p proposal readiness assess PROP-XXX",
                 "p2p proposal readiness explain PROP-XXX",
+                "p2p proposal artifact status PROP-XXX",
+                "p2p proposal artifact set PROP-XXX ARTIFACT --status STATUS --reason REASON",
             ],
             "mcp_tools": [
                 "p2p_proposal_readiness_get",
                 "p2p_proposal_readiness_init",
                 "p2p_proposal_readiness_refresh",
+                "p2p_proposal_readiness_assess",
                 "p2p_proposal_readiness_explain",
                 "p2p_proposal_readiness_list_gaps",
+                "p2p_proposal_artifact_status",
+                "p2p_proposal_artifact_set",
             ],
             "computed_score_is_advisory": True,
             "owner_override_must_not_falsify_computed_score": True,
+        },
+        "project_vertical_orchestration": {
+            "prioritize_when_missing_or_fallback": True,
+            "review_command": "p2p project readiness review",
+            "commands": [
+                "p2p project vertical list",
+                "p2p project vertical show <vertical-id>",
+                "p2p project vertical propose \"<project idea>\"",
+                "p2p project vertical add <path> --activate",
+                "p2p project vertical select <vertical-id>",
+                "p2p project readiness review",
+            ],
+            "mcp_tools": [
+                "p2p_project_vertical_list",
+                "p2p_project_vertical_show",
+                "p2p_project_vertical_validate",
+                "p2p_project_vertical_propose",
+                "p2p_project_vertical_add",
+                "p2p_project_vertical_select",
+                "p2p_project_readiness_review",
+            ],
+            "owner_confirms_add_or_select": True,
+            "init_remains_deterministic": True,
         },
         "managed_git_collaboration": {
             "raw_git_for_managed_state": "forbidden_without_owner_escape_hatch",
@@ -346,7 +417,13 @@ Before recommending proposal acceptance, inspect readiness with:
 p2p proposal readiness show PROP-XXX
 p2p proposal readiness init PROP-XXX
 p2p proposal readiness refresh PROP-XXX
+p2p proposal readiness assess PROP-XXX
 p2p proposal readiness explain PROP-XXX
+p2p proposal readiness review PROP-XXX
+p2p proposal artifact status PROP-XXX
+p2p proposal artifact set PROP-XXX ARTIFACT --status STATUS --reason "..."
+p2p proposal questions status PROP-XXX
+p2p proposal questions next PROP-XXX
 ```
 
 If readiness is missing, weak, below target, or blocked by failed gates, ask focused owner questions and identify concrete missing artifacts before recommending acceptance. Readiness is advisory; the owner may still decide, but an owner override must be described separately from the computed score.
@@ -354,6 +431,10 @@ If readiness is missing, weak, below target, or blocked by failed gates, ask foc
 ### Readiness Gap Handling
 
 {READINESS_GAP_HANDLING_BLOCK}
+
+## Project Vertical Orchestration
+
+{PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
 
 ## Managed Git Collaboration
 
@@ -463,6 +544,10 @@ Use P2P Engine as the source of truth for project governance and planning.
 
 {READINESS_GAP_HANDLING_BLOCK}
 
+## Project Vertical Orchestration
+
+{PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
+
 Repository mode: `{repository_mode}`.
 """
 
@@ -498,6 +583,10 @@ Use P2P Engine as the source of truth for project governance and planning.
 
 {READINESS_GAP_HANDLING_BLOCK}
 
+## Project Vertical Orchestration
+
+{PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
+
 ## Useful Commands
 
 ```bash
@@ -510,6 +599,9 @@ p2p proposal readiness show PROP-XXX
 p2p proposal readiness init PROP-XXX
 p2p proposal readiness refresh PROP-XXX
 p2p proposal readiness explain PROP-XXX
+p2p project vertical list
+p2p project vertical propose "<project idea>"
+p2p project readiness review
 p2p proposal branch PROP-XXX --actor "codex"
 p2p proposal status PROP-XXX
 p2p proposal publish PROP-XXX
@@ -554,6 +646,10 @@ Key rules:
 
 {READINESS_GAP_HANDLING_BLOCK}
 
+## Project Vertical Orchestration
+
+{PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
+
 Repository mode: `{repository_mode}`.
 """
 
@@ -577,6 +673,10 @@ alwaysApply: true
 
 {READINESS_GAP_HANDLING_BLOCK}
 
+## Project Vertical Orchestration
+
+{PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
+
 Repository mode: `{repository_mode}`.
 """
 
@@ -598,6 +698,10 @@ This repository is managed with P2P Engine.
 
 {READINESS_GAP_HANDLING_BLOCK}
 
+## Project Vertical Orchestration
+
+{PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
+
 Repository mode: `{repository_mode}`.
 """
 
@@ -617,6 +721,10 @@ This repository is managed with P2P Engine.
 ## Readiness Gap Handling
 
 {READINESS_GAP_HANDLING_BLOCK}
+
+## Project Vertical Orchestration
+
+{PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
 
 Repository mode: `{repository_mode}`.
 """

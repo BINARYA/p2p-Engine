@@ -17,6 +17,8 @@ from p2p_engine.services.readiness import (
     validate_readiness_assessment_payload,
     validate_readiness_profile_payload,
 )
+from p2p_engine.services.proposal_questions import validate_proposal_questions_payload
+from p2p_engine.services.proposal_artifact_state import validate_proposal_artifact_state_payload
 
 BUILT_IN_AGENT_ADAPTERS = ("generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode")
 
@@ -49,6 +51,7 @@ class ValidationService:
         registry_status: Callable[[], Any],
         agent_integrations_path: Callable[[], Path],
         permissions_path: Callable[[], Path],
+        vertical_validation_findings: Callable[[], list[tuple[str, str, Path, str, str]]] | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -56,6 +59,7 @@ class ValidationService:
         self.registry_status = registry_status
         self.agent_integrations_path = agent_integrations_path
         self.permissions_path = permissions_path
+        self.vertical_validation_findings = vertical_validation_findings
 
     def validate(self) -> ValidationResult:
         findings: list[ValidationFinding] = []
@@ -80,10 +84,13 @@ class ValidationService:
         self._validate_required_paths(add)
         self._validate_structured_yaml(add)
         self._validate_readiness(add)
+        self._validate_proposal_questions(add)
+        self._validate_proposal_artifacts(add)
         self._validate_agent_integrations(add)
         self._validate_permissions(add)
         self._validate_consents(add)
         self._validate_proposals(add)
+        self._validate_project_verticals(add)
         self._validate_registries(add)
 
         errors = sum(1 for finding in findings if finding.severity == "error")
@@ -143,6 +150,26 @@ class ValidationService:
                 validate_readiness_assessment_payload(_read_yaml_mapping(readiness_path, default={}))
             except ValueError as exc:
                 add("P2P231_INVALID_READINESS_ASSESSMENT", "error", readiness_path, str(exc), "")
+
+    def _validate_proposal_questions(self, add: Callable[[str, str, Path, str, str], None]) -> None:
+        for questions_path in sorted(self.p2p_dir.glob("proposals/*/questions.yml")):
+            try:
+                validate_proposal_questions_payload(_read_yaml_mapping(questions_path, default={}))
+            except ValueError as exc:
+                add("P2P232_INVALID_PROPOSAL_QUESTIONS", "error", questions_path, str(exc), "")
+
+    def _validate_proposal_artifacts(self, add: Callable[[str, str, Path, str, str], None]) -> None:
+        for artifact_path in sorted(self.p2p_dir.glob("proposals/*/artifact-state.yml")):
+            try:
+                validate_proposal_artifact_state_payload(_read_yaml_mapping(artifact_path, default={}))
+            except ValueError as exc:
+                add(
+                    "P2P233_INVALID_PROPOSAL_ARTIFACT_STATE",
+                    "error",
+                    artifact_path,
+                    str(exc),
+                    "p2p proposal artifact init PROP-XXX",
+                )
 
     def _validate_agent_integrations(self, add: Callable[[str, str, Path, str, str], None]) -> None:
         path = self.agent_integrations_path()
@@ -312,6 +339,12 @@ class ValidationService:
                     "p2p registry refresh",
                 )
 
+    def _validate_project_verticals(self, add: Callable[[str, str, Path, str, str], None]) -> None:
+        if self.vertical_validation_findings is None:
+            return
+        for code, severity, path, message, suggested_command in self.vertical_validation_findings():
+            add(code, severity, path, message, suggested_command)
+
 
 def _relative_to_root(path: Path, root: Path) -> Path:
     try:
@@ -376,4 +409,3 @@ def _validate_agent_integrations_payload(data: dict[str, object]) -> None:
                 raise ValueError(f"Invalid SHA-256 for agent adapter file: {record.get('path')}")
             if record.get("drift") not in {"clean", "missing", "drifted", "unmanaged"}:
                 raise ValueError(f"Invalid drift state for agent adapter file: {record.get('path')}")
-

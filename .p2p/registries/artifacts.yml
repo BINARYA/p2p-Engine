@@ -6106,6 +6106,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-082
   generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/conflict-analysis.yml
+  artifact_type: conflict-analysis.yml
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
 - path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/contributions.yml
   artifact_type: contributions.yml
   owner_type: proposal
@@ -6131,6 +6136,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-082
   generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/impact-map.yml
+  artifact_type: impact-map.yml
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
 - path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/open-questions.md
   artifact_type: open-questions.md
   owner_type: proposal
@@ -6141,8 +6151,18 @@ artifacts:
   owner_type: proposal
   owner: PROP-082
   generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/questions.yml
+  artifact_type: questions.yml
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
 - path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/readiness.yml
   artifact_type: readiness.yml
+  owner_type: proposal
+  owner: PROP-082
+  generated: false
+- path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/related-proposals.yml
+  artifact_type: related-proposals.yml
   owner_type: proposal
   owner: PROP-082
   generated: false
@@ -6186,6 +6206,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-083
   generated: false
+- path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/conflict-analysis.yml
+  artifact_type: conflict-analysis.yml
+  owner_type: proposal
+  owner: PROP-083
+  generated: false
 - path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/contributions.yml
   artifact_type: contributions.yml
   owner_type: proposal
@@ -6211,6 +6236,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-083
   generated: false
+- path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/impact-map.yml
+  artifact_type: impact-map.yml
+  owner_type: proposal
+  owner: PROP-083
+  generated: false
 - path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/open-questions.md
   artifact_type: open-questions.md
   owner_type: proposal
@@ -6221,8 +6251,18 @@ artifacts:
   owner_type: proposal
   owner: PROP-083
   generated: false
+- path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/questions.yml
+  artifact_type: questions.yml
+  owner_type: proposal
+  owner: PROP-083
+  generated: false
 - path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/readiness.yml
   artifact_type: readiness.yml
+  owner_type: proposal
+  owner: PROP-083
+  generated: false
+- path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/related-proposals.yml
+  artifact_type: related-proposals.yml
   owner_type: proposal
   owner: PROP-083
   generated: false
@@ -6320,6 +6360,191 @@ artifacts:
   artifact_type: tasks.yml
   owner_type: proposal
   owner: PROP-084
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/ai-digest.md
+  artifact_type: ai-digest.md
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/alternatives.md
+  artifact_type: alternatives.md
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/assumptions.md
+  artifact_type: assumptions.md
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/clarifications.md
+  artifact_type: clarifications.md
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/comments.yml
+  artifact_type: comments.yml
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/conflict-analysis.yml
+  artifact_type: conflict-analysis.yml
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/contributions.yml
+  artifact_type: contributions.yml
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/decision.md
+  artifact_type: decision.md
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/execution-plan.md
+  artifact_type: execution-plan.md
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/exploration.md
+  artifact_type: exploration.md
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/findings.md
+  artifact_type: findings.md
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/impact-map.yml
+  artifact_type: impact-map.yml
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/open-questions.md
+  artifact_type: open-questions.md
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/proposal.md
+  artifact_type: proposal.md
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/questions.yml
+  artifact_type: questions.yml
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/readiness.yml
+  artifact_type: readiness.yml
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/related-proposals.yml
+  artifact_type: related-proposals.yml
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/risks.md
+  artifact_type: risks.md
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/suggested-scope.md
+  artifact_type: suggested-scope.md
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/tasks.yml
+  artifact_type: tasks.yml
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/ai-digest.md
+  artifact_type: ai-digest.md
+  owner_type: proposal
+  owner: PROP-086
+  generated: false
+- path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/alternatives.md
+  artifact_type: alternatives.md
+  owner_type: proposal
+  owner: PROP-086
+  generated: false
+- path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/assumptions.md
+  artifact_type: assumptions.md
+  owner_type: proposal
+  owner: PROP-086
+  generated: false
+- path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/clarifications.md
+  artifact_type: clarifications.md
+  owner_type: proposal
+  owner: PROP-086
+  generated: false
+- path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/comments.yml
+  artifact_type: comments.yml
+  owner_type: proposal
+  owner: PROP-086
+  generated: false
+- path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/contributions.yml
+  artifact_type: contributions.yml
+  owner_type: proposal
+  owner: PROP-086
+  generated: false
+- path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/decision.md
+  artifact_type: decision.md
+  owner_type: proposal
+  owner: PROP-086
+  generated: false
+- path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/execution-plan.md
+  artifact_type: execution-plan.md
+  owner_type: proposal
+  owner: PROP-086
+  generated: false
+- path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/exploration.md
+  artifact_type: exploration.md
+  owner_type: proposal
+  owner: PROP-086
+  generated: false
+- path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/findings.md
+  artifact_type: findings.md
+  owner_type: proposal
+  owner: PROP-086
+  generated: false
+- path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/open-questions.md
+  artifact_type: open-questions.md
+  owner_type: proposal
+  owner: PROP-086
+  generated: false
+- path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/proposal.md
+  artifact_type: proposal.md
+  owner_type: proposal
+  owner: PROP-086
+  generated: false
+- path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/questions.yml
+  artifact_type: questions.yml
+  owner_type: proposal
+  owner: PROP-086
+  generated: false
+- path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/readiness.yml
+  artifact_type: readiness.yml
+  owner_type: proposal
+  owner: PROP-086
+  generated: false
+- path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/risks.md
+  artifact_type: risks.md
+  owner_type: proposal
+  owner: PROP-086
+  generated: false
+- path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/suggested-scope.md
+  artifact_type: suggested-scope.md
+  owner_type: proposal
+  owner: PROP-086
+  generated: false
+- path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/tasks.yml
+  artifact_type: tasks.yml
+  owner_type: proposal
+  owner: PROP-086
   generated: false
 - path: .p2p/changes/CHANGE-001-managed-git-adapter-and-change-set-model/change.md
   artifact_type: change.md

@@ -5,6 +5,15 @@ from pathlib import Path
 from p2p_engine.core.contribution import Contribution, ContributionType
 from p2p_engine.core.decision import Decision, DecisionOutcome
 from p2p_engine.core.proposal import Proposal
+from p2p_engine.core.project_verticals import (
+    ActiveProjectVertical,
+    CustomVerticalCandidate,
+    ProjectReadinessReview,
+    ProjectVerticalAddResult,
+    VerticalListItem,
+    VerticalPack,
+    VerticalValidationResult,
+)
 from p2p_engine.foundation.files import (
     identity_slug as _identity_slug,
     read_yaml_mapping as _read_yaml_mapping,
@@ -48,8 +57,10 @@ from p2p_engine.services.proposal_artifacts import (
     PromptKind,
     ProposalArtifactService,
 )
+from p2p_engine.services.proposal_artifact_state import ProposalArtifactStateService
 from p2p_engine.services.proposal_decisions import ProposalDecisionService
 from p2p_engine.services.proposal_drafts import ProposalDraftCommit, ProposalDraftCommitService
+from p2p_engine.services.proposal_questions import ProposalQuestionService
 from p2p_engine.services.proposals import ProposalContributionList, ProposalDetail, ProposalDocumentService
 from p2p_engine.services.project_assessment import ProjectAssessment, ProjectAssessmentService
 from p2p_engine.services.project_contexts import ProjectContextRendererService
@@ -58,6 +69,7 @@ from p2p_engine.services.project_maturity import (
     ProjectMaturityService,
     ProjectRubrics,
 )
+from p2p_engine.services.project_verticals import ProjectVerticalService
 from p2p_engine.services.project_initialization import (
     ProjectInitializationService,
     normalize_repository_mode as _normalize_repository_mode,
@@ -83,6 +95,11 @@ from p2p_engine.services.spec_export import (
 )
 from p2p_engine.services.sync import SyncResult, SyncService, SyncStatus
 from p2p_engine.services.validation import ValidationFinding, ValidationResult, ValidationService
+from p2p_engine.services.visible_project_export import (
+    VisibleProjectExportResult,
+    VisibleProjectExportService,
+    VisibleProjectExportStatus,
+)
 from p2p_engine.services.software_spec import SoftwareSpecPrompt, SoftwareSpecService, SoftwareSpecStatus
 from p2p_engine.services.work_branches import (
     WorkAccept,
@@ -153,14 +170,17 @@ class P2PWorkspace:
         self._proposal_decision_service_instance: ProposalDecisionService | None = None
         self._proposal_draft_commit_service_instance: ProposalDraftCommitService | None = None
         self._proposal_document_service_instance: ProposalDocumentService | None = None
+        self._proposal_question_service_instance: ProposalQuestionService | None = None
         self._project_assessment_service_instance: ProjectAssessmentService | None = None
         self._project_context_renderer_service_instance: ProjectContextRendererService | None = None
         self._project_initialization_service_instance: ProjectInitializationService | None = None
         self._project_maturity_service_instance: ProjectMaturityService | None = None
+        self._project_vertical_service_instance: ProjectVerticalService | None = None
         self._project_state_service_instance: ProjectStateService | None = None
         self._next_action_service_instance: NextActionService | None = None
         self._proposal_branch_service_instance: ProposalBranchService | None = None
         self._proposal_artifact_service_instance: ProposalArtifactService | None = None
+        self._proposal_artifact_state_service_instance: ProposalArtifactStateService | None = None
         self._readiness_service_instance: ReadinessService | None = None
         self._registry_service_instance: RegistryService | None = None
         self._registry_record_builder_service_instance: RegistryRecordBuilderService | None = None
@@ -169,6 +189,7 @@ class P2PWorkspace:
         self._software_spec_service_instance: SoftwareSpecService | None = None
         self._sync_service_instance: SyncService | None = None
         self._validation_service_instance: ValidationService | None = None
+        self._visible_project_export_service_instance: VisibleProjectExportService | None = None
         self._work_branch_service_instance: WorkBranchService | None = None
         self._work_planning_service_instance: WorkPlanningService | None = None
         self._workspace_status_service_instance: WorkspaceStatusService | None = None
@@ -215,6 +236,7 @@ class P2PWorkspace:
                 registry_status=self.registry_status,
                 agent_integrations_path=self._agent_instruction_service().path,
                 permissions_path=self._permissions_service().path,
+                vertical_validation_findings=self._project_vertical_service().validation_findings,
             )
         return self._validation_service_instance
 
@@ -234,6 +256,7 @@ class P2PWorkspace:
                 work_summaries=self.work_summaries,
                 show_work=self.show_work,
                 next_actions=self.next_actions,
+                proposal_artifacts=self.read_proposal_artifacts,
             )
         return self._context_packet_service_instance
 
@@ -241,6 +264,22 @@ class P2PWorkspace:
         if self._proposal_document_service_instance is None:
             self._proposal_document_service_instance = ProposalDocumentService(root=self.root, p2p_dir=self.p2p_dir)
         return self._proposal_document_service_instance
+
+    def _proposal_question_service(self) -> ProposalQuestionService:
+        if self._proposal_question_service_instance is None:
+            self._proposal_question_service_instance = ProposalQuestionService(
+                root=self.root,
+                find_proposal_dir=self._proposal_document_service().find_dir,
+            )
+        return self._proposal_question_service_instance
+
+    def _proposal_artifact_state_service(self) -> ProposalArtifactStateService:
+        if self._proposal_artifact_state_service_instance is None:
+            self._proposal_artifact_state_service_instance = ProposalArtifactStateService(
+                root=self.root,
+                find_proposal_dir=self._proposal_document_service().find_dir,
+            )
+        return self._proposal_artifact_state_service_instance
 
     def _proposal_draft_commit_service(self) -> ProposalDraftCommitService:
         if self._proposal_draft_commit_service_instance is None:
@@ -348,6 +387,16 @@ class P2PWorkspace:
                 find_change_dir=self._change_set_lifecycle_service().find_dir,
             )
         return self._project_maturity_service_instance
+
+    def _project_vertical_service(self) -> ProjectVerticalService:
+        if self._project_vertical_service_instance is None:
+            self._project_vertical_service_instance = ProjectVerticalService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                proposal_summaries=self.proposal_summaries,
+                find_proposal_dir=self._proposal_document_service().find_dir,
+            )
+        return self._project_vertical_service_instance
 
     def _next_action_service(self) -> NextActionService:
         if self._next_action_service_instance is None:
@@ -506,6 +555,17 @@ class P2PWorkspace:
                 required_spec_files=self._software_spec_service().required_files,
             )
         return self._spec_export_service_instance
+
+    def _visible_project_export_service(self) -> VisibleProjectExportService:
+        if self._visible_project_export_service_instance is None:
+            self._visible_project_export_service_instance = VisibleProjectExportService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                project_name=self._project_name,
+                accepted_proposals=self._registry_record_builder_service().accepted_proposals,
+                project_readiness_review=self.review_project_readiness,
+            )
+        return self._visible_project_export_service_instance
 
     def _work_planning_service(self) -> WorkPlanningService:
         if self._work_planning_service_instance is None:
@@ -885,8 +945,122 @@ class P2PWorkspace:
     def initialize_proposal_readiness(self, proposal_id: str) -> ProposalReadiness:
         return self._readiness_service().initialize(proposal_id)
 
+    def assess_proposal_readiness(self, proposal_id: str) -> ProposalReadiness:
+        return self._readiness_service().assess(proposal_id)
+
+    def review_proposal_readiness(self, proposal_id: str):
+        return self._readiness_service().review(proposal_id)
+
+    def read_proposal_questions(self, proposal_id: str):
+        return self._proposal_question_service().read(proposal_id)
+
+    def initialize_proposal_questions(self, proposal_id: str, actor: str = "local"):
+        return self._proposal_question_service().initialize(proposal_id, actor=actor)
+
+    def add_proposal_question(
+        self,
+        proposal_id: str,
+        *,
+        gap: str,
+        question: str,
+        priority,
+        rationale: str = "",
+        group_id: str = "",
+        actor: str = "local",
+    ):
+        return self._proposal_question_service().add(
+            proposal_id,
+            gap=gap,
+            question=question,
+            priority=priority,
+            rationale=rationale,
+            group_id=group_id,
+            actor=actor,
+        )
+
+    def answer_proposal_question(
+        self,
+        proposal_id: str,
+        question_id: str,
+        answer: str,
+        *,
+        source: str = "owner",
+        actor: str = "local",
+        replace: bool = False,
+    ):
+        return self._proposal_question_service().answer(
+            proposal_id,
+            question_id,
+            answer,
+            source=source,
+            actor=actor,
+            replace=replace,
+        )
+
+    def set_proposal_question_state(self, proposal_id: str, question_id: str, state, *, reason: str = "", actor: str = "local"):
+        return self._proposal_question_service().set_state(proposal_id, question_id, state, reason=reason, actor=actor)
+
+    def supersede_proposal_question(self, proposal_id: str, question_id: str, superseded_by: str, *, actor: str = "local"):
+        return self._proposal_question_service().supersede(proposal_id, question_id, superseded_by, actor=actor)
+
+    def set_proposal_question_group_state(self, proposal_id: str, group_id: str, state, *, actor: str = "local"):
+        return self._proposal_question_service().group_state(proposal_id, group_id, state, actor=actor)
+
+    def next_proposal_question(self, proposal_id: str, *, include_muted: bool = False, include_deferred: bool = False):
+        return self._proposal_question_service().next_question(
+            proposal_id,
+            include_muted=include_muted,
+            include_deferred=include_deferred,
+        )
+
+    def reassess_proposal_questions(self, proposal_id: str):
+        return self._proposal_question_service().reassess(proposal_id)
+
+    def apply_proposal_question_answers(self, proposal_id: str, actor: str = "local"):
+        return self._proposal_question_service().apply_summary(proposal_id, actor=actor)
+
+    def import_proposal_questions(self, proposal_id: str, source: Path, actor: str = "local"):
+        return self._proposal_question_service().import_payload(proposal_id, source, actor=actor)
+
+    def read_proposal_artifacts(self, proposal_id: str):
+        return self._proposal_artifact_state_service().read(proposal_id)
+
+    def initialize_proposal_artifacts(self, proposal_id: str, actor: str = "local"):
+        return self._proposal_artifact_state_service().initialize(proposal_id, actor=actor)
+
+    def set_proposal_artifact_state(
+        self,
+        proposal_id: str,
+        artifact_id: str,
+        *,
+        expectation=None,
+        status=None,
+        reason: str = "",
+        actor: str = "local",
+        source: str = "agent",
+        risk_flags=None,
+    ):
+        return self._proposal_artifact_state_service().set_artifact(
+            proposal_id,
+            artifact_id,
+            expectation=expectation,
+            status=status,
+            reason=reason,
+            actor=actor,
+            source=source,
+            risk_flags=risk_flags,
+        )
+
+    def confirm_proposal_artifact_state(self, proposal_id: str, artifact_id: str, actor: str = "owner"):
+        return self._proposal_artifact_state_service().confirm(proposal_id, artifact_id, actor=actor)
+
+    def mark_proposal_artifacts_legacy(self, proposal_id: str, reason: str = "Proposal predates artifact-aware state.", actor: str = "local"):
+        return self._proposal_artifact_state_service().mark_legacy(proposal_id, reason=reason, actor=actor)
+
     def create_proposal(self, title: str) -> Proposal:
-        return self._proposal_document_service().create(title)
+        proposal = self._proposal_document_service().create(title)
+        self._proposal_artifact_state_service().initialize(proposal.proposal_id)
+        return proposal
 
     def create_proposal_with_details(
         self,
@@ -898,7 +1072,7 @@ class P2PWorkspace:
         proposal: str | None = None,
         acceptance_criteria: list[str] | None = None,
     ) -> Proposal:
-        return self._proposal_document_service().create_with_details(
+        proposal = self._proposal_document_service().create_with_details(
             title=title,
             problem=problem,
             context=context,
@@ -907,6 +1081,8 @@ class P2PWorkspace:
             proposal=proposal,
             acceptance_criteria=acceptance_criteria,
         )
+        self._proposal_artifact_state_service().initialize(proposal.proposal_id)
+        return proposal
 
     def update_proposal(
         self,
@@ -1001,6 +1177,42 @@ class P2PWorkspace:
 
     def show_project_state(self, section: str) -> str:
         return self._project_state_service().show(section)
+
+    def export_visible_project_definition(self) -> VisibleProjectExportResult:
+        return self._visible_project_export_service().export()
+
+    def visible_project_definition_export_status(self) -> VisibleProjectExportStatus:
+        return self._visible_project_export_service().status()
+
+    def project_verticals(self) -> list[VerticalListItem]:
+        return self._project_vertical_service().list_verticals()
+
+    def show_project_vertical(self, vertical_id: str) -> VerticalPack:
+        return self._project_vertical_service().show_vertical(vertical_id)
+
+    def validate_project_vertical(self, target: str) -> VerticalValidationResult:
+        return self._project_vertical_service().validate_vertical(target)
+
+    def propose_project_vertical(self, idea: str) -> CustomVerticalCandidate:
+        return self._project_vertical_service().propose_vertical(idea)
+
+    def add_project_vertical(
+        self,
+        source: Path,
+        *,
+        activate: bool = False,
+        actor: str = "local",
+    ) -> ProjectVerticalAddResult:
+        return self._project_vertical_service().add_vertical(source, activate=activate, actor=actor)
+
+    def select_project_vertical(self, vertical_id: str, *, actor: str = "local") -> ActiveProjectVertical:
+        return self._project_vertical_service().select_vertical(vertical_id, actor=actor)
+
+    def active_project_vertical(self) -> ActiveProjectVertical:
+        return self._project_vertical_service().active_vertical()
+
+    def review_project_readiness(self, vertical_id: str | None = None) -> ProjectReadinessReview:
+        return self._project_vertical_service().project_readiness_review(vertical_id=vertical_id)
 
     def create_project_brief_prompt(self) -> ProjectBriefPrompt:
         return self._project_state_service().create_brief_prompt()

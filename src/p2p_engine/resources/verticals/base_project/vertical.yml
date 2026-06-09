@@ -1,0 +1,126 @@
+vertical:
+  schema_version: 1
+  id: base_project
+  name: Base Project
+  version: 1.0.0
+  description: Cross-domain project foundation used when no specific vertical is selected.
+  extends:
+  sections:
+    - id: vision
+      title: Vision
+      purpose: Why the project exists and what change it should create.
+      required: true
+      priority: 10
+    - id: objective
+      title: Objective And Outcome
+      purpose: Concrete results the project must achieve.
+      required: true
+      priority: 20
+    - id: stakeholders
+      title: Owner And Stakeholders
+      purpose: Decision maker, contributors, affected parties, and beneficiaries.
+      required: true
+      priority: 30
+    - id: scope
+      title: Scope And Non-Goals
+      purpose: Boundaries, included work, exclusions, and constraints.
+      required: true
+      priority: 40
+    - id: assumptions
+      title: Assumptions
+      purpose: Beliefs that must hold for the project to work.
+      required: true
+      priority: 50
+    - id: risks
+      title: Risks
+      purpose: Failure modes, mitigations, and tradeoffs.
+      required: true
+      priority: 60
+    - id: decisions
+      title: Decisions And Open Questions
+      purpose: Unresolved owner choices and recorded decisions.
+      required: true
+      priority: 70
+    - id: milestones
+      title: Milestones And Next Actions
+      purpose: Staged path from definition to execution.
+      required: true
+      priority: 80
+    - id: definition_of_done
+      title: Definition Of Done And Readiness
+      purpose: Criteria that make the project actionable.
+      required: true
+      priority: 90
+    - id: artifacts
+      title: Expected Artifacts
+      purpose: Documents, specs, prototypes, reports, or plans the project should produce.
+      required: true
+      priority: 100
+  rubrics:
+    - id: vision_clarity
+      title: Vision Clarity
+      section_id: vision
+      required: true
+      keywords: [vision, purpose, change]
+    - id: objective_clarity
+      title: Objective Clarity
+      section_id: objective
+      required: true
+      keywords: [objective, outcome, goal, result]
+    - id: stakeholder_alignment
+      title: Stakeholder Alignment
+      section_id: stakeholders
+      required: true
+      keywords: [owner, stakeholder, beneficiary, user]
+    - id: scope_boundaries
+      title: Scope Boundaries
+      section_id: scope
+      required: true
+      keywords: [scope, non-goal, boundary, constraint]
+    - id: risk_coverage
+      title: Risk Coverage
+      section_id: risks
+      required: true
+      keywords: [risk, mitigation, tradeoff]
+    - id: readiness_criteria
+      title: Readiness Criteria
+      section_id: definition_of_done
+      required: true
+      keywords: [readiness, definition of done, acceptance]
+  questions:
+    - id: vision_main
+      section_id: vision
+      priority: high
+      question: What change should this project create?
+      rationale: The project needs a clear reason to exist.
+    - id: objective_main
+      section_id: objective
+      priority: high
+      question: What concrete outcome proves the project worked?
+      rationale: Readiness requires a measurable target.
+    - id: scope_main
+      section_id: scope
+      priority: high
+      question: What is explicitly in scope and out of scope?
+      rationale: Boundaries prevent project drift.
+    - id: artifact_main
+      section_id: artifacts
+      priority: medium
+      question: Which artifacts must exist before execution can start?
+      rationale: Artifacts make project progress inspectable.
+  artifacts:
+    - id: project_brief
+      title: Project Brief
+      section_ids: [vision, objective, stakeholders, scope]
+      required: true
+    - id: risk_register
+      title: Risk Register
+      section_ids: [risks, assumptions]
+      required: true
+    - id: readiness_review
+      title: Readiness Review
+      section_ids: [definition_of_done, artifacts]
+      required: true
+  profiles: []
+  modules: [roadmap, risk_management, stakeholder_alignment]
+  examples: []

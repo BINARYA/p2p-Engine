@@ -3,100 +3,119 @@ readiness:
   profile_id: default-readiness-v0.1
   profile_version: '0.1'
   tier: medium
-  confidence: low
+  confidence: high
   confidence_reasons:
-  - Initial readiness was bootstrapped from proposal artifacts.
-  - Review criterion evidence before using it for acceptance.
-  missing:
-  - alternatives_quality
-  - tradeoff_analysis
-  - risk_coverage
-  - assumptions_clarity
-  - impact_overlap_analysis
-  suggested_next:
-  - add_alternatives_quality
-  - add_tradeoff_analysis
-  - add_risk_coverage
-  - add_assumptions_clarity
-  - resolve_owner_questions_resolution
-  - add_impact_overlap_analysis
-  failed_gates:
-  - owner_questions_resolution:needs_owner_input
+  - Evidence-aware assessment found no missing criteria, failed gates, unresolved
+    owner questions, or pending high-priority questions.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  missing: []
+  suggested_next: []
+  failed_gates: []
   criteria:
     problem_clarity:
       max_points: 10
-      awarded_points: 7
-      artifact_quality: meaningful
+      awarded_points: 10
+      artifact_quality: ready
       evidence:
       - artifact: proposal.md
         section: Problem
-      effective_points: 7
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
     goal_clarity:
       max_points: 10
-      awarded_points: 7
-      artifact_quality: meaningful
+      awarded_points: 10
+      artifact_quality: ready
       evidence:
       - artifact: proposal.md
         section: Goals
-      effective_points: 7
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
     scope_boundaries:
       max_points: 10
-      awarded_points: 7
-      artifact_quality: meaningful
+      awarded_points: 10
+      artifact_quality: ready
       evidence:
       - artifact: proposal.md
         section: Non-Goals
-      effective_points: 7
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
     alternatives_quality:
       max_points: 15
-      awarded_points: 0
-      artifact_quality: placeholder
+      awarded_points: 15
+      artifact_quality: ready
       evidence:
       - artifact: alternatives.md
-      effective_points: 0
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
     tradeoff_analysis:
       max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
+      awarded_points: 10
+      artifact_quality: ready
       evidence:
       - artifact: alternatives.md
-      effective_points: 0
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
     risk_coverage:
       max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
+      awarded_points: 10
+      artifact_quality: ready
       evidence:
       - artifact: risks.md
-      effective_points: 0
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
     assumptions_clarity:
       max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
+      awarded_points: 10
+      artifact_quality: ready
       evidence:
       - artifact: assumptions.md
-      effective_points: 0
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
     owner_questions_resolution:
       max_points: 10
-      awarded_points: 7
-      artifact_quality: needs_owner_input
+      awarded_points: 10
+      artifact_quality: ready
       evidence:
       - artifact: open-questions.md
-      effective_points: 7
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
     acceptance_criteria_quality:
       max_points: 10
-      awarded_points: 7
-      artifact_quality: meaningful
+      awarded_points: 10
+      artifact_quality: ready
       evidence:
       - artifact: proposal.md
         section: Acceptance Criteria
-      effective_points: 7
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
     impact_overlap_analysis:
       max_points: 5
-      awarded_points: 0
-      artifact_quality: missing
+      awarded_points: 5
+      artifact_quality: ready
       evidence:
       - artifact: impact-map.yml
-      effective_points: 0
-  computed_score: 35
-  computed_label: weak
-  computed_at: '2026-06-05'
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-06-08'
+  assessment_source: evidence_aware
+  assessed_at: '2026-06-08'
+  owner_override: true
+  effective_status: forced_ready
+  effective_score: 100
+  override_reason: Owner confirms the refined second-slice direction for artifact-aware
+    proposal questions, stepped readiness-driven agent assertiveness, evidence-aware
+    readiness recalculation, and proactive low-readiness interview behavior.
+  override_approver: owner
+  override_recorded_at: '2026-06-08'

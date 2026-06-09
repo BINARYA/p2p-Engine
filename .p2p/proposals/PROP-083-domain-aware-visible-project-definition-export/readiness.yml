@@ -7,26 +7,8 @@ readiness:
   confidence_reasons:
   - Initial readiness was bootstrapped from proposal artifacts.
   - Review criterion evidence before using it for acceptance.
-  missing:
-  - goal_clarity
-  - scope_boundaries
-  - alternatives_quality
-  - tradeoff_analysis
-  - risk_coverage
-  - assumptions_clarity
-  - owner_questions_resolution
-  - acceptance_criteria_quality
-  - impact_overlap_analysis
-  suggested_next:
-  - add_goal_clarity
-  - add_scope_boundaries
-  - add_alternatives_quality
-  - add_tradeoff_analysis
-  - add_risk_coverage
-  - add_assumptions_clarity
-  - add_owner_questions_resolution
-  - add_acceptance_criteria_quality
-  - add_impact_overlap_analysis
+  missing: []
+  suggested_next: []
   failed_gates: []
   criteria:
     problem_clarity:
@@ -39,70 +21,79 @@ readiness:
       effective_points: 7
     goal_clarity:
       max_points: 10
-      awarded_points: 0
-      artifact_quality: missing
+      awarded_points: 7
+      artifact_quality: meaningful
       evidence:
       - artifact: proposal.md
         section: Goals
-      effective_points: 0
+      effective_points: 7
     scope_boundaries:
       max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
+      awarded_points: 7
+      artifact_quality: meaningful
       evidence:
       - artifact: proposal.md
         section: Non-Goals
-      effective_points: 0
+      effective_points: 7
     alternatives_quality:
       max_points: 15
-      awarded_points: 0
-      artifact_quality: placeholder
+      awarded_points: 11
+      artifact_quality: meaningful
       evidence:
       - artifact: alternatives.md
-      effective_points: 0
+      effective_points: 11
     tradeoff_analysis:
       max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
+      awarded_points: 7
+      artifact_quality: meaningful
       evidence:
       - artifact: alternatives.md
-      effective_points: 0
+      effective_points: 7
     risk_coverage:
       max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
+      awarded_points: 7
+      artifact_quality: meaningful
       evidence:
       - artifact: risks.md
-      effective_points: 0
+      effective_points: 7
     assumptions_clarity:
       max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
+      awarded_points: 7
+      artifact_quality: meaningful
       evidence:
       - artifact: assumptions.md
-      effective_points: 0
+      effective_points: 7
     owner_questions_resolution:
       max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
+      awarded_points: 7
+      artifact_quality: meaningful
       evidence:
       - artifact: open-questions.md
-      effective_points: 0
+      effective_points: 7
     acceptance_criteria_quality:
       max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
+      awarded_points: 7
+      artifact_quality: meaningful
       evidence:
       - artifact: proposal.md
         section: Acceptance Criteria
-      effective_points: 0
+      effective_points: 7
     impact_overlap_analysis:
       max_points: 5
-      awarded_points: 0
-      artifact_quality: missing
+      awarded_points: 3
+      artifact_quality: meaningful
       evidence:
       - artifact: impact-map.yml
-      effective_points: 0
-  computed_score: 7
-  computed_label: weak
-  computed_at: '2026-06-05'
+      effective_points: 3
+  computed_score: 70
+  computed_label: partial
+  computed_at: '2026-06-08'
+  owner_override: true
+  effective_status: forced_ready
+  effective_score: 100
+  override_reason: Owner accepts the domain-aware visible project definition export.
+    Readiness has no missing gaps after refinement, but computed score remains partial
+    because the current readiness profile is conservative and keeps confidence low
+    for artifact-derived assessments.
+  override_approver: owner
+  override_recorded_at: '2026-06-08'

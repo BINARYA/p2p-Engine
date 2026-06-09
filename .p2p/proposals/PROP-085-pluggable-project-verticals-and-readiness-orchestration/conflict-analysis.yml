@@ -1,0 +1,18 @@
+conflicts:
+  proposal_id: PROP-085
+  items:
+    - id: duplicate_maturity_engine
+      severity: high
+      status: mitigated
+      description: Vertical packs could create a parallel readiness/maturity system.
+      mitigation: Reuse existing project rubrics and maturity/readiness artifacts.
+    - id: hardcoded_vertical_catalog
+      severity: high
+      status: mitigated
+      description: Hardcoding many verticals would make the engine expensive and shallow.
+      mitigation: Keep MVP small, use pure data packs, support project-local custom packs, defer registry.
+    - id: cli_agent_boundary
+      severity: medium
+      status: mitigated
+      description: The CLI could be expected to behave like an agent during init.
+      mitigation: Keep CLI deterministic and put proactivity in agent/project skills.

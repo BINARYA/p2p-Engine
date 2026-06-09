@@ -61,6 +61,8 @@ def test_context_packet_service_builds_medium_proposal_target(tmp_path: Path) ->
     assert artifact["id"] == "PROP-001"
     assert artifact["problem"] == "This problem should appear in medium context."
     assert artifact["proposal"] == "This proposal should appear in medium context."
+    assert artifact["artifact_coverage"]["status"] == "active"
+    assert any(gap["artifact"] == "open_questions" for gap in artifact["artifact_coverage"]["gaps"])
 
 
 def test_context_packet_service_builds_change_choice_and_work_targets(tmp_path: Path) -> None:

@@ -1,0 +1,442 @@
+proposal_questions:
+  schema_version: 1
+  proposal_id: PROP-085
+  initialized_at: '2026-06-08'
+  updated_at: '2026-06-08'
+  updated_by: local
+  groups:
+  - id: QG001
+    gap: scope_boundaries
+    state: to_answer
+    priority: high
+    rationale: Serve a evitare che la proposta diventi un catalogo enorme invece di
+      una prima architettura production-ready.
+    created_at: '2026-06-08'
+    updated_at: '2026-06-08'
+  - id: QG002
+    gap: alternatives_quality
+    state: to_answer
+    priority: high
+    rationale: "La scelta influenza sicurezza, validazione, packaging, compatibilit\xE0\
+      \ e semplicit\xE0 di contributo."
+    created_at: '2026-06-08'
+    updated_at: '2026-06-08'
+  - id: QG003
+    gap: tradeoff_analysis
+    state: to_answer
+    priority: high
+    rationale: Serve a distinguere un vertical pack minimo ma valido da un pack ricco
+      ma opzionale.
+    created_at: '2026-06-08'
+    updated_at: '2026-06-08'
+  - id: QG004
+    gap: owner_questions_resolution
+    state: to_answer
+    priority: high
+    rationale: Determina quanto l'init diventa progettuale rispetto a un semplice
+      setup tecnico.
+    created_at: '2026-06-08'
+    updated_at: '2026-06-08'
+  - id: QG005
+    gap: risk_coverage
+    state: to_answer
+    priority: high
+    rationale: "\xC8 il punto chiave per evitare hardcoding e mantenere un comportamento\
+      \ utile anche su domini nuovi."
+    created_at: '2026-06-08'
+    updated_at: '2026-06-08'
+  - id: QG006
+    gap: acceptance_criteria_quality
+    state: to_answer
+    priority: medium
+    rationale: Serve a definire una superficie CLI chiara e coerente con le funzioni
+      esistenti.
+    created_at: '2026-06-08'
+    updated_at: '2026-06-08'
+  - id: QG007
+    gap: assumptions_clarity
+    state: to_answer
+    priority: medium
+    rationale: "Questa assunzione impatta release, versioning, aggiornamenti e possibilit\xE0\
+      \ di sostituzione nel progetto."
+    created_at: '2026-06-08'
+    updated_at: '2026-06-08'
+  - id: QG008
+    gap: impact_overlap_analysis
+    state: to_answer
+    priority: high
+    rationale: Serve a prevenire duplicazioni tra rubriche esistenti, readiness di
+      progetto e nuovo sistema verticale/plugin.
+    created_at: '2026-06-08'
+    updated_at: '2026-06-08'
+  questions:
+  - id: Q001
+    group_id: QG001
+    gap: scope_boundaries
+    criterion: scope_boundaries
+    priority: high
+    state: applied
+    question: "Qual \xE8 lo scope MVP esatto: solo base_project + loader/validator\
+      \ + un verticale dimostrativo, oppure anche il set MVP completo di cinque verticali?"
+    rationale: Serve a evitare che la proposta diventi un catalogo enorme invece di
+      una prima architettura production-ready.
+    answer: 'MVP: base_project + loader/validator dei vertical pack + project orchestrator
+      skill + un verticale dimostrativo completo. Il set di 5 verticali MVP resta
+      come obiettivo successivo, non dentro la prima implementazione.'
+    answer_source: owner
+    answered_at: '2026-06-08'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-08'
+    audit:
+      created_by: codex
+      created_at: '2026-06-08'
+      updated_by: local
+      updated_at: '2026-06-08'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: suggested-scope.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q002
+    group_id: QG002
+    gap: alternatives_quality
+    criterion: alternatives_quality
+    priority: high
+    state: applied
+    question: Preferiamo modellare i verticali come pacchetti dati puri versionati
+      nel progetto/registry, oppure come plugin installabili con codice e metadata?
+    rationale: "La scelta influenza sicurezza, validazione, packaging, compatibilit\xE0\
+      \ e semplicit\xE0 di contributo."
+    answer: "Pacchetti dati puri. Devono essere file di testo, principalmente .md\
+      \ e/o .yaml, che contengono le informazioni base del verticale: ossatura del\
+      \ progetto, capitoli/sezioni o argomenti da affrontare, peculiarit\xE0 specifiche\
+      \ del verticale, rubriche/domande/artefatti utili. L'agente deve leggerli per\
+      \ creare l'ossatura iniziale del progetto, proporla e validarla con il decisore\
+      \ durante init, oppure modificarla successivamente durante una revisione del\
+      \ progetto."
+    answer_source: owner
+    answered_at: '2026-06-08'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-08'
+    audit:
+      created_by: codex
+      created_at: '2026-06-08'
+      updated_by: local
+      updated_at: '2026-06-08'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: alternatives.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q003
+    group_id: QG003
+    gap: tradeoff_analysis
+    criterion: tradeoff_analysis
+    priority: high
+    state: applied
+    question: 'Quali parti del verticale devono essere obbligatorie per la readiness
+      iniziale: sezioni, rubriche, domande bloccanti, artefatti, esempi, profili,
+      moduli compatibili?'
+    rationale: Serve a distinguere un vertical pack minimo ma valido da un pack ricco
+      ma opzionale.
+    answer: 'Confermata la struttura proposta. Nel MVP sono obbligatori: vertical.yml
+      con id, nome, versione, descrizione e base/extends; sezioni/capitoli del progetto;
+      rubriche minime di completezza/readiness; domande bloccanti iniziali; artefatti
+      attesi o suggeriti. Sono opzionali nel MVP: esempi, profili, moduli compatibili
+      e template ricchi di output. Questo mantiene il pack abbastanza robusto da guidare
+      l''agente ma non troppo pesante da creare o estendere.'
+    answer_source: owner
+    answered_at: '2026-06-08'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-08'
+    audit:
+      created_by: codex
+      created_at: '2026-06-08'
+      updated_by: local
+      updated_at: '2026-06-08'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: findings.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: readiness.yml
+      action: run_readiness_assess
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q004
+    group_id: QG004
+    gap: owner_questions_resolution
+    criterion: owner_questions_resolution
+    priority: high
+    state: applied
+    question: Durante p2p init, l'agente/CLI deve solo suggerire verticale e profilo
+      o deve anche generare subito capisaldi e domande iniziali del progetto?
+    rationale: Determina quanto l'init diventa progettuale rispetto a un semplice
+      setup tecnico.
+    answer: "La CLI p2p init non avvia l'agente. La CLI pu\xF2 fare solo domande iniziali\
+      \ deterministiche e salvare lo stato di progetto. Il comportamento proattivo\
+      \ spetta all'agente: quando rileva che il progetto \xE8 in stato di inizializzazione,\
+      \ che l'init non \xE8 stato fatto, oppure che mancano capisaldi e domande iniziali,\
+      \ deve considerare questa attivit\xE0 prioritaria perch\xE9 rafforza il contesto\
+      \ e determina la readiness del progetto. L'agente deve proporre l'ossatura dei\
+      \ capisaldi e le domande iniziali, salvarle come oggetti del progetto/init quando\
+      \ possibile, guidare il decisore una domanda alla volta e tornare sul tema se\
+      \ l'utente rimanda. Se il progetto non \xE8 inizializzato, l'agente deve sapere\
+      \ come inizializzarlo con la CLI e usare le risposte dell'utente per popolare\
+      \ gli oggetti iniziali."
+    answer_source: owner
+    answered_at: '2026-06-08'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-08'
+    audit:
+      created_by: codex
+      created_at: '2026-06-08'
+      updated_by: local
+      updated_at: '2026-06-08'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: readiness.yml
+      action: run_readiness_assess
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q005
+    group_id: QG005
+    gap: risk_coverage
+    criterion: risk_coverage
+    priority: high
+    state: applied
+    question: 'Come deve comportarsi il sistema quando il verticale richiesto non
+      esiste: proporre un custom vertical locale, cercare nel registry, degradare
+      a base_project, o combinare queste opzioni in ordine?'
+    rationale: "\xC8 il punto chiave per evitare hardcoding e mantenere un comportamento\
+      \ utile anche su domini nuovi."
+    answer: "Confermato l'ordine: cercare prima vertical pack locali del progetto,\
+      \ poi core/default disponibili, poi registry/plugin dati se configurato; se\
+      \ non trova un verticale adatto, degradare a base_project. In quel caso l'agente\
+      \ non deve fermarsi: propone un verticale di default/base e apre una modalit\xE0\
+      \ di customizzazione per estrarre dall'utente le informazioni necessarie a costruire\
+      \ un nuovo custom vertical locale. Il custom vertical deve includere almeno\
+      \ sezioni/capisaldi, rubriche minime, domande bloccanti e artefatti attesi;\
+      \ il decisore lo conferma o modifica prima che venga usato per readiness e project\
+      \ review."
+    answer_source: owner
+    answered_at: '2026-06-08'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-08'
+    audit:
+      created_by: codex
+      created_at: '2026-06-08'
+      updated_by: local
+      updated_at: '2026-06-08'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: risks.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: readiness.yml
+      action: run_readiness_assess
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q006
+    group_id: QG006
+    gap: acceptance_criteria_quality
+    criterion: acceptance_criteria_quality
+    priority: medium
+    state: applied
+    question: 'Quale comando esplicito deve lanciare la revisione successiva del progetto:
+      p2p project readiness review, p2p project vertical review, oppure un''estensione
+      degli attuali assess/maturity?'
+    rationale: Serve a definire una superficie CLI chiara e coerente con le funzioni
+      esistenti.
+    answer: "Il comando esplicito per la revisione successiva deve essere p2p project\
+      \ readiness review. Il fine \xE8 migliorare readiness e contesto del progetto;\
+      \ il verticale \xE8 uno strumento usato dalla review, non l'oggetto principale\
+      \ del comando. Il comando deve riusare project rubrics/maturity esistenti, leggere\
+      \ vertical pack e project-local custom verticals, segnalare capisaldi mancanti,\
+      \ produrre domande iniziali o successive, e guidare l'agente sulle priorit\xE0\
+      \ di rafforzamento del contesto."
+    answer_source: owner
+    answered_at: '2026-06-08'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-08'
+    audit:
+      created_by: codex
+      created_at: '2026-06-08'
+      updated_by: local
+      updated_at: '2026-06-08'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: readiness.yml
+      action: run_readiness_assess
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q007
+    group_id: QG007
+    gap: assumptions_clarity
+    criterion: assumptions_clarity
+    priority: medium
+    state: applied
+    question: I vertical pack di default devono essere distribuiti dentro il pacchetto
+      Python del motore o come risorse installabili/aggiornabili separatamente?
+    rationale: "Questa assunzione impatta release, versioning, aggiornamenti e possibilit\xE0\
+      \ di sostituzione nel progetto."
+    answer: "Per il momento i vertical pack default restano interni al progetto/pacchetto\
+      \ come risorse dati versionate e testabili. Il registry esterno \xE8 un'evoluzione\
+      \ successiva da valutare: verosimilmente una API REST con un endpoint per elencare\
+      \ i vertical pack disponibili e un endpoint per ottenere il dettaglio/versione\
+      \ di un pack specifico. Il design MVP deve quindi prevedere l'estendibilit\xE0\
+      \ verso registry, ma non implementarlo come requisito della prima slice."
+    answer_source: owner
+    answered_at: '2026-06-08'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-08'
+    audit:
+      created_by: codex
+      created_at: '2026-06-08'
+      updated_by: local
+      updated_at: '2026-06-08'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: assumptions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q008
+    group_id: QG008
+    gap: impact_overlap_analysis
+    criterion: impact_overlap_analysis
+    priority: high
+    state: applied
+    question: "Questa proposta deve sostituire, estendere o solo riusare gli artefatti\
+      \ di project rubrics e project maturity gi\xE0 introdotti prima di PROP-057?"
+    rationale: Serve a prevenire duplicazioni tra rubriche esistenti, readiness di
+      progetto e nuovo sistema verticale/plugin.
+    answer: 'La proposta deve estendere e riusare gli artefatti esistenti di project
+      rubrics e project maturity, non sostituirli e non creare un secondo sistema
+      parallelo. I vertical pack alimentano e specializzano rubriche, maturity/readiness
+      e project review esistenti: base_project e vertical-specific sections/rubrics/questions
+      diventano input strutturati per il sistema attuale.'
+    answer_source: owner
+    answered_at: '2026-06-08'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-08'
+    audit:
+      created_by: codex
+      created_at: '2026-06-08'
+      updated_by: local
+      updated_at: '2026-06-08'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: readiness.yml
+      action: run_readiness_assess
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.

@@ -85,6 +85,71 @@ def tool_definitions() -> list[dict[str, object]]:
             {'root': {'type': 'string'}},
         ),
         _tool(
+            'p2p_project_export',
+            (
+                'Write-safe deterministic tool: export the visible human-facing project '
+                'definition to outputs/latest/project.md. Does not mutate P2P governance state.'
+            ),
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_export_status',
+            'Read visible project definition export status and review snapshots.',
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_vertical_list',
+            'Read available project vertical packs and active/fallback status.',
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_vertical_show',
+            'Read a project vertical pack, including inherited base-project sections.',
+            {'root': {'type': 'string'}, 'vertical_id': {'type': 'string'}},
+            ['vertical_id'],
+        ),
+        _tool(
+            'p2p_project_vertical_validate',
+            'Read-only validation tool: validate a project vertical ID, vertical.yml path, or pack directory.',
+            {'root': {'type': 'string'}, 'target': {'type': 'string'}},
+            ['target'],
+        ),
+        _tool(
+            'p2p_project_vertical_propose',
+            (
+                'Advisory tool: generate an importable custom vertical candidate from a project idea. '
+                'Does not persist or activate project state.'
+            ),
+            {'root': {'type': 'string'}, 'idea': {'type': 'string'}},
+            ['idea'],
+        ),
+        _tool(
+            'p2p_project_vertical_add',
+            (
+                'Write-safe project setup tool: add a project-local vertical pack. '
+                'Does not make governance decisions.'
+            ),
+            {'root': {'type': 'string'}, 'source': {'type': 'string'}, 'activate': {'type': 'boolean'}, 'actor': {'type': 'string'}},
+            ['source'],
+        ),
+        _tool(
+            'p2p_project_vertical_select',
+            (
+                'Write-safe project setup tool: select the active project vertical. '
+                'Does not accept, reject, or change proposals.'
+            ),
+            {'root': {'type': 'string'}, 'vertical_id': {'type': 'string'}, 'actor': {'type': 'string'}},
+            ['vertical_id'],
+        ),
+        _tool(
+            'p2p_project_readiness_review',
+            (
+                'Advisory review tool: evaluate project capisaldi coverage against the active '
+                'or requested vertical without mutating governance state.'
+            ),
+            {'root': {'type': 'string'}, 'vertical_id': {'type': 'string'}},
+        ),
+        _tool(
             'p2p_next',
             'Show advisory next actions from P2P project state.',
             {'root': {'type': 'string'}, 'top': {'type': 'integer', 'minimum': 1}},

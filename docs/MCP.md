@@ -218,10 +218,32 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_proposal_readiness_get` | read-only | no | no | Read stored proposal readiness or `not_assessed`. |
 | `p2p_proposal_readiness_init` | write-safe | yes | no | Bootstrap a conservative readiness assessment from proposal artifacts. |
 | `p2p_proposal_readiness_refresh` | write-safe | yes | no | Recompute readiness score from stored criterion evidence. |
+| `p2p_proposal_readiness_assess` | write-safe | yes | no | Evidence-aware readiness recalculation from current artifacts and question state. |
 | `p2p_proposal_readiness_explain` | read-only | no | no | Explain readiness score, failed gates, gaps, and next actions. |
 | `p2p_proposal_readiness_list_gaps` | read-only | no | no | List readiness failed gates, missing criteria, and next actions. |
+| `p2p_proposal_readiness_review` | read-only | no | no | Review readiness gaps, owner questions, challenge points, and acceptance cautions. |
+| `p2p_proposal_questions_status` | read-only | no | no | Read proposal question state or `not_initialized`. |
+| `p2p_proposal_questions_init` | write-safe | yes | no | Initialize deterministic question state for a proposal. |
+| `p2p_proposal_questions_add` | write-safe | yes | no | Add a readiness-linked owner question. |
+| `p2p_proposal_questions_answer` | write-safe | yes | no | Record an answer for one proposal question. |
+| `p2p_proposal_questions_next` | read-only | no | no | Return the next eligible proposal question. |
+| `p2p_proposal_questions_apply` | write-safe | yes | no | Mark answered questions as applied and return an artifact-aware update plan. |
+| `p2p_proposal_artifact_status` | read-only | no | no | Show proposal artifact coverage state or advisory legacy absence. |
+| `p2p_proposal_artifact_init` | write-safe | yes | no | Initialize or refresh artifact-aware proposal state without deciding governance. |
+| `p2p_proposal_artifact_set` | write-safe | yes | no | Set one artifact expectation/status/rationale without changing proposal decisions. |
+| `p2p_proposal_artifact_confirm` | write-safe | yes | no | Record owner confirmation for one artifact state without accepting/rejecting the proposal. |
+| `p2p_proposal_artifact_mark_legacy` | write-safe | yes | no | Mark artifact state as advisory `absent_legacy` for older proposals. |
 | `p2p_change_create` | write-safe | yes | no | Create a metadata-only Change Set from an accepted proposal. |
 | `p2p_project_refresh` | write-safe | yes | no | Refresh generated project definition files. |
+| `p2p_project_export` | write-safe | yes | no | Export the visible human-facing project definition to `outputs/latest/project.md`. |
+| `p2p_project_export_status` | read-only | no | no | Read visible project definition export status and review snapshots. |
+| `p2p_project_vertical_list` | read-only | no | no | List internal and project-local vertical packs plus active/fallback state. |
+| `p2p_project_vertical_show` | read-only | no | no | Read one vertical pack, including inherited `base_project` sections. |
+| `p2p_project_vertical_validate` | read-only | no | no | Validate a vertical ID, `vertical.yml`, or pack directory. |
+| `p2p_project_vertical_propose` | advisory | no | no | Generate an importable custom vertical candidate from a project idea. |
+| `p2p_project_vertical_add` | write-safe | yes | no | Add a project-local vertical pack without making governance decisions. |
+| `p2p_project_vertical_select` | write-safe | yes | no | Select the active project vertical without accepting or changing proposals. |
+| `p2p_project_readiness_review` | advisory/read-only | no | no | Review capisaldi coverage, unmapped proposals, and questions against a vertical. |
 | `p2p_spec_refresh` | write-safe | yes | no | Generate a P2P-native software spec from a Change Set. |
 | `p2p_spec_export` | write-safe | yes | no | Export spec outputs for `generic`, `openspec`, or `speckit`. |
 | `p2p_spec_export_validate` | read-only | no | no | Validate an existing spec export. |
@@ -313,6 +335,29 @@ Refresh registries after accepted project state changes:
   "tool": "p2p_registry_refresh",
   "arguments": {
     "root": "/path/to/project"
+  }
+}
+```
+
+Review project vertical readiness:
+
+```json
+{
+  "tool": "p2p_project_readiness_review",
+  "arguments": {
+    "root": "/path/to/project"
+  }
+}
+```
+
+Generate a custom vertical candidate without selecting it:
+
+```json
+{
+  "tool": "p2p_project_vertical_propose",
+  "arguments": {
+    "root": "/path/to/project",
+    "idea": "progettare attivita volte a migliorare l'impatto sociale di una banca"
   }
 }
 ```

@@ -22,6 +22,8 @@ from p2p_engine.storage.filesystem import P2PWorkspace
 app = typer.Typer(help="P2P Engine CLI")
 proposal_app = typer.Typer(help="Manage proposals")
 proposal_readiness_app = typer.Typer(help="Inspect proposal readiness")
+proposal_questions_app = typer.Typer(help="Manage proposal readiness questions")
+proposal_artifact_app = typer.Typer(help="Manage proposal artifact coverage state")
 proposal_contribution_app = typer.Typer(help="Manage proposal contributions")
 contribution_app = typer.Typer(help="Manage contributions")
 decision_app = typer.Typer(help="Record decisions")
@@ -39,6 +41,8 @@ project_app = typer.Typer(help="Manage rationalized project state")
 project_brief_app = typer.Typer(help="Generate and import operational project briefs")
 project_remote_app = typer.Typer(help="Manage project remote profile")
 project_rubrics_app = typer.Typer(help="Manage project definition rubrics")
+project_vertical_app = typer.Typer(help="Manage project vertical packs")
+project_readiness_app = typer.Typer(help="Review project readiness against vertical capisaldi")
 impact_app = typer.Typer(help="Analyze proposal impact")
 conflict_app = typer.Typer(help="Record and inspect project conflicts")
 change_app = typer.Typer(help="Manage operational Change Set metadata")
@@ -59,6 +63,8 @@ assess_maturity_app = typer.Typer(help="Assess project definition maturity")
 next_app = typer.Typer(help="Manage advisory next actions", invoke_without_command=True)
 
 proposal_app.add_typer(proposal_readiness_app, name="readiness")
+proposal_app.add_typer(proposal_questions_app, name="questions")
+proposal_app.add_typer(proposal_artifact_app, name="artifact")
 proposal_app.add_typer(proposal_contribution_app, name="contribution")
 app.add_typer(proposal_app, name="proposal")
 app.add_typer(contribution_app, name="contribution")
@@ -91,6 +97,8 @@ app.add_typer(next_app, name="next")
 project_app.add_typer(project_brief_app, name="brief")
 project_app.add_typer(project_remote_app, name="remote")
 project_app.add_typer(project_rubrics_app, name="rubrics")
+project_app.add_typer(project_vertical_app, name="vertical")
+project_app.add_typer(project_readiness_app, name="readiness")
 assess_app.add_typer(assess_maturity_app, name="maturity")
 intake_app.add_typer(intake_apply_app, name="apply")
 agent_app.add_typer(agent_instructions_app, name="instructions")
@@ -103,6 +111,8 @@ register_project_status_commands(app, assess_app, assess_maturity_app)
 register_proposal_commands(
     proposal_app,
     proposal_readiness_app,
+    proposal_questions_app,
+    proposal_artifact_app,
     proposal_contribution_app,
     contribution_app,
     decision_app,
@@ -120,6 +130,8 @@ register_project_ops_commands(
     project_app,
     project_remote_app,
     project_rubrics_app,
+    project_vertical_app,
+    project_readiness_app,
     project_brief_app,
     sync_app,
     permissions_app,

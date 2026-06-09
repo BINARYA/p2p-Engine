@@ -2,7 +2,7 @@ generated: true
 source: .p2p/proposals/*/readiness.yml
 readiness:
 - proposal: PROP-001
-  title: CLI Foundation
+  title: "\u2014 CLI Foundation"
   proposal_status: accepted
   status: not_assessed
   profile_id: null
@@ -1074,59 +1074,29 @@ readiness:
   path: .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions/readiness.yml
 - proposal: PROP-082
   title: Readiness Assessment Refresh And Review Workflow
-  proposal_status: draft
+  proposal_status: accepted
   status: assessed
   profile_id: default-readiness-v0.1
   profile_version: '0.1'
-  computed_score: 35
-  computed_label: weak
-  confidence: low
-  failed_gates:
-  - owner_questions_resolution:needs_owner_input
-  missing:
-  - alternatives_quality
-  - tradeoff_analysis
-  - risk_coverage
-  - assumptions_clarity
-  - impact_overlap_analysis
-  suggested_next:
-  - add_alternatives_quality
-  - add_tradeoff_analysis
-  - add_risk_coverage
-  - add_assumptions_clarity
-  - resolve_owner_questions_resolution
-  - add_impact_overlap_analysis
+  computed_score: 100
+  computed_label: decision_ready
+  confidence: high
+  failed_gates: []
+  missing: []
+  suggested_next: []
   path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/readiness.yml
 - proposal: PROP-083
   title: Domain-Aware Visible Project Definition Export
-  proposal_status: draft
+  proposal_status: accepted
   status: assessed
   profile_id: default-readiness-v0.1
   profile_version: '0.1'
-  computed_score: 7
-  computed_label: weak
+  computed_score: 70
+  computed_label: partial
   confidence: low
   failed_gates: []
-  missing:
-  - goal_clarity
-  - scope_boundaries
-  - alternatives_quality
-  - tradeoff_analysis
-  - risk_coverage
-  - assumptions_clarity
-  - owner_questions_resolution
-  - acceptance_criteria_quality
-  - impact_overlap_analysis
-  suggested_next:
-  - add_goal_clarity
-  - add_scope_boundaries
-  - add_alternatives_quality
-  - add_tradeoff_analysis
-  - add_risk_coverage
-  - add_assumptions_clarity
-  - add_owner_questions_resolution
-  - add_acceptance_criteria_quality
-  - add_impact_overlap_analysis
+  missing: []
+  suggested_next: []
   path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/readiness.yml
 - proposal: PROP-084
   title: Project-Local Runtime Bootstrap And Upgrade Flow
@@ -1157,3 +1127,45 @@ readiness:
   - add_acceptance_criteria_quality
   - add_impact_overlap_analysis
   path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/readiness.yml
+- proposal: PROP-085
+  title: Pluggable Project Verticals And Readiness Orchestration
+  proposal_status: accepted
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  computed_score: 100
+  computed_label: decision_ready
+  confidence: high
+  failed_gates: []
+  missing: []
+  suggested_next: []
+  path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/readiness.yml
+- proposal: PROP-086
+  title: Artifact-aware Proposal Readiness And Agent Interview Orchestration
+  proposal_status: accepted
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  computed_score: 14
+  computed_label: weak
+  confidence: low
+  failed_gates: []
+  missing:
+  - scope_boundaries
+  - alternatives_quality
+  - tradeoff_analysis
+  - risk_coverage
+  - assumptions_clarity
+  - owner_questions_resolution
+  - acceptance_criteria_quality
+  - impact_overlap_analysis
+  suggested_next:
+  - add_scope_boundaries
+  - add_alternatives_quality
+  - add_tradeoff_analysis
+  - add_risk_coverage
+  - add_assumptions_clarity
+  - add_owner_questions_resolution
+  - add_acceptance_criteria_quality
+  - add_impact_overlap_analysis
+  path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/readiness.yml

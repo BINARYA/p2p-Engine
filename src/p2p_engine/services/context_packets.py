@@ -92,6 +92,23 @@ class _NextActionLike(Protocol):
     command: str
 
 
+class _ArtifactRecordLike(Protocol):
+    artifact_id: str
+    filename: str
+    expectation: object
+    status: object
+    reason: str
+    confirmation: object
+
+
+class _ArtifactStateLike(Protocol):
+    status: str
+    legacy_state: object | None
+    legacy_reason: str
+    artifacts: list[_ArtifactRecordLike]
+    suggested_next: list[str]
+
+
 @dataclass(frozen=True)
 class ContextPacket:
     budget: str
@@ -122,6 +139,7 @@ class ContextPacketService:
         work_summaries: Callable[[], list[_WorkSummaryLike]],
         show_work: Callable[[str], _WorkDetailLike],
         next_actions: Callable[..., list[_NextActionLike]],
+        proposal_artifacts: Callable[[str], _ArtifactStateLike] | None = None,
     ) -> None:
         self.project_name = project_name
         self.validate = validate
@@ -136,6 +154,7 @@ class ContextPacketService:
         self.work_summaries = work_summaries
         self.show_work = show_work
         self.next_actions = next_actions
+        self.proposal_artifacts = proposal_artifacts
 
     def context_packet(self, budget: str = "small", target: str | None = None) -> ContextPacket:
         budget = budget.strip().lower()
@@ -282,6 +301,8 @@ class ContextPacketService:
             if budget == "medium":
                 artifact["problem"] = _short_text(detail.problem)
                 artifact["proposal"] = _short_text(detail.proposal)
+            if self.proposal_artifacts is not None:
+                artifact["artifact_coverage"] = _artifact_coverage_summary(self.proposal_artifacts(detail.proposal_id))
             return artifact
         if target.startswith("CHANGE-"):
             detail = self.show_change_set(target)
@@ -357,3 +378,43 @@ def _short_text(value: str, limit: int = 360) -> str | None:
     if len(stripped) <= limit:
         return stripped
     return stripped[: limit - 3].rstrip() + "..."
+
+
+def _artifact_coverage_summary(view: _ArtifactStateLike) -> dict[str, object]:
+    legacy_state = _enum_value(getattr(view, "legacy_state", None))
+    if legacy_state:
+        return {
+            "status": getattr(view, "status"),
+            "legacy_state": legacy_state,
+            "legacy_reason": getattr(view, "legacy_reason"),
+            "gaps": [],
+            "suggested_next": list(getattr(view, "suggested_next")),
+        }
+    gaps: list[dict[str, object]] = []
+    for record in getattr(view, "artifacts"):
+        status = _enum_value(getattr(record, "status"))
+        expectation = _enum_value(getattr(record, "expectation"))
+        if status in {"unknown", "missing", "weak", "deferred"} and expectation in {"required", "required_when_applicable"}:
+            gaps.append(_artifact_gap(record, status=status, expectation=expectation))
+        elif status == "not_applicable":
+            gaps.append(_artifact_gap(record, status=status, expectation=expectation))
+    return {
+        "status": getattr(view, "status"),
+        "gaps": gaps,
+        "suggested_next": list(getattr(view, "suggested_next")),
+    }
+
+
+def _artifact_gap(record: _ArtifactRecordLike, *, status: str, expectation: str) -> dict[str, object]:
+    return {
+        "artifact": getattr(record, "artifact_id"),
+        "filename": getattr(record, "filename"),
+        "expectation": expectation,
+        "status": status,
+        "reason": getattr(record, "reason"),
+        "confirmation": _enum_value(getattr(record, "confirmation")),
+    }
+
+
+def _enum_value(value: object) -> str:
+    return str(getattr(value, "value", value or ""))

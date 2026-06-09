@@ -1,0 +1,151 @@
+proposal_questions:
+  schema_version: 1
+  proposal_id: PROP-082
+  initialized_at: '2026-06-08'
+  updated_at: '2026-06-08'
+  updated_by: codex
+  groups:
+  - id: QG001
+    gap: artifact_coverage
+    state: to_answer
+    priority: high
+    rationale: Generated questions must cover all proposal artifacts, not only score
+      gaps.
+    created_at: '2026-06-08'
+    updated_at: '2026-06-08'
+  - id: QG002
+    gap: answer_application
+    state: to_answer
+    priority: high
+    rationale: Answers must be propagated into all useful affected artifacts.
+    created_at: '2026-06-08'
+    updated_at: '2026-06-08'
+  - id: QG003
+    gap: stepped_assertiveness
+    state: to_answer
+    priority: medium
+    rationale: Pedantry is readiness-driven rather than a standalone score.
+    created_at: '2026-06-08'
+    updated_at: '2026-06-08'
+  - id: QG004
+    gap: readiness_recalculation
+    state: to_answer
+    priority: high
+    rationale: Low readiness must trigger recalculation and continued interviewing.
+    created_at: '2026-06-08'
+    updated_at: '2026-06-08'
+  questions:
+  - id: Q001
+    group_id: QG001
+    gap: artifact_coverage
+    criterion: artifact_coverage
+    priority: high
+    state: applied
+    question: Which proposal artifacts must the question generator inspect before
+      it can claim full readiness coverage?
+    rationale: Generated questions must cover all proposal artifacts, not only score
+      gaps.
+    answer: 'Inspect the full proposal artifact set: proposal.md, exploration/findings/alternatives/open-questions/risks/assumptions/suggested-scope,
+      impact/related/conflict artifacts, readiness.yml, questions.yml, and duplicate
+      or aggregation evidence. Generated questions should cover stale, missing, thin,
+      contradictory, or decision-critical artifacts, not only readiness.missing labels.'
+    answer_source: owner
+    answered_at: '2026-06-08'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-08'
+    audit:
+      created_by: codex
+      created_at: '2026-06-08'
+      updated_by: codex
+      updated_at: '2026-06-08'
+  - id: Q002
+    group_id: QG002
+    gap: answer_application
+    criterion: answer_application
+    priority: high
+    state: applied
+    question: What artifact update plan should questions apply produce when one answer
+      affects multiple proposal artifacts?
+    rationale: Answers must be propagated into all useful affected artifacts.
+    answer: questions apply should produce an artifact-aware update plan. One answer
+      can affect multiple artifacts, so apply must report target artifacts, intended
+      changes, available CLI/MCP primitive, and whether each change was applied, deferred,
+      muted, or not needed.
+    answer_source: owner
+    answered_at: '2026-06-08'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-08'
+    audit:
+      created_by: codex
+      created_at: '2026-06-08'
+      updated_by: codex
+      updated_at: '2026-06-08'
+  - id: Q003
+    group_id: QG003
+    gap: stepped_assertiveness
+    criterion: stepped_assertiveness
+    priority: medium
+    state: applied
+    question: What readiness bands should the agent use to switch from aggressive
+      interviewing to residual confirmation?
+    rationale: Pedantry is readiness-driven rather than a standalone score.
+    answer: 'Use stepped readiness-driven assertiveness rather than a separate pedantry
+      score: weak/blocked readiness means aggressive interviewing and no acceptance
+      recommendation; partial readiness means focused follow-up on high-impact gaps;
+      near-ready means residual confirmation only; deferred/muted areas are skipped
+      unless the owner asks to revisit or increase readiness.'
+    answer_source: owner
+    answered_at: '2026-06-08'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-08'
+    audit:
+      created_by: codex
+      created_at: '2026-06-08'
+      updated_by: codex
+      updated_at: '2026-06-08'
+  - id: Q004
+    group_id: QG004
+    gap: readiness_recalculation
+    criterion: readiness_recalculation
+    priority: high
+    state: applied
+    question: 'Which command should perform evidence-aware recalculation after answers
+      are applied: refresh, assess, review, or a new dedicated primitive?'
+    rationale: Low readiness must trigger recalculation and continued interviewing.
+    answer: Use a dedicated evidence-aware reassessment path rather than overloading
+      conservative refresh. refresh may synchronize stored evidence, but assess/review
+      should recompute criteria, failed gates, missing items, confidence, acceptance
+      cautions, and next actions from current artifacts after answers are applied.
+    answer_source: owner
+    answered_at: '2026-06-08'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-08'
+    audit:
+      created_by: codex
+      created_at: '2026-06-08'
+      updated_by: codex
+      updated_at: '2026-06-08'

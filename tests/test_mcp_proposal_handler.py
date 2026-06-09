@@ -76,6 +76,44 @@ def test_mcp_proposal_handler_serves_readiness_and_contributions(tmp_path: Path)
     assert len(contributions["contributions"]["contributions"]) == 1
 
 
+def test_mcp_proposal_handler_serves_artifact_state_tools(tmp_path: Path) -> None:
+    workspace = _workspace(tmp_path)
+    handle_proposal_tool(
+        workspace,
+        "p2p_proposal_create",
+        {
+            "title": "Artifact MCP",
+            "proposal": "This proposal changes MCP and CLI behavior.",
+        },
+    )
+
+    status = handle_proposal_tool(workspace, "p2p_proposal_artifact_status", {"proposal_id": "PROP-001"})
+    update = handle_proposal_tool(
+        workspace,
+        "p2p_proposal_artifact_set",
+        {
+            "proposal_id": "PROP-001",
+            "artifact_id": "impact_map",
+            "status": "not_applicable",
+            "reason": "No external impact.",
+            "actor": "codex",
+        },
+    )
+    confirm = handle_proposal_tool(
+        workspace,
+        "p2p_proposal_artifact_confirm",
+        {"proposal_id": "PROP-001", "artifact_id": "impact_map", "actor": "owner"},
+    )
+
+    assert status is not None
+    assert status["artifact_state"]["status"] == "active"
+    assert update is not None
+    assert update["governance"]["decision_made"] is False
+    assert update["artifact_operation"]["artifact"]["confirmation"] == "agent_proposed"
+    assert confirm is not None
+    assert confirm["artifact_operation"]["artifact"]["confirmation"] == "owner_confirmed"
+
+
 def test_mcp_call_tool_uses_proposal_handler(tmp_path: Path) -> None:
     _workspace(tmp_path)
 

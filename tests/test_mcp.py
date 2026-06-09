@@ -8,6 +8,7 @@ from pathlib import Path
 import yaml
 from typer.testing import CliRunner
 
+from p2p_engine import __version__
 from p2p_engine.cli import app
 from p2p_engine.mcp.server import handle_message
 from p2p_engine.mcp.tools import TOOL_NAMES, call_tool, tool_definitions
@@ -87,8 +88,16 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_proposal_readiness_get",
         "p2p_proposal_readiness_init",
         "p2p_proposal_readiness_refresh",
+        "p2p_proposal_readiness_assess",
         "p2p_proposal_readiness_explain",
         "p2p_proposal_readiness_list_gaps",
+        "p2p_proposal_readiness_review",
+        "p2p_proposal_questions_status",
+        "p2p_proposal_questions_init",
+        "p2p_proposal_questions_add",
+        "p2p_proposal_questions_answer",
+        "p2p_proposal_questions_next",
+        "p2p_proposal_questions_apply",
         "p2p_choice_list",
         "p2p_choice_show",
         "p2p_change_status",
@@ -100,6 +109,15 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_registry_status",
         "p2p_registry_show",
         "p2p_project_show",
+        "p2p_project_export",
+        "p2p_project_export_status",
+        "p2p_project_vertical_list",
+        "p2p_project_vertical_show",
+        "p2p_project_vertical_validate",
+        "p2p_project_vertical_propose",
+        "p2p_project_vertical_add",
+        "p2p_project_vertical_select",
+        "p2p_project_readiness_review",
         "p2p_project_remote_show",
         "p2p_project_remote_configure",
         "p2p_permissions_show",
@@ -168,6 +186,72 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         or "consent_revoke" in name
         for name in names
     )
+
+
+def test_mcp_project_visible_export_flow(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Visible Project Output",
+            "--problem",
+            "Project definitions are hard to inspect.",
+            "--proposal",
+            "Export a visible chaptered project definition.",
+            "--acceptance",
+            "outputs/latest/project.md exists.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+
+    exported = call_tool("p2p_project_export", {"root": str(tmp_path)})
+
+    assert exported["export"]["status"] == "exported"
+    assert exported["export"]["latest_path"] == "outputs/latest/project.md"
+    assert (tmp_path / "outputs" / "latest" / "project.md").exists()
+
+    status = call_tool("p2p_project_export_status", {"root": str(tmp_path)})
+    assert status["export_status"]["latest_exists"] is True
+    assert status["export_status"]["latest_path"] == "outputs/latest/project.md"
+
+
+def test_mcp_project_vertical_and_readiness_tools(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Vertical MCP Demo", "--root", str(tmp_path)])
+
+    listed = call_tool("p2p_project_vertical_list", {"root": str(tmp_path)})
+    ids = {item["vertical_id"] for item in listed["verticals"]}
+    assert "base_project" in ids
+    assert listed["active"]["fallback_used"] is True
+
+    shown = call_tool(
+        "p2p_project_vertical_show",
+        {"root": str(tmp_path), "vertical_id": "social_impact_program_design"},
+    )
+    section_ids = {section["section_id"] for section in shown["vertical"]["sections"]}
+    assert {"vision", "measurement_reporting"} <= section_ids
+
+    validation = call_tool("p2p_project_vertical_validate", {"root": str(tmp_path), "target": "base_project"})
+    assert validation["validation"]["valid"] is True
+
+    candidate = call_tool(
+        "p2p_project_vertical_propose",
+        {"root": str(tmp_path), "idea": "progettare la scatola perfetta"},
+    )
+    assert candidate["candidate"]["pack"]["vertical_id"] == "packaging_or_physical_product_design"
+
+    selected = call_tool(
+        "p2p_project_vertical_select",
+        {"root": str(tmp_path), "vertical_id": "social_impact_program_design", "actor": "owner"},
+    )
+    assert selected["active"]["vertical_id"] == "social_impact_program_design"
+
+    review = call_tool("p2p_project_readiness_review", {"root": str(tmp_path)})
+    assert review["readiness_review"]["active_vertical_id"] == "social_impact_program_design"
+    assert review["readiness_review"]["missing_capisaldi"]
 
 
 def test_mcp_managed_next_action_lifecycle(tmp_path: Path) -> None:
@@ -1212,11 +1296,13 @@ def test_mcp_proposal_readiness_tools_are_advisory(tmp_path: Path) -> None:
     assert refreshed["governance"]["override_applied"] is False
 
     initialized = call_tool("p2p_proposal_readiness_init", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+    assessed = call_tool("p2p_proposal_readiness_assess", {"root": str(tmp_path), "proposal_id": "PROP-001"})
 
     assert initialized["readiness"]["status"] == "assessed"
     assert initialized["readiness"]["computed_score"] is not None
     assert initialized["readiness"]["confidence"] == "low"
     assert initialized["governance"]["decision_made"] is False
+    assert assessed["readiness"]["status"] == "assessed"
 
     explained = call_tool("p2p_proposal_readiness_explain", {"root": str(tmp_path), "proposal_id": "PROP-001"})
     gaps = call_tool("p2p_proposal_readiness_list_gaps", {"root": str(tmp_path), "proposal_id": "PROP-001"})
@@ -1224,6 +1310,46 @@ def test_mcp_proposal_readiness_tools_are_advisory(tmp_path: Path) -> None:
     assert explained["readiness"]["status"] == "assessed"
     assert gaps["gaps"]["proposal_id"] == "PROP-001"
     assert isinstance(gaps["gaps"]["suggested_next"], list)
+
+
+def test_mcp_proposal_question_tools_are_write_safe(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    call_tool("p2p_proposal_create", {"root": str(tmp_path), "title": "Question Draft"})
+    call_tool("p2p_proposal_readiness_init", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+
+    status = call_tool("p2p_proposal_questions_status", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+    initialized = call_tool("p2p_proposal_questions_init", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+    added = call_tool(
+        "p2p_proposal_questions_add",
+        {
+            "root": str(tmp_path),
+            "proposal_id": "PROP-001",
+            "gap": "alternatives_quality",
+            "question": "Which alternative should be compared first?",
+            "priority": "high",
+        },
+    )
+    answered = call_tool(
+        "p2p_proposal_questions_answer",
+        {
+            "root": str(tmp_path),
+            "proposal_id": "PROP-001",
+            "question_id": "Q001",
+            "answer": "Use a first-class CLI object.",
+        },
+    )
+    applied = call_tool("p2p_proposal_questions_apply", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+    review = call_tool("p2p_proposal_readiness_review", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+
+    assert status["questions"]["status"] == "not_initialized"
+    assert initialized["questions"]["status"] == "initialized"
+    assert added["question"]["question"]["question_id"] == "Q001"
+    assert added["governance"]["decision_made"] is False
+    assert answered["question"]["question"]["state"] == "answered"
+    assert "Q001" in applied["apply"]["summary"]
+    assert applied["apply"]["update_plan"]
+    assert review["review"]["question_state_status"] == "initialized"
+    assert review["review"]["assertiveness_guidance"]
 
 
 def test_mcp_context_returns_compact_packet(tmp_path: Path) -> None:
@@ -1595,6 +1721,7 @@ def test_mcp_jsonrpc_lists_and_calls_tools(tmp_path: Path) -> None:
     )
     assert initialize is not None
     assert initialize["result"]["serverInfo"]["name"] == "p2p-engine"
+    assert initialize["result"]["serverInfo"]["version"] == __version__
 
     listed = handle_message(
         json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}),

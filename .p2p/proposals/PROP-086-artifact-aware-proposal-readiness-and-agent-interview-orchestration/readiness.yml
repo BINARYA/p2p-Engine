@@ -1,0 +1,117 @@
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: low
+  confidence_reasons:
+  - Initial readiness was bootstrapped from proposal artifacts.
+  - Review criterion evidence before using it for acceptance.
+  missing:
+  - scope_boundaries
+  - alternatives_quality
+  - tradeoff_analysis
+  - risk_coverage
+  - assumptions_clarity
+  - owner_questions_resolution
+  - acceptance_criteria_quality
+  - impact_overlap_analysis
+  suggested_next:
+  - add_scope_boundaries
+  - add_alternatives_quality
+  - add_tradeoff_analysis
+  - add_risk_coverage
+  - add_assumptions_clarity
+  - add_owner_questions_resolution
+  - add_acceptance_criteria_quality
+  - add_impact_overlap_analysis
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 7
+      artifact_quality: meaningful
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      effective_points: 7
+    goal_clarity:
+      max_points: 10
+      awarded_points: 7
+      artifact_quality: meaningful
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      effective_points: 7
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 0
+      artifact_quality: placeholder
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      effective_points: 0
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 0
+      artifact_quality: placeholder
+      evidence:
+      - artifact: alternatives.md
+      effective_points: 0
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 0
+      artifact_quality: placeholder
+      evidence:
+      - artifact: alternatives.md
+      effective_points: 0
+    risk_coverage:
+      max_points: 10
+      awarded_points: 0
+      artifact_quality: placeholder
+      evidence:
+      - artifact: risks.md
+      effective_points: 0
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 0
+      artifact_quality: placeholder
+      evidence:
+      - artifact: assumptions.md
+      effective_points: 0
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 0
+      artifact_quality: placeholder
+      evidence:
+      - artifact: open-questions.md
+      effective_points: 0
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 0
+      artifact_quality: placeholder
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      effective_points: 0
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 0
+      artifact_quality: missing
+      evidence:
+      - artifact: impact-map.yml
+      effective_points: 0
+  computed_score: 14
+  computed_label: weak
+  computed_at: '2026-06-09'
+  owner_override: true
+  effective_status: forced_ready
+  effective_score: 100
+  override_reason: 'Accepted by owner as an explicit readiness override. The current
+    default-readiness-v0.1 score remains weak because it is not artifact-aware, but
+    the owner accepts the refined direction: introduce a dedicated artifact-specific
+    CLI/MCP primitive, graduated-by-risk artifact requirements, default coverage for
+    new proposals, advisory absent_legacy handling for old proposals, strict CLI/MCP-only
+    memory mutation, and tests for readiness/context/MCP/missing-primitive behavior.'
+  override_approver: owner
+  override_recorded_at: '2026-06-09'

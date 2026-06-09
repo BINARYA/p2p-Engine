@@ -1,0 +1,245 @@
+proposal_questions:
+  schema_version: 1
+  proposal_id: PROP-083
+  initialized_at: '2026-06-08'
+  updated_at: '2026-06-08'
+  updated_by: codex
+  groups:
+  - id: QG001
+    gap: goal_clarity
+    state: to_answer
+    priority: high
+    rationale: Goal clarity is missing; acceptance depends on knowing the primary
+      purpose of the generic export.
+    created_at: '2026-06-08'
+    updated_at: '2026-06-08'
+  - id: QG002
+    gap: scope_boundaries
+    state: to_answer
+    priority: high
+    rationale: Scope boundaries are needed to preserve backward compatibility while
+      changing export behavior.
+    created_at: '2026-06-08'
+    updated_at: '2026-06-08'
+  - id: QG003
+    gap: alternatives_quality
+    state: to_answer
+    priority: high
+    rationale: The proposal needs real alternatives before choosing a default export
+      model.
+    created_at: '2026-06-08'
+    updated_at: '2026-06-08'
+  - id: QG004
+    gap: tradeoff_analysis
+    state: to_answer
+    priority: high
+    rationale: The visible-output decision changes user ergonomics and repository
+      noise.
+    created_at: '2026-06-08'
+    updated_at: '2026-06-08'
+  - id: QG005
+    gap: impact_overlap_analysis
+    state: to_answer
+    priority: high
+    rationale: Impact and overlap with accepted export proposals must be explicit.
+    created_at: '2026-06-08'
+    updated_at: '2026-06-08'
+  - id: QG006
+    gap: acceptance_criteria_quality
+    state: to_answer
+    priority: medium
+    rationale: Acceptance criteria are currently missing.
+    created_at: '2026-06-08'
+    updated_at: '2026-06-08'
+  questions:
+  - id: Q001
+    group_id: QG001
+    gap: goal_clarity
+    criterion: goal_clarity
+    priority: high
+    state: applied
+    question: 'What is the primary goal of the visible project definition export:
+      human-readable project understanding, downstream tool handoff, replacement of
+      software-spec exports, or all of these with a priority order?'
+    rationale: Goal clarity is missing; acceptance depends on knowing the primary
+      purpose of the generic export.
+    answer: 'Primary goal: prepare a human-readable project definition that captures
+      in high detail what emerged during proposal preparation, exploration, and refinement.
+      The export should synthesize accepted P2P memory into a detailed project definition
+      for humans, while remaining generic enough to support different vertical domains
+      rather than assuming software. Downstream tool handoff can be supported, but
+      it is secondary to producing a clear, comprehensive, domain-aware human-facing
+      project definition.'
+    answer_source: owner
+    answered_at: '2026-06-08'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-08'
+    audit:
+      created_by: local
+      created_at: '2026-06-08'
+      updated_by: local
+      updated_at: '2026-06-08'
+  - id: Q002
+    group_id: QG002
+    gap: scope_boundaries
+    criterion: scope_boundaries
+    priority: high
+    state: answered
+    question: Which existing outputs should remain unchanged for software projects,
+      and which outputs should be deprecated, moved, or made profile-specific?
+    rationale: Scope boundaries are needed to preserve backward compatibility while
+      changing export behavior.
+    answer: Existing export behavior should not be broken by changing the conceptual
+      role of other export targets. The new visible project definition export should
+      use a generic visible structure at the project root, named outputs/ to avoid
+      confusion with .p2p/project. The current human-facing project definition should
+      live under outputs/latest/, for example outputs/latest/project.md, while prior
+      review snapshots should live under outputs/review-001/, outputs/review-002/,
+      etc. Software-specific exports such as software-spec, OpenSpec, and Spec Kit
+      should become nested specialized export folders under the generic outputs/latest/exports/
+      structure when the domain/profile supports them. The model must be generic because
+      other vertical domains may also have multiple specialized export formats.
+    answer_source: owner
+    answered_at: '2026-06-08'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-08'
+    audit:
+      created_by: local
+      created_at: '2026-06-08'
+      updated_by: codex
+      updated_at: '2026-06-08'
+  - id: Q003
+    group_id: QG003
+    gap: alternatives_quality
+    criterion: alternatives_quality
+    priority: high
+    state: answered
+    question: Should the generic project definition export be the new default for
+      every domain, an optional export profile, or a visible mirror of existing internal
+      outputs?
+    rationale: The proposal needs real alternatives before choosing a default export
+      model.
+    answer: The generic human-facing project definition export should be the default
+      for every domain. Every P2P project should be able to generate outputs/latest/project.md
+      as the current comprehensive project definition for humans. Domain-specific
+      or tool-specific exports are additional nested export profiles, not the primary
+      default.
+    answer_source: owner
+    answered_at: '2026-06-08'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-08'
+    audit:
+      created_by: local
+      created_at: '2026-06-08'
+      updated_by: codex
+      updated_at: '2026-06-08'
+  - id: Q004
+    group_id: QG004
+    gap: tradeoff_analysis
+    criterion: tradeoff_analysis
+    priority: high
+    state: answered
+    question: What tradeoff do you prefer between visible root-level outputs that
+      are easy for humans to find and hidden .p2p outputs that keep project roots
+      cleaner?
+    rationale: The visible-output decision changes user ergonomics and repository
+      noise.
+    answer: Accept the tradeoff of a visible root-level outputs/ directory. Human
+      accessibility and inspectability are more important than keeping the repository
+      root minimal. The name outputs/ is preferred over project/ because it is clearer
+      that this directory contains generated visible outputs and avoids confusion
+      with .p2p/project. For the MVP this location does not need to be configurable.
+    answer_source: owner
+    answered_at: '2026-06-08'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-08'
+    audit:
+      created_by: local
+      created_at: '2026-06-08'
+      updated_by: codex
+      updated_at: '2026-06-08'
+  - id: Q005
+    group_id: QG005
+    gap: impact_overlap_analysis
+    criterion: impact_overlap_analysis
+    priority: high
+    state: answered
+    question: How should this proposal relate to existing software-spec, spec-export,
+      OpenSpec, and Spec Kit behavior so useful software workflows are not broken?
+    rationale: Impact and overlap with accepted export proposals must be explicit.
+    answer: In the new model, software-specific exports should live under outputs/latest/exports/...
+      or a similar nested structure inside the visible project definition export.
+      Existing .p2p outputs in this repository may likely be removable if they are
+      only legacy/generated artifacts and not required for compatibility, but this
+      must be verified during implementation. The proposal should not assume immediate
+      deletion without a compatibility check; it should define a migration/compatibility
+      path for existing .p2p/outputs behavior and preserve any public CLI/API expectations
+      until intentionally changed.
+    answer_source: owner
+    answered_at: '2026-06-08'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-08'
+    audit:
+      created_by: local
+      created_at: '2026-06-08'
+      updated_by: codex
+      updated_at: '2026-06-08'
+  - id: Q006
+    group_id: QG006
+    gap: acceptance_criteria_quality
+    criterion: acceptance_criteria_quality
+    priority: medium
+    state: answered
+    question: What concrete files or commands would prove this proposal is implemented
+      correctly?
+    rationale: Acceptance criteria are currently missing.
+    answer: The default export should generate a single Markdown file organized in
+      chapters, not many separate default files. A suitable output is outputs/latest/project.md
+      containing the complete human-facing project definition. Specialized vertical
+      exports, such as software-specific outputs, may generate folders under outputs/latest/exports/<profile-or-vertical>/
+      containing whatever files that vertical format requires.
+    answer_source: owner
+    answered_at: '2026-06-08'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-08'
+    audit:
+      created_by: local
+      created_at: '2026-06-08'
+      updated_by: codex
+      updated_at: '2026-06-08'

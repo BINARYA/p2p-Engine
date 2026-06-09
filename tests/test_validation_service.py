@@ -96,3 +96,20 @@ def test_validation_service_reports_duplicate_proposal_ids(tmp_path: Path) -> No
     assert "Duplicate proposal ID PROP-001" in duplicate.message
     assert "PROP-001-draft-work" in duplicate.message
     assert "PROP-001-other-draft" in duplicate.message
+
+
+def test_validation_service_reports_malformed_proposal_artifact_state(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Demo Project")
+    proposal = workspace.create_proposal("Artifact State")
+    artifact_path = tmp_path / proposal.path / "artifact-state.yml"
+    payload = yaml.safe_load(artifact_path.read_text(encoding="utf-8"))
+    payload["proposal_artifacts"]["artifacts"][0]["status"] = "invalid"
+    artifact_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+
+    result = _validation_service(workspace).validate()
+    finding = next(finding for finding in result.findings if finding.code == "P2P233_INVALID_PROPOSAL_ARTIFACT_STATE")
+
+    assert result.ok is False
+    assert finding.severity == "error"
+    assert "Invalid proposal artifact status" in finding.message

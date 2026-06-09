@@ -1,0 +1,40 @@
+impact:
+  proposal: PROP-083
+  features:
+    - visible project definition export
+    - domain-generic project rendering
+    - export profile routing
+    - generated output review snapshots
+    - software export compatibility
+  commands:
+    - project export or equivalent project output generation command to be defined during implementation design
+    - existing spec export commands must remain compatible or receive an explicit migration path
+  files:
+    - outputs/latest/project.md
+    - outputs/latest/exports/<profile-or-vertical>/
+    - outputs/review-001/
+    - outputs/review-002/
+    - .p2p/outputs
+  governance:
+    - keeps .p2p as managed source of truth
+    - makes generated human-facing outputs visible outside .p2p
+    - requires compatibility review before relocating or removing legacy outputs
+  project_artifacts:
+    - accepted proposals
+    - decisions
+    - requirements
+    - scope boundaries
+    - alternatives
+    - tradeoffs
+    - risks
+    - assumptions
+    - readiness notes
+    - open questions
+  dependencies:
+    - existing project/spec export services
+    - project state and proposal registry readers
+    - CLI and MCP compatibility expectations
+  risks:
+    - stale visible outputs if refresh is not explicit
+    - confusion between generated outputs and P2P source of truth
+    - breaking existing consumers of .p2p/outputs

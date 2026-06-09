@@ -1,0 +1,7 @@
+conflicts:
+  - type: scope_boundary
+    proposals:
+      - PROP-082
+      - PROP-054
+    reason: Proposal readiness and project-level maturity can be confused if the agent treats them as one assessment.
+    suggested_resolution: keep proposal readiness focused on whether one proposal is ready for decision; keep project maturity focused on whole-project definition quality.

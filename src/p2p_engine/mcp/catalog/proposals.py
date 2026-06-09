@@ -111,6 +111,16 @@ def tool_definitions() -> list[dict[str, object]]:
             ['proposal_id'],
         ),
         _tool(
+            'p2p_proposal_readiness_assess',
+            (
+                'Write-safe analysis tool: evidence-aware proposal readiness recalculation '
+                'from current artifacts and question state. Does not accept, reject, defer, '
+                'override, or decide.'
+            ),
+            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},
+            ['proposal_id'],
+        ),
+        _tool(
             'p2p_proposal_readiness_explain',
             (
                 'Read-only proposal readiness tool: explain score, failed gates, missing '
@@ -126,6 +136,129 @@ def tool_definitions() -> list[dict[str, object]]:
                 'and suggested next actions for an existing proposal.'
             ),
             {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},
+            ['proposal_id'],
+        ),
+        _tool(
+            'p2p_proposal_readiness_review',
+            (
+                'Read-only proposal readiness review tool: explain behavioral guidance, '
+                'owner questions, challenge points, and next actions. Does not decide.'
+            ),
+            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},
+            ['proposal_id'],
+        ),
+        _tool(
+            'p2p_proposal_questions_status',
+            'Read-only proposal question tool: show question state or not_initialized status.',
+            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},
+            ['proposal_id'],
+        ),
+        _tool(
+            'p2p_proposal_questions_init',
+            (
+                'Write-safe proposal question tool: initialize deterministic question state. '
+                'Does not decide governance.'
+            ),
+            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}, 'actor': {'type': 'string'}},
+            ['proposal_id'],
+        ),
+        _tool(
+            'p2p_proposal_questions_add',
+            (
+                'Write-safe proposal question tool: add a readiness-linked owner question. '
+                'Does not decide governance.'
+            ),
+            {'root': {'type': 'string'},
+             'proposal_id': {'type': 'string'},
+             'gap': {'type': 'string'},
+             'question': {'type': 'string'},
+             'priority': {'type': 'string', 'enum': ['high', 'medium', 'low']},
+             'rationale': {'type': 'string'},
+             'actor': {'type': 'string'}},
+            ['proposal_id', 'gap', 'question'],
+        ),
+        _tool(
+            'p2p_proposal_questions_answer',
+            (
+                'Write-safe proposal question tool: record an answer for one question. '
+                'Does not change proposal decision status.'
+            ),
+            {'root': {'type': 'string'},
+             'proposal_id': {'type': 'string'},
+             'question_id': {'type': 'string'},
+             'answer': {'type': 'string'},
+             'source': {'type': 'string'},
+             'actor': {'type': 'string'}},
+            ['proposal_id', 'question_id', 'answer'],
+        ),
+        _tool(
+            'p2p_proposal_questions_next',
+            'Read-only proposal question tool: return the next eligible owner question.',
+            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},
+            ['proposal_id'],
+        ),
+        _tool(
+            'p2p_proposal_questions_apply',
+            (
+                'Write-safe proposal question tool: mark answered questions as applied and '
+                'return an artifact-aware update plan. Does not decide governance.'
+            ),
+            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}, 'actor': {'type': 'string'}},
+            ['proposal_id'],
+        ),
+        _tool(
+            'p2p_proposal_artifact_status',
+            (
+                'Read-only proposal artifact tool: show artifact-aware coverage state or '
+                'legacy absence. Does not mutate proposal state.'
+            ),
+            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},
+            ['proposal_id'],
+        ),
+        _tool(
+            'p2p_proposal_artifact_init',
+            (
+                'Write-safe proposal artifact tool: initialize or refresh artifact-aware '
+                'coverage state. Does not accept, reject, defer, override, or decide.'
+            ),
+            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}, 'actor': {'type': 'string'}},
+            ['proposal_id'],
+        ),
+        _tool(
+            'p2p_proposal_artifact_set',
+            (
+                'Write-safe proposal artifact tool: set one artifact expectation/status and '
+                'rationale. Does not change proposal decision status.'
+            ),
+            {'root': {'type': 'string'},
+             'proposal_id': {'type': 'string'},
+             'artifact_id': {'type': 'string'},
+             'expectation': {'type': 'string',
+                             'enum': ['required', 'required_when_applicable', 'optional_memory', 'not_expected']},
+             'status': {'type': 'string',
+                        'enum': ['unknown', 'missing', 'weak', 'satisfied', 'deferred', 'not_applicable', 'absent_legacy']},
+             'reason': {'type': 'string'},
+             'actor': {'type': 'string'},
+             'source': {'type': 'string'},
+             'risk_flags': {'type': 'array', 'items': {'type': 'string'}}},
+            ['proposal_id', 'artifact_id'],
+        ),
+        _tool(
+            'p2p_proposal_artifact_confirm',
+            (
+                'Write-safe proposal artifact tool: record owner confirmation for one '
+                'artifact state. Does not accept, reject, defer, override, or decide.'
+            ),
+            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}, 'artifact_id': {'type': 'string'}, 'actor': {'type': 'string'}},
+            ['proposal_id', 'artifact_id'],
+        ),
+        _tool(
+            'p2p_proposal_artifact_mark_legacy',
+            (
+                'Write-safe proposal artifact tool: mark artifact-aware state as advisory '
+                'absent_legacy for an older proposal. Does not block or decide.'
+            ),
+            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}, 'reason': {'type': 'string'}, 'actor': {'type': 'string'}},
             ['proposal_id'],
         ),
         _tool(

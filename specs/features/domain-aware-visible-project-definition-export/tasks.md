@@ -1,32 +1,25 @@
 # Tasks - Domain-Aware Visible Project Definition Export
 
-- [ ] T001: Inspect current CLI, MCP, docs, and skill references to
-  `software-spec`; completion is a list of affected files in the implementation
-  notes.
-- [ ] T002: Define the visible root-level output directory name and generated
-  file conflict policy; completion is an update to this design spec.
-- [ ] T003: Add project-level generic export generation; completion is a CLI path
-  that writes `generic/project.md` without requiring a Change Set.
-- [ ] T004: Add domain/profile gating for OpenSpec and Spec Kit; completion is
-  non-software projects rejecting those targets by default.
-- [ ] T005: Update CLI help text away from default `software-spec` language;
-  completion is help output matching the domain-aware workflow.
-- [ ] T006: Update MCP tools or descriptions if project export is exposed
-  through MCP; completion is MCP tests covering the updated behavior.
-- [ ] T007: Update agent skills and public docs to recommend project definition
-  export rather than Change Set software-spec export by default.
-- [ ] T008: Add or update CLI tests for generic export, target gating, and
-  visible root-level output.
-- [ ] T009: Run focused tests for CLI and MCP; completion is reviewed test
-  output.
-- [ ] T010: Review legacy `p2p spec` behavior and document whether it remains
-  software-only compatibility or becomes deprecated.
-
-## Current Binding Status
-
-No task in this feature is marked complete from `src/` evidence yet.
-
-The current implementation still exposes the Change Set based software-spec
-workflow through `src/p2p_engine/cli.py:2340`, `src/p2p_engine/cli.py:2412`,
-and `src/p2p_engine/storage/filesystem.py:3964`. That behavior is tracked as
-implemented legacy behavior in `specs/features/legacy-software-spec-export/`.
+- [x] T001: Update local feature specs to match accepted `PROP-083`; completion
+  is requirements/design/tasks naming `outputs/latest/project.md`, review
+  snapshots, nested profile exports, and compatibility boundaries.
+- [x] T002: Add visible project export service; completion is a service that
+  renders `project.md`, creates `outputs/latest/`, and archives previous latest
+  into `outputs/review-###/`.
+- [x] T003: Wire `P2PWorkspace` facade methods; completion is delegation without
+  adding rendering logic to `filesystem.py`.
+- [x] T004: Add project CLI commands; completion is `p2p project export` and
+  `p2p project export-status`.
+- [x] T005: Add MCP project export/status tools if project MCP handlers support
+  the needed surface; completion is registry/catalog/handler coverage.
+- [x] T006: Add tests for service and CLI visible export behavior, including
+  first export, second export review snapshot, and status.
+- [x] T007: Add or update MCP tests if MCP tools are implemented.
+- [x] T008: Update CLI/MCP docs to describe visible project export as the
+  default project definition output and spec export as compatibility/software
+  handoff.
+- [x] T009: Verify legacy spec export compatibility tests still pass.
+- [x] T010: Run `p2p validate` and focused pytest; completion is recorded output
+  in the final implementation note.
+- [x] T011: Record follow-up work for proactive skill/readiness calculation
+  revision after implementation.

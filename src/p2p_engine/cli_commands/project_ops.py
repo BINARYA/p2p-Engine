@@ -14,6 +14,8 @@ def register_project_ops_commands(
     project_app: typer.Typer,
     project_remote_app: typer.Typer,
     project_rubrics_app: typer.Typer,
+    project_vertical_app: typer.Typer,
+    project_readiness_app: typer.Typer,
     project_brief_app: typer.Typer,
     sync_app: typer.Typer,
     permissions_app: typer.Typer,
@@ -72,6 +74,33 @@ def register_project_ops_commands(
             fail(str(exc))
         console.print(content)
 
+    @project_app.command("export")
+    def project_export(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+        """Export the visible human-facing project definition to outputs/latest/project.md."""
+        try:
+            result = workspace_for(root).export_visible_project_definition()
+        except ValueError as exc:
+            fail(str(exc))
+        console.print("[green]Project definition exported.[/green]")
+        console.print(f"  latest: {result.latest_path}")
+        console.print(f"  exports: {result.exports_dir}")
+        console.print(f"  archived: {result.archived_path or 'none'}")
+
+    @project_app.command("export-status")
+    def project_export_status(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+        """Show visible project definition export status."""
+        status = workspace_for(root).visible_project_definition_export_status()
+        console.print("Project definition export")
+        console.print(f"  latest: {status.latest_path}")
+        console.print(f"  latest_exists: {str(status.latest_exists).lower()}")
+        console.print(f"  exports: {status.exports_dir}")
+        if not status.review_paths:
+            console.print("  reviews: none")
+        else:
+            console.print("  reviews:")
+            for path in status.review_paths:
+                console.print(f"    - {path}")
+
     @project_remote_app.command("show")
     def project_remote_show(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
         """Show local/remote project profile."""
@@ -113,6 +142,151 @@ def register_project_ops_commands(
         console.print(f"  url: {profile.url or 'none'}")
         console.print("  creates_remote_repository: false")
         console.print("  opens_external_request: false")
+
+    @project_vertical_app.command("list")
+    def project_vertical_list(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+        """List available project vertical packs."""
+        try:
+            verticals = workspace_for(root).project_verticals()
+            active = workspace_for(root).active_project_vertical()
+        except ValueError as exc:
+            fail(str(exc))
+        console.print("Project verticals")
+        console.print(f"  active: {active.vertical_id}")
+        console.print(f"  fallback_used: {str(active.fallback_used).lower()}")
+        if not verticals:
+            console.print("  none")
+            return
+        for vertical in verticals:
+            active_marker = "*" if vertical.active else " "
+            console.print(
+                f"  {active_marker} {vertical.vertical_id}  {vertical.source}  "
+                f"{vertical.version}  {vertical.name}"
+            )
+
+    @project_vertical_app.command("show")
+    def project_vertical_show(
+        vertical_id: str = typer.Argument(..., help="Vertical ID"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Show a project vertical pack."""
+        try:
+            pack = workspace_for(root).show_project_vertical(vertical_id)
+        except ValueError as exc:
+            fail(str(exc))
+        _print_vertical_pack(pack)
+
+    @project_vertical_app.command("validate")
+    def project_vertical_validate(
+        target: str = typer.Argument(..., help="Vertical ID, vertical.yml path, or pack directory"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Validate a project vertical pack or known vertical ID."""
+        result = workspace_for(root).validate_project_vertical(target)
+        console.print("Project vertical valid" if result.valid else "Project vertical invalid")
+        console.print(f"  target: {result.target}")
+        console.print(f"  vertical: {result.vertical_id or 'unknown'}")
+        console.print(f"  source: {result.source}")
+        if not result.issues:
+            console.print("  issues: none")
+        else:
+            console.print("  issues:")
+            for issue in result.issues:
+                console.print(f"    - {issue.severity} {issue.field}: {issue.message}")
+        if not result.valid:
+            raise typer.Exit(1)
+
+    @project_vertical_app.command("propose")
+    def project_vertical_propose(
+        idea: str = typer.Argument(..., help="Project idea used to generate a candidate vertical"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Generate an importable custom vertical candidate without persisting it."""
+        try:
+            candidate = workspace_for(root).propose_project_vertical(idea)
+        except ValueError as exc:
+            fail(str(exc))
+        console.print("Custom vertical candidate")
+        console.print(f"  source_idea: {candidate.source_idea}")
+        console.print(f"  id: {candidate.pack.vertical_id}")
+        console.print(f"  name: {candidate.pack.name}")
+        console.print("  import: save the YAML under a review path, then run p2p project vertical add <path>")
+        console.print("")
+        console.print(candidate.yaml_text.rstrip())
+
+    @project_vertical_app.command("add")
+    def project_vertical_add(
+        source: Path = typer.Argument(..., help="vertical.yml path or pack directory"),
+        activate: bool = typer.Option(False, "--activate", help="Select this vertical after adding it"),
+        actor: str = typer.Option("local", "--actor", help="Actor recorded if --activate is used"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Add a project-local vertical pack."""
+        try:
+            result = workspace_for(root).add_project_vertical(source, activate=activate, actor=actor)
+        except ValueError as exc:
+            fail(str(exc))
+        console.print("[green]Project vertical added.[/green]")
+        console.print(f"  id: {result.vertical_id}")
+        console.print(f"  path: {result.path}")
+        console.print(f"  activated: {str(result.activated).lower()}")
+
+    @project_vertical_app.command("select")
+    def project_vertical_select(
+        vertical_id: str = typer.Argument(..., help="Vertical ID"),
+        actor: str = typer.Option("local", "--actor", help="Actor selecting the vertical"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Select the active project vertical."""
+        try:
+            active = workspace_for(root).select_project_vertical(vertical_id, actor=actor)
+        except ValueError as exc:
+            fail(str(exc))
+        console.print("[green]Project vertical selected.[/green]")
+        console.print(f"  id: {active.vertical_id}")
+        console.print(f"  source: {active.source}")
+        console.print(f"  selected_by: {active.selected_by or actor}")
+        console.print(f"  fallback_used: {str(active.fallback_used).lower()}")
+
+    @project_readiness_app.command("review")
+    def project_readiness_review(
+        vertical: str | None = typer.Option(None, "--vertical", help="Review against a specific vertical ID"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Review project readiness against the active project vertical."""
+        try:
+            review = workspace_for(root).review_project_readiness(vertical)
+        except ValueError as exc:
+            fail(str(exc))
+        console.print("Project readiness review")
+        console.print(f"  active_vertical: {review.active_vertical_id}")
+        console.print(f"  source: {review.vertical_source}")
+        console.print(f"  fallback_used: {str(review.fallback_used).lower()}")
+        console.print("Sections:")
+        for section in review.sections:
+            proposals = ", ".join(section.proposals) if section.proposals else "none"
+            console.print(f"  - {section.section_id}  {section.status}  proposals: {proposals}")
+        console.print("Missing capisaldi:")
+        if review.missing_capisaldi:
+            for section_id in review.missing_capisaldi:
+                console.print(f"  - {section_id}")
+        else:
+            console.print("  none")
+        console.print("Unmapped proposals:")
+        if review.unmapped_proposals:
+            for proposal_id in review.unmapped_proposals:
+                console.print(f"  - {proposal_id}")
+        else:
+            console.print("  none")
+        console.print("Generated questions:")
+        if review.generated_questions:
+            for question in review.generated_questions:
+                console.print(f"  - {question}")
+        else:
+            console.print("  none")
+        console.print("Suggested next:")
+        for command in review.suggested_next:
+            console.print(f"  - {command}")
 
     @sync_app.command("status")
     def sync_status(
@@ -361,3 +535,26 @@ def _print_consent(consent: object) -> None:
     console.print(f"  single_use: {str(getattr(consent, 'single_use')).lower()}")
     console.print(f"  expires_on: {getattr(consent, 'expires_on') or 'none'}")
     console.print(f"  path: {getattr(consent, 'path')}")
+
+
+def _print_vertical_pack(pack: object) -> None:
+    console.print("Project vertical")
+    console.print(f"  id: {getattr(pack, 'vertical_id')}")
+    console.print(f"  name: {getattr(pack, 'name')}")
+    console.print(f"  version: {getattr(pack, 'version')}")
+    console.print(f"  source: {getattr(pack, 'source')}")
+    console.print(f"  extends: {getattr(pack, 'extends') or 'none'}")
+    console.print(f"  path: {getattr(pack, 'path') or 'none'}")
+    console.print("Sections:")
+    for section in getattr(pack, "sections"):
+        console.print(f"  - {section.section_id}  required={str(section.required).lower()}  {section.title}")
+    console.print("Rubrics:")
+    for rubric in getattr(pack, "rubrics"):
+        console.print(f"  - {rubric.rubric_id}  section={rubric.section_id}  {rubric.title}")
+    console.print("Questions:")
+    for question in getattr(pack, "questions"):
+        console.print(f"  - {question.question_id}  section={question.section_id}  {question.question}")
+    console.print("Artifacts:")
+    for artifact in getattr(pack, "artifacts"):
+        sections = ", ".join(artifact.section_ids) if artifact.section_ids else "none"
+        console.print(f"  - {artifact.artifact_id}  sections={sections}  {artifact.title}")

@@ -10,7 +10,17 @@ from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
     yaml_dump as _yaml_dump,
 )
-from p2p_engine.foundation.markdown import read_markdown_section
+from p2p_engine.foundation.markdown import read_markdown_section, read_title
+from p2p_engine.core.proposal_artifact_state import (
+    ProposalArtifactConfirmation,
+    ProposalArtifactExpectation,
+    ProposalArtifactStatus,
+)
+from p2p_engine.services.proposal_artifact_state import (
+    ARTIFACT_STATE_FILENAME,
+    validate_proposal_artifact_state_payload,
+)
+from p2p_engine.services.proposal_questions import QUESTION_STATE_FILENAME, validate_proposal_questions_payload
 
 DEFAULT_READINESS_PROFILE_ID = "default-readiness-v0.1"
 DEFAULT_READINESS_PROFILE_VERSION = "0.1"
@@ -53,6 +63,22 @@ class ProposalReadiness:
     failed_gates: list[str]
     missing: list[str]
     suggested_next: list[str]
+
+
+@dataclass(frozen=True)
+class ProposalReadinessReview:
+    proposal_id: str
+    readiness: ProposalReadiness
+    question_state_status: str
+    challenge_points: list[str]
+    owner_questions: list[str]
+    thin_artifact_warnings: list[str]
+    alternative_prompts: list[str]
+    tradeoff_prompts: list[str]
+    acceptance_cautions: list[str]
+    assertiveness_guidance: list[str]
+    suggested_next: list[str]
+    merge_candidates: list[str]
 
 
 def _read_optional(path: Path) -> str:
@@ -320,6 +346,136 @@ class ReadinessService:
         self.write(proposal_id, refresh_readiness_payload(readiness, profile))
         return self.read(proposal_id)
 
+    def assess(self, proposal_id: str) -> ProposalReadiness:
+        existing_override = self._owner_override_fields(proposal_id)
+        initialized = self.initialize(proposal_id)
+        proposal_dir = self.find_proposal_dir(proposal_id)
+        path = proposal_dir / "readiness.yml"
+        data = _read_yaml_mapping(path, default={})
+        validate_readiness_assessment_payload(data)
+        readiness = dict(data["readiness"])
+        criteria = dict(readiness.get("criteria") or {})
+        unresolved_questions = count_open_questions(_read_optional(proposal_dir / "open-questions.md"))
+        pending_high_questions = _pending_high_questions(proposal_dir / QUESTION_STATE_FILENAME)
+        artifact_gaps, artifact_warnings, artifact_suggested = _artifact_state_readiness_gaps(proposal_dir)
+        has_blockers = bool(initialized.missing or initialized.failed_gates or unresolved_questions or pending_high_questions or artifact_gaps)
+
+        if not has_blockers:
+            for criterion, assessment_value in criteria.items():
+                assessment = dict(assessment_value)
+                if assessment.get("artifact_quality") == "meaningful":
+                    assessment["artifact_quality"] = "ready"
+                    assessment["awarded_points"] = int(assessment.get("max_points") or 0)
+                    evidence = list(assessment.get("evidence") or [])
+                    evidence.append({"artifact": "questions.yml", "reason": "artifact evidence assessed with no unresolved blocking questions"})
+                    assessment["evidence"] = evidence
+                criteria[criterion] = assessment
+            readiness["confidence"] = "high"
+            readiness["confidence_reasons"] = [
+                "Evidence-aware assessment found no missing criteria, failed gates, unresolved owner questions, or pending high-priority questions.",
+                "Criterion evidence was recalculated from current proposal artifacts.",
+            ]
+        else:
+            readiness["confidence"] = "medium" if not initialized.missing and not initialized.failed_gates else "low"
+            reasons = ["Evidence-aware assessment recalculated current artifacts."]
+            if unresolved_questions:
+                reasons.append(f"Open owner questions remain: {unresolved_questions}.")
+            if pending_high_questions:
+                reasons.append(f"Pending high-priority proposal questions remain: {pending_high_questions}.")
+            if artifact_gaps:
+                reasons.append("Artifact-aware coverage has unresolved required or applicable gaps.")
+            readiness["confidence_reasons"] = reasons
+
+        readiness["assessment_source"] = "evidence_aware"
+        readiness["assessed_at"] = date.today().isoformat()
+        readiness["criteria"] = criteria
+        readiness["missing"] = unique_strings([*list(readiness.get("missing") or []), *artifact_gaps])
+        readiness["suggested_next"] = unique_strings([*list(readiness.get("suggested_next") or []), *artifact_suggested])
+        readiness["artifact_coverage_warnings"] = unique_strings(artifact_warnings)
+        readiness.update(existing_override)
+        self.write(proposal_id, refresh_readiness_payload(readiness, self.profile(str(readiness.get("profile_id") or DEFAULT_READINESS_PROFILE_ID))))
+        return self.read(proposal_id)
+
+    def review(self, proposal_id: str) -> ProposalReadinessReview:
+        readiness = self.read(proposal_id)
+        proposal_dir = self.find_proposal_dir(proposal_id)
+        question_state_status = "not_initialized"
+        questions_path = proposal_dir / QUESTION_STATE_FILENAME
+        if questions_path.exists():
+            validate_proposal_questions_payload(_read_yaml_mapping(questions_path, default={}))
+            question_state_status = "initialized"
+
+        challenge_points = [f"Resolve readiness gap: {item}" for item in readiness.missing]
+        challenge_points.extend(f"Resolve failed gate: {gate}" for gate in readiness.failed_gates)
+        owner_questions: list[str] = []
+        if question_state_status == "not_initialized" and _readiness_needs_guidance(readiness):
+            owner_questions.append(
+                f"Question state is not initialized. Run `p2p proposal questions init {proposal_id}` "
+                "and add focused questions for the highest-impact readiness gaps."
+            )
+        for item in readiness.missing:
+            owner_questions.append(f"What information is needed to close `{item}` for {proposal_id}?")
+
+        thin_artifact_warnings: list[str] = []
+        if readiness.confidence == "low":
+            thin_artifact_warnings.append("Readiness confidence is low; do not treat this proposal as methodologically ready.")
+        artifact_gaps, artifact_warnings, artifact_suggested = _artifact_state_readiness_gaps(proposal_dir)
+        challenge_points.extend(f"Resolve artifact coverage gap: {gap}" for gap in artifact_gaps)
+        thin_artifact_warnings.extend(artifact_warnings)
+        alternative_prompts = []
+        if "alternatives_quality" in readiness.missing:
+            alternative_prompts.append("Identify at least two viable alternatives and explain why one should be preferred.")
+        tradeoff_prompts = []
+        if "tradeoff_analysis" in readiness.missing:
+            tradeoff_prompts.append("Compare benefits, costs, risks, and compatibility impact for each alternative.")
+        acceptance_cautions = []
+        if _readiness_needs_guidance(readiness):
+            acceptance_cautions.append(
+                "Do not recommend acceptance without either resolving these gaps or recording an explicit owner readiness override."
+            )
+
+        suggested_next = list(readiness.suggested_next)
+        if question_state_status == "not_initialized" and _readiness_needs_guidance(readiness):
+            suggested_next.insert(0, f"p2p proposal questions init {proposal_id}")
+        assertiveness_guidance = stepped_assertiveness_guidance(readiness, question_state_status)
+        if _readiness_needs_guidance(readiness):
+            suggested_next.append(f"p2p proposal readiness assess {proposal_id}")
+        suggested_next.extend(artifact_suggested)
+        suggested_next.append(f"p2p proposal questions next {proposal_id}")
+        return ProposalReadinessReview(
+            proposal_id=proposal_id,
+            readiness=readiness,
+            question_state_status=question_state_status,
+            challenge_points=unique_strings(challenge_points),
+            owner_questions=unique_strings(owner_questions),
+            thin_artifact_warnings=unique_strings(thin_artifact_warnings),
+            alternative_prompts=unique_strings(alternative_prompts),
+            tradeoff_prompts=unique_strings(tradeoff_prompts),
+            acceptance_cautions=unique_strings(acceptance_cautions),
+            assertiveness_guidance=unique_strings(assertiveness_guidance),
+            suggested_next=unique_strings(suggested_next),
+            merge_candidates=_merge_candidates(proposal_id, proposal_dir, self.p2p_dir),
+        )
+
+    def _owner_override_fields(self, proposal_id: str) -> dict[str, object]:
+        path = self.find_proposal_dir(proposal_id) / "readiness.yml"
+        if not path.exists():
+            return {}
+        data = _read_yaml_mapping(path, default={})
+        validate_readiness_assessment_payload(data)
+        readiness = data.get("readiness", {})
+        if not isinstance(readiness, dict) or not readiness.get("owner_override"):
+            return {}
+        keys = (
+            "owner_override",
+            "effective_status",
+            "effective_score",
+            "override_reason",
+            "override_approver",
+            "override_recorded_at",
+        )
+        return {key: readiness[key] for key in keys if key in readiness}
+
 
 def validate_readiness_profile_payload(data: dict[str, object]) -> None:
     profile = data.get("readiness_profile")
@@ -523,3 +679,162 @@ def count_open_questions(text: str) -> int:
         if re.match(r"^(\d+\.|-|\*)\s+.+\?", line.strip()):
             count += 1
     return count
+
+
+def _pending_high_questions(path: Path) -> int:
+    if not path.exists():
+        return 0
+    data = _read_yaml_mapping(path, default={})
+    validate_proposal_questions_payload(data)
+    state = data.get("proposal_questions", {})
+    if not isinstance(state, dict):
+        return 0
+    count = 0
+    for question in state.get("questions") or []:
+        if not isinstance(question, dict):
+            continue
+        if str(question.get("priority") or "") != "high":
+            continue
+        if str(question.get("state") or "") in {"to_answer", "answered"}:
+            count += 1
+    return count
+
+
+def stepped_assertiveness_guidance(readiness: ProposalReadiness, question_state_status: str) -> list[str]:
+    score = readiness.computed_score
+    if score is None or readiness.failed_gates or (score is not None and score < 70):
+        guidance = [
+            "assertiveness: high",
+            "Agent must challenge missing evidence, initialize or resume proposal questions, ask the next focused question, and avoid recommending acceptance without owner override.",
+        ]
+    elif score < 85 or readiness.confidence == "low":
+        guidance = [
+            "assertiveness: focused",
+            "Agent should continue targeted follow-up on high-impact gaps, apply answered questions to artifacts, and run readiness assess after changes.",
+        ]
+    elif score < 95 or readiness.confidence == "medium":
+        guidance = [
+            "assertiveness: residual",
+            "Agent should ask only residual high-value questions or request confirmation before recommending owner decision.",
+        ]
+    else:
+        guidance = [
+            "assertiveness: confirmation",
+            "Agent may summarize evidence and remind that the owner still controls accept, reject, defer, merge, and override decisions.",
+        ]
+    if question_state_status == "not_initialized" and (score is None or score < 85 or readiness.confidence == "low"):
+        guidance.append("question_state: initialize proposal questions before returning a passive summary.")
+    return guidance
+
+
+def _artifact_state_readiness_gaps(proposal_dir: Path) -> tuple[list[str], list[str], list[str]]:
+    path = proposal_dir / ARTIFACT_STATE_FILENAME
+    proposal_id = _proposal_id_from_path(proposal_dir)
+    if not path.exists():
+        return (
+            [],
+            ["Artifact-aware state is absent for this legacy proposal; treat this as advisory unless the owner requests migration."],
+            [f"p2p proposal artifact init {proposal_id}"],
+        )
+    data = _read_yaml_mapping(path, default={})
+    validate_proposal_artifact_state_payload(data)
+    state = data.get("proposal_artifacts", {})
+    if not isinstance(state, dict):
+        return [], [], []
+    legacy = state.get("legacy") or {}
+    if isinstance(legacy, dict) and legacy.get("state") == ProposalArtifactStatus.absent_legacy.value:
+        reason = str(legacy.get("reason") or "Proposal predates artifact-aware state.")
+        return [], [f"Artifact-aware state is absent_legacy: {reason}"], [f"p2p proposal artifact init {proposal_id}"]
+    gaps: list[str] = []
+    warnings: list[str] = []
+    suggested: list[str] = []
+    artifacts = state.get("artifacts") or []
+    if not isinstance(artifacts, list):
+        return [], [], []
+    for item in artifacts:
+        if not isinstance(item, dict):
+            continue
+        artifact_id = str(item.get("id") or "")
+        expectation = str(item.get("expectation") or "")
+        status = str(item.get("status") or "")
+        reason = str(item.get("reason") or "")
+        confirmation = str(item.get("confirmation") or "")
+        is_required = expectation == ProposalArtifactExpectation.required.value
+        is_applicable = expectation == ProposalArtifactExpectation.required_when_applicable.value
+        if (is_required or is_applicable) and status in {
+            ProposalArtifactStatus.unknown.value,
+            ProposalArtifactStatus.missing.value,
+            ProposalArtifactStatus.weak.value,
+            ProposalArtifactStatus.deferred.value,
+        }:
+            gaps.append(f"artifact:{artifact_id}:{status}")
+            suggested.append(f"p2p proposal artifact status {proposal_id}")
+        if is_required and status in {
+            ProposalArtifactStatus.deferred.value,
+            ProposalArtifactStatus.not_applicable.value,
+        } and confirmation != ProposalArtifactConfirmation.owner_confirmed.value:
+            warnings.append(
+                f"Artifact {artifact_id} is {status} for a required artifact and is not owner-confirmed. Reason: {reason or 'none'}"
+            )
+            suggested.append(f"p2p proposal artifact confirm {proposal_id} {artifact_id} --actor owner")
+    return unique_strings(gaps), unique_strings(warnings), unique_strings(suggested)
+
+
+def _proposal_id_from_path(proposal_dir: Path) -> str:
+    match = re.match(r"^(PROP-\d{3})-", proposal_dir.name)
+    return match.group(1) if match else "PROP-XXX"
+
+
+def _merge_candidates(proposal_id: str, proposal_dir: Path, p2p_dir: Path) -> list[str]:
+    proposals_dir = p2p_dir / "proposals"
+    proposal_text = _read_optional(proposal_dir / "proposal.md")
+    target_tokens = _proposal_similarity_tokens(proposal_text)
+    if not target_tokens or not proposals_dir.exists():
+        return []
+    candidates: list[str] = []
+    for other_dir in sorted(proposals_dir.iterdir()):
+        if not other_dir.is_dir() or other_dir == proposal_dir:
+            continue
+        other_id = "-".join(other_dir.name.split("-", 2)[:2])
+        if other_id == proposal_id:
+            continue
+        other_text = _read_optional(other_dir / "proposal.md")
+        other_tokens = _proposal_similarity_tokens(other_text)
+        shared = sorted(target_tokens & other_tokens)
+        if len(shared) < 4:
+            continue
+        title = read_title(other_text) or other_dir.name
+        candidates.append(f"{other_id}: possible overlap with {title} (shared terms: {', '.join(shared[:6])})")
+    return candidates
+
+
+def _proposal_similarity_tokens(text: str) -> set[str]:
+    title = read_title(text) or ""
+    proposal = read_markdown_section(text, "Proposal") or ""
+    problem = read_markdown_section(text, "Problem") or ""
+    words = re.findall(r"[a-zA-Z][a-zA-Z0-9_-]{4,}", f"{title} {problem} {proposal}".lower())
+    stopwords = {
+        "proposal",
+        "project",
+        "system",
+        "should",
+        "would",
+        "could",
+        "there",
+        "their",
+        "state",
+        "readiness",
+        "engine",
+        "p2p",
+    }
+    return {word for word in words if word not in stopwords}
+
+
+def _readiness_needs_guidance(readiness: ProposalReadiness) -> bool:
+    return (
+        readiness.computed_score is None
+        or readiness.computed_score < 85
+        or bool(readiness.failed_gates)
+        or bool(readiness.missing)
+        or readiness.confidence == "low"
+    )
