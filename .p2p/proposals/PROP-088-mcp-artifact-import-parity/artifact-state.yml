@@ -1,0 +1,184 @@
+proposal_artifacts:
+  schema_version: 1
+  proposal_id: PROP-088
+  initialized_at: '2026-06-09T21:50:00Z'
+  updated_at: '2026-06-09T22:02:29Z'
+  status: active
+  legacy:
+    state: ''
+    reason: ''
+  artifacts:
+  - id: proposal
+    filename: proposal.md
+    expectation: required
+    status: satisfied
+    reason: Structured proposal sections were expanded with problem, context, goals,
+      non-goals, scope boundaries, proposal direction, and testable acceptance criteria.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-06-09T21:50:00Z'
+    updated_at: '2026-06-09T22:01:23Z'
+    history:
+    - at: '2026-06-09T22:01:23Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Structured proposal sections were expanded with problem, context, goals,
+        non-goals, scope boundaries, proposal direction, and testable acceptance criteria.
+  - id: readiness
+    filename: readiness.yml
+    expectation: required
+    status: satisfied
+    reason: Readiness assessment was generated after refinement and is available for
+      review; remaining owner gate is explicit rather than missing state.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-06-09T21:50:00Z'
+    updated_at: '2026-06-09T22:01:32Z'
+    history:
+    - at: '2026-06-09T22:01:32Z'
+      actor: codex
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Readiness assessment was generated after refinement and is available
+        for review; remaining owner gate is explicit rather than missing state.
+  - id: open_questions
+    filename: open-questions.md
+    expectation: required
+    status: satisfied
+    reason: Open questions artifact now records the remaining product decisions and
+      recommended defaults for MVP scope.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-06-09T21:50:00Z'
+    updated_at: '2026-06-09T22:01:45Z'
+    history:
+    - at: '2026-06-09T22:01:45Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Open questions artifact now records the remaining product decisions
+        and recommended defaults for MVP scope.
+  - id: clarifications
+    filename: clarifications.md
+    expectation: required
+    status: satisfied
+    reason: Clarifications artifact documents that the gap is controlled MCP artifact-content
+      import, not general MCP write capability, and keeps governance separate.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - owner_clarification
+    created_at: '2026-06-09T21:50:00Z'
+    updated_at: '2026-06-09T22:01:56Z'
+    history:
+    - at: '2026-06-09T22:01:56Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Clarifications artifact documents that the gap is controlled MCP artifact-content
+        import, not general MCP write capability, and keeps governance separate.
+  - id: findings
+    filename: findings.md
+    expectation: required
+    status: satisfied
+    reason: Findings artifact records the MCP parity gap, existing CLI primitives,
+      PROP-086 missing-primitive boundary, and recommendation to reuse existing import
+      services.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - public_interface
+    - persistent_state
+    - cross_module
+    - permission_security_sync
+    - user_workflow_docs_release
+    - source_of_truth_memory
+    - alternatives
+    - owner_clarification
+    created_at: '2026-06-09T21:50:00Z'
+    updated_at: '2026-06-09T22:02:04Z'
+    history:
+    - at: '2026-06-09T22:02:04Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Findings artifact records the MCP parity gap, existing CLI primitives,
+        PROP-086 missing-primitive boundary, and recommendation to reuse existing
+        import services.
+  - id: exploration
+    filename: exploration.md
+    expectation: required
+    status: satisfied
+    reason: Exploration artifact compares existing-import parity, generic artifact
+      import, and status-only MCP alternatives, with the MVP recommendation captured.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - alternatives
+    created_at: '2026-06-09T21:50:00Z'
+    updated_at: '2026-06-09T22:02:15Z'
+    history:
+    - at: '2026-06-09T22:02:15Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Exploration artifact compares existing-import parity, generic artifact
+        import, and status-only MCP alternatives, with the MVP recommendation captured.
+  - id: impact_map
+    filename: impact-map.yml
+    expectation: required
+    status: satisfied
+    reason: Impact map was imported through p2p impact import and covers MCP handlers,
+      artifact readiness, documentation, and agent workflow impacts.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - public_interface
+    - persistent_state
+    - cross_module
+    - permission_security_sync
+    - user_workflow_docs_release
+    - source_of_truth_memory
+    - alternatives
+    - owner_clarification
+    created_at: '2026-06-09T21:50:00Z'
+    updated_at: '2026-06-09T22:02:29Z'
+    history:
+    - at: '2026-06-09T22:02:29Z'
+      actor: codex
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Impact map was imported through p2p impact import and covers MCP handlers,
+        artifact readiness, documentation, and agent workflow impacts.

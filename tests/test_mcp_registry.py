@@ -34,6 +34,8 @@ EXPECTED_TOOL_NAMES = (
     "p2p_conflict_status",
     "p2p_impact_prompt",
     "p2p_project_status",
+    "p2p_project_interaction_style_show",
+    "p2p_project_interaction_style_set",
     "p2p_project_export",
     "p2p_project_export_status",
     "p2p_project_vertical_list",

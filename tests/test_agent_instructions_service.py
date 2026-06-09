@@ -8,6 +8,7 @@ from p2p_engine.storage.filesystem import P2PWorkspace
 def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Agent Project")
+    workspace.set_project_interaction_style(technical_verbosity=5, formality=4, assertiveness=2, actor="owner")
     service = workspace._agent_instruction_service()
 
     result = service.refresh_instructions("codex")
@@ -19,9 +20,20 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert sorted(policy["agent_profiles"]) == ["codex", "generic"]
     assert "inspect_artifact_coverage" in policy["proposal_readiness"]["gap_handling"]["steps"]
     assert "p2p proposal artifact status PROP-XXX" in policy["proposal_readiness"]["commands"]
+    assert policy["interaction_style"]["effective"]["values"]["technical_verbosity"] == 5
+    assert policy["interaction_style"]["effective"]["values"]["formality"] == 4
+    assert policy["interaction_style"]["effective"]["values"]["assertiveness"] == 2
+    assert policy["interaction_style"]["commands"]["show"] == "p2p project interaction-style show"
+    assert policy["interaction_style"]["mcp_tools"]["set"] == "p2p_project_interaction_style_set"
     agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
     assert "p2p proposal artifact status PROP-XXX" in agents
     assert "copying a\nprepared temporary file into an artifact" in agents
+    assert "Project Interaction Style" in agents
+    assert "p2p project interaction-style show" in agents
+    assert "p2p_project_interaction_style_show" in agents
+    assert "technical_verbosity: 5 (exhaustive)" in agents
+    codex_skill = (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").read_text(encoding="utf-8")
+    assert "p2p project interaction-style set --technical-verbosity 2 --formality 2 --assertiveness 0" in codex_skill
 
 
 def test_agent_instruction_service_lists_and_shows_drift(tmp_path: Path) -> None:

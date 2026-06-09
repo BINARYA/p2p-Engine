@@ -85,6 +85,23 @@ def tool_definitions() -> list[dict[str, object]]:
             {'root': {'type': 'string'}},
         ),
         _tool(
+            'p2p_project_interaction_style_show',
+            'Read effective project interaction style values and scale descriptions.',
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_interaction_style_set',
+            (
+                'Write-safe project configuration tool: set project interaction style values. '
+                'Does not make governance decisions or authorize direct filesystem writes.'
+            ),
+            {'root': {'type': 'string'},
+             'technical_verbosity': {'type': 'integer', 'minimum': 0, 'maximum': 5},
+             'formality': {'type': 'integer', 'minimum': 0, 'maximum': 5},
+             'assertiveness': {'type': 'integer', 'minimum': 0, 'maximum': 5},
+             'actor': {'type': 'string'}},
+        ),
+        _tool(
             'p2p_project_export',
             (
                 'Write-safe deterministic tool: export the visible human-facing project '

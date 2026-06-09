@@ -1169,3 +1169,44 @@ readiness:
   - add_acceptance_criteria_quality
   - add_impact_overlap_analysis
   path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/readiness.yml
+- proposal: PROP-087
+  title: Agent Personality Model For Decision Mediation
+  proposal_status: accepted
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  computed_score: 100
+  computed_label: decision_ready
+  confidence: high
+  failed_gates: []
+  missing: []
+  suggested_next: []
+  path: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/readiness.yml
+- proposal: PROP-088
+  title: MCP Artifact Import Parity
+  proposal_status: draft
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  computed_score: 70
+  computed_label: partial
+  confidence: low
+  failed_gates:
+  - owner_questions_resolution:needs_owner_input
+  missing: []
+  suggested_next:
+  - resolve_owner_questions_resolution
+  path: .p2p/proposals/PROP-088-mcp-artifact-import-parity/readiness.yml
+- proposal: PROP-089
+  title: Readiness Question-State Convergence
+  proposal_status: draft
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  computed_score: 70
+  computed_label: partial
+  confidence: medium
+  failed_gates: []
+  missing: []
+  suggested_next: []
+  path: .p2p/proposals/PROP-089-readiness-question-state-convergence/readiness.yml

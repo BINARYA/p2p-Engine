@@ -1,0 +1,241 @@
+proposal_artifacts:
+  schema_version: 1
+  proposal_id: PROP-087
+  initialized_at: '2026-06-09T13:54:34Z'
+  updated_at: '2026-06-09T16:41:00Z'
+  status: active
+  legacy:
+    state: ''
+    reason: ''
+  artifacts:
+  - id: proposal
+    filename: proposal.md
+    expectation: required
+    status: satisfied
+    reason: proposal.md now consistently defines the final three-scale project-level
+      interaction_style model, defaults, CLI/MCP surface, no presets, non-goals, and
+      testable acceptance criteria.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-06-09T13:54:34Z'
+    updated_at: '2026-06-09T16:38:43Z'
+    history:
+    - at: '2026-06-09T13:57:16Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Proposal captures problem, two-scale model, default recommendation,
+        scope boundaries, and acceptance criteria.
+    - at: '2026-06-09T16:37:53Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: proposal.md now defines project-level interaction_style with technical_verbosity,
+        formality, assertiveness, defaults, CLI/MCP surface, no presets, and testable
+        acceptance criteria.
+    - at: '2026-06-09T16:38:43Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: proposal.md now consistently defines the final three-scale project-level
+        interaction_style model, defaults, CLI/MCP surface, no presets, non-goals,
+        and testable acceptance criteria.
+  - id: readiness
+    filename: readiness.yml
+    expectation: required
+    status: satisfied
+    reason: readiness.yml now assesses PROP-087 as decision_ready with computed_score
+      100, high confidence, no missing gaps, and no suggested next actions.
+    source: system
+    actor: codex
+    confirmation: system
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-06-09T13:54:34Z'
+    updated_at: '2026-06-09T16:41:00Z'
+    history:
+    - at: '2026-06-09T13:58:26Z'
+      actor: codex
+      source: system
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: readiness.yml was initialized for PROP-087 and records current weak
+        readiness plus missing criteria.
+    - at: '2026-06-09T16:41:00Z'
+      actor: codex
+      source: system
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: system
+      reason: readiness.yml now assesses PROP-087 as decision_ready with computed_score
+        100, high confidence, no missing gaps, and no suggested next actions.
+  - id: open_questions
+    filename: open-questions.md
+    expectation: required
+    status: satisfied
+    reason: questions.yml and open-questions.md now record all six owner questions
+      as resolved, with no remaining blocking owner question known.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-06-09T13:54:34Z'
+    updated_at: '2026-06-09T16:37:53Z'
+    history:
+    - at: '2026-06-09T13:57:30Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: 'Three owner-facing refinement questions are tracked in questions.yml:
+        configuration scope, default values, and preset surface.'
+    - at: '2026-06-09T16:37:53Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: questions.yml and open-questions.md now record all six owner questions
+        as resolved, with no remaining blocking owner question known.
+  - id: clarifications
+    filename: clarifications.md
+    expectation: required
+    status: satisfied
+    reason: clarifications.md now records owner decisions on project-level style,
+      defaults, no presets, assertiveness, and CLI/MCP namespace.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - owner_clarification
+    created_at: '2026-06-09T13:54:34Z'
+    updated_at: '2026-06-09T16:37:08Z'
+    history:
+    - at: '2026-06-09T16:37:08Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: clarifications.md now records owner decisions on project-level style,
+        defaults, no presets, assertiveness, and CLI/MCP namespace.
+  - id: findings
+    filename: findings.md
+    expectation: required
+    status: satisfied
+    reason: findings.md now captures key findings, implementation findings, and risk
+      findings for the interaction_style model.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - governance_policy
+    - public_interface
+    - compatibility_migration
+    - permission_security_sync
+    - source_of_truth_memory
+    - alternatives
+    - owner_clarification
+    created_at: '2026-06-09T13:54:34Z'
+    updated_at: '2026-06-09T16:37:08Z'
+    history:
+    - at: '2026-06-09T13:57:40Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Operational alternatives, pros and cons, risks, and recommendation are
+        recorded as proposal contributions C001-C007; a dedicated findings artifact
+        is still not populated.
+    - at: '2026-06-09T16:37:08Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: findings.md now captures key findings, implementation findings, and
+        risk findings for the interaction_style model.
+  - id: exploration
+    filename: exploration.md
+    expectation: required
+    status: satisfied
+    reason: exploration.md and related exploration artifacts now compare project-level,
+      per-agent, session override, and preset alternatives.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - alternatives
+    created_at: '2026-06-09T13:54:34Z'
+    updated_at: '2026-06-09T16:37:09Z'
+    history:
+    - at: '2026-06-09T13:57:48Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Alternatives are recorded as proposal contributions C001-C003, but exploration.md
+        is still a thin placeholder.
+    - at: '2026-06-09T16:37:09Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: exploration.md and related exploration artifacts now compare project-level,
+        per-agent, session override, and preset alternatives.
+  - id: impact_map
+    filename: impact-map.yml
+    expectation: required
+    status: satisfied
+    reason: impact-map.yml now covers project configuration, CLI, MCP, agent instructions,
+      readiness/context, validation, compatibility, and user experience impact.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - governance_policy
+    - public_interface
+    - compatibility_migration
+    - permission_security_sync
+    - source_of_truth_memory
+    - alternatives
+    - owner_clarification
+    created_at: '2026-06-09T13:54:34Z'
+    updated_at: '2026-06-09T16:37:09Z'
+    history:
+    - at: '2026-06-09T13:58:01Z'
+      actor: codex
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Impact map should be completed after the owner chooses configuration
+        scope; expected areas are agent instructions, project init/config, validation,
+        CLI, and MCP surfaces.
+    - at: '2026-06-09T16:37:09Z'
+      actor: codex
+      source: agent
+      previous_status: deferred
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: impact-map.yml now covers project configuration, CLI, MCP, agent instructions,
+        readiness/context, validation, compatibility, and user experience impact.

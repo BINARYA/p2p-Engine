@@ -41,6 +41,7 @@ project_app = typer.Typer(help="Manage rationalized project state")
 project_brief_app = typer.Typer(help="Generate and import operational project briefs")
 project_remote_app = typer.Typer(help="Manage project remote profile")
 project_rubrics_app = typer.Typer(help="Manage project definition rubrics")
+project_interaction_style_app = typer.Typer(help="Manage project interaction style")
 project_vertical_app = typer.Typer(help="Manage project vertical packs")
 project_readiness_app = typer.Typer(help="Review project readiness against vertical capisaldi")
 impact_app = typer.Typer(help="Analyze proposal impact")
@@ -97,6 +98,7 @@ app.add_typer(next_app, name="next")
 project_app.add_typer(project_brief_app, name="brief")
 project_app.add_typer(project_remote_app, name="remote")
 project_app.add_typer(project_rubrics_app, name="rubrics")
+project_app.add_typer(project_interaction_style_app, name="interaction-style")
 project_app.add_typer(project_vertical_app, name="vertical")
 project_app.add_typer(project_readiness_app, name="readiness")
 assess_app.add_typer(assess_maturity_app, name="maturity")
@@ -130,6 +132,7 @@ register_project_ops_commands(
     project_app,
     project_remote_app,
     project_rubrics_app,
+    project_interaction_style_app,
     project_vertical_app,
     project_readiness_app,
     project_brief_app,

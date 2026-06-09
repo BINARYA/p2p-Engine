@@ -52,6 +52,7 @@ class ValidationService:
         agent_integrations_path: Callable[[], Path],
         permissions_path: Callable[[], Path],
         vertical_validation_findings: Callable[[], list[tuple[str, str, Path, str, str]]] | None = None,
+        interaction_style_validation_findings: Callable[[], list[tuple[str, str, Path, str, str]]] | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -60,6 +61,7 @@ class ValidationService:
         self.agent_integrations_path = agent_integrations_path
         self.permissions_path = permissions_path
         self.vertical_validation_findings = vertical_validation_findings
+        self.interaction_style_validation_findings = interaction_style_validation_findings
 
     def validate(self) -> ValidationResult:
         findings: list[ValidationFinding] = []
@@ -90,6 +92,7 @@ class ValidationService:
         self._validate_permissions(add)
         self._validate_consents(add)
         self._validate_proposals(add)
+        self._validate_project_interaction_style(add)
         self._validate_project_verticals(add)
         self._validate_registries(add)
 
@@ -343,6 +346,12 @@ class ValidationService:
         if self.vertical_validation_findings is None:
             return
         for code, severity, path, message, suggested_command in self.vertical_validation_findings():
+            add(code, severity, path, message, suggested_command)
+
+    def _validate_project_interaction_style(self, add: Callable[[str, str, Path, str, str], None]) -> None:
+        if self.interaction_style_validation_findings is None:
+            return
+        for code, severity, path, message, suggested_command in self.interaction_style_validation_findings():
             add(code, severity, path, message, suggested_command)
 
 

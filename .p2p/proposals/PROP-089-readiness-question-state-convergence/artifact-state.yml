@@ -1,0 +1,186 @@
+proposal_artifacts:
+  schema_version: 1
+  proposal_id: PROP-089
+  initialized_at: '2026-06-09T22:16:18Z'
+  updated_at: '2026-06-09T22:19:02Z'
+  status: active
+  legacy:
+    state: ''
+    reason: ''
+  artifacts:
+  - id: proposal
+    filename: proposal.md
+    expectation: required
+    status: satisfied
+    reason: Proposal text captures the readiness/question-state convergence problem,
+      goals, non-goals, proposed direction, and acceptance criteria.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-06-09T22:16:18Z'
+    updated_at: '2026-06-09T22:18:23Z'
+    history:
+    - at: '2026-06-09T22:18:23Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Proposal text captures the readiness/question-state convergence problem,
+        goals, non-goals, proposed direction, and acceptance criteria.
+  - id: readiness
+    filename: readiness.yml
+    expectation: required
+    status: satisfied
+    reason: Readiness assessment was generated after creating and importing the analysis
+      artifacts.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-06-09T22:16:18Z'
+    updated_at: '2026-06-09T22:18:30Z'
+    history:
+    - at: '2026-06-09T22:18:30Z'
+      actor: codex
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Readiness assessment was generated after creating and importing the
+        analysis artifacts.
+  - id: open_questions
+    filename: open-questions.md
+    expectation: required
+    status: satisfied
+    reason: Open questions artifact records the remaining policy choices around high-priority
+      blockers, medium/low follow-up, markdown evidence, and group-state updates.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-06-09T22:16:18Z'
+    updated_at: '2026-06-09T22:18:35Z'
+    history:
+    - at: '2026-06-09T22:18:35Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Open questions artifact records the remaining policy choices around
+        high-priority blockers, medium/low follow-up, markdown evidence, and group-state
+        updates.
+  - id: clarifications
+    filename: clarifications.md
+    expectation: required
+    status: satisfied
+    reason: Clarifications artifact distinguishes the PROP-088 maturity symptom from
+      the readiness model issue and preserves the governance boundary.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - owner_clarification
+    created_at: '2026-06-09T22:16:18Z'
+    updated_at: '2026-06-09T22:18:41Z'
+    history:
+    - at: '2026-06-09T22:18:41Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Clarifications artifact distinguishes the PROP-088 maturity symptom
+        from the readiness model issue and preserves the governance boundary.
+  - id: findings
+    filename: findings.md
+    expectation: required
+    status: satisfied
+    reason: 'Findings artifact records the concrete diagnosis: structured questions
+      and markdown open questions diverge, causing sticky owner-question readiness
+      gates.'
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - governance_policy
+    - public_interface
+    - compatibility_migration
+    - cross_module
+    - source_of_truth_memory
+    - high_uncertainty_evidence
+    - alternatives
+    - owner_clarification
+    created_at: '2026-06-09T22:16:18Z'
+    updated_at: '2026-06-09T22:18:49Z'
+    history:
+    - at: '2026-06-09T22:18:49Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: 'Findings artifact records the concrete diagnosis: structured questions
+        and markdown open questions diverge, causing sticky owner-question readiness
+        gates.'
+  - id: exploration
+    filename: exploration.md
+    expectation: required
+    status: satisfied
+    reason: Exploration artifact stores alternatives A-D with pros, cons, and the
+      recommended combined approach.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - high_uncertainty_evidence
+    - alternatives
+    created_at: '2026-06-09T22:16:18Z'
+    updated_at: '2026-06-09T22:18:55Z'
+    history:
+    - at: '2026-06-09T22:18:55Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Exploration artifact stores alternatives A-D with pros, cons, and the
+        recommended combined approach.
+  - id: impact_map
+    filename: impact-map.yml
+    expectation: required
+    status: satisfied
+    reason: Impact map was imported through p2p impact import and covers readiness
+      service, question service, review output, legacy proposals, and tests.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - governance_policy
+    - public_interface
+    - compatibility_migration
+    - cross_module
+    - source_of_truth_memory
+    - high_uncertainty_evidence
+    - alternatives
+    - owner_clarification
+    created_at: '2026-06-09T22:16:18Z'
+    updated_at: '2026-06-09T22:19:02Z'
+    history:
+    - at: '2026-06-09T22:19:02Z'
+      actor: codex
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Impact map was imported through p2p impact import and covers readiness
+        service, question service, review output, legacy proposals, and tests.

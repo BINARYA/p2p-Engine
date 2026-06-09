@@ -109,6 +109,21 @@ class _ArtifactStateLike(Protocol):
     suggested_next: list[str]
 
 
+class _InteractionStyleScaleLike(Protocol):
+    value: int
+    label: str
+    description: str
+
+
+class _InteractionStyleLike(Protocol):
+    configured: bool
+    source: str
+    path: Path
+    technical_verbosity: _InteractionStyleScaleLike
+    formality: _InteractionStyleScaleLike
+    assertiveness: _InteractionStyleScaleLike
+
+
 @dataclass(frozen=True)
 class ContextPacket:
     budget: str
@@ -140,6 +155,7 @@ class ContextPacketService:
         show_work: Callable[[str], _WorkDetailLike],
         next_actions: Callable[..., list[_NextActionLike]],
         proposal_artifacts: Callable[[str], _ArtifactStateLike] | None = None,
+        interaction_style: Callable[[], _InteractionStyleLike] | None = None,
     ) -> None:
         self.project_name = project_name
         self.validate = validate
@@ -155,6 +171,7 @@ class ContextPacketService:
         self.show_work = show_work
         self.next_actions = next_actions
         self.proposal_artifacts = proposal_artifacts
+        self.interaction_style = interaction_style
 
     def context_packet(self, budget: str = "small", target: str | None = None) -> ContextPacket:
         budget = budget.strip().lower()
@@ -200,6 +217,8 @@ class ContextPacketService:
             "work_items": len(works),
             "operational_brief_available": project_status.operational_brief_available,
         }
+        if self.interaction_style is not None:
+            current_state["interaction_style"] = _interaction_style_summary(self.interaction_style())
 
         relevant_artifacts = (
             [self._context_artifact(normalized_target, budget)] if normalized_target else self._default_context_artifacts()
@@ -349,6 +368,7 @@ class ContextPacketService:
             "p2p next --top 1",
             "p2p validate",
             "p2p assess show",
+            "p2p project interaction-style show",
         ]
         if target is None:
             commands.extend(
@@ -369,6 +389,36 @@ class ContextPacketService:
         if target.startswith("WORK-"):
             return [f"p2p work show {target}", f"p2p context --target {target} --budget medium", *commands]
         return commands
+
+
+def _interaction_style_summary(view: _InteractionStyleLike) -> dict[str, object]:
+    return {
+        "configured": view.configured,
+        "source": view.source,
+        "path": view.path,
+        "technical_verbosity": {
+            "value": view.technical_verbosity.value,
+            "label": view.technical_verbosity.label,
+        },
+        "formality": {
+            "value": view.formality.value,
+            "label": view.formality.label,
+        },
+        "assertiveness": {
+            "value": view.assertiveness.value,
+            "label": view.assertiveness.label,
+        },
+        "command": "p2p project interaction-style show",
+        "update_command": "p2p project interaction-style set --technical-verbosity 2 --formality 2 --assertiveness 0",
+        "does_not_affect": [
+            "governance_authority",
+            "readiness_scores",
+            "validation_truth",
+            "permissions",
+            "consent",
+            "factual_claims",
+        ],
+    }
 
 
 def _short_text(value: str, limit: int = 360) -> str | None:

@@ -34,12 +34,17 @@ def test_context_packet_service_builds_small_default_packet(tmp_path: Path) -> N
     assert packet.current_state["choices"] == 1
     assert packet.current_state["changes"] == 1
     assert packet.current_state["work_items"] == 1
+    assert packet.current_state["interaction_style"]["technical_verbosity"]["value"] == 2
+    assert packet.current_state["interaction_style"]["formality"]["value"] == 2
+    assert packet.current_state["interaction_style"]["assertiveness"]["value"] == 0
+    assert packet.current_state["interaction_style"]["update_command"].startswith("p2p project interaction-style set")
     assert packet.allowed_commands[:4] == [
         "p2p context --budget small",
         "p2p next --top 1",
         "p2p validate",
         "p2p assess show",
     ]
+    assert "p2p project interaction-style show" in packet.allowed_commands
     assert "p2p proposal list" in packet.allowed_commands
     assert packet.bounded_next_step
     assert any("Do not scan all .p2p" in item for item in packet.do_not_read)

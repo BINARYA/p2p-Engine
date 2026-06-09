@@ -1,0 +1,117 @@
+proposal_questions:
+  schema_version: 1
+  proposal_id: PROP-088
+  initialized_at: '2026-06-09'
+  updated_at: '2026-06-10'
+  updated_by: codex
+  groups:
+  - id: QG001
+    gap: owner_questions_resolution
+    state: to_answer
+    priority: high
+    rationale: This is the main scope boundary that determines implementation risk
+      and acceptance readiness.
+    created_at: '2026-06-10'
+    updated_at: '2026-06-10'
+  questions:
+  - id: Q001
+    group_id: QG001
+    gap: owner_questions_resolution
+    criterion: owner_questions_resolution
+    priority: high
+    state: applied
+    question: Should the MVP scope include only impact and exploration import parity,
+      deferring a generic artifact import primitive?
+    rationale: This is the main scope boundary that determines implementation risk
+      and acceptance readiness.
+    answer: Yes. Keep the MVP scope limited to MCP parity for existing impact and
+      exploration imports. Defer a generic artifact import primitive until the specific
+      import parity is proven and a stricter allowlist/validation model is designed.
+    answer_source: owner
+    answered_at: '2026-06-10'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-06-10'
+    audit:
+      created_by: codex
+      created_at: '2026-06-10'
+      updated_by: codex
+      updated_at: '2026-06-10'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: suggested-scope.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q002
+    group_id: QG001
+    gap: owner_questions_resolution
+    criterion: owner_questions_resolution
+    priority: medium
+    state: to_answer
+    question: Should clarification import parity be included in PROP-088 if it can
+      reuse the existing clarify import service without broadening the scope?
+    rationale: Clarifications were part of the observed artifact gap, but impact/exploration
+      parity is the narrowest MVP.
+    answer: ''
+    answer_source: ''
+    answered_at: ''
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: false
+    applied_at: ''
+    audit:
+      created_by: codex
+      created_at: '2026-06-10'
+      updated_by: codex
+      updated_at: '2026-06-10'
+  - id: Q003
+    group_id: QG001
+    gap: owner_questions_resolution
+    criterion: owner_questions_resolution
+    priority: medium
+    state: to_answer
+    question: Should MCP artifact import tools accept source paths, direct content
+      payloads, or both?
+    rationale: The input shape affects MCP client ergonomics, validation, and filesystem
+      assumptions.
+    answer: ''
+    answer_source: ''
+    answered_at: ''
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: false
+    applied_at: ''
+    audit:
+      created_by: codex
+      created_at: '2026-06-10'
+      updated_by: codex
+      updated_at: '2026-06-10'

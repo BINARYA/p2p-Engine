@@ -1,0 +1,54 @@
+impact:
+  proposal_id: PROP-087
+  summary: >
+    Adds a project-level interaction style model that controls how agents and
+    mediators communicate with the decision owner through validated verbosity,
+    formality, and assertiveness scales.
+  areas:
+    - area: project_configuration
+      impact: high
+      notes:
+        - Adds a new project-level interaction_style configuration surface.
+        - Missing configuration must fall back to technical_verbosity=2, formality=2, assertiveness=0.
+        - Existing projects must remain valid without manual migration.
+    - area: cli
+      impact: high
+      notes:
+        - Adds public project interaction-style commands.
+        - Commands must support reading current values and write-safe updates.
+        - CLI should validate all scale values as integers from 0 to 5.
+    - area: mcp
+      impact: high
+      notes:
+        - Adds explicit MCP tools for project interaction style status and update.
+        - Tool descriptions must distinguish read-only from write-safe behavior.
+        - MCP tools must use the same engine write path as CLI commands.
+    - area: agent_instructions
+      impact: high
+      notes:
+        - Generated AGENTS.md and project/local skills must explain how to inspect and update interaction style.
+        - Agents must not edit .p2p files directly to change interaction style.
+        - Rendered guidance should translate numeric values into concrete communication behavior.
+    - area: readiness_and_context
+      impact: medium
+      notes:
+        - Context packets may summarize configured interaction style for agents.
+        - Readiness behavior must remain factual and must not be altered by personality settings.
+        - Assertiveness may influence agent follow-up guidance, but not computed readiness scores.
+    - area: validation
+      impact: high
+      notes:
+        - Present interaction_style state must be validated.
+        - Invalid scale values should produce actionable diagnostics.
+        - Missing state should be backward-compatible and use defaults.
+    - area: compatibility
+      impact: high
+      notes:
+        - Existing projects and existing generated instructions must continue working.
+        - Project-level default style is additive.
+        - Per-agent and session overrides are deferred.
+    - area: user_experience
+      impact: medium
+      notes:
+        - The owner gains predictable control over tone and pushiness.
+        - No persisted style presets are added, avoiding label drift as dimensions grow.

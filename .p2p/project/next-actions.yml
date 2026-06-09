@@ -1,19 +1,4 @@
 next_actions:
-- id: NEXT-001
-  priority: high
-  kind: verify_integration
-  target: mcp-client-configuration
-  reason: Permission-gated MCP read/write tools are implemented and tested internally;
-    they should now be verified from an actual MCP-capable client configuration.
-  command: p2p-mcp-server --root /path/to/project
-- id: NEXT-002
-  priority: medium
-  kind: verify_documented_setup
-  target: mcp-permission-gated-write-tools
-  reason: README, install, MCP, and agent setup docs now describe permission-gated
-    write tools; the next step is to follow them from a fresh client setup and fix
-    any gaps found during real use.
-  command: follow docs/INSTALL.md and docs/MCP.md to configure a real MCP client
 - id: NEXT-004
   priority: medium
   kind: define_scope
@@ -36,3 +21,19 @@ next_actions:
   reason: There are no active Change Sets or Work items; readiness is now limited
     mainly by draft proposals that should be reviewed, accepted, or retired.
   command: .venv/bin/p2p proposal list --status draft
+- id: NEXT-007
+  priority: high
+  kind: resolve_owner_questions
+  target: PROP-088
+  reason: PROP-088 readiness is partial with no missing criteria, but the owner_questions_resolution
+    gate remains open. The owner must answer the MVP scope, clarification import,
+    and MCP input-shape questions before acceptance can be recommended without override.
+  command: .venv/bin/p2p proposal questions next PROP-088
+- id: NEXT-008
+  priority: high
+  kind: review_proposal
+  target: PROP-089
+  reason: Readiness question-state convergence emerged as a foundational issue while
+    refining PROP-088. PROP-089 captures the diagnosis and alternatives and should
+    be reviewed before relying further on readiness gates.
+  command: .venv/bin/p2p proposal show PROP-089

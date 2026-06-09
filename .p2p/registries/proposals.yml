@@ -2844,3 +2844,117 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-087
+  title: Agent Personality Model For Decision Mediation
+  status: accepted
+  path: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation
+  summary: 'Introduce a project-level interaction_style configuration model with three
+    independent integer fields: technical_verbosity 0..5, formality 0..5, and assertiveness
+    0..5. technical_verbosity controls how much engine/technical language the agent
+    uses with the decision owner. formality controls how informal or formal the tone
+    is. assertiveness, informally described by the owner as pedanteria, controls how
+    strongly the agent pushes on unresolved gaps, evidence, order, and follow-up before
+    moving on. Defaults: technical_verbosity=2, formality=2, assertiveness=0. The
+    first implementation stores one project-level default interaction_style because
+    the project should define a shared interaction style for all agents and mediators
+    that address the decision owner. The public CLI namespace should be project interaction-style,
+    with matching MCP tools. Values must be readable and modifiable through public
+    P2P CLI commands and exposed through explicit MCP tools with read-only and write-safe
+    behavior. Generated agent instructions and local/project skills must describe
+    how agents inspect and update the style through those CLI/MCP surfaces. Per-agent
+    and per-session overrides are future extension points. Named presets should not
+    be persisted as source of truth; scales remain explicit and independent.'
+  decision_file: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - artifact-state.yml
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - conflict-analysis.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - impact-map.yml
+  - open-questions.md
+  - proposal.md
+  - questions.yml
+  - readiness.yml
+  - related-proposals.yml
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-088
+  title: MCP Artifact Import Parity
+  status: draft
+  path: .p2p/proposals/PROP-088-mcp-artifact-import-parity
+  summary: Add explicit write-safe MCP tools that call existing P2P Engine import
+    services for proposal artifact content. The MVP scope is intentionally limited
+    to MCP parity for existing impact and exploration imports. Generic artifact import/update
+    is deferred until the specific import parity is proven and a stricter allowlist,
+    validation model, and audit boundary are designed. The MVP tools should return
+    structured metadata about imported files, preserve validation behavior, and keep
+    unsupported artifact-content mutations as explicit missing-primitive errors. Documentation
+    should describe the new MCP surface, supported artifact kinds, unsupported cases,
+    and the relationship between artifact content imports and artifact coverage state.
+  decision_file: .p2p/proposals/PROP-088-mcp-artifact-import-parity/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - artifact-state.yml
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - impact-map.yml
+  - open-questions.md
+  - proposal.md
+  - questions.yml
+  - readiness.yml
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-089
+  title: Readiness Question-State Convergence
+  status: draft
+  path: .p2p/proposals/PROP-089-readiness-question-state-convergence
+  summary: Revise evidence-aware readiness assessment so questions.yml is the source
+    of truth for owner-question resolution whenever it exists. Only unresolved structured
+    questions should drive the owner_questions_resolution gate. Applied, retired,
+    superseded, muted, or explicitly deferred questions should not behave like open
+    unanswered questions, though deferred or muted items may reduce confidence or
+    appear as cautions. For legacy proposals without questions.yml, keep the current
+    markdown fallback. Readiness review should list the exact remaining structured
+    questions and distinguish blocking high-priority owner input from residual medium/low
+    follow-up.
+  decision_file: .p2p/proposals/PROP-089-readiness-question-state-convergence/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - artifact-state.yml
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - impact-map.yml
+  - open-questions.md
+  - proposal.md
+  - questions.yml
+  - readiness.yml
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

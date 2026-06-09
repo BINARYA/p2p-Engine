@@ -12,3 +12,43 @@ next_action_log:
   closed_reason: Consolidated in commits adea0f0, b75cfce, and 8f450c0; no current
     tranche remains to consolidate.
   closed_on: '2026-06-03'
+- id: NEXT-001
+  priority: high
+  kind: verify_integration
+  target: mcp-client-configuration
+  reason: Permission-gated MCP read/write tools are implemented and tested internally;
+    they should now be verified from an actual MCP-capable client configuration.
+  command: p2p-mcp-server --root /path/to/project
+  status: completed
+  closed_reason: 'Verified from VS Code MCP client against a fresh MCP Real Test project:
+    context, registry refresh, validation, next actions, draft proposal creation,
+    proposal reads, readiness/artifact workflow, and consent flow behaved as expected.'
+  closed_on: '2026-06-09'
+- id: NEXT-002
+  priority: medium
+  kind: verify_documented_setup
+  target: mcp-permission-gated-write-tools
+  reason: README, install, MCP, and agent setup docs now describe permission-gated
+    write tools; the next step is to follow them from a fresh client setup and fix
+    any gaps found during real use.
+  command: follow docs/INSTALL.md and docs/MCP.md to configure a real MCP client
+  status: completed
+  closed_reason: Followed the documented project-local install and VS Code MCP setup
+    flow on a fresh test project; MCP read-only and write-safe tools worked with clean
+    validation and refreshed registries.
+  closed_on: '2026-06-09'
+- id: NEXT-007
+  priority: high
+  kind: assess_proposal_readiness
+  target: PROP-088
+  reason: 'Real MCP testing exposed a proposal artifact import/update gap: agents
+    can set artifact coverage state but cannot import long-form artifact content through
+    MCP. This blocks the artifact-aware workflow required by PROP-086, so PROP-088
+    should be reviewed, refined, and moved toward implementation.'
+  command: .venv/bin/p2p proposal readiness assess PROP-088
+  status: completed
+  closed_reason: PROP-088 was refined with expanded proposal sections, imported exploration/clarification/impact
+    artifacts, artifact coverage state, a minimal execution plan, proposal questions,
+    and readiness reassessment. Readiness is now partial with no missing criteria;
+    only owner questions remain.
+  closed_on: '2026-06-10'

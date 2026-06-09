@@ -14,6 +14,7 @@ def register_project_ops_commands(
     project_app: typer.Typer,
     project_remote_app: typer.Typer,
     project_rubrics_app: typer.Typer,
+    project_interaction_style_app: typer.Typer,
     project_vertical_app: typer.Typer,
     project_readiness_app: typer.Typer,
     project_brief_app: typer.Typer,
@@ -100,6 +101,42 @@ def register_project_ops_commands(
             console.print("  reviews:")
             for path in status.review_paths:
                 console.print(f"    - {path}")
+
+    @project_interaction_style_app.command("show")
+    def project_interaction_style_show(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Show effective project interaction style."""
+        try:
+            view = workspace_for(root).project_interaction_style()
+        except ValueError as exc:
+            fail(str(exc))
+        _print_interaction_style(view)
+
+    @project_interaction_style_app.command("set")
+    def project_interaction_style_set(
+        technical_verbosity: int | None = typer.Option(
+            None,
+            "--technical-verbosity",
+            help="Technical detail level from 0 to 5",
+        ),
+        formality: int | None = typer.Option(None, "--formality", help="Formality level from 0 to 5"),
+        assertiveness: int | None = typer.Option(None, "--assertiveness", help="Follow-up pressure from 0 to 5"),
+        actor: str = typer.Option("local", "--actor", help="Actor updating the project interaction style"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Set one or more project interaction style values."""
+        try:
+            view = workspace_for(root).set_project_interaction_style(
+                technical_verbosity=technical_verbosity,
+                formality=formality,
+                assertiveness=assertiveness,
+                actor=actor,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        console.print("[green]Project interaction style updated.[/green]")
+        _print_interaction_style(view)
 
     @project_remote_app.command("show")
     def project_remote_show(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
@@ -515,6 +552,24 @@ def register_project_ops_commands(
         except ValueError as exc:
             fail(str(exc))
         console.print(content)
+
+
+def _print_interaction_style(view: object) -> None:
+    console.print("Project interaction style")
+    console.print(f"  scope: {getattr(view, 'scope')}")
+    console.print(f"  configured: {str(getattr(view, 'configured')).lower()}")
+    console.print(f"  source: {getattr(view, 'source')}")
+    for name in ("technical_verbosity", "formality", "assertiveness"):
+        scale = getattr(view, name)
+        console.print(f"  {name}: {scale.value}  {scale.label}")
+        console.print(f"    {scale.description}")
+    updated_at = getattr(view, "updated_at", "")
+    updated_by = getattr(view, "updated_by", "")
+    if updated_at:
+        console.print(f"  updated_at: {updated_at}")
+    if updated_by:
+        console.print(f"  updated_by: {updated_by}")
+    console.print(f"  path: {getattr(view, 'path')}")
 
 
 def _print_sync_result(result: object) -> None:

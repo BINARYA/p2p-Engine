@@ -160,6 +160,8 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_context` | read-only | no | no | First tool before broad reads. |
 | `p2p_validate` | read-only | no | no | Check structural and semantic consistency. |
 | `p2p_project_status` | read-only | no | no | Inspect deterministic project status. |
+| `p2p_project_interaction_style_show` | read-only | no | no | Read effective project interaction style values and descriptions. |
+| `p2p_project_interaction_style_set` | write-safe | yes | no | Set project-level interaction style values without governance side effects. |
 | `p2p_next` | read-only | no | no | Show advisory next actions. |
 | `p2p_next_add` | write-safe | yes | no | Add a curated next action to the operational board. |
 | `p2p_next_complete` | write-safe | yes | no | Complete a curated next action and audit it in the next-action log. |

@@ -47,6 +47,19 @@ def handle_project_tool(
         return {"conflicts": to_jsonable(workspace.conflict_status())}
     if name == "p2p_project_status":
         return {"project_status": to_jsonable(workspace.project_state_status())}
+    if name == "p2p_project_interaction_style_show":
+        return {"interaction_style": to_jsonable(workspace.project_interaction_style())}
+    if name == "p2p_project_interaction_style_set":
+        return {
+            "interaction_style": to_jsonable(
+                workspace.set_project_interaction_style(
+                    technical_verbosity=arguments.get("technical_verbosity"),
+                    formality=arguments.get("formality"),
+                    assertiveness=arguments.get("assertiveness"),
+                    actor=str(arguments.get("actor") or "local"),
+                )
+            )
+        }
     if name == "p2p_project_export":
         return {"export": to_jsonable(workspace.export_visible_project_definition())}
     if name == "p2p_project_export_status":

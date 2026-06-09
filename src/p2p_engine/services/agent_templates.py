@@ -1,6 +1,16 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
+
+from p2p_engine.core.interaction_style import (
+    ASSERTIVENESS,
+    FORMALITY,
+    TECHNICAL_VERBOSITY,
+    default_interaction_style,
+    interaction_style_policy_payload,
+    scale_view,
+)
 
 BUILT_IN_AGENT_ADAPTERS = ("generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode")
 AGENT_PROFILES = {*BUILT_IN_AGENT_ADAPTERS, "all"}
@@ -104,6 +114,34 @@ Behavior:
 7. keep `p2p init` deterministic: the agent may guide missing initialization after detecting it, but the CLI init flow itself is not an agent interview."""
 
 
+def interaction_style_block(interaction_style: Any = None) -> str:
+    values = _interaction_style_values(interaction_style)
+    return f"""Use the project-level interaction style when communicating with the owner.
+
+Inspect it with:
+
+```bash
+p2p project interaction-style show
+```
+
+With MCP, use `p2p_project_interaction_style_show`. Update it only when the
+owner asks, using `p2p project interaction-style set ...` or MCP
+`p2p_project_interaction_style_set`.
+
+Current effective style:
+
+- technical_verbosity: {values[TECHNICAL_VERBOSITY]['value']} ({values[TECHNICAL_VERBOSITY]['label']}) - {values[TECHNICAL_VERBOSITY]['description']}
+- formality: {values[FORMALITY]['value']} ({values[FORMALITY]['label']}) - {values[FORMALITY]['description']}
+- assertiveness: {values[ASSERTIVENESS]['value']} ({values[ASSERTIVENESS]['label']}) - {values[ASSERTIVENESS]['description']}
+
+Style affects owner-facing wording, detail level, and follow-up pressure only.
+It does not change source-of-truth rules, owner authority, readiness scores,
+validation truth, permissions, consent, or factual claims.
+
+Do not edit `.p2p` files directly, reverse-engineer managed paths, or copy
+temporary files into managed P2P memory as a workaround for changing style."""
+
+
 def agent_adapter_capabilities(adapter_id: str) -> dict[str, object]:
     return {
         "mcp": "supported",
@@ -117,29 +155,33 @@ def agent_instruction_files(
     project_name: str,
     profiles: list[str],
     repository_mode: str,
+    interaction_style: Any = None,
 ) -> dict[Path, str]:
     profiles = sorted(set(profiles))
-    files = {Path("AGENTS.md"): agents_markdown(project_name, profiles, repository_mode)}
+    files = {Path("AGENTS.md"): agents_markdown(project_name, profiles, repository_mode, interaction_style)}
     if "codex" in profiles:
         files[Path(".agents/skills/p2p-project/SKILL.md")] = shared_p2p_project_skill(
             project_name,
             repository_mode,
+            interaction_style,
         )
         files[Path(".codex/skills/p2p-project/SKILL.md")] = codex_project_skill(
             project_name,
             repository_mode,
+            interaction_style,
         )
     if "claude" in profiles:
-        files[Path("CLAUDE.md")] = claude_markdown(project_name, repository_mode)
+        files[Path("CLAUDE.md")] = claude_markdown(project_name, repository_mode, interaction_style)
     if "cursor" in profiles:
-        files[Path(".cursor/rules/p2p.mdc")] = cursor_rule(project_name, repository_mode)
+        files[Path(".cursor/rules/p2p.mdc")] = cursor_rule(project_name, repository_mode, interaction_style)
     if "copilot" in profiles:
         files[Path(".github/copilot-instructions.md")] = copilot_instructions(
             project_name,
             repository_mode,
+            interaction_style,
         )
     if "gemini" in profiles:
-        files[Path("GEMINI.md")] = gemini_markdown(project_name, repository_mode)
+        files[Path("GEMINI.md")] = gemini_markdown(project_name, repository_mode, interaction_style)
     return files
 
 
@@ -174,7 +216,12 @@ def agent_adapter_files(
     return files
 
 
-def agent_policy(project_name: str, profiles: list[str], repository_mode: str) -> dict[str, object]:
+def agent_policy(
+    project_name: str,
+    profiles: list[str],
+    repository_mode: str,
+    interaction_style: Any = None,
+) -> dict[str, object]:
     return {
         "p2p_agent_policy": {
             "version": "1.0",
@@ -288,6 +335,7 @@ def agent_policy(project_name: str, profiles: list[str], repository_mode: str) -
             "owner_confirms_add_or_select": True,
             "init_remains_deterministic": True,
         },
+        "interaction_style": _interaction_style_policy(interaction_style),
         "managed_git_collaboration": {
             "raw_git_for_managed_state": "forbidden_without_owner_escape_hatch",
             "inspect_before_branching": [
@@ -364,7 +412,47 @@ def agent_policy(project_name: str, profiles: list[str], repository_mode: str) -
     }
 
 
-def agents_markdown(project_name: str, profiles: list[str], repository_mode: str) -> str:
+def _interaction_style_values(interaction_style: Any = None) -> dict[str, dict[str, object]]:
+    defaults = default_interaction_style()
+    values = {
+        TECHNICAL_VERBOSITY: _scale_value(interaction_style, TECHNICAL_VERBOSITY, defaults.technical_verbosity),
+        FORMALITY: _scale_value(interaction_style, FORMALITY, defaults.formality),
+        ASSERTIVENESS: _scale_value(interaction_style, ASSERTIVENESS, defaults.assertiveness),
+    }
+    return {
+        name: {
+            "value": scale.value,
+            "label": scale.label,
+            "description": scale.description,
+        }
+        for name, scale in ((name, scale_view(name, value)) for name, value in values.items())
+    }
+
+
+def _interaction_style_policy(interaction_style: Any = None) -> dict[str, object]:
+    payload = interaction_style_policy_payload()
+    values = _interaction_style_values(interaction_style)
+    payload["effective"] = {
+        "configured": bool(getattr(interaction_style, "configured", False)),
+        "source": str(getattr(interaction_style, "source", "defaults")),
+        "values": {name: values[name]["value"] for name in (TECHNICAL_VERBOSITY, FORMALITY, ASSERTIVENESS)},
+        "labels": {name: values[name]["label"] for name in (TECHNICAL_VERBOSITY, FORMALITY, ASSERTIVENESS)},
+    }
+    path = getattr(interaction_style, "path", "")
+    if path:
+        payload["effective"]["path"] = str(path)
+    return payload
+
+
+def _scale_value(interaction_style: Any, name: str, default: int) -> int:
+    value = getattr(interaction_style, name, None)
+    if value is None:
+        return default
+    nested_value = getattr(value, "value", None)
+    return int(nested_value if nested_value is not None else value)
+
+
+def agents_markdown(project_name: str, profiles: list[str], repository_mode: str, interaction_style: Any = None) -> str:
     profile_text = ", ".join(profiles)
     return f"""{managed_markdown_header("generic", "generic-agents-md-v1")}# Agent Instructions - {project_name}
 
@@ -435,6 +523,10 @@ If readiness is missing, weak, below target, or blocked by failed gates, ask foc
 ## Project Vertical Orchestration
 
 {PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
+
+## Project Interaction Style
+
+{interaction_style_block(interaction_style)}
 
 ## Managed Git Collaboration
 
@@ -518,7 +610,7 @@ p2p proposal create "Title" --problem "..." --goal "..." --proposal "..." --acce
 """
 
 
-def shared_p2p_project_skill(project_name: str, repository_mode: str) -> str:
+def shared_p2p_project_skill(project_name: str, repository_mode: str, interaction_style: Any = None) -> str:
     return f"""---
 name: p2p-project
 description: Use when working in this P2P-managed project. Enforces P2P Engine boundaries for any compatible project skill loader.
@@ -548,11 +640,15 @@ Use P2P Engine as the source of truth for project governance and planning.
 
 {PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
 
+## Project Interaction Style
+
+{interaction_style_block(interaction_style)}
+
 Repository mode: `{repository_mode}`.
 """
 
 
-def codex_project_skill(project_name: str, repository_mode: str) -> str:
+def codex_project_skill(project_name: str, repository_mode: str, interaction_style: Any = None) -> str:
     return f"""---
 name: p2p-project
 description: Use when working in this P2P-managed project. Enforces P2P Engine boundaries for Codex.
@@ -587,6 +683,10 @@ Use P2P Engine as the source of truth for project governance and planning.
 
 {PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
 
+## Project Interaction Style
+
+{interaction_style_block(interaction_style)}
+
 ## Useful Commands
 
 ```bash
@@ -594,6 +694,8 @@ p2p status
 p2p context --budget small
 p2p registry refresh
 p2p next
+p2p project interaction-style show
+p2p project interaction-style set --technical-verbosity 2 --formality 2 --assertiveness 0
 p2p proposal list
 p2p proposal readiness show PROP-XXX
 p2p proposal readiness init PROP-XXX
@@ -621,7 +723,7 @@ Repository mode: `{repository_mode}`.
 """
 
 
-def claude_markdown(project_name: str, repository_mode: str) -> str:
+def claude_markdown(project_name: str, repository_mode: str, interaction_style: Any = None) -> str:
     return f"""{managed_markdown_header("claude", "claude-md-v1")}# Claude Instructions - {project_name}
 
 This repository is managed with P2P Engine.
@@ -650,11 +752,15 @@ Key rules:
 
 {PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
 
+## Project Interaction Style
+
+{interaction_style_block(interaction_style)}
+
 Repository mode: `{repository_mode}`.
 """
 
 
-def cursor_rule(project_name: str, repository_mode: str) -> str:
+def cursor_rule(project_name: str, repository_mode: str, interaction_style: Any = None) -> str:
     return f"""---
 description: P2P Engine project governance and agent workflow rules
 alwaysApply: true
@@ -677,11 +783,15 @@ alwaysApply: true
 
 {PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
 
+## Project Interaction Style
+
+{interaction_style_block(interaction_style)}
+
 Repository mode: `{repository_mode}`.
 """
 
 
-def copilot_instructions(project_name: str, repository_mode: str) -> str:
+def copilot_instructions(project_name: str, repository_mode: str, interaction_style: Any = None) -> str:
     return f"""{managed_markdown_header("copilot", "copilot-instructions-v1")}# GitHub Copilot Instructions - {project_name}
 
 This repository is managed with P2P Engine.
@@ -702,11 +812,15 @@ This repository is managed with P2P Engine.
 
 {PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
 
+## Project Interaction Style
+
+{interaction_style_block(interaction_style)}
+
 Repository mode: `{repository_mode}`.
 """
 
 
-def gemini_markdown(project_name: str, repository_mode: str) -> str:
+def gemini_markdown(project_name: str, repository_mode: str, interaction_style: Any = None) -> str:
     return f"""{managed_markdown_header("gemini", "gemini-md-v1")}# Gemini Instructions - {project_name}
 
 This repository is managed with P2P Engine.
@@ -725,6 +839,10 @@ This repository is managed with P2P Engine.
 ## Project Vertical Orchestration
 
 {PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
+
+## Project Interaction Style
+
+{interaction_style_block(interaction_style)}
 
 Repository mode: `{repository_mode}`.
 """

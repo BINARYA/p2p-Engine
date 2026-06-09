@@ -636,3 +636,23 @@ decisions:
     graduated-by-risk artifact requirements, default coverage for new proposals, advisory
     absent_legacy handling for old proposals, strict CLI/MCP-only memory mutation,
     and tests for readiness/context/MCP/missing-primitive behavior.'
+- proposal: PROP-087
+  title: Agent Personality Model For Decision Mediation
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/decision.md
+  reason: Accepted by owner. The proposal is decision-ready and defines a project-level
+    interaction_style model with three explicit scales, defaults, CLI/MCP surfaces,
+    generated instruction updates, and no persisted presets.
+- proposal: PROP-088
+  title: MCP Artifact Import Parity
+  outcome: pending
+  status: draft
+  path: .p2p/proposals/PROP-088-mcp-artifact-import-parity/decision.md
+  reason: ''
+- proposal: PROP-089
+  title: Readiness Question-State Convergence
+  outcome: pending
+  status: draft
+  path: .p2p/proposals/PROP-089-readiness-question-state-convergence/decision.md
+  reason: ''

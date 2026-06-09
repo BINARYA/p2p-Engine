@@ -200,6 +200,35 @@ needed artifact mutation has no public primitive, the agent must report the
 missing primitive instead of editing `.p2p` directly, reverse-engineering the
 layout, or copying a temporary file into a managed artifact.
 
+## Project Interaction Style
+
+Generated project instructions include the project-level interaction style. It
+controls owner-facing communication preferences only:
+
+- `technical_verbosity`: how much engine and technical workflow language to use.
+- `formality`: how informal or formal the tone should be.
+- `assertiveness`: how strongly the agent follows up on gaps and evidence.
+
+Agents should inspect the style before broad interaction:
+
+```bash
+p2p project interaction-style show
+```
+
+With MCP, use `p2p_project_interaction_style_show`. Change values only when the
+owner asks, through:
+
+```bash
+p2p project interaction-style set --technical-verbosity 2 --formality 2 --assertiveness 0
+```
+
+or MCP `p2p_project_interaction_style_set`.
+
+Interaction style does not change source-of-truth rules, owner authority,
+readiness scores, validation truth, permissions, consent, or facts. Missing
+configuration falls back to defaults and is not an error. Direct edits to
+`.p2p/project/interaction-style.yml` are not an accepted workflow.
+
 ## Codex
 
 For a P2P-managed project, use the generated agent instructions:

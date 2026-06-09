@@ -1,0 +1,24 @@
+impact:
+  summary: "Readiness owner-question gates should converge on structured question state so proposal maturity does not remain blocked by stale or historical markdown questions."
+  affected_areas:
+    - area: "Readiness assessment service"
+      impact: "Owner-question resolution logic must use structured question state when available."
+    - area: "Proposal question service"
+      impact: "Question states and possibly group states become more important evidence for readiness."
+    - area: "Readiness review output"
+      impact: "Review should report concrete remaining structured questions instead of generic failed gates."
+    - area: "Legacy proposals"
+      impact: "Markdown fallback must remain compatible when questions.yml is absent."
+    - area: "Tests"
+      impact: "Need focused coverage for priority/state combinations and markdown fallback."
+  related_proposals:
+    - id: "PROP-082"
+      relation: "Introduced readiness refresh and review workflow."
+    - id: "PROP-086"
+      relation: "Depends on artifact-aware readiness and explicit question handling."
+    - id: "PROP-088"
+      relation: "Exposed the sticky owner-question gate during refinement."
+  risks:
+    - "Priority-based gating could be too permissive if agents under-classify important questions."
+    - "Legacy markdown behavior must remain available for older proposals."
+

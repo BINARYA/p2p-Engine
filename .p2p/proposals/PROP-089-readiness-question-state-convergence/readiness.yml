@@ -1,0 +1,93 @@
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: medium
+  confidence_reasons:
+  - Evidence-aware assessment recalculated current artifacts.
+  - 'Pending high-priority proposal questions remain: 2.'
+  missing: []
+  suggested_next: []
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 7
+      artifact_quality: meaningful
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      effective_points: 7
+    goal_clarity:
+      max_points: 10
+      awarded_points: 7
+      artifact_quality: meaningful
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      effective_points: 7
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 7
+      artifact_quality: meaningful
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      effective_points: 7
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 11
+      artifact_quality: meaningful
+      evidence:
+      - artifact: alternatives.md
+      effective_points: 11
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 7
+      artifact_quality: meaningful
+      evidence:
+      - artifact: alternatives.md
+      effective_points: 7
+    risk_coverage:
+      max_points: 10
+      awarded_points: 7
+      artifact_quality: meaningful
+      evidence:
+      - artifact: risks.md
+      effective_points: 7
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 7
+      artifact_quality: meaningful
+      evidence:
+      - artifact: assumptions.md
+      effective_points: 7
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 7
+      artifact_quality: meaningful
+      evidence:
+      - artifact: open-questions.md
+      effective_points: 7
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 7
+      artifact_quality: meaningful
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      effective_points: 7
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 3
+      artifact_quality: meaningful
+      evidence:
+      - artifact: impact-map.yml
+      effective_points: 3
+  computed_score: 70
+  computed_label: partial
+  computed_at: '2026-06-10'
+  assessment_source: evidence_aware
+  assessed_at: '2026-06-10'
+  artifact_coverage_warnings: []

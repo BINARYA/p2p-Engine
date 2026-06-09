@@ -19,6 +19,7 @@ def _validation_service(workspace: P2PWorkspace) -> ValidationService:
         registry_status=workspace.registry_status,
         agent_integrations_path=workspace._agent_instruction_service().path,
         permissions_path=permissions.path,
+        interaction_style_validation_findings=workspace._project_interaction_style_service().validation_findings,
     )
 
 
@@ -113,3 +114,43 @@ def test_validation_service_reports_malformed_proposal_artifact_state(tmp_path: 
     assert result.ok is False
     assert finding.severity == "error"
     assert "Invalid proposal artifact status" in finding.message
+
+
+def test_validation_service_accepts_missing_interaction_style_state(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Demo Project")
+
+    result = _validation_service(workspace).validate()
+
+    assert result.ok is True
+    assert "P2P250_INVALID_PROJECT_INTERACTION_STYLE" not in _codes(result)
+
+
+def test_validation_service_reports_malformed_interaction_style_state(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Demo Project")
+    path = tmp_path / ".p2p" / "project" / "interaction-style.yml"
+    path.write_text(
+        yaml.safe_dump(
+            {
+                "interaction_style": {
+                    "schema_version": 1,
+                    "scope": "project",
+                    "technical_verbosity": 2,
+                    "formality": 8,
+                    "assertiveness": 0,
+                }
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    result = _validation_service(workspace).validate()
+    finding = next(finding for finding in result.findings if finding.code == "P2P250_INVALID_PROJECT_INTERACTION_STYLE")
+
+    assert result.ok is False
+    assert finding.severity == "error"
+    assert finding.path == Path(".p2p/project/interaction-style.yml")
+    assert "formality" in finding.message
+    assert "p2p project interaction-style set" in finding.suggested_command

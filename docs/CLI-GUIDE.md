@@ -53,6 +53,42 @@ p2p registry refresh
 p2p next
 ```
 
+### Project Interaction Style
+
+Project interaction style is the project-level default for how agents and
+mediators communicate with the owner. It has three independent integer scales
+from `0` to `5`:
+
+- `technical_verbosity`: how much engine and technical workflow language to use.
+- `formality`: how informal or formal the owner-facing tone should be.
+- `assertiveness`: how strongly agents should follow up on gaps, evidence, and ordering.
+
+Missing configuration is valid and uses defaults:
+
+```text
+technical_verbosity=2
+formality=2
+assertiveness=0
+```
+
+Inspect the effective style:
+
+```bash
+p2p project interaction-style show
+```
+
+Set one or more values:
+
+```bash
+p2p project interaction-style set --technical-verbosity 3
+p2p project interaction-style set --formality 1 --assertiveness 2 --actor owner
+```
+
+Style changes presentation and follow-up pressure only. They do not change
+governance authority, readiness scores, validation truth, permissions, consent,
+or facts. Agents and owners should use this CLI surface, or the matching MCP
+tools, instead of editing `.p2p/project/interaction-style.yml` directly.
+
 `p2p next` combines curated project actions with generated actions derived from
 project state. Manage curated actions through CLI commands instead of editing
 `.p2p/project/next-actions.yml` by hand:

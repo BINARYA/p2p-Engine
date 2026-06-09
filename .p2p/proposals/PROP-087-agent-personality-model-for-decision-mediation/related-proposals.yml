@@ -1,0 +1,27 @@
+related_proposals:
+  proposal_id: PROP-087
+  items:
+    - id: PROP-005
+      relationship: extends
+      reason: Builds on Codex skill integration and generated agent behavior.
+    - id: PROP-021
+      relationship: extends
+      reason: Updates real command guidance in agent skills.
+    - id: PROP-042
+      relationship: complements
+      reason: Fits the mediator boundary between P2P core, CLI, MCP, and agents.
+    - id: PROP-045
+      relationship: extends
+      reason: Agent-safe project bootstrap should include interaction-style defaults in generated instructions.
+    - id: PROP-055
+      relationship: complements
+      reason: Similar to token budget discipline, interaction style guides agent communication behavior.
+    - id: PROP-065
+      relationship: extends
+      reason: Adds MCP/agent-first coverage for a new project-level surface.
+    - id: PROP-082
+      relationship: complements
+      reason: Assertiveness should align with readiness review guidance without changing readiness truth.
+    - id: PROP-086
+      relationship: complements
+      reason: Artifact-aware readiness and interaction style both shape how agents challenge missing proposal context.

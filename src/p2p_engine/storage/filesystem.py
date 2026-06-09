@@ -14,6 +14,7 @@ from p2p_engine.core.project_verticals import (
     VerticalPack,
     VerticalValidationResult,
 )
+from p2p_engine.core.interaction_style import InteractionStyleView
 from p2p_engine.foundation.files import (
     identity_slug as _identity_slug,
     read_yaml_mapping as _read_yaml_mapping,
@@ -69,6 +70,7 @@ from p2p_engine.services.project_maturity import (
     ProjectMaturityService,
     ProjectRubrics,
 )
+from p2p_engine.services.project_interaction_style import ProjectInteractionStyleService
 from p2p_engine.services.project_verticals import ProjectVerticalService
 from p2p_engine.services.project_initialization import (
     ProjectInitializationService,
@@ -173,6 +175,7 @@ class P2PWorkspace:
         self._proposal_question_service_instance: ProposalQuestionService | None = None
         self._project_assessment_service_instance: ProjectAssessmentService | None = None
         self._project_context_renderer_service_instance: ProjectContextRendererService | None = None
+        self._project_interaction_style_service_instance: ProjectInteractionStyleService | None = None
         self._project_initialization_service_instance: ProjectInitializationService | None = None
         self._project_maturity_service_instance: ProjectMaturityService | None = None
         self._project_vertical_service_instance: ProjectVerticalService | None = None
@@ -215,6 +218,7 @@ class P2PWorkspace:
                 adapter_capabilities=_agent_adapter_capabilities,
                 agent_policy=_agent_policy,
                 built_in_adapters=BUILT_IN_AGENT_ADAPTERS,
+                interaction_style=self.project_interaction_style,
             )
         return self._agent_instruction_service_instance
 
@@ -237,6 +241,7 @@ class P2PWorkspace:
                 agent_integrations_path=self._agent_instruction_service().path,
                 permissions_path=self._permissions_service().path,
                 vertical_validation_findings=self._project_vertical_service().validation_findings,
+                interaction_style_validation_findings=self._project_interaction_style_service().validation_findings,
             )
         return self._validation_service_instance
 
@@ -257,6 +262,7 @@ class P2PWorkspace:
                 show_work=self.show_work,
                 next_actions=self.next_actions,
                 proposal_artifacts=self.read_proposal_artifacts,
+                interaction_style=self.project_interaction_style,
             )
         return self._context_packet_service_instance
 
@@ -387,6 +393,14 @@ class P2PWorkspace:
                 find_change_dir=self._change_set_lifecycle_service().find_dir,
             )
         return self._project_maturity_service_instance
+
+    def _project_interaction_style_service(self) -> ProjectInteractionStyleService:
+        if self._project_interaction_style_service_instance is None:
+            self._project_interaction_style_service_instance = ProjectInteractionStyleService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+            )
+        return self._project_interaction_style_service_instance
 
     def _project_vertical_service(self) -> ProjectVerticalService:
         if self._project_vertical_service_instance is None:
@@ -1177,6 +1191,24 @@ class P2PWorkspace:
 
     def show_project_state(self, section: str) -> str:
         return self._project_state_service().show(section)
+
+    def project_interaction_style(self) -> InteractionStyleView:
+        return self._project_interaction_style_service().show()
+
+    def set_project_interaction_style(
+        self,
+        *,
+        technical_verbosity: int | str | None = None,
+        formality: int | str | None = None,
+        assertiveness: int | str | None = None,
+        actor: str = "local",
+    ) -> InteractionStyleView:
+        return self._project_interaction_style_service().set_style(
+            technical_verbosity=technical_verbosity,
+            formality=formality,
+            assertiveness=assertiveness,
+            actor=actor,
+        )
 
     def export_visible_project_definition(self) -> VisibleProjectExportResult:
         return self._visible_project_export_service().export()

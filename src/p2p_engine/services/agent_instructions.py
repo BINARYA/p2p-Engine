@@ -4,7 +4,7 @@ import hashlib
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
@@ -42,11 +42,12 @@ class AgentInstructionService:
         normalize_profile: Callable[[str], str],
         normalize_repository_mode: Callable[[str], str],
         expanded_profiles: Callable[[str], list[str]],
-        instruction_files: Callable[[str, list[str], str], dict[Path, str]],
+        instruction_files: Callable[[str, list[str], str, Any], dict[Path, str]],
         adapter_files: Callable[[str, str, list[str], str], list[tuple[Path, str, bool, str]]],
         adapter_capabilities: Callable[[str], dict[str, object]],
-        agent_policy: Callable[[str, list[str], str], dict[str, object]],
+        agent_policy: Callable[[str, list[str], str, Any], dict[str, object]],
         built_in_adapters: tuple[str, ...],
+        interaction_style: Callable[[], Any] | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -61,6 +62,7 @@ class AgentInstructionService:
         self.adapter_capabilities = adapter_capabilities
         self.agent_policy = agent_policy
         self.built_in_adapters = built_in_adapters
+        self.interaction_style = interaction_style
 
     def refresh_instructions(
         self,
@@ -71,13 +73,14 @@ class AgentInstructionService:
         project_name = self.project_name()
         repository_mode = self.normalize_repository_mode(repository_mode or self.repository_mode("local"))
         profiles = self.expanded_profiles(profile)
+        interaction_style = self.interaction_style() if self.interaction_style is not None else None
         policy_path = self.policy_path()
         existing_policy = _read_yaml_mapping(policy_path, default={}) if policy_path.exists() else {}
         existing_profiles = existing_policy.get("agent_profiles", [])
         if not isinstance(existing_profiles, list):
             existing_profiles = []
         merged_profiles = sorted({str(item) for item in existing_profiles} | set(profiles))
-        files = self.instruction_files(project_name, merged_profiles, repository_mode)
+        files = self.instruction_files(project_name, merged_profiles, repository_mode, interaction_style)
         created: list[Path] = []
         updated: list[Path] = []
 
@@ -94,7 +97,7 @@ class AgentInstructionService:
             else:
                 created.append(relative)
 
-        policy = self.agent_policy(project_name, merged_profiles, repository_mode)
+        policy = self.agent_policy(project_name, merged_profiles, repository_mode, interaction_style)
         policy_content = _yaml_dump(policy)
         relative_policy = policy_path.relative_to(self.root)
         if not policy_path.exists():
@@ -148,6 +151,7 @@ class AgentInstructionService:
         target = self.normalize_profile(target)
         repository_mode = self.normalize_repository_mode(repository_mode or self.repository_mode("local"))
         project_name = self.project_name()
+        interaction_style = self.interaction_style() if self.interaction_style is not None else None
         registry = self.registry()
         existing_adapters = registry.get("adapters", {})
         existing_profiles = (
@@ -156,7 +160,7 @@ class AgentInstructionService:
             else []
         )
         profiles = sorted(set(existing_profiles) | set(self.expanded_profiles(target)))
-        files = self.instruction_files(project_name, profiles, repository_mode)
+        files = self.instruction_files(project_name, profiles, repository_mode, interaction_style)
         current_files = self.registry_file_map(registry)
         created: list[Path] = []
         updated: list[Path] = []
@@ -183,7 +187,7 @@ class AgentInstructionService:
                 path.write_text(content, encoding="utf-8")
                 created.append(relative)
 
-        policy = self.agent_policy(project_name, profiles, repository_mode)
+        policy = self.agent_policy(project_name, profiles, repository_mode, interaction_style)
         policy_path = self.policy_path()
         policy_content = _yaml_dump(policy)
         relative_policy = policy_path.relative_to(self.root)
@@ -270,7 +274,8 @@ class AgentInstructionService:
         remaining_profiles = sorted({"generic"} | {str(item) for item in adapters.keys()})
         project_name = self.project_name()
         repository_mode = self.repository_mode("local")
-        shared_files = self.instruction_files(project_name, remaining_profiles, repository_mode)
+        interaction_style = self.interaction_style() if self.interaction_style is not None else None
+        shared_files = self.instruction_files(project_name, remaining_profiles, repository_mode, interaction_style)
         for relative_path in (Path("AGENTS.md"),):
             content = shared_files.get(relative_path)
             if content is None:
@@ -279,7 +284,7 @@ class AgentInstructionService:
             path.write_text(content, encoding="utf-8")
         policy_path = self.policy_path()
         policy_path.write_text(
-            _yaml_dump(self.agent_policy(project_name, remaining_profiles, repository_mode)),
+            _yaml_dump(self.agent_policy(project_name, remaining_profiles, repository_mode, interaction_style)),
             encoding="utf-8",
         )
         registry = self.build_registry(remaining_profiles, repository_mode)
@@ -410,5 +415,3 @@ def _remove_empty_parents(path: Path, *, stop_at: Path) -> None:
         except OSError:
             return
         path = path.parent
-
-

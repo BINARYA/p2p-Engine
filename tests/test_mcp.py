@@ -78,6 +78,8 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_conflict_status",
         "p2p_impact_prompt",
         "p2p_project_status",
+        "p2p_project_interaction_style_show",
+        "p2p_project_interaction_style_set",
         "p2p_next",
         "p2p_next_add",
         "p2p_next_complete",
@@ -217,6 +219,33 @@ def test_mcp_project_visible_export_flow(tmp_path: Path) -> None:
     status = call_tool("p2p_project_export_status", {"root": str(tmp_path)})
     assert status["export_status"]["latest_exists"] is True
     assert status["export_status"]["latest_path"] == "outputs/latest/project.md"
+
+
+def test_mcp_project_interaction_style_tools(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Interaction MCP Demo", "--root", str(tmp_path)])
+
+    shown = call_tool("p2p_project_interaction_style_show", {"root": str(tmp_path)})
+    assert shown["interaction_style"]["configured"] is False
+    assert shown["interaction_style"]["technical_verbosity"]["value"] == 2
+    assert shown["interaction_style"]["formality"]["value"] == 2
+    assert shown["interaction_style"]["assertiveness"]["value"] == 0
+    assert not (tmp_path / ".p2p" / "project" / "interaction-style.yml").exists()
+
+    updated = call_tool(
+        "p2p_project_interaction_style_set",
+        {
+            "root": str(tmp_path),
+            "technical_verbosity": 5,
+            "formality": 4,
+            "actor": "mcp-client",
+        },
+    )
+    assert updated["interaction_style"]["configured"] is True
+    assert updated["interaction_style"]["technical_verbosity"]["value"] == 5
+    assert updated["interaction_style"]["formality"]["value"] == 4
+    assert updated["interaction_style"]["assertiveness"]["value"] == 0
+    payload = yaml.safe_load((tmp_path / ".p2p" / "project" / "interaction-style.yml").read_text(encoding="utf-8"))
+    assert payload["interaction_style"]["updated_by"] == "mcp-client"
 
 
 def test_mcp_project_vertical_and_readiness_tools(tmp_path: Path) -> None:

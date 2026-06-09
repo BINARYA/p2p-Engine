@@ -1,0 +1,23 @@
+conflicts:
+  proposal_id: PROP-087
+  items:
+    - id: personality_changes_governance
+      severity: high
+      status: mitigated
+      description: Interaction style could be mistaken for permission to change governance decisions or readiness facts.
+      mitigation: Personality affects presentation and follow-up behavior only; owner authority, validation, readiness scores, and permission gates remain unchanged.
+    - id: preset_combinatorial_growth
+      severity: medium
+      status: mitigated
+      description: Named presets become hard to maintain as the model grows to three or more scales.
+      mitigation: Persist independent numeric scales and keep labels non-authoritative.
+    - id: per_agent_inconsistency
+      severity: medium
+      status: mitigated
+      description: Per-agent style could create inconsistent owner experience across mediators.
+      mitigation: First implementation uses a project-level default shared by all agents.
+    - id: direct_memory_write
+      severity: high
+      status: mitigated
+      description: Agents might try to update interaction style by editing managed project state directly.
+      mitigation: Provide CLI and MCP primitives and document CLI/MCP-only mutation in generated instructions and skills.

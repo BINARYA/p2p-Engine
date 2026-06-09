@@ -1,0 +1,96 @@
+proposal_questions:
+  schema_version: 1
+  proposal_id: PROP-089
+  initialized_at: '2026-06-10'
+  updated_at: '2026-06-10'
+  updated_by: codex
+  groups:
+  - id: QG001
+    gap: owner_questions_resolution
+    state: to_answer
+    priority: high
+    rationale: This is the central design choice for resolving divergence between
+      markdown and structured state.
+    created_at: '2026-06-10'
+    updated_at: '2026-06-10'
+  questions:
+  - id: Q001
+    group_id: QG001
+    gap: owner_questions_resolution
+    criterion: owner_questions_resolution
+    priority: high
+    state: to_answer
+    question: Should questions.yml be authoritative for owner-question readiness whenever
+      structured question state exists?
+    rationale: This is the central design choice for resolving divergence between
+      markdown and structured state.
+    answer: ''
+    answer_source: ''
+    answered_at: ''
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: false
+    applied_at: ''
+    audit:
+      created_by: codex
+      created_at: '2026-06-10'
+      updated_by: codex
+      updated_at: '2026-06-10'
+  - id: Q002
+    group_id: QG001
+    gap: owner_questions_resolution
+    criterion: owner_questions_resolution
+    priority: high
+    state: to_answer
+    question: Should unresolved high-priority structured questions be the default
+      hard blocker, while medium and low questions become residual follow-up unless
+      policy marks them blocking?
+    rationale: This controls whether readiness stops being sticky without becoming
+      too permissive.
+    answer: ''
+    answer_source: ''
+    answered_at: ''
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: false
+    applied_at: ''
+    audit:
+      created_by: codex
+      created_at: '2026-06-10'
+      updated_by: codex
+      updated_at: '2026-06-10'
+  - id: Q003
+    group_id: QG001
+    gap: owner_questions_resolution
+    criterion: owner_questions_resolution
+    priority: medium
+    state: to_answer
+    question: Should open-questions.md remain readiness evidence only when questions.yml
+      exists, while legacy proposals without questions.yml keep markdown fallback
+      behavior?
+    rationale: This preserves human-readable artifacts and backward compatibility
+      while preventing markdown from overriding structured state.
+    answer: ''
+    answer_source: ''
+    answered_at: ''
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: false
+    applied_at: ''
+    audit:
+      created_by: codex
+      created_at: '2026-06-10'
+      updated_by: codex
+      updated_at: '2026-06-10'

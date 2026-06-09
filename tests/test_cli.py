@@ -122,6 +122,55 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert "placeholder" in result.output
 
 
+def test_cli_project_interaction_style_show_and_set(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Style Project", "--root", str(tmp_path)])
+
+    shown = runner.invoke(app, ["project", "interaction-style", "show", "--root", str(tmp_path)])
+    assert shown.exit_code == 0
+    assert "Project interaction style" in shown.output
+    assert "configured: false" in shown.output
+    assert "technical_verbosity: 2  balanced" in shown.output
+    assert "formality: 2  direct" in shown.output
+    assert "assertiveness: 0  baseline" in shown.output
+    assert not (tmp_path / ".p2p" / "project" / "interaction-style.yml").exists()
+
+    updated = runner.invoke(
+        app,
+        [
+            "project",
+            "interaction-style",
+            "set",
+            "--technical-verbosity",
+            "4",
+            "--assertiveness",
+            "3",
+            "--actor",
+            "codex",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert updated.exit_code == 0
+    assert "Project interaction style updated" in updated.output
+    assert "configured: true" in updated.output
+    assert "technical_verbosity: 4  detailed" in updated.output
+    assert "formality: 2  direct" in updated.output
+    assert "assertiveness: 3  proactive" in updated.output
+    payload = yaml.safe_load((tmp_path / ".p2p" / "project" / "interaction-style.yml").read_text(encoding="utf-8"))
+    assert payload["interaction_style"]["updated_by"] == "codex"
+
+    missing = runner.invoke(app, ["project", "interaction-style", "set", "--root", str(tmp_path)])
+    assert missing.exit_code == 1
+    assert "At least one interaction style value is required" in missing.output
+
+    invalid = runner.invoke(
+        app,
+        ["project", "interaction-style", "set", "--formality", "6", "--root", str(tmp_path)],
+    )
+    assert invalid.exit_code == 1
+    assert "Invalid interaction style value for formality: 6" in invalid.output
+
+
 def test_cli_init_owner_populates_permissions_policy(tmp_path: Path) -> None:
     result = runner.invoke(app, ["init", "Demo Project", "--owner", "Matteo Rossi", "--root", str(tmp_path)])
 
