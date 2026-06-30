@@ -2,7 +2,7 @@
 
 ## Generated Metadata
 
-- generated_at: 2026-06-30
+- generated_at: 2026-06-08
 - generator: p2p project export
 - source_of_truth: .p2p/
 - output_role: generated human-facing project definition
@@ -11,7 +11,7 @@
 
 ## Executive Summary
 
-This project definition synthesizes 81 accepted proposals from P2P-managed state into a human-facing document. It is generated output; `.p2p/` remains the managed source of truth.
+This project definition synthesizes 78 accepted proposals from P2P-managed state into a human-facing document. It is generated output; `.p2p/` remains the managed source of truth.
 
 ## Project Purpose
 
@@ -814,23 +814,11 @@ Add MCP tools p2p_next_add, p2p_next_complete, p2p_next_retire, and p2p_next_ref
 
 ### PROP-082 - Readiness Assessment Refresh And Review Workflow
 
-Extend the readiness review and proposal-question workflow so generated questions are artifact-aware, not only score-gap-aware. When readiness is weak, low-confidence, blocked by gates, or missing evidence, the agent must inspect the full proposal artifact set and generate or update questions that seek coverage across proposal.md, exploration.md, findings.md, alternatives.md, risks.md, assumptions.md, open-questions.md, suggested-scope.md, impact-map.yml, related/conflict artifacts, readiness.yml, questions.yml, and duplicate or aggregation evidence. The question list should represent the missing information needed to make the proposal robust and approvable, not just the labels currently listed in readiness.missing. When answers are recorded, the workflow must help the agent apply them to every useful affected artifact through available CLI or MCP write primitives. A question answer may update the proposal text, acceptance criteria, alternatives, tradeoffs, risks, assumptions, open questions, impact analysis, duplicate/aggregation notes, or readiness evidence. Applied question state should mean the answer has been propagated into proposal artifacts or an explicit reason exists for why no artifact update was needed. Agent assertiveness should be driven by a stepped readiness policy rather than a separate pedantry score. Very low or weak readiness requires proactive challenge, next-question selection, and refusal to recommend acceptance without owner override. Partial readiness requires focused follow-up on missing artifacts and high-risk ambiguity. Near-target readiness requires only residual high-value questions or confirmation. Deferred and muted question/group states reduce re-asking unless the owner explicitly asks to increase readiness or revisit unanswered material. After applying answers or importing refined artifacts, readiness must be recalculated through the evidence-aware assessment path; low readiness should cause the skill to direct the agent to continue interviewing the owner instead of passively reporting gaps.
+Introduce a readiness review workflow under p2p proposal readiness that explicitly evaluates two axes. Axis one is information completeness: whether the proposal contains enough structured and human-readable evidence to judge problem clarity, goals, scope boundaries, alternatives, tradeoffs, risks, assumptions, owner-question resolution, acceptance criteria, impact or overlap, and question/answer state. Axis two is agent behavioral guidance: whether P2P gives agents clear operational instructions to behave proactively and pedantically when using that information. Keep init as conservative bootstrap and keep refresh as snapshot synchronization. Add an assess or review path that reads proposal artifacts, contributions, readiness state, and question state; records criterion-level evidence; updates scores, confidence, failed gates, missing items, suggested next actions, owner questions, and merge candidates; and marks whether the assessment is deterministic, agent-assisted, or owner-reviewed. Add a first-class deterministic clarification interview object for proposals that are weak, below threshold, or blocked by owner input. The object should be managed by dedicated CLI commands rather than free-form contributions. Candidate commands include p2p proposal questions init PROP-XXX, p2p proposal questions status PROP-XXX, p2p proposal questions list PROP-XXX, p2p proposal questions add PROP-XXX --gap GAP --priority high --question TEXT, p2p proposal questions answer PROP-XXX Q001 TEXT, p2p proposal questions defer PROP-XXX Q001 --reason TEXT, p2p proposal questions mute PROP-XXX Q001 --reason TEXT, p2p proposal questions reopen PROP-XXX Q001, p2p proposal questions group-status PROP-XXX GROUP-ID --state to_answer|defer|muted, p2p proposal questions next PROP-XXX, p2p proposal questions reassess PROP-XXX, p2p proposal questions apply PROP-XXX, and p2p proposal questions import PROP-XXX FILE. The question memory should track stable question IDs, optional group IDs, readiness criterion or gap, rationale, priority, state, group state, answer text initially empty, answer source, answered_at, asked_count, last_asked_at, superseded_by or derived_from links when questions change, muted/deferred reason, whether the answer has been applied to proposal text, and audit metadata. Question states should include to_answer, defer, muted, answered, applied, retired, and superseded. The same re-ask behavior must apply to individual questions and question groups: to_answer means ask when relevant, defer means skip for now but keep available, and muted means skip by default unless the user explicitly asks to extract/respond to unanswered questions or wants to increase readiness. When readiness review detects missing elements, the agent should initialize or update this question list through the CLI, then enter interview mode proactively. It should explain briefly that readiness is weak, identify the highest-impact gap, and ask one focused question at a time. After each answer, the agent records the answer, reassesses whether the remaining question list is still correct, adds follow-up questions only when needed, retires or supersedes obsolete questions without losing audit trail, and updates suggested next actions. When the interview reaches a sufficient stopping point, the agent uses the collected answers to refine the proposal with available CLI update/import tools, then refreshes readiness and explains remaining gaps. Add explicit behavioral outputs for agents, such as challenge_points, owner_questions, thin_artifact_warnings, alternative_prompts, tradeoff_prompts, acceptance_cautions, interview_next_question, question_list_changes, merge_candidates, aggregation_questions, and next_actions. Readiness review should also detect duplicated or mergeable proposals. When the agent sees that two proposals are similar, overlapping, or mergeable, it should ask the owner whether they should be aggregated. If approved by the owner through supported governance primitives, the workflow should transfer relevant content and contributions into the retained proposal and close or mark the other proposal with an explicit aggregation or merged-into trace. The agent may recommend and prepare aggregation, but final close, reject, defer, merge, or cleanup decisions remain owner-controlled. Add a gate-resolution path for cases where an owner explicitly confirms that a gate such as owner_questions_resolution has been resolved. Add an import path for structured assessment or interview files generated by agents or external review processes, with validation before persistence. All write operations must preserve profile_id, profile_version, computed_at, assessment source, reviewer or actor, and audit notes. Owner override remains a decision-time governance event that can set effective readiness without overwriting the computed score. Backward compatibility is required: if a proposal has no question state, CLI read/status commands should report no question state found and continue normally. Agent guidance should treat missing question state as a signal to initialize or propose initialization when readiness is low, not as an error. The workflow should also define when a separate project-level assessment proposal is needed: proposal readiness evaluates whether a proposal is methodologically ready for decision, while project assessment evaluates whether the whole project definition is complete, coherent, and sufficiently challenged.
 
 ### PROP-083 - Domain-Aware Visible Project Definition Export
 
 Introduce a domain-aware visible project definition export. The default export for every P2P project should be a human-facing, comprehensive Markdown document written to outputs/latest/project.md. The document should be organized in chapters and synthesize accepted P2P memory: project purpose, domain, problem framing, accepted proposals, decisions, requirements, scope boundaries, alternatives, tradeoffs, risks, assumptions, open questions, readiness notes, and relevant implementation or delivery context. The output should be generic across verticals and should not assume that the project is software. The visible root-level outputs/ directory is intentional and not configurable in the MVP because human accessibility is more important than keeping the repository root minimal; outputs/ is preferred over project/ because it clearly describes generated visible outputs and avoids confusion with .p2p/project. Each export run should preserve review history by writing or archiving prior versions under outputs/review-001, outputs/review-002, and later review directories. Domain-specific exports are additional nested profiles, not the default. For software-compatible projects, software-spec, OpenSpec, Spec Kit, or similar outputs may be generated under outputs/latest/exports/software-spec/, outputs/latest/exports/openspec/, outputs/latest/exports/speckit/, or equivalent profile folders. Other verticals may define their own export profiles under outputs/latest/exports/<profile-or-vertical>/. Existing .p2p/outputs behavior must be treated as a compatibility surface: the implementation should verify whether current generated artifacts are still needed, preserve public CLI/API expectations, and only remove, deprecate, or relocate legacy outputs through an explicit compatibility path.
-
-### PROP-085 - Pluggable Project Verticals And Readiness Orchestration
-
-Introduce pluggable project verticals. A vertical package defines its id, name, version, base extension, sections, section detail packs, maturity levels, rubric criteria, blocking/refinement questions, artifact templates, examples, profiles, and optional compatible modules. P2P Engine provides a generic loader/validator and a project orchestrator skill that reads these definitions, evaluates project readiness, proposes capisaldi, creates initial refinement questions, and guides a one-question-at-a-time interview. Vertical packages are pure data packages made of text files, primarily .md and/or .yaml, not executable code in the MVP. They contain the project skeleton for the vertical: chapters, sections, topics to address, vertical-specific peculiarities, rubrics, questions, and useful artifacts. The minimum MVP vertical pack requires vertical.yml with id, name, version, description, and base/extends; project sections/chapters; minimal completeness/readiness rubrics; initial blocking questions; and expected or suggested artifacts. Examples, profiles, compatible modules, and rich output templates are optional in the MVP. Default vertical packs are distributed internally with the project/package as versioned, testable data resources for the MVP. The design should stay registry-ready, but an external registry is not part of the first slice; a later registry can expose REST endpoints to list available packs and fetch pack details/versions. The CLI remains deterministic: p2p init may ask deterministic setup questions and persist project/init state, but it does not launch or embody the agent. The proactive behavior belongs to the agent instructions. When the agent detects an uninitialized project, an initialization state, or missing project capisaldi and initial questions, it must treat that as priority context work because it determines project readiness. The agent should know how to initialize the project with the CLI, use owner answers to populate init/project objects, propose the vertical-derived capisaldi, save initial questions when possible, interview one question at a time, and return to deferred core-definition work unless the owner explicitly silences it. When a requested vertical is missing, resolution order is project-local vertical packs, core/default packs, configured data registry/plugin packs, then base_project fallback. The fallback is not passive: the agent proposes a default/base vertical, enters customization mode, extracts the missing vertical information from the owner, creates or updates a project-local custom vertical with sections/capisaldi, minimal rubrics, blocking questions, and expected artifacts, and uses it only after owner confirmation. This proposal extends and reuses the existing project rubrics and project maturity/readiness artifacts rather than replacing them. Vertical packs provide structured inputs that specialize the current system; they must not create a parallel maturity engine. The explicit command for later review is p2p project readiness review: the command goal is project readiness/context strengthening, while verticals are the data source used by the review. It should reuse existing project rubrics/maturity, read packaged and project-local verticals, identify missing capisaldi, produce initial or follow-up project questions, and guide the agent on readiness priorities. Core should start with base_project and a small MVP set of high-quality verticals, while additional verticals live in an external registry or project-local custom directory. Initial implementation scope is base_project plus the vertical pack loader/validator, the project orchestrator skill, one complete demonstration vertical, and project readiness review integration. The five-vertical MVP set remains a follow-up target, not part of the first implementation slice.
-
-### PROP-086 - Artifact-aware Proposal Readiness And Agent Interview Orchestration
-
-Introduce artifact-aware proposal readiness backed by a dedicated artifact-specific primitive. Each proposal artifact type receives an expectation class: required for decision, required when applicable, optional memory, or not applicable with reason. The source of truth for artifact applicability is a public CLI/MCP surface such as proposal artifact state commands/tools, not free-form contribution text, not hidden readiness-only metadata, and not direct filesystem writes. Readiness and compact context consume artifact state: they surface empty or weak applicable artifacts as concrete gaps, report not-applicable and legacy reasons, and suggest owner-facing questions. The artifact state lifecycle should include unknown, missing, weak, satisfied, deferred, not_applicable, and absent_legacy. unknown means a new proposal artifact has not yet been assessed. missing means it is applicable but absent or empty. weak means present but insufficient. satisfied means adequate for the current readiness profile. deferred means a known gap is intentionally postponed and must remain visible. not_applicable requires a concrete rationale. absent_legacy marks proposals created before artifact-aware state existed; it is advisory and non-blocking. Artifact state records at least artifact id/type, expectation, status, reason, actor/source, timestamp, risk flags, and whether the state is agent-proposed or owner-confirmed when relevant. Agents may propose artifact status and rationale, but the owner has final authority over governance decisions and acceptance. For always-required or auto-required artifacts, agent-proposed not_applicable or deferred states remain owner-visible and should not be treated as silently equivalent to satisfied. The MVP CLI/MCP surface should be narrow: initialize artifact state for a proposal, show/list artifact coverage, set an artifact expectation/status/reason, mark legacy absence, and expose the same operations through explicit write-safe MCP tools that internally use the P2P engine write path. Example command shape: p2p proposal artifact status PROP-XXX; p2p proposal artifact init PROP-XXX; p2p proposal artifact set PROP-XXX impact-map --expectation required_when_applicable --status not_applicable --reason '...'; p2p proposal artifact mark-legacy PROP-XXX. Exact names may change, but the public primitive must exist before agents are expected to persist artifact state. The default artifact policy is graduated by risk. proposal.md, readiness.yml, and open-questions.md are always required for proposal maturity. clarifications.md, findings.md, exploration.md, and impact-map.yml are required when applicable. findings.md and impact-map.yml become auto-required when robust risk triggers are present: governance or policy changes; public CLI, MCP, API, or command behavior changes; storage schema, registry, proposal layout, or persistent state changes; compatibility or migration impact; cross-module/shared service/core workflow impact; permission, consent, security, remote sync, provider, or destructive-operation concerns; source-of-truth, agent instruction, memory, or artifact-writing behavior changes; user-visible workflow, docs/install/release impact; new dependency/runtime/infrastructure assumptions; high uncertainty, multiple credible alternatives, or claims that depend on technical evidence. exploration.md becomes required when multiple credible alternatives exist, uncertainty is high, or the proposal chooses between materially different designs. clarifications.md becomes required when owner answers correct, narrow, or change an assumption. Existing proposals are handled compatibly: when artifact-aware state is absent, artifact-aware commands, readiness refresh, context generation, or a dedicated migration/status command should detect it and mark/report absent_legacy through the P2P write interface. Legacy absence must not raise validation errors, block decisions, or force manual retroactive completion. Coverage improves naturally for new proposals without requiring review of historical work. Integration boundaries are strict. Agents interact with P2P memory only through the p2p CLI or explicit MCP write tools whose schema describes the mutation. A local agent must follow the same boundary as a future remote MCP client: no direct edits under .p2p, no copying prepared temporary files into artifacts, no reverse-engineering internal layouts, and no filesystem workaround when a primitive is missing. If an artifact update requires large text, the solution is a CLI/MCP import/update primitive, not a temp-file copy into managed state. If no supported primitive exists, the agent stops and reports the missing primitive. Readiness, context, validation, registries, and MCP tools must reuse artifact state rather than duplicating a parallel lifecycle. Validation checks structural consistency; readiness scores maturity; context summarizes next action; artifact state remains the source of truth for artifact coverage. Test coverage should include a new simple proposal, a new cross-cutting proposal that auto-requires findings and impact map, a legacy proposal without artifact state, not_applicable with rationale, deferred with owner visibility, MCP write-safe behavior, missing-primitive refusal, and a guard that direct/temp-file artifact writes are not part of the workflow.
-
-### PROP-087 - Agent Personality Model For Decision Mediation
-
-Introduce a project-level interaction_style configuration model with three independent integer fields: technical_verbosity 0..5, formality 0..5, and assertiveness 0..5. technical_verbosity controls how much engine/technical language the agent uses with the decision owner. formality controls how informal or formal the tone is. assertiveness, informally described by the owner as pedanteria, controls how strongly the agent pushes on unresolved gaps, evidence, order, and follow-up before moving on. Defaults: technical_verbosity=2, formality=2, assertiveness=0. The first implementation stores one project-level default interaction_style because the project should define a shared interaction style for all agents and mediators that address the decision owner. The public CLI namespace should be project interaction-style, with matching MCP tools. Values must be readable and modifiable through public P2P CLI commands and exposed through explicit MCP tools with read-only and write-safe behavior. Generated agent instructions and local/project skills must describe how agents inspect and update the style through those CLI/MCP surfaces. Per-agent and per-session overrides are future extension points. Named presets should not be persisted as source of truth; scales remain explicit and independent.
 
 ## Domain And Context
 
@@ -1166,18 +1154,6 @@ This proposal refines the accepted exploration and readiness direction by separa
 ### PROP-083 - Domain-Aware Visible Project Definition Export
 
 The accepted project memory already contains proposals, decisions, readiness, questions, risks, assumptions, alternatives, and refinement history. PROP-083 should turn that memory into a visible human-facing project definition. Existing software-specific exports may remain useful, but they should become specialized export profiles nested under the generic visible output model rather than the universal default. The root folder should be named outputs/ instead of project/ to avoid confusion with .p2p/project. Existing .p2p outputs should not be removed or moved without a compatibility check.
-
-### PROP-085 - Pluggable Project Verticals And Readiness Orchestration
-
-This proposal extends the direction opened by PROP-057, Guided Rubric Selection During Init. PROP-057 lets the owner confirm suggested rubric criteria during init. The next step is to treat a vertical as a data-driven package loaded by a generic project orchestrator skill: base_project plus optional verticals/modules/profiles that can live in core defaults, registries, or project-local custom packs. The attached discussion distinguishes a stable orchestrator skill from vertical definitions and section detail packs, recommends a small high-quality default set, and keeps broader growth in plugins/registries rather than hardcoding all possible verticals in P2P Engine.
-
-### PROP-086 - Artifact-aware Proposal Readiness And Agent Interview Orchestration
-
-This refines the accepted direction of PROP-085. PROP-085 defines pluggable project verticals and readiness orchestration for project definition. This proposal applies the same principle to proposal collaboration itself: artifacts should be typed readiness inputs with explicit applicability, not passive optional files. The current weakness is not that every artifact must always be full; it is that the system does not force a visible distinction between not needed, not yet investigated, and missing but important.
-
-### PROP-087 - Agent Personality Model For Decision Mediation
-
-The owner defines personality as project interaction style: how an agent or mediator addresses the decision owner. The first implementation uses three independent 0-5 scales. technical_verbosity=0 avoids engine terms in owner-facing language while 5 reports technical operations in detail. formality=0 is very informal while 5 is detached and highly formal. assertiveness=0 preserves the current standard while 5 is highly persistent about unresolved gaps, evidence, order, and follow-up. The owner chose project-level defaults shared by all agents, no persisted presets, and CLI/MCP access under project interaction-style.
 
 ## Scope
 
@@ -4034,481 +4010,6 @@ The proposal should require implementation to preserve existing CLI/MCP
 contracts or introduce explicit deprecation behavior where compatibility cannot
 be preserved.
 
-### PROP-085 - Pluggable Project Verticals And Readiness Orchestration
-
-#### Goals
-
-- Define a generic vertical package model for project init and project review, including sections, detail packs, rubric criteria, maturity levels, questions, artifacts, examples, profiles, and optional modules.
-- Teach agents, through generated/local skills, to propose project capisaldi and focused refinement questions when the current project vertical or readiness information is weak, missing, or too generic.
-- Support core defaults, external/plugin registries, and project-local custom verticals without requiring P2P Engine to hardcode every possible domain.
-- Allow the same flow to run during interactive project init and later through an explicit project readiness review command.
-
-#### Non-Goals
-
-- Do not ship a large catalog of superficial verticals in the engine.
-- Do not require all verticals to be known at build time.
-- Do not replace owner governance: the agent proposes verticals, capisaldi, rubric extensions, and questions, but the owner decides.
-- Do not make regulated verticals such as medical or legal authoritative without explicit caution, provenance, and owner responsibility.
-
-#### Suggested Scope
-
-# Suggested Scope - PROP-085
-
-## MVP Scope
-
-- Define the vertical pack schema for pure data packs.
-- Ship `base_project` as the required common foundation, including its default
-  cross-domain structure.
-- Implement a loader and validator for internal and project-local vertical packs.
-- Add one complete demonstration vertical.
-- Extend project readiness review through `p2p project readiness review`.
-- Add CLI/MCP read/write surfaces for listing, showing, validating, proposing,
-  and adding project-local vertical packs.
-- Add project-level traceability between vertical sections/capisaldi and
-  proposals.
-- Update agent/project skills so the agent treats missing initialization,
-  capisaldi, and initial project questions as priority context work.
-- Reuse existing project rubrics and maturity/readiness artifacts.
-- Preserve backward compatibility for projects without vertical packs.
-
-## Required MVP Pack Fields
-
-- `vertical.yml` with id, name, version, description, and base/extends.
-- Project sections/capitoli/capisaldi.
-- Minimal completeness/readiness rubrics.
-- Initial blocking questions.
-- Expected or suggested artifacts.
-
-## `base_project` Default Structure
-
-`base_project` is not a domain vertical. It is the required cross-domain
-foundation that every project starts from and every vertical extends.
-
-Required default sections:
-
-- vision: why the project exists and what change it should create.
-- objective/outcome: concrete results the project must achieve.
-- owner and stakeholders: decision maker, contributors, affected parties.
-- target/users/beneficiaries: who receives value or impact.
-- scope and non-goals: boundaries and explicit exclusions.
-- constraints: budget, time, compliance, resources, technology, context.
-- assumptions: beliefs that must be true for the project to work.
-- risks: failure modes and mitigations.
-- decisions and open questions: unresolved owner choices.
-- milestones and next actions: staged path from definition to execution.
-- definition of done/readiness criteria: how the project becomes actionable.
-- expected artifacts: documents, specs, prototypes, reports, plans, or outputs.
-- maturity/readiness status: current completeness and next strengthening step.
-
-## Custom Vertical Candidate Procedure
-
-When no suitable vertical exists, the agent should:
-
-1. start from `base_project`;
-2. infer a candidate vertical id and name;
-3. propose vertical-specific sections/capisaldi;
-4. propose minimal readiness rubrics;
-5. propose initial blocking questions;
-6. propose expected artifacts;
-7. explain what came from `base_project` and what is vertical-specific;
-8. ask the owner to confirm or modify the candidate;
-9. save it as a project-local custom vertical only after confirmation;
-10. use it for `p2p project readiness review`.
-
-## Proposed CLI Surface
-
-The current system has project domains and rubrics, not pluggable vertical packs.
-This proposal should add a dedicated project vertical surface.
-
-Expected MVP commands:
-
-- `p2p project vertical list`
-- `p2p project vertical show <vertical-id>`
-- `p2p project vertical validate <path-or-id>`
-- `p2p project vertical propose "<project idea>"`
-- `p2p project vertical add <path>`
-- `p2p project readiness review`
-
-The commands should prefer project-local custom verticals, then internal defaults,
-then future registry sources once implemented.
-
-## Proposal-To-Vertical Traceability
-
-The project should not only know which vertical is active. It should also know
-which parts of the vertical are currently covered by proposals.
-
-Expected behavior:
-
-- A proposal can declare or be assessed against one or more vertical
-  sections/capisaldi.
-- `p2p project readiness review` should summarize the active vertical skeleton.
-- For each vertical section, the review should list relevant proposals,
-  accepted decisions, draft proposals, missing coverage, risks, and unresolved
-  questions.
-- The review should identify vertical sections with no proposal coverage.
-- The review should identify proposals that affect the project but are not
-  mapped to any vertical section.
-- The visible project output should be able to include a vertical coverage
-  summary.
-
-Suggested traceability fields:
-
-```yaml
-vertical_coverage:
-  vertical_id: social_impact_program_design
-  sections:
-    - id: theory_of_change
-      relevance: direct
-      rationale: Defines how initiatives create measurable impact.
-    - id: measurement_and_reporting
-      relevance: direct
-      rationale: Adds outcome metrics and reporting requirements.
-```
-
-Suggested project-level summary:
-
-```yaml
-vertical_summary:
-  vertical_id: social_impact_program_design
-  sections:
-    - id: social_impact_vision
-      status: covered
-      proposals: [PROP-101]
-    - id: theory_of_change
-      status: partial
-      proposals: [PROP-102]
-      gaps: [missing_assumptions]
-    - id: measurement_and_reporting
-      status: missing
-      proposals: []
-```
-
-## Example Custom Vertical Candidate: `packaging_or_physical_product_design`
-
-Example project: "progettare la scatola perfetta".
-
-Purpose:
-
-- Guide the design of a box or packaging solution from concept to testable and
-  manufacturable specification.
-
-Candidate sections:
-
-- contained product and use case;
-- meaning of "perfect" for the project;
-- user and unboxing experience;
-- physical structure and dimensions;
-- materials and sustainability;
-- protection, transport, and storage;
-- brand/visual communication;
-- production process and suppliers;
-- cost targets;
-- prototype plan;
-- resistance/usability tests;
-- final packaging specification.
-
-Candidate blocking questions:
-
-- What must the box contain?
-- Does "perfect" mean beautiful, resistant, cheap, sustainable, memorable, or a
-  weighted combination?
-- Is the main context shipping, retail shelf, gift, luxury, e-commerce, or reuse?
-- Which cost, material, size, logistics, and production constraints are fixed?
-
-Candidate artifacts:
-
-- packaging brief;
-- requirement matrix;
-- material shortlist;
-- dieline/structural sketch;
-- prototype plan;
-- test checklist;
-- supplier/manufacturing brief.
-
-## Example Custom Vertical Candidate: `social_impact_program_design`
-
-Example project: "progettare attività volte a migliorare l'impatto sociale di
-una banca".
-
-Purpose:
-
-- Guide a bank or financial institution in designing social impact initiatives
-  that are measurable, governed, credible, and connected to stakeholder needs.
-
-Candidate sections:
-
-- social impact vision;
-- theory of change;
-- beneficiary communities;
-- impact areas;
-- financial inclusion;
-- financial education;
-- partnerships and territory;
-- ESG/social impact alignment;
-- governance and accountability;
-- budget and sustainability;
-- measurement and reporting;
-- responsible communication;
-- program roadmap.
-
-Candidate blocking questions:
-
-- Which community or population should benefit?
-- Is the desired impact about financial inclusion, education, credit access,
-  territory, environment, work, or another area?
-- Should the bank fund external initiatives, change internal products/processes,
-  or both?
-- How will real impact be measured and how will social-washing be avoided?
-
-Candidate artifacts:
-
-- social impact strategy brief;
-- stakeholder map;
-- theory of change;
-- initiative portfolio;
-- outcome metric framework;
-- partner brief;
-- governance model;
-- impact reporting plan.
-
-## Optional MVP Pack Fields
-
-- Examples.
-- Profiles.
-- Compatible modules.
-- Rich output templates.
-
-## Out Of Scope For First Slice
-
-- Remote registry implementation.
-- Executable plugin code for verticals.
-- A large catalog of verticals.
-- The full five-vertical MVP set.
-- Publishing project-local custom verticals to a shared registry.
-- Replacing project rubrics or project maturity with a parallel system.
-
-## Follow-Up Scope
-
-- Design the REST registry API for listing packs and fetching pack details.
-- Add the five-vertical MVP set once the pack model is proven.
-- Add richer profiles/modules/templates after the minimal pack schema is stable.
-
-## Vertical Catalog Roadmap
-
-The first implementation slice remains intentionally smaller than the later
-catalog MVP. It proves the model with `base_project`, one complete demonstration
-vertical, loader/validator behavior, project-local overrides, agent guidance, and
-`p2p project readiness review`.
-
-After that first slice, the recommended catalog MVP is:
-
-- `base_project`
-- `software_product`
-- `ai_agent_or_automation`
-- `startup_or_business`
-- `research_report`
-- `board_game_design`
-
-The recommended V1 default catalog is:
-
-- `base_project`
-- `software_product`
-- `ai_agent_or_automation`
-- `startup_or_business`
-- `research_report`
-- `course_or_training_program`
-- `marketing_or_launch_campaign`
-- `physical_product`
-- `event_or_community`
-- `board_game_design`
-
-Domains such as podcast, newsletter, book, video game, documentary, e-commerce,
-grant proposal, nonprofit, hiring process, and open source community should move
-to registry/project-local packs rather than the initial core catalog.
-
-## Vertical Admission Criteria
-
-A vertical should enter the default catalog only if it:
-
-1. has a clear project structure;
-2. produces concrete artifacts;
-3. benefits from interview mode;
-4. has verifiable maturity/readiness criteria;
-5. is common enough to justify maintenance;
-6. does not require risky regulated expertise as its core value;
-7. reuses cross-domain sections or modules;
-8. is maintainable by the project team;
-9. demonstrates a distinct capability of the engine;
-10. can include high-quality examples.
-
-## Vertical Profiles And Modules
-
-Profiles specialize a vertical without creating another vertical. Examples:
-
-- `board_game_design`: `early_concept`, `playable_prototype`,
-  `publisher_pitch`, `crowdfunding_ready`, `educational_game`,
-  `print_and_play`.
-- `software_product`: `idea_to_mvp`, `internal_tool`, `saas_product`,
-  `open_source_tool`, `enterprise_integration`.
-- `research_report`: `quick_brief`, `deep_research`,
-  `competitive_benchmark`, `decision_memo`, `literature_review`.
-- `course_or_training_program`: `short_workshop`, `online_course`,
-  `corporate_training`, `bootcamp`, `self_paced_program`.
-
-Modules add cross-cutting concerns and can attach to multiple verticals.
-Recommended module candidates:
-
-- `go_to_market`
-- `risk_management`
-- `roadmap`
-- `stakeholder_alignment`
-- `accessibility`
-- `security_privacy`
-- `production_feasibility`
-- `crowdfunding`
-- `education`
-- `community_building`
-- `monetization`
-
-## Suggested Package Layout
-
-Internal default resources should be shaped so they can later be backed by a
-registry without changing project-local semantics:
-
-```text
-p2p/verticals/
-  base_project/
-    vertical.yml
-    sections/
-    rubrics.yml
-    artifacts/
-  software_product/
-    vertical.yml
-    profiles/
-    sections/
-    rubrics.yml
-    artifacts/
-    examples/
-  ai_agent_or_automation/
-    vertical.yml
-    profiles/
-    sections/
-    rubrics.yml
-    artifacts/
-    examples/
-  startup_or_business/
-    vertical.yml
-    profiles/
-    sections/
-    rubrics.yml
-    artifacts/
-    examples/
-  research_report/
-    vertical.yml
-    profiles/
-    sections/
-    rubrics.yml
-    artifacts/
-    examples/
-  board_game_design/
-    vertical.yml
-    profiles/
-    sections/
-    rubrics.yml
-    artifacts/
-    examples/
-
-p2p/modules/
-  go_to_market/
-  crowdfunding/
-  production_feasibility/
-  accessibility/
-  security_privacy/
-  compliance/
-  education/
-  community_building/
-  monetization/
-```
-
-### PROP-086 - Artifact-aware Proposal Readiness And Agent Interview Orchestration
-
-#### Goals
-
-- Make proposal artifact expectations explicit and visible to agents.
-- Prevent important proposal artifacts from staying empty by default when they are applicable.
-- Keep lightweight proposals lightweight by allowing non-applicable artifacts to be skipped with an explicit reason.
-- Guide agents to ask one focused owner question at a time when artifact gaps block maturity.
-- Preserve owner control: agents may ask, draft, identify gaps, and recommend next steps, but do not decide acceptance.
-
-#### Non-Goals
-
-- Do not require every proposal artifact to be fully populated for every proposal.
-- Do not replace the existing readiness engine or create a parallel proposal lifecycle.
-- Do not retroactively rewrite accepted proposals.
-- Do not make agents perform broad unmanaged scans of .p2p or source code to satisfy artifact checks.
-
-#### Suggested Scope
-
-# Suggested Scope - PROP-086
-
-Not suggested yet.
-
-### PROP-087 - Agent Personality Model For Decision Mediation
-
-#### Goals
-
-- Define a durable project-level interaction-style model for agent mediation with the decision owner.
-- Persist three explicit independent scales: technical_verbosity, formality, and assertiveness.
-- Provide stable defaults: technical_verbosity=2, formality=2, assertiveness=0.
-- Expose read/update behavior through public project interaction-style CLI commands and matching MCP tools.
-- Update generated agent instructions and project/local skills so agents know how to inspect and update style through CLI/MCP only.
-
-#### Non-Goals
-
-- Do not let personality change governance authority, readiness scores, validation, permissions, facts, or audit evidence.
-- Do not introduce open-ended persona prose or persisted named presets as the primary configuration model.
-- Do not implement per-agent or runtime/session style overrides in the first slice.
-- Do not require migration or manual completion for existing projects.
-
-#### Suggested Scope
-
-# Suggested Scope - PROP-087
-
-## In Scope
-
-- Project-level `interaction_style` configuration.
-- Three validated integer fields:
-  - `technical_verbosity` from 0 to 5.
-  - `formality` from 0 to 5.
-  - `assertiveness` from 0 to 5.
-- Defaults:
-  - `technical_verbosity: 2`
-  - `formality: 2`
-  - `assertiveness: 0`
-- CLI namespace: `p2p project interaction-style`.
-- MCP tools for status/read and write-safe update.
-- Generated agent instruction updates.
-- Project/local skill updates explaining how to inspect and update style.
-- Backward-compatible fallback when no style is configured.
-
-## Out Of Scope
-
-- Persisted named presets.
-- Per-agent style overrides.
-- Runtime/session style overrides.
-- Any change to governance authority, validation truth, readiness scoring,
-  permission gates, or audit behavior.
-
-## Suggested CLI Shape
-
-```text
-p2p project interaction-style show
-p2p project interaction-style set --technical-verbosity 2 --formality 2 --assertiveness 0
-```
-
-The exact command spelling can still be refined during implementation specs,
-but the namespace should remain project-scoped.
-
 ## Accepted Proposals And Decisions
 
 - PROP-001 - — CLI Foundation
@@ -4741,19 +4242,10 @@ but the namespace should remain project-scoped.
   - decision_reason: Owner requested MCP and skill alignment for the newly implemented managed next-action lifecycle.
 - PROP-082 - Readiness Assessment Refresh And Review Workflow
   - source: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow
-  - decision_reason: Owner confirms the refined second-slice direction for artifact-aware proposal questions, stepped readiness-driven agent assertiveness, evidence-aware readiness recalculation, and proactive low-readiness interview behavior.
+  - decision_reason: Accepted with explicit readiness override. The computed readiness remains weak because the current refresh workflow is conservative and cannot yet perform the evidence-aware review and interview behavior this proposal introduces. The proposal is accepted as the direction for implementing first-class proposal question memory, proactive agent guidance, qualitative readiness review, refresh guidance, duplicate/aggregation handling, and backward-compatible CLI behavior.
 - PROP-083 - Domain-Aware Visible Project Definition Export
   - source: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export
   - decision_reason: Owner accepts the domain-aware visible project definition export. Readiness has no missing gaps after refinement, but computed score remains partial because the current readiness profile is conservative and keeps confidence low for artifact-derived assessments.
-- PROP-085 - Pluggable Project Verticals And Readiness Orchestration
-  - source: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration
-  - decision_reason: Accepted by owner after readiness reached decision_ready. The proposal defines pluggable pure-data project verticals, base_project, custom vertical candidate flow, project readiness review, and proposal-to-vertical traceability while preserving backward compatibility.
-- PROP-086 - Artifact-aware Proposal Readiness And Agent Interview Orchestration
-  - source: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration
-  - decision_reason: Accepted by owner as an explicit readiness override. The current default-readiness-v0.1 score remains weak because it is not artifact-aware, but the owner accepts the refined direction: introduce a dedicated artifact-specific CLI/MCP primitive, graduated-by-risk artifact requirements, default coverage for new proposals, advisory absent_legacy handling for old proposals, strict CLI/MCP-only memory mutation, and tests for readiness/context/MCP/missing-primitive behavior.
-- PROP-087 - Agent Personality Model For Decision Mediation
-  - source: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation
-  - decision_reason: Accepted by owner. The proposal is decision-ready and defines a project-level interaction_style model with three explicit scales, defaults, CLI/MCP surfaces, generated instruction updates, and no persisted presets.
 
 ## Requirements And Acceptance
 
@@ -5288,13 +4780,18 @@ but the namespace should remain project-scoped.
 
 ### PROP-082 - Readiness Assessment Refresh And Review Workflow
 
-- Readiness review generates or updates questions that seek coverage across the full proposal artifact set, not only missing readiness criterion names.
-- Question answers can be mapped to multiple affected artifacts, and apply behavior reports which artifacts should be updated or why no update is needed.
-- Agent guidance defines stepped assertiveness from readiness score, label, failed gates, confidence, missing evidence, and question state rather than a standalone pedantry index.
-- When readiness is weak, low-confidence, or gate-blocked, agent guidance requires the agent to initialize/update questions, ask the next focused question, record the answer, apply it, and recalculate readiness.
-- Muted and deferred question or group states reduce re-asking by default while still allowing the owner to explicitly revisit them to increase readiness.
-- Readiness recalculation after artifact refinement updates missing criteria, failed gates, confidence, suggested next actions, and acceptance cautions using current artifact evidence.
-- Existing owner authority remains intact: agents may challenge, recommend, and prepare artifact updates, but cannot accept, reject, defer, merge, or aggregate proposals without owner-controlled governance actions.
+- PROP-082 explicitly distinguishes information completeness from agent behavioral guidance.
+- Readiness review can record evidence, scores, confidence, missing items, failed gates, unresolved owner questions, suggested next actions, reviewer or actor, assessment source, and audit notes without overwriting owner governance decisions.
+- The proposal defines a first-class deterministic clarification interview memory with stable question IDs, empty initial answers, answer state, readiness-gap linkage, grouping, re-ask state, audit metadata, and applied-to-proposal status.
+- The proposal defines production-ready CLI commands for question init/status/list/add/answer/defer/mute/reopen/next/reassess/apply/import, or equivalent commands that cover the same lifecycle.
+- The proposal defines question and group states including to_answer, defer, muted, answered, applied, retired, and superseded, with deterministic behavior for whether the agent should ask, skip for now, or skip by default.
+- The proposal defines behavioral guidance outputs that instruct agents to ask one focused owner question at a time, record answers, reassess the question list after each answer, flag thin artifacts, request alternatives, demand tradeoff analysis, detect mergeable proposals, and avoid premature acceptance recommendations.
+- The workflow allows completed interview answers to be used to refine proposal sections through supported CLI tools, followed by readiness refresh and gap explanation.
+- The proposal covers duplicate/overlap detection and owner-controlled aggregation of similar proposals, including transfer of useful content and an explicit merged-into or closed-for-aggregation trace.
+- The proposal preserves conservative refresh as separate from evidence-aware assess or review.
+- The proposal states that owner override changes effective governance readiness only and does not falsify computed readiness.
+- The proposal preserves backward compatibility when question state is absent and requires CLI commands to handle missing question files gracefully.
+- The proposal clarifies the boundary between proposal-level readiness and project-level assessment or maturity.
 
 ### PROP-083 - Domain-Aware Visible Project Definition Export
 
@@ -5305,45 +4802,6 @@ but the namespace should remain project-scoped.
 - Software-specific exports such as software-spec, OpenSpec, or Spec Kit are represented as nested export profiles, not as the default output shape.
 - Existing .p2p/outputs behavior is inventoried and either preserved, mirrored, deprecated, or migrated through an explicit compatibility path before any removal.
 - Generated outputs clearly indicate that .p2p remains the managed source of truth and outputs/ contains generated human-facing artifacts.
-
-### PROP-085 - Pluggable Project Verticals And Readiness Orchestration
-
-- A pure-data vertical pack schema is defined and validated, with required fields for vertical metadata, sections/capisaldi, minimal readiness rubrics, blocking questions, and expected artifacts.
-- base_project is available as the universal fallback and existing projects without vertical packs continue to work with current project rubrics and maturity/readiness behavior.
-- Default MVP vertical packs are loaded from internal package/project resources, while project-local custom packs can override or extend them.
-- A project readiness review command, p2p project readiness review, reads vertical packs, project-local custom packs, existing rubrics/maturity state, and project context to identify missing capisaldi and generate prioritized project questions.
-- Project readiness review produces a vertical skeleton summary that maps vertical sections/capisaldi to relevant proposals, accepted decisions, gaps, risks, and unmapped proposals.
-- Generated agent/project instructions explain that missing initialization, capisaldi, or initial project questions are priority context work and guide the agent to propose, confirm, and refine project-local custom verticals.
-- The first implementation slice includes one complete demonstration vertical and does not require the later five-vertical set, remote registry, or executable plugin verticals.
-- The design remains registry-ready by keeping pack identity/version metadata and a loader boundary that can later support REST list/detail endpoints without changing project-local pack semantics.
-
-### PROP-086 - Artifact-aware Proposal Readiness And Agent Interview Orchestration
-
-- Proposal artifact state has a dedicated public CLI and/or MCP primitive for initializing, showing, and setting artifact expectation, status, rationale, actor/source, risk flags, and legacy absence.
-- Artifact lifecycle supports at least unknown, missing, weak, satisfied, deferred, not_applicable, and absent_legacy, with clear scoring and context semantics for each state.
-- Proposal readiness consumes artifact state and exposes coverage by artifact type, including whether each artifact is satisfied, weak, missing, optional, deferred, not applicable, unknown, or legacy-absent.
-- The default artifact policy is graduated by risk: proposal.md, readiness.yml, and open-questions.md are always required; clarifications.md, findings.md, exploration.md, and impact-map.yml are required when applicable; findings.md and impact-map.yml become auto-required for governance, policy, architecture, compatibility, CLI, MCP, storage, persistent-state, permission, remote-sync, source-of-truth, agent-memory, or core workflow changes.
-- Risk trigger detection is deterministic enough for agents and readiness: high uncertainty, multiple credible alternatives, cross-module impact, public interface changes, persistent state changes, compatibility/migration impact, permission/security/sync concerns, or evidence-dependent claims raise artifact expectations rather than relying on ad hoc agent judgment.
-- Artifact-aware readiness is the default for newly created proposals.
-- Existing proposals without artifact-aware state are marked or reported as absent_legacy through P2P CLI/MCP state, with advisory gaps or migration recommendations only; validation does not error, proposal decisions are not blocked, and manual retroactive completion is not required.
-- Agents may propose artifact status, but owner authority remains explicit: not_applicable or deferred states for always-required or auto-required artifacts are visible to the owner and cannot be silently treated as equivalent to satisfied.
-- Compact proposal context surfaces applicable empty artifacts as next-step gaps instead of hiding them behind the main proposal summary, and shows not-applicable, deferred, unknown, and absent_legacy reasons when present.
-- Agent instructions include a pre-acceptance artifact review workflow that shows artifact coverage, asks focused owner questions one at a time, avoids fake artifact filling, and refuses direct managed-file edits when no public primitive exists.
-- All P2P memory mutations for artifacts go through p2p CLI commands or explicit write-safe MCP tools backed by the P2P engine write path; direct .p2p edits, copying temporary files into artifacts, and reverse-engineered filesystem writes are out of scope and forbidden.
-- Tests or documented scenarios cover simple new proposals, risk-triggered proposals, legacy absent state, not_applicable rationale, deferred owner visibility, readiness/context integration, MCP write-safe behavior, and missing-primitive refusal.
-
-### PROP-087 - Agent Personality Model For Decision Mediation
-
-- Project-level interaction_style is stored as the first implementation scope with no per-agent or session override in the first slice.
-- The model validates technical_verbosity, formality, and assertiveness as integers from 0 to 5.
-- Missing interaction_style configuration falls back to technical_verbosity=2, formality=2, and assertiveness=0 without breaking existing projects.
-- Users and agents can read the project interaction style through a public CLI command under project interaction-style.
-- Users and agents can update the project interaction style through a public CLI command under project interaction-style with validation and actionable errors.
-- MCP exposes explicit read-only and write-safe tools for project interaction style status and update operations.
-- Generated agent instructions and project/local skills explain how to inspect and update interaction style through CLI/MCP and prohibit direct .p2p edits for this state.
-- Rendered agent guidance translates numeric values into concrete communication behavior for technical verbosity, formality, and assertiveness.
-- Persisted named presets are not introduced; scales remain the source of truth and any labels are non-authoritative help text only.
-- Tests cover defaults, validation bounds, CLI show/set, MCP status/update, generated instruction text, missing-config fallback, and no-direct-write guidance.
 
 ## Alternatives And Tradeoffs
 
@@ -7640,61 +7098,7 @@ findings: []
 
 # Alternatives - PROP-082
 
-## Preferred: artifact-covering interview plus stepped assertiveness
-
-The readiness workflow should generate questions across the whole proposal
-artifact set, not only against the missing numeric readiness criteria. Questions
-should cover the proposal text and all supporting artifacts that make the
-proposal approvable: problem, goals, non-goals, proposal direction, acceptance
-criteria, exploration findings, alternatives, tradeoffs, risks, assumptions,
-open questions, impact/overlap, readiness evidence, and duplicate/aggregation
-candidates.
-
-Answers should be applied back into every useful affected artifact through
-available CLI primitives. A single answer may update proposal text, risks,
-assumptions, alternatives, open questions, readiness evidence, or impact
-artifacts when those artifacts are involved.
-
-Agent assertiveness should be derived from readiness level through a stepped
-policy. The lower the readiness, the more the agent must challenge, ask, and
-refuse to recommend acceptance. As readiness approaches the target, the agent
-should become less intrusive and focus on residual risks or confirmation.
-
-## Alternative: readiness criteria only
-
-The system could generate questions only for missing readiness criteria such as
-`risk_coverage` or `alternatives_quality`.
-
-This is insufficient because readiness criteria are a scoring projection, not
-the full proposal memory. A proposal can have a missing or stale supporting
-artifact even when a criterion label appears covered.
-
-## Alternative: fixed pedantry index
-
-The system could add a dedicated numeric pedantry or assertiveness index.
-
-This is not preferred for the MVP. It introduces another score to calibrate and
-explain, while readiness score, failed gates, confidence, missing artifacts, and
-question state already provide enough signals to choose agent behavior.
-
-## Alternative: owner-only stop signal
-
-The system could always keep asking until readiness reaches 100 unless the owner
-explicitly stops the flow.
-
-This is too aggressive for near-complete proposals. The better behavior is a
-stepped policy plus question/group states. The owner can still stop, defer, mute,
-or accept with override, but the agent behavior should be proportionate to the
-remaining readiness gap.
-
-## Alternative: chat-only application of answers
-
-The agent could ask questions and summarize answers in chat without updating
-proposal artifacts.
-
-This is rejected. Readiness and future agents need durable project memory.
-Answers must be written back into affected artifacts through public CLI/MCP
-write primitives.
+None identified yet.
 
 #### findings.md
 
@@ -7721,45 +7125,11 @@ synchronizing a snapshot or changing analytical readiness.
 ## F003 - Owner Override Is Not A Substitute For Assessment
 
 Owner override is appropriate when the owner intentionally accepts below target
-readiness. It is not the right mechanism for saying that the computed assessment
-is stale.
+readiness. It is not the right mechanism for saying that the computed
+assessment is stale.
 
 Impact:
 The model needs assessment review in addition to override.
-
-## F004 - Questions Must Cover Proposal Artifacts, Not Only Scores
-
-Readiness criteria are useful, but the proposal is made of multiple artifacts.
-Questions should inspect and cover all artifacts that make the proposal robust:
-proposal text, exploration, findings, alternatives, risks, assumptions, open
-questions, impact, readiness, and duplicate/aggregation evidence.
-
-Impact:
-Question generation should be artifact-aware and able to create questions for
-stale, missing, placeholder, contradictory, or thin artifacts even if the
-readiness criterion name is not itself missing.
-
-## F005 - Applying Answers Must Update All Affected Artifacts
-
-Recording an answer in question memory is not enough. The system must help the
-agent propagate answers into the proposal artifacts involved by the answer.
-
-Impact:
-`questions apply` or the surrounding agent workflow should produce an
-artifact-update plan and use available CLI import/update primitives to update
-proposal text, exploration artifacts, impact artifacts, readiness evidence, and
-open questions when affected.
-
-## F006 - Pedantry Can Be A Stepped Behavior, Not A New Score
-
-A dedicated pedantry index would add calibration complexity. Readiness bands,
-failed gates, confidence, missing criteria, and question state already provide
-strong behavior signals.
-
-Impact:
-Agent guidance should define stepped assertiveness: high when readiness is low,
-focused when readiness is partial, residual when near target, and quiet for
-muted/deferred areas unless the owner explicitly reopens them.
 
 ### PROP-083 - Domain-Aware Visible Project Definition Export
 
@@ -7882,269 +7252,6 @@ Treating `.p2p/outputs` as a compatibility surface slows down cleanup, but
 prevents breaking existing CLI, MCP, tests, or scripts that may rely on current
 paths. The implementation should inventory current usage first, then choose
 mirroring, deprecation, migration, or removal deliberately.
-
-### PROP-085 - Pluggable Project Verticals And Readiness Orchestration
-
-#### alternatives.md
-
-# Alternatives - PROP-085
-
-## Preferred: Pure Data Vertical Packs
-
-Use `.yaml` and/or `.md` files to define vertical metadata, sections, rubrics,
-blocking questions, and expected artifacts. The engine loads and validates these
-packs, and the agent uses them to guide project initialization and readiness
-review.
-
-Benefits:
-- inspectable by humans;
-- easy to version and test;
-- compatible with project-local customization;
-- safer than executable plugins;
-- extensible toward a future registry.
-
-Costs:
-- limited to declarative behavior in the MVP;
-- requires a well-defined schema and validation errors;
-- agent instructions must be strong enough to interpret the data proactively.
-
-## Alternative: Executable Plugin Verticals
-
-Model each vertical as installable plugin code.
-
-Benefits:
-- maximum flexibility;
-- vertical-specific logic can be arbitrarily rich.
-
-Costs:
-- larger security and compatibility surface;
-- harder governance and review;
-- more difficult packaging and upgrade story;
-- too heavy for the MVP.
-
-## Alternative: Hardcoded Core Verticals
-
-Ship many verticals directly in P2P Engine procedural code.
-
-Benefits:
-- deterministic behavior;
-- simple runtime dependency model.
-
-Costs:
-- does not scale to many domains;
-- expensive to maintain;
-- encourages superficial verticals;
-- makes project-local extension awkward.
-
-## Alternative: Generic `base_project` Only
-
-Use only generic project readiness rubrics and avoid vertical-specific packs.
-
-Benefits:
-- simplest implementation;
-- no vertical quality problem.
-
-Costs:
-- too generic for real project guidance;
-- weak support for domain-specific capisaldi;
-- agent has little structured context for proactive interviewing.
-
-## Decision
-
-The MVP should use pure data vertical packs, with `base_project` as fallback,
-one complete demonstration vertical, and project-local custom packs. Executable
-plugins and remote registries remain future extensions.
-
-#### findings.md
-
-# Findings - PROP-085
-
-- Vertical specificity is necessary for useful project readiness. Without
-  domain-specific sections, questions, and artifacts, P2P can only provide
-  generic project hygiene and risks feeling banal.
-- Full domain coverage inside the core engine is not viable. Creating and
-  maintaining every possible vertical would be costly and would lower quality.
-- Pure data packs are the right MVP boundary. They are inspectable, testable,
-  versionable, and safer than executable plugin code.
-- `base_project` should be the universal fallback and extension point. It
-  provides common project sections while leaving room for vertical-specific
-  specialization.
-- The agent must be the proactive orchestrator. The CLI can persist state and
-  run deterministic commands, but the agent must recognize weak initialization,
-  propose capisaldi, ask owner questions, and return to deferred foundational
-  project work when readiness is weak.
-- Existing project rubrics and maturity/readiness should be reused. Vertical
-  packs should feed structured evidence into the current system, not create a
-  parallel maturity engine.
-- Registry support should be deferred. The MVP should keep default packs internal
-  and project-local overrides possible, while keeping the data model compatible
-  with a future REST registry.
-- The proposal must define `base_project`, not only the vertical mechanism.
-  Without a concrete default structure, fallback behavior remains too abstract.
-- Current P2P Engine code has project domains and project rubrics, but does not
-  yet have pluggable vertical pack commands. The feature should add a dedicated
-  `p2p project vertical ...` CLI surface for list/show/validate/propose/add.
-- Example custom vertical candidates are useful as reference fixtures because
-  they prove the model can adapt to unrelated domains without hardcoding every
-  possible vertical.
-- The long-term default catalog should be explicit, but not all of it belongs in
-  the first implementation slice. The first slice proves the mechanism with
-  `base_project` and one demonstration vertical; the next catalog milestone is
-  `base_project` plus five verticals; the V1 default catalog is `base_project`
-  plus roughly nine high-quality verticals.
-- Profiles and modules reduce vertical proliferation. A profile specializes a
-  vertical, while a module adds a cross-cutting concern such as security,
-  accessibility, go-to-market, crowdfunding, education, or community building.
-- Vertical packs become more useful when proposals are traceable to vertical
-  sections/capisaldi. The project should be able to summarize the active
-  vertical skeleton and show which proposals cover each point, which points are
-  missing, and which proposals are unmapped.
-
-## Tradeoffs
-
-- Internal default packs improve reliability and testing, but reduce immediate
-  ecosystem extensibility.
-- Project-local custom packs make the system flexible, but require validation
-  and agent guidance to avoid low-quality or inconsistent packs.
-- A single demonstration vertical keeps scope controllable, but it must be
-  complete enough to prove that the pack model works end to end.
-- Deferring executable plugins limits advanced behavior, but avoids security,
-  compatibility, and governance complexity in the MVP.
-- Adding a vertical CLI surface increases implementation scope, but makes the
-  model understandable and operational for agents and users.
-- Naming the catalog roadmap makes future scope clearer, but the proposal must
-  keep the first slice narrow enough to implement and validate.
-- Proposal-to-vertical traceability adds modeling work, but it prevents the
-  vertical from becoming a static template detached from governance decisions.
-
-### PROP-086 - Artifact-aware Proposal Readiness And Agent Interview Orchestration
-
-#### alternatives.md
-
-# Alternatives - PROP-086
-
-None identified yet.
-
-#### findings.md
-
-findings: []
-
-### PROP-087 - Agent Personality Model For Decision Mediation
-
-#### alternatives.md
-
-# Alternatives - PROP-087
-
-## A. Project-Level Interaction Style
-
-Store one `interaction_style` for the project.
-
-Pros:
-
-- Consistent experience for the decision owner.
-- Simple schema and validation.
-- Good default for generated project instructions.
-- Easy to expose via `p2p project interaction-style`.
-
-Cons:
-
-- Less flexible for different agent surfaces.
-- Requires a future extension if an owner wants agent-specific style.
-
-Status: selected for the first implementation.
-
-## B. Per-Agent Interaction Style
-
-Store one style per agent profile.
-
-Pros:
-
-- Different clients can have different interaction contracts.
-- Useful if one agent is used as a technical operator and another as a mediator.
-
-Cons:
-
-- More configuration paths.
-- Higher risk of inconsistent owner experience.
-- More generated instruction variants.
-
-Status: deferred.
-
-## C. Runtime Or Session Override
-
-Allow temporary style changes for one session or command.
-
-Pros:
-
-- Flexible for debugging, demos, or exceptional conversations.
-- Could let the owner temporarily raise or lower assertiveness.
-
-Cons:
-
-- Harder to persist and audit.
-- Weak fit for remote MCP unless exposed through explicit stateful primitives.
-- Can make behavior unpredictable across sessions.
-
-Status: deferred.
-
-## D. Named Presets
-
-Persist named combinations of scale values.
-
-Pros:
-
-- Easy to choose at first.
-- Friendly for non-technical setup.
-
-Cons:
-
-- Does not scale with three or more dimensions.
-- Creates another abstraction layer to explain and maintain.
-- Can hide the actual values that drive behavior.
-
-Status: rejected for persisted configuration.
-
-#### findings.md
-
-# Findings - PROP-087
-
-## Key Findings
-
-- Interaction style should be a project property in the first implementation,
-  not an agent-specific property.
-- The model should persist numeric scale values, not prose personas.
-- The first-slice defaults are:
-  - `technical_verbosity: 2`
-  - `formality: 2`
-  - `assertiveness: 0`
-- `assertiveness` is a separate behavioral dimension. It should not be encoded
-  through formality or technical verbosity.
-- The public command surface should use `project interaction-style`.
-- MCP tools must mirror the CLI boundary with explicit read-only and write-safe
-  operations.
-- Generated agent instructions and project/local skills must teach agents how
-  to inspect and update interaction style through CLI/MCP only.
-- Existing projects must work without configured interaction style by falling
-  back to the defaults.
-
-## Implementation Findings
-
-- A compact, versioned configuration record is preferable to prompt-only
-  instructions because it is inspectable, validated, and reusable by CLI, MCP,
-  generated instructions, and future UIs.
-- The behavior should be rendered into instructions through deterministic text
-  mapping. The persisted values remain the source of truth.
-- Direct `.p2p` edits must stay out of the workflow. If a future surface needs
-  to change interaction style remotely, it must use explicit MCP tools.
-
-## Risk Findings
-
-- If `assertiveness` is too high by default, the agent may block normal owner
-  flow. Keeping the default at `0` preserves current behavior.
-- If `technical_verbosity` is too low, the owner may lose operational
-  transparency. Diagnostics and audit evidence must remain available.
-- If labels/presets become the source of truth, the model becomes hard to scale
-  when additional dimensions are added.
 
 ## Risks
 
@@ -9234,59 +8341,7 @@ None identified yet.
 
 # Risks - PROP-082
 
-## Agent becomes annoying instead of useful
-
-If assertiveness is too high after the proposal is already nearly complete, the
-owner may experience the agent as obstructive.
-
-Mitigation: use a stepped behavior tied to readiness bands, failed gates,
-confidence, and question state. Near target readiness, the agent should ask only
-high-value residual questions.
-
-## Agent stays passive when readiness is low
-
-If the skill only reports gaps and does not require next-question behavior, the
-agent may summarize problems without driving the interview.
-
-Mitigation: when readiness is low or blocked, agent guidance must require the
-agent to initialize/update question memory, select the highest-impact next
-question, ask one question at a time, and record answers.
-
-## Questions cover only score gaps, not real artifacts
-
-Generated questions may overfit the readiness criterion names and miss stale
-supporting artifacts.
-
-Mitigation: the question generator must inspect and cover the whole proposal
-artifact set: proposal.md, exploration artifacts, impact artifacts, readiness,
-questions, and duplicate/aggregation evidence.
-
-## Answers remain disconnected from proposal state
-
-Owner answers can be recorded in `questions.yml` but never applied to the
-proposal artifacts that should change.
-
-Mitigation: answer application must identify affected artifacts and update all
-useful artifacts through available CLI import/update commands. Applied state
-should mean that the answer has been propagated, not merely recorded.
-
-## Readiness stays stale after refinement
-
-The system may update artifacts but leave readiness score, missing criteria, or
-confidence unchanged.
-
-Mitigation: after applying answers or importing refined artifacts, the workflow
-must recompute readiness through the evidence-aware reassessment path and report
-remaining gaps. `refresh` should not masquerade as reassessment if it is only
-snapshot synchronization.
-
-## Owner control is bypassed
-
-An aggressive agent may treat readiness improvement as authorization to accept,
-merge, close, or aggregate proposals.
-
-Mitigation: agent behavior may recommend and prepare, but owner-controlled
-governance actions remain explicit decisions.
+None identified yet.
 
 ### PROP-083 - Domain-Aware Visible Project Definition Export
 
@@ -9357,117 +8412,6 @@ compatibility for existing commands or tests.
 Mitigation: do not delete legacy outputs as part of the proposal itself. The
 implementation should verify dependencies and decide whether to mirror, migrate,
 deprecate, or remove them in a controlled code change.
-
-### PROP-085 - Pluggable Project Verticals And Readiness Orchestration
-
-#### risks.md
-
-# Risks - PROP-085
-
-## Genericity Risk
-
-If P2P Engine lacks vertical-specific structure, project readiness becomes too
-generic. The system may check basic project hygiene but fail to guide the owner
-toward domain-specific capisaldi, artifacts, and decisions.
-
-Mitigation:
-- require `base_project` plus at least one complete demonstration vertical;
-- make project readiness review identify missing vertical coverage;
-- instruct the agent to propose custom verticals when no suitable pack exists.
-
-## Catalog Explosion Risk
-
-Trying to create every possible vertical inside the core engine is not realistic.
-It would be expensive, hard to maintain, and likely produce many shallow packs.
-
-Mitigation:
-- keep the default set small and high quality;
-- support project-local custom packs;
-- defer broad domain coverage to future registry/plugin data packs.
-
-## Low-Quality Custom Pack Risk
-
-Project-local custom verticals may be incomplete, inconsistent, or too tailored
-to one conversation.
-
-Mitigation:
-- validate required fields;
-- require sections/capisaldi, minimal rubrics, blocking questions, and expected
-  artifacts;
-- have the agent present the generated pack to the owner for confirmation before
-  using it.
-
-## Parallel Maturity System Risk
-
-Vertical packs could accidentally create a second maturity/readiness model.
-
-Mitigation:
-- vertical packs must feed existing project rubrics and maturity/readiness;
-- `p2p project readiness review` should reuse current assessment artifacts.
-
-## Registry Prematurity Risk
-
-Implementing a remote registry too early would add API, versioning, trust, and
-distribution concerns before the local model is proven.
-
-Mitigation:
-- keep the MVP internal/project-local;
-- design the schema to be registry-ready without implementing registry behavior.
-
-## Agent Passivity Risk
-
-If agent instructions are weak, the CLI may have valid pack data but agents may
-still fail to push for capisaldi and initial questions.
-
-Mitigation:
-- add explicit project orchestrator skill guidance;
-- make missing initialization/capisaldi a high-priority readiness concern;
-- instruct the agent to return to deferred foundational questions unless muted
-  by the owner.
-
-### PROP-086 - Artifact-aware Proposal Readiness And Agent Interview Orchestration
-
-#### risks.md
-
-# Risks - PROP-086
-
-None identified yet.
-
-### PROP-087 - Agent Personality Model For Decision Mediation
-
-#### risks.md
-
-# Risks - PROP-087
-
-## Behavioral Risks
-
-- High assertiveness can make the agent feel obstructive.
-  Mitigation: default `assertiveness` is `0`; higher values are explicit owner
-  choices.
-- Low technical verbosity can hide useful operational detail from the owner.
-  Mitigation: owner-facing tone changes, but diagnostics, audit evidence, and
-  command outputs remain available where appropriate.
-- High informality may be inappropriate for some project contexts.
-  Mitigation: `formality` is explicit and project-level.
-
-## Product Risks
-
-- Named presets could become a parallel source of truth.
-  Mitigation: do not persist presets in the first implementation.
-- Per-agent overrides could fragment the owner experience.
-  Mitigation: defer per-agent style until project-level defaults are stable.
-- Session overrides could be hard to audit.
-  Mitigation: defer runtime/session overrides until explicit CLI/MCP primitives
-  exist.
-
-## Implementation Risks
-
-- Prompt-only implementation would be fragile and hard to inspect.
-  Mitigation: use validated project configuration and deterministic instruction
-  rendering.
-- Direct `.p2p` edits would break local/remote parity.
-  Mitigation: expose CLI and MCP primitives and document them in generated
-  skills/instructions.
 
 ## Assumptions
 
@@ -10165,49 +9109,7 @@ None identified yet.
 
 # Assumptions - PROP-082
 
-## Readiness is the main behavior signal
-
-The system does not need a separate pedantry score in the MVP. Agent
-assertiveness can be derived from readiness score, label, failed gates,
-confidence, missing criteria, unanswered questions, and question/group state.
-
-## Stepped assertiveness is sufficient
-
-The agent can follow readiness bands:
-
-- very low readiness: strongly proactive, challenge assumptions, ask the next
-  blocking question, and avoid acceptance recommendations;
-- partial readiness: continue the interview, focus on missing artifacts and
-  high-risk ambiguity;
-- near target readiness: ask only residual high-value questions or request
-  confirmation;
-- owner-muted or explicitly deferred areas: do not re-ask by default unless the
-  owner asks to increase readiness or revisit muted/deferred questions.
-
-## Question state replaces a dedicated "stop working on this" index
-
-The existing question and group states can represent owner intent:
-
-- `to_answer`: keep asking when relevant;
-- `defer`: skip for now, keep available;
-- `muted`: skip by default unless explicitly revisited;
-- `answered` and `applied`: use the answer to refine artifacts;
-- `retired` and `superseded`: preserve history without re-asking obsolete
-  questions.
-
-## Answers may affect multiple artifacts
-
-A single owner answer can legitimately update proposal text, acceptance
-criteria, alternatives, risks, assumptions, open questions, impact analysis, or
-readiness evidence. Application should be artifact-aware rather than
-one-question-to-one-file.
-
-## Low readiness requires agent initiative
-
-When readiness is low, failed, or low-confidence, the skill should instruct the
-agent to take initiative: inspect gaps, update questions, ask the next focused
-question, and record the answer. The agent should not wait for the owner to ask
-what to do next.
+None identified yet.
 
 ### PROP-083 - Domain-Aware Visible Project Definition Export
 
@@ -10257,55 +9159,6 @@ The first implementation can synthesize from accepted proposals, decisions,
 requirements, risks, assumptions, choices, scope notes, readiness notes, and
 related P2P artifacts. Gaps should be surfaced in the generated document rather
 than silently invented.
-
-### PROP-085 - Pluggable Project Verticals And Readiness Orchestration
-
-#### assumptions.md
-
-# Assumptions - PROP-085
-
-- Vertical packs are pure data in the MVP, primarily `.yaml` and/or `.md`.
-- `base_project` is a concrete pack with a default cross-domain structure, not
-  only a conceptual fallback.
-- Default packs are distributed internally with the project/package as versioned
-  and testable resources.
-- Project-local custom packs are allowed and take precedence over core defaults.
-- The MVP introduces a project vertical CLI surface because the current CLI only
-  exposes project domains/rubrics and does not yet list, show, add, or validate
-  vertical packs.
-- A future registry may expose REST endpoints for listing available packs and
-  fetching pack details, but registry behavior is outside the first slice.
-- The CLI remains deterministic and does not launch the agent.
-- Agent proactivity is delivered through generated/local skills and project
-  instructions.
-- Vertical packs extend and reuse existing project rubrics and maturity/readiness
-  artifacts.
-- Backward compatibility is required for projects without vertical packs.
-- The first slice can prove the architecture with one complete demonstration
-  vertical rather than the later five-vertical MVP set.
-
-### PROP-086 - Artifact-aware Proposal Readiness And Agent Interview Orchestration
-
-#### assumptions.md
-
-# Assumptions - PROP-086
-
-None identified yet.
-
-### PROP-087 - Agent Personality Model For Decision Mediation
-
-#### assumptions.md
-
-# Assumptions - PROP-087
-
-- The decision owner wants a shared project interaction contract across agents.
-- The current behavior corresponds to `assertiveness=0`.
-- `technical_verbosity=2` and `formality=2` are acceptable defaults for normal
-  mediation.
-- The first implementation does not need per-agent or per-session overrides.
-- Numeric scales are easier to validate and evolve than named persona presets.
-- Generated agent instructions are the first consumer of the model.
-- CLI and MCP should be the public mutation surfaces for interaction style.
 
 ## Open Questions
 
@@ -11615,29 +10468,39 @@ None identified yet.
 
 # Open Questions - PROP-082
 
-No unresolved owner questions remain for the current product direction.
+## Product Questions
 
-## Resolved Direction
+1. Should the main reassessment command be named `assess`, `review`, or should
+   both exist with separate semantics?
 
-- Questions generated by readiness review must seek coverage across the full
-  proposal artifact set, not only the missing readiness score criteria.
-- Applying answers must update every useful affected artifact through supported
-  CLI/MCP write primitives.
-- No dedicated pedantry index is required for the MVP.
-- Agent assertiveness should follow a stepped readiness policy: stronger when
-  readiness is low, less intrusive as readiness approaches target.
-- Existing question and group states are sufficient to represent owner intent to
-  continue, defer, mute, apply, retire, or supersede questions.
-- Low readiness must cause the skill to direct the agent to proactively
-  interview the owner, record answers, apply them, and recompute readiness.
+   Current leaning: both. `assess` recomputes analytical readiness; `review`
+   records human/owner confirmation of an assessment.
 
-## Deferred Implementation Design Choices
+2. Should gate resolution be a standalone command?
 
-- Exact command names for evidence-aware reassessment beyond the current
-  `review` output.
-- Exact schema for imported structured readiness assessments.
-- Exact artifact update plan format returned by `questions apply`.
-- Exact confidence promotion thresholds after evidence-aware reassessment.
+   Current leaning: yes, because owner-question gates often require explicit
+   human confirmation rather than automatic text analysis.
+
+3. Should imported assessments be accepted from arbitrary agents?
+
+   Current leaning: allow import only after schema validation and source/actor
+   recording. The import is evidence, not autonomous governance decision.
+
+4. Should low-confidence assessments ever promote `ready_for_decision`?
+
+   Current leaning: no. Automatic readiness promotion should require score,
+   minimum gates, and minimum confidence.
+
+## Implementation Questions
+
+1. What exact readiness assessment schema should be imported or persisted?
+2. How should assessment history be recorded: overwrite latest snapshot, append
+   history, or both?
+3. Should gate resolution write to `readiness.yml`, decision audit, comments, or
+   a dedicated assessment history artifact?
+4. How should MCP permissioning work for assessment writes versus owner
+   overrides?
+5. How should existing bootstrapped readiness files migrate?
 
 ### PROP-083 - Domain-Aware Visible Project Definition Export
 
@@ -11664,70 +10527,7 @@ No unresolved owner questions remain for the current proposal definition.
 - Whether legacy `.p2p/outputs` is mirrored, deprecated, migrated, or kept unchanged after compatibility analysis.
 - Retention policy for old `outputs/review-###/` snapshots beyond deterministic creation.
 
-### PROP-085 - Pluggable Project Verticals And Readiness Orchestration
-
-#### open-questions.md
-
-# Open Questions - PROP-085
-
-No owner-blocking questions remain for the MVP proposal.
-
-Deferred follow-up topics, explicitly outside the first slice:
-
-- Exact REST API shape for a future vertical registry.
-- Selection of the first complete demonstration vertical.
-- Selection of the later five-vertical MVP set after the first slice proves the
-  pack model.
-- Possible publishing flow from project-local custom verticals to a shared
-  registry.
-
-### PROP-086 - Artifact-aware Proposal Readiness And Agent Interview Orchestration
-
-#### open-questions.md
-
-# Open Questions - PROP-086
-
-None identified yet.
-
-### PROP-087 - Agent Personality Model For Decision Mediation
-
-#### open-questions.md
-
-# Open Questions - PROP-087
-
-All owner-facing questions needed for the current proposal direction have been
-answered.
-
-Resolved:
-
-- Scope: project-level default.
-- Defaults: `technical_verbosity=2`, `formality=2`, `assertiveness=0`.
-- Presets: not persisted in the first implementation.
-- Assertiveness: included in first implementation.
-- CLI/MCP namespace: `project interaction-style`.
-
-No remaining blocking owner question is currently known.
-
 ## Readiness
-
-### Project Vertical Skeleton
-
-- active_vertical: base_project
-- source: fallback
-- fallback_used: true
-
-### Vertical Coverage
-
-- vision: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-006, PROP-010, PROP-011, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-089)
-- objective: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089)
-- stakeholders: covered (proposals: PROP-001, PROP-002, PROP-006, PROP-008, PROP-009, PROP-010, PROP-013, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-022, PROP-023, PROP-024, PROP-030, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-051, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-061, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089)
-- scope: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089)
-- assumptions: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-009, PROP-011, PROP-013, PROP-016, PROP-017, PROP-019, PROP-021, PROP-022, PROP-025, PROP-026, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-046, PROP-048, PROP-049, PROP-050, PROP-051, PROP-053, PROP-054, PROP-055, PROP-056, PROP-058, PROP-059, PROP-060, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-080, PROP-081, PROP-082, PROP-083, PROP-085, PROP-086, PROP-088)
-- risks: covered (proposals: PROP-001, PROP-002, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089)
-- decisions: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-005, PROP-006, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-039, PROP-040, PROP-041, PROP-042, PROP-045, PROP-046, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-059, PROP-060, PROP-064, PROP-065, PROP-066, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089)
-- milestones: covered (proposals: PROP-001, PROP-002, PROP-006, PROP-007, PROP-010, PROP-012, PROP-013, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-030, PROP-031, PROP-032, PROP-033, PROP-037, PROP-043, PROP-044, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-064, PROP-065, PROP-066, PROP-067, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-088)
-- definition_of_done: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089)
-- artifacts: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-010, PROP-011, PROP-012, PROP-013, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-022, PROP-024, PROP-026, PROP-027, PROP-028, PROP-029, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-058, PROP-059, PROP-062, PROP-063, PROP-064, PROP-067, PROP-072, PROP-073, PROP-074, PROP-076, PROP-078, PROP-080, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089)
 
 ### PROP-006 - Multi-Agent Integration Model
 
@@ -11955,120 +10755,112 @@ readiness:
   profile_id: default-readiness-v0.1
   profile_version: '0.1'
   tier: medium
-  confidence: high
+  confidence: low
   confidence_reasons:
-  - Evidence-aware assessment found no missing criteria, failed gates, unresolved
-    owner questions, or pending high-priority questions.
-  - Criterion evidence was recalculated from current proposal artifacts.
-  missing: []
-  suggested_next: []
-  failed_gates: []
+  - Initial readiness was bootstrapped from proposal artifacts.
+  - Review criterion evidence before using it for acceptance.
+  missing:
+  - alternatives_quality
+  - tradeoff_analysis
+  - risk_coverage
+  - assumptions_clarity
+  - impact_overlap_analysis
+  suggested_next:
+  - add_alternatives_quality
+  - add_tradeoff_analysis
+  - add_risk_coverage
+  - add_assumptions_clarity
+  - resolve_owner_questions_resolution
+  - add_impact_overlap_analysis
+  failed_gates:
+  - owner_questions_resolution:needs_owner_input
   criteria:
     problem_clarity:
       max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
+      awarded_points: 7
+      artifact_quality: meaningful
       evidence:
       - artifact: proposal.md
         section: Problem
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
+      effective_points: 7
     goal_clarity:
       max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
+      awarded_points: 7
+      artifact_quality: meaningful
       evidence:
       - artifact: proposal.md
         section: Goals
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
+      effective_points: 7
     scope_boundaries:
       max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
+      awarded_points: 7
+      artifact_quality: meaningful
       evidence:
       - artifact: proposal.md
         section: Non-Goals
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
+      effective_points: 7
     alternatives_quality:
       max_points: 15
-      awarded_points: 15
-      artifact_quality: ready
+      awarded_points: 0
+      artifact_quality: placeholder
       evidence:
       - artifact: alternatives.md
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 15
+      effective_points: 0
     tradeoff_analysis:
       max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
+      awarded_points: 0
+      artifact_quality: placeholder
       evidence:
       - artifact: alternatives.md
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
+      effective_points: 0
     risk_coverage:
       max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
+      awarded_points: 0
+      artifact_quality: placeholder
       evidence:
       - artifact: risks.md
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
+      effective_points: 0
     assumptions_clarity:
       max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
+      awarded_points: 0
+      artifact_quality: placeholder
       evidence:
       - artifact: assumptions.md
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
+      effective_points: 0
     owner_questions_resolution:
       max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
+      awarded_points: 7
+      artifact_quality: needs_owner_input
       evidence:
       - artifact: open-questions.md
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
+      effective_points: 7
     acceptance_criteria_quality:
       max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
+      awarded_points: 7
+      artifact_quality: meaningful
       evidence:
       - artifact: proposal.md
         section: Acceptance Criteria
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
+      effective_points: 7
     impact_overlap_analysis:
       max_points: 5
-      awarded_points: 5
-      artifact_quality: ready
+      awarded_points: 0
+      artifact_quality: missing
       evidence:
       - artifact: impact-map.yml
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 5
-  computed_score: 100
-  computed_label: decision_ready
+      effective_points: 0
+  computed_score: 35
+  computed_label: weak
   computed_at: '2026-06-08'
-  assessment_source: evidence_aware
-  assessed_at: '2026-06-08'
   owner_override: true
   effective_status: forced_ready
   effective_score: 100
-  override_reason: Owner confirms the refined second-slice direction for artifact-aware
-    proposal questions, stepped readiness-driven agent assertiveness, evidence-aware
-    readiness recalculation, and proactive low-readiness interview behavior.
+  override_reason: Accepted with explicit readiness override. The computed readiness
+    remains weak because the current refresh workflow is conservative and cannot yet
+    perform the evidence-aware review and interview behavior this proposal introduces.
+    The proposal is accepted as the direction for implementing first-class proposal
+    question memory, proactive agent guidance, qualitative readiness review, refresh
+    guidance, duplicate/aggregation handling, and backward-compatible CLI behavior.
   override_approver: owner
   override_recorded_at: '2026-06-08'
 
@@ -12176,365 +10968,6 @@ readiness:
   override_approver: owner
   override_recorded_at: '2026-06-08'
 
-### PROP-085 - Pluggable Project Verticals And Readiness Orchestration
-
-#### readiness.yml
-
-readiness:
-  status: assessed
-  profile_id: default-readiness-v0.1
-  profile_version: '0.1'
-  tier: medium
-  confidence: high
-  confidence_reasons:
-  - Evidence-aware assessment found no missing criteria, failed gates, unresolved
-    owner questions, or pending high-priority questions.
-  - Criterion evidence was recalculated from current proposal artifacts.
-  missing: []
-  suggested_next: []
-  failed_gates: []
-  criteria:
-    problem_clarity:
-      max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
-      evidence:
-      - artifact: proposal.md
-        section: Problem
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
-    goal_clarity:
-      max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
-      evidence:
-      - artifact: proposal.md
-        section: Goals
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
-    scope_boundaries:
-      max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
-      evidence:
-      - artifact: proposal.md
-        section: Non-Goals
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
-    alternatives_quality:
-      max_points: 15
-      awarded_points: 15
-      artifact_quality: ready
-      evidence:
-      - artifact: alternatives.md
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 15
-    tradeoff_analysis:
-      max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
-      evidence:
-      - artifact: alternatives.md
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
-    risk_coverage:
-      max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
-      evidence:
-      - artifact: risks.md
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
-    assumptions_clarity:
-      max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
-      evidence:
-      - artifact: assumptions.md
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
-    owner_questions_resolution:
-      max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
-      evidence:
-      - artifact: open-questions.md
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
-    acceptance_criteria_quality:
-      max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
-      evidence:
-      - artifact: proposal.md
-        section: Acceptance Criteria
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
-    impact_overlap_analysis:
-      max_points: 5
-      awarded_points: 5
-      artifact_quality: ready
-      evidence:
-      - artifact: impact-map.yml
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 5
-  computed_score: 100
-  computed_label: decision_ready
-  computed_at: '2026-06-09'
-  assessment_source: evidence_aware
-  assessed_at: '2026-06-09'
-
-### PROP-086 - Artifact-aware Proposal Readiness And Agent Interview Orchestration
-
-#### readiness.yml
-
-readiness:
-  status: assessed
-  profile_id: default-readiness-v0.1
-  profile_version: '0.1'
-  tier: medium
-  confidence: low
-  confidence_reasons:
-  - Initial readiness was bootstrapped from proposal artifacts.
-  - Review criterion evidence before using it for acceptance.
-  missing:
-  - scope_boundaries
-  - alternatives_quality
-  - tradeoff_analysis
-  - risk_coverage
-  - assumptions_clarity
-  - owner_questions_resolution
-  - acceptance_criteria_quality
-  - impact_overlap_analysis
-  suggested_next:
-  - add_scope_boundaries
-  - add_alternatives_quality
-  - add_tradeoff_analysis
-  - add_risk_coverage
-  - add_assumptions_clarity
-  - add_owner_questions_resolution
-  - add_acceptance_criteria_quality
-  - add_impact_overlap_analysis
-  failed_gates: []
-  criteria:
-    problem_clarity:
-      max_points: 10
-      awarded_points: 7
-      artifact_quality: meaningful
-      evidence:
-      - artifact: proposal.md
-        section: Problem
-      effective_points: 7
-    goal_clarity:
-      max_points: 10
-      awarded_points: 7
-      artifact_quality: meaningful
-      evidence:
-      - artifact: proposal.md
-        section: Goals
-      effective_points: 7
-    scope_boundaries:
-      max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
-      evidence:
-      - artifact: proposal.md
-        section: Non-Goals
-      effective_points: 0
-    alternatives_quality:
-      max_points: 15
-      awarded_points: 0
-      artifact_quality: placeholder
-      evidence:
-      - artifact: alternatives.md
-      effective_points: 0
-    tradeoff_analysis:
-      max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
-      evidence:
-      - artifact: alternatives.md
-      effective_points: 0
-    risk_coverage:
-      max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
-      evidence:
-      - artifact: risks.md
-      effective_points: 0
-    assumptions_clarity:
-      max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
-      evidence:
-      - artifact: assumptions.md
-      effective_points: 0
-    owner_questions_resolution:
-      max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
-      evidence:
-      - artifact: open-questions.md
-      effective_points: 0
-    acceptance_criteria_quality:
-      max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
-      evidence:
-      - artifact: proposal.md
-        section: Acceptance Criteria
-      effective_points: 0
-    impact_overlap_analysis:
-      max_points: 5
-      awarded_points: 0
-      artifact_quality: missing
-      evidence:
-      - artifact: impact-map.yml
-      effective_points: 0
-  computed_score: 14
-  computed_label: weak
-  computed_at: '2026-06-09'
-  owner_override: true
-  effective_status: forced_ready
-  effective_score: 100
-  override_reason: 'Accepted by owner as an explicit readiness override. The current
-    default-readiness-v0.1 score remains weak because it is not artifact-aware, but
-    the owner accepts the refined direction: introduce a dedicated artifact-specific
-    CLI/MCP primitive, graduated-by-risk artifact requirements, default coverage for
-    new proposals, advisory absent_legacy handling for old proposals, strict CLI/MCP-only
-    memory mutation, and tests for readiness/context/MCP/missing-primitive behavior.'
-  override_approver: owner
-  override_recorded_at: '2026-06-09'
-
-### PROP-087 - Agent Personality Model For Decision Mediation
-
-#### readiness.yml
-
-readiness:
-  status: assessed
-  profile_id: default-readiness-v0.1
-  profile_version: '0.1'
-  tier: medium
-  confidence: high
-  confidence_reasons:
-  - Evidence-aware assessment found no missing criteria, failed gates, unresolved
-    owner questions, or pending high-priority questions.
-  - Criterion evidence was recalculated from current proposal artifacts.
-  missing: []
-  suggested_next: []
-  failed_gates: []
-  criteria:
-    problem_clarity:
-      max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
-      evidence:
-      - artifact: proposal.md
-        section: Problem
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
-    goal_clarity:
-      max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
-      evidence:
-      - artifact: proposal.md
-        section: Goals
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
-    scope_boundaries:
-      max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
-      evidence:
-      - artifact: proposal.md
-        section: Non-Goals
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
-    alternatives_quality:
-      max_points: 15
-      awarded_points: 15
-      artifact_quality: ready
-      evidence:
-      - artifact: alternatives.md
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 15
-    tradeoff_analysis:
-      max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
-      evidence:
-      - artifact: alternatives.md
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
-    risk_coverage:
-      max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
-      evidence:
-      - artifact: risks.md
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
-    assumptions_clarity:
-      max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
-      evidence:
-      - artifact: assumptions.md
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
-    owner_questions_resolution:
-      max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
-      evidence:
-      - artifact: open-questions.md
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
-    acceptance_criteria_quality:
-      max_points: 10
-      awarded_points: 10
-      artifact_quality: ready
-      evidence:
-      - artifact: proposal.md
-        section: Acceptance Criteria
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 10
-    impact_overlap_analysis:
-      max_points: 5
-      awarded_points: 5
-      artifact_quality: ready
-      evidence:
-      - artifact: impact-map.yml
-      - artifact: questions.yml
-        reason: artifact evidence assessed with no unresolved blocking questions
-      effective_points: 5
-  computed_score: 100
-  computed_label: decision_ready
-  computed_at: '2026-06-09'
-  assessment_source: evidence_aware
-  assessed_at: '2026-06-09'
-  artifact_coverage_warnings: []
-
 ## Delivery And Export Context
 
 The default visible export is this chaptered Markdown document. Specialized vertical or tool-specific exports belong under `outputs/latest/exports/<profile-or-vertical>/`. Existing `.p2p/outputs` spec exports remain compatibility artifacts unless a separate migration changes them.
@@ -12621,6 +11054,3 @@ The default visible export is this chaptered Markdown document. Specialized vert
 - .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions
 - .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow
 - .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export
-- .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration
-- .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration
-- .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation
