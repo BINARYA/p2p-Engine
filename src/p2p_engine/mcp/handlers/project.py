@@ -20,6 +20,8 @@ def handle_project_tool(
                 workspace.agent_integration_show(str(arguments.get("adapter") or "generic"))
             )
         }
+    if name == "p2p_agent_doctor":
+        return {"agent_doctor": to_jsonable(workspace.agent_doctor(str(arguments.get("adapter") or "all")))}
     if name == "p2p_validate":
         return {"validation": to_jsonable(workspace.validate())}
     if name == "p2p_context":

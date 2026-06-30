@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 from typing import Any, Callable
 
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
+    write_text_atomic as _write_text_atomic,
+    write_yaml_atomic as _write_yaml_atomic,
     yaml_dump as _yaml_dump,
 )
 
@@ -18,6 +20,7 @@ class AgentInstructionsResult:
     created: list[Path]
     updated: list[Path]
     policy_path: Path
+    skipped: list[dict[str, object]] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -28,6 +31,36 @@ class AgentIntegrationResult:
     removed: list[Path]
     skipped: list[dict[str, object]]
     registry_path: Path
+
+
+@dataclass(frozen=True)
+class AgentDoctorFinding:
+    code: str
+    severity: str
+    adapter: str
+    path: Path
+    message: str
+    suggested_command: str = ""
+
+
+@dataclass(frozen=True)
+class AgentDoctorResult:
+    target: str
+    health: str
+    registry_path: Path
+    findings: list[AgentDoctorFinding]
+
+
+_ERROR_FILE_STATUSES = {"missing", "modified", "conflicted"}
+_WARNING_FILE_STATUSES = {"unmanaged", "stale_template"}
+_REGISTRY_FILE_STATUSES = _ERROR_FILE_STATUSES | _WARNING_FILE_STATUSES | {"clean"}
+_FILE_STATUS_FINDING_CODES = {
+    "missing": "P2P_AGENT_FILE_MISSING",
+    "modified": "P2P_AGENT_FILE_MODIFIED",
+    "unmanaged": "P2P_AGENT_FILE_UNMANAGED",
+    "conflicted": "P2P_AGENT_FILE_CONFLICTED",
+    "stale_template": "P2P_AGENT_TEMPLATE_STALE",
+}
 
 
 class AgentInstructionService:
@@ -80,41 +113,27 @@ class AgentInstructionService:
         if not isinstance(existing_profiles, list):
             existing_profiles = []
         merged_profiles = sorted({str(item) for item in existing_profiles} | set(profiles))
-        files = self.instruction_files(project_name, merged_profiles, repository_mode, interaction_style)
-        created: list[Path] = []
-        updated: list[Path] = []
-
-        for relative_path, content in files.items():
-            path = self.root / relative_path
-            relative = path.relative_to(self.root)
-            if path.exists() and path.read_text(encoding="utf-8") == content:
-                continue
-            path.parent.mkdir(parents=True, exist_ok=True)
-            existed = path.exists()
-            path.write_text(content, encoding="utf-8")
-            if existed:
-                updated.append(relative)
-            else:
-                created.append(relative)
-
-        policy = self.agent_policy(project_name, merged_profiles, repository_mode, interaction_style)
-        policy_content = _yaml_dump(policy)
-        relative_policy = policy_path.relative_to(self.root)
-        if not policy_path.exists():
-            policy_path.parent.mkdir(parents=True, exist_ok=True)
-            policy_path.write_text(policy_content, encoding="utf-8")
-            created.append(relative_policy)
-        elif policy_path.read_text(encoding="utf-8") != policy_content:
-            policy_path.write_text(policy_content, encoding="utf-8")
-            updated.append(relative_policy)
+        registry = self.registry()
+        files, relative_policy = self._managed_instruction_files(
+            project_name,
+            merged_profiles,
+            repository_mode,
+            interaction_style,
+        )
+        created, updated, skipped = self._write_generated_files_safely(
+            files,
+            self.registry_file_map(registry),
+        )
 
         self.set_repository_mode(repository_mode)
-        self.write_registry(self.build_registry(merged_profiles, repository_mode))
+        new_registry = self.build_registry(merged_profiles, repository_mode)
+        self.write_registry(self._with_skipped_file_records(registry, new_registry, skipped))
         return AgentInstructionsResult(
             profile=profile,
             created=created,
             updated=updated,
             policy_path=relative_policy,
+            skipped=skipped,
         )
 
     def list_integrations(self) -> dict[str, object]:
@@ -141,6 +160,112 @@ class AgentInstructionService:
             adapters = {}
         return self.integration_status(adapter, adapters.get(adapter, {}), include_files=True)
 
+    def doctor(self, target: str | None = "all") -> AgentDoctorResult:
+        target = self.normalize_profile(target or "all")
+        registry = self.registry()
+        registry_path = self.path().relative_to(self.root)
+        findings: list[AgentDoctorFinding] = []
+        adapters = registry.get("adapters", {})
+        if not self.path().exists():
+            findings.append(
+                AgentDoctorFinding(
+                    code="P2P_AGENT_REGISTRY_MISSING",
+                    severity="warning",
+                    adapter="all",
+                    path=registry_path,
+                    message="Agent integration registry is missing.",
+                    suggested_command="p2p agent install all",
+                )
+            )
+            return AgentDoctorResult(
+                target=target,
+                health="warning",
+                registry_path=registry_path,
+                findings=findings,
+            )
+        if registry.get("baseline_profile") != "generic":
+            findings.append(
+                AgentDoctorFinding(
+                    code="P2P_AGENT_BASELINE_INVALID",
+                    severity="error",
+                    adapter="generic",
+                    path=registry_path,
+                    message="Agent integration registry baseline_profile must be generic.",
+                    suggested_command="p2p agent install generic --force",
+                )
+            )
+        if not isinstance(adapters, dict):
+            findings.append(
+                AgentDoctorFinding(
+                    code="P2P_AGENT_REGISTRY_INVALID",
+                    severity="error",
+                    adapter="all",
+                    path=registry_path,
+                    message="Agent integration registry adapters must be a mapping.",
+                    suggested_command="p2p agent install all --force",
+                )
+            )
+            return AgentDoctorResult(
+                target=target,
+                health="error",
+                registry_path=registry_path,
+                findings=findings,
+            )
+        if "generic" not in adapters:
+            findings.append(
+                AgentDoctorFinding(
+                    code="P2P_AGENT_GENERIC_MISSING",
+                    severity="error",
+                    adapter="generic",
+                    path=registry_path,
+                    message="Mandatory generic adapter is missing from the registry.",
+                    suggested_command="p2p agent install generic --force",
+                )
+            )
+        for adapter_id in adapters:
+            if adapter_id not in self.built_in_adapters:
+                findings.append(
+                    AgentDoctorFinding(
+                        code="P2P_AGENT_UNKNOWN_ADAPTER",
+                        severity="error",
+                        adapter=str(adapter_id),
+                        path=registry_path,
+                        message=f"Unknown agent adapter in registry: {adapter_id}.",
+                        suggested_command="p2p validate",
+                    )
+                )
+
+        targets = list(self.built_in_adapters) if target == "all" else [target]
+        for adapter_id in targets:
+            record = adapters.get(adapter_id, {})
+            status = self.integration_status(adapter_id, record, include_files=True)
+            if not status["installed"]:
+                if target != "all":
+                    findings.append(
+                        AgentDoctorFinding(
+                            code="P2P_AGENT_NOT_INSTALLED",
+                            severity="warning",
+                            adapter=adapter_id,
+                            path=registry_path,
+                            message=f"Agent adapter is not installed: {adapter_id}.",
+                            suggested_command=f"p2p agent install {adapter_id}",
+                        )
+                    )
+                continue
+            for file_status in status.get("files", []):
+                if not isinstance(file_status, dict):
+                    continue
+                self._append_file_doctor_finding(findings, adapter_id, file_status)
+                self._append_shared_file_doctor_finding(findings, adapter_id, file_status, adapters)
+
+        health = _findings_health(findings)
+        return AgentDoctorResult(
+            target=target,
+            health=health,
+            registry_path=registry_path,
+            findings=findings,
+        )
+
     def install_integrations(
         self,
         target: str = "all",
@@ -153,6 +278,7 @@ class AgentInstructionService:
         project_name = self.project_name()
         interaction_style = self.interaction_style() if self.interaction_style is not None else None
         registry = self.registry()
+        old_registry = registry
         existing_adapters = registry.get("adapters", {})
         existing_profiles = (
             [str(adapter_id) for adapter_id in existing_adapters.keys()]
@@ -160,74 +286,25 @@ class AgentInstructionService:
             else []
         )
         profiles = sorted(set(existing_profiles) | set(self.expanded_profiles(target)))
-        files = self.instruction_files(project_name, profiles, repository_mode, interaction_style)
         current_files = self.registry_file_map(registry)
-        created: list[Path] = []
-        updated: list[Path] = []
-        skipped: list[dict[str, object]] = []
-
-        for relative_path, content in files.items():
-            path = self.root / relative_path
-            relative = path.relative_to(self.root)
-            existing_record = current_files.get(str(relative_path))
-            if path.exists():
-                current_hash = _sha256_file(path)
-                if existing_record and existing_record.get("sha256") != current_hash and not force:
-                    skipped.append({"path": str(relative), "reason": "drifted"})
-                    continue
-                if not existing_record and path.read_text(encoding="utf-8") != content and not force:
-                    skipped.append({"path": str(relative), "reason": "unmanaged_exists"})
-                    continue
-                if path.read_text(encoding="utf-8") == content:
-                    continue
-                path.write_text(content, encoding="utf-8")
-                updated.append(relative)
-            else:
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(content, encoding="utf-8")
-                created.append(relative)
-
-        policy = self.agent_policy(project_name, profiles, repository_mode, interaction_style)
-        policy_path = self.policy_path()
-        policy_content = _yaml_dump(policy)
-        relative_policy = policy_path.relative_to(self.root)
-        if not policy_path.exists():
-            policy_path.parent.mkdir(parents=True, exist_ok=True)
-            policy_path.write_text(policy_content, encoding="utf-8")
-            created.append(relative_policy)
-        elif policy_path.read_text(encoding="utf-8") != policy_content:
-            policy_path.write_text(policy_content, encoding="utf-8")
-            updated.append(relative_policy)
+        all_files, _relative_policy = self._managed_instruction_files(
+            project_name,
+            profiles,
+            repository_mode,
+            interaction_style,
+        )
+        writable_paths = self._operation_file_paths(project_name, target, profiles, repository_mode)
+        files = {path: content for path, content in all_files.items() if path in writable_paths}
+        created, updated, skipped = self._write_generated_files_safely(
+            files,
+            current_files,
+            force=force,
+        )
 
         new_registry = self.build_registry(profiles, repository_mode)
-        if skipped:
-            old_records = self.registry_file_map(registry)
-            skipped_paths = {str(item["path"]) for item in skipped}
-            for adapter_record in new_registry.get("adapters", {}).values():
-                if not isinstance(adapter_record, dict):
-                    continue
-                file_records = adapter_record.get("files", [])
-                if not isinstance(file_records, list):
-                    continue
-                for index, record in enumerate(file_records):
-                    if not isinstance(record, dict):
-                        continue
-                    path_key = str(record.get("path", ""))
-                    if path_key in skipped_paths and path_key in old_records:
-                        preserved = {**old_records[path_key]}
-                        current_path = self.root / path_key
-                        preserved["drift"] = (
-                            "drifted"
-                            if current_path.exists() and preserved.get("sha256") != _sha256_file(current_path)
-                            else "missing"
-                        )
-                        file_records[index] = preserved
-                    elif path_key in skipped_paths:
-                        current_path = self.root / path_key
-                        record["managed"] = False
-                        record["sha256"] = _sha256_file(current_path) if current_path.exists() else ""
-                        record["drift"] = "unmanaged" if current_path.exists() else "missing"
-        registry = new_registry
+        preserved_paths = {str(path) for path in all_files if path not in writable_paths}
+        registry = self._with_preserved_file_records(old_registry, new_registry, preserved_paths)
+        registry = self._with_skipped_file_records(old_registry, registry, skipped)
         self.write_registry(registry)
         self.set_repository_mode(repository_mode)
         return AgentIntegrationResult(
@@ -254,7 +331,7 @@ class AgentInstructionService:
         for record in files if isinstance(files, list) else []:
             if not isinstance(record, dict):
                 continue
-            relative = Path(str(record.get("path", "")))
+            relative = self._safe_relative_path(record.get("path", ""), label="Agent registry path")
             if record.get("shared") is True:
                 skipped.append({"path": str(relative), "reason": "shared"})
                 continue
@@ -281,11 +358,11 @@ class AgentInstructionService:
             if content is None:
                 continue
             path = self.root / relative_path
-            path.write_text(content, encoding="utf-8")
+            _write_text_atomic(path, content)
         policy_path = self.policy_path()
-        policy_path.write_text(
+        _write_text_atomic(
+            policy_path,
             _yaml_dump(self.agent_policy(project_name, remaining_profiles, repository_mode, interaction_style)),
-            encoding="utf-8",
         )
         registry = self.build_registry(remaining_profiles, repository_mode)
         self.write_registry(registry)
@@ -315,9 +392,7 @@ class AgentInstructionService:
         return _read_yaml_mapping(path, default={})
 
     def write_registry(self, registry: dict[str, object]) -> None:
-        path = self.path()
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(_yaml_dump(registry), encoding="utf-8")
+        _write_yaml_atomic(self.path(), registry)
 
     def registry_file_map(self, registry: dict[str, object]) -> dict[str, dict[str, object]]:
         adapters = registry.get("adapters", {})
@@ -343,6 +418,7 @@ class AgentInstructionService:
             files = self.adapter_files(project_name, adapter_id, installed, repository_mode)
             file_records = []
             for relative_path, template_id, shared, owner in files:
+                relative_path = self._safe_relative_path(relative_path, label="Agent adapter path")
                 path = self.root / relative_path
                 file_records.append(
                     {
@@ -369,6 +445,129 @@ class AgentInstructionService:
             "adapters": adapters,
         }
 
+    def _managed_instruction_files(
+        self,
+        project_name: str,
+        profiles: list[str],
+        repository_mode: str,
+        interaction_style: Any,
+    ) -> tuple[dict[Path, str], Path]:
+        files = dict(self.instruction_files(project_name, profiles, repository_mode, interaction_style))
+        relative_policy = self.policy_path().relative_to(self.root)
+        files[relative_policy] = _yaml_dump(
+            self.agent_policy(project_name, profiles, repository_mode, interaction_style)
+        )
+        safe_files = {
+            self._safe_relative_path(relative_path, label="Agent instruction path"): content
+            for relative_path, content in files.items()
+        }
+        return safe_files, relative_policy
+
+    def _operation_file_paths(
+        self,
+        project_name: str,
+        target: str,
+        profiles: list[str],
+        repository_mode: str,
+    ) -> set[Path]:
+        target_profiles = self.built_in_adapters if target == "all" else tuple(self.expanded_profiles(target))
+        writable: set[Path] = set()
+        for adapter_id in target_profiles:
+            for relative_path, _template_id, _shared, _owner in self.adapter_files(
+                project_name,
+                adapter_id,
+                profiles,
+                repository_mode,
+            ):
+                writable.add(self._safe_relative_path(relative_path, label="Agent adapter path"))
+        return writable
+
+    def _write_generated_files_safely(
+        self,
+        files: dict[Path, str],
+        current_files: dict[str, dict[str, object]],
+        *,
+        force: bool = False,
+    ) -> tuple[list[Path], list[Path], list[dict[str, object]]]:
+        created: list[Path] = []
+        updated: list[Path] = []
+        skipped: list[dict[str, object]] = []
+        for relative_path, content in files.items():
+            relative_path = self._safe_relative_path(relative_path, label="Agent instruction path")
+            path = self.root / relative_path
+            relative = path.relative_to(self.root)
+            existing_record = current_files.get(str(relative))
+            if path.exists():
+                existing_content = path.read_text(encoding="utf-8")
+                current_hash = _sha256_file(path)
+                if existing_record and existing_record.get("sha256") != current_hash and not force:
+                    skipped.append({"path": str(relative), "reason": "drifted"})
+                    continue
+                if not existing_record and existing_content != content and not force:
+                    skipped.append({"path": str(relative), "reason": "unmanaged_exists"})
+                    continue
+                if existing_content == content:
+                    continue
+                _write_text_atomic(path, content)
+                updated.append(relative)
+            else:
+                _write_text_atomic(path, content)
+                created.append(relative)
+        return created, updated, skipped
+
+    def _with_skipped_file_records(
+        self,
+        old_registry: dict[str, object],
+        new_registry: dict[str, object],
+        skipped: list[dict[str, object]],
+    ) -> dict[str, object]:
+        if not skipped:
+            return new_registry
+        return self._with_preserved_file_records(
+            old_registry,
+            new_registry,
+            {str(item["path"]) for item in skipped},
+        )
+
+    def _with_preserved_file_records(
+        self,
+        old_registry: dict[str, object],
+        new_registry: dict[str, object],
+        preserved_paths: set[str],
+    ) -> dict[str, object]:
+        if not preserved_paths:
+            return new_registry
+        old_records = self.registry_file_map(old_registry)
+        adapters = new_registry.get("adapters", {})
+        if not isinstance(adapters, dict):
+            return new_registry
+        for adapter_record in adapters.values():
+            if not isinstance(adapter_record, dict):
+                continue
+            file_records = adapter_record.get("files", [])
+            if not isinstance(file_records, list):
+                continue
+            for index, record in enumerate(file_records):
+                if not isinstance(record, dict):
+                    continue
+                path_key = str(record.get("path", ""))
+                if path_key not in preserved_paths:
+                    continue
+                current_path = self.root / path_key
+                if path_key in old_records:
+                    preserved = {**old_records[path_key]}
+                    preserved["drift"] = (
+                        "drifted"
+                        if current_path.exists() and preserved.get("sha256") != _sha256_file(current_path)
+                        else "missing"
+                    )
+                    file_records[index] = preserved
+                else:
+                    record["managed"] = False
+                    record["sha256"] = _sha256_file(current_path) if current_path.exists() else ""
+                    record["drift"] = "unmanaged" if current_path.exists() else "missing"
+        return new_registry
+
     def integration_status(
         self,
         adapter_id: str,
@@ -383,23 +582,110 @@ class AgentInstructionService:
             for file_record in files:
                 if not isinstance(file_record, dict):
                     continue
-                path = self.root / str(file_record.get("path", ""))
-                drift = "missing"
-                if path.exists():
-                    drift = "clean" if file_record.get("sha256") == _sha256_file(path) else "drifted"
-                file_status = {**file_record, "drift": drift}
+                status_value = self.file_status(file_record)
+                file_status = {
+                    **file_record,
+                    "status": status_value,
+                    "drift": "clean" if status_value == "clean" else "drifted",
+                }
                 file_statuses.append(file_status)
+        health = self.adapter_health(file_statuses) if installed else "clean"
         status = {
             "adapter": adapter_id,
             "supported": adapter_id in self.built_in_adapters,
             "installed": installed,
             "maturity": record.get("maturity", "stable") if isinstance(record, dict) else "stable",
-            "drift": "drifted" if any(item.get("drift") == "drifted" for item in file_statuses) else "clean",
+            "health": health,
+            "drift": "drifted" if any(item.get("status") != "clean" for item in file_statuses) else "clean",
         }
         if include_files:
             status["files"] = file_statuses
             status["capabilities"] = self.adapter_capabilities(adapter_id)
         return status
+
+    def file_status(self, file_record: dict[str, object]) -> str:
+        path = self.root / str(file_record.get("path", ""))
+        registry_status = str(file_record.get("drift") or "clean")
+        if not path.exists():
+            return "missing"
+        if file_record.get("managed") is False:
+            return "unmanaged"
+        if registry_status in _REGISTRY_FILE_STATUSES and registry_status != "clean":
+            return registry_status
+        return "clean" if file_record.get("sha256") == _sha256_file(path) else "modified"
+
+    def adapter_health(self, file_statuses: list[dict[str, object]]) -> str:
+        statuses = {str(item.get("status") or "clean") for item in file_statuses}
+        if statuses & _ERROR_FILE_STATUSES:
+            return "error"
+        if statuses & _WARNING_FILE_STATUSES:
+            return "warning"
+        return "clean"
+
+    def _safe_relative_path(self, value: object, *, label: str) -> Path:
+        raw_path = str(value or "").strip()
+        if not raw_path:
+            raise ValueError(f"{label} is required.")
+        relative_path = Path(raw_path)
+        if relative_path.is_absolute():
+            raise ValueError(f"{label} must be relative: {raw_path}")
+        if ".." in relative_path.parts:
+            raise ValueError(f"{label} must not escape project root: {raw_path}")
+        resolved_root = self.root.resolve()
+        resolved_path = (resolved_root / relative_path).resolve()
+        if resolved_path != resolved_root and resolved_root not in resolved_path.parents:
+            raise ValueError(f"{label} must not escape project root: {raw_path}")
+        return relative_path
+
+    def _append_file_doctor_finding(
+        self,
+        findings: list[AgentDoctorFinding],
+        adapter_id: str,
+        file_status: dict[str, object],
+    ) -> None:
+        status = str(file_status.get("status") or "clean")
+        if status == "clean":
+            return
+        relative = Path(str(file_status.get("path") or ""))
+        severity = "error" if status in _ERROR_FILE_STATUSES else "warning"
+        code = _FILE_STATUS_FINDING_CODES.get(status, "P2P_AGENT_FILE_INVALID")
+        suggested = "p2p agent update {adapter}".format(adapter=adapter_id)
+        if status in {"modified", "unmanaged"}:
+            suggested = f"review {relative}, then run p2p agent update {adapter_id} --force if appropriate"
+        findings.append(
+            AgentDoctorFinding(
+                code=code,
+                severity=severity,
+                adapter=adapter_id,
+                path=relative,
+                message=f"Agent file {relative} is {status}.",
+                suggested_command=suggested,
+            )
+        )
+
+    def _append_shared_file_doctor_finding(
+        self,
+        findings: list[AgentDoctorFinding],
+        adapter_id: str,
+        file_status: dict[str, object],
+        adapters: dict[str, object],
+    ) -> None:
+        if file_status.get("shared") is not True:
+            return
+        owner = str(file_status.get("owner") or "")
+        if owner in adapters:
+            return
+        relative = Path(str(file_status.get("path") or ""))
+        findings.append(
+            AgentDoctorFinding(
+                code="P2P_AGENT_SHARED_OWNER_MISSING",
+                severity="error",
+                adapter=adapter_id,
+                path=relative,
+                message=f"Shared agent file {relative} references missing owner adapter: {owner}.",
+                suggested_command="p2p validate",
+            )
+        )
 
 
 def _sha256_file(path: Path) -> str:
@@ -415,3 +701,12 @@ def _remove_empty_parents(path: Path, *, stop_at: Path) -> None:
         except OSError:
             return
         path = path.parent
+
+
+def _findings_health(findings: list[AgentDoctorFinding]) -> str:
+    severities = {finding.severity for finding in findings}
+    if "error" in severities:
+        return "error"
+    if "warning" in severities:
+        return "warning"
+    return "clean"

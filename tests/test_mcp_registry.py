@@ -10,6 +10,7 @@ EXPECTED_TOOL_NAMES = (
     "p2p_agent_instructions_refresh",
     "p2p_agent_list",
     "p2p_agent_show",
+    "p2p_agent_doctor",
     "p2p_agent_install",
     "p2p_agent_update",
     "p2p_agent_uninstall",

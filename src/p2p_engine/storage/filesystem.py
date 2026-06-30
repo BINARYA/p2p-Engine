@@ -25,6 +25,7 @@ from p2p_engine.foundation.validators import validate_yaml_key as _validate_yaml
 from p2p_engine.services.agent_instructions import (
     AgentInstructionService,
     AgentInstructionsResult,
+    AgentDoctorResult,
     AgentIntegrationResult,
 )
 from p2p_engine.services.agent_templates import (
@@ -677,6 +678,9 @@ class P2PWorkspace:
 
     def agent_integration_show(self, adapter: str) -> dict[str, object]:
         return self._agent_instruction_service().show_integration(adapter)
+
+    def agent_doctor(self, target: str | None = "all") -> AgentDoctorResult:
+        return self._agent_instruction_service().doctor(target)
 
     def install_agent_integrations(
         self,

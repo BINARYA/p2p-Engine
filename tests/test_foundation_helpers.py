@@ -18,6 +18,8 @@ from p2p_engine.foundation.files import (
     read_yaml_mapping_or_default,
     relative_to_root,
     slugify,
+    write_text_atomic,
+    write_yaml_atomic,
     yaml_dump,
 )
 from p2p_engine.foundation.validators import validate_tasks_yaml, validate_yaml_key
@@ -129,6 +131,18 @@ def test_file_foundation_tolerant_yaml_mapping_helper(tmp_path) -> None:
     path.write_text("- one\n", encoding="utf-8")
     assert read_yaml_mapping_or_default(path) == {}
     assert read_yaml_mapping_or_default(path, default={"fallback": True}) == {"fallback": True}
+
+
+def test_file_foundation_atomic_write_helpers(tmp_path) -> None:
+    text_path = tmp_path / "nested" / "data.txt"
+    yaml_path = tmp_path / "state.yml"
+
+    write_text_atomic(text_path, "hello\n")
+    write_yaml_atomic(yaml_path, {"name": "Demo"})
+
+    assert text_path.read_text(encoding="utf-8") == "hello\n"
+    assert read_yaml_mapping(yaml_path, default={}) == {"name": "Demo"}
+    assert list((tmp_path / "nested").glob("tmp*")) == []
 
 
 def test_file_foundation_relative_to_root(tmp_path) -> None:

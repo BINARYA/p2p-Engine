@@ -28,24 +28,28 @@ def register_doctor_commands(app: typer.Typer, agent_app: typer.Typer) -> None:
     ) -> None:
         """Diagnose agent runtime readiness and recovery steps."""
         _print_doctor(root, agent_mode=True)
-        if target:
-            console.print("Agent integration doctor")
-            workspace = workspace_for(root)
-            if target == "all":
-                result = workspace.agent_integrations_list()
-                for adapter in result["adapters"]:
-                    console.print(
-                        f"  {adapter['adapter']}: installed={str(adapter['installed']).lower()} "
-                        f"drift={adapter['drift']}"
-                    )
-                return
-            try:
-                result = workspace.agent_integration_show(target)
-            except ValueError as exc:
-                fail(str(exc))
-            console.print(f"  {result['adapter']}: installed={str(result['installed']).lower()} drift={result['drift']}")
-            for record in result.get("files", []):
-                console.print(f"    {record['path']}: {record.get('drift')}")
+        workspace = workspace_for(root)
+        try:
+            result = workspace.agent_doctor(target or "all")
+        except ValueError as exc:
+            fail(str(exc))
+        console.print("Agent integration doctor")
+        console.print(f"  target: {result.target}")
+        console.print(f"  health: {result.health}")
+        console.print(f"  registry: {result.registry_path}")
+        if result.findings:
+            console.print("  findings:")
+            for finding in result.findings:
+                console.print(
+                    f"    {finding.severity.upper()} {finding.code} "
+                    f"{finding.adapter} {finding.path}: {finding.message}"
+                )
+                if finding.suggested_command:
+                    console.print(f"      suggested: {finding.suggested_command}")
+        else:
+            console.print("  findings: none")
+        if result.health == "error":
+            raise typer.Exit(code=1)
 
 
 def _print_doctor(root: Path, *, agent_mode: bool) -> None:

@@ -49,6 +49,23 @@ def tool_definitions() -> list[dict[str, object]]:
             ['adapter'],
         ),
         _tool(
+            'p2p_agent_doctor',
+            (
+                'Read-only agent integration doctor: return structured health findings for '
+                'registry, managed files, hashes, shared ownership, and generic baseline.'
+            ),
+            {'root': {'type': 'string'},
+             'adapter': {'type': 'string',
+                         'enum': ['generic',
+                                  'codex',
+                                  'claude',
+                                  'cursor',
+                                  'copilot',
+                                  'gemini',
+                                  'opencode',
+                                  'all']}},
+        ),
+        _tool(
             'p2p_agent_install',
             (
                 'Write-safe agent integration tool: install generated project-local agent files '

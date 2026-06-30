@@ -168,6 +168,41 @@ p2p agent uninstall cursor
 P2P records generated files, owners, shared-file status, hashes, and drift in
 `.p2p/agent-integrations.yml`. Do not edit that registry by hand.
 
+`generic` is the mandatory baseline adapter. It is always included in the
+effective install set and cannot be uninstalled through CLI, MCP, or the service
+layer.
+
+`agent list` and `agent show` expose both compatibility drift and production
+health:
+
+- file `status`: `clean`, `modified`, `missing`, `unmanaged`, `conflicted`, or
+  `stale_template`;
+- adapter `health`: `clean`, `warning`, or `error`;
+- compatibility `drift`: `clean` only when every managed file is clean.
+
+Missing, modified, conflicted, unmanaged, or stale files never aggregate to
+clean health.
+
+`p2p agent doctor [adapter|all]` returns agent-specific health findings for the
+registry, mandatory generic baseline, managed file existence, hash mismatches,
+shared-file ownership, and recovery commands. A clean or warning doctor result
+exits with code `0`; an error result exits with code `1`.
+
+Lifecycle commands are conservative by default:
+
+- `refresh`, `install`, and `update` skip drifted or unmanaged existing files
+  instead of overwriting human edits silently.
+- `--force` is scoped to the named install/update target and does not overwrite
+  drifted files belonging only to another installed adapter.
+- `uninstall` removes only safe, managed, unchanged, non-shared files.
+- Unsafe absolute paths or paths containing `..` are rejected before file writes
+  or deletes.
+
+`p2p validate` performs semantic checks on `.p2p/agent-integrations.yml`,
+including mandatory `generic`, known adapters, forbidden active/default/current
+agent state, required metadata, safe relative paths, duplicate ownership,
+status/hash format, missing managed files, and hash mismatches.
+
 Adapter file matrix:
 
 ```text
@@ -180,7 +215,11 @@ gemini    -> AGENTS.md, GEMINI.md
 opencode  -> AGENTS.md
 ```
 
-P2P does not generate `.cursorrules` or `opencode.json` in the MVP.
+Shared files have a single owner and may have multiple consumers. `generic`
+owns baseline shared files such as `AGENTS.md` and `.p2p/agent-policy.yml`.
+OpenCode is a shared-only adapter today: installing it records OpenCode as a
+consumer of `AGENTS.md`, but P2P does not generate `opencode.json` in the MVP.
+P2P also does not generate `.cursorrules`.
 
 ## Readiness Gap Handling
 

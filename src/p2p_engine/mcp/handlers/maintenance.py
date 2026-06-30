@@ -14,7 +14,7 @@ def handle_maintenance_tool(
     if name == "p2p_init_project":
         created = workspace.init_project(
             name=required(arguments, "name"),
-            agent_profile=str(arguments.get("agent") or "generic"),
+            agent_profile=str(arguments.get("agent") or "all"),
             repository_mode=str(arguments.get("repository") or "local"),
             project_domain=str(arguments.get("domain") or "none"),
         )

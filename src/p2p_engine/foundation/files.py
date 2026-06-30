@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import re
+import tempfile
 from pathlib import Path
 
 import yaml
@@ -27,6 +29,31 @@ def relative_to_root(path: Path, root: Path) -> Path:
 
 def yaml_dump(data: object) -> str:
     return yaml.safe_dump(data, sort_keys=False, allow_unicode=False)
+
+
+def write_text_atomic(path: Path, content: str, *, encoding: str = "utf-8") -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding=encoding,
+            dir=path.parent,
+            delete=False,
+        ) as temp_file:
+            temp_file.write(content)
+            temp_file.flush()
+            os.fsync(temp_file.fileno())
+            temp_path = Path(temp_file.name)
+        temp_path.replace(path)
+    except Exception:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
+        raise
+
+
+def write_yaml_atomic(path: Path, data: object) -> None:
+    write_text_atomic(path, yaml_dump(data))
 
 
 def read_yaml(path: Path, default: object) -> object:

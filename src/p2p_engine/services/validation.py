@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -179,7 +180,7 @@ class ValidationService:
         if not path.exists():
             return
         try:
-            _validate_agent_integrations_payload(_read_yaml_mapping(path, default={}))
+            _validate_agent_integrations_payload(_read_yaml_mapping(path, default={}), root=self.root)
         except ValueError as exc:
             add("P2P240_INVALID_AGENT_INTEGRATIONS", "error", path, str(exc), "")
 
@@ -383,25 +384,52 @@ def _read_proposal_status(path: Path) -> str:
     return status.strip().strip("`").lower()
 
 
-def _validate_agent_integrations_payload(data: dict[str, object]) -> None:
+def _validate_agent_integrations_payload(data: dict[str, object], *, root: Path | None = None) -> None:
     if data.get("schema_version") != 1:
         raise ValueError("Agent integrations registry must use schema_version: 1.")
     if data.get("baseline_profile") != "generic":
         raise ValueError("Agent integrations registry baseline_profile must be generic.")
-    forbidden = {"active_agent", "default_agent", "preferred_agent", "current_agent", "use", "switch"}
+    forbidden = {
+        "active",
+        "active_agent",
+        "active_adapter",
+        "current",
+        "current_agent",
+        "current_adapter",
+        "default",
+        "default_agent",
+        "default_adapter",
+        "preferred",
+        "preferred_agent",
+        "preferred_adapter",
+        "use",
+        "switch",
+    }
     for key in forbidden:
         if key in data:
             raise ValueError(f"Agent integrations registry must not define {key}.")
     adapters = data.get("adapters")
     if not isinstance(adapters, dict):
         raise ValueError("Agent integrations registry must define adapters mapping.")
+    if "generic" not in adapters:
+        raise ValueError("Agent integrations registry must include generic adapter.")
+    file_records_by_path: dict[str, dict[str, object]] = {}
     for adapter_id, adapter in adapters.items():
         if adapter_id not in BUILT_IN_AGENT_ADAPTERS:
             raise ValueError(f"Unknown agent adapter: {adapter_id}")
         if not isinstance(adapter, dict):
             raise ValueError(f"Agent adapter record must be a mapping: {adapter_id}")
+        for required in ("status", "maturity", "template_version", "capabilities", "files"):
+            if required not in adapter:
+                raise ValueError(f"Agent adapter record missing {required}: {adapter_id}")
         if adapter.get("status") != "installed":
             raise ValueError(f"Agent adapter status must be installed: {adapter_id}")
+        if not str(adapter.get("maturity") or "").strip():
+            raise ValueError(f"Agent adapter maturity is required: {adapter_id}")
+        if not str(adapter.get("template_version") or "").strip():
+            raise ValueError(f"Agent adapter template_version is required: {adapter_id}")
+        if not isinstance(adapter.get("capabilities"), dict):
+            raise ValueError(f"Agent adapter capabilities must be a mapping: {adapter_id}")
         files = adapter.get("files")
         if not isinstance(files, list):
             raise ValueError(f"Agent adapter files must be a list: {adapter_id}")
@@ -411,10 +439,62 @@ def _validate_agent_integrations_payload(data: dict[str, object]) -> None:
             for required in ("path", "shared", "owner", "managed", "template_id", "sha256", "drift"):
                 if required not in record:
                     raise ValueError(f"Agent adapter file record missing {required}: {adapter_id}")
+            relative_path = _validate_agent_file_path(record.get("path"), root=root)
+            if not isinstance(record.get("shared"), bool):
+                raise ValueError(f"Agent adapter file shared must be boolean: {relative_path}")
+            if not isinstance(record.get("managed"), bool):
+                raise ValueError(f"Agent adapter file managed must be boolean: {relative_path}")
             if record["owner"] not in BUILT_IN_AGENT_ADAPTERS:
                 raise ValueError(f"Invalid agent adapter file owner: {record['owner']}")
+            if not str(record.get("template_id") or "").strip():
+                raise ValueError(f"Agent adapter file template_id is required: {relative_path}")
             sha256 = str(record.get("sha256") or "")
             if sha256 and not re.fullmatch(r"[0-9a-f]{64}", sha256):
                 raise ValueError(f"Invalid SHA-256 for agent adapter file: {record.get('path')}")
-            if record.get("drift") not in {"clean", "missing", "drifted", "unmanaged"}:
+            drift = record.get("drift")
+            if drift not in {"clean", "missing", "drifted", "modified", "unmanaged", "conflicted", "stale_template"}:
                 raise ValueError(f"Invalid drift state for agent adapter file: {record.get('path')}")
+            if record.get("managed") is True and not sha256:
+                raise ValueError(f"Managed agent file must record SHA-256: {relative_path}")
+            if record.get("managed") is False and drift == "clean":
+                raise ValueError(f"Unmanaged agent file must not have clean drift state: {relative_path}")
+            previous = file_records_by_path.get(str(relative_path))
+            if previous is not None and not _compatible_agent_file_records(previous, record):
+                raise ValueError(f"Duplicate agent file path has incompatible ownership: {relative_path}")
+            file_records_by_path.setdefault(str(relative_path), record)
+            if root is not None and record.get("managed") is True:
+                actual_path = root / relative_path
+                if not actual_path.exists():
+                    raise ValueError(f"Managed agent file is missing: {relative_path}")
+                if _sha256_file(actual_path) != sha256:
+                    raise ValueError(f"Managed agent file hash mismatch: {relative_path}")
+
+
+def _validate_agent_file_path(value: object, *, root: Path | None) -> Path:
+    raw_path = str(value or "").strip()
+    if not raw_path:
+        raise ValueError("Agent adapter file path is required.")
+    relative_path = Path(raw_path)
+    if relative_path.is_absolute():
+        raise ValueError(f"Agent adapter file path must be relative: {raw_path}")
+    if ".." in relative_path.parts:
+        raise ValueError(f"Agent adapter file path must not escape project root: {raw_path}")
+    if root is not None:
+        resolved_root = root.resolve()
+        resolved_path = (resolved_root / relative_path).resolve()
+        if resolved_path != resolved_root and resolved_root not in resolved_path.parents:
+            raise ValueError(f"Agent adapter file path must not escape project root: {raw_path}")
+    return relative_path
+
+
+def _compatible_agent_file_records(previous: dict[str, object], current: dict[str, object]) -> bool:
+    return (
+        previous.get("shared") is True
+        and current.get("shared") is True
+        and previous.get("owner") == current.get("owner")
+        and previous.get("template_id") == current.get("template_id")
+    )
+
+
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()

@@ -206,6 +206,7 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_agent_instructions_refresh` | write-safe | yes | no | Refresh agent instructions and policy. |
 | `p2p_agent_list` | read-only | no | no | List supported and installed agent integrations. |
 | `p2p_agent_show` | read-only | no | no | Show one agent integration, files, and drift state. |
+| `p2p_agent_doctor` | read-only | no | no | Return structured agent integration health findings. |
 | `p2p_agent_install` | write-safe | yes | no | Install project-local generated files for an agent adapter. |
 | `p2p_agent_update` | write-safe | yes | no | Update generated agent files while preserving drift safety. |
 | `p2p_agent_uninstall` | write-safe | yes | no | Remove only safe, managed, non-shared files for an adapter. |

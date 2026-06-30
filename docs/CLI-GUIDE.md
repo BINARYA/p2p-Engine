@@ -231,9 +231,16 @@ p2p agent doctor all
 p2p agent uninstall cursor
 ```
 
-`update` refuses to overwrite drifted generated files unless `--force` is used.
-`uninstall` removes only clean, managed, non-shared files. `generic` cannot be
-uninstalled.
+`agent list` and `agent show` report adapter health and file status. `update`
+refuses to overwrite drifted generated files unless `--force` is used. Force is
+scoped to the named adapter target and does not rewrite drifted files belonging
+only to another adapter. `uninstall` removes only clean, managed, non-shared
+files. `generic` cannot be uninstalled.
+
+`agent doctor [adapter|all]` reports structured health findings and exits with
+code `1` when agent-specific errors are found. `p2p validate` also checks the
+agent integration registry for safe paths, known adapters, required metadata,
+missing managed files, and hash mismatches.
 
 Expected shape:
 

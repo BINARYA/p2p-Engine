@@ -44,7 +44,11 @@ def register_agent_commands(agent_app: typer.Typer, agent_instructions_app: type
             console.print("  updated:")
             for path in result.updated:
                 console.print(f"    {path}")
-        if not result.created and not result.updated:
+        if result.skipped:
+            console.print("  skipped:")
+            for item in result.skipped:
+                console.print(f"    {item['path']}: {item['reason']}")
+        if not result.created and not result.updated and not result.skipped:
             console.print("  no changes")
 
     @agent_app.command("list")
@@ -57,7 +61,7 @@ def register_agent_commands(agent_app: typer.Typer, agent_instructions_app: type
         for adapter in result["adapters"]:
             console.print(
                 f"  {adapter['adapter']}: installed={str(adapter['installed']).lower()} "
-                f"drift={adapter['drift']}"
+                f"health={adapter['health']} drift={adapter['drift']}"
             )
 
     @agent_app.command("show")
@@ -72,12 +76,13 @@ def register_agent_commands(agent_app: typer.Typer, agent_instructions_app: type
             fail(str(exc))
         console.print(f"Agent integration: {result['adapter']}")
         console.print(f"  installed: {str(result['installed']).lower()}")
+        console.print(f"  health: {result['health']}")
         console.print(f"  drift: {result['drift']}")
         console.print("  files:")
         for record in result.get("files", []):
             console.print(
                 f"    {record['path']} shared={str(record.get('shared')).lower()} "
-                f"owner={record.get('owner')} drift={record.get('drift')}"
+                f"owner={record.get('owner')} status={record.get('status')} drift={record.get('drift')}"
             )
 
     @agent_app.command("install")

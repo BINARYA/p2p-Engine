@@ -1,6 +1,7 @@
 import shutil
 from pathlib import Path
 
+import pytest
 import yaml
 
 from p2p_engine.services.permissions import PermissionsService
@@ -27,9 +28,21 @@ def _codes(result) -> set[str]:
     return {finding.code for finding in result.findings}
 
 
+def _agent_registry(workspace: P2PWorkspace) -> dict[str, object]:
+    return yaml.safe_load(workspace._agent_instruction_service().path().read_text(encoding="utf-8"))
+
+
+def _write_agent_registry(workspace: P2PWorkspace, payload: dict[str, object]) -> None:
+    workspace._agent_instruction_service().write_registry(payload)
+
+
+def _agent_integration_finding(result):
+    return next(finding for finding in result.findings if finding.code == "P2P240_INVALID_AGENT_INTEGRATIONS")
+
+
 def test_validation_service_accepts_valid_refreshed_project(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
-    workspace.init_project("Demo Project")
+    workspace.init_project("Demo Project", agent_profile="all")
     workspace.refresh_registries()
 
     result = _validation_service(workspace).validate()
@@ -37,6 +50,91 @@ def test_validation_service_accepts_valid_refreshed_project(tmp_path: Path) -> N
     assert result.ok is True
     assert result.errors == 0
     assert result.warnings == 0
+
+
+@pytest.mark.parametrize(
+    ("mutate", "expected_message"),
+    [
+        (
+            lambda registry: registry["adapters"].pop("generic"),
+            "must include generic adapter",
+        ),
+        (
+            lambda registry: registry.__setitem__("active_agent", "codex"),
+            "must not define active_agent",
+        ),
+        (
+            lambda registry: registry["adapters"].__setitem__("unknown", {"status": "installed", "files": []}),
+            "Unknown agent adapter: unknown",
+        ),
+        (
+            lambda registry: registry["adapters"]["generic"].pop("template_version"),
+            "Agent adapter record missing template_version",
+        ),
+        (
+            lambda registry: registry["adapters"]["generic"]["files"][0].__setitem__("path", "/tmp/AGENTS.md"),
+            "Agent adapter file path must be relative",
+        ),
+        (
+            lambda registry: registry["adapters"]["generic"]["files"][0].__setitem__("path", "../AGENTS.md"),
+            "Agent adapter file path must not escape project root",
+        ),
+        (
+            lambda registry: registry["adapters"]["generic"]["files"][0].__setitem__("sha256", "not-a-sha"),
+            "Invalid SHA-256",
+        ),
+        (
+            lambda registry: registry["adapters"]["generic"]["files"][0].__setitem__("drift", "surprising"),
+            "Invalid drift state",
+        ),
+        (
+            lambda registry: registry["adapters"]["codex"]["files"][0].__setitem__("shared", False),
+            "Duplicate agent file path has incompatible ownership",
+        ),
+    ],
+)
+def test_validation_service_reports_semantic_agent_registry_errors(
+    tmp_path: Path,
+    mutate,
+    expected_message: str,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Demo Project", agent_profile="all")
+    registry = _agent_registry(workspace)
+    mutate(registry)
+    _write_agent_registry(workspace, registry)
+
+    result = _validation_service(workspace).validate()
+    finding = _agent_integration_finding(result)
+
+    assert result.ok is False
+    assert finding.severity == "error"
+    assert expected_message in finding.message
+
+
+def test_validation_service_reports_missing_agent_registry_file(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Demo Project", agent_profile="generic")
+    (tmp_path / "AGENTS.md").unlink()
+
+    result = _validation_service(workspace).validate()
+    finding = _agent_integration_finding(result)
+
+    assert result.ok is False
+    assert "Managed agent file is missing: AGENTS.md" in finding.message
+
+
+def test_validation_service_reports_agent_registry_hash_mismatch(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Demo Project", agent_profile="generic")
+    agents = tmp_path / "AGENTS.md"
+    agents.write_text(agents.read_text(encoding="utf-8") + "\nmanual edit\n", encoding="utf-8")
+
+    result = _validation_service(workspace).validate()
+    finding = _agent_integration_finding(result)
+
+    assert result.ok is False
+    assert "Managed agent file hash mismatch: AGENTS.md" in finding.message
 
 
 def test_validation_service_reports_invalid_yaml(tmp_path: Path) -> None:

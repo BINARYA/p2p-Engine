@@ -9,7 +9,8 @@ def tool_definitions() -> list[dict[str, object]]:
             'p2p_init_project',
             (
                 'Write-safe bootstrap tool: initialize a P2P project and generate agent '
-                'boundary instructions. Does not make governance decisions.'
+                'boundary instructions. Defaults to all built-in adapters when agent is omitted. '
+                'Does not make governance decisions.'
             ),
             {'root': {'type': 'string'},
              'name': {'type': 'string'},

@@ -5,6 +5,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import pytest
 import yaml
 from typer.testing import CliRunner
 
@@ -54,6 +55,7 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_agent_instructions_refresh",
         "p2p_agent_list",
         "p2p_agent_show",
+        "p2p_agent_doctor",
         "p2p_agent_install",
         "p2p_agent_update",
         "p2p_agent_uninstall",
@@ -1224,6 +1226,46 @@ def test_mcp_agent_integration_lifecycle_tools(tmp_path: Path) -> None:
     uninstalled = call_tool("p2p_agent_uninstall", {"root": str(tmp_path), "adapter": "gemini"})
     skipped_reasons = {item["reason"] for item in uninstalled["agent_integration"]["skipped"]}
     assert "drifted" in skipped_reasons
+
+
+def test_mcp_init_default_agent_set_matches_cli_default(tmp_path: Path) -> None:
+    cli_root = tmp_path / "cli"
+    mcp_root = tmp_path / "mcp"
+    cli_root.mkdir()
+    mcp_root.mkdir()
+
+    cli_result = runner.invoke(app, ["init", "CLI Default", "--root", str(cli_root)])
+    mcp_result = call_tool("p2p_init_project", {"root": str(mcp_root), "name": "MCP Default"})
+
+    assert cli_result.exit_code == 0
+    assert mcp_result["initialized"] is True
+    cli_registry = yaml.safe_load((cli_root / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
+    mcp_registry = yaml.safe_load((mcp_root / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
+    assert set(mcp_registry["adapters"]) == set(cli_registry["adapters"])
+
+
+def test_mcp_agent_uninstall_refuses_generic_baseline(tmp_path: Path) -> None:
+    call_tool("p2p_init_project", {"root": str(tmp_path), "name": "MCP Agents", "agent": "cursor"})
+
+    with pytest.raises(ValueError, match="generic cannot be uninstalled"):
+        call_tool("p2p_agent_uninstall", {"root": str(tmp_path), "adapter": "generic"})
+
+    registry = yaml.safe_load((tmp_path / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
+    assert "generic" in registry["adapters"]
+
+
+def test_mcp_agent_doctor_returns_structured_findings(tmp_path: Path) -> None:
+    call_tool("p2p_init_project", {"root": str(tmp_path), "name": "MCP Doctor", "agent": "generic"})
+    clean = call_tool("p2p_agent_doctor", {"root": str(tmp_path), "adapter": "generic"})
+    (tmp_path / "AGENTS.md").unlink()
+
+    broken = call_tool("p2p_agent_doctor", {"root": str(tmp_path), "adapter": "generic"})
+
+    assert clean["agent_doctor"]["health"] == "clean"
+    assert clean["agent_doctor"]["findings"] == []
+    assert broken["agent_doctor"]["health"] == "error"
+    assert broken["agent_doctor"]["findings"][0]["code"] == "P2P_AGENT_FILE_MISSING"
+    assert broken["agent_doctor"]["findings"][0]["path"] == "AGENTS.md"
 
 
 def test_mcp_init_project_can_start_with_unresolved_custom_domain(tmp_path: Path) -> None:

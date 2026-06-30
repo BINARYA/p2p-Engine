@@ -1,7 +1,7 @@
 ---
 change_id: CHANGE-065
 title: Implement Agent Integration Registry MVP
-status: in_review
+status: completed
 created_at: '2026-06-05'
 created_by: local
 execution_domains:

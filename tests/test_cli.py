@@ -1122,6 +1122,17 @@ def test_cli_init_narrow_agent_still_includes_generic(tmp_path: Path) -> None:
     assert set(registry["adapters"]) == {"generic", "cursor"}
 
 
+def test_cli_agent_uninstall_refuses_generic_baseline(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--agent", "cursor", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["agent", "uninstall", "generic", "--root", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert "generic cannot be uninstalled" in result.output
+    registry = yaml.safe_load((tmp_path / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
+    assert "generic" in registry["adapters"]
+
+
 def test_cli_agent_lifecycle_update_refuses_drift_and_uninstall_preserves_shared(
     tmp_path: Path,
 ) -> None:
@@ -1150,6 +1161,22 @@ def test_cli_agent_lifecycle_update_refuses_drift_and_uninstall_preserves_shared
     assert (tmp_path / "AGENTS.md").exists()
 
 
+def test_cli_agent_update_force_is_scoped_to_target_adapter(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    cursor_rule = tmp_path / ".cursor" / "rules" / "p2p.mdc"
+    gemini = tmp_path / "GEMINI.md"
+    cursor_rule.write_text(cursor_rule.read_text(encoding="utf-8") + "\ncursor edit\n", encoding="utf-8")
+    gemini.write_text(gemini.read_text(encoding="utf-8") + "\ngemini edit\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["agent", "update", "cursor", "--force", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert ".cursor/rules/p2p.mdc" in result.output
+    assert "GEMINI.md" not in result.output
+    assert "cursor edit" not in cursor_rule.read_text(encoding="utf-8")
+    assert "gemini edit" in gemini.read_text(encoding="utf-8")
+
+
 def test_cli_agent_install_does_not_claim_unmanaged_existing_file(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--agent", "generic", "--root", str(tmp_path)])
     (tmp_path / ".p2p" / "agent-integrations.yml").unlink()
@@ -1165,6 +1192,36 @@ def test_cli_agent_install_does_not_claim_unmanaged_existing_file(tmp_path: Path
     assert generic_agents["path"] == "AGENTS.md"
     assert generic_agents["managed"] is False
     assert generic_agents["drift"] == "unmanaged"
+
+
+def test_cli_agent_instructions_refresh_reports_skipped_drift(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--agent", "generic", "--root", str(tmp_path)])
+    agents = tmp_path / "AGENTS.md"
+    agents.write_text(agents.read_text(encoding="utf-8") + "\nmanual edit\n", encoding="utf-8")
+
+    result = runner.invoke(
+        app,
+        ["agent", "instructions", "refresh", "--profile", "claude", "--root", str(tmp_path)],
+    )
+
+    assert result.exit_code == 0
+    assert "skipped:" in result.output
+    assert "AGENTS.md: drifted" in result.output
+    assert "manual edit" in agents.read_text(encoding="utf-8")
+
+
+def test_cli_agent_show_and_list_report_adapter_health(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--agent", "generic", "--root", str(tmp_path)])
+    (tmp_path / "AGENTS.md").unlink()
+
+    shown = runner.invoke(app, ["agent", "show", "generic", "--root", str(tmp_path)])
+    listed = runner.invoke(app, ["agent", "list", "--root", str(tmp_path)])
+
+    assert shown.exit_code == 0
+    assert listed.exit_code == 0
+    assert "health: error" in shown.output
+    assert "AGENTS.md shared=true owner=generic status=missing drift=drifted" in shown.output
+    assert "generic: installed=true health=error drift=drifted" in listed.output
 
 
 def test_cli_doctor_reports_runtime_readiness(tmp_path: Path) -> None:
@@ -1192,6 +1249,22 @@ def test_cli_agent_doctor_reports_missing_primitive_recovery(tmp_path: Path) -> 
     assert result.exit_code == 0
     assert "missing_primitive_rule:" in result.output
     assert "stop and report these diagnostics instead of editing .p2p by hand" in result.output
+    assert "Agent integration doctor" in result.output
+    assert "health: clean" in result.output
+
+
+def test_cli_agent_doctor_reports_agent_findings_and_error_exit(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--agent", "generic", "--root", str(tmp_path)])
+    (tmp_path / "AGENTS.md").unlink()
+
+    result = runner.invoke(app, ["agent", "doctor", "generic", "--root", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert "Agent integration doctor" in result.output
+    assert "target: generic" in result.output
+    assert "health: error" in result.output
+    assert "P2P_AGENT_FILE_MISSING" in result.output
+    assert "AGENTS.md" in result.output
 
 
 def test_python_module_entrypoint_exposes_cli_help() -> None:

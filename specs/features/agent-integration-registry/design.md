@@ -18,34 +18,81 @@
 
 ## Components
 
-- `src/p2p_engine/cli.py`
-  - `agent doctor`, `agent list`, `agent show`, `agent install`,
-    `agent update`, `agent uninstall`, `agent instructions refresh`.
+- `src/p2p_engine/services/agent_templates.py`
+  - Adapter ids, profile normalization, generated instruction files, adapter
+    file maps, and template ownership metadata.
+- `src/p2p_engine/services/agent_instructions.py`
+  - Registry construction, adapter lifecycle operations, drift detection,
+    safe uninstall, and list/show service views.
 - `src/p2p_engine/storage/filesystem.py`
-  - registry construction, adapter files, drift detection, safe uninstall,
-    generated instruction content.
-- `src/p2p_engine/mcp/tools.py`
-  - `p2p_agent_*` tools.
-- `tests/test_cli.py`, `tests/test_mcp.py`
-  - init, registry, drift, MCP lifecycle.
+  - `P2PWorkspace` compatibility facade delegating agent behavior to
+    `AgentInstructionService`.
+- `src/p2p_engine/cli.py`
+  - Init command defaulting to all built-in adapters when no agent is narrowed.
+- `src/p2p_engine/cli_commands/agents.py`
+  - `agent list`, `agent show`, `agent install`, `agent update`,
+    `agent uninstall`, and `agent instructions refresh`.
+- `src/p2p_engine/cli_commands/doctor.py`
+  - Current `agent doctor` presentation surface.
+- `src/p2p_engine/mcp/catalog/agents.py`
+  - `p2p_agent_*` tool definitions.
+- `src/p2p_engine/mcp/handlers/project.py`
+  - Read-only MCP agent list/show dispatch.
+- `src/p2p_engine/mcp/handlers/maintenance.py`
+  - Write-safe MCP init, refresh, install, update, and uninstall dispatch.
+- `tests/test_agent_instructions_service.py`, `tests/test_cli.py`,
+  `tests/test_mcp.py`, `tests/test_mcp_maintenance_handler.py`
+  - Service, CLI, MCP, init, registry, drift, and lifecycle coverage.
 
 ## Evidence
 
-- CLI definitions: `src/p2p_engine/cli.py:120`, `src/p2p_engine/cli.py:392`,
-  `src/p2p_engine/cli.py:430`, `src/p2p_engine/cli.py:444`,
-  `src/p2p_engine/cli.py:465`, `src/p2p_engine/cli.py:480`,
-  `src/p2p_engine/cli.py:493`.
-- Storage behavior: `src/p2p_engine/storage/filesystem.py:824`,
-  `src/p2p_engine/storage/filesystem.py:880`,
-  `src/p2p_engine/storage/filesystem.py:904`,
-  `src/p2p_engine/storage/filesystem.py:1013`,
-  `src/p2p_engine/storage/filesystem.py:7050`,
-  `src/p2p_engine/storage/filesystem.py:7466`.
-- MCP tools: `src/p2p_engine/mcp/tools.py:15`,
-  `src/p2p_engine/mcp/tools.py:181`, `src/p2p_engine/mcp/tools.py:1100`.
-- Tests: `tests/test_cli.py:951`, `tests/test_cli.py:987`,
-  `tests/test_cli.py:998`, `tests/test_cli.py:1026`,
-  `tests/test_mcp.py:1081`.
+- Adapter registry and templates:
+  `src/p2p_engine/services/agent_templates.py:15`,
+  `src/p2p_engine/services/agent_templates.py:19`,
+  `src/p2p_engine/services/agent_templates.py:42`,
+  `src/p2p_engine/services/agent_templates.py:154`,
+  `src/p2p_engine/services/agent_templates.py:188`.
+- Agent lifecycle service:
+  `src/p2p_engine/services/agent_instructions.py:33`,
+  `src/p2p_engine/services/agent_instructions.py:67`,
+  `src/p2p_engine/services/agent_instructions.py:144`,
+  `src/p2p_engine/services/agent_instructions.py:242`,
+  `src/p2p_engine/services/agent_instructions.py:338`,
+  `src/p2p_engine/services/agent_instructions.py:372`.
+- CLI and doctor surfaces:
+  `src/p2p_engine/cli.py:161`, `src/p2p_engine/cli.py:231`,
+  `src/p2p_engine/cli_commands/agents.py:12`,
+  `src/p2p_engine/cli_commands/agents.py:51`,
+  `src/p2p_engine/cli_commands/agents.py:64`,
+  `src/p2p_engine/cli_commands/agents.py:84`,
+  `src/p2p_engine/cli_commands/agents.py:97`,
+  `src/p2p_engine/cli_commands/agents.py:110`,
+  `src/p2p_engine/cli_commands/doctor.py:16`,
+  `src/p2p_engine/cli_commands/doctor.py:25`.
+- MCP definitions and handlers:
+  `src/p2p_engine/mcp/catalog/agents.py:9`,
+  `src/p2p_engine/mcp/catalog/agents.py:27`,
+  `src/p2p_engine/mcp/catalog/agents.py:35`,
+  `src/p2p_engine/mcp/catalog/agents.py:52`,
+  `src/p2p_engine/mcp/catalog/agents.py:71`,
+  `src/p2p_engine/mcp/catalog/agents.py:90`,
+  `src/p2p_engine/mcp/handlers/project.py:15`,
+  `src/p2p_engine/mcp/handlers/project.py:17`,
+  `src/p2p_engine/mcp/handlers/maintenance.py:14`,
+  `src/p2p_engine/mcp/handlers/maintenance.py:26`,
+  `src/p2p_engine/mcp/handlers/maintenance.py:33`,
+  `src/p2p_engine/mcp/handlers/maintenance.py:42`,
+  `src/p2p_engine/mcp/handlers/maintenance.py:51`.
+- Tests:
+  `tests/test_agent_instructions_service.py:8`,
+  `tests/test_agent_instructions_service.py:39`,
+  `tests/test_agent_instructions_service.py:57`,
+  `tests/test_agent_instructions_service.py:73`,
+  `tests/test_cli.py:1078`,
+  `tests/test_cli.py:1114`,
+  `tests/test_cli.py:1125`,
+  `tests/test_cli.py:1153`,
+  `tests/test_mcp.py:1194`.
 
 ## Risks
 

@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 import yaml
 
 from p2p_engine.storage.filesystem import P2PWorkspace
@@ -51,7 +52,56 @@ def test_agent_instruction_service_lists_and_shows_drift(tmp_path: Path) -> None
     assert adapters["gemini"]["installed"] is True
     assert shown["adapter"] == "gemini"
     assert shown["drift"] == "drifted"
+    assert shown["health"] == "error"
     assert any(file["path"] == "GEMINI.md" and file["drift"] == "drifted" for file in shown["files"])
+    assert any(file["path"] == "GEMINI.md" and file["status"] == "modified" for file in shown["files"])
+
+
+def test_agent_instruction_service_reports_missing_files_as_error_health(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="generic")
+    service = workspace._agent_instruction_service()
+    (tmp_path / "AGENTS.md").unlink()
+
+    shown = service.show_integration("generic")
+
+    assert shown["drift"] == "drifted"
+    assert shown["health"] == "error"
+    assert shown["files"][0]["status"] == "missing"
+
+
+def test_agent_instruction_service_reports_unmanaged_files_as_warning_health(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="generic")
+    service = workspace._agent_instruction_service()
+    (tmp_path / ".p2p" / "agent-integrations.yml").unlink()
+    (tmp_path / "AGENTS.md").write_text("# Custom Agents\n", encoding="utf-8")
+
+    service.refresh_instructions("cursor")
+    shown = service.show_integration("generic")
+
+    assert shown["drift"] == "drifted"
+    assert shown["health"] == "warning"
+    assert shown["files"][0]["status"] == "unmanaged"
+
+
+def test_agent_instruction_service_preserves_registry_file_statuses_in_health(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="generic")
+    service = workspace._agent_instruction_service()
+    registry = service.registry()
+    files = registry["adapters"]["generic"]["files"]
+    files[0]["drift"] = "conflicted"
+    files[1]["drift"] = "stale_template"
+    service.write_registry(registry)
+
+    shown = service.show_integration("generic")
+    statuses = {file["path"]: file["status"] for file in shown["files"]}
+
+    assert shown["drift"] == "drifted"
+    assert shown["health"] == "error"
+    assert statuses["AGENTS.md"] == "conflicted"
+    assert statuses[".p2p/agent-policy.yml"] == "stale_template"
 
 
 def test_agent_instruction_service_install_skips_drift_and_force_updates(tmp_path: Path) -> None:
@@ -70,6 +120,107 @@ def test_agent_instruction_service_install_skips_drift_and_force_updates(tmp_pat
     assert "manual edit" not in gemini.read_text(encoding="utf-8")
 
 
+def test_agent_instruction_service_force_update_is_scoped_to_target_adapter(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="all")
+    service = workspace._agent_instruction_service()
+    cursor = tmp_path / ".cursor" / "rules" / "p2p.mdc"
+    gemini = tmp_path / "GEMINI.md"
+    cursor.write_text(cursor.read_text(encoding="utf-8") + "\ncursor manual edit\n", encoding="utf-8")
+    gemini.write_text(gemini.read_text(encoding="utf-8") + "\ngemini manual edit\n", encoding="utf-8")
+
+    result = service.install_integrations("cursor", force=True)
+
+    assert Path(".cursor/rules/p2p.mdc") in result.updated
+    assert "cursor manual edit" not in cursor.read_text(encoding="utf-8")
+    assert "gemini manual edit" in gemini.read_text(encoding="utf-8")
+    assert Path("GEMINI.md") not in result.updated
+
+
+def test_agent_instruction_service_keeps_generic_baseline_and_refuses_uninstall(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="generic")
+    service = workspace._agent_instruction_service()
+
+    service.install_integrations("cursor")
+    registry = service.registry()
+
+    assert set(registry["adapters"]) == {"generic", "cursor"}
+    with pytest.raises(ValueError, match="generic cannot be uninstalled"):
+        service.uninstall_integration("generic")
+    assert "generic" in service.registry()["adapters"]
+
+
+def test_agent_instruction_service_refresh_skips_drifted_managed_files(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="generic")
+    service = workspace._agent_instruction_service()
+    agents = tmp_path / "AGENTS.md"
+    agents.write_text(agents.read_text(encoding="utf-8") + "\nmanual edit\n", encoding="utf-8")
+
+    result = service.refresh_instructions("claude")
+
+    assert {"path": "AGENTS.md", "reason": "drifted"} in result.skipped
+    assert "manual edit" in agents.read_text(encoding="utf-8")
+    assert (tmp_path / "CLAUDE.md").exists()
+    assert service.show_integration("generic")["drift"] == "drifted"
+
+
+def test_agent_instruction_service_refresh_skips_unmanaged_files_and_policy(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="generic")
+    service = workspace._agent_instruction_service()
+    (tmp_path / ".p2p" / "agent-integrations.yml").unlink()
+    agents = tmp_path / "AGENTS.md"
+    policy = tmp_path / ".p2p" / "agent-policy.yml"
+    agents.write_text("# Custom Agents\n", encoding="utf-8")
+    policy.write_text("agent_profiles:\n- custom\n", encoding="utf-8")
+
+    result = service.refresh_instructions("cursor")
+
+    assert {"path": "AGENTS.md", "reason": "unmanaged_exists"} in result.skipped
+    assert {"path": ".p2p/agent-policy.yml", "reason": "unmanaged_exists"} in result.skipped
+    assert agents.read_text(encoding="utf-8") == "# Custom Agents\n"
+    assert policy.read_text(encoding="utf-8") == "agent_profiles:\n- custom\n"
+    registry = service.registry()
+    assert registry["adapters"]["generic"]["files"][0]["managed"] is False
+    assert registry["adapters"]["generic"]["files"][0]["drift"] == "unmanaged"
+
+
+def test_agent_instruction_service_refresh_rejects_unsafe_instruction_paths(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="generic")
+    service = workspace._agent_instruction_service()
+    service.instruction_files = lambda *_args: {Path("../escape.md"): "escape\n"}
+
+    with pytest.raises(ValueError, match="Agent instruction path must not escape project root"):
+        service.refresh_instructions("generic")
+
+    assert not (tmp_path.parent / "escape.md").exists()
+
+
+def test_agent_instruction_service_install_rejects_unsafe_adapter_paths(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="generic")
+    service = workspace._agent_instruction_service()
+    service.adapter_files = lambda *_args: [(Path("/tmp/escape.md"), "bad-template", False, "generic")]
+
+    with pytest.raises(ValueError, match="Agent adapter path must be relative"):
+        service.install_integrations("generic")
+
+
+def test_agent_instruction_service_uninstall_rejects_unsafe_registry_paths(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="all")
+    service = workspace._agent_instruction_service()
+    registry = service.registry()
+    registry["adapters"]["gemini"]["files"][1]["path"] = "../escape.md"
+    service.write_registry(registry)
+
+    with pytest.raises(ValueError, match="Agent registry path must not escape project root"):
+        service.uninstall_integration("gemini")
+
+
 def test_agent_instruction_service_uninstall_preserves_shared_files(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Agent Project")
@@ -82,3 +233,50 @@ def test_agent_instruction_service_uninstall_preserves_shared_files(tmp_path: Pa
     assert {"path": "AGENTS.md", "reason": "shared"} in result.skipped
     assert (tmp_path / "AGENTS.md").exists()
     assert not (tmp_path / "GEMINI.md").exists()
+
+
+def test_agent_instruction_service_opencode_is_shared_only_and_uninstall_preserves_agents(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="generic")
+    service = workspace._agent_instruction_service()
+
+    service.install_integrations("opencode")
+    shown = service.show_integration("opencode")
+    result = service.uninstall_integration("opencode")
+    listed = {item["adapter"]: item for item in service.list_integrations()["adapters"]}
+
+    assert shown["installed"] is True
+    assert shown["files"] == [
+        {
+            "path": "AGENTS.md",
+            "shared": True,
+            "owner": "generic",
+            "managed": True,
+            "template_id": "generic-agents-md-v1",
+            "sha256": shown["files"][0]["sha256"],
+            "drift": "clean",
+            "status": "clean",
+        }
+    ]
+    assert result.removed == []
+    assert {"path": "AGENTS.md", "reason": "shared"} in result.skipped
+    assert (tmp_path / "AGENTS.md").exists()
+    assert listed["opencode"]["installed"] is False
+
+
+def test_agent_instruction_service_doctor_reports_clean_and_missing_file_health(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="generic")
+    service = workspace._agent_instruction_service()
+
+    clean = service.doctor("generic")
+    (tmp_path / "AGENTS.md").unlink()
+    broken = service.doctor("generic")
+
+    assert clean.health == "clean"
+    assert clean.findings == []
+    assert broken.health == "error"
+    assert broken.findings[0].code == "P2P_AGENT_FILE_MISSING"
+    assert broken.findings[0].path == Path("AGENTS.md")
