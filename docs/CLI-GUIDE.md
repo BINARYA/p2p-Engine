@@ -336,6 +336,15 @@ or question updates when you want evidence-aware recalculation from current
 artifacts. `questions apply` returns an artifact update plan; update the useful
 affected artifacts before relying on the new readiness score.
 
+When `questions.yml` exists, proposal readiness uses that structured question
+lifecycle as the source of truth for owner-question resolution. Stale
+`open-questions.md` bullets remain human-readable evidence and legacy fallback,
+but they do not reopen applied, retired, superseded, muted, or deferred
+structured questions. `readiness assess`, `readiness explain`, and
+`readiness review` can show `owner_question_state` categories such as blocking
+owner questions, answered-not-applied questions, residual follow-up, and closed
+questions.
+
 Artifact state is the structured coverage surface for proposal artifacts. New
 proposals initialize it by default. Older proposals without artifact state are
 reported as advisory `absent_legacy`, not as validation errors. Agents should

@@ -1423,6 +1423,49 @@ def test_mcp_proposal_question_tools_are_write_safe(tmp_path: Path) -> None:
     assert review["review"]["assertiveness_guidance"]
 
 
+def test_mcp_readiness_tools_include_structured_question_state(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    call_tool("p2p_proposal_create", {"root": str(tmp_path), "title": "Question State"})
+    call_tool("p2p_proposal_questions_init", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+    call_tool(
+        "p2p_proposal_questions_add",
+        {
+            "root": str(tmp_path),
+            "proposal_id": "PROP-001",
+            "gap": "owner_questions_resolution",
+            "question": "Should structured question state be authoritative?",
+            "priority": "high",
+        },
+    )
+    call_tool(
+        "p2p_proposal_questions_answer",
+        {
+            "root": str(tmp_path),
+            "proposal_id": "PROP-001",
+            "question_id": "Q001",
+            "answer": "Yes, structured question state is authoritative.",
+        },
+    )
+    call_tool("p2p_proposal_questions_apply", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+    proposal_dir = tmp_path / ".p2p" / "proposals" / "PROP-001-question-state"
+    (proposal_dir / "open-questions.md").write_text(
+        "# Open Questions\n\n- Should stale markdown reopen an applied structured question?\n",
+        encoding="utf-8",
+    )
+
+    assessed = call_tool("p2p_proposal_readiness_assess", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+    explained = call_tool("p2p_proposal_readiness_explain", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+    gaps = call_tool("p2p_proposal_readiness_list_gaps", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+
+    owner_state = assessed["readiness"]["owner_question_state"]
+    assert owner_state["source"] == "structured"
+    assert owner_state["blocking_owner_questions"] == []
+    assert [item["id"] for item in owner_state["closed_questions"]] == ["Q001"]
+    assert "owner_question_state" in explained["explanation"]
+    assert "owner_question_state" in gaps["gaps"]
+    assert "owner_questions_resolution:needs_owner_input" not in assessed["readiness"]["failed_gates"]
+
+
 def test_mcp_context_returns_compact_packet(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     call_tool("p2p_proposal_create", {"root": str(tmp_path), "title": "Draft Work"})

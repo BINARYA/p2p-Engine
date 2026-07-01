@@ -87,7 +87,7 @@ readiness:
       effective_points: 3
   computed_score: 70
   computed_label: partial
-  computed_at: '2026-06-10'
+  computed_at: '2026-07-01'
   assessment_source: evidence_aware
   assessed_at: '2026-06-10'
   artifact_coverage_warnings: []

@@ -125,6 +125,7 @@ def handle_proposal_tool(
                 "failed_gates": readiness.failed_gates,
                 "missing": readiness.missing,
                 "suggested_next": readiness.suggested_next,
+                "owner_question_state": to_jsonable(readiness.owner_question_state),
             },
         }
     if name == "p2p_proposal_readiness_list_gaps":
@@ -135,6 +136,7 @@ def handle_proposal_tool(
                 "failed_gates": readiness.failed_gates,
                 "missing": readiness.missing,
                 "suggested_next": readiness.suggested_next,
+                "owner_question_state": to_jsonable(readiness.owner_question_state),
             }
         }
     if name == "p2p_proposal_readiness_review":

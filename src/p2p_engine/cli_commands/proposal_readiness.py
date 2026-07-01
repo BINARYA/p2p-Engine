@@ -124,6 +124,7 @@ def print_proposal_readiness(readiness: object, *, explain: bool = False) -> Non
                 console.print(f"    - {item}")
         else:
             console.print("    none")
+        _print_owner_question_state(getattr(readiness, "owner_question_state", {}) or {}, indent="  ")
 
 
 def _needs_review_guidance(readiness: object) -> bool:
@@ -143,6 +144,7 @@ def _needs_review_guidance(readiness: object) -> bool:
 def print_readiness_review(review: object) -> None:
     console.print(f"Proposal readiness review for [bold]{getattr(review, 'proposal_id')}[/bold]")
     console.print(f"  question_state: {getattr(review, 'question_state_status')}")
+    _print_owner_question_state(getattr(review, "owner_question_state", {}) or {}, indent="  ")
     for label in (
         "challenge_points",
         "owner_questions",
@@ -161,3 +163,35 @@ def print_readiness_review(review: object) -> None:
                 console.print(f"    - {value}")
         else:
             console.print("    none")
+
+
+def _print_owner_question_state(owner_question_state: dict[str, object], *, indent: str) -> None:
+    if not owner_question_state:
+        return
+    console.print(f"{indent}owner_question_state:")
+    console.print(f"{indent}  source: {owner_question_state.get('source') or 'none'}")
+    console.print(f"{indent}  markdown_fallback_used: {bool(owner_question_state.get('markdown_fallback_used'))}")
+    for key in (
+        "blocking_owner_questions",
+        "answered_not_applied",
+        "residual_follow_up",
+        "closed_questions",
+    ):
+        console.print(f"{indent}  {key}:")
+        values = owner_question_state.get(key) or []
+        if values:
+            for item in values:
+                if isinstance(item, dict):
+                    console.print(
+                        f"{indent}    - {item.get('id')} "
+                        f"{item.get('priority')}/{item.get('state')}: {item.get('reason')}"
+                    )
+                else:
+                    console.print(f"{indent}    - {item}")
+        else:
+            console.print(f"{indent}    none")
+    notes = owner_question_state.get("confidence_notes") or []
+    if notes:
+        console.print(f"{indent}  confidence_notes:")
+        for item in notes:
+            console.print(f"{indent}    - {item}")

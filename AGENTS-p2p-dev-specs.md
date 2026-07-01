@@ -39,6 +39,12 @@ codice runtime in `src/`, leggere e applicare
 policy di qualità per compatibilità pubblica, responsabilità, side effect,
 testabilità, atomicità e disciplina di review.
 
+Quando il lavoro include aggiunta, modifica, revisione o riorganizzazione dei
+test, leggere e applicare `specs/skills/TEST_QUALITY_SKILL.md`. Questa skill
+locale definisce come scegliere il layer di test più utile, quando aggiungere
+test CLI/MCP, come evitare duplicazioni tra layer e quale evidenza di
+validazione riportare.
+
 ## 1) Scopo delle specs
 
 Le specs servono a:
@@ -179,6 +185,9 @@ Usare frasi normative:
 - Ogni task deve essere tracciabile a requisiti/design
 - Ordinare i task in dipendenza logica, non cronologica arbitraria
 - Includere task di validazione (test automatici, smoke test, check manuali)
+- Per task che modificano codice o test, indicare il sottoinsieme focused utile
+  e la validazione pubblica/full richiesta secondo
+  `specs/skills/TEST_QUALITY_SKILL.md`
 - Non usare `tasks.md` per registrare stato governato, decisioni P2P o avanzamento
   autoreferenziale: quello resta nella conversazione di lavoro, in Git, nei test
   o negli strumenti di review.

@@ -52,6 +52,11 @@ also read and apply `specs/skills/ENGINEERING_QUALITY_SKILL.md`. Treat it as
 the local engineering-quality policy for maintainability, compatibility,
 testability, responsibility boundaries, side effects, and review discipline.
 
+When adding, changing, reviewing, or reorganizing tests, also read and apply
+`specs/skills/TEST_QUALITY_SKILL.md`. Use it to choose the lowest useful test
+layer, avoid redundant public-surface coverage, mark broad or slow tests, and
+report focused/public/full validation evidence.
+
 Keep this layer outside P2P governance state:
 
 - Use P2P only to read the accepted direction, decisions, readiness, and

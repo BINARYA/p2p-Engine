@@ -232,6 +232,14 @@ input is needed, ask one focused question at a time, respect deferred or muted
 questions, apply answered questions through supported tools, and re-check
 readiness.
 
+When a proposal has `questions.yml`, agents should treat that structured
+question lifecycle as authoritative for proposal-level owner-question
+readiness. `open-questions.md` remains narrative evidence and legacy fallback
+only; it should not cause agents to re-ask questions already applied, retired,
+superseded, muted, or deferred in structured state. Agents should use
+`owner_question_state` from readiness explain/review to distinguish blocking
+owner questions from answered-not-applied and residual follow-up.
+
 Agents should inspect artifact coverage with `p2p proposal artifact status
 PROP-XXX` before calling a proposal mature. Artifact state mutations must go
 through `p2p proposal artifact ...` or explicit write-safe MCP tools. If a

@@ -29,3 +29,14 @@ packages = ["src/p2p_engine"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+  "unit: pure or near-pure behavior with no public CLI/MCP boundary.",
+  "service: domain or application service behavior.",
+  "adapter: filesystem, serialization, Git adapter, or integration adapter behavior.",
+  "cli: observable CLI command behavior, output, exit behavior, or side effects.",
+  "mcp: observable MCP tool schema, payload, error, or permission behavior.",
+  "integration: workflow crossing multiple application boundaries.",
+  "git: Git, sync, branch, remote, or repository-collaboration behavior.",
+  "slow: materially broader or slower than normal focused feedback.",
+  "smoke: minimal broad confidence checks.",
+]

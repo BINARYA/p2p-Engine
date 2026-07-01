@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
@@ -63,6 +63,7 @@ class ProposalReadiness:
     failed_gates: list[str]
     missing: list[str]
     suggested_next: list[str]
+    owner_question_state: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -70,6 +71,7 @@ class ProposalReadinessReview:
     proposal_id: str
     readiness: ProposalReadiness
     question_state_status: str
+    owner_question_state: dict[str, object]
     challenge_points: list[str]
     owner_questions: list[str]
     thin_artifact_warnings: list[str]
@@ -216,6 +218,7 @@ class ReadinessService:
             failed_gates=[str(item) for item in readiness.get("failed_gates") or []],
             missing=[str(item) for item in readiness.get("missing") or []],
             suggested_next=[str(item) for item in readiness.get("suggested_next") or []],
+            owner_question_state=_readiness_owner_question_state(readiness),
         )
 
     def write(self, proposal_id: str, readiness: dict[str, object]) -> Path:
@@ -313,10 +316,23 @@ class ReadinessService:
         add_criterion("risk_coverage", "risks.md", None, _read_optional(proposal_dir / "risks.md"))
         add_criterion("assumptions_clarity", "assumptions.md", None, _read_optional(proposal_dir / "assumptions.md"))
         questions_text = _read_optional(proposal_dir / "open-questions.md")
-        question_quality = readiness_text_quality(questions_text)
-        if question_quality in {"meaningful", "ready"} and count_open_questions(questions_text) > 0:
-            question_quality = "needs_owner_input"
-        add_criterion("owner_questions_resolution", "open-questions.md", None, questions_text, quality_override=question_quality)
+        owner_question_state = _owner_question_state(proposal_dir)
+        question_artifact = "questions.yml" if owner_question_state.get("source") == "structured" else "open-questions.md"
+        if owner_question_state.get("source") == "structured":
+            question_quality = "needs_owner_input" if _owner_question_blockers(owner_question_state) else "meaningful"
+            question_evidence_text = _owner_question_state_text(owner_question_state)
+        else:
+            question_quality = readiness_text_quality(questions_text)
+            if question_quality in {"meaningful", "ready"} and count_open_questions(questions_text) > 0:
+                question_quality = "needs_owner_input"
+            question_evidence_text = questions_text
+        add_criterion(
+            "owner_questions_resolution",
+            question_artifact,
+            None,
+            question_evidence_text,
+            quality_override=question_quality,
+        )
         acceptance_text = "\n".join(
             item
             for item in (
@@ -342,6 +358,7 @@ class ReadinessService:
             "suggested_next": unique_strings(suggested_next),
             "failed_gates": unique_strings(failed_gates),
             "criteria": criteria,
+            "owner_question_state": owner_question_state,
         }
         self.write(proposal_id, refresh_readiness_payload(readiness, profile))
         return self.read(proposal_id)
@@ -355,10 +372,12 @@ class ReadinessService:
         validate_readiness_assessment_payload(data)
         readiness = dict(data["readiness"])
         criteria = dict(readiness.get("criteria") or {})
-        unresolved_questions = count_open_questions(_read_optional(proposal_dir / "open-questions.md"))
-        pending_high_questions = _pending_high_questions(proposal_dir / QUESTION_STATE_FILENAME)
+        owner_question_state = _owner_question_state(proposal_dir)
+        blocking_owner_questions = _owner_question_blockers(owner_question_state)
+        soft_owner_question_notes = _owner_question_soft_notes(owner_question_state)
+        owner_question_suggested = _owner_question_suggested_next(owner_question_state, proposal_id)
         artifact_gaps, artifact_warnings, artifact_suggested = _artifact_state_readiness_gaps(proposal_dir)
-        has_blockers = bool(initialized.missing or initialized.failed_gates or unresolved_questions or pending_high_questions or artifact_gaps)
+        has_blockers = bool(initialized.missing or initialized.failed_gates or blocking_owner_questions or artifact_gaps)
 
         if not has_blockers:
             for criterion, assessment_value in criteria.items():
@@ -370,28 +389,40 @@ class ReadinessService:
                     evidence.append({"artifact": "questions.yml", "reason": "artifact evidence assessed with no unresolved blocking questions"})
                     assessment["evidence"] = evidence
                 criteria[criterion] = assessment
-            readiness["confidence"] = "high"
-            readiness["confidence_reasons"] = [
-                "Evidence-aware assessment found no missing criteria, failed gates, unresolved owner questions, or pending high-priority questions.",
-                "Criterion evidence was recalculated from current proposal artifacts.",
-            ]
+            readiness["confidence"] = "medium" if soft_owner_question_notes else "high"
+            readiness["confidence_reasons"] = unique_strings(
+                [
+                    "Evidence-aware assessment found no missing criteria, failed gates, blocking owner questions, or artifact coverage gaps.",
+                    "Criterion evidence was recalculated from current proposal artifacts.",
+                    *soft_owner_question_notes,
+                ]
+            )
         else:
             readiness["confidence"] = "medium" if not initialized.missing and not initialized.failed_gates else "low"
             reasons = ["Evidence-aware assessment recalculated current artifacts."]
-            if unresolved_questions:
-                reasons.append(f"Open owner questions remain: {unresolved_questions}.")
-            if pending_high_questions:
-                reasons.append(f"Pending high-priority proposal questions remain: {pending_high_questions}.")
+            if blocking_owner_questions:
+                failed_gates = list(readiness.get("failed_gates") or [])
+                failed_gates.append("owner_questions_resolution:needs_owner_input")
+                readiness["failed_gates"] = unique_strings([str(item) for item in failed_gates])
+                reasons.append(
+                    "Blocking owner questions remain: "
+                    + ", ".join(str(item.get("id") or "") for item in blocking_owner_questions)
+                    + "."
+                )
+            reasons.extend(soft_owner_question_notes)
             if artifact_gaps:
                 reasons.append("Artifact-aware coverage has unresolved required or applicable gaps.")
-            readiness["confidence_reasons"] = reasons
+            readiness["confidence_reasons"] = unique_strings(reasons)
 
         readiness["assessment_source"] = "evidence_aware"
         readiness["assessed_at"] = date.today().isoformat()
         readiness["criteria"] = criteria
         readiness["missing"] = unique_strings([*list(readiness.get("missing") or []), *artifact_gaps])
-        readiness["suggested_next"] = unique_strings([*list(readiness.get("suggested_next") or []), *artifact_suggested])
+        readiness["suggested_next"] = unique_strings(
+            [*list(readiness.get("suggested_next") or []), *owner_question_suggested, *artifact_suggested]
+        )
         readiness["artifact_coverage_warnings"] = unique_strings(artifact_warnings)
+        readiness["owner_question_state"] = owner_question_state
         readiness.update(existing_override)
         self.write(proposal_id, refresh_readiness_payload(readiness, self.profile(str(readiness.get("profile_id") or DEFAULT_READINESS_PROFILE_ID))))
         return self.read(proposal_id)
@@ -404,6 +435,7 @@ class ReadinessService:
         if questions_path.exists():
             validate_proposal_questions_payload(_read_yaml_mapping(questions_path, default={}))
             question_state_status = "initialized"
+        owner_question_state = _owner_question_state(proposal_dir)
 
         challenge_points = [f"Resolve readiness gap: {item}" for item in readiness.missing]
         challenge_points.extend(f"Resolve failed gate: {gate}" for gate in readiness.failed_gates)
@@ -413,12 +445,26 @@ class ReadinessService:
                 f"Question state is not initialized. Run `p2p proposal questions init {proposal_id}` "
                 "and add focused questions for the highest-impact readiness gaps."
             )
+        for item in owner_question_state.get("blocking_owner_questions") or []:
+            if isinstance(item, dict):
+                owner_questions.append(
+                    f"{item.get('id')} ({item.get('priority')}/{item.get('state')}): {item.get('question')}"
+                )
+        for item in owner_question_state.get("residual_follow_up") or []:
+            if isinstance(item, dict):
+                owner_questions.append(
+                    f"Residual follow-up {item.get('id')} ({item.get('priority')}/{item.get('state')}): {item.get('question')}"
+                )
+        for item in owner_question_state.get("answered_not_applied") or []:
+            if isinstance(item, dict):
+                challenge_points.append(f"Apply answered proposal question: {item.get('id')}")
         for item in readiness.missing:
             owner_questions.append(f"What information is needed to close `{item}` for {proposal_id}?")
 
         thin_artifact_warnings: list[str] = []
         if readiness.confidence == "low":
             thin_artifact_warnings.append("Readiness confidence is low; do not treat this proposal as methodologically ready.")
+        thin_artifact_warnings.extend(str(item) for item in owner_question_state.get("confidence_notes") or [])
         artifact_gaps, artifact_warnings, artifact_suggested = _artifact_state_readiness_gaps(proposal_dir)
         challenge_points.extend(f"Resolve artifact coverage gap: {gap}" for gap in artifact_gaps)
         thin_artifact_warnings.extend(artifact_warnings)
@@ -440,12 +486,14 @@ class ReadinessService:
         assertiveness_guidance = stepped_assertiveness_guidance(readiness, question_state_status)
         if _readiness_needs_guidance(readiness):
             suggested_next.append(f"p2p proposal readiness assess {proposal_id}")
+        suggested_next.extend(_owner_question_suggested_next(owner_question_state, proposal_id))
         suggested_next.extend(artifact_suggested)
         suggested_next.append(f"p2p proposal questions next {proposal_id}")
         return ProposalReadinessReview(
             proposal_id=proposal_id,
             readiness=readiness,
             question_state_status=question_state_status,
+            owner_question_state=owner_question_state,
             challenge_points=unique_strings(challenge_points),
             owner_questions=unique_strings(owner_questions),
             thin_artifact_warnings=unique_strings(thin_artifact_warnings),
@@ -681,23 +729,212 @@ def count_open_questions(text: str) -> int:
     return count
 
 
-def _pending_high_questions(path: Path) -> int:
-    if not path.exists():
-        return 0
-    data = _read_yaml_mapping(path, default={})
+def _readiness_owner_question_state(readiness: dict[str, object]) -> dict[str, object]:
+    state = readiness.get("owner_question_state")
+    if isinstance(state, dict):
+        return _normalized_owner_question_state(state)
+    return _empty_owner_question_state()
+
+
+def _empty_owner_question_state(*, source: str = "none", markdown_fallback_used: bool = False) -> dict[str, object]:
+    return {
+        "source": source,
+        "markdown_fallback_used": markdown_fallback_used,
+        "blocking_owner_questions": [],
+        "answered_not_applied": [],
+        "residual_follow_up": [],
+        "closed_questions": [],
+        "confidence_notes": [],
+        "suggested_next": [],
+    }
+
+
+def _normalized_owner_question_state(state: dict[str, object]) -> dict[str, object]:
+    normalized = _empty_owner_question_state(
+        source=str(state.get("source") or "none"),
+        markdown_fallback_used=bool(state.get("markdown_fallback_used") or False),
+    )
+    for key in (
+        "blocking_owner_questions",
+        "answered_not_applied",
+        "residual_follow_up",
+        "closed_questions",
+        "confidence_notes",
+        "suggested_next",
+    ):
+        value = state.get(key) or []
+        normalized[key] = value if isinstance(value, list) else []
+    return normalized
+
+
+def _owner_question_state(proposal_dir: Path) -> dict[str, object]:
+    questions_path = proposal_dir / QUESTION_STATE_FILENAME
+    open_questions_text = _read_optional(proposal_dir / "open-questions.md")
+    if not questions_path.exists():
+        return _markdown_owner_question_state(open_questions_text)
+
+    data = _read_yaml_mapping(questions_path, default={})
     validate_proposal_questions_payload(data)
     state = data.get("proposal_questions", {})
     if not isinstance(state, dict):
-        return 0
-    count = 0
+        return _empty_owner_question_state(source="structured")
+
+    summary = _empty_owner_question_state(source="structured")
+    groups_by_id = {
+        str(group.get("id") or ""): group
+        for group in state.get("groups") or []
+        if isinstance(group, dict)
+    }
     for question in state.get("questions") or []:
         if not isinstance(question, dict):
             continue
-        if str(question.get("priority") or "") != "high":
+        group = groups_by_id.get(str(question.get("group_id") or ""), {})
+        _classify_structured_question(summary, question, group if isinstance(group, dict) else {})
+    return summary
+
+
+def _markdown_owner_question_state(text: str) -> dict[str, object]:
+    summary = _empty_owner_question_state(
+        source="markdown_fallback" if text.strip() else "none",
+        markdown_fallback_used=bool(text.strip()),
+    )
+    question_lines = [
+        line.strip()
+        for line in text.splitlines()
+        if re.match(r"^(\d+\.|-|\*)\s+.+\?", line.strip())
+    ]
+    for index, line in enumerate(question_lines, start=1):
+        summary["blocking_owner_questions"].append(
+            {
+                "id": f"open-questions.md:{index}",
+                "group_id": "",
+                "priority": "unknown",
+                "state": "markdown_open",
+                "group_state": "",
+                "criterion": "owner_questions_resolution",
+                "gap": "owner_questions_resolution",
+                "question": re.sub(r"^(\d+\.|-|\*)\s+", "", line),
+                "reason": "Markdown fallback question counted because questions.yml is absent.",
+            }
+        )
+    if question_lines:
+        summary["confidence_notes"].append(
+            f"Markdown fallback found {len(question_lines)} open owner question(s)."
+        )
+        summary["suggested_next"].append("resolve_owner_questions_resolution")
+    return summary
+
+
+def _classify_structured_question(summary: dict[str, object], question: dict[str, object], group: dict[str, object]) -> None:
+    state = str(question.get("state") or "to_answer")
+    group_state = str(group.get("state") or "to_answer")
+    priority = str(question.get("priority") or "medium")
+    question_id = str(question.get("id") or "")
+    if state in {"applied", "retired", "superseded"}:
+        summary["closed_questions"].append(
+            _question_ref(question, group, reason=f"Question is closed with state `{state}`.")
+        )
+        return
+    if state == "answered":
+        summary["answered_not_applied"].append(
+            _question_ref(question, group, reason="Owner answer exists and still needs application to proposal artifacts.")
+        )
+        summary["confidence_notes"].append(f"Answered proposal question needs application: {question_id}.")
+        summary["suggested_next"].append("apply_answered_questions")
+        return
+    if group_state in {"muted", "defer"}:
+        summary["residual_follow_up"].append(
+            _question_ref(question, group, reason=f"Question group is `{group_state}` and is non-blocking.")
+        )
+        summary["confidence_notes"].append(f"Question {question_id} is non-blocking because group is {group_state}.")
+        return
+    if state in {"muted", "defer"}:
+        summary["residual_follow_up"].append(
+            _question_ref(question, group, reason=f"Question state is `{state}` and is non-blocking.")
+        )
+        summary["confidence_notes"].append(f"Question {question_id} is non-blocking because state is {state}.")
+        return
+    if state == "to_answer" and priority == "high":
+        summary["blocking_owner_questions"].append(
+            _question_ref(question, group, reason="High-priority structured question is still to_answer.")
+        )
+        summary["confidence_notes"].append(f"High-priority owner question remains to_answer: {question_id}.")
+        summary["suggested_next"].append("ask_blocking_owner_question")
+        return
+    if state == "to_answer":
+        summary["residual_follow_up"].append(
+            _question_ref(question, group, reason="Medium/low structured question is residual follow-up by default.")
+        )
+        summary["confidence_notes"].append(f"Residual owner follow-up remains: {question_id}.")
+        summary["suggested_next"].append("ask_residual_owner_question")
+
+
+def _question_ref(question: dict[str, object], group: dict[str, object], *, reason: str) -> dict[str, object]:
+    return {
+        "id": str(question.get("id") or ""),
+        "group_id": str(question.get("group_id") or ""),
+        "priority": str(question.get("priority") or "medium"),
+        "state": str(question.get("state") or "to_answer"),
+        "group_state": str(group.get("state") or ""),
+        "criterion": str(question.get("criterion") or ""),
+        "gap": str(question.get("gap") or ""),
+        "question": str(question.get("question") or ""),
+        "reason": reason,
+    }
+
+
+def _owner_question_blockers(owner_question_state: dict[str, object]) -> list[dict[str, object]]:
+    return [
+        item
+        for item in owner_question_state.get("blocking_owner_questions") or []
+        if isinstance(item, dict)
+    ]
+
+
+def _owner_question_soft_notes(owner_question_state: dict[str, object]) -> list[str]:
+    return [str(item) for item in owner_question_state.get("confidence_notes") or []]
+
+
+def _owner_question_suggested_next(owner_question_state: dict[str, object], proposal_id: str) -> list[str]:
+    suggestions: list[str] = []
+    for item in owner_question_state.get("suggested_next") or []:
+        key = str(item)
+        if key == "apply_answered_questions":
+            suggestions.append(f"p2p proposal questions apply {proposal_id}")
+        elif key in {"ask_blocking_owner_question", "ask_residual_owner_question"}:
+            suggestions.append(f"p2p proposal questions next {proposal_id}")
+        elif key == "resolve_owner_questions_resolution":
+            suggestions.append("resolve_owner_questions_resolution")
+        elif key:
+            suggestions.append(key)
+    return unique_strings(suggestions)
+
+
+def _owner_question_state_text(owner_question_state: dict[str, object]) -> str:
+    lines = [
+        f"source: {owner_question_state.get('source')}",
+        f"markdown_fallback_used: {owner_question_state.get('markdown_fallback_used')}",
+    ]
+    for key in (
+        "blocking_owner_questions",
+        "answered_not_applied",
+        "residual_follow_up",
+        "closed_questions",
+    ):
+        values = [item for item in owner_question_state.get(key) or [] if isinstance(item, dict)]
+        if not values:
+            lines.append(f"{key}: none")
             continue
-        if str(question.get("state") or "") in {"to_answer", "answered"}:
-            count += 1
-    return count
+        lines.append(f"{key}:")
+        lines.extend(
+            f"- {item.get('id')} {item.get('priority')}/{item.get('state')}: {item.get('reason')}"
+            for item in values
+        )
+    notes = [str(item) for item in owner_question_state.get("confidence_notes") or []]
+    if notes:
+        lines.append("confidence_notes:")
+        lines.extend(f"- {item}" for item in notes)
+    return "\n".join(lines)
 
 
 def stepped_assertiveness_guidance(readiness: ProposalReadiness, question_state_status: str) -> list[str]:

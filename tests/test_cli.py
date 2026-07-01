@@ -1545,6 +1545,57 @@ def test_cli_proposal_questions_lifecycle_and_refresh_guidance(tmp_path: Path) -
     assert "Proposal readiness assessed" in result.output
 
 
+def test_cli_readiness_assess_reports_structured_question_state(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Structured Question State", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "questions", "init", "PROP-001", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "questions",
+            "add",
+            "PROP-001",
+            "--gap",
+            "owner_questions_resolution",
+            "--priority",
+            "high",
+            "--question",
+            "Should structured question state be authoritative?",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "questions",
+            "answer",
+            "PROP-001",
+            "Q001",
+            "Yes, structured question state is authoritative.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "questions", "apply", "PROP-001", "--root", str(tmp_path)])
+    proposal_dir = tmp_path / ".p2p" / "proposals" / "PROP-001-structured-question-state"
+    (proposal_dir / "open-questions.md").write_text(
+        "# Open Questions\n\n- Should stale markdown reopen an applied structured question?\n",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["proposal", "readiness", "assess", "PROP-001", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "owner_question_state:" in result.output
+    assert "source: structured" in result.output
+    assert "closed_questions:" in result.output
+    assert "Q001" in result.output
+    assert "owner_questions_resolution:needs_owner_input" not in result.output
+
+
 def test_cli_lists_proposal_contributions(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "Contribution Visibility", "--root", str(tmp_path)])
