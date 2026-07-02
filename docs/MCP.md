@@ -246,6 +246,13 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_project_vertical_propose` | advisory | no | no | Generate an importable custom vertical candidate from a project idea. |
 | `p2p_project_vertical_add` | write-safe | yes | no | Add a project-local vertical pack without making governance decisions. |
 | `p2p_project_vertical_select` | write-safe | yes | no | Select the active project vertical without accepting or changing proposals. |
+| `p2p_project_vertical_lock_show` | read-only | no | no | Read vertical lock status without repair or fallback mutation. |
+| `p2p_project_vertical_lock_repair` | write-safe | yes | no | Explicitly create or repair `vertical.lock.yml` from active vertical state. |
+| `p2p_project_context` | read-only | no | no | Read active vertical, lock, rubric, definition summary, warnings, and next suggestion. |
+| `p2p_project_sections` | read-only | no | no | List active or specified vertical sections. |
+| `p2p_project_section_show` | read-only | no | no | Read one active or specified vertical section. |
+| `p2p_project_definition_show` | read-only | no | no | Read durable project definition state. |
+| `p2p_project_definition_update` | write-safe | yes | no | Apply a structured project definition patch file. |
 | `p2p_project_readiness_review` | advisory/read-only | no | no | Review capisaldi coverage, unmapped proposals, and questions against a vertical. |
 | `p2p_spec_refresh` | write-safe | yes | no | Generate a P2P-native software spec from a Change Set. |
 | `p2p_spec_export` | write-safe | yes | no | Export spec outputs for `generic`, `openspec`, or `speckit`. |

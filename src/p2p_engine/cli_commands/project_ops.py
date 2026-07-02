@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import json
+from dataclasses import asdict, is_dataclass
 from pathlib import Path
+from typing import Any
 
 import typer
 
@@ -14,6 +17,7 @@ def register_project_ops_commands(
     project_app: typer.Typer,
     project_remote_app: typer.Typer,
     project_rubrics_app: typer.Typer,
+    project_definition_app: typer.Typer,
     project_interaction_style_app: typer.Typer,
     project_vertical_app: typer.Typer,
     project_readiness_app: typer.Typer,
@@ -23,6 +27,9 @@ def register_project_ops_commands(
     permissions_actor_app: typer.Typer,
     consent_app: typer.Typer,
 ) -> None:
+    project_vertical_lock_app = typer.Typer(help="Inspect and repair project vertical lock state")
+    project_vertical_app.add_typer(project_vertical_lock_app, name="lock")
+
     @project_app.command("refresh")
     def project_refresh(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
         """Refresh .p2p/project from accepted proposals."""
@@ -181,13 +188,19 @@ def register_project_ops_commands(
         console.print("  opens_external_request: false")
 
     @project_vertical_app.command("list")
-    def project_vertical_list(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+    def project_vertical_list(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
         """List available project vertical packs."""
         try:
             verticals = workspace_for(root).project_verticals()
             active = workspace_for(root).active_project_vertical()
         except ValueError as exc:
             fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"verticals": verticals, "active": active})
+            return
         console.print("Project verticals")
         console.print(f"  active: {active.vertical_id}")
         console.print(f"  fallback_used: {str(active.fallback_used).lower()}")
@@ -205,21 +218,31 @@ def register_project_ops_commands(
     def project_vertical_show(
         vertical_id: str = typer.Argument(..., help="Vertical ID"),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
     ) -> None:
         """Show a project vertical pack."""
         try:
             pack = workspace_for(root).show_project_vertical(vertical_id)
         except ValueError as exc:
             fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"vertical": pack})
+            return
         _print_vertical_pack(pack)
 
     @project_vertical_app.command("validate")
     def project_vertical_validate(
         target: str = typer.Argument(..., help="Vertical ID, vertical.yml path, or pack directory"),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
     ) -> None:
         """Validate a project vertical pack or known vertical ID."""
         result = workspace_for(root).validate_project_vertical(target)
+        if _wants_json(output_format):
+            _print_json({"validation": result})
+            if not result.valid:
+                raise typer.Exit(1)
+            return
         console.print("Project vertical valid" if result.valid else "Project vertical invalid")
         console.print(f"  target: {result.target}")
         console.print(f"  vertical: {result.vertical_id or 'unknown'}")
@@ -257,12 +280,16 @@ def register_project_ops_commands(
         activate: bool = typer.Option(False, "--activate", help="Select this vertical after adding it"),
         actor: str = typer.Option("local", "--actor", help="Actor recorded if --activate is used"),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
     ) -> None:
         """Add a project-local vertical pack."""
         try:
             result = workspace_for(root).add_project_vertical(source, activate=activate, actor=actor)
         except ValueError as exc:
             fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"vertical_add": result})
+            return
         console.print("[green]Project vertical added.[/green]")
         console.print(f"  id: {result.vertical_id}")
         console.print(f"  path: {result.path}")
@@ -272,18 +299,130 @@ def register_project_ops_commands(
     def project_vertical_select(
         vertical_id: str = typer.Argument(..., help="Vertical ID"),
         actor: str = typer.Option("local", "--actor", help="Actor selecting the vertical"),
+        profile: str = typer.Option("default", "--profile", help="Project definition profile"),
+        module: list[str] | None = typer.Option(None, "--module", help="Enabled module. Repeat for multiple modules."),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
     ) -> None:
         """Select the active project vertical."""
         try:
-            active = workspace_for(root).select_project_vertical(vertical_id, actor=actor)
+            active = workspace_for(root).select_project_vertical(
+                vertical_id,
+                actor=actor,
+                profile=profile,
+                modules=module,
+            )
         except ValueError as exc:
             fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"active": active, "lock": workspace_for(root).project_vertical_lock_status(), "definition": workspace_for(root).project_definition_view()})
+            return
         console.print("[green]Project vertical selected.[/green]")
         console.print(f"  id: {active.vertical_id}")
         console.print(f"  source: {active.source}")
         console.print(f"  selected_by: {active.selected_by or actor}")
         console.print(f"  fallback_used: {str(active.fallback_used).lower()}")
+
+    @project_vertical_lock_app.command("show")
+    def project_vertical_lock_show(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Show project vertical lock status."""
+        try:
+            status = workspace_for(root).project_vertical_lock_status()
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"lock_status": status})
+            return
+        console.print("Project vertical lock")
+        console.print(f"  status: {status.status}")
+        console.print(f"  path: {status.path}")
+        console.print(f"  message: {status.message}")
+        if status.locked:
+            console.print(f"  vertical: {status.locked.vertical_id}")
+            console.print(f"  checksum: {status.locked.checksum}")
+        if status.suggested_command:
+            console.print(f"  suggested: {status.suggested_command}")
+
+    @project_vertical_lock_app.command("repair")
+    def project_vertical_lock_repair(
+        actor: str = typer.Option("local", "--actor", help="Actor repairing the lock"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Repair or create the project vertical lockfile from active vertical state."""
+        try:
+            lock = workspace_for(root).repair_project_vertical_lock(actor=actor)
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"lock": lock})
+            return
+        console.print("[green]Project vertical lock repaired.[/green]")
+        console.print(f"  vertical: {lock.vertical_id}")
+        console.print(f"  checksum: {lock.checksum}")
+        console.print(f"  selected_by: {lock.selected_by}")
+
+    @project_app.command("context")
+    def project_context(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Show JSON-ready project vertical context for agents."""
+        try:
+            context = workspace_for(root).project_vertical_context()
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"project_context": context})
+            return
+        console.print("Project context")
+        console.print(f"  active_vertical: {context.active.vertical_id}")
+        console.print(f"  lock_status: {context.lock_status.status}")
+        console.print(f"  selected_profile: {context.selected_profile}")
+        console.print(f"  enabled_modules: {', '.join(context.enabled_modules) if context.enabled_modules else 'none'}")
+        console.print(f"  warnings: {len(context.warnings)}")
+
+    @project_app.command("sections")
+    def project_sections(
+        vertical: str | None = typer.Option(None, "--vertical", help="Vertical ID"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """List sections for the active or specified project vertical."""
+        try:
+            sections = workspace_for(root).project_vertical_sections(vertical)
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"sections": sections})
+            return
+        console.print("Project vertical sections")
+        for section in sections:
+            console.print(f"  - {section.section_id}  required={str(section.required).lower()}  {section.title}")
+
+    @project_app.command("section")
+    def project_section(
+        section_id: str = typer.Argument(..., help="Section ID"),
+        vertical: str | None = typer.Option(None, "--vertical", help="Vertical ID"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Show one section for the active or specified project vertical."""
+        try:
+            section = workspace_for(root).project_vertical_section(section_id, vertical)
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"section": section})
+            return
+        console.print("Project vertical section")
+        console.print(f"  id: {section.section_id}")
+        console.print(f"  title: {section.title}")
+        console.print(f"  required: {str(section.required).lower()}")
+        console.print(f"  purpose: {section.purpose}")
 
     @project_readiness_app.command("review")
     def project_readiness_review(
@@ -501,12 +640,18 @@ def register_project_ops_commands(
         console.print(f"  criteria: {len(rubrics.criteria)}")
 
     @project_rubrics_app.command("show")
-    def project_rubrics_show(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+    def project_rubrics_show(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
         """Show configured project definition maturity rubrics."""
         try:
             rubrics = workspace_for(root).show_project_rubrics()
         except ValueError as exc:
             fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"rubrics": rubrics})
+            return
         console.print("Project rubrics")
         console.print(f"  path: {rubrics.path}")
         console.print(f"  domain: {rubrics.domain}")
@@ -518,6 +663,50 @@ def register_project_ops_commands(
         for criterion in rubrics.criteria:
             enabled = "enabled" if criterion.get("enabled") is not False else "disabled"
             console.print(f"  {criterion.get('id')}  {enabled}  {criterion.get('title')}")
+
+    @project_definition_app.command("show")
+    def project_definition_show(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Show durable project definition state."""
+        try:
+            view = workspace_for(root).project_definition_view()
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"definition": view})
+            return
+        console.print("Project definition state")
+        console.print(f"  exists: {str(view.exists).lower()}")
+        console.print(f"  valid: {str(view.valid).lower()}")
+        console.print(f"  path: {view.path}")
+        if view.state:
+            console.print(f"  vertical: {view.state.vertical_id}")
+            console.print(f"  profile: {view.state.profile}")
+            console.print(f"  sections: {len(view.state.sections)}")
+        if view.issues:
+            console.print("Issues:")
+            for issue in view.issues:
+                console.print(f"  - {issue.severity} {issue.field}: {issue.message}")
+
+    @project_definition_app.command("update")
+    def project_definition_update(
+        patch: Path = typer.Argument(..., help="Patch YAML file"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Apply a structured project definition patch."""
+        try:
+            result = workspace_for(root).update_project_definition(patch)
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"definition_update": result})
+            return
+        console.print("[green]Project definition updated.[/green]")
+        console.print(f"  path: {result.path}")
+        console.print(f"  operations_applied: {result.operations_applied}")
 
     @project_brief_app.command("prompt")
     def project_brief_prompt(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
@@ -613,3 +802,26 @@ def _print_vertical_pack(pack: object) -> None:
     for artifact in getattr(pack, "artifacts"):
         sections = ", ".join(artifact.section_ids) if artifact.section_ids else "none"
         console.print(f"  - {artifact.artifact_id}  sections={sections}  {artifact.title}")
+
+
+def _wants_json(output_format: str) -> bool:
+    normalized = output_format.strip().lower()
+    if normalized not in {"text", "json"}:
+        raise typer.BadParameter("Output format must be text or json.")
+    return normalized == "json"
+
+
+def _print_json(payload: object) -> None:
+    print(json.dumps(_to_jsonable(payload), sort_keys=True))
+
+
+def _to_jsonable(value: Any) -> Any:
+    if is_dataclass(value):
+        return _to_jsonable(asdict(value))
+    if isinstance(value, Path):
+        return value.as_posix()
+    if isinstance(value, dict):
+        return {str(key): _to_jsonable(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_to_jsonable(item) for item in value]
+    return value

@@ -137,6 +137,22 @@ domain, such as software, grant documents, or board games.
 Maturity assessment checks definition coverage against those rubrics. It is not
 implementation completeness.
 
+Project verticals are pure-data packs that provide domain-specific sections,
+questions, fields, artifacts, and default rubrics. A selected vertical is pinned
+by `.p2p/project/vertical.lock.yml`; after a lock exists, commands must fail
+closed on missing sources or checksum mismatch rather than silently falling back
+to `base_project`.
+
+`.p2p/project/definition.yml` stores durable owner answers, assumptions,
+missing required fields, blockers, open questions, section status, and
+provenance for project-definition work. Agents should inspect vertical context,
+definition state, and rubrics before asking follow-up questions, then ask one
+primary question at a time.
+
+Selected project rubric maturity measures only enabled project criteria. Full
+vertical baseline coverage is reported separately through baseline/default
+counts where available.
+
 ```bash
 p2p project rubrics show
 p2p assess maturity refresh

@@ -26,6 +26,9 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert policy["interaction_style"]["effective"]["values"]["assertiveness"] == 2
     assert policy["interaction_style"]["commands"]["show"] == "p2p project interaction-style show"
     assert policy["interaction_style"]["mcp_tools"]["set"] == "p2p_project_interaction_style_set"
+    assert policy["project_vertical_orchestration"]["one_primary_question_at_a_time"] is True
+    assert policy["project_vertical_orchestration"]["pack_content_is_domain_data_only"] is True
+    assert "p2p_project_definition_show" in policy["project_vertical_orchestration"]["mcp_tools"]
     agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
     assert "p2p proposal artifact status PROP-XXX" in agents
     assert "copying a\nprepared temporary file into an artifact" in agents
@@ -33,8 +36,11 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert "p2p project interaction-style show" in agents
     assert "p2p_project_interaction_style_show" in agents
     assert "technical_verbosity: 5 (exhaustive)" in agents
+    assert "ask one primary project-definition question at a time" in agents
+    assert "vertical pack content as declarative domain data" in agents
     codex_skill = (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").read_text(encoding="utf-8")
     assert "p2p project interaction-style set --technical-verbosity 2 --formality 2 --assertiveness 0" in codex_skill
+    assert "p2p project definition show --format json" in codex_skill
 
 
 def test_agent_instruction_service_lists_and_shows_drift(tmp_path: Path) -> None:

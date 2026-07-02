@@ -1,0 +1,327 @@
+proposal_questions:
+  schema_version: 1
+  proposal_id: PROP-090
+  initialized_at: '2026-07-02'
+  updated_at: '2026-07-02'
+  updated_by: codex
+  groups:
+  - id: QG001
+    gap: owner_questions_resolution
+    state: to_answer
+    priority: high
+    rationale: This decides whether .p2p/project/definition.yml becomes immediately
+      writable through CLI/MCP or only inspectable with deferred persistence.
+    created_at: '2026-07-02'
+    updated_at: '2026-07-02'
+  - id: QG002
+    gap: scope_boundaries
+    state: to_answer
+    priority: high
+    rationale: Next-action selection is useful for agent orchestration, but implementing
+      it too early may overfit before definition-state semantics are proven.
+    created_at: '2026-07-02'
+    updated_at: '2026-07-02'
+  - id: QG003
+    gap: compatibility
+    state: to_answer
+    priority: medium
+    rationale: The revision source uses generic_project, while the implemented system
+      already uses base_project as the fallback id.
+    created_at: '2026-07-02'
+    updated_at: '2026-07-02'
+  - id: QG004
+    gap: source_resolution
+    state: to_answer
+    priority: medium
+    rationale: This affects local installation layout and future Wavekit cache compatibility.
+    created_at: '2026-07-02'
+    updated_at: '2026-07-02'
+  - id: QG005
+    gap: security_policy
+    state: to_answer
+    priority: medium
+    rationale: The trust boundary is clear, but strictness affects compatibility with
+      existing or user-authored packs.
+    created_at: '2026-07-02'
+    updated_at: '2026-07-02'
+  - id: QG006
+    gap: migration_strategy
+    state: to_answer
+    priority: medium
+    rationale: This affects migration behavior for projects created before this hardening
+      proposal.
+    created_at: '2026-07-02'
+    updated_at: '2026-07-02'
+  questions:
+  - id: Q001
+    group_id: QG001
+    gap: owner_questions_resolution
+    criterion: owner_questions_resolution
+    priority: high
+    state: applied
+    question: Should definition-state writes be implemented in the first production
+      slice, or should the first slice expose read-only state plus structured patch
+      output?
+    rationale: This decides whether .p2p/project/definition.yml becomes immediately
+      writable through CLI/MCP or only inspectable with deferred persistence.
+    answer: Implement definition-state writes in the first production slice through
+      a narrow structured patch/update contract. Do not expose arbitrary editing.
+      The first slice must support durable agent-guided state persistence via supported
+      CLI/service write paths, with validation of section_id, field_id, status, assumptions,
+      missing fields, provenance/history, and atomic writes. Defer full interactive
+      editing, sophisticated next-action computation, complex long-answer merge behavior,
+      advanced state migrations, and any broad writer surface.
+    answer_source: owner
+    answered_at: '2026-07-02'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-02'
+    audit:
+      created_by: codex
+      created_at: '2026-07-02'
+      updated_by: codex
+      updated_at: '2026-07-02'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: assumptions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q002
+    group_id: QG002
+    gap: scope_boundaries
+    criterion: scope_boundaries
+    priority: high
+    state: applied
+    question: Should p2p project next-action --json be included in this proposal,
+      or deferred until definition state is stable?
+    rationale: Next-action selection is useful for agent orchestration, but implementing
+      it too early may overfit before definition-state semantics are proven.
+    answer: Defer the full p2p project next-action --json command until definition
+      state semantics are stable. In the first production slice, expose enough structured
+      data through p2p project context --json, p2p project sections --json, p2p project
+      section <id> --json, and p2p project definition --json so the agent can compute
+      a best-effort next question. The first slice may include a lightweight next_suggested_action
+      field inside definition.yml, but not a full standalone next-action engine. Treat
+      the complete next-action engine as a follow-up after definition.yml, section
+      status, dependencies, assumptions, and rubric scope are stable.
+    answer_source: owner
+    answered_at: '2026-07-02'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-02'
+    audit:
+      created_by: codex
+      created_at: '2026-07-02'
+      updated_by: codex
+      updated_at: '2026-07-02'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: assumptions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: suggested-scope.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q003
+    group_id: QG003
+    gap: compatibility
+    criterion: compatibility
+    priority: medium
+    state: applied
+    question: Should generic_project be introduced as a non-breaking alias for base_project,
+      or omitted from the first implementation?
+    rationale: The revision source uses generic_project, while the implemented system
+      already uses base_project as the fallback id.
+    answer: Omit generic_project from the first implementation. Keep base_project
+      as the canonical fallback vertical because it already exists in the implemented
+      PROP-085 MVP. Document that generic_project was terminology from the revision
+      source and may be reconsidered later as a non-breaking alias only if there is
+      a clear usability need. Do not add aliasing until resolver, lockfile, and pack
+      identity rules are stable.
+    answer_source: owner
+    answered_at: '2026-07-02'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-02'
+    audit:
+      created_by: codex
+      created_at: '2026-07-02'
+      updated_by: codex
+      updated_at: '2026-07-02'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q004
+    group_id: QG004
+    gap: source_resolution
+    criterion: source_resolution
+    priority: medium
+    state: applied
+    question: Should installed local packs be resolved from P2P_HOME/verticals, ~/.p2p/verticals,
+      or both?
+    rationale: This affects local installation layout and future Wavekit cache compatibility.
+    answer: Resolve installed local packs from both locations. If P2P_HOME is configured,
+      P2P_HOME/verticals has precedence over ~/.p2p/verticals; otherwise use ~/.p2p/verticals
+      as the default installed-local directory. Project-local packs under .p2p/project/verticals/
+      still have higher precedence than installed-local packs. If both installed-local
+      locations contain the same pack id/version, the P2P_HOME source wins. The resolver
+      and vertical.lock.yml must record the effective source type and resolved source
+      path or package coordinate.
+    answer_source: owner
+    answered_at: '2026-07-02'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-02'
+    audit:
+      created_by: codex
+      created_at: '2026-07-02'
+      updated_by: codex
+      updated_at: '2026-07-02'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q005
+    group_id: QG005
+    gap: security_policy
+    criterion: security_policy
+    priority: medium
+    state: applied
+    question: Should unsafe instruction-like guidance in vertical packs be a hard
+      validation error, a warning, or severity-dependent by field?
+    rationale: The trust boundary is clear, but strictness affects compatibility with
+      existing or user-authored packs.
+    answer: Use severity-dependent validation by field and content. Treat explicit
+      attempts to override system, developer, safety, governance, repository, or tool-permission
+      rules; execute code; escape pack/project paths; force tool execution; modify
+      permissions; or instruct agents to ignore higher-priority instructions as hard
+      errors. Treat ambiguous instruction-like language in descriptive examples, templates,
+      or explanatory fields as warnings. Ordinary domain questions, examples, completion
+      criteria, common mistakes, artifact templates, and domain suggestions are allowed.
+      Internal seed packs should validate cleanly; project-local packs may be allowed
+      with warnings; future remote/Wavekit packs should use stricter trust validation.
+      In all cases, vertical pack content remains domain data, not authoritative agent
+      instruction.
+    answer_source: owner
+    answered_at: '2026-07-02'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-02'
+    audit:
+      created_by: codex
+      created_at: '2026-07-02'
+      updated_by: codex
+      updated_at: '2026-07-02'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q006
+    group_id: QG006
+    gap: migration_strategy
+    criterion: migration_strategy
+    priority: medium
+    state: applied
+    question: Should vertical.lock.yml be generated retroactively for projects with
+      an existing active vertical, or only during future init/select flows?
+    rationale: This affects migration behavior for projects created before this hardening
+      proposal.
+    answer: Generate vertical.lock.yml automatically for new init/select flows. For
+      existing projects with active vertical state but no lockfile, do not generate
+      it implicitly during validation, readiness, export, or ordinary reads. Instead,
+      validation should report an actionable warning and a dedicated explicit repair/migration
+      command should generate the lockfile after resolving the active vertical. If
+      the active vertical cannot be resolved, the command must fail without writing
+      and must not silently fall back to base_project.
+    answer_source: owner
+    answered_at: '2026-07-02'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-02'
+    audit:
+      created_by: codex
+      created_at: '2026-07-02'
+      updated_by: codex
+      updated_at: '2026-07-02'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: readiness.yml
+      action: run_readiness_assess
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.

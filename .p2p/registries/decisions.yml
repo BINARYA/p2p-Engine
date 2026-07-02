@@ -656,3 +656,11 @@ decisions:
   status: draft
   path: .p2p/proposals/PROP-089-readiness-question-state-convergence/decision.md
   reason: ''
+- proposal: PROP-090
+  title: Project Vertical Pack Runtime Hardening And Definition State
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/decision.md
+  reason: Owner reviewed the refined production hardening proposal, confirmed no further
+    changes are needed, and accepts it as the follow-up to PROP-085 for project vertical
+    pack runtime hardening and definition-state production readiness.

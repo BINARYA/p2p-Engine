@@ -11,6 +11,8 @@ class VerticalSection:
     purpose: str
     required: bool = True
     priority: int = 100
+    fields: list["VerticalField"] = field(default_factory=list)
+    completion_policy: "VerticalCompletionPolicy | None" = None
 
 
 @dataclass(frozen=True)
@@ -40,6 +42,52 @@ class VerticalArtifact:
 
 
 @dataclass(frozen=True)
+class VerticalField:
+    field_id: str
+    label: str
+    required: bool = True
+    question: str = ""
+    assisted_answer: str = ""
+    completion_criteria: list[str] = field(default_factory=list)
+    common_mistakes: list[str] = field(default_factory=list)
+    suggested_artifacts: list[str] = field(default_factory=list)
+    maturity_gates: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class VerticalCompletionPolicy:
+    allow_assumed_completion: bool = False
+    required_fields: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class VerticalManifest:
+    vertical_id: str
+    name: str
+    version: str
+    schema_version: int = 1
+    publisher: str = ""
+    source: str = ""
+    compatibility: dict[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class VerticalProfile:
+    profile_id: str
+    title: str
+    description: str = ""
+    enabled_modules: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class VerticalModule:
+    module_id: str
+    title: str
+    description: str = ""
+    section_ids: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class VerticalPack:
     vertical_id: str
     name: str
@@ -55,6 +103,11 @@ class VerticalPack:
     profiles: list[str] = field(default_factory=list)
     modules: list[str] = field(default_factory=list)
     examples: list[str] = field(default_factory=list)
+    schema_version: int = 1
+    manifest: VerticalManifest | None = None
+    profile_specs: list[VerticalProfile] = field(default_factory=list)
+    module_specs: list[VerticalModule] = field(default_factory=list)
+    compatibility: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -78,10 +131,51 @@ class ActiveProjectVertical:
 
 
 @dataclass(frozen=True)
+class VerticalPackSource:
+    source_type: str
+    resolved_from: str
+    path: Path | None = None
+    package: str = ""
+
+
+@dataclass(frozen=True)
+class ResolvedVerticalPack:
+    pack: VerticalPack
+    source: VerticalPackSource
+    checksum: str
+
+
+@dataclass(frozen=True)
+class VerticalLock:
+    vertical_id: str
+    name: str
+    version: str
+    pack_schema_version: int
+    source: VerticalPackSource
+    checksum: str
+    compatibility: dict[str, object] = field(default_factory=dict)
+    selected_at: str = ""
+    selected_by: str = ""
+    trust: dict[str, object] = field(default_factory=dict)
+    path: Path | None = None
+
+
+@dataclass(frozen=True)
+class VerticalLockStatus:
+    status: str
+    path: Path
+    locked: VerticalLock | None = None
+    resolved: ResolvedVerticalPack | None = None
+    message: str = ""
+    suggested_command: str = ""
+
+
+@dataclass(frozen=True)
 class VerticalValidationIssue:
     severity: str
     field: str
     message: str
+    code: str = ""
 
 
 @dataclass(frozen=True)
@@ -107,6 +201,105 @@ class ProjectVerticalAddResult:
     vertical_id: str
     path: Path
     activated: bool
+
+
+@dataclass(frozen=True)
+class ProjectDefinitionFieldValue:
+    field_id: str
+    value: object
+    source: str = ""
+    updated_at: str = ""
+
+
+@dataclass(frozen=True)
+class ProjectDefinitionAssumption:
+    assumption_id: str
+    text: str
+    status: str = "to_validate"
+    field_id: str = ""
+
+
+@dataclass(frozen=True)
+class ProjectDefinitionQuestion:
+    question_id: str
+    question: str
+    field_id: str = ""
+    status: str = "open"
+
+
+@dataclass(frozen=True)
+class ProjectDefinitionBlocker:
+    blocker_id: str
+    text: str
+    status: str = "open"
+
+
+@dataclass
+class ProjectDefinitionSectionState:
+    section_id: str
+    status: str = "missing"
+    fields: dict[str, ProjectDefinitionFieldValue] = field(default_factory=dict)
+    missing_required_fields: list[str] = field(default_factory=list)
+    assumptions: list[ProjectDefinitionAssumption] = field(default_factory=list)
+    open_questions: list[ProjectDefinitionQuestion] = field(default_factory=list)
+    blockers: list[ProjectDefinitionBlocker] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class ProjectDefinitionHistoryEntry:
+    at: str
+    actor: str
+    operation: str
+    section_id: str = ""
+
+
+@dataclass(frozen=True)
+class ProjectDefinitionState:
+    schema_version: int
+    vertical_id: str
+    vertical_version: str
+    profile: str = "default"
+    modules: list[str] = field(default_factory=list)
+    lock_checksum: str = ""
+    sections: list[ProjectDefinitionSectionState] = field(default_factory=list)
+    next_suggested_action: dict[str, object] = field(default_factory=dict)
+    history: list[ProjectDefinitionHistoryEntry] = field(default_factory=list)
+    path: Path | None = None
+
+
+@dataclass(frozen=True)
+class ProjectDefinitionPatch:
+    actor: str
+    operations: list[dict[str, object]]
+    schema_version: int = 1
+
+
+@dataclass(frozen=True)
+class ProjectDefinitionPatchResult:
+    state: ProjectDefinitionState
+    path: Path
+    operations_applied: int
+
+
+@dataclass(frozen=True)
+class ProjectDefinitionView:
+    exists: bool
+    valid: bool
+    path: Path
+    state: ProjectDefinitionState | None = None
+    issues: list[VerticalValidationIssue] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class ProjectVerticalContext:
+    active: ActiveProjectVertical
+    lock_status: VerticalLockStatus
+    selected_profile: str
+    enabled_modules: list[str]
+    rubric_summary: dict[str, object]
+    definition_summary: dict[str, object]
+    warnings: list[str] = field(default_factory=list)
+    next_suggested_action: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

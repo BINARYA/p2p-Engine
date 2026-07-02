@@ -6776,6 +6776,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-089
   generated: false
+- path: .p2p/proposals/PROP-089-readiness-question-state-convergence/conflict-analysis.yml
+  artifact_type: conflict-analysis.yml
+  owner_type: proposal
+  owner: PROP-089
+  generated: false
 - path: .p2p/proposals/PROP-089-readiness-question-state-convergence/contributions.yml
   artifact_type: contributions.yml
   owner_type: proposal
@@ -6826,6 +6831,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-089
   generated: false
+- path: .p2p/proposals/PROP-089-readiness-question-state-convergence/related-proposals.yml
+  artifact_type: related-proposals.yml
+  owner_type: proposal
+  owner: PROP-089
+  generated: false
 - path: .p2p/proposals/PROP-089-readiness-question-state-convergence/risks.md
   artifact_type: risks.md
   owner_type: proposal
@@ -6840,6 +6850,111 @@ artifacts:
   artifact_type: tasks.yml
   owner_type: proposal
   owner: PROP-089
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/ai-digest.md
+  artifact_type: ai-digest.md
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/alternatives.md
+  artifact_type: alternatives.md
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/artifact-state.yml
+  artifact_type: artifact-state.yml
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/assumptions.md
+  artifact_type: assumptions.md
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/clarifications.md
+  artifact_type: clarifications.md
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/comments.yml
+  artifact_type: comments.yml
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/conflict-analysis.yml
+  artifact_type: conflict-analysis.yml
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/contributions.yml
+  artifact_type: contributions.yml
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/decision.md
+  artifact_type: decision.md
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/execution-plan.md
+  artifact_type: execution-plan.md
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/exploration.md
+  artifact_type: exploration.md
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/findings.md
+  artifact_type: findings.md
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/impact-map.yml
+  artifact_type: impact-map.yml
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/open-questions.md
+  artifact_type: open-questions.md
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/proposal.md
+  artifact_type: proposal.md
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/questions.yml
+  artifact_type: questions.yml
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/readiness.yml
+  artifact_type: readiness.yml
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/related-proposals.yml
+  artifact_type: related-proposals.yml
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/risks.md
+  artifact_type: risks.md
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/suggested-scope.md
+  artifact_type: suggested-scope.md
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/tasks.yml
+  artifact_type: tasks.yml
+  owner_type: proposal
+  owner: PROP-090
   generated: false
 - path: .p2p/changes/CHANGE-001-managed-git-adapter-and-change-set-model/change.md
   artifact_type: change.md

@@ -41,6 +41,7 @@ project_app = typer.Typer(help="Manage rationalized project state")
 project_brief_app = typer.Typer(help="Generate and import operational project briefs")
 project_remote_app = typer.Typer(help="Manage project remote profile")
 project_rubrics_app = typer.Typer(help="Manage project definition rubrics")
+project_definition_app = typer.Typer(help="Manage project definition state")
 project_interaction_style_app = typer.Typer(help="Manage project interaction style")
 project_vertical_app = typer.Typer(help="Manage project vertical packs")
 project_readiness_app = typer.Typer(help="Review project readiness against vertical capisaldi")
@@ -98,6 +99,7 @@ app.add_typer(next_app, name="next")
 project_app.add_typer(project_brief_app, name="brief")
 project_app.add_typer(project_remote_app, name="remote")
 project_app.add_typer(project_rubrics_app, name="rubrics")
+project_app.add_typer(project_definition_app, name="definition")
 project_app.add_typer(project_interaction_style_app, name="interaction-style")
 project_app.add_typer(project_vertical_app, name="vertical")
 project_app.add_typer(project_readiness_app, name="readiness")
@@ -132,6 +134,7 @@ register_project_ops_commands(
     project_app,
     project_remote_app,
     project_rubrics_app,
+    project_definition_app,
     project_interaction_style_app,
     project_vertical_app,
     project_readiness_app,
@@ -193,6 +196,21 @@ def init(
         "--owner",
         help="Project owner display name. Defaults to generic owner.",
     ),
+    vertical: str | None = typer.Option(
+        None,
+        "--vertical",
+        help="Optional project vertical ID to select during initialization",
+    ),
+    profile: str = typer.Option(
+        "default",
+        "--profile",
+        help="Optional project definition profile when --vertical is used",
+    ),
+    module: list[str] | None = typer.Option(
+        None,
+        "--module",
+        help="Optional project vertical module. Repeat to enable multiple modules.",
+    ),
     mcp_hint: bool | None = typer.Option(
         None,
         "--mcp-hint/--no-mcp-hint",
@@ -240,6 +258,9 @@ def init(
             remote_provider=provider,
             remote_name=remote,
             remote_url_value=remote_url,
+            vertical_id=vertical,
+            profile=profile,
+            modules=module,
         )
     except ValueError as exc:
         _fail(str(exc))

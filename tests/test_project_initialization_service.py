@@ -109,3 +109,23 @@ def test_project_initialization_service_is_idempotent_and_preserves_existing_fil
 
     assert created == []
     assert governance_file.read_text(encoding="utf-8") == "# Constitution\n\nLocal content.\n"
+
+
+def test_workspace_init_can_select_vertical_without_section_interview(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+
+    created = workspace.init_project(
+        "Vertical Init",
+        vertical_id="base_project",
+        profile="default",
+        modules=["roadmap"],
+        owner="Davide",
+    )
+
+    assert Path(".p2p/project/vertical.yml") in created
+    assert Path(".p2p/project/vertical.lock.yml") in created
+    assert Path(".p2p/project/definition.yml") in created
+    definition = _load_yaml(tmp_path / ".p2p" / "project" / "definition.yml")
+    assert definition["project_definition"]["profile"] == "default"
+    assert definition["project_definition"]["modules"] == ["roadmap"]
+    assert "sections" in definition["project_definition"]

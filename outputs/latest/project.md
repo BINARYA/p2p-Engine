@@ -2,7 +2,7 @@
 
 ## Generated Metadata
 
-- generated_at: 2026-06-30
+- generated_at: 2026-07-02
 - generator: p2p project export
 - source_of_truth: .p2p/
 - output_role: generated human-facing project definition
@@ -11,7 +11,7 @@
 
 ## Executive Summary
 
-This project definition synthesizes 81 accepted proposals from P2P-managed state into a human-facing document. It is generated output; `.p2p/` remains the managed source of truth.
+This project definition synthesizes 82 accepted proposals from P2P-managed state into a human-facing document. It is generated output; `.p2p/` remains the managed source of truth.
 
 ## Project Purpose
 
@@ -832,6 +832,156 @@ Introduce artifact-aware proposal readiness backed by a dedicated artifact-speci
 
 Introduce a project-level interaction_style configuration model with three independent integer fields: technical_verbosity 0..5, formality 0..5, and assertiveness 0..5. technical_verbosity controls how much engine/technical language the agent uses with the decision owner. formality controls how informal or formal the tone is. assertiveness, informally described by the owner as pedanteria, controls how strongly the agent pushes on unresolved gaps, evidence, order, and follow-up before moving on. Defaults: technical_verbosity=2, formality=2, assertiveness=0. The first implementation stores one project-level default interaction_style because the project should define a shared interaction style for all agents and mediators that address the decision owner. The public CLI namespace should be project interaction-style, with matching MCP tools. Values must be readable and modifiable through public P2P CLI commands and exposed through explicit MCP tools with read-only and write-safe behavior. Generated agent instructions and local/project skills must describe how agents inspect and update the style through those CLI/MCP surfaces. Per-agent and per-session overrides are future extension points. Named presets should not be persisted as source of truth; scales remain explicit and independent.
 
+### PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
+
+Introduce a production-grade project vertical runtime layer as a follow-up to PROP-085.
+
+This proposal is organized around four production contracts plus explicit scope, alternative, risk, owner-question, acceptance, and overlap analysis. The owner-review questions Q001-Q006 have been resolved and are incorporated in the direction below.
+
+Contract 1: Project Vertical Pack Contract
+A project vertical pack is a declarative data package that describes a project skeleton for a class of projects. The canonical production pack is multi-file for maintainability:
+- manifest.yml
+- vertical.yml
+- sections/
+- profiles/
+- modules/
+- rubrics.yml
+- artifacts/
+- examples/
+
+Minimum valid production pack:
+- manifest.yml
+- vertical.yml
+- sections/
+- rubrics.yml
+
+The loader must continue accepting the current MVP single-file vertical.yml shape as a compatibility input and normalize it into the same typed model. The canonical pack can split section specs, rubrics, artifact metadata, examples, and profiles into separate files. A section spec should define purpose, required fields, interview questions, assisted answer behavior, examples or answer templates, completion criteria, dependencies, common mistakes, suggested artifacts, and maturity gates where available.
+
+manifest.yml should contain stable identity and package metadata: id, name, version, publisher/source, schema_version, description, categories/tags, compatibility p2p_min_version, entrypoints, declared profiles, declared sections, artifact ids, license/trust metadata, and optional checksum/signature fields for future remote packs.
+
+vertical.yml should define the project skeleton: id, name, version, goal, extends/base, default_profile, maturity levels, section list with stable ids and spec paths, interview policy, completion policy, enabled status defaults, and supported statuses.
+
+profiles allow one vertical to support different project intentions without separate vertical ids. modules are optional vertical-local extensions. rubrics.yml provides default criteria for .p2p/project/rubrics.yml. Artifact templates are optional and partial artifact generation must mark missing or assumed content.
+
+Contract 2: Project Configuration And Resolution Contract
+The selected project vertical remains project state. Keep .p2p/project/vertical.yml, but evolve its schema from a minimal active-id record into richer selected-vertical configuration while remaining backward-compatible with MVP files.
+
+Keep the project-local pack path .p2p/project/verticals/<vertical-id>/ for compatibility. Installed local packs are resolved from both P2P_HOME/verticals and ~/.p2p/verticals. If P2P_HOME is configured, P2P_HOME/verticals has precedence over ~/.p2p/verticals; otherwise ~/.p2p/verticals is the default installed-local directory. If both installed-local locations contain the same pack id/version, the P2P_HOME source wins. Packaged seed resources remain inside package resources. Future Wavekit packs should be installed into an installed-local source and resolved by the same resolver.
+
+Resolution order is deterministic:
+- explicit path or vertical reference passed by the owner;
+- project-local packs under .p2p/project/verticals/;
+- installed local packs under P2P_HOME/verticals, when configured;
+- installed local packs under ~/.p2p/verticals;
+- packaged seed vertical resources;
+- future configured Wavekit/registry source;
+- base_project fallback only during initial selection or explicitly allowed repair.
+
+base_project remains the canonical fallback vertical for this implementation. Do not introduce generic_project in the first implementation. generic_project was terminology from the revision source and may be reconsidered later as a non-breaking alias only if there is a clear usability need after resolver, lockfile, and pack identity rules are stable.
+
+After initialization or explicit project vertical selection, resolve through .p2p/project/vertical.lock.yml. The lockfile records id, name, version, source, resolved_from, package coordinate, checksum, schema version, p2p compatibility, selected/installed metadata, and optional trust/signature metadata. If a locked pack cannot be found or its checksum does not match, P2P must report a clear error and suggest explicit remedies. It must not silently fall back to base_project after a lockfile exists.
+
+For existing projects that already have active vertical state but no lockfile, do not generate vertical.lock.yml implicitly during validation, readiness, export, or ordinary reads. Validation should report an actionable warning. A dedicated explicit repair/migration command should generate the lockfile after resolving the active vertical. If the active vertical cannot be resolved, that command must fail without writing and must not silently fall back to base_project.
+
+Contract 3: Project Definition State Contract
+Add .p2p/project/definition.yml as durable project definition state. This file records how far the owner has progressed in defining the project according to the active vertical. It is separate from vertical.yml and rubrics.yml.
+
+The definition state includes schema_version, vertical_id, vertical_version, selected profile, optional lock reference, per-section status, structured field data, missing required fields, assumptions, open questions, project-definition decisions when relevant, blockers, next_suggested_action when deterministic, and history/provenance.
+
+Recommended section statuses: missing, partial, assumed, complete, blocked, not_applicable. Recommended assumption statuses: to_validate, validated, rejected, superseded.
+
+The agent may propose assumptions, but assumptions must be recorded explicitly. Assumptions must not silently satisfy completion criteria unless section completion policy explicitly allows assumed fields.
+
+The first production slice must implement definition-state writes through a narrow structured patch/update contract. Do not expose arbitrary editing. Supported write paths must validate section_id, field_id, status, assumptions, missing fields, provenance/history, and must write atomically through service/CLI/MCP paths. Defer full interactive editing, sophisticated next-action computation, complex long-answer merge behavior, advanced state migrations, and broad writer surfaces.
+
+Contract 4: Agent Guidance Runtime Contract
+The agent is generic. It should not hardcode board-game, software, research, business, or other domain structures. It loads active project context, vertical configuration, section specs, enabled rubrics, and definition state through CLI/MCP data surfaces.
+
+Runtime modes: interview, review, audit, generate_artifact, roadmap, diagnostic.
+
+In interview mode the agent works progressively: choose the next important incomplete or blocking section, retrieve the section spec, ask one primary question, explain why it matters, offer examples/templates, summarize the answer, record decisions and assumptions, update or emit a structured patch for definition state, report remaining gaps, then continue. The agent is strict about completeness but gentle in interaction. It does not mark sections complete unless completion criteria are satisfied. It distinguishes selected project rubric maturity from full default vertical baseline coverage.
+
+CLI And MCP JSON Contract
+Keep p2p project vertical ... as the production namespace. Add or refine project-scoped JSON surfaces:
+- p2p project vertical list --json
+- p2p project vertical show <vertical-id> --json
+- p2p project vertical validate <path-or-id> --json
+- p2p project vertical add <path> --json
+- p2p project vertical select <vertical-id> --json
+- p2p project vertical lock --json, if explicit lock inspection/repair is needed
+- p2p project context --json
+- p2p project sections --json
+- p2p project section <section-id> --json
+- p2p project rubrics --json
+- p2p project definition --json
+- p2p project definition update --json or equivalent structured patch import/update
+
+Defer the full p2p project next-action --json command until definition state semantics are stable. In the first production slice, expose enough structured data through project context, sections, section detail, and definition JSON so the agent can compute a best-effort next question. The first slice may include a lightweight next_suggested_action field inside definition.yml, but not a full standalone next-action engine.
+
+A top-level p2p vertical namespace is not required for the first production implementation. It may be introduced later as an alias if there is a strong usability reason.
+
+Init And PROP-057 Integration
+p2p init remains lightweight and deterministic. Interactive init may ask project name, domain/intent, vertical selection, profile selection, optional section/module selection, and rubric customization. It writes vertical.yml, vertical.lock.yml, initial definition.yml, and rubrics.yml generated from vertical defaults. After rubric generation, PROP-057 guided selection runs so the owner controls enabled and disabled criteria. Non-interactive init remains scriptable with flags such as --vertical, --profile, and --no-rubric-customization. If no vertical is specified, the deterministic default is base_project unless a documented domain-to-vertical mapping exists.
+
+Rubric Regeneration And Maturity Scope
+When profile, enabled sections, modules, or vertical version changes require rubric regeneration, preserve existing enabled flags by criterion id where possible. New criteria use vertical defaults. Removed criteria are orphaned or removed only with explicit confirmation. Maturity refresh evaluates enabled criteria only and reports source vertical, version, enabled count, disabled count, total default criteria where known, and selected_project_rubric scope.
+
+Versioning, Upgrade, And Migration
+Vertical packs use semantic versioning. Projects pin resolved version and checksum in vertical.lock.yml. Upgrades are explicit and show current version, target version, changed sections, added/removed sections, changed rubric criteria, changed artifact templates, guidance policy changes, and definition-state migration impacts. No ordinary command silently upgrades the pack, creates a lockfile, or migrates definition state.
+
+Security And Trust
+Vertical packs are declarative data. Allowed formats initially include YAML, JSON, Markdown, and plain text templates. Packs must not contain executable scripts.
+
+Validation uses severity by field and content. Explicit attempts to override system, developer, safety, governance, repository, or tool-permission rules; execute code; escape pack/project paths; force tool execution; modify permissions; or instruct agents to ignore higher-priority instructions are hard errors. Ambiguous instruction-like language in descriptive examples, templates, or explanatory fields is a warning. Ordinary domain questions, examples, completion criteria, common mistakes, artifact templates, and domain suggestions are allowed. Internal seed packs should validate cleanly; project-local packs may be allowed with warnings; future remote/Wavekit packs should use stricter trust validation. In all cases, vertical pack content remains domain data, not authoritative agent instruction.
+
+Scope Boundaries
+In scope: production hardening of PROP-085; canonical multi-file pack schema; compatibility loading for single-file packs; vertical.lock.yml; definition.yml; project-scoped JSON CLI/MCP surfaces; narrow definition-state writes; lightweight init integration; PROP-057 rubric preservation; validation, safety, version pinning, upgrade diagnostics, migration semantics; generated generic agent guidance.
+
+Out of scope for the first production slice: Wavekit remote search/install/update/publish; executable vertical plugins; required p2p vertical namespace; moving packs out of .p2p/project/verticals/; breaking base_project rename; full interviews inside p2p init; automatic upgrades; implicit retroactive lockfile generation; silent fallback after lockfile creation; full next-action engine; domain-specific agent skills for each vertical.
+
+Alternatives Considered
+Alternative A: Modify PROP-085 directly. Rejected because PROP-085 is accepted and already has an MVP implementation. PROP-090 is a follow-up proposal.
+Alternative B: Create an unrelated proposal. Rejected because this is the completion of PROP-085.
+Alternative C: Adopt the revision literally with p2p vertical ... and .p2p/verticals/. Rejected for the first slice because p2p project vertical ... and .p2p/project/verticals/ already exist.
+Alternative D: Keep only single-file vertical.yml. Rejected because production packs need maintainable section specs, profiles, rubrics, artifacts, examples, and trust metadata.
+Alternative E: Keep project definition state conversational only. Rejected because guided project construction must persist across sessions.
+Alternative F: Silently fall back to base_project when a locked vertical is missing. Rejected because it changes project behavior unexpectedly.
+Alternative G: Generate lockfiles automatically for existing projects during validation/readiness/export. Rejected because it mutates project state without an explicit owner repair/migration action.
+
+Tradeoff Analysis
+Keeping p2p project vertical ... favors compatibility over brevity. Keeping .p2p/project/verticals/ favors current project-state conventions over the revision source path. Keeping base_project favors implementation continuity over generic_project terminology. Adding vertical.lock.yml increases state complexity but prevents behavior drift. Adding definition.yml and a narrow writer increases persistence and validation responsibility but enables durable agent guidance. Supporting both single-file and multi-file packs increases loader complexity but avoids a migration cliff. Supporting both P2P_HOME/verticals and ~/.p2p/verticals adds resolver precedence complexity but supports isolated environments, CI, containers, and normal user installs. Deferring Wavekit and the full next-action engine sacrifices remote catalog and automated prioritization functionality in this slice but stabilizes local contracts first.
+
+Risk Coverage
+Risk: vertical domain logic leaks into core. Mitigation: keep domain content in packs; core only loads, validates, resolves, locks, exposes, and updates typed state.
+Risk: proposal scope is too large. Mitigation: implement through phased local specs and tasks.
+Risk: definition.yml duplicates governance decisions. Mitigation: definition.yml stores project-definition state only; proposal decisions remain governance artifacts.
+Risk: agents treat pack text as instructions. Mitigation: vertical text has no instruction authority; validators warn/reject unsafe guidance by severity.
+Risk: lockfiles make projects brittle. Mitigation: provide explicit repair/migration/fallback commands and actionable diagnostics.
+Risk: rubric regeneration overwrites owner choices. Mitigation: preserve enabled flags by criterion id and require confirmation for orphan removal.
+Risk: init becomes too long. Mitigation: init configures vertical/profile/rubric scope only.
+Risk: custom generated verticals are low quality. Mitigation: mark as project-local scaffolds, validate them, and inherit from base_project.
+Risk: next-action logic is premature. Mitigation: expose enough structured JSON for best-effort agent selection and defer the formal engine.
+
+Assumptions And Constraints
+Assumptions: PROP-085 remains the accepted baseline; the owner wants hardening rather than a second vertical system; existing public commands and paths should be preserved; base_project remains the fallback pack; Wavekit compatibility matters but remote behavior is deferred; agents need durable state; maturity remains governed by .p2p/project/rubrics.yml and enabled flags.
+
+Constraints: do not edit .p2p files by hand during implementation; use supported service/CLI/MCP write paths; do not add domain behavior to large compatibility files when a service boundary is appropriate; keep packs declarative and non-executable; keep owner governance decisions outside vertical packs and agent runtime.
+
+Owner Questions Resolution
+Resolved and incorporated:
+- Q001: Implement definition-state writes in the first production slice through a narrow structured patch/update contract.
+- Q002: Defer the full next-action engine; expose JSON context and optionally next_suggested_action in definition.yml.
+- Q003: Omit generic_project from the first implementation; keep base_project canonical.
+- Q004: Resolve installed packs from both P2P_HOME/verticals and ~/.p2p/verticals with P2P_HOME precedence.
+- Q005: Use severity-dependent unsafe guidance validation.
+- Q006: Generate lockfiles automatically for new init/select flows; existing projects require explicit repair/migration.
+
+Acceptance Criteria Quality
+Acceptance criteria must be verified by implementation evidence: service tests for loader normalization, resolver precedence, lockfiles, and definition-state validation; CLI tests for JSON commands, init integration, lock inspection, explicit lock repair/migration, and definition-state read/update behavior; MCP parity tests where applicable; validation tests for malformed packs, unsafe paths/content, stale locks, orphaned rubrics, and inconsistent definition state; regression tests for current p2p project vertical commands and single-file packs; docs for pack layout, compatibility, lockfile semantics, definition.yml, agent guidance, and deferred Wavekit/next-action behavior; p2p validate with zero errors.
+
+Impact And Overlap Analysis
+PROP-085 overlap is direct: PROP-090 is its production hardening layer, not a competing system. The completed local feature specs/features/pluggable-project-verticals-and-readiness-orchestration remains the MVP baseline; PROP-090 should produce a new local hardening feature rather than reopening completed MVP tasks. PROP-057 remains the owner-controlled rubric selection flow. PROP-071 remains compatible with custom domain definition. PROP-082 and PROP-089 may consume definition-state data, but proposal readiness question state remains separate from project definition state. PROP-083 exports may include vertical and definition-state summaries additively. Expected code impact is concentrated in project vertical core models, ProjectVerticalService, project initialization, maturity/rubric services, validation, CLI project command modules, MCP project handlers/catalog, agent templates, docs, tests, and possibly visible project export. P2PWorkspace remains a facade.
+
 ## Domain And Context
 
 ### PROP-001 - — CLI Foundation
@@ -1178,6 +1328,38 @@ This refines the accepted direction of PROP-085. PROP-085 defines pluggable proj
 ### PROP-087 - Agent Personality Model For Decision Mediation
 
 The owner defines personality as project interaction style: how an agent or mediator addresses the decision owner. The first implementation uses three independent 0-5 scales. technical_verbosity=0 avoids engine terms in owner-facing language while 5 reports technical operations in detail. formality=0 is very informal while 5 is detached and highly formal. assertiveness=0 preserves the current standard while 5 is highly persistent about unresolved gaps, evidence, order, and follow-up. The owner chose project-level defaults shared by all agents, no persisted presets, and CLI/MCP access under project interaction-style.
+
+### PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
+
+This proposal is an extension and completion of PROP-085 - Pluggable Project Verticals And Readiness Orchestration. It should not be treated as an unrelated feature or as a replacement for PROP-085.
+
+Existing local implementation context:
+- Local feature: specs/features/pluggable-project-verticals-and-readiness-orchestration.
+- Implemented service boundary: ProjectVerticalService.
+- Implemented core model: src/p2p_engine/core/project_verticals.py.
+- Implemented CLI surface: p2p project vertical list/show/validate/propose/add/select and p2p project readiness review.
+- Implemented MCP parity for the same vertical and readiness review operations.
+- Implemented packaged vertical resources including base_project and demonstration verticals.
+- Implemented project-local vertical storage under .p2p/project/verticals/.
+- Implemented active vertical state under .p2p/project/vertical.yml.
+- Deferred or missing production features: multi-file canonical pack layout, vertical.lock.yml, project definition state, full JSON project context, structured state update contract, init integration with vertical selection/profile/module flow, rubric regeneration preservation rules, explicit pack upgrade/migration behavior, and strict vertical content trust boundary.
+
+Compatibility decisions for this follow-up:
+- Keep the existing command namespace p2p project vertical ... for the production path. A shorter p2p vertical ... namespace may be considered later as an alias, but it is not required for this proposal.
+- Keep the existing project-local path .p2p/project/verticals/ for compatibility with the MVP. The revision source suggested .p2p/verticals/, but the production design should fit the implemented project-state layout unless a separate migration proposal decides otherwise.
+- Keep base_project as the required fallback vertical id because it already exists in the implementation. If the generic_project name is useful, treat it as a future alias or seed-pack naming choice, not as a forced breaking rename.
+- Preserve current single-file vertical.yml packs as a compatibility input. Introduce the multi-file pack as the canonical production format and normalize both shapes into the same typed model.
+- Keep project maturity and readiness based on existing rubric semantics. Vertical packs provide structured inputs; they do not create a parallel maturity engine.
+- Keep init lightweight. p2p init should select/configure the vertical and rubric scope, but it should not run a full project-definition interview.
+
+Related proposals:
+- PROP-057 Guided Rubric Selection During Init.
+- PROP-071 Custom Domain Definition Workflow.
+- PROP-082 Readiness Assessment Refresh And Review Workflow.
+- PROP-083 Domain-Aware Visible Project Definition Export.
+- PROP-085 Pluggable Project Verticals And Readiness Orchestration.
+- PROP-086 Artifact-Aware Proposal Readiness And Agent Interview Orchestration.
+- PROP-089 Readiness Question State Convergence.
 
 ## Scope
 
@@ -4509,6 +4691,78 @@ p2p project interaction-style set --technical-verbosity 2 --formality 2 --assert
 The exact command spelling can still be refined during implementation specs,
 but the namespace should remain project-scoped.
 
+### PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
+
+#### Goals
+
+- Define a production-grade multi-file project vertical pack contract while preserving compatibility with existing single-file vertical.yml packs.
+- Persist the exact resolved vertical package in .p2p/project/vertical.lock.yml with version, source, schema, checksum, and compatibility metadata.
+- Introduce .p2p/project/definition.yml as the durable project definition state used by agents to record section data, assumptions, missing fields, open questions, decisions, and next suggested work.
+- Keep p2p project vertical ... as the stable CLI namespace and extend it with JSON-ready project context operations instead of replacing it with a new top-level namespace in the first slice.
+- Integrate selected vertical defaults with .p2p/project/rubrics.yml while preserving PROP-057 enabled/disabled rubric selection semantics.
+- Define deterministic resolver behavior across explicit path/reference, project-local packs, installed local packs, packaged seed packs, future Wavekit packs, and base_project fallback.
+- Define strict post-init lockfile behavior: after a vertical is locked, missing or mismatched packs must not silently fall back to another vertical without explicit repair, migration, or fallback command.
+- Expose enough structured JSON context for a generic agent to guide project definition without hardcoded domain knowledge.
+- Define the generic vertical-aware agent guidance runtime: progressive interview, one primary question per turn, examples, assisted answers, explicit assumptions, section completion checks, and structured state updates.
+- Keep vertical pack content as declarative domain data, never executable code and never higher-priority agent instruction.
+- Prepare local pack formats and lock metadata for future Wavekit remote installation without requiring remote registry support in the first implementation.
+- Define validation, upgrade, migration, orphaned rubric, and orphaned project-definition-field behavior before broad catalog expansion.
+
+#### Non-Goals
+
+- Do not replace PROP-085. This proposal hardens and completes the accepted direction.
+- Do not replace p2p project vertical ... with a new required p2p vertical ... namespace in the first production slice.
+- Do not move existing project-local packs out of .p2p/project/verticals/ as part of this proposal.
+- Do not rename base_project as a breaking change. Any generic_project naming can be handled as aliasing or a future compatibility decision.
+- Do not implement Wavekit remote search, install, update, or publish in the first implementation.
+- Do not execute code from vertical packs or support executable plugin hooks.
+- Do not allow vertical pack content to override system, developer, safety, governance, repository, or tool-permission instructions.
+- Do not make p2p init ask all vertical interview questions. Init configures the project; agent guidance develops the project later.
+- Do not replace .p2p/project/rubrics.yml or change the meaning of enabled: false from PROP-057.
+- Do not silently upgrade vertical packs or project definition state during assessment, export, readiness review, or ordinary agent interaction.
+- Do not require a domain-specific agent skill for every vertical.
+
+#### Suggested Scope
+
+# Suggested Scope - PROP-090
+
+## First Production Slice
+
+- Compatibility audit of the current PROP-085 MVP.
+- Canonical multi-file pack schema.
+- Single-file pack compatibility loader.
+- Resolver precedence across explicit path, project-local, P2P_HOME, user-home,
+  packaged seed resources, future registry source, and base_project fallback.
+- vertical.lock.yml for new init/select flows.
+- Explicit repair/migration command for existing active vertical state without a
+  lockfile.
+- definition.yml generation and validation.
+- Narrow structured definition-state update contract.
+- JSON context surfaces for active vertical, sections, section detail, rubrics,
+  and definition state.
+- Init integration for vertical/profile/module/rubric setup without full
+  section interview.
+- Severity-dependent pack safety validation.
+- Docs and tests for compatibility, resolver, lockfile, definition state,
+  validation, and agent guidance.
+
+## Deferred
+
+- Wavekit remote search/install/update/publish.
+- Full p2p project next-action --json engine.
+- Top-level p2p vertical alias.
+- generic_project alias for base_project.
+- Advanced state migration and long-answer merge behavior.
+- Full interactive definition editor.
+
+## Explicitly Out Of Scope
+
+- Executable vertical plugins.
+- Domain-specific agent skills for every vertical.
+- Silent fallback after lockfile creation.
+- Automatic retroactive lockfile generation during validation/readiness/export.
+- Replacing project rubrics or changing enabled:false semantics.
+
 ## Accepted Proposals And Decisions
 
 - PROP-001 - — CLI Foundation
@@ -4754,6 +5008,9 @@ but the namespace should remain project-scoped.
 - PROP-087 - Agent Personality Model For Decision Mediation
   - source: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation
   - decision_reason: Accepted by owner. The proposal is decision-ready and defines a project-level interaction_style model with three explicit scales, defaults, CLI/MCP surfaces, generated instruction updates, and no persisted presets.
+- PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
+  - source: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state
+  - decision_reason: Owner reviewed the refined production hardening proposal, confirmed no further changes are needed, and accepts it as the follow-up to PROP-085 for project vertical pack runtime hardening and definition-state production readiness.
 
 ## Requirements And Acceptance
 
@@ -5344,6 +5601,38 @@ but the namespace should remain project-scoped.
 - Rendered agent guidance translates numeric values into concrete communication behavior for technical verbosity, formality, and assertiveness.
 - Persisted named presets are not introduced; scales remain the source of truth and any labels are non-authoritative help text only.
 - Tests cover defaults, validation bounds, CLI show/set, MCP status/update, generated instruction text, missing-config fallback, and no-direct-write guidance.
+
+### PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
+
+- A new local development feature can be derived from PROP-090 without changing the accepted meaning of PROP-085.
+- The existing p2p project vertical command namespace remains the primary public CLI surface for this hardening work; a top-level p2p vertical namespace is not required in the first implementation.
+- Existing single-file vertical.yml packs remain loadable and are normalized into the same typed model as canonical multi-file packs.
+- A canonical multi-file pack shape is defined and validated, including manifest.yml, vertical.yml, sections, rubrics.yml, and optional profiles, modules, artifacts, and examples.
+- The project-local vertical path .p2p/project/verticals/ remains supported and documented.
+- base_project remains the canonical fallback vertical id; generic_project is not introduced in the first implementation.
+- Installed local packs are resolved from both P2P_HOME/verticals and ~/.p2p/verticals, with P2P_HOME/verticals taking precedence when P2P_HOME is configured.
+- The resolver and vertical.lock.yml record the effective source type and resolved source path or package coordinate.
+- .p2p/project/vertical.lock.yml is generated deterministically for new init/select flows.
+- Existing projects with active vertical state but no lockfile are not modified implicitly by validation, readiness, export, or ordinary reads.
+- Existing active vertical state without a lockfile produces an actionable validation diagnostic and a dedicated explicit repair/migration command can generate the lockfile.
+- If the active or locked vertical cannot be resolved, repair/select/review commands fail without writing and do not silently fall back to base_project after lock creation.
+- .p2p/project/definition.yml is generated deterministically and validated against the active vertical.
+- Project definition state records section status, field data, missing fields, assumptions, open questions, blockers, next_suggested_action when available, and history/provenance.
+- Definition-state writes are implemented in the first production slice through a narrow structured patch/update contract; arbitrary YAML editing is not exposed.
+- Definition-state update validation rejects unknown section ids, field ids, invalid statuses, invalid assumption statuses, and inconsistent completion states.
+- Definition-state writes are atomic and go through supported service/CLI/MCP paths, not manual .p2p edits.
+- The first production slice exposes project context, sections, section detail, rubrics, and definition state through JSON-ready CLI or MCP surfaces.
+- The full p2p project next-action --json engine is not implemented in the first slice; agents use exposed JSON and optional next_suggested_action for best-effort guidance.
+- p2p init remains lightweight and does not ask full section interview questions.
+- Interactive init can select vertical, profile, optional sections/modules, generate rubrics from vertical defaults, and then invoke PROP-057 guided rubric selection.
+- Rubric regeneration preserves existing enabled flags by stable criterion id and handles removed criteria as orphaned or confirmation-required removals.
+- Maturity output distinguishes selected project rubric maturity from full default vertical baseline coverage.
+- Vertical pack content is validated with severity-dependent rules: explicit attempts to override higher-priority instructions, execute code, force tools, change permissions, or escape paths are hard errors; ambiguous instruction-like wording in examples/templates can be warnings.
+- Internal seed packs validate cleanly; project-local packs may be allowed with warnings; future remote/Wavekit packs can use stricter trust validation.
+- Generated agent guidance treats vertical pack content as domain data, not authoritative agent instruction.
+- Tests cover loader normalization, resolver precedence, lockfile behavior, explicit lock repair/migration, definition-state validation and updates, pack safety validation, rubric regeneration preservation, and regressions for existing p2p project vertical behavior.
+- Documentation covers pack layout, compatibility rules, resolver order, lockfile semantics, definition.yml semantics, agent guidance, explicit repair/migration, and deferred Wavekit/next-action behavior.
+- p2p validate passes with zero errors after implementation.
 
 ## Alternatives And Tradeoffs
 
@@ -8146,6 +8435,199 @@ Status: rejected for persisted configuration.
 - If labels/presets become the source of truth, the model becomes hard to scale
   when additional dimensions are added.
 
+### PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
+
+#### alternatives.md
+
+# Alternatives - PROP-090
+
+## Preferred: Follow-up Hardening Proposal For PROP-085
+
+Create PROP-090 as a dedicated follow-up that completes the accepted PROP-085
+direction.
+
+Benefits:
+- preserves PROP-085 as the accepted MVP direction;
+- avoids rewriting accepted governance history;
+- gives production hardening its own scope, questions, and acceptance criteria;
+- makes implementation easier to split into local specs and tasks.
+
+Costs:
+- adds another proposal to track;
+- requires careful overlap documentation with PROP-085.
+
+## Alternative: Modify PROP-085 Directly
+
+Revise PROP-085 to include all production-hardening details.
+
+Benefits:
+- keeps all vertical runtime discussion in one proposal;
+- avoids an extra proposal id.
+
+Costs:
+- blurs accepted MVP direction with new production scope;
+- makes it harder to tell what was accepted originally;
+- risks reopening completed local feature work.
+
+Decision:
+Rejected for the primary governance path. PROP-090 should be the follow-up.
+
+## Alternative: Create An Unrelated New Proposal
+
+Treat the vertical runtime hardening work as an independent initiative.
+
+Benefits:
+- clean standalone text;
+- no need to reconcile with previous language.
+
+Costs:
+- factually inaccurate because the work extends PROP-085;
+- may create a competing vertical system;
+- weakens traceability to the implemented MVP.
+
+Decision:
+Rejected. PROP-090 is explicitly linked to PROP-085.
+
+## Alternative: Adopt The Revision Literally
+
+Use p2p vertical and .p2p/verticals exactly as the revision source suggested.
+
+Benefits:
+- shorter command namespace;
+- more generic-looking path.
+
+Costs:
+- conflicts with implemented p2p project vertical commands;
+- conflicts with current project-local .p2p/project/verticals path;
+- increases migration and compatibility burden.
+
+Decision:
+Rejected for the first production slice. Keep project-scoped namespace and
+paths.
+
+## Alternative: Keep Only Single-File vertical.yml Packs
+
+Continue using the MVP pack shape.
+
+Benefits:
+- lowest implementation cost;
+- fewer files to validate.
+
+Costs:
+- poor maintainability for rich section specs;
+- weak support for profiles, modules, artifacts, examples, and trust metadata;
+- hard to scale to production-quality vertical packs.
+
+Decision:
+Rejected. Keep single-file packs only as compatibility input.
+
+## Alternative: Conversation-Only Project Definition State
+
+Let agents reason about project definition in chat without persistent
+definition.yml.
+
+Benefits:
+- fewer project files;
+- simpler first implementation.
+
+Costs:
+- loses project-definition progress across sessions;
+- no durable missing-fields, assumptions, section status, or next suggested
+  action;
+- agents would be tempted to write .p2p state by hand or repeat interviews.
+
+Decision:
+Rejected. definition.yml is required.
+
+## Alternative: Full next-action Engine In First Slice
+
+Implement p2p project next-action --json immediately.
+
+Benefits:
+- gives agents a deterministic next-question source;
+- improves orchestration ergonomics.
+
+Costs:
+- likely premature before definition state, dependencies, assumptions, and
+  completion semantics are stable;
+- risks encoding brittle prioritization rules.
+
+Decision:
+Deferred. The first slice exposes enough JSON for best-effort agent selection
+and may include next_suggested_action in definition.yml.
+
+## Alternative: Automatic Retroactive Lockfile Generation
+
+Generate vertical.lock.yml for existing projects during validation, readiness,
+export, or normal reads.
+
+Benefits:
+- quickly normalizes old projects;
+- fewer explicit migration commands.
+
+Costs:
+- mutates project state without explicit owner action;
+- can surprise users;
+- may silently lock the wrong pack if active state is ambiguous.
+
+Decision:
+Rejected. Existing projects require explicit repair/migration.
+
+#### findings.md
+
+findings:
+  - id: F001
+    type: architectural_boundary
+    title: PROP-090 is a hardening layer for PROP-085, not a competing vertical system
+    impact: high
+    related_to:
+      - PROP-085
+  - id: F002
+    type: compatibility_decision
+    title: Keep the existing p2p project vertical namespace
+    impact: high
+    related_to:
+      - PROP-085
+  - id: F003
+    type: compatibility_decision
+    title: Keep .p2p/project/verticals as the project-local pack path
+    impact: high
+    related_to:
+      - PROP-085
+  - id: F004
+    type: compatibility_decision
+    title: Keep base_project canonical and omit generic_project from the first implementation
+    impact: medium
+    related_to:
+      - PROP-085
+  - id: F005
+    type: hidden_decision
+    title: definition.yml requires an official narrow writer in the first slice
+    impact: high
+    related_to:
+      - PROP-086
+      - PROP-089
+  - id: F006
+    type: deferred_scope
+    title: Full next-action engine should follow definition-state stabilization
+    impact: medium
+    related_to:
+      - PROP-079
+      - PROP-081
+      - PROP-089
+  - id: F007
+    type: security_boundary
+    title: Vertical pack text is domain data, not agent instruction authority
+    impact: high
+    related_to:
+      - PROP-085
+  - id: F008
+    type: migration_decision
+    title: Existing projects require explicit lock repair or migration
+    impact: high
+    related_to:
+      - PROP-085
+
 ## Risks
 
 ### PROP-002 - Proposal Exploration And Readiness Workflow
@@ -9469,6 +9951,96 @@ None identified yet.
   Mitigation: expose CLI and MCP primitives and document them in generated
   skills/instructions.
 
+### PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
+
+#### risks.md
+
+# Risks - PROP-090
+
+## Risk: Vertical Logic Leaks Into Core
+
+Domain-specific behavior could move into services or CLI code instead of
+remaining in packs.
+
+Mitigation:
+- keep sections, questions, rubrics, examples, and artifacts in data packs;
+- core services only load, validate, resolve, lock, expose, and update typed
+  state;
+- test with unrelated verticals.
+
+## Risk: Scope Is Too Large
+
+The proposal spans pack schema, resolver, lockfile, init, rubrics, definition
+state, JSON APIs, agent behavior, validation, and migration.
+
+Mitigation:
+- implement through phased local specs and tasks;
+- keep Wavekit and the full next-action engine deferred;
+- preserve compatibility with current MVP behavior.
+
+## Risk: definition.yml Duplicates Governance Decisions
+
+Project definition state could be confused with proposal decisions.
+
+Mitigation:
+- definition.yml stores project-definition answers, assumptions, section
+  completeness, missing fields, and open project questions;
+- proposal acceptance, rejection, and decisions remain P2P governance artifacts.
+
+## Risk: Agents Treat Pack Text As Instructions
+
+Vertical pack text may include instruction-like content.
+
+Mitigation:
+- pack text has no instruction authority;
+- validators use severity-dependent checks;
+- unsafe override/tool/safety/governance text is a hard error;
+- ambiguous wording in examples/templates is a warning.
+
+## Risk: Lockfiles Make Projects Brittle
+
+Pinned vertical sources may become unavailable.
+
+Mitigation:
+- report actionable diagnostics;
+- provide explicit repair/migration/fallback commands;
+- never silently fall back after a lockfile exists.
+
+## Risk: Rubric Regeneration Overwrites Owner Choices
+
+Changing profiles, sections, or pack versions can change rubric defaults.
+
+Mitigation:
+- preserve enabled flags by stable criterion id;
+- add new criteria with vertical defaults;
+- treat removed criteria as orphaned or remove them only with confirmation.
+
+## Risk: Init Becomes Too Long
+
+Vertical selection could turn p2p init into a full project interview.
+
+Mitigation:
+- init configures project vertical/profile/modules/rubric scope only;
+- section interview happens later through agent guidance.
+
+## Risk: Custom Generated Verticals Are Low Quality
+
+Generated project-local packs may look authoritative but be incomplete.
+
+Mitigation:
+- mark generated packs as project-local scaffolds;
+- inherit from base_project;
+- validate structure;
+- require later refinement for production use.
+
+## Risk: next-action Logic Is Premature
+
+A full next-action engine may overfit before state semantics stabilize.
+
+Mitigation:
+- defer p2p project next-action --json;
+- expose JSON context and optional next_suggested_action field first.
+
 ## Assumptions
 
 ### PROP-002 - Proposal Exploration And Readiness Workflow
@@ -10306,6 +10878,48 @@ None identified yet.
 - Numeric scales are easier to validate and evolve than named persona presets.
 - Generated agent instructions are the first consumer of the model.
 - CLI and MCP should be the public mutation surfaces for interaction style.
+
+### PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
+
+#### assumptions.md
+
+# Assumptions - PROP-090
+
+## Accepted Baseline
+
+- PROP-085 remains accepted and its MVP implementation is the baseline.
+- PROP-090 completes and hardens that direction rather than replacing it.
+
+## Compatibility
+
+- Existing p2p project vertical commands should remain the public namespace for
+  the first production slice.
+- Existing project-local packs under .p2p/project/verticals should remain
+  supported.
+- Current single-file vertical.yml packs should remain loadable.
+- base_project remains the canonical fallback vertical in the first
+  implementation.
+
+## Runtime State
+
+- Agents need durable project definition state to continue guided work across
+  sessions.
+- definition.yml is project-definition state, not governance decision state.
+- definition-state writes must go through supported CLI/service/MCP paths.
+
+## Readiness And Maturity
+
+- Project maturity remains governed by .p2p/project/rubrics.yml and enabled
+  criteria.
+- Vertical packs provide structured inputs and do not create a parallel maturity
+  engine.
+
+## Future Compatibility
+
+- Wavekit compatibility matters, but remote search/install/update/publish is
+  not required in the first implementation.
+- The full next-action engine can be deferred until definition-state semantics
+  stabilize.
 
 ## Open Questions
 
@@ -11708,6 +12322,40 @@ Resolved:
 
 No remaining blocking owner question is currently known.
 
+### PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
+
+#### open-questions.md
+
+# Open Questions - PROP-090
+
+## Blocking Questions
+
+None currently open.
+
+## Resolved Owner Questions
+
+- Q001: Implement definition-state writes in the first production slice through
+  a narrow structured patch/update contract.
+- Q002: Defer the full next-action engine; expose JSON context and optionally
+  next_suggested_action in definition.yml.
+- Q003: Omit generic_project from the first implementation; keep base_project
+  canonical.
+- Q004: Resolve installed packs from both P2P_HOME/verticals and ~/.p2p/verticals
+  with P2P_HOME precedence.
+- Q005: Use severity-dependent unsafe guidance validation.
+- Q006: Generate lockfiles automatically for new init/select flows; existing
+  projects require explicit repair/migration.
+
+## Deferred Follow-Up Questions
+
+- Should a top-level p2p vertical alias be introduced after the project-scoped
+  commands are stable?
+- Should generic_project ever become a non-breaking alias for base_project?
+- Which Wavekit trust/signature policy is required before remote packs are
+  enabled?
+- What prioritization algorithm should a future next-action engine use after
+  definition-state semantics stabilize?
+
 ## Readiness
 
 ### Project Vertical Skeleton
@@ -11718,16 +12366,16 @@ No remaining blocking owner question is currently known.
 
 ### Vertical Coverage
 
-- vision: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-006, PROP-010, PROP-011, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-089)
-- objective: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089)
-- stakeholders: covered (proposals: PROP-001, PROP-002, PROP-006, PROP-008, PROP-009, PROP-010, PROP-013, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-022, PROP-023, PROP-024, PROP-030, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-051, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-061, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089)
-- scope: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089)
-- assumptions: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-009, PROP-011, PROP-013, PROP-016, PROP-017, PROP-019, PROP-021, PROP-022, PROP-025, PROP-026, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-046, PROP-048, PROP-049, PROP-050, PROP-051, PROP-053, PROP-054, PROP-055, PROP-056, PROP-058, PROP-059, PROP-060, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-080, PROP-081, PROP-082, PROP-083, PROP-085, PROP-086, PROP-088)
-- risks: covered (proposals: PROP-001, PROP-002, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089)
-- decisions: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-005, PROP-006, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-039, PROP-040, PROP-041, PROP-042, PROP-045, PROP-046, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-059, PROP-060, PROP-064, PROP-065, PROP-066, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089)
-- milestones: covered (proposals: PROP-001, PROP-002, PROP-006, PROP-007, PROP-010, PROP-012, PROP-013, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-030, PROP-031, PROP-032, PROP-033, PROP-037, PROP-043, PROP-044, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-064, PROP-065, PROP-066, PROP-067, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-088)
-- definition_of_done: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089)
-- artifacts: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-010, PROP-011, PROP-012, PROP-013, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-022, PROP-024, PROP-026, PROP-027, PROP-028, PROP-029, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-058, PROP-059, PROP-062, PROP-063, PROP-064, PROP-067, PROP-072, PROP-073, PROP-074, PROP-076, PROP-078, PROP-080, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089)
+- vision: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-006, PROP-010, PROP-011, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-089, PROP-090)
+- objective: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090)
+- stakeholders: covered (proposals: PROP-001, PROP-002, PROP-006, PROP-008, PROP-009, PROP-010, PROP-013, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-022, PROP-023, PROP-024, PROP-030, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-051, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-061, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090)
+- scope: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090)
+- assumptions: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-009, PROP-011, PROP-013, PROP-016, PROP-017, PROP-019, PROP-021, PROP-022, PROP-025, PROP-026, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-046, PROP-048, PROP-049, PROP-050, PROP-051, PROP-053, PROP-054, PROP-055, PROP-056, PROP-058, PROP-059, PROP-060, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-080, PROP-081, PROP-082, PROP-083, PROP-085, PROP-086, PROP-088, PROP-089, PROP-090)
+- risks: covered (proposals: PROP-001, PROP-002, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090)
+- decisions: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-005, PROP-006, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-039, PROP-040, PROP-041, PROP-042, PROP-045, PROP-046, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-059, PROP-060, PROP-064, PROP-065, PROP-066, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090)
+- milestones: covered (proposals: PROP-001, PROP-002, PROP-006, PROP-007, PROP-010, PROP-012, PROP-013, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-030, PROP-031, PROP-032, PROP-033, PROP-037, PROP-043, PROP-044, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-064, PROP-065, PROP-066, PROP-067, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-088, PROP-089, PROP-090)
+- definition_of_done: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090)
+- artifacts: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-010, PROP-011, PROP-012, PROP-013, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-022, PROP-024, PROP-026, PROP-027, PROP-028, PROP-029, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-058, PROP-059, PROP-062, PROP-063, PROP-064, PROP-067, PROP-072, PROP-073, PROP-074, PROP-076, PROP-078, PROP-080, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090)
 
 ### PROP-006 - Multi-Agent Integration Model
 
@@ -12535,6 +13183,195 @@ readiness:
   assessed_at: '2026-06-09'
   artifact_coverage_warnings: []
 
+### PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
+
+#### readiness.yml
+
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: high
+  confidence_reasons:
+  - Evidence-aware assessment found no missing criteria, failed gates, blocking owner
+    questions, or artifact coverage gaps.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  missing: []
+  suggested_next: []
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    goal_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 15
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    risk_coverage:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: risks.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: assumptions.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: questions.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 5
+      artifact_quality: ready
+      evidence:
+      - artifact: impact-map.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  owner_question_state:
+    source: structured
+    markdown_fallback_used: false
+    blocking_owner_questions: []
+    answered_not_applied: []
+    residual_follow_up: []
+    closed_questions:
+    - id: Q001
+      group_id: QG001
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: owner_questions_resolution
+      gap: owner_questions_resolution
+      question: Should definition-state writes be implemented in the first production
+        slice, or should the first slice expose read-only state plus structured patch
+        output?
+      reason: Question is closed with state `applied`.
+    - id: Q002
+      group_id: QG002
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: scope_boundaries
+      gap: scope_boundaries
+      question: Should p2p project next-action --json be included in this proposal,
+        or deferred until definition state is stable?
+      reason: Question is closed with state `applied`.
+    - id: Q003
+      group_id: QG003
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: compatibility
+      gap: compatibility
+      question: Should generic_project be introduced as a non-breaking alias for base_project,
+        or omitted from the first implementation?
+      reason: Question is closed with state `applied`.
+    - id: Q004
+      group_id: QG004
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: source_resolution
+      gap: source_resolution
+      question: Should installed local packs be resolved from P2P_HOME/verticals,
+        ~/.p2p/verticals, or both?
+      reason: Question is closed with state `applied`.
+    - id: Q005
+      group_id: QG005
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: security_policy
+      gap: security_policy
+      question: Should unsafe instruction-like guidance in vertical packs be a hard
+        validation error, a warning, or severity-dependent by field?
+      reason: Question is closed with state `applied`.
+    - id: Q006
+      group_id: QG006
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: migration_strategy
+      gap: migration_strategy
+      question: Should vertical.lock.yml be generated retroactively for projects with
+        an existing active vertical, or only during future init/select flows?
+      reason: Question is closed with state `applied`.
+    confidence_notes: []
+    suggested_next: []
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-07-02'
+  assessment_source: evidence_aware
+  assessed_at: '2026-07-02'
+  artifact_coverage_warnings: []
+
 ## Delivery And Export Context
 
 The default visible export is this chaptered Markdown document. Specialized vertical or tool-specific exports belong under `outputs/latest/exports/<profile-or-vertical>/`. Existing `.p2p/outputs` spec exports remain compatibility artifacts unless a separate migration changes them.
@@ -12624,3 +13461,4 @@ The default visible export is this chaptered Markdown document. Specialized vert
 - .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration
 - .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration
 - .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation
+- .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state

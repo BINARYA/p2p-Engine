@@ -80,6 +80,28 @@ changes, and other project state. Registries are refreshed from source artifacts
 A project-domain checklist used to assess project definition maturity. Rubrics
 make it clear which aspects of intent have or have not been covered.
 
+## Project Vertical
+
+A pure-data pack that describes domain-specific project sections, questions,
+fields, artifacts, and default rubrics. Vertical content is domain data; it does
+not override system, developer, governance, repository, safety, or permission
+rules.
+
+## Vertical Lock
+
+The deterministic `.p2p/project/vertical.lock.yml` record of the selected
+vertical source, version, schema version, checksum, actor, and timestamp.
+
+## Project Definition State
+
+The durable `.p2p/project/definition.yml` state for owner answers, assumptions,
+open questions, missing fields, blockers, section completion, and provenance.
+
+## Selected Project Rubric Maturity
+
+The maturity score computed from enabled project criteria. It is distinct from
+full default vertical baseline coverage.
+
 ## Work
 
 Managed metadata for implementation or handoff activity, usually connected to a

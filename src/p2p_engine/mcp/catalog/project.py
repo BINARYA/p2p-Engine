@@ -155,8 +155,55 @@ def tool_definitions() -> list[dict[str, object]]:
                 'Write-safe project setup tool: select the active project vertical. '
                 'Does not accept, reject, or change proposals.'
             ),
-            {'root': {'type': 'string'}, 'vertical_id': {'type': 'string'}, 'actor': {'type': 'string'}},
+            {'root': {'type': 'string'},
+             'vertical_id': {'type': 'string'},
+             'actor': {'type': 'string'},
+             'profile': {'type': 'string'},
+             'modules': {'type': 'array', 'items': {'type': 'string'}}},
             ['vertical_id'],
+        ),
+        _tool(
+            'p2p_project_vertical_lock_show',
+            'Read project vertical lock status without repairing or mutating project state.',
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_vertical_lock_repair',
+            (
+                'Write-safe project setup tool: repair or create vertical.lock.yml from '
+                'active vertical state. Does not make governance decisions.'
+            ),
+            {'root': {'type': 'string'}, 'actor': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_context',
+            'Read JSON-ready project vertical context, lock, rubric, and definition-state summary.',
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_sections',
+            'Read sections for the active or specified project vertical.',
+            {'root': {'type': 'string'}, 'vertical_id': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_section_show',
+            'Read one section for the active or specified project vertical.',
+            {'root': {'type': 'string'}, 'section_id': {'type': 'string'}, 'vertical_id': {'type': 'string'}},
+            ['section_id'],
+        ),
+        _tool(
+            'p2p_project_definition_show',
+            'Read durable project definition state without mutating project state.',
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_definition_update',
+            (
+                'Write-safe project definition tool: apply a structured definition patch file. '
+                'Does not edit governance decisions or arbitrary YAML.'
+            ),
+            {'root': {'type': 'string'}, 'patch': {'type': 'string'}},
+            ['patch'],
         ),
         _tool(
             'p2p_project_readiness_review',

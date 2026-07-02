@@ -88,12 +88,52 @@ def handle_project_tool(
             )
         }
     if name == "p2p_project_vertical_select":
+        modules = arguments.get("modules")
+        if modules is not None and not isinstance(modules, list):
+            raise ValueError("Expected list argument: modules")
         return {
             "active": to_jsonable(
                 workspace.select_project_vertical(
                     required(arguments, "vertical_id"),
                     actor=str(arguments.get("actor") or "local"),
+                    profile=str(arguments.get("profile") or "default"),
+                    modules=[str(item) for item in modules if str(item).strip()] if isinstance(modules, list) else None,
                 )
+            ),
+            "lock_status": to_jsonable(workspace.project_vertical_lock_status()),
+            "definition": to_jsonable(workspace.project_definition_view()),
+        }
+    if name == "p2p_project_vertical_lock_show":
+        return {"lock_status": to_jsonable(workspace.project_vertical_lock_status())}
+    if name == "p2p_project_vertical_lock_repair":
+        return {
+            "lock": to_jsonable(
+                workspace.repair_project_vertical_lock(actor=str(arguments.get("actor") or "local"))
+            )
+        }
+    if name == "p2p_project_context":
+        return {"project_context": to_jsonable(workspace.project_vertical_context())}
+    if name == "p2p_project_sections":
+        return {
+            "sections": to_jsonable(
+                workspace.project_vertical_sections(optional_string(arguments, "vertical_id"))
+            )
+        }
+    if name == "p2p_project_section_show":
+        return {
+            "section": to_jsonable(
+                workspace.project_vertical_section(
+                    required(arguments, "section_id"),
+                    optional_string(arguments, "vertical_id"),
+                )
+            )
+        }
+    if name == "p2p_project_definition_show":
+        return {"definition": to_jsonable(workspace.project_definition_view())}
+    if name == "p2p_project_definition_update":
+        return {
+            "definition_update": to_jsonable(
+                workspace.update_project_definition(Path(required(arguments, "patch")))
             )
         }
     if name == "p2p_project_readiness_review":

@@ -1061,7 +1061,7 @@ changes:
   task_count: 15
 - id: CHANGE-065
   title: Implement Agent Integration Registry MVP
-  status: in_review
+  status: completed
   path: .p2p/changes/CHANGE-065-implement-agent-integration-registry-mvp
   included_proposals:
   - PROP-006

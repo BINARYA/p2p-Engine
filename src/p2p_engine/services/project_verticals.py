@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+import hashlib
+import os
 from dataclasses import asdict
 from datetime import date
 from importlib import resources
@@ -12,13 +14,33 @@ import yaml
 from p2p_engine.core.project_verticals import (
     ActiveProjectVertical,
     CustomVerticalCandidate,
+    ProjectDefinitionAssumption,
+    ProjectDefinitionBlocker,
+    ProjectDefinitionFieldValue,
+    ProjectDefinitionHistoryEntry,
+    ProjectDefinitionPatch,
+    ProjectDefinitionPatchResult,
+    ProjectDefinitionQuestion,
+    ProjectDefinitionSectionState,
+    ProjectDefinitionState,
+    ProjectDefinitionView,
     ProjectReadinessReview,
     ProjectVerticalAddResult,
+    ProjectVerticalContext,
     ProposalVerticalCoverage,
     ProposalVerticalCoverageSection,
+    ResolvedVerticalPack,
     VerticalArtifact,
+    VerticalCompletionPolicy,
+    VerticalField,
+    VerticalLock,
+    VerticalLockStatus,
     VerticalListItem,
+    VerticalManifest,
+    VerticalModule,
     VerticalPack,
+    VerticalPackSource,
+    VerticalProfile,
     VerticalQuestion,
     VerticalRubric,
     VerticalSection,
@@ -26,15 +48,22 @@ from p2p_engine.core.project_verticals import (
     VerticalValidationIssue,
     VerticalValidationResult,
 )
-from p2p_engine.foundation.files import relative_to_root, slugify, yaml_dump
+from p2p_engine.foundation.files import relative_to_root, slugify, write_text_atomic, write_yaml_atomic, yaml_dump
 
 VERTICAL_SCHEMA_VERSION = 1
 ACTIVE_VERTICAL_SCHEMA_VERSION = 1
 PROPOSAL_COVERAGE_SCHEMA_VERSION = 1
+VERTICAL_LOCK_SCHEMA_VERSION = 1
+PROJECT_DEFINITION_SCHEMA_VERSION = 1
 BASE_PROJECT_VERTICAL_ID = "base_project"
+EXPLICIT_SOURCE = "explicit"
 PROJECT_LOCAL_SOURCE = "project_local"
+INSTALLED_P2P_HOME_SOURCE = "installed_p2p_home"
+INSTALLED_USER_SOURCE = "installed_user"
 INTERNAL_SOURCE = "internal"
 FALLBACK_SOURCE = "fallback"
+PROJECT_DEFINITION_STATUSES = {"missing", "partial", "assumed", "complete", "blocked", "not_applicable"}
+ASSUMPTION_STATUSES = {"to_validate", "validated", "rejected", "superseded"}
 
 RELEVANCE_VALUES = {"direct", "indirect", "context", "unknown"}
 QUESTION_PRIORITIES = {"high", "medium", "low"}
@@ -117,7 +146,7 @@ class ProjectVerticalService:
 
     def validate_vertical(self, target: str) -> VerticalValidationResult:
         try:
-            pack = self._load_target(target)
+            pack, payload = self._load_target_for_validation(target)
         except ValueError as exc:
             return VerticalValidationResult(
                 target=target,
@@ -126,7 +155,7 @@ class ProjectVerticalService:
                 source="unknown",
                 issues=[VerticalValidationIssue("error", "target", str(exc))],
             )
-        issues = [*_vertical_pack_issues(_pack_payload(pack)), *self._extension_issues(pack)]
+        issues = [*_vertical_pack_issues(payload), *self._extension_issues(pack)]
         return VerticalValidationResult(
             target=target,
             valid=not any(issue.severity == "error" for issue in issues),
@@ -237,8 +266,16 @@ class ProjectVerticalService:
             activated=activated,
         )
 
-    def select_vertical(self, vertical_id: str, *, actor: str = "local") -> ActiveProjectVertical:
-        pack = self._load_available_pack(vertical_id)
+    def select_vertical(
+        self,
+        vertical_id: str,
+        *,
+        actor: str = "local",
+        profile: str = "default",
+        modules: list[str] | None = None,
+    ) -> ActiveProjectVertical:
+        resolved = self._resolve_available_pack(vertical_id)
+        pack = resolved.pack
         state_path = self._active_vertical_path()
         state_path.parent.mkdir(parents=True, exist_ok=True)
         payload = {
@@ -252,6 +289,14 @@ class ProjectVerticalService:
             }
         }
         self._atomic_write(state_path, yaml_dump(payload))
+        self._write_vertical_lock(resolved, actor=actor)
+        self._write_initial_definition_state(
+            resolved,
+            profile=profile,
+            modules=modules if modules is not None else pack.modules,
+            actor=actor,
+        )
+        self._write_vertical_rubrics(pack)
         return self.active_vertical()
 
     def active_vertical(self) -> ActiveProjectVertical:
@@ -271,6 +316,13 @@ class ProjectVerticalService:
         vertical_id = str(state.get("active_vertical_id") or "").strip()
         if not vertical_id:
             raise ValueError(f"Invalid project vertical state: missing active_vertical_id in {path}")
+        if self._vertical_lock_path().exists():
+            lock_status = self.vertical_lock_status()
+            if lock_status.status != "valid":
+                raise ValueError(
+                    f"Active project vertical lock is {lock_status.status}: {lock_status.message} "
+                    f"{lock_status.suggested_command}".strip()
+                )
         pack = self._load_available_pack(vertical_id)
         return ActiveProjectVertical(
             vertical_id=vertical_id,
@@ -279,6 +331,176 @@ class ProjectVerticalService:
             selected_at=str(state.get("selected_at") or ""),
             selected_by=str(state.get("selected_by") or ""),
             fallback_used=bool(state.get("fallback_used") or False),
+        )
+
+    def vertical_lock_status(self) -> VerticalLockStatus:
+        lock_path = self._vertical_lock_path()
+        display_path = relative_to_root(lock_path, self.root)
+        if not lock_path.exists():
+            message = "Project vertical lockfile is missing."
+            suggested = "p2p project vertical lock repair --actor owner"
+            if not self._active_vertical_path().exists():
+                message = "No active project vertical is selected; base_project fallback is in use."
+                suggested = "p2p project vertical select base_project --actor owner"
+            return VerticalLockStatus(
+                status="missing",
+                path=display_path,
+                message=message,
+                suggested_command=suggested,
+            )
+        try:
+            locked = self._read_vertical_lock(lock_path)
+        except ValueError as exc:
+            return VerticalLockStatus(
+                status="invalid",
+                path=display_path,
+                message=str(exc),
+                suggested_command="p2p project vertical lock repair --actor owner",
+            )
+        try:
+            resolved = self._resolve_available_pack(locked.vertical_id)
+        except ValueError as exc:
+            return VerticalLockStatus(
+                status="missing_source",
+                path=display_path,
+                locked=locked,
+                message=str(exc),
+                suggested_command="p2p project vertical lock repair --actor owner",
+            )
+        if resolved.checksum != locked.checksum:
+            return VerticalLockStatus(
+                status="checksum_mismatch",
+                path=display_path,
+                locked=locked,
+                resolved=resolved,
+                message=f"Locked checksum {locked.checksum} does not match resolved checksum {resolved.checksum}.",
+                suggested_command="p2p project vertical lock repair --actor owner",
+            )
+        return VerticalLockStatus(
+            status="valid",
+            path=display_path,
+            locked=locked,
+            resolved=resolved,
+            message="Project vertical lock is valid.",
+        )
+
+    def repair_vertical_lock(self, *, actor: str = "local") -> VerticalLock:
+        state_path = self._active_vertical_path()
+        if not state_path.exists():
+            raise ValueError("No active project vertical state exists. Select a vertical before repairing the lock.")
+        payload = _read_yaml_mapping(state_path)
+        state = payload.get("project_vertical")
+        if not isinstance(state, dict):
+            raise ValueError(f"Invalid project vertical state: {state_path}")
+        vertical_id = str(state.get("active_vertical_id") or "").strip()
+        if not vertical_id:
+            raise ValueError(f"Invalid project vertical state: missing active_vertical_id in {state_path}")
+        resolved = self._resolve_available_pack(vertical_id)
+        return self._write_vertical_lock(resolved, actor=actor)
+
+    def project_context(self) -> ProjectVerticalContext:
+        active = self.active_vertical()
+        lock_status = self.vertical_lock_status()
+        definition = self.project_definition_view()
+        rubrics = self._rubric_summary()
+        definition_summary = self._definition_summary(definition)
+        warnings: list[str] = []
+        if active.fallback_used:
+            warnings.append("base_project fallback is in use")
+        if lock_status.status != "valid":
+            warnings.append(lock_status.message)
+        if definition.exists and not definition.valid:
+            warnings.extend(issue.message for issue in definition.issues)
+        state = definition.state
+        return ProjectVerticalContext(
+            active=active,
+            lock_status=lock_status,
+            selected_profile=state.profile if state else "default",
+            enabled_modules=state.modules if state else [],
+            rubric_summary=rubrics,
+            definition_summary=definition_summary,
+            warnings=warnings,
+            next_suggested_action=state.next_suggested_action if state else {},
+        )
+
+    def list_sections(self, *, vertical_id: str | None = None) -> list[VerticalSection]:
+        active = self.active_vertical()
+        pack = self._load_available_pack(vertical_id or active.vertical_id)
+        return sorted(pack.sections, key=lambda section: section.priority)
+
+    def show_section(self, section_id: str, *, vertical_id: str | None = None) -> VerticalSection:
+        normalized = section_id.strip()
+        for section in self.list_sections(vertical_id=vertical_id):
+            if section.section_id == normalized:
+                return section
+        raise ValueError(f"Unknown project vertical section `{section_id}`.")
+
+    def project_definition_view(self) -> ProjectDefinitionView:
+        path = self._definition_state_path()
+        display_path = relative_to_root(path, self.root)
+        if not path.exists():
+            return ProjectDefinitionView(
+                exists=False,
+                valid=False,
+                path=display_path,
+                issues=[
+                    VerticalValidationIssue(
+                        "warning",
+                        "project_definition",
+                        "Project definition state is missing.",
+                        "P2P_VERTICAL_DEFINITION_MISSING",
+                    )
+                ],
+            )
+        try:
+            state = self._read_definition_state(path)
+            active = self.active_vertical()
+            pack = self._load_available_pack(active.vertical_id)
+            issues = self._definition_state_issues(state, pack)
+        except ValueError as exc:
+            return ProjectDefinitionView(
+                exists=True,
+                valid=False,
+                path=display_path,
+                issues=[
+                    VerticalValidationIssue(
+                        "error",
+                        "project_definition",
+                        str(exc),
+                        "P2P_VERTICAL_DEFINITION_INVALID",
+                    )
+                ],
+            )
+        return ProjectDefinitionView(
+            exists=True,
+            valid=not any(issue.severity == "error" for issue in issues),
+            path=display_path,
+            state=state,
+            issues=issues,
+        )
+
+    def apply_definition_patch(self, patch_path: Path) -> ProjectDefinitionPatchResult:
+        source = patch_path if patch_path.is_absolute() else self.root / patch_path
+        payload = _read_yaml_mapping(source)
+        patch = _definition_patch_from_payload(payload, target=str(source))
+        view = self.project_definition_view()
+        if not view.exists or view.state is None:
+            raise ValueError("Project definition state is missing. Select a project vertical before updating it.")
+        if not view.valid:
+            first = view.issues[0] if view.issues else None
+            raise ValueError(
+                "Project definition state is invalid"
+                + (f": {first.field}: {first.message}" if first else ".")
+            )
+        active = self.active_vertical()
+        pack = self._load_available_pack(active.vertical_id)
+        updated = self._apply_definition_patch(view.state, patch, pack)
+        path = self._definition_state_path()
+        write_yaml_atomic(path, _definition_state_payload(updated))
+        return ProjectDefinitionPatchResult(
+            state=self._read_definition_state(path),
+            path=relative_to_root(path, self.root),
+            operations_applied=len(patch.operations),
         )
 
     def read_proposal_vertical_coverage(self, proposal_id: str) -> ProposalVerticalCoverage | None:
@@ -382,10 +604,10 @@ class ProjectVerticalService:
 
     def validation_findings(self) -> list[tuple[str, str, Path, str, str]]:
         findings: list[tuple[str, str, Path, str, str]] = []
-        for pack_path in sorted(self._project_verticals_dir().glob("*/vertical.yml")):
+        for pack_path in sorted(self._project_vertical_pack_paths(self._project_verticals_dir())):
             try:
-                payload = _read_yaml_mapping(pack_path)
-                validate_vertical_pack_payload(payload, target=str(pack_path))
+                pack = self._load_pack_from_path(pack_path.parent if pack_path.name == "manifest.yml" else pack_path)
+                validate_vertical_pack_payload(_pack_payload(pack), target=str(pack_path))
             except ValueError as exc:
                 findings.append(
                     (
@@ -399,8 +621,14 @@ class ProjectVerticalService:
         state_path = self._active_vertical_path()
         if state_path.exists():
             try:
-                active = self.active_vertical()
-                self._load_available_pack(active.vertical_id)
+                payload = _read_yaml_mapping(state_path)
+                state = payload.get("project_vertical")
+                if not isinstance(state, dict):
+                    raise ValueError(f"Invalid project vertical state: {state_path}")
+                vertical_id = str(state.get("active_vertical_id") or "").strip()
+                if not vertical_id:
+                    raise ValueError(f"Invalid project vertical state: missing active_vertical_id in {state_path}")
+                self._load_available_pack(vertical_id)
             except ValueError as exc:
                 findings.append(
                     (
@@ -409,6 +637,39 @@ class ProjectVerticalService:
                         state_path,
                         str(exc),
                         "p2p project vertical list",
+                    )
+                )
+            lock_status = self.vertical_lock_status()
+            if lock_status.status == "missing":
+                findings.append(
+                    (
+                        "P2P253_PROJECT_VERTICAL_LOCK_MISSING",
+                        "warning",
+                        self._vertical_lock_path(),
+                        lock_status.message,
+                        lock_status.suggested_command,
+                    )
+                )
+            elif lock_status.status != "valid":
+                findings.append(
+                    (
+                        "P2P254_PROJECT_VERTICAL_LOCK_INVALID",
+                        "error",
+                        self._vertical_lock_path(),
+                        lock_status.message,
+                        lock_status.suggested_command,
+                    )
+                )
+        definition = self.project_definition_view()
+        if definition.exists and not definition.valid:
+            for issue in definition.issues:
+                findings.append(
+                    (
+                        issue.code or "P2P255_PROJECT_DEFINITION_INVALID",
+                        issue.severity,
+                        self._definition_state_path(),
+                        issue.message,
+                        "p2p project definition show",
                     )
                 )
         for coverage_path in sorted(self.p2p_dir.glob("proposals/*/vertical-coverage.yml")):
@@ -490,6 +751,10 @@ class ProjectVerticalService:
         packs: dict[str, VerticalPack] = {}
         for pack in self._internal_packs():
             packs[pack.vertical_id] = pack
+        for pack in self._installed_user_packs():
+            packs[pack.vertical_id] = pack
+        for pack in self._installed_p2p_home_packs():
+            packs[pack.vertical_id] = pack
         for pack in self._project_local_packs():
             packs[pack.vertical_id] = pack
         return packs
@@ -501,35 +766,87 @@ class ProjectVerticalService:
             return _compose_pack(packs[normalized], packs)
         raise ValueError(f"Unknown project vertical `{vertical_id}`. Run `p2p project vertical list`.")
 
+    def _resolve_available_pack(self, vertical_id: str) -> ResolvedVerticalPack:
+        pack = self._load_available_pack(vertical_id)
+        source = _source_from_pack(pack, self.root)
+        checksum = _pack_checksum(pack)
+        return ResolvedVerticalPack(pack=pack, source=source, checksum=checksum)
+
     def _load_target(self, target: str) -> VerticalPack:
         path = Path(target)
         if path.exists():
-            return self._load_pack_from_path(path)
+            return self._load_pack_from_path(path, source=EXPLICIT_SOURCE)
         return self._load_available_pack(target)
 
-    def _load_pack_from_path(self, source: Path) -> VerticalPack:
-        if not source.is_absolute():
-            source = self.root / source
-        vertical_path = source / "vertical.yml" if source.is_dir() else source
-        if not vertical_path.exists():
-            raise ValueError(f"Vertical pack not found: {source}. Expected a vertical.yml file or pack directory.")
-        payload = _read_yaml_mapping(vertical_path)
-        validate_vertical_pack_payload(payload, target=str(vertical_path))
-        return _pack_from_payload(payload, source=PROJECT_LOCAL_SOURCE, path=vertical_path)
+    def _load_target_for_validation(self, target: str) -> tuple[VerticalPack, dict[str, object]]:
+        path = Path(target)
+        if path.exists():
+            source = path if path.is_absolute() else self.root / path
+            if source.is_dir() and (source / "manifest.yml").exists():
+                payload = self._canonical_pack_payload(source)
+                pack_path = source / "manifest.yml"
+            else:
+                pack_path = source / "vertical.yml" if source.is_dir() else source
+                if not pack_path.exists():
+                    raise ValueError(f"Vertical pack not found: {source}. Expected a vertical.yml file or pack directory.")
+                payload = _read_yaml_mapping(pack_path)
+            return _pack_from_payload(payload, source=EXPLICIT_SOURCE, path=pack_path), payload
+        pack = self._load_available_pack(target)
+        return pack, _pack_payload(pack)
+
+    def _load_pack_from_path(self, pack_source: Path, *, source: str = PROJECT_LOCAL_SOURCE) -> VerticalPack:
+        if not pack_source.is_absolute():
+            pack_source = self.root / pack_source
+        if pack_source.is_dir() and (pack_source / "manifest.yml").exists():
+            payload = self._canonical_pack_payload(pack_source)
+            path = pack_source / "manifest.yml"
+        else:
+            vertical_path = pack_source / "vertical.yml" if pack_source.is_dir() else pack_source
+            if not vertical_path.exists():
+                raise ValueError(f"Vertical pack not found: {pack_source}. Expected a vertical.yml file or pack directory.")
+            payload = _read_yaml_mapping(vertical_path)
+            path = vertical_path
+        validate_vertical_pack_payload(payload, target=str(path))
+        return _pack_from_payload(payload, source=source, path=path)
 
     def _project_local_packs(self) -> list[VerticalPack]:
+        return self._packs_from_root(self._project_verticals_dir(), source=PROJECT_LOCAL_SOURCE)
+
+    def _installed_p2p_home_packs(self) -> list[VerticalPack]:
+        value = os.environ.get("P2P_HOME", "").strip()
+        if not value:
+            return []
+        return self._packs_from_root(Path(value) / "verticals", source=INSTALLED_P2P_HOME_SOURCE)
+
+    def _installed_user_packs(self) -> list[VerticalPack]:
+        return self._packs_from_root(Path.home() / ".p2p" / "verticals", source=INSTALLED_USER_SOURCE)
+
+    def _packs_from_root(self, root: Path, *, source: str) -> list[VerticalPack]:
         packs: list[VerticalPack] = []
-        root = self._project_verticals_dir()
         if not root.exists():
             return packs
-        for vertical_path in sorted(root.glob("*/vertical.yml")):
+        for pack_path in self._project_vertical_pack_paths(root):
             try:
-                payload = _read_yaml_mapping(vertical_path)
-                validate_vertical_pack_payload(payload, target=str(vertical_path))
-                packs.append(_pack_from_payload(payload, source=PROJECT_LOCAL_SOURCE, path=vertical_path))
+                load_path = pack_path.parent if pack_path.name == "manifest.yml" else pack_path
+                packs.append(self._load_pack_from_path(load_path, source=source))
             except ValueError:
                 continue
         return packs
+
+    def _project_vertical_pack_paths(self, root: Path) -> list[Path]:
+        if not root.exists():
+            return []
+        paths: list[Path] = []
+        for child in sorted(root.iterdir(), key=lambda item: item.name):
+            if not child.is_dir():
+                continue
+            manifest = child / "manifest.yml"
+            vertical = child / "vertical.yml"
+            if manifest.exists():
+                paths.append(manifest)
+            elif vertical.exists():
+                paths.append(vertical)
+        return paths
 
     def _internal_packs(self) -> list[VerticalPack]:
         packs: list[VerticalPack] = []
@@ -537,15 +854,77 @@ class ProjectVerticalService:
         for child in sorted(root.iterdir(), key=lambda item: item.name):
             if not child.is_dir():
                 continue
+            manifest = child / "manifest.yml"
             vertical = child / "vertical.yml"
-            if not vertical.is_file():
+            if manifest.is_file():
+                payload = self._canonical_pack_payload(Path(str(child)))
+                path = Path(str(manifest))
+            elif vertical.is_file():
+                payload = yaml.safe_load(vertical.read_text(encoding="utf-8"))
+                path = Path(str(vertical))
+            else:
                 continue
-            payload = yaml.safe_load(vertical.read_text(encoding="utf-8"))
             if not isinstance(payload, dict):
                 continue
             validate_vertical_pack_payload(payload, target=child.name)
-            packs.append(_pack_from_payload(payload, source=INTERNAL_SOURCE, path=Path(str(vertical))))
+            packs.append(_pack_from_payload(payload, source=INTERNAL_SOURCE, path=path))
         return packs
+
+    def _canonical_pack_payload(self, pack_root: Path) -> dict[str, object]:
+        manifest = _unwrap_mapping(_read_yaml_mapping(pack_root / "manifest.yml"), "manifest")
+        vertical = _unwrap_mapping(_read_yaml_mapping(pack_root / "vertical.yml"), "vertical")
+        sections = [_unwrap_mapping(_read_yaml_mapping(path), "section") for path in sorted((pack_root / "sections").glob("*.yml"))]
+        rubrics_payload = _read_yaml_mapping(pack_root / "rubrics.yml") if (pack_root / "rubrics.yml").exists() else {}
+        rubrics = _unwrap_list(rubrics_payload, "rubrics")
+        artifacts = _mapping_list(vertical.get("artifacts"))
+        artifacts_dir = pack_root / "artifacts"
+        if artifacts_dir.exists():
+            artifacts.extend(_unwrap_mapping(_read_yaml_mapping(path), "artifact") for path in sorted(artifacts_dir.glob("*.yml")))
+        profile_specs: list[dict[str, object]] = []
+        profiles_dir = pack_root / "profiles"
+        if profiles_dir.exists():
+            profile_specs = [_unwrap_mapping(_read_yaml_mapping(path), "profile") for path in sorted(profiles_dir.glob("*.yml"))]
+        module_specs: list[dict[str, object]] = []
+        modules_dir = pack_root / "modules"
+        if modules_dir.exists():
+            module_specs = [_unwrap_mapping(_read_yaml_mapping(path), "module") for path in sorted(modules_dir.glob("*.yml"))]
+        examples = [path.name for path in sorted((pack_root / "examples").glob("*")) if path.is_file()]
+        vertical = dict(vertical)
+        vertical["schema_version"] = vertical.get("schema_version") or manifest.get("schema_version") or VERTICAL_SCHEMA_VERSION
+        vertical["id"] = vertical.get("id") or manifest.get("id")
+        vertical["name"] = vertical.get("name") or manifest.get("name")
+        vertical["version"] = vertical.get("version") or manifest.get("version")
+        vertical["sections"] = sections or _mapping_list(vertical.get("sections"))
+        vertical["rubrics"] = rubrics or _mapping_list(vertical.get("rubrics"))
+        vertical["artifacts"] = artifacts
+        vertical["profiles"] = list(
+            dict.fromkeys(
+                [
+                    *([str(item) for item in vertical.get("profiles", [])] if isinstance(vertical.get("profiles"), list) else []),
+                    *[str(item.get("id") or item.get("profile_id") or "") for item in profile_specs],
+                ]
+            )
+        )
+        vertical["modules"] = list(
+            dict.fromkeys(
+                [
+                    *([str(item) for item in vertical.get("modules", [])] if isinstance(vertical.get("modules"), list) else []),
+                    *[str(item.get("id") or item.get("module_id") or "") for item in module_specs],
+                ]
+            )
+        )
+        vertical["examples"] = list(
+            dict.fromkeys(
+                [
+                    *([str(item) for item in vertical.get("examples", [])] if isinstance(vertical.get("examples"), list) else []),
+                    *examples,
+                ]
+            )
+        )
+        vertical["manifest"] = manifest
+        vertical["profile_specs"] = profile_specs
+        vertical["module_specs"] = module_specs
+        return {"vertical": vertical}
 
     def _project_verticals_dir(self) -> Path:
         return self.p2p_dir / "project" / "verticals"
@@ -553,11 +932,483 @@ class ProjectVerticalService:
     def _active_vertical_path(self) -> Path:
         return self.p2p_dir / "project" / "vertical.yml"
 
+    def _vertical_lock_path(self) -> Path:
+        return self.p2p_dir / "project" / "vertical.lock.yml"
+
+    def _definition_state_path(self) -> Path:
+        return self.p2p_dir / "project" / "definition.yml"
+
+    def _write_vertical_lock(self, resolved: ResolvedVerticalPack, *, actor: str) -> VerticalLock:
+        path = self._vertical_lock_path()
+        lock = VerticalLock(
+            vertical_id=resolved.pack.vertical_id,
+            name=resolved.pack.name,
+            version=resolved.pack.version,
+            pack_schema_version=resolved.pack.schema_version,
+            source=resolved.source,
+            checksum=resolved.checksum,
+            compatibility=resolved.pack.compatibility,
+            selected_at=date.today().isoformat(),
+            selected_by=actor,
+            trust={"signed": False},
+            path=relative_to_root(path, self.root),
+        )
+        write_yaml_atomic(path, _vertical_lock_payload(lock))
+        return lock
+
+    def _read_vertical_lock(self, path: Path) -> VerticalLock:
+        payload = _read_yaml_mapping(path)
+        lock = payload.get("project_vertical_lock")
+        if not isinstance(lock, dict):
+            raise ValueError(f"Invalid project vertical lock: expected project_vertical_lock mapping in {path}")
+        source_payload = lock.get("source")
+        if not isinstance(source_payload, dict):
+            raise ValueError(f"Invalid project vertical lock: missing source mapping in {path}")
+        checksum_payload = lock.get("checksum")
+        if not isinstance(checksum_payload, dict):
+            raise ValueError(f"Invalid project vertical lock: missing checksum mapping in {path}")
+        vertical_id = str(lock.get("vertical_id") or "").strip()
+        checksum = str(checksum_payload.get("value") or "").strip()
+        if not vertical_id:
+            raise ValueError(f"Invalid project vertical lock: missing vertical_id in {path}")
+        if not checksum:
+            raise ValueError(f"Invalid project vertical lock: missing checksum.value in {path}")
+        return VerticalLock(
+            vertical_id=vertical_id,
+            name=str(lock.get("name") or vertical_id),
+            version=str(lock.get("version") or ""),
+            pack_schema_version=int(lock.get("pack_schema_version") or VERTICAL_SCHEMA_VERSION),
+            source=VerticalPackSource(
+                source_type=str(source_payload.get("type") or "unknown"),
+                resolved_from=str(source_payload.get("resolved_from") or ""),
+                path=Path(str(source_payload["path"])) if source_payload.get("path") else None,
+                package=str(source_payload.get("package") or ""),
+            ),
+            checksum=checksum,
+            compatibility=lock.get("compatibility") if isinstance(lock.get("compatibility"), dict) else {},
+            selected_at=str((lock.get("selected") or {}).get("at") if isinstance(lock.get("selected"), dict) else ""),
+            selected_by=str((lock.get("selected") or {}).get("by") if isinstance(lock.get("selected"), dict) else ""),
+            trust=lock.get("trust") if isinstance(lock.get("trust"), dict) else {},
+            path=relative_to_root(path, self.root),
+        )
+
+    def _write_initial_definition_state(
+        self,
+        resolved: ResolvedVerticalPack,
+        *,
+        profile: str,
+        modules: list[str],
+        actor: str,
+    ) -> ProjectDefinitionState:
+        state = self._initial_definition_state(resolved, profile=profile, modules=modules, actor=actor)
+        path = self._definition_state_path()
+        write_yaml_atomic(path, _definition_state_payload(state))
+        return self._read_definition_state(path)
+
+    def _initial_definition_state(
+        self,
+        resolved: ResolvedVerticalPack,
+        *,
+        profile: str,
+        modules: list[str],
+        actor: str,
+    ) -> ProjectDefinitionState:
+        sections: list[ProjectDefinitionSectionState] = []
+        for section in sorted(resolved.pack.sections, key=lambda item: item.priority):
+            fields = _section_fields(section, resolved.pack)
+            missing = [field.field_id for field in fields if field.required]
+            questions = [
+                ProjectDefinitionQuestion(
+                    question_id=question.question_id,
+                    field_id=_field_id_for_question(section, question),
+                    question=question.question,
+                )
+                for question in resolved.pack.questions
+                if question.section_id == section.section_id
+            ]
+            sections.append(
+                ProjectDefinitionSectionState(
+                    section_id=section.section_id,
+                    status="missing" if section.required else "not_applicable",
+                    missing_required_fields=missing,
+                    open_questions=questions,
+                )
+            )
+        next_action: dict[str, object] = {}
+        for section in sections:
+            if section.open_questions:
+                question = section.open_questions[0]
+                next_action = {
+                    "kind": "ask_question",
+                    "section_id": section.section_id,
+                    "question_id": question.question_id,
+                    "question": question.question,
+                }
+                break
+        return ProjectDefinitionState(
+            schema_version=PROJECT_DEFINITION_SCHEMA_VERSION,
+            vertical_id=resolved.pack.vertical_id,
+            vertical_version=resolved.pack.version,
+            profile=profile or "default",
+            modules=list(dict.fromkeys(modules)),
+            lock_checksum=resolved.checksum,
+            sections=sections,
+            next_suggested_action=next_action,
+            history=[
+                ProjectDefinitionHistoryEntry(
+                    at=date.today().isoformat(),
+                    actor=actor,
+                    operation="initialize_definition_state",
+                )
+            ],
+            path=relative_to_root(self._definition_state_path(), self.root),
+        )
+
+    def _read_definition_state(self, path: Path) -> ProjectDefinitionState:
+        payload = _read_yaml_mapping(path)
+        return _definition_state_from_payload(payload, path=relative_to_root(path, self.root))
+
+    def _definition_state_issues(
+        self,
+        state: ProjectDefinitionState,
+        pack: VerticalPack,
+    ) -> list[VerticalValidationIssue]:
+        issues: list[VerticalValidationIssue] = []
+        section_ids = {section.section_id for section in pack.sections}
+        field_ids_by_section = {section.section_id: {field.field_id for field in _section_fields(section, pack)} for section in pack.sections}
+        if state.vertical_id != pack.vertical_id:
+            issues.append(
+                VerticalValidationIssue(
+                    "error",
+                    "project_definition.vertical_id",
+                    f"definition vertical `{state.vertical_id}` does not match active vertical `{pack.vertical_id}`",
+                    "P2P255_PROJECT_DEFINITION_INVALID",
+                )
+            )
+        for section in state.sections:
+            if section.section_id not in section_ids:
+                issues.append(
+                    VerticalValidationIssue(
+                        "error",
+                        f"sections.{section.section_id}",
+                        f"unknown section `{section.section_id}`",
+                        "P2P255_PROJECT_DEFINITION_INVALID",
+                    )
+                )
+                continue
+            if section.status not in PROJECT_DEFINITION_STATUSES:
+                issues.append(
+                    VerticalValidationIssue(
+                        "error",
+                        f"sections.{section.section_id}.status",
+                        f"invalid status `{section.status}`",
+                        "P2P255_PROJECT_DEFINITION_INVALID",
+                    )
+                )
+            known_fields = field_ids_by_section[section.section_id]
+            for field_id in [*section.fields.keys(), *section.missing_required_fields]:
+                if field_id not in known_fields:
+                    issues.append(
+                        VerticalValidationIssue(
+                            "error",
+                            f"sections.{section.section_id}.fields.{field_id}",
+                            f"unknown field `{field_id}`",
+                            "P2P255_PROJECT_DEFINITION_INVALID",
+                        )
+                    )
+            for assumption in section.assumptions:
+                if assumption.status not in ASSUMPTION_STATUSES:
+                    issues.append(
+                        VerticalValidationIssue(
+                            "error",
+                            f"sections.{section.section_id}.assumptions.{assumption.assumption_id}",
+                            f"invalid assumption status `{assumption.status}`",
+                            "P2P255_PROJECT_DEFINITION_INVALID",
+                        )
+                    )
+            if section.status == "complete" and section.missing_required_fields:
+                pack_section = next(item for item in pack.sections if item.section_id == section.section_id)
+                policy = pack_section.completion_policy or VerticalCompletionPolicy()
+                if not policy.allow_assumed_completion:
+                    issues.append(
+                        VerticalValidationIssue(
+                            "error",
+                            f"sections.{section.section_id}.status",
+                            "cannot mark section complete while required fields are missing",
+                            "P2P255_PROJECT_DEFINITION_INVALID",
+                        )
+                    )
+        return issues
+
+    def _apply_definition_patch(
+        self,
+        state: ProjectDefinitionState,
+        patch: ProjectDefinitionPatch,
+        pack: VerticalPack,
+    ) -> ProjectDefinitionState:
+        sections = {section.section_id: _copy_section_state(section) for section in state.sections}
+        pack_sections = {section.section_id: section for section in pack.sections}
+        field_ids_by_section = {section.section_id: {field.field_id for field in _section_fields(section, pack)} for section in pack.sections}
+        history = list(state.history)
+        for operation in patch.operations:
+            op = str(operation.get("op") or "").strip()
+            section_id = str(operation.get("section_id") or "").strip()
+            if op not in {
+                "set_field",
+                "clear_field",
+                "set_section_status",
+                "set_missing_required_fields",
+                "add_assumption",
+                "update_assumption_status",
+                "add_open_question",
+                "close_open_question",
+                "add_blocker",
+                "clear_blocker",
+                "set_next_suggested_action",
+            }:
+                raise ValueError(f"Unsupported project definition patch operation `{op}`.")
+            if op == "set_next_suggested_action":
+                continue
+            if section_id not in sections or section_id not in pack_sections:
+                raise ValueError(f"Unknown project definition section `{section_id}`.")
+            section = sections[section_id]
+            known_fields = field_ids_by_section[section_id]
+            if op == "set_field":
+                field_id = str(operation.get("field_id") or "").strip()
+                if field_id not in known_fields:
+                    raise ValueError(f"Unknown field `{field_id}` for section `{section_id}`.")
+                provenance = operation.get("provenance") if isinstance(operation.get("provenance"), dict) else {}
+                source = str(provenance.get("source") or "patch")
+                if _contains_path_escape(source):
+                    raise ValueError("Unsafe provenance source in project definition patch.")
+                section.fields[field_id] = ProjectDefinitionFieldValue(
+                    field_id=field_id,
+                    value=operation.get("value"),
+                    source=source,
+                    updated_at=date.today().isoformat(),
+                )
+                section.missing_required_fields = [item for item in section.missing_required_fields if item != field_id]
+                if section.status == "missing":
+                    section.status = "partial"
+            elif op == "clear_field":
+                field_id = str(operation.get("field_id") or "").strip()
+                if field_id not in known_fields:
+                    raise ValueError(f"Unknown field `{field_id}` for section `{section_id}`.")
+                section.fields.pop(field_id, None)
+                field = next(item for item in _section_fields(pack_sections[section_id], pack) if item.field_id == field_id)
+                if field.required and field_id not in section.missing_required_fields:
+                    section.missing_required_fields.append(field_id)
+            elif op == "set_section_status":
+                status = str(operation.get("status") or "").strip()
+                if status not in PROJECT_DEFINITION_STATUSES:
+                    raise ValueError(f"Invalid project definition section status `{status}`.")
+                policy = pack_sections[section_id].completion_policy or VerticalCompletionPolicy()
+                if status == "complete" and section.missing_required_fields and not policy.allow_assumed_completion:
+                    raise ValueError(f"Cannot mark section `{section_id}` complete while required fields are missing.")
+                section.status = status
+            elif op == "set_missing_required_fields":
+                values = operation.get("field_ids")
+                if not isinstance(values, list):
+                    raise ValueError("set_missing_required_fields requires field_ids list.")
+                field_ids = [str(item).strip() for item in values if str(item).strip()]
+                unknown = [field_id for field_id in field_ids if field_id not in known_fields]
+                if unknown:
+                    raise ValueError(f"Unknown required field `{unknown[0]}` for section `{section_id}`.")
+                section.missing_required_fields = field_ids
+            elif op == "add_assumption":
+                status = str(operation.get("status") or "to_validate")
+                if status not in ASSUMPTION_STATUSES:
+                    raise ValueError(f"Invalid assumption status `{status}`.")
+                text = str(operation.get("text") or "").strip()
+                if not text:
+                    raise ValueError("add_assumption requires text.")
+                section.assumptions.append(
+                    ProjectDefinitionAssumption(
+                        assumption_id=f"A{len(section.assumptions) + 1:03d}",
+                        text=text,
+                        status=status,
+                        field_id=str(operation.get("field_id") or ""),
+                    )
+                )
+            elif op == "update_assumption_status":
+                assumption_id = str(operation.get("assumption_id") or "").strip()
+                status = str(operation.get("status") or "").strip()
+                if status not in ASSUMPTION_STATUSES:
+                    raise ValueError(f"Invalid assumption status `{status}`.")
+                updated = False
+                for index, assumption in enumerate(section.assumptions):
+                    if assumption.assumption_id == assumption_id:
+                        section.assumptions[index] = ProjectDefinitionAssumption(
+                            assumption_id=assumption.assumption_id,
+                            text=assumption.text,
+                            status=status,
+                            field_id=assumption.field_id,
+                        )
+                        updated = True
+                        break
+                if not updated:
+                    raise ValueError(f"Unknown assumption `{assumption_id}` in section `{section_id}`.")
+            elif op == "add_open_question":
+                question = str(operation.get("question") or "").strip()
+                if not question:
+                    raise ValueError("add_open_question requires question.")
+                field_id = str(operation.get("field_id") or "").strip()
+                if field_id and field_id not in known_fields:
+                    raise ValueError(f"Unknown field `{field_id}` for section `{section_id}`.")
+                section.open_questions.append(
+                    ProjectDefinitionQuestion(
+                        question_id=f"Q{len(section.open_questions) + 1:03d}",
+                        field_id=field_id,
+                        question=question,
+                    )
+                )
+            elif op == "close_open_question":
+                question_id = str(operation.get("question_id") or "").strip()
+                before = len(section.open_questions)
+                section.open_questions = [item for item in section.open_questions if item.question_id != question_id]
+                if len(section.open_questions) == before:
+                    raise ValueError(f"Unknown open question `{question_id}` in section `{section_id}`.")
+            elif op == "add_blocker":
+                text = str(operation.get("text") or "").strip()
+                if not text:
+                    raise ValueError("add_blocker requires text.")
+                section.blockers.append(ProjectDefinitionBlocker(blocker_id=f"B{len(section.blockers) + 1:03d}", text=text))
+                section.status = "blocked"
+            elif op == "clear_blocker":
+                blocker_id = str(operation.get("blocker_id") or "").strip()
+                before = len(section.blockers)
+                section.blockers = [item for item in section.blockers if item.blocker_id != blocker_id]
+                if len(section.blockers) == before:
+                    raise ValueError(f"Unknown blocker `{blocker_id}` in section `{section_id}`.")
+            history.append(
+                ProjectDefinitionHistoryEntry(
+                    at=date.today().isoformat(),
+                    actor=patch.actor,
+                    operation=op,
+                    section_id=section_id,
+                )
+            )
+        next_action = state.next_suggested_action
+        for operation in patch.operations:
+            if str(operation.get("op") or "") == "set_next_suggested_action":
+                value = operation.get("value")
+                if not isinstance(value, dict):
+                    raise ValueError("set_next_suggested_action requires value mapping.")
+                next_action = value
+                history.append(
+                    ProjectDefinitionHistoryEntry(
+                        at=date.today().isoformat(),
+                        actor=patch.actor,
+                        operation="set_next_suggested_action",
+                    )
+                )
+        updated = ProjectDefinitionState(
+            schema_version=state.schema_version,
+            vertical_id=state.vertical_id,
+            vertical_version=state.vertical_version,
+            profile=state.profile,
+            modules=state.modules,
+            lock_checksum=state.lock_checksum,
+            sections=[sections[section.section_id] for section in state.sections],
+            next_suggested_action=next_action,
+            history=history,
+            path=state.path,
+        )
+        issues = self._definition_state_issues(updated, pack)
+        errors = [issue for issue in issues if issue.severity == "error"]
+        if errors:
+            first = errors[0]
+            raise ValueError(f"Invalid project definition patch result: {first.field}: {first.message}")
+        return updated
+
+    def _rubric_summary(self) -> dict[str, object]:
+        path = self.p2p_dir / "project" / "rubrics.yml"
+        if not path.exists():
+            return {"exists": False}
+        payload = _read_yaml_mapping(path)
+        criteria = payload.get("criteria")
+        if not isinstance(criteria, list):
+            criteria = []
+        enabled = [item for item in criteria if isinstance(item, dict) and item.get("enabled") is not False]
+        disabled = [item for item in criteria if isinstance(item, dict) and item.get("enabled") is False]
+        return {
+            "exists": True,
+            "domain": str(payload.get("domain") or ""),
+            "status": str(payload.get("status") or ""),
+            "enabled": len(enabled),
+            "disabled": len(disabled),
+            "total": len([item for item in criteria if isinstance(item, dict)]),
+        }
+
+    def _write_vertical_rubrics(self, pack: VerticalPack) -> None:
+        path = self.p2p_dir / "project" / "rubrics.yml"
+        existing_enabled: dict[str, bool] = {}
+        existing_criteria: list[dict[str, object]] = []
+        if path.exists():
+            payload = _read_yaml_mapping(path)
+            criteria = payload.get("criteria")
+            if isinstance(criteria, list):
+                existing_criteria = [item for item in criteria if isinstance(item, dict)]
+                for item in existing_criteria:
+                    criterion_id = str(item.get("id") or "")
+                    if criterion_id:
+                        existing_enabled[criterion_id] = item.get("enabled") is not False
+        new_ids = {rubric.rubric_id for rubric in pack.rubrics}
+        criteria_payload: list[dict[str, object]] = [
+            {
+                "id": rubric.rubric_id,
+                "title": rubric.title,
+                "enabled": existing_enabled.get(rubric.rubric_id, True),
+                "required": rubric.required,
+                "section_id": rubric.section_id,
+                "keywords": rubric.keywords,
+                "source": "project_vertical",
+                "vertical_id": pack.vertical_id,
+            }
+            for rubric in pack.rubrics
+        ]
+        for item in existing_criteria:
+            criterion_id = str(item.get("id") or "")
+            if criterion_id and criterion_id not in new_ids:
+                orphan = dict(item)
+                orphan["orphaned"] = True
+                orphan["enabled"] = item.get("enabled") is not False
+                criteria_payload.append(orphan)
+        write_yaml_atomic(
+            path,
+            {
+                "version": "1.0",
+                "domain": f"project_vertical:{pack.vertical_id}",
+                "status": "vertical_selected",
+                "template": pack.vertical_id,
+                "assessment_type": "project_definition_maturity",
+                "scoring": {"covered": 100, "partial": 50, "missing": 0},
+                "selected_scope": {
+                    "enabled": sum(1 for item in criteria_payload if item.get("enabled") is not False),
+                    "disabled": sum(1 for item in criteria_payload if item.get("enabled") is False),
+                    "total_default": len(pack.rubrics),
+                },
+                "criteria": criteria_payload,
+            },
+        )
+
+    def _definition_summary(self, definition: ProjectDefinitionView) -> dict[str, object]:
+        if not definition.exists or definition.state is None:
+            return {"exists": False, "valid": definition.valid}
+        counts: dict[str, int] = {}
+        for section in definition.state.sections:
+            counts[section.status] = counts.get(section.status, 0) + 1
+        missing_fields = sum(len(section.missing_required_fields) for section in definition.state.sections)
+        return {
+            "exists": True,
+            "valid": definition.valid,
+            "vertical_id": definition.state.vertical_id,
+            "sections": counts,
+            "missing_required_fields": missing_fields,
+        }
+
     def _atomic_write(self, path: Path, text: str) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        tmp.write_text(text, encoding="utf-8")
-        tmp.replace(path)
+        write_text_atomic(path, text)
 
 
 def _pack_from_payload(payload: dict[str, object], *, source: str, path: Path | None) -> VerticalPack:
@@ -572,6 +1423,29 @@ def _pack_from_payload(payload: dict[str, object], *, source: str, path: Path | 
             purpose=str(item.get("purpose") or ""),
             required=bool(item.get("required", True)),
             priority=int(item.get("priority") or 100),
+            fields=[
+                VerticalField(
+                    field_id=str(field.get("id") or field.get("field_id") or ""),
+                    label=str(field.get("label") or field.get("title") or field.get("id") or field.get("field_id") or ""),
+                    required=bool(field.get("required", True)),
+                    question=str(field.get("question") or ""),
+                    assisted_answer=str(field.get("assisted_answer") or ""),
+                    completion_criteria=[str(value) for value in field.get("completion_criteria", []) if str(value).strip()]
+                    if isinstance(field.get("completion_criteria"), list)
+                    else [],
+                    common_mistakes=[str(value) for value in field.get("common_mistakes", []) if str(value).strip()]
+                    if isinstance(field.get("common_mistakes"), list)
+                    else [],
+                    suggested_artifacts=[str(value) for value in field.get("suggested_artifacts", []) if str(value).strip()]
+                    if isinstance(field.get("suggested_artifacts"), list)
+                    else [],
+                    maturity_gates=[str(value) for value in field.get("maturity_gates", []) if str(value).strip()]
+                    if isinstance(field.get("maturity_gates"), list)
+                    else [],
+                )
+                for field in _mapping_list(item.get("fields"))
+            ],
+            completion_policy=_completion_policy_from_payload(item.get("completion_policy")),
         )
         for item in _mapping_list(vertical.get("sections"))
     ]
@@ -608,6 +1482,34 @@ def _pack_from_payload(payload: dict[str, object], *, source: str, path: Path | 
         )
         for item in _mapping_list(vertical.get("artifacts"))
     ]
+    manifest_payload = vertical.get("manifest") if isinstance(vertical.get("manifest"), dict) else {}
+    profile_specs = [
+        VerticalProfile(
+            profile_id=str(item.get("id") or item.get("profile_id") or ""),
+            title=str(item.get("title") or item.get("name") or item.get("id") or item.get("profile_id") or ""),
+            description=str(item.get("description") or ""),
+            enabled_modules=[str(value) for value in item.get("enabled_modules", []) if str(value).strip()]
+            if isinstance(item.get("enabled_modules"), list)
+            else [],
+        )
+        for item in _mapping_list(vertical.get("profile_specs"))
+    ]
+    module_specs = [
+        VerticalModule(
+            module_id=str(item.get("id") or item.get("module_id") or ""),
+            title=str(item.get("title") or item.get("name") or item.get("id") or item.get("module_id") or ""),
+            description=str(item.get("description") or ""),
+            section_ids=[str(value) for value in item.get("section_ids", []) if str(value).strip()]
+            if isinstance(item.get("section_ids"), list)
+            else [],
+        )
+        for item in _mapping_list(vertical.get("module_specs"))
+    ]
+    compatibility = vertical.get("compatibility")
+    if not isinstance(compatibility, dict):
+        compatibility = manifest_payload.get("compatibility") if isinstance(manifest_payload, dict) else {}
+    if not isinstance(compatibility, dict):
+        compatibility = {}
     return VerticalPack(
         vertical_id=str(vertical.get("id") or ""),
         name=str(vertical.get("name") or vertical.get("id") or ""),
@@ -623,6 +1525,21 @@ def _pack_from_payload(payload: dict[str, object], *, source: str, path: Path | 
         profiles=[str(item) for item in vertical.get("profiles", []) if str(item).strip()] if isinstance(vertical.get("profiles"), list) else [],
         modules=[str(item) for item in vertical.get("modules", []) if str(item).strip()] if isinstance(vertical.get("modules"), list) else [],
         examples=[str(item) for item in vertical.get("examples", []) if str(item).strip()] if isinstance(vertical.get("examples"), list) else [],
+        schema_version=int(vertical.get("schema_version") or VERTICAL_SCHEMA_VERSION),
+        manifest=VerticalManifest(
+            vertical_id=str(manifest_payload.get("id") or vertical.get("id") or ""),
+            name=str(manifest_payload.get("name") or vertical.get("name") or vertical.get("id") or ""),
+            version=str(manifest_payload.get("version") or vertical.get("version") or ""),
+            schema_version=int(manifest_payload.get("schema_version") or VERTICAL_SCHEMA_VERSION),
+            publisher=str(manifest_payload.get("publisher") or ""),
+            source=str(manifest_payload.get("source") or ""),
+            compatibility=compatibility,
+        )
+        if isinstance(manifest_payload, dict) and manifest_payload
+        else None,
+        profile_specs=profile_specs,
+        module_specs=module_specs,
+        compatibility=compatibility,
     )
 
 
@@ -642,6 +1559,26 @@ def _pack_payload(pack: VerticalPack) -> dict[str, object]:
                     "purpose": section.purpose,
                     "required": section.required,
                     "priority": section.priority,
+                    "fields": [
+                        {
+                            "id": field.field_id,
+                            "label": field.label,
+                            "required": field.required,
+                            "question": field.question,
+                            "assisted_answer": field.assisted_answer,
+                            "completion_criteria": field.completion_criteria,
+                            "common_mistakes": field.common_mistakes,
+                            "suggested_artifacts": field.suggested_artifacts,
+                            "maturity_gates": field.maturity_gates,
+                        }
+                        for field in section.fields
+                    ],
+                    "completion_policy": {
+                        "allow_assumed_completion": section.completion_policy.allow_assumed_completion,
+                        "required_fields": section.completion_policy.required_fields,
+                    }
+                    if section.completion_policy
+                    else {},
                 }
                 for section in pack.sections
             ],
@@ -677,6 +1614,26 @@ def _pack_payload(pack: VerticalPack) -> dict[str, object]:
             "profiles": pack.profiles,
             "modules": pack.modules,
             "examples": pack.examples,
+            "schema_version": pack.schema_version,
+            "compatibility": pack.compatibility,
+            "profile_specs": [
+                {
+                    "id": profile.profile_id,
+                    "title": profile.title,
+                    "description": profile.description,
+                    "enabled_modules": profile.enabled_modules,
+                }
+                for profile in pack.profile_specs
+            ],
+            "module_specs": [
+                {
+                    "id": module.module_id,
+                    "title": module.title,
+                    "description": module.description,
+                    "section_ids": module.section_ids,
+                }
+                for module in pack.module_specs
+            ],
         }
     }
 
@@ -693,11 +1650,344 @@ def _normalise_pack_payload(payload: dict[str, object]) -> dict[str, object]:
     return payload
 
 
+def _completion_policy_from_payload(value: object) -> VerticalCompletionPolicy | None:
+    if not isinstance(value, dict):
+        return None
+    required = value.get("required_fields", [])
+    return VerticalCompletionPolicy(
+        allow_assumed_completion=bool(value.get("allow_assumed_completion", False)),
+        required_fields=[str(item) for item in required if str(item).strip()] if isinstance(required, list) else [],
+    )
+
+
+def _source_from_pack(pack: VerticalPack, root: Path) -> VerticalPackSource:
+    path = pack.path
+    resolved_from = ""
+    if path is not None:
+        resolved_from = str(relative_to_root(path, root))
+    if pack.source == INTERNAL_SOURCE:
+        resolved_from = f"p2p_engine.resources.verticals/{pack.vertical_id}"
+    return VerticalPackSource(
+        source_type=pack.source,
+        resolved_from=resolved_from,
+        path=relative_to_root(path, root) if path else None,
+        package="p2p_engine" if pack.source == INTERNAL_SOURCE else "",
+    )
+
+
+def _pack_checksum(pack: VerticalPack) -> str:
+    payload = _pack_payload(pack)
+    text = yaml.safe_dump(payload, sort_keys=True, allow_unicode=False)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _vertical_lock_payload(lock: VerticalLock) -> dict[str, object]:
+    return {
+        "project_vertical_lock": {
+            "schema_version": VERTICAL_LOCK_SCHEMA_VERSION,
+            "vertical_id": lock.vertical_id,
+            "name": lock.name,
+            "version": lock.version,
+            "pack_schema_version": lock.pack_schema_version,
+            "source": {
+                "type": lock.source.source_type,
+                "resolved_from": lock.source.resolved_from,
+                "path": lock.source.path.as_posix() if lock.source.path else "",
+                "package": lock.source.package,
+            },
+            "checksum": {"algorithm": "sha256", "value": lock.checksum},
+            "compatibility": lock.compatibility,
+            "selected": {"at": lock.selected_at, "by": lock.selected_by},
+            "trust": lock.trust,
+        }
+    }
+
+
+def _section_fields(section: VerticalSection, pack: VerticalPack) -> list[VerticalField]:
+    if section.fields:
+        return section.fields
+    question = next((item for item in pack.questions if item.section_id == section.section_id), None)
+    return [
+        VerticalField(
+            field_id="summary",
+            label=section.title,
+            required=section.required,
+            question=question.question if question else "",
+        )
+    ]
+
+
+def _field_id_for_question(section: VerticalSection, question: VerticalQuestion) -> str:
+    if section.fields:
+        return section.fields[0].field_id
+    return "summary"
+
+
+def _definition_state_payload(state: ProjectDefinitionState) -> dict[str, object]:
+    return {
+        "project_definition": {
+            "schema_version": state.schema_version,
+            "vertical_id": state.vertical_id,
+            "vertical_version": state.vertical_version,
+            "profile": state.profile,
+            "modules": state.modules,
+            "lock": {"checksum": state.lock_checksum},
+            "sections": [
+                {
+                    "id": section.section_id,
+                    "status": section.status,
+                    "fields": {
+                        field_id: {
+                            "value": field.value,
+                            "source": field.source,
+                            "updated_at": field.updated_at,
+                        }
+                        for field_id, field in section.fields.items()
+                    },
+                    "missing_required_fields": section.missing_required_fields,
+                    "assumptions": [
+                        {
+                            "id": assumption.assumption_id,
+                            "field_id": assumption.field_id,
+                            "status": assumption.status,
+                            "text": assumption.text,
+                        }
+                        for assumption in section.assumptions
+                    ],
+                    "open_questions": [
+                        {
+                            "id": question.question_id,
+                            "field_id": question.field_id,
+                            "status": question.status,
+                            "question": question.question,
+                        }
+                        for question in section.open_questions
+                    ],
+                    "blockers": [
+                        {
+                            "id": blocker.blocker_id,
+                            "status": blocker.status,
+                            "text": blocker.text,
+                        }
+                        for blocker in section.blockers
+                    ],
+                }
+                for section in state.sections
+            ],
+            "next_suggested_action": state.next_suggested_action,
+            "history": [
+                {
+                    "at": item.at,
+                    "actor": item.actor,
+                    "operation": item.operation,
+                    "section_id": item.section_id,
+                }
+                for item in state.history
+            ],
+        }
+    }
+
+
+def _definition_state_from_payload(payload: dict[str, object], *, path: Path) -> ProjectDefinitionState:
+    data = payload.get("project_definition")
+    if not isinstance(data, dict):
+        raise ValueError("Invalid project definition state: expected project_definition mapping.")
+    sections: list[ProjectDefinitionSectionState] = []
+    for item in data.get("sections", []) if isinstance(data.get("sections"), list) else []:
+        if not isinstance(item, dict):
+            continue
+        fields_payload = item.get("fields")
+        fields: dict[str, ProjectDefinitionFieldValue] = {}
+        if isinstance(fields_payload, dict):
+            for field_id, field_value in fields_payload.items():
+                if isinstance(field_value, dict):
+                    fields[str(field_id)] = ProjectDefinitionFieldValue(
+                        field_id=str(field_id),
+                        value=field_value.get("value"),
+                        source=str(field_value.get("source") or ""),
+                        updated_at=str(field_value.get("updated_at") or ""),
+                    )
+        assumptions = [
+            ProjectDefinitionAssumption(
+                assumption_id=str(assumption.get("id") or ""),
+                field_id=str(assumption.get("field_id") or ""),
+                status=str(assumption.get("status") or "to_validate"),
+                text=str(assumption.get("text") or ""),
+            )
+            for assumption in _mapping_list(item.get("assumptions"))
+        ]
+        questions = [
+            ProjectDefinitionQuestion(
+                question_id=str(question.get("id") or ""),
+                field_id=str(question.get("field_id") or ""),
+                status=str(question.get("status") or "open"),
+                question=str(question.get("question") or ""),
+            )
+            for question in _mapping_list(item.get("open_questions"))
+        ]
+        blockers = [
+            ProjectDefinitionBlocker(
+                blocker_id=str(blocker.get("id") or ""),
+                status=str(blocker.get("status") or "open"),
+                text=str(blocker.get("text") or ""),
+            )
+            for blocker in _mapping_list(item.get("blockers"))
+        ]
+        missing = item.get("missing_required_fields")
+        sections.append(
+            ProjectDefinitionSectionState(
+                section_id=str(item.get("id") or ""),
+                status=str(item.get("status") or "missing"),
+                fields=fields,
+                missing_required_fields=[str(value) for value in missing if str(value).strip()] if isinstance(missing, list) else [],
+                assumptions=assumptions,
+                open_questions=questions,
+                blockers=blockers,
+            )
+        )
+    history = [
+        ProjectDefinitionHistoryEntry(
+            at=str(item.get("at") or ""),
+            actor=str(item.get("actor") or ""),
+            operation=str(item.get("operation") or ""),
+            section_id=str(item.get("section_id") or ""),
+        )
+        for item in _mapping_list(data.get("history"))
+    ]
+    lock_payload = data.get("lock") if isinstance(data.get("lock"), dict) else {}
+    return ProjectDefinitionState(
+        schema_version=int(data.get("schema_version") or PROJECT_DEFINITION_SCHEMA_VERSION),
+        vertical_id=str(data.get("vertical_id") or ""),
+        vertical_version=str(data.get("vertical_version") or ""),
+        profile=str(data.get("profile") or "default"),
+        modules=[str(item) for item in data.get("modules", []) if str(item).strip()] if isinstance(data.get("modules"), list) else [],
+        lock_checksum=str(lock_payload.get("checksum") or ""),
+        sections=sections,
+        next_suggested_action=data.get("next_suggested_action") if isinstance(data.get("next_suggested_action"), dict) else {},
+        history=history,
+        path=path,
+    )
+
+
+def _definition_patch_from_payload(payload: dict[str, object], *, target: str) -> ProjectDefinitionPatch:
+    data = payload.get("project_definition_patch")
+    if not isinstance(data, dict):
+        raise ValueError(f"Invalid project definition patch {target}: expected project_definition_patch mapping.")
+    operations = data.get("operations")
+    if not isinstance(operations, list):
+        raise ValueError(f"Invalid project definition patch {target}: operations must be a list.")
+    if not all(isinstance(item, dict) for item in operations):
+        raise ValueError(f"Invalid project definition patch {target}: every operation must be a mapping.")
+    actor = str(data.get("actor") or "").strip()
+    if not actor:
+        raise ValueError(f"Invalid project definition patch {target}: actor is required.")
+    return ProjectDefinitionPatch(
+        actor=actor,
+        operations=[item for item in operations if isinstance(item, dict)],
+        schema_version=int(data.get("schema_version") or PROJECT_DEFINITION_SCHEMA_VERSION),
+    )
+
+
+def _copy_section_state(section: ProjectDefinitionSectionState) -> ProjectDefinitionSectionState:
+    return ProjectDefinitionSectionState(
+        section_id=section.section_id,
+        status=section.status,
+        fields=dict(section.fields),
+        missing_required_fields=list(section.missing_required_fields),
+        assumptions=list(section.assumptions),
+        open_questions=list(section.open_questions),
+        blockers=list(section.blockers),
+    )
+
+
+def _unwrap_mapping(payload: dict[str, object], key: str) -> dict[str, object]:
+    value = payload.get(key)
+    if isinstance(value, dict):
+        return value
+    return payload
+
+
+def _unwrap_list(payload: dict[str, object], key: str) -> list[dict[str, object]]:
+    value = payload.get(key)
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, dict)]
+    nested = payload.get("vertical")
+    if isinstance(nested, dict):
+        value = nested.get(key)
+        if isinstance(value, list):
+            return [item for item in value if isinstance(item, dict)]
+    return []
+
+
+def _safety_issues(payload: dict[str, object]) -> list[VerticalValidationIssue]:
+    issues: list[VerticalValidationIssue] = []
+    hard_patterns = [
+        r"ignore (the )?(system|developer|governance|safety)",
+        r"override (the )?(system|developer|governance|safety)",
+        r"bypass (owner|permission|consent|governance|safety)",
+        r"force .*tool",
+        r"execute (code|command|shell)",
+        r"run (sudo|chmod|rm -rf|curl|wget)",
+        r"change permissions?",
+        r"\.\./",
+    ]
+    warning_patterns = [
+        r"\byou must\b",
+        r"\balways\b",
+        r"\bnever\b",
+    ]
+    for field, text in _iter_text(payload):
+        lowered = text.lower()
+        if any(re.search(pattern, lowered) for pattern in hard_patterns):
+            issues.append(
+                VerticalValidationIssue(
+                    "error",
+                    field,
+                    "vertical pack content attempts to override instructions, execute code, change permissions, or escape paths",
+                    "P2P_VERTICAL_UNSAFE_GUIDANCE",
+                )
+            )
+        elif any(re.search(pattern, lowered) for pattern in warning_patterns) and "question" not in field:
+            issues.append(
+                VerticalValidationIssue(
+                    "warning",
+                    field,
+                    "vertical pack content contains instruction-like wording; pack text is domain data only",
+                    "P2P_VERTICAL_AMBIGUOUS_GUIDANCE",
+                )
+            )
+    return issues
+
+
+def _iter_text(value: object, prefix: str = "") -> list[tuple[str, str]]:
+    if isinstance(value, dict):
+        results: list[tuple[str, str]] = []
+        for key, item in value.items():
+            next_prefix = f"{prefix}.{key}" if prefix else str(key)
+            results.extend(_iter_text(item, next_prefix))
+        return results
+    if isinstance(value, list):
+        results = []
+        for index, item in enumerate(value):
+            results.extend(_iter_text(item, f"{prefix}[{index}]"))
+        return results
+    if isinstance(value, str):
+        return [(prefix, value)]
+    return []
+
+
+def _contains_path_escape(value: str) -> bool:
+    return "../" in value or "..\\" in value
+
+
 def _vertical_pack_issues(payload: dict[str, object]) -> list[VerticalValidationIssue]:
     issues: list[VerticalValidationIssue] = []
 
-    def error(field: str, message: str) -> None:
-        issues.append(VerticalValidationIssue("error", field, message))
+    def error(field: str, message: str, code: str = "P2P_VERTICAL_INVALID_PACK") -> None:
+        issues.append(VerticalValidationIssue("error", field, message, code))
+
+    def warning(field: str, message: str, code: str = "P2P_VERTICAL_PACK_WARNING") -> None:
+        issues.append(VerticalValidationIssue("warning", field, message, code))
 
     vertical = payload.get("vertical")
     if not isinstance(vertical, dict):
@@ -714,6 +2004,25 @@ def _vertical_pack_issues(payload: dict[str, object]) -> list[VerticalValidation
         for field in ("id", "title", "purpose"):
             if not str(item.get(field) or "").strip():
                 error(f"vertical.sections[{index}].{field}", "required")
+        field_items = _mapping_list(item.get("fields"))
+        field_ids = _ids(field_items, f"vertical.sections[{index}].fields", error)
+        for field_index, field_item in enumerate(field_items):
+            for field_name in ("id", "label"):
+                if not str(field_item.get(field_name) or field_item.get("field_id") or "").strip():
+                    error(f"vertical.sections[{index}].fields[{field_index}].{field_name}", "required")
+        completion_policy = item.get("completion_policy")
+        if isinstance(completion_policy, dict):
+            required_fields = completion_policy.get("required_fields", [])
+            if required_fields and not isinstance(required_fields, list):
+                error(f"vertical.sections[{index}].completion_policy.required_fields", "must be a list")
+            elif isinstance(required_fields, list):
+                for field_id in required_fields:
+                    text = str(field_id)
+                    if text not in field_ids:
+                        error(
+                            f"vertical.sections[{index}].completion_policy.required_fields",
+                            f"unknown field `{text}`",
+                        )
     rubric_items = _mapping_list(vertical.get("rubrics"))
     _ids(rubric_items, "vertical.rubrics", error)
     for index, item in enumerate(rubric_items):
@@ -758,6 +2067,25 @@ def _vertical_pack_issues(payload: dict[str, object]) -> list[VerticalValidation
                 error(f"vertical.artifacts[{index}].section_ids", f"unknown section `{text}`")
     if not artifact_items:
         error("vertical.artifacts", "at least one expected artifact is required")
+    profile_items = _mapping_list(vertical.get("profile_specs"))
+    _ids(profile_items, "vertical.profile_specs", error)
+    module_items = _mapping_list(vertical.get("module_specs"))
+    module_ids = _ids(module_items, "vertical.module_specs", error)
+    for index, item in enumerate(module_items):
+        for section_id in item.get("section_ids", []) if isinstance(item.get("section_ids"), list) else []:
+            text = str(section_id)
+            if text not in section_ids:
+                error(f"vertical.module_specs[{index}].section_ids", f"unknown section `{text}`")
+    for index, item in enumerate(profile_items):
+        for module_id in item.get("enabled_modules", []) if isinstance(item.get("enabled_modules"), list) else []:
+            text = str(module_id)
+            if module_ids and text not in module_ids:
+                error(f"vertical.profile_specs[{index}].enabled_modules", f"unknown module `{text}`")
+    for safety_issue in _safety_issues(payload):
+        if safety_issue.severity == "error":
+            error(safety_issue.field, safety_issue.message, safety_issue.code)
+        else:
+            warning(safety_issue.field, safety_issue.message, safety_issue.code)
     return issues
 
 
@@ -783,6 +2111,11 @@ def _compose_pack(pack: VerticalPack, packs: dict[str, VerticalPack]) -> Vertica
         profiles=list(dict.fromkeys([*composed_base.profiles, *pack.profiles])),
         modules=list(dict.fromkeys([*composed_base.modules, *pack.modules])),
         examples=list(dict.fromkeys([*composed_base.examples, *pack.examples])),
+        schema_version=pack.schema_version,
+        manifest=pack.manifest,
+        profile_specs=_merge_by_id(composed_base.profile_specs, pack.profile_specs, lambda item: item.profile_id),
+        module_specs=_merge_by_id(composed_base.module_specs, pack.module_specs, lambda item: item.module_id),
+        compatibility={**composed_base.compatibility, **pack.compatibility},
     )
 
 

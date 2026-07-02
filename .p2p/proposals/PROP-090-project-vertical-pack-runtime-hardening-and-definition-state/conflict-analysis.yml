@@ -1,0 +1,20 @@
+conflicts:
+  - type: no_direct_conflict
+    proposals:
+      - PROP-090
+      - PROP-085
+    reason: PROP-090 hardens PROP-085 rather than replacing or contradicting it.
+    suggested_resolution: keep_linked_follow_up
+  - type: possible_scope_overlap
+    proposals:
+      - PROP-090
+      - PROP-089
+    reason: Both mention state and questions, but PROP-089 concerns proposal readiness question state while PROP-090 concerns project definition state.
+    suggested_resolution: document_boundary
+  - type: possible_scope_overlap
+    proposals:
+      - PROP-090
+      - PROP-057
+    reason: Both touch rubric setup, but PROP-090 provides vertical defaults while PROP-057 preserves owner control over enabled criteria.
+    suggested_resolution: document_boundary
+

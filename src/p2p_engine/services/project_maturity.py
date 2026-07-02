@@ -70,6 +70,7 @@ class ProjectRubrics:
     status: str
     template: str | None
     criteria: list[dict[str, object]]
+    selected_scope: dict[str, object] | None = None
 
 
 @dataclass(frozen=True)
@@ -82,6 +83,10 @@ class ProjectDefinitionMaturity:
     criteria: list[dict[str, object]]
     gaps: list[str]
     suggested_actions: list[str]
+    selected_criteria_count: int = 0
+    disabled_criteria_count: int = 0
+    total_default_criteria_count: int = 0
+    scope_label: str = "selected_project_rubric"
 
 
 class ProjectMaturityService:
@@ -135,6 +140,7 @@ class ProjectMaturityService:
         status = str(data.get("status") or "template_selected")
         template = data.get("template")
         criteria = data.get("criteria", [])
+        selected_scope = data.get("selected_scope")
         if not isinstance(criteria, list):
             criteria = []
         return ProjectRubrics(
@@ -143,6 +149,7 @@ class ProjectMaturityService:
             status=status,
             template=str(template) if template else None,
             criteria=[item for item in criteria if isinstance(item, dict)],
+            selected_scope=selected_scope if isinstance(selected_scope, dict) else None,
         )
 
     def refresh_definition_maturity(self) -> ProjectDefinitionMaturity:
@@ -169,6 +176,10 @@ class ProjectMaturityService:
             criteria=[item for item in criteria if isinstance(item, dict)] if isinstance(criteria, list) else [],
             gaps=[str(item) for item in gaps] if isinstance(gaps, list) else [],
             suggested_actions=[str(item) for item in suggested] if isinstance(suggested, list) else [],
+            selected_criteria_count=int(data.get("selected_criteria_count") or 0),
+            disabled_criteria_count=int(data.get("disabled_criteria_count") or 0),
+            total_default_criteria_count=int(data.get("total_default_criteria_count") or 0),
+            scope_label=str(data.get("scope_label") or "selected_project_rubric"),
         )
 
     def compute_definition_maturity(self) -> ProjectDefinitionMaturity:
@@ -180,6 +191,10 @@ class ProjectMaturityService:
         scores: list[int] = []
 
         enabled_criteria = [criterion for criterion in rubrics.criteria if criterion.get("enabled") is not False]
+        disabled_count = len([criterion for criterion in rubrics.criteria if criterion.get("enabled") is False])
+        total_default_count = len(rubrics.criteria)
+        if rubrics.selected_scope:
+            total_default_count = int(rubrics.selected_scope.get("total_default") or total_default_count)
         if rubrics.status in {"unresolved", "missing"} or not enabled_criteria:
             return ProjectDefinitionMaturity(
                 path=(self.p2p_dir / "project" / "maturity-assessment.yml").relative_to(self.root),
@@ -197,6 +212,9 @@ class ProjectMaturityService:
                     "Define the project domain with the user and agent.",
                     "Define the project rubric and coverage criteria.",
                 ],
+                selected_criteria_count=0,
+                disabled_criteria_count=disabled_count,
+                total_default_criteria_count=total_default_count,
             )
 
         for criterion in enabled_criteria:
@@ -253,6 +271,9 @@ class ProjectMaturityService:
             criteria=results,
             gaps=gaps,
             suggested_actions=list(dict.fromkeys(suggested_actions)),
+            selected_criteria_count=len(enabled_criteria),
+            disabled_criteria_count=disabled_count,
+            total_default_criteria_count=total_default_count,
         )
 
     def _definition_evidence_records(self) -> list[dict[str, str]]:
@@ -403,6 +424,10 @@ def definition_maturity_payload(maturity: ProjectDefinitionMaturity) -> dict[str
         "criteria": maturity.criteria,
         "gaps": maturity.gaps,
         "suggested_actions": maturity.suggested_actions,
+        "selected_criteria_count": maturity.selected_criteria_count,
+        "disabled_criteria_count": maturity.disabled_criteria_count,
+        "total_default_criteria_count": maturity.total_default_criteria_count,
+        "scope_label": maturity.scope_label,
     }
 
 

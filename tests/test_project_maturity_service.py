@@ -84,3 +84,23 @@ def test_project_maturity_service_reports_unresolved_rubrics(tmp_path: Path) -> 
     assert maturity.score == 0
     assert "Project definition rubric is unresolved or has no enabled criteria." in maturity.gaps
     assert "Define the project domain with the user and agent." in maturity.suggested_actions
+
+
+def test_vertical_rubric_generation_preserves_enabled_flags_and_maturity_scope(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Vertical Rubrics")
+    workspace.select_project_vertical("base_project", actor="owner")
+    rubrics_path = tmp_path / ".p2p" / "project" / "rubrics.yml"
+    rubrics = yaml.safe_load(rubrics_path.read_text(encoding="utf-8"))
+    rubrics["criteria"][0]["enabled"] = False
+    rubrics_path.write_text(yaml.safe_dump(rubrics, sort_keys=False), encoding="utf-8")
+
+    workspace.select_project_vertical("base_project", actor="owner")
+    refreshed = yaml.safe_load(rubrics_path.read_text(encoding="utf-8"))
+    maturity = _service(workspace).refresh_definition_maturity()
+
+    assert refreshed["criteria"][0]["enabled"] is False
+    assert refreshed["selected_scope"]["disabled"] == 1
+    assert maturity.disabled_criteria_count == 1
+    assert maturity.total_default_criteria_count == len(refreshed["criteria"])
+    assert maturity.scope_label == "selected_project_rubric"

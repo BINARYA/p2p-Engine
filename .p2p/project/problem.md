@@ -2,7 +2,7 @@
 
 Generated from accepted proposal problem statements.
 
-## PROP-001 - CLI Foundation
+## PROP-001 - — CLI Foundation
 
 P2P Engine does not exist yet as an executable tool. The project has a solid foundation document, but no CLI, no generated `.p2p/` structure, no automated proposal workflow, and no prompt generation.
 
@@ -324,3 +324,33 @@ Publishing P2P Engine as a project-local wheel currently requires a manual, erro
 ## PROP-081 - MCP and Skill Support for Managed Next Actions
 
 The CLI now supports managed next-action lifecycle commands, but the agent skill and MCP surface still describe p2p_next as read-only/advisory only. Agents using MCP cannot add, complete, retire, or refresh curated next actions, and agents following the skill may not know the CLI lifecycle exists.
+
+## PROP-082 - Readiness Assessment Refresh And Review Workflow
+
+The current proposal readiness CLI can bootstrap and refresh readiness snapshots, but it does not provide a governed way to qualitatively reassess an updated proposal, confirm that owner questions have been resolved, raise confidence, update criterion scores, clear failed gates, or import and review an evidence-based assessment. As seen with earlier accepted proposals, a proposal can become substantively ready for decision while p2p proposal readiness refresh still keeps a conservative bootstrap score, forcing acceptance to rely on owner override even when the artifacts are actually mature. The deeper issue is that readiness currently mixes two distinct capabilities. First, P2P must store enough exhaustive, inspectable information to judge proposal quality: artifacts, evidence, scores, missing items, gates, confidence, audit notes, unresolved owner questions, question state, and aggregation candidates. Second, P2P must guide the agent behavior that uses that information: the agent must be explicitly told to be proactive, pedantic, skeptical of thin artifacts, willing to ask owner questions, and unwilling to recommend acceptance when methodological gaps remain. Storing complete information is necessary but not sufficient. Without explicit agent behavioral guidance, an agent can read complete state and still behave passively, summarize gaps without challenging them, or treat a mechanically valid proposal as decision-ready. Without deterministic question-and-answer memory, the agent cannot reliably conduct an interview, track which gaps have been resolved, decide whether to re-ask, defer, or mute questions, detect proposal overlap during the interview, or use owner answers to refine the proposal.
+
+## PROP-083 - Domain-Aware Visible Project Definition Export
+
+P2P Engine currently routes accepted project intent through Change Set software-spec and spec-export outputs. This makes every project look like a software implementation workflow, even when the project domain is not software. P2P Engine is meant to define projects in detail across many vertical domains, not only to produce software delivery artifacts. The current generated outputs are also hidden under .p2p/outputs, which makes the human-facing project definition hard for normal users to find and inspect. Users need a visible, comprehensive, domain-aware project definition that captures what emerged during proposal preparation, exploration, decisions, and refinement.
+
+## PROP-085 - Pluggable Project Verticals And Readiness Orchestration
+
+Project initialization and project readiness currently rely on domain/rubric defaults that are useful but too static: P2P can suggest rubric criteria, but it does not yet model verticals as extensible project-specific packages with sections, maturity rules, questions, artifacts, examples, and agent guidance. This risks hardcoding a finite catalog of domains inside the engine, or leaving agents without enough structure to proactively define what a project should achieve in its chosen vertical.
+
+## PROP-086 - Artifact-aware Proposal Readiness And Agent Interview Orchestration
+
+Agents are willing to explore new proposals, but proposal-side artifacts such as open questions, clarifications, findings, exploration notes, and impact maps often remain nearly empty. Current readiness can mark a proposal decision-ready when the main proposal body is coherent, without making artifact coverage visible as a gap or requiring the agent to explain why an artifact is empty. This weakens auditability, owner prompting, impact analysis, and long-term proposal memory for complex or cross-cutting work.
+
+## PROP-087 - Agent Personality Model For Decision Mediation
+
+Agents currently adapt tone and technical detail only through prompt text or chat habit. The project needs an explicit, configurable interaction model for how an agent or mediator addresses the decision owner.
+
+## PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
+
+PROP-085 introduced pluggable project verticals and the first local implementation delivered an MVP: packaged vertical data, project-local override, active vertical state, CLI/MCP operations, readiness review, proposal-to-vertical coverage, and agent guidance. That MVP proves the direction, but it is not yet a production-grade vertical runtime.
+
+The current implementation still relies on a compact single-file vertical model, does not persist an exact resolved vertical lockfile, does not persist durable project definition state, does not expose a complete JSON contract for agent-guided project construction, and does not yet formalize compatibility between selected verticals, generated rubrics, enabled rubric criteria, section completion, assumptions, and agent updates.
+
+Without a stronger contract, verticals may remain useful templates rather than a reliable operating layer for project definition. Agents can inspect available vertical data, but they cannot durably record what the owner has answered, what remains missing, what is assumed, which section is blocked, or which question should be asked next. Pack updates or local overrides may also change behavior unexpectedly if the project does not pin the resolved pack version and checksum.
+
+This proposal completes and hardens PROP-085 by defining the production-grade contracts for project vertical pack shape, source resolution, lockfiles, project definition state, CLI JSON access, agent-guided progressive interview behavior, validation, security, rubric regeneration, and future Wavekit-compatible installation.

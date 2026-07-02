@@ -114,8 +114,12 @@ List and inspect verticals:
 
 ```bash
 p2p project vertical list
+p2p project vertical list --format json
 p2p project vertical show base_project
 p2p project vertical show social_impact_program_design
+p2p project context --format json
+p2p project sections --format json
+p2p project definition show --format json
 ```
 
 If no active vertical has been selected, project reads use `base_project` as a
@@ -135,19 +139,25 @@ then add/select it explicitly:
 p2p project vertical validate candidate.yml
 p2p project vertical add candidate.yml --activate --actor owner
 p2p project vertical select packaging_or_physical_product_design --actor owner
+p2p project vertical lock show
 ```
 
 Source precedence is deterministic:
 
 ```text
-.p2p/project/verticals/<vertical-id>/vertical.yml
+explicit path/reference
+.p2p/project/verticals/<vertical-id>/
+P2P_HOME/verticals/<vertical-id>/
+~/.p2p/verticals/<vertical-id>/
 internal package resources
-future remote registry sources
-base_project fallback
+future remote registry sources (deferred)
+base_project fallback only when no active lock exists or repair explicitly asks for it
 ```
 
-Project-local packs override internal packs with the same ID. A valid pack uses
-this shape:
+Project-local packs override installed and internal packs with the same ID.
+`P2P_HOME/verticals` wins over `~/.p2p/verticals` when `P2P_HOME` is configured.
+
+The compatibility single-file shape remains supported:
 
 ```yaml
 vertical:
@@ -181,6 +191,48 @@ vertical:
       required: true
 ```
 
+Production packs may use the canonical multi-file layout:
+
+```text
+<pack-root>/
+  manifest.yml
+  vertical.yml
+  sections/<section-id>.yml
+  rubrics.yml
+  profiles/<profile-id>.yml
+  modules/<module-id>.yml
+  artifacts/<artifact-id>.yml
+  examples/<example-id>.md
+```
+
+Selecting a vertical writes explicit project state:
+
+```text
+.p2p/project/vertical.yml
+.p2p/project/vertical.lock.yml
+.p2p/project/definition.yml
+.p2p/project/rubrics.yml
+```
+
+Existing projects that already have `.p2p/project/vertical.yml` but no
+`vertical.lock.yml` are not repaired by reads. Validate reports an actionable
+warning; repair is explicit:
+
+```bash
+p2p project vertical lock repair --actor owner
+```
+
+Definition state is updated through structured patch files, not arbitrary YAML
+editing:
+
+```bash
+p2p project definition update definition-patch.yml --format json
+```
+
+Vertical pack text is declarative domain data. It can define questions,
+examples, fields, and rubrics, but it cannot override system, developer,
+governance, repository, safety, or tool-permission rules.
+
 Review project readiness against the active vertical:
 
 ```bash
@@ -207,9 +259,9 @@ vertical_coverage:
       source: declared
 ```
 
-`p2p validate` checks project-local vertical packs, active vertical state, and
-declared proposal coverage when present. Remote vertical registries are
-deferred; the current MVP uses internal resources plus project-local packs.
+`p2p validate` checks project-local vertical packs, active vertical state,
+vertical lock state, definition state, safety/trust issues, and declared
+proposal coverage when present. Remote vertical registries are deferred.
 
 ## 3. Manage Agent Integrations
 

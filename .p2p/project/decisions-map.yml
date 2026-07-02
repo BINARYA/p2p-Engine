@@ -1,6 +1,6 @@
 decisions:
 - proposal: PROP-001
-  title: CLI Foundation
+  title: "\u2014 CLI Foundation"
   status: accepted
   feature: cli-foundation
   source: .p2p/proposals/PROP-001-cli-foundation
@@ -379,3 +379,33 @@ decisions:
   status: accepted
   feature: mcp-and-skill-support-for-managed-next-actions
   source: .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions
+- proposal: PROP-082
+  title: Readiness Assessment Refresh And Review Workflow
+  status: accepted
+  feature: readiness-assessment-refresh-and-review-workflow
+  source: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow
+- proposal: PROP-083
+  title: Domain-Aware Visible Project Definition Export
+  status: accepted
+  feature: domain-aware-visible-project-definition-export
+  source: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export
+- proposal: PROP-085
+  title: Pluggable Project Verticals And Readiness Orchestration
+  status: accepted
+  feature: pluggable-project-verticals-and-readiness-orchestration
+  source: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration
+- proposal: PROP-086
+  title: Artifact-aware Proposal Readiness And Agent Interview Orchestration
+  status: accepted
+  feature: artifact-aware-proposal-readiness-and-agent-interview-orchestration
+  source: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration
+- proposal: PROP-087
+  title: Agent Personality Model For Decision Mediation
+  status: accepted
+  feature: agent-personality-model-for-decision-mediation
+  source: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation
+- proposal: PROP-090
+  title: Project Vertical Pack Runtime Hardening And Definition State
+  status: accepted
+  feature: project-vertical-pack-runtime-hardening-and-definition-state
+  source: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state

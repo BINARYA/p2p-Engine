@@ -1210,3 +1210,16 @@ readiness:
   missing: []
   suggested_next: []
   path: .p2p/proposals/PROP-089-readiness-question-state-convergence/readiness.yml
+- proposal: PROP-090
+  title: Project Vertical Pack Runtime Hardening And Definition State
+  proposal_status: accepted
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  computed_score: 100
+  computed_label: decision_ready
+  confidence: high
+  failed_gates: []
+  missing: []
+  suggested_next: []
+  path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/readiness.yml

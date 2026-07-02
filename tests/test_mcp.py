@@ -121,6 +121,13 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_project_vertical_propose",
         "p2p_project_vertical_add",
         "p2p_project_vertical_select",
+        "p2p_project_vertical_lock_show",
+        "p2p_project_vertical_lock_repair",
+        "p2p_project_context",
+        "p2p_project_sections",
+        "p2p_project_section_show",
+        "p2p_project_definition_show",
+        "p2p_project_definition_update",
         "p2p_project_readiness_review",
         "p2p_project_remote_show",
         "p2p_project_remote_configure",
@@ -283,6 +290,39 @@ def test_mcp_project_vertical_and_readiness_tools(tmp_path: Path) -> None:
     review = call_tool("p2p_project_readiness_review", {"root": str(tmp_path)})
     assert review["readiness_review"]["active_vertical_id"] == "social_impact_program_design"
     assert review["readiness_review"]["missing_capisaldi"]
+
+    lock = call_tool("p2p_project_vertical_lock_show", {"root": str(tmp_path)})
+    assert lock["lock_status"]["status"] == "valid"
+
+    context = call_tool("p2p_project_context", {"root": str(tmp_path)})
+    assert context["project_context"]["active"]["vertical_id"] == "social_impact_program_design"
+    assert context["project_context"]["lock_status"]["status"] == "valid"
+
+    sections = call_tool("p2p_project_sections", {"root": str(tmp_path)})
+    assert any(section["section_id"] == "measurement_reporting" for section in sections["sections"])
+
+    section = call_tool(
+        "p2p_project_section_show",
+        {"root": str(tmp_path), "section_id": "measurement_reporting"},
+    )
+    assert section["section"]["section_id"] == "measurement_reporting"
+
+    definition = call_tool("p2p_project_definition_show", {"root": str(tmp_path)})
+    assert definition["definition"]["exists"] is True
+
+    patch = tmp_path / "definition-patch.yml"
+    patch.write_text(
+        "project_definition_patch:\n"
+        "  actor: owner\n"
+        "  operations:\n"
+        "    - op: set_field\n"
+        "      section_id: measurement_reporting\n"
+        "      field_id: summary\n"
+        "      value: Outcome evidence and cadence.\n",
+        encoding="utf-8",
+    )
+    updated = call_tool("p2p_project_definition_update", {"root": str(tmp_path), "patch": str(patch)})
+    assert updated["definition_update"]["operations_applied"] == 1
 
 
 def test_mcp_managed_next_action_lifecycle(tmp_path: Path) -> None:

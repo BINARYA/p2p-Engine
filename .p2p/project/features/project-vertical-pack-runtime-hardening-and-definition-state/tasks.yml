@@ -1,0 +1,250 @@
+tasks:
+  - id: T001
+    title: Define canonical multi-file vertical pack contract
+    workstream: WS1-pack-contract
+    type: software
+    status: todo
+    priority: high
+    dependencies: []
+    deliverable: Versioned pack schema for manifest, vertical metadata, sections, rubrics, profiles, modules, artifacts, and examples.
+    evidence_required: Schema fixtures and validation tests cover valid packs, missing required fields, bad references, and malformed identifiers.
+    actions:
+      - Define the canonical pack file layout.
+      - Define required and optional fields for each pack file.
+      - Define validation rules for ids, references, versions, and metadata.
+      - Document that pack content is domain data, not authoritative agent instruction.
+
+  - id: T002
+    title: Preserve single-file vertical compatibility
+    workstream: WS1-pack-contract
+    type: software
+    status: todo
+    priority: high
+    dependencies:
+      - T001
+    deliverable: Loader normalization from existing single-file vertical.yml packs into the same typed model used by multi-file packs.
+    evidence_required: Regression tests prove existing single-file packs load with unchanged public behavior.
+    actions:
+      - Keep the current single-file input shape accepted.
+      - Normalize single-file fields into the canonical runtime model.
+      - Preserve existing command output where compatibility requires it.
+      - Add fixture coverage for current MVP packs.
+
+  - id: T003
+    title: Implement resolver precedence for local and installed packs
+    workstream: WS2-resolver-lock
+    type: software
+    status: todo
+    priority: high
+    dependencies:
+      - T001
+      - T002
+    deliverable: Resolver that supports internal seed packs, project-local packs, P2P_HOME installed packs, and user installed packs with deterministic precedence.
+    evidence_required: Resolver tests prove precedence, source type recording, unresolved-pack diagnostics, and project-local path behavior.
+    actions:
+      - Support .p2p/project/verticals/.
+      - Support P2P_HOME/verticals.
+      - Support ~/.p2p/verticals.
+      - Apply P2P_HOME precedence over the user home path when configured.
+      - Keep base_project as the canonical default.
+
+  - id: T004
+    title: Add deterministic vertical lockfile semantics
+    workstream: WS2-resolver-lock
+    type: software
+    status: todo
+    priority: high
+    dependencies:
+      - T003
+    deliverable: .p2p/project/vertical.lock.yml with resolved vertical id, version, checksum, source type, source path or package coordinate, and resolver metadata.
+    evidence_required: Tests prove deterministic lock generation for new init/select flows and no implicit lockfile mutation for existing projects during reads or validation.
+    actions:
+      - Define lockfile schema and checksum inputs.
+      - Generate lockfiles for new init/select flows.
+      - Record effective source type and source coordinate.
+      - Prevent implicit writes from validation, readiness, export, and ordinary reads.
+
+  - id: T005
+    title: Add explicit lock repair and migration workflow
+    workstream: WS2-resolver-lock
+    type: software
+    status: todo
+    priority: high
+    dependencies:
+      - T004
+    deliverable: Explicit command path for existing active vertical state without lockfiles, plus actionable diagnostics for stale or unresolved lock state.
+    evidence_required: CLI tests prove repair/migration writes only through explicit commands and locked unresolved verticals never silently fall back to base_project.
+    actions:
+      - Detect active vertical state without lockfile.
+      - Emit actionable validation diagnostics.
+      - Implement explicit repair or migration command behavior.
+      - Fail without writing when the locked vertical cannot be resolved.
+      - Prevent silent fallback after lock creation.
+
+  - id: T006
+    title: Introduce project definition state model
+    workstream: WS3-definition-state
+    type: software
+    status: todo
+    priority: high
+    dependencies:
+      - T001
+      - T004
+    deliverable: Typed model and validation for .p2p/project/definition.yml.
+    evidence_required: Unit tests cover section statuses, field data, missing fields, assumptions, open questions, blockers, provenance, and invalid state rejection.
+    actions:
+      - Define schema version and vertical references.
+      - Define per-section status and structured field data.
+      - Define missing required fields, assumptions, open questions, blockers, and decisions.
+      - Define history and provenance records.
+      - Validate definition state against the active vertical.
+
+  - id: T007
+    title: Implement structured definition-state update contract
+    workstream: WS3-definition-state
+    type: software
+    status: todo
+    priority: high
+    dependencies:
+      - T006
+    deliverable: Narrow patch/update service for definition state with atomic writes and strict validation.
+    evidence_required: Tests reject unknown ids, invalid statuses, inconsistent completion states, unsafe provenance, and direct arbitrary YAML edit surfaces.
+    actions:
+      - Define allowed patch operations.
+      - Validate section ids and field ids.
+      - Validate section and assumption statuses.
+      - Validate completion consistency.
+      - Write atomically through supported service paths.
+
+  - id: T008
+    title: Expose JSON-ready project vertical context
+    workstream: WS4-agent-surfaces
+    type: software
+    status: todo
+    priority: high
+    dependencies:
+      - T003
+      - T006
+    deliverable: JSON-ready CLI or MCP surfaces for project context, selected vertical, sections, section detail, rubrics, and definition state.
+    evidence_required: CLI and MCP parity tests where applicable prove stable JSON contracts and preserve existing human-readable outputs.
+    actions:
+      - Expose project context JSON.
+      - Expose vertical list and selected vertical JSON.
+      - Expose section list and section detail JSON.
+      - Expose rubric and definition-state JSON.
+      - Include optional next_suggested_action when deterministic.
+
+  - id: T009
+    title: Add agent guidance for one-question-at-a-time project definition
+    workstream: WS4-agent-surfaces
+    type: docs
+    status: todo
+    priority: medium
+    dependencies:
+      - T006
+      - T008
+    deliverable: Agent guidance that explains how to inspect vertical context, ask one primary owner question, record assumptions, update definition state, and report remaining gaps.
+    evidence_required: Generated/local instructions and docs reflect the guidance without treating vertical pack text as higher-priority instruction.
+    actions:
+      - Describe progressive interview behavior.
+      - Require explicit assumption recording.
+      - Require completion criteria before marking sections complete.
+      - Distinguish selected rubric maturity from full vertical baseline coverage.
+
+  - id: T010
+    title: Integrate init, profiles, modules, and PROP-057 rubric selection
+    workstream: WS5-init-rubrics
+    type: software
+    status: todo
+    priority: high
+    dependencies:
+      - T003
+      - T004
+      - T006
+    deliverable: Lightweight init/select flow that writes vertical state, lockfile, initial definition state, and rubrics while preserving owner-controlled rubric customization.
+    evidence_required: CLI tests cover interactive and non-interactive flows, default base_project selection, profile/module selection, and PROP-057 guided rubric selection handoff.
+    actions:
+      - Keep init from asking full section interview questions.
+      - Add vertical, profile, and optional module selection.
+      - Generate initial vertical, lock, definition, and rubric state.
+      - Invoke guided rubric selection after rubric generation.
+      - Keep non-interactive flags scriptable.
+
+  - id: T011
+    title: Preserve rubric customization during regeneration
+    workstream: WS5-init-rubrics
+    type: software
+    status: todo
+    priority: high
+    dependencies:
+      - T010
+    deliverable: Rubric regeneration that preserves enabled flags by stable criterion id and handles removed criteria explicitly.
+    evidence_required: Tests prove existing enabled flags survive regeneration, new criteria use defaults, and removed criteria are orphaned or confirmation-required.
+    actions:
+      - Match criteria by stable id.
+      - Preserve existing enabled flags.
+      - Apply defaults for new criteria.
+      - Treat removed criteria as orphaned or confirmation-required removals.
+      - Report selected_project_rubric maturity scope.
+
+  - id: T012
+    title: Implement severity-dependent pack safety validation
+    workstream: WS6-security-validation
+    type: software
+    status: todo
+    priority: high
+    dependencies:
+      - T001
+    deliverable: Validation that separates hard-error unsafe guidance from warning-level ambiguous content and applies trust policy by pack source.
+    evidence_required: Validation tests cover instruction override attempts, tool forcing, code execution, permission changes, path escapes, ambiguous templates, internal packs, and project-local packs.
+    actions:
+      - Reject higher-priority instruction override attempts.
+      - Reject code execution, forced tool execution, permission changes, and path escapes.
+      - Warn on ambiguous instruction-like wording where policy allows it.
+      - Require internal seed packs to validate cleanly.
+      - Keep remote or Wavekit trust policy deferred.
+
+  - id: T013
+    title: Update documentation for vertical packs and definition state
+    workstream: WS7-docs-tests
+    type: docs
+    status: todo
+    priority: medium
+    dependencies:
+      - T001
+      - T004
+      - T006
+      - T008
+      - T010
+      - T012
+    deliverable: Documentation for pack layout, compatibility, resolver order, lockfile semantics, definition state, agent guidance, repair/migration, and deferred behavior.
+    evidence_required: Documentation review confirms owner and agent workflows are described with commands, boundaries, and compatibility notes.
+    actions:
+      - Document canonical pack layout.
+      - Document single-file compatibility.
+      - Document resolver precedence and lock semantics.
+      - Document definition.yml fields and update contract.
+      - Document explicit repair or migration behavior.
+      - Document deferred next-action and Wavekit behavior.
+
+  - id: T014
+    title: Add focused regression and production validation coverage
+    workstream: WS7-docs-tests
+    type: test
+    status: todo
+    priority: high
+    dependencies:
+      - T002
+      - T005
+      - T007
+      - T008
+      - T011
+      - T012
+    deliverable: Focused test suite for loader normalization, resolver precedence, lock behavior, repair/migration, definition-state validation, safety validation, rubric preservation, and existing vertical behavior.
+    evidence_required: Focused tests pass, public-surface regression tests pass, and p2p validate reports zero errors after implementation.
+    actions:
+      - Add service tests for domain logic.
+      - Add CLI tests for public behavior.
+      - Add MCP parity tests where applicable.
+      - Add validation tests for malformed and unsafe packs.
+      - Add regressions for current p2p project vertical commands.

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from p2p_engine.core.project_verticals import ProjectReadinessReview
+from p2p_engine.core.project_verticals import ProjectDefinitionView, ProjectReadinessReview, VerticalLockStatus
 from p2p_engine.foundation.markdown import read_markdown_section
 
 
@@ -57,12 +57,16 @@ class VisibleProjectExportService:
         project_name: Callable[[], str],
         accepted_proposals: Callable[[], list[dict[str, object]]],
         project_readiness_review: Callable[[], ProjectReadinessReview] | None = None,
+        project_vertical_lock_status: Callable[[], VerticalLockStatus] | None = None,
+        project_definition_view: Callable[[], ProjectDefinitionView] | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
         self.project_name = project_name
         self.accepted_proposals = accepted_proposals
         self.project_readiness_review = project_readiness_review
+        self.project_vertical_lock_status = project_vertical_lock_status
+        self.project_definition_view = project_definition_view
 
     def export(self) -> VisibleProjectExportResult:
         outputs_dir = self.root / "outputs"
@@ -171,6 +175,8 @@ class VisibleProjectExportService:
             "",
             self._vertical_readiness_section(),
             "",
+            self._vertical_state_summary_section(),
+            "",
             self._artifact_sections(accepted, ("readiness.yml",)),
             "",
             "## Delivery And Export Context",
@@ -188,6 +194,41 @@ class VisibleProjectExportService:
             self._traceability_section(accepted),
             "",
         ]
+        return "\n".join(lines)
+
+    def _vertical_state_summary_section(self) -> str:
+        lines = ["### Vertical Runtime State", ""]
+        if self.project_vertical_lock_status is None:
+            lines.append("- lock_status: unavailable")
+        else:
+            try:
+                lock_status = self.project_vertical_lock_status()
+            except ValueError:
+                lock_status = None
+            if lock_status is None:
+                lines.append("- lock_status: unavailable")
+            else:
+                lines.append(f"- lock_status: {lock_status.status}")
+                if lock_status.locked:
+                    lines.append(f"- locked_vertical: {lock_status.locked.vertical_id}")
+        if self.project_definition_view is None:
+            lines.append("- definition_state: unavailable")
+        else:
+            try:
+                definition = self.project_definition_view()
+            except ValueError:
+                definition = None
+            if definition is None:
+                lines.append("- definition_state: unavailable")
+            else:
+                lines.append(f"- definition_state_exists: {str(definition.exists).lower()}")
+                lines.append(f"- definition_state_valid: {str(definition.valid).lower()}")
+                if definition.state:
+                    counts: dict[str, int] = {}
+                    for section in definition.state.sections:
+                        counts[section.status] = counts.get(section.status, 0) + 1
+                    for status, count in sorted(counts.items()):
+                        lines.append(f"- definition_sections_{status}: {count}")
         return "\n".join(lines)
 
     def _executive_summary(self, accepted: list[dict[str, object]]) -> str:

@@ -1,0 +1,133 @@
+impact:
+  proposal: PROP-090
+  summary: >
+    Hardens the PROP-085 project vertical MVP into a production-grade vertical
+    runtime contract with multi-file packs, resolver and lockfile semantics,
+    durable project definition state, JSON agent context, safety validation, and
+    migration rules.
+  impact_type: production_hardening
+  execution_domains:
+    - software
+    - p2p_governance
+    - documentation
+    - testing
+  features:
+    - feature: pluggable-project-verticals-and-readiness-orchestration
+      impact: Extends the completed PROP-085 MVP rather than reopening it.
+    - feature: readiness-question-state-convergence
+      impact: Definition-state data may later inform readiness/question workflows, but proposal question state remains separate.
+    - feature: domain-aware-visible-project-definition-export
+      impact: Exports may include vertical and definition-state summaries additively.
+  commands:
+    - command: p2p project vertical list/show/validate/add/select
+      impact: Existing command family remains canonical and gains production-grade JSON/lock behavior.
+    - command: p2p project vertical lock
+      impact: Candidate explicit lock inspection or repair/migration command for active vertical state.
+    - command: p2p project context --json
+      impact: Exposes active vertical, lock, rubrics, sections, and definition-state summary for agents.
+    - command: p2p project sections --json
+      impact: Lists enabled/disabled sections for the active vertical/profile.
+    - command: p2p project section <section-id> --json
+      impact: Exposes section spec, questions, examples, completion criteria, dependencies, and artifacts.
+    - command: p2p project definition --json
+      impact: Reads durable project definition state.
+    - command: p2p project definition update --json
+      impact: Writes definition state through a narrow structured patch/update contract.
+    - command: p2p project next-action --json
+      impact: Deferred until definition-state semantics are stable.
+  files:
+    - path: src/p2p_engine/core/project_verticals.py
+      impact: Expand typed models for multi-file packs, lock state, definition state, validation, and update patches.
+    - path: src/p2p_engine/services/project_verticals.py
+      impact: Main service boundary for loader normalization, resolver precedence, lockfile generation, and active vertical behavior.
+    - path: src/p2p_engine/services/project_initialization.py
+      impact: Add lightweight vertical/profile/module/rubric setup during init.
+    - path: src/p2p_engine/services/project_maturity.py
+      impact: Preserve rubric semantics and report selected rubric scope with source vertical context where appropriate.
+    - path: src/p2p_engine/services/validation.py
+      impact: Validate multi-file packs, locks, active state, definition state, and unsafe guidance content.
+    - path: src/p2p_engine/cli_commands/project_verticals.py
+      impact: Extend project vertical CLI surfaces without replacing the namespace.
+    - path: src/p2p_engine/mcp/catalog/project.py
+      impact: Add or update MCP schemas for project vertical and definition-state parity where applicable.
+    - path: src/p2p_engine/mcp/handlers/project.py
+      impact: Keep handlers thin and delegate to workspace/service facade.
+    - path: src/p2p_engine/services/agent_templates.py
+      impact: Update generated agent guidance for vertical-aware project orchestration.
+    - path: docs/CLI-GUIDE.md
+      impact: Document pack layout, resolver order, lockfile, definition.yml, and deferred Wavekit behavior.
+  project_artifacts:
+    - artifact: .p2p/project/vertical.yml
+      impact: Evolves from active id/source state to richer selected-vertical configuration while remaining compatible.
+    - artifact: .p2p/project/vertical.lock.yml
+      impact: New deterministic lockfile for exact resolved pack source/version/checksum.
+    - artifact: .p2p/project/definition.yml
+      impact: New durable project definition state for sections, fields, assumptions, open questions, blockers, and next suggested action.
+    - artifact: .p2p/project/rubrics.yml
+      impact: Generated from vertical defaults and then governed by PROP-057 enabled/disabled selection.
+    - artifact: .p2p/project/verticals/
+      impact: Remains project-local vertical pack storage.
+  dependencies:
+    - proposal: PROP-057
+      relationship: builds_on
+      reason: PROP-057 remains the owner-controlled rubric enablement flow after vertical defaults are generated.
+    - proposal: PROP-071
+      relationship: compatible_with
+      reason: Custom domain definition remains available; verticals add richer project skeletons.
+    - proposal: PROP-082
+      relationship: compatible_with
+      reason: Readiness assessment can consume improved vertical/definition context without changing owner authority.
+    - proposal: PROP-083
+      relationship: compatible_with
+      reason: Visible exports may add vertical/definition summaries without replacing domain-aware export behavior.
+    - proposal: PROP-085
+      relationship: hardens
+      reason: PROP-090 is the production hardening and completion layer for the accepted vertical MVP.
+    - proposal: PROP-086
+      relationship: compatible_with
+      reason: Artifact-aware readiness and agent interview orchestration can reuse definition-state context.
+    - proposal: PROP-089
+      relationship: compatible_with
+      reason: Proposal question state remains distinct from project definition state.
+  overlaps:
+    - proposal: PROP-085
+      overlap: Both define project vertical behavior.
+      boundary: PROP-085 is accepted MVP direction; PROP-090 adds production contracts and migration details.
+    - proposal: PROP-057
+      overlap: Both affect project rubric setup.
+      boundary: PROP-090 provides defaults; PROP-057 controls final enabled/disabled criteria.
+    - proposal: PROP-089
+      overlap: Both involve question/state convergence.
+      boundary: PROP-089 is proposal readiness question state; PROP-090 is project definition state.
+  governance:
+    - area: owner authority
+      impact: Does not accept, reject, merge, or decide proposals automatically.
+    - area: source of truth
+      impact: Project state writes must go through supported P2P CLI/service/MCP paths, not manual .p2p edits.
+    - area: agent behavior
+      impact: Agents use vertical pack data as domain data, not instruction authority.
+  compatibility:
+    existing_single_file_packs: Must remain loadable and normalized into the canonical model.
+    existing_project_vertical_path: .p2p/project/verticals remains supported.
+    fallback_vertical: base_project remains canonical.
+    existing_projects_without_lock: Require explicit repair/migration command; no implicit writes during ordinary reads.
+  risks:
+    - risk: Vertical logic leaks into core code.
+      mitigation: Keep domain behavior in declarative packs and core behavior in services.
+    - risk: Lockfiles create brittle projects.
+      mitigation: Provide explicit repair/migration/fallback commands.
+    - risk: Pack text is treated as instruction.
+      mitigation: Enforce severity-dependent validation and agent guidance boundaries.
+    - risk: Scope becomes too large.
+      mitigation: Split implementation into phased local specs and defer Wavekit/full next-action engine.
+  regression_tests:
+    - Existing p2p project vertical commands still pass.
+    - Existing single-file packs remain valid.
+    - Multi-file packs validate and normalize.
+    - Resolver precedence is deterministic.
+    - Lockfile mismatch fails without fallback.
+    - Existing active vertical without lock reports actionable warning.
+    - definition.yml patch updates validate section and field ids.
+    - Unsafe pack guidance is classified by severity.
+    - PROP-057 enabled flags are preserved during rubric regeneration.
+

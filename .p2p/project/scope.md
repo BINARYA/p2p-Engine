@@ -2,7 +2,7 @@
 
 Generated from accepted proposal goals and non-goals.
 
-## PROP-001 - CLI Foundation
+## PROP-001 - — CLI Foundation
 
 ### Goals
 
@@ -1034,3 +1034,124 @@ Generated from accepted proposal goals and non-goals.
 ### Non-Goals
 
 - Not provided.
+
+## PROP-082 - Readiness Assessment Refresh And Review Workflow
+
+### Goals
+
+- Separate information completeness from agent behavioral guidance in the readiness model.
+- Provide a governed assess/review path that can update evidence, criterion scores, confidence, missing items, gates, suggested next actions, unresolved owner questions, and overlap candidates after proposal artifacts change.
+- Introduce a first-class deterministic clarification interview memory for low-readiness proposals: generated questions start with empty answers, answers are recorded as the interview progresses, and every question remains tied to the readiness gap it is meant to resolve.
+- Make agent guidance operational and proactive by default: agents must challenge thin or incomplete artifacts, ask focused owner questions one at a time, reassess the question list after each answer, propose alternatives and tradeoffs, detect mergeable proposals, and avoid recommending acceptance when readiness is methodologically weak.
+- Define production-ready CLI commands and data structures for question lifecycle, answer recording, deferral, muting, grouping, applying answers, and handling merge candidates.
+- Allow the agent to use completed question-and-answer memory to refine the proposal through supported CLI tools.
+- Preserve owner control: agent proactivity may recommend, question, assess, and prepare aggregation, but must not decide acceptance, rejection, deferral, aggregation closure, or override.
+- Preserve backward compatibility for proposals that have no question/interview state yet.
+
+### Non-Goals
+
+- Do not make agents autonomous governance decision makers.
+- Do not overwrite computed readiness scores with owner override outcomes.
+- Do not require every small proposal to receive heavyweight qualitative review or a full interview.
+- Do not replace deterministic refresh. Refresh remains a conservative synchronization step, while assess/review is the evidence-aware path.
+- Do not store interview state only in free-form chat memory or only as unstructured contributions.
+- Do not break existing proposals, registries, readiness snapshots, or CLI inspection commands when question state is absent.
+
+## PROP-083 - Domain-Aware Visible Project Definition Export
+
+### Goals
+
+- Generate a default human-readable project definition for every P2P project.
+- Write the default visible output to outputs/latest/project.md as a single chaptered Markdown document.
+- Preserve prior generated project definitions by moving or writing snapshots under outputs/review-001, outputs/review-002, and later review directories.
+- Support different vertical domains through a generic project definition model instead of assuming software.
+- Allow domain-specific or tool-specific exports, such as software-spec, OpenSpec, or Spec Kit, as nested profiles under outputs/latest/exports/<profile-or-vertical>/ when compatible.
+- Preserve compatibility with existing .p2p/outputs and CLI/API behavior until migration or deprecation is explicitly verified.
+
+### Non-Goals
+
+- Do not make software-spec, OpenSpec, or Spec Kit the default export for non-software domains.
+- Do not delete existing .p2p outputs without implementation-time compatibility review.
+- Do not make the root outputs/ location configurable in the MVP.
+- Do not split the default human-facing project definition into many default files.
+
+## PROP-085 - Pluggable Project Verticals And Readiness Orchestration
+
+### Goals
+
+- Define a generic vertical package model for project init and project review, including sections, detail packs, rubric criteria, maturity levels, questions, artifacts, examples, profiles, and optional modules.
+- Teach agents, through generated/local skills, to propose project capisaldi and focused refinement questions when the current project vertical or readiness information is weak, missing, or too generic.
+- Support core defaults, external/plugin registries, and project-local custom verticals without requiring P2P Engine to hardcode every possible domain.
+- Allow the same flow to run during interactive project init and later through an explicit project readiness review command.
+
+### Non-Goals
+
+- Do not ship a large catalog of superficial verticals in the engine.
+- Do not require all verticals to be known at build time.
+- Do not replace owner governance: the agent proposes verticals, capisaldi, rubric extensions, and questions, but the owner decides.
+- Do not make regulated verticals such as medical or legal authoritative without explicit caution, provenance, and owner responsibility.
+
+## PROP-086 - Artifact-aware Proposal Readiness And Agent Interview Orchestration
+
+### Goals
+
+- Make proposal artifact expectations explicit and visible to agents.
+- Prevent important proposal artifacts from staying empty by default when they are applicable.
+- Keep lightweight proposals lightweight by allowing non-applicable artifacts to be skipped with an explicit reason.
+- Guide agents to ask one focused owner question at a time when artifact gaps block maturity.
+- Preserve owner control: agents may ask, draft, identify gaps, and recommend next steps, but do not decide acceptance.
+
+### Non-Goals
+
+- Do not require every proposal artifact to be fully populated for every proposal.
+- Do not replace the existing readiness engine or create a parallel proposal lifecycle.
+- Do not retroactively rewrite accepted proposals.
+- Do not make agents perform broad unmanaged scans of .p2p or source code to satisfy artifact checks.
+
+## PROP-087 - Agent Personality Model For Decision Mediation
+
+### Goals
+
+- Define a durable project-level interaction-style model for agent mediation with the decision owner.
+- Persist three explicit independent scales: technical_verbosity, formality, and assertiveness.
+- Provide stable defaults: technical_verbosity=2, formality=2, assertiveness=0.
+- Expose read/update behavior through public project interaction-style CLI commands and matching MCP tools.
+- Update generated agent instructions and project/local skills so agents know how to inspect and update style through CLI/MCP only.
+
+### Non-Goals
+
+- Do not let personality change governance authority, readiness scores, validation, permissions, facts, or audit evidence.
+- Do not introduce open-ended persona prose or persisted named presets as the primary configuration model.
+- Do not implement per-agent or runtime/session style overrides in the first slice.
+- Do not require migration or manual completion for existing projects.
+
+## PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
+
+### Goals
+
+- Define a production-grade multi-file project vertical pack contract while preserving compatibility with existing single-file vertical.yml packs.
+- Persist the exact resolved vertical package in .p2p/project/vertical.lock.yml with version, source, schema, checksum, and compatibility metadata.
+- Introduce .p2p/project/definition.yml as the durable project definition state used by agents to record section data, assumptions, missing fields, open questions, decisions, and next suggested work.
+- Keep p2p project vertical ... as the stable CLI namespace and extend it with JSON-ready project context operations instead of replacing it with a new top-level namespace in the first slice.
+- Integrate selected vertical defaults with .p2p/project/rubrics.yml while preserving PROP-057 enabled/disabled rubric selection semantics.
+- Define deterministic resolver behavior across explicit path/reference, project-local packs, installed local packs, packaged seed packs, future Wavekit packs, and base_project fallback.
+- Define strict post-init lockfile behavior: after a vertical is locked, missing or mismatched packs must not silently fall back to another vertical without explicit repair, migration, or fallback command.
+- Expose enough structured JSON context for a generic agent to guide project definition without hardcoded domain knowledge.
+- Define the generic vertical-aware agent guidance runtime: progressive interview, one primary question per turn, examples, assisted answers, explicit assumptions, section completion checks, and structured state updates.
+- Keep vertical pack content as declarative domain data, never executable code and never higher-priority agent instruction.
+- Prepare local pack formats and lock metadata for future Wavekit remote installation without requiring remote registry support in the first implementation.
+- Define validation, upgrade, migration, orphaned rubric, and orphaned project-definition-field behavior before broad catalog expansion.
+
+### Non-Goals
+
+- Do not replace PROP-085. This proposal hardens and completes the accepted direction.
+- Do not replace p2p project vertical ... with a new required p2p vertical ... namespace in the first production slice.
+- Do not move existing project-local packs out of .p2p/project/verticals/ as part of this proposal.
+- Do not rename base_project as a breaking change. Any generic_project naming can be handled as aliasing or a future compatibility decision.
+- Do not implement Wavekit remote search, install, update, or publish in the first implementation.
+- Do not execute code from vertical packs or support executable plugin hooks.
+- Do not allow vertical pack content to override system, developer, safety, governance, repository, or tool-permission instructions.
+- Do not make p2p init ask all vertical interview questions. Init configures the project; agent guidance develops the project later.
+- Do not replace .p2p/project/rubrics.yml or change the meaning of enabled: false from PROP-057.
+- Do not silently upgrade vertical packs or project definition state during assessment, export, readiness review, or ordinary agent interaction.
+- Do not require a domain-specific agent skill for every vertical.

@@ -1,0 +1,23 @@
+related_proposals:
+  - proposal: PROP-085
+    relationship: hardens
+    reason: PROP-090 completes the accepted pluggable project vertical MVP with production runtime contracts.
+  - proposal: PROP-057
+    relationship: builds_on
+    reason: Vertical defaults feed rubric setup, while PROP-057 controls final owner-selected enabled criteria.
+  - proposal: PROP-071
+    relationship: compatible_with
+    reason: Custom domain definition remains available and is not replaced by vertical packs.
+  - proposal: PROP-082
+    relationship: compatible_with
+    reason: Readiness assessment can consume improved project vertical context.
+  - proposal: PROP-083
+    relationship: compatible_with
+    reason: Visible project exports may include vertical and definition-state summaries additively.
+  - proposal: PROP-086
+    relationship: compatible_with
+    reason: Artifact-aware readiness and interview orchestration can use project definition state without changing proposal question authority.
+  - proposal: PROP-089
+    relationship: compatible_with
+    reason: Proposal question lifecycle state remains distinct from project definition state.
+

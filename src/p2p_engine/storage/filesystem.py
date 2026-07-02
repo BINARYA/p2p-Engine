@@ -8,10 +8,16 @@ from p2p_engine.core.proposal import Proposal
 from p2p_engine.core.project_verticals import (
     ActiveProjectVertical,
     CustomVerticalCandidate,
+    ProjectDefinitionPatchResult,
+    ProjectDefinitionView,
     ProjectReadinessReview,
     ProjectVerticalAddResult,
+    ProjectVerticalContext,
     VerticalListItem,
+    VerticalLock,
+    VerticalLockStatus,
     VerticalPack,
+    VerticalSection,
     VerticalValidationResult,
 )
 from p2p_engine.core.interaction_style import InteractionStyleView
@@ -579,6 +585,8 @@ class P2PWorkspace:
                 project_name=self._project_name,
                 accepted_proposals=self._registry_record_builder_service().accepted_proposals,
                 project_readiness_review=self.review_project_readiness,
+                project_vertical_lock_status=self.project_vertical_lock_status,
+                project_definition_view=self.project_definition_view,
             )
         return self._visible_project_export_service_instance
 
@@ -653,8 +661,11 @@ class P2PWorkspace:
         remote_provider: str | None = None,
         remote_name: str = "origin",
         remote_url_value: str | None = None,
+        vertical_id: str | None = None,
+        profile: str = "default",
+        modules: list[str] | None = None,
     ) -> list[Path]:
-        return self._project_initialization_service().init_project(
+        created = self._project_initialization_service().init_project(
             name=name,
             agent_profile=agent_profile,
             repository_mode=repository_mode,
@@ -665,6 +676,21 @@ class P2PWorkspace:
             remote_name=remote_name,
             remote_url_value=remote_url_value,
         )
+        if vertical_id:
+            active = self._project_vertical_service().select_vertical(
+                vertical_id,
+                actor=owner or "owner",
+                profile=profile,
+                modules=modules,
+            )
+            for path in (
+                Path(".p2p/project/vertical.yml"),
+                Path(".p2p/project/vertical.lock.yml"),
+                Path(".p2p/project/definition.yml"),
+            ):
+                if path is not None and path not in created:
+                    created.append(path)
+        return created
 
     def refresh_agent_instructions(
         self,
@@ -1241,14 +1267,47 @@ class P2PWorkspace:
     ) -> ProjectVerticalAddResult:
         return self._project_vertical_service().add_vertical(source, activate=activate, actor=actor)
 
-    def select_project_vertical(self, vertical_id: str, *, actor: str = "local") -> ActiveProjectVertical:
-        return self._project_vertical_service().select_vertical(vertical_id, actor=actor)
+    def select_project_vertical(
+        self,
+        vertical_id: str,
+        *,
+        actor: str = "local",
+        profile: str = "default",
+        modules: list[str] | None = None,
+    ) -> ActiveProjectVertical:
+        return self._project_vertical_service().select_vertical(
+            vertical_id,
+            actor=actor,
+            profile=profile,
+            modules=modules,
+        )
 
     def active_project_vertical(self) -> ActiveProjectVertical:
         return self._project_vertical_service().active_vertical()
 
     def review_project_readiness(self, vertical_id: str | None = None) -> ProjectReadinessReview:
         return self._project_vertical_service().project_readiness_review(vertical_id=vertical_id)
+
+    def project_vertical_lock_status(self) -> VerticalLockStatus:
+        return self._project_vertical_service().vertical_lock_status()
+
+    def repair_project_vertical_lock(self, *, actor: str = "local") -> VerticalLock:
+        return self._project_vertical_service().repair_vertical_lock(actor=actor)
+
+    def project_vertical_context(self) -> ProjectVerticalContext:
+        return self._project_vertical_service().project_context()
+
+    def project_vertical_sections(self, vertical_id: str | None = None) -> list[VerticalSection]:
+        return self._project_vertical_service().list_sections(vertical_id=vertical_id)
+
+    def project_vertical_section(self, section_id: str, vertical_id: str | None = None) -> VerticalSection:
+        return self._project_vertical_service().show_section(section_id, vertical_id=vertical_id)
+
+    def project_definition_view(self) -> ProjectDefinitionView:
+        return self._project_vertical_service().project_definition_view()
+
+    def update_project_definition(self, patch_path: Path) -> ProjectDefinitionPatchResult:
+        return self._project_vertical_service().apply_definition_patch(patch_path)
 
     def create_project_brief_prompt(self) -> ProjectBriefPrompt:
         return self._project_state_service().create_brief_prompt()
