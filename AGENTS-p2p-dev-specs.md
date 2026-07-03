@@ -85,19 +85,25 @@ Ogni task deve mappare a requisiti e design. Nessun task “orfano”.
 Per lavoro derivato da P2P, ogni feature spec deve indicare la proposta,
 decisione o scelta sorgente quando esiste.
 
-6. **Evoluzione controllata**
+6. **Impatto sulle superfici pubbliche**
+Ogni feature deve dichiarare l'impatto su CLI, MCP, storage, docs, test e
+comportamenti agent-facing. La parità MCP non è automatica, ma va decisa
+esplicitamente quando la feature aggiunge o modifica workflow operativi,
+comandi CLI, lifecycle, permessi, consenso, Git/sync o payload usati da agenti.
+
+7. **Evoluzione controllata**
 Se cambia un requisito, vanno aggiornati anche design e task correlati.
 
-7. **Esplicitazione delle assunzioni**
+8. **Esplicitazione delle assunzioni**
 Assunzioni, vincoli e dipendenze devono essere scritti: niente conoscenza implicita.
 
-8. **Decisioni motivate**
+9. **Decisioni motivate**
 Ogni decisione importante deve includere razionale e impatti.
 
-9. **Incrementalità**
+10. **Incrementalità**
 Favorire slice piccole e rilasciabili, evitando piani monolitici.
 
-10. **Linguaggio operativo**
+11. **Linguaggio operativo**
 Testo concreto, non marketing. Evitare formule vaghe (“ottimizzare”, “migliorare”).
 
 ## 3) Struttura standard consigliata
@@ -154,6 +160,11 @@ Usare frasi normative:
 - È testabile senza interpretazioni soggettive
 - Non contraddice steering o altri requisiti
 - Se deriva da P2P, cita la sorgente P2P e non introduce decisioni non approvate
+- Dichiara l'impatto sulle superfici pubbliche: CLI, MCP, storage, docs, test,
+  agent-facing behavior
+- Se il comportamento è operativo o agent-facing, decide se serve parità MCP:
+  read-only, write-safe, consent-gated, non applicabile, oppure deferred con
+  motivazione
 
 ## 6) Regole per `design.md`
 
@@ -166,6 +177,7 @@ Usare frasi normative:
 - flussi dati/API/interfacce
 - modello dati e contratti
 - gestione errori, idempotenza, retry, osservabilità (se rilevante)
+- impatto sulle superfici pubbliche e decisione di parità MCP, quando rilevante
 - rischi, tradeoff, alternative considerate
 
 ### Regole pratiche
@@ -173,6 +185,10 @@ Usare frasi normative:
 - Ogni blocco di design deve riferirsi ai requisiti che soddisfa
 - Esplicitare cosa **non** viene fatto (out of scope tecnico)
 - Evidenziare impatti backward compatibility/migrazioni
+- Se si aggiunge o modifica una CLI, un lifecycle operativo, un payload
+  agent-facing o un comportamento permission/consent-gated, il design deve dire
+  se MCP viene aggiornato nello stesso scope, resta invariato o viene rimandato.
+  La mancata parità MCP deve essere una decisione esplicita, non un'omissione.
 
 ## 7) Regole per `tasks.md`
 
@@ -188,6 +204,10 @@ Usare frasi normative:
 - Per task che modificano codice o test, indicare il sottoinsieme focused utile
   e la validazione pubblica/full richiesta secondo
   `specs/skills/TEST_QUALITY_SKILL.md`
+- Includere un task o criterio di completamento per il controllo di impatto MCP
+  quando la feature tocca superfici pubbliche, workflow agent-facing, CLI,
+  permessi, consenso, Git/sync o lifecycle. Se MCP non è applicabile, il task
+  deve registrare il motivo.
 - Non usare `tasks.md` per registrare stato governato, decisioni P2P o avanzamento
   autoreferenziale: quello resta nella conversazione di lavoro, in Git, nei test
   o negli strumenti di review.
@@ -206,6 +226,8 @@ Ogni feature deve permettere queste domande:
 3. Quale task lo realizza?
 4. Quale test dimostra che funziona?
 5. Se deriva da P2P, quale proposta/scelta/decisione ha originato il lavoro?
+6. Quale impatto ha su CLI, MCP, storage, docs, test e agent-facing behavior?
+7. Se serve o non serve parità MCP, dove è documentata la decisione?
 
 Se una risposta manca, la spec è incompleta.
 

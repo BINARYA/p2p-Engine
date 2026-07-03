@@ -43,6 +43,11 @@ Every implementation feature should answer:
 - Which task realizes it?
 - Which test proves it works?
 - If it derives from P2P, which proposal, choice, or decision originated it?
+- Which public surfaces are affected: CLI, MCP, storage, docs, tests, or
+  agent-facing behavior?
+- If the feature adds or changes an operational workflow, CLI behavior,
+  lifecycle, permission/consent flow, Git/sync behavior, or agent-facing
+  payload, is MCP parity required, not applicable, or explicitly deferred?
 
 ## Binding Generated Project Output
 

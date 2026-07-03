@@ -91,6 +91,9 @@ EXPECTED_TOOL_NAMES = (
     "p2p_work_list",
     "p2p_work_status",
     "p2p_work_show",
+    "p2p_work_branch",
+    "p2p_work_submit",
+    "p2p_work_review",
     "p2p_registry_status",
     "p2p_registry_show",
     "p2p_project_show",
@@ -128,6 +131,11 @@ EXPECTED_TOOL_NAMES = (
     "p2p_spec_export",
     "p2p_spec_export_validate",
     "p2p_work_plan",
+    "p2p_work_publish",
+    "p2p_work_request_review",
+    "p2p_work_accept",
+    "p2p_work_finalize",
+    "p2p_work_cleanup",
     "p2p_explore_prompt",
     "p2p_digest_prompt",
     "p2p_clarify_prompt",
@@ -173,3 +181,53 @@ def test_mcp_prompt_tool_mapping_is_available_for_dispatch() -> None:
     assert prompt_names <= definition_names
     assert PROMPT_TOOL_KINDS["p2p_explore_prompt"] == "explore"
     assert PROMPT_TOOL_KINDS["p2p_swot_prompt"] == "swot"
+
+
+def test_mcp_work_lifecycle_tool_schemas_are_stable() -> None:
+    definitions = {definition["name"]: definition for definition in tool_definitions()}
+
+    for name in ("p2p_work_branch", "p2p_work_submit", "p2p_work_review"):
+        schema = definitions[name]["inputSchema"]
+        assert schema["required"] == ["work_id"]
+        assert set(schema["properties"]) == {"root", "work_id"}
+        assert "provider PR/MR" in definitions[name]["description"]
+
+    gated_tools = {
+        "p2p_work_publish": {"root", "work_id", "actor_id", "consent_id", "remote"},
+        "p2p_work_request_review": {"root", "work_id", "actor_id", "consent_id", "provider"},
+        "p2p_work_accept": {"root", "work_id", "actor_id", "consent_id"},
+        "p2p_work_finalize": {"root", "work_id", "actor_id", "consent_id", "remote"},
+        "p2p_work_cleanup": {"root", "work_id", "actor_id", "consent_id", "delete_remote", "remote"},
+    }
+    for name, properties in gated_tools.items():
+        schema = definitions[name]["inputSchema"]
+        assert schema["required"] == ["work_id", "actor_id", "consent_id"]
+        assert set(schema["properties"]) == properties
+        assert "Consent-gated local MCP Work lifecycle tool" in definitions[name]["description"]
+
+    assert definitions["p2p_work_request_review"]["inputSchema"]["properties"]["provider"]["enum"] == [
+        "generic",
+        "github",
+        "gitlab",
+    ]
+    assert definitions["p2p_work_cleanup"]["inputSchema"]["properties"]["delete_remote"]["type"] == "boolean"
+
+
+def test_mcp_registry_does_not_expose_raw_git_lifecycle_shortcuts() -> None:
+    names = set(TOOL_NAMES)
+    forbidden = {
+        "p2p_git_push",
+        "p2p_git_merge",
+        "p2p_git_reset",
+        "p2p_git_clean",
+        "p2p_git_force_push",
+        "p2p_git_checkout",
+        "p2p_git_branch_delete",
+        "p2p_work_force_push",
+        "p2p_work_git_push",
+        "p2p_work_git_merge",
+        "p2p_work_git_cleanup",
+        "p2p_raw_git",
+    }
+
+    assert names.isdisjoint(forbidden)

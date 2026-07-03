@@ -1,0 +1,41 @@
+related_proposals:
+  - proposal: PROP-030
+    relationship: depends_on
+    reason: Defines the managed Work and multi-branch visibility policy that Work MCP tools must preserve.
+  - proposal: PROP-032
+    relationship: depends_on
+    reason: Defines managed Work branch creation behavior.
+  - proposal: PROP-033
+    relationship: depends_on
+    reason: Defines managed Work submit behavior.
+  - proposal: PROP-034
+    relationship: depends_on
+    reason: Defines managed Work review behavior.
+  - proposal: PROP-035
+    relationship: depends_on
+    reason: Defines managed Work publish behavior.
+  - proposal: PROP-036
+    relationship: depends_on
+    reason: Defines managed Work accept behavior.
+  - proposal: PROP-039
+    relationship: depends_on
+    reason: Defines managed Work finalize behavior.
+  - proposal: PROP-040
+    relationship: depends_on
+    reason: Defines managed Work cleanup behavior.
+  - proposal: PROP-044
+    relationship: extends
+    reason: Extends the MCP server surface with additional local Work lifecycle tools.
+  - proposal: PROP-066
+    relationship: implements_boundary
+    reason: Applies the accepted permission-gated MCP governance and Git operation model to Work lifecycle parity.
+  - proposal: PROP-075
+    relationship: extends
+    reason: Completes more of the end-to-end MCP collaboration workflow for Work items.
+  - proposal: PROP-081
+    relationship: aligns_with
+    reason: Continues MCP and skill support for managed operational actions.
+  - proposal: PROP-091
+    relationship: aligns_with
+    reason: Preserves the governance policy distinction between warnings, blockers, owner authority, and preflight-style structured outputs.
+

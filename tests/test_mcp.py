@@ -45,6 +45,65 @@ def _setup_project(tmp_path: Path) -> None:
     runner.invoke(app, ["project", "refresh", "--root", str(tmp_path)])
 
 
+def _setup_work_lifecycle_project(tmp_path: Path) -> Path:
+    runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
+    runner.invoke(app, ["permissions", "actor", "add", "lorenzo", "--role", "contributor", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "MCP Work Demo",
+            "--problem",
+            "Need Work lifecycle MCP parity.",
+            "--proposal",
+            "Expose Work lifecycle tools through local MCP.",
+            "--acceptance",
+            "Work lifecycle tools are callable through MCP.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
+    call_tool("p2p_spec_refresh", {"root": str(tmp_path), "change_id": "CHANGE-001"})
+    call_tool("p2p_spec_export", {"root": str(tmp_path), "change_id": "CHANGE-001", "target": "generic"})
+    call_tool("p2p_work_plan", {"root": str(tmp_path), "change_id": "CHANGE-001", "target": "generic"})
+    _git(tmp_path, "init")
+    _git(tmp_path, "config", "user.email", "test@example.com")
+    _git(tmp_path, "config", "user.name", "Test User")
+    remote_path = tmp_path.parent / f"{tmp_path.name}.git"
+    _git(tmp_path, "init", "--bare", str(remote_path))
+    _git(tmp_path, "remote", "add", "origin", str(remote_path))
+    runner.invoke(app, ["project", "remote", "configure", "--mode", "remote", "--provider", "generic", "--root", str(tmp_path)])
+    for operation in (
+        "work_publish",
+        "work_request_review",
+        "work_accept",
+        "work_finalize",
+        "work_cleanup",
+    ):
+        runner.invoke(
+            app,
+            [
+                "consent",
+                "grant",
+                operation,
+                "WORK-001",
+                "--actor",
+                "lorenzo",
+                "--approved-by",
+                "matteo",
+                "--root",
+                str(tmp_path),
+            ],
+        )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "baseline with work lifecycle consents")
+    _git(tmp_path, "branch", "-M", "main")
+    return remote_path
+
+
 def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
     names = {tool["name"] for tool in tool_definitions()}
 
@@ -115,6 +174,9 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_work_list",
         "p2p_work_status",
         "p2p_work_show",
+        "p2p_work_branch",
+        "p2p_work_submit",
+        "p2p_work_review",
         "p2p_registry_status",
         "p2p_registry_show",
         "p2p_project_show",
@@ -168,6 +230,11 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_spec_export",
         "p2p_spec_export_validate",
         "p2p_work_plan",
+        "p2p_work_publish",
+        "p2p_work_request_review",
+        "p2p_work_accept",
+        "p2p_work_finalize",
+        "p2p_work_cleanup",
         "p2p_explore_prompt",
         "p2p_digest_prompt",
         "p2p_clarify_prompt",
@@ -185,15 +252,17 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_proposal_defer",
         "p2p_proposal_accept_branch",
         "p2p_proposal_reject_branch",
+        "p2p_work_accept",
     }
-    allowed_cleanup_tools = {"p2p_proposal_cleanup"}
+    allowed_cleanup_tools = {"p2p_proposal_cleanup", "p2p_work_cleanup"}
+    allowed_merge_tools = {"p2p_proposal_merge", "p2p_work_accept"}
     assert not any(
         ("accept" in name and name not in allowed_decision_tools)
         or ("reject" in name and name not in allowed_decision_tools)
         or ("defer" in name and name not in allowed_decision_tools)
         or "decide" in name
         or ("cleanup" in name and name not in allowed_cleanup_tools)
-        or (("merge" in name) and name != "p2p_proposal_merge")
+        or (("merge" in name) and name not in allowed_merge_tools)
         or "contribution_accept" in name
         or "record_conflict" in name
         or "block" in name
@@ -1348,6 +1417,8 @@ def test_mcp_write_safe_bootstrap_tools(tmp_path: Path) -> None:
     assert "p2p proposal publish PROP-XXX --auto-renumber" in policy
     assert "deferred_permission_gated_mcp_tools" in policy
     assert "p2p_proposal_publish" in policy
+    assert "p2p_work_publish" in policy
+    assert "p2p_work_accept" in policy
     assert "p2p_sync_fetch" in policy
     assert "raw_git_managed_branch" in policy
 
@@ -1933,6 +2004,139 @@ def test_mcp_write_safe_spec_export_and_work_flow(tmp_path: Path) -> None:
     assert "# Demo Project Project Definition" in export_show["content"]
     assert work_list["work"][0]["work_id"] == "WORK-001"
     assert work_show["work"]["change_id"] == "CHANGE-001"
+
+
+def test_mcp_work_lifecycle_tools_are_callable_through_public_dispatch(tmp_path: Path) -> None:
+    _setup_work_lifecycle_project(tmp_path)
+
+    branched = call_tool("p2p_work_branch", {"root": str(tmp_path), "work_id": "WORK-001"})
+    branch_name = branched["work_branch"]["branch_name"]
+    assert branched["work_branch"]["work_id"] == "WORK-001"
+    assert branched["governance"]["owner_decision_required"] is False
+
+    (tmp_path / "src").mkdir(exist_ok=True)
+    (tmp_path / "src" / "work_demo.py").write_text("VALUE = 1\n", encoding="utf-8")
+    submitted = call_tool("p2p_work_submit", {"root": str(tmp_path), "work_id": "WORK-001"})
+    reviewed = call_tool("p2p_work_review", {"root": str(tmp_path), "work_id": "WORK-001"})
+
+    assert any(path.startswith("src/") for path in submitted["work_submit"]["changed_files"])
+    assert submitted["governance"]["merge_performed"] is False
+    assert reviewed["work_review"]["metadata_commit"]
+
+    published = call_tool(
+        "p2p_work_publish",
+        {
+            "root": str(tmp_path),
+            "work_id": "WORK-001",
+            "actor_id": "lorenzo",
+            "consent_id": "CONSENT-001",
+        },
+    )
+    review_requested = call_tool(
+        "p2p_work_request_review",
+        {
+            "root": str(tmp_path),
+            "work_id": "WORK-001",
+            "actor_id": "lorenzo",
+            "consent_id": "CONSENT-002",
+            "provider": "github",
+        },
+    )
+
+    assert published["work_publish"]["remote"] == "origin"
+    assert published["governance"]["published"] is True
+    assert published["consent"]["status"] == "consumed"
+    assert branch_name in _git(tmp_path, "ls-remote", "--heads", "origin", branch_name).stdout
+    assert review_requested["work_review_request"]["provider"] == "github"
+    assert review_requested["governance"]["external_review_requested"] is True
+    assert review_requested["work_review_request"]["suggested_next"]
+
+    _git(tmp_path, "checkout", "main")
+    accepted = call_tool(
+        "p2p_work_accept",
+        {
+            "root": str(tmp_path),
+            "work_id": "WORK-001",
+            "actor_id": "lorenzo",
+            "consent_id": "CONSENT-003",
+        },
+    )
+    finalized = call_tool(
+        "p2p_work_finalize",
+        {
+            "root": str(tmp_path),
+            "work_id": "WORK-001",
+            "actor_id": "lorenzo",
+            "consent_id": "CONSENT-004",
+        },
+    )
+    cleaned = call_tool(
+        "p2p_work_cleanup",
+        {
+            "root": str(tmp_path),
+            "work_id": "WORK-001",
+            "actor_id": "lorenzo",
+            "consent_id": "CONSENT-005",
+            "delete_remote": True,
+        },
+    )
+
+    assert accepted["governance"]["merge_performed"] is True
+    assert accepted["governance"]["finalized"] is False
+    assert accepted["consent"]["status"] == "consumed"
+    assert finalized["work_finalize"]["base_branch"] == "main"
+    assert finalized["governance"]["finalized"] is True
+    assert finalized["governance"]["cleanup_performed"] is False
+    assert cleaned["work_cleanup"]["local_deleted"] is True
+    assert cleaned["work_cleanup"]["remote_deleted"] is True
+    assert cleaned["governance"]["cleanup_performed"] is True
+    assert branch_name not in _git(tmp_path, "branch", "--list", branch_name).stdout
+    assert branch_name not in _git(tmp_path, "ls-remote", "--heads", "origin", branch_name).stdout
+
+
+def test_mcp_work_publish_rejects_consent_actor_mismatch_before_lifecycle(
+    tmp_path: Path,
+) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
+    runner.invoke(app, ["permissions", "actor", "add", "lorenzo", "--role", "contributor", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "consent",
+            "grant",
+            "work_publish",
+            "WORK-001",
+            "--actor",
+            "lorenzo",
+            "--approved-by",
+            "matteo",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    with pytest.raises(ValueError, match="Consent receipt actor mismatch"):
+        call_tool(
+            "p2p_work_publish",
+            {
+                "root": str(tmp_path),
+                "work_id": "WORK-001",
+                "actor_id": "matteo",
+                "consent_id": "CONSENT-001",
+            },
+        )
+
+    receipt = yaml.safe_load((tmp_path / ".p2p" / "consents" / "CONSENT-001" / "consent.yml").read_text(encoding="utf-8"))
+    assert receipt["status"] == "granted"
+
+
+def test_mcp_work_lifecycle_tools_validate_required_arguments(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+
+    with pytest.raises(ValueError, match="Missing required argument: work_id"):
+        call_tool("p2p_work_branch", {"root": str(tmp_path)})
+    with pytest.raises(ValueError, match="Missing required argument: actor_id"):
+        call_tool("p2p_work_publish", {"root": str(tmp_path), "work_id": "WORK-001", "consent_id": "CONSENT-001"})
 
 
 def test_mcp_change_create_is_metadata_only_for_accepted_proposal(tmp_path: Path) -> None:

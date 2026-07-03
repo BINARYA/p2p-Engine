@@ -1,0 +1,178 @@
+proposal_artifacts:
+  schema_version: 1
+  proposal_id: PROP-092
+  initialized_at: '2026-07-03T22:35:34Z'
+  updated_at: '2026-07-03T22:39:51Z'
+  status: active
+  legacy:
+    state: ''
+    reason: ''
+  artifacts:
+  - id: proposal
+    filename: proposal.md
+    expectation: required
+    status: satisfied
+    reason: proposal.md contains concrete problem, context, goals, non-goals, proposal
+      direction, and acceptance criteria for local MCP Work lifecycle parity.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-07-03T22:35:34Z'
+    updated_at: '2026-07-03T22:39:49Z'
+    history:
+    - at: '2026-07-03T22:39:49Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: proposal.md contains concrete problem, context, goals, non-goals, proposal
+        direction, and acceptance criteria for local MCP Work lifecycle parity.
+  - id: readiness
+    filename: readiness.yml
+    expectation: required
+    status: satisfied
+    reason: readiness.yml has been initialized and assessed for this proposal.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-07-03T22:35:34Z'
+    updated_at: '2026-07-03T22:39:49Z'
+    history:
+    - at: '2026-07-03T22:39:49Z'
+      actor: codex
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: readiness.yml has been initialized and assessed for this proposal.
+  - id: open_questions
+    filename: open-questions.md
+    expectation: required
+    status: satisfied
+    reason: No blocking owner questions remain; the owner selected local MCP lifecycle
+      parity and remote Wavekit boundary as the desired direction.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-07-03T22:35:34Z'
+    updated_at: '2026-07-03T22:39:50Z'
+    history:
+    - at: '2026-07-03T22:39:50Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: No blocking owner questions remain; the owner selected local MCP lifecycle
+        parity and remote Wavekit boundary as the desired direction.
+  - id: clarifications
+    filename: clarifications.md
+    expectation: required
+    status: satisfied
+    reason: 'Key clarifications are captured in proposal context, open-questions.md,
+      assumptions, and scope boundary: remote MCP is out of core scope.'
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - owner_clarification
+    created_at: '2026-07-03T22:35:34Z'
+    updated_at: '2026-07-03T22:39:50Z'
+    history:
+    - at: '2026-07-03T22:39:50Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: 'Key clarifications are captured in proposal context, open-questions.md,
+        assumptions, and scope boundary: remote MCP is out of core scope.'
+  - id: findings
+    filename: findings.md
+    expectation: required
+    status: satisfied
+    reason: findings.md captures current system position, command-layer reuse, local
+      MCP trust boundary, and Wavekit product boundary.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - governance_policy
+    - public_interface
+    - cross_module
+    - permission_security_sync
+    - user_workflow_docs_release
+    - alternatives
+    - owner_clarification
+    created_at: '2026-07-03T22:35:34Z'
+    updated_at: '2026-07-03T22:39:51Z'
+    history:
+    - at: '2026-07-03T22:39:51Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: findings.md captures current system position, command-layer reuse, local
+        MCP trust boundary, and Wavekit product boundary.
+  - id: exploration
+    filename: exploration.md
+    expectation: required
+    status: satisfied
+    reason: exploration.md and alternatives.md analyze CLI-only, read-only MCP, local
+      MCP full parity, and remote MCP-in-core alternatives.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - alternatives
+    created_at: '2026-07-03T22:35:34Z'
+    updated_at: '2026-07-03T22:39:51Z'
+    history:
+    - at: '2026-07-03T22:39:51Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: exploration.md and alternatives.md analyze CLI-only, read-only MCP,
+        local MCP full parity, and remote MCP-in-core alternatives.
+  - id: impact_map
+    filename: impact-map.yml
+    expectation: required
+    status: satisfied
+    reason: impact-map.yml, related-proposals.yml, and conflict-analysis.yml identify
+      affected commands, files, governance links, dependencies, and scope conflicts.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - governance_policy
+    - public_interface
+    - cross_module
+    - permission_security_sync
+    - user_workflow_docs_release
+    - alternatives
+    - owner_clarification
+    created_at: '2026-07-03T22:35:34Z'
+    updated_at: '2026-07-03T22:39:51Z'
+    history:
+    - at: '2026-07-03T22:39:51Z'
+      actor: codex
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: impact-map.yml, related-proposals.yml, and conflict-analysis.yml identify
+        affected commands, files, governance links, dependencies, and scope conflicts.

@@ -52,3 +52,15 @@ next_action_log:
     and readiness reassessment. Readiness is now partial with no missing criteria;
     only owner questions remain.
   closed_on: '2026-06-10'
+- id: NEXT-004
+  priority: medium
+  kind: define_scope
+  target: work-mcp-parity
+  reason: Proposal branch lifecycle is now complete through permission-gated MCP,
+    but Work publish/finalize/accept/cleanup MCP parity is still a product decision.
+  command: decide whether to create a proposal for permission-gated Work MCP lifecycle
+    tools
+  status: completed
+  closed_reason: Created PROP-092 to define local MCP Work lifecycle parity and remote
+    gateway boundary.
+  closed_on: '2026-07-04'

@@ -1,0 +1,96 @@
+contributions:
+- id: C001
+  type: architectural_principle
+  author: codex
+  relevance_hint: high
+  text: 'Adapter separation principle: CLI, local MCP, and future Wavekit remote MCP
+    must call the same Work lifecycle command layer. Adapters may validate schemas,
+    translate transport inputs, and format structured outputs, but they must not duplicate
+    the Work state machine or bypass domain services.'
+- id: C002
+  type: architectural_principle
+  author: codex
+  relevance_hint: high
+  text: 'Tool catalog versus authority: local MCP may expose the full Work lifecycle
+    catalog, but tool availability never implies execution permission. Execution remains
+    conditioned by Work state, branch context, consent receipt, actor identity, remote
+    profile, and owner-controlled policy.'
+- id: C003
+  type: constraint
+  author: codex
+  relevance_hint: high
+  text: Local MCP tools must remain domain-specific P2P tools. The proposal explicitly
+    excludes arbitrary Git tools such as raw push, raw merge, reset hard, clean force,
+    force-push, arbitrary branch deletion, and unrestricted checkout.
+- id: C004
+  type: scope_boundary
+  author: codex
+  relevance_hint: high
+  text: 'Remote MCP boundary: a remote HTTP MCP server, OAuth, authenticated Wavekit
+    users, client registration, external MCP client grants, tenant isolation, hosted
+    project quotas, billing, abuse controls, and long-term audit retention belong
+    to Wavekit or a separate remote gateway, not to P2P Engine core.'
+- id: C005
+  type: implementation_suggestion
+  author: codex
+  relevance_hint: high
+  text: MVP local tool set should include p2p_work_branch, p2p_work_submit, p2p_work_review,
+    p2p_work_publish, p2p_work_request_review, p2p_work_accept, p2p_work_finalize,
+    and p2p_work_cleanup. Existing p2p_work_list, p2p_work_status, p2p_work_show,
+    and p2p_work_plan remain unchanged.
+- id: C006
+  type: implementation_suggestion
+  author: codex
+  relevance_hint: high
+  text: 'Mutating Work MCP tools should follow the existing permission-gated proposal-branch
+    MCP pattern: validate consent first, capture safe HEAD before execution where
+    relevant, call the workspace/service method, consume consent with structured result
+    metadata on success, and mark consent used_with_error when a state-changing failure
+    occurs.'
+- id: C007
+  type: constraint
+  author: codex
+  relevance_hint: high
+  text: Consent v1 for local Work MCP must at minimum bind operation, target Work
+    ID, actor_id, receipt status, expiry, and single-use semantics. Where the command
+    can reliably resolve them, result metadata should include branch, base branch,
+    remote, commit IDs, cleanup flags, and conflict data.
+- id: C008
+  type: risk
+  author: codex
+  relevance_hint: high
+  text: 'TOCTOU risk: a Work branch or repository state may change after consent is
+    granted. The MVP should fail closed on wrong status, wrong current branch, dirty
+    worktree, missing branch, missing remote, and malformed manifests. Expected SHA
+    or arguments-hash binding is valuable but may be introduced incrementally if not
+    already supported by current consent receipts.'
+- id: C009
+  type: risk
+  author: codex
+  relevance_hint: high
+  text: 'Confused deputy risk: an agent may have tool access but not authority to
+    perform owner-controlled actions. The local MVP mitigates this through consent
+    receipts and policy checks; future Wavekit remote MCP must add authenticated principal,
+    client identity, grants, scoped receipts, and server-side audit.'
+- id: C010
+  type: risk
+  author: codex
+  relevance_hint: medium
+  text: 'Cleanup risk: cleanup can delete local and optionally remote managed branches.
+    The MCP tool must make delete_remote explicit, record whether local and remote
+    deletion occurred, and keep remote deletion consent-gated and auditable.'
+- id: C011
+  type: constraint
+  author: codex
+  relevance_hint: medium
+  text: Provider PR/MR automation remains out of scope. Work request-review may record
+    provider-advisory handoff metadata, but it must not create GitHub pull requests,
+    GitLab merge requests, or provider-side review objects in this proposal.
+- id: C012
+  type: objective
+  author: codex
+  relevance_hint: high
+  text: 'Outcome: agent-first local workflows can complete a managed Work lifecycle
+    through MCP without raw Git escape hatches, while preserving owner-controlled
+    merge/finalize/cleanup boundaries and leaving Wavekit remote collaboration as
+    a separate product adapter.'

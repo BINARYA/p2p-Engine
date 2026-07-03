@@ -685,3 +685,12 @@ decisions:
     Convergence with owner_decides as default, deterministic preflight, explicit precedent
     lookup, warning/blocking semantics, actor-role migration, and read-only/low-risk
     MCP phase 1.
+- proposal: PROP-092
+  title: Local MCP Work Lifecycle Parity And Remote Gateway Boundary
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/decision.md
+  reason: 'Owner accepted local MCP Work lifecycle parity as the core direction: P2P
+    Engine exposes the full Work lifecycle through local MCP using domain-specific,
+    permission-gated commands, while remote multi-user MCP remains a separate Wavekit
+    gateway boundary.'

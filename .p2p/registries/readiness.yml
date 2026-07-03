@@ -1236,3 +1236,16 @@ readiness:
   missing: []
   suggested_next: []
   path: .p2p/proposals/PROP-091-governance-policy-convergence/readiness.yml
+- proposal: PROP-092
+  title: Local MCP Work Lifecycle Parity And Remote Gateway Boundary
+  proposal_status: accepted
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  computed_score: 100
+  computed_label: decision_ready
+  confidence: high
+  failed_gates: []
+  missing: []
+  suggested_next: []
+  path: .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/readiness.yml

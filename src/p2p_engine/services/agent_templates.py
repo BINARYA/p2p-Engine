@@ -394,11 +394,17 @@ def agent_policy(
                 "p2p_proposal_finalize",
                 "p2p_proposal_cleanup",
                 "p2p_proposal_branch_scan",
+                "p2p_work_branch",
+                "p2p_work_submit",
+                "p2p_work_review",
+                "p2p_work_publish",
+                "p2p_work_request_review",
+                "p2p_work_accept",
+                "p2p_work_finalize",
+                "p2p_work_cleanup",
             ],
             "deferred_permission_gated_mcp_tools": [
                 "p2p_proposal_retire_branch",
-                "p2p_work_publish",
-                "p2p_work_finalize",
             ],
         },
         "allowed_mutation_boundary": {
@@ -573,7 +579,7 @@ Before creating proposal or Work branches, inspect P2P state and sync state. Sto
 
 Assume MCP tools are read-only unless the tool schema explicitly describes a write action.
 
-When MCP is read-only, use it for status and inspection only. For mutations, use `p2p` CLI commands when available or explicit write-safe MCP tools such as `p2p_project_remote_configure`, `p2p_consent_request`, `p2p_proposal_draft_commit`, `p2p_proposal_branch`, and `p2p_sync_fetch` when their schema matches the requested action.
+When MCP is read-only, use it for status and inspection only. For mutations, use `p2p` CLI commands when available or explicit write-safe MCP tools such as `p2p_project_remote_configure`, `p2p_consent_request`, `p2p_proposal_draft_commit`, `p2p_proposal_branch`, `p2p_work_branch`, `p2p_work_submit`, `p2p_work_review`, and `p2p_sync_fetch` when their schema matches the requested action.
 
 MCP may use implemented permission-gated repository tools only with a valid consent receipt. MCP must not retire or create provider PR/MR handoffs until those operations are explicitly implemented and authorized.
 

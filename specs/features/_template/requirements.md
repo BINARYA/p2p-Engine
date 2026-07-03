@@ -17,6 +17,15 @@ Describe the feature and why it exists.
 
 - TBD
 
+## Public Surface And MCP Impact
+
+- CLI impact: none / read-only / write-safe / permission-gated / breaking change.
+- MCP impact: not applicable / preserve existing surface / add read-only tool /
+  add write-safe tool / add consent-gated tool / explicitly deferred.
+- Storage impact: none / compatible persisted artifact change / migration needed.
+- Agent-facing behavior: none / payload change / new workflow / documentation only.
+- MCP parity decision: `<why MCP is or is not required for this feature>`.
+
 ## Functional Requirements
 
 - R001: WHEN `<trigger>`, THE SYSTEM SHALL `<observable behavior>`.

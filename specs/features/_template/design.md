@@ -20,6 +20,20 @@
 
 TBD
 
+## Public Surface And MCP Parity
+
+- CLI contract: TBD
+- MCP contract: not applicable / unchanged / read-only / write-safe /
+  consent-gated / deferred with rationale.
+- Storage contract: TBD
+- Documentation contract: TBD
+- Test contract: service / CLI / MCP / integration / full suite.
+
+If this feature changes an operational workflow, CLI behavior, lifecycle,
+permission/consent flow, Git/sync behavior, or agent-facing payload, explain
+whether MCP parity is implemented in this scope. If it is not implemented,
+record the explicit reason and follow-up.
+
 ## Error Handling
 
 TBD

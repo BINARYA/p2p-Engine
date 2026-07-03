@@ -39,10 +39,10 @@ Install a versioned wheel from GitHub Releases:
 
 ```bash
 .venv/bin/python -m pip install \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.1.8/p2p_engine-0.1.8-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.1.9/p2p_engine-0.1.9-py3-none-any.whl
 ```
 
-Replace `v0.1.8` and `p2p_engine-0.1.8-py3-none-any.whl` with the release you
+Replace `v0.1.9` and `p2p_engine-0.1.9-py3-none-any.whl` with the release you
 intend to use. The wheel filename is expected to follow:
 
 ```text
@@ -168,7 +168,7 @@ From the target project:
 
 ```bash
 .venv/bin/python -m pip install --upgrade \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.1.8/p2p_engine-0.1.8-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.1.9/p2p_engine-0.1.9-py3-none-any.whl
 
 .venv/bin/p2p doctor
 .venv/bin/p2p agent doctor
@@ -194,20 +194,20 @@ version, commit and push `main`, then push a matching version tag:
 ```bash
 # pyproject.toml
 # [project]
-# version = "0.1.8"
+# version = "0.1.9"
 
 git add pyproject.toml
-git commit -m "Bump version to 0.1.8"
+git commit -m "Bump version to 0.1.9"
 git push origin main
 
-git tag -a v0.1.8 -m "P2P Engine v0.1.8"
-git push origin v0.1.8
+git tag -a v0.1.9 -m "P2P Engine v0.1.9"
+git push origin v0.1.9
 ```
 
 The release workflow runs tests, runs `p2p validate`, builds the source
 distribution and wheel, and uploads both files to the matching GitHub Release.
-The tag must match `pyproject.toml`: tag `v0.1.8` requires
-`version = "0.1.8"`. Do not reuse an existing version or tag for different
+The tag must match `pyproject.toml`: tag `v0.1.9` requires
+`version = "0.1.9"`. Do not reuse an existing version or tag for different
 contents.
 
 Expected release assets:
@@ -241,7 +241,7 @@ Attach that `.whl` and the matching `.tar.gz` to the GitHub Release only if the
 automated workflow is unavailable. For example:
 
 ```text
-v0.1.8 -> p2p_engine-0.1.8-py3-none-any.whl, p2p_engine-0.1.8.tar.gz
+v0.1.9 -> p2p_engine-0.1.9-py3-none-any.whl, p2p_engine-0.1.9.tar.gz
 ```
 
 ## Connect An Agent
@@ -478,6 +478,11 @@ proposal_reject_branch    -> p2p_proposal_reject_branch
 proposal_merge            -> p2p_proposal_merge
 proposal_finalize         -> p2p_proposal_finalize
 proposal_cleanup          -> p2p_proposal_cleanup
+work_publish              -> p2p_work_publish
+work_request_review       -> p2p_work_request_review
+work_accept               -> p2p_work_accept
+work_finalize             -> p2p_work_finalize
+work_cleanup              -> p2p_work_cleanup
 sync_pull                 -> p2p_sync_pull
 sync_push                 -> p2p_sync_push
 ```
@@ -618,10 +623,11 @@ p2p assess refresh
 
 - Installation is source-based.
 - Packaged or compiled CLI distribution is future work.
-- MCP support is local stdio. Selected write operations are available only
+- MCP support is local stdio. Privileged write operations are available only
   through explicit permission-gated tools.
+- Local MCP exposes the managed Work lifecycle through domain-specific tools;
+  privileged Work operations require matching consent receipts.
 - Provider PR/MR creation is not implemented; request-review records handoff
   metadata and guidance only.
-- Full Work lifecycle parity through permission-gated MCP is not implemented.
 - Rubric maturity scoring is deterministic and conservative, not AI semantic review.
 - Mediator and Web layers are not implemented.

@@ -425,6 +425,9 @@ Before coding, the agent must answer:
 10. What tests will prove correctness and prevent behavior drift?
 11. Does the change require a structured implementation summary?
 12. Is there any owner, governance, security, permission, or consent implication?
+13. If the change affects a CLI, operational lifecycle, permission/consent flow,
+    Git/sync behavior, or agent-facing payload, is MCP parity required,
+    unchanged, not applicable, or explicitly deferred?
 
 ## Design Process Exit Condition
 
@@ -1182,6 +1185,8 @@ Before implementing a non-trivial change, the agent must confirm:
 [ ] I inspected relevant tests.
 [ ] I searched for similar existing logic.
 [ ] I know whether public CLI/API/MCP/schema behavior is affected.
+[ ] If CLI or agent-facing behavior is affected, I know whether MCP parity is
+    required, unchanged, not applicable, or explicitly deferred.
 [ ] I know whether persisted artifacts or database schema are affected.
 [ ] I know whether the change is structural, behavioral, or both.
 [ ] I know the smallest reversible implementation path.
@@ -1385,6 +1390,23 @@ Do not break without explicit proposal:
 - validation findings;
 - registry refresh behavior;
 - Git/sync behavior.
+
+## 29.4.1 MCP Parity Decision Gate
+
+For p2p Engine, every feature or refactor that adds or changes an operational
+workflow, CLI command, lifecycle transition, permission/consent behavior,
+Git/sync behavior, or agent-facing payload must make an explicit MCP parity
+decision.
+
+Valid decisions are:
+
+- MCP not applicable because the behavior is internal only;
+- MCP unchanged because the existing tool surface already covers the behavior;
+- MCP updated as read-only, write-safe, or permission/consent-gated;
+- MCP deferred with a documented rationale and follow-up.
+
+Do not treat missing MCP work as implicit scope control. If MCP is deferred, the
+feature spec, design note, task list, or implementation summary must say why.
 
 ## 29.5 Owner-Controlled Actions
 

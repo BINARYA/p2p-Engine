@@ -263,6 +263,14 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_spec_export` | write-safe | yes | no | Export spec outputs for `generic`, `openspec`, or `speckit`. |
 | `p2p_spec_export_validate` | read-only | no | no | Validate an existing spec export. |
 | `p2p_work_plan` | write-safe | yes | no | Create a Work manifest from a validated export. |
+| `p2p_work_branch` | managed Work | yes | no | Create and check out the managed Work branch. |
+| `p2p_work_submit` | managed Work | yes | no | Commit implementation changes on the managed Work branch. |
+| `p2p_work_review` | managed Work | yes | no | Record local Work review readiness. |
+| `p2p_work_publish` | permission-gated | yes | yes | Publish reviewed Work branch with `work_publish` consent. |
+| `p2p_work_request_review` | permission-gated | yes | yes | Record provider-advisory Work review metadata with `work_request_review` consent. |
+| `p2p_work_accept` | permission-gated | yes | yes | Merge published Work branch into its base branch with `work_accept` consent. |
+| `p2p_work_finalize` | permission-gated | yes | yes | Push accepted Work base branch with `work_finalize` consent. |
+| `p2p_work_cleanup` | permission-gated | yes | yes | Delete finalized Work branches with `work_cleanup` consent; remote deletion requires `delete_remote: true`. |
 | `p2p_sync_pull` | permission-gated | yes | yes | Fast-forward pull current branch with `sync_pull` consent. |
 | `p2p_sync_push` | permission-gated | yes | yes | Push current branch with `sync_push` consent. |
 | `p2p_proposal_publish` | permission-gated | yes | yes | Publish current proposal branch with `proposal_publish` consent. |
@@ -289,10 +297,10 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_spec_prompt` | advisory/write-safe | yes | no | Generate a software-spec refinement prompt for a Change Set. |
 
 MCP now exposes permission-gated draft proposal accept/reject/defer decisions.
-It still does not expose choice decisions, spec imports, conflict recording,
-voting, precedent recording, choice blocking, Work branch creation, Work
-submission, Work review, Work publishing, Work acceptance, Work finalization,
-Work cleanup, provider PR/MR creation, or a hosted IAM model.
+It also exposes local MCP parity for the managed Work lifecycle through
+domain-specific Work tools. It still does not expose choice decisions, spec
+imports, conflict recording, voting, precedent recording, choice blocking, raw
+Git shortcuts, provider PR/MR creation, remote HTTP MCP, or a hosted IAM model.
 
 For end-to-end proposal collaboration, MCP can prepare the path but cannot grant
 owner consent:
@@ -411,7 +419,37 @@ proposal_reject_branch    -> p2p_proposal_reject_branch
 proposal_merge            -> p2p_proposal_merge
 proposal_finalize         -> p2p_proposal_finalize
 proposal_cleanup          -> p2p_proposal_cleanup
+work_publish              -> p2p_work_publish
+work_request_review       -> p2p_work_request_review
+work_accept               -> p2p_work_accept
+work_finalize             -> p2p_work_finalize
+work_cleanup              -> p2p_work_cleanup
 ```
+
+Local Work lifecycle flow:
+
+```text
+p2p_work_plan
+p2p_work_branch
+p2p_work_submit
+p2p_work_review
+p2p_work_publish with work_publish consent
+p2p_work_request_review with work_request_review consent
+p2p_work_accept with work_accept consent
+p2p_work_finalize with work_finalize consent
+p2p_work_cleanup with work_cleanup consent
+```
+
+`p2p_work_request_review` records provider-advisory metadata and suggested next
+steps only. It does not open GitHub pull requests, GitLab merge requests, or any
+provider-side review records.
+
+The local MCP server runs in the caller's local execution context. Remote HTTP
+MCP, Wavekit user authentication, client grants, strong receipts, hosted audit
+retention, tenancy, billing, and rate limits belong in a gateway layer outside
+the P2P Engine core. A gateway can call the same core lifecycle methods, but it
+must enforce its own remote identity and authorization policy before invoking
+these local operations.
 
 ## Troubleshooting
 

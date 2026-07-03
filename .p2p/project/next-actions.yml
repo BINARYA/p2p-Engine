@@ -1,12 +1,4 @@
 next_actions:
-- id: NEXT-004
-  priority: medium
-  kind: define_scope
-  target: work-mcp-parity
-  reason: Proposal branch lifecycle is now complete through permission-gated MCP,
-    but Work publish/finalize/accept/cleanup MCP parity is still a product decision.
-  command: decide whether to create a proposal for permission-gated Work MCP lifecycle
-    tools
 - id: NEXT-005
   priority: medium
   kind: define_scope
