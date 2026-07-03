@@ -47,6 +47,47 @@ def handle_project_tool(
         return {"choice_discovery": to_jsonable(workspace.discover_choices())}
     if name == "p2p_conflict_status":
         return {"conflicts": to_jsonable(workspace.conflict_status())}
+    if name == "p2p_governance_status":
+        return {
+            "governance_status": to_jsonable(workspace.governance_status()),
+            "mutation_performed": False,
+        }
+    if name == "p2p_governance_validate":
+        return {
+            "governance_validation": to_jsonable(workspace.validate_governance_policy()),
+            "mutation_performed": False,
+        }
+    if name == "p2p_choice_governance_preflight":
+        return {
+            "governance_preflight": to_jsonable(
+                workspace.choice_governance_preflight(
+                    required(arguments, "choice_id"),
+                    option=required(arguments, "option"),
+                    actor=required(arguments, "actor"),
+                    precedent_id=optional_string(arguments, "precedent_id"),
+                    tag=optional_string(arguments, "tag"),
+                )
+            ),
+            "decision_made": False,
+            "mutation_performed": False,
+        }
+    if name == "p2p_vote_status":
+        return {
+            "vote_status": to_jsonable(workspace.vote_status(required(arguments, "proposal_id"))),
+            "mutation_performed": False,
+        }
+    if name == "p2p_precedent_search":
+        return {
+            "precedents": to_jsonable(
+                workspace.search_decision_precedents(
+                    precedent_id=optional_string(arguments, "precedent_id"),
+                    proposal_id=optional_string(arguments, "proposal_id"),
+                    choice_id=optional_string(arguments, "choice_id"),
+                    tag=optional_string(arguments, "tag"),
+                )
+            ),
+            "mutation_performed": False,
+        }
     if name == "p2p_project_status":
         return {"project_status": to_jsonable(workspace.project_state_status())}
     if name == "p2p_project_interaction_style_show":

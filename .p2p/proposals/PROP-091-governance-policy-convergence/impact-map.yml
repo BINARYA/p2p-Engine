@@ -1,0 +1,51 @@
+impact:
+  proposal: PROP-091
+  features:
+    - governance policy evaluation
+    - choice lifecycle
+    - proposal governance
+    - permissions and consent
+    - MCP read-only governance tools
+    - validation
+  commands:
+    - p2p governance status
+    - p2p governance validate
+    - p2p choice governance-preflight
+    - p2p vote status
+    - p2p precedent search
+  files:
+    - src/p2p_engine/services/governance.py
+    - src/p2p_engine/services/choices.py
+    - src/p2p_engine/services/permissions.py
+    - src/p2p_engine/services/validation.py
+    - src/p2p_engine/mcp/catalog
+    - src/p2p_engine/mcp/handlers
+    - tests/test_governance_service.py
+    - tests/test_choice_lifecycle_service.py
+    - tests/test_permissions_consent_services.py
+    - tests/test_validation_service.py
+    - tests/test_mcp.py
+  governance:
+    - preserves owner_decides as default
+    - keeps votes advisory
+    - introduces structured preflight before finalization
+    - defers MCP mutation and final decision tools
+  project_artifacts:
+    - .p2p/governance/governance.yml
+    - .p2p/governance/roles.yml
+    - .p2p/governance/decision-precedents.yml
+    - .p2p/project/permissions.yml
+    - .p2p/choices/*/choice.md
+    - .p2p/choices/*/options.yml
+    - .p2p/choices/*/links.yml
+    - .p2p/proposals/*/votes.yml
+  dependencies:
+    - existing permissions and consent model
+    - existing choice lifecycle model
+    - existing governance artifact storage
+    - existing MCP read-only/advisory patterns
+  risks:
+    - schema drift between CLI and MCP
+    - accidental governance mutation through read-only tools
+    - ambiguity between roles.yml and permissions.yml
+    - premature enforcement complexity

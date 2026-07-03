@@ -49,16 +49,22 @@ decisions:
     will address readiness assessment refresh and review workflow.
 - proposal: PROP-007
   title: Proposal Intake and Overlap Analysis
-  outcome: pending
-  status: draft
+  outcome: superseded
+  status: superseded
   path: .p2p/proposals/PROP-007-proposal-intake-and-overlap-analysis/decision.md
-  reason: ''
+  reason: Superseded by PROP-017 Proposal Intake and Context Analysis MVP and PROP-025
+    Controlled Intake Apply Workflow, which implemented the intake and controlled
+    apply capabilities in a more complete form.
 - proposal: PROP-008
   title: Governance Model
-  outcome: pending
-  status: draft
+  outcome: superseded
+  status: superseded
   path: .p2p/proposals/PROP-008-governance-model/decision.md
-  reason: ''
+  reason: 'Owner annotated closure: PROP-008 delivered the technical/documental MVP
+    for governance artifacts, vote recording, precedent recording, and SWOT prompt
+    support. It did not deliver a complete operational governance policy model. The
+    remaining direction is superseded by a focused follow-up proposal for Governance
+    Policy Convergence across permissions, governance, choices, votes, and precedents.'
 - proposal: PROP-009
   title: Governance CLI Commands
   outcome: accepted
@@ -652,10 +658,14 @@ decisions:
   reason: ''
 - proposal: PROP-089
   title: Readiness Question-State Convergence
-  outcome: pending
-  status: draft
+  outcome: accepted
+  status: accepted
   path: .p2p/proposals/PROP-089-readiness-question-state-convergence/decision.md
-  reason: ''
+  reason: 'Accepted by owner with explicit readiness override after verification:
+    the readiness/question-state convergence behavior is already implemented and validated
+    with focused readiness/question tests, CLI/MCP contract tests, full pytest, and
+    p2p validate. Computed readiness remains partial at 70, but there are no failed
+    gates, missing artifacts, suggested next actions, or eligible owner questions.'
 - proposal: PROP-090
   title: Project Vertical Pack Runtime Hardening And Definition State
   outcome: accepted
@@ -664,3 +674,14 @@ decisions:
   reason: Owner reviewed the refined production hardening proposal, confirmed no further
     changes are needed, and accepts it as the follow-up to PROP-085 for project vertical
     pack runtime hardening and definition-state production readiness.
+- proposal: PROP-091
+  title: Governance Policy Convergence
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-091-governance-policy-convergence/decision.md
+  reason: Accepted by owner after guided refinement. The proposal is decision-ready
+    with readiness score 100, high confidence, no failed gates, no missing artifacts,
+    no suggested next actions, and clean validation. It defines Governance Policy
+    Convergence with owner_decides as default, deterministic preflight, explicit precedent
+    lookup, warning/blocking semantics, actor-role migration, and read-only/low-risk
+    MCP phase 1.

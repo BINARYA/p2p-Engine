@@ -393,6 +393,138 @@ def test_cli_validate_valid_project_and_json_output(tmp_path: Path) -> None:
     assert payload["errors"] == 0
 
 
+def test_cli_governance_policy_read_only_surfaces(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Vote Target", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "choice",
+            "create",
+            "--title",
+            "Deployment Strategy",
+            "--option",
+            "Blue",
+            "--option",
+            "Green",
+            "--related",
+            "PROP-001",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(
+        app,
+        [
+            "vote",
+            "record",
+            "PROP-001",
+            "--choice",
+            "A",
+            "--reason",
+            "Prefer blue.",
+            "--voter",
+            "owner",
+            "--role",
+            "owner",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    precedent_path = tmp_path / ".p2p" / "governance" / "decision-precedents.yml"
+    precedent_path.parent.mkdir(parents=True, exist_ok=True)
+    precedent_path.write_text(
+        yaml.safe_dump({"precedents": [{"id": "DP001", "related_choices": ["CHOICE-001"]}]}),
+        encoding="utf-8",
+    )
+    before = {
+        path.relative_to(tmp_path): path.read_text(encoding="utf-8")
+        for path in sorted((tmp_path / ".p2p").rglob("*"))
+        if path.is_file()
+    }
+
+    preflight = runner.invoke(
+        app,
+        [
+            "choice",
+            "governance-preflight",
+            "CHOICE-001",
+            "--option",
+            "B",
+            "--actor",
+            "owner",
+            "--format",
+            "json",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    vote_status = runner.invoke(app, ["vote", "status", "PROP-001", "--format", "json", "--root", str(tmp_path)])
+    governance_validate = runner.invoke(app, ["governance", "validate", "--format", "json", "--root", str(tmp_path)])
+
+    assert preflight.exit_code == 0
+    payload = json.loads(preflight.output)
+    assert payload["schema_version"] == "governance-preflight/v1"
+    assert payload["vote_summary"]["alignment"] == "conflicts"
+    assert "P2P_GOV_VOTE_CONFLICT" in [warning["code"] for warning in payload["warnings"]]
+    assert "P2P_GOV_RELATED_PRECEDENTS" in [warning["code"] for warning in payload["warnings"]]
+    decision = tmp_path / ".p2p" / "choices" / "CHOICE-001-deployment-strategy" / "decision.md"
+    assert "Pending." in decision.read_text(encoding="utf-8")
+    assert vote_status.exit_code == 0
+    assert json.loads(vote_status.output)["winner"] == "A"
+    assert governance_validate.exit_code == 0
+    assert json.loads(governance_validate.output)["ok"] is True
+    after = {
+        path.relative_to(tmp_path): path.read_text(encoding="utf-8")
+        for path in sorted((tmp_path / ".p2p").rglob("*"))
+        if path.is_file()
+    }
+    assert after == before
+
+
+def test_cli_precedent_search_matches_explicit_fields_only(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    precedent_path = tmp_path / ".p2p" / "governance" / "decision-precedents.yml"
+    precedent_path.parent.mkdir(parents=True, exist_ok=True)
+    precedent_path.write_text(
+        yaml.safe_dump(
+            {
+                "precedents": [
+                    {
+                        "id": "DP001",
+                        "title": "Deployment precedent",
+                        "related_choices": ["CHOICE-001"],
+                        "tags": ["deployment"],
+                    },
+                    {
+                        "id": "DP002",
+                        "title": "Similar deployment title",
+                        "tags": ["release"],
+                    },
+                ]
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    explicit = runner.invoke(
+        app,
+        ["precedent", "search", "--choice", "CHOICE-001", "--format", "json", "--root", str(tmp_path)],
+    )
+    fuzzy = runner.invoke(
+        app,
+        ["precedent", "search", "--tag", "deployments", "--format", "json", "--root", str(tmp_path)],
+    )
+
+    assert explicit.exit_code == 0
+    assert [(item["precedent_id"], item["match_reason"]) for item in json.loads(explicit.output)["precedents"]] == [
+        ("DP001", "related_choice")
+    ]
+    assert fuzzy.exit_code == 0
+    assert json.loads(fuzzy.output)["precedents"] == []
+
+
 def test_cli_validate_reports_invalid_yaml_as_error(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     (tmp_path / ".p2p" / "project.yml").write_text("project: [\n", encoding="utf-8")

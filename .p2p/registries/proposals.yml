@@ -295,7 +295,7 @@ proposals:
   - tasks.yml
 - id: PROP-007
   title: Proposal Intake and Overlap Analysis
-  status: draft
+  status: superseded
   path: .p2p/proposals/PROP-007-proposal-intake-and-overlap-analysis
   summary: Introdurre un workflow prompt-only di proposal triage che legge le proposal
     esistenti, genera un prompt di analisi, importa il risultato e suggerisce l'azione
@@ -322,7 +322,7 @@ proposals:
   - tasks.yml
 - id: PROP-008
   title: Governance Model
-  status: draft
+  status: superseded
   path: .p2p/proposals/PROP-008-governance-model
   summary: Introdurre una governance file-based con governance.yml, roles.yml, votes.yml,
     swot-analysis.md e decision-precedents.yml, usando owner_decides come default
@@ -2925,7 +2925,7 @@ proposals:
   - tasks.yml
 - id: PROP-089
   title: Readiness Question-State Convergence
-  status: draft
+  status: accepted
   path: .p2p/proposals/PROP-089-readiness-question-state-convergence
   summary: 'Revise evidence-aware proposal readiness so questions.yml is the authoritative
     source for owner_questions_resolution whenever it exists. Blocking owner questions
@@ -3399,6 +3399,87 @@ proposals:
     modules, MCP project handlers/catalog, agent templates, docs, tests, and possibly
     visible project export. P2PWorkspace remains a facade.'
   decision_file: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - artifact-state.yml
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - conflict-analysis.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - impact-map.yml
+  - open-questions.md
+  - proposal.md
+  - questions.yml
+  - readiness.yml
+  - related-proposals.yml
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-091
+  title: Governance Policy Convergence
+  status: accepted
+  path: .p2p/proposals/PROP-091-governance-policy-convergence
+  summary: "Introduce a Governance Policy Convergence layer.\n\nThe layer should evaluate\
+    \ governance state before finalization and return a\nstable, versioned, deterministic,\
+    \ machine-readable preflight structure. The\npreflight output is not a decision\
+    \ record. It represents a proposed selection\nand the governance evaluation before\
+    \ the final owner decision.\n\nThe initial preflight contract should include:\n\
+    \n- `schema_version`;\n- `target`;\n- `governance`;\n- `actor`;\n- `selection`;\n\
+    - `result`;\n- `blocking_errors`;\n- `warnings`;\n- `vote_summary`;\n- `blockers`;\n\
+    - `precedents`.\n\nThe `result.status` field should summarize one of:\n\n- `ready`;\n\
+    - `requires_rationale`;\n- `requires_owner_override`;\n- `blocked`.\n\nBlocking\
+    \ errors and warnings should be structured objects with stable\nmachine-readable\
+    \ codes, human-readable messages, override or rationale metadata\nwhen relevant,\
+    \ and optional references.\n\n### Authority And Votes\n\n`owner_decides` remains\
+    \ the operational default. The owner remains the final\ndecision maker. Votes\
+    \ are transparency and decision evidence. A proposed owner\ndecision that conflicts\
+    \ with the recorded vote winner should produce a strong\nwarning and make the\
+    \ contrast explicit, but it should not block finalization and\nshould not require\
+    \ a mandatory override reason in the current model.\n\n### Actor And Role Resolution\n\
+    \nUse a soft migration path:\n\n- `permissions.yml` is the primary actor and role\
+    \ source whenever present;\n- `governance/roles.yml` remains legacy/display/fallback;\n\
+    - vote and preflight flows move toward actor-based input;\n- when an actor exists\
+    \ in `permissions.yml`, the effective role is inferred from\n  that file;\n- legacy\
+    \ role fields may be tolerated during transition;\n- mismatches between a supplied\
+    \ legacy role and the inferred role produce\n  warnings.\n\n### Precedents\n\n\
+    Core precedent lookup is explicit and deterministic. The core considers\nprecedents\
+    \ related only when links are declared in versioned artifacts through\nstable\
+    \ identifiers or explicit tags, such as `related_precedents`,\n`applies_to.proposal_ids`,\
+    \ `applies_to.choice_ids`, or `governance_tags`.\n\nThe core must not infer precedent\
+    \ relationships from titles, keywords, fuzzy\nmatching, semantic similarity, embeddings,\
+    \ or AI-based search. Intermediary\ntools may suggest links, but the core only\
+    \ considers those links after they are\nwritten back as explicit artifact relations.\n\
+    \n### Blocking And Warning Semantics\n\nWarnings are valid governance signals\
+    \ that may influence the owner decision but\ndo not prevent finalization by themselves.\n\
+    \nBlocking errors are conditions where the core cannot reliably establish the\n\
+    decision actor, decision target, governance mode, or integrity of governance\n\
+    state.\n\nInitial non-overrideable blocking errors include:\n\n- missing, unknown,\
+    \ or unauthorized decision actor;\n- invalid required permissions or governance\
+    \ context;\n- missing target proposal or choice;\n- structurally invalid target\
+    \ artifacts;\n- unsupported governance mode;\n- structurally invalid governance\
+    \ artifacts;\n- structurally invalid vote or precedent artifacts when present.\n\
+    \nAn explicit unresolved blocker attached to the target proposal or choice blocks\n\
+    normal finalization. It may be overridden only by an authorized owner with\nexplicit\
+    \ rationale recorded in the final decision record.\n\nVote disagreement, ties,\
+    \ related precedents, reopened decisions, open concerns\nnot marked as blockers,\
+    \ weak consensus, no votes, and no related precedents are\nwarnings or neutral\
+    \ signals, not automatic blockers.\n\n### MCP Phase 1\n\nMCP phase 1 exposes governance\
+    \ visibility, validation, vote summaries,\ndeterministic precedent lookup, and\
+    \ governance preflight evaluation. It does not\nexpose governance mutation or\
+    \ final decision execution.\n\nIncluded phase-1 tools:\n\n- `p2p_governance_status`;\n\
+    - `p2p_governance_validate`;\n- `p2p_choice_governance_preflight`;\n- `p2p_vote_status`;\n\
+    - `p2p_precedent_search`.\n\nDeferred tools:\n\n- `p2p_vote_record`;\n- `p2p_precedent_record`;\n\
+    - `p2p_choice_decide`.\n\n`p2p_choice_governance_preflight` may evaluate a proposed\
+    \ selection for a given\nactor and target, but it must not persist decision records,\
+    \ mutate votes, create\nprecedents, or finalize choices/proposals."
+  decision_file: .p2p/proposals/PROP-091-governance-policy-convergence/decision.md
   related_changes: []
   source_files:
   - ai-digest.md

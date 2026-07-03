@@ -80,6 +80,48 @@ def tool_definitions() -> list[dict[str, object]]:
             {'root': {'type': 'string'}},
         ),
         _tool(
+            'p2p_governance_status',
+            'Read governance status without mutating governance artifacts.',
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_governance_validate',
+            'Read-only governance artifact validation with structured diagnostics.',
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_choice_governance_preflight',
+            (
+                'Read-only governance preflight for a choice. Returns warnings, blockers, '
+                'votes, and deterministic precedent evidence without deciding the choice.'
+            ),
+            {'root': {'type': 'string'},
+             'choice_id': {'type': 'string'},
+             'option': {'type': 'string'},
+             'actor': {'type': 'string'},
+             'precedent_id': {'type': 'string'},
+             'tag': {'type': 'string'}},
+            ['choice_id', 'option', 'actor'],
+        ),
+        _tool(
+            'p2p_vote_status',
+            'Read proposal-local governance vote counts without recording votes.',
+            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},
+            ['proposal_id'],
+        ),
+        _tool(
+            'p2p_precedent_search',
+            (
+                'Read deterministic governance precedent matches by explicit precedent id, '
+                'proposal id, choice id, or tag. Does not use fuzzy matching or record precedents.'
+            ),
+            {'root': {'type': 'string'},
+             'precedent_id': {'type': 'string'},
+             'proposal_id': {'type': 'string'},
+             'choice_id': {'type': 'string'},
+             'tag': {'type': 'string'}},
+        ),
+        _tool(
             'p2p_project_status',
             'Show deterministic P2P project state status.',
             {'root': {'type': 'string'}},

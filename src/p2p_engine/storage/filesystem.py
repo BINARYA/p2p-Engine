@@ -54,6 +54,12 @@ from p2p_engine.services.choices import ChoiceDetail, ChoiceDiscoveryFinding, Ch
 from p2p_engine.services.consent import ConsentReceipt, ConsentService
 from p2p_engine.services.conflicts import ConflictMemoryService, ConflictStatus
 from p2p_engine.services.governance import GovernanceService, GovernanceStatus, VoteStatus
+from p2p_engine.services.governance_policy import (
+    GovernancePolicyService,
+    GovernancePreflightResult,
+    GovernanceValidationResult,
+    PrecedentMatch,
+)
 from p2p_engine.services.intake import IntakeAppliedAction, IntakeApplyPlan, IntakeLifecycleService, IntakePrompt, IntakeStatus
 from p2p_engine.services.next_actions import NextAction, NextActionService
 from p2p_engine.services.permissions import PermissionActor, PermissionsService
@@ -175,6 +181,7 @@ class P2PWorkspace:
         self._context_packet_service_instance: ContextPacketService | None = None
         self._conflict_memory_service_instance: ConflictMemoryService | None = None
         self._governance_service_instance: GovernanceService | None = None
+        self._governance_policy_service_instance: GovernancePolicyService | None = None
         self._intake_lifecycle_service_instance: IntakeLifecycleService | None = None
         self._proposal_decision_service_instance: ProposalDecisionService | None = None
         self._proposal_draft_commit_service_instance: ProposalDraftCommitService | None = None
@@ -249,6 +256,7 @@ class P2PWorkspace:
                 permissions_path=self._permissions_service().path,
                 vertical_validation_findings=self._project_vertical_service().validation_findings,
                 interaction_style_validation_findings=self._project_interaction_style_service().validation_findings,
+                governance_validation_findings=self._governance_policy_service().validation_findings,
             )
         return self._validation_service_instance
 
@@ -452,6 +460,16 @@ class P2PWorkspace:
                 find_proposal_dir=self._proposal_document_service().find_dir,
             )
         return self._governance_service_instance
+
+    def _governance_policy_service(self) -> GovernancePolicyService:
+        if self._governance_policy_service_instance is None:
+            self._governance_policy_service_instance = GovernancePolicyService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                permissions=self._permissions_service(),
+                show_choice=self.show_choice,
+            )
+        return self._governance_policy_service_instance
 
     def _proposal_artifact_service(self) -> ProposalArtifactService:
         if self._proposal_artifact_service_instance is None:
@@ -1212,6 +1230,41 @@ class P2PWorkspace:
 
     def record_precedent(self, proposal_id: str, title: str, reason: str) -> Path:
         return self._governance_service().record_precedent(proposal_id, title, reason)
+
+    def choice_governance_preflight(
+        self,
+        choice_id: str,
+        *,
+        option: str,
+        actor: str,
+        precedent_id: str | None = None,
+        tag: str | None = None,
+    ) -> GovernancePreflightResult:
+        return self._governance_policy_service().choice_preflight(
+            choice_id,
+            option=option,
+            actor=actor,
+            precedent_id=precedent_id,
+            tag=tag,
+        )
+
+    def search_decision_precedents(
+        self,
+        *,
+        precedent_id: str | None = None,
+        proposal_id: str | None = None,
+        choice_id: str | None = None,
+        tag: str | None = None,
+    ) -> list[PrecedentMatch]:
+        return self._governance_policy_service().search_precedents(
+            precedent_id=precedent_id,
+            proposal_id=proposal_id,
+            choice_id=choice_id,
+            tag=tag,
+        )
+
+    def validate_governance_policy(self) -> GovernanceValidationResult:
+        return self._governance_policy_service().validate_governance()
 
     def refresh_project_state(self) -> list[Path]:
         return self._project_state_service().refresh()

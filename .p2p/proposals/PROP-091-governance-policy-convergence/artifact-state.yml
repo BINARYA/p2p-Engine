@@ -1,0 +1,193 @@
+proposal_artifacts:
+  schema_version: 1
+  proposal_id: PROP-091
+  initialized_at: '2026-07-02T17:14:15Z'
+  updated_at: '2026-07-02T18:55:23Z'
+  status: active
+  legacy:
+    state: ''
+    reason: ''
+  artifacts:
+  - id: proposal
+    filename: proposal.md
+    expectation: required
+    status: satisfied
+    reason: Synthesized proposal.md now contains problem, context, goals, non-goals,
+      proposed direction, governance semantics, MCP phase-1 scope, and acceptance
+      criteria.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - governance_policy
+    - public_interface
+    - permission_security_sync
+    created_at: '2026-07-02T17:14:15Z'
+    updated_at: '2026-07-02T18:54:15Z'
+    history:
+    - at: '2026-07-02T18:54:15Z'
+      actor: local
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Synthesized proposal.md now contains problem, context, goals, non-goals,
+        proposed direction, governance semantics, MCP phase-1 scope, and acceptance
+        criteria.
+  - id: readiness
+    filename: readiness.yml
+    expectation: required
+    status: satisfied
+    reason: Readiness assessment exists and will be refreshed after artifact synthesis;
+      current score and gaps are tracked in readiness.yml.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - high_uncertainty_evidence
+    created_at: '2026-07-02T17:14:15Z'
+    updated_at: '2026-07-02T18:54:22Z'
+    history:
+    - at: '2026-07-02T18:54:22Z'
+      actor: local
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Readiness assessment exists and will be refreshed after artifact synthesis;
+        current score and gaps are tracked in readiness.yml.
+  - id: open_questions
+    filename: open-questions.md
+    expectation: required
+    status: satisfied
+    reason: open-questions.md separates owner-resolved decisions from remaining non-blocking
+      refinement questions; structured questions.yml is initialized with no active
+      owner blockers.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - owner_clarification
+    created_at: '2026-07-02T17:14:15Z'
+    updated_at: '2026-07-02T18:54:29Z'
+    history:
+    - at: '2026-07-02T18:54:29Z'
+      actor: local
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: open-questions.md separates owner-resolved decisions from remaining
+        non-blocking refinement questions; structured questions.yml is initialized
+        with no active owner blockers.
+  - id: clarifications
+    filename: clarifications.md
+    expectation: required
+    status: satisfied
+    reason: clarifications.md records the owner-decides default, vote transparency,
+      actor/role migration, deterministic precedent lookup, blocking semantics, and
+      MCP phase-1 boundary.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - owner_clarification
+    - governance_policy
+    created_at: '2026-07-02T17:14:15Z'
+    updated_at: '2026-07-02T18:54:54Z'
+    history:
+    - at: '2026-07-02T18:54:54Z'
+      actor: local
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: clarifications.md records the owner-decides default, vote transparency,
+        actor/role migration, deterministic precedent lookup, blocking semantics,
+        and MCP phase-1 boundary.
+  - id: findings
+    filename: findings.md
+    expectation: required
+    status: satisfied
+    reason: 'findings.md identifies the core governance-policy gaps: artifacts without
+      policy, owner authority, permissions as actor source, deterministic precedents,
+      blocking semantics, and read-only MCP visibility.'
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - governance_policy
+    - alternatives
+    - permission_security_sync
+    created_at: '2026-07-02T17:14:15Z'
+    updated_at: '2026-07-02T18:55:00Z'
+    history:
+    - at: '2026-07-02T18:55:00Z'
+      actor: local
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: 'findings.md identifies the core governance-policy gaps: artifacts without
+        policy, owner authority, permissions as actor source, deterministic precedents,
+        blocking semantics, and read-only MCP visibility.'
+  - id: exploration
+    filename: exploration.md
+    expectation: required
+    status: satisfied
+    reason: exploration.md and related exploration artifacts describe current state,
+      desired state, boundaries, alternatives, risks, assumptions, and suggested delivery
+      scope.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - high_uncertainty_evidence
+    - alternatives
+    created_at: '2026-07-02T17:14:15Z'
+    updated_at: '2026-07-02T18:55:13Z'
+    history:
+    - at: '2026-07-02T18:55:13Z'
+      actor: local
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: exploration.md and related exploration artifacts describe current state,
+        desired state, boundaries, alternatives, risks, assumptions, and suggested
+        delivery scope.
+  - id: impact_map
+    filename: impact-map.yml
+    expectation: required_when_applicable
+    status: satisfied
+    reason: impact-map.yml, related-proposals.yml, and conflict-analysis.yml identify
+      affected features, commands, files, governance artifacts, dependencies, risks,
+      and relationship to PROP-008.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - governance_policy
+    - public_interface
+    - persistent_state
+    - compatibility_migration
+    - permission_security_sync
+    created_at: '2026-07-02T17:14:15Z'
+    updated_at: '2026-07-02T18:55:23Z'
+    history:
+    - at: '2026-07-02T18:55:23Z'
+      actor: local
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: impact-map.yml, related-proposals.yml, and conflict-analysis.yml identify
+        affected features, commands, files, governance artifacts, dependencies, risks,
+        and relationship to PROP-008.

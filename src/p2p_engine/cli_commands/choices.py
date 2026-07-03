@@ -7,6 +7,7 @@ import typer
 from p2p_engine.cli_shared import console
 from p2p_engine.cli_shared import fail
 from p2p_engine.cli_shared import workspace as workspace_for
+from p2p_engine.cli_commands.formatting import emit_structured
 
 
 def register_choice_commands(choice_app: typer.Typer) -> None:
@@ -125,6 +126,51 @@ def register_choice_commands(choice_app: typer.Typer) -> None:
             console.print(f"  {finding.finding_id}  {finding.severity}  {finding.kind}  {finding.target}")
             console.print(f"    reason: {finding.reason}")
             console.print(f"    command: {finding.suggested_command}")
+
+    @choice_app.command("governance-preflight")
+    def choice_governance_preflight(
+        choice_id: str = typer.Argument(..., help="Choice ID, e.g. CHOICE-001"),
+        option: str = typer.Option(..., "--option", help="Option ID or title to evaluate"),
+        actor: str = typer.Option(..., "--actor", help="Actor requesting governance readiness"),
+        precedent_id: str | None = typer.Option(None, "--precedent", help="Explicit precedent ID"),
+        tag: str | None = typer.Option(None, "--tag", help="Explicit precedent tag"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text, json, or yaml"),
+    ) -> None:
+        """Preview governance readiness for a choice without deciding it."""
+        try:
+            result = workspace_for(root).choice_governance_preflight(
+                choice_id,
+                option=option,
+                actor=actor,
+                precedent_id=precedent_id,
+                tag=tag,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        if emit_structured(result, output_format):
+            if result.result.status == "blocked":
+                raise typer.Exit(1)
+            return
+        console.print(f"Governance preflight for [bold]{result.target.id}[/bold]")
+        console.print(f"  status: {result.result.status}")
+        console.print(f"  actor: {result.actor.id} ({result.actor.role})")
+        console.print(f"  option: {result.selection.resolved_option or result.selection.requested_option}")
+        console.print(f"  vote alignment: {result.vote_summary.alignment}")
+        if result.blocking_errors:
+            console.print("  blocking errors:")
+            for error in result.blocking_errors:
+                console.print(f"    {error.code}: {error.message}")
+        if result.warnings:
+            console.print("  warnings:")
+            for warning in result.warnings:
+                console.print(f"    {warning.code}: {warning.message}")
+        if result.precedents:
+            console.print("  precedents:")
+            for match in result.precedents:
+                console.print(f"    {match.precedent_id}: {match.match_reason} {match.related_target}")
+        if result.result.status == "blocked":
+            raise typer.Exit(1)
 
     @choice_app.command("block")
     def choice_block(

@@ -21,6 +21,7 @@ def _validation_service(workspace: P2PWorkspace) -> ValidationService:
         agent_integrations_path=workspace._agent_instruction_service().path,
         permissions_path=permissions.path,
         interaction_style_validation_findings=workspace._project_interaction_style_service().validation_findings,
+        governance_validation_findings=workspace._governance_policy_service().validation_findings,
     )
 
 
@@ -50,6 +51,36 @@ def test_validation_service_accepts_valid_refreshed_project(tmp_path: Path) -> N
     assert result.ok is True
     assert result.errors == 0
     assert result.warnings == 0
+
+
+def test_validation_service_reports_governance_policy_artifact_errors(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Demo Project")
+    (tmp_path / ".p2p" / "governance" / "governance.yml").write_text(
+        "governance:\n  mode: unknown\n",
+        encoding="utf-8",
+    )
+    (tmp_path / ".p2p" / "governance" / "decision-precedents.yml").write_text(
+        "precedents:\n  - id: DP001\n  - id: DP001\n",
+        encoding="utf-8",
+    )
+
+    result = _validation_service(workspace).validate()
+
+    assert result.ok is False
+    assert {"P2P250_INVALID_GOVERNANCE_MODE", "P2P252_DUPLICATE_DECISION_PRECEDENT"} <= _codes(result)
+
+
+def test_validation_service_allows_missing_optional_governance_artifacts(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Demo Project")
+    shutil.rmtree(tmp_path / ".p2p" / "governance", ignore_errors=True)
+    workspace.refresh_registries()
+
+    result = _validation_service(workspace).validate()
+
+    assert "P2P250_INVALID_GOVERNANCE_MODE" not in _codes(result)
+    assert "P2P252_INVALID_DECISION_PRECEDENTS" not in _codes(result)
 
 
 @pytest.mark.parametrize(

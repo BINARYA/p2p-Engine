@@ -584,7 +584,39 @@ p2p assess maturity show
 Maturity assessment checks project definition coverage against rubrics. It is
 not a measure of implementation completeness.
 
-## 13. Recover From Common Problems
+## 13. Governance Preflight
+
+Governance preflight is read-only. It reports whether a project choice is ready
+for an owner decision, but it does not decide the choice, record votes, record
+precedents, or repair governance files.
+
+```bash
+p2p governance status
+p2p governance validate
+p2p choice governance-preflight CHOICE-001 --option C --actor owner
+p2p vote status PROP-001
+p2p precedent search --choice CHOICE-001
+```
+
+Machine-readable output is available for automation:
+
+```bash
+p2p choice governance-preflight CHOICE-001 --option C --actor owner --format json
+p2p governance validate --format json
+p2p vote status PROP-001 --format json
+p2p precedent search --tag release-policy --format json
+```
+
+Preflight treats votes as advisory evidence. A vote conflict creates a warning,
+not a block, and appears as `vote_summary.alignment: conflicts` in machine
+output. Active explicit blockers block normal finalization and report
+`result.status: requires_owner_override` for an authorized owner.
+
+Precedent search is deterministic: it matches only explicit precedent IDs,
+proposal IDs, choice IDs, or tags. It does not use fuzzy title matching or AI
+inference.
+
+## 14. Recover From Common Problems
 
 `p2p: command not found`
 

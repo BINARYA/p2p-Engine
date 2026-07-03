@@ -1,0 +1,99 @@
+contributions:
+- id: C001
+  type: architectural_principle
+  author: local
+  relevance_hint: high
+  text: 'Owner decision principle: owner_decides remains the operational default.
+    The owner remains the final decision maker for now, while votes, blockers, and
+    precedents provide transparent decision context rather than automatic enforcement.
+    Governance preflight should explicitly show whether the owner decision aligns
+    with the vote outcome, proceeds by common agreement, or intentionally overrides/contrasts
+    with the recorded vote context. Future governance models may change this, but
+    the current production-grade goal is clear authority plus transparent vote evidence.'
+- id: C002
+  type: constraint
+  author: local
+  relevance_hint: high
+  text: 'Vote conflict handling: when the owner decision conflicts with the recorded
+    vote outcome or visible vote majority, governance preflight should emit a strong
+    warning and make the contrast explicit. It should not block the owner decision
+    and should not require a mandatory override reason in the current model. The decision
+    rationale remains recommended as good practice, but not a hard gate.'
+- id: C003
+  type: architectural_principle
+  author: local
+  relevance_hint: high
+  text: 'Actor and role source strategy: use a soft migration path. For new governance
+    policy evaluation, permissions.yml is the primary actor and role source whenever
+    it exists. governance/roles.yml remains a legacy/display or fallback artifact
+    for older repositories and for continuity with PROP-008 artifacts. Vote recording
+    and governance preflight should move toward actor-based input; when an actor is
+    known in permissions.yml, the effective role is inferred from permissions.yml.
+    Legacy role fields may be tolerated during transition, but mismatches between
+    supplied role and inferred role should produce warnings rather than silent acceptance.'
+- id: C004
+  type: architectural_principle
+  author: local
+  relevance_hint: high
+  text: 'Deterministic precedent lookup: the core CLI governance preflight should
+    consider decision precedents only when explicitly linked through versioned artifacts,
+    using stable identifiers or explicit tags such as related_precedents, applies_to
+    proposal_ids, applies_to choice_ids, or governance_tags. The core must not infer
+    precedent relationships from titles, keywords, fuzzy matching, semantic similarity,
+    embeddings, or AI-based search. Soft discovery may exist in intermediary tools
+    or agents as an authoring aid, but it affects core behavior only after a suggested
+    relation is written back as an explicit artifact link.'
+- id: C005
+  type: architectural_principle
+  author: local
+  relevance_hint: high
+  text: 'Governance preflight blocking errors: governance preflight must distinguish
+    warnings from blocking errors. Warnings are valid governance signals that may
+    influence the owner decision but do not prevent finalization by themselves. Blocking
+    errors are conditions where the core cannot reliably establish the decision actor,
+    decision target, governance mode, or integrity of governance state. Initial non-overrideable
+    blocking errors include missing/unknown/unauthorized decision actor, invalid required
+    permissions or governance context, missing target proposal or choice, structurally
+    invalid target artifacts, unsupported governance mode, structurally invalid governance
+    artifacts, and structurally invalid vote or precedent artifacts when present.
+    An explicit unresolved blocker attached to the target proposal or choice blocks
+    normal finalization, but may be overridden only by an authorized owner with explicit
+    rationale recorded in the final decision record. Vote disagreement, ties, related
+    precedents, reopened decisions, open concerns not marked as blockers, weak consensus,
+    no votes, and no related precedents are warnings or neutral signals, not automatic
+    blockers.'
+- id: C006
+  type: architectural_principle
+  author: local
+  relevance_hint: high
+  text: 'Governance preflight output contract: governance preflight must emit a stable,
+    versioned, deterministic, machine-readable structure suitable for CLI rendering,
+    agent consumption, MCP exposure, and future Wavekit integration. The output is
+    not a decision record; it represents the attempted selection and governance evaluation
+    before finalization. MVP fields include schema_version, target, governance context,
+    actor resolution, selection, result, blocking_errors, warnings, vote_summary,
+    blockers, and precedents. Use selection or proposed_decision rather than decision
+    to avoid confusing preflight with final decision records. result.status summarizes
+    one of ready, requires_rationale, requires_owner_override, or blocked. blocking_errors
+    and warnings must be objects with stable machine-readable codes, messages, override/rationale
+    metadata when relevant, and optional refs. Explicit precedents and tag-declared
+    deterministic matches must be listed separately. Machine-readable output should
+    be available as YAML or JSON and remain deterministic for the same repository
+    state and command input.'
+- id: C007
+  type: architectural_principle
+  author: local
+  relevance_hint: high
+  text: 'MCP parity phase 1 is read/low-risk only: the first MCP parity phase exposes
+    governance visibility, validation, vote summaries, deterministic precedent lookup,
+    and governance preflight evaluation, but does not expose governance mutation or
+    final decision execution. Included phase-1 tools are p2p_governance_status, p2p_governance_validate,
+    p2p_choice_governance_preflight, p2p_vote_status, and p2p_precedent_search. Deferred
+    tools are p2p_vote_record, p2p_precedent_record, and p2p_choice_decide. MCP phase
+    1 can evaluate a proposed selection for a given actor and target, but must not
+    persist decision records, mutate votes, create precedents, or finalize choices/proposals.
+    p2p_precedent_search remains deterministic and artifact-driven, using only explicit
+    links and declared metadata such as tags; it must not use title inference, keyword
+    guessing, embeddings, semantic similarity, or AI matching in the core. Mutating
+    MCP tools require a later proposal or phase after actor authority, owner override,
+    rationale recording, and managed-server delegation are fully specified.'

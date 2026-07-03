@@ -171,6 +171,11 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_proposal_show` | read-only | no | no | Inspect one proposal summary. |
 | `p2p_choice_list` | read-only | no | no | List project choices. |
 | `p2p_choice_show` | read-only | no | no | Inspect one choice. |
+| `p2p_governance_status` | read-only | no | no | Read governance mode and audit artifact counts. |
+| `p2p_governance_validate` | read-only | no | no | Validate governance artifacts without changing them. |
+| `p2p_choice_governance_preflight` | read-only | no | no | Preview owner-decision readiness for a choice without deciding it. |
+| `p2p_vote_status` | read-only | no | no | Read proposal-local advisory vote counts. |
+| `p2p_precedent_search` | read-only | no | no | Search deterministic explicit precedent matches without recording precedents. |
 | `p2p_change_status` | read-only | no | no | List Change Set statuses. |
 | `p2p_change_show` | read-only | no | no | Inspect one Change Set. |
 | `p2p_change_tasks` | read-only | no | no | Inspect Change Set tasks and actions. |

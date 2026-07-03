@@ -78,6 +78,11 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_project_brief_show",
         "p2p_choice_discover",
         "p2p_conflict_status",
+        "p2p_governance_status",
+        "p2p_governance_validate",
+        "p2p_choice_governance_preflight",
+        "p2p_vote_status",
+        "p2p_precedent_search",
         "p2p_impact_prompt",
         "p2p_project_status",
         "p2p_project_interaction_style_show",
@@ -197,6 +202,120 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         or "consent_revoke" in name
         for name in names
     )
+
+
+def test_mcp_governance_policy_read_only_tools(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Vote Target", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "choice",
+            "create",
+            "--title",
+            "Deployment Strategy",
+            "--option",
+            "Blue",
+            "--option",
+            "Green",
+            "--related",
+            "PROP-001",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(
+        app,
+        [
+            "vote",
+            "record",
+            "PROP-001",
+            "--choice",
+            "A",
+            "--reason",
+            "Prefer blue.",
+            "--voter",
+            "owner",
+            "--role",
+            "owner",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    precedent_path = tmp_path / ".p2p" / "governance" / "decision-precedents.yml"
+    precedent_path.parent.mkdir(parents=True, exist_ok=True)
+    precedent_path.write_text(
+        yaml.safe_dump({"precedents": [{"id": "DP001", "related_choices": ["CHOICE-001"], "tags": ["deployment"]}]}),
+        encoding="utf-8",
+    )
+    before = {
+        path.relative_to(tmp_path): path.read_text(encoding="utf-8")
+        for path in sorted((tmp_path / ".p2p").rglob("*"))
+        if path.is_file()
+    }
+
+    status = call_tool("p2p_governance_status", {"root": str(tmp_path)})
+    validation = call_tool("p2p_governance_validate", {"root": str(tmp_path)})
+    preflight = call_tool(
+        "p2p_choice_governance_preflight",
+        {"root": str(tmp_path), "choice_id": "CHOICE-001", "option": "B", "actor": "owner"},
+    )
+    vote = call_tool("p2p_vote_status", {"root": str(tmp_path), "proposal_id": "PROP-001"})
+    precedents = call_tool("p2p_precedent_search", {"root": str(tmp_path), "choice_id": "CHOICE-001"})
+
+    assert status["mutation_performed"] is False
+    assert validation["governance_validation"]["ok"] is True
+    assert preflight["mutation_performed"] is False
+    assert preflight["decision_made"] is False
+    assert preflight["governance_preflight"]["schema_version"] == "governance-preflight/v1"
+    assert preflight["governance_preflight"]["vote_summary"]["alignment"] == "conflicts"
+    assert "P2P_GOV_RELATED_PRECEDENTS" in [
+        warning["code"] for warning in preflight["governance_preflight"]["warnings"]
+    ]
+    assert vote["vote_status"]["winner"] == "A"
+    assert precedents["precedents"][0]["precedent_id"] == "DP001"
+    assert "p2p_vote_record" not in TOOL_NAMES
+    assert "p2p_precedent_record" not in TOOL_NAMES
+    assert "p2p_choice_decide" not in TOOL_NAMES
+    after = {
+        path.relative_to(tmp_path): path.read_text(encoding="utf-8")
+        for path in sorted((tmp_path / ".p2p").rglob("*"))
+        if path.is_file()
+    }
+    assert after == before
+
+
+def test_mcp_governance_preflight_reports_malformed_precedents(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "choice",
+            "create",
+            "--title",
+            "Deployment Strategy",
+            "--option",
+            "Blue",
+            "--option",
+            "Green",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    precedent_path = tmp_path / ".p2p" / "governance" / "decision-precedents.yml"
+    precedent_path.parent.mkdir(parents=True, exist_ok=True)
+    precedent_path.write_text("precedents: {}\n", encoding="utf-8")
+
+    result = call_tool(
+        "p2p_choice_governance_preflight",
+        {"root": str(tmp_path), "choice_id": "CHOICE-001", "option": "A", "actor": "owner"},
+    )
+
+    preflight = result["governance_preflight"]
+    assert result["mutation_performed"] is False
+    assert preflight["result"]["status"] == "blocked"
+    assert [error["code"] for error in preflight["blocking_errors"]] == ["P2P_GOV_MALFORMED_PRECEDENTS"]
+    assert preflight["precedents"] == []
 
 
 def test_mcp_project_visible_export_flow(tmp_path: Path) -> None:

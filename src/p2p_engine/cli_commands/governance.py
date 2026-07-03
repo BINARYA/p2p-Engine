@@ -7,6 +7,7 @@ import typer
 from p2p_engine.cli_shared import console
 from p2p_engine.cli_shared import fail
 from p2p_engine.cli_shared import workspace as workspace_for
+from p2p_engine.cli_commands.formatting import emit_structured
 
 
 def register_governance_commands(
@@ -33,14 +34,42 @@ def register_governance_commands(
             console.print(f"  updated {path}")
 
     @governance_app.command("status")
-    def governance_status(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+    def governance_status(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text, json, or yaml"),
+    ) -> None:
         """Show governance mode and audit artifacts."""
         status = workspace_for(root).governance_status()
+        if emit_structured(status, output_format):
+            return
         console.print("Governance status")
         console.print(f"  mode: {status.mode}")
         console.print(f"  roles: {status.roles_count}")
         console.print(f"  precedents: {status.precedents_count}")
         console.print(f"  file: {status.governance_file}")
+
+    @governance_app.command("validate")
+    def governance_validate(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text, json, or yaml"),
+    ) -> None:
+        """Validate governance artifacts without mutating project state."""
+        result = workspace_for(root).validate_governance_policy()
+        if emit_structured(result, output_format):
+            if not result.ok:
+                raise typer.Exit(1)
+            return
+        console.print("Governance validation")
+        if not result.findings:
+            console.print("  ok")
+            return
+        for finding in result.findings:
+            console.print(f"  {finding.severity}: {finding.code} {finding.path}")
+            console.print(f"    {finding.message}")
+            if finding.suggested_command:
+                console.print(f"    command: {finding.suggested_command}")
+        if not result.ok:
+            raise typer.Exit(1)
 
     @vote_app.command("record")
     def vote_record(
@@ -76,12 +105,15 @@ def register_governance_commands(
     def vote_status(
         proposal_id: str = typer.Argument(..., help="Proposal ID"),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text, json, or yaml"),
     ) -> None:
         """Show vote counts for a proposal."""
         try:
             status = workspace_for(root).vote_status(proposal_id)
         except ValueError as exc:
             fail(str(exc))
+        if emit_structured(status, output_format):
+            return
         console.print(f"Vote status for [bold]{status.proposal_id}[/bold]")
         if not status.counts:
             console.print("  votes: none")
@@ -106,3 +138,34 @@ def register_governance_commands(
         except ValueError as exc:
             fail(str(exc))
         console.print(f"[green]Precedent recorded[/green] {path}")
+
+    @precedent_app.command("search")
+    def precedent_search(
+        precedent_id: str | None = typer.Option(None, "--precedent", help="Explicit precedent ID"),
+        proposal_id: str | None = typer.Option(None, "--proposal", help="Related proposal ID"),
+        choice_id: str | None = typer.Option(None, "--choice", help="Related choice ID"),
+        tag: str | None = typer.Option(None, "--tag", help="Explicit precedent tag"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text, json, or yaml"),
+    ) -> None:
+        """Search deterministic governance precedents without recording new ones."""
+        try:
+            matches = workspace_for(root).search_decision_precedents(
+                precedent_id=precedent_id,
+                proposal_id=proposal_id,
+                choice_id=choice_id,
+                tag=tag,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        if emit_structured({"precedents": matches}, output_format):
+            return
+        console.print("Decision precedents")
+        if not matches:
+            console.print("  none")
+            return
+        for match in matches:
+            console.print(f"  {match.precedent_id}  {match.match_reason}  {match.related_target}")
+            if match.title:
+                console.print(f"    title: {match.title}")
+            console.print(f"    source: {match.source}")

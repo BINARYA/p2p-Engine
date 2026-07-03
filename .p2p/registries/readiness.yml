@@ -83,7 +83,7 @@ readiness:
   path: .p2p/proposals/PROP-006-multi-agent-integration-model/readiness.yml
 - proposal: PROP-007
   title: Proposal Intake and Overlap Analysis
-  proposal_status: draft
+  proposal_status: superseded
   status: not_assessed
   profile_id: null
   profile_version: null
@@ -96,7 +96,7 @@ readiness:
   path: .p2p/proposals/PROP-007-proposal-intake-and-overlap-analysis/readiness.yml
 - proposal: PROP-008
   title: Governance Model
-  proposal_status: draft
+  proposal_status: superseded
   status: not_assessed
   profile_id: null
   profile_version: null
@@ -1199,7 +1199,7 @@ readiness:
   path: .p2p/proposals/PROP-088-mcp-artifact-import-parity/readiness.yml
 - proposal: PROP-089
   title: Readiness Question-State Convergence
-  proposal_status: draft
+  proposal_status: accepted
   status: assessed
   profile_id: default-readiness-v0.1
   profile_version: '0.1'
@@ -1223,3 +1223,16 @@ readiness:
   missing: []
   suggested_next: []
   path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/readiness.yml
+- proposal: PROP-091
+  title: Governance Policy Convergence
+  proposal_status: accepted
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  computed_score: 100
+  computed_label: decision_ready
+  confidence: high
+  failed_gates: []
+  missing: []
+  suggested_next: []
+  path: .p2p/proposals/PROP-091-governance-policy-convergence/readiness.yml
