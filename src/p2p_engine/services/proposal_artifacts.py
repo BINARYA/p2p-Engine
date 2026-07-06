@@ -21,6 +21,8 @@ from p2p_engine.prompts.tasks import render_tasks_prompt
 
 PromptKind = Literal["explore", "digest", "clarify", "synthesize", "plan", "tasks", "swot", "impact"]
 ImportKind = Literal["clarify", "synthesize", "plan", "tasks"]
+ArtifactImportKind = Literal["explore", "impact", "clarify", "synthesize", "plan", "tasks"]
+ArtifactImportInputMode = Literal["source", "content", "artifacts"]
 
 EXPLORATION_ARTIFACTS = (
     "exploration.md",
@@ -31,6 +33,35 @@ EXPLORATION_ARTIFACTS = (
     "assumptions.md",
     "suggested-scope.md",
 )
+
+IMPACT_ARTIFACTS = {
+    "impact-map.yml": "impact",
+    "related-proposals.yml": "related_proposals",
+    "conflict-analysis.yml": "conflicts",
+}
+
+GENERATED_ARTIFACT_TARGETS = {
+    "clarify": "clarifications.md",
+    "synthesize": "proposal.md",
+    "plan": "execution-plan.md",
+    "tasks": "tasks.yml",
+}
+
+
+@dataclass(frozen=True)
+class ArtifactImportItem:
+    path: Path
+    filename: str
+    validated: bool
+
+
+@dataclass(frozen=True)
+class ArtifactImportResult:
+    proposal_id: str
+    kind: ArtifactImportKind
+    input_mode: ArtifactImportInputMode
+    imported: list[ArtifactImportItem]
+    artifact_state_updated: bool = False
 
 
 @dataclass(frozen=True)
@@ -191,12 +222,7 @@ class ProposalArtifactService:
         if not source.is_file():
             raise ValueError(f"Import source not found: {source}")
 
-        target_name = {
-            "clarify": "clarifications.md",
-            "synthesize": "proposal.md",
-            "plan": "execution-plan.md",
-            "tasks": "tasks.yml",
-        }[kind]
+        target_name = GENERATED_ARTIFACT_TARGETS[kind]
         content = source.read_text(encoding="utf-8")
         if kind == "tasks":
             validate_tasks_yaml(content)
@@ -209,12 +235,7 @@ class ProposalArtifactService:
         source = source.resolve()
         imported: list[Path] = []
         if source.is_dir():
-            mappings = {
-                "impact-map.yml": "impact",
-                "related-proposals.yml": "related_proposals",
-                "conflict-analysis.yml": "conflicts",
-            }
-            for filename, key in mappings.items():
+            for filename, key in IMPACT_ARTIFACTS.items():
                 source_path = source / filename
                 if source_path.exists():
                     validate_yaml_key(source_path.read_text(encoding="utf-8"), key)
@@ -231,6 +252,99 @@ class ProposalArtifactService:
         if not imported:
             raise ValueError(f"No impact artifacts found in: {source}")
         return imported
+
+    def import_content(
+        self,
+        proposal_id: str,
+        kind: ArtifactImportKind,
+        *,
+        source: Path | None = None,
+        content: str | None = None,
+        artifacts: dict[str, str] | None = None,
+    ) -> ArtifactImportResult:
+        input_mode = _artifact_import_input_mode(source=source, content=content, artifacts=artifacts)
+        if input_mode == "source":
+            return self._import_source(proposal_id, kind, source)
+        proposal_dir = self.find_proposal_dir(proposal_id)
+        if input_mode == "content":
+            return self._import_payload_content(proposal_id, proposal_dir, kind, content)
+        return self._import_payload_artifacts(proposal_id, proposal_dir, kind, artifacts)
+
+    def _import_source(
+        self,
+        proposal_id: str,
+        kind: ArtifactImportKind,
+        source: Path | None,
+    ) -> ArtifactImportResult:
+        if source is None:
+            raise ValueError("Import source is required for source input mode.")
+        if kind == "explore":
+            imported = self.import_exploration(proposal_id, source)
+            return _artifact_import_result(proposal_id, kind, "source", imported, validated=False)
+        if kind == "impact":
+            imported = self.import_impact(proposal_id, source)
+            return _artifact_import_result(proposal_id, kind, "source", imported, validated=True)
+        imported_path = self.import_artifact(proposal_id, kind, source)
+        return _artifact_import_result(
+            proposal_id,
+            kind,
+            "source",
+            [imported_path],
+            validated=kind == "tasks",
+        )
+
+    def _import_payload_content(
+        self,
+        proposal_id: str,
+        proposal_dir: Path,
+        kind: ArtifactImportKind,
+        content: str | None,
+    ) -> ArtifactImportResult:
+        if content is None:
+            raise ValueError("Import content is required for content input mode.")
+        target_name = _content_target(kind)
+        _validate_content(kind, target_name, content)
+        target = proposal_dir / target_name
+        target.write_text(content, encoding="utf-8")
+        return _artifact_import_result(
+            proposal_id,
+            kind,
+            "content",
+            [target.relative_to(self.root)],
+            validated=_is_validated_target(kind, target_name),
+        )
+
+    def _import_payload_artifacts(
+        self,
+        proposal_id: str,
+        proposal_dir: Path,
+        kind: ArtifactImportKind,
+        artifacts: dict[str, str] | None,
+    ) -> ArtifactImportResult:
+        if kind not in ("explore", "impact"):
+            raise ValueError(f"Artifact payload import is not supported for import kind: {kind}")
+        if not artifacts:
+            raise ValueError("Artifact payload must include at least one artifact.")
+        allowed = set(EXPLORATION_ARTIFACTS) if kind == "explore" else set(IMPACT_ARTIFACTS)
+        unexpected = sorted(filename for filename in artifacts if filename not in allowed)
+        if unexpected:
+            raise ValueError(
+                f"Unsupported {kind} artifact filename: {unexpected[0]}. "
+                f"Allowed: {', '.join(sorted(allowed))}"
+            )
+        if kind == "impact":
+            for filename, artifact_content in artifacts.items():
+                validate_yaml_key(artifact_content, IMPACT_ARTIFACTS[filename])
+
+        ordered_filenames = EXPLORATION_ARTIFACTS if kind == "explore" else tuple(IMPACT_ARTIFACTS)
+        imported: list[Path] = []
+        for filename in ordered_filenames:
+            if filename not in artifacts:
+                continue
+            target = proposal_dir / filename
+            target.write_text(artifacts[filename], encoding="utf-8")
+            imported.append(target.relative_to(self.root))
+        return _artifact_import_result(proposal_id, kind, "artifacts", imported, validated=kind == "impact")
 
     def _prompt_context(self, proposal_id: str, proposal_dir: Path) -> dict[str, str]:
         return {
@@ -261,3 +375,61 @@ class ProposalArtifactService:
             "decision_rules": _read_optional(self.p2p_dir / "governance" / "decision-rules.md"),
             "relevance_criteria": _read_optional(self.p2p_dir / "governance" / "relevance-criteria.md"),
         }
+
+
+def _artifact_import_input_mode(
+    *,
+    source: Path | None,
+    content: str | None,
+    artifacts: dict[str, str] | None,
+) -> ArtifactImportInputMode:
+    modes: list[ArtifactImportInputMode] = []
+    if source is not None:
+        modes.append("source")
+    if content is not None:
+        modes.append("content")
+    if artifacts is not None:
+        modes.append("artifacts")
+    if len(modes) != 1:
+        raise ValueError("Provide exactly one artifact import input: source, content, or artifacts.")
+    return modes[0]
+
+
+def _content_target(kind: ArtifactImportKind) -> str:
+    if kind == "explore":
+        return "exploration.md"
+    if kind == "impact":
+        return "impact-map.yml"
+    return GENERATED_ARTIFACT_TARGETS[kind]
+
+
+def _validate_content(kind: ArtifactImportKind, target_name: str, content: str) -> None:
+    if kind == "impact":
+        validate_yaml_key(content, "impact")
+    elif kind == "tasks":
+        validate_tasks_yaml(content)
+    elif target_name in IMPACT_ARTIFACTS:
+        validate_yaml_key(content, IMPACT_ARTIFACTS[target_name])
+
+
+def _is_validated_target(kind: ArtifactImportKind, target_name: str) -> bool:
+    return kind in ("impact", "tasks") or target_name in IMPACT_ARTIFACTS
+
+
+def _artifact_import_result(
+    proposal_id: str,
+    kind: ArtifactImportKind,
+    input_mode: ArtifactImportInputMode,
+    paths: list[Path],
+    *,
+    validated: bool,
+) -> ArtifactImportResult:
+    return ArtifactImportResult(
+        proposal_id=proposal_id,
+        kind=kind,
+        input_mode=input_mode,
+        imported=[
+            ArtifactImportItem(path=path, filename=path.name, validated=validated)
+            for path in paths
+        ],
+    )

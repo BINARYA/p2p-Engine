@@ -652,10 +652,16 @@ decisions:
     generated instruction updates, and no persisted presets.
 - proposal: PROP-088
   title: MCP Artifact Import Parity
-  outcome: pending
-  status: draft
+  outcome: accepted
+  status: accepted
   path: .p2p/proposals/PROP-088-mcp-artifact-import-parity/decision.md
-  reason: ''
+  reason: Accepted by owner after resolving MCP artifact import scope toward full
+    parity with existing controlled CLI import primitives. The MVP covers exploration,
+    impact, clarification, synthesis/proposal, plan, and tasks imports through explicit
+    write-safe MCP tools, supports both source paths and direct content payloads,
+    and keeps generic unmanaged artifact import deferred. Readiness is decision_ready
+    with score 100; remaining Q001 answered-not-applied signal is treated as a lifecycle
+    bookkeeping anomaly because proposal.md reflects the accepted scope.
 - proposal: PROP-089
   title: Readiness Question-State Convergence
   outcome: accepted
@@ -694,3 +700,9 @@ decisions:
     Engine exposes the full Work lifecycle through local MCP using domain-specific,
     permission-gated commands, while remote multi-user MCP remains a separate Wavekit
     gateway boundary.'
+- proposal: PROP-093
+  title: New Project Bootstrap UX And Agent Write Consent Hardening
+  outcome: pending
+  status: draft
+  path: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/decision.md
+  reason: ''

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from p2p_engine.core.contribution import ContributionType
@@ -19,11 +20,23 @@ from p2p_engine.mcp.handlers.common import optional_string, optional_string_list
 from p2p_engine.storage.filesystem import P2PWorkspace
 
 
+ARTIFACT_IMPORT_KINDS = {
+    "p2p_explore_import": "explore",
+    "p2p_impact_import": "impact",
+    "p2p_clarify_import": "clarify",
+    "p2p_synthesize_import": "synthesize",
+    "p2p_plan_import": "plan",
+    "p2p_tasks_import": "tasks",
+}
+
+
 def handle_proposal_tool(
     workspace: P2PWorkspace,
     name: str,
     arguments: dict[str, Any],
 ) -> dict[str, object] | None:
+    if name in ARTIFACT_IMPORT_KINDS:
+        return _proposal_artifact_import_tool(workspace, name, arguments)
     if name == "p2p_proposal_create":
         proposal = workspace.create_proposal_with_details(
             title=required(arguments, "title"),
@@ -255,6 +268,45 @@ def handle_proposal_tool(
     if name == "p2p_proposal_branch_scan":
         return {"proposal_branch_scan": to_jsonable(workspace.scan_proposal_branches())}
     return None
+
+
+def _proposal_artifact_import_tool(
+    workspace: P2PWorkspace,
+    name: str,
+    arguments: dict[str, Any],
+) -> dict[str, object]:
+    raw_artifacts = arguments.get("artifacts")
+    artifacts: dict[str, str] | None = None
+    if raw_artifacts is not None:
+        if not isinstance(raw_artifacts, dict):
+            raise ValueError("Expected object argument: artifacts")
+        artifacts = {str(filename): str(content) for filename, content in raw_artifacts.items()}
+    source_value = optional_string(arguments, "source")
+    content = str(arguments["content"]) if "content" in arguments and arguments["content"] is not None else None
+    source = _artifact_import_source_path(workspace, source_value)
+    result = workspace.import_proposal_artifact_content(
+        required(arguments, "proposal_id"),
+        ARTIFACT_IMPORT_KINDS[name],
+        source=source,
+        content=content,
+        artifacts=artifacts,
+    )
+    return {
+        "artifact_import": to_jsonable(result),
+        "governance": {
+            "owner_decision_required": False,
+            "decision_made": False,
+        },
+    }
+
+
+def _artifact_import_source_path(workspace: P2PWorkspace, source_value: str | None) -> Path | None:
+    if source_value is None:
+        return None
+    source = Path(source_value)
+    if source.is_absolute():
+        return source
+    return workspace.root / source
 
 
 def _contribution_type(arguments: dict[str, Any]) -> ContributionType:

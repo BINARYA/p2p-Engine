@@ -13,14 +13,6 @@ next_actions:
   reason: There are no active Change Sets or Work items; readiness is now limited
     mainly by draft proposals that should be reviewed, accepted, or retired.
   command: .venv/bin/p2p proposal list --status draft
-- id: NEXT-007
-  priority: high
-  kind: resolve_owner_questions
-  target: PROP-088
-  reason: PROP-088 readiness is partial with no missing criteria, but the owner_questions_resolution
-    gate remains open. The owner must answer the MVP scope, clarification import,
-    and MCP input-shape questions before acceptance can be recommended without override.
-  command: .venv/bin/p2p proposal questions next PROP-088
 - id: NEXT-008
   priority: high
   kind: review_proposal

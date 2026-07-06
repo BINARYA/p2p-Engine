@@ -2,7 +2,7 @@
 
 ## Status
 
-`draft`
+`accepted`
 
 ## Problem
 
@@ -29,7 +29,7 @@ PROP-086 made artifact-aware readiness depend on public CLI or explicit MCP writ
 
 ## Proposal
 
-Add explicit write-safe MCP tools that call existing P2P Engine import services for proposal artifact content. The MVP scope is intentionally limited to MCP parity for existing impact and exploration imports. Generic artifact import/update is deferred until the specific import parity is proven and a stricter allowlist, validation model, and audit boundary are designed. The MVP tools should return structured metadata about imported files, preserve validation behavior, and keep unsupported artifact-content mutations as explicit missing-primitive errors. Documentation should describe the new MCP surface, supported artifact kinds, unsupported cases, and the relationship between artifact content imports and artifact coverage state.
+Add explicit write-safe MCP tools that call existing P2P Engine import services for proposal artifact content. The MVP scope covers total MCP parity with the existing controlled CLI import primitives that have fixed targets and validation: exploration imports, impact imports, clarification imports, synthesis/proposal imports, plan imports, and tasks imports. Generic arbitrary artifact import/update remains deferred until a stricter allowlist, validation model, and audit boundary are designed. MCP import tools should support both source paths and direct content payloads: source paths preserve parity with current CLI services and directory-based imports, while direct payloads support real MCP client workflows where generated content is already available in the tool call. All tools must use explicit artifact kinds, preserve existing validation behavior, return structured metadata about imported files, and keep unsupported artifact-content mutations as explicit missing-primitive errors. Documentation should describe the new MCP surface, supported artifact kinds, unsupported cases, path-vs-payload behavior, validation/audit boundaries, and the relationship between artifact content imports and artifact coverage state.
 
 ## Acceptance Criteria
 

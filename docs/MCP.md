@@ -241,6 +241,12 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_proposal_artifact_set` | write-safe | yes | no | Set one artifact expectation/status/rationale without changing proposal decisions. |
 | `p2p_proposal_artifact_confirm` | write-safe | yes | no | Record owner confirmation for one artifact state without accepting/rejecting the proposal. |
 | `p2p_proposal_artifact_mark_legacy` | write-safe | yes | no | Mark artifact state as advisory `absent_legacy` for older proposals. |
+| `p2p_explore_import` | write-safe | yes | no | Import exploration artifact content from a source path, direct content, or allowlisted artifact payloads. |
+| `p2p_impact_import` | write-safe | yes | no | Import impact artifacts from a source path, direct content, or allowlisted YAML artifact payloads with validation. |
+| `p2p_clarify_import` | write-safe | yes | no | Import clarification content into `clarifications.md`. |
+| `p2p_synthesize_import` | write-safe | yes | no | Import synthesized proposal content into `proposal.md`. |
+| `p2p_plan_import` | write-safe | yes | no | Import execution-plan content into `execution-plan.md`. |
+| `p2p_tasks_import` | write-safe | yes | no | Import task YAML into `tasks.yml` with tasks validation. |
 | `p2p_change_create` | write-safe | yes | no | Create a metadata-only Change Set from an accepted proposal. |
 | `p2p_project_refresh` | write-safe | yes | no | Refresh generated project definition files. |
 | `p2p_project_export` | write-safe | yes | no | Export the visible human-facing project definition to `outputs/latest/project.md`. |
@@ -295,6 +301,83 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_swot_prompt` | advisory/write-safe | yes | no | Generate a SWOT prompt for a proposal. |
 | `p2p_impact_prompt` | advisory/write-safe | yes | no | Generate an impact-analysis prompt for a proposal. |
 | `p2p_spec_prompt` | advisory/write-safe | yes | no | Generate a software-spec refinement prompt for a Change Set. |
+
+## Proposal Artifact Content Imports
+
+Proposal artifact import tools are write-safe content tools. They write only
+fixed proposal artifact targets and never accept, reject, defer, publish,
+merge, finalize, or otherwise decide a proposal.
+
+Use exactly one input mode per call:
+
+```text
+source     existing file or directory path; relative paths resolve from project root
+content    direct string payload for the primary target
+artifacts  object mapping allowlisted filenames to string payloads
+```
+
+Primary `content` targets:
+
+| Tool | Target |
+| --- | --- |
+| `p2p_explore_import` | `exploration.md` |
+| `p2p_impact_import` | `impact-map.yml` |
+| `p2p_clarify_import` | `clarifications.md` |
+| `p2p_synthesize_import` | `proposal.md` |
+| `p2p_plan_import` | `execution-plan.md` |
+| `p2p_tasks_import` | `tasks.yml` |
+
+`artifacts` mode is supported only for exploration and impact imports.
+
+Exploration artifact filenames:
+
+```text
+exploration.md
+findings.md
+alternatives.md
+open-questions.md
+risks.md
+assumptions.md
+suggested-scope.md
+```
+
+Impact artifact filenames and required top-level YAML keys:
+
+```text
+impact-map.yml          impact
+related-proposals.yml   related_proposals
+conflict-analysis.yml   conflicts
+```
+
+Example direct payload import:
+
+```json
+{
+  "proposal_id": "PROP-001",
+  "content": "tasks: []\n"
+}
+```
+
+Example source-path import:
+
+```json
+{
+  "proposal_id": "PROP-001",
+  "source": "outputs/proposal-tasks.yml"
+}
+```
+
+The import tools return `artifact_import` metadata with the proposal ID, import
+kind, input mode, imported paths, filenames, validation flags, and
+`artifact_state_updated: false`.
+
+Artifact content import is separate from artifact coverage state. Use
+`p2p_proposal_artifact_status`, `p2p_proposal_artifact_set`, and
+`p2p_proposal_artifact_confirm` when the owner or agent needs to record whether
+an artifact is required, satisfied, deferred, not applicable, or confirmed.
+
+Unsupported generic artifact writes remain unsupported. Agents should report the
+missing primitive instead of writing arbitrary files under `.p2p/`.
 
 MCP now exposes permission-gated draft proposal accept/reject/defer decisions.
 It also exposes local MCP parity for the managed Work lifecycle through

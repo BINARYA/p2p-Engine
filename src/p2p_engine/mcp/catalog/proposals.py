@@ -4,6 +4,35 @@ from p2p_engine.core.contribution import ContributionType
 from p2p_engine.mcp.catalog.common import tool as _tool
 
 
+ARTIFACT_IMPORT_TOOLS = {
+    'p2p_explore_import': 'exploration',
+    'p2p_impact_import': 'impact',
+    'p2p_clarify_import': 'clarification',
+    'p2p_synthesize_import': 'synthesis/proposal',
+    'p2p_plan_import': 'execution plan',
+    'p2p_tasks_import': 'tasks',
+}
+
+
+def _artifact_import_tool(name: str, label: str) -> dict[str, object]:
+    return _tool(
+        name,
+        (
+            f'Write-safe proposal artifact import tool: import {label} artifact '
+            'content into fixed proposal artifact targets. Supports exactly one '
+            'of source, content, or artifacts. Does not update artifact coverage '
+            'state and does not accept, reject, defer, or decide.'
+        ),
+        {'root': {'type': 'string'},
+         'proposal_id': {'type': 'string'},
+         'source': {'type': 'string'},
+         'content': {'type': 'string'},
+         'artifacts': {'type': 'object', 'additionalProperties': {'type': 'string'}},
+         'actor': {'type': 'string'}},
+        ['proposal_id'],
+    )
+
+
 def tool_definitions() -> list[dict[str, object]]:
     return [
         _tool(
@@ -71,6 +100,10 @@ def tool_definitions() -> list[dict[str, object]]:
             {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},
             ['proposal_id'],
         ),
+        *[
+            _artifact_import_tool(name, label)
+            for name, label in ARTIFACT_IMPORT_TOOLS.items()
+        ],
         _tool(
             'p2p_proposal_list',
             'List P2P proposals, optionally filtered by status.',

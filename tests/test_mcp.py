@@ -143,6 +143,12 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_vote_status",
         "p2p_precedent_search",
         "p2p_impact_prompt",
+        "p2p_explore_import",
+        "p2p_impact_import",
+        "p2p_clarify_import",
+        "p2p_synthesize_import",
+        "p2p_plan_import",
+        "p2p_tasks_import",
         "p2p_project_status",
         "p2p_project_interaction_style_show",
         "p2p_project_interaction_style_set",
@@ -2189,6 +2195,29 @@ def test_mcp_prompt_tools_generate_prompts_without_importing_outputs(tmp_path: P
     assert detail["proposal"]["decision_status"] == "accepted"
 
 
+def test_mcp_artifact_import_tools_import_content_without_deciding(tmp_path: Path) -> None:
+    _setup_project(tmp_path)
+
+    result = call_tool(
+        "p2p_clarify_import",
+        {
+            "root": str(tmp_path),
+            "proposal_id": "PROP-001",
+            "content": "# Clarifications\n\nImported through MCP.\n",
+        },
+    )
+
+    assert result["artifact_import"]["proposal_id"] == "PROP-001"
+    assert result["artifact_import"]["kind"] == "clarify"
+    assert result["artifact_import"]["input_mode"] == "content"
+    assert result["artifact_import"]["imported"][0]["filename"] == "clarifications.md"
+    assert result["artifact_import"]["artifact_state_updated"] is False
+    assert result["governance"]["decision_made"] is False
+    assert (tmp_path / ".p2p" / "proposals" / "PROP-001-mcp-demo" / "clarifications.md").read_text(
+        encoding="utf-8"
+    ) == "# Clarifications\n\nImported through MCP.\n"
+
+
 def test_mcp_jsonrpc_lists_and_calls_tools(tmp_path: Path) -> None:
     _setup_project(tmp_path)
 
@@ -2207,6 +2236,7 @@ def test_mcp_jsonrpc_lists_and_calls_tools(tmp_path: Path) -> None:
     assert listed is not None
     names = {tool["name"] for tool in listed["result"]["tools"]}
     assert "p2p_proposal_list" in names
+    assert "p2p_tasks_import" in names
 
     called = handle_message(
         json.dumps(
@@ -2223,4 +2253,22 @@ def test_mcp_jsonrpc_lists_and_calls_tools(tmp_path: Path) -> None:
     content = called["result"]["content"][0]["text"]
     payload = json.loads(content)
     assert payload["proposal"]["proposal_id"] == "PROP-001"
+
+    imported = handle_message(
+        json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "id": 4,
+                "method": "tools/call",
+                "params": {
+                    "name": "p2p_tasks_import",
+                    "arguments": {"proposal_id": "PROP-001", "content": "tasks: []\n"},
+                },
+            }
+        ),
+        default_root=tmp_path,
+    )
+    assert imported is not None
+    import_payload = json.loads(imported["result"]["content"][0]["text"])
+    assert import_payload["artifact_import"]["imported"][0]["filename"] == "tasks.yml"
     assert payload["proposal"]["title"] == "MCP Demo"

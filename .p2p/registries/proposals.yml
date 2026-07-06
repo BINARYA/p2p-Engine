@@ -2890,19 +2890,26 @@ proposals:
   - tasks.yml
 - id: PROP-088
   title: MCP Artifact Import Parity
-  status: draft
+  status: accepted
   path: .p2p/proposals/PROP-088-mcp-artifact-import-parity
-  summary: Add explicit write-safe MCP tools that call existing P2P Engine import
-    services for proposal artifact content. The MVP scope is intentionally limited
-    to MCP parity for existing impact and exploration imports. Generic artifact import/update
-    is deferred until the specific import parity is proven and a stricter allowlist,
-    validation model, and audit boundary are designed. The MVP tools should return
-    structured metadata about imported files, preserve validation behavior, and keep
-    unsupported artifact-content mutations as explicit missing-primitive errors. Documentation
-    should describe the new MCP surface, supported artifact kinds, unsupported cases,
-    and the relationship between artifact content imports and artifact coverage state.
+  summary: 'Add explicit write-safe MCP tools that call existing P2P Engine import
+    services for proposal artifact content. The MVP scope covers total MCP parity
+    with the existing controlled CLI import primitives that have fixed targets and
+    validation: exploration imports, impact imports, clarification imports, synthesis/proposal
+    imports, plan imports, and tasks imports. Generic arbitrary artifact import/update
+    remains deferred until a stricter allowlist, validation model, and audit boundary
+    are designed. MCP import tools should support both source paths and direct content
+    payloads: source paths preserve parity with current CLI services and directory-based
+    imports, while direct payloads support real MCP client workflows where generated
+    content is already available in the tool call. All tools must use explicit artifact
+    kinds, preserve existing validation behavior, return structured metadata about
+    imported files, and keep unsupported artifact-content mutations as explicit missing-primitive
+    errors. Documentation should describe the new MCP surface, supported artifact
+    kinds, unsupported cases, path-vs-payload behavior, validation/audit boundaries,
+    and the relationship between artifact content imports and artifact coverage state.'
   decision_file: .p2p/proposals/PROP-088-mcp-artifact-import-parity/decision.md
-  related_changes: []
+  related_changes:
+  - CHANGE-066
   source_files:
   - ai-digest.md
   - alternatives.md
@@ -3528,6 +3535,65 @@ proposals:
     client identity, grants, scoped receipts, rate limits, audit retention, and commercial
     collaboration controls outside the P2P core.'
   decision_file: .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - artifact-state.yml
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - conflict-analysis.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - impact-map.yml
+  - open-questions.md
+  - proposal.md
+  - questions.yml
+  - readiness.yml
+  - related-proposals.yml
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-093
+  title: New Project Bootstrap UX And Agent Write Consent Hardening
+  status: draft
+  path: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening
+  summary: "Implement a new-project bootstrap hardening pass with six coordinated\
+    \ changes.\n\n1. Conservative init default: the guided init wizard should no longer\
+    \ silently optimize for every supported agent. It should default to a conservative\
+    \ profile such as `generic`, `codex`, or a detected current client. Selecting\
+    \ `all` should remain supported but should be explicit and accompanied by a concise\
+    \ warning that it will create files for all built-in adapters.\n\n2. Clearer init\
+    \ summary: after init, the CLI should group created files by purpose: P2P governance\
+    \ state, project rubric and permissions, agent integration files, MCP setup hint,\
+    \ and next actions. This helps the owner understand which files are governed state,\
+    \ which are generated agent boundaries, and which are optional integration helpers.\n\
+    \n3. Repository hygiene guard: new projects should receive safe `.gitignore` protection\
+    \ or an explicit guided option. The implementation must not overwrite existing\
+    \ user content. It should ignore `.venv/`, Python caches, test caches, build outputs,\
+    \ and local runtime noise, while keeping `.p2p/` tracked.\n\n4. Robust MCP hint:\
+    \ the generated MCP hint should prefer the project-local Python module command:\n\
+    \n```bash\ncodex mcp add p2p-<project-slug> -- \\\n  /path/to/project/.venv/bin/python\
+    \ \\\n  -m p2p_engine.mcp.server \\\n  --root /path/to/project\n```\n\nThe shorter\
+    \ `p2p-mcp-server` form can remain documented for users who have it on `PATH`.\
+    \ The suggested MCP server name should derive from declared project identity where\
+    \ possible, not only from the directory name.\n\n5. Agent first-write action preview:\
+    \ generated `AGENTS.md`, project skills, and agent policy should state that agents\
+    \ may analyze freely but must preview persistent writes before performing them.\
+    \ The preview should name the operation and path, for example create `PROP-001`,\
+    \ initialize readiness for `PROP-001`, create `outputs/preliminare-token-videogame.md`,\
+    \ or update generated project export. The confirmation can be skipped only when\
+    \ the owner explicitly asks for the exact operation and artifact.\n\n6. Artifact\
+    \ placement policy: generated policy and documentation should define these boundaries:\
+    \ `.p2p/` is governed state, `outputs/` is generated/exported material, `drafts/`\
+    \ or `docs/drafts/` is preliminary working material, and `docs/` is stable owner-intended\
+    \ documentation. Agents should not place preliminary conversation output directly\
+    \ in `docs/` unless the owner asks for durable documentation there."
+  decision_file: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/decision.md
   related_changes: []
   source_files:
   - ai-digest.md

@@ -103,3 +103,136 @@ def test_proposal_artifact_service_imports_impact_artifacts_and_validates_keys(t
     assert proposal.path / "related-proposals.yml" in dir_imported
     with pytest.raises(ValueError, match="expected top-level `impact` key"):
         service.import_impact(proposal.proposal_id, invalid)
+
+
+def test_proposal_artifact_service_import_content_source_mode_matches_cli_targets(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Artifact Project")
+    proposal = workspace.create_proposal("MCP Source Import Target")
+    service = workspace._proposal_artifact_service()
+    sources = {
+        "explore": ("explore.md", "# Exploration\n\nMCP source output.\n"),
+        "impact": ("impact.yml", "impact: []\n"),
+        "clarify": ("clarify.md", "# Clarifications\n\nOwner answer.\n"),
+        "synthesize": ("proposal.md", "# Proposal\n\nSynthesized body.\n"),
+        "plan": ("plan.md", "# Plan\n\nExecution steps.\n"),
+        "tasks": ("tasks.yml", "tasks: []\n"),
+    }
+
+    results = {}
+    for kind, (filename, content) in sources.items():
+        source = tmp_path / filename
+        source.write_text(content, encoding="utf-8")
+        results[kind] = service.import_content(proposal.proposal_id, kind, source=source)
+
+    expected_targets = {
+        "explore": "exploration.md",
+        "impact": "impact-map.yml",
+        "clarify": "clarifications.md",
+        "synthesize": "proposal.md",
+        "plan": "execution-plan.md",
+        "tasks": "tasks.yml",
+    }
+    for kind, target in expected_targets.items():
+        result = results[kind]
+        assert result.proposal_id == proposal.proposal_id
+        assert result.kind == kind
+        assert result.input_mode == "source"
+        assert result.imported == [
+            result.imported[0].__class__(
+                path=proposal.path / target,
+                filename=target,
+                validated=kind in {"impact", "tasks"},
+            )
+        ]
+
+
+def test_proposal_artifact_service_imports_direct_content_payloads(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Artifact Project")
+    proposal = workspace.create_proposal("MCP Content Import Target")
+    service = workspace._proposal_artifact_service()
+
+    cases = {
+        "explore": ("exploration.md", "# Exploration\n\nPayload content.\n", False),
+        "impact": ("impact-map.yml", "impact: []\n", True),
+        "clarify": ("clarifications.md", "# Clarifications\n\nPayload answer.\n", False),
+        "synthesize": ("proposal.md", "# Proposal\n\nPayload proposal.\n", False),
+        "plan": ("execution-plan.md", "# Plan\n\nPayload plan.\n", False),
+        "tasks": ("tasks.yml", "tasks: []\n", True),
+    }
+
+    for kind, (target, content, validated) in cases.items():
+        result = service.import_content(proposal.proposal_id, kind, content=content)
+
+        assert result.input_mode == "content"
+        assert result.imported[0].path == proposal.path / target
+        assert result.imported[0].filename == target
+        assert result.imported[0].validated is validated
+        assert (tmp_path / proposal.path / target).read_text(encoding="utf-8") == content
+
+
+def test_proposal_artifact_service_imports_direct_artifact_payloads(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Artifact Project")
+    proposal = workspace.create_proposal("MCP Multi Artifact Target")
+    service = workspace._proposal_artifact_service()
+
+    exploration = service.import_content(
+        proposal.proposal_id,
+        "explore",
+        artifacts={
+            "findings.md": "# Findings\n\nMCP finding.\n",
+            "assumptions.md": "# Assumptions\n\nMCP assumption.\n",
+        },
+    )
+    impact = service.import_content(
+        proposal.proposal_id,
+        "impact",
+        artifacts={
+            "impact-map.yml": "impact: []\n",
+            "related-proposals.yml": "related_proposals: []\n",
+            "conflict-analysis.yml": "conflicts: []\n",
+        },
+    )
+
+    assert [item.filename for item in exploration.imported] == ["findings.md", "assumptions.md"]
+    assert all(item.validated is False for item in exploration.imported)
+    assert (tmp_path / proposal.path / "findings.md").read_text(encoding="utf-8") == "# Findings\n\nMCP finding.\n"
+    assert [item.filename for item in impact.imported] == [
+        "impact-map.yml",
+        "related-proposals.yml",
+        "conflict-analysis.yml",
+    ]
+    assert all(item.validated is True for item in impact.imported)
+
+
+def test_proposal_artifact_service_rejects_invalid_import_requests_without_payload_writes(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Artifact Project")
+    proposal = workspace.create_proposal("MCP Import Error Target")
+    service = workspace._proposal_artifact_service()
+    impact_path = tmp_path / proposal.path / "impact-map.yml"
+    original_impact = impact_path.read_text(encoding="utf-8") if impact_path.exists() else None
+
+    with pytest.raises(ValueError, match="Provide exactly one"):
+        service.import_content(proposal.proposal_id, "explore")
+    with pytest.raises(ValueError, match="Provide exactly one"):
+        service.import_content(proposal.proposal_id, "explore", source=tmp_path / "missing.md", content="text")
+    with pytest.raises(ValueError, match="Unsupported explore artifact filename"):
+        service.import_content(proposal.proposal_id, "explore", artifacts={"proposal.md": "# Wrong\n"})
+    with pytest.raises(ValueError, match="Artifact payload import is not supported"):
+        service.import_content(proposal.proposal_id, "tasks", artifacts={"tasks.yml": "tasks: []\n"})
+    with pytest.raises(ValueError, match="expected top-level `impact` key"):
+        service.import_content(proposal.proposal_id, "impact", content="wrong: []\n")
+    with pytest.raises(ValueError, match="Invalid tasks YAML"):
+        service.import_content(proposal.proposal_id, "tasks", content="not_tasks: []\n")
+    with pytest.raises(ValueError, match="Impact source not found"):
+        service.import_content(proposal.proposal_id, "impact", source=tmp_path / "missing.yml")
+    with pytest.raises(ValueError):
+        service.import_content("PROP-999", "explore", content="# Missing proposal\n")
+
+    if original_impact is None:
+        assert not impact_path.exists()
+    else:
+        assert impact_path.read_text(encoding="utf-8") == original_impact

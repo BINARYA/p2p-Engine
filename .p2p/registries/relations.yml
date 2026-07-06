@@ -326,6 +326,11 @@ relations:
   type: includes
   rationale: Change Set includes accepted proposal.
   source_artifact: .p2p/changes/CHANGE-065-implement-agent-integration-registry-mvp
+- source: CHANGE-066
+  target: PROP-088
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-066-mcp-artifact-import-parity
 - source: PROP-002
   target: CHANGE-063
   type: implemented_by
@@ -651,3 +656,8 @@ relations:
   type: implemented_by
   rationale: Proposal appears in Change Set source metadata.
   source_artifact: .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions
+- source: PROP-088
+  target: CHANGE-066
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-088-mcp-artifact-import-parity

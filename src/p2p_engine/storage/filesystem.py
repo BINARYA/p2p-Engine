@@ -65,6 +65,8 @@ from p2p_engine.services.next_actions import NextAction, NextActionService
 from p2p_engine.services.permissions import PermissionActor, PermissionsService
 from p2p_engine.services.context_packets import ContextPacket, ContextPacketService
 from p2p_engine.services.proposal_artifacts import (
+    ArtifactImportKind,
+    ArtifactImportResult,
     ExplorationArtifactStatus,
     ExplorationStatus,
     ImportKind,
@@ -1208,6 +1210,23 @@ class P2PWorkspace:
 
     def import_impact(self, proposal_id: str, source: Path) -> list[Path]:
         return self._proposal_artifact_service().import_impact(proposal_id, source)
+
+    def import_proposal_artifact_content(
+        self,
+        proposal_id: str,
+        kind: ArtifactImportKind,
+        *,
+        source: Path | None = None,
+        content: str | None = None,
+        artifacts: dict[str, str] | None = None,
+    ) -> ArtifactImportResult:
+        return self._proposal_artifact_service().import_content(
+            proposal_id,
+            kind,
+            source=source,
+            content=content,
+            artifacts=artifacts,
+        )
 
     def init_governance(self, mode: str) -> list[Path]:
         return self._governance_service().init_governance(mode)

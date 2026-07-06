@@ -1184,18 +1184,17 @@ readiness:
   path: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/readiness.yml
 - proposal: PROP-088
   title: MCP Artifact Import Parity
-  proposal_status: draft
+  proposal_status: accepted
   status: assessed
   profile_id: default-readiness-v0.1
   profile_version: '0.1'
-  computed_score: 70
-  computed_label: partial
-  confidence: low
-  failed_gates:
-  - owner_questions_resolution:needs_owner_input
+  computed_score: 100
+  computed_label: decision_ready
+  confidence: medium
+  failed_gates: []
   missing: []
   suggested_next:
-  - resolve_owner_questions_resolution
+  - p2p proposal questions apply PROP-088
   path: .p2p/proposals/PROP-088-mcp-artifact-import-parity/readiness.yml
 - proposal: PROP-089
   title: Readiness Question-State Convergence
@@ -1249,3 +1248,32 @@ readiness:
   missing: []
   suggested_next: []
   path: .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/readiness.yml
+- proposal: PROP-093
+  title: New Project Bootstrap UX And Agent Write Consent Hardening
+  proposal_status: draft
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  computed_score: 14
+  computed_label: weak
+  confidence: low
+  failed_gates: []
+  missing:
+  - scope_boundaries
+  - alternatives_quality
+  - tradeoff_analysis
+  - risk_coverage
+  - assumptions_clarity
+  - owner_questions_resolution
+  - acceptance_criteria_quality
+  - impact_overlap_analysis
+  suggested_next:
+  - add_scope_boundaries
+  - add_alternatives_quality
+  - add_tradeoff_analysis
+  - add_risk_coverage
+  - add_assumptions_clarity
+  - add_owner_questions_resolution
+  - add_acceptance_criteria_quality
+  - add_impact_overlap_analysis
+  path: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/readiness.yml

@@ -64,3 +64,15 @@ next_action_log:
   closed_reason: Created PROP-092 to define local MCP Work lifecycle parity and remote
     gateway boundary.
   closed_on: '2026-07-04'
+- id: NEXT-007
+  priority: high
+  kind: resolve_owner_questions
+  target: PROP-088
+  reason: PROP-088 readiness is partial with no missing criteria, but the owner_questions_resolution
+    gate remains open. The owner must answer the MVP scope, clarification import,
+    and MCP input-shape questions before acceptance can be recommended without override.
+  command: .venv/bin/p2p proposal questions next PROP-088
+  status: completed
+  closed_reason: PROP-088 owner questions were answered, applied where supported,
+    proposal.md was updated, the proposal was accepted, and CHANGE-066 was created.
+  closed_on: '2026-07-06'

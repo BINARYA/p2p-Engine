@@ -1076,3 +1076,20 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-066
+  title: MCP Artifact Import Parity
+  status: completed
+  path: .p2p/changes/CHANGE-066-mcp-artifact-import-parity
+  included_proposals:
+  - PROP-088
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

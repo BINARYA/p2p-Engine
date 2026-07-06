@@ -39,6 +39,12 @@ EXPECTED_TOOL_NAMES = (
     "p2p_vote_status",
     "p2p_precedent_search",
     "p2p_impact_prompt",
+    "p2p_explore_import",
+    "p2p_impact_import",
+    "p2p_clarify_import",
+    "p2p_synthesize_import",
+    "p2p_plan_import",
+    "p2p_tasks_import",
     "p2p_project_status",
     "p2p_project_interaction_style_show",
     "p2p_project_interaction_style_set",
@@ -181,6 +187,26 @@ def test_mcp_prompt_tool_mapping_is_available_for_dispatch() -> None:
     assert prompt_names <= definition_names
     assert PROMPT_TOOL_KINDS["p2p_explore_prompt"] == "explore"
     assert PROMPT_TOOL_KINDS["p2p_swot_prompt"] == "swot"
+
+
+def test_mcp_artifact_import_tool_schemas_are_stable() -> None:
+    definitions = {definition["name"]: definition for definition in tool_definitions()}
+
+    for name in (
+        "p2p_explore_import",
+        "p2p_impact_import",
+        "p2p_clarify_import",
+        "p2p_synthesize_import",
+        "p2p_plan_import",
+        "p2p_tasks_import",
+    ):
+        schema = definitions[name]["inputSchema"]
+        assert schema["required"] == ["proposal_id"]
+        assert set(schema["properties"]) == {"root", "proposal_id", "source", "content", "artifacts", "actor"}
+        assert schema["properties"]["artifacts"]["additionalProperties"] == {"type": "string"}
+        assert "Write-safe proposal artifact import tool" in definitions[name]["description"]
+        assert "Does not update artifact coverage state" in definitions[name]["description"]
+        assert "does not accept, reject, defer, or decide" in definitions[name]["description"]
 
 
 def test_mcp_work_lifecycle_tool_schemas_are_stable() -> None:
