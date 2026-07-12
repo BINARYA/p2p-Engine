@@ -167,6 +167,97 @@ def test_cli_runtime_status_reports_missing_contract(tmp_path: Path) -> None:
     assert "P2P266_RUNTIME_CONTRACT_MISSING" in result.output
 
 
+def test_cli_runtime_contract_preview_and_apply_json(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Runtime Project", "--root", str(tmp_path)])
+    runtime_path = tmp_path / ".p2p" / "project" / "runtime.yml"
+    runtime_path.write_text(
+        yaml.safe_dump(
+            {
+                "runtime_contract": {"schema_version": 1},
+                "runtime": {"p2p": {"requires": ">=0.0.0,<9999.0", "recommended": "0.0.1"}},
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    preview = runner.invoke(
+        app,
+        [
+            "runtime",
+            "contract",
+            "preview",
+            "--requires",
+            ">=0.0.0,<9999.0",
+            "--recommended",
+            "0.0.2",
+            "--format",
+            "json",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    assert preview.exit_code == 0
+    preview_payload = json.loads(preview.output)
+    assert preview_payload["status"] == "applicable"
+    assert preview_payload["expected_state_token"]
+
+    applied = runner.invoke(
+        app,
+        [
+            "runtime",
+            "contract",
+            "apply",
+            "--requires",
+            ">=0.0.0,<9999.0",
+            "--recommended",
+            "0.0.2",
+            "--expected-state-token",
+            preview_payload["expected_state_token"],
+            "--confirm",
+            "--format",
+            "json",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    assert applied.exit_code == 0
+    apply_payload = json.loads(applied.output)
+    assert apply_payload["status"] == "updated"
+    assert apply_payload["files_changed"] == ["P2P-SETUP.md", ".p2p/project/runtime.yml"]
+    payload = yaml.safe_load(runtime_path.read_text(encoding="utf-8"))
+    assert payload["runtime"]["p2p"]["recommended"] == "0.0.2"
+
+
+def test_cli_runtime_contract_preview_text_output(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Runtime Project", "--root", str(tmp_path)])
+    runtime_path = tmp_path / ".p2p" / "project" / "runtime.yml"
+    payload = yaml.safe_load(runtime_path.read_text(encoding="utf-8"))
+    p2p_runtime = payload["runtime"]["p2p"]
+
+    result = runner.invoke(
+        app,
+        [
+            "runtime",
+            "contract",
+            "preview",
+            "--requires",
+            p2p_runtime["requires"],
+            "--recommended",
+            p2p_runtime["recommended"],
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Runtime contract preview" in result.output
+    assert "status: no_change" in result.output
+    assert "impact_labels: none" in result.output
+
+
 def test_cli_project_interaction_style_show_and_set(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Style Project", "--root", str(tmp_path)])
 

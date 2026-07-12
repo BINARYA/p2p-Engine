@@ -1,0 +1,192 @@
+proposal_artifacts:
+  schema_version: 1
+  proposal_id: PROP-095
+  initialized_at: '2026-07-12T20:48:05Z'
+  updated_at: '2026-07-12T21:22:39Z'
+  status: active
+  legacy:
+    state: ''
+    reason: ''
+  artifacts:
+  - id: proposal
+    filename: proposal.md
+    expectation: required
+    status: satisfied
+    reason: proposal.md contains scoped problem, goals, non-goals, detailed proposal,
+      and testable acceptance criteria after refinement.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - public_interface
+    - persistent_state
+    - permission_security_sync
+    - user_workflow_docs_release
+    created_at: '2026-07-12T20:48:05Z'
+    updated_at: '2026-07-12T21:22:27Z'
+    history:
+    - at: '2026-07-12T21:22:27Z'
+      actor: local
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: proposal.md contains scoped problem, goals, non-goals, detailed proposal,
+        and testable acceptance criteria after refinement.
+  - id: readiness
+    filename: readiness.yml
+    expectation: required
+    status: satisfied
+    reason: readiness.yml exists and has been refreshed; remaining computed score
+      is conservative advisory output rather than missing artifact coverage.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-07-12T20:48:05Z'
+    updated_at: '2026-07-12T21:22:33Z'
+    history:
+    - at: '2026-07-12T21:22:33Z'
+      actor: local
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: readiness.yml exists and has been refreshed; remaining computed score
+        is conservative advisory output rather than missing artifact coverage.
+  - id: open_questions
+    filename: open-questions.md
+    expectation: required
+    status: satisfied
+    reason: open-questions.md records that Q001-Q004 were answered; proposal questions
+      have no eligible next question.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - owner_clarification
+    created_at: '2026-07-12T20:48:05Z'
+    updated_at: '2026-07-12T21:22:02Z'
+    history:
+    - at: '2026-07-12T21:22:02Z'
+      actor: local
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: open-questions.md records that Q001-Q004 were answered; proposal questions
+        have no eligible next question.
+  - id: clarifications
+    filename: clarifications.md
+    expectation: required
+    status: satisfied
+    reason: clarifications.md captures answers for audit policy, owner authority,
+      JSON surface, and impact classification.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - owner_clarification
+    - permission_security_sync
+    created_at: '2026-07-12T20:48:05Z'
+    updated_at: '2026-07-12T21:22:02Z'
+    history:
+    - at: '2026-07-12T21:22:02Z'
+      actor: local
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: clarifications.md captures answers for audit policy, owner authority,
+        JSON surface, and impact classification.
+  - id: findings
+    filename: findings.md
+    expectation: required
+    status: satisfied
+    reason: findings.md records scope boundaries, write-gate exception, owner authority,
+      coordinated-write semantics, deterministic range grammar, and future policy
+      hook.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - governance_policy
+    - public_interface
+    - persistent_state
+    - compatibility_migration
+    - cross_module
+    - permission_security_sync
+    - user_workflow_docs_release
+    - dependency_runtime_infra
+    - owner_clarification
+    created_at: '2026-07-12T20:48:05Z'
+    updated_at: '2026-07-12T21:22:39Z'
+    history:
+    - at: '2026-07-12T21:22:39Z'
+      actor: local
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: findings.md records scope boundaries, write-gate exception, owner authority,
+        coordinated-write semantics, deterministic range grammar, and future policy
+        hook.
+  - id: exploration
+    filename: exploration.md
+    expectation: required_when_applicable
+    status: satisfied
+    reason: exploration.md plus imported alternatives, risks, assumptions, and suggested
+      scope cover the relevant design space.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - alternatives
+    created_at: '2026-07-12T20:48:05Z'
+    updated_at: '2026-07-12T21:22:13Z'
+    history:
+    - at: '2026-07-12T21:22:13Z'
+      actor: local
+      source: agent
+      previous_status: missing
+      previous_expectation: required_when_applicable
+      previous_confirmation: system
+      reason: exploration.md plus imported alternatives, risks, assumptions, and suggested
+        scope cover the relevant design space.
+  - id: impact_map
+    filename: impact-map.yml
+    expectation: required
+    status: satisfied
+    reason: impact-map.yml, related-proposals.yml, and conflict-analysis.yml identify
+      dependencies, overlaps, touched surfaces, risks, and boundaries.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - governance_policy
+    - public_interface
+    - persistent_state
+    - compatibility_migration
+    - cross_module
+    - permission_security_sync
+    - source_of_truth_memory
+    - user_workflow_docs_release
+    - dependency_runtime_infra
+    created_at: '2026-07-12T20:48:05Z'
+    updated_at: '2026-07-12T21:22:14Z'
+    history:
+    - at: '2026-07-12T21:22:14Z'
+      actor: local
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: impact-map.yml, related-proposals.yml, and conflict-analysis.yml identify
+        dependencies, overlaps, touched surfaces, risks, and boundaries.

@@ -21,7 +21,12 @@ from p2p_engine.core.project_verticals import (
     VerticalSection,
     VerticalValidationResult,
 )
-from p2p_engine.core.runtime_contract import RuntimeStatus, RuntimeWritePreflight
+from p2p_engine.core.runtime_contract import (
+    RuntimeContractUpdatePreview,
+    RuntimeContractUpdateResult,
+    RuntimeStatus,
+    RuntimeWritePreflight,
+)
 from p2p_engine.core.interaction_style import InteractionStyleView
 from p2p_engine.foundation.files import (
     identity_slug as _identity_slug,
@@ -1111,6 +1116,44 @@ class P2PWorkspace:
 
     def runtime_write_preflight(self, operation: str) -> RuntimeWritePreflight:
         return self._runtime_contract_service().write_preflight(operation)
+
+    def runtime_contract_update_preview(
+        self,
+        *,
+        requires: str,
+        recommended: str,
+        reason: str = "",
+        decision: str = "",
+        actor: str = "owner",
+    ) -> RuntimeContractUpdatePreview:
+        return self._runtime_contract_service().preview_update(
+            requires=requires,
+            recommended=recommended,
+            reason=reason,
+            decision=decision,
+            actor=actor,
+        )
+
+    def runtime_contract_update_apply(
+        self,
+        *,
+        requires: str,
+        recommended: str,
+        expected_state_token: str = "",
+        confirm: bool = False,
+        reason: str = "",
+        decision: str = "",
+        actor: str = "owner",
+    ) -> RuntimeContractUpdateResult:
+        return self._runtime_contract_service().apply_update(
+            requires=requires,
+            recommended=recommended,
+            expected_state_token=expected_state_token,
+            confirm=confirm,
+            reason=reason,
+            decision=decision,
+            actor=actor,
+        )
 
     def _ensure_runtime_write_allowed(self, operation: str) -> RuntimeWritePreflight:
         if not self.p2p_dir.exists() or not (self.p2p_dir / "project.yml").exists():

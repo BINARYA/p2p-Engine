@@ -1,0 +1,184 @@
+impact:
+  proposal: PROP-095
+  title: Project Runtime Contract Update Lifecycle
+  summary: >
+    Adds a governed owner-authorized lifecycle for previewing and applying
+    project runtime contract changes without installing, upgrading, downgrading,
+    or reconciling P2P Engine.
+  impact_type: lifecycle_extension
+  execution_domains:
+    - software
+    - p2p_governance
+    - documentation
+    - testing
+  features:
+    - feature: project-local-runtime-bootstrap-and-upgrade-flow
+      impact: >
+        Extends PROP-084 from contract creation, status, setup-guide generation,
+        and write-gate behavior to explicit owner-controlled contract updates.
+    - feature: runtime-environment-installation
+      impact: >
+        Remains out of scope. The lifecycle reports required and recommended
+        versions but does not install or modify the active runtime.
+  commands:
+    - command: p2p runtime contract preview
+      impact: >
+        Adds a read-only diagnostic surface that validates proposed contract
+        values, classifies impact when the current contract is trusted, reports
+        authority status, and computes a stateless expected-state token only
+        for applicable updates.
+    - command: p2p runtime contract apply
+      impact: >
+        Adds the owner-authorized mutation path with confirmation, stale-state
+        protection, required reasons for strong impacts, coordinated writes, and
+        contract-last replacement.
+    - command: p2p runtime status
+      impact: >
+        Remains the diagnostic surface for collaborators whose active runtime
+        becomes incompatible after the owner changes the contract.
+    - command: p2p validate
+      impact: >
+        Continues to detect contract validity and setup-guide drift; broad
+        validation is not invoked automatically after a contract update that
+        excludes the active runtime.
+  files:
+    - path: src/p2p_engine/services/runtime_contract.py
+      impact: >
+        Main service boundary for proposed-contract validation, current-state
+        trust checks, preview construction, impact classification, token
+        calculation, and coordinated apply orchestration.
+    - path: src/p2p_engine/core/runtime_contract.py
+      impact: >
+        Extends typed models with preview result, apply result, impact labels,
+        setup-guide update state, token payload, and blocked diagnostic states.
+    - path: src/p2p_engine/cli_commands/runtime.py
+      impact: >
+        Adds the `preview` and `apply` subcommands and human/JSON presentation.
+    - path: src/p2p_engine/storage/filesystem.py
+      impact: >
+        May receive facade delegation and narrow write-gate exception routing,
+        but domain behavior must remain in cohesive runtime-contract services.
+    - path: src/p2p_engine/services/validation.py
+      impact: >
+        Continues to surface runtime contract and setup-guide findings, including
+        deterministic legacy and drift diagnostics.
+    - path: docs/CLI-GUIDE.md
+      impact: >
+        Documents contract preview/apply lifecycle, confirmation, token usage,
+        and no-install boundary.
+    - path: docs/AGENT-INTEGRATION.md
+      impact: >
+        Documents that agents may run preview, but must not apply owner-controlled
+        contract changes without explicit owner authorization.
+  project_artifacts:
+    - artifact: .p2p/project/runtime.yml
+      impact: >
+        Existing runtime contract becomes updateable only through the supported
+        owner-controlled lifecycle and is written last during apply.
+    - artifact: P2P-SETUP.md
+      impact: >
+        Managed setup guide is regenerated during a true contract update; drift
+        can be repaired as part of that update, while unmanaged guides block.
+    - artifact: .p2p/project.yml
+      impact: >
+        Runtime-contract required marker remains part of current-state trust
+        classification and missing-contract behavior.
+    - artifact: project authority state
+      impact: >
+        Apply requires owner authority. Preview may report authority diagnostics
+        without requiring or granting authority.
+  dependencies:
+    - proposal: PROP-084
+      relationship: builds_on
+      reason: >
+        PROP-084 defines the runtime contract, status taxonomy, setup-guide
+        marker/drift behavior, and write gate consumed by PROP-095.
+    - proposal: future setup-guide adoption capability
+      relationship: boundary_with
+      reason: >
+        PROP-095 blocks unmanaged setup guides and does not adopt or replace
+        human-owned setup documentation.
+    - proposal: future runtime installation or release workflow
+      relationship: boundary_with
+      reason: >
+        PROP-095 may report release availability but does not install or publish
+        runtime artifacts.
+  overlaps:
+    - area: runtime contract validation
+      related: PROP-084
+      boundary: >
+        PROP-084 declares, validates, and gates the contract. PROP-095 changes
+        it through a governed update lifecycle.
+    - area: environment upgrade
+      related: installer or release proposals
+      boundary: >
+        PROP-095 tells collaborators which runtime is required or recommended,
+        but the user remains responsible for installing a compatible version.
+    - area: setup guide ownership
+      related: future adoption workflow
+      boundary: >
+        PROP-095 regenerates only managed generated guides and blocks unmanaged
+        guides before mutation.
+  governance:
+    - area: owner authority
+      impact: >
+        Apply requires project-owner authority. Preview remains read-only and
+        available to non-owner actors.
+    - area: stale-state protection
+      impact: >
+        Expected-state tokens bind protected state and proposed values but do
+        not authorize actors or consume consent.
+    - area: decision traceability
+      impact: >
+        A linked P2P decision is optional; the command does not create or require
+        one in the first implementation.
+    - area: reasons and audit
+      impact: >
+        Reasons are required for range tightening, runtime-line changes, and
+        active-runtime exclusion. Any audit mutation must happen before the
+        final contract replacement or within the same coordinated write.
+  compatibility:
+    existing_contracts: >
+      Existing valid PROP-084 contracts remain readable and updateable.
+    legacy_projects: >
+      legacy_undeclared receives diagnostic preview only and requires separate
+      adoption before apply.
+    invalid_or_unsupported_contracts: >
+      invalid_contract and unsupported_contract receive diagnostic preview only
+      and require repair or schema migration before apply.
+    missing_contract: >
+      missing_contract receives diagnostic preview only and requires recovery
+      before apply.
+    setup_guide_drift: >
+      Managed drift can be repaired during a true contract update; unmanaged
+      setup guides block before mutation.
+  risks:
+    - risk: Contract update becomes a write-gate backdoor.
+      mitigation: >
+        Limit the exception to the apply lifecycle, require owner authority,
+        confirmation, stale-state protection, and write only authorized artifacts.
+    - risk: Expected-state token is mistaken for authorization.
+      mitigation: >
+        Define it as stateless stale-state evidence only and repeat authority
+        checks during apply.
+    - risk: Unmanaged setup guide is overwritten.
+      mitigation: >
+        Block apply when the stable P2P-managed marker is absent.
+    - risk: Partial writes leave runtime contract and setup guide inconsistent.
+      mitigation: >
+        Prepare all content first, replace the managed guide before the contract,
+        and write the normative contract last.
+    - risk: Active runtime becomes incompatible after update.
+      mitigation: >
+        Perform no further governed mutations after final contract replacement
+        and report deferred validation plus next action.
+  regression_tests:
+    - preview changes no files and is executable without owner authority.
+    - apply requires owner authority, confirmation, and a matching expected-state token.
+    - recommended-only update regenerates managed setup guide and does not require a reason.
+    - unmanaged setup guide blocks apply before runtime.yml mutation.
+    - invalid_contract, unsupported_contract, missing_contract, and legacy_undeclared return diagnostic preview without applicable token.
+    - partially overlapping and disjoint ranges can emit both range_widening and range_tightening.
+    - updates that exclude active runtime write runtime.yml last and perform no post-update governed mutation.
+    - stale contract or setup-guide bytes reject apply without mutation.
+    - no-op contract update writes nothing and does not repair guide drift.

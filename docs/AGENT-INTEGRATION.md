@@ -239,6 +239,28 @@ Ordinary `p2p init` is not a contract recovery shortcut.
 Environment mutation remains owner-controlled. Agents must ask for explicit
 owner action before installing, upgrading, downgrading, or replacing P2P Engine.
 
+Runtime contract updates are also owner-controlled, but preview is read-only
+and can be prepared by an agent or collaborator:
+
+```bash
+p2p runtime contract preview \
+  --requires "==0.2.0" \
+  --recommended "0.2.0" \
+  --reason "Move project to runtime line 0.2" \
+  --format json
+```
+
+The preview token binds project state and the proposed contract change; it is
+not an authorization. An authorized owner must run `p2p runtime contract apply`
+with the same proposed values, the token, and `--confirm`. If the current
+contract is missing, invalid, unsupported, or legacy undeclared, preview is
+diagnostic only and does not produce an applicable token.
+
+Agents must not use this lifecycle to install a runtime, repair a missing
+contract, adopt an unmanaged `P2P-SETUP.md`, or bypass owner authority. If
+apply would make the active runtime incompatible, no further governed mutation
+should be attempted until a compatible runtime is used.
+
 When an agent enters a P2P-managed repository, it should discover the runtime in
 this order. If the current working directory is ambiguous, `--root` should point
 to the governed P2P decision root used for decisions and state:

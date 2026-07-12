@@ -309,10 +309,26 @@ class ReadinessService:
             )
             if item
         )
-        add_criterion("scope_boundaries", "proposal.md", "Non-Goals", scope_text)
+        add_criterion(
+            "scope_boundaries",
+            "proposal.md",
+            "Non-Goals",
+            scope_text,
+            quality_override=readiness_evidence_quality(
+                read_markdown_section(proposal_text, "Non-Goals"),
+                _read_optional(proposal_dir / "suggested-scope.md"),
+            ),
+        )
         alternatives_text = _read_optional(proposal_dir / "alternatives.md")
         add_criterion("alternatives_quality", "alternatives.md", None, alternatives_text)
-        add_criterion("tradeoff_analysis", "alternatives.md", None, alternatives_text + "\n" + _read_optional(proposal_dir / "findings.md"))
+        findings_text = _read_optional(proposal_dir / "findings.md")
+        add_criterion(
+            "tradeoff_analysis",
+            "alternatives.md",
+            None,
+            alternatives_text + "\n" + findings_text,
+            quality_override=readiness_evidence_quality(alternatives_text, findings_text),
+        )
         add_criterion("risk_coverage", "risks.md", None, _read_optional(proposal_dir / "risks.md"))
         add_criterion("assumptions_clarity", "assumptions.md", None, _read_optional(proposal_dir / "assumptions.md"))
         questions_text = _read_optional(proposal_dir / "open-questions.md")
@@ -333,15 +349,20 @@ class ReadinessService:
             question_evidence_text,
             quality_override=question_quality,
         )
+        acceptance_primary = read_markdown_section(proposal_text, "Acceptance Criteria")
+        acceptance_supplemental = _read_optional(proposal_dir / "execution-plan.md")
         acceptance_text = "\n".join(
             item
-            for item in (
-                read_markdown_section(proposal_text, "Acceptance Criteria"),
-                _read_optional(proposal_dir / "execution-plan.md"),
-            )
+            for item in (acceptance_primary, acceptance_supplemental)
             if item
         )
-        add_criterion("acceptance_criteria_quality", "proposal.md", "Acceptance Criteria", acceptance_text)
+        add_criterion(
+            "acceptance_criteria_quality",
+            "proposal.md",
+            "Acceptance Criteria",
+            acceptance_text,
+            quality_override=readiness_evidence_quality(acceptance_primary, acceptance_supplemental),
+        )
         add_criterion("impact_overlap_analysis", "impact-map.yml", None, _read_optional(proposal_dir / "impact-map.yml"))
 
         readiness = {
@@ -709,6 +730,25 @@ def readiness_text_quality(text: str | None) -> str:
     return "meaningful"
 
 
+def readiness_evidence_quality(primary: str | None, *supplemental: str | None) -> str:
+    primary_quality = readiness_text_quality(primary)
+    supplemental_qualities = [readiness_text_quality(item) for item in supplemental]
+    return aggregate_readiness_qualities(primary_quality, supplemental_qualities)
+
+
+def aggregate_readiness_qualities(primary_quality: str, supplemental_qualities: list[str]) -> str:
+    qualities = [primary_quality, *supplemental_qualities]
+    if primary_quality in {"meaningful", "ready"}:
+        return primary_quality
+    if any(quality in {"meaningful", "ready"} for quality in supplemental_qualities):
+        return "meaningful"
+    if primary_quality == "thin" or any(quality == "thin" for quality in supplemental_qualities):
+        return "thin"
+    if any(quality == "placeholder" for quality in qualities):
+        return "placeholder"
+    return "missing"
+
+
 def initial_readiness_points(max_points: int, quality: str) -> int:
     if quality in {"missing", "placeholder"}:
         return 0
@@ -830,6 +870,11 @@ def _classify_structured_question(summary: dict[str, object], question: dict[str
     group_state = str(group.get("state") or "to_answer")
     priority = str(question.get("priority") or "medium")
     question_id = str(question.get("id") or "")
+    if state == "answered" and question.get("applied_to_proposal") is True and str(question.get("applied_at") or "").strip():
+        summary["closed_questions"].append(
+            _question_ref(question, group, reason="Answered question already has a durable applied marker.")
+        )
+        return
     if state in {"applied", "retired", "superseded"}:
         summary["closed_questions"].append(
             _question_ref(question, group, reason=f"Question is closed with state `{state}`.")

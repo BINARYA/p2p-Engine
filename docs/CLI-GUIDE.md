@@ -104,6 +104,35 @@ Status meanings:
 `P2P268_RUNTIME_SETUP_GUIDE_DRIFT` when managed `P2P-SETUP.md` no longer
 matches the contract-rendered setup guide.
 
+Project owners can preview and apply a governed runtime contract change with:
+
+```bash
+p2p runtime contract preview \
+  --requires ">=0.2.0,<0.3" \
+  --recommended "0.2.4"
+
+p2p runtime contract apply \
+  --requires ">=0.2.0,<0.3" \
+  --recommended "0.2.4" \
+  --expected-state-token "<token-from-preview>" \
+  --confirm
+```
+
+`preview` is read-only. It validates the proposed values, classifies impacts,
+checks the managed setup guide state, reports owner-authority diagnostics, and
+returns an expected-state token only when the current contract is trusted and
+the update is structurally applicable.
+
+`apply` rechecks the current state, owner authority, confirmation, reason
+requirements, and expected-state token before writing. It updates managed
+`P2P-SETUP.md` first and `.p2p/project/runtime.yml` last. It never installs,
+upgrades, downgrades, or reconciles the local P2P Engine runtime.
+
+Strong impacts such as range tightening, runtime line changes, or updates that
+exclude the active runtime require `--reason`. An unmanaged `P2P-SETUP.md`
+blocks apply; P2P does not overwrite human-owned setup documentation as a side
+effect of a contract update.
+
 ### Project Interaction Style
 
 Project interaction style is the project-level default for how agents and

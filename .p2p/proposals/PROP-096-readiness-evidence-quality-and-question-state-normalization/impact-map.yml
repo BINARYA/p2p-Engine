@@ -1,0 +1,101 @@
+impact:
+  proposal: PROP-096
+  title: Readiness Evidence Quality and Question State Normalization
+  summary: >
+    Fixes false readiness gaps caused by placeholder-only supplemental evidence
+    and inconsistent already-applied proposal question state.
+  impact_type: bug_fix
+  execution_domains:
+    - p2p_governance
+    - readiness
+    - proposal_questions
+    - testing
+  features:
+    - feature: proposal_readiness_assessment
+      impact: >
+        Changes evidence aggregation so meaningful primary evidence is not
+        downgraded by placeholder-only supplemental artifacts.
+    - feature: proposal_question_state
+      impact: >
+        Aligns readiness classification with durable applied markers for
+        already-applied answered questions.
+  commands:
+    - command: p2p proposal readiness assess
+      impact: >
+        Should no longer report false missing criteria for meaningful primary
+        evidence combined with placeholder-only supplemental artifacts.
+    - command: p2p proposal readiness explain
+      impact: >
+        Should explain actual remaining gaps without listing false
+        answered-not-applied question state.
+    - command: p2p proposal questions reassess
+      impact: >
+        May become the supported normalization path if the implementation
+        chooses to promote applied-marker records to state applied.
+    - command: p2p proposal questions apply
+      impact: >
+        Existing behavior for answered unapplied questions must remain
+        unchanged.
+  files:
+    - path: src/p2p_engine/services/readiness.py
+      impact: >
+        Primary implementation boundary for artifact-aware evidence quality and
+        owner question state classification.
+    - path: src/p2p_engine/services/proposal_questions.py
+      impact: >
+        May receive deterministic normalization for applied-marker question
+        records if classification in readiness alone is insufficient.
+    - path: tests/test_readiness_service.py
+      impact: >
+        Adds regression tests for composed evidence and placeholder-only
+        supplemental artifacts.
+    - path: tests/test_proposal_questions_service.py
+      impact: >
+        Adds or updates tests for already-applied answered question
+        normalization while preserving normal apply behavior.
+  project_artifacts:
+    - artifact: proposal.md
+      impact: >
+        Remains the primary evidence source for problem, goals, scope, proposal,
+        and acceptance criteria sections.
+    - artifact: execution-plan.md
+      impact: >
+        Remains supplemental acceptance evidence and no longer downgrades
+        meaningful proposal criteria when placeholder-only.
+    - artifact: questions.yml
+      impact: >
+        Already-applied answered questions are treated consistently by readiness.
+  dependencies:
+    - proposal: PROP-082
+      relationship: related
+      reason: >
+        PROP-082 introduced readiness refresh/review workflow behavior that
+        this bug fix makes more reliable.
+    - proposal: PROP-089
+      relationship: related
+      reason: >
+        PROP-089 introduced structured question-state convergence that this
+        proposal normalizes for already-applied records.
+    - proposal: PROP-095
+      relationship: discovered_by
+      reason: >
+        The false missing and answered-not-applied behavior was observed while
+        finalizing PROP-095.
+  risks:
+    - risk: Readiness becomes too optimistic.
+      mitigation: >
+        Preserve strict placeholder detection for primary evidence and genuinely
+        missing evidence.
+    - risk: Applied question normalization hides owner follow-up.
+      mitigation: >
+        Require a durable applied marker before treating an answered question as
+        closed.
+    - risk: Artifact coverage and criterion readiness diverge.
+      mitigation: >
+        Treat weak supplemental artifacts as artifact coverage warnings rather
+        than criterion failure when primary evidence is meaningful.
+  regression_tests:
+    - meaningful acceptance criteria plus placeholder-only execution plan is not classified as placeholder.
+    - placeholder-only primary acceptance criteria remains placeholder or missing.
+    - answered question with applied marker is not reported as answered_not_applied after supported normalization.
+    - answered question without applied marker is still reported and applied by the existing apply flow.

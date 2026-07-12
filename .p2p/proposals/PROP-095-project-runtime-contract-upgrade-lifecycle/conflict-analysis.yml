@@ -1,0 +1,19 @@
+conflicts:
+  - type: scope_boundary
+    proposals:
+      - PROP-095
+    reason: >
+      Treating the feature as an automatic runtime upgrade tool would conflict
+      with the accepted no-install boundary.
+    suggested_resolution: >
+      Keep installation and upgrade commands out of PROP-095. Report mismatch
+      and guide the user to install a compatible runtime separately.
+  - type: ownership_boundary
+    proposals:
+      - PROP-095
+    reason: >
+      Replacing unmanaged P2P-SETUP.md would mutate human-owned documentation
+      while applying a runtime contract update.
+    suggested_resolution: >
+      Block apply and require a separate setup-guide adoption or replacement
+      workflow.

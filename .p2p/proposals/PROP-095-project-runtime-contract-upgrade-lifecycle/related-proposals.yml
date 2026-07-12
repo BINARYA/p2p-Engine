@@ -1,0 +1,22 @@
+related_proposals:
+  - proposal: PROP-084
+    relationship: builds_on
+    reason: >
+      PROP-084 establishes the runtime contract, setup-guide generation, drift
+      detection, and write gate that PROP-095 updates through a governed owner
+      lifecycle.
+  - proposal: PROP-093
+    relationship: compatible_with
+    reason: >
+      PROP-095 follows the P2P-first persistence and owner-controlled mutation
+      principles hardened across the PROP-093 slices.
+  - proposal: future setup-guide adoption workflow
+    relationship: boundary_with
+    reason: >
+      PROP-095 intentionally blocks unmanaged setup guides and leaves adoption,
+      replacement, backup, and merge behavior to a separate capability.
+  - proposal: future runtime installation workflow
+    relationship: boundary_with
+    reason: >
+      PROP-095 does not install, upgrade, downgrade, or reconcile P2P Engine.
+      It only updates project contract metadata and generated guidance.

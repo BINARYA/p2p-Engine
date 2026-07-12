@@ -618,10 +618,14 @@ decisions:
     assessments.
 - proposal: PROP-084
   title: Project-Local Runtime Bootstrap And Upgrade Flow
-  outcome: pending
-  status: draft
+  outcome: accepted_with_changes
+  status: accepted_with_changes
   path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/decision.md
-  reason: ''
+  reason: 'Accepted with changes after owner rescope: PROP-084 is limited to a minimal
+    project runtime contract, project-local P2P-SETUP.md guidance, runtime status,
+    validation, and a contract-aware governed-write gate. Mandatory setup scripts,
+    install/reconcile managers, release resolvers, wheel/digest/source metadata, environment
+    mutation, and automatic fallback are out of scope.'
 - proposal: PROP-085
   title: Pluggable Project Verticals And Readiness Orchestration
   outcome: accepted
@@ -714,3 +718,17 @@ decisions:
   path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/decision.md
   reason: Owner accepted after review; readiness is decision_ready with no missing
     gates or blocking questions.
+- proposal: PROP-095
+  title: Project Runtime Contract Update Lifecycle
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/decision.md
+  reason: Owner accepts the runtime contract update lifecycle after readiness reached
+    decision_ready with all Q001-Q016 decisions applied and no missing evidence.
+- proposal: PROP-096
+  title: Readiness Evidence Quality and Question State Normalization
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/decision.md
+  reason: Owner accepts the readiness evidence quality and question state normalization
+    fix after readiness reached decision_ready and the bug scope was fully bounded.

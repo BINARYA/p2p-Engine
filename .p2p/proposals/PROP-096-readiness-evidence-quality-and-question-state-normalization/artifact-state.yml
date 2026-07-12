@@ -1,0 +1,171 @@
+proposal_artifacts:
+  schema_version: 1
+  proposal_id: PROP-096
+  initialized_at: '2026-07-12T22:19:05Z'
+  updated_at: '2026-07-12T22:30:45Z'
+  status: active
+  legacy:
+    state: ''
+    reason: ''
+  artifacts:
+  - id: proposal
+    filename: proposal.md
+    expectation: required
+    status: satisfied
+    reason: proposal.md contains the bug scope, goals, non-goals, proposed fix, and
+      testable acceptance criteria.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-07-12T22:19:05Z'
+    updated_at: '2026-07-12T22:29:57Z'
+    history:
+    - at: '2026-07-12T22:29:57Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: proposal.md contains the bug scope, goals, non-goals, proposed fix,
+        and testable acceptance criteria.
+  - id: readiness
+    filename: readiness.yml
+    expectation: required
+    status: satisfied
+    reason: readiness.yml exists and was reassessed after exploration, impact, clarification,
+      and execution plan imports.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-07-12T22:19:05Z'
+    updated_at: '2026-07-12T22:29:57Z'
+    history:
+    - at: '2026-07-12T22:29:57Z'
+      actor: codex
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: readiness.yml exists and was reassessed after exploration, impact, clarification,
+        and execution plan imports.
+  - id: open_questions
+    filename: open-questions.md
+    expectation: required
+    status: satisfied
+    reason: structured questions are initialized and open-questions.md records that
+      no owner decision is currently blocking.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-07-12T22:19:05Z'
+    updated_at: '2026-07-12T22:29:57Z'
+    history:
+    - at: '2026-07-12T22:29:57Z'
+      actor: codex
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: structured questions are initialized and open-questions.md records that
+        no owner decision is currently blocking.
+  - id: clarifications
+    filename: clarifications.md
+    expectation: required
+    status: satisfied
+    reason: clarifications.md records the implementation boundary and normalization
+      constraints.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - owner_clarification
+    created_at: '2026-07-12T22:19:05Z'
+    updated_at: '2026-07-12T22:29:57Z'
+    history:
+    - at: '2026-07-12T22:29:57Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: clarifications.md records the implementation boundary and normalization
+        constraints.
+  - id: findings
+    filename: findings.md
+    expectation: required
+    status: satisfied
+    reason: findings.md exists and records the concrete readiness and question-state
+      regression findings.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - public_interface
+    - cross_module
+    created_at: '2026-07-12T22:19:05Z'
+    updated_at: '2026-07-12T22:30:45Z'
+    history:
+    - at: '2026-07-12T22:30:45Z'
+      actor: codex
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: findings.md exists and records the concrete readiness and question-state
+        regression findings.
+  - id: exploration
+    filename: exploration.md
+    expectation: required
+    status: satisfied
+    reason: exploration.md plus alternatives, risks, assumptions, and scope documents
+      the bounded fix and tradeoffs.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - high_uncertainty_evidence
+    created_at: '2026-07-12T22:19:05Z'
+    updated_at: '2026-07-12T22:30:04Z'
+    history:
+    - at: '2026-07-12T22:30:04Z'
+      actor: codex
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: exploration.md plus alternatives, risks, assumptions, and scope documents
+        the bounded fix and tradeoffs.
+  - id: impact_map
+    filename: impact-map.yml
+    expectation: required
+    status: satisfied
+    reason: impact-map.yml, related-proposals.yml, and conflict-analysis.yml identify
+      touched readiness and question-state services and regression tests.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - governance_policy
+    - persistent_state
+    - cross_module
+    created_at: '2026-07-12T22:19:05Z'
+    updated_at: '2026-07-12T22:30:05Z'
+    history:
+    - at: '2026-07-12T22:30:05Z'
+      actor: codex
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: impact-map.yml, related-proposals.yml, and conflict-analysis.yml identify
+        touched readiness and question-state services and regression tests.

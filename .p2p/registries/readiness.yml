@@ -1100,32 +1100,16 @@ readiness:
   path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/readiness.yml
 - proposal: PROP-084
   title: Project-Local Runtime Bootstrap And Upgrade Flow
-  proposal_status: draft
+  proposal_status: accepted_with_changes
   status: assessed
   profile_id: default-readiness-v0.1
   profile_version: '0.1'
-  computed_score: 14
-  computed_label: weak
-  confidence: low
+  computed_score: 100
+  computed_label: decision_ready
+  confidence: high
   failed_gates: []
-  missing:
-  - scope_boundaries
-  - alternatives_quality
-  - tradeoff_analysis
-  - risk_coverage
-  - assumptions_clarity
-  - owner_questions_resolution
-  - acceptance_criteria_quality
-  - impact_overlap_analysis
-  suggested_next:
-  - add_scope_boundaries
-  - add_alternatives_quality
-  - add_tradeoff_analysis
-  - add_risk_coverage
-  - add_assumptions_clarity
-  - add_owner_questions_resolution
-  - add_acceptance_criteria_quality
-  - add_impact_overlap_analysis
+  missing: []
+  suggested_next: []
   path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/readiness.yml
 - proposal: PROP-085
   title: Pluggable Project Verticals And Readiness Orchestration
@@ -1274,3 +1258,29 @@ readiness:
   missing: []
   suggested_next: []
   path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/readiness.yml
+- proposal: PROP-095
+  title: Project Runtime Contract Update Lifecycle
+  proposal_status: accepted
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  computed_score: 100
+  computed_label: decision_ready
+  confidence: high
+  failed_gates: []
+  missing: []
+  suggested_next: []
+  path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/readiness.yml
+- proposal: PROP-096
+  title: Readiness Evidence Quality and Question State Normalization
+  proposal_status: accepted
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  computed_score: 100
+  computed_label: decision_ready
+  confidence: high
+  failed_gates: []
+  missing: []
+  suggested_next: []
+  path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/readiness.yml

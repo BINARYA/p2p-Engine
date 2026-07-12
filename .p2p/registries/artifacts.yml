@@ -6291,6 +6291,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-084
   generated: false
+- path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/artifact-state.yml
+  artifact_type: artifact-state.yml
+  owner_type: proposal
+  owner: PROP-084
+  generated: false
 - path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/assumptions.md
   artifact_type: assumptions.md
   owner_type: proposal
@@ -6303,6 +6308,11 @@ artifacts:
   generated: false
 - path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/comments.yml
   artifact_type: comments.yml
+  owner_type: proposal
+  owner: PROP-084
+  generated: false
+- path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/conflict-analysis.yml
+  artifact_type: conflict-analysis.yml
   owner_type: proposal
   owner: PROP-084
   generated: false
@@ -6331,6 +6341,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-084
   generated: false
+- path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/impact-map.yml
+  artifact_type: impact-map.yml
+  owner_type: proposal
+  owner: PROP-084
+  generated: false
 - path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/open-questions.md
   artifact_type: open-questions.md
   owner_type: proposal
@@ -6341,8 +6356,18 @@ artifacts:
   owner_type: proposal
   owner: PROP-084
   generated: false
+- path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/questions.yml
+  artifact_type: questions.yml
+  owner_type: proposal
+  owner: PROP-084
+  generated: false
 - path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/readiness.yml
   artifact_type: readiness.yml
+  owner_type: proposal
+  owner: PROP-084
+  generated: false
+- path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/related-proposals.yml
+  artifact_type: related-proposals.yml
   owner_type: proposal
   owner: PROP-084
   generated: false
@@ -7365,6 +7390,216 @@ artifacts:
   artifact_type: tasks.yml
   owner_type: proposal
   owner: PROP-094
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/ai-digest.md
+  artifact_type: ai-digest.md
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/alternatives.md
+  artifact_type: alternatives.md
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/artifact-state.yml
+  artifact_type: artifact-state.yml
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/assumptions.md
+  artifact_type: assumptions.md
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/clarifications.md
+  artifact_type: clarifications.md
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/comments.yml
+  artifact_type: comments.yml
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/conflict-analysis.yml
+  artifact_type: conflict-analysis.yml
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/contributions.yml
+  artifact_type: contributions.yml
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/decision.md
+  artifact_type: decision.md
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/execution-plan.md
+  artifact_type: execution-plan.md
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/exploration.md
+  artifact_type: exploration.md
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/findings.md
+  artifact_type: findings.md
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/impact-map.yml
+  artifact_type: impact-map.yml
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/open-questions.md
+  artifact_type: open-questions.md
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/proposal.md
+  artifact_type: proposal.md
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/questions.yml
+  artifact_type: questions.yml
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/readiness.yml
+  artifact_type: readiness.yml
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/related-proposals.yml
+  artifact_type: related-proposals.yml
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/risks.md
+  artifact_type: risks.md
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/suggested-scope.md
+  artifact_type: suggested-scope.md
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/tasks.yml
+  artifact_type: tasks.yml
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/ai-digest.md
+  artifact_type: ai-digest.md
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/alternatives.md
+  artifact_type: alternatives.md
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/artifact-state.yml
+  artifact_type: artifact-state.yml
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/assumptions.md
+  artifact_type: assumptions.md
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/clarifications.md
+  artifact_type: clarifications.md
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/comments.yml
+  artifact_type: comments.yml
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/conflict-analysis.yml
+  artifact_type: conflict-analysis.yml
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/contributions.yml
+  artifact_type: contributions.yml
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/decision.md
+  artifact_type: decision.md
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/execution-plan.md
+  artifact_type: execution-plan.md
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/exploration.md
+  artifact_type: exploration.md
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/findings.md
+  artifact_type: findings.md
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/impact-map.yml
+  artifact_type: impact-map.yml
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/open-questions.md
+  artifact_type: open-questions.md
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/proposal.md
+  artifact_type: proposal.md
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/questions.yml
+  artifact_type: questions.yml
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/readiness.yml
+  artifact_type: readiness.yml
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/related-proposals.yml
+  artifact_type: related-proposals.yml
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/risks.md
+  artifact_type: risks.md
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/suggested-scope.md
+  artifact_type: suggested-scope.md
+  owner_type: proposal
+  owner: PROP-096
+  generated: false
+- path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/tasks.yml
+  artifact_type: tasks.yml
+  owner_type: proposal
+  owner: PROP-096
   generated: false
 - path: .p2p/changes/CHANGE-001-managed-git-adapter-and-change-set-model/change.md
   artifact_type: change.md

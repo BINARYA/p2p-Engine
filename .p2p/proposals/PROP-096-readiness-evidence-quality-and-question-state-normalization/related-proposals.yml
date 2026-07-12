@@ -1,0 +1,15 @@
+related_proposals:
+  - proposal: PROP-082
+    relationship: related
+    reason: >
+      Readiness refresh and review workflows depend on reliable criterion
+      quality evidence.
+  - proposal: PROP-089
+    relationship: related
+    reason: >
+      Structured question state should converge consistently between apply and
+      readiness summaries.
+  - proposal: PROP-095
+    relationship: discovered_by
+    reason: >
+      The issue was reproduced during PROP-095 readiness finalization.

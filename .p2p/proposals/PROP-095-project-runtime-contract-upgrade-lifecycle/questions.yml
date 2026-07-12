@@ -1,0 +1,1038 @@
+proposal_questions:
+  schema_version: 1
+  proposal_id: PROP-095
+  initialized_at: '2026-07-12'
+  updated_at: '2026-07-13'
+  updated_by: codex
+  groups:
+  - id: QG001
+    gap: audit_policy
+    state: to_answer
+    priority: medium
+    rationale: The proposal should not claim that current files are a full audit,
+      but adding a dedicated runtime audit file may be over-scoped.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG002
+    gap: owner_authority
+    state: to_answer
+    priority: high
+    rationale: The command requires authority and confirmation; confirmation alone
+      cannot prove owner authorization.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG003
+    gap: agent_surface
+    state: to_answer
+    priority: medium
+    rationale: Runtime status already has agent-facing JSON; contract update preview
+      may need the same stable machine-readable surface.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG004
+    gap: impact_classification
+    state: to_answer
+    priority: medium
+    rationale: Labels such as recommended_only, range_widening, range_tightening,
+      runtime_generation_change, and current_runtime_excluded affect owner preview
+      and future stricter policy hooks.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG005
+    gap: governance_policy
+    state: to_answer
+    priority: high
+    rationale: This determines whether PROP-095 remains an autonomous runtime-contract
+      lifecycle or becomes coupled to proposal/decision governance for runtime-line
+      changes and tightening.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG006
+    gap: confirmation_flow
+    state: to_answer
+    priority: high
+    rationale: This determines the command surface and prevents agents or scripts
+      from using --confirm to authorize unseen runtime-contract mutations.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG007
+    gap: release_availability
+    state: to_answer
+    priority: medium
+    rationale: This fixes the boundary between project runtime policy updates and
+      distribution/release metadata handled by PROP-080 or future capabilities.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG008
+    gap: cli_command_surface
+    state: to_answer
+    priority: high
+    rationale: This fixes the public command contract and reduces ambiguity around
+      read-only preview versus mutating apply operations.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG009
+    gap: preview_authority
+    state: to_answer
+    priority: high
+    rationale: This defines whether preview is an agent-safe diagnostic step or already
+      part of the protected mutating authority boundary.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG010
+    gap: unmanaged_setup_guide
+    state: to_answer
+    priority: high
+    rationale: This fixes whether PROP-095 may overwrite user-owned documentation
+      or must only update managed setup guides derived from the runtime contract.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG011
+    gap: untrusted_current_contract_preview
+    state: to_answer
+    priority: high
+    rationale: This separates useful proposal validation from unsafe transition simulation
+      when the current runtime contract cannot be trusted.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG012
+    gap: expected_state_token_semantics
+    state: to_answer
+    priority: high
+    rationale: This fixes whether preview remains purely read-only and whether token
+      lifecycle belongs to PROP-095 or to consent/audit capabilities.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG013
+    gap: recommended_only_updates
+    state: to_answer
+    priority: medium
+    rationale: This fixes whether recommended is an independent project guidance field
+      or only changes together with the compatibility range.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG014
+    gap: managed_setup_guide_drift
+    state: to_answer
+    priority: medium
+    rationale: This fixes the distinction between P2P-owned generated drift and unmanaged
+      human documentation, and prevents no-change updates from becoming hidden repair
+      operations.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG015
+    gap: partially_overlapping_ranges
+    state: to_answer
+    priority: medium
+    rationale: This fixes deterministic impact classification for range shifts without
+      introducing unnecessary labels.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG016
+    gap: post_update_incompatible_runtime
+    state: to_answer
+    priority: high
+    rationale: This prevents follow-up governed writes after the new contract activates
+      the write gate against the active runtime.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  questions:
+  - id: Q001
+    group_id: QG001
+    gap: audit_policy
+    criterion: audit_policy
+    priority: medium
+    state: applied
+    question: Should confirmed runtime contract updates require a structured reason,
+      or should historical audit rely on Git/external workflow until a generic P2P
+      audit primitive exists?
+    rationale: The proposal should not claim that current files are a full audit,
+      but adding a dedicated runtime audit file may be over-scoped.
+    answer: 'Confirmed runtime contract updates should support a structured reason.
+      The first implementation should require --reason for high-impact changes that
+      tighten the range, change runtime line, or exclude the active runtime, and may
+      keep it optional for recommended-only and range-widening changes. PROP-095 should
+      reuse a generic governed-change audit mechanism if one exists. If no canonical
+      audit primitive exists, it should not invent a runtime-specific audit file;
+      historical audit remains Git or external workflow. In that case the result must
+      report reason_persisted: false and audit_mode: external so the user is not misled
+      into thinking the reason was durably recorded by P2P.'
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-12'
+    audit:
+      created_by: local
+      created_at: '2026-07-12'
+      updated_by: local
+      updated_at: '2026-07-12'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: completed
+      reason: Applied to proposal artifacts through consolidated proposal, exploration,
+        and impact imports.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: completed
+      reason: Applied to proposal artifacts through consolidated proposal, exploration,
+        and impact imports.
+  - id: Q002
+    group_id: QG002
+    gap: owner_authority
+    criterion: owner_authority
+    priority: high
+    state: applied
+    question: Which existing owner, permission, or consent primitive should authorize
+      confirmed runtime contract updates?
+    rationale: The command requires authority and confirmation; confirmation alone
+      cannot prove owner authorization.
+    answer: Confirmed runtime contract updates are owner-controlled. For the first
+      CLI implementation, authority means the actor resolves to an owner role in the
+      supported project permissions policy, plus explicit confirmation. Confirmation
+      proves intent, but does not replace authority. During the incompatible-range
+      exception, the runtime may read only minimum supported authority state; if owner
+      authority cannot be verified safely, the update remains blocked. MCP mutation
+      is out of scope for the first implementation. If a future MCP tool is added,
+      it must extend the consent operation registry with runtime_contract_update or
+      equivalent and use the PROP-066 consent receipt model.
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-12'
+    audit:
+      created_by: local
+      created_at: '2026-07-12'
+      updated_by: local
+      updated_at: '2026-07-12'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: completed
+      reason: Applied to proposal artifacts through consolidated proposal, exploration,
+        and impact imports.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: completed
+      reason: Applied to proposal artifacts through consolidated proposal, exploration,
+        and impact imports.
+    - artifact: readiness.yml
+      action: run_readiness_assess
+      status: completed
+      reason: Applied to proposal artifacts through consolidated proposal, exploration,
+        and impact imports.
+  - id: Q003
+    group_id: QG003
+    gap: agent_surface
+    criterion: agent_surface
+    priority: medium
+    state: applied
+    question: Should JSON preview and JSON result output be required in the first
+      implementation for agent workflows?
+    rationale: Runtime status already has agent-facing JSON; contract update preview
+      may need the same stable machine-readable surface.
+    answer: Yes. The first implementation should provide JSON preview and JSON result
+      output because the operation is agent-facing and mirrors the runtime status
+      contract. Structured output should include current requires/recommended, proposed
+      requires/recommended, active runtime, impact labels, active-runtime compatibility
+      after update, setup-guide state, release_availability, files planned or changed,
+      expected_contract_digest, expected_setup_guide_digest, whether confirmation
+      is required, reason_persisted, audit_mode, and stable failure fields such as
+      blocked_reason or validation findings.
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-12'
+    audit:
+      created_by: local
+      created_at: '2026-07-12'
+      updated_by: local
+      updated_at: '2026-07-12'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: completed
+      reason: Applied to proposal artifacts through consolidated proposal, exploration,
+        and impact imports.
+    - artifact: findings.md
+      action: import_exploration_artifact
+      status: completed
+      reason: Applied to proposal artifacts through consolidated proposal, exploration,
+        and impact imports.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: completed
+      reason: Applied to proposal artifacts through consolidated proposal, exploration,
+        and impact imports.
+  - id: Q004
+    group_id: QG004
+    gap: impact_classification
+    criterion: impact_classification
+    priority: medium
+    state: applied
+    question: Which impact classification labels should be stable public contract
+      for runtime contract updates?
+    rationale: Labels such as recommended_only, range_widening, range_tightening,
+      runtime_generation_change, and current_runtime_excluded affect owner preview
+      and future stricter policy hooks.
+    answer: The stable initial impact labels shall be recommended_only, range_widening,
+      range_tightening, runtime_line_change, and current_runtime_excluded. Multiple
+      labels may apply to the same update. recommended_only changes only the recommended
+      version while the range is unchanged. range_widening means the supported comparison
+      determines that the new range includes all previously compatible versions and
+      adds at least one. range_tightening means the new range removes at least one
+      previously compatible version. A range shift that both adds and removes compatible
+      versions may produce both range_widening and range_tightening. runtime_line_change
+      means the normalized major.minor line of the recommended version changes. current_runtime_excluded
+      means the runtime executing the command will be incompatible after the update.
+      The initial deterministic comparison grammar is limited to ==VERSION and >=LOWER,<UPPER.
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-12'
+    audit:
+      created_by: local
+      created_at: '2026-07-12'
+      updated_by: local
+      updated_at: '2026-07-12'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: completed
+      reason: Applied to proposal artifacts through consolidated proposal, exploration,
+        and impact imports.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: completed
+      reason: Applied to proposal artifacts through consolidated proposal, exploration,
+        and impact imports.
+  - id: Q005
+    group_id: QG005
+    gap: governance_policy
+    criterion: governance_policy
+    priority: high
+    state: applied
+    question: Should high-impact runtime contract updates require a linked P2P proposal
+      or decision, or is owner-authorized command execution sufficient?
+    rationale: This determines whether PROP-095 remains an autonomous runtime-contract
+      lifecycle or becomes coupled to proposal/decision governance for runtime-line
+      changes and tightening.
+    answer: Runtime contract updates are owner-controlled governed operations, but
+      the first implementation shall not require a linked P2P proposal or decision.
+      Owner authority, explicit confirmation, stale-preview protection, and a structured
+      reason are sufficient for execution. A reason is mandatory for range tightening,
+      runtime-line changes, and updates that exclude the active runtime. The command
+      may optionally link an existing P2P decision for traceability, but it shall
+      not create one automatically or block execution solely because no decision is
+      linked. A future project policy may require an accepted decision for selected
+      project-level impacts, especially runtime-line changes and range tightening.
+      current_runtime_excluded alone shall not trigger that policy because it also
+      describes the local execution environment rather than only the project contract.
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: codex
+      created_at: '2026-07-12'
+      updated_by: codex
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q006
+    group_id: QG006
+    gap: confirmation_flow
+    criterion: confirmation_flow
+    priority: high
+    state: applied
+    question: Should runtime contract updates require two separate invocations, or
+      may interactive users preview and confirm within one process?
+    rationale: This determines the command surface and prevents agents or scripts
+      from using --confirm to authorize unseen runtime-contract mutations.
+    answer: 'Runtime contract updates shall use a logically two-phase workflow. For
+      an interactive human terminal, preview and confirmation may occur within the
+      same process: the command shows the complete preview, asks for confirmation
+      only after the preview is visible, re-reads protected project state, and applies
+      only if the state still matches the previewed state. A confirmation flag supplied
+      before preview shall not bypass preview display or authorize an unseen mutation.
+      For agents, CI, scripts, and any non-interactive execution, preview and application
+      shall require separate explicit phases. Preview returns a machine-readable expected-state
+      token. Confirmed application requires that token, explicit confirmation, and
+      owner authority. The token binds at least the current runtime contract, current
+      managed setup-guide content or absence state, managed-file and required-contract
+      marker state, proposed requires and recommended values, structured reason, any
+      linked decision, and calculated impact labels. --confirm without a valid token
+      is rejected in non-interactive mode. A token shall not authorize different proposed
+      values and shall fail if protected state changes after preview. No-op updates
+      require neither confirmation nor token and do not change files or consume consent.'
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: codex
+      created_at: '2026-07-12'
+      updated_by: codex
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q007
+    group_id: QG007
+    gap: release_availability
+    criterion: release_availability
+    priority: medium
+    state: applied
+    question: Should runtime contract updates verify that the proposed recommended
+      version is actually available as a release, or only validate contract syntax
+      and semantics?
+    rationale: This fixes the boundary between project runtime policy updates and
+      distribution/release metadata handled by PROP-080 or future capabilities.
+    answer: 'PROP-095 shall always validate the proposed runtime contract syntactically
+      and semantically, including that the recommended version satisfies the declared
+      compatible range. The first implementation shall not require network access,
+      package resolution, installation, or remote release lookup in order to update
+      the contract. When trusted official release metadata is already available locally
+      or packaged with P2P Engine, the operation should use it to report a positive
+      verified_available result for the proposed recommended version. When no sufficiently
+      authoritative metadata is available, the update may proceed with release_availability:
+      unverified. The preview and final result shall clearly state that P2P has not
+      confirmed that the recommended version is published or installable. unverified
+      is a warning, not a contract validation failure. Absence from incomplete, stale,
+      or optional local metadata shall not be treated as proof that a release does
+      not exist. A blocking verified_unavailable state may be introduced later only
+      if P2P gains access to an authoritative and complete release catalog with defined
+      freshness semantics. PROP-095 shall not query GitHub, download release metadata,
+      resolve wheels, or install anything. PROP-080 metadata may enrich availability
+      diagnostics but shall not be a blocking dependency for runtime contract updates.'
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: codex
+      created_at: '2026-07-12'
+      updated_by: codex
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q008
+    group_id: QG008
+    gap: cli_command_surface
+    criterion: cli_command_surface
+    priority: high
+    state: applied
+    question: Should the first runtime contract update implementation expose separate
+      preview/apply subcommands or a single update command with mode-dependent behavior?
+    rationale: This fixes the public command contract and reduces ambiguity around
+      read-only preview versus mutating apply operations.
+    answer: 'The first implementation shall expose two explicit subcommands: p2p runtime
+      contract preview and p2p runtime contract apply. preview is strictly read-only.
+      It validates the proposed contract, evaluates authority and current contract
+      state, classifies impact, reports planned file changes, and returns a machine-readable
+      expected_state_token. It shall never modify project files, consume consent,
+      or perform environment mutation. apply is the only mutating command. It requires
+      the same proposed requires and recommended values used during preview, the same
+      structured reason and optional linked decision, a valid expected_state_token,
+      current owner or permission authority, and explicit --confirm. apply shall re-read
+      protected project state, revalidate authority and the proposed contract, recompute
+      the expected-state token, and abort without mutation if the state or proposed
+      values do not match the preview. The token is an optimistic-concurrency and
+      proposal-binding mechanism; it does not replace authority or confirmation. The
+      first implementation shall not provide a single-command mode that previews and
+      applies in one invocation. A future interactive convenience wrapper may be added
+      only if it delegates to the same preview and apply services and preserves the
+      same security semantics. A no-op preview shall return no_change, require no
+      apply operation, consume no consent, and modify no file.'
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: codex
+      created_at: '2026-07-12'
+      updated_by: codex
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: readiness.yml
+      action: run_readiness_assess
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q009
+    group_id: QG009
+    gap: preview_authority
+    criterion: preview_authority
+    priority: high
+    state: applied
+    question: Should runtime contract preview require owner authority, or remain executable
+      as read-only diagnostics for agents and non-owner collaborators?
+    rationale: This defines whether preview is an agent-safe diagnostic step or already
+      part of the protected mutating authority boundary.
+    answer: p2p runtime contract preview shall remain executable as a read-only diagnostic
+      operation without requiring project-owner authority. Preview shall validate
+      the proposed contract, classify its impact, calculate the expected-state token,
+      and report whether the current actor appears able to perform the corresponding
+      apply operation. Preview output shall distinguish whether authority is required
+      for apply, whether the current actor can be resolved, whether the current actor
+      appears authorized, and whether apply would currently be blocked for authority
+      reasons. Lack of authority shall not invalidate or prevent the preview, allowing
+      agents and non-owner collaborators to prepare a complete change request for
+      an authorized owner. Preview shall not consume consent receipts, mutate permission,
+      governance, audit, project, or environment state, treat the expected-state token
+      as authorization, or expose unnecessary sensitive permission details. p2p runtime
+      contract apply shall always perform a fresh and binding authority check and
+      shall not rely on the preview authority assessment. The expected-state token
+      binds protected project state and the proposed contract update. It does not
+      bind or authorize the actor in the first implementation. A token generated during
+      an agent or non-owner preview may be passed to an authorized owner, whose authority
+      is independently verified during apply.
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: codex
+      created_at: '2026-07-12'
+      updated_by: codex
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q010
+    group_id: QG010
+    gap: unmanaged_setup_guide
+    criterion: unmanaged_setup_guide
+    priority: high
+    state: applied
+    question: Should runtime contract apply ever replace an existing unmanaged P2P-SETUP.md,
+      or must unmanaged setup guides block the update in the first implementation?
+    rationale: This fixes whether PROP-095 may overwrite user-owned documentation
+      or must only update managed setup guides derived from the runtime contract.
+    answer: When P2P-SETUP.md exists without the stable P2P-managed marker, p2p runtime
+      contract apply shall always stop before mutation in the first implementation.
+      PROP-095 shall not expose a flag such as --replace-unmanaged-setup-guide and
+      shall not overwrite, adopt, merge, rename, or back up a user-owned setup document
+      as a side effect of a runtime contract update. Preview shall remain read-only
+      and shall report that the proposed runtime contract is syntactically and semantically
+      valid when applicable, that P2P-SETUP.md is present and unmanaged, that apply
+      is blocked by unmanaged_setup_guide, and that no project file has been or can
+      be modified through the current operation. A preview containing this blocker
+      shall not produce an expected-state token that can authorize apply. Owner authority,
+      explicit confirmation, and a valid token shall not override this restriction.
+      The runtime contract shall not be updated independently while an unmanaged setup
+      guide prevents the corresponding managed guide update. Adopting, replacing,
+      backing up, or otherwise converting an unmanaged P2P-SETUP.md into a P2P-managed
+      artifact is a separate capability and is outside PROP-095.
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: codex
+      created_at: '2026-07-12'
+      updated_by: codex
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q011
+    group_id: QG011
+    gap: untrusted_current_contract_preview
+    criterion: untrusted_current_contract_preview
+    priority: high
+    state: applied
+    question: Should preview compute an applicable runtime contract transition when
+      the current contract state is invalid, unsupported, missing, or legacy undeclared?
+    rationale: This separates useful proposal validation from unsafe transition simulation
+      when the current runtime contract cannot be trusted.
+    answer: 'When the current runtime contract state is invalid_contract, unsupported_contract,
+      missing_contract, or legacy_undeclared, p2p runtime contract preview may validate
+      and normalize the proposed requires and recommended values, but it shall not
+      produce an applicable update preview. The command shall return a diagnostic-only
+      result that may include proposed normalized contract values, syntactic and semantic
+      validation findings for the proposal, whether recommended satisfies requires,
+      whether the active runtime would satisfy the proposed range as a hypothetical
+      diagnostic, the current-state blocker, and the separate repair, migration, recovery,
+      or adoption workflow required before a contract update can be applied. The command
+      shall not produce an applicable expected_state_token, apply_allowed: true, an
+      apply command or mutation plan, a complete transition impact classification,
+      or any project or environment mutation. Comparative impact labels such as recommended_only,
+      range_widening, range_tightening, and runtime_line_change require a valid and
+      supported current contract and shall be omitted when the current state is untrusted.
+      A hypothetical active-runtime check against the proposed range may be reported
+      separately, but shall not be treated as an applicable current_runtime_excluded
+      transition label. The result shall identify the required separate workflow:
+      invalid_contract means contract repair, unsupported_contract means contract
+      schema migration, missing_contract means contract recovery, and legacy_undeclared
+      means contract adoption. These workflows remain outside PROP-095. p2p runtime
+      contract apply shall remain blocked for all four states.'
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: codex
+      created_at: '2026-07-12'
+      updated_by: codex
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: findings.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q012
+    group_id: QG012
+    gap: expected_state_token_semantics
+    criterion: expected_state_token_semantics
+    priority: high
+    state: applied
+    question: Should expected-state tokens be deterministic and stateless, or persisted
+      and single-use in the first runtime contract update implementation?
+    rationale: This fixes whether preview remains purely read-only and whether token
+      lifecycle belongs to PROP-095 or to consent/audit capabilities.
+    answer: The first implementation shall use a deterministic stateless expected-state
+      token. preview shall calculate and return the token without persisting project,
+      governance, audit, consent, or token-lifecycle state. apply shall reconstruct
+      the same canonical input from current project state and the supplied proposal
+      and shall proceed only when the recalculated token matches the supplied token.
+      The token is an optimistic-concurrency and proposal-binding mechanism. It is
+      not proof of owner or permission authority, explicit confirmation, a consent
+      receipt, an audit record, or a secret bearer capability. The versioned token
+      input shall bind at least the operation identifier, token-format version, exact
+      current runtime-contract content or digest, exact managed setup-guide content,
+      absence state, or unmanaged state, relevant required-contract and managed-file
+      marker state, normalized proposed requires and recommended values, structured
+      reason, any linked decision, impact-classification algorithm version, and calculated
+      impact labels. apply shall re-read protected state, revalidate the proposal,
+      recalculate impact, recompute the token, verify current authority, and require
+      explicit confirmation before mutation. A token mismatch shall fail as stale_preview
+      without modifying files. No applicable token shall be returned for an invalid
+      proposed contract, an untrusted current contract, an unmanaged setup guide,
+      another structural apply blocker, or a no-op update. Tokens shall not be persisted,
+      consumed, marked as used, or given a lifecycle in the first implementation.
+      Reuse of the same token for identical state and proposal is acceptable because
+      authority and confirmation are independently checked during every apply operation.
+      Single-use, expiry, actor binding, or persistent operation-intent semantics
+      may be added later through the PROP-066 consent model or another explicit governed
+      operation lifecycle, but shall not be added implicitly to the expected-state
+      token.
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: codex
+      created_at: '2026-07-12'
+      updated_by: codex
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q013
+    group_id: QG013
+    gap: recommended_only_updates
+    criterion: recommended_only_updates
+    priority: medium
+    state: applied
+    question: Should the owner be allowed to update only the recommended runtime version
+      while keeping the compatible requires range unchanged?
+    rationale: This fixes whether recommended is an independent project guidance field
+      or only changes together with the compatibility range.
+    answer: 'PROP-095 shall allow the project owner to update recommended without
+      changing requires, provided that the proposed recommended version satisfies
+      the unchanged compatible range. Such an update shall be classified as recommended_only
+      when no other impact label applies. A normal recommended_only update requires
+      preview, expected-state protection, owner authority, and explicit confirmation;
+      does not require a linked P2P proposal or decision; does not normally require
+      a structured reason; updates the runtime contract and regenerates the managed
+      P2P-SETUP.md; does not change which installed runtime versions are compatible;
+      and does not install or reconcile the recommended runtime. If the proposed recommended
+      version does not satisfy requires, the proposal is invalid and no applicable
+      token shall be produced. If both requires and recommended are unchanged, the
+      operation shall return no_change, require no confirmation or reason, consume
+      no consent, and modify no file. Multiple impact labels may still apply. In particular,
+      when the active runtime does not satisfy the unchanged proposed range, the update
+      shall be classified as both recommended_only and current_runtime_excluded. In
+      that case a structured reason remains required, and the result shall report
+      that the active runtime will remain incompatible after the update. Release availability
+      remains informational. An otherwise valid recommended-only update may proceed
+      with release_availability: unverified.'
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: codex
+      created_at: '2026-07-12'
+      updated_by: codex
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q014
+    group_id: QG014
+    gap: managed_setup_guide_drift
+    criterion: managed_setup_guide_drift
+    priority: medium
+    state: applied
+    question: Should apply regenerate a managed but drifted P2P-SETUP.md during a
+      valid runtime contract update, or block until a separate repair command is run?
+    rationale: This fixes the distinction between P2P-owned generated drift and unmanaged
+      human documentation, and prevents no-change updates from becoming hidden repair
+      operations.
+    answer: 'When P2P-SETUP.md contains the stable P2P-managed marker but its generated
+      content has drifted from the current runtime contract, PROP-095 shall allow
+      a valid runtime contract update to proceed and shall regenerate the managed
+      setup guide as part of the same coordinated operation. Preview shall explicitly
+      report setup_guide_state: managed_drifted, setup_guide_action: regenerate, drift_repair:
+      true, the managed file among planned file changes, and that existing drift will
+      be replaced by deterministic content rendered from the proposed runtime contract.
+      Managed-guide drift is a repair side effect and shall not by itself add a runtime-contract
+      impact label or require a structured reason. Reason requirements continue to
+      derive from contract impact labels such as range_tightening, runtime_line_change,
+      and current_runtime_excluded. The expected-state token shall bind the exact
+      current managed setup-guide content or digest, including its drifted state.
+      During apply, the operation shall re-read the guide and verify that the stable
+      managed marker is still present, its current content still matches the previewed
+      state, and remaining protected project state still matches the expected-state
+      token. If the guide changed after preview, apply shall fail as stale_preview
+      without mutation. If the managed marker was removed, apply shall fail as unmanaged_setup_guide.
+      After success, the result shall report that the runtime contract was updated,
+      the managed setup-guide drift was repaired, files changed, and final compatibility
+      state. A handled failure shall not leave the runtime contract updated while
+      the managed guide remains stale. If requires and recommended are both unchanged
+      and the only difference is setup-guide drift, PROP-095 shall report no_change
+      plus a drift finding and shall not perform repair-only mutation; repair-only
+      belongs to a separate command.'
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: codex
+      created_at: '2026-07-12'
+      updated_by: codex
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: findings.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q015
+    group_id: QG015
+    gap: partially_overlapping_ranges
+    criterion: partially_overlapping_ranges
+    priority: medium
+    state: applied
+    question: How should runtime contract updates classify partially overlapping or
+      disjoint compatible ranges?
+    rationale: This fixes deterministic impact classification for range shifts without
+      introducing unnecessary labels.
+    answer: PROP-095 shall classify runtime-range changes according to the set of
+      versions accepted by the current and proposed ranges, rather than textual differences
+      between expressions. Add range_widening when the proposed range accepts at least
+      one version not accepted by the current range. Add range_tightening when the
+      current range accepts at least one version not accepted by the proposed range.
+      Both labels shall therefore apply when ranges partially overlap but neither
+      is a subset of the other, for example current >=0.2.0,<0.4 and proposed >=0.3.0,<0.5.
+      The same two labels shall apply to disjoint ranges, because the proposed range
+      both removes previously compatible versions and introduces newly compatible
+      versions. Preview output should separately report whether ranges overlap. No
+      additional stable range_shift impact label is required in the first implementation.
+      A change classified with both range_widening and range_tightening shall require
+      a structured reason because range_tightening is present. recommended_only shall
+      apply only when the compatible range is unchanged and only the recommended version
+      changes. Other independent labels, including runtime_line_change and current_runtime_excluded,
+      may be added to the same update when their respective conditions hold. Range
+      comparison shall use the normalized supported range grammar and the same PEP
+      440-compatible version semantics used to validate the runtime contract.
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: codex
+      created_at: '2026-07-12'
+      updated_by: codex
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q016
+    group_id: QG016
+    gap: post_update_incompatible_runtime
+    criterion: post_update_incompatible_runtime
+    priority: high
+    state: applied
+    question: What post-update actions are allowed when applying a new runtime contract
+      makes the active runtime incompatible?
+    rationale: This prevents follow-up governed writes after the new contract activates
+      the write gate against the active runtime.
+    answer: When a confirmed runtime contract update causes the active P2P Engine
+      runtime to fall outside the new compatible range, apply shall complete only
+      the already authorized coordinated contract update. The implementation shall
+      prepare and validate all required outputs before activating the new contract.
+      The managed P2P-SETUP.md shall be replaced before .p2p/project/runtime.yml,
+      and the normative runtime contract shall be replaced last. Any generic governed
+      audit mutation that belongs to the same authorized operation must be completed
+      before the final runtime-contract replacement or participate in the same coordinated
+      write procedure. After the new runtime.yml is in effect, apply shall not perform
+      further governed mutations, including registry or index refresh, proposal/contribution/change/work/governance
+      writes, synchronization or managed-branch updates, migration or reconciliation,
+      audit writes not already included in the coordinated operation, or Git commit/branch/push/pull-request
+      automation. The command may perform narrowly scoped read-only verification of
+      the exact artifacts it has just written, such as re-reading their bytes or checking
+      expected digests. It shall not automatically invoke broad project validation
+      or other operations that traverse unrelated governed state after the active
+      runtime has become incompatible. The final result shall report that the contract
+      update succeeded, the active runtime is now incompatible, subsequent governed
+      writes are blocked, no post-update governed mutation was performed, full project
+      validation is deferred until a compatible runtime is used, and the recommended
+      next action plus P2P-SETUP.md guidance. A general read-only validation command
+      may be invoked separately only according to the diagnostic policy defined by
+      PROP-084 and is not an automatic side effect of PROP-095 apply.
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: codex
+      created_at: '2026-07-12'
+      updated_by: codex
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: suggested-scope.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.

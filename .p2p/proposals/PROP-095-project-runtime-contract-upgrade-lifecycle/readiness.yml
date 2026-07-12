@@ -1,0 +1,286 @@
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: high
+  confidence_reasons:
+  - Evidence-aware assessment found no missing criteria, failed gates, blocking owner
+    questions, or artifact coverage gaps.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  missing: []
+  suggested_next: []
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    goal_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 15
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    risk_coverage:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: risks.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: assumptions.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: questions.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 5
+      artifact_quality: ready
+      evidence:
+      - artifact: impact-map.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  owner_question_state:
+    source: structured
+    markdown_fallback_used: false
+    blocking_owner_questions: []
+    answered_not_applied: []
+    residual_follow_up: []
+    closed_questions:
+    - id: Q001
+      group_id: QG001
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: audit_policy
+      gap: audit_policy
+      question: Should confirmed runtime contract updates require a structured reason,
+        or should historical audit rely on Git/external workflow until a generic P2P
+        audit primitive exists?
+      reason: Question is closed with state `applied`.
+    - id: Q002
+      group_id: QG002
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: owner_authority
+      gap: owner_authority
+      question: Which existing owner, permission, or consent primitive should authorize
+        confirmed runtime contract updates?
+      reason: Question is closed with state `applied`.
+    - id: Q003
+      group_id: QG003
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: agent_surface
+      gap: agent_surface
+      question: Should JSON preview and JSON result output be required in the first
+        implementation for agent workflows?
+      reason: Question is closed with state `applied`.
+    - id: Q004
+      group_id: QG004
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: impact_classification
+      gap: impact_classification
+      question: Which impact classification labels should be stable public contract
+        for runtime contract updates?
+      reason: Question is closed with state `applied`.
+    - id: Q005
+      group_id: QG005
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: governance_policy
+      gap: governance_policy
+      question: Should high-impact runtime contract updates require a linked P2P proposal
+        or decision, or is owner-authorized command execution sufficient?
+      reason: Question is closed with state `applied`.
+    - id: Q006
+      group_id: QG006
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: confirmation_flow
+      gap: confirmation_flow
+      question: Should runtime contract updates require two separate invocations,
+        or may interactive users preview and confirm within one process?
+      reason: Question is closed with state `applied`.
+    - id: Q007
+      group_id: QG007
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: release_availability
+      gap: release_availability
+      question: Should runtime contract updates verify that the proposed recommended
+        version is actually available as a release, or only validate contract syntax
+        and semantics?
+      reason: Question is closed with state `applied`.
+    - id: Q008
+      group_id: QG008
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: cli_command_surface
+      gap: cli_command_surface
+      question: Should the first runtime contract update implementation expose separate
+        preview/apply subcommands or a single update command with mode-dependent behavior?
+      reason: Question is closed with state `applied`.
+    - id: Q009
+      group_id: QG009
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: preview_authority
+      gap: preview_authority
+      question: Should runtime contract preview require owner authority, or remain
+        executable as read-only diagnostics for agents and non-owner collaborators?
+      reason: Question is closed with state `applied`.
+    - id: Q010
+      group_id: QG010
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: unmanaged_setup_guide
+      gap: unmanaged_setup_guide
+      question: Should runtime contract apply ever replace an existing unmanaged P2P-SETUP.md,
+        or must unmanaged setup guides block the update in the first implementation?
+      reason: Question is closed with state `applied`.
+    - id: Q011
+      group_id: QG011
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: untrusted_current_contract_preview
+      gap: untrusted_current_contract_preview
+      question: Should preview compute an applicable runtime contract transition when
+        the current contract state is invalid, unsupported, missing, or legacy undeclared?
+      reason: Question is closed with state `applied`.
+    - id: Q012
+      group_id: QG012
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: expected_state_token_semantics
+      gap: expected_state_token_semantics
+      question: Should expected-state tokens be deterministic and stateless, or persisted
+        and single-use in the first runtime contract update implementation?
+      reason: Question is closed with state `applied`.
+    - id: Q013
+      group_id: QG013
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: recommended_only_updates
+      gap: recommended_only_updates
+      question: Should the owner be allowed to update only the recommended runtime
+        version while keeping the compatible requires range unchanged?
+      reason: Question is closed with state `applied`.
+    - id: Q014
+      group_id: QG014
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: managed_setup_guide_drift
+      gap: managed_setup_guide_drift
+      question: Should apply regenerate a managed but drifted P2P-SETUP.md during
+        a valid runtime contract update, or block until a separate repair command
+        is run?
+      reason: Question is closed with state `applied`.
+    - id: Q015
+      group_id: QG015
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: partially_overlapping_ranges
+      gap: partially_overlapping_ranges
+      question: How should runtime contract updates classify partially overlapping
+        or disjoint compatible ranges?
+      reason: Question is closed with state `applied`.
+    - id: Q016
+      group_id: QG016
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: post_update_incompatible_runtime
+      gap: post_update_incompatible_runtime
+      question: What post-update actions are allowed when applying a new runtime contract
+        makes the active runtime incompatible?
+      reason: Question is closed with state `applied`.
+    confidence_notes: []
+    suggested_next: []
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-07-13'
+  assessment_source: evidence_aware
+  assessed_at: '2026-07-13'
+  artifact_coverage_warnings: []

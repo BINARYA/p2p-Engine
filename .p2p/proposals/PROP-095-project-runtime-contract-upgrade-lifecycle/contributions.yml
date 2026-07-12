@@ -1,0 +1,268 @@
+contributions:
+- id: C001
+  type: finding
+  author: local
+  relevance_hint: high
+  text: 'Separate three concerns: a local owner P2P Engine upgrade must not mutate
+    the project contract; an owner decision to change the project''s required runtime
+    is a governed runtime-contract lifecycle operation; collaborator environment realignment
+    after pulling the updated contract is an installation/upgrade concern owned outside
+    this proposal, primarily by the distribution/install model.'
+- id: C002
+  type: alternative
+  author: local
+  relevance_hint: high
+  text: 'Alternative A - Status-only and manual contract change. The system only reports
+    incompatibility and points to P2P-SETUP.md; changing .p2p/project/runtime.yml
+    remains a manual repository edit by the owner. Pros: smallest implementation,
+    no new mutation path, no risk of hidden environment changes. Cons: weak ergonomics,
+    higher chance of malformed contracts, setup guide drift, inconsistent edits across
+    collaborators, and no clear audited lifecycle for changing the runtime requirement.'
+- id: C003
+  type: alternative
+  author: local
+  relevance_hint: high
+  text: 'Alternative B - Explicit runtime contract update command without installation.
+    Add an owner-controlled operation that previews old/new requires and recommended
+    values, validates recommended within requires, updates runtime.yml atomically,
+    regenerates managed P2P-SETUP.md, and does not install or upgrade anything. Pros:
+    solves the real lifecycle gap, preserves PROP-084 safety, avoids manual YAML drift,
+    keeps environment mutation out of scope, and gives collaborators deterministic
+    diagnostics after pull. Cons: requires a narrow write-gate exception for this
+    operation and must define clear owner consent/audit semantics.'
+- id: C004
+  type: alternative
+  author: local
+  relevance_hint: medium
+  text: 'Alternative C - Contract update command plus generated upgrade guidance.
+    Like Alternative B, but the operation also refreshes richer human/agent guidance
+    explaining how to update the local environment through documented distribution
+    steps. Pros: improves collaborator handoff and reduces support friction while
+    still not mutating the environment. Cons: risks blurring the boundary with PROP-078
+    if the guidance becomes too installer-specific, and can become stale if release/distribution
+    channels evolve.'
+- id: C005
+  type: alternative
+  author: local
+  relevance_hint: high
+  text: 'Alternative D - Contract update plus automatic environment reconciliation.
+    The same operation updates the project contract and then installs, upgrades, downgrades,
+    or selects the local P2P Engine version for the owner or collaborators. Pros:
+    most convenient user experience in theory. Cons: conflates project policy with
+    machine mutation, crosses the trust boundary rejected in PROP-084, duplicates
+    or preempts PROP-078, introduces network/package/source decisions, and can create
+    unsafe automatic behavior for agents. This should remain out of scope for PROP-095.'
+- id: C006
+  type: alternative
+  author: local
+  relevance_hint: medium
+  text: 'Alternative E - Require a full P2P proposal or decision for every runtime
+    contract upgrade. The runtime contract can only be changed after an explicit accepted
+    proposal, choice, or decision artifact names the target range and recommended
+    version. Pros: maximum auditability for breaking runtime-line changes and clear
+    owner intent. Cons: too heavy for ordinary patch/minor compatibility maintenance,
+    may slow legitimate upgrades, and still needs a safe command to perform the actual
+    validated file update and setup-guide regeneration.'
+- id: C007
+  type: suggestion
+  author: local
+  relevance_hint: high
+  text: 'Recommended direction: choose Alternative B as the core scope, with a constrained
+    part of Alternative C limited to regenerating P2P-SETUP.md guidance from the contract.
+    Treat Alternative E as a policy option only for major/breaking runtime-line changes,
+    not as the default for every contract edit. Reject Alternative D from this proposal
+    because runtime installation/reconciliation belongs to the separate distribution/install
+    capability and must not be triggered by contract updates.'
+- id: C008
+  type: scope_boundary
+  author: local
+  relevance_hint: high
+  text: 'Refinement: PROP-095 solves the owner-driven project contract change, not
+    the generic problem of a user having the wrong runtime installed. Local environment
+    realignment remains outside this proposal; the proposal updates the project requirement
+    and the managed setup guidance only.'
+- id: C009
+  type: constraint
+  author: local
+  relevance_hint: high
+  text: 'Constraint: the write-gate exception must apply only when the current runtime
+    contract is valid and understood, and the active runtime is incompatible only
+    because it falls outside the current requires range. The exception must not apply
+    to invalid_contract, unsupported_contract, missing_contract, or legacy_undeclared
+    states.'
+- id: C010
+  type: constraint
+  author: local
+  relevance_hint: high
+  text: 'Constraint: confirmation and owner authority are distinct. A --confirm flag
+    or interactive confirmation proves intent to execute, but does not replace the
+    existing owner/permission/consent authority model. Agents may prepare or preview
+    the update, but must not confirm it without explicit owner mandate.'
+- id: C011
+  type: constraint
+  author: local
+  relevance_hint: high
+  text: 'Constraint: the update operation must allow any valid transition: upgrade,
+    downgrade, range widening, range tightening, and recommended-only changes. The
+    invariant is recommended satisfies requires. If the new contract excludes the
+    currently active runtime, the preview and final result must say that subsequent
+    governed writes will be blocked.'
+- id: C012
+  type: implementation_suggestion
+  author: local
+  relevance_hint: high
+  text: 'Implementation suggestion: runtime.yml and managed P2P-SETUP.md must be updated
+    as one logical operation. The service should build and validate both outputs in
+    memory, then write with temporary files and rollback or fail without partial state
+    if either write fails. A failure must not leave an updated contract with stale
+    setup guidance or the reverse.'
+- id: C013
+  type: constraint
+  author: local
+  relevance_hint: high
+  text: 'Constraint: if P2P-SETUP.md exists but is not P2P-managed, the update command
+    must stop before mutation. It must not overwrite user-owned setup guidance and
+    must not update only runtime.yml because that would leave misleading project setup
+    instructions. Adoption or replacement of an unmanaged setup guide is a separate
+    operation.'
+- id: C014
+  type: implementation_suggestion
+  author: local
+  relevance_hint: medium
+  text: 'Implementation suggestion: preview output should classify impact, for example
+    recommended_only, range_widening, range_tightening, runtime_generation_change,
+    and current_runtime_excluded. This gives the owner a clear understanding of who
+    will be blocked and prepares a future stricter policy for breaking changes without
+    making it mandatory now.'
+- id: C015
+  type: implementation_suggestion
+  author: local
+  relevance_hint: high
+  text: 'Implementation suggestion: use optimistic stale-update protection. The confirmed
+    operation should verify that the contract still matches the previewed state, using
+    expected current values or a contract digest/revision. If runtime.yml changed
+    after preview, no files should be modified and the command should ask the owner
+    to preview again.'
+- id: C016
+  type: scope_boundary
+  author: local
+  relevance_hint: medium
+  text: 'Scope boundary: audit should reuse an existing generic governed-change audit
+    mechanism if one exists. If no canonical audit object is available, PROP-095 should
+    not invent a runtime-specific audit file; historical audit remains provided by
+    Git or external workflow, and dedicated P2P audit is outside scope.'
+- id: C017
+  type: scope_boundary
+  author: local
+  relevance_hint: high
+  text: 'Scope boundary: the update operation must not call pip, create or modify
+    virtualenvs, download wheels, invoke PROP-078 automation, change interpreter,
+    re-exec itself with another runtime, commit, push, create branches, or open PRs.
+    It may end with diagnostics pointing to P2P-SETUP.md and the recommended runtime.'
+- id: C018
+  type: implementation_suggestion
+  author: local
+  relevance_hint: high
+  text: 'Implementation suggestion: PROP-095 adds a new public write path and must
+    update the PROP-084 write-path inventory. Classify it as guarded with a runtime-contract-recovery
+    exception: compatible allows update; incompatible allows update only through the
+    limited range-exclusion exception; invalid_contract, unsupported_contract, missing_contract,
+    and legacy_undeclared remain blocked or require separate repair/adoption flows.'
+- id: C019
+  type: constraint
+  author: local
+  relevance_hint: high
+  text: 'Refinement: impact classification must be deterministic before acceptance.
+    Initial supported range grammar should be constrained to exact pins (==VERSION)
+    and simple lower/upper ranges (>=LOWER,<UPPER). For these supported forms, old
+    subset new yields range_widening, new subset old yields range_tightening, and
+    overlapping-but-not-subset changes may carry both range_widening and range_tightening.
+    Arbitrary PEP 440 expressions outside the supported comparison grammar should
+    be rejected or classified as unsupported for impact calculation.'
+- id: C020
+  type: suggestion
+  author: local
+  relevance_hint: high
+  text: 'Refinement: rename the impact label runtime_generation_change to runtime_line_change.
+    Define it by the normalized major.minor line of the recommended version, not by
+    an inferred breaking-change judgment. This avoids overclaiming semantics during
+    0.x development.'
+- id: C021
+  type: implementation_suggestion
+  author: local
+  relevance_hint: high
+  text: 'Refinement: stale-preview protection needs a concrete protocol. JSON preview
+    should return expected_contract_digest and expected_setup_guide_digest, using
+    stable SHA-256 digests over the exact files read during preview. Non-interactive
+    confirmed execution should require those expected digests; if either file changed,
+    no files are modified and the user must preview again. Interactive single-process
+    execution may keep the token internally.'
+- id: C022
+  type: constraint
+  author: local
+  relevance_hint: high
+  text: 'Refinement: two-file atomicity should be specified as managed-error atomicity
+    rather than crash-proof transactionality. The service should build and validate
+    both outputs in memory, write temporary files, replace managed P2P-SETUP.md before
+    runtime.yml, replace runtime.yml last, and rollback normal handled failures. Unrecoverable
+    process interruption may leave derived setup-guide drift, which PROP-084 validation
+    must detect and make recoverable.'
+- id: C023
+  type: constraint
+  author: local
+  relevance_hint: high
+  text: 'Refinement: the limited incompatible-range exception may read only the minimum
+    safe state: .p2p/project.yml, .p2p/project/runtime.yml, P2P-SETUP.md, and the
+    minimum authority state if its schema is supported by the active runtime. If authority
+    cannot be verified safely without interpreting unsupported governed state, the
+    update remains blocked. The proposal must identify the concrete CLI authority
+    primitive before implementation.'
+- id: C024
+  type: constraint
+  author: local
+  relevance_hint: high
+  text: 'Refinement: P2P-SETUP.md state handling should be explicit. Managed and aligned
+    files are updated; managed but drifted files are regenerated and the repair is
+    shown in preview; absent files are generated; present unmanaged files block before
+    mutation. The command must not update only runtime.yml when setup guidance is
+    unsafe to touch.'
+- id: C025
+  type: constraint
+  author: local
+  relevance_hint: medium
+  text: 'Refinement: no-op updates must be first-class. If proposed requires and recommended
+    equal the current values, the operation returns status no_change, changes no files,
+    requires no confirmation, requires no reason, and consumes no consent receipt.'
+- id: C026
+  type: implementation_suggestion
+  author: local
+  relevance_hint: medium
+  text: 'Refinement: if --reason is collected but no generic audit primitive persists
+    it, the structured result must expose reason_persisted: false and audit_mode:
+    external. When a generic audit primitive exists, the same result should report
+    reason_persisted: true and the audit target or receipt identifier.'
+- id: C027
+  type: scope_boundary
+  author: local
+  relevance_hint: high
+  text: 'Refinement: contract validation is syntactic and semantic only. PROP-095
+    does not verify that the recommended version is actually published or available
+    from any distribution channel. Preview and JSON result should report release_availability:
+    unverified unless a separate distribution capability provides verified metadata.'
+- id: C028
+  type: scope_boundary
+  author: local
+  relevance_hint: high
+  text: 'Refinement: first implementation scope should be CLI plus JSON only. MCP
+    mutation is out of scope for PROP-095 implementation, but any future MCP tool
+    must be consent-gated under PROP-066. The proposal should not keep a conditional
+    MCP acceptance criterion for the first implementation.'
+- id: C029
+  type: suggestion
+  author: local
+  relevance_hint: medium
+  text: 'Naming refinement: the proposal title should eventually become Project Runtime
+    Contract Update Lifecycle rather than Upgrade Lifecycle, because the lifecycle
+    supports downgrade, range widening, range tightening, and recommended-only changes.
+    No safe p2p title-rename primitive is currently exposed in the CLI, so this remains
+    recorded as a naming refinement instead of a direct filesystem rename.'

@@ -214,6 +214,47 @@ def test_readiness_service_assess_promotes_complete_artifact_evidence(tmp_path) 
     assert assessed.failed_gates == []
 
 
+def test_readiness_acceptance_primary_evidence_not_downgraded_by_placeholder_plan(tmp_path) -> None:
+    proposals, readiness = _services(tmp_path)
+    proposal = proposals.create_with_details(
+        title="Primary Acceptance Evidence",
+        problem="This proposal explains a concrete bug in readiness evidence aggregation with enough detail.",
+        goals=["Keep meaningful proposal acceptance criteria as primary readiness evidence."],
+        proposal="Assess acceptance evidence without letting placeholder supplemental artifacts downgrade it.",
+        acceptance_criteria=[
+            (
+                "A proposal with meaningful primary Acceptance Criteria remains acceptance-ready even when "
+                "the generated execution plan still contains only the default placeholder text."
+            )
+        ],
+    )
+
+    initialized = readiness.initialize(proposal.proposal_id)
+    payload = yaml.safe_load((tmp_path / proposal.path / "readiness.yml").read_text(encoding="utf-8"))
+    acceptance = payload["readiness"]["criteria"]["acceptance_criteria_quality"]
+
+    assert "acceptance_criteria_quality" not in initialized.missing
+    assert acceptance["artifact_quality"] in {"meaningful", "ready"}
+
+
+def test_readiness_acceptance_placeholder_primary_still_reports_gap(tmp_path) -> None:
+    proposals, readiness = _services(tmp_path)
+    proposal = proposals.create_with_details(
+        title="Placeholder Acceptance Evidence",
+        problem="This proposal intentionally lacks real acceptance evidence for readiness regression coverage.",
+        goals=["Preserve strict placeholder detection."],
+        proposal="Keep placeholder-only acceptance criteria blocked.",
+        acceptance_criteria=["Not provided."],
+    )
+
+    initialized = readiness.initialize(proposal.proposal_id)
+    payload = yaml.safe_load((tmp_path / proposal.path / "readiness.yml").read_text(encoding="utf-8"))
+    acceptance = payload["readiness"]["criteria"]["acceptance_criteria_quality"]
+
+    assert "acceptance_criteria_quality" in initialized.missing
+    assert acceptance["artifact_quality"] == "placeholder"
+
+
 def test_readiness_review_reports_advisory_merge_candidates(tmp_path) -> None:
     proposals, readiness = _services(tmp_path)
     first = proposals.create_with_details(
@@ -339,6 +380,38 @@ def test_readiness_assess_reports_answered_questions_without_missing_owner_input
     assert _question_ids(assessed.owner_question_state, "answered_not_applied") == ["Q001"]
     assert assessed.owner_question_state["blocking_owner_questions"] == []
     assert any("p2p proposal questions apply" in item for item in assessed.suggested_next)
+
+
+def test_readiness_assess_closes_answered_question_with_durable_applied_marker(tmp_path) -> None:
+    proposals, readiness, questions = _services_with_questions(tmp_path)
+    proposal, proposal_dir = _complete_readiness_proposal(tmp_path, proposals)
+    added = questions.add(
+        proposal.proposal_id,
+        gap="owner_questions_resolution",
+        question="Has this already-applied answer been recorded durably?",
+        priority=ProposalQuestionPriority.high,
+        actor="codex",
+    )
+    questions.answer(
+        proposal.proposal_id,
+        added.question.question_id,
+        "Yes, the answer was already applied and has a durable marker.",
+        actor="codex",
+    )
+    questions_path = proposal_dir / "questions.yml"
+    payload = yaml.safe_load(questions_path.read_text(encoding="utf-8"))
+    question = payload["proposal_questions"]["questions"][0]
+    question["state"] = "answered"
+    question["applied_to_proposal"] = True
+    question["applied_at"] = "2026-07-13"
+    questions_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+
+    assessed = readiness.assess(proposal.proposal_id)
+    apply_summary = questions.apply_summary(proposal.proposal_id, actor="codex")
+
+    assert _question_ids(assessed.owner_question_state, "answered_not_applied") == []
+    assert _question_ids(assessed.owner_question_state, "closed_questions") == ["Q001"]
+    assert apply_summary.applied_questions == []
 
 
 def test_readiness_assess_closes_retired_and_superseded_questions(tmp_path) -> None:
