@@ -53,6 +53,45 @@ def test_validation_service_accepts_valid_refreshed_project(tmp_path: Path) -> N
     assert result.warnings == 0
 
 
+def test_validation_service_reports_legacy_undeclared_runtime_warning(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Legacy Project")
+    (tmp_path / ".p2p" / "project" / "runtime.yml").unlink()
+    project_path = tmp_path / ".p2p" / "project.yml"
+    project = yaml.safe_load(project_path.read_text(encoding="utf-8"))
+    project.pop("runtime_contract")
+    project_path.write_text(yaml.safe_dump(project, sort_keys=False), encoding="utf-8")
+
+    result = _validation_service(workspace).validate()
+    finding = next(finding for finding in result.findings if finding.code == "P2P267_RUNTIME_CONTRACT_LEGACY_UNDECLARED")
+
+    assert result.ok is True
+    assert finding.severity == "warning"
+
+
+def test_validation_service_reports_missing_required_runtime_contract(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Missing Runtime Project")
+    (tmp_path / ".p2p" / "project" / "runtime.yml").unlink()
+
+    result = _validation_service(workspace).validate()
+    finding = next(finding for finding in result.findings if finding.code == "P2P266_RUNTIME_CONTRACT_MISSING")
+
+    assert result.ok is False
+    assert finding.severity == "error"
+
+
+def test_validation_service_reports_runtime_setup_guide_drift(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Runtime Setup Drift")
+    setup_path = tmp_path / "P2P-SETUP.md"
+    setup_path.write_text(setup_path.read_text(encoding="utf-8") + "manual edit\n", encoding="utf-8")
+
+    result = _validation_service(workspace).validate()
+
+    assert "P2P268_RUNTIME_SETUP_GUIDE_DRIFT" in _codes(result)
+
+
 def test_validation_service_reports_governance_policy_artifact_errors(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Demo Project")

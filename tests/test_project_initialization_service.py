@@ -4,6 +4,7 @@ import pytest
 import yaml
 
 from p2p_engine.storage.filesystem import P2PWorkspace
+from p2p_engine import __version__ as P2P_ENGINE_VERSION
 
 
 def _load_yaml(path: Path) -> dict[str, object]:
@@ -19,6 +20,8 @@ def test_project_initialization_service_creates_default_workspace(tmp_path: Path
     created = service.init_project("Demo Project", agent_profile="codex")
 
     assert Path(".p2p/project.yml") in created
+    assert Path(".p2p/project/runtime.yml") in created
+    assert Path("P2P-SETUP.md") in created
     assert Path(".p2p/project/domain.yml") in created
     assert Path(".p2p/project/rubrics.yml") in created
     assert Path(".p2p/project/permissions.yml") in created
@@ -39,6 +42,14 @@ def test_project_initialization_service_creates_default_workspace(tmp_path: Path
     assert project_data["domain"] == "none"
     assert repository["mode"] == "local"
     assert remote["mode"] == "local"
+    assert project["runtime_contract"] == {"required": True}
+    runtime = _load_yaml(tmp_path / ".p2p" / "project" / "runtime.yml")
+    p2p_runtime = runtime["runtime"]["p2p"]
+    assert p2p_runtime["requires"] == f"=={P2P_ENGINE_VERSION}"
+    assert p2p_runtime["recommended"] == P2P_ENGINE_VERSION
+    setup = (tmp_path / "P2P-SETUP.md").read_text(encoding="utf-8")
+    assert "P2P: generated-runtime-setup" in setup
+    assert ".p2p/project/runtime.yml" in setup
 
 
 def test_project_initialization_detected_agent_reports_selection_without_persisting_identity(
@@ -193,6 +204,29 @@ def test_project_initialization_service_is_idempotent_and_preserves_existing_fil
 
     assert created == []
     assert governance_file.read_text(encoding="utf-8") == "# Constitution\n\nLocal content.\n"
+
+
+def test_project_initialization_does_not_recover_missing_required_runtime_contract(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Demo Project")
+    runtime_path = tmp_path / ".p2p" / "project" / "runtime.yml"
+    runtime_path.unlink()
+
+    with pytest.raises(ValueError, match="missing_contract"):
+        workspace.init_project("Demo Project")
+
+    assert not runtime_path.exists()
+
+
+def test_project_initialization_service_preserves_unmanaged_setup_file_with_warning(tmp_path: Path) -> None:
+    setup_path = tmp_path / "P2P-SETUP.md"
+    setup_path.write_text("# Local setup\n", encoding="utf-8")
+    workspace = P2PWorkspace(tmp_path)
+
+    result = workspace.init_project_with_summary("Demo Project")
+
+    assert setup_path.read_text(encoding="utf-8") == "# Local setup\n"
+    assert any("not P2P-managed" in warning for warning in result.warnings)
 
 
 def test_workspace_init_can_select_vertical_without_section_interview(tmp_path: Path) -> None:

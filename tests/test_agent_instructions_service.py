@@ -47,6 +47,10 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert "downstream_export" in policy["software_spec_lifecycle"]["intents"]
     assert "p2p_spec_lifecycle" in policy["software_spec_lifecycle"]["mcp_tools"]
     assert policy["software_spec_lifecycle"]["rules"]["preflight_blockers_stop_writes"] is True
+    assert policy["runtime_bootstrap"]["contract_path"] == ".p2p/project/runtime.yml"
+    assert policy["runtime_bootstrap"]["status_command"] == "p2p runtime status"
+    assert policy["runtime_bootstrap"]["legacy_undeclared"] == "warn_do_not_infer"
+    assert policy["runtime_bootstrap"]["environment_mutation"] == "owner_explicit_action_required"
     agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
     assert "p2p proposal artifact status PROP-XXX" in agents
     assert "copying a\nprepared temporary file into an artifact" in agents
@@ -59,6 +63,10 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert "Software Specification Lifecycle" in agents
     assert "p2p spec lifecycle --intent implementation_spec --change CHANGE-001" in agents
     assert "p2p_spec_lifecycle" in agents
+    assert "Project runtime compatibility is declared by `.p2p/project/runtime.yml`" in agents
+    assert "p2p runtime status --format json" in agents
+    assert "do not infer compatibility for `legacy_undeclared` projects" in agents
+    assert "ask the owner for explicit environment action" in agents
     codex_skill = (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").read_text(encoding="utf-8")
     assert "p2p project interaction-style set --technical-verbosity 2 --formality 2 --assertiveness 0" in codex_skill
     assert "p2p project definition show --format json" in codex_skill

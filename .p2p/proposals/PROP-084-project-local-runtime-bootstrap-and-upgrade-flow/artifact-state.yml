@@ -1,0 +1,290 @@
+proposal_artifacts:
+  schema_version: 1
+  proposal_id: PROP-084
+  initialized_at: '2026-07-12T17:11:06Z'
+  updated_at: '2026-07-12T19:50:34Z'
+  status: active
+  legacy:
+    state: ''
+    reason: ''
+  artifacts:
+  - id: proposal
+    filename: proposal.md
+    expectation: required
+    status: satisfied
+    reason: 'proposal.md was amended by owner direction to the third-review scope:
+      minimal runtime contract, P2P-SETUP.md, runtime status, validation, and contract-aware
+      governed-write gate; release metadata, wheel/digest fields, installers, resolvers,
+      and broad blocking are out of scope.'
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - public_interface
+    - persistent_state
+    - compatibility_migration
+    - owner_clarification
+    created_at: '2026-07-12T17:11:06Z'
+    updated_at: '2026-07-12T19:49:20Z'
+    history:
+    - at: '2026-07-12T18:01:34Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: proposal.md was updated with runtime contract scope, non-goals, source-kind
+        policy, fail-closed behavior, acceptance criteria, and dependency boundaries.
+    - at: '2026-07-12T18:53:21Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: 'proposal.md was amended by owner direction to focus on runtime version
+        alignment: runtime contract, canonical release metadata, docs, diagnostics,
+        and validation; mandatory bootstrap script, install manager, reconcile manager,
+        broad command blocking, and automatic fallback are out of scope.'
+    - at: '2026-07-12T19:49:20Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: 'proposal.md was amended by owner direction to the third-review scope:
+        minimal runtime contract, P2P-SETUP.md, runtime status, validation, and contract-aware
+        governed-write gate; release metadata, wheel/digest fields, installers, resolvers,
+        and broad blocking are out of scope.'
+  - id: readiness
+    filename: readiness.yml
+    expectation: required
+    status: satisfied
+    reason: Artifact content is present.
+    source: system
+    actor: codex
+    confirmation: system
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-07-12T17:11:06Z'
+    updated_at: '2026-07-12T19:49:06Z'
+    history: []
+  - id: open_questions
+    filename: open-questions.md
+    expectation: required
+    status: satisfied
+    reason: Structured questions Q001-Q006 are applied; open-questions.md records
+      no owner-blocking questions and only bounded implementation choices for write-gate
+      placement and required-contract marker detection.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-07-12T17:11:06Z'
+    updated_at: '2026-07-12T19:50:25Z'
+    history:
+    - at: '2026-07-12T18:01:34Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Structured questions Q001-Q006 are answered and applied; open-questions.md
+        records no remaining decision-blocking questions.
+    - at: '2026-07-12T19:50:25Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: Structured questions Q001-Q006 are applied; open-questions.md records
+        no owner-blocking questions and only bounded implementation choices for write-gate
+        placement and required-contract marker detection.
+  - id: clarifications
+    filename: clarifications.md
+    expectation: required
+    status: satisfied
+    reason: 'clarifications.md records the third-review correction: runtime.yml contains
+      only schema version, compatible range, and recommended runtime version; P2P-SETUP.md
+      is the project-local guide; governed writes are gated only when a declared or
+      required contract cannot be trusted.'
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - owner_clarification
+    - compatibility_migration
+    created_at: '2026-07-12T17:11:06Z'
+    updated_at: '2026-07-12T19:49:20Z'
+    history:
+    - at: '2026-07-12T18:04:45Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: clarifications.md records the resolved runtime contract authority, source
+        trust model, explicit offline source selection, compatibility preflight, fail-closed
+        behavior, and ownership boundaries with PROP-078 and PROP-080.
+    - at: '2026-07-12T18:53:47Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: 'clarifications.md records the owner-approved correction: runtime contract
+        is required; mandatory bootstrap script, install/reconcile manager, broad
+        fail-closed behavior, and automatic offline fallback are not required for
+        the version-alignment problem.'
+    - at: '2026-07-12T19:49:20Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: 'clarifications.md records the third-review correction: runtime.yml
+        contains only schema version, compatible range, and recommended runtime version;
+        P2P-SETUP.md is the project-local guide; governed writes are gated only when
+        a declared or required contract cannot be trusted.'
+  - id: findings
+    filename: findings.md
+    expectation: required
+    status: satisfied
+    reason: 'findings.md captures the third-review conclusion: minimal runtime contract
+      and P2P-SETUP.md solve version alignment; installer metadata, release digests,
+      broad blocking, and environment automation are excluded.'
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - public_interface
+    - persistent_state
+    - compatibility_migration
+    - owner_clarification
+    created_at: '2026-07-12T17:11:06Z'
+    updated_at: '2026-07-12T19:50:34Z'
+    history:
+    - at: '2026-07-12T18:01:43Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: findings.md captures scope, security, ownership, compatibility, runtime
+        dependency, alternatives, and owner-clarification findings for the refined
+        runtime bootstrap proposal.
+    - at: '2026-07-12T18:53:30Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: 'findings.md captures the revised conclusion: the project-local runtime
+        contract solves version alignment, while bootstrap scripts, install managers,
+        broad fail-closed behavior, and automatic fallback are excluded from this
+        proposal.'
+    - at: '2026-07-12T19:50:34Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: 'findings.md captures the third-review conclusion: minimal runtime contract
+        and P2P-SETUP.md solve version alignment; installer metadata, release digests,
+        broad blocking, and environment automation are excluded.'
+  - id: exploration
+    filename: exploration.md
+    expectation: required
+    status: satisfied
+    reason: 'exploration artifacts were revised for the third-review scope: runtime.yml
+      contains only compatibility facts, P2P-SETUP.md is project-local guidance, and
+      governed writes are gated without broad legacy blocking.'
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - alternatives
+    - owner_clarification
+    created_at: '2026-07-12T17:11:06Z'
+    updated_at: '2026-07-12T19:50:25Z'
+    history:
+    - at: '2026-07-12T18:01:34Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: exploration.md and related imported exploration artifacts document alternatives,
+        risks, assumptions, and suggested scope for the runtime bootstrap MVP.
+    - at: '2026-07-12T18:53:21Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: exploration artifacts were revised to document the contract-first production
+        scope and reject mandatory bootstrap scripts and install managers for this
+        proposal.
+    - at: '2026-07-12T19:50:25Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: 'exploration artifacts were revised for the third-review scope: runtime.yml
+        contains only compatibility facts, P2P-SETUP.md is project-local guidance,
+        and governed writes are gated without broad legacy blocking.'
+  - id: impact_map
+    filename: impact-map.yml
+    expectation: required
+    status: satisfied
+    reason: impact-map.yml, related-proposals.yml, and conflict-analysis.yml now reflect
+      minimal runtime contract, P2P-SETUP.md, runtime status, validation, and governed-write
+      gate; PROP-078 and PROP-080 remain adjacent owners, not blocking implementation
+      dependencies.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - public_interface
+    - persistent_state
+    - compatibility_migration
+    - cross_module
+    - user_workflow_docs_release
+    - owner_clarification
+    created_at: '2026-07-12T17:11:06Z'
+    updated_at: '2026-07-12T19:49:20Z'
+    history:
+    - at: '2026-07-12T18:01:34Z'
+      actor: codex
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: impact-map.yml, related-proposals.yml, and conflict-analysis.yml were
+        imported and identify impacted features, files, governance behavior, dependencies,
+        and overlap with PROP-078 and PROP-080.
+    - at: '2026-07-12T18:53:55Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: impact-map.yml, related-proposals.yml, and conflict-analysis.yml now
+        reflect runtime contract, diagnostics, validation, docs, and release metadata
+        dependencies while removing mandatory bootstrap and install/reconcile scope.
+    - at: '2026-07-12T19:49:20Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: impact-map.yml, related-proposals.yml, and conflict-analysis.yml now
+        reflect minimal runtime contract, P2P-SETUP.md, runtime status, validation,
+        and governed-write gate; PROP-078 and PROP-080 remain adjacent owners, not
+        blocking implementation dependencies.

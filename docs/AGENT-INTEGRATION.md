@@ -208,6 +208,37 @@ coverage, should be surfaced without inventing alternate output paths.
 
 ## Runtime Bootstrap
 
+Project runtime compatibility is declared by `.p2p/project/runtime.yml`.
+Agents should inspect it before recommending or attempting project work after a
+fresh clone.
+
+Use:
+
+```bash
+p2p runtime status
+p2p runtime status --format json
+p2p validate
+```
+
+The contract separates:
+
+```text
+runtime.p2p.requires      compatible runtime range
+runtime.p2p.recommended   exact recommended runtime version
+```
+
+`legacy_undeclared` means the project has no contract and no required-contract
+marker. Agents must not infer compatibility from the installed package, but
+governed writes are not blocked solely for this state.
+
+`missing_contract` means `.p2p/project.yml` requires the runtime contract but
+`.p2p/project/runtime.yml` is absent. Agents should ask the owner to restore the
+contract from project history or use an explicit future recovery operation.
+Ordinary `p2p init` is not a contract recovery shortcut.
+
+Environment mutation remains owner-controlled. Agents must ask for explicit
+owner action before installing, upgrading, downgrading, or replacing P2P Engine.
+
 When an agent enters a P2P-managed repository, it should discover the runtime in
 this order. If the current working directory is ambiguous, `--root` should point
 to the governed P2P decision root used for decisions and state:

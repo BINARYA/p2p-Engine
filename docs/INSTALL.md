@@ -57,6 +57,23 @@ Verify the CLI:
 .venv/bin/p2p doctor
 ```
 
+If the target project already contains `.p2p/project/runtime.yml`, read it
+before choosing the wheel version. That contract declares:
+
+```text
+runtime.p2p.requires      compatible runtime range
+runtime.p2p.recommended   exact recommended runtime version
+```
+
+After installing the recommended version, run:
+
+```bash
+.venv/bin/p2p runtime status
+```
+
+`p2p runtime status` is read-only. It reports compatibility and guidance; it
+does not install, upgrade, downgrade, or modify the runtime environment.
+
 GitHub Release wheels are a transitional distribution model. The planned public
 package flow is:
 
@@ -131,6 +148,21 @@ first recommended project activities are then to define the domain and define
 the rubric with the user and agent. Use a domain template such as `software`
 when you want P2P to pre-populate rubric criteria at init time.
 
+New projects also receive:
+
+```text
+.p2p/project/runtime.yml
+P2P-SETUP.md
+```
+
+The runtime contract uses exact initial compatibility for the installed P2P
+Engine version. `P2P-SETUP.md` is generated from that contract and points back
+to `.p2p/project/runtime.yml` as the source of truth.
+
+For existing projects, ordinary `p2p init` does not recover a required but
+missing runtime contract. Restore `.p2p/project/runtime.yml` from project
+history, or use a future explicit recovery operation when one exists.
+
 ### Local vs Remote-Backed Projects
 
 Local projects need only the P2P workspace:
@@ -189,6 +221,7 @@ From the target project:
   https://github.com/BINARYA/p2p-Engine/releases/download/v0.1.9/p2p_engine-0.1.9-py3-none-any.whl
 
 .venv/bin/p2p doctor
+.venv/bin/p2p runtime status
 .venv/bin/p2p agent doctor
 .venv/bin/p2p agent list
 .venv/bin/p2p agent update all

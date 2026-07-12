@@ -1,0 +1,336 @@
+proposal_questions:
+  schema_version: 1
+  proposal_id: PROP-084
+  initialized_at: '2026-07-12'
+  updated_at: '2026-07-12'
+  updated_by: codex
+  groups:
+  - id: QG001
+    gap: scope_boundaries
+    state: to_answer
+    priority: high
+    rationale: The runtime contract must be discoverable after clone without making
+      Git mandatory or inventing conflicting sources of truth.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG002
+    gap: acceptance_criteria_quality
+    state: to_answer
+    priority: high
+    rationale: A bootstrap command that depends on p2p already being installed does
+      not solve the fresh-clone problem.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG003
+    gap: alternatives_quality
+    state: to_answer
+    priority: high
+    rationale: Install-source scope determines dependency on release publishing, offline
+      behavior, and agent guidance.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG004
+    gap: risk_coverage
+    state: to_answer
+    priority: high
+    rationale: Runtime installation can involve network and environment mutation,
+      so the consent boundary must be explicit for humans and agents.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG005
+    gap: tradeoff_analysis
+    state: to_answer
+    priority: medium
+    rationale: The proposal should stay valid across P2P usage modes while keeping
+      the first implementation small enough to ship.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  - id: QG006
+    gap: impact_overlap_analysis
+    state: to_answer
+    priority: medium
+    rationale: The proposal should orchestrate existing install and release capabilities
+      instead of duplicating them.
+    created_at: '2026-07-12'
+    updated_at: '2026-07-12'
+  questions:
+  - id: Q001
+    group_id: QG001
+    gap: scope_boundaries
+    criterion: scope_boundaries
+    priority: high
+    state: applied
+    question: 'What should be the authoritative project runtime contract location
+      and schema: a managed .p2p project file, a repository-root bootstrap file, pyproject
+      metadata, or a combination with one explicit source of truth?'
+    rationale: The runtime contract must be discoverable after clone without making
+      Git mandatory or inventing conflicting sources of truth.
+    answer: Use a managed .p2p/project/runtime.yml file as the authoritative project
+      runtime contract. The schema must be independent from Python packaging because
+      P2P Engine may not remain Python-only. Repository-root bootstrap files or wrappers
+      may exist only as discoverability/entry-point helpers and must point to or derive
+      from the .p2p runtime contract rather than becoming a second source of truth.
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-12'
+    audit:
+      created_by: local
+      created_at: '2026-07-12'
+      updated_by: codex
+      updated_at: '2026-07-12'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: suggested-scope.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q002
+    group_id: QG002
+    gap: acceptance_criteria_quality
+    criterion: acceptance_criteria_quality
+    priority: high
+    state: applied
+    question: 'What should a fresh clone rely on for runtime version alignment when
+      p2p is not installed yet: the runtime contract, documentation, an optional helper,
+      or another mechanism?'
+    rationale: A mechanism that depends on p2p already being installed does not solve
+      version discovery for a fresh clone.
+    answer: 'A fresh clone should rely on project-local data: .p2p/project/runtime.yml
+      as the source of truth and P2P-SETUP.md as the human and agent-facing guide.
+      The runtime contract declares the compatible range and recommended P2P Engine
+      version. The setup file renders those facts and points to existing official
+      installation guidance. A helper script or wrapper may be designed later, but
+      it is not required and must not become a second source of truth.'
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-12'
+    audit:
+      created_by: local
+      created_at: '2026-07-12'
+      updated_by: codex
+      updated_at: '2026-07-12'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q003
+    group_id: QG003
+    gap: alternatives_quality
+    criterion: alternatives_quality
+    priority: high
+    state: applied
+    question: Which runtime source metadata should this implementation recognize in
+      the contract, and which install mechanisms are outside scope?
+    rationale: Source metadata scope determines release publishing dependencies and
+      agent guidance without turning PROP-084 into an installer.
+    answer: 'This implementation shall not define an installation-source model. The
+      runtime contract records only project-local compatibility facts: schema version,
+      compatible P2P Engine range, and recommended P2P Engine version. Release tags,
+      wheel filenames, SHA-256 digests, source descriptors, arbitrary URLs, arbitrary
+      repositories, project-supplied install commands, PyPI resolution, mirrors, repository-local
+      wheels, source checkout installs, and editable installs are outside this proposal.
+      Unknown extra contract fields that attempt to introduce source or installer
+      behavior must not be treated as authorized installation instructions.'
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-12'
+    audit:
+      created_by: local
+      created_at: '2026-07-12'
+      updated_by: codex
+      updated_at: '2026-07-12'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: alternatives.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q004
+    group_id: QG004
+    gap: risk_coverage
+    criterion: risk_coverage
+    priority: high
+    state: applied
+    question: How should missing, incompatible, invalid, unsupported, and undeclared
+      runtime contract states be reported without adding environment mutation?
+    rationale: Runtime diagnostics must be explicit without introducing install, upgrade,
+      reconcile, or broad blocking behavior in this proposal.
+    answer: Runtime handling shall be diagnostic and contract-aware. When P2P Engine
+      is missing, the repository exposes runtime.yml and P2P-SETUP.md for a human
+      or agent to inspect. When P2P Engine is installed, runtime status and validation
+      report compatible, incompatible, invalid_contract, unsupported_contract, missing_contract,
+      and legacy_undeclared states. Legacy projects without a marker requiring runtime.yml
+      are warning-only. Projects that declare or require a runtime contract must block
+      governed writes before mutation when the contract is incompatible, invalid,
+      unsupported, or required but missing. The feature shall not perform install,
+      upgrade, downgrade, replacement, reconcile, source switching, or environment
+      mutation as a side effect.
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-12'
+    audit:
+      created_by: local
+      created_at: '2026-07-12'
+      updated_by: codex
+      updated_at: '2026-07-12'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: risks.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: suggested-scope.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q005
+    group_id: QG005
+    gap: tradeoff_analysis
+    criterion: tradeoff_analysis
+    priority: medium
+    state: applied
+    question: Which project usage contexts must the runtime contract support, and
+      which platform-specific or hosted workflows remain outside this proposal?
+    rationale: The proposal should stay valid across P2P usage modes while keeping
+      the contract focused on project-local version alignment.
+    answer: The accepted scope covers the runtime contract across filesystem projects,
+      local Git repositories, remote Git clones, copied directories, and extracted
+      archives. The same .p2p/project/runtime.yml format applies regardless of how
+      the project directory was obtained. Git is not required to inspect the contract,
+      and the contract shall not contain mode-specific fields for standalone, local_git,
+      or remote_git usage. The feature shall keep the contract schema platform-neutral
+      and avoid encoding shell-specific or host-specific paths. Operating-system-specific
+      wrappers, Windows installer behavior, managed server orchestration, provider
+      automation, package mirroring, shared package caches, source checkout installation,
+      editable installation, and broad native wrapper coverage are outside this proposal.
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-12'
+    audit:
+      created_by: local
+      created_at: '2026-07-12'
+      updated_by: codex
+      updated_at: '2026-07-12'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: findings.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: assumptions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q006
+    group_id: QG006
+    gap: impact_overlap_analysis
+    criterion: impact_overlap_analysis
+    priority: medium
+    state: applied
+    question: 'How should PROP-084 relate to PROP-078 project-local install/upgrade
+      and PROP-080 release wheel publishing: depend on them, reuse them, or add only
+      verification/orchestration around them?'
+    rationale: The proposal should orchestrate existing install and release capabilities
+      instead of duplicating them.
+    answer: PROP-084 depends on adjacent work only at the documentation boundary.
+      PROP-080 remains responsible for release wheels and integrity metadata, but
+      PROP-084 does not require release metadata to create or validate the runtime
+      contract. PROP-078 remains the reference for project-local installation mechanics,
+      but PROP-084 does not call those mechanics or manage environments. PROP-084
+      owns the minimal runtime contract, project-local setup guide, runtime status,
+      validation findings, and contract-aware governed-write gate.
+    answer_source: owner
+    answered_at: '2026-07-12'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-12'
+    audit:
+      created_by: local
+      created_at: '2026-07-12'
+      updated_by: codex
+      updated_at: '2026-07-12'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: readiness.yml
+      action: run_readiness_assess
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.

@@ -144,6 +144,24 @@ Behavior:
 8. agents must not invent alternative spec filenames, export directories, or canonical memory locations."""
 
 
+RUNTIME_CONTRACT_GUIDANCE_BLOCK = """Project runtime compatibility is declared by `.p2p/project/runtime.yml`.
+
+Use:
+- `p2p runtime status`
+- `p2p runtime status --format json`
+- `p2p validate`
+
+Behavior:
+1. read `.p2p/project/runtime.yml` as the source of truth when it exists;
+2. use `P2P-SETUP.md` as human-facing setup guidance only when present;
+3. treat `recommended` as the exact version a fresh collaborator should install;
+4. treat `requires` as the compatible runtime range for operating the project;
+5. do not infer compatibility for `legacy_undeclared` projects;
+6. report `missing_contract`, `invalid_contract`, `unsupported_contract`, or `incompatible` before governed writes;
+7. ask the owner for explicit environment action before installing, upgrading, downgrading, or replacing P2P Engine;
+8. never edit `.p2p/project/runtime.yml` by hand as a repair shortcut."""
+
+
 WRITE_CLASS_ORDER = (
     "read_only",
     "chat_only",
@@ -538,6 +556,11 @@ def agent_policy(
         },
         "agent_profiles": profiles,
         "runtime_bootstrap": {
+            "contract_path": ".p2p/project/runtime.yml",
+            "setup_guide": "P2P-SETUP.md",
+            "status_command": "p2p runtime status",
+            "legacy_undeclared": "warn_do_not_infer",
+            "environment_mutation": "owner_explicit_action_required",
             "discovery_order": [
                 "p2p",
                 ".venv/bin/p2p",
@@ -808,6 +831,8 @@ Do not satisfy the request by reverse-engineering `.p2p/` and writing files dire
 {governed_root_guidance_block()}
 
 ## Runtime Bootstrap
+
+{RUNTIME_CONTRACT_GUIDANCE_BLOCK}
 
 If `p2p` is not available on `PATH`, try this discovery order before stopping:
 

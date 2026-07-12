@@ -13,6 +13,7 @@ from p2p_engine.cli_commands.project_ops import register_project_ops_commands
 from p2p_engine.cli_commands.project_status import register_project_status_commands
 from p2p_engine.cli_commands.prompts import register_prompt_commands
 from p2p_engine.cli_commands.proposals import register_proposal_commands
+from p2p_engine.cli_commands.runtime import register_runtime_commands
 from p2p_engine.cli_commands.work_specs import register_work_spec_commands
 from p2p_engine.cli_shared import console
 from p2p_engine.cli_shared import fail as _fail
@@ -66,6 +67,7 @@ agent_instructions_app = typer.Typer(help="Generate and refresh agent instructio
 assess_app = typer.Typer(help="Assess project readiness and maturity")
 assess_maturity_app = typer.Typer(help="Assess project definition maturity")
 next_app = typer.Typer(help="Manage advisory next actions", invoke_without_command=True)
+runtime_app = typer.Typer(help="Inspect project runtime compatibility")
 
 proposal_app.add_typer(proposal_readiness_app, name="readiness")
 proposal_app.add_typer(proposal_questions_app, name="questions")
@@ -99,6 +101,7 @@ app.add_typer(consent_app, name="consent")
 app.add_typer(agent_app, name="agent")
 app.add_typer(assess_app, name="assess")
 app.add_typer(next_app, name="next")
+app.add_typer(runtime_app, name="runtime")
 project_app.add_typer(project_brief_app, name="brief")
 project_app.add_typer(project_remote_app, name="remote")
 project_app.add_typer(project_rubrics_app, name="rubrics")
@@ -114,6 +117,7 @@ permissions_app.add_typer(permissions_actor_app, name="actor")
 register_doctor_commands(app, agent_app)
 register_agent_commands(agent_app, agent_instructions_app)
 register_next_commands(next_app)
+register_runtime_commands(runtime_app)
 register_project_status_commands(app, assess_app, assess_maturity_app)
 register_proposal_commands(
     proposal_app,
@@ -272,6 +276,8 @@ def init(
     console.print("[green]P2P workspace initialized.[/green]")
     for path in result.created:
         console.print(f"  created {path}")
+    for warning in result.warnings:
+        console.print(f"  warning: {escape(warning)}")
     _print_init_agent_selection(result.agent_selection)
     _print_init_repository_hygiene(result.gitignore_hygiene)
     _print_init_remote_status(workspace)

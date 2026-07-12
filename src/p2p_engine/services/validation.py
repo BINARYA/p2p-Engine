@@ -20,6 +20,7 @@ from p2p_engine.services.readiness import (
 )
 from p2p_engine.services.proposal_questions import validate_proposal_questions_payload
 from p2p_engine.services.proposal_artifact_state import validate_proposal_artifact_state_payload
+from p2p_engine.services.runtime_contract import RuntimeContractService
 
 BUILT_IN_AGENT_ADAPTERS = ("generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode")
 
@@ -55,6 +56,7 @@ class ValidationService:
         vertical_validation_findings: Callable[[], list[tuple[str, str, Path, str, str]]] | None = None,
         interaction_style_validation_findings: Callable[[], list[tuple[str, str, Path, str, str]]] | None = None,
         governance_validation_findings: Callable[[], list[tuple[str, str, Path, str, str]]] | None = None,
+        runtime_validation_findings: Callable[[], list[Any]] | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -65,6 +67,7 @@ class ValidationService:
         self.vertical_validation_findings = vertical_validation_findings
         self.interaction_style_validation_findings = interaction_style_validation_findings
         self.governance_validation_findings = governance_validation_findings
+        self.runtime_validation_findings = runtime_validation_findings
 
     def validate(self) -> ValidationResult:
         findings: list[ValidationFinding] = []
@@ -97,6 +100,7 @@ class ValidationService:
         self._validate_proposals(add)
         self._validate_project_interaction_style(add)
         self._validate_governance_policy(add)
+        self._validate_runtime_contract(add)
         self._validate_project_verticals(add)
         self._validate_registries(add)
 
@@ -363,6 +367,13 @@ class ValidationService:
             return
         for code, severity, path, message, suggested_command in self.governance_validation_findings():
             add(code, severity, path, message, suggested_command)
+
+    def _validate_runtime_contract(self, add: Callable[[str, str, Path, str, str], None]) -> None:
+        runtime_findings = self.runtime_validation_findings
+        if runtime_findings is None:
+            runtime_findings = RuntimeContractService(root=self.root, p2p_dir=self.p2p_dir).validation_findings
+        for finding in runtime_findings():
+            add(finding.code, finding.severity, self.root / finding.path, finding.message, finding.suggested_command)
 
 
 def _relative_to_root(path: Path, root: Path) -> Path:

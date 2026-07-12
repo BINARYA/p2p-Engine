@@ -1,0 +1,23 @@
+conflicts:
+  - type: scope_overlap
+    proposals:
+      - PROP-078
+      - PROP-084
+    reason: PROP-084 must not duplicate project-local installation guidance or environment mechanics.
+    suggested_resolution: Keep installation mechanics with PROP-078; PROP-084 owns the runtime contract, setup guide, status, validation, and write-gate policy.
+  - type: scope_overlap
+    proposals:
+      - PROP-080
+      - PROP-084
+    reason: PROP-084 previously drifted toward release wheel metadata and digest verification, but those are release integrity concerns.
+    suggested_resolution: Treat PROP-080 as the release artifact authority; PROP-084 must not require wheel metadata or digest data to create or validate runtime.yml.
+  - type: scope_creep
+    proposals:
+      - PROP-084
+    reason: Mandatory script-based setup, install managers, reconcile managers, release resolvers, and source selectors solve environment automation, not version alignment.
+    suggested_resolution: Keep them out of the required scope and require a separate proposal for any future automation.
+  - type: compatibility_risk
+    proposals:
+      - PROP-084
+    reason: Broad command blocking could disrupt existing projects that do not yet declare runtime contracts.
+    suggested_resolution: Gate only governed writes when a declared or required runtime contract cannot be trusted; keep legacy_undeclared warning-only.

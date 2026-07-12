@@ -3,104 +3,184 @@ readiness:
   profile_id: default-readiness-v0.1
   profile_version: '0.1'
   tier: medium
-  confidence: low
+  confidence: high
   confidence_reasons:
-  - Initial readiness was bootstrapped from proposal artifacts.
-  - Review criterion evidence before using it for acceptance.
-  missing:
-  - scope_boundaries
-  - alternatives_quality
-  - tradeoff_analysis
-  - risk_coverage
-  - assumptions_clarity
-  - owner_questions_resolution
-  - acceptance_criteria_quality
-  - impact_overlap_analysis
-  suggested_next:
-  - add_scope_boundaries
-  - add_alternatives_quality
-  - add_tradeoff_analysis
-  - add_risk_coverage
-  - add_assumptions_clarity
-  - add_owner_questions_resolution
-  - add_acceptance_criteria_quality
-  - add_impact_overlap_analysis
+  - Evidence-aware assessment found no missing criteria, failed gates, blocking owner
+    questions, or artifact coverage gaps.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  missing: []
+  suggested_next: []
   failed_gates: []
   criteria:
     problem_clarity:
       max_points: 10
-      awarded_points: 7
-      artifact_quality: meaningful
+      awarded_points: 10
+      artifact_quality: ready
       evidence:
       - artifact: proposal.md
         section: Problem
-      effective_points: 7
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
     goal_clarity:
       max_points: 10
-      awarded_points: 7
-      artifact_quality: meaningful
+      awarded_points: 10
+      artifact_quality: ready
       evidence:
       - artifact: proposal.md
         section: Goals
-      effective_points: 7
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
     scope_boundaries:
       max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
+      awarded_points: 10
+      artifact_quality: ready
       evidence:
       - artifact: proposal.md
         section: Non-Goals
-      effective_points: 0
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
     alternatives_quality:
       max_points: 15
-      awarded_points: 0
-      artifact_quality: placeholder
+      awarded_points: 15
+      artifact_quality: ready
       evidence:
       - artifact: alternatives.md
-      effective_points: 0
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
     tradeoff_analysis:
       max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
+      awarded_points: 10
+      artifact_quality: ready
       evidence:
       - artifact: alternatives.md
-      effective_points: 0
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
     risk_coverage:
       max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
+      awarded_points: 10
+      artifact_quality: ready
       evidence:
       - artifact: risks.md
-      effective_points: 0
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
     assumptions_clarity:
       max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
+      awarded_points: 10
+      artifact_quality: ready
       evidence:
       - artifact: assumptions.md
-      effective_points: 0
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
     owner_questions_resolution:
       max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
+      awarded_points: 10
+      artifact_quality: ready
       evidence:
-      - artifact: open-questions.md
-      effective_points: 0
+      - artifact: questions.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
     acceptance_criteria_quality:
       max_points: 10
-      awarded_points: 0
-      artifact_quality: placeholder
+      awarded_points: 10
+      artifact_quality: ready
       evidence:
       - artifact: proposal.md
         section: Acceptance Criteria
-      effective_points: 0
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
     impact_overlap_analysis:
       max_points: 5
-      awarded_points: 0
-      artifact_quality: missing
+      awarded_points: 5
+      artifact_quality: ready
       evidence:
       - artifact: impact-map.yml
-      effective_points: 0
-  computed_score: 14
-  computed_label: weak
-  computed_at: '2026-06-05'
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  owner_question_state:
+    source: structured
+    markdown_fallback_used: false
+    blocking_owner_questions: []
+    answered_not_applied: []
+    residual_follow_up: []
+    closed_questions:
+    - id: Q001
+      group_id: QG001
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: scope_boundaries
+      gap: scope_boundaries
+      question: 'What should be the authoritative project runtime contract location
+        and schema: a managed .p2p project file, a repository-root bootstrap file,
+        pyproject metadata, or a combination with one explicit source of truth?'
+      reason: Question is closed with state `applied`.
+    - id: Q002
+      group_id: QG002
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: acceptance_criteria_quality
+      gap: acceptance_criteria_quality
+      question: 'What should a fresh clone rely on for runtime version alignment when
+        p2p is not installed yet: the runtime contract, documentation, an optional
+        helper, or another mechanism?'
+      reason: Question is closed with state `applied`.
+    - id: Q003
+      group_id: QG003
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: alternatives_quality
+      gap: alternatives_quality
+      question: Which runtime source metadata should this implementation recognize
+        in the contract, and which install mechanisms are outside scope?
+      reason: Question is closed with state `applied`.
+    - id: Q004
+      group_id: QG004
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: risk_coverage
+      gap: risk_coverage
+      question: How should missing, incompatible, invalid, unsupported, and undeclared
+        runtime contract states be reported without adding environment mutation?
+      reason: Question is closed with state `applied`.
+    - id: Q005
+      group_id: QG005
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: tradeoff_analysis
+      gap: tradeoff_analysis
+      question: Which project usage contexts must the runtime contract support, and
+        which platform-specific or hosted workflows remain outside this proposal?
+      reason: Question is closed with state `applied`.
+    - id: Q006
+      group_id: QG006
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: impact_overlap_analysis
+      gap: impact_overlap_analysis
+      question: 'How should PROP-084 relate to PROP-078 project-local install/upgrade
+        and PROP-080 release wheel publishing: depend on them, reuse them, or add
+        only verification/orchestration around them?'
+      reason: Question is closed with state `applied`.
+    confidence_notes: []
+    suggested_next: []
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-07-12'
+  assessment_source: evidence_aware
+  assessed_at: '2026-07-12'
+  artifact_coverage_warnings: []

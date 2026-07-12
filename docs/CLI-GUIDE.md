@@ -65,11 +65,44 @@ Typical first checks:
 
 ```bash
 p2p status
+p2p runtime status
 p2p context --budget small
 p2p validate
 p2p registry refresh
 p2p next
 ```
+
+### Runtime Contract
+
+Project runtime compatibility is declared in `.p2p/project/runtime.yml`.
+`p2p runtime status` reads that contract and compares it with the installed P2P
+Engine runtime:
+
+```bash
+p2p runtime status
+p2p runtime status --format json
+```
+
+The command is read-only. It does not install, upgrade, downgrade, replace, or
+reconcile environments.
+
+Status meanings:
+
+- `compatible`: the installed runtime satisfies the project contract.
+- `incompatible`: install the recommended P2P Engine version using the official
+  installation guidance, then rerun `p2p runtime status`.
+- `invalid_contract` or `unsupported_contract`: fix or restore the contract
+  before mutating governed P2P state.
+- `missing_contract`: `.p2p/project.yml` requires a contract but
+  `.p2p/project/runtime.yml` is missing; restore it from project history.
+- `legacy_undeclared`: the project has no runtime contract and no marker
+  requiring one; validation reports a non-blocking warning and compatibility is
+  not inferred.
+
+`p2p validate` reports deterministic runtime findings, including
+`P2P267_RUNTIME_CONTRACT_LEGACY_UNDECLARED` for legacy projects and
+`P2P268_RUNTIME_SETUP_GUIDE_DRIFT` when managed `P2P-SETUP.md` no longer
+matches the contract-rendered setup guide.
 
 ### Project Interaction Style
 

@@ -21,6 +21,7 @@ from p2p_engine.core.project_verticals import (
     VerticalSection,
     VerticalValidationResult,
 )
+from p2p_engine.core.runtime_contract import RuntimeStatus, RuntimeWritePreflight
 from p2p_engine.core.interaction_style import InteractionStyleView
 from p2p_engine.foundation.files import (
     identity_slug as _identity_slug,
@@ -112,6 +113,7 @@ from p2p_engine.services.readiness import ProposalReadiness, ReadinessProfile, R
 from p2p_engine.services.registries import RegistryService, RegistryStatus, RegistryView
 from p2p_engine.services.registry_records import RegistryRecordBuilderService
 from p2p_engine.services.remote_profile import RemoteProfileService, RemoteProjectProfile
+from p2p_engine.services.runtime_contract import RuntimeContractService
 from p2p_engine.services.spec_export import (
     SoftwareSpecExportStatus,
     SoftwareSpecExportValidation,
@@ -214,6 +216,7 @@ class P2PWorkspace:
         self._registry_service_instance: RegistryService | None = None
         self._registry_record_builder_service_instance: RegistryRecordBuilderService | None = None
         self._remote_profile_service_instance: RemoteProfileService | None = None
+        self._runtime_contract_service_instance: RuntimeContractService | None = None
         self._spec_export_service_instance: SpecExportService | None = None
         self._software_spec_lifecycle_service_instance: SoftwareSpecLifecycleService | None = None
         self._software_spec_service_instance: SoftwareSpecService | None = None
@@ -270,6 +273,7 @@ class P2PWorkspace:
                 vertical_validation_findings=self._project_vertical_service().validation_findings,
                 interaction_style_validation_findings=self._project_interaction_style_service().validation_findings,
                 governance_validation_findings=self._governance_policy_service().validation_findings,
+                runtime_validation_findings=self._runtime_contract_service().validation_findings,
             )
         return self._validation_service_instance
 
@@ -583,6 +587,11 @@ class P2PWorkspace:
             )
         return self._remote_profile_service_instance
 
+    def _runtime_contract_service(self) -> RuntimeContractService:
+        if self._runtime_contract_service_instance is None:
+            self._runtime_contract_service_instance = RuntimeContractService(root=self.root, p2p_dir=self.p2p_dir)
+        return self._runtime_contract_service_instance
+
     def _software_spec_service(self) -> SoftwareSpecService:
         if self._software_spec_service_instance is None:
             self._software_spec_service_instance = SoftwareSpecService(
@@ -753,6 +762,8 @@ class P2PWorkspace:
         profile: str = "default",
         modules: list[str] | None = None,
     ) -> ProjectInitializationResult:
+        if (self.p2p_dir / "project.yml").exists():
+            self._ensure_runtime_write_allowed("project_init_existing")
         result = self._project_initialization_service().init_project_with_summary(
             name=name,
             agent_profile=agent_profile,
@@ -785,6 +796,7 @@ class P2PWorkspace:
             agent_instructions=result.agent_instructions,
             mcp_hint=result.mcp_hint,
             gitignore_hygiene=result.gitignore_hygiene,
+            warnings=list(result.warnings),
         )
 
     def refresh_agent_instructions(
@@ -792,6 +804,7 @@ class P2PWorkspace:
         profile: str = "generic",
         repository_mode: str | None = None,
     ) -> AgentInstructionsResult:
+        self._ensure_runtime_write_allowed("agent_instructions_refresh")
         return self._agent_instruction_service().refresh_instructions(profile, repository_mode)
 
     def agent_integrations_list(self) -> dict[str, object]:
@@ -810,9 +823,11 @@ class P2PWorkspace:
         *,
         force: bool = False,
     ) -> AgentIntegrationResult:
+        self._ensure_runtime_write_allowed("agent_install")
         return self._agent_instruction_service().install_integrations(target, repository_mode, force=force)
 
     def uninstall_agent_integration(self, adapter: str) -> AgentIntegrationResult:
+        self._ensure_runtime_write_allowed("agent_uninstall")
         return self._agent_instruction_service().uninstall_integration(adapter)
 
     def permissions_show(self) -> dict[str, object]:
@@ -825,6 +840,7 @@ class P2PWorkspace:
         kind: str = "person",
         display_name: str | None = None,
     ) -> PermissionActor:
+        self._ensure_runtime_write_allowed("permissions_actor_add")
         return self._permissions_service().actor_add(
             actor_id,
             role=role,
@@ -844,6 +860,7 @@ class P2PWorkspace:
         single_use: bool = True,
         scope: str | None = None,
     ) -> ConsentReceipt:
+        self._ensure_runtime_write_allowed("consent_grant")
         return self._consent_service().grant(
             operation,
             target,
@@ -864,6 +881,7 @@ class P2PWorkspace:
         scope: str | None = None,
         expires_on: str | None = None,
     ) -> ConsentReceipt:
+        self._ensure_runtime_write_allowed("consent_request")
         return self._consent_service().request(
             operation,
             target,
@@ -880,6 +898,7 @@ class P2PWorkspace:
         return self._consent_service().statuses()
 
     def consent_revoke(self, consent_id: str, reason: str = "") -> ConsentReceipt:
+        self._ensure_runtime_write_allowed("consent_revoke")
         return self._consent_service().revoke(consent_id, reason=reason)
 
     def consent_validate(
@@ -898,6 +917,7 @@ class P2PWorkspace:
         )
 
     def consent_consume(self, consent_id: str, *, result: dict[str, object]) -> ConsentReceipt:
+        self._ensure_runtime_write_allowed("consent_consume")
         return self._consent_service().consume(consent_id, result=result)
 
     def consent_mark_used_with_error(
@@ -907,6 +927,7 @@ class P2PWorkspace:
         error: str,
         result: dict[str, object] | None = None,
     ) -> ConsentReceipt:
+        self._ensure_runtime_write_allowed("consent_mark_used_with_error")
         return self._consent_service().mark_used_with_error(consent_id, error=error, result=result)
 
     def _project_name(self) -> str:
@@ -928,6 +949,7 @@ class P2PWorkspace:
         return str(repo_data.get("mode") or default)
 
     def _set_repository_mode(self, mode: str) -> None:
+        self._ensure_runtime_write_allowed("repository_mode_set")
         mode = _normalize_repository_mode(mode)
         project_file = self.p2p_dir / "project.yml"
         data = _read_yaml_mapping(project_file, default={})
@@ -954,6 +976,7 @@ class P2PWorkspace:
         remote: str = "origin",
         url: str | None = None,
     ) -> RemoteProjectProfile:
+        self._ensure_runtime_write_allowed("remote_profile_configure")
         return self._remote_profile_service().configure(
             mode=mode,
             provider=provider,
@@ -965,12 +988,15 @@ class P2PWorkspace:
         return self._sync_service().status(remote)
 
     def sync_fetch(self, remote: str | None = None) -> SyncResult:
+        self._ensure_runtime_write_allowed("sync_fetch")
         return self._sync_service().fetch(remote)
 
     def sync_pull(self, remote: str | None = None) -> SyncResult:
+        self._ensure_runtime_write_allowed("sync_pull")
         return self._sync_service().pull(remote)
 
     def sync_push(self, remote: str | None = None) -> SyncResult:
+        self._ensure_runtime_write_allowed("sync_push")
         return self._sync_service().push(remote)
 
     def proposal_summaries(self, status: str | None = None) -> list[ProposalSummary]:
@@ -986,6 +1012,7 @@ class P2PWorkspace:
         return self._proposal_review_view_service().full_view(proposal_id)
 
     def commit_proposal_draft(self, proposal_id: str, actor: str = "local") -> ProposalDraftCommit:
+        self._ensure_runtime_write_allowed("proposal_draft_commit")
         return self._proposal_draft_commit_service().commit(proposal_id, actor)
 
     def branch_proposal(
@@ -995,6 +1022,7 @@ class P2PWorkspace:
         base_branch: str | None = None,
         allow_proposal_base: bool = False,
     ) -> ProposalBranchDetail:
+        self._ensure_runtime_write_allowed("proposal_branch")
         return self._proposal_branch_service().branch(
             proposal_id,
             actor=actor,
@@ -1012,6 +1040,7 @@ class P2PWorkspace:
         *,
         auto_renumber: bool = False,
     ) -> ProposalBranchDetail:
+        self._ensure_runtime_write_allowed("proposal_publish")
         return self._proposal_branch_service().publish(
             proposal_id,
             remote=remote,
@@ -1019,30 +1048,39 @@ class P2PWorkspace:
         )
 
     def request_proposal_branch_review(self, proposal_id: str, provider: str | None = None) -> ProposalBranchDetail:
+        self._ensure_runtime_write_allowed("proposal_request_review")
         return self._proposal_branch_service().request_review(proposal_id, provider)
 
     def retire_proposal_branch(self, proposal_id: str, reason: str) -> ProposalBranchDetail:
+        self._ensure_runtime_write_allowed("proposal_retire_branch")
         return self._proposal_branch_service().retire(proposal_id, reason)
 
     def accept_proposal_branch(self, proposal_id: str, reason: str) -> ProposalBranchDetail:
+        self._ensure_runtime_write_allowed("proposal_accept_branch")
         return self._proposal_branch_service().accept(proposal_id, reason)
 
     def reject_proposal_branch(self, proposal_id: str, reason: str) -> ProposalBranchDetail:
+        self._ensure_runtime_write_allowed("proposal_reject_branch")
         return self._proposal_branch_service().reject(proposal_id, reason)
 
     def _decide_proposal_branch(self, proposal_id: str, outcome: str, reason: str) -> ProposalBranchDetail:
+        self._ensure_runtime_write_allowed("proposal_decide_branch")
         return self._proposal_branch_service().decide(proposal_id, outcome, reason)
 
     def merge_proposal_branch(self, proposal_id: str) -> ProposalMerge | ProposalMergeConflict:
+        self._ensure_runtime_write_allowed("proposal_merge")
         return self._proposal_branch_service().merge(proposal_id)
 
     def continue_merge_proposal_branch(self, proposal_id: str) -> ProposalMerge:
+        self._ensure_runtime_write_allowed("proposal_merge_continue")
         return self._proposal_branch_service().continue_merge(proposal_id)
 
     def abort_merge_proposal_branch(self, proposal_id: str) -> ProposalBranchDetail:
+        self._ensure_runtime_write_allowed("proposal_merge_abort")
         return self._proposal_branch_service().abort_merge_branch(proposal_id)
 
     def finalize_proposal_branch(self, proposal_id: str, remote: str | None = None) -> ProposalFinalize:
+        self._ensure_runtime_write_allowed("proposal_finalize")
         return self._proposal_branch_service().finalize(proposal_id, remote)
 
     def cleanup_proposal_branch(
@@ -1052,6 +1090,7 @@ class P2PWorkspace:
         delete_remote: bool = False,
         remote: str | None = None,
     ) -> ProposalCleanup:
+        self._ensure_runtime_write_allowed("proposal_cleanup")
         return self._proposal_branch_service().cleanup(
             proposal_id,
             delete_remote=delete_remote,
@@ -1067,6 +1106,19 @@ class P2PWorkspace:
     def validate(self) -> ValidationResult:
         return self._validation_service().validate()
 
+    def runtime_status(self) -> RuntimeStatus:
+        return self._runtime_contract_service().status()
+
+    def runtime_write_preflight(self, operation: str) -> RuntimeWritePreflight:
+        return self._runtime_contract_service().write_preflight(operation)
+
+    def _ensure_runtime_write_allowed(self, operation: str) -> RuntimeWritePreflight:
+        if not self.p2p_dir.exists() or not (self.p2p_dir / "project.yml").exists():
+            return self._runtime_contract_service().write_preflight(operation)
+        preflight = self._runtime_contract_service().write_preflight(operation)
+        preflight.require_allowed()
+        return preflight
+
     def readiness_profile(self, profile_id: str = DEFAULT_READINESS_PROFILE_ID) -> ReadinessProfile:
         return self._readiness_service().profile(profile_id)
 
@@ -1074,6 +1126,7 @@ class P2PWorkspace:
         return self._readiness_service().read(proposal_id)
 
     def write_proposal_readiness(self, proposal_id: str, readiness: dict[str, object]) -> Path:
+        self._ensure_runtime_write_allowed("proposal_readiness_write")
         return self._readiness_service().write(proposal_id, readiness)
 
     def record_proposal_readiness_override(
@@ -1082,15 +1135,19 @@ class P2PWorkspace:
         reason: str,
         approver: str,
     ) -> Path:
+        self._ensure_runtime_write_allowed("proposal_readiness_override")
         return self._readiness_service().record_override(proposal_id, reason, approver)
 
     def refresh_proposal_readiness(self, proposal_id: str) -> ProposalReadiness:
+        self._ensure_runtime_write_allowed("proposal_readiness_refresh")
         return self._readiness_service().refresh(proposal_id)
 
     def initialize_proposal_readiness(self, proposal_id: str) -> ProposalReadiness:
+        self._ensure_runtime_write_allowed("proposal_readiness_init")
         return self._readiness_service().initialize(proposal_id)
 
     def assess_proposal_readiness(self, proposal_id: str) -> ProposalReadiness:
+        self._ensure_runtime_write_allowed("proposal_readiness_assess")
         return self._readiness_service().assess(proposal_id)
 
     def review_proposal_readiness(self, proposal_id: str):
@@ -1100,6 +1157,7 @@ class P2PWorkspace:
         return self._proposal_question_service().read(proposal_id)
 
     def initialize_proposal_questions(self, proposal_id: str, actor: str = "local"):
+        self._ensure_runtime_write_allowed("proposal_questions_init")
         return self._proposal_question_service().initialize(proposal_id, actor=actor)
 
     def add_proposal_question(
@@ -1113,6 +1171,7 @@ class P2PWorkspace:
         group_id: str = "",
         actor: str = "local",
     ):
+        self._ensure_runtime_write_allowed("proposal_questions_add")
         return self._proposal_question_service().add(
             proposal_id,
             gap=gap,
@@ -1133,6 +1192,7 @@ class P2PWorkspace:
         actor: str = "local",
         replace: bool = False,
     ):
+        self._ensure_runtime_write_allowed("proposal_questions_answer")
         return self._proposal_question_service().answer(
             proposal_id,
             question_id,
@@ -1143,12 +1203,15 @@ class P2PWorkspace:
         )
 
     def set_proposal_question_state(self, proposal_id: str, question_id: str, state, *, reason: str = "", actor: str = "local"):
+        self._ensure_runtime_write_allowed("proposal_questions_set_state")
         return self._proposal_question_service().set_state(proposal_id, question_id, state, reason=reason, actor=actor)
 
     def supersede_proposal_question(self, proposal_id: str, question_id: str, superseded_by: str, *, actor: str = "local"):
+        self._ensure_runtime_write_allowed("proposal_questions_supersede")
         return self._proposal_question_service().supersede(proposal_id, question_id, superseded_by, actor=actor)
 
     def set_proposal_question_group_state(self, proposal_id: str, group_id: str, state, *, actor: str = "local"):
+        self._ensure_runtime_write_allowed("proposal_questions_group_state")
         return self._proposal_question_service().group_state(proposal_id, group_id, state, actor=actor)
 
     def next_proposal_question(self, proposal_id: str, *, include_muted: bool = False, include_deferred: bool = False):
@@ -1159,18 +1222,22 @@ class P2PWorkspace:
         )
 
     def reassess_proposal_questions(self, proposal_id: str):
+        self._ensure_runtime_write_allowed("proposal_questions_reassess")
         return self._proposal_question_service().reassess(proposal_id)
 
     def apply_proposal_question_answers(self, proposal_id: str, actor: str = "local"):
+        self._ensure_runtime_write_allowed("proposal_questions_apply")
         return self._proposal_question_service().apply_summary(proposal_id, actor=actor)
 
     def import_proposal_questions(self, proposal_id: str, source: Path, actor: str = "local"):
+        self._ensure_runtime_write_allowed("proposal_questions_import")
         return self._proposal_question_service().import_payload(proposal_id, source, actor=actor)
 
     def read_proposal_artifacts(self, proposal_id: str):
         return self._proposal_artifact_state_service().read(proposal_id)
 
     def initialize_proposal_artifacts(self, proposal_id: str, actor: str = "local"):
+        self._ensure_runtime_write_allowed("proposal_artifacts_init")
         return self._proposal_artifact_state_service().initialize(proposal_id, actor=actor)
 
     def set_proposal_artifact_state(
@@ -1185,6 +1252,7 @@ class P2PWorkspace:
         source: str = "agent",
         risk_flags=None,
     ):
+        self._ensure_runtime_write_allowed("proposal_artifacts_set")
         return self._proposal_artifact_state_service().set_artifact(
             proposal_id,
             artifact_id,
@@ -1197,12 +1265,15 @@ class P2PWorkspace:
         )
 
     def confirm_proposal_artifact_state(self, proposal_id: str, artifact_id: str, actor: str = "owner"):
+        self._ensure_runtime_write_allowed("proposal_artifacts_confirm")
         return self._proposal_artifact_state_service().confirm(proposal_id, artifact_id, actor=actor)
 
     def mark_proposal_artifacts_legacy(self, proposal_id: str, reason: str = "Proposal predates artifact-aware state.", actor: str = "local"):
+        self._ensure_runtime_write_allowed("proposal_artifacts_mark_legacy")
         return self._proposal_artifact_state_service().mark_legacy(proposal_id, reason=reason, actor=actor)
 
     def create_proposal(self, title: str) -> Proposal:
+        self._ensure_runtime_write_allowed("proposal_create")
         proposal = self._proposal_document_service().create(title)
         self._proposal_artifact_state_service().initialize(proposal.proposal_id)
         return proposal
@@ -1217,6 +1288,7 @@ class P2PWorkspace:
         proposal: str | None = None,
         acceptance_criteria: list[str] | None = None,
     ) -> Proposal:
+        self._ensure_runtime_write_allowed("proposal_create")
         proposal = self._proposal_document_service().create_with_details(
             title=title,
             problem=problem,
@@ -1239,6 +1311,7 @@ class P2PWorkspace:
         proposal: str | None = None,
         acceptance_criteria: list[str] | None = None,
     ) -> Path:
+        self._ensure_runtime_write_allowed("proposal_update")
         return self._proposal_document_service().update(
             proposal_id,
             problem=problem,
@@ -1257,6 +1330,7 @@ class P2PWorkspace:
         relevance_hint: str,
         author: str,
     ) -> Contribution:
+        self._ensure_runtime_write_allowed("proposal_contribution_add")
         return self._proposal_document_service().add_contribution(
             proposal_id,
             contribution_type,
@@ -1275,21 +1349,26 @@ class P2PWorkspace:
         reason: str,
         approver: str,
     ) -> Decision:
+        self._ensure_runtime_write_allowed("proposal_decision_record")
         return self._proposal_decision_service().record(proposal_id, outcome, reason, approver)
 
     def generate_prompt(self, proposal_id: str, kind: PromptKind) -> Path:
+        self._ensure_runtime_write_allowed("proposal_prompt_generate")
         return self._proposal_artifact_service().generate_prompt(proposal_id, kind)
 
     def import_exploration(self, proposal_id: str, source: Path) -> list[Path]:
+        self._ensure_runtime_write_allowed("proposal_exploration_import")
         return self._proposal_artifact_service().import_exploration(proposal_id, source)
 
     def exploration_status(self, proposal_id: str) -> ExplorationStatus:
         return self._proposal_artifact_service().exploration_status(proposal_id)
 
     def import_artifact(self, proposal_id: str, kind: ImportKind, source: Path) -> Path:
+        self._ensure_runtime_write_allowed("proposal_artifact_import")
         return self._proposal_artifact_service().import_artifact(proposal_id, kind, source)
 
     def import_impact(self, proposal_id: str, source: Path) -> list[Path]:
+        self._ensure_runtime_write_allowed("proposal_impact_import")
         return self._proposal_artifact_service().import_impact(proposal_id, source)
 
     def import_proposal_artifact_content(
@@ -1301,6 +1380,7 @@ class P2PWorkspace:
         content: str | None = None,
         artifacts: dict[str, str] | None = None,
     ) -> ArtifactImportResult:
+        self._ensure_runtime_write_allowed("proposal_artifact_import_content")
         return self._proposal_artifact_service().import_content(
             proposal_id,
             kind,
@@ -1310,6 +1390,7 @@ class P2PWorkspace:
         )
 
     def init_governance(self, mode: str) -> list[Path]:
+        self._ensure_runtime_write_allowed("governance_init")
         return self._governance_service().init_governance(mode)
 
     def governance_status(self) -> GovernanceStatus:
@@ -1323,12 +1404,14 @@ class P2PWorkspace:
         voter: str,
         role: str,
     ) -> VoteStatus:
+        self._ensure_runtime_write_allowed("governance_vote_record")
         return self._governance_service().record_vote(proposal_id, choice, reason, voter, role)
 
     def vote_status(self, proposal_id: str) -> VoteStatus:
         return self._governance_service().vote_status(proposal_id)
 
     def record_precedent(self, proposal_id: str, title: str, reason: str) -> Path:
+        self._ensure_runtime_write_allowed("governance_precedent_record")
         return self._governance_service().record_precedent(proposal_id, title, reason)
 
     def choice_governance_preflight(
@@ -1367,6 +1450,7 @@ class P2PWorkspace:
         return self._governance_policy_service().validate_governance()
 
     def refresh_project_state(self) -> list[Path]:
+        self._ensure_runtime_write_allowed("project_state_refresh")
         return self._project_state_service().refresh()
 
     def project_state_status(self) -> ProjectStateStatus:
@@ -1386,6 +1470,7 @@ class P2PWorkspace:
         assertiveness: int | str | None = None,
         actor: str = "local",
     ) -> InteractionStyleView:
+        self._ensure_runtime_write_allowed("project_interaction_style_set")
         return self._project_interaction_style_service().set_style(
             technical_verbosity=technical_verbosity,
             formality=formality,
@@ -1394,6 +1479,7 @@ class P2PWorkspace:
         )
 
     def export_visible_project_definition(self) -> VisibleProjectExportResult:
+        self._ensure_runtime_write_allowed("project_definition_export")
         return self._visible_project_export_service().export()
 
     def visible_project_definition_export_status(self) -> VisibleProjectExportStatus:
@@ -1418,6 +1504,7 @@ class P2PWorkspace:
         activate: bool = False,
         actor: str = "local",
     ) -> ProjectVerticalAddResult:
+        self._ensure_runtime_write_allowed("project_vertical_add")
         return self._project_vertical_service().add_vertical(source, activate=activate, actor=actor)
 
     def select_project_vertical(
@@ -1428,6 +1515,7 @@ class P2PWorkspace:
         profile: str = "default",
         modules: list[str] | None = None,
     ) -> ActiveProjectVertical:
+        self._ensure_runtime_write_allowed("project_vertical_select")
         return self._project_vertical_service().select_vertical(
             vertical_id,
             actor=actor,
@@ -1445,6 +1533,7 @@ class P2PWorkspace:
         return self._project_vertical_service().vertical_lock_status()
 
     def repair_project_vertical_lock(self, *, actor: str = "local") -> VerticalLock:
+        self._ensure_runtime_write_allowed("project_vertical_lock_repair")
         return self._project_vertical_service().repair_vertical_lock(actor=actor)
 
     def project_vertical_context(self) -> ProjectVerticalContext:
@@ -1460,24 +1549,29 @@ class P2PWorkspace:
         return self._project_vertical_service().project_definition_view()
 
     def update_project_definition(self, patch_path: Path) -> ProjectDefinitionPatchResult:
+        self._ensure_runtime_write_allowed("project_definition_update")
         return self._project_vertical_service().apply_definition_patch(patch_path)
 
     def create_project_brief_prompt(self) -> ProjectBriefPrompt:
+        self._ensure_runtime_write_allowed("project_brief_prompt")
         return self._project_state_service().create_brief_prompt()
 
     def import_project_brief(self, source: Path) -> list[Path]:
+        self._ensure_runtime_write_allowed("project_brief_import")
         return self._project_state_service().import_brief(source)
 
     def show_project_brief(self) -> str:
         return self._project_state_service().show_brief()
 
     def refresh_project_assessment(self) -> ProjectAssessment:
+        self._ensure_runtime_write_allowed("project_assessment_refresh")
         return self._project_assessment_service().refresh()
 
     def show_project_assessment(self) -> ProjectAssessment:
         return self._project_assessment_service().show()
 
     def init_project_rubrics(self, domain: str = "generic", force: bool = False) -> ProjectRubrics:
+        self._ensure_runtime_write_allowed("project_rubrics_init")
         return self._project_maturity_service().init_project_rubrics(domain, force=force)
 
     def init_project_rubrics_preview(self, domain: str = "generic") -> list[dict[str, object]]:
@@ -1487,6 +1581,7 @@ class P2PWorkspace:
         return self._project_maturity_service().show_project_rubrics()
 
     def refresh_definition_maturity(self) -> ProjectDefinitionMaturity:
+        self._ensure_runtime_write_allowed("definition_maturity_refresh")
         return self._project_maturity_service().refresh_definition_maturity()
 
     def show_definition_maturity(self) -> ProjectDefinitionMaturity:
@@ -1496,6 +1591,7 @@ class P2PWorkspace:
         return self._context_packet_service().context_packet(budget, target)
 
     def refresh_software_spec(self, change_id: str) -> SoftwareSpecStatus:
+        self._ensure_runtime_write_allowed("software_spec_refresh")
         lifecycle = self._software_spec_lifecycle_service().ensure_can_write(
             "implementation_spec",
             change_id=change_id,
@@ -1523,12 +1619,15 @@ class P2PWorkspace:
         return self._software_spec_service().show(change_id)
 
     def create_software_spec_prompt(self, change_id: str) -> SoftwareSpecPrompt:
+        self._ensure_runtime_write_allowed("software_spec_prompt")
         return self._software_spec_service().create_prompt(change_id)
 
     def import_software_spec(self, change_id: str, source: Path) -> list[Path]:
+        self._ensure_runtime_write_allowed("software_spec_import")
         return self._software_spec_service().import_spec(change_id, source)
 
     def export_software_spec(self, change_id: str, target: str) -> SoftwareSpecExportStatus:
+        self._ensure_runtime_write_allowed("software_spec_export")
         lifecycle = self._software_spec_lifecycle_service().ensure_can_write(
             "downstream_export",
             change_id=change_id,
@@ -1547,6 +1646,7 @@ class P2PWorkspace:
         return self._spec_export_service().validate(change_id, target)
 
     def create_work_plan(self, change_id: str, target: str) -> WorkDetail:
+        self._ensure_runtime_write_allowed("work_plan_create")
         return self._work_planning_service().create_plan(change_id, target)
 
     def work_statuses(self) -> list[WorkStatus]:
@@ -1559,18 +1659,23 @@ class P2PWorkspace:
         return self._work_planning_service().show(work_id)
 
     def branch_work(self, work_id: str) -> WorkBranch:
+        self._ensure_runtime_write_allowed("work_branch")
         return self._work_branch_service().branch(work_id)
 
     def retire_work(self, work_id: str, reason: str) -> WorkRetire:
+        self._ensure_runtime_write_allowed("work_retire")
         return self._work_planning_service().retire(work_id, reason)
 
     def submit_work(self, work_id: str) -> WorkSubmit:
+        self._ensure_runtime_write_allowed("work_submit")
         return self._work_branch_service().submit(work_id)
 
     def review_work(self, work_id: str) -> WorkReview:
+        self._ensure_runtime_write_allowed("work_review")
         return self._work_branch_service().review(work_id)
 
     def publish_work(self, work_id: str, remote: str = "origin") -> WorkPublish:
+        self._ensure_runtime_write_allowed("work_publish")
         return self._work_branch_service().publish(work_id, remote)
 
     def request_external_work_review(
@@ -1578,21 +1683,27 @@ class P2PWorkspace:
         work_id: str,
         provider: str | None = None,
     ) -> WorkReviewRequest:
+        self._ensure_runtime_write_allowed("work_request_review")
         return self._work_branch_service().request_external_review(work_id, provider)
 
     def accept_work(self, work_id: str) -> WorkAccept | WorkAcceptConflict:
+        self._ensure_runtime_write_allowed("work_accept")
         return self._work_branch_service().accept(work_id)
 
     def continue_accept_work(self, work_id: str) -> WorkAccept:
+        self._ensure_runtime_write_allowed("work_accept_continue")
         return self._work_branch_service().continue_accept(work_id)
 
     def abort_accept_work(self, work_id: str) -> WorkDetail:
+        self._ensure_runtime_write_allowed("work_accept_abort")
         return self._work_branch_service().abort_accept(work_id)  # type: ignore[return-value]
 
     def finalize_work(self, work_id: str, remote: str = "origin") -> WorkFinalize:
+        self._ensure_runtime_write_allowed("work_finalize")
         return self._work_branch_service().finalize(work_id, remote)
 
     def cleanup_work(self, work_id: str, delete_remote: bool = False, remote: str = "origin") -> WorkCleanup:
+        self._ensure_runtime_write_allowed("work_cleanup")
         return self._work_branch_service().cleanup(work_id, delete_remote=delete_remote, remote=remote)
 
     def _scanned_work_items(self) -> list[dict[str, object]]:
@@ -1619,6 +1730,7 @@ class P2PWorkspace:
         priority: str = "medium",
         action_id: str | None = None,
     ) -> NextAction:
+        self._ensure_runtime_write_allowed("next_action_add")
         return self._next_action_service().add(
             kind=kind,
             target=target,
@@ -1629,12 +1741,15 @@ class P2PWorkspace:
         )
 
     def next_action_complete(self, action_id: str, reason: str) -> dict[str, object]:
+        self._ensure_runtime_write_allowed("next_action_complete")
         return self._next_action_service().complete(action_id, reason)
 
     def next_action_retire(self, action_id: str, reason: str) -> dict[str, object]:
+        self._ensure_runtime_write_allowed("next_action_retire")
         return self._next_action_service().retire(action_id, reason)
 
     def next_actions_refresh(self) -> dict[str, object]:
+        self._ensure_runtime_write_allowed("next_actions_refresh")
         return self._next_action_service().refresh()
 
     def record_conflict(
@@ -1644,6 +1759,7 @@ class P2PWorkspace:
         reason: str,
         winner: str | None,
     ) -> ConflictStatus:
+        self._ensure_runtime_write_allowed("conflict_record")
         return self._conflict_memory_service().record(
             proposals=proposals,
             conflict_type=conflict_type,
@@ -1655,6 +1771,7 @@ class P2PWorkspace:
         return self._conflict_memory_service().status()
 
     def create_change_set(self, source: str, title: str | None = None) -> ChangeSetStatus:
+        self._ensure_runtime_write_allowed("change_create")
         return self._change_set_lifecycle_service().create(source, title=title)
 
     def change_set_statuses(self) -> list[ChangeSetStatus]:
@@ -1667,12 +1784,14 @@ class P2PWorkspace:
         return self._change_set_lifecycle_service().show(change_id)
 
     def update_change_set_status(self, change_id: str, new_status: str) -> ChangeSetStatus:
+        self._ensure_runtime_write_allowed("change_set_status_update")
         return self._change_set_lifecycle_service().update_status(change_id, new_status)
 
     def change_set_tasks(self, change_id: str) -> ChangeSetTaskView:
         return self._change_set_lifecycle_service().tasks(change_id)
 
     def refresh_registries(self) -> list[Path]:
+        self._ensure_runtime_write_allowed("registry_refresh")
         return self._registry_service().refresh()
 
     def registry_status(self) -> RegistryStatus:
@@ -1682,15 +1801,18 @@ class P2PWorkspace:
         return self._registry_service().show(name)
 
     def create_intake_prompt(self, idea: str) -> IntakePrompt:
+        self._ensure_runtime_write_allowed("intake_prompt_create")
         return self._intake_lifecycle_service().create_prompt(idea)
 
     def import_intake(self, intake_id: str, source: Path) -> list[Path]:
+        self._ensure_runtime_write_allowed("intake_import")
         return self._intake_lifecycle_service().import_output(intake_id, source)
 
     def intake_statuses(self) -> list[IntakeStatus]:
         return self._intake_lifecycle_service().statuses()
 
     def create_intake_apply_plan(self, intake_id: str) -> IntakeApplyPlan:
+        self._ensure_runtime_write_allowed("intake_apply_plan_create")
         return self._intake_lifecycle_service().create_apply_plan(intake_id)
 
     def show_intake_apply_plan(self, intake_id: str) -> IntakeApplyPlan:
@@ -1702,6 +1824,7 @@ class P2PWorkspace:
         action_id: str,
         options: list[str] | None = None,
     ) -> IntakeAppliedAction:
+        self._ensure_runtime_write_allowed("intake_apply_run")
         return self._intake_lifecycle_service().run_apply_action(intake_id, action_id, options=options)
 
     def create_choice(
@@ -1711,6 +1834,7 @@ class P2PWorkspace:
         related: list[str] | None = None,
         source: str | None = None,
     ) -> ChoiceStatus:
+        self._ensure_runtime_write_allowed("choice_create")
         return self._choice_lifecycle_service().create(title, options, related=related, source=source)
 
     def choice_statuses(self) -> list[ChoiceStatus]:
@@ -1729,9 +1853,11 @@ class P2PWorkspace:
         target_type: str,
         reason: str,
     ) -> ChoiceDetail:
+        self._ensure_runtime_write_allowed("choice_block")
         return self._choice_lifecycle_service().block(choice_id, target, target_type, reason)
 
     def unblock_choice(self, choice_id: str, target: str, target_type: str) -> ChoiceDetail:
+        self._ensure_runtime_write_allowed("choice_unblock")
         return self._choice_lifecycle_service().unblock(choice_id, target, target_type)
 
     def decide_choice(
@@ -1741,6 +1867,7 @@ class P2PWorkspace:
         reason: str,
         decider: str,
     ) -> ChoiceStatus:
+        self._ensure_runtime_write_allowed("choice_decide")
         return self._choice_lifecycle_service().decide(choice_id, option, reason, decider)
 
 def _duplicate_proposal_ids_message(duplicates: dict[str, list[Path]], root: Path) -> str:

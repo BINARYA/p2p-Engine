@@ -61,6 +61,8 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert "Runtime Bootstrap" in agents
     assert ".venv/bin/p2p agent doctor" in agents
     assert "python -m p2p_engine agent doctor" in agents
+    assert (tmp_path / ".p2p" / "project" / "runtime.yml").exists()
+    assert (tmp_path / "P2P-SETUP.md").exists()
 
     result = runner.invoke(app, ["status", "--root", str(tmp_path)])
     assert result.exit_code == 0
@@ -134,6 +136,35 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert "Exploration status for PROP-001" in result.output
     assert "open-questions.md" in result.output
     assert "missing" in result.output
+
+
+def test_cli_runtime_status_text_and_json(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Runtime Project", "--root", str(tmp_path)])
+
+    text = runner.invoke(app, ["runtime", "status", "--root", str(tmp_path)])
+
+    assert text.exit_code == 0
+    assert "Runtime" in text.output
+    assert "state: compatible" in text.output
+    assert ".p2p/project/runtime.yml" in text.output
+
+    json_result = runner.invoke(app, ["runtime", "status", "--format", "json", "--root", str(tmp_path)])
+
+    assert json_result.exit_code == 0
+    payload = json.loads(json_result.output)
+    assert payload["state"] == "compatible"
+    assert payload["contract_path"] == ".p2p/project/runtime.yml"
+
+
+def test_cli_runtime_status_reports_missing_contract(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Runtime Project", "--root", str(tmp_path)])
+    (tmp_path / ".p2p" / "project" / "runtime.yml").unlink()
+
+    result = runner.invoke(app, ["runtime", "status", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "state: missing_contract" in result.output
+    assert "P2P266_RUNTIME_CONTRACT_MISSING" in result.output
 
 
 def test_cli_project_interaction_style_show_and_set(tmp_path: Path) -> None:

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import yaml
 
+from p2p_engine.core.runtime_contract import RUNTIME_SETUP_GUIDE_MARKER
 from p2p_engine.services.agent_instructions import AgentInstructionsResult
 from p2p_engine.services.agent_selection import AgentProfileSelection, select_agent_profile
 from p2p_engine.services.gitignore_hygiene import GitignoreHygieneResult, apply_gitignore_hygiene
@@ -19,6 +20,7 @@ from p2p_engine.services.project_maturity import (
     rubrics_payload,
 )
 from p2p_engine.services.readiness import DEFAULT_READINESS_PROFILE_ID
+from p2p_engine.services.runtime_contract import RuntimeContractService
 
 REPOSITORY_MODES = {"local", "cloud"}
 
@@ -46,6 +48,7 @@ class ProjectInitializationResult:
     agent_instructions: AgentInstructionsResult
     mcp_hint: McpHint
     gitignore_hygiene: GitignoreHygieneResult
+    warnings: list[str]
 
 
 class ProjectInitializationService:
@@ -126,6 +129,7 @@ class ProjectInitializationService:
             remote_profile=remote_profile,
         )
         created = self._write_missing_files(files)
+        warnings = self._setup_guide_warnings()
         created.extend(self._create_missing_directories())
         gitignore_hygiene = self.apply_gitignore_hygiene(self.root)
         if gitignore_hygiene.status == "applied" and gitignore_hygiene.path not in created:
@@ -144,6 +148,7 @@ class ProjectInitializationService:
             agent_instructions=instructions,
             mcp_hint=mcp_hint,
             gitignore_hygiene=gitignore_hygiene,
+            warnings=warnings,
         )
 
     def _bootstrap_files(
@@ -156,6 +161,8 @@ class ProjectInitializationService:
         owner: str | None,
         remote_profile: dict[str, object],
     ) -> dict[Path, str]:
+        runtime_service = RuntimeContractService(root=self.root, p2p_dir=self.p2p_dir)
+        is_new_project = not (self.p2p_dir / "project.yml").exists()
         files: dict[Path, str] = {
             self.p2p_dir / "project.yml": _yaml_dump(
                 {
@@ -166,6 +173,7 @@ class ProjectInitializationService:
                         "status": "active",
                         "domain": project_domain,
                     },
+                    "runtime_contract": {"required": True},
                     "storage": {
                         "mode": "file_based",
                         "documents_format": "markdown",
@@ -206,6 +214,9 @@ class ProjectInitializationService:
             files[self.p2p_dir / "project" / "next-actions.yml"] = _yaml_dump(
                 domain_setup_next_actions_payload(project_domain)
             )
+        if is_new_project:
+            files[runtime_service.contract_path] = _yaml_dump(runtime_service.default_contract_payload())
+            files[runtime_service.setup_guide_path] = runtime_service.render_setup_guide()
         return files
 
     def _write_missing_files(self, files: dict[Path, str]) -> list[Path]:
@@ -216,6 +227,17 @@ class ProjectInitializationService:
                 path.write_text(content, encoding="utf-8")
                 created.append(path.relative_to(self.root))
         return created
+
+    def _setup_guide_warnings(self) -> list[str]:
+        setup_path = self.root / "P2P-SETUP.md"
+        if not setup_path.exists():
+            return []
+        if RUNTIME_SETUP_GUIDE_MARKER in setup_path.read_text(encoding="utf-8"):
+            return []
+        return [
+            "P2P-SETUP.md already exists and is not P2P-managed; it was preserved. "
+            "Review it against .p2p/project/runtime.yml."
+        ]
 
     def _create_missing_directories(self) -> list[Path]:
         created: list[Path] = []
