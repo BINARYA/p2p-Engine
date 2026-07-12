@@ -121,6 +121,245 @@ Behavior:
 10. keep `p2p init` deterministic: the agent may guide missing initialization after detecting it, but the CLI init flow itself is not an agent interview."""
 
 
+WRITE_CLASS_ORDER = (
+    "read_only",
+    "chat_only",
+    "local_scratch",
+    "p2p_canonical",
+    "p2p_generated_narrative",
+    "p2p_imported_artifact",
+    "generated_export",
+    "stable_documentation",
+    "external_side_effect",
+)
+
+
+WRITE_CLASS_DEFINITIONS = {
+    "read_only": {
+        "description": "Inspecting, listing, validating, explaining, or summarizing without persistent state changes",
+        "surface": "none",
+    },
+    "chat_only": {
+        "description": "Reasoning, alternatives, critiques, or drafts kept only in the current conversation",
+        "surface": "chat",
+    },
+    "local_scratch": {
+        "description": "Temporary notes or transient files that are not durable project memory",
+        "surface": "local_temp_or_draft",
+    },
+    "p2p_canonical": {
+        "description": "Governed P2P state such as proposals, choices, decisions, Change Sets, Work, registries, or readiness",
+        "surface": "p2p_cli_or_explicit_mcp_write_tool",
+    },
+    "p2p_generated_narrative": {
+        "description": "Generated P2P narrative material that must be created or imported through supported primitives",
+        "surface": "p2p_generate_or_import_primitive",
+    },
+    "p2p_imported_artifact": {
+        "description": "External or repository artifact imported into governed P2P state",
+        "surface": "p2p_import_primitive",
+    },
+    "generated_export": {
+        "description": "Derived output exported from P2P or repository tooling",
+        "surface": "p2p_export_or_repository_output",
+    },
+    "stable_documentation": {
+        "description": "Durable repository documentation intended by the owner",
+        "surface": "repository_docs",
+    },
+    "external_side_effect": {
+        "description": "Network, provider, CI, publication, notification, or other side effect outside the repository",
+        "surface": "external_system",
+    },
+}
+
+
+PREVIEW_FIELDS = (
+    "operation",
+    "target",
+    "artifact_kind",
+    "write_class",
+    "canonical_or_derived",
+    "reason",
+    "reversibility",
+)
+
+
+EXACT_REQUEST_FIELDS = (
+    "operation",
+    "target",
+    "artifact_kind",
+    "durable_destination",
+)
+
+
+def write_policy_payload() -> dict[str, object]:
+    return {
+        "analysis_without_write": "allowed",
+        "preview_required_for": [
+            "meaningful_persistent_write",
+            "external_side_effect",
+        ],
+        "preview_can_be_skipped_when": "owner_requested_exact_operation_and_artifact",
+        "exact_request_requires": list(EXACT_REQUEST_FIELDS),
+        "preview_fields": list(PREVIEW_FIELDS),
+        "classes": {name: dict(WRITE_CLASS_DEFINITIONS[name]) for name in WRITE_CLASS_ORDER},
+    }
+
+
+def placement_policy_payload() -> dict[str, object]:
+    return {
+        "mode": "strict",
+        "governed_state": {
+            "path": ".p2p/",
+            "write_surface": "p2p_cli_or_explicit_mcp_write_tool",
+            "manual_edit": "forbidden_except_explicit_repair",
+        },
+        "generated_outputs": {
+            "path": "outputs/",
+            "status": "derived",
+            "canonical": False,
+            "naming": "must_follow_artifact_contract",
+        },
+        "preliminary_drafts": {
+            "paths": ["drafts/", "docs/drafts/"],
+            "status": "temporary_or_working",
+            "canonical": False,
+            "promotion_required_for_project_memory": True,
+        },
+        "stable_documentation": {
+            "path": "docs/",
+            "status": "durable_repository_documentation",
+            "canonical_p2p_state": "false_unless_imported_or_declared",
+            "requires_owner_intent": True,
+        },
+        "local_scratch": {
+            "status": "temporary_only",
+            "durable_project_memory": False,
+            "promotion_required_for_project_memory": True,
+        },
+        "unknown_destination": {
+            "behavior": "preview_and_ask_or_stop",
+        },
+    }
+
+
+def artifact_contract_policy_payload() -> dict[str, object]:
+    return {
+        "placement_policy_is_not_complete_artifact_schema": True,
+        "exact_evaluable_output_names_from": [
+            "p2p_artifact_contract",
+            "explicit_vertical_primitive",
+            "exact_owner_request",
+        ],
+        "agent_must_not_invent_durable_output_paths": True,
+    }
+
+
+def routing_playbook_payload() -> dict[str, str]:
+    return {
+        "chat_only_exploration": "Analyze, compare, critique, or suggest in chat without writing persistent state.",
+        "project_definition_work": "Use project vertical/context/definition primitives before creating durable artifacts.",
+        "proposal_authoring": "Use proposal, contribution, questions, artifact, or import primitives; never edit .p2p directly.",
+        "choices": "Use choice discovery/show/decision primitives and leave owner-controlled decisions to the owner.",
+        "vertical_specific_primitives": "Use the active vertical lifecycle, such as software-spec primitives from PROP-094 when available.",
+        "implementation_work": "For implementation work outside `.p2p/`, use repository specs, src, tests, and docs.",
+        "exact_file_requests": "Write the requested repository path only when the owner specified the exact operation and artifact.",
+        "generated_exports": "Use export commands or declared repository output locations; treat exports as derived by default.",
+        "stable_documentation": "Write docs/ only for stable owner-intended documentation after classification or exact request.",
+        "local_scratch": "Use temporary or draft locations only for disposable work; promote or classify before relying on it.",
+        "outside_p2p_work": "Follow repository rules for non-P2P work and do not imply that P2P governs every durable file.",
+    }
+
+
+def persistent_write_policy_block() -> str:
+    write_classes = "\n".join(
+        "- `{name}`: {description}; surface: `{surface}`.".format(
+            name=name,
+            description=WRITE_CLASS_DEFINITIONS[name]["description"],
+            surface=WRITE_CLASS_DEFINITIONS[name]["surface"],
+        )
+        for name in WRITE_CLASS_ORDER
+    )
+    routes = routing_playbook_payload()
+    routing_lines = "\n".join(f"- {name.replace('_', ' ')}: {description}" for name, description in routes.items())
+    return f"""Persistent writes are any project state, repository file, export, import, or external side effect that outlives chat.
+
+Agents may analyze, inspect, summarize, compare, and suggest actions without preview when no persistent write or external side effect is performed.
+
+Write classes:
+
+{write_classes}
+
+Before a meaningful persistent write, preview:
+
+- operation;
+- target path or P2P object;
+- artifact kind;
+- write class;
+- canonical or derived status;
+- reason;
+- reversibility or cleanup path when relevant.
+
+Exact owner requests can skip redundant confirmation only when the owner specified the operation, target path or P2P object, artifact kind, and durable destination. Vague requests such as "prepare the specs", "organize the project", or "put down a proposal" are not exact requests. Route exact requests through the correct CLI, MCP tool, or repository write surface.
+
+Placement policy is strict. Do not invent durable output paths.
+
+- `.p2p/` is governed state and must be written only through `p2p` CLI commands or explicit MCP write tools.
+- `outputs/` stores generated or exported material; it is derived by default and must follow an artifact contract when an exact durable name is needed.
+- `drafts/` or `docs/drafts/` stores preliminary working material; promote or classify it before treating it as project memory.
+- `docs/` stores stable owner-intended documentation; it is not canonical P2P state unless explicitly imported or declared.
+- For policy purposes, local scratch is temporary and not durable project memory until promoted, imported, or classified.
+- Unknown durable destinations require action preview and owner confirmation, or stop-and-report when the artifact is P2P-governed and no supported primitive exists.
+
+Placement policy is not a complete artifact schema. It only defines mandatory write zones. Exact durable names for evaluable, regenerated, referenced, or agent-consumed outputs must come from a p2p artifact contract, explicit vertical primitive, or exact owner request.
+
+Canonicality:
+
+- `generated_export` artifacts are derived by default and are not canonical P2P state unless explicitly imported or declared by a contract.
+- `stable_documentation` is durable repository documentation requiring owner intent, but it is not canonical P2P state unless explicitly imported or declared.
+- `local_scratch` is temporary only and must be promoted, imported, or classified before an agent relies on it as project memory.
+
+Routing playbook:
+
+{routing_lines}"""
+
+
+def persistent_write_boundary_block() -> str:
+    return """Read `AGENTS.md` and `.p2p/agent-policy.yml` for the full write policy.
+
+- Analyze freely when no persistent write or external side effect is performed.
+- Preview meaningful persistent writes unless the owner requested the exact operation, target, artifact kind, and durable destination.
+- Do not invent durable output paths.
+- Unknown durable destinations require preview and owner confirmation, or stop-and-report for governed artifacts without a primitive.
+- Use P2P CLI or explicit MCP write tools for `.p2p/`, `outputs/` for generated exports, `drafts/` or `docs/drafts/` for working drafts, and `docs/` only for stable owner-intended documentation."""
+
+
+def agent_integration_lifecycle_block() -> str:
+    return """Agent bootstrap may detect the current client to reduce the initial file footprint. That detection is not project identity and must not be stored as governance state.
+
+Use these lifecycle commands instead of editing generated agent files by hand:
+
+```bash
+p2p agent list
+p2p agent install <adapter>
+p2p agent update <adapter>
+p2p agent doctor <adapter>
+p2p agent uninstall <adapter>
+p2p agent instructions refresh --profile <adapter>
+```
+
+Keep `generic` as the shared baseline. Installing or updating one adapter must not remove previously installed adapters unless the owner explicitly requests uninstall."""
+
+
+def governed_root_guidance_block() -> str:
+    return """The governed P2P decision root is the project directory whose `.p2p/` state is used for decisions and state.
+
+When the current working directory is different or ambiguous, pass `--root /path/to/project` to P2P CLI commands and MCP server commands.
+
+Prefer configured or explicit roots. Do not infer product topology from parent or adjacent directories."""
+
+
 def interaction_style_block(interaction_style: Any = None) -> str:
     values = _interaction_style_values(interaction_style)
     return f"""Use the project-level interaction style when communicating with the owner.
@@ -280,6 +519,10 @@ def agent_policy(
             "raw_git_managed_branch",
             "raw_git_managed_sync",
         ],
+        "write_policy": write_policy_payload(),
+        "placement_policy": placement_policy_payload(),
+        "artifact_contract_policy": artifact_contract_policy_payload(),
+        "routing_playbook": routing_playbook_payload(),
         "proposal_readiness": {
             "inspect_before_acceptance_recommendation": True,
             "gap_handling": {
@@ -496,6 +739,18 @@ If the requested action cannot be performed with an available `p2p` command or a
 
 Do not satisfy the request by reverse-engineering `.p2p/` and writing files directly.
 
+## Persistent Write Policy
+
+{persistent_write_policy_block()}
+
+## Agent Integration Lifecycle
+
+{agent_integration_lifecycle_block()}
+
+## Governed Root
+
+{governed_root_guidance_block()}
+
 ## Runtime Bootstrap
 
 If `p2p` is not available on `PATH`, try this discovery order before stopping:
@@ -657,6 +912,18 @@ Use P2P Engine as the source of truth for project governance and planning.
 - Do not run raw Git commands for managed branch, sync, publish, or merge work unless the owner explicitly authorizes an escape hatch.
 - Use compact context before broad file reads.
 
+## Persistent Write Boundary
+
+{persistent_write_boundary_block()}
+
+## Agent Integration Lifecycle
+
+{agent_integration_lifecycle_block()}
+
+## Governed Root
+
+{governed_root_guidance_block()}
+
 ## Readiness Gap Handling
 
 {READINESS_GAP_HANDLING_BLOCK}
@@ -699,6 +966,18 @@ Use P2P Engine as the source of truth for project governance and planning.
 - Before explaining existing proposals, choices, Change Sets, or Work items, use the relevant `p2p ... show` command or equivalent MCP read tool.
 - Use `p2p context --budget small` or MCP `p2p_context` before broad file reads.
 - Do not scan all `.p2p/`, registries, source files, or Git history unless the task explicitly requires it.
+
+## Persistent Write Boundary
+
+{persistent_write_boundary_block()}
+
+## Agent Integration Lifecycle
+
+{agent_integration_lifecycle_block()}
+
+## Governed Root
+
+{governed_root_guidance_block()}
 
 ## Readiness Gap Handling
 
@@ -771,6 +1050,18 @@ Key rules:
 - Use `p2p context --budget small` or MCP `p2p_context` before broad file reads.
 - Do not scan all `.p2p/`, registries, source files, or Git history unless the task explicitly requires it.
 
+## Persistent Write Boundary
+
+{persistent_write_boundary_block()}
+
+## Agent Integration Lifecycle
+
+{agent_integration_lifecycle_block()}
+
+## Governed Root
+
+{governed_root_guidance_block()}
+
 ## Readiness Gap Handling
 
 {READINESS_GAP_HANDLING_BLOCK}
@@ -802,6 +1093,18 @@ alwaysApply: true
 - Inspect proposal readiness before recommending acceptance.
 - Use compact context before broad file reads.
 
+## Persistent Write Boundary
+
+{persistent_write_boundary_block()}
+
+## Agent Integration Lifecycle
+
+{agent_integration_lifecycle_block()}
+
+## Governed Root
+
+{governed_root_guidance_block()}
+
 ## Readiness Gap Handling
 
 {READINESS_GAP_HANDLING_BLOCK}
@@ -831,6 +1134,18 @@ This repository is managed with P2P Engine.
 - Inspect readiness before recommending proposal acceptance.
 - Prefer compact context before broad reads.
 
+## Persistent Write Boundary
+
+{persistent_write_boundary_block()}
+
+## Agent Integration Lifecycle
+
+{agent_integration_lifecycle_block()}
+
+## Governed Root
+
+{governed_root_guidance_block()}
+
 ## Readiness Gap Handling
 
 {READINESS_GAP_HANDLING_BLOCK}
@@ -858,6 +1173,18 @@ This repository is managed with P2P Engine.
 - The owner controls governance decisions.
 - Inspect readiness before recommending proposal acceptance.
 - Use compact context before broad file reads.
+
+## Persistent Write Boundary
+
+{persistent_write_boundary_block()}
+
+## Agent Integration Lifecycle
+
+{agent_integration_lifecycle_block()}
+
+## Governed Root
+
+{governed_root_guidance_block()}
 
 ## Readiness Gap Handling
 

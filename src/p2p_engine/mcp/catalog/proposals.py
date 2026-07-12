@@ -111,8 +111,8 @@ def tool_definitions() -> list[dict[str, object]]:
         ),
         _tool(
             'p2p_proposal_show',
-            'Show one P2P proposal summary.',
-            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},
+            'Show one P2P proposal summary. Set full=true for the read-only owner review view.',
+            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}, 'full': {'type': 'boolean'}},
             ['proposal_id'],
         ),
         _tool(

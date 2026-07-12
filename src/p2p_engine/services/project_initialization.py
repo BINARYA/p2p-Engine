@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
 
 from p2p_engine.services.agent_instructions import AgentInstructionsResult
-from p2p_engine.services.agent_templates import normalize_agent_profile
+from p2p_engine.services.agent_selection import AgentProfileSelection, select_agent_profile
+from p2p_engine.services.gitignore_hygiene import GitignoreHygieneResult, apply_gitignore_hygiene
+from p2p_engine.services.mcp_hints import McpHint, build_mcp_hint
 from p2p_engine.services.project_maturity import (
     PROJECT_DOMAIN_TEMPLATES,
     domain_setup_next_actions_payload,
@@ -36,6 +39,15 @@ def _yaml_dump(data: object) -> str:
     return yaml.safe_dump(data, sort_keys=False, allow_unicode=False)
 
 
+@dataclass(frozen=True)
+class ProjectInitializationResult:
+    created: list[Path]
+    agent_selection: AgentProfileSelection
+    agent_instructions: AgentInstructionsResult
+    mcp_hint: McpHint
+    gitignore_hygiene: GitignoreHygieneResult
+
+
 class ProjectInitializationService:
     def __init__(
         self,
@@ -46,6 +58,9 @@ class ProjectInitializationService:
         readiness_default_profile_payload: Callable[[], dict[str, object]],
         permissions_default_policy_payload: Callable[..., dict[str, object]],
         refresh_agent_instructions: Callable[..., AgentInstructionsResult],
+        select_agent_profile_fn: Callable[[str | None], AgentProfileSelection] = select_agent_profile,
+        build_mcp_hint_fn: Callable[..., McpHint] = build_mcp_hint,
+        apply_gitignore_hygiene_fn: Callable[[Path], GitignoreHygieneResult] = apply_gitignore_hygiene,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -53,11 +68,14 @@ class ProjectInitializationService:
         self.readiness_default_profile_payload = readiness_default_profile_payload
         self.permissions_default_policy_payload = permissions_default_policy_payload
         self.refresh_agent_instructions = refresh_agent_instructions
+        self.select_agent_profile = select_agent_profile_fn
+        self.build_mcp_hint = build_mcp_hint_fn
+        self.apply_gitignore_hygiene = apply_gitignore_hygiene_fn
 
     def init_project(
         self,
         name: str,
-        agent_profile: str = "generic",
+        agent_profile: str | None = None,
         repository_mode: str = "local",
         project_domain: str = "none",
         rubric_enabled: dict[str, bool] | None = None,
@@ -66,7 +84,31 @@ class ProjectInitializationService:
         remote_name: str = "origin",
         remote_url_value: str | None = None,
     ) -> list[Path]:
-        agent_profile = normalize_agent_profile(agent_profile)
+        return self.init_project_with_summary(
+            name=name,
+            agent_profile=agent_profile,
+            repository_mode=repository_mode,
+            project_domain=project_domain,
+            rubric_enabled=rubric_enabled,
+            owner=owner,
+            remote_provider=remote_provider,
+            remote_name=remote_name,
+            remote_url_value=remote_url_value,
+        ).created
+
+    def init_project_with_summary(
+        self,
+        name: str,
+        agent_profile: str | None = None,
+        repository_mode: str = "local",
+        project_domain: str = "none",
+        rubric_enabled: dict[str, bool] | None = None,
+        owner: str | None = None,
+        remote_provider: str | None = None,
+        remote_name: str = "origin",
+        remote_url_value: str | None = None,
+    ) -> ProjectInitializationResult:
+        agent_selection = self.select_agent_profile(agent_profile)
         repository_mode = normalize_repository_mode(repository_mode)
         project_domain = normalize_project_domain(project_domain)
         remote_profile = self.remote_profile_default_payload(
@@ -85,14 +127,24 @@ class ProjectInitializationService:
         )
         created = self._write_missing_files(files)
         created.extend(self._create_missing_directories())
+        gitignore_hygiene = self.apply_gitignore_hygiene(self.root)
+        if gitignore_hygiene.status == "applied" and gitignore_hygiene.path not in created:
+            created.append(gitignore_hygiene.path)
+        mcp_hint = self.build_mcp_hint(self.root, project_name=name)
         instructions = self.refresh_agent_instructions(
-            profile=agent_profile,
+            profile=agent_selection.effective_profile,
             repository_mode=repository_mode,
         )
         for path in [*instructions.created, *instructions.updated]:
             if path not in created:
                 created.append(path)
-        return created
+        return ProjectInitializationResult(
+            created=created,
+            agent_selection=agent_selection,
+            agent_instructions=instructions,
+            mcp_hint=mcp_hint,
+            gitignore_hygiene=gitignore_hygiene,
+        )
 
     def _bootstrap_files(
         self,

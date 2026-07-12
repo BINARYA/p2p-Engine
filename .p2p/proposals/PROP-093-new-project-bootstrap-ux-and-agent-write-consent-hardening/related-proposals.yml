@@ -1,0 +1,25 @@
+related_proposals:
+  - proposal: PROP-045
+    relationship: extends
+    reason: Builds on agent-safe bootstrap by hardening first-run defaults and generated policy.
+  - proposal: PROP-047
+    relationship: extends
+    reason: Refines guided init wizard behavior after a real release test.
+  - proposal: PROP-067
+    relationship: extends
+    reason: Updates agent-first setup documentation and generated instruction boundaries.
+  - proposal: PROP-068
+    relationship: extends
+    reason: Improves MCP setup command ergonomics and robustness.
+  - proposal: PROP-078
+    relationship: extends
+    reason: Adds repository hygiene guardrails to the project-local wheel installation model.
+  - proposal: PROP-086
+    relationship: complements
+    reason: Aligns agent interview orchestration with explicit write previews.
+  - proposal: PROP-091
+    relationship: complements
+    reason: Uses governance policy convergence to clarify owner authority and warnings.
+  - proposal: PROP-092
+    relationship: complements
+    reason: Keeps local MCP powerful while improving local setup boundaries.

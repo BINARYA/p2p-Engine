@@ -22,18 +22,20 @@ For a future multi-agent setup that requires one long-running shared service,
 P2P Engine would need a Streamable HTTP MCP server. The current implementation
 is local `stdio`.
 
-Run the stdio server from an installed environment:
-
-```bash
-p2p-mcp-server --root /path/to/project
-```
-
-Robust project-local virtualenv form:
+Run the stdio server from the governed P2P decision root. Prefer the
+project-local virtualenv form:
 
 ```bash
 /path/to/project/.venv/bin/python \
   -m p2p_engine.mcp.server \
   --root /path/to/project
+```
+
+`--root` selects the governed P2P project root used for decisions and state. If
+`p2p-mcp-server` is available on `PATH`, this shorter form remains valid:
+
+```bash
+p2p-mcp-server --root /path/to/project
 ```
 
 ## Verified Client Setup
@@ -168,7 +170,7 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_next_retire` | write-safe | yes | no | Retire a curated next action and audit it in the next-action log. |
 | `p2p_next_refresh` | write-safe | yes | no | Normalize curated next actions and report generated action count. |
 | `p2p_proposal_list` | read-only | no | no | List proposals, optionally by status. |
-| `p2p_proposal_show` | read-only | no | no | Inspect one proposal summary. |
+| `p2p_proposal_show` | read-only | no | no | Inspect one proposal summary; pass `full: true` for the owner review view. |
 | `p2p_choice_list` | read-only | no | no | List project choices. |
 | `p2p_choice_show` | read-only | no | no | Inspect one choice. |
 | `p2p_governance_status` | read-only | no | no | Read governance mode and audit artifact counts. |
@@ -236,7 +238,7 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_proposal_questions_answer` | write-safe | yes | no | Record an answer for one proposal question. |
 | `p2p_proposal_questions_next` | read-only | no | no | Return the next eligible proposal question. |
 | `p2p_proposal_questions_apply` | write-safe | yes | no | Mark answered questions as applied and return an artifact-aware update plan. |
-| `p2p_proposal_artifact_status` | read-only | no | no | Show proposal artifact coverage state or advisory legacy absence. |
+| `p2p_proposal_artifact_status` | read-only | no | no | Show proposal artifact coverage state plus the logical artifact catalog. |
 | `p2p_proposal_artifact_init` | write-safe | yes | no | Initialize or refresh artifact-aware proposal state without deciding governance. |
 | `p2p_proposal_artifact_set` | write-safe | yes | no | Set one artifact expectation/status/rationale without changing proposal decisions. |
 | `p2p_proposal_artifact_confirm` | write-safe | yes | no | Record owner confirmation for one artifact state without accepting/rejecting the proposal. |
@@ -341,6 +343,12 @@ assumptions.md
 suggested-scope.md
 ```
 
+These filenames are import targets, not guaranteed scaffold files. A newly
+created proposal may omit narrative artifacts until an explicit import or
+generation step materializes content. MCP clients should use contribution,
+prompt, import, readiness, and artifact-state tools instead of writing arbitrary
+files under `.p2p/`.
+
 Impact artifact filenames and required top-level YAML keys:
 
 ```text
@@ -375,6 +383,15 @@ Artifact content import is separate from artifact coverage state. Use
 `p2p_proposal_artifact_status`, `p2p_proposal_artifact_set`, and
 `p2p_proposal_artifact_confirm` when the owner or agent needs to record whether
 an artifact is required, satisfied, deferred, not applicable, or confirmed.
+`p2p_proposal_artifact_status` also returns `artifact_status`, a read-only
+logical catalog with expectation, status, materialization kind, source hint,
+provenance confidence, evidence path when present, summary, and next action.
+
+`p2p_proposal_show` accepts `full: true` for the owner-facing review payload.
+The response keeps the compact `proposal` field and adds `proposal_view` with
+core sections, decision, readiness, contributions, grouped question sources,
+narrative/imported artifact summaries, artifact status, and next actions.
+Returned paths are backing evidence or source hints, not direct edit targets.
 
 Unsupported generic artifact writes remain unsupported. Agents should report the
 missing primitive instead of writing arbitrary files under `.p2p/`.

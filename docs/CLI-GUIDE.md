@@ -29,15 +29,33 @@ p2p init "My Project" \
   --mcp-hint
 ```
 
-By default, `p2p init` creates the generic baseline plus all built-in
-project-local agent integrations. To narrow the generated adapters, repeat
-`--agent`:
+When `--agent` is omitted, `p2p init` uses an adaptive bootstrap default. It
+installs `generic` plus the detected current adapter when detection is reliable;
+otherwise it falls back to all built-in adapters and prints a warning. The
+detected adapter is only a bootstrap hint, not a persisted project identity.
+
+To narrow the generated adapters explicitly, repeat `--agent`:
 
 ```bash
 p2p init "My Project" --agent codex --agent claude --repository local
 ```
 
 `generic` is always included.
+
+After init, manage the footprint with `p2p agent list`,
+`p2p agent install <adapter>`, `p2p agent update <adapter>`,
+`p2p agent doctor <adapter>`, `p2p agent uninstall <adapter>`, and
+`p2p agent instructions refresh --profile <adapter>`.
+
+When `--mcp-hint` is used, init prints a root-aware MCP setup section. The
+preferred server command uses `/path/to/project/.venv/bin/python -m
+p2p_engine.mcp.server --root /path/to/project`; the shorter
+`p2p-mcp-server --root /path/to/project` form remains a PATH-based fallback.
+`--root` means the governed P2P decision root.
+
+Init also applies append-only `.gitignore` hygiene for common local artifacts
+and reports whether the repository hygiene section was applied, already
+covered, or warning-only.
 
 `--domain` applies an optional domain template. If omitted, the project starts
 with unresolved domain and rubric state, and `p2p next` will recommend defining
@@ -351,6 +369,7 @@ Inspect and update:
 ```bash
 p2p proposal list
 p2p proposal show PROP-001
+p2p proposal show PROP-001 --full
 p2p proposal update PROP-001 --goal "Keep tool boundaries explicit."
 ```
 
@@ -362,6 +381,19 @@ p2p contribution add PROP-001 \
   --type constraint \
   --relevance high
 ```
+
+Proposal authoring is command-driven. New proposals may omit narrative artifact
+files such as `findings.md`, `alternatives.md`, `open-questions.md`, `risks.md`,
+`assumptions.md`, `suggested-scope.md`, and `exploration.md` until meaningful
+content is imported or generated. Treat those absent files as missing evidence,
+not corrupted project state, and use P2P commands instead of editing `.p2p/`
+files directly.
+
+Canonical contribution concepts include `finding`, `open_question`,
+`alternative`, `risk`, `assumption`, `constraint`, `objection`,
+`implementation_suggestion`, and `scope_boundary`. Existing contribution types
+such as `suggestion`, `objective`, and `alternative_proposal` remain supported
+for compatibility.
 
 When readiness is weak, use proposal questions to run a deterministic interview:
 
@@ -403,6 +435,13 @@ reported as advisory `absent_legacy`, not as validation errors. Agents should
 use `p2p proposal artifact ...` commands or explicit MCP write tools to update
 artifact coverage; they should not edit `.p2p` files directly or copy temporary
 files into managed proposal artifacts.
+
+`p2p proposal show PROP-001 --full` renders the owner-facing full review view.
+It keeps readiness separate from artifact status, includes structured
+contributions, groups structured owner questions separately from analytical
+`open_question` contributions and legacy `open-questions.md` artifacts, and
+summarizes narrative/imported artifacts. Paths in that output are source or
+evidence hints only; follow the displayed P2P commands for changes.
 
 ## 6. Decide A Proposal
 

@@ -45,11 +45,30 @@ def test_mcp_proposal_handler_creates_and_reads_proposal(tmp_path: Path) -> None
         },
     )
     shown = handle_proposal_tool(workspace, "p2p_proposal_show", {"proposal_id": "PROP-001"})
+    full = handle_proposal_tool(workspace, "p2p_proposal_show", {"proposal_id": "PROP-001", "full": True})
 
     assert created is not None
     assert created["governance"]["owner_decision_required"] is True
     assert shown is not None
     assert shown["proposal"]["proposal_id"] == "PROP-001"
+    assert full is not None
+    assert full["proposal"]["proposal_id"] == "PROP-001"
+    assert full["proposal_view"]["proposal_id"] == "PROP-001"
+    assert full["proposal_view"]["artifact_status"]
+    assert full["proposal_view"]["artifact_status"][0]["materialization_kind"] in {
+        "canonical_state",
+        "generated_file",
+        "imported_file",
+        "legacy_file",
+        "not_materialized",
+        "unknown",
+    }
+    assert set(full["proposal_view"]["questions"]) >= {
+        "owner_questions",
+        "analytical_open_questions",
+        "legacy_question_artifacts",
+    }
+    assert full["proposal_view"]["next_actions"]
 
 
 def test_mcp_proposal_handler_serves_readiness_and_contributions(tmp_path: Path) -> None:
@@ -89,6 +108,34 @@ def test_mcp_proposal_handler_serves_readiness_and_contributions(tmp_path: Path)
     assert len(contributions["contributions"]["contributions"]) == 1
 
 
+def test_mcp_proposal_handler_accepts_canonical_contribution_types(tmp_path: Path) -> None:
+    workspace = _workspace(tmp_path)
+    handle_proposal_tool(workspace, "p2p_proposal_create", {"title": "Contribution Contract"})
+
+    result = handle_proposal_tool(
+        workspace,
+        "p2p_proposal_contribution_add",
+        {
+            "proposal_id": "PROP-001",
+            "type": "open_question",
+            "text": "Which canonical authoring primitive should capture this?",
+        },
+    )
+
+    assert result is not None
+    assert result["contribution"]["contribution_type"] == "open_question"
+    with pytest.raises(ValueError, match="Allowed: .*finding.*open_question.*assumption"):
+        handle_proposal_tool(
+            workspace,
+            "p2p_proposal_contribution_add",
+            {
+                "proposal_id": "PROP-001",
+                "type": "unsupported",
+                "text": "Unsupported contribution.",
+            },
+        )
+
+
 def test_mcp_proposal_handler_serves_artifact_state_tools(tmp_path: Path) -> None:
     workspace = _workspace(tmp_path)
     handle_proposal_tool(
@@ -120,6 +167,11 @@ def test_mcp_proposal_handler_serves_artifact_state_tools(tmp_path: Path) -> Non
 
     assert status is not None
     assert status["artifact_state"]["status"] == "active"
+    assert status["artifact_status"]
+    impact_status = next(item for item in status["artifact_status"] if item["key"] == "impact_map")
+    assert impact_status["expectation"] == "required"
+    assert impact_status["source_hint"] == "none"
+    assert impact_status["materialization_kind"] == "not_materialized"
     assert update is not None
     assert update["governance"]["decision_made"] is False
     assert update["artifact_operation"]["artifact"]["confirmation"] == "agent_proposed"

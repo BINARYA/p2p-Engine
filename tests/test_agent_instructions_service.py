@@ -6,9 +6,22 @@ import yaml
 from p2p_engine.storage.filesystem import P2PWorkspace
 
 
+REQUIRED_WRITE_CLASSES = {
+    "read_only",
+    "chat_only",
+    "local_scratch",
+    "p2p_canonical",
+    "p2p_generated_narrative",
+    "p2p_imported_artifact",
+    "generated_export",
+    "stable_documentation",
+    "external_side_effect",
+}
+
+
 def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
-    workspace.init_project("Agent Project")
+    workspace.init_project("Agent Project", agent_profile="generic")
     workspace.set_project_interaction_style(technical_verbosity=5, formality=4, assertiveness=2, actor="owner")
     service = workspace._agent_instruction_service()
 
@@ -41,6 +54,154 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     codex_skill = (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").read_text(encoding="utf-8")
     assert "p2p project interaction-style set --technical-verbosity 2 --formality 2 --assertiveness 0" in codex_skill
     assert "p2p project definition show --format json" in codex_skill
+
+
+def test_agent_instruction_service_generates_persistence_policy_payload_and_markdown(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="generic")
+
+    policy = yaml.safe_load((tmp_path / ".p2p" / "agent-policy.yml").read_text(encoding="utf-8"))
+    agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+
+    write_policy = policy["write_policy"]
+    assert write_policy["analysis_without_write"] == "allowed"
+    assert write_policy["preview_required_for"] == [
+        "meaningful_persistent_write",
+        "external_side_effect",
+    ]
+    assert write_policy["preview_can_be_skipped_when"] == "owner_requested_exact_operation_and_artifact"
+    assert write_policy["exact_request_requires"] == [
+        "operation",
+        "target",
+        "artifact_kind",
+        "durable_destination",
+    ]
+    assert write_policy["preview_fields"] == [
+        "operation",
+        "target",
+        "artifact_kind",
+        "write_class",
+        "canonical_or_derived",
+        "reason",
+        "reversibility",
+    ]
+    assert set(write_policy["classes"]) == REQUIRED_WRITE_CLASSES
+    for write_class in REQUIRED_WRITE_CLASSES:
+        assert write_policy["classes"][write_class]["description"]
+        assert write_policy["classes"][write_class]["surface"]
+
+    placement_policy = policy["placement_policy"]
+    assert placement_policy["mode"] == "strict"
+    assert placement_policy["governed_state"]["path"] == ".p2p/"
+    assert placement_policy["governed_state"]["write_surface"] == "p2p_cli_or_explicit_mcp_write_tool"
+    assert placement_policy["governed_state"]["manual_edit"] == "forbidden_except_explicit_repair"
+    assert placement_policy["generated_outputs"]["path"] == "outputs/"
+    assert placement_policy["generated_outputs"]["status"] == "derived"
+    assert placement_policy["generated_outputs"]["canonical"] is False
+    assert placement_policy["generated_outputs"]["naming"] == "must_follow_artifact_contract"
+    assert placement_policy["preliminary_drafts"]["paths"] == ["drafts/", "docs/drafts/"]
+    assert placement_policy["stable_documentation"]["path"] == "docs/"
+    assert placement_policy["stable_documentation"]["canonical_p2p_state"] == (
+        "false_unless_imported_or_declared"
+    )
+    assert placement_policy["local_scratch"]["durable_project_memory"] is False
+    assert placement_policy["unknown_destination"]["behavior"] == "preview_and_ask_or_stop"
+
+    artifact_contract_policy = policy["artifact_contract_policy"]
+    assert artifact_contract_policy["placement_policy_is_not_complete_artifact_schema"] is True
+    assert artifact_contract_policy["exact_evaluable_output_names_from"] == [
+        "p2p_artifact_contract",
+        "explicit_vertical_primitive",
+        "exact_owner_request",
+    ]
+    assert artifact_contract_policy["agent_must_not_invent_durable_output_paths"] is True
+
+    assert set(policy["routing_playbook"]) >= {
+        "chat_only_exploration",
+        "project_definition_work",
+        "proposal_authoring",
+        "choices",
+        "vertical_specific_primitives",
+        "implementation_work",
+        "exact_file_requests",
+        "generated_exports",
+        "stable_documentation",
+        "local_scratch",
+        "outside_p2p_work",
+    }
+
+    for write_class in REQUIRED_WRITE_CLASSES:
+        assert f"`{write_class}`" in agents
+    assert "## Persistent Write Policy" in agents
+    assert "Agents may analyze, inspect, summarize, compare, and suggest actions without preview" in agents
+    assert "Before a meaningful persistent write, preview:" in agents
+    assert "target path or P2P object" in agents
+    assert "canonical or derived status" in agents
+    assert "operation, target path or P2P object, artifact kind, and durable destination" in agents
+    assert "Placement policy is strict." in agents
+    assert "Do not invent durable output paths." in agents
+    assert "Placement policy is not a complete artifact schema." in agents
+    assert "p2p artifact contract" in agents
+    assert "explicit vertical primitive" in agents
+    assert "local scratch is temporary and not durable project memory" in agents
+    assert "proposal authoring" in agents
+    assert "implementation work outside `.p2p/`" in agents
+
+
+def test_agent_instruction_service_generates_persistence_boundary_for_supported_adapters(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="all")
+
+    adapter_files = [
+        tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md",
+        tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md",
+        tmp_path / "CLAUDE.md",
+        tmp_path / ".cursor" / "rules" / "p2p.mdc",
+        tmp_path / ".github" / "copilot-instructions.md",
+        tmp_path / "GEMINI.md",
+    ]
+
+    for adapter_file in adapter_files:
+        content = adapter_file.read_text(encoding="utf-8")
+        assert "Persistent Write Boundary" in content
+        assert "AGENTS.md" in content
+        assert ".p2p/agent-policy.yml" in content
+        assert "Do not invent durable output paths." in content
+        assert "operation, target, artifact kind, and durable destination" in content
+        assert "Unknown durable destinations require preview and owner confirmation" in content
+
+    registry = yaml.safe_load((tmp_path / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
+    assert registry["adapters"]["opencode"]["files"][0]["path"] == "AGENTS.md"
+    assert registry["adapters"]["opencode"]["files"][0]["shared"] is True
+
+
+def test_agent_instruction_service_generates_lifecycle_guidance_with_persistence_policy(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="codex")
+
+    agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+    codex_skill = (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+
+    for content in (agents, codex_skill):
+        assert "Persistent Write" in content
+        assert "Agent Integration Lifecycle" in content
+        assert "p2p agent list" in content
+        assert "p2p agent install <adapter>" in content
+        assert "p2p agent update <adapter>" in content
+        assert "p2p agent doctor <adapter>" in content
+        assert "p2p agent uninstall <adapter>" in content
+        assert "p2p agent instructions refresh --profile <adapter>" in content
+        assert "governed P2P decision root" in content
+        assert "pass `--root /path/to/project`" in content
+        assert "sibling repository" not in content.lower()
 
 
 def test_agent_instruction_service_lists_and_shows_drift(tmp_path: Path) -> None:

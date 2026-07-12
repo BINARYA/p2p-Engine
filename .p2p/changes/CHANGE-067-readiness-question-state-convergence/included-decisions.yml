@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-089
+  decision_file: .p2p/proposals/PROP-089-readiness-question-state-convergence/decision.md

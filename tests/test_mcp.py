@@ -11,6 +11,7 @@ from typer.testing import CliRunner
 
 from p2p_engine import __version__
 from p2p_engine.cli import app
+from p2p_engine.core.contribution import allowed_contribution_type_values
 from p2p_engine.mcp.server import handle_message
 from p2p_engine.mcp.tools import TOOL_NAMES, call_tool, tool_definitions
 
@@ -106,8 +107,10 @@ def _setup_work_lifecycle_project(tmp_path: Path) -> Path:
 
 def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
     names = {tool["name"] for tool in tool_definitions()}
+    proposal_show = next(tool for tool in tool_definitions() if tool["name"] == "p2p_proposal_show")
 
     assert set(TOOL_NAMES) == names
+    assert proposal_show["inputSchema"]["properties"]["full"]["type"] == "boolean"
 
     expected = {
         "p2p_init_project",
@@ -277,6 +280,16 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         or "consent_revoke" in name
         for name in names
     )
+
+
+def test_mcp_proposal_contribution_schema_matches_core_types() -> None:
+    contribution_tool = next(
+        tool for tool in tool_definitions() if tool["name"] == "p2p_proposal_contribution_add"
+    )
+
+    schema_types = contribution_tool["inputSchema"]["properties"]["type"]["enum"]
+
+    assert tuple(schema_types) == allowed_contribution_type_values()
 
 
 def test_mcp_governance_policy_read_only_tools(tmp_path: Path) -> None:
@@ -1416,17 +1429,25 @@ def test_mcp_write_safe_bootstrap_tools(tmp_path: Path) -> None:
 
     assert refreshed["agent_instructions"]["profile"] == "claude"
     assert (tmp_path / "CLAUDE.md").exists()
-    policy = (tmp_path / ".p2p" / "agent-policy.yml").read_text(encoding="utf-8")
-    assert "- codex" in policy
-    assert "- claude" in policy
+    policy_text = (tmp_path / ".p2p" / "agent-policy.yml").read_text(encoding="utf-8")
+    policy = yaml.safe_load(policy_text)
+    assert "codex" in policy["agent_profiles"]
+    assert "claude" in policy["agent_profiles"]
+    assert policy["write_policy"]["analysis_without_write"] == "allowed"
+    assert policy["write_policy"]["preview_can_be_skipped_when"] == (
+        "owner_requested_exact_operation_and_artifact"
+    )
+    assert policy["placement_policy"]["mode"] == "strict"
+    assert policy["placement_policy"]["unknown_destination"]["behavior"] == "preview_and_ask_or_stop"
+    assert policy["artifact_contract_policy"]["agent_must_not_invent_durable_output_paths"] is True
     assert "managed_git_collaboration" in policy
-    assert "p2p proposal publish PROP-XXX --auto-renumber" in policy
-    assert "deferred_permission_gated_mcp_tools" in policy
-    assert "p2p_proposal_publish" in policy
-    assert "p2p_work_publish" in policy
-    assert "p2p_work_accept" in policy
-    assert "p2p_sync_fetch" in policy
-    assert "raw_git_managed_branch" in policy
+    assert "p2p proposal publish PROP-XXX --auto-renumber" in policy_text
+    assert "deferred_permission_gated_mcp_tools" in policy_text
+    assert "p2p_proposal_publish" in policy_text
+    assert "p2p_work_publish" in policy_text
+    assert "p2p_work_accept" in policy_text
+    assert "p2p_sync_fetch" in policy_text
+    assert "raw_git_managed_branch" in policy_text
 
 
 def test_mcp_agent_integration_lifecycle_tools(tmp_path: Path) -> None:
@@ -1464,7 +1485,11 @@ def test_mcp_agent_integration_lifecycle_tools(tmp_path: Path) -> None:
     assert "drifted" in skipped_reasons
 
 
-def test_mcp_init_default_agent_set_matches_cli_default(tmp_path: Path) -> None:
+def test_mcp_init_default_agent_set_matches_cli_default(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("P2P_CURRENT_AGENT", "codex")
     cli_root = tmp_path / "cli"
     mcp_root = tmp_path / "mcp"
     cli_root.mkdir()
@@ -1475,9 +1500,48 @@ def test_mcp_init_default_agent_set_matches_cli_default(tmp_path: Path) -> None:
 
     assert cli_result.exit_code == 0
     assert mcp_result["initialized"] is True
+    assert mcp_result["agent_selection"]["selection_source"] == "detected"
+    assert mcp_result["agent_selection"]["detected_adapter"] == "codex"
+    assert mcp_result["agent_selection"]["effective_adapters"] == ["generic", "codex"]
     cli_registry = yaml.safe_load((cli_root / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
     mcp_registry = yaml.safe_load((mcp_root / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
     assert set(mcp_registry["adapters"]) == set(cli_registry["adapters"])
+
+
+def test_mcp_init_unknown_detection_falls_back_to_all_with_warning(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("P2P_CURRENT_AGENT", raising=False)
+    result = call_tool("p2p_init_project", {"root": str(tmp_path), "name": "MCP Default"})
+
+    assert result["initialized"] is True
+    assert result["agent_selection"]["selection_source"] == "fallback"
+    assert result["agent_selection"]["fallback_used"] is True
+    assert "Could not reliably detect the current agent" in result["agent_selection"]["warning"]
+    registry = yaml.safe_load((tmp_path / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
+    assert set(registry["adapters"]) == {
+        "generic",
+        "codex",
+        "claude",
+        "cursor",
+        "copilot",
+        "gemini",
+        "opencode",
+    }
+
+
+def test_mcp_init_returns_additive_mcp_hint_and_hygiene_metadata(tmp_path: Path) -> None:
+    result = call_tool("p2p_init_project", {"root": str(tmp_path), "name": "MCP Hint Project", "agent": "generic"})
+
+    assert result["initialized"] is True
+    assert result["root"] == str(tmp_path)
+    assert "created_or_updated" in result
+    assert result["mcp_hint"]["server_name"] == "p2p-mcp-hint-project"
+    assert result["mcp_hint"]["server_command"][-2:] == ["--root", str(tmp_path)]
+    assert result["mcp_hint"]["fallback_command"] == ["p2p-mcp-server", "--root", str(tmp_path)]
+    assert result["gitignore_hygiene"]["status"] == "applied"
+    assert result["gitignore_hygiene"]["path"] == ".gitignore"
 
 
 def test_mcp_agent_uninstall_refuses_generic_baseline(tmp_path: Path) -> None:

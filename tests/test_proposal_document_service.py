@@ -9,6 +9,17 @@ from p2p_engine.core.contribution import ContributionType
 from p2p_engine.services.proposals import ProposalDocumentService
 
 
+NARRATIVE_PLACEHOLDERS = (
+    "exploration.md",
+    "findings.md",
+    "alternatives.md",
+    "open-questions.md",
+    "risks.md",
+    "assumptions.md",
+    "suggested-scope.md",
+)
+
+
 def _service(root: Path) -> ProposalDocumentService:
     return ProposalDocumentService(root=root, p2p_dir=root / ".p2p")
 
@@ -60,3 +71,34 @@ def test_proposal_document_service_lookup_and_duplicate_detection(tmp_path: Path
     assert "PROP-001" in duplicates
     with pytest.raises(ValueError, match="Ambiguous proposal ID: PROP-001"):
         service.find_dir("PROP-001")
+
+
+def test_proposal_document_service_create_omits_empty_narrative_placeholders(tmp_path: Path) -> None:
+    service = _service(tmp_path)
+
+    proposal = service.create("Canonical Authoring")
+    proposal_dir = tmp_path / proposal.path
+
+    assert (proposal_dir / "proposal.md").exists()
+    assert (proposal_dir / "contributions.yml").exists()
+    assert (proposal_dir / "decision.md").exists()
+    for filename in NARRATIVE_PLACEHOLDERS:
+        assert not (proposal_dir / filename).exists()
+
+
+def test_proposal_document_service_invalid_contribution_type_reports_allowed_values(tmp_path: Path) -> None:
+    service = _service(tmp_path)
+    proposal = service.create("Contribution Validation")
+    contributions = tmp_path / proposal.path / "contributions.yml"
+    contributions.write_text(
+        "contributions:\n"
+        "  - id: C001\n"
+        "    type: unsupported\n"
+        "    author: local\n"
+        "    relevance_hint: high\n"
+        "    text: Unsupported contribution.\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Allowed: .*finding.*open_question.*assumption"):
+        service.list_contributions(proposal.proposal_id)

@@ -81,7 +81,7 @@ The wizard asks for:
 
 ```text
 Project name
-Initial agent profile: generic, codex, claude, all
+Initial agent profile: adaptive default, or generic, codex, claude, all
 Repository mode: local, cloud
 Domain template: none, custom, generic, software, grant_document, board_game
 Rubric criteria customization, when a template supplies criteria
@@ -97,9 +97,16 @@ For a scriptable non-interactive setup:
   --mcp-hint
 ```
 
-By default, `p2p init` creates the generic baseline plus all built-in
-project-local agent integrations. To generate only selected adapters, repeat
-`--agent`:
+When `--agent` is omitted, `p2p init` uses an adaptive bootstrap default: it
+detects the current client when possible and installs `generic` plus that
+adapter. If detection is unreliable, it falls back to all built-in adapters for
+compatibility and prints the fallback reason.
+
+Detection is only a bootstrap hint. It does not make the detected client the
+project identity and is not persisted in `.p2p/project.yml` or
+`.p2p/agent-integrations.yml`.
+
+To generate only selected adapters, repeat `--agent`:
 
 ```bash
 .venv/bin/p2p init "My Project" \
@@ -107,6 +114,17 @@ project-local agent integrations. To generate only selected adapters, repeat
   --agent claude \
   --repository local
 ```
+
+Use the lifecycle commands shown by init to manage the footprint later, such as
+`p2p agent list`, `p2p agent install <adapter>`,
+`p2p agent update <adapter>`, `p2p agent doctor <adapter>`,
+`p2p agent uninstall <adapter>`, and
+`p2p agent instructions refresh --profile <adapter>`.
+
+The generated `AGENTS.md`, adapter-specific files, and `.p2p/agent-policy.yml`
+include the project persistence policy: agents may analyze freely, but
+meaningful persistent writes need classification, preview, and strict placement
+unless the owner requested the exact operation and artifact.
 
 If you omit `--domain`, P2P starts with unresolved domain and rubric state. The
 first recommended project activities are then to define the domain and define
@@ -256,15 +274,17 @@ clients connect to the same target project, each client may start its own
 process; shared state lives in the target repository, `.p2p/`, Git, and P2P
 core storage.
 
-The MCP server command has this shape:
+The MCP server command should point at the governed P2P decision root. Prefer
+the project-local Python module form:
 
 ```bash
-.venv/bin/python \
+/path/to/my-project/.venv/bin/python \
   -m p2p_engine.mcp.server \
   --root /path/to/my-project
 ```
 
 Use that command in any MCP-capable client that supports local stdio servers.
+`--root` selects the P2P project root used for decisions and state.
 Some clients also let agents invoke the CLI directly from the target project.
 
 P2P Engine does not currently run a shared Streamable HTTP MCP service. That is
@@ -273,7 +293,8 @@ long-running server process.
 
 ### Codex CLI
 
-If `p2p-mcp-server` is available on `PATH`:
+If `p2p-mcp-server` is available on `PATH`, this shorter fallback remains
+available:
 
 ```bash
 codex mcp add p2p-my-project -- \
@@ -281,7 +302,7 @@ codex mcp add p2p-my-project -- \
   --root /path/to/my-project
 ```
 
-If it is not on `PATH`, use the Python module from the project-local virtualenv:
+Preferred project-local virtualenv form:
 
 ```bash
 codex mcp add p2p-my-project -- \

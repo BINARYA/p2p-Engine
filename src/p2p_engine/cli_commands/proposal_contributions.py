@@ -7,7 +7,14 @@ import typer
 from p2p_engine.cli_shared import console
 from p2p_engine.cli_shared import fail
 from p2p_engine.cli_shared import workspace as workspace_for
-from p2p_engine.core.contribution import ContributionType
+from p2p_engine.core.contribution import (
+    ContributionType,
+    allowed_contribution_type_text,
+    parse_contribution_type,
+)
+
+
+CONTRIBUTION_TYPE_HELP = f"Contribution type. Allowed: {allowed_contribution_type_text()}"
 
 
 def register_proposal_contribution_commands(
@@ -19,10 +26,10 @@ def register_proposal_contribution_commands(
     def contribution_add(
         proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
         text: str = typer.Argument(..., help="Contribution text"),
-        contribution_type: ContributionType = typer.Option(
-            ContributionType.suggestion,
+        contribution_type: str = typer.Option(
+            ContributionType.suggestion.value,
             "--type",
-            help="Contribution type",
+            help=CONTRIBUTION_TYPE_HELP,
         ),
         relevance: str = typer.Option("medium", "--relevance", help="Relevance hint"),
         author: str = typer.Option("local", "--author", help="Contribution author"),
@@ -33,7 +40,7 @@ def register_proposal_contribution_commands(
         try:
             contribution = workspace.add_contribution(
                 proposal_id=proposal_id,
-                contribution_type=contribution_type,
+                contribution_type=parse_contribution_type(contribution_type),
                 text=text,
                 relevance_hint=relevance,
                 author=author,
@@ -48,10 +55,10 @@ def register_proposal_contribution_commands(
     def proposal_contribution_add(
         proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
         text: str = typer.Argument(..., help="Contribution text"),
-        contribution_type: ContributionType = typer.Option(
-            ContributionType.suggestion,
+        contribution_type: str = typer.Option(
+            ContributionType.suggestion.value,
             "--type",
-            help="Contribution type",
+            help=CONTRIBUTION_TYPE_HELP,
         ),
         relevance: str = typer.Option("medium", "--relevance", help="Relevance hint"),
         author: str = typer.Option("local", "--author", help="Contribution author"),

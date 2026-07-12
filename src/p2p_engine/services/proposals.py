@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from p2p_engine.core.contribution import Contribution, ContributionType
+from p2p_engine.core.contribution import Contribution, ContributionType, parse_contribution_type
 from p2p_engine.core.proposal import Proposal
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
@@ -70,18 +70,6 @@ def _bullets(values: list[str] | None) -> str | None:
     if not cleaned:
         return None
     return "\n".join(f"- {value}" for value in cleaned)
-
-
-def _exploration_files(proposal_id: str) -> dict[str, str]:
-    return {
-        "exploration.md": f"# Exploration - {proposal_id}\n\nNot explored yet.\n",
-        "findings.md": "findings: []\n",
-        "alternatives.md": f"# Alternatives - {proposal_id}\n\nNone identified yet.\n",
-        "open-questions.md": f"# Open Questions - {proposal_id}\n\nNone identified yet.\n",
-        "risks.md": f"# Risks - {proposal_id}\n\nNone identified yet.\n",
-        "assumptions.md": f"# Assumptions - {proposal_id}\n\nNone identified yet.\n",
-        "suggested-scope.md": f"# Suggested Scope - {proposal_id}\n\nNot suggested yet.\n",
-    }
 
 
 def _proposal_markdown(
@@ -160,7 +148,6 @@ class ProposalDocumentService:
             "execution-plan.md": f"# Execution Plan - {proposal_id}\n\nPending.\n",
             "tasks.yml": "tasks: []\n",
         }
-        files.update(_exploration_files(proposal_id))
         for filename, content in files.items():
             (proposal_dir / filename).write_text(content, encoding="utf-8")
 
@@ -255,7 +242,7 @@ class ProposalDocumentService:
         for item in raw_contributions:
             if not isinstance(item, dict):
                 continue
-            contribution_type = ContributionType(str(item.get("type") or ContributionType.suggestion.value))
+            contribution_type = parse_contribution_type(item.get("type"))
             contributions.append(
                 Contribution(
                     contribution_id=str(item.get("id") or ""),

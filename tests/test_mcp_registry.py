@@ -175,6 +175,15 @@ def test_mcp_registry_definitions_use_strict_object_schemas() -> None:
         assert schema["additionalProperties"] is False
 
 
+def test_mcp_init_project_description_describes_adaptive_agent_default() -> None:
+    definitions = {definition["name"]: definition for definition in tool_definitions()}
+    description = definitions["p2p_init_project"]["description"]
+
+    assert "adaptive agent default" in description
+    assert "falls back to all built-in adapters" in description
+    assert "Defaults to all built-in adapters" not in description
+
+
 def test_mcp_tools_module_reexports_registry_surface() -> None:
     assert COMPAT_TOOL_NAMES is TOOL_NAMES
     assert compat_tool_definitions is tool_definitions

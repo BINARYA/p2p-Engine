@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import shlex
 from pathlib import Path
 
 import typer
+from rich.markup import escape
 
 from p2p_engine.cli_commands.agents import register_agent_commands
 from p2p_engine.cli_commands.collaboration import register_collaboration_commands
@@ -17,6 +17,9 @@ from p2p_engine.cli_commands.work_specs import register_work_spec_commands
 from p2p_engine.cli_shared import console
 from p2p_engine.cli_shared import fail as _fail
 from p2p_engine.cli_shared import workspace as _workspace
+from p2p_engine.services.agent_selection import AgentProfileSelection, select_agent_profile
+from p2p_engine.services.gitignore_hygiene import GitignoreHygieneResult
+from p2p_engine.services.mcp_hints import McpHint, render_shell_command
 from p2p_engine.storage.filesystem import P2PWorkspace
 
 app = typer.Typer(help="P2P Engine CLI")
@@ -164,7 +167,7 @@ def init(
     agent: list[str] | None = typer.Option(
         None,
         "--agent",
-        help="Initial agent adapter. Repeat for a narrowed install set. Defaults to all built-in adapters.",
+        help="Initial agent adapter. Repeat for a narrowed install set. Omit to use adaptive detection.",
     ),
     repository: str = typer.Option(
         "local",
@@ -223,12 +226,14 @@ def init(
     if name is None:
         console.print("[bold]P2P project initialization[/bold]")
         name = typer.prompt("Project name", default=root.resolve().name)
+        provided_agent_option = bool(agent)
+        default_agent = agent[0] if agent else select_agent_profile(None).effective_profile
         selected_agent = _prompt_choice(
             "Initial agent profile",
-            choices=("all", "generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode"),
-            default=(agent[0] if agent else "all"),
+            choices=_agent_prompt_choices(default_agent),
+            default=default_agent,
         )
-        agent = [selected_agent]
+        agent = [selected_agent] if provided_agent_option or selected_agent != default_agent else None
         repository = _prompt_choice(
             "Repository mode",
             choices=("local", "cloud"),
@@ -246,9 +251,9 @@ def init(
         mcp_hint = bool(mcp_hint)
 
     workspace = _workspace(root)
-    agent_profile = "all" if not agent else ("all" if "all" in agent else ",".join(agent))
+    agent_profile = None if not agent else ("all" if "all" in agent else ",".join(agent))
     try:
-        created = workspace.init_project(
+        result = workspace.init_project_with_summary(
             name=name,
             agent_profile=agent_profile,
             repository_mode=repository,
@@ -265,10 +270,13 @@ def init(
     except ValueError as exc:
         _fail(str(exc))
     console.print("[green]P2P workspace initialized.[/green]")
-    for path in created:
+    for path in result.created:
         console.print(f"  created {path}")
+    _print_init_agent_selection(result.agent_selection)
+    _print_init_repository_hygiene(result.gitignore_hygiene)
     _print_init_remote_status(workspace)
-    _print_init_next_steps(root.resolve(), agent_profile, show_mcp_hint=mcp_hint)
+    _print_init_mcp_setup(result.mcp_hint, show_mcp_hint=mcp_hint)
+    _print_init_next_steps()
 
 
 def _print_init_remote_status(workspace: P2PWorkspace) -> None:
@@ -299,6 +307,44 @@ def _prompt_choice(prompt: str, choices: tuple[str, ...], default: str) -> str:
         console.print(f"[red]Invalid value:[/red] {value}. Choose one of: {choices_text}")
 
 
+def _agent_prompt_choices(default: str) -> tuple[str, ...]:
+    base = ("all", "generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode")
+    normalized_default = default.strip().lower()
+    if normalized_default not in base:
+        return base
+    return (normalized_default, *[choice for choice in base if choice != normalized_default])
+
+
+def _print_init_agent_selection(selection: AgentProfileSelection) -> None:
+    console.print("Agent integrations")
+    console.print(f"  Selection source: {selection.selection_source}")
+    if selection.detected_adapter:
+        console.print(f"  Detected current client: {selection.detected_adapter}")
+        console.print(f"  This does not make {selection.detected_adapter} the project identity.")
+    if selection.warning:
+        console.print(f"  Warning: {selection.warning}")
+    if selection.effective_profile == "all":
+        console.print("  footprint: all installs every built-in adapter integration.")
+    console.print(f"  Installed adapters: {', '.join(selection.effective_adapters)}")
+    console.print("  Lifecycle commands:")
+    console.print("    p2p agent list")
+    console.print("    p2p agent install <adapter>")
+    console.print("    p2p agent update <adapter>")
+    console.print("    p2p agent doctor <adapter>")
+    console.print("    p2p agent uninstall <adapter>")
+    console.print("    p2p agent instructions refresh --profile <adapter>")
+
+
+def _print_init_repository_hygiene(result: GitignoreHygieneResult) -> None:
+    console.print("Repository hygiene")
+    console.print(f"  status: {result.status}")
+    console.print(f"  path: {result.path}")
+    if result.added_patterns:
+        console.print(f"  added: {escape(', '.join(result.added_patterns))}")
+    for warning in result.warnings:
+        console.print(f"  warning: {escape(warning)}")
+
+
 def _prompt_rubric_selection(domain: str) -> dict[str, bool] | None:
     preview = P2PWorkspace(Path.cwd()).init_project_rubrics_preview(domain)
     if not preview:
@@ -322,32 +368,28 @@ def _prompt_rubric_selection(domain: str) -> dict[str, bool] | None:
     return selected
 
 
-def _print_init_next_steps(root: Path, agent: str, show_mcp_hint: bool = False) -> None:
+def _print_init_mcp_setup(hint: McpHint, show_mcp_hint: bool = False) -> None:
+    if not show_mcp_hint:
+        return
+    console.print("MCP setup hint")
+    console.print(f"  root: {hint.root}")
+    console.print("  `--root` points to the governed P2P decision root used for decisions and state.")
+    console.print("  Codex registration:")
+    console.print(f"    {render_shell_command(hint.codex_command)}")
+    console.print("  Generic stdio server command:")
+    console.print(f"    {render_shell_command(hint.server_command)}")
+    for note in hint.notes:
+        console.print(f"  note: {note}")
+    console.print("  PATH fallback:")
+    console.print(f"    {render_shell_command(hint.fallback_command)}")
+
+
+def _print_init_next_steps() -> None:
     console.print("Next steps:")
     console.print("  1. p2p registry refresh")
     console.print("  2. p2p status")
     console.print("  3. p2p next")
     console.print("  4. Create or intake the first idea with p2p proposal create or p2p intake prompt")
-    if show_mcp_hint:
-        server_name = f"p2p-{root.name}"
-        console.print("MCP setup hint:")
-        console.print(
-            "  "
-            + " ".join(
-                [
-                    "codex",
-                    "mcp",
-                    "add",
-                    shlex.quote(server_name),
-                    "--",
-                    "p2p-mcp-server",
-                    "--root",
-                    shlex.quote(str(root)),
-                ]
-            )
-        )
-        if agent != "codex":
-            console.print("  Use the same stdio command in other MCP clients.")
 
 
 if __name__ == "__main__":

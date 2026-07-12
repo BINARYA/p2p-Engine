@@ -5,6 +5,17 @@ import pytest
 from p2p_engine.storage.filesystem import P2PWorkspace
 
 
+NARRATIVE_ARTIFACTS = (
+    "exploration.md",
+    "findings.md",
+    "alternatives.md",
+    "open-questions.md",
+    "risks.md",
+    "assumptions.md",
+    "suggested-scope.md",
+)
+
+
 def test_proposal_artifact_service_generates_prompt_with_context(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Artifact Project")
@@ -21,6 +32,57 @@ def test_proposal_artifact_service_generates_prompt_with_context(tmp_path: Path)
     assert path == Path(".p2p/prompts/PROP-001/digest.prompt.md")
     assert "The problem is concrete." in content
     assert "## Governance Context" in content
+
+
+def test_proposal_artifact_service_tolerates_missing_narrative_artifacts(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Artifact Project")
+    proposal = workspace.create_proposal_with_details(
+        "Missing Narrative Target",
+        problem="The problem is concrete.",
+        proposal="Use structured authoring primitives.",
+    )
+    proposal_dir = tmp_path / proposal.path
+    service = workspace._proposal_artifact_service()
+
+    for filename in NARRATIVE_ARTIFACTS:
+        assert not (proposal_dir / filename).exists()
+
+    prompt_path = service.generate_prompt(proposal.proposal_id, "synthesize")
+    prompt = (tmp_path / prompt_path).read_text(encoding="utf-8")
+    status = service.exploration_status(proposal.proposal_id)
+    readiness = workspace.assess_proposal_readiness(proposal.proposal_id)
+
+    assert "The problem is concrete." in prompt
+    assert all(not artifact.exists for artifact in status.artifacts)
+    assert all(artifact.quality_state == "missing" for artifact in status.artifacts)
+    assert readiness.proposal_id == proposal.proposal_id
+
+
+def test_proposal_artifact_service_reads_legacy_narrative_artifacts(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Artifact Project")
+    proposal = workspace.create_proposal("Legacy Narrative Target")
+    proposal_dir = tmp_path / proposal.path
+    (proposal_dir / "findings.md").write_text(
+        "# Findings\n\nLegacy finding remains readable.\n",
+        encoding="utf-8",
+    )
+    (proposal_dir / "open-questions.md").write_text(
+        "# Open Questions\n\n- Which legacy question remains open?\n",
+        encoding="utf-8",
+    )
+    service = workspace._proposal_artifact_service()
+
+    prompt_path = service.generate_prompt(proposal.proposal_id, "synthesize")
+    prompt = (tmp_path / prompt_path).read_text(encoding="utf-8")
+    status = service.exploration_status(proposal.proposal_id)
+    findings = next(artifact for artifact in status.artifacts if artifact.filename == "findings.md")
+
+    assert "Legacy finding remains readable." in prompt
+    assert findings.exists is True
+    assert findings.has_content is True
+    assert status.unresolved_questions == 1
 
 
 def test_proposal_artifact_service_imports_exploration_file_and_reports_status(tmp_path: Path) -> None:

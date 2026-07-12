@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from p2p_engine.core.contribution import ContributionType
+from p2p_engine.core.contribution import ContributionType, parse_contribution_type
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.core.proposal_artifact_state import (
     ProposalArtifactExpectation,
@@ -97,7 +97,11 @@ def handle_proposal_tool(
         status = arguments.get("status")
         return {"proposals": to_jsonable(workspace.proposal_summaries(str(status) if status else None))}
     if name == "p2p_proposal_show":
-        return {"proposal": to_jsonable(workspace.show_proposal(required(arguments, "proposal_id")))}
+        proposal_id = required(arguments, "proposal_id")
+        result: dict[str, object] = {"proposal": to_jsonable(workspace.show_proposal(proposal_id))}
+        if _optional_bool(arguments, "full"):
+            result["proposal_view"] = to_jsonable(workspace.proposal_full_view(proposal_id))
+        return result
     if name == "p2p_proposal_readiness_get":
         return {"readiness": to_jsonable(workspace.read_proposal_readiness(required(arguments, "proposal_id")))}
     if name == "p2p_proposal_readiness_init":
@@ -207,7 +211,11 @@ def handle_proposal_tool(
             "governance": {"owner_decision_required": False, "decision_made": False},
         }
     if name == "p2p_proposal_artifact_status":
-        return {"artifact_state": to_jsonable(workspace.read_proposal_artifacts(required(arguments, "proposal_id")))}
+        proposal_id = required(arguments, "proposal_id")
+        return {
+            "artifact_state": to_jsonable(workspace.read_proposal_artifacts(proposal_id)),
+            "artifact_status": to_jsonable(workspace.proposal_artifact_catalog(proposal_id)),
+        }
     if name == "p2p_proposal_artifact_init":
         return {
             "artifact_state": to_jsonable(
@@ -310,12 +318,16 @@ def _artifact_import_source_path(workspace: P2PWorkspace, source_value: str | No
 
 
 def _contribution_type(arguments: dict[str, Any]) -> ContributionType:
-    value = str(arguments.get("type") or ContributionType.suggestion.value)
-    try:
-        return ContributionType(value)
-    except ValueError as exc:
-        allowed = ", ".join(item.value for item in ContributionType)
-        raise ValueError(f"Invalid contribution type: {value}. Allowed: {allowed}") from exc
+    return parse_contribution_type(arguments.get("type"))
+
+
+def _optional_bool(arguments: dict[str, Any], name: str) -> bool:
+    value = arguments.get(name)
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _artifact_expectation(arguments: dict[str, Any]) -> ProposalArtifactExpectation | None:

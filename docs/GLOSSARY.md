@@ -28,9 +28,16 @@ A compact, token-aware summary of project state for agents. `p2p context` and
 
 ## Contribution
 
-A typed addition to a proposal, such as an objective, risk, constraint,
-objection, alternative, or implementation suggestion. Contributions preserve
-review input without rewriting the proposal body.
+A typed addition to a proposal, such as a finding, open question, alternative,
+risk, assumption, constraint, objection, implementation suggestion, or scope
+boundary. Contributions preserve review input without rewriting the proposal
+body.
+
+## Artifact Status
+
+The logical proposal artifact catalog. It describes expected proposal components,
+their status, materialization, source/evidence hints, provenance confidence, and
+next actions without requiring every possible artifact to exist as a file.
 
 ## Decision
 
@@ -69,6 +76,13 @@ suggest, draft, or analyze, but owner decisions require explicit instruction.
 
 A structured candidate direction for the project. A proposal usually records the
 problem, context, goals, non-goals, proposed direction, and acceptance criteria.
+
+## Proposal Full View
+
+An explicit owner-facing proposal review view. It combines proposal sections,
+decision state, readiness, contributions, grouped question sources, narrative
+artifact summaries, artifact status, and next actions without making governance
+decisions.
 
 ## Registry
 

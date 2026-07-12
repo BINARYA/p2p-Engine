@@ -1093,3 +1093,20 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-067
+  title: Readiness Question-State Convergence
+  status: completed
+  path: .p2p/changes/CHANGE-067-readiness-question-state-convergence
+  included_proposals:
+  - PROP-089
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

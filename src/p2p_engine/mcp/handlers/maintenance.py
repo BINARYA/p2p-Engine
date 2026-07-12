@@ -12,16 +12,19 @@ def handle_maintenance_tool(
     arguments: dict[str, Any],
 ) -> dict[str, object] | None:
     if name == "p2p_init_project":
-        created = workspace.init_project(
+        result = workspace.init_project_with_summary(
             name=required(arguments, "name"),
-            agent_profile=str(arguments.get("agent") or "all"),
+            agent_profile=str(arguments["agent"]) if arguments.get("agent") else None,
             repository_mode=str(arguments.get("repository") or "local"),
             project_domain=str(arguments.get("domain") or "none"),
         )
         return {
             "initialized": True,
-            "root": workspace.root,
-            "created_or_updated": created,
+            "root": to_jsonable(workspace.root),
+            "created_or_updated": result.created,
+            "agent_selection": to_jsonable(result.agent_selection),
+            "mcp_hint": to_jsonable(result.mcp_hint),
+            "gitignore_hygiene": to_jsonable(result.gitignore_hygiene),
         }
     if name == "p2p_agent_instructions_refresh":
         repository = arguments.get("repository")

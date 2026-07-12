@@ -1,0 +1,31 @@
+impact:
+  proposal: PROP-094
+  summary: "Software spec requests should be routed through the software vertical and P2P-governed proposal/change/spec lifecycle before producing durable spec files."
+  scope_decision: "First slice is policy, generated guidance, documentation, and tests. It should reuse existing proposal, choice, Change Set, spec, and export primitives."
+  affected_areas:
+    - area: "Software vertical"
+      impact: "Make the specification ingredients visible as part of software-domain project definition: objective, actors, scope, workflows, data, integrations, constraints, acceptance, risks, and decisions."
+    - area: "Generated agent instructions"
+      impact: "Add routing guidance for owner requests such as exploratory specs, project definition, architecture comparison, implementation specs, export specs, and explicit file creation."
+    - area: "Proposal and readiness workflow"
+      impact: "Agents should use one or more proposals and choices to capture spec-relevant decisions before treating specs as durable truth."
+    - area: "Change Set and P2P-native spec workflow"
+      impact: "Implementation-oriented specs and downstream exports should derive from accepted direction and a relevant Change Set."
+    - area: "Documentation"
+      impact: "Docs should explain the path from vertical definition to proposals, Change Sets, P2P-native specs, and generated exports."
+    - area: "Tests"
+      impact: "Template and documentation tests should ensure standalone spec files are not described as primary project memory."
+  related_proposals:
+    - id: "PROP-093"
+      relation: "Defines write consent, write classes, and P2P-first persistence. PROP-094 applies those principles to software spec lifecycle guidance."
+    - id: "PROP-085"
+      relation: "Introduces pluggable project verticals and readiness orchestration that this proposal expects the software domain to use."
+    - id: "PROP-088"
+      relation: "Strengthens MCP artifact import parity used by agents to keep project artifacts visible without direct .p2p writes."
+    - id: "PROP-089"
+      relation: "Provides structured owner-question state so spec-lifecycle questions can be resolved without stale markdown blockers."
+  risks:
+    - "Agents may over-formalize early spec exploration if guidance is phrased too rigidly."
+    - "Users may still explicitly request external files, so generated guidance must explain governance status rather than block the user."
+    - "Spec synthesis across multiple proposals needs traceability to avoid losing which decisions the generated spec reflects."
+    - "Existing docs and skills may need harmonization to avoid conflicting advice about local specs versus P2P-native specs."

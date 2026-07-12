@@ -331,6 +331,11 @@ relations:
   type: includes
   rationale: Change Set includes accepted proposal.
   source_artifact: .p2p/changes/CHANGE-066-mcp-artifact-import-parity
+- source: CHANGE-067
+  target: PROP-089
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-067-readiness-question-state-convergence
 - source: PROP-002
   target: CHANGE-063
   type: implemented_by
@@ -661,3 +666,8 @@ relations:
   type: implemented_by
   rationale: Proposal appears in Change Set source metadata.
   source_artifact: .p2p/proposals/PROP-088-mcp-artifact-import-parity
+- source: PROP-089
+  target: CHANGE-067
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-089-readiness-question-state-convergence

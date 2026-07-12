@@ -2954,7 +2954,8 @@ proposals:
     override changes the governance/effective decision status, not the computed readiness
     truth.'
   decision_file: .p2p/proposals/PROP-089-readiness-question-state-convergence/decision.md
-  related_changes: []
+  related_changes:
+  - CHANGE-067
   source_files:
   - ai-digest.md
   - alternatives.md
@@ -3559,40 +3560,99 @@ proposals:
   - suggested-scope.md
   - tasks.yml
 - id: PROP-093
-  title: New Project Bootstrap UX And Agent Write Consent Hardening
-  status: draft
+  title: Agent Persistence Boundaries And Proposal Authoring Flow
+  status: accepted
   path: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening
-  summary: "Implement a new-project bootstrap hardening pass with six coordinated\
-    \ changes.\n\n1. Conservative init default: the guided init wizard should no longer\
-    \ silently optimize for every supported agent. It should default to a conservative\
-    \ profile such as `generic`, `codex`, or a detected current client. Selecting\
-    \ `all` should remain supported but should be explicit and accompanied by a concise\
-    \ warning that it will create files for all built-in adapters.\n\n2. Clearer init\
-    \ summary: after init, the CLI should group created files by purpose: P2P governance\
-    \ state, project rubric and permissions, agent integration files, MCP setup hint,\
-    \ and next actions. This helps the owner understand which files are governed state,\
-    \ which are generated agent boundaries, and which are optional integration helpers.\n\
-    \n3. Repository hygiene guard: new projects should receive safe `.gitignore` protection\
-    \ or an explicit guided option. The implementation must not overwrite existing\
-    \ user content. It should ignore `.venv/`, Python caches, test caches, build outputs,\
-    \ and local runtime noise, while keeping `.p2p/` tracked.\n\n4. Robust MCP hint:\
-    \ the generated MCP hint should prefer the project-local Python module command:\n\
-    \n```bash\ncodex mcp add p2p-<project-slug> -- \\\n  /path/to/project/.venv/bin/python\
-    \ \\\n  -m p2p_engine.mcp.server \\\n  --root /path/to/project\n```\n\nThe shorter\
-    \ `p2p-mcp-server` form can remain documented for users who have it on `PATH`.\
-    \ The suggested MCP server name should derive from declared project identity where\
-    \ possible, not only from the directory name.\n\n5. Agent first-write action preview:\
-    \ generated `AGENTS.md`, project skills, and agent policy should state that agents\
-    \ may analyze freely but must preview persistent writes before performing them.\
-    \ The preview should name the operation and path, for example create `PROP-001`,\
-    \ initialize readiness for `PROP-001`, create `outputs/preliminare-token-videogame.md`,\
-    \ or update generated project export. The confirmation can be skipped only when\
-    \ the owner explicitly asks for the exact operation and artifact.\n\n6. Artifact\
-    \ placement policy: generated policy and documentation should define these boundaries:\
-    \ `.p2p/` is governed state, `outputs/` is generated/exported material, `drafts/`\
-    \ or `docs/drafts/` is preliminary working material, and `docs/` is stable owner-intended\
-    \ documentation. Agents should not place preliminary conversation output directly\
-    \ in `docs/` unless the owner asks for durable documentation there."
+  summary: "Implement a core hardening pass with eleven coordinated changes.\n\n1.\
+    \ Agent action preview before meaningful persistent writes.\n\n   Generated `AGENTS.md`,\
+    \ project skills, and shared policy should require action preview before meaningful\
+    \ persistent writes unless the owner explicitly requested the exact operation\
+    \ and artifact.\n\n   Examples include creating a proposal, adding a contribution,\
+    \ importing exploration or synthesis output, initializing readiness, initializing\
+    \ questions, creating generated exports, writing stable documentation, or performing\
+    \ external side effects.\n\n2. Persistent write classes.\n\n   Generated policy\
+    \ should distinguish at least these classes: `read_only`, `chat_only`, `local_scratch`,\
+    \ `p2p_canonical`, `p2p_generated_narrative`, `p2p_imported_artifact`, `generated_export`,\
+    \ `stable_documentation`, and `external_side_effect`.\n\n   Preview should be\
+    \ mandatory for `p2p_canonical`, `p2p_imported_artifact`, `generated_export`,\
+    \ `stable_documentation`, and `external_side_effect` writes unless the owner request\
+    \ is explicit and unambiguous.\n\n   `stable_documentation` means durable documentation\
+    \ that should be previewed and classified before writing. It does not mean P2P\
+    \ owns every stable documentation file in the repository.\n\n3. Agent operational\
+    \ playbook and request routing.\n\n   Generated agent instructions, project skills,\
+    \ and `docs/AGENT-INTEGRATION.md` or an equivalent guide should include a compact\
+    \ playbook that explains what P2P Engine is for and how agents should route common\
+    \ owner requests.\n\n   The playbook should distinguish chat-only exploration,\
+    \ project definition, proposals, choices, explicit vertical primitives such as\
+    \ the software-spec lifecycle defined by PROP-094, implementation work, generated\
+    \ exports, stable documentation, local scratch, and explicit outside-P2P work.\
+    \ It should be brief enough to embed in generated agent files and concrete enough\
+    \ to prevent agents from jumping directly to unmanaged documents.\n\n4. Proposal\
+    \ authoring canonicality.\n\n   The proposal workflow should clearly identify\
+    \ canonical write surfaces. If alternatives, findings, risks, objections, constraints,\
+    \ or open questions are meant to feed proposal synthesis, there must be supported\
+    \ structured primitives or import workflows for them.\n\n   If `contributions.yml`\
+    \ or structured question state is canonical, scaffolded markdown files must not\
+    \ invite manual edits. They should either:\n\n   - not be created until real content\
+    \ exists;\n   - be marked as generated/read-only with a clear header and command\
+    \ hints;\n   - or be editable only through an explicit CLI/MCP import primitive.\n\
+    \n5. Deterministic artifact catalog and controlled materialization.\n\n   P2P\
+    \ should expose a stable proposal artifact catalog through CLI and MCP surfaces.\
+    \ The catalog should list all standard artifact slots and any applicable vertical\
+    \ or feature-specific slots, with expectation and status metadata.\n\n   Physical\
+    \ files may differ between proposals because different workflows have run. That\
+    \ difference is acceptable only when the logical catalog makes the state explicit:\
+    \ satisfied, missing, not applicable, deferred, optional, generated, imported,\
+    \ or required when applicable.\n\n   P2P should not create empty placeholder files\
+    \ solely to make every proposal directory look identical. File presence is an\
+    \ implementation detail; artifact status is the source of truth.\n\n6. Contribution\
+    \ and question type alignment.\n\n   Contribution types should align with the\
+    \ narrative artifacts P2P exposes. If P2P creates or renders `findings.md`, `alternatives.md`,\
+    \ `risks.md`, or `open-questions.md`, the CLI/MCP surface should provide write-safe\
+    \ ways to add corresponding material, such as `finding`, `open_question`, `alternative`,\
+    \ `risk`, `constraint`, and `objection`, or an equivalent explicit import path.\n\
+    \n7. Discoverable proposal flow.\n\n   Proposal help text, scaffold output, and\
+    \ post-create guidance should show the typical flow:\n\n   1. add structured inputs\
+    \ with contribution/question/choice commands;\n   2. generate or request synthesis;\n\
+    \   3. import synthesized narrative;\n   4. inspect a full proposal view;\n  \
+    \ 5. let the owner accept, reject, or defer.\n\n   The guidance must not suggest\
+    \ editing `.p2p/` files directly.\n\n8. Owner-friendly full proposal view.\n\n\
+    \   P2P should provide an owner-readable consolidated proposal view, such as `p2p\
+    \ proposal show PROP-XXX --full` or `p2p proposal render PROP-XXX`.\n\n   The\
+    \ full view should include proposal metadata, decision status, problem, proposal,\
+    \ contributions, alternatives, findings, open questions, risks, objections where\
+    \ available, digest, readiness summary, artifact coverage, and suggested next\
+    \ action.\n\n9. Adaptive init default, integration lifecycle guidance, and clearer\
+    \ init summary.\n\n   Guided init should no longer silently optimize for all adapters\
+    \ when the current agent is known. It should always create the `generic` baseline,\
+    \ then add the reliably detected current agent by default. If no supported current\
+    \ agent can be detected, init should default to `all` for backward-compatible\
+    \ cross-agent usability and print a concise warning that this creates files for\
+    \ all built-in adapters.\n\n   Explicit owner choices remain supported:\n\n  \
+    \ ```bash\n   p2p init \"My Project\" --agent claude\n   p2p init \"My Project\"\
+    \ --agent codex --agent claude\n   p2p init \"My Project\" --agent all\n   ```\n\
+    \n   After init, the CLI should group created files by purpose: P2P-governed state,\
+    \ generated policy/instructions, project rubric/permissions, optional agent integrations,\
+    \ repository hygiene, MCP setup hint, and next actions.\n\n   The init summary\
+    \ and generated `AGENTS.md` should also show how to manage additional integrations\
+    \ later:\n\n   ```bash\n   p2p agent list\n   p2p agent install <adapter>\n  \
+    \ p2p agent update <adapter>\n   p2p agent doctor <adapter>\n   p2p agent uninstall\
+    \ <adapter>\n   p2p agent instructions refresh --profile <adapter>\n   ```\n\n\
+    \   Removal should be documented as conservative: it may remove only safe, managed,\
+    \ unchanged, non-shared files. The generic baseline remains installed and shared\
+    \ files must not be removed silently.\n\n10. Repository hygiene guard.\n\n   New\
+    \ projects should receive safe `.gitignore` protection or an explicit guided option.\
+    \ The implementation must not overwrite existing user content. It should ignore\
+    \ `.venv/`, Python caches, test caches, build outputs, and local runtime noise,\
+    \ while keeping `.p2p/` trackable.\n\n11. Robust decision-root and MCP hints.\n\
+    \n   Generated MCP and CLI hints should prefer robust commands that make the P2P\
+    \ decision root explicit. For project-local installs, the hint should prefer:\n\
+    \n   ```bash\n   codex mcp add p2p-<project-slug> -- \\\n     /path/to/project/.venv/bin/python\
+    \ \\\n     -m p2p_engine.mcp.server \\\n     --root /path/to/project\n   ```\n\
+    \n   The shorter `p2p-mcp-server` form can remain documented for users who have\
+    \ it on `PATH`.\n\n   Docs may mention that `--root` lets P2P operate from a current\
+    \ working directory different from the decision root, but they must not present\
+    \ sibling repositories as a recommended architecture."
   decision_file: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/decision.md
   related_changes: []
   source_files:
@@ -3614,6 +3674,144 @@ proposals:
   - questions.yml
   - readiness.yml
   - related-proposals.yml
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+- id: PROP-094
+  title: P2P-Governed Software Specification Lifecycle
+  status: draft
+  path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle
+  summary: 'Define a software-specific specification lifecycle policy and supporting
+    guidance.
+
+
+    ### Core rule
+
+
+    In software projects, a request for "specs" should normally activate the software
+    vertical and P2P proposal flow. The final spec file is a downstream artifact.
+    It is not the primary project definition and should not be created as independent
+    durable memory by default.
+
+
+    The software vertical should make specification readiness visible by tracking
+    the parts that a useful spec needs, including:
+
+
+    - product or system objective;
+
+    - intended users and actors;
+
+    - scope and MVP boundaries;
+
+    - core use cases and workflows;
+
+    - domain concepts and data model;
+
+    - integrations and external dependencies;
+
+    - constraints, non-functional requirements, and operating assumptions;
+
+    - acceptance criteria and validation strategy;
+
+    - unresolved risks, alternatives, and owner decisions.
+
+
+    These parts may be defined through one proposal or through multiple proposals.
+    For example, one proposal may define the MVP boundary, another may define the
+    data model, another may settle an integration strategy, and another may define
+    agent/MCP behavior. A software spec should be able to derive from that set of
+    accepted or explicitly provisional P2P artifacts.
+
+
+    ### Lifecycle
+
+
+    When the owner asks for specs, the agent should classify the request and route
+    it:
+
+
+    | Owner request | Agent routing | Persistent artifact |
+
+    | --- | --- | --- |
+
+    | "Let''s think through the specs" | Discuss in chat and identify missing vertical
+    fields | None, unless owner asks to persist |
+
+    | "Help me define the system" | Capture project-definition gaps and create/update
+    proposals | P2P proposal/exploration/question artifacts |
+
+    | "Compare possible architectures" | Create alternatives, choices, or competing
+    proposals | P2P proposal/choice artifacts |
+
+    | "Prepare implementation specs" | Identify accepted direction and create/update
+    a Change Set | Change Set, then P2P-native spec |
+
+    | "Export specs for a tool" | Generate/export from P2P-native spec | Generated
+    export |
+
+    | "Create this exact file" | Preview write and explain governance status | Stable
+    documentation or explicit external file |
+
+
+    For exploratory or requirements-level work, readiness is advisory. The agent may
+    draft a provisional outline in chat or P2P exploration material while clearly
+    marking unresolved decisions.
+
+
+    For implementation-oriented specs or downstream exports, readiness should be stricter:
+    there should be a sufficiently accepted direction, resolved blocking choices,
+    and a relevant Change Set before generating a P2P-native spec or export bundle.
+    If that state is missing, the agent should guide the owner to define or accept
+    the missing proposals first.
+
+
+    ### Agent behavior
+
+
+    Generated agent instructions should include a concrete routing rule:
+
+
+    - If the owner asks for "specs" but the software vertical is incomplete, use the
+    vertical to identify missing spec ingredients and ask focused questions or create/update
+    P2P proposals.
+
+    - If the required spec content spans multiple concerns, split it into multiple
+    proposals or choices instead of forcing everything into one monolithic file.
+
+    - If the owner asks for implementation specs, identify the accepted proposal set
+    and relevant Change Set before generating a P2P-native software spec.
+
+    - If the owner asks for a file export, explain whether the file is a generated
+    export, stable documentation, or temporary scratch.
+
+    - If the owner explicitly asks to operate outside P2P, respect that boundary while
+    making clear that the resulting file will not be P2P-governed unless later registered
+    or imported.
+
+
+    Persistent writes must follow PROP-093: preview the operation, target, artifact
+    kind, write class, and reason unless the owner explicitly requested the exact
+    artifact.'
+  decision_file: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - artifact-state.yml
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - impact-map.yml
+  - open-questions.md
+  - proposal.md
+  - questions.yml
+  - readiness.yml
   - risks.md
   - suggested-scope.md
   - tasks.yml

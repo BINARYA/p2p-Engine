@@ -33,8 +33,17 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert permissions["identities"]["contributor"]["role"] == "contributor"
     assert agent_policy["proposal_readiness"]["inspect_before_acceptance_recommendation"] is True
     assert agent_policy["project_vertical_orchestration"]["prioritize_when_missing_or_fallback"] is True
+    assert agent_policy["write_policy"]["analysis_without_write"] == "allowed"
+    assert agent_policy["write_policy"]["preview_can_be_skipped_when"] == (
+        "owner_requested_exact_operation_and_artifact"
+    )
+    assert agent_policy["placement_policy"]["mode"] == "strict"
+    assert agent_policy["placement_policy"]["unknown_destination"]["behavior"] == "preview_and_ask_or_stop"
+    assert agent_policy["artifact_contract_policy"]["agent_must_not_invent_durable_output_paths"] is True
     agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
     assert "Do not create, edit, rename, or delete files under `.p2p/` by hand" in agents
+    assert "Persistent Write Policy" in agents
+    assert "Do not invent durable output paths." in agents
     assert "stop and report the limitation" in agents
     assert "Do not explain existing P2P artifacts only from conversation memory" in agents
     assert "Before recommending proposal acceptance, inspect readiness" in agents
@@ -79,12 +88,16 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     )
     assert result.exit_code == 0
     assert "id: PROP-001" in result.output
+    assert "Next canonical P2P commands:" in result.output
+    assert "p2p contribution add PROP-001" in result.output
+    assert "p2p proposal readiness init PROP-001" in result.output
 
     proposal_dir = tmp_path / ".p2p" / "proposals" / "PROP-001-exploration-phase"
     proposal = (proposal_dir / "proposal.md").read_text(encoding="utf-8")
     assert "Ideas need structured exploration." in proposal
     assert "- Generate exploration prompts." in proposal
-    assert (proposal_dir / "findings.md").exists()
+    assert not (proposal_dir / "findings.md").exists()
+    assert not (proposal_dir / "open-questions.md").exists()
 
     result = runner.invoke(
         app,
@@ -119,7 +132,7 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "Exploration status for PROP-001" in result.output
     assert "open-questions.md" in result.output
-    assert "placeholder" in result.output
+    assert "missing" in result.output
 
 
 def test_cli_project_interaction_style_show_and_set(tmp_path: Path) -> None:
@@ -1148,6 +1161,65 @@ def test_cli_init_without_name_runs_guided_wizard(tmp_path: Path) -> None:
     assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
 
 
+def test_cli_init_guided_wizard_uses_detected_agent_as_default(
+    tmp_path: Path,
+) -> None:
+    result = runner.invoke(
+        app,
+        ["init", "--root", str(tmp_path)],
+        input="Wizard Project\n\nlocal\nnone\nn\n",
+        env={"P2P_CURRENT_AGENT": "codex"},
+    )
+
+    assert result.exit_code == 0
+    assert "Detected current client: codex" in result.output
+    assert "Installed adapters: generic, codex" in result.output
+    assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    assert not (tmp_path / "CLAUDE.md").exists()
+
+
+def test_cli_init_guided_wizard_keeps_all_available_with_footprint_warning(
+    tmp_path: Path,
+) -> None:
+    result = runner.invoke(
+        app,
+        ["init", "--root", str(tmp_path)],
+        input="Wizard Project\nall\nlocal\nnone\nn\n",
+        env={"P2P_CURRENT_AGENT": "codex"},
+    )
+
+    assert result.exit_code == 0
+    assert "all installs every built-in adapter integration" in result.output
+    assert "Installed adapters: generic, codex, claude, cursor, copilot, gemini, opencode" in result.output
+    assert (tmp_path / "CLAUDE.md").exists()
+
+
+def test_cli_init_mcp_hint_uses_root_aware_project_python_command(tmp_path: Path) -> None:
+    root = tmp_path / "Project With Spaces & Symbols"
+    result = runner.invoke(app, ["init", "Demo Project", "--mcp-hint", "--root", str(root)])
+
+    assert result.exit_code == 0
+    assert "MCP setup" in result.output
+    assert "governed P2P decision root" in result.output
+    assert "codex mcp add" in result.output
+    assert ".venv/bin/python" in result.output
+    assert "p2p_engine.mcp.server" in result.output
+    assert "p2p-mcp-server" in result.output
+    assert "Project With" in result.output
+    assert "Spaces" in result.output
+    assert "Symbols" in result.output
+
+
+def test_cli_init_prints_repository_hygiene_summary(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "Repository hygiene" in result.output
+    assert "status: applied" in result.output
+    assert "path: .gitignore" in result.output
+    assert (tmp_path / ".gitignore").exists()
+
+
 def test_cli_init_guided_wizard_can_disable_rubric_criteria(tmp_path: Path) -> None:
     result = runner.invoke(
         app,
@@ -1207,10 +1279,13 @@ def test_cli_init_can_generate_agent_specific_instructions(tmp_path: Path) -> No
     assert "mode: cloud" in policy
 
 
-def test_cli_init_defaults_to_all_agent_integrations(tmp_path: Path) -> None:
+def test_cli_init_without_detection_falls_back_to_all_agent_integrations(tmp_path: Path) -> None:
     result = runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
 
     assert result.exit_code == 0
+    assert "Could not reliably detect the current agent" in result.output
+    assert "Installed adapters: generic, codex, claude, cursor, copilot, gemini, opencode" in result.output
+    assert "p2p agent uninstall <adapter>" in result.output
     assert (tmp_path / "AGENTS.md").exists()
     assert (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").exists()
     assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
@@ -1241,6 +1316,24 @@ def test_cli_init_defaults_to_all_agent_integrations(tmp_path: Path) -> None:
     }
     agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
     assert "do not stop at diagnosis" in agents
+
+
+def test_cli_init_with_detected_agent_installs_generic_plus_detected_adapter(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app,
+        ["init", "Demo Project", "--root", str(tmp_path)],
+        env={"P2P_CURRENT_AGENT": "codex"},
+    )
+
+    assert result.exit_code == 0
+    assert "Detected current client: codex" in result.output
+    assert "Installed adapters: generic, codex" in result.output
+    assert "This does not make codex the project identity" in result.output
+    assert (tmp_path / "AGENTS.md").exists()
+    assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    assert not (tmp_path / "CLAUDE.md").exists()
+    registry = yaml.safe_load((tmp_path / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
+    assert set(registry["adapters"]) == {"generic", "codex"}
 
 
 def test_cli_init_narrow_agent_still_includes_generic(tmp_path: Path) -> None:
@@ -1478,6 +1571,9 @@ def test_cli_agent_instructions_refresh_adds_profiles_without_removing_existing(
     assert "- claude" in policy
     assert "- codex" in policy
     assert "write_decision_files_directly: false" in policy
+    assert "write_policy:" in policy
+    assert "placement_policy:" in policy
+    assert "agent_must_not_invent_durable_output_paths: true" in policy
 
 
 def test_cli_import_exploration_file_and_record_decision(tmp_path: Path) -> None:
@@ -1759,6 +1855,65 @@ def test_cli_lists_proposal_contributions(tmp_path: Path) -> None:
     assert "Add a concise MVP boundary before accepting." in result.output
 
 
+def test_cli_accepts_canonical_contribution_types_and_reports_allowed_invalid_type(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(app, ["proposal", "create", "Contribution Contract", "--root", str(tmp_path)])
+
+    for contribution_type in (
+        "finding",
+        "open_question",
+        "alternative",
+        "risk",
+        "assumption",
+        "constraint",
+        "objection",
+        "implementation_suggestion",
+        "scope_boundary",
+    ):
+        result = runner.invoke(
+            app,
+            [
+                "proposal",
+                "contribution",
+                "add",
+                "PROP-001",
+                f"{contribution_type} content.",
+                "--type",
+                contribution_type,
+                "--root",
+                str(tmp_path),
+            ],
+        )
+
+        assert result.exit_code == 0
+
+    invalid = runner.invoke(
+        app,
+        [
+            "proposal",
+            "contribution",
+            "add",
+            "PROP-001",
+            "Unsupported content.",
+            "--type",
+            "unsupported",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    contributions = (
+        tmp_path / ".p2p" / "proposals" / "PROP-001-contribution-contract" / "contributions.yml"
+    ).read_text(encoding="utf-8")
+
+    assert "type: finding" in contributions
+    assert "type: open_question" in contributions
+    assert "type: scope_boundary" in contributions
+    assert invalid.exit_code == 1
+    assert "Invalid contribution type: unsupported" in invalid.output
+    assert "Allowed:" in invalid.output
+    assert "finding" in invalid.output
+
+
 def test_cli_proposal_accept_can_record_readiness_override(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "Override Readiness", "--root", str(tmp_path)])
@@ -1902,6 +2057,18 @@ def test_cli_proposal_list_show_and_choice_registry_output(tmp_path: Path) -> No
     assert "Agents need stable proposal inspection." in result.output
     assert "Add proposal list and show commands." in result.output
     assert "Useful for agent skills." in result.output
+    assert "Artifact Status:" not in result.output
+
+    result = runner.invoke(app, ["proposal", "show", "PROP-001", "--full", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Full proposal view for PROP-001" in result.output
+    assert "Proposal Body:" in result.output
+    assert "Readiness:" in result.output
+    assert "Structured Contributions:" in result.output
+    assert "Narrative And Imported Artifacts:" in result.output
+    assert "Artifact Status:" in result.output
+    assert "Grouped Questions:" in result.output
+    assert "(evidence)" in result.output
 
     runner.invoke(
         app,

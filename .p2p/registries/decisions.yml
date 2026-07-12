@@ -701,8 +701,15 @@ decisions:
     permission-gated commands, while remote multi-user MCP remains a separate Wavekit
     gateway boundary.'
 - proposal: PROP-093
-  title: New Project Bootstrap UX And Agent Write Consent Hardening
+  title: Agent Persistence Boundaries And Proposal Authoring Flow
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/decision.md
+  reason: Owner accepted PROP-093 after scope-lock refinement, readiness score 100,
+    and validation confirming the proposal is decision-ready for implementation.
+- proposal: PROP-094
+  title: P2P-Governed Software Specification Lifecycle
   outcome: pending
   status: draft
-  path: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/decision.md
+  path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/decision.md
   reason: ''

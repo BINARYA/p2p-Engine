@@ -18,6 +18,8 @@ def test_package_version_matches_pyproject() -> None:
 
 def test_domain_enums_expose_expected_values() -> None:
     assert ContributionType.suggestion.value == "suggestion"
+    assert ContributionType.finding.value == "finding"
+    assert ContributionType.open_question.value == "open_question"
     assert DecisionOutcome.accepted.value == "accepted"
 
 
@@ -85,7 +87,7 @@ def test_explore_prompt_and_status_track_exploration_artifacts(tmp_path) -> None
     assert "findings.md" in prompt
     assert "p2p explore prompt PROP-001" == status.suggested_next_command
     assert any(artifact.filename == "findings.md" for artifact in status.artifacts)
-    assert all(artifact.quality_state == "placeholder" for artifact in status.artifacts)
+    assert all(artifact.quality_state == "missing" for artifact in status.artifacts)
 
 
 def test_import_exploration_file_updates_exploration_artifact(tmp_path) -> None:

@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 import yaml
 
 from p2p_engine.storage.filesystem import P2PWorkspace
@@ -38,6 +39,89 @@ def test_project_initialization_service_creates_default_workspace(tmp_path: Path
     assert project_data["domain"] == "none"
     assert repository["mode"] == "local"
     assert remote["mode"] == "local"
+
+
+def test_project_initialization_detected_agent_reports_selection_without_persisting_identity(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("P2P_CURRENT_AGENT", "codex")
+    workspace = P2PWorkspace(tmp_path)
+
+    result = workspace.init_project_with_summary("Detected Project")
+
+    assert Path("AGENTS.md") in result.created
+    assert result.agent_selection.selection_source == "detected"
+    assert result.agent_selection.detected_adapter == "codex"
+    assert result.agent_selection.effective_adapters == ["generic", "codex"]
+    registry = _load_yaml(tmp_path / ".p2p" / "agent-integrations.yml")
+    assert set(registry["adapters"]) == {"generic", "codex"}
+    assert "detected_adapter" not in registry
+    assert "current_agent" not in registry
+    project_text = (tmp_path / ".p2p" / "project.yml").read_text(encoding="utf-8")
+    assert "detected_adapter" not in project_text
+    assert "current_agent" not in project_text
+
+
+def test_project_initialization_compat_facade_still_returns_created_paths(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("P2P_CURRENT_AGENT", "codex")
+    workspace = P2PWorkspace(tmp_path)
+
+    created = workspace.init_project("Compat Project")
+
+    assert isinstance(created, list)
+    assert Path("AGENTS.md") in created
+    assert Path(".codex/skills/p2p-project/SKILL.md") in created
+
+
+def test_project_initialization_summary_includes_mcp_hint_and_gitignore_hygiene(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+
+    result = workspace.init_project_with_summary("Root Hygiene Project", agent_profile="generic")
+
+    assert result.mcp_hint.server_name == "p2p-root-hygiene-project"
+    assert result.mcp_hint.server_command[-2:] == ["--root", str(tmp_path)]
+    assert result.gitignore_hygiene.status == "applied"
+    assert Path(".gitignore") in result.created
+    assert (tmp_path / ".gitignore").exists()
+
+
+def test_project_initialization_compat_facade_includes_gitignore_path_once(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+
+    created = workspace.init_project("Compat Hygiene Project", agent_profile="generic")
+    second_created = workspace.init_project("Compat Hygiene Project", agent_profile="generic")
+
+    assert isinstance(created, list)
+    assert Path(".gitignore") in created
+    assert created.count(Path(".gitignore")) == 1
+    assert second_created == []
+
+
+def test_existing_broad_agent_install_is_not_narrowed_by_refresh_or_update(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Broad Project", agent_profile="all")
+    monkeypatch.setenv("P2P_CURRENT_AGENT", "codex")
+
+    workspace.refresh_agent_instructions("codex")
+    workspace.install_agent_integrations("codex")
+
+    registry = _load_yaml(tmp_path / ".p2p" / "agent-integrations.yml")
+    assert set(registry["adapters"]) == {
+        "generic",
+        "codex",
+        "claude",
+        "cursor",
+        "copilot",
+        "gemini",
+        "opencode",
+    }
 
 
 def test_project_initialization_service_software_domain_uses_template_rubrics(tmp_path: Path) -> None:

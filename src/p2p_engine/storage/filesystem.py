@@ -77,6 +77,11 @@ from p2p_engine.services.proposal_artifact_state import ProposalArtifactStateSer
 from p2p_engine.services.proposal_decisions import ProposalDecisionService
 from p2p_engine.services.proposal_drafts import ProposalDraftCommit, ProposalDraftCommitService
 from p2p_engine.services.proposal_questions import ProposalQuestionService
+from p2p_engine.services.proposal_review_view import (
+    ProposalArtifactCatalogItem,
+    ProposalFullView,
+    ProposalReviewViewService,
+)
 from p2p_engine.services.proposals import ProposalContributionList, ProposalDetail, ProposalDocumentService
 from p2p_engine.services.project_assessment import ProjectAssessment, ProjectAssessmentService
 from p2p_engine.services.project_contexts import ProjectContextRendererService
@@ -88,6 +93,7 @@ from p2p_engine.services.project_maturity import (
 from p2p_engine.services.project_interaction_style import ProjectInteractionStyleService
 from p2p_engine.services.project_verticals import ProjectVerticalService
 from p2p_engine.services.project_initialization import (
+    ProjectInitializationResult,
     ProjectInitializationService,
     normalize_repository_mode as _normalize_repository_mode,
 )
@@ -200,6 +206,7 @@ class P2PWorkspace:
         self._proposal_branch_service_instance: ProposalBranchService | None = None
         self._proposal_artifact_service_instance: ProposalArtifactService | None = None
         self._proposal_artifact_state_service_instance: ProposalArtifactStateService | None = None
+        self._proposal_review_view_service_instance: ProposalReviewViewService | None = None
         self._readiness_service_instance: ReadinessService | None = None
         self._registry_service_instance: RegistryService | None = None
         self._registry_record_builder_service_instance: RegistryRecordBuilderService | None = None
@@ -303,6 +310,19 @@ class P2PWorkspace:
                 find_proposal_dir=self._proposal_document_service().find_dir,
             )
         return self._proposal_artifact_state_service_instance
+
+    def _proposal_review_view_service(self) -> ProposalReviewViewService:
+        if self._proposal_review_view_service_instance is None:
+            self._proposal_review_view_service_instance = ProposalReviewViewService(
+                root=self.root,
+                find_proposal_dir=self._proposal_document_service().find_dir,
+                show_proposal=self.show_proposal,
+                read_proposal_readiness=self.read_proposal_readiness,
+                read_proposal_questions=self.read_proposal_questions,
+                read_proposal_artifacts=self.read_proposal_artifacts,
+                list_contributions=self.list_contributions,
+            )
+        return self._proposal_review_view_service_instance
 
     def _proposal_draft_commit_service(self) -> ProposalDraftCommitService:
         if self._proposal_draft_commit_service_instance is None:
@@ -673,7 +693,7 @@ class P2PWorkspace:
     def init_project(
         self,
         name: str,
-        agent_profile: str = "generic",
+        agent_profile: str | None = None,
         repository_mode: str = "local",
         project_domain: str = "none",
         rubric_enabled: dict[str, bool] | None = None,
@@ -685,7 +705,37 @@ class P2PWorkspace:
         profile: str = "default",
         modules: list[str] | None = None,
     ) -> list[Path]:
-        created = self._project_initialization_service().init_project(
+        return self.init_project_with_summary(
+            name=name,
+            agent_profile=agent_profile,
+            repository_mode=repository_mode,
+            project_domain=project_domain,
+            rubric_enabled=rubric_enabled,
+            owner=owner,
+            remote_provider=remote_provider,
+            remote_name=remote_name,
+            remote_url_value=remote_url_value,
+            vertical_id=vertical_id,
+            profile=profile,
+            modules=modules,
+        ).created
+
+    def init_project_with_summary(
+        self,
+        name: str,
+        agent_profile: str | None = None,
+        repository_mode: str = "local",
+        project_domain: str = "none",
+        rubric_enabled: dict[str, bool] | None = None,
+        owner: str | None = None,
+        remote_provider: str | None = None,
+        remote_name: str = "origin",
+        remote_url_value: str | None = None,
+        vertical_id: str | None = None,
+        profile: str = "default",
+        modules: list[str] | None = None,
+    ) -> ProjectInitializationResult:
+        result = self._project_initialization_service().init_project_with_summary(
             name=name,
             agent_profile=agent_profile,
             repository_mode=repository_mode,
@@ -696,6 +746,7 @@ class P2PWorkspace:
             remote_name=remote_name,
             remote_url_value=remote_url_value,
         )
+        created = list(result.created)
         if vertical_id:
             active = self._project_vertical_service().select_vertical(
                 vertical_id,
@@ -710,7 +761,13 @@ class P2PWorkspace:
             ):
                 if path is not None and path not in created:
                     created.append(path)
-        return created
+        return ProjectInitializationResult(
+            created=created,
+            agent_selection=result.agent_selection,
+            agent_instructions=result.agent_instructions,
+            mcp_hint=result.mcp_hint,
+            gitignore_hygiene=result.gitignore_hygiene,
+        )
 
     def refresh_agent_instructions(
         self,
@@ -903,6 +960,12 @@ class P2PWorkspace:
 
     def show_proposal(self, proposal_id: str) -> ProposalDetail:
         return self._proposal_document_service().show(proposal_id)
+
+    def proposal_artifact_catalog(self, proposal_id: str) -> list[ProposalArtifactCatalogItem]:
+        return self._proposal_review_view_service().artifact_catalog(proposal_id)
+
+    def proposal_full_view(self, proposal_id: str) -> ProposalFullView:
+        return self._proposal_review_view_service().full_view(proposal_id)
 
     def commit_proposal_draft(self, proposal_id: str, actor: str = "local") -> ProposalDraftCommit:
         return self._proposal_draft_commit_service().commit(proposal_id, actor)

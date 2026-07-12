@@ -123,10 +123,81 @@ Do not invent .p2p files.
 Do not reverse-engineer IDs or registry entries.
 ```
 
+## Persistent Write Policy
+
+Generated `AGENTS.md` and `.p2p/agent-policy.yml` separate analysis from
+persistent writes. Agents may analyze, inspect, summarize, compare, and suggest
+actions without a preview when no repository state, P2P state, durable export,
+import, or external side effect is performed.
+
+Generated policy classifies writes as:
+
+- `read_only`: inspection without persistent state changes.
+- `chat_only`: reasoning or drafts kept only in the conversation.
+- `local_scratch`: temporary notes or files that are not durable project memory.
+- `p2p_canonical`: governed P2P state written only through the CLI or explicit
+  MCP write tools.
+- `p2p_generated_narrative`: generated P2P narrative material created or
+  imported through supported primitives.
+- `p2p_imported_artifact`: external or repository material imported into
+  governed P2P state.
+- `generated_export`: derived output exported from P2P or repository tooling.
+- `stable_documentation`: durable repository documentation intended by the
+  owner.
+- `external_side_effect`: network, provider, CI, publication, notification, or
+  other effect outside the repository.
+
+Before a meaningful persistent write, agents should preview the operation,
+target path or P2P object, artifact kind, write class, canonical or derived
+status, reason, and reversibility or cleanup path when relevant.
+
+Agents may skip a redundant confirmation only when the owner already specified
+the exact operation, target path or P2P object, artifact kind, and durable
+destination. Vague requests such as "prepare the specs", "organize the
+project", or "put down a proposal" do not count as exact requests.
+
+Placement is strict:
+
+- `.p2p/` is governed state and must use P2P CLI commands or explicit MCP write
+  tools.
+- `outputs/` is for generated or exported material, derived by default.
+- `drafts/` and `docs/drafts/` are preliminary working areas.
+- `docs/` is for stable owner-intended documentation.
+- local scratch is temporary and not durable project memory until promoted,
+  imported, or classified.
+
+Stable documentation is a write class, not a claim that P2P governs every
+durable repository document. Generated exports and stable docs are not
+canonical P2P state unless imported or declared by a contract.
+
+Strict placement is not a complete artifact schema. Exact durable names for
+outputs that agents must evaluate, regenerate, reference, or consume must come
+from a P2P artifact contract, an explicit vertical primitive, or an exact owner
+request. Agents must not invent durable output paths for governed or evaluable
+artifacts.
+
+Routing summary:
+
+- chat-only exploration stays in chat;
+- project definition work starts from project vertical/context/definition
+  primitives;
+- proposal authoring uses proposal, contribution, question, artifact, or import
+  primitives;
+- choices use choice primitives and leave owner-controlled decisions to the
+  owner;
+- vertical-specific work uses the active vertical lifecycle, such as
+  software-spec primitives when available;
+- implementation work outside `.p2p/` uses repository `specs/`, `src/`,
+  `tests/`, and maintained docs;
+- generated exports use export commands or declared repository output
+  locations;
+- stable documentation goes to `docs/` only with owner intent.
+
 ## Runtime Bootstrap
 
 When an agent enters a P2P-managed repository, it should discover the runtime in
-this order:
+this order. If the current working directory is ambiguous, `--root` should point
+to the governed P2P decision root used for decisions and state:
 
 ```bash
 p2p agent doctor --root /path/to/project
@@ -141,14 +212,27 @@ must stop and report diagnostics instead of editing `.p2p/` directly.
 
 ## Project-Local Agent Integrations
 
-New projects install all built-in project-local adapters by default:
+New projects use an adaptive agent bootstrap default:
 
 ```bash
 p2p init "My Project"
 ```
 
-The generated baseline is always `generic`; it cannot be removed. A project can
-also request a narrower setup:
+When the current client can be detected, init installs the mandatory `generic`
+baseline plus the detected adapter. When detection is unreliable, init falls
+back to all built-in adapters for compatibility and reports the warning in CLI
+or MCP output.
+
+Detection is not project identity. P2P must not persist a current, active, or
+default agent in `.p2p/project.yml` or `.p2p/agent-integrations.yml`; the
+registry records generated files, owners, hashes, and drift only.
+
+Existing broad installations are preserved. Running refresh, install, update,
+or project upgrade later with a narrower adapter target does not automatically
+remove previously installed adapters; use `p2p agent uninstall <adapter>` for an
+explicit safe removal.
+
+A project can also request an explicit setup:
 
 ```bash
 p2p init "My Project" --agent codex --agent claude
@@ -163,6 +247,7 @@ p2p agent install cursor
 p2p agent update all
 p2p agent doctor all
 p2p agent uninstall cursor
+p2p agent instructions refresh --profile cursor
 ```
 
 P2P records generated files, owners, shared-file status, hashes, and drift in
@@ -295,6 +380,9 @@ codex mcp add p2p-my-project -- \
   -m p2p_engine.mcp.server \
   --root /path/to/my-project
 ```
+
+The generic MCP server command is the Python module invocation after `--`; the
+`codex mcp add` prefix is only the Codex registration command.
 
 ## Claude
 
