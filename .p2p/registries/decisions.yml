@@ -709,7 +709,8 @@ decisions:
     and validation confirming the proposal is decision-ready for implementation.
 - proposal: PROP-094
   title: P2P-Governed Software Specification Lifecycle
-  outcome: pending
-  status: draft
+  outcome: accepted
+  status: accepted
   path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/decision.md
-  reason: ''
+  reason: Owner accepted after review; readiness is decision_ready with no missing
+    gates or blocking questions.

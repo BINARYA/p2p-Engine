@@ -13,11 +13,3 @@ next_actions:
   reason: There are no active Change Sets or Work items; readiness is now limited
     mainly by draft proposals that should be reviewed, accepted, or retired.
   command: .venv/bin/p2p proposal list --status draft
-- id: NEXT-008
-  priority: high
-  kind: review_proposal
-  target: PROP-089
-  reason: Readiness question-state convergence emerged as a foundational issue while
-    refining PROP-088. PROP-089 captures the diagnosis and alternatives and should
-    be reviewed before relying further on readiness gates.
-  command: .venv/bin/p2p proposal show PROP-089

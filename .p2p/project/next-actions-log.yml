@@ -76,3 +76,15 @@ next_action_log:
   closed_reason: PROP-088 owner questions were answered, applied where supported,
     proposal.md was updated, the proposal was accepted, and CHANGE-066 was created.
   closed_on: '2026-07-06'
+- id: NEXT-008
+  priority: high
+  kind: review_proposal
+  target: PROP-089
+  reason: Readiness question-state convergence emerged as a foundational issue while
+    refining PROP-088. PROP-089 captures the diagnosis and alternatives and should
+    be reviewed before relying further on readiness gates.
+  command: .venv/bin/p2p proposal show PROP-089
+  status: completed
+  closed_reason: PROP-089 is already accepted and implemented; the review next action
+    is stale.
+  closed_on: '2026-07-12'

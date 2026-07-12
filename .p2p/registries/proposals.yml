@@ -3679,7 +3679,7 @@ proposals:
   - tasks.yml
 - id: PROP-094
   title: P2P-Governed Software Specification Lifecycle
-  status: draft
+  status: accepted
   path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle
   summary: 'Define a software-specific specification lifecycle policy and supporting
     guidance.

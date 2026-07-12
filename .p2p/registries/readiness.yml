@@ -1263,7 +1263,7 @@ readiness:
   path: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/readiness.yml
 - proposal: PROP-094
   title: P2P-Governed Software Specification Lifecycle
-  proposal_status: draft
+  proposal_status: accepted
   status: assessed
   profile_id: default-readiness-v0.1
   profile_version: '0.1'
