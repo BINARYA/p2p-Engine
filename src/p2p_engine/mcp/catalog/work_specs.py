@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from p2p_engine.core.software_spec_lifecycle import SPEC_LIFECYCLE_INTENTS
 from p2p_engine.mcp.catalog.common import tool as _tool
 
 
@@ -65,6 +66,17 @@ def tool_definitions() -> list[dict[str, object]]:
             ),
             {'root': {'type': 'string'}, 'work_id': {'type': 'string'}},
             ['work_id'],
+        ),
+        _tool(
+            'p2p_spec_lifecycle',
+            (
+                'Read-only advisory tool: show the governed software specification lifecycle '
+                'route and preflight diagnostics for a requested intent.'
+            ),
+            {'root': {'type': 'string'},
+             'intent': {'type': 'string', 'enum': list(SPEC_LIFECYCLE_INTENTS)},
+             'change_id': {'type': 'string'},
+             'target': {'type': 'string'}},
         ),
         _tool(
             'p2p_spec_status',

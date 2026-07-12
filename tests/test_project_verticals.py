@@ -101,7 +101,46 @@ def test_project_verticals_list_internal_packs_and_fallback_base(tmp_path: Path)
 
     assert active.vertical_id == "base_project"
     assert active.fallback_used is True
-    assert {"base_project", "packaging_or_physical_product_design", "social_impact_program_design"} <= ids
+    assert {"base_project", "packaging_or_physical_product_design", "social_impact_program_design", "software_project"} <= ids
+
+
+def test_software_project_vertical_exposes_spec_lifecycle_ingredients(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Software Vertical Demo")
+
+    validation = workspace.validate_project_vertical("software_project")
+    pack = workspace.show_project_vertical("software_project")
+    section_ids = {section.section_id for section in pack.sections}
+
+    assert validation.valid is True
+    assert {
+        "system_objective",
+        "users_and_actors",
+        "mvp_scope",
+        "workflows_use_cases",
+        "data_model",
+        "integrations_dependencies",
+        "constraints_nfrs",
+        "acceptance_validation",
+        "risks_alternatives_decisions",
+    } <= section_ids
+    fields = {
+        field.field_id
+        for section in pack.sections
+        if section.section_id in section_ids
+        for field in section.fields
+    }
+    assert {
+        "objective",
+        "primary_users",
+        "in_scope",
+        "core_workflows",
+        "domain_entities",
+        "external_integrations",
+        "non_functional_requirements",
+        "validation_strategy",
+        "owner_decisions",
+    } <= fields
 
 
 def test_project_vertical_show_composes_base_project_sections(tmp_path: Path) -> None:

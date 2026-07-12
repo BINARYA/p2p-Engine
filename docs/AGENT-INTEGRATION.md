@@ -193,6 +193,19 @@ Routing summary:
   locations;
 - stable documentation goes to `docs/` only with owner intent.
 
+For software specification requests, agents should inspect the lifecycle route
+before writing durable artifacts:
+
+```bash
+p2p spec lifecycle --intent implementation_spec --change CHANGE-001
+p2p spec lifecycle --intent downstream_export --change CHANGE-001 --target speckit
+```
+
+MCP clients should call read-only `p2p_spec_lifecycle` before write-safe
+`p2p_spec_refresh` or `p2p_spec_export`. Lifecycle blockers stop writes and
+return diagnostics; advisories, including inactive `software_project` vertical
+coverage, should be surfaced without inventing alternate output paths.
+
 ## Runtime Bootstrap
 
 When an agent enters a P2P-managed repository, it should discover the runtime in

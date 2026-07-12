@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 from p2p_engine.core.contribution import Contribution, ContributionType
@@ -124,6 +125,8 @@ from p2p_engine.services.visible_project_export import (
     VisibleProjectExportStatus,
 )
 from p2p_engine.services.software_spec import SoftwareSpecPrompt, SoftwareSpecService, SoftwareSpecStatus
+from p2p_engine.services.software_spec_lifecycle import SoftwareSpecLifecycleService
+from p2p_engine.core.software_spec_lifecycle import SpecLifecycleView
 from p2p_engine.services.work_branches import (
     WorkAccept,
     WorkAcceptConflict,
@@ -212,6 +215,7 @@ class P2PWorkspace:
         self._registry_record_builder_service_instance: RegistryRecordBuilderService | None = None
         self._remote_profile_service_instance: RemoteProfileService | None = None
         self._spec_export_service_instance: SpecExportService | None = None
+        self._software_spec_lifecycle_service_instance: SoftwareSpecLifecycleService | None = None
         self._software_spec_service_instance: SoftwareSpecService | None = None
         self._sync_service_instance: SyncService | None = None
         self._validation_service_instance: ValidationService | None = None
@@ -590,6 +594,20 @@ class P2PWorkspace:
                 find_proposal_dir=self._proposal_document_service().find_dir,
             )
         return self._software_spec_service_instance
+
+    def _software_spec_lifecycle_service(self) -> SoftwareSpecLifecycleService:
+        if self._software_spec_lifecycle_service_instance is None:
+            self._software_spec_lifecycle_service_instance = SoftwareSpecLifecycleService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                find_change_dir=self._change_set_lifecycle_service().find_dir,
+                show_proposal=self.show_proposal,
+                active_project_vertical=self.active_project_vertical,
+                project_definition_view=self.project_definition_view,
+                choice_statuses=self.choice_statuses,
+                show_choice=self.show_choice,
+            )
+        return self._software_spec_lifecycle_service_instance
 
     def _sync_service(self) -> SyncService:
         if self._sync_service_instance is None:
@@ -1478,7 +1496,25 @@ class P2PWorkspace:
         return self._context_packet_service().context_packet(budget, target)
 
     def refresh_software_spec(self, change_id: str) -> SoftwareSpecStatus:
-        return self._software_spec_service().refresh(change_id)
+        lifecycle = self._software_spec_lifecycle_service().ensure_can_write(
+            "implementation_spec",
+            change_id=change_id,
+        )
+        status = self._software_spec_service().refresh(change_id)
+        return replace(status, lifecycle=lifecycle)
+
+    def software_spec_lifecycle(
+        self,
+        intent: str = "implementation_spec",
+        *,
+        change_id: str | None = None,
+        target: str | None = None,
+    ) -> SpecLifecycleView:
+        return self._software_spec_lifecycle_service().lifecycle(
+            intent,
+            change_id=change_id,
+            target=target,
+        )
 
     def software_spec_statuses(self) -> list[SoftwareSpecStatus]:
         return self._software_spec_service().statuses()
@@ -1493,7 +1529,13 @@ class P2PWorkspace:
         return self._software_spec_service().import_spec(change_id, source)
 
     def export_software_spec(self, change_id: str, target: str) -> SoftwareSpecExportStatus:
-        return self._spec_export_service().export(change_id, target)
+        lifecycle = self._software_spec_lifecycle_service().ensure_can_write(
+            "downstream_export",
+            change_id=change_id,
+            target=target,
+        )
+        status = self._spec_export_service().export(change_id, target)
+        return replace(status, lifecycle=lifecycle)
 
     def software_spec_export_statuses(self) -> list[SoftwareSpecExportStatus]:
         return self._spec_export_service().statuses()

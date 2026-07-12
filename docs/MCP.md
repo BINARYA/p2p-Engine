@@ -199,6 +199,7 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_proposal_branch` | managed branch | yes | no | Create and check out a managed proposal branch from an explicit base. |
 | `p2p_proposal_branch_status` | read-only | no | no | Inspect one managed proposal branch. |
 | `p2p_proposal_branch_scan` | read-oriented | yes | no | Scan local managed proposal branches and refresh the proposal branch registry. |
+| `p2p_spec_lifecycle` | advisory/read-only | no | no | Inspect software spec lifecycle routing and preflight diagnostics. |
 | `p2p_spec_status` | read-only | no | no | List generated P2P-native software specs. |
 | `p2p_spec_show` | read-only | no | no | Read a generated software spec index. |
 | `p2p_spec_export_status` | read-only | no | no | List generated downstream spec exports. |
@@ -267,8 +268,8 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_project_definition_show` | read-only | no | no | Read durable project definition state. |
 | `p2p_project_definition_update` | write-safe | yes | no | Apply a structured project definition patch file. |
 | `p2p_project_readiness_review` | advisory/read-only | no | no | Review capisaldi coverage, unmapped proposals, and questions against a vertical. |
-| `p2p_spec_refresh` | write-safe | yes | no | Generate a P2P-native software spec from a Change Set. |
-| `p2p_spec_export` | write-safe | yes | no | Export spec outputs for `generic`, `openspec`, or `speckit`. |
+| `p2p_spec_refresh` | write-safe | yes | no | Generate a P2P-native software spec after lifecycle preflight. |
+| `p2p_spec_export` | write-safe | yes | no | Export spec outputs for `generic`, `openspec`, or `speckit` after lifecycle preflight. |
 | `p2p_spec_export_validate` | read-only | no | no | Validate an existing spec export. |
 | `p2p_work_plan` | write-safe | yes | no | Create a Work manifest from a validated export. |
 | `p2p_work_branch` | managed Work | yes | no | Create and check out the managed Work branch. |

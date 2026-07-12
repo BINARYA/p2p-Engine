@@ -10,6 +10,7 @@ import yaml
 from typer.testing import CliRunner
 
 from p2p_engine.cli import app
+from p2p_engine.foundation.markdown import read_frontmatter, replace_frontmatter
 from p2p_engine.storage.filesystem import P2PWorkspace
 
 runner = CliRunner()
@@ -2633,6 +2634,9 @@ def test_cli_software_spec_refresh_prompt_import_status_and_show(tmp_path: Path)
     result = runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
     assert result.exit_code == 0
     assert "Software spec refreshed" in result.output
+    assert "lifecycle" not in result.output.lower()
+    assert "advisories:" in result.output
+    assert "software_vertical_not_active" in result.output
     assert ".p2p/outputs/software-spec/CHANGE-001" in result.output
 
     spec_dir = tmp_path / ".p2p" / "outputs" / "software-spec" / "CHANGE-001"
@@ -2689,6 +2693,7 @@ def test_cli_software_spec_refresh_prompt_import_status_and_show(tmp_path: Path)
     )
     assert result.exit_code == 0
     assert "Software spec exported" in result.output
+    assert "route: preflight_spec_then_export_target" in result.output
     assert ".p2p/outputs/spec-export/CHANGE-001/generic" in result.output
 
     generic_dir = tmp_path / ".p2p" / "outputs" / "spec-export" / "CHANGE-001" / "generic"
@@ -2780,6 +2785,61 @@ def test_cli_software_spec_refresh_prompt_import_status_and_show(tmp_path: Path)
     )
     assert result.exit_code != 0
     assert "Unsupported software spec export target: unknown" in result.output
+
+
+def test_cli_spec_lifecycle_guidance_and_blocking_preflight(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Spec Work",
+            "--problem",
+            "Need implementation-facing specs.",
+            "--proposal",
+            "Generate a deterministic software spec.",
+            "--acceptance",
+            "Spec artifacts exist.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
+
+    result = runner.invoke(
+        app,
+        ["spec", "lifecycle", "--intent", "implementation_spec", "--change", "CHANGE-001", "--root", str(tmp_path)],
+    )
+    assert result.exit_code == 0
+    assert "Software spec lifecycle" in result.output
+    assert "route: preflight_change_set_then_refresh_software_spec" in result.output
+    assert "blockers: none" in result.output
+    assert "software_vertical_not_active" in result.output
+    assert "p2p spec refresh --change CHANGE-001" in result.output
+
+    change_path = tmp_path / ".p2p" / "changes" / "CHANGE-001-spec-work" / "change.md"
+    text = change_path.read_text(encoding="utf-8")
+    frontmatter = read_frontmatter(text)
+    frontmatter["source"] = {"accepted_proposals": []}
+    change_path.write_text(replace_frontmatter(text, frontmatter), encoding="utf-8")
+
+    blocked = runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
+
+    assert blocked.exit_code == 1
+    assert "missing_governed_source" in blocked.output
+    assert not (tmp_path / ".p2p" / "outputs" / "software-spec" / "CHANGE-001").exists()
+
+
+def test_cli_spec_lifecycle_rejects_unknown_intent(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+
+    result = runner.invoke(app, ["spec", "lifecycle", "--intent", "unknown", "--root", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert "Unsupported software spec lifecycle intent" in result.output
+    assert "implementation_spec" in result.output
 
 
 def test_cli_work_plan_list_and_show(tmp_path: Path) -> None:

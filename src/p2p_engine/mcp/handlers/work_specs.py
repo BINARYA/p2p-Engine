@@ -51,6 +51,16 @@ def handle_work_spec_tool(
             "work_review": to_jsonable(workspace.review_work(required(arguments, "work_id"))),
             "governance": _preparatory_governance(),
         }
+    if name == "p2p_spec_lifecycle":
+        return {
+            "lifecycle": to_jsonable(
+                workspace.software_spec_lifecycle(
+                    optional_string(arguments, "intent") or "implementation_spec",
+                    change_id=optional_string(arguments, "change_id"),
+                    target=optional_string(arguments, "target"),
+                )
+            )
+        }
     if name == "p2p_spec_status":
         return {"specs": to_jsonable(workspace.software_spec_statuses())}
     if name == "p2p_spec_show":

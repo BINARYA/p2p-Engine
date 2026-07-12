@@ -229,6 +229,7 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_proposal_finalize",
         "p2p_proposal_cleanup",
         "p2p_proposal_branch_scan",
+        "p2p_spec_lifecycle",
         "p2p_spec_status",
         "p2p_spec_show",
         "p2p_spec_export_status",
@@ -2038,6 +2039,10 @@ def test_mcp_change_project_registry_and_remote_read_tools(tmp_path: Path) -> No
 def test_mcp_write_safe_spec_export_and_work_flow(tmp_path: Path) -> None:
     _setup_project(tmp_path)
 
+    lifecycle = call_tool(
+        "p2p_spec_lifecycle",
+        {"root": str(tmp_path), "intent": "implementation_spec", "change_id": "CHANGE-001"},
+    )
     spec = call_tool("p2p_spec_refresh", {"root": str(tmp_path), "change_id": "CHANGE-001"})
     export = call_tool(
         "p2p_spec_export",
@@ -2052,8 +2057,12 @@ def test_mcp_write_safe_spec_export_and_work_flow(tmp_path: Path) -> None:
         {"root": str(tmp_path), "change_id": "CHANGE-001", "target": "generic"},
     )
 
+    assert lifecycle["lifecycle"]["route"] == "preflight_change_set_then_refresh_software_spec"
+    assert lifecycle["lifecycle"]["blockers"] == []
     assert spec["spec"]["status"] == "generated"
+    assert spec["spec"]["lifecycle"]["route"] == "preflight_change_set_then_refresh_software_spec"
     assert export["export"]["status"] == "exported"
+    assert export["export"]["lifecycle"]["route"] == "preflight_spec_then_export_target"
     assert validation["validation"]["target"] == "generic"
     assert work["work"]["work_id"] == "WORK-001"
     assert work["work"]["status"] == "planned"

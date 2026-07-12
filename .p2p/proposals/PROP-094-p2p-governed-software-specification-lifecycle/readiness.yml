@@ -155,7 +155,7 @@ readiness:
     suggested_next: []
   computed_score: 100
   computed_label: decision_ready
-  computed_at: '2026-07-08'
+  computed_at: '2026-07-12'
   assessment_source: evidence_aware
   assessed_at: '2026-07-08'
   artifact_coverage_warnings: []

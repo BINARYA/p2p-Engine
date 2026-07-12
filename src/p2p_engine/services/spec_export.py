@@ -18,6 +18,7 @@ class SoftwareSpecExportStatus:
     title: str
     status: str
     path: Path
+    lifecycle: Any | None = None
 
 
 @dataclass(frozen=True)

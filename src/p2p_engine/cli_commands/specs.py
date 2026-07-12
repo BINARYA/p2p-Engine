@@ -10,6 +10,21 @@ from p2p_engine.cli_shared import workspace as workspace_for
 
 
 def register_spec_commands(spec_app: typer.Typer) -> None:
+    @spec_app.command("lifecycle")
+    def spec_lifecycle(
+        intent: str = typer.Option("implementation_spec", "--intent", help="Lifecycle intent"),
+        change: str | None = typer.Option(None, "--change", help="Change Set ID, e.g. CHANGE-001"),
+        target: str | None = typer.Option(None, "--target", help="Export target when intent is downstream_export"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Show governed software-spec lifecycle guidance without writing state."""
+        try:
+            view = workspace_for(root).software_spec_lifecycle(intent, change_id=change, target=target)
+        except ValueError as exc:
+            fail(str(exc))
+        console.print("Software spec lifecycle")
+        _print_lifecycle(view)
+
     @spec_app.command("refresh")
     def spec_refresh(
         change: str = typer.Option(..., "--change", help="Change Set ID, e.g. CHANGE-001"),
@@ -24,6 +39,8 @@ def register_spec_commands(spec_app: typer.Typer) -> None:
         console.print(f"  change: {status.change_id}")
         console.print(f"  status: {status.status}")
         console.print(f"  path: {status.path}")
+        if status.lifecycle is not None:
+            _print_lifecycle(status.lifecycle, indent="  ")
 
     @spec_app.command("status")
     def spec_status(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
@@ -93,6 +110,8 @@ def register_spec_commands(spec_app: typer.Typer) -> None:
         console.print(f"  target: {status.target}")
         console.print(f"  status: {status.status}")
         console.print(f"  path: {status.path}")
+        if status.lifecycle is not None:
+            _print_lifecycle(status.lifecycle, indent="  ")
 
     @spec_app.command("export-status")
     def spec_export_status(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
@@ -136,3 +155,36 @@ def register_spec_commands(spec_app: typer.Typer) -> None:
         console.print("  checked:")
         for path in validation.checked:
             console.print(f"    ✓ {path}")
+
+
+def _print_lifecycle(view: object, *, indent: str = "  ") -> None:
+    console.print(f"{indent}intent: {getattr(view, 'intent')}")
+    console.print(f"{indent}route: {getattr(view, 'route')}")
+    console.print(f"{indent}write_class: {getattr(view, 'write_class')}")
+    console.print(f"{indent}canonical_status: {getattr(view, 'canonical_status')}")
+    console.print(f"{indent}writes_state: {str(getattr(view, 'writes_state')).lower()}")
+    if getattr(view, "change_id", ""):
+        console.print(f"{indent}change: {getattr(view, 'change_id')}")
+    if getattr(view, "target", ""):
+        console.print(f"{indent}target: {getattr(view, 'target')}")
+    _print_diagnostics("blockers", getattr(view, "blockers", []), indent=indent)
+    _print_diagnostics("advisories", getattr(view, "advisories", []), indent=indent)
+    commands = getattr(view, "suggested_commands", [])
+    if commands:
+        console.print(f"{indent}suggested_commands:")
+        for command in commands:
+            console.print(f"{indent}  - {command}")
+
+
+def _print_diagnostics(label: str, diagnostics: list[object], *, indent: str) -> None:
+    if not diagnostics:
+        console.print(f"{indent}{label}: none")
+        return
+    console.print(f"{indent}{label}:")
+    for diagnostic in diagnostics:
+        console.print(
+            f"{indent}  - {getattr(diagnostic, 'code')}: {getattr(diagnostic, 'message')}"
+        )
+        suggested = getattr(diagnostic, "suggested_command", "")
+        if suggested:
+            console.print(f"{indent}    command: {suggested}")

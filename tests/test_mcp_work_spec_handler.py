@@ -206,6 +206,11 @@ def test_mcp_work_spec_handler_serves_prompts(tmp_path: Path) -> None:
 def test_mcp_work_spec_handler_serves_spec_export_and_work_flow(tmp_path: Path) -> None:
     workspace = _setup_project(tmp_path)
 
+    lifecycle = handle_work_spec_tool(
+        workspace,
+        "p2p_spec_lifecycle",
+        {"intent": "implementation_spec", "change_id": "CHANGE-001"},
+    )
     spec = handle_work_spec_tool(workspace, "p2p_spec_refresh", {"change_id": "CHANGE-001"})
     export = handle_work_spec_tool(workspace, "p2p_spec_export", {"change_id": "CHANGE-001", "target": "generic"})
     validation = handle_work_spec_tool(
@@ -216,10 +221,16 @@ def test_mcp_work_spec_handler_serves_spec_export_and_work_flow(tmp_path: Path) 
     work = handle_work_spec_tool(workspace, "p2p_work_plan", {"change_id": "CHANGE-001", "target": "generic"})
     work_show = handle_work_spec_tool(workspace, "p2p_work_show", {"work_id": "WORK-001"})
 
+    assert lifecycle is not None
+    assert lifecycle["lifecycle"]["route"] == "preflight_change_set_then_refresh_software_spec"
+    assert lifecycle["lifecycle"]["blockers"] == []
+    assert lifecycle["lifecycle"]["advisories"][0]["code"] == "software_vertical_not_active"
     assert spec is not None
     assert spec["spec"]["status"] == "generated"
+    assert spec["spec"]["lifecycle"]["route"] == "preflight_change_set_then_refresh_software_spec"
     assert export is not None
     assert export["export"]["status"] == "exported"
+    assert export["export"]["lifecycle"]["route"] == "preflight_spec_then_export_target"
     assert validation is not None
     assert validation["validation"]["target"] == "generic"
     assert work is not None

@@ -132,6 +132,7 @@ TOOL_NAMES = (
     'p2p_proposal_finalize',
     'p2p_proposal_cleanup',
     'p2p_proposal_branch_scan',
+    'p2p_spec_lifecycle',
     'p2p_spec_status',
     'p2p_spec_show',
     'p2p_spec_export_status',

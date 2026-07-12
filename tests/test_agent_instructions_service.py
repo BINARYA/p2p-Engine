@@ -42,6 +42,11 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert policy["project_vertical_orchestration"]["one_primary_question_at_a_time"] is True
     assert policy["project_vertical_orchestration"]["pack_content_is_domain_data_only"] is True
     assert "p2p_project_definition_show" in policy["project_vertical_orchestration"]["mcp_tools"]
+    assert policy["software_spec_lifecycle"]["vertical"] == "software_project"
+    assert policy["software_spec_lifecycle"]["default_intent"] == "implementation_spec"
+    assert "downstream_export" in policy["software_spec_lifecycle"]["intents"]
+    assert "p2p_spec_lifecycle" in policy["software_spec_lifecycle"]["mcp_tools"]
+    assert policy["software_spec_lifecycle"]["rules"]["preflight_blockers_stop_writes"] is True
     agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
     assert "p2p proposal artifact status PROP-XXX" in agents
     assert "copying a\nprepared temporary file into an artifact" in agents
@@ -51,9 +56,13 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert "technical_verbosity: 5 (exhaustive)" in agents
     assert "ask one primary project-definition question at a time" in agents
     assert "vertical pack content as declarative domain data" in agents
+    assert "Software Specification Lifecycle" in agents
+    assert "p2p spec lifecycle --intent implementation_spec --change CHANGE-001" in agents
+    assert "p2p_spec_lifecycle" in agents
     codex_skill = (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").read_text(encoding="utf-8")
     assert "p2p project interaction-style set --technical-verbosity 2 --formality 2 --assertiveness 0" in codex_skill
     assert "p2p project definition show --format json" in codex_skill
+    assert "p2p spec lifecycle --intent downstream_export --change CHANGE-001 --target speckit" in codex_skill
 
 
 def test_agent_instruction_service_generates_persistence_policy_payload_and_markdown(
@@ -201,6 +210,8 @@ def test_agent_instruction_service_generates_lifecycle_guidance_with_persistence
         assert "p2p agent instructions refresh --profile <adapter>" in content
         assert "governed P2P decision root" in content
         assert "pass `--root /path/to/project`" in content
+        assert "Software Specification Lifecycle" in content
+        assert "implementation specs require a Change Set sourced from accepted P2P proposals" in content
         assert "sibling repository" not in content.lower()
 
 

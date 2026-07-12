@@ -541,12 +541,23 @@ optional agent-first export documents for generic, OpenSpec, or Spec Kit
 handoff. This is a compatibility/software-oriented workflow, not the default
 project definition export.
 
+Inspect the lifecycle route before generating or exporting durable artifacts:
+
+```bash
+p2p spec lifecycle --intent implementation_spec --change CHANGE-001
+p2p spec lifecycle --intent downstream_export --change CHANGE-001 --target speckit
+```
+
 ```bash
 p2p spec refresh --change CHANGE-001
 p2p spec status
 p2p spec show CHANGE-001
 p2p spec prompt --change CHANGE-001
 ```
+
+`refresh` and `export` run the same lifecycle preflight. Blockers such as a
+missing governed Change Set source stop the write; advisories such as inactive
+`software_project` vertical coverage are reported without blocking generation.
 
 After reviewing refined spec output:
 
