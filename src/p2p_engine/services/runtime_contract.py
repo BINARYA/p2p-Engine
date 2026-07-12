@@ -18,7 +18,11 @@ from p2p_engine.core.runtime_contract import (
     RUNTIME_CONTRACT_BLOCKER_REASON_REQUIRED,
     RUNTIME_CONTRACT_BLOCKER_STALE_PREVIEW,
     RUNTIME_CONTRACT_BLOCKER_UNMANAGED_SETUP_GUIDE,
+    RUNTIME_CONTRACT_BLOCKER_UNSUPPORTED_CURRENT_STATE,
     RUNTIME_CONTRACT_BLOCKER_UNTRUSTED_CURRENT_CONTRACT,
+    RUNTIME_CONTRACT_ADOPTION_STATUS_ADOPTED,
+    RUNTIME_CONTRACT_ADOPTION_STATUS_BLOCKED,
+    RUNTIME_CONTRACT_ADOPTION_STATUS_PARTIAL_FAILURE,
     RUNTIME_CONTRACT_UPDATE_STATUS_APPLICABLE,
     RUNTIME_CONTRACT_UPDATE_STATUS_BLOCKED,
     RUNTIME_CONTRACT_UPDATE_STATUS_NO_CHANGE,
@@ -57,6 +61,7 @@ from p2p_engine.core.runtime_contract import (
     RUNTIME_STATUS_UNSUPPORTED_CONTRACT,
     P2PRuntimeRequirement,
     RuntimeContract,
+    RuntimeContractAdoptionResult,
     RuntimeContractUpdateAuthority,
     RuntimeContractUpdatePreview,
     RuntimeContractUpdateResult,
@@ -582,6 +587,113 @@ class RuntimeContractService:
             audit=preview.audit,
         )
 
+    def adopt_contract(
+        self,
+        *,
+        requires: str,
+        recommended: str,
+        confirm: bool = False,
+        actor: str = "owner",
+    ) -> RuntimeContractAdoptionResult:
+        requires = str(requires or "").strip()
+        recommended = str(recommended or "").strip()
+        status = self.status()
+        authority = self._authority_for(actor)
+        proposal = self._validate_update_proposal(requires, recommended)
+        setup_guide = self._planned_setup_guide(self._setup_guide_state(status))
+        active_satisfies = self._active_satisfies(proposal.range) if proposal.range else None
+
+        if not proposal.valid:
+            return self._adoption_blocked_result(
+                status=status,
+                proposed_requires=requires or None,
+                proposed_recommended=recommended or None,
+                blocked_reason=RUNTIME_CONTRACT_BLOCKER_INVALID_PROPOSED_CONTRACT,
+                setup_guide=setup_guide,
+                authority=authority,
+                validation_errors=proposal.errors,
+                active_runtime_compatible_after_adoption=active_satisfies,
+            )
+        if status.state != RUNTIME_STATUS_LEGACY_UNDECLARED:
+            return self._adoption_blocked_result(
+                status=status,
+                proposed_requires=proposal.requires,
+                proposed_recommended=proposal.recommended,
+                blocked_reason=RUNTIME_CONTRACT_BLOCKER_UNSUPPORTED_CURRENT_STATE,
+                setup_guide=setup_guide,
+                authority=authority,
+                active_runtime_compatible_after_adoption=active_satisfies,
+            )
+        if setup_guide["state"] == RUNTIME_SETUP_GUIDE_STATE_UNMANAGED:
+            return self._adoption_blocked_result(
+                status=status,
+                proposed_requires=proposal.requires,
+                proposed_recommended=proposal.recommended,
+                blocked_reason=RUNTIME_CONTRACT_BLOCKER_UNMANAGED_SETUP_GUIDE,
+                setup_guide=setup_guide,
+                authority=authority,
+                active_runtime_compatible_after_adoption=active_satisfies,
+            )
+        if not authority.apply_authorized:
+            return self._adoption_blocked_result(
+                status=status,
+                proposed_requires=proposal.requires,
+                proposed_recommended=proposal.recommended,
+                blocked_reason=RUNTIME_CONTRACT_BLOCKER_OWNER_AUTHORITY_REQUIRED,
+                setup_guide=setup_guide,
+                authority=authority,
+                active_runtime_compatible_after_adoption=active_satisfies,
+            )
+        if not confirm:
+            return self._adoption_blocked_result(
+                status=status,
+                proposed_requires=proposal.requires,
+                proposed_recommended=proposal.recommended,
+                blocked_reason=RUNTIME_CONTRACT_BLOCKER_CONFIRMATION_REQUIRED,
+                setup_guide=setup_guide,
+                authority=authority,
+                active_runtime_compatible_after_adoption=active_satisfies,
+            )
+
+        files_changed: list[str] = []
+        proposed_contract = RuntimeContract(
+            schema_version=RUNTIME_CONTRACT_SCHEMA_VERSION,
+            p2p=P2PRuntimeRequirement(requires=proposal.requires, recommended=proposal.recommended),
+        )
+        try:
+            write_yaml_atomic(self.contract_path, self._contract_payload(proposal.requires, proposal.recommended))
+            files_changed.append(str(relative_to_root(self.contract_path, self.root)))
+            if setup_guide["planned_action"] in {RUNTIME_SETUP_GUIDE_ACTION_GENERATE, RUNTIME_SETUP_GUIDE_ACTION_REGENERATE}:
+                write_text_atomic(self.setup_guide_path, self.render_setup_guide(proposed_contract))
+                files_changed.append(str(relative_to_root(self.setup_guide_path, self.root)))
+            self._write_required_contract_marker()
+            files_changed.append(str(relative_to_root(self.project_manifest_path, self.root)))
+        except OSError as exc:
+            return RuntimeContractAdoptionResult(
+                status=RUNTIME_CONTRACT_ADOPTION_STATUS_PARTIAL_FAILURE,
+                current_state=status.state,
+                proposed_requires=proposal.requires,
+                proposed_recommended=proposal.recommended,
+                files_changed=files_changed,
+                blocked_reason=RUNTIME_CONTRACT_ADOPTION_STATUS_PARTIAL_FAILURE,
+                message=f"Runtime contract adoption write failed: {exc}",
+                setup_guide=setup_guide,
+                authority=authority,
+                active_runtime_compatible_after_adoption=active_satisfies,
+            )
+
+        return RuntimeContractAdoptionResult(
+            status=RUNTIME_CONTRACT_ADOPTION_STATUS_ADOPTED,
+            current_state=status.state,
+            proposed_requires=proposal.requires,
+            proposed_recommended=proposal.recommended,
+            files_changed=files_changed,
+            message="Runtime contract adopted.",
+            setup_guide=setup_guide,
+            authority=authority,
+            active_runtime_compatible_after_adoption=active_satisfies,
+        )
+
     def _blocked_result(self, preview: RuntimeContractUpdatePreview, blocked_reason: str) -> RuntimeContractUpdateResult:
         return RuntimeContractUpdateResult(
             status=RUNTIME_CONTRACT_UPDATE_STATUS_BLOCKED,
@@ -596,6 +708,32 @@ class RuntimeContractService:
             authority=preview.authority,
             active_runtime_compatible_after_update=preview.active_runtime_satisfies_proposed_range,
             audit=preview.audit,
+        )
+
+    def _adoption_blocked_result(
+        self,
+        *,
+        status: RuntimeStatus,
+        proposed_requires: str | None,
+        proposed_recommended: str | None,
+        blocked_reason: str,
+        setup_guide: dict[str, Any],
+        authority: RuntimeContractUpdateAuthority,
+        validation_errors: list[str] | None = None,
+        active_runtime_compatible_after_adoption: bool | None = None,
+    ) -> RuntimeContractAdoptionResult:
+        return RuntimeContractAdoptionResult(
+            status=RUNTIME_CONTRACT_ADOPTION_STATUS_BLOCKED,
+            current_state=status.state,
+            proposed_requires=proposed_requires,
+            proposed_recommended=proposed_recommended,
+            files_changed=[],
+            blocked_reason=blocked_reason,
+            message=f"Runtime contract adoption blocked: {blocked_reason}.",
+            setup_guide=setup_guide,
+            authority=authority,
+            validation_errors=validation_errors or [],
+            active_runtime_compatible_after_adoption=active_runtime_compatible_after_adoption,
         )
 
     def _validate_update_proposal(self, requires: str, recommended: str) -> "_ProposedRuntimeContract":
@@ -770,6 +908,15 @@ class RuntimeContractService:
         if not path.exists():
             return {"exists": False, "sha256": None}
         return {"exists": True, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+
+    def _write_required_contract_marker(self) -> None:
+        data = read_yaml_mapping(self.project_manifest_path, default={})
+        marker = data.get("runtime_contract")
+        if not isinstance(marker, dict):
+            marker = {}
+        marker["required"] = True
+        data["runtime_contract"] = marker
+        write_yaml_atomic(self.project_manifest_path, data)
 
     def _authority_for(self, actor: str) -> RuntimeContractUpdateAuthority:
         actor_text = str(actor or "").strip()

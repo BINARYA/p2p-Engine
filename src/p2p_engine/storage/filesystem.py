@@ -22,6 +22,7 @@ from p2p_engine.core.project_verticals import (
     VerticalValidationResult,
 )
 from p2p_engine.core.runtime_contract import (
+    RuntimeContractAdoptionResult,
     RuntimeContractUpdatePreview,
     RuntimeContractUpdateResult,
     RuntimeStatus,
@@ -1152,6 +1153,21 @@ class P2PWorkspace:
             confirm=confirm,
             reason=reason,
             decision=decision,
+            actor=actor,
+        )
+
+    def runtime_contract_adopt(
+        self,
+        *,
+        requires: str,
+        recommended: str,
+        confirm: bool = False,
+        actor: str = "owner",
+    ) -> RuntimeContractAdoptionResult:
+        return self._runtime_contract_service().adopt_contract(
+            requires=requires,
+            recommended=recommended,
+            confirm=confirm,
             actor=actor,
         )
 

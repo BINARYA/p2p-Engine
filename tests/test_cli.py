@@ -9,6 +9,7 @@ from pathlib import Path
 import yaml
 from typer.testing import CliRunner
 
+from p2p_engine import __version__ as P2P_ENGINE_VERSION
 from p2p_engine.cli import app
 from p2p_engine.foundation.markdown import read_frontmatter, replace_frontmatter
 from p2p_engine.storage.filesystem import P2PWorkspace
@@ -256,6 +257,108 @@ def test_cli_runtime_contract_preview_text_output(tmp_path: Path) -> None:
     assert "Runtime contract preview" in result.output
     assert "status: no_change" in result.output
     assert "impact_labels: none" in result.output
+
+
+def test_cli_runtime_contract_adopt_json(tmp_path: Path) -> None:
+    p2p_dir = tmp_path / ".p2p"
+    p2p_dir.mkdir()
+    (p2p_dir / "project.yml").write_text(
+        yaml.safe_dump({"project": {"name": "Legacy Project"}}, sort_keys=False),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "runtime",
+            "contract",
+            "adopt",
+            "--requires",
+            f"=={P2P_ENGINE_VERSION}",
+            "--recommended",
+            P2P_ENGINE_VERSION,
+            "--confirm",
+            "--format",
+            "json",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["status"] == "adopted"
+    assert payload["current_state"] == "legacy_undeclared"
+    assert payload["files_changed"] == [".p2p/project/runtime.yml", "P2P-SETUP.md", ".p2p/project.yml"]
+    project = yaml.safe_load((p2p_dir / "project.yml").read_text(encoding="utf-8"))
+    assert project["runtime_contract"] == {"required": True}
+    runtime = yaml.safe_load((p2p_dir / "project" / "runtime.yml").read_text(encoding="utf-8"))
+    assert runtime["runtime"]["p2p"]["recommended"] == P2P_ENGINE_VERSION
+
+
+def test_cli_runtime_contract_adopt_text_requires_confirmation(tmp_path: Path) -> None:
+    p2p_dir = tmp_path / ".p2p"
+    p2p_dir.mkdir()
+    (p2p_dir / "project.yml").write_text(
+        yaml.safe_dump({"project": {"name": "Legacy Project"}}, sort_keys=False),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "runtime",
+            "contract",
+            "adopt",
+            "--requires",
+            f"=={P2P_ENGINE_VERSION}",
+            "--recommended",
+            P2P_ENGINE_VERSION,
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Runtime contract adopt" in result.output
+    assert "status: blocked" in result.output
+    assert "blocked_reason: confirmation_required" in result.output
+    assert not (p2p_dir / "project" / "runtime.yml").exists()
+
+
+def test_cli_runtime_contract_adopt_blocks_unmanaged_setup_guide(tmp_path: Path) -> None:
+    p2p_dir = tmp_path / ".p2p"
+    p2p_dir.mkdir()
+    (p2p_dir / "project.yml").write_text(
+        yaml.safe_dump({"project": {"name": "Legacy Project"}}, sort_keys=False),
+        encoding="utf-8",
+    )
+    (tmp_path / "P2P-SETUP.md").write_text("# Human setup\n", encoding="utf-8")
+
+    result = runner.invoke(
+        app,
+        [
+            "runtime",
+            "contract",
+            "adopt",
+            "--requires",
+            f"=={P2P_ENGINE_VERSION}",
+            "--recommended",
+            P2P_ENGINE_VERSION,
+            "--confirm",
+            "--format",
+            "json",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["status"] == "blocked"
+    assert payload["blocked_reason"] == "unmanaged_setup_guide"
+    assert payload["files_changed"] == []
+    assert not (p2p_dir / "project" / "runtime.yml").exists()
 
 
 def test_cli_project_interaction_style_show_and_set(tmp_path: Path) -> None:

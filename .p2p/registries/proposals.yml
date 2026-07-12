@@ -4512,3 +4512,52 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-097
+  title: Runtime Contract Adoption For Legacy Projects
+  status: accepted
+  path: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects
+  summary: 'Add a runtime contract adoption primitive for legacy projects, exposed
+    as
+
+    `p2p runtime contract adopt` or an equivalent explicit preview/apply pair. The
+
+    operation is allowed only when the current runtime state is
+
+    `legacy_undeclared`. It requires owner confirmation and proposed values for
+
+    `requires` and `recommended`; the CLI may offer exact active-runtime defaults,
+
+    but those values must still be visible and explicitly confirmed.
+
+
+    On successful apply, the operation writes `.p2p/project/runtime.yml`, adds
+
+    `runtime_contract.required: true` to `.p2p/project.yml`, and generates a managed
+
+    `P2P-SETUP.md`. After adoption, `p2p runtime status` should report
+
+    `compatible` for the adopted runtime and `p2p validate` should no longer emit
+
+    `P2P267_RUNTIME_CONTRACT_LEGACY_UNDECLARED`.'
+  decision_file: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - artifact-state.yml
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - impact-map.yml
+  - open-questions.md
+  - proposal.md
+  - questions.yml
+  - readiness.yml
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

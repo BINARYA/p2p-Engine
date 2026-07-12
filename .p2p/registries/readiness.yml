@@ -1284,3 +1284,16 @@ readiness:
   missing: []
   suggested_next: []
   path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/readiness.yml
+- proposal: PROP-097
+  title: Runtime Contract Adoption For Legacy Projects
+  proposal_status: accepted
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  computed_score: 100
+  computed_label: decision_ready
+  confidence: high
+  failed_gates: []
+  missing: []
+  suggested_next: []
+  path: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/readiness.yml

@@ -55,6 +55,11 @@ RUNTIME_CONTRACT_BLOCKER_STALE_PREVIEW = "stale_preview"
 RUNTIME_CONTRACT_BLOCKER_OWNER_AUTHORITY_REQUIRED = "owner_authority_required"
 RUNTIME_CONTRACT_BLOCKER_CONFIRMATION_REQUIRED = "confirmation_required"
 RUNTIME_CONTRACT_BLOCKER_REASON_REQUIRED = "reason_required"
+RUNTIME_CONTRACT_BLOCKER_UNSUPPORTED_CURRENT_STATE = "unsupported_current_state"
+
+RUNTIME_CONTRACT_ADOPTION_STATUS_ADOPTED = "adopted"
+RUNTIME_CONTRACT_ADOPTION_STATUS_BLOCKED = "blocked"
+RUNTIME_CONTRACT_ADOPTION_STATUS_PARTIAL_FAILURE = "partial_failure"
 
 
 @dataclass(frozen=True)
@@ -236,4 +241,36 @@ class RuntimeContractUpdateResult:
             "post_update_mutations_performed": self.post_update_mutations_performed,
             "full_validation_deferred": self.full_validation_deferred,
             "audit": dict(self.audit),
+        }
+
+
+@dataclass(frozen=True)
+class RuntimeContractAdoptionResult:
+    status: str
+    current_state: str
+    proposed_requires: str | None
+    proposed_recommended: str | None
+    files_changed: list[str] = field(default_factory=list)
+    blocked_reason: str = ""
+    message: str = ""
+    setup_guide: dict[str, Any] = field(default_factory=dict)
+    authority: RuntimeContractUpdateAuthority | None = None
+    validation_errors: list[str] = field(default_factory=list)
+    active_runtime_compatible_after_adoption: bool | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "status": self.status,
+            "current_state": self.current_state,
+            "proposed_contract": {
+                "requires": self.proposed_requires,
+                "recommended": self.proposed_recommended,
+            },
+            "files_changed": list(self.files_changed),
+            "blocked_reason": self.blocked_reason,
+            "message": self.message,
+            "setup_guide": dict(self.setup_guide),
+            "authority": self.authority.to_dict() if self.authority else {},
+            "validation_errors": list(self.validation_errors),
+            "active_runtime_compatible_after_adoption": self.active_runtime_compatible_after_adoption,
         }

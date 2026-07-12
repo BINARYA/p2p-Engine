@@ -732,3 +732,10 @@ decisions:
   path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/decision.md
   reason: Owner accepts the readiness evidence quality and question state normalization
     fix after readiness reached decision_ready and the bug scope was fully bounded.
+- proposal: PROP-097
+  title: Runtime Contract Adoption For Legacy Projects
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/decision.md
+  reason: Owner accepted runtime contract adoption for legacy projects to close the
+    undeclared contract state without manual .p2p edits.

@@ -93,6 +93,27 @@ def register_runtime_commands(runtime_app: typer.Typer) -> None:
             fail(str(exc))
         _print_contract_payload(result.to_dict(), output_format=output_format, title="Runtime contract apply")
 
+    @contract_app.command("adopt")
+    def contract_adopt(
+        requires: str = typer.Option(..., "--requires", help="Adopted compatible runtime range"),
+        recommended: str = typer.Option(..., "--recommended", help="Adopted recommended runtime version"),
+        confirm: bool = typer.Option(False, "--confirm", help="Confirm the legacy runtime contract adoption"),
+        actor: str = typer.Option("owner", "--actor", help="Actor applying the adoption"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Adopt a runtime contract for a legacy undeclared project."""
+        try:
+            result = workspace_for(root).runtime_contract_adopt(
+                requires=requires,
+                recommended=recommended,
+                confirm=confirm,
+                actor=actor,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        _print_contract_payload(result.to_dict(), output_format=output_format, title="Runtime contract adopt")
+
 
 def _print_contract_payload(payload: dict[str, object], *, output_format: str, title: str) -> None:
     if output_format == "json":

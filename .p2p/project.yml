@@ -36,3 +36,5 @@ remote:
 repository:
   mode: local
   managed_by_p2p: false
+runtime_contract:
+  required: true
