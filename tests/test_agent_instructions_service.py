@@ -31,6 +31,8 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert result.profile == "codex"
     assert (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").exists()
     assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    assert (tmp_path / ".agents" / "skills" / "p2p-project-curator" / "SKILL.md").exists()
+    assert (tmp_path / ".codex" / "skills" / "p2p-project-curator" / "SKILL.md").exists()
     assert sorted(policy["agent_profiles"]) == ["codex", "generic"]
     assert "inspect_artifact_coverage" in policy["proposal_readiness"]["gap_handling"]["steps"]
     assert "p2p proposal artifact status PROP-XXX" in policy["proposal_readiness"]["commands"]
@@ -71,6 +73,42 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert "p2p project interaction-style set --technical-verbosity 2 --formality 2 --assertiveness 0" in codex_skill
     assert "p2p project definition show --format json" in codex_skill
     assert "p2p spec lifecycle --intent downstream_export --change CHANGE-001 --target speckit" in codex_skill
+    curator_skill = (
+        tmp_path / ".codex" / "skills" / "p2p-project-curator" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    assert "name: p2p-project-curator" in curator_skill
+    assert "P2P Project Curator" in curator_skill
+    assert "P2P Engine release template" in curator_skill
+    assert "p2p project publish prepare" in curator_skill
+    assert "Do not produce commercial, technical, investor, executive" in curator_skill
+
+
+def test_agent_instruction_service_registers_project_curator_codex_outputs(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="codex")
+
+    registry = yaml.safe_load((tmp_path / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
+    codex_files = {
+        str(file["path"]): file
+        for file in registry["adapters"]["codex"]["files"]
+    }
+
+    modern = codex_files[".agents/skills/p2p-project-curator/SKILL.md"]
+    legacy = codex_files[".codex/skills/p2p-project-curator/SKILL.md"]
+    assert modern["template_id"] == "codex-p2p-project-curator-skill-v1"
+    assert legacy["template_id"] == "codex-legacy-p2p-project-curator-skill-v1"
+    assert modern["owner"] == "codex"
+    assert legacy["owner"] == "codex"
+    assert modern["shared"] is False
+    assert legacy["shared"] is False
+    assert modern["managed"] is True
+    assert legacy["managed"] is True
+    assert modern["drift"] == "clean"
+    assert legacy["drift"] == "clean"
+    assert len(str(modern["sha256"])) == 64
+    assert len(str(legacy["sha256"])) == 64
 
 
 def test_agent_instruction_service_generates_persistence_policy_payload_and_markdown(
@@ -221,6 +259,24 @@ def test_agent_instruction_service_generates_lifecycle_guidance_with_persistence
         assert "Software Specification Lifecycle" in content
         assert "implementation specs require a Change Set sourced from accepted P2P proposals" in content
         assert "sibling repository" not in content.lower()
+
+
+def test_agent_instruction_service_embeds_curator_guidance_for_claude_without_codex_skills(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="claude")
+
+    claude = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "Project Publication Curator" in claude
+    assert "p2p project publish prepare" in claude
+    assert "exactly one canonical Markdown document" in claude
+    assert "Do not create audience-specific variants." in claude
+    assert not (tmp_path / ".agents" / "skills" / "p2p-project-curator" / "SKILL.md").exists()
+    assert not (tmp_path / ".codex" / "skills" / "p2p-project-curator" / "SKILL.md").exists()
+
+    registry = yaml.safe_load((tmp_path / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
+    assert set(registry["adapters"]) == {"generic", "claude"}
 
 
 def test_agent_instruction_service_lists_and_shows_drift(tmp_path: Path) -> None:

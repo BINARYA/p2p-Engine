@@ -596,7 +596,46 @@ remains the managed source of truth. Re-running the export archives the previous
 `outputs/latest/` under the next `outputs/review-###/` directory before writing
 a new latest version.
 
-## 10. Generate And Export Software Specs
+## 10. Publish The Canonical Human Project Output
+
+The publication pipeline keeps the complete export separate from the curated
+human publication:
+
+```bash
+p2p project publish prepare
+p2p project publish import curated-draft.md
+p2p project publish validate
+p2p project publish render
+p2p project publish review --status approved --reviewer owner
+p2p project publish status
+```
+
+`prepare` writes `outputs/latest/publication-profile.yml`,
+`outputs/latest/curator-input.md`, and `outputs/latest/publication-manifest.yml`.
+It reuses `outputs/latest/project.md` when its recorded P2P source fingerprint
+and hash are current, so it does not create duplicate `outputs/review-###/`
+snapshots when nothing changed.
+
+The external curator edits a draft outside the canonical output path. `import`
+atomically copies that draft to `outputs/latest/project.curated.md` and records
+source, profile, packet, and curated hashes. The curated document and PDF are
+derived publication artifacts; `.p2p/` remains authoritative.
+
+`validate` writes `outputs/latest/publication-validation.yml` and fails on
+deterministic contract errors such as missing curated Markdown, wrong H1 count,
+missing executive summary, missing `.p2p/` source-of-truth statement, stale
+hashes, or renderer-incompatible Markdown.
+
+`render` writes `outputs/latest/project.pdf` only after validation passes. PDF
+support is optional; install `p2p-engine[pdf]` plus WeasyPrint native
+dependencies to enable it. There is no handcrafted PDF fallback.
+
+`review` records owner review in `outputs/latest/publication-review.yml` for the
+current Markdown/PDF package. Approval means the publication package is approved
+for publication; it is not proposal acceptance, Work acceptance, or governance
+approval.
+
+## 11. Generate And Export Software Specs
 
 For software projects, a Change Set can still produce a P2P-native spec and
 optional agent-first export documents for generic, OpenSpec, or Spec Kit
@@ -646,7 +685,7 @@ speckit/
   speckit.plan.md
 ```
 
-## 11. Manage Work Metadata
+## 12. Manage Work Metadata
 
 Work commands manage handoff and branch lifecycle metadata for P2P-managed work.
 
@@ -670,7 +709,7 @@ p2p work finalize WORK-001
 p2p work cleanup WORK-001
 ```
 
-## 12. Assess And Validate
+## 13. Assess And Validate
 
 Structural validation:
 
@@ -696,7 +735,7 @@ p2p assess maturity show
 Maturity assessment checks project definition coverage against rubrics. It is
 not a measure of implementation completeness.
 
-## 13. Governance Preflight
+## 14. Governance Preflight
 
 Governance preflight is read-only. It reports whether a project choice is ready
 for an owner decision, but it does not decide the choice, record votes, record
@@ -728,7 +767,7 @@ Precedent search is deterministic: it matches only explicit precedent IDs,
 proposal IDs, choice IDs, or tags. It does not use fuzzy title matching or AI
 inference.
 
-## 14. Recover From Common Problems
+## 15. Recover From Common Problems
 
 `p2p: command not found`
 

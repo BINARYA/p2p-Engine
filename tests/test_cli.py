@@ -21,6 +21,18 @@ def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True)
 
 
+def _assert_codex_curator_skill(root: Path) -> None:
+    modern = root / ".agents" / "skills" / "p2p-project-curator" / "SKILL.md"
+    legacy = root / ".codex" / "skills" / "p2p-project-curator" / "SKILL.md"
+
+    assert modern.exists()
+    assert legacy.exists()
+    content = legacy.read_text(encoding="utf-8")
+    assert "name: p2p-project-curator" in content
+    assert "P2P Engine release template" in content
+    assert "p2p project publish prepare" in content
+
+
 def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     result = runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     assert result.exit_code == 0
@@ -473,6 +485,143 @@ def test_cli_project_export_writes_visible_latest_and_review_snapshot(tmp_path: 
     assert status.exit_code == 0
     assert "latest_exists: true" in status.output
     assert "outputs/review-001" in status.output
+
+
+def test_cli_project_publish_prepare_import_and_status(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Canonical Project Publication",
+            "--problem",
+            "Generated project output is hard to read.",
+            "--goal",
+            "Prepare one canonical human project publication.",
+            "--proposal",
+            "Create a staged publication pipeline above outputs/latest/project.md.",
+            "--acceptance",
+            "A curated publication can be imported.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+
+    first = runner.invoke(app, ["project", "publish", "prepare", "--root", str(tmp_path)])
+    second = runner.invoke(app, ["project", "publish", "prepare", "--root", str(tmp_path)])
+
+    assert first.exit_code == 0
+    assert "Project publication prepared" in first.output
+    assert "exported: true" in first.output
+    assert "curator_input: outputs/latest/curator-input.md" in first.output
+    assert second.exit_code == 0
+    assert "exported: false" in second.output
+    assert "reused_export: true" in second.output
+    assert not (tmp_path / "outputs" / "review-001").exists()
+
+    draft = tmp_path / "curated-draft.md"
+    draft.write_text(
+        "# Demo Project\n\n"
+        "## Executive Summary\n\n"
+        "Demo Project is described as one canonical human publication.\n\n"
+        "## Source Of Truth\n\n"
+        "The `.p2p/` directory remains authoritative.\n",
+        encoding="utf-8",
+    )
+    imported = runner.invoke(
+        app,
+        ["project", "publish", "import", str(draft), "--root", str(tmp_path)],
+    )
+    assert imported.exit_code == 0
+    assert "Project publication imported" in imported.output
+    assert "curated: outputs/latest/project.curated.md" in imported.output
+
+    before_validation = runner.invoke(app, ["project", "publish", "status", "--root", str(tmp_path)])
+    assert before_validation.exit_code == 0
+    assert "curated: ready" in before_validation.output
+    assert "validation: missing" in before_validation.output
+
+    validation = runner.invoke(app, ["project", "publish", "validate", "--root", str(tmp_path)])
+    assert validation.exit_code == 0
+    assert "Project publication validation" in validation.output
+    assert "status: passed" in validation.output
+
+    status = runner.invoke(app, ["project", "publish", "status", "--root", str(tmp_path)])
+    assert status.exit_code == 0
+    assert "approved_for_publication: false" in status.output
+    assert "validation_status: passed" in status.output
+    assert "validation: ready" in status.output
+
+
+def test_cli_project_publish_render_and_review_with_fake_renderer(tmp_path: Path, monkeypatch) -> None:
+    def fake_renderer(markdown_text: str, output_path: Path, root: Path) -> str:
+        output_path.write_bytes(b"%PDF-1.4\n% fake cli publication pdf\n")
+        return "fake-cli-renderer"
+
+    monkeypatch.setattr("p2p_engine.services.project_publication.render_pdf_with_weasyprint", fake_renderer)
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Canonical Project Publication",
+            "--problem",
+            "Generated project output is hard to read.",
+            "--goal",
+            "Prepare one canonical human project publication.",
+            "--proposal",
+            "Create a staged publication pipeline above outputs/latest/project.md.",
+            "--acceptance",
+            "A curated publication can be imported.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    runner.invoke(app, ["project", "publish", "prepare", "--root", str(tmp_path)])
+    draft = tmp_path / "curated-draft.md"
+    draft.write_text(
+        "# Demo Project\n\n"
+        "## Executive Summary\n\n"
+        "Demo Project is the current canonical publication for this project vertical.\n\n"
+        "## Current And Planned State\n\n"
+        "Current and planned work remains traceable to PROP-001.\n\n"
+        "## Source Of Truth\n\n"
+        "The `.p2p/` directory remains authoritative.\n",
+        encoding="utf-8",
+    )
+    runner.invoke(app, ["project", "publish", "import", str(draft), "--root", str(tmp_path)])
+    runner.invoke(app, ["project", "publish", "validate", "--root", str(tmp_path)])
+
+    rendered = runner.invoke(app, ["project", "publish", "render", "--root", str(tmp_path)])
+    reviewed = runner.invoke(
+        app,
+        [
+            "project",
+            "publish",
+            "review",
+            "--status",
+            "approved",
+            "--reviewer",
+            "owner",
+            "--note",
+            "Ready.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    status = runner.invoke(app, ["project", "publish", "status", "--root", str(tmp_path)])
+
+    assert rendered.exit_code == 0
+    assert "Project publication PDF rendered" in rendered.output
+    assert reviewed.exit_code == 0
+    assert "Project publication review recorded" in reviewed.output
+    assert "approved_for_publication: true" in status.output
+    assert "render_status: rendered" in status.output
+    assert "review_status: approved" in status.output
 
 
 def test_cli_permissions_actor_and_consent_receipts(tmp_path: Path) -> None:
@@ -1385,6 +1534,7 @@ def test_cli_init_without_name_runs_guided_wizard(tmp_path: Path) -> None:
     assert "Customize rubric criteria" in result.output
     assert (tmp_path / "AGENTS.md").exists()
     assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    _assert_codex_curator_skill(tmp_path)
 
 
 def test_cli_init_guided_wizard_uses_detected_agent_as_default(
@@ -1401,6 +1551,7 @@ def test_cli_init_guided_wizard_uses_detected_agent_as_default(
     assert "Detected current client: codex" in result.output
     assert "Installed adapters: generic, codex" in result.output
     assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    _assert_codex_curator_skill(tmp_path)
     assert not (tmp_path / "CLAUDE.md").exists()
 
 
@@ -1418,6 +1569,7 @@ def test_cli_init_guided_wizard_keeps_all_available_with_footprint_warning(
     assert "all installs every built-in adapter integration" in result.output
     assert "Installed adapters: generic, codex, claude, cursor, copilot, gemini, opencode" in result.output
     assert (tmp_path / "CLAUDE.md").exists()
+    _assert_codex_curator_skill(tmp_path)
 
 
 def test_cli_init_mcp_hint_uses_root_aware_project_python_command(tmp_path: Path) -> None:
@@ -1495,6 +1647,7 @@ def test_cli_init_can_generate_agent_specific_instructions(tmp_path: Path) -> No
     assert result.exit_code == 0
     assert (tmp_path / "AGENTS.md").exists()
     assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    _assert_codex_curator_skill(tmp_path)
 
     policy = (tmp_path / ".p2p" / "agent-policy.yml").read_text(encoding="utf-8")
     assert "missing_primitive_behavior: stop_and_report" in policy
@@ -1515,6 +1668,7 @@ def test_cli_init_without_detection_falls_back_to_all_agent_integrations(tmp_pat
     assert (tmp_path / "AGENTS.md").exists()
     assert (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").exists()
     assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    _assert_codex_curator_skill(tmp_path)
     assert (tmp_path / "CLAUDE.md").exists()
     assert (tmp_path / ".cursor" / "rules" / "p2p.mdc").exists()
     assert (tmp_path / ".github" / "copilot-instructions.md").exists()
@@ -1557,6 +1711,7 @@ def test_cli_init_with_detected_agent_installs_generic_plus_detected_adapter(tmp
     assert "This does not make codex the project identity" in result.output
     assert (tmp_path / "AGENTS.md").exists()
     assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    _assert_codex_curator_skill(tmp_path)
     assert not (tmp_path / "CLAUDE.md").exists()
     registry = yaml.safe_load((tmp_path / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
     assert set(registry["adapters"]) == {"generic", "codex"}
@@ -1568,6 +1723,8 @@ def test_cli_init_narrow_agent_still_includes_generic(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert (tmp_path / "AGENTS.md").exists()
     assert (tmp_path / ".cursor" / "rules" / "p2p.mdc").exists()
+    assert not (tmp_path / ".agents" / "skills" / "p2p-project-curator" / "SKILL.md").exists()
+    assert not (tmp_path / ".codex" / "skills" / "p2p-project-curator" / "SKILL.md").exists()
     assert not (tmp_path / "CLAUDE.md").exists()
     registry = yaml.safe_load((tmp_path / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
     assert set(registry["adapters"]) == {"generic", "cursor"}
@@ -1791,6 +1948,7 @@ def test_cli_agent_instructions_refresh_adds_profiles_without_removing_existing(
     assert result.exit_code == 0
     assert "Agent instructions refreshed" in result.output
     assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    _assert_codex_curator_skill(tmp_path)
     assert (tmp_path / "CLAUDE.md").exists()
 
     policy = (tmp_path / ".p2p" / "agent-policy.yml").read_text(encoding="utf-8")

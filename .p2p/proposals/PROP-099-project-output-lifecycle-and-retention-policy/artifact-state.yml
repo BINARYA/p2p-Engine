@@ -1,0 +1,180 @@
+proposal_artifacts:
+  schema_version: 1
+  proposal_id: PROP-099
+  initialized_at: '2026-07-13T10:40:02Z'
+  updated_at: '2026-07-13T11:18:27Z'
+  status: active
+  legacy:
+    state: ''
+    reason: ''
+  artifacts:
+  - id: proposal
+    filename: proposal.md
+    expectation: required
+    status: satisfied
+    reason: proposal.md now defines the human project publication pipeline, goals,
+      non-goals, first slice, validation, PDF renderer boundary, and acceptance criteria.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-07-13T10:40:02Z'
+    updated_at: '2026-07-13T11:17:52Z'
+    history:
+    - at: '2026-07-13T11:17:52Z'
+      actor: local
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: proposal.md now defines the human project publication pipeline, goals,
+        non-goals, first slice, validation, PDF renderer boundary, and acceptance
+        criteria.
+  - id: readiness
+    filename: readiness.yml
+    expectation: required
+    status: satisfied
+    reason: readiness.yml exists and has been refreshed; computed score remains advisory
+      and conservative but the artifact is present.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-07-13T10:40:02Z'
+    updated_at: '2026-07-13T11:17:56Z'
+    history:
+    - at: '2026-07-13T11:17:56Z'
+      actor: local
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: readiness.yml exists and has been refreshed; computed score remains
+        advisory and conservative but the artifact is present.
+  - id: open_questions
+    filename: open-questions.md
+    expectation: required
+    status: satisfied
+    reason: open-questions.md records resolved owner inputs and no blocking remaining
+      questions.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-07-13T10:40:02Z'
+    updated_at: '2026-07-13T11:18:01Z'
+    history:
+    - at: '2026-07-13T11:18:01Z'
+      actor: local
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: open-questions.md records resolved owner inputs and no blocking remaining
+        questions.
+  - id: clarifications
+    filename: clarifications.md
+    expectation: required
+    status: satisfied
+    reason: 'clarifications.md records the owner-resolved scope: full pipeline, first-slice
+      output convention, hybrid responsibility model, and software-spec boundary.'
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - owner_clarification
+    created_at: '2026-07-13T10:40:02Z'
+    updated_at: '2026-07-13T11:18:07Z'
+    history:
+    - at: '2026-07-13T11:18:07Z'
+      actor: local
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: 'clarifications.md records the owner-resolved scope: full pipeline,
+        first-slice output convention, hybrid responsibility model, and software-spec
+        boundary.'
+  - id: findings
+    filename: findings.md
+    expectation: required
+    status: satisfied
+    reason: findings.md identifies the readability gap, confirms direct PDF rendering
+      is insufficient, and supports the hybrid publication architecture.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - governance_policy
+    - compatibility_migration
+    - source_of_truth_memory
+    - high_uncertainty_evidence
+    - owner_clarification
+    created_at: '2026-07-13T10:40:02Z'
+    updated_at: '2026-07-13T11:18:14Z'
+    history:
+    - at: '2026-07-13T11:18:14Z'
+      actor: local
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: findings.md identifies the readability gap, confirms direct PDF rendering
+        is insufficient, and supports the hybrid publication architecture.
+  - id: exploration
+    filename: exploration.md
+    expectation: required
+    status: satisfied
+    reason: exploration.md and separated exploration artifacts define the problem,
+      alternatives, assumptions, risks, scope, and resolved questions.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - high_uncertainty_evidence
+    created_at: '2026-07-13T10:40:02Z'
+    updated_at: '2026-07-13T11:18:18Z'
+    history:
+    - at: '2026-07-13T11:18:18Z'
+      actor: local
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: exploration.md and separated exploration artifacts define the problem,
+        alternatives, assumptions, risks, scope, and resolved questions.
+  - id: impact_map
+    filename: impact-map.yml
+    expectation: required
+    status: satisfied
+    reason: impact-map.yml records affected outputs, project export workflow, curator
+      skill, validation, PDF renderer, software-spec boundary, related proposals,
+      compatibility, risks, and regression tests.
+    source: agent
+    actor: local
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - governance_policy
+    - compatibility_migration
+    - source_of_truth_memory
+    - high_uncertainty_evidence
+    - owner_clarification
+    created_at: '2026-07-13T10:40:02Z'
+    updated_at: '2026-07-13T11:18:27Z'
+    history:
+    - at: '2026-07-13T11:18:27Z'
+      actor: local
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: impact-map.yml records affected outputs, project export workflow, curator
+        skill, validation, PDF renderer, software-spec boundary, related proposals,
+        compatibility, risks, and regression tests.

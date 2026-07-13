@@ -1,0 +1,135 @@
+proposal_questions:
+  schema_version: 1
+  proposal_id: PROP-099
+  initialized_at: '2026-07-13'
+  updated_at: '2026-07-13'
+  updated_by: local
+  groups:
+  - id: QG001
+    gap: owner_questions_resolution
+    state: to_answer
+    priority: high
+    rationale: This determines whether PDF rendering is a later unrelated feature
+      or an explicit stage of the publication pipeline.
+    created_at: '2026-07-13'
+    updated_at: '2026-07-13'
+  questions:
+  - id: Q001
+    group_id: QG001
+    gap: owner_questions_resolution
+    criterion: owner_questions_resolution
+    priority: high
+    state: answered
+    question: Should PROP-099 stop at curated Markdown, or should it define the full
+      human publication pipeline including validation and neutral PDF rendering?
+    rationale: This determines whether PDF rendering is a later unrelated feature
+      or an explicit stage of the publication pipeline.
+    answer: 'Owner confirms that the full publication pipeline can include the neutral
+      PDF in the first slice, provided the flow remains explicitly separated into
+      independently reviewable stages: complete export, curator skill output, publication
+      validation, owner review, and renderer output.'
+    answer_source: owner
+    answered_at: '2026-07-13'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: local
+      created_at: '2026-07-13'
+      updated_by: local
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q002
+    group_id: QG001
+    gap: owner_questions_resolution
+    criterion: owner_questions_resolution
+    priority: high
+    state: answered
+    question: Should the first implementation overwrite outputs/latest/project.md
+      with the curated document?
+    rationale: This controls reversibility and owner review during the first publication
+      slice.
+    answer: 'Owner confirms the conservative first-slice output convention: do not
+      automatically replace outputs/latest/project.md. Keep the complete export separate
+      from project.curated.md so the owner can compare and review before any later
+      promotion.'
+    answer_source: owner
+    answered_at: '2026-07-13'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: local
+      created_at: '2026-07-13'
+      updated_by: local
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q003
+    group_id: QG001
+    gap: owner_questions_resolution
+    criterion: owner_questions_resolution
+    priority: high
+    state: answered
+    question: Should curation be deterministic engine behavior or agentic skill behavior?
+    rationale: This decides where semantic grouping and narrative synthesis belong.
+    answer: Owner confirms the hybrid solution. The agentic curation stage is expected
+      to be the highest-impact part for producing a comprehensible project document
+      with a robust narrative thread around the selected vertical and its specific
+      characteristics. Deterministic preparation, validation, and rendering should
+      bound and review the curator output, not replace the semantic editorial work.
+    answer_source: owner
+    answered_at: '2026-07-13'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: local
+      created_at: '2026-07-13'
+      updated_by: local
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.

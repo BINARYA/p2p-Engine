@@ -105,6 +105,15 @@ from p2p_engine.services.project_initialization import (
     ProjectInitializationService,
     normalize_repository_mode as _normalize_repository_mode,
 )
+from p2p_engine.services.project_publication import (
+    ProjectPublicationImportResult,
+    ProjectPublicationPrepareResult,
+    ProjectPublicationReviewResult,
+    ProjectPublicationService,
+    ProjectPublicationStatus,
+)
+from p2p_engine.services.project_publication_rendering import PublicationRenderResult
+from p2p_engine.services.project_publication_validation import PublicationValidationResult
 from p2p_engine.services.project_state import ProjectBriefPrompt, ProjectStateService, ProjectStateStatus
 from p2p_engine.services.proposal_branches import (
     ProposalBranchDetail,
@@ -211,6 +220,7 @@ class P2PWorkspace:
         self._project_interaction_style_service_instance: ProjectInteractionStyleService | None = None
         self._project_initialization_service_instance: ProjectInitializationService | None = None
         self._project_maturity_service_instance: ProjectMaturityService | None = None
+        self._project_publication_service_instance: ProjectPublicationService | None = None
         self._project_vertical_service_instance: ProjectVerticalService | None = None
         self._project_state_service_instance: ProjectStateService | None = None
         self._next_action_service_instance: NextActionService | None = None
@@ -662,6 +672,18 @@ class P2PWorkspace:
                 project_definition_view=self.project_definition_view,
             )
         return self._visible_project_export_service_instance
+
+    def _project_publication_service(self) -> ProjectPublicationService:
+        if self._project_publication_service_instance is None:
+            self._project_publication_service_instance = ProjectPublicationService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                export_visible_project=self.export_visible_project_definition,
+                accepted_proposals=self._registry_record_builder_service().accepted_proposals,
+                project_vertical_lock_status=self.project_vertical_lock_status,
+                project_definition_view=self.project_definition_view,
+            )
+        return self._project_publication_service_instance
 
     def _work_planning_service(self) -> WorkPlanningService:
         if self._work_planning_service_instance is None:
@@ -1543,6 +1565,35 @@ class P2PWorkspace:
 
     def visible_project_definition_export_status(self) -> VisibleProjectExportStatus:
         return self._visible_project_export_service().status()
+
+    def prepare_project_publication(self) -> ProjectPublicationPrepareResult:
+        self._ensure_runtime_write_allowed("project_publication_prepare")
+        return self._project_publication_service().prepare()
+
+    def import_project_publication(self, source: Path) -> ProjectPublicationImportResult:
+        self._ensure_runtime_write_allowed("project_publication_import")
+        return self._project_publication_service().import_curated(source)
+
+    def validate_project_publication(self) -> PublicationValidationResult:
+        self._ensure_runtime_write_allowed("project_publication_validate")
+        return self._project_publication_service().validate()
+
+    def render_project_publication(self) -> PublicationRenderResult:
+        self._ensure_runtime_write_allowed("project_publication_render")
+        return self._project_publication_service().render()
+
+    def review_project_publication(
+        self,
+        *,
+        status: str,
+        reviewer: str = "owner",
+        notes: list[str] | None = None,
+    ) -> ProjectPublicationReviewResult:
+        self._ensure_runtime_write_allowed("project_publication_review")
+        return self._project_publication_service().review(status=status, reviewer=reviewer, notes=notes)
+
+    def project_publication_status(self) -> ProjectPublicationStatus:
+        return self._project_publication_service().status()
 
     def project_verticals(self) -> list[VerticalListItem]:
         return self._project_vertical_service().list_verticals()

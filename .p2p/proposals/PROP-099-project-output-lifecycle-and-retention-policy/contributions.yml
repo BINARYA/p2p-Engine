@@ -1,0 +1,121 @@
+contributions:
+- id: C001
+  type: constraint
+  author: local
+  relevance_hint: high
+  text: 'Scope refinement: this proposal should not change the fact that .p2p is the
+    source of truth. It should govern derived visible outputs, their metadata, review
+    retention, pruning policy, and agent cleanup guidance. It should remain compatible
+    with PROP-083 and should not delete existing tracked outputs without an explicit
+    owner-approved migration or retention decision.'
+- id: C002
+  type: scope_boundary
+  author: local
+  relevance_hint: high
+  text: 'Title and scope refinement: the current scaffold title emphasizes lifecycle
+    and retention, but the intended proposal scope is project output curation and
+    readable publication. A better working title is Project Output Curation and Readable
+    Publication Pipeline. Retention and cleanup are secondary compatibility concerns,
+    not the main problem.'
+- id: C003
+  type: alternative
+  author: local
+  relevance_hint: high
+  text: 'Alternatives considered: A) render the complete export directly to PDF; rejected
+    because it preserves proposal-first structure and only formats an unreadable document.
+    B) make the deterministic exporter produce the final curated narrative; rejected
+    for the first slice because semantic grouping, narrative emphasis, and vertical
+    adaptation require editorial judgment. C) use only an agentic skill with no validator;
+    rejected because outputs would vary too much and be hard to trust. D) add only
+    a short summary above the existing export; rejected because it does not solve
+    repetition, proposal dumps, or mixed current/history state. Recommended direction:
+    hybrid pipeline with deterministic export, agentic curation, deterministic publication
+    validation, owner review, and presentation-only PDF rendering.'
+- id: C004
+  type: finding
+  author: local
+  relevance_hint: high
+  text: 'Tradeoff analysis: the hybrid pipeline accepts some agentic variability in
+    exchange for human-quality synthesis, but bounds that variability through publication
+    profiles, fixed output contracts, compact input discipline, quality gates, and
+    owner review. Keeping the complete export separate preserves auditability but
+    introduces another artifact to manage. Including a neutral PDF in the first slice
+    increases scope, but proves the publication pipeline end to end and prevents the
+    false solution of PDF-rendering raw P2P memory. Deferring CLI orchestration keeps
+    the first slice smaller but leaves some manual workflow until later.'
+- id: C005
+  type: risk
+  author: local
+  relevance_hint: high
+  text: 'Risk coverage: risks include producing an elegant PDF from weak content;
+    creating a parallel source of truth in outputs; losing information during synthesis;
+    confusing accepted direction with implemented behavior; forcing a software-shaped
+    outline onto non-software projects; excessive variation between curator runs;
+    renderer code modifying content; and proposal scope becoming too broad. Mitigations:
+    validate curated Markdown before rendering, declare all outputs derived from .p2p,
+    preserve traceability and optional appendices, use explicit evidence-status vocabulary,
+    adapt structure from the active vertical, introduce publication profiles and snapshots,
+    keep the renderer presentation-only, and implement independent slices.'
+- id: C006
+  type: assumption
+  author: local
+  relevance_hint: high
+  text: 'Assumptions: p2p project export remains the deterministic complete export
+    surface; .p2p remains the governed source of truth; the first useful publication
+    output should be reviewed by the owner before replacing any canonical human-facing
+    Markdown; a neutral PDF renderer is sufficient for the first slice; the active
+    vertical and definition state provide enough structure to guide curation; and
+    software specification exports remain a separate lifecycle.'
+- id: C007
+  type: scope_boundary
+  author: local
+  relevance_hint: high
+  text: 'Scope boundaries for slice 1: include a valid installable p2p-project-curator
+    skill, compact-surfaces-first input discipline, adaptive vertical-aware structure,
+    project.curated.md output, minimal deterministic publication validation, neutral
+    PDF output, manual owner review, source traceability, and no direct .p2p mutation.
+    Exclude multiple themes, branding, visual editor, template marketplace, sophisticated
+    appendices, automatic permanent replacement of project.md, fully deterministic
+    curation, OpenSpec or Spec Kit integration, software spec generation, advanced
+    publication packages, and complete MCP parity unless explicitly accepted later.'
+- id: C008
+  type: finding
+  author: local
+  relevance_hint: high
+  text: 'Impact and overlap: PROP-099 is a follow-up to PROP-083, not a replacement.
+    PROP-083 made visible project definition export available under outputs/latest;
+    PROP-099 defines how that complete export becomes a readable publication artifact.
+    It also intersects with PROP-090 because the active vertical and definition state
+    should shape the curated structure, and with PROP-094 because curated project
+    publication must remain separate from governed software-spec lifecycle and downstream
+    exports. Expected implementation areas include repository skill packaging, output
+    conventions, publication validation, PDF rendering, documentation, and later project
+    publish CLI orchestration.'
+- id: C009
+  type: constraint
+  author: local
+  relevance_hint: high
+  text: 'Owner refinement: pipeline stages must stay explicitly separated and independently
+    reviewable. The complete export, curated Markdown, publication validation result,
+    owner review, and rendered PDF should each have clear boundaries so one stage
+    can be inspected or revised without collapsing the whole pipeline.'
+- id: C010
+  type: architectural_principle
+  author: local
+  relevance_hint: high
+  text: 'Owner refinement: the agentic curator is the primary quality driver for a
+    comprehensible output. Deterministic stages provide input discipline, contracts,
+    validation, and rendering, but the robust vertical-specific narrative comes mainly
+    from semantic curation by the p2p-project-curator skill.'
+- id: C011
+  type: scope_boundary
+  author: codex
+  relevance_hint: high
+  text: 'Post-acceptance clarification: the publication pipeline produces one canonical
+    human project output, project.curated.md and project.pdf, representing the project
+    in its selected vertical. The first slice must not create commercial, technical,
+    investor, executive, or audience-specific variants. Audience/depth/theme values
+    are fixed applied manifest values, not a profile-selection API. Curator output
+    should enter the pipeline through an explicit import step bound to source/profile
+    hashes; staleness should be hash-based; owner review approves or rejects the current
+    curated Markdown plus draft PDF package.'

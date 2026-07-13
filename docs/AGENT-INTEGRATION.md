@@ -358,7 +358,7 @@ Adapter file matrix:
 
 ```text
 generic   -> AGENTS.md, .p2p/agent-policy.yml
-codex     -> AGENTS.md, .agents/skills/p2p-project/SKILL.md, .codex/skills/p2p-project/SKILL.md
+codex     -> AGENTS.md, .agents/skills/p2p-project/SKILL.md, .agents/skills/p2p-project-curator/SKILL.md, .codex/skills/p2p-project/SKILL.md, .codex/skills/p2p-project-curator/SKILL.md
 claude    -> AGENTS.md, CLAUDE.md
 cursor    -> AGENTS.md, .cursor/rules/p2p.mdc
 copilot   -> AGENTS.md, .github/copilot-instructions.md
@@ -371,6 +371,10 @@ owns baseline shared files such as `AGENTS.md` and `.p2p/agent-policy.yml`.
 OpenCode is a shared-only adapter today: installing it records OpenCode as a
 consumer of `AGENTS.md`, but P2P does not generate `opencode.json` in the MVP.
 P2P also does not generate `.cursorrules`.
+
+The `p2p-project-curator` instructions are release templates. Project-local
+files under `.agents/`, `.codex/`, or `CLAUDE.md` are generated adapter outputs
+with registry hash/drift tracking, not the template source.
 
 ## Readiness Gap Handling
 

@@ -1110,3 +1110,20 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-068
+  title: Human Project Publication Pipeline
+  status: implementation_ready
+  path: .p2p/changes/CHANGE-068-human-project-publication-pipeline
+  included_proposals:
+  - PROP-099
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

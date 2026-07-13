@@ -107,6 +107,20 @@ def handle_project_tool(
         return {"export": to_jsonable(workspace.export_visible_project_definition())}
     if name == "p2p_project_export_status":
         return {"export_status": to_jsonable(workspace.visible_project_definition_export_status())}
+    if name == "p2p_project_publish_prepare":
+        return {"publication_prepare": to_jsonable(workspace.prepare_project_publication())}
+    if name == "p2p_project_publish_import":
+        return {
+            "publication_import": to_jsonable(
+                workspace.import_project_publication(Path(required(arguments, "source")))
+            )
+        }
+    if name == "p2p_project_publish_validate":
+        return {"publication_validation": to_jsonable(workspace.validate_project_publication())}
+    if name == "p2p_project_publish_render":
+        return {"publication_render": to_jsonable(workspace.render_project_publication())}
+    if name == "p2p_project_publish_status":
+        return {"publication_status": to_jsonable(workspace.project_publication_status())}
     if name == "p2p_project_vertical_list":
         return {
             "verticals": to_jsonable(workspace.project_verticals()),

@@ -27,7 +27,9 @@ def register_project_ops_commands(
     permissions_actor_app: typer.Typer,
     consent_app: typer.Typer,
 ) -> None:
+    project_publish_app = typer.Typer(help="Prepare and inspect canonical human project publication output")
     project_vertical_lock_app = typer.Typer(help="Inspect and repair project vertical lock state")
+    project_app.add_typer(project_publish_app, name="publish")
     project_vertical_app.add_typer(project_vertical_lock_app, name="lock")
 
     @project_app.command("refresh")
@@ -108,6 +110,163 @@ def register_project_ops_commands(
             console.print("  reviews:")
             for path in status.review_paths:
                 console.print(f"    - {path}")
+
+    @project_publish_app.command("prepare")
+    def project_publish_prepare(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Prepare canonical human project publication inputs."""
+        try:
+            result = workspace_for(root).prepare_project_publication()
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"publication_prepare": result})
+            return
+        console.print("[green]Project publication prepared.[/green]")
+        console.print(f"  latest: {result.latest_path}")
+        console.print(f"  exported: {str(result.exported).lower()}")
+        console.print(f"  reused_export: {str(result.reused_export).lower()}")
+        console.print(f"  archived: {result.archived_path or 'none'}")
+        console.print(f"  profile: {result.profile_path}")
+        console.print(f"  curator_input: {result.curator_input_path}")
+        console.print(f"  manifest: {result.manifest_path}")
+        console.print(f"  source_fingerprint_sha256: {result.source_fingerprint_sha256}")
+        console.print(f"  source_sha256: {result.source_sha256}")
+        if result.stale_downstream:
+            console.print("  stale_downstream:")
+            for stage in result.stale_downstream:
+                console.print(f"    - {stage}")
+        else:
+            console.print("  stale_downstream: none")
+
+    @project_publish_app.command("import")
+    def project_publish_import(
+        source: Path = typer.Argument(..., help="Curated Markdown draft to import"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Import externally curated Markdown as the canonical publication draft."""
+        try:
+            result = workspace_for(root).import_project_publication(source)
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"publication_import": result})
+            return
+        console.print("[green]Project publication imported.[/green]")
+        console.print(f"  curated: {result.curated_path}")
+        console.print(f"  imported_from: {result.imported_from}")
+        console.print(f"  manifest: {result.manifest_path}")
+        console.print(f"  curated_sha256: {result.curated_sha256}")
+        console.print(f"  source_fingerprint_sha256: {result.source_fingerprint_sha256}")
+        console.print(f"  source_sha256: {result.source_sha256}")
+        console.print(f"  profile_sha256: {result.profile_sha256}")
+
+    @project_publish_app.command("validate")
+    def project_publish_validate(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Validate canonical human project publication Markdown."""
+        try:
+            result = workspace_for(root).validate_project_publication()
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"publication_validation": result})
+            if result.status == "failed":
+                raise typer.Exit(1)
+            return
+        console.print("Project publication validation")
+        console.print(f"  status: {result.status}")
+        console.print(f"  input: {result.input}")
+        console.print(f"  curated_sha256: {result.curated_sha256 or 'none'}")
+        console.print(f"  profile: {result.profile}")
+        console.print(f"  profile_sha256: {result.profile_sha256 or 'none'}")
+        if not result.findings:
+            console.print("  findings: none")
+        else:
+            console.print("  findings:")
+            for finding in result.findings:
+                line = f" line={finding.line}" if finding.line is not None else ""
+                console.print(f"    - {finding.severity} {finding.code}{line}: {finding.message}")
+        if result.status == "failed":
+            raise typer.Exit(1)
+
+    @project_publish_app.command("render")
+    def project_publish_render(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Render validated canonical publication Markdown to draft PDF."""
+        try:
+            result = workspace_for(root).render_project_publication()
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"publication_render": result})
+            return
+        console.print("[green]Project publication PDF rendered.[/green]")
+        console.print(f"  path: {result.path}")
+        console.print(f"  sha256: {result.sha256}")
+        console.print(f"  curated_sha256: {result.curated_sha256}")
+        console.print(f"  validation_sha256: {result.validation_sha256}")
+        console.print(f"  theme: {result.theme}")
+        console.print(f"  renderer: {result.renderer}")
+
+    @project_publish_app.command("review")
+    def project_publish_review(
+        review_status: str = typer.Option(..., "--status", help="approved or changes_requested"),
+        reviewer: str = typer.Option("owner", "--reviewer", help="Reviewer identity"),
+        note: list[str] | None = typer.Option(None, "--note", help="Review note; may be repeated"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Record owner review for the current Markdown/PDF publication package."""
+        try:
+            result = workspace_for(root).review_project_publication(
+                status=review_status,
+                reviewer=reviewer,
+                notes=note,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"publication_review": result})
+            return
+        console.print("[green]Project publication review recorded.[/green]")
+        console.print(f"  status: {result.status}")
+        console.print(f"  review: {result.review_path}")
+        console.print(f"  reviewer: {result.reviewer}")
+        console.print(f"  curated_sha256: {result.curated_sha256}")
+        console.print(f"  pdf_sha256: {result.pdf_sha256}")
+
+    @project_publish_app.command("status")
+    def project_publish_status(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Show canonical human project publication pipeline status."""
+        status = workspace_for(root).project_publication_status()
+        if _wants_json(output_format):
+            _print_json({"publication_status": status})
+            return
+        console.print("Project publication")
+        console.print(f"  manifest: {status.manifest_path}")
+        console.print(f"  source_fingerprint_sha256: {status.source_fingerprint_sha256}")
+        console.print(f"  approved_for_publication: {str(status.approved_for_publication).lower()}")
+        console.print(f"  validation_status: {status.validation_status}")
+        console.print(f"  render_status: {status.render_status}")
+        console.print(f"  review_status: {status.review_status}")
+        console.print("  stages:")
+        for stage in status.stages:
+            reason = f" ({stage.reason})" if stage.reason else ""
+            console.print(
+                f"    - {stage.name}: {stage.status}{reason} "
+                f"path={stage.path} exists={str(stage.exists).lower()}"
+            )
 
     @project_interaction_style_app.command("show")
     def project_interaction_style_show(

@@ -1,0 +1,97 @@
+schema_version: 1
+baseline_profile: generic
+generated_at: '2026-07-13'
+adapters:
+  claude:
+    status: installed
+    maturity: stable
+    template_version: agent-template-v1
+    capabilities:
+      mcp: supported
+      shell: supported
+      project_instructions: true
+      skill: false
+    files:
+    - path: AGENTS.md
+      shared: true
+      owner: generic
+      managed: true
+      template_id: generic-agents-md-v1
+      sha256: 1d2a8fa5390dda1fc337ba85fd33513a6e6cc70021bdab388e768ff57da3f0fd
+      drift: clean
+    - path: CLAUDE.md
+      shared: false
+      owner: claude
+      managed: true
+      template_id: claude-md-v1
+      sha256: 7a09eab581b538a0a7f43a3b743eb76a0b2d384f7b119e3f2d7a3bbb365eec3f
+      drift: clean
+  codex:
+    status: installed
+    maturity: stable
+    template_version: agent-template-v1
+    capabilities:
+      mcp: supported
+      shell: supported
+      project_instructions: true
+      skill: true
+    files:
+    - path: AGENTS.md
+      shared: true
+      owner: generic
+      managed: true
+      template_id: generic-agents-md-v1
+      sha256: 1d2a8fa5390dda1fc337ba85fd33513a6e6cc70021bdab388e768ff57da3f0fd
+      drift: clean
+    - path: .agents/skills/p2p-project/SKILL.md
+      shared: false
+      owner: codex
+      managed: true
+      template_id: codex-p2p-skill-v1
+      sha256: 7dfdfb5333be7df34c51592804b7c12657d889fd7df3940f2895aaa263db5f46
+      drift: clean
+    - path: .codex/skills/p2p-project/SKILL.md
+      shared: false
+      owner: codex
+      managed: true
+      template_id: codex-legacy-p2p-skill-v1
+      sha256: 8bc16ecc7e82d6d4013affc2c0a4fc13a4c085c3b4550dcc54dbeefe60cb2fef
+      drift: clean
+    - path: .agents/skills/p2p-project-curator/SKILL.md
+      shared: false
+      owner: codex
+      managed: true
+      template_id: codex-p2p-project-curator-skill-v1
+      sha256: 970e0bd407d20ab0562fa29b8dd85eddded8bc6973ef7c142ee89634f91d7683
+      drift: clean
+    - path: .codex/skills/p2p-project-curator/SKILL.md
+      shared: false
+      owner: codex
+      managed: true
+      template_id: codex-legacy-p2p-project-curator-skill-v1
+      sha256: 729ae3a903239b47499b68b5f01e2252b02d4a8b64d35f1d42911de71cc05f06
+      drift: clean
+  generic:
+    status: installed
+    maturity: stable
+    template_version: agent-template-v1
+    capabilities:
+      mcp: supported
+      shell: supported
+      project_instructions: true
+      skill: false
+    files:
+    - path: AGENTS.md
+      shared: true
+      owner: generic
+      managed: true
+      template_id: generic-agents-md-v1
+      sha256: 1d2a8fa5390dda1fc337ba85fd33513a6e6cc70021bdab388e768ff57da3f0fd
+      drift: clean
+    - path: .p2p/agent-policy.yml
+      shared: true
+      owner: generic
+      managed: true
+      template_id: generic-agent-policy-v1
+      sha256: 523aaf3209fff3529b8eae9bb275a08adbac07e163f14ee6a8987636754b28b9
+      drift: clean

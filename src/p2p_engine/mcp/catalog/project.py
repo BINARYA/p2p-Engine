@@ -157,6 +157,44 @@ def tool_definitions() -> list[dict[str, object]]:
             {'root': {'type': 'string'}},
         ),
         _tool(
+            'p2p_project_publish_prepare',
+            (
+                'Write-safe deterministic tool: prepare canonical human project publication '
+                'inputs under outputs/latest. Does not mutate P2P governance state.'
+            ),
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_publish_import',
+            (
+                'Write-safe deterministic tool: import a curated Markdown draft into the '
+                'canonical publication output. Source must be a safe project-root path.'
+            ),
+            {'root': {'type': 'string'}, 'source': {'type': 'string'}},
+            ['source'],
+        ),
+        _tool(
+            'p2p_project_publish_validate',
+            (
+                'Write-safe deterministic tool: validate canonical human project publication '
+                'Markdown and write outputs/latest/publication-validation.yml.'
+            ),
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_publish_render',
+            (
+                'Write-safe deterministic tool: render validated canonical publication Markdown '
+                'to outputs/latest/project.pdf when the optional PDF capability is installed.'
+            ),
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_publish_status',
+            'Read canonical human project publication pipeline status.',
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
             'p2p_project_vertical_list',
             'Read available project vertical packs and active/fallback status.',
             {'root': {'type': 'string'}},

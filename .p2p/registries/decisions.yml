@@ -749,3 +749,10 @@ decisions:
   status: draft
   path: .p2p/proposals/PROP-098-test-impact-and-validation-routing/decision.md
   reason: ''
+- proposal: PROP-099
+  title: Project Output Lifecycle and Retention Policy
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/decision.md
+  reason: Owner accepts the decision-ready human project publication pipeline as the
+    direction for readable, vertical-aware project outputs.

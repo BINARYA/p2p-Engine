@@ -191,6 +191,11 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_project_show",
         "p2p_project_export",
         "p2p_project_export_status",
+        "p2p_project_publish_prepare",
+        "p2p_project_publish_import",
+        "p2p_project_publish_validate",
+        "p2p_project_publish_render",
+        "p2p_project_publish_status",
         "p2p_project_vertical_list",
         "p2p_project_vertical_show",
         "p2p_project_vertical_validate",
@@ -436,6 +441,111 @@ def test_mcp_project_visible_export_flow(tmp_path: Path) -> None:
     status = call_tool("p2p_project_export_status", {"root": str(tmp_path)})
     assert status["export_status"]["latest_exists"] is True
     assert status["export_status"]["latest_path"] == "outputs/latest/project.md"
+
+
+def test_mcp_project_publish_prepare_import_and_status(tmp_path: Path) -> None:
+    runner.invoke(app, ["init", "MCP Project Publication", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Canonical Project Publication",
+            "--problem",
+            "Generated project output is hard to read.",
+            "--goal",
+            "Prepare one canonical human project publication.",
+            "--proposal",
+            "Create a staged publication pipeline above outputs/latest/project.md.",
+            "--acceptance",
+            "A curated publication can be imported.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+
+    prepared = call_tool("p2p_project_publish_prepare", {"root": str(tmp_path)})
+    prepared_again = call_tool("p2p_project_publish_prepare", {"root": str(tmp_path)})
+
+    assert prepared["publication_prepare"]["status"] == "prepared"
+    assert prepared["publication_prepare"]["exported"] is True
+    assert prepared_again["publication_prepare"]["exported"] is False
+    assert not (tmp_path / "outputs" / "review-001").exists()
+
+    draft = tmp_path / "curated-draft.md"
+    draft.write_text(
+        "# MCP Project Publication\n\n"
+        "## Executive Summary\n\n"
+        "The project has one canonical human publication.\n\n"
+        "## Source Of Truth\n\n"
+        "The `.p2p/` directory remains authoritative.\n",
+        encoding="utf-8",
+    )
+    imported = call_tool(
+        "p2p_project_publish_import",
+        {"root": str(tmp_path), "source": str(draft)},
+    )
+    validation = call_tool("p2p_project_publish_validate", {"root": str(tmp_path)})
+    status = call_tool("p2p_project_publish_status", {"root": str(tmp_path)})
+
+    assert imported["publication_import"]["curated_path"] == "outputs/latest/project.curated.md"
+    assert validation["publication_validation"]["status"] == "passed"
+    stages = {stage["name"]: stage for stage in status["publication_status"]["stages"]}
+    assert stages["curated"]["status"] == "ready"
+    assert stages["validation"]["status"] == "ready"
+    assert status["publication_status"]["validation_status"] == "passed"
+    assert status["publication_status"]["approved_for_publication"] is False
+
+
+def test_mcp_project_publish_render_with_fake_renderer(tmp_path: Path, monkeypatch) -> None:
+    def fake_renderer(markdown_text: str, output_path: Path, root: Path) -> str:
+        output_path.write_bytes(b"%PDF-1.4\n% fake mcp publication pdf\n")
+        return "fake-mcp-renderer"
+
+    monkeypatch.setattr("p2p_engine.services.project_publication.render_pdf_with_weasyprint", fake_renderer)
+    runner.invoke(app, ["init", "MCP Project Publication", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "proposal",
+            "create",
+            "Canonical Project Publication",
+            "--problem",
+            "Generated project output is hard to read.",
+            "--goal",
+            "Prepare one canonical human project publication.",
+            "--proposal",
+            "Create a staged publication pipeline above outputs/latest/project.md.",
+            "--acceptance",
+            "A curated publication can be imported.",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    call_tool("p2p_project_publish_prepare", {"root": str(tmp_path)})
+    draft = tmp_path / "curated-draft.md"
+    draft.write_text(
+        "# MCP Project Publication\n\n"
+        "## Executive Summary\n\n"
+        "The project has one canonical human publication for the current project vertical.\n\n"
+        "## Current And Planned State\n\n"
+        "Current and planned work remains traceable to PROP-001.\n\n"
+        "## Source Of Truth\n\n"
+        "The `.p2p/` directory remains authoritative.\n",
+        encoding="utf-8",
+    )
+    call_tool("p2p_project_publish_import", {"root": str(tmp_path), "source": str(draft)})
+    call_tool("p2p_project_publish_validate", {"root": str(tmp_path)})
+
+    rendered = call_tool("p2p_project_publish_render", {"root": str(tmp_path)})
+    status = call_tool("p2p_project_publish_status", {"root": str(tmp_path)})
+
+    assert rendered["publication_render"]["status"] == "rendered"
+    assert rendered["publication_render"]["renderer"] == "fake-mcp-renderer"
+    assert status["publication_status"]["render_status"] == "rendered"
+    assert "p2p_project_publish_review" not in TOOL_NAMES
 
 
 def test_mcp_project_interaction_style_tools(tmp_path: Path) -> None:

@@ -254,6 +254,11 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_project_refresh` | write-safe | yes | no | Refresh generated project definition files. |
 | `p2p_project_export` | write-safe | yes | no | Export the visible human-facing project definition to `outputs/latest/project.md`. |
 | `p2p_project_export_status` | read-only | no | no | Read visible project definition export status and review snapshots. |
+| `p2p_project_publish_prepare` | write-safe | yes | no | Prepare canonical human publication inputs under `outputs/latest/` without mutating governance state. |
+| `p2p_project_publish_import` | write-safe | yes | no | Import a curated Markdown draft from a safe project-root path into `outputs/latest/project.curated.md`. |
+| `p2p_project_publish_validate` | write-safe | yes | no | Validate curated publication Markdown and write `outputs/latest/publication-validation.yml`. |
+| `p2p_project_publish_render` | write-safe | yes | no | Render validated curated Markdown to `outputs/latest/project.pdf` when `p2p-engine[pdf]` is installed. |
+| `p2p_project_publish_status` | read-only | no | no | Read stage-level publication status, staleness, validation/render/review state, and publication approval. |
 | `p2p_project_vertical_list` | read-only | no | no | List internal and project-local vertical packs plus active/fallback state. |
 | `p2p_project_vertical_show` | read-only | no | no | Read one vertical pack, including inherited `base_project` sections. |
 | `p2p_project_vertical_validate` | read-only | no | no | Validate a vertical ID, `vertical.yml`, or pack directory. |
@@ -310,6 +315,10 @@ branches, and token scopes remain the real enforcement layer for remote state.
 Proposal artifact import tools are write-safe content tools. They write only
 fixed proposal artifact targets and never accept, reject, defer, publish,
 merge, finalize, or otherwise decide a proposal.
+
+Project publication MCP tools write only derived files under `outputs/`. They do
+not mutate `.p2p/`, do not run an external curator/model, and do not expose owner
+review in the first slice. Owner publication review remains a CLI/human action.
 
 Use exactly one input mode per call:
 
