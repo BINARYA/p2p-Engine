@@ -1,0 +1,6 @@
+conflicts:
+  - type: none_known
+    proposals:
+      - PROP-060
+    reason: "No mutually exclusive proposal was identified. The main overlap is with PROP-098, but the boundary is explicit: routing decides which tests to run; coverage reports what selected tests exercised."
+    suggested_resolution: "Keep PROP-060 scoped to optional code coverage diagnostics and keep test selection rules in PROP-098."

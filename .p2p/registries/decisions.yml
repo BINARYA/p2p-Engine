@@ -434,10 +434,14 @@ decisions:
     readiness score remaining weak.
 - proposal: PROP-060
   title: Real Test Coverage Reporting
-  outcome: pending
-  status: draft
+  outcome: accepted
+  status: accepted
   path: .p2p/proposals/PROP-060-real-test-coverage-reporting/decision.md
-  reason: ''
+  reason: 'Accepted as Advisory Code Coverage Diagnostics: optional, non-blocking
+    code coverage diagnostics for P2P Engine maintainers. No initial CI gate, fail-under
+    threshold, HTML artifact, default per-change run, test impact routing, or user-facing
+    project evidence coverage is included; deterministic validation routing remains
+    in PROP-098.'
 - proposal: PROP-061
   title: Focused README and Documentation Map
   outcome: accepted
@@ -739,3 +743,9 @@ decisions:
   path: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/decision.md
   reason: Owner accepted runtime contract adoption for legacy projects to close the
     undeclared contract state without manual .p2p edits.
+- proposal: PROP-098
+  title: Test Impact and Validation Routing
+  outcome: pending
+  status: draft
+  path: .p2p/proposals/PROP-098-test-impact-and-validation-routing/decision.md
+  reason: ''

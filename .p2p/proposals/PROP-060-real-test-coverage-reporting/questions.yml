@@ -1,0 +1,307 @@
+proposal_questions:
+  schema_version: 1
+  proposal_id: PROP-060
+  initialized_at: '2026-07-13'
+  updated_at: '2026-07-13'
+  updated_by: codex
+  groups:
+  - id: QG001
+    gap: alternatives_quality
+    state: to_answer
+    priority: high
+    rationale: Readiness requires explicit alternatives before acceptance.
+    created_at: '2026-07-13'
+    updated_at: '2026-07-13'
+  - id: QG002
+    gap: tradeoff_analysis
+    state: to_answer
+    priority: high
+    rationale: The proposal should state why small advisory coverage is preferable
+      to broader enforcement.
+    created_at: '2026-07-13'
+    updated_at: '2026-07-13'
+  - id: QG003
+    gap: risk_coverage
+    state: to_answer
+    priority: high
+    rationale: Coverage metrics are easy to misuse unless the risk is explicit.
+    created_at: '2026-07-13'
+    updated_at: '2026-07-13'
+  - id: QG004
+    gap: assumptions_clarity
+    state: to_answer
+    priority: medium
+    rationale: The proposal should be clear about expected maintainer behavior.
+    created_at: '2026-07-13'
+    updated_at: '2026-07-13'
+  - id: QG005
+    gap: owner_questions_resolution
+    state: to_answer
+    priority: high
+    rationale: The owner clarified that coverage is secondary and must stay separate
+      from routing.
+    created_at: '2026-07-13'
+    updated_at: '2026-07-13'
+  - id: QG006
+    gap: impact_overlap_analysis
+    state: to_answer
+    priority: high
+    rationale: The proposal overlaps with the existing test-tier policy and new routing
+      work.
+    created_at: '2026-07-13'
+    updated_at: '2026-07-13'
+  questions:
+  - id: Q001
+    group_id: QG001
+    gap: alternatives_quality
+    criterion: alternatives_quality
+    priority: high
+    state: applied
+    question: Which alternatives were considered for code coverage reporting?
+    rationale: Readiness requires explicit alternatives before acceptance.
+    answer: 'Three alternatives were considered: keep no code coverage tooling and
+      rely only on existing marker-based test tiers; add an advisory terminal coverage
+      diagnostic; or introduce an immediate mandatory coverage threshold. The preferred
+      option is the advisory terminal diagnostic because it adds observability without
+      turning coverage into a misleading quality gate or replacing PROP-098 test routing.'
+    answer_source: owner
+    answered_at: '2026-07-13'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: codex
+      created_at: '2026-07-13'
+      updated_by: codex
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: alternatives.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: readiness.yml
+      action: run_readiness_assess
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q002
+    group_id: QG002
+    gap: tradeoff_analysis
+    criterion: tradeoff_analysis
+    priority: high
+    state: applied
+    question: What tradeoff does the preferred coverage approach make?
+    rationale: The proposal should state why small advisory coverage is preferable
+      to broader enforcement.
+    answer: The preferred approach trades enforcement for low-cost visibility. It
+      gives maintainers a way to inspect unexercised code paths, especially around
+      refactors, while avoiding HTML artifacts, CI gates, fail-under thresholds, and
+      per-change coverage runs. The cost is that it will not decide which tests to
+      run; that responsibility remains with PROP-098.
+    answer_source: owner
+    answered_at: '2026-07-13'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: codex
+      created_at: '2026-07-13'
+      updated_by: codex
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: findings.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: readiness.yml
+      action: run_readiness_assess
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q003
+    group_id: QG003
+    gap: risk_coverage
+    criterion: risk_coverage
+    priority: high
+    state: applied
+    question: What is the main risk of adding code coverage reporting?
+    rationale: Coverage metrics are easy to misuse unless the risk is explicit.
+    answer: 'The main risk is that maintainers or agents misread coverage percentage
+      as a global quality score or as a routing mechanism for validation. Mitigation:
+      document coverage as optional diagnostics only, avoid an initial threshold,
+      avoid generated report artifacts, and explicitly route test selection to PROP-098.'
+    answer_source: owner
+    answered_at: '2026-07-13'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: codex
+      created_at: '2026-07-13'
+      updated_by: codex
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: risks.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q004
+    group_id: QG004
+    gap: assumptions_clarity
+    criterion: assumptions_clarity
+    priority: medium
+    state: applied
+    question: What assumptions does this proposal rely on?
+    rationale: The proposal should be clear about expected maintainer behavior.
+    answer: The proposal assumes that a small development dependency such as pytest-cov
+      is acceptable, that terminal missing-lines output is enough for the first slice,
+      and that maintainers want occasional diagnostic visibility but do not want coverage
+      to become the default validation command after every code change.
+    answer_source: owner
+    answered_at: '2026-07-13'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: codex
+      created_at: '2026-07-13'
+      updated_by: codex
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: assumptions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q005
+    group_id: QG005
+    gap: owner_questions_resolution
+    criterion: owner_questions_resolution
+    priority: high
+    state: applied
+    question: What owner decisions close the scope of PROP-060?
+    rationale: The owner clarified that coverage is secondary and must stay separate
+      from routing.
+    answer: The owner decided that code coverage is useful but relatively secondary,
+      and that the more important concern is deterministic test selection. Therefore
+      PROP-060 remains a small optional diagnostics proposal, while deterministic
+      test impact routing is handled separately by PROP-098.
+    answer_source: owner
+    answered_at: '2026-07-13'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: codex
+      created_at: '2026-07-13'
+      updated_by: codex
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: suggested-scope.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q006
+    group_id: QG006
+    gap: impact_overlap_analysis
+    criterion: impact_overlap_analysis
+    priority: high
+    state: applied
+    question: How does PROP-060 overlap with existing or new testing proposals?
+    rationale: The proposal overlaps with the existing test-tier policy and new routing
+      work.
+    answer: 'PROP-060 builds on the existing marker-based validation tiers and scripts
+      without replacing them. It overlaps most closely with PROP-098, but the boundary
+      is explicit: PROP-060 measures which code was exercised by selected tests, while
+      PROP-098 decides which tests should be selected for a change. User-facing project
+      evidence coverage remains outside both proposals.'
+    answer_source: owner
+    answered_at: '2026-07-13'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-13'
+    audit:
+      created_by: codex
+      created_at: '2026-07-13'
+      updated_by: codex
+      updated_at: '2026-07-13'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.

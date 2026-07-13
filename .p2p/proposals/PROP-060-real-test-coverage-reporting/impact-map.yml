@@ -1,0 +1,30 @@
+impact:
+  proposal: PROP-060
+  features:
+    - internal_test_observability
+    - maintainer_validation_diagnostics
+  commands:
+    - "pytest --cov=src/p2p_engine --cov-report=term-missing"
+    - "./scripts/test-smoke.sh"
+    - "./scripts/test-focused.sh"
+  files:
+    - "pyproject.toml"
+    - "docs/TESTING.md"
+    - "tests/"
+    - "src/p2p_engine/"
+  governance:
+    - "Draft proposal remains advisory until owner accepts it."
+    - "Does not change owner-controlled governance actions."
+    - "Does not change P2P project readiness, decision, choice, Change Set, Work, or registry semantics."
+  project_artifacts:
+    - "Adds or updates testing documentation for an optional terminal coverage diagnostic."
+    - "Does not add generated coverage reports, HTML reports, or persistent coverage artifacts in the first slice."
+    - "Does not change user-facing project evidence coverage artifacts."
+  dependencies:
+    - "Adds a small development-only coverage integration such as pytest-cov, or an equivalent standard tool."
+    - "Does not add runtime dependencies for P2P Engine users."
+  risks:
+    - "Coverage percentage may be misread as a global quality score."
+    - "Coverage may be confused with deterministic test impact routing."
+    - "A mandatory threshold introduced too early could incentivize superficial tests."
+    - "Mitigation is to keep the first slice terminal-only, optional, non-blocking, and explicitly separate from PROP-098."

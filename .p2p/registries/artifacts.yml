@@ -4441,6 +4441,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-060
   generated: false
+- path: .p2p/proposals/PROP-060-real-test-coverage-reporting/artifact-state.yml
+  artifact_type: artifact-state.yml
+  owner_type: proposal
+  owner: PROP-060
+  generated: false
 - path: .p2p/proposals/PROP-060-real-test-coverage-reporting/assumptions.md
   artifact_type: assumptions.md
   owner_type: proposal
@@ -4453,6 +4458,11 @@ artifacts:
   generated: false
 - path: .p2p/proposals/PROP-060-real-test-coverage-reporting/comments.yml
   artifact_type: comments.yml
+  owner_type: proposal
+  owner: PROP-060
+  generated: false
+- path: .p2p/proposals/PROP-060-real-test-coverage-reporting/conflict-analysis.yml
+  artifact_type: conflict-analysis.yml
   owner_type: proposal
   owner: PROP-060
   generated: false
@@ -4481,6 +4491,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-060
   generated: false
+- path: .p2p/proposals/PROP-060-real-test-coverage-reporting/impact-map.yml
+  artifact_type: impact-map.yml
+  owner_type: proposal
+  owner: PROP-060
+  generated: false
 - path: .p2p/proposals/PROP-060-real-test-coverage-reporting/open-questions.md
   artifact_type: open-questions.md
   owner_type: proposal
@@ -4488,6 +4503,21 @@ artifacts:
   generated: false
 - path: .p2p/proposals/PROP-060-real-test-coverage-reporting/proposal.md
   artifact_type: proposal.md
+  owner_type: proposal
+  owner: PROP-060
+  generated: false
+- path: .p2p/proposals/PROP-060-real-test-coverage-reporting/questions.yml
+  artifact_type: questions.yml
+  owner_type: proposal
+  owner: PROP-060
+  generated: false
+- path: .p2p/proposals/PROP-060-real-test-coverage-reporting/readiness.yml
+  artifact_type: readiness.yml
+  owner_type: proposal
+  owner: PROP-060
+  generated: false
+- path: .p2p/proposals/PROP-060-real-test-coverage-reporting/related-proposals.yml
+  artifact_type: related-proposals.yml
   owner_type: proposal
   owner: PROP-060
   generated: false
@@ -4713,6 +4743,11 @@ artifacts:
   generated: false
 - path: .p2p/proposals/PROP-063-public-documentation-gap-closure/proposal.md
   artifact_type: proposal.md
+  owner_type: proposal
+  owner: PROP-063
+  generated: false
+- path: .p2p/proposals/PROP-063-public-documentation-gap-closure/readiness.yml
+  artifact_type: readiness.yml
   owner_type: proposal
   owner: PROP-063
   generated: false
@@ -7695,6 +7730,61 @@ artifacts:
   artifact_type: tasks.yml
   owner_type: proposal
   owner: PROP-097
+  generated: false
+- path: .p2p/proposals/PROP-098-test-impact-and-validation-routing/ai-digest.md
+  artifact_type: ai-digest.md
+  owner_type: proposal
+  owner: PROP-098
+  generated: false
+- path: .p2p/proposals/PROP-098-test-impact-and-validation-routing/artifact-state.yml
+  artifact_type: artifact-state.yml
+  owner_type: proposal
+  owner: PROP-098
+  generated: false
+- path: .p2p/proposals/PROP-098-test-impact-and-validation-routing/clarifications.md
+  artifact_type: clarifications.md
+  owner_type: proposal
+  owner: PROP-098
+  generated: false
+- path: .p2p/proposals/PROP-098-test-impact-and-validation-routing/comments.yml
+  artifact_type: comments.yml
+  owner_type: proposal
+  owner: PROP-098
+  generated: false
+- path: .p2p/proposals/PROP-098-test-impact-and-validation-routing/contributions.yml
+  artifact_type: contributions.yml
+  owner_type: proposal
+  owner: PROP-098
+  generated: false
+- path: .p2p/proposals/PROP-098-test-impact-and-validation-routing/decision.md
+  artifact_type: decision.md
+  owner_type: proposal
+  owner: PROP-098
+  generated: false
+- path: .p2p/proposals/PROP-098-test-impact-and-validation-routing/execution-plan.md
+  artifact_type: execution-plan.md
+  owner_type: proposal
+  owner: PROP-098
+  generated: false
+- path: .p2p/proposals/PROP-098-test-impact-and-validation-routing/proposal.md
+  artifact_type: proposal.md
+  owner_type: proposal
+  owner: PROP-098
+  generated: false
+- path: .p2p/proposals/PROP-098-test-impact-and-validation-routing/questions.yml
+  artifact_type: questions.yml
+  owner_type: proposal
+  owner: PROP-098
+  generated: false
+- path: .p2p/proposals/PROP-098-test-impact-and-validation-routing/readiness.yml
+  artifact_type: readiness.yml
+  owner_type: proposal
+  owner: PROP-098
+  generated: false
+- path: .p2p/proposals/PROP-098-test-impact-and-validation-routing/tasks.yml
+  artifact_type: tasks.yml
+  owner_type: proposal
+  owner: PROP-098
   generated: false
 - path: .p2p/changes/CHANGE-001-managed-git-adapter-and-change-set-model/change.md
   artifact_type: change.md

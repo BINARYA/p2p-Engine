@@ -88,3 +88,14 @@ next_action_log:
   closed_reason: PROP-089 is already accepted and implemented; the review next action
     is stale.
   closed_on: '2026-07-12'
+- id: NEXT-005
+  priority: medium
+  kind: define_scope
+  target: provider-pr-mr-adapter
+  reason: Core request-review currently records provider-agnostic handoff metadata
+    only; opening GitHub PRs or GitLab MRs should be a separate adapter decision.
+  command: decide whether provider PR/MR automation belongs in a future adapter proposal
+  status: completed
+  closed_reason: Owner decided not to pursue provider PR/MR automation now; revisit
+    when reviewing the internal Git architecture.
+  closed_on: '2026-07-13'

@@ -1758,28 +1758,38 @@ proposals:
   - tasks.yml
 - id: PROP-060
   title: Real Test Coverage Reporting
-  status: draft
+  status: accepted
   path: .p2p/proposals/PROP-060-real-test-coverage-reporting
-  summary: Introduce pytest coverage reporting, likely via pytest-cov, and document
-    a standard command such as python -m pytest --cov=src/p2p_engine tests/. Use the
-    first report to identify gaps in proposal lifecycle, governance decisions, Change
-    Sets, Work lifecycle, validation, assessment, MCP tools, and file I/O resilience.
-    Define an initial target after measuring the baseline.
+  summary: 'Introduce a small code coverage diagnostic for P2P Engine maintainers.
+    Add pytest-cov, or an equivalent standard integration, as a development dependency
+    and document a terminal missing-lines report for src/p2p_engine. The preferred
+    first command is a simple terminal report such as pytest --cov=src/p2p_engine
+    --cov-report=term-missing, optionally aligned with the existing focused and full
+    validation tiers. The first slice is advisory only: no fail-under threshold, no
+    HTML report, no generated artifact requirement, and no CI gate. Coverage output
+    should be used occasionally, especially before or after refactors or when a new
+    runtime area appears, to identify places where focused tests should be improved.'
   decision_file: .p2p/proposals/PROP-060-real-test-coverage-reporting/decision.md
   related_changes: []
   source_files:
   - ai-digest.md
   - alternatives.md
+  - artifact-state.yml
   - assumptions.md
   - clarifications.md
   - comments.yml
+  - conflict-analysis.yml
   - contributions.yml
   - decision.md
   - execution-plan.md
   - exploration.md
   - findings.md
+  - impact-map.yml
   - open-questions.md
   - proposal.md
+  - questions.yml
+  - readiness.yml
+  - related-proposals.yml
   - risks.md
   - suggested-scope.md
   - tasks.yml
@@ -1858,6 +1868,7 @@ proposals:
   - findings.md
   - open-questions.md
   - proposal.md
+  - readiness.yml
   - risks.md
   - suggested-scope.md
   - tasks.yml
@@ -4560,4 +4571,32 @@ proposals:
   - readiness.yml
   - risks.md
   - suggested-scope.md
+  - tasks.yml
+- id: PROP-098
+  title: Test Impact and Validation Routing
+  status: draft
+  path: .p2p/proposals/PROP-098-test-impact-and-validation-routing
+  summary: 'Introduce a Test Impact and Validation Routing model for P2P Engine. The
+    model should map repository areas such as services, CLI command modules, MCP catalogs
+    and handlers, storage/facade code, Git adapters, generated artifact flows, docs,
+    and tests to required validation tiers and representative test targets. The routing
+    should include escalation rules for public CLI/MCP behavior, persisted file schemas,
+    registry or validation behavior, Git/sync/branch side effects, permission or governance
+    semantics, and broad refactors. When impact is uncertain, the route must fall
+    back conservatively to public-contract or full validation. The system should surface
+    a readable rationale, for example: changed files, inferred areas, required commands,
+    skipped broader tiers, and the reason a full suite is or is not needed.'
+  decision_file: .p2p/proposals/PROP-098-test-impact-and-validation-routing/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - artifact-state.yml
+  - clarifications.md
+  - comments.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - proposal.md
+  - questions.yml
+  - readiness.yml
   - tasks.yml

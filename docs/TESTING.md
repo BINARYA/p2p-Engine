@@ -44,6 +44,36 @@ Full validation is the final gate:
 Run the full suite before commit, push, release, merge, or after broad
 refactors.
 
+## Coverage Diagnostics
+
+Coverage is an optional maintainer diagnostic. It shows which
+`src/p2p_engine` files and lines were exercised by a chosen pytest run, but it
+does not measure test quality and does not decide which tests are required after
+a change. Test impact routing is a separate concern.
+
+Use terminal missing-lines output when coverage visibility is useful, especially
+around refactors or newly introduced runtime areas:
+
+```bash
+./scripts/test-smoke.sh --cov=src/p2p_engine --cov-report=term-missing
+```
+
+For focused diagnostics, keep the focused marker expression explicit:
+
+```bash
+.venv/bin/pytest -m "(unit or service or adapter) and not slow" --cov=src/p2p_engine --cov-report=term-missing
+```
+
+For broad diagnostics, add coverage options to the full-suite command:
+
+```bash
+./scripts/test-full.sh --cov=src/p2p_engine --cov-report=term-missing
+```
+
+The first coverage slice is advisory and non-blocking. It intentionally does not
+introduce a fail-under threshold, CI gate, HTML report, XML report, or generated
+coverage artifact. It also does not assess user project evidence coverage.
+
 ## Markers
 
 - `unit`: pure or near-pure behavior with no public CLI/MCP boundary.

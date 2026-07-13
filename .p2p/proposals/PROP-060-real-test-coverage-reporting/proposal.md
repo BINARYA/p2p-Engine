@@ -2,37 +2,41 @@
 
 ## Status
 
-`draft`
+`accepted`
 
 ## Problem
 
-The test suite passes, but the project does not currently report real coverage. Without coverage visibility, it is hard to know which core areas are under-tested and whether refactoring or new features are protected.
+P2P Engine has a mature marker-based pytest suite, but it still lacks an occasional code coverage diagnostic. Maintainers cannot easily see which runtime modules or branches are never exercised by a chosen validation tier. This is an internal software-maintenance observability gap for P2P Engine itself, not a project-design evidence gap for users designing non-software projects with P2P Engine.
 
 ## Context
 
-The project has many tests and currently passes the suite, but coverage metrics are not part of the normal verification workflow. Adding coverage reporting should improve confidence without changing runtime behavior.
+Code coverage, test impact routing, and project evidence coverage are separate concerns. PROP-060 is limited to code coverage diagnostics for P2P Engine maintainers. PROP-098 owns deterministic test impact and validation routing. Future project evidence coverage for user projects, such as checking whether a packaging design has enough evidence for materials, logistics, risk, and acceptance criteria, is also a separate product concern.
 
 ## Goals
 
-- Add real test coverage reporting for the P2P Engine codebase.
-- Identify coverage gaps in core lifecycle areas.
-- Define an initial coverage target and reporting command.
+- Add optional, non-blocking code coverage observability for P2P Engine runtime code.
+- Use terminal coverage output to identify internal modules or branches that need better focused tests.
+- Keep coverage separate from deterministic test routing, project evidence coverage, and release gating.
 
 ## Non-Goals
 
-- Do not rewrite tests broadly in this proposal.
-- Do not block development on a high coverage threshold immediately.
+- Do not implement test impact routing in this proposal; that belongs to PROP-098.
+- Do not measure project-design completeness or evidence coverage for P2P Engine user projects.
+- Do not introduce HTML coverage reports, generated coverage artifacts, or an initial CI fail-under gate.
+- Do not run coverage after every small code change as the default agent behavior.
 
 ## Proposal
 
-Introduce pytest coverage reporting, likely via pytest-cov, and document a standard command such as python -m pytest --cov=src/p2p_engine tests/. Use the first report to identify gaps in proposal lifecycle, governance decisions, Change Sets, Work lifecycle, validation, assessment, MCP tools, and file I/O resilience. Define an initial target after measuring the baseline.
+Introduce a small code coverage diagnostic for P2P Engine maintainers. Add pytest-cov, or an equivalent standard integration, as a development dependency and document a terminal missing-lines report for src/p2p_engine. The preferred first command is a simple terminal report such as pytest --cov=src/p2p_engine --cov-report=term-missing, optionally aligned with the existing focused and full validation tiers. The first slice is advisory only: no fail-under threshold, no HTML report, no generated artifact requirement, and no CI gate. Coverage output should be used occasionally, especially before or after refactors or when a new runtime area appears, to identify places where focused tests should be improved.
 
 ## Acceptance Criteria
 
-- Coverage tooling is selected and documented.
-- A coverage command can be run locally.
-- The baseline coverage percentage is recorded.
-- Priority coverage gaps are listed for future work.
+- pytest accepts the chosen coverage options locally through the development dependency.
+- A documented terminal command produces a missing-lines coverage report for src/p2p_engine.
+- The documentation states that coverage is diagnostic, optional, and non-blocking in the first slice.
+- No initial fail-under threshold, HTML report, generated coverage artifact, or CI gate is introduced.
+- The proposal explicitly points test impact routing to PROP-098 and does not claim to solve validation selection.
+- Existing smoke and focused validation scripts continue to pass.
 
 ## Decision
 

@@ -1,11 +1,4 @@
 next_actions:
-- id: NEXT-005
-  priority: medium
-  kind: define_scope
-  target: provider-pr-mr-adapter
-  reason: Core request-review currently records provider-agnostic handoff metadata
-    only; opening GitHub PRs or GitLab MRs should be a separate adapter decision.
-  command: decide whether provider PR/MR automation belongs in a future adapter proposal
 - id: NEXT-006
   priority: medium
   kind: review_backlog
