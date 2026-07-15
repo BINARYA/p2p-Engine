@@ -1,0 +1,158 @@
+impact:
+  proposal: PROP-100
+  features:
+    - decision-context-domain
+    - decision-context-source-catalog
+    - decision-context-parsing
+    - decision-context-authority
+    - project-relation-topology
+    - explainable-context-retrieval
+    - semantic-context-budgets
+    - context-performance
+    - project-context
+    - proposal-intake
+    - proposal-artifacts
+    - project-registries
+    - proposal-readiness
+    - proposal-questions
+    - project-governance-precedents
+    - project-definition
+    - project-verticals
+    - work-execution-state
+    - next-actions
+    - cli-rendering
+    - mcp-context
+    - prompt-generation
+    - derived-output-freshness
+    - validation
+  commands:
+    - p2p context
+    - p2p intake prompt
+    - p2p explore prompt
+    - p2p impact prompt
+    - p2p synthesize prompt
+    - p2p registry status
+    - p2p registry refresh
+    - p2p proposal readiness assess
+    - p2p proposal artifact status
+    - p2p proposal questions
+    - p2p next
+    - p2p validate
+  mcp_tools:
+    - p2p_context
+    - p2p_project_context
+    - p2p_registry_show
+    - p2p_proposal_show
+    - p2p_proposal_artifact_status
+    - p2p_proposal_artifact_import
+  files:
+    - src/p2p_engine/core/decision.py
+    - src/p2p_engine/core/decision_context.py
+    - src/p2p_engine/foundation/files.py
+    - src/p2p_engine/foundation/markdown.py
+    - src/p2p_engine/storage/filesystem.py
+    - src/p2p_engine/services/decision_context.py
+    - src/p2p_engine/services/decision_context_sources.py
+    - src/p2p_engine/services/decision_context_extractors.py
+    - src/p2p_engine/services/decision_context_authority.py
+    - src/p2p_engine/services/decision_context_topology.py
+    - src/p2p_engine/services/decision_context_retrieval.py
+    - src/p2p_engine/services/decision_context_freshness.py
+    - src/p2p_engine/services/context_packets.py
+    - src/p2p_engine/services/project_contexts.py
+    - src/p2p_engine/services/registry_records.py
+    - src/p2p_engine/services/registries.py
+    - src/p2p_engine/services/project_state.py
+    - src/p2p_engine/services/project_publication.py
+    - src/p2p_engine/services/proposals.py
+    - src/p2p_engine/services/proposal_decisions.py
+    - src/p2p_engine/services/proposal_artifacts.py
+    - src/p2p_engine/services/proposal_artifact_state.py
+    - src/p2p_engine/services/proposal_review_view.py
+    - src/p2p_engine/services/proposal_questions.py
+    - src/p2p_engine/services/project_verticals.py
+    - src/p2p_engine/services/governance.py
+    - src/p2p_engine/services/changes.py
+    - src/p2p_engine/services/work_planning.py
+    - src/p2p_engine/services/next_actions.py
+    - src/p2p_engine/services/choices.py
+    - src/p2p_engine/services/conflicts.py
+    - src/p2p_engine/services/intake.py
+    - src/p2p_engine/services/validation.py
+    - src/p2p_engine/mcp/handlers/common.py
+    - src/p2p_engine/mcp/handlers/project.py
+    - src/p2p_engine/mcp/catalog/maintenance.py
+    - src/p2p_engine/cli_commands/project_status.py
+    - src/p2p_engine/cli_commands/prompts.py
+    - src/p2p_engine/prompts/explore.py
+    - src/p2p_engine/prompts/impact.py
+    - src/p2p_engine/prompts/synthesize.py
+    - tests/test_decision_context_sources.py
+    - tests/test_decision_context_service.py
+    - tests/test_decision_context_retrieval_service.py
+    - tests/test_decision_context_freshness.py
+    - tests/test_context_packet_service.py
+    - tests/test_project_context_renderer_service.py
+    - tests/test_registry_record_builder_service.py
+    - tests/test_registry_service.py
+    - tests/test_next_actions_service.py
+    - tests/test_project_verticals.py
+    - tests/test_conflict_memory_service.py
+    - tests/test_proposal_artifact_service.py
+    - tests/test_proposal_artifact_state_service.py
+    - tests/test_mcp.py
+    - docs/CLI-GUIDE.md
+    - docs/MCP.md
+    - specs/features/prop-100-decision-context-index/requirements.md
+    - specs/features/prop-100-decision-context-index/design.md
+    - specs/features/prop-100-decision-context-index/tasks.md
+  governance:
+    - Preserves governed artifacts as source of truth according to domain role.
+    - Excludes registries, decision maps, generated narratives, prompts, publications and caches from semantic extraction.
+    - Keeps owner-controlled decisions and controlled apply outside derived retrieval.
+    - Separates canonicality, authority, activation, confidence and completeness.
+    - Treats readiness and artifact state as evidence quality, not decision authority.
+    - Requires CLI and MCP parity and compatibility for non-proposal targets.
+    - Treats PROP-100 as one umbrella specification delivered through independently gated slices.
+  project_artifacts:
+    - proposal.md and decision.md
+    - decisions-map.yml
+    - relations.yml
+    - related-proposals.yml
+    - impact-map.yml
+    - conflict-analysis.yml
+    - choices and choice links
+    - conflicts.yml
+    - Change Set source and relation files
+    - Work manifests
+    - vertical coverage and project definition
+    - decision-precedents.yml
+    - readiness.yml
+    - artifact-state.yml
+    - questions.yml
+    - contributions.yml
+  dependencies:
+    - PROP-012 impact map and conflict memory
+    - PROP-016 project registries
+    - PROP-017 proposal intake and context analysis
+    - PROP-023 next-action recommender
+    - PROP-024 choice blocking and discovery
+    - PROP-025 controlled intake apply workflow
+    - PROP-044 MCP server MVP
+    - PROP-055 token budget and context discipline
+    - PROP-086 artifact-aware readiness
+    - PROP-088 MCP artifact import parity
+    - PROP-089 readiness question state convergence
+    - PROP-096 readiness evidence quality
+    - PROP-099 project output lifecycle
+  risks:
+    - Accidental second source of truth or projection feedback loop.
+    - Stale snapshot retained by a memoized service.
+    - Parser loss or silent malformed-frontmatter fallback.
+    - Incomplete decision lifecycle or false global applicability.
+    - Duplicate or divergent Change Set relation evidence.
+    - Heuristic relations treated as authoritative topology.
+    - Cycles or fan-out causing unstable retrieval.
+    - Repeated scans causing context performance regressions.
+    - Non-deterministic freshness caused by generated_at.
+    - CLI/MCP or non-proposal target compatibility drift.

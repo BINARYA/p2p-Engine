@@ -13,7 +13,9 @@ from p2p_engine import __version__
 from p2p_engine.cli import app
 from p2p_engine.core.contribution import allowed_contribution_type_values
 from p2p_engine.mcp.server import handle_message
+from p2p_engine.mcp.handlers.common import to_jsonable
 from p2p_engine.mcp.tools import TOOL_NAMES, call_tool, tool_definitions
+from p2p_engine.storage.filesystem import P2PWorkspace
 
 runner = CliRunner()
 
@@ -1897,6 +1899,16 @@ def test_mcp_context_returns_compact_packet(tmp_path: Path) -> None:
 
     assert targeted["context"]["target"] == "PROP-001"
     assert targeted["context"]["relevant_artifacts"][0]["command"] == "p2p proposal show PROP-001"
+    nearby = targeted["context"]["nearby_context"]
+    assert nearby["schema_version"] == "decision-context-v1"
+    assert nearby["budget"] == "small"
+    assert nearby["diagnostics"][0]["code"] == "DC-RETRIEVAL-EMPTY"
+    assert nearby == to_jsonable(
+        P2PWorkspace(tmp_path).context_packet(
+            budget="small",
+            target="PROP-001",
+        ).nearby_context
+    )
 
 
 def test_mcp_project_definition_maturity(tmp_path: Path) -> None:
@@ -2042,6 +2054,7 @@ def test_mcp_intake_prompt_and_status(tmp_path: Path) -> None:
     )
 
     assert prompt["intake"]["intake_id"] == "INTAKE-001"
+    assert set(prompt["intake"]) == {"intake_id", "path", "prompt_path"}
     assert (tmp_path / ".p2p" / "intake" / "INTAKE-001" / "intake.prompt.md").exists()
 
     status = call_tool("p2p_intake_status", {"root": str(tmp_path)})
@@ -2366,6 +2379,7 @@ def test_mcp_prompt_tools_generate_prompts_without_importing_outputs(tmp_path: P
     }
     for tool, kind in prompt_tools.items():
         result = call_tool(tool, {"root": str(tmp_path), "proposal_id": "PROP-001"})
+        assert set(result[f"{kind}_prompt"]) == {"path"}
         assert result[f"{kind}_prompt"]["path"] == f".p2p/prompts/PROP-001/{kind}.prompt.md"
         assert (tmp_path / ".p2p" / "prompts" / "PROP-001" / f"{kind}.prompt.md").exists()
 

@@ -94,8 +94,14 @@ class RegistryRecordBuilderService:
             )
         return accepted
 
-    def proposal_records(self) -> list[dict[str, object]]:
+    def proposal_records(
+        self,
+        changes: list[dict[str, object]] | None = None,
+    ) -> list[dict[str, object]]:
         proposals_dir = self.p2p_dir / "proposals"
+        changes_by_proposal = self._changes_by_proposal(
+            changes if changes is not None else self.change_records()
+        )
         records: list[dict[str, object]] = []
         for path in sorted(proposals_dir.iterdir()) if proposals_dir.exists() else []:
             if not path.is_dir():
@@ -111,7 +117,7 @@ class RegistryRecordBuilderService:
                     "path": str(path.relative_to(self.root)),
                     "summary": read_markdown_section(proposal_text, "Proposal") or "",
                     "decision_file": str((path / "decision.md").relative_to(self.root)),
-                    "related_changes": self.changes_for_proposal(proposal_id),
+                    "related_changes": list(changes_by_proposal.get(proposal_id, ())),
                     "source_files": sorted(file.name for file in path.iterdir() if file.is_file()),
                 }
             )
@@ -327,9 +333,21 @@ class RegistryRecordBuilderService:
         return records
 
     def changes_for_proposal(self, proposal_id: str) -> list[str]:
-        related: list[str] = []
-        for change in self.change_records():
+        return list(self._changes_by_proposal(self.change_records()).get(proposal_id, ()))
+
+    @staticmethod
+    def _changes_by_proposal(
+        changes: list[dict[str, object]],
+    ) -> dict[str, tuple[str, ...]]:
+        related: dict[str, list[str]] = {}
+        for change in changes:
             included = change.get("included_proposals", [])
-            if isinstance(included, list) and proposal_id in included:
-                related.append(str(change["id"]))
-        return related
+            if not isinstance(included, list):
+                continue
+            for proposal_id in included:
+                normalized = str(proposal_id)
+                related.setdefault(normalized, []).append(str(change["id"]))
+        return {
+            proposal_id: tuple(sorted(set(change_ids)))
+            for proposal_id, change_ids in sorted(related.items())
+        }

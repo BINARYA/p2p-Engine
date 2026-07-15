@@ -4,6 +4,9 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Protocol
 
+from p2p_engine.core.decision_context import DecisionContextPacket
+from p2p_engine.services.decision_context_rendering import render_nearby_decision_context
+
 
 class RegistryStatusLike(Protocol):
     registries_dir: Path
@@ -38,7 +41,11 @@ class ProjectContextRendererService:
         self.show_registry = show_registry
         self.intake_statuses = intake_statuses
 
-    def render_intake_context(self, registry_status: RegistryStatusLike) -> str:
+    def render_intake_context(
+        self,
+        registry_status: RegistryStatusLike,
+        nearby_context: DecisionContextPacket | None = None,
+    ) -> str:
         lines = [
             "# Intake Context",
             "",
@@ -50,28 +57,19 @@ class ProjectContextRendererService:
             f"- Source changes: {registry_status.changes_count}",
             "",
         ]
-        for registry_name in ("proposals", "changes", "decisions", "relations"):
-            try:
-                view = self.show_registry(registry_name)
-            except ValueError:
-                lines.extend([f"## {registry_name.title()} Registry", "", "Not generated yet.", ""])
-                continue
-            lines.extend([f"## {registry_name.title()} Registry", ""])
-            for record in view.records[:30]:
-                if registry_name in {"proposals", "changes"}:
-                    lines.append(
-                        f"- {record.get('id')}: {record.get('status')} - {record.get('title')}"
-                    )
-                elif registry_name == "decisions":
-                    lines.append(
-                        f"- {record.get('proposal')}: {record.get('outcome')} - {record.get('title')}"
-                    )
-                else:
-                    lines.append(
-                        f"- {record.get('source')} -> {record.get('target')} ({record.get('type')})"
-                    )
-            if not view.records:
-                lines.append("- None.")
+        if nearby_context is None:
+            lines.extend(
+                [
+                    "## Nearby Decision Context",
+                    "",
+                    "Not available for this renderer call. No registry-order fallback is used.",
+                    "",
+                ]
+            )
+        else:
+            lines.append(
+                render_nearby_decision_context(nearby_context, phase="intake").rstrip()
+            )
             lines.append("")
         overview = _read_optional(self.p2p_dir / "project" / "overview.md")
         if overview:

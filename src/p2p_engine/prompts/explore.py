@@ -46,6 +46,6 @@ def render_explore_prompt(context: dict[str, str]) -> str:
         f"{context['contributions']}\n\n"
         "## Comments\n\n"
         f"{context['comments']}\n\n"
+        f"{context.get('nearby_decision_context', '').strip() or '## Nearby Decision Context\n\nNot available.'}\n\n"
         f"{render_governance_context(context)}\n"
     )
-

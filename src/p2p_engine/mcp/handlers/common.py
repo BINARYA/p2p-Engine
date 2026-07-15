@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import asdict, is_dataclass
+from collections.abc import Mapping
+from dataclasses import fields, is_dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -31,11 +33,17 @@ def optional_string_list(arguments: dict[str, Any], name: str) -> list[str] | No
 
 
 def to_jsonable(value: Any) -> Any:
+    if isinstance(value, Enum):
+        return to_jsonable(value.value)
     if is_dataclass(value):
-        return to_jsonable(asdict(value))
+        return {
+            field.name: to_jsonable(getattr(value, field.name))
+            for field in fields(value)
+            if not field.name.startswith("_")
+        }
     if isinstance(value, Path):
         return value.as_posix()
-    if isinstance(value, dict):
+    if isinstance(value, Mapping):
         return {str(key): to_jsonable(item) for key, item in value.items()}
     if isinstance(value, (list, tuple)):
         return [to_jsonable(item) for item in value]

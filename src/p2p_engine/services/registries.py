@@ -32,6 +32,7 @@ RegistryRecordsFromProposalsChanges = Callable[
     [list[dict[str, object]], list[dict[str, object]]],
     list[dict[str, object]],
 ]
+RegistryRecordsWithChanges = Callable[[list[dict[str, object]]], list[dict[str, object]]]
 
 
 REGISTRY_DEFINITIONS: dict[str, dict[str, str]] = {
@@ -60,6 +61,7 @@ class RegistryService:
         relation_records: RegistryRecordsFromProposalsChanges,
         artifact_records: RegistryRecordsFromProposalsChanges,
         readiness_records: RegistryRecordsFromProposals,
+        proposal_records_with_changes: RegistryRecordsWithChanges | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -72,6 +74,7 @@ class RegistryService:
         self.relation_records = relation_records
         self.artifact_records = artifact_records
         self.readiness_records = readiness_records
+        self.proposal_records_with_changes = proposal_records_with_changes
 
     def refresh(self) -> list[Path]:
         registries_dir = self.p2p_dir / "registries"
@@ -81,8 +84,12 @@ class RegistryService:
         if duplicates:
             raise ValueError(self.duplicate_message(duplicates))
 
-        proposals = self.proposal_records()
         changes = self.change_records()
+        proposals = (
+            self.proposal_records_with_changes(changes)
+            if self.proposal_records_with_changes is not None
+            else self.proposal_records()
+        )
         records_by_name = {
             "proposals": proposals,
             "decisions": self.decision_records(proposals),
@@ -137,8 +144,14 @@ class RegistryService:
                 }
             )
 
-        proposals_count = len(self.proposal_records())
-        changes_count = len(self.change_records())
+        changes = self.change_records()
+        proposals = (
+            self.proposal_records_with_changes(changes)
+            if self.proposal_records_with_changes is not None
+            else self.proposal_records()
+        )
+        proposals_count = len(proposals)
+        changes_count = len(changes)
         proposals_file = registries_dir / REGISTRY_DEFINITIONS["proposals"]["filename"]
         changes_file = registries_dir / REGISTRY_DEFINITIONS["changes"]["filename"]
         if proposals_file.exists():

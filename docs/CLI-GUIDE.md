@@ -67,6 +67,8 @@ Typical first checks:
 p2p status
 p2p runtime status
 p2p context --budget small
+p2p context --target PROP-001 --budget small
+p2p context --target PROP-001 --budget medium --format json
 p2p validate
 p2p registry refresh
 p2p next
@@ -183,6 +185,17 @@ p2p next refresh
 
 Completed and retired curated actions are moved to
 `.p2p/project/next-actions-log.yml`.
+
+Generated choice actions use canonical project-choice nodes and normalized
+relations. Proposal-local votes are evidence attached to a proposal and never
+become project choices. Active `choice -> blocks -> proposal/change` relations
+retain highest precedence; decided choices and missing relation targets do not
+produce resolution actions. Change Set status still comes from its lifecycle
+reader, while included-proposal context comes from normalized relations.
+
+`.p2p/registries/relations.yml` remains a backward-compatible generated
+projection. It is not a semantic source for decision context or next actions;
+editing it cannot change normalized topology.
 
 ## 2. Define Project Verticals And Capisaldi
 
@@ -386,6 +399,37 @@ Next actions:
   ...
 ```
 
+For a valid `PROP-*` target, the packet also contains versioned
+`nearby_context`. It ranks only relevant proposal/decision/choice context and
+reports the source fingerprint, completeness, score reasons, evidence and
+truncation counts. `small` is direct and compact; `medium` can include one
+bounded topology hop, qualifiers, non-goals and historical alternatives.
+Empty retrieval is explicit and never falls back to the first registry records.
+
+Source and semantic fingerprints are content/policy identities, not timestamps.
+They change when an expected source appears, disappears or changes bytes, or
+when extractor/authority/relation policy versions change. Retrieval and budget
+policy versions identify the selected packet semantics. Ordinary context,
+intake and prompt requests rebuild in memory and write no decision-context
+manifest or cache.
+
+Text renders the strongest reason for each selected owner. `--format yaml` and
+`--format json` expose the same service-selected structure without reranking.
+No-target, `CHANGE-*`, `CHOICE-*` and `WORK-*` contexts keep nearby retrieval
+disabled.
+
+### Decision-Context Source Boundary
+
+The decision-context index is a derived, read-only view. Canonical proposal and
+decision Markdown, governed proposal artifacts, project choices/conflicts,
+Change Set links, Work manifests, vertical coverage and bounded governance or
+project-definition sources provide evidence. `.p2p/` remains authoritative.
+
+Generated registries (including `relations.yml`), `decisions-map.yml`, project
+briefs and narratives, generated prompts, `outputs/` publications and any future
+cache are excluded from semantic extraction. They may consume the index but can
+never feed their own projection back into it.
+
 ## 4. Capture A Rough Idea
 
 Use intake when the input is messy, overlapping, or not ready to become a
@@ -397,7 +441,18 @@ p2p intake status
 ```
 
 The prompt workflow creates an intake folder and a prompt for human or AI
-analysis. Import and apply steps are controlled:
+analysis. Its semantic project section is selected from the raw idea with the
+versioned `medium` decision-context budget. Registry status and project overview
+remain separate metadata; proposal, decision and relation registries are not
+sampled by ID or file order. A generic or unsupported idea produces an explicit
+empty neighborhood instead of unrelated records.
+
+`explore`, `impact` and `synthesize` prompts use the same bounded retrieval for
+their proposal target. Exploration receives nearby constraints, alternatives
+and evidence; impact receives normalized selected relations and distinguishes
+heuristic retrieval signals from topology edges; synthesis receives
+authoritative constraints, decided choices and historical alternatives. These
+sections are read-only prompt evidence. Import and apply steps remain controlled:
 
 ```bash
 p2p intake import INTAKE-001 intake-output/

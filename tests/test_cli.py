@@ -1496,6 +1496,8 @@ def test_cli_context_target_limits_artifact_details(tmp_path: Path) -> None:
     assert "target: PROP-001" in result.output
     assert "p2p proposal show PROP-001" in result.output
     assert "long problem statement" not in result.output
+    assert "Nearby decision context:" in result.output
+    assert "none: no_relevant_context" in result.output
 
     result = runner.invoke(
         app,
@@ -1516,6 +1518,29 @@ def test_cli_context_target_limits_artifact_details(tmp_path: Path) -> None:
     payload = yaml.safe_load(result.output)
     assert payload["target"] == "PROP-001"
     assert payload["relevant_artifacts"][0]["problem"].startswith("This is a long problem")
+    assert payload["nearby_context"]["schema_version"] == "decision-context-v1"
+    assert payload["nearby_context"]["budget"] == "medium"
+    assert payload["nearby_context"]["empty_reason"] == "no_relevant_context"
+    assert payload["nearby_context"]["diagnostics"][0]["code"] == "DC-RETRIEVAL-EMPTY"
+
+    result = runner.invoke(
+        app,
+        [
+            "context",
+            "--target",
+            "PROP-001",
+            "--budget",
+            "small",
+            "--format",
+            "json",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0
+    json_payload = json.loads(result.output)
+    assert json_payload["nearby_context"]["budget"] == "small"
+    assert json_payload["nearby_context"]["schema_version"] == "decision-context-v1"
 
 
 def test_cli_init_without_name_runs_guided_wizard(tmp_path: Path) -> None:

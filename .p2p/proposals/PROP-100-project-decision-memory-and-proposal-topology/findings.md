@@ -1,0 +1,27 @@
+# Findings
+
+- The original diagnosis remains valid: information exists in governed artifacts but is lost or underused by derived registries, contexts and prompts.
+- `decisions-map.yml` and `relations.yml` are lossy projections and must be excluded from semantic extraction to avoid feedback loops.
+- Current first-N selection is not retrieval and cannot explain why a proposal or decision is relevant.
+- `ContextPacketService` composes multiple global summary paths, and registry construction can rebuild Change Set records per proposal.
+- The performance problem is not only elapsed time: repeated discovery, reads and scans require structural counters and an integration gate.
+- `foundation/markdown.py` has narrow section parsing and does not preserve robust fragment spans or malformed-frontmatter diagnostics.
+- Hash and parse must use the same captured bytes; helpers that reopen a path inside one extraction session can produce duplicate I/O or inconsistent evidence.
+- `P2PWorkspace` memoizes services, so request snapshots must not be retained unvalidated by the service object.
+- Proposal status and decision outcome can diverge; the derived view needs diagnostics and source precedence without source repair.
+- The decision lifecycle includes `accepted_with_changes`, `split`, `merged_into_other` and `superseded`, not only accepted/deferred/rejected.
+- Conditional acceptance needs an active qualifier from the decision reason; acceptance status alone is not universal applicability.
+- Decision precedents are an existing project-wide source omitted from the earlier source list.
+- Governance/project-definition constraints require explicit allow-listed extraction rather than generic natural-language interpretation.
+- Proposal review has a wider artifact catalog than artifact-state tracking; absence of artifact-state cannot imply owner confirmation.
+- Readiness, question state and contributions describe quality/history and cannot activate decisions by themselves.
+- Change Set frontmatter and companion relation files can duplicate or diverge and need deterministic reconciliation.
+- Work status is useful execution context but cannot alter proposal decision authority.
+- Relation direction is query-relative; storing inverse edges would duplicate topology and score.
+- Equivalent relation assertions should merge evidence and score once.
+- Retrieval needs a versioned applicability rule so accepted decisions are selected only by explicit relation, declared domain match or qualified lexical evidence.
+- Generic and ubiquitous terms require deterministic suppression to avoid arbitrary proposal neighborhoods.
+- Retrieval must use prebuilt postings and perform zero source reads after index construction.
+- `generated_at` is observational metadata and must not change semantic fingerprints.
+- CLI text, structured output and MCP serialization require one compatibility slice, including unchanged Change/Choice/Work/no-target behavior.
+- A persistent cache remains unproven; cache design must follow measured need in a separate feature.

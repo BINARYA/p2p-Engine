@@ -5,7 +5,9 @@ from pathlib import Path
 import pytest
 import yaml
 
+from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.decision_context_fixtures import project_files
 
 
 def _workspace(root: Path) -> P2PWorkspace:
@@ -44,6 +46,60 @@ def test_intake_lifecycle_service_creates_prompt_and_status(tmp_path: Path) -> N
         encoding="utf-8"
     )
     assert "Do not accept, reject, defer, merge or supersede proposals" in prompt_text
+
+
+def test_intake_uses_relevant_idea_context_without_first_n_or_writeback(tmp_path: Path) -> None:
+    workspace = _workspace(tmp_path)
+    for number in range(1, 31):
+        workspace.create_proposal_with_details(
+            f"Unrelated low identifier {number}",
+            problem=f"Routine archival concern {number}.",
+            proposal=f"Keep archival workflow {number} unchanged.",
+        )
+    relevant = workspace.create_proposal_with_details(
+        "Quasar decision retrieval",
+        problem="Quasar decisions disappear from intake context.",
+        goals=["Preserve quasar constraints."],
+        proposal="Retrieve quasar decisions by semantic proximity.",
+    )
+    workspace.record_decision(
+        relevant.proposal_id,
+        DecisionOutcome.accepted,
+        "Quasar retrieval is the accepted constraint.",
+        "owner",
+    )
+    before = project_files(tmp_path)
+
+    prompt = workspace._intake_lifecycle_service().create_prompt(
+        "Quasar retrieval"
+    )
+
+    after = project_files(tmp_path)
+    context = (tmp_path / prompt.path / "context.md").read_text(encoding="utf-8")
+    changed = {
+        path
+        for path in set(before) | set(after)
+        if before.get(path) != after.get(path)
+    }
+    assert relevant.proposal_id == "PROP-031"
+    assert "### PROP-031" in context
+    assert "Quasar retrieval is the accepted constraint." in context
+    assert "PROP-001: draft" not in context
+    assert "## Registry Status" in context
+    assert changed
+    assert all(path.startswith(".p2p/intake/INTAKE-001/") for path in changed)
+    assert not (tmp_path / ".p2p" / "choices").exists()
+
+
+def test_intake_generic_idea_returns_explicit_empty_context(tmp_path: Path) -> None:
+    workspace = _workspace(tmp_path)
+    workspace.create_proposal("A proposal that must not be selected by position")
+
+    prompt = workspace._intake_lifecycle_service().create_prompt("the e di and")
+
+    context = (tmp_path / prompt.path / "context.md").read_text(encoding="utf-8")
+    assert "No nearby context was selected: no_meaningful_query_tokens." in context
+    assert "### PROP-001" not in context
 
 
 def test_intake_lifecycle_service_imports_directory_and_file(tmp_path: Path) -> None:

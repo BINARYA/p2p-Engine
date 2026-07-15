@@ -756,3 +756,9 @@ decisions:
   path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/decision.md
   reason: Owner accepts the decision-ready human project publication pipeline as the
     direction for readable, vertical-aware project outputs.
+- proposal: PROP-100
+  title: Project Decision Context Index and Proposal Neighborhood
+  outcome: pending
+  status: draft
+  path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/decision.md
+  reason: ''

@@ -39,7 +39,7 @@ def _service(tmp_path: Path, registries: dict[str, list[dict[str, object]]], int
     )
 
 
-def test_project_context_renderer_renders_intake_context_with_registry_fallbacks(tmp_path: Path) -> None:
+def test_project_context_renderer_never_falls_back_to_registry_order_for_intake(tmp_path: Path) -> None:
     project_dir = tmp_path / ".p2p" / "project"
     project_dir.mkdir(parents=True)
     (project_dir / "overview.md").write_text("# Overview\n\nCurrent project.", encoding="utf-8")
@@ -56,9 +56,8 @@ def test_project_context_renderer_renders_intake_context_with_registry_fallbacks
 
     assert "# Intake Context" in context
     assert "- Path: `.p2p/registries`" in context
-    assert "- PROP-001: draft - Draft" in context
-    assert "## Changes Registry\n\n- None." in context
-    assert "## Relations Registry\n\nNot generated yet." in context
+    assert "PROP-001: draft - Draft" not in context
+    assert "No registry-order fallback is used." in context
     assert "## Project Overview\n\n# Overview\n\nCurrent project." in context
 
 

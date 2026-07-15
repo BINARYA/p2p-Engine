@@ -116,13 +116,22 @@ class ProjectStateService:
                 written.append(path.relative_to(self.root))
         return written
 
-    def status(self) -> ProjectStateStatus:
+    def status(
+        self,
+        *,
+        accepted_proposals_count: int | None = None,
+        next_actions_snapshot: list[object] | None = None,
+    ) -> ProjectStateStatus:
         project_dir = self.p2p_dir / "project"
         features_dir = project_dir / "features"
         features = sorted(path.name for path in features_dir.iterdir() if path.is_dir()) if features_dir.exists() else []
-        next_actions = self.next_actions()
+        next_actions = next_actions_snapshot if next_actions_snapshot is not None else self.next_actions()
         return ProjectStateStatus(
-            accepted_proposals=len(self.accepted_proposals()),
+            accepted_proposals=(
+                accepted_proposals_count
+                if accepted_proposals_count is not None
+                else len(self.accepted_proposals())
+            ),
             features=features,
             project_dir=project_dir.relative_to(self.root),
             operational_brief_available=(project_dir / "operational-brief.md").exists(),

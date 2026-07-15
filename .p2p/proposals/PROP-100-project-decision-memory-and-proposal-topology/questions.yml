@@ -1,0 +1,217 @@
+proposal_questions:
+  schema_version: 1
+  proposal_id: PROP-100
+  initialized_at: '2026-07-13'
+  updated_at: '2026-07-14'
+  updated_by: codex
+  groups:
+  - id: QG001
+    gap: architecture_direction
+    state: to_answer
+    priority: high
+    rationale: Records the core direction selected by the revised review.
+    created_at: '2026-07-14'
+    updated_at: '2026-07-14'
+  - id: QG002
+    gap: retrieval_strategy
+    state: to_answer
+    priority: high
+    rationale: Records retrieval strategy for the first MVP.
+    created_at: '2026-07-14'
+    updated_at: '2026-07-14'
+  - id: QG003
+    gap: persistence_strategy
+    state: to_answer
+    priority: high
+    rationale: Records the persistence boundary for the umbrella decision.
+    created_at: '2026-07-14'
+    updated_at: '2026-07-14'
+  - id: QG004
+    gap: integration_order
+    state: to_answer
+    priority: medium
+    rationale: Records integration order and the timeout boundary.
+    created_at: '2026-07-14'
+    updated_at: '2026-07-14'
+  - id: QG005
+    gap: vertical_scope
+    state: to_answer
+    priority: medium
+    rationale: Records the vertical boundary for this umbrella proposal.
+    created_at: '2026-07-14'
+    updated_at: '2026-07-14'
+  questions:
+  - id: Q001
+    group_id: QG001
+    gap: architecture_direction
+    criterion: architecture_direction
+    priority: high
+    state: applied
+    question: Should PROP-100 use a derived decision context index instead of a canonical
+      project memory store?
+    rationale: Records the core direction selected by the revised review.
+    answer: Yes. PROP-100 should use a derived, non-canonical decision context index.
+      Canonical artifacts remain proposal, decision, choice, Change Set, governed
+      YAML and Markdown sources.
+    answer_source: owner_supplied_review
+    answered_at: '2026-07-14'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-14'
+    audit:
+      created_by: codex
+      created_at: '2026-07-14'
+      updated_by: codex
+      updated_at: '2026-07-14'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q002
+    group_id: QG002
+    gap: retrieval_strategy
+    criterion: retrieval_strategy
+    priority: high
+    state: applied
+    question: Should the first retrieval implementation be deterministic and explainable
+      before embeddings?
+    rationale: Records retrieval strategy for the first MVP.
+    answer: Yes. The first retrieval implementation should be deterministic and explainable,
+      with score reasons and signal contributions. Embeddings can only be considered
+      later as an augmentation.
+    answer_source: owner_supplied_review
+    answered_at: '2026-07-14'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-14'
+    audit:
+      created_by: codex
+      created_at: '2026-07-14'
+      updated_by: codex
+      updated_at: '2026-07-14'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q003
+    group_id: QG003
+    gap: persistence_strategy
+    criterion: persistence_strategy
+    priority: high
+    state: applied
+    question: Should PROP-100 change storage backend before the model and retrieval
+      costs are measured?
+    rationale: Records the persistence boundary for the umbrella decision.
+    answer: No. Backend changes, SQLite or other cache choices are deferred until
+      the derived model, rebuild cost, index size, query complexity and retrieval
+      quality are measured.
+    answer_source: owner_supplied_review
+    answered_at: '2026-07-14'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-14'
+    audit:
+      created_by: codex
+      created_at: '2026-07-14'
+      updated_by: codex
+      updated_at: '2026-07-14'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q004
+    group_id: QG004
+    gap: integration_order
+    criterion: integration_order
+    priority: medium
+    state: applied
+    question: Should p2p context be the first visible consumer after the timeout bug
+      is fixed separately?
+    rationale: Records integration order and the timeout boundary.
+    answer: Yes. Semantic context should integrate first with p2p context because
+      the output is inspectable. The pre-existing timeout remains a separate technical
+      bug and prerequisite.
+    answer_source: owner_supplied_review
+    answered_at: '2026-07-14'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-14'
+    audit:
+      created_by: codex
+      created_at: '2026-07-14'
+      updated_by: codex
+      updated_at: '2026-07-14'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q005
+    group_id: QG005
+    gap: vertical_scope
+    criterion: vertical_scope
+    priority: medium
+    state: applied
+    question: Should PROP-100 solve full vertical governance and runtime modeling?
+    rationale: Records the vertical boundary for this umbrella proposal.
+    answer: No. PROP-100 should only require vertical signals to carry provenance
+      and confidence. Full vertical governance or runtime correction belongs to separate
+      work.
+    answer_source: owner_supplied_review
+    answered_at: '2026-07-14'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-14'
+    audit:
+      created_by: codex
+      created_at: '2026-07-14'
+      updated_by: codex
+      updated_at: '2026-07-14'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: suggested-scope.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: readiness.yml
+      action: run_readiness_assess
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.

@@ -6,6 +6,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Literal
 
+from p2p_engine.core.decision_context import (
+    ContextBudget,
+    DecisionContextIndex,
+    RetrievalRequest,
+)
 from p2p_engine.foundation.validators import (
     validate_tasks_yaml,
     validate_yaml_key,
@@ -18,6 +23,8 @@ from p2p_engine.prompts.plan import render_plan_prompt
 from p2p_engine.prompts.swot import render_swot_prompt
 from p2p_engine.prompts.synthesize import render_synthesize_prompt
 from p2p_engine.prompts.tasks import render_tasks_prompt
+from p2p_engine.services.decision_context_rendering import render_nearby_decision_context
+from p2p_engine.services.decision_context_retrieval import DecisionContextRetrievalService
 
 PromptKind = Literal["explore", "digest", "clarify", "synthesize", "plan", "tasks", "swot", "impact"]
 ImportKind = Literal["clarify", "synthesize", "plan", "tasks"]
@@ -143,10 +150,12 @@ class ProposalArtifactService:
         root: Path,
         p2p_dir: Path,
         find_proposal_dir: Callable[[str], Path],
+        decision_context_index: Callable[[], DecisionContextIndex],
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
         self.find_proposal_dir = find_proposal_dir
+        self.decision_context_index = decision_context_index
 
     def generate_prompt(self, proposal_id: str, kind: PromptKind) -> Path:
         proposal_dir = self.find_proposal_dir(proposal_id)
@@ -160,10 +169,24 @@ class ProposalArtifactService:
             "swot": render_swot_prompt,
             "impact": render_impact_prompt,
         }
+        context = self._prompt_context(proposal_id, proposal_dir)
+        if kind in {"explore", "impact", "synthesize"}:
+            index = self.decision_context_index()
+            packet = DecisionContextRetrievalService().retrieve(
+                index,
+                RetrievalRequest(budget=ContextBudget.MEDIUM, target_id=proposal_id),
+            )
+            context["nearby_decision_context"] = render_nearby_decision_context(
+                packet,
+                phase=kind,
+                index=index if kind == "impact" else None,
+                target_id=proposal_id if kind == "impact" else "",
+            )
+        rendered = renderers[kind](context)
         output_dir = self.p2p_dir / "prompts" / proposal_id
         output_dir.mkdir(parents=True, exist_ok=True)
         path = output_dir / f"{kind}.prompt.md"
-        path.write_text(renderers[kind](self._prompt_context(proposal_id, proposal_dir)), encoding="utf-8")
+        path.write_text(rendered, encoding="utf-8")
         return path.relative_to(self.root)
 
     def import_exploration(self, proposal_id: str, source: Path) -> list[Path]:
@@ -369,8 +392,6 @@ class ProposalArtifactService:
                 self.p2p_dir / "governance" / "decision-precedents.yml"
             ),
             "project_overview": _read_optional(self.p2p_dir / "project" / "overview.md"),
-            "project_decisions": _read_optional(self.p2p_dir / "project" / "decisions-map.yml"),
-            "project_conflicts": _read_optional(self.p2p_dir / "project" / "conflicts.yml"),
             "constitution": _read_optional(self.p2p_dir / "governance" / "constitution.md"),
             "decision_rules": _read_optional(self.p2p_dir / "governance" / "decision-rules.md"),
             "relevance_criteria": _read_optional(self.p2p_dir / "governance" / "relevance-criteria.md"),

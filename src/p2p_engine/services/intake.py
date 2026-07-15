@@ -9,12 +9,19 @@ from pathlib import Path
 from typing import Any
 
 from p2p_engine.core.contribution import ContributionType
+from p2p_engine.core.decision_context import (
+    ContextBudget,
+    DecisionContextIndex,
+    DecisionContextPacket,
+    RetrievalRequest,
+)
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
     yaml_dump as _yaml_dump,
 )
 from p2p_engine.foundation.validators import validate_yaml_key
 from p2p_engine.foundation.markdown import read_title
+from p2p_engine.services.decision_context_retrieval import DecisionContextRetrievalService
 
 
 @dataclass(frozen=True)
@@ -109,7 +116,8 @@ class IntakeLifecycleService:
         root: Path,
         p2p_dir: Path,
         registry_status: Callable[[], Any],
-        intake_context: Callable[[Any], str],
+        intake_context: Callable[[Any, DecisionContextPacket | None], str],
+        decision_context_index: Callable[[], DecisionContextIndex],
         add_contribution: Callable[..., Any],
         create_choice: Callable[..., Any],
     ) -> None:
@@ -117,16 +125,21 @@ class IntakeLifecycleService:
         self.p2p_dir = p2p_dir
         self.registry_status = registry_status
         self.intake_context = intake_context
+        self.decision_context_index = decision_context_index
         self.add_contribution = add_contribution
         self.create_choice = create_choice
 
     def create_prompt(self, idea: str) -> IntakePrompt:
         intake_id = self._next_id()
         intake_dir = self.p2p_dir / "intake" / intake_id
-        intake_dir.mkdir(parents=True, exist_ok=False)
-
         registry_status = self.registry_status()
-        context = self.intake_context(registry_status)
+        index = self.decision_context_index()
+        nearby_context = DecisionContextRetrievalService().retrieve(
+            index,
+            RetrievalRequest(budget=ContextBudget.MEDIUM, idea_text=idea),
+        )
+        context = self.intake_context(registry_status, nearby_context)
+        intake_dir.mkdir(parents=True, exist_ok=False)
         input_path = intake_dir / "input.md"
         context_path = intake_dir / "context.md"
         prompt_path = intake_dir / "intake.prompt.md"

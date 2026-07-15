@@ -138,6 +138,29 @@ MCP tools are grouped by behavior:
 
 Agents should use `p2p_context` before broad file reads. The context packet tells
 the agent what is relevant, what commands are allowed, and what not to scan.
+When `target` is a valid `PROP-*` ID, `nearby_context` adds a read-only,
+versioned decision neighborhood with policy versions, source and semantic
+fingerprints, completeness, ranked hits, evidence, diagnostics and truncation
+metadata. Other target types and no-target calls return `nearby_context: null`.
+Fingerprint fields exclude observational generation time. No MCP context call
+writes a freshness manifest or cache; future materialized projections can use
+the in-memory manifest/stale contract without changing this read-only behavior.
+The index reads canonical/governed P2P evidence, not generated registries,
+decision maps, project narratives, prompts, publications or cache files.
+
+Prompt tools keep their existing output contracts. `p2p_intake_prompt` selects a
+bounded idea-text neighborhood internally, while `p2p_explore_prompt`,
+`p2p_impact_prompt` and `p2p_synthesize_prompt` select a bounded proposal
+neighborhood. The selected context is written only into the generated prompt;
+it does not create contributions, choices, relations, decisions or imported
+proposal artifacts. MCP responses still return the existing intake metadata or
+prompt path only.
+
+`p2p_next` also keeps its existing payload. Generated choice actions are now
+derived from normalized project-choice nodes and active relations, so
+proposal-local vote records cannot appear as project choices requiring a
+decision. Topology diagnostics remain visible only through existing read-only
+context/diagnostic payloads; no diagnostic file is created.
 
 Permission-gated MCP tools validate:
 
@@ -443,6 +466,23 @@ Read compact context:
   }
 }
 ```
+
+Read the bounded decision neighborhood for one proposal:
+
+```json
+{
+  "tool": "p2p_context",
+  "arguments": {
+    "root": "/path/to/project",
+    "target": "PROP-001",
+    "budget": "medium"
+  }
+}
+```
+
+The MCP payload is JSON-ready and matches the workspace/CLI structured model.
+An empty neighborhood has `hits: []`, `empty_reason` and a
+`DC-RETRIEVAL-EMPTY` diagnostic. Retrieval does not write a cache or manifest.
 
 Create a draft proposal:
 

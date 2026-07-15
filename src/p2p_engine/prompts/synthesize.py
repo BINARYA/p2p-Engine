@@ -46,6 +46,6 @@ def render_synthesize_prompt(context: dict[str, str]) -> str:
         f"{context['comments']}\n\n"
         "## Clarifications\n\n"
         f"{context['clarifications']}\n\n"
+        f"{context.get('nearby_decision_context', '').strip() or '## Nearby Decision Context\n\nNot available.'}\n\n"
         f"{render_governance_context(context)}\n"
     )
-

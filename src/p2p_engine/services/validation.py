@@ -69,7 +69,7 @@ class ValidationService:
         self.governance_validation_findings = governance_validation_findings
         self.runtime_validation_findings = runtime_validation_findings
 
-    def validate(self) -> ValidationResult:
+    def validate(self, *, registry_status_snapshot: Any | None = None) -> ValidationResult:
         findings: list[ValidationFinding] = []
 
         def add(
@@ -102,7 +102,7 @@ class ValidationService:
         self._validate_governance_policy(add)
         self._validate_runtime_contract(add)
         self._validate_project_verticals(add)
-        self._validate_registries(add)
+        self._validate_registries(add, registry_status_snapshot)
 
         errors = sum(1 for finding in findings if finding.severity == "error")
         warnings = sum(1 for finding in findings if finding.severity == "warning")
@@ -329,9 +329,13 @@ class ValidationService:
                         f"p2p proposal show {proposal_id}",
                     )
 
-    def _validate_registries(self, add: Callable[[str, str, Path, str, str], None]) -> None:
+    def _validate_registries(
+        self,
+        add: Callable[[str, str, Path, str, str], None],
+        registry_status_snapshot: Any | None = None,
+    ) -> None:
         try:
-            registry_status = self.registry_status()
+            registry_status = registry_status_snapshot or self.registry_status()
         except ValueError as exc:
             add(
                 "P2P200_REGISTRY_STATUS_ERROR",

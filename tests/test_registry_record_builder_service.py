@@ -44,6 +44,25 @@ def test_registry_record_builder_builds_accepted_and_proposal_records(tmp_path: 
     assert "proposal.md" in proposals[0]["source_files"]
 
 
+def test_proposal_records_build_change_index_once_per_operation(tmp_path: Path) -> None:
+    workspace = _workspace_with_records(tmp_path)
+    service = workspace._registry_record_builder_service()
+    original = service.change_records
+    calls = 0
+
+    def counted_changes():
+        nonlocal calls
+        calls += 1
+        return original()
+
+    service.change_records = counted_changes  # type: ignore[method-assign]
+
+    proposals = service.proposal_records()
+
+    assert calls == 1
+    assert proposals[0]["related_changes"] == ["CHANGE-001"]
+
+
 def test_registry_record_builder_builds_decision_and_readiness_records(tmp_path: Path) -> None:
     workspace = _workspace_with_records(tmp_path)
     service = workspace._registry_record_builder_service()

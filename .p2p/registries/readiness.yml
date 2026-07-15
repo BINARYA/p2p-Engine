@@ -1347,3 +1347,16 @@ readiness:
   missing: []
   suggested_next: []
   path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/readiness.yml
+- proposal: PROP-100
+  title: Project Decision Context Index and Proposal Neighborhood
+  proposal_status: draft
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  computed_score: 100
+  computed_label: decision_ready
+  confidence: high
+  failed_gates: []
+  missing: []
+  suggested_next: []
+  path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/readiness.yml

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
+from enum import Enum
 from pathlib import Path
 
 import typer
@@ -34,7 +36,7 @@ def register_project_status_commands(
     def context(
         budget: str = typer.Option("small", "--budget", help="Context budget: small or medium"),
         target: str | None = typer.Option(None, "--target", help="Optional PROP/CHANGE/CHOICE/WORK ID"),
-        output_format: str = typer.Option("text", "--format", help="Output format: text or yaml"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text, json, or yaml"),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
     ) -> None:
         """Show a compact, token-aware context packet for agents."""
@@ -44,10 +46,12 @@ def register_project_status_commands(
             fail(str(exc))
         if output_format == "yaml":
             typer.echo(yaml_dump_for_cli(_validation_result_to_dict(packet)))
+        elif output_format == "json":
+            typer.echo(json.dumps(_validation_result_to_dict(packet), indent=2))
         elif output_format == "text":
             _print_context_packet(packet)
         else:
-            fail("Context format must be text or yaml")
+            fail("Context format must be text, json, or yaml")
 
     @app.command()
     def check(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
@@ -165,6 +169,21 @@ def _print_context_packet(packet: object) -> None:
         )
         console.print(f"    path: {artifact.get('path')}")
         console.print(f"    command: {artifact.get('command')}")
+    if packet.nearby_context is not None:
+        nearby = packet.nearby_context
+        console.print("Nearby decision context:")
+        console.print(f"  completeness: {nearby.completeness.value}")
+        if not nearby.hits:
+            console.print(f"  none: {nearby.empty_reason or 'no relevant context'}")
+        for hit in nearby.hits:
+            strongest = hit.reasons[0] if hit.reasons else None
+            console.print(
+                f"  {hit.owner_type.value} {hit.owner_id} score={hit.score}"
+            )
+            if strongest is not None:
+                console.print(f"    {strongest.signal}: {strongest.detail}")
+        if nearby.truncation.truncated:
+            console.print("  truncated: true")
     console.print("Allowed commands:")
     for command in packet.allowed_commands:
         console.print(f"  - {command}")
@@ -175,6 +194,8 @@ def _print_context_packet(packet: object) -> None:
 
 
 def _validation_result_to_dict(result: object) -> object:
+    if isinstance(result, Enum):
+        return result.value
     if hasattr(result, "__dataclass_fields__"):
         return {
             key: _validation_result_to_dict(getattr(result, key))
@@ -182,9 +203,9 @@ def _validation_result_to_dict(result: object) -> object:
         }
     if isinstance(result, Path):
         return result.as_posix()
-    if isinstance(result, list):
+    if isinstance(result, (list, tuple, set, frozenset)):
         return [_validation_result_to_dict(item) for item in result]
-    if isinstance(result, dict):
+    if isinstance(result, Mapping):
         return {str(key): _validation_result_to_dict(value) for key, value in result.items()}
     return result
 

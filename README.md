@@ -247,10 +247,16 @@ Work
   Managed metadata for implementation or handoff work.
 
 Registry
-  Generated index over P2P artifacts.
+  Generated compatibility projection over P2P artifacts. Registry files are not
+  read back as decision-context semantics.
 
 Context Packet
-  Compact, token-aware project summary for agents.
+  Compact, token-aware project summary for agents. Proposal-target packets add
+  an explainable, evidence-linked nearby decision neighborhood.
+
+Prompt Neighborhood
+  Intake selects nearby memory from idea text; explore, impact, and synthesize
+  select phase-specific proposal context without applying or deciding anything.
 
 Rubric
   Project-domain checklist used to assess whether the project definition is complete enough.

@@ -1,8 +1,11 @@
 from pathlib import Path
 
 import pytest
+import yaml
 
+from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.decision_context_fixtures import project_files
 
 
 NARRATIVE_ARTIFACTS = (
@@ -83,6 +86,150 @@ def test_proposal_artifact_service_reads_legacy_narrative_artifacts(tmp_path: Pa
     assert findings.exists is True
     assert findings.has_content is True
     assert status.unresolved_questions == 1
+
+
+def test_phase_prompts_use_bounded_nearby_context_without_writeback(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Artifact Project")
+    target = workspace.create_proposal_with_details(
+        "Decision topology target",
+        problem="Topology context is fragmented.",
+        proposal="Use a bounded decision topology neighborhood.",
+    )
+    unrelated = workspace.create_proposal_with_details(
+        "Unrelated notification colors",
+        problem="Notification colors need review.",
+        proposal="Adjust notification colors.",
+    )
+    accepted = workspace.create_proposal_with_details(
+        "Accepted topology architecture constraint",
+        problem="Topology architecture evidence must remain attributable.",
+        non_goals=["Replace canonical Markdown and YAML."],
+        proposal="Preserve topology evidence references.",
+    )
+    workspace.record_decision(
+        accepted.proposal_id,
+        DecisionOutcome.accepted,
+        "Topology evidence provenance is mandatory.",
+        "owner",
+    )
+    historical = workspace.create_proposal_with_details(
+        "Historical topology alternative",
+        problem="An earlier topology model used registry order.",
+        proposal="Select the first topology records by identifier.",
+    )
+    workspace.record_decision(
+        historical.proposal_id,
+        DecisionOutcome.rejected,
+        "Registry order is not semantic relevance.",
+        "owner",
+    )
+    target_dir = tmp_path / target.path
+    (target_dir / "related-proposals.yml").write_text(
+        yaml.safe_dump(
+            {
+                "related_proposals": [
+                    {"proposal": accepted.proposal_id, "relationship": "depends_on"}
+                ]
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    (target_dir / "impact-map.yml").write_text(
+        yaml.safe_dump(
+            {
+                "impact": {
+                    "capabilities": ["decision retrieval"],
+                    "surfaces": ["proposal prompts"],
+                }
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    (target_dir / "vertical-coverage.yml").write_text(
+        yaml.safe_dump(
+            {
+                "vertical_coverage": {
+                    "sections": [{"id": "architecture"}],
+                }
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    project_conflicts = tmp_path / ".p2p" / "project" / "conflicts.yml"
+    project_conflicts.write_text(
+        yaml.safe_dump(
+            {
+                "conflicts": [
+                    {
+                        "proposals": [target.proposal_id, historical.proposal_id],
+                        "reason": "Competing topology selection models.",
+                    }
+                ]
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / ".p2p" / "project" / "decisions-map.yml").write_text(
+        "decisions:\n  - title: LEGACY-FIRST-N-SENTINEL\n",
+        encoding="utf-8",
+    )
+    choice = workspace.create_choice(
+        "Topology persistence choice",
+        ["Keep files", "Replace files"],
+        related=[target.proposal_id],
+        source=target.proposal_id,
+    )
+    workspace.decide_choice(choice.choice_id, "Keep files", "Preserve canonical sources.", "owner")
+    before = project_files(tmp_path)
+
+    paths = {
+        kind: workspace._proposal_artifact_service().generate_prompt(target.proposal_id, kind)
+        for kind in ("explore", "impact", "synthesize")
+    }
+
+    after = project_files(tmp_path)
+    prompts = {
+        kind: (tmp_path / path).read_text(encoding="utf-8")
+        for kind, path in paths.items()
+    }
+    changed = {
+        path
+        for path in set(before) | set(after)
+        if before.get(path) != after.get(path)
+    }
+    assert accepted.proposal_id in prompts["explore"]
+    assert "Topology evidence provenance is mandatory." in prompts["explore"]
+    assert "Scope boundary: Replace canonical Markdown and YAML." in prompts["explore"]
+    assert unrelated.proposal_id not in prompts["explore"]
+    assert "### Normalized Relation Candidates" in prompts["impact"]
+    assert "`affects_capability`" in prompts["impact"]
+    assert "`affects_surface`" in prompts["impact"]
+    assert "`maps_to_vertical_section`" in prompts["impact"]
+    assert "active conflict" in prompts["impact"]
+    assert "not a topology edge" in prompts["impact"]
+    assert "Decided project choice" in prompts["synthesize"]
+    assert "Historical alternative" in prompts["synthesize"]
+    assert "Do not record a final decision." in prompts["synthesize"]
+    assert all("LEGACY-FIRST-N-SENTINEL" not in prompt for prompt in prompts.values())
+    explore_nearby = prompts["explore"].split("## Nearby Decision Context", 1)[1].split(
+        "## Governance Context", 1
+    )[0]
+    impact_nearby = prompts["impact"].split("## Nearby Decision Context", 1)[1].split(
+        "## Project Overview", 1
+    )[0]
+    synthesize_nearby = prompts["synthesize"].split("## Nearby Decision Context", 1)[1].split(
+        "## Governance Context", 1
+    )[0]
+    assert all(
+        len(section.encode("utf-8")) <= 40_000
+        for section in (explore_nearby, impact_nearby, synthesize_nearby)
+    )
+    assert all(path.startswith(f".p2p/prompts/{target.proposal_id}/") for path in changed)
 
 
 def test_proposal_artifact_service_imports_exploration_file_and_reports_status(tmp_path: Path) -> None:

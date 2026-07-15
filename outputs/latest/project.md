@@ -2,7 +2,7 @@
 
 ## Generated Metadata
 
-- generated_at: 2026-07-02
+- generated_at: 2026-07-13
 - generator: p2p project export
 - source_of_truth: .p2p/
 - output_role: generated human-facing project definition
@@ -11,7 +11,7 @@
 
 ## Executive Summary
 
-This project definition synthesizes 82 accepted proposals from P2P-managed state into a human-facing document. It is generated output; `.p2p/` remains the managed source of truth.
+This project definition synthesizes 93 accepted proposals from P2P-managed state into a human-facing document. It is generated output; `.p2p/` remains the managed source of truth.
 
 ## Project Purpose
 
@@ -507,6 +507,10 @@ Create a concise README and docs/INSTALL.md. README should explain what P2P Engi
 
 Adopt a conservative modular refactoring program. P2PWorkspace remains the stable compatibility facade, but new behavior should move into dedicated services and adapters. cli.py, storage/filesystem.py, and mcp/tools.py become thinner orchestration/facade layers rather than the default home for new domain logic. The first deliverable is documentation and development contract only: update AGENTS.md with short non-negotiable agent rules, create docs/DEVELOPMENT-GUIDELINES.md as the full architecture guide, and define a prioritized refactoring roadmap. Alternatives considered are: keep the monolith and document conventions; split large files mechanically; introduce internal managers behind the stable P2PWorkspace facade; or redesign public APIs. The preferred option is internal managers behind the facade because it improves maintainability while preserving CLI, MCP, storage, governance, and agent compatibility. After acceptance and local specs binding, the recommended first code extraction is consent/permissions because it has a clear boundary, high safety value, lower presentation exposure than CLI, and can establish the extraction pattern before more central proposal/readiness workflows are touched. Services/use cases should be extracted before CLI modularization. Any breaking change requires a separate proposal.
 
+### PROP-060 - Real Test Coverage Reporting
+
+Introduce a small code coverage diagnostic for P2P Engine maintainers. Add pytest-cov, or an equivalent standard integration, as a development dependency and document a terminal missing-lines report for src/p2p_engine. The preferred first command is a simple terminal report such as pytest --cov=src/p2p_engine --cov-report=term-missing, optionally aligned with the existing focused and full validation tiers. The first slice is advisory only: no fail-under threshold, no HTML report, no generated artifact requirement, and no CI gate. Coverage output should be used occasionally, especially before or after refactors or when a new runtime area appears, to identify places where focused tests should be improved.
+
 ### PROP-061 - Focused README and Documentation Map
 
 Refine documentation with four steps: rewrite README.md around what P2P Engine is, what it does, repository components, installation, quick start, and agent usage; keep docs/INSTALL.md; add docs/CLI-GUIDE.md, docs/MCP.md, docs/AGENT-INTEGRATION.md, and docs/API.md as structured stubs; and create a documentation index in README.md describing each docs file.
@@ -832,6 +836,14 @@ Introduce artifact-aware proposal readiness backed by a dedicated artifact-speci
 
 Introduce a project-level interaction_style configuration model with three independent integer fields: technical_verbosity 0..5, formality 0..5, and assertiveness 0..5. technical_verbosity controls how much engine/technical language the agent uses with the decision owner. formality controls how informal or formal the tone is. assertiveness, informally described by the owner as pedanteria, controls how strongly the agent pushes on unresolved gaps, evidence, order, and follow-up before moving on. Defaults: technical_verbosity=2, formality=2, assertiveness=0. The first implementation stores one project-level default interaction_style because the project should define a shared interaction style for all agents and mediators that address the decision owner. The public CLI namespace should be project interaction-style, with matching MCP tools. Values must be readable and modifiable through public P2P CLI commands and exposed through explicit MCP tools with read-only and write-safe behavior. Generated agent instructions and local/project skills must describe how agents inspect and update the style through those CLI/MCP surfaces. Per-agent and per-session overrides are future extension points. Named presets should not be persisted as source of truth; scales remain explicit and independent.
 
+### PROP-088 - MCP Artifact Import Parity
+
+Add explicit write-safe MCP tools that call existing P2P Engine import services for proposal artifact content. The MVP scope covers total MCP parity with the existing controlled CLI import primitives that have fixed targets and validation: exploration imports, impact imports, clarification imports, synthesis/proposal imports, plan imports, and tasks imports. Generic arbitrary artifact import/update remains deferred until a stricter allowlist, validation model, and audit boundary are designed. MCP import tools should support both source paths and direct content payloads: source paths preserve parity with current CLI services and directory-based imports, while direct payloads support real MCP client workflows where generated content is already available in the tool call. All tools must use explicit artifact kinds, preserve existing validation behavior, return structured metadata about imported files, and keep unsupported artifact-content mutations as explicit missing-primitive errors. Documentation should describe the new MCP surface, supported artifact kinds, unsupported cases, path-vs-payload behavior, validation/audit boundaries, and the relationship between artifact content imports and artifact coverage state.
+
+### PROP-089 - Readiness Question-State Convergence
+
+Revise evidence-aware proposal readiness so questions.yml is the authoritative source for owner_questions_resolution whenever it exists. Blocking owner questions are unresolved structured questions with status to_answer or reopened and high priority by default. A question with status answered must not count as missing owner input; it represents received owner input that still needs application into proposal artifacts or readiness evidence, and should appear as answered_not_applied or residual follow-up until applied. Medium and low unresolved questions are residual follow-up, cautions, or confidence reductions unless a readiness policy explicitly marks them blocking. Applied, retired, and superseded questions are closed for owner-question readiness. Muted and deferred questions are non-blocking; deferred items may reduce confidence or appear as cautions. When questions.yml exists, open-questions.md is narrative evidence only and cannot reopen structured questions. For legacy proposals without questions.yml, keep the current markdown fallback. Readiness explain/review should show blocking_owner_questions, answered_not_applied, residual_follow_up, confidence_notes, and whether markdown fallback was used. Owner override remains valid: the owner may accept or proceed despite unresolved questions, but readiness records the override separately from the computed state; override changes the governance/effective decision status, not the computed readiness truth.
+
 ### PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
 
 Introduce a production-grade project vertical runtime layer as a follow-up to PROP-085.
@@ -981,6 +993,627 @@ Acceptance criteria must be verified by implementation evidence: service tests f
 
 Impact And Overlap Analysis
 PROP-085 overlap is direct: PROP-090 is its production hardening layer, not a competing system. The completed local feature specs/features/pluggable-project-verticals-and-readiness-orchestration remains the MVP baseline; PROP-090 should produce a new local hardening feature rather than reopening completed MVP tasks. PROP-057 remains the owner-controlled rubric selection flow. PROP-071 remains compatible with custom domain definition. PROP-082 and PROP-089 may consume definition-state data, but proposal readiness question state remains separate from project definition state. PROP-083 exports may include vertical and definition-state summaries additively. Expected code impact is concentrated in project vertical core models, ProjectVerticalService, project initialization, maturity/rubric services, validation, CLI project command modules, MCP project handlers/catalog, agent templates, docs, tests, and possibly visible project export. P2PWorkspace remains a facade.
+
+### PROP-091 - Governance Policy Convergence
+
+Introduce a Governance Policy Convergence layer.
+
+The layer should evaluate governance state before finalization and return a
+stable, versioned, deterministic, machine-readable preflight structure. The
+preflight output is not a decision record. It represents a proposed selection
+and the governance evaluation before the final owner decision.
+
+The initial preflight contract should include:
+
+- `schema_version`;
+- `target`;
+- `governance`;
+- `actor`;
+- `selection`;
+- `result`;
+- `blocking_errors`;
+- `warnings`;
+- `vote_summary`;
+- `blockers`;
+- `precedents`.
+
+The `result.status` field should summarize one of:
+
+- `ready`;
+- `requires_rationale`;
+- `requires_owner_override`;
+- `blocked`.
+
+Blocking errors and warnings should be structured objects with stable
+machine-readable codes, human-readable messages, override or rationale metadata
+when relevant, and optional references.
+
+### Authority And Votes
+
+`owner_decides` remains the operational default. The owner remains the final
+decision maker. Votes are transparency and decision evidence. A proposed owner
+decision that conflicts with the recorded vote winner should produce a strong
+warning and make the contrast explicit, but it should not block finalization and
+should not require a mandatory override reason in the current model.
+
+### Actor And Role Resolution
+
+Use a soft migration path:
+
+- `permissions.yml` is the primary actor and role source whenever present;
+- `governance/roles.yml` remains legacy/display/fallback;
+- vote and preflight flows move toward actor-based input;
+- when an actor exists in `permissions.yml`, the effective role is inferred from
+  that file;
+- legacy role fields may be tolerated during transition;
+- mismatches between a supplied legacy role and the inferred role produce
+  warnings.
+
+### Precedents
+
+Core precedent lookup is explicit and deterministic. The core considers
+precedents related only when links are declared in versioned artifacts through
+stable identifiers or explicit tags, such as `related_precedents`,
+`applies_to.proposal_ids`, `applies_to.choice_ids`, or `governance_tags`.
+
+The core must not infer precedent relationships from titles, keywords, fuzzy
+matching, semantic similarity, embeddings, or AI-based search. Intermediary
+tools may suggest links, but the core only considers those links after they are
+written back as explicit artifact relations.
+
+### Blocking And Warning Semantics
+
+Warnings are valid governance signals that may influence the owner decision but
+do not prevent finalization by themselves.
+
+Blocking errors are conditions where the core cannot reliably establish the
+decision actor, decision target, governance mode, or integrity of governance
+state.
+
+Initial non-overrideable blocking errors include:
+
+- missing, unknown, or unauthorized decision actor;
+- invalid required permissions or governance context;
+- missing target proposal or choice;
+- structurally invalid target artifacts;
+- unsupported governance mode;
+- structurally invalid governance artifacts;
+- structurally invalid vote or precedent artifacts when present.
+
+An explicit unresolved blocker attached to the target proposal or choice blocks
+normal finalization. It may be overridden only by an authorized owner with
+explicit rationale recorded in the final decision record.
+
+Vote disagreement, ties, related precedents, reopened decisions, open concerns
+not marked as blockers, weak consensus, no votes, and no related precedents are
+warnings or neutral signals, not automatic blockers.
+
+### MCP Phase 1
+
+MCP phase 1 exposes governance visibility, validation, vote summaries,
+deterministic precedent lookup, and governance preflight evaluation. It does not
+expose governance mutation or final decision execution.
+
+Included phase-1 tools:
+
+- `p2p_governance_status`;
+- `p2p_governance_validate`;
+- `p2p_choice_governance_preflight`;
+- `p2p_vote_status`;
+- `p2p_precedent_search`.
+
+Deferred tools:
+
+- `p2p_vote_record`;
+- `p2p_precedent_record`;
+- `p2p_choice_decide`.
+
+`p2p_choice_governance_preflight` may evaluate a proposed selection for a given
+actor and target, but it must not persist decision records, mutate votes, create
+precedents, or finalize choices/proposals.
+
+### PROP-092 - Local MCP Work Lifecycle Parity And Remote Gateway Boundary
+
+Introduce local MCP Work lifecycle parity for P2P Engine. The local MCP adapter distributed with P2P Engine should expose the managed Work lifecycle through domain-specific tools that map to the same core services used by the CLI. The intended tool set includes read/status tools that already exist and new mutating tools for Work branch, submit, review, publish, request-review, accept, finalize, and cleanup where the CLI transition exists. Privileged or externally visible transitions must require a valid consent receipt matching operation, target Work ID, actor, and relevant execution context. Tools must fail closed when the Work state, current branch, base branch, worktree cleanliness, remote profile, receipt status, or expected execution context is invalid. Accept must preserve merge-conflict behavior and return structured conflict output instead of pretending that a merge succeeded. Finalize and cleanup must remain separate owner-controlled steps. Cleanup must distinguish local branch deletion from remote branch deletion. All mutating tools must return structured governance/effect metadata and record consent consumption/audit consistently with the proposal-branch MCP pattern. The local MCP adapter may assume a self-managed local trust boundary, but it must not bypass P2P policy or raw Git protections. The remote Wavekit MCP gateway is intentionally out of scope: it should later call the same command layer while adding authenticated principals, client identity, grants, scoped receipts, rate limits, audit retention, and commercial collaboration controls outside the P2P core.
+
+### PROP-093 - Agent Persistence Boundaries And Proposal Authoring Flow
+
+Implement a core hardening pass with eleven coordinated changes.
+
+1. Agent action preview before meaningful persistent writes.
+
+   Generated `AGENTS.md`, project skills, and shared policy should require action preview before meaningful persistent writes unless the owner explicitly requested the exact operation and artifact.
+
+   Examples include creating a proposal, adding a contribution, importing exploration or synthesis output, initializing readiness, initializing questions, creating generated exports, writing stable documentation, or performing external side effects.
+
+2. Persistent write classes.
+
+   Generated policy should distinguish at least these classes: `read_only`, `chat_only`, `local_scratch`, `p2p_canonical`, `p2p_generated_narrative`, `p2p_imported_artifact`, `generated_export`, `stable_documentation`, and `external_side_effect`.
+
+   Preview should be mandatory for `p2p_canonical`, `p2p_imported_artifact`, `generated_export`, `stable_documentation`, and `external_side_effect` writes unless the owner request is explicit and unambiguous.
+
+   `stable_documentation` means durable documentation that should be previewed and classified before writing. It does not mean P2P owns every stable documentation file in the repository.
+
+3. Agent operational playbook and request routing.
+
+   Generated agent instructions, project skills, and `docs/AGENT-INTEGRATION.md` or an equivalent guide should include a compact playbook that explains what P2P Engine is for and how agents should route common owner requests.
+
+   The playbook should distinguish chat-only exploration, project definition, proposals, choices, explicit vertical primitives such as the software-spec lifecycle defined by PROP-094, implementation work, generated exports, stable documentation, local scratch, and explicit outside-P2P work. It should be brief enough to embed in generated agent files and concrete enough to prevent agents from jumping directly to unmanaged documents.
+
+4. Proposal authoring canonicality.
+
+   The proposal workflow should clearly identify canonical write surfaces. If alternatives, findings, risks, objections, constraints, or open questions are meant to feed proposal synthesis, there must be supported structured primitives or import workflows for them.
+
+   If `contributions.yml` or structured question state is canonical, scaffolded markdown files must not invite manual edits. They should either:
+
+   - not be created until real content exists;
+   - be marked as generated/read-only with a clear header and command hints;
+   - or be editable only through an explicit CLI/MCP import primitive.
+
+5. Deterministic artifact catalog and controlled materialization.
+
+   P2P should expose a stable proposal artifact catalog through CLI and MCP surfaces. The catalog should list all standard artifact slots and any applicable vertical or feature-specific slots, with expectation and status metadata.
+
+   Physical files may differ between proposals because different workflows have run. That difference is acceptable only when the logical catalog makes the state explicit: satisfied, missing, not applicable, deferred, optional, generated, imported, or required when applicable.
+
+   P2P should not create empty placeholder files solely to make every proposal directory look identical. File presence is an implementation detail; artifact status is the source of truth.
+
+6. Contribution and question type alignment.
+
+   Contribution types should align with the narrative artifacts P2P exposes. If P2P creates or renders `findings.md`, `alternatives.md`, `risks.md`, or `open-questions.md`, the CLI/MCP surface should provide write-safe ways to add corresponding material, such as `finding`, `open_question`, `alternative`, `risk`, `constraint`, and `objection`, or an equivalent explicit import path.
+
+7. Discoverable proposal flow.
+
+   Proposal help text, scaffold output, and post-create guidance should show the typical flow:
+
+   1. add structured inputs with contribution/question/choice commands;
+   2. generate or request synthesis;
+   3. import synthesized narrative;
+   4. inspect a full proposal view;
+   5. let the owner accept, reject, or defer.
+
+   The guidance must not suggest editing `.p2p/` files directly.
+
+8. Owner-friendly full proposal view.
+
+   P2P should provide an owner-readable consolidated proposal view, such as `p2p proposal show PROP-XXX --full` or `p2p proposal render PROP-XXX`.
+
+   The full view should include proposal metadata, decision status, problem, proposal, contributions, alternatives, findings, open questions, risks, objections where available, digest, readiness summary, artifact coverage, and suggested next action.
+
+9. Adaptive init default, integration lifecycle guidance, and clearer init summary.
+
+   Guided init should no longer silently optimize for all adapters when the current agent is known. It should always create the `generic` baseline, then add the reliably detected current agent by default. If no supported current agent can be detected, init should default to `all` for backward-compatible cross-agent usability and print a concise warning that this creates files for all built-in adapters.
+
+   Explicit owner choices remain supported:
+
+   ```bash
+   p2p init "My Project" --agent claude
+   p2p init "My Project" --agent codex --agent claude
+   p2p init "My Project" --agent all
+   ```
+
+   After init, the CLI should group created files by purpose: P2P-governed state, generated policy/instructions, project rubric/permissions, optional agent integrations, repository hygiene, MCP setup hint, and next actions.
+
+   The init summary and generated `AGENTS.md` should also show how to manage additional integrations later:
+
+   ```bash
+   p2p agent list
+   p2p agent install <adapter>
+   p2p agent update <adapter>
+   p2p agent doctor <adapter>
+   p2p agent uninstall <adapter>
+   p2p agent instructions refresh --profile <adapter>
+   ```
+
+   Removal should be documented as conservative: it may remove only safe, managed, unchanged, non-shared files. The generic baseline remains installed and shared files must not be removed silently.
+
+10. Repository hygiene guard.
+
+   New projects should receive safe `.gitignore` protection or an explicit guided option. The implementation must not overwrite existing user content. It should ignore `.venv/`, Python caches, test caches, build outputs, and local runtime noise, while keeping `.p2p/` trackable.
+
+11. Robust decision-root and MCP hints.
+
+   Generated MCP and CLI hints should prefer robust commands that make the P2P decision root explicit. For project-local installs, the hint should prefer:
+
+   ```bash
+   codex mcp add p2p-<project-slug> -- \
+     /path/to/project/.venv/bin/python \
+     -m p2p_engine.mcp.server \
+     --root /path/to/project
+   ```
+
+   The shorter `p2p-mcp-server` form can remain documented for users who have it on `PATH`.
+
+   Docs may mention that `--root` lets P2P operate from a current working directory different from the decision root, but they must not present sibling repositories as a recommended architecture.
+
+### PROP-094 - P2P-Governed Software Specification Lifecycle
+
+Define a software-specific specification lifecycle policy and supporting guidance.
+
+### Core rule
+
+In software projects, a request for "specs" should normally activate the software vertical and P2P proposal flow. The final spec file is a downstream artifact. It is not the primary project definition and should not be created as independent durable memory by default.
+
+The software vertical should make specification readiness visible by tracking the parts that a useful spec needs, including:
+
+- product or system objective;
+- intended users and actors;
+- scope and MVP boundaries;
+- core use cases and workflows;
+- domain concepts and data model;
+- integrations and external dependencies;
+- constraints, non-functional requirements, and operating assumptions;
+- acceptance criteria and validation strategy;
+- unresolved risks, alternatives, and owner decisions.
+
+These parts may be defined through one proposal or through multiple proposals. For example, one proposal may define the MVP boundary, another may define the data model, another may settle an integration strategy, and another may define agent/MCP behavior. A software spec should be able to derive from that set of accepted or explicitly provisional P2P artifacts.
+
+### Lifecycle
+
+When the owner asks for specs, the agent should classify the request and route it:
+
+| Owner request | Agent routing | Persistent artifact |
+| --- | --- | --- |
+| "Let's think through the specs" | Discuss in chat and identify missing vertical fields | None, unless owner asks to persist |
+| "Help me define the system" | Capture project-definition gaps and create/update proposals | P2P proposal/exploration/question artifacts |
+| "Compare possible architectures" | Create alternatives, choices, or competing proposals | P2P proposal/choice artifacts |
+| "Prepare implementation specs" | Identify accepted direction and create/update a Change Set | Change Set, then P2P-native spec |
+| "Export specs for a tool" | Generate/export from P2P-native spec | Generated export |
+| "Create this exact file" | Preview write and explain governance status | Stable documentation or explicit external file |
+
+For exploratory or requirements-level work, readiness is advisory. The agent may draft a provisional outline in chat or P2P exploration material while clearly marking unresolved decisions.
+
+For implementation-oriented specs or downstream exports, readiness should be stricter: there should be a sufficiently accepted direction, resolved blocking choices, and a relevant Change Set before generating a P2P-native spec or export bundle. If that state is missing, the agent should guide the owner to define or accept the missing proposals first.
+
+### Agent behavior
+
+Generated agent instructions should include a concrete routing rule:
+
+- If the owner asks for "specs" but the software vertical is incomplete, use the vertical to identify missing spec ingredients and ask focused questions or create/update P2P proposals.
+- If the required spec content spans multiple concerns, split it into multiple proposals or choices instead of forcing everything into one monolithic file.
+- If the owner asks for implementation specs, identify the accepted proposal set and relevant Change Set before generating a P2P-native software spec.
+- If the owner asks for a file export, explain whether the file is a generated export, stable documentation, or temporary scratch.
+- If the owner explicitly asks to operate outside P2P, respect that boundary while making clear that the resulting file will not be P2P-governed unless later registered or imported.
+
+Persistent writes must follow PROP-093: preview the operation, target, artifact kind, write class, and reason unless the owner explicitly requested the exact artifact.
+
+### PROP-095 - Project Runtime Contract Update Lifecycle
+
+Define an explicit runtime contract update lifecycle with two CLI subcommands:
+
+```text
+p2p runtime contract preview
+p2p runtime contract apply
+```
+
+`preview` is strictly read-only. It validates the proposed contract, evaluates current contract state, evaluates authority for diagnostic purposes, classifies impact when the current state can be trusted, reports planned file changes, reports release availability diagnostics, and returns a deterministic `expected_state_token` only when an applicable update can later be applied.
+
+`apply` is the only mutating command. It requires the same proposed `requires` and `recommended` values used during preview, the same structured reason and optional linked decision, a valid `expected_state_token`, current owner or permission authority, and explicit `--confirm`.
+
+The first implementation shall not provide a single-command mode that previews and applies in one invocation. A future interactive convenience wrapper may be added only if it delegates to the same preview and apply services and preserves the same security semantics.
+
+### Runtime Contract Values
+
+The update operation supports changes to:
+
+- `requires`, the compatible runtime range that may operate the project
+- `recommended`, the runtime version recommended for setup guidance
+
+Every proposed contract must satisfy:
+
+```text
+recommended in requires
+```
+
+The owner may update `recommended` without changing `requires`, provided the proposed recommended version still satisfies the unchanged compatible range.
+
+If `requires` and `recommended` are both unchanged, the operation returns `no_change`, produces no applicable token, requires no apply operation, consumes no consent, and modifies no file.
+
+### Supported Range Grammar
+
+The first implementation of the update lifecycle supports this restricted grammar:
+
+```text
+==VERSION
+>=LOWER,<UPPER
+```
+
+Versions and ranges use the PEP 440-compatible semantics selected for the runtime contract.
+
+Arbitrary compound expressions, exclusions, wildcards, environment markers, and package-resolution expressions are outside the first implementation of this update lifecycle. This restriction keeps impact classification deterministic. It does not globally constrain all future runtime-contract parsing or schema evolution.
+
+### Impact Classification
+
+The stable initial labels are:
+
+- `recommended_only`
+- `range_widening`
+- `range_tightening`
+- `runtime_line_change`
+- `current_runtime_excluded`
+
+Multiple labels may apply.
+
+`recommended_only` applies only when the compatible range is unchanged and only the recommended version changes.
+
+Range changes are classified by the set of accepted versions, not by textual string differences:
+
+- add `range_widening` when the proposed range accepts at least one version not accepted by the current range
+- add `range_tightening` when the current range accepts at least one version not accepted by the proposed range
+
+Partially overlapping ranges and disjoint ranges therefore receive both `range_widening` and `range_tightening`. Preview output should separately report whether the ranges overlap. No stable `range_shift` label is required in the first implementation.
+
+`runtime_line_change` is based on the normalized `major.minor` line of the recommended version.
+
+`current_runtime_excluded` means the runtime executing the command will be incompatible after the proposed update. It is independent from range labels and may combine with `recommended_only`, `runtime_line_change`, `range_widening`, or `range_tightening`.
+
+Comparative labels require a valid and supported current contract. They are omitted when the current contract state is untrusted.
+
+### Current State Behavior
+
+The lifecycle distinguishes current runtime contract states:
+
+| Current state | Preview behavior | Token | Apply |
+| --- | --- | --- | --- |
+| `compatible` | applicable preview | yes, unless no-op or structural blocker | allowed with authority, token, confirm |
+| `incompatible` caused only by active runtime outside a valid old range | applicable preview through limited exception | yes, unless no-op or structural blocker | allowed with authority, token, confirm |
+| `invalid_contract` | diagnostic-only preview of proposed values | no | blocked |
+| `unsupported_contract` | diagnostic-only preview of proposed values | no | blocked |
+| `missing_contract` | diagnostic-only preview of proposed values | no | blocked |
+| `legacy_undeclared` | diagnostic-only preview of proposed values | no | blocked |
+
+For untrusted states, preview may validate and normalize the proposed `requires` and `recommended` values and may report whether the active runtime would satisfy the proposed range as a hypothetical diagnostic. It shall not produce an applicable token, `apply_allowed: true`, an apply command, a mutation plan, or transition impact labels.
+
+The result shall identify the separate workflow required before update:
+
+- `invalid_contract`: contract repair
+- `unsupported_contract`: contract schema migration
+- `missing_contract`: contract recovery
+- `legacy_undeclared`: contract adoption
+
+Those workflows remain outside PROP-095.
+
+### Preview
+
+`p2p runtime contract preview` remains executable as read-only diagnostics without requiring project-owner authority.
+
+Preview shall report:
+
+- current and proposed `requires`
+- current and proposed `recommended`
+- normalized proposed values
+- active runtime version
+- proposed contract validation findings
+- whether `recommended` satisfies `requires`
+- impact labels when the current state can be trusted
+- active-runtime compatibility after update
+- setup-guide state and planned action
+- release availability status
+- files planned for mutation
+- reason requirement
+- whether authority is required for apply
+- whether the current actor can be resolved
+- whether the current actor appears authorized
+- whether apply would currently be blocked for authority reasons
+- `expected_state_token` when an applicable update can later be applied
+
+Lack of authority shall not invalidate or prevent preview. This allows agents and non-owner collaborators to prepare a complete change request for an authorized owner.
+
+Preview shall not:
+
+- consume consent receipts
+- mutate permission, governance, audit, project, token, or environment state
+- treat the expected-state token as authorization
+- expose unnecessary sensitive permission details
+- return an applicable token for invalid proposals, untrusted current contracts, unmanaged setup guides, structural apply blockers, or no-op updates
+
+### Apply
+
+`p2p runtime contract apply` is the only mutating command.
+
+It requires:
+
+- the same proposed `requires` and `recommended` values used during preview
+- the same structured reason and optional linked decision used during preview
+- a valid `expected_state_token`
+- current owner or permission authority
+- explicit `--confirm`
+
+`apply` shall:
+
+1. re-read protected project state
+2. revalidate the proposed contract
+3. recalculate impact
+4. recompute the expected-state token
+5. verify current authority
+6. require explicit confirmation
+7. abort without mutation if state or proposed values do not match the preview
+8. build the proposed runtime contract and setup guide in memory
+9. prepare all required outputs before activating the new contract
+10. perform the coordinated write
+
+The authority check returned by preview is advisory only. `apply` shall always perform a fresh and binding authority check.
+
+### Expected-State Token
+
+The first implementation uses a deterministic stateless expected-state token.
+
+The token is an optimistic-concurrency and proposal-binding mechanism. It is not:
+
+- proof of owner or permission authority
+- explicit confirmation
+- a consent receipt
+- an audit record
+- a secret bearer capability
+
+`preview` calculates and returns the token without persisting project, governance, audit, consent, or token-lifecycle state. `apply` reconstructs the same canonical input from current project state and supplied proposal values and proceeds only when the recalculated token matches the supplied token.
+
+The versioned token input shall bind at least:
+
+- operation identifier
+- token-format version
+- exact current runtime-contract content or digest
+- exact managed setup-guide content, absence state, or unmanaged state
+- relevant required-contract and managed-file marker state
+- normalized proposed `requires` and `recommended`
+- structured reason
+- any linked decision
+- impact-classification algorithm version
+- calculated impact labels
+
+A token mismatch fails as `stale_preview` without modifying files.
+
+Tokens are not persisted, consumed, marked as used, given expiry, or bound to an actor in the first implementation. Reuse of the same token for identical state and proposal is acceptable because authority and confirmation are independently checked during every apply operation.
+
+Single-use, expiry, actor binding, or persistent operation-intent semantics may be added later through PROP-066 consent or another explicit governed operation lifecycle.
+
+### Authority, Decision Link, Reason, And Audit
+
+Runtime contract updates are owner-controlled governed operations, but the first implementation shall not require a linked P2P proposal or decision.
+
+Owner authority, explicit confirmation, stale-preview protection, and a structured reason are sufficient for execution.
+
+The command may optionally link an existing P2P decision for traceability. It shall not create one automatically and shall not block execution solely because no decision is linked. A future project policy may require an accepted decision for selected project-level impacts, especially `runtime_line_change` and `range_tightening`. `current_runtime_excluded` alone shall not trigger that policy because it also describes the local execution environment.
+
+A structured reason is mandatory when any of these labels apply:
+
+- `range_tightening`
+- `runtime_line_change`
+- `current_runtime_excluded`
+
+A reason is normally optional for:
+
+- `recommended_only`
+- pure `range_widening`
+
+If a generic governed-change audit primitive exists, PROP-095 should reuse it. PROP-095 does not introduce a runtime-specific audit file. When no generic audit primitive exists, historical audit remains Git or external workflow and output shall report:
+
+```text
+reason_persisted: false
+audit_mode: external
+```
+
+If a generic governed audit write is part of the same authorized operation, it must complete before the final runtime-contract replacement or participate in the coordinated write procedure.
+
+### Setup Guide Handling
+
+`P2P-SETUP.md` is derivative guidance generated from the runtime contract.
+
+The first implementation handles setup-guide states as follows:
+
+| Setup guide state | Preview | Apply |
+| --- | --- | --- |
+| missing | planned action `generate` | generate managed guide |
+| managed aligned | planned action `regenerate` when contract changes | regenerate managed guide |
+| managed drifted | planned action `regenerate`, `drift_repair: true` | regenerate managed guide during real contract update |
+| present unmanaged | `preview_blocked`, `blocked_reason: unmanaged_setup_guide` | always blocked |
+
+When `P2P-SETUP.md` contains the stable managed marker but its generated content has drifted, PROP-095 may repair that drift only as a side effect of a real runtime contract update. Preview shall report:
+
+- `setup_guide_state: managed_drifted`
+- `setup_guide_action: regenerate`
+- `drift_repair: true`
+- the managed file among planned file changes
+- that the drift will be replaced by deterministic content rendered from the proposed runtime contract
+
+Managed-guide drift is a repair side effect. It shall not by itself add a runtime-contract impact label or require a structured reason.
+
+If `requires` and `recommended` are unchanged and the only difference is setup-guide drift, PROP-095 reports `no_change` plus a drift finding and performs no repair-only mutation. Repair-only belongs to a separate command.
+
+When `P2P-SETUP.md` exists without the stable P2P-managed marker, apply shall always stop before mutation. No `--replace-unmanaged-setup-guide` flag is provided. PROP-095 shall not overwrite, adopt, merge, rename, back up, or replace user-owned setup documentation.
+
+An unmanaged setup guide preview may validate the proposed contract but shall not return an applicable expected-state token.
+
+### Coordinated Write
+
+`.p2p/project/runtime.yml` remains the source of truth. `P2P-SETUP.md` remains derivative.
+
+Confirmed apply shall:
+
+1. verify token, authority, confirmation, and reason requirements
+2. validate the proposed runtime contract
+3. render the managed setup guide from the same proposed data
+4. prepare all required contents in memory
+5. prepare any generic governed audit mutation that belongs to the same operation
+6. write temporary replacement files
+7. replace `P2P-SETUP.md`
+8. complete any coordinated accessory mutation that must occur before contract activation
+9. replace `.p2p/project/runtime.yml` last
+10. perform only narrowly scoped verification of the exact artifacts just written
+11. return a structured final result
+
+If setup guide replacement fails, `runtime.yml` must remain unchanged. If `runtime.yml` replacement fails after setup guide replacement, the command reports partial failure and leaves `runtime.yml` as source of truth; PROP-084 validation detects any resulting guide drift. PROP-095 does not claim crash-proof transactional semantics across files.
+
+If the setup guide changes after preview, apply fails as `stale_preview` without mutation. If the managed marker is removed after preview, apply fails as `unmanaged_setup_guide`.
+
+### Active Runtime Exclusion After Apply
+
+The operation may successfully update the contract to one that excludes the active runtime.
+
+When the new contract causes the active runtime to fall outside the compatible range, apply shall complete only the already authorized coordinated update. After the new `runtime.yml` is in effect, apply shall not perform further governed mutations, including:
+
+- registry or index refresh
+- proposal, contribution, change, work, or governance writes
+- synchronization or managed-branch updates
+- migration or reconciliation
+- audit writes not already included in the coordinated operation
+- Git commit, branch, push, or pull-request automation
+
+The command may perform narrowly scoped read-only verification of the exact artifacts it just wrote, such as re-reading bytes or checking expected digests. It shall not automatically invoke broad project validation or other operations that traverse unrelated governed state after the active runtime has become incompatible.
+
+The final result shall report:
+
+- contract update succeeded
+- active runtime is now incompatible
+- subsequent governed writes are blocked
+- no post-update governed mutation was performed
+- full project validation is deferred until a compatible runtime is used
+- recommended next action and `P2P-SETUP.md` guidance
+
+### Release Availability
+
+PROP-095 always validates the proposed runtime contract syntactically and semantically.
+
+The first implementation shall not require network access, package resolution, installation, or remote release lookup in order to update the contract.
+
+When trusted official release metadata is already available locally or packaged with P2P Engine, preview and apply may use it to report:
+
+```text
+release_availability: verified_available
+```
+
+When no sufficiently authoritative metadata is available, an otherwise valid update may proceed with:
+
+```text
+release_availability: unverified
+```
+
+`unverified` is a warning, not a contract validation failure. Absence from incomplete, stale, or optional local metadata shall not be treated as proof that a release does not exist. A blocking `verified_unavailable` state may be introduced later only if P2P gains access to an authoritative complete release catalog with defined freshness semantics.
+
+PROP-080 metadata may enrich availability diagnostics but is not a blocking dependency for PROP-095.
+
+### PROP-096 - Readiness Evidence Quality and Question State Normalization
+
+Refine readiness assessment so placeholder detection is artifact-aware. A placeholder-only supplemental artifact such as execution-plan.md should contribute no evidence or a separate warning, but it must not downgrade a meaningful primary section such as proposal.md Acceptance Criteria to placeholder. Refine proposal question normalization so a question with applied_to_proposal true and a non-empty applied_at is classified as applied, or provide a deterministic reassess or apply repair that promotes this internally consistent applied marker to state applied. The fix should keep existing readiness profiles and scoring thresholds stable while removing false missing and answered_not_applied findings.
+
+### PROP-097 - Runtime Contract Adoption For Legacy Projects
+
+Add a runtime contract adoption primitive for legacy projects, exposed as
+`p2p runtime contract adopt` or an equivalent explicit preview/apply pair. The
+operation is allowed only when the current runtime state is
+`legacy_undeclared`. It requires owner confirmation and proposed values for
+`requires` and `recommended`; the CLI may offer exact active-runtime defaults,
+but those values must still be visible and explicitly confirmed.
+
+On successful apply, the operation writes `.p2p/project/runtime.yml`, adds
+`runtime_contract.required: true` to `.p2p/project.yml`, and generates a managed
+`P2P-SETUP.md`. After adoption, `p2p runtime status` should report
+`compatible` for the adopted runtime and `p2p validate` should no longer emit
+`P2P267_RUNTIME_CONTRACT_LEGACY_UNDECLARED`.
+
+### PROP-099 - Project Output Lifecycle and Retention Policy
+
+Define PROP-099 as the Human Project Publication Pipeline. The target pipeline is: .p2p managed state to p2p project export to complete project.md, then p2p-project-curator skill to project.curated.md, then publication validation, then owner review, then neutral PDF renderer to project.pdf. The pipeline must remain explicitly separated into independently reviewable stages. The complete export, curated Markdown, validation result, owner review outcome, and rendered PDF should each have clear boundaries so a single stage can be inspected, revised, replaced, or improved without collapsing the whole flow. The existing deterministic export continues to be complete, traceable, regenerable, and close to P2P state. The curator is an agentic semantic editor and is expected to be the primary quality driver for a comprehensible project document: it identifies the central project thesis, reads the active vertical and project definition, adapts structure to the domain, builds a robust narrative thread around the selected vertical and its peculiarities, groups proposals by capability, separates current state from history, distinguishes accepted, implemented, planned, partial, pending, missing, and legacy evidence, removes placeholders and repetition, moves excessive detail to appendices where appropriate, preserves risks and open questions, and maintains traceability. The first slice should use a minimal publication profile to bound variability: audience mixed, depth standard, language project_default, vertical_structure adaptive, include_appendix false by default, and theme neutral-v1. Deterministic stages provide input discipline, contracts, validation, archival behavior, and rendering; they bound and review the curator output, but they must not replace the semantic editorial work. The publication validator is mostly deterministic and checks the document contract: one H1, coherent headings, executive summary, no known placeholders in the main body, no wholesale proposal dumps in the main text, explicit separation of project state and implementation state, accepted/planned/pending/missing distinctions, source-of-truth warning, traceability, vertical-compatible structure, and Markdown suitable for PDF rendering. The neutral PDF renderer consumes only validated curated Markdown and handles presentation, not content. The first implementation should be an end-to-end minimal slice: valid installable p2p-project-curator skill, compact-surfaces-first input discipline, vertical-aware structure, output project.curated.md, minimal publication validation, neutral project.pdf, manual owner review, traceability, and no direct .p2p mutation. Later slices may add CLI orchestration such as project publish prepare, validate, render, and status; publication packages such as project.full.md, project.md, project.appendix.md, project.pdf, publication-manifest.yml, and render-report.yml; and richer publication profiles for audience, depth, language, vertical structure, appendix inclusion, and theme.
 
 ## Domain And Context
 
@@ -1225,6 +1858,10 @@ The current installation path is source-based Python with a virtual environment.
 
 The current repository has broad and growing surfaces: CLI, P2PWorkspace facade, filesystem storage, Git collaboration, registries, project refresh, readiness/maturity assessment, software/spec export, MCP tools, permission/consent handling, generated agent policy, and local development specs. The proposal has been refined through owner discussion: the first deliverable must be an architecture contract and development guidance, not source refactoring. P2PWorkspace should remain the compatibility facade while internal managers/services become the target home for cohesive behavior. This proposal remains in P2P governance scope; implementation tasks will be derived later through the local specs binding workflow after acceptance.
 
+### PROP-060 - Real Test Coverage Reporting
+
+Code coverage, test impact routing, and project evidence coverage are separate concerns. PROP-060 is limited to code coverage diagnostics for P2P Engine maintainers. PROP-098 owns deterministic test impact and validation routing. Future project evidence coverage for user projects, such as checking whether a packaging design has enough evidence for materials, logistics, risk, and acceptance criteria, is also a separate product concern.
+
 ### PROP-061 - Focused README and Documentation Map
 
 P2P Engine documentation now has an installation guide, but the repository still needs a focused README and stubs for the detailed documentation areas identified as important for humans, agents, and contributors.
@@ -1329,6 +1966,14 @@ This refines the accepted direction of PROP-085. PROP-085 defines pluggable proj
 
 The owner defines personality as project interaction style: how an agent or mediator addresses the decision owner. The first implementation uses three independent 0-5 scales. technical_verbosity=0 avoids engine terms in owner-facing language while 5 reports technical operations in detail. formality=0 is very informal while 5 is detached and highly formal. assertiveness=0 preserves the current standard while 5 is highly persistent about unresolved gaps, evidence, order, and follow-up. The owner chose project-level defaults shared by all agents, no persisted presets, and CLI/MCP access under project interaction-style.
 
+### PROP-088 - MCP Artifact Import Parity
+
+PROP-086 made artifact-aware readiness depend on public CLI or explicit MCP write tools, with no direct .p2p writes or temporary-file copying into managed proposal folders. Today MCP exposes p2p_impact_prompt and artifact state tools, but not MCP equivalents for p2p impact import, p2p explore import, or clarify/import-style content ingestion. This prevents an agent-first workflow from closing artifact gaps after it identifies them.
+
+### PROP-089 - Readiness Question-State Convergence
+
+The owner may still decide or accept a proposal with unresolved questions by explicit override. Readiness must report the computed state truthfully and must not pretend unresolved questions are solved. The agent question flow should remain incremental: agents continue to ask the next eligible question one at a time from structured question state.
+
 ### PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
 
 This proposal is an extension and completion of PROP-085 - Pluggable Project Verticals And Readiness Orchestration. It should not be treated as an unrelated feature or as a replacement for PROP-085.
@@ -1360,6 +2005,72 @@ Related proposals:
 - PROP-085 Pluggable Project Verticals And Readiness Orchestration.
 - PROP-086 Artifact-Aware Proposal Readiness And Agent Interview Orchestration.
 - PROP-089 Readiness Question State Convergence.
+
+### PROP-091 - Governance Policy Convergence
+
+`PROP-008` delivered the technical and documental MVP for governance artifacts:
+governance initialization, role files, proposal-local vote recording, decision
+precedent storage, and SWOT prompt support. Later work added project choices,
+choice blockers, permission identities, consent receipts, owner-controlled
+decision boundaries, and MCP safety metadata.
+
+The remaining production-grade gap is not a full democratic governance system.
+The required next step is a convergence layer that makes existing governance
+state readable, validable, deterministic, and useful to the owner before
+finalization.
+
+### PROP-092 - Local MCP Work Lifecycle Parity And Remote Gateway Boundary
+
+NEXT-004 identifies Work MCP parity as the next product decision. The accepted permission-gated MCP model in PROP-066 established role plus consent receipts for privileged operations, while the current Work lifecycle already defines branch, submit, review, publish, request-review, accept, finalize, and cleanup transitions in the CLI. The intended boundary is local-first: P2P Engine should provide a complete local MCP/stdIO adapter aligned with the CLI and backed by the same core command layer. Remote multi-user MCP access, authentication, OAuth, client registration, rate limits, billing, tenant isolation, and Wavekit-specific collaboration policy are separate gateway concerns and should not be implemented inside the P2P core. They remain architectural context: Wavekit should be able to reuse the same core commands later, but apply authenticated user grants and stronger server-side receipts outside the local core.
+
+### PROP-093 - Agent Persistence Boundaries And Proposal Authoring Flow
+
+A v0.1.9 new-project test installed the release wheel into a fresh project-local virtualenv, ran guided init, selected the `software` domain template, accepted the default `all` agent profile, accepted the MCP hint, and registered a Codex MCP server. Init produced the expected P2P files and agent adapters.
+
+During follow-up design work, the agent created a preliminary project document, created a P2P proposal, initialized readiness, initialized question state, and generated vertical material. The P2P state creation was aligned with P2P's purpose, but the agent did not preview the persistent write set clearly before creating durable artifacts.
+
+Later real-world feedback showed a second issue. In a project where P2P was used from an AI-assisted workflow, the agent eventually used the CLI and MCP successfully, but it was also tempted to edit generated proposal markdown under `.p2p/` directly. The scaffold made narrative artifacts look like the place to write, while the correct flow was structured input followed by synthesis/import.
+
+Comparison between recent proposals showed a third issue: proposal directories do not always contain the same physical files. That is acceptable when files are materialized only by relevant workflows, but it is not acceptable for artifact coverage and completeness to be understood only by inspecting directory contents.
+
+Reviewing the current documentation showed that the basic pieces exist, especially `README.md`, `docs/CONCEPTS.md`, `docs/CLI-GUIDE.md`, `docs/MCP.md`, and `docs/AGENT-INTEGRATION.md`. The missing piece is not another long manual. The missing piece is an agent-facing operational playbook that is short enough to embed in generated instructions and concrete enough to guide behavior during real sessions.
+
+Current docs and CLI already expose agent lifecycle commands such as `p2p agent list`, `p2p agent install <adapter>`, `p2p agent update <adapter>`, `p2p agent doctor <adapter>`, `p2p agent uninstall <adapter>`, and `p2p agent instructions refresh --profile <adapter>`. The issue is that this lifecycle is not visible enough in the bootstrap path and generated project instructions, especially if the default no longer materializes every adapter file.
+
+This feedback is not evidence that P2P should promote sibling repositories or external specification directories as a product model. It is evidence that P2P must support an explicit decision root independent of the current working directory, and must make its write interfaces, artifact status model, agent request-routing model, and integration lifecycle unambiguous wherever the decision root lives.
+
+### PROP-094 - P2P-Governed Software Specification Lifecycle
+
+A colleague test showed that an agent created its own specification file on user request. The need was legitimate because the project had a strong software-specification requirement, but the sequence was weak: P2P should guide the user through project definition first, then generate specs as governed or exported artifacts derived from P2P state.
+
+P2P Engine already has relevant primitives: vertical/domain project definition, proposals, readiness, questions, choices, Change Sets, P2P-native software specs, and downstream spec exports. The missing piece is agent-facing guidance that explains when to use each layer and how to respond when the owner asks for specs before enough project state exists.
+
+This proposal complements PROP-093. PROP-093 defines write consent, write classes, and P2P-first persistence. This proposal defines the software-specific handoff from project definition to specifications.
+
+### PROP-095 - Project Runtime Contract Update Lifecycle
+
+PROP-084 introduced a project runtime contract, `P2P-SETUP.md` guidance, runtime status states, and a governed-write gate. That solves fresh-clone alignment and day-to-day diagnostics, but it does not define how the owner safely changes the runtime policy later.
+
+PROP-095 defines that update lifecycle. It updates the runtime contract and the P2P-managed setup guide together. It does not install software, choose an environment, download releases, resolve packages, or reconcile collaborator machines.
+
+The lifecycle must remain usable from an older runtime when the only problem is that the active runtime is outside a valid, supported old contract range. It must not become a generic bypass for invalid, missing, unsupported, unmanaged, or undeclared runtime-contract states.
+
+### PROP-096 - Readiness Evidence Quality and Question State Normalization
+
+The issue was observed while finalizing PROP-095. The proposal itself had meaningful acceptance criteria, but readiness marked acceptance_criteria_quality as placeholder because execution-plan.md still contained the default placeholder line. Separately, Q001 through Q004 were already marked applied_to_proposal true, but the question state was still answered, and proposal questions apply skipped them because they were not considered unapplied.
+
+### PROP-097 - Runtime Contract Adoption For Legacy Projects
+
+PROP-084 introduced a minimal runtime contract for new projects and made
+`legacy_undeclared` a non-blocking warning for older projects. PROP-095 added a
+governed update lifecycle, but deliberately does not apply when the current
+state is untrusted or undeclared. The missing capability is therefore adoption:
+turning a legacy project into a declared contract project through a supported
+owner-controlled command.
+
+### PROP-099 - Project Output Lifecycle and Retention Policy
+
+This proposal follows PROP-083. The source of truth remains .p2p. The existing project export remains valuable as a deterministic and auditable complete export. PROP-099 should add an explicit editorial and publication layer between that complete export and final human-facing outputs. Directly rendering the complete export to PDF would only create a formatted version of a still proposal-first document; therefore curation, validation, and rendering must be separate stages.
 
 ## Scope
 
@@ -3655,6 +4366,47 @@ Not suggested yet.
 
 Not suggested yet.
 
+### PROP-060 - Real Test Coverage Reporting
+
+#### Goals
+
+- Add optional, non-blocking code coverage observability for P2P Engine runtime code.
+- Use terminal coverage output to identify internal modules or branches that need better focused tests.
+- Keep coverage separate from deterministic test routing, project evidence coverage, and release gating.
+
+#### Non-Goals
+
+- Do not implement test impact routing in this proposal; that belongs to PROP-098.
+- Do not measure project-design completeness or evidence coverage for P2P Engine user projects.
+- Do not introduce HTML coverage reports, generated coverage artifacts, or an initial CI fail-under gate.
+- Do not run coverage after every small code change as the default agent behavior.
+
+#### Suggested Scope
+
+# Suggested Scope - PROP-060
+
+## Include
+
+- Add a standard development-only coverage integration such as `pytest-cov`.
+- Document a terminal command that reports missing lines for `src/p2p_engine`.
+- State that coverage is optional, diagnostic, and non-blocking.
+- Preserve existing marker-based validation tiers and scripts.
+- Verify that existing smoke and focused validation scripts still pass.
+
+## Exclude
+
+- Deterministic test impact routing.
+- User-facing project evidence coverage.
+- HTML coverage reports.
+- Generated coverage artifacts.
+- Initial CI fail-under threshold.
+- Mandatory per-change coverage execution.
+- Runtime dependencies for P2P Engine users.
+
+## Next Step After Acceptance
+
+Create an implementation Change Set that updates development dependencies and testing documentation, then validates with smoke and focused tests.
+
 ### PROP-061 - Focused README and Documentation Map
 
 #### Goals
@@ -4691,6 +5443,83 @@ p2p project interaction-style set --technical-verbosity 2 --formality 2 --assert
 The exact command spelling can still be refined during implementation specs,
 but the namespace should remain project-scoped.
 
+### PROP-088 - MCP Artifact Import Parity
+
+#### Goals
+
+- Provide MCP parity for controlled proposal artifact content imports.
+- Start with existing CLI-backed impact and exploration imports, because those services and validation rules already exist.
+- Keep artifact state, readiness, context, and validation consistent after imports.
+- Make unsupported artifact-content mutations fail with explicit missing-primitive guidance.
+- Preserve owner governance boundaries and the rule that agents never write directly under .p2p/.
+
+#### Non-Goals
+
+- Do not add proposal acceptance, rejection, deferral, or owner decision behavior.
+- Do not solve Work lifecycle MCP parity; Work publish, review, accept, finalize, and cleanup remain a separate product decision.
+- Do not add provider PR/MR automation.
+- Do not introduce a broad arbitrary file-write MCP tool for .p2p artifacts.
+
+#### Suggested Scope
+
+# Suggested Scope - PROP-088
+
+## MVP
+
+- Add MCP tool definitions for impact import and exploration import.
+- Route both tools through existing workspace import services.
+- Return structured metadata for imported files.
+- Preserve validation errors for malformed input.
+- Update MCP documentation and tests.
+
+## Explicitly Deferred
+
+- Generic proposal artifact import/update.
+- Arbitrary managed artifact file writes through MCP.
+- Work lifecycle MCP parity.
+- Provider PR/MR automation.
+- Hosted IAM or remote MCP authorization.
+
+### PROP-089 - Readiness Question-State Convergence
+
+#### Goals
+
+- Make questions.yml authoritative for owner-question readiness whenever structured question state exists.
+- Keep open-questions.md as human-readable evidence and legacy fallback, not as a competing source of blocking state.
+- Preserve the one-question-at-a-time owner interaction flow.
+- Keep owner override explicit and auditable when the owner decides despite unresolved questions or partial readiness.
+
+#### Non-Goals
+
+- Do not change whole-project readiness semantics.
+- Do not remove open-questions.md or require migration of all legacy proposals in this change.
+- Do not force the owner to answer every question before making a governance decision.
+- Do not turn agent questioning into a batch questionnaire.
+
+#### Suggested Scope
+
+# Suggested Scope - PROP-089
+
+## MVP
+
+- Update readiness owner-question assessment to use `questions.yml` when
+  present.
+- Keep markdown fallback for legacy proposals without question state.
+- Treat unresolved high-priority questions as hard blockers.
+- Treat unresolved medium/low questions as residual follow-up or confidence
+  cautions unless explicitly configured otherwise.
+- Improve readiness review output with concrete remaining question IDs,
+  priorities, and states.
+- Add tests for applied, answered, to-answer, deferred, muted, retired, and
+  superseded questions.
+
+## Deferred
+
+- Project-level configurable gate policy by question priority.
+- Full migration of historical `open-questions.md` content into structured
+  questions.
+- UI-specific rendering of question state.
+
 ### PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
 
 #### Goals
@@ -4762,6 +5591,446 @@ but the namespace should remain project-scoped.
 - Silent fallback after lockfile creation.
 - Automatic retroactive lockfile generation during validation/readiness/export.
 - Replacing project rubrics or changing enabled:false semantics.
+
+### PROP-091 - Governance Policy Convergence
+
+#### Goals
+
+- Keep `owner_decides` as the current operational default.
+- Preserve owner authority as the final decision source for now.
+- Make votes, blockers, and precedents transparent decision context rather than
+  automatic decision makers.
+- Introduce a deterministic governance preflight contract for proposed
+  selections and decision attempts.
+- Use `permissions.yml` as the primary actor and role source when available.
+- Keep `governance/roles.yml` as a legacy, display, or fallback artifact during
+  migration.
+- Make vote disagreement, ties, related precedents, reopened decisions, weak
+  consensus, and non-blocking concerns visible as warnings.
+- Treat structural invalidity, unauthorized actors, unknown targets, unsupported
+  governance modes, and corrupt governance artifacts as blocking errors.
+- Treat explicit unresolved blockers as normal-flow blockers that can be
+  overridden only by an authorized owner with recorded rationale.
+- Expose first-phase MCP parity through read-only or low-risk governance status,
+  validation, vote status, precedent lookup, and preflight tools.
+
+#### Non-Goals
+
+- Do not implement a full democratic governance system.
+- Do not introduce quorum, weighted voting, delegation, complex voting
+  deadlines, or automatic vote enforcement.
+- Do not make votes automatically accept, reject, or decide proposals or
+  choices.
+- Do not allow agents or MCP tools to bypass owner-controlled governance.
+- Do not use fuzzy matching, semantic similarity, embeddings, title inference,
+  keyword guessing, or AI search in the core precedent lookup.
+- Do not expose MCP tools that mutate governance state or finalize decisions in
+  phase 1.
+- Do not remove compatibility for existing governance artifacts without a
+  migration path.
+
+#### Suggested Scope
+
+# Suggested Scope - PROP-091
+
+## In Scope
+
+- Governance policy evaluation service or equivalent cohesive boundary.
+- Versioned governance preflight output contract.
+- Actor resolution using `permissions.yml` as primary source.
+- Legacy/fallback handling for `governance/roles.yml`.
+- Vote summary and vote alignment evaluation.
+- Warning for owner selection that conflicts with vote winner.
+- Deterministic explicit precedent lookup.
+- Active blocker evaluation.
+- Distinction between warnings, non-overrideable blocking errors, and
+  owner-overrideable active blockers.
+- Structural validation for governance artifacts.
+- CLI or core surfaces for governance status and preflight.
+- MCP phase 1 read-only/low-risk governance tools.
+
+## Out Of Scope
+
+- Full democratic governance enforcement.
+- Automatic vote-based finalization.
+- Quorum, weighted voting, delegation, complex deadlines, or vote expiry.
+- Fuzzy precedent search in the core.
+- AI, embeddings, or semantic matching in core preflight.
+- MCP vote recording, precedent recording, or choice finalization in phase 1.
+- Removing legacy governance artifacts without migration.
+
+## Suggested First Delivery Slice
+
+1. Define the preflight domain model and schema.
+2. Implement read-only preflight for choices.
+3. Implement actor resolution and vote summary alignment.
+4. Implement active blocker and deterministic precedent reporting.
+5. Add validation for governance artifacts.
+6. Expose CLI YAML/JSON output.
+7. Expose MCP read-only tools.
+
+### PROP-092 - Local MCP Work Lifecycle Parity And Remote Gateway Boundary
+
+#### Goals
+
+- Expose the full managed Work lifecycle through the local P2P MCP adapter with functional parity to the CLI where the corresponding CLI transition already exists.
+- Keep every mutating Work MCP operation domain-specific, permission-gated, state-gated, consent-gated, and auditable.
+- Reuse the existing Work lifecycle services and P2P command layer instead of duplicating Work logic in CLI, MCP, or future Wavekit adapters.
+- Define a stable architectural boundary: P2P core is MCP-ready and local-MCP capable; remote multi-user MCP belongs to a separate Wavekit gateway/control-plane layer.
+- Prevent raw Git bypasses by exposing Work operations as P2P tools rather than generic Git tools.
+
+#### Non-Goals
+
+- Do not implement a remote HTTP MCP server, OAuth flow, client registration, multi-tenancy, billing, global rate limiting, or hosted project access in P2P Engine core.
+- Do not create provider PR/MR automation; provider-specific PR/MR creation remains a separate adapter decision.
+- Do not grant agents autonomous authority over owner-controlled actions; owner-controlled transitions still require explicit consent and valid policy checks.
+- Do not expose generic Git tools such as arbitrary push, merge, reset, clean, or delete-branch operations.
+
+#### Suggested Scope
+
+# Suggested Scope - PROP-092
+
+## In Scope
+
+- Local MCP Work lifecycle parity for existing CLI Work transitions.
+- New domain-specific local MCP tools for Work branch, submit, review, publish, request-review, accept, finalize, and cleanup.
+- Reuse of existing Work lifecycle services or a shared command layer.
+- Consent receipt validation for privileged and owner-controlled Work operations.
+- Structured responses for success, conflict, consent, governance, and effect metadata.
+- Explicit fail-closed behavior for invalid state, branch, worktree, remote, manifest, or receipt conditions.
+- Documentation that distinguishes local MCP parity from remote Wavekit MCP.
+- Tests covering the public MCP surface and representative failure modes.
+
+## Out Of Scope
+
+- Remote HTTP MCP server inside P2P Engine core.
+- OAuth, dynamic client registration, Wavekit login, hosted project tenancy, billing, global rate limiting, and abuse prevention.
+- Provider PR/MR creation or provider-side review object creation.
+- Generic raw Git tools.
+- Arbitrary branch, commit, reset, clean, force-push, or merge commands.
+- Rewriting the Work lifecycle state machine.
+- Changing the owner-controlled governance model.
+
+## Boundary Statement
+
+P2P Engine core should be MCP-ready and include local MCP parity. Wavekit remote MCP should be a separate gateway that reuses the same command layer while applying authenticated users, client identity, grants, scoped receipts, audit retention, rate limits, and commercial collaboration policy.
+
+### PROP-093 - Agent Persistence Boundaries And Proposal Authoring Flow
+
+#### Goals
+
+- Make every meaningful persistent agent write classified, owner-visible, and tied to a P2P primitive or policy.
+- Make canonical P2P state, structured proposal inputs, generated narrative artifacts, generated exports, stable documentation, scratch files, and external side effects distinct.
+- Expose a deterministic proposal artifact schema independent of physical file materialization.
+- Provide a compact agent-operational playbook that maps common owner requests to the correct P2P route.
+- Prevent agents from treating scaffolded narrative markdown under `.p2p/` as a manual editing surface.
+- Make proposal authoring discoverable: structured inputs first, then synthesis/import, then owner review and decision.
+- Align contribution primitives with narrative artifacts, or stop scaffolding narrative placeholders that cannot be populated through supported commands.
+- Provide an owner-friendly full proposal view so humans do not need to inspect internal proposal files manually.
+- Make `p2p init` deterministic, adaptive, and explicit about which agent integrations were created and why.
+- Preserve compatibility when the current agent cannot be reliably detected by falling back to the existing broad adapter setup with a concise warning.
+- Make add/remove/update/doctor lifecycle commands for agent integrations visible in init summaries, generated instructions, and docs.
+- Make runtime and MCP setup robust when the P2P decision root differs from the current working directory.
+- Avoid codifying local repository topology choices, including sibling repositories, as official P2P product direction.
+
+#### Non-Goals
+
+- Do not discourage agents from creating P2P proposals, readiness artifacts, question state, choices, contributions, imports, or generated P2P artifacts when useful.
+- Do not force project reasoning to stay in chat.
+- Do not make P2P Engine less proactive.
+- Do not require every proposal directory to contain every possible artifact file.
+- Do not create empty placeholder files only to make proposal directories look uniform.
+- Do not make a long prose manual the primary agent control surface.
+- Do not duplicate the full CLI guide inside generated agent instructions.
+- Do not make agent routing so rigid that owner intent and explicit owner instructions are ignored.
+- Do not remove support for all built-in agent adapters.
+- Do not automatically remove existing adapter files from upgraded projects just because the new init default is adaptive.
+- Do not require users to manually edit `.p2p/agent-integrations.yml` or delete generated agent files by hand.
+- Do not invalidate projects generated by the current release merely because they lack new PROP-093 metadata, generated instructions, artifact-catalog state, or write-class labels.
+- Do not define or recommend a sibling repository model.
+- Do not require users to separate specification repositories from implementation repositories.
+- Do not solve the software specification lifecycle in this proposal; that belongs to PROP-094 and the software vertical.
+- Do not define file names such as `tech-stack.md`, `substrate.md`, or `phase0.md` as core P2P concepts.
+- Do not implement MCP HTTP, hosted service deployment, or remove local-first CLI/filesystem-backed operation in this proposal.
+- Do not implement remote MCP permissions, WaveKit hosted permissions, cloud collaboration authorization, or provider PR automation.
+- Do not change owner authority over governance decisions.
+- Do not require a full external artifact registry in the first implementation slice.
+
+#### Suggested Scope
+
+# Suggested Scope
+
+## Semantic Core Scope
+
+- Canonical write surfaces for proposal and governance state.
+- Persistent write classes and action-preview guidance.
+- Clear boundaries between P2P canonical state, generated narrative, imported artifacts, generated exports, stable documentation, scratch files, and external side effects.
+- Proposal authoring flow based on structured inputs, synthesis/import, full review, and owner decision.
+- Deterministic logical proposal artifact status independent from physical file materialization.
+- Owner-friendly full proposal view.
+- Compact agent request-routing playbook.
+
+## Operational Core Scope
+
+- Explicit decision root through CLI, MCP, and generated agent instructions.
+- Root-aware MCP and runtime hints.
+- Agent instructions that explain how to find and use the governed P2P root when the current working directory differs.
+
+## Bootstrap UX Scope
+
+- Adaptive init default: install `generic`; add the detected current agent when reliable; fallback to `all` when detection is unavailable.
+- Visible lifecycle commands for agent integrations: list, install, update, doctor, refresh, and uninstall.
+
+## Opportunistic Hygiene Scope
+
+- Non-destructive `.gitignore` protection for fresh projects or an explicit guided option.
+- Init summary grouped by purpose.
+
+## Out Of Scope
+
+- Sibling repository product model or any recommended repository topology.
+- Software-specific spec artifact structure as a core P2P concept.
+- Generic `specs` as a core primitive outside explicit verticals or import/export/catalog contracts.
+- External artifact registry MVP.
+- Remote collaboration authorization.
+- Provider PR/MR automation.
+- Destructive migration of existing workspaces or generated agent files.
+
+## Implementation Constraint
+
+Implement PROP-093 in additive slices:
+
+- 093-A canonical proposal authoring;
+- 093-B artifact status and owner view;
+- 093-C agent persistence policy;
+- 093-D bootstrap and integration lifecycle;
+- 093-E root, MCP, and hygiene hardening.
+
+The semantic and operational core should not depend on completing opportunistic hygiene work. Decision-root and MCP hardening are core operational work, while repository hygiene remains independently releasable. Existing workspaces initialized with the current release must remain readable, valid, and non-destructively upgradable.
+
+### PROP-094 - P2P-Governed Software Specification Lifecycle
+
+#### Goals
+
+- Treat the need for specs as a first-class part of the software vertical.
+- Make specification content emerge from P2P-governed project definition, one or more proposals, decisions, and Change Sets.
+- Teach generated agent instructions to route "make specs" requests through the software vertical and P2P state instead of creating an independent durable file by default.
+- Clarify when a spec request should produce chat discussion, project-definition questions, proposal work, choices, a Change Set, a P2P-native spec, a generated export, or stable documentation.
+- Allow early exploratory spec outlines, but prevent them from becoming primary project memory unless they are captured or exported through P2P.
+- Keep user intent respected: if the owner explicitly requests a concrete file outside the P2P flow, the agent may create it after previewing the write and explaining its relationship to P2P state.
+- Reuse existing P2P primitives instead of inventing a parallel specification workflow.
+
+#### Non-Goals
+
+- Do not prohibit users from explicitly requesting a concrete spec file.
+- Do not replace existing P2P proposal, Change Set, spec refresh, or export primitives.
+- Do not implement external artifact registration unless explicitly accepted in a separate proposal.
+- Do not require all non-software projects to follow a software-spec lifecycle.
+- Do not require agents to complete every possible project-definition question before drafting any useful provisional outline.
+- Do not make generated specs authoritative when they contain unresolved questions, inferred details, or unaccepted alternatives.
+
+#### Suggested Scope
+
+# Suggested Scope
+
+In scope:
+
+- Software-domain guidance for spec requests.
+- A routing table for generated agent instructions and documentation.
+- Clear distinction between vertical definition, proposals, choices, Change Sets, P2P-native specs, exports, stable docs, and scratch.
+- Tests for generated guidance and docs.
+
+Out of scope:
+
+- New external artifact registry primitives.
+- New exporter targets.
+- Automatic spec file creation during init.
+- Blocking exploratory spec discussion until every vertical field is complete.
+
+### PROP-095 - Project Runtime Contract Update Lifecycle
+
+#### Goals
+
+- Give the owner an explicit, preview-first operation for changing the project runtime contract.
+- Expose separate read-only and mutating command surfaces.
+- Update `.p2p/project/runtime.yml` and managed `P2P-SETUP.md` as one coordinated policy change.
+- Classify upgrade, downgrade, range widening, range tightening, runtime-line change, recommended-only change, no-op, and active-runtime exclusion.
+- Preserve PROP-084 write-gate safety while allowing a narrow runtime-contract update exception for valid incompatible old contracts.
+- Allow agents and non-owner collaborators to produce read-only previews for owner review.
+- Require owner authority, explicit confirmation, stale-preview protection, and structured reasons where the impact is material.
+- Provide deterministic human-readable and JSON output for humans, agents, CI, and scripts.
+- Keep runtime installation, upgrade, downgrade, package resolution, remote lookup, and release availability enforcement out of scope.
+
+#### Non-Goals
+
+- Do not install, upgrade, downgrade, select, or reconcile a local P2P Engine runtime.
+- Do not query GitHub, download release metadata, resolve wheels, or verify installability through the network.
+- Do not make release metadata from PROP-080 a blocking dependency for runtime contract updates.
+- Do not overwrite, adopt, merge, rename, back up, or replace unmanaged `P2P-SETUP.md` files.
+- Do not implement contract repair, schema migration, contract recovery, or legacy adoption workflows.
+- Do not add MCP mutation in the first implementation.
+- Do not create Git commits, branches, pushes, pull requests, merges, or provider handoffs.
+- Do not perform unrelated governed mutations after a new contract makes the active runtime incompatible.
+
+#### Suggested Scope
+
+## In scope
+
+- CLI `p2p runtime contract update` or equivalent explicit operation.
+- Preview-first behavior.
+- Human and JSON preview/result output.
+- Validation that `recommended` satisfies `requires`.
+- Deterministic impact classification for `==VERSION` and `>=LOWER,<UPPER`.
+- Stable labels: `recommended_only`, `range_widening`, `range_tightening`, `runtime_line_change`, `current_runtime_excluded`.
+- Valid upgrade, downgrade, range widening, range tightening, and recommended-only updates.
+- Owner-role authority plus explicit confirmation.
+- Limited write-gate exception for valid current contracts with active-runtime range incompatibility.
+- Digest-based stale-preview protection for `runtime.yml` and `P2P-SETUP.md`.
+- Managed-error coordinated update of `runtime.yml` and managed `P2P-SETUP.md`, writing `runtime.yml` last.
+- Explicit handling for managed aligned, managed drifted, absent, and unmanaged setup guide states.
+- No-op result handling.
+- Final diagnostic result, including local incompatibility if the active runtime is excluded.
+- Update to the PROP-084 write-path inventory.
+
+## Out of scope
+
+- Runtime installation, selection, upgrade, downgrade, or reconciliation.
+- Virtualenv creation or mutation.
+- Package download, wheel resolution, package index resolution, release availability verification, or source checkout.
+- Automatic contract mutation after a local runtime upgrade.
+- Invalid-contract repair.
+- Unsupported schema migration.
+- Missing-contract recovery.
+- Legacy contract adoption.
+- User-owned setup guide overwrite.
+- First-implementation MCP mutation.
+- Automatic commit, branch, push, or pull request creation.
+- Mandatory P2P proposal/decision for every ordinary runtime contract update.
+- Runtime-specific audit file.
+
+### PROP-096 - Readiness Evidence Quality and Question State Normalization
+
+#### Goals
+
+- Make readiness quality scoring evaluate each evidence artifact without letting a placeholder-only supplemental artifact invalidate meaningful primary evidence.
+- Normalize proposal question state so answered questions already marked applied_to_proposal true are treated as applied or are repairable through a supported CLI flow.
+- Add regression tests that reproduce the PROP-095 failure mode and prove readiness assess does not produce false missing evidence.
+
+#### Non-Goals
+
+- Do not redesign the readiness scoring model or readiness profile thresholds.
+- Do not change owner governance semantics or make readiness scores authoritative decisions.
+- Do not introduce direct editing of .p2p proposal question state as a supported user workflow.
+
+#### Suggested Scope
+
+# Suggested Scope
+
+## In Scope
+
+- Readiness evidence aggregation for criteria that combine a primary proposal
+  section with supplemental artifacts.
+- Owner-question state summary or normalization for already-applied answered
+  questions.
+- Regression tests for the PROP-095 reproduction cases.
+
+## Out Of Scope
+
+- New readiness profile version.
+- Changes to computed score thresholds.
+- New governance decision semantics.
+- Manual `.p2p` state repair workflow.
+- Broad artifact coverage redesign.
+
+### PROP-097 - Runtime Contract Adoption For Legacy Projects
+
+#### Goals
+
+- Provide an explicit owner-controlled adoption lifecycle for
+  `legacy_undeclared` projects.
+- Create the initial `.p2p/project/runtime.yml`, the
+  `runtime_contract.required: true` marker, and a managed `P2P-SETUP.md`.
+- Keep adoption separate from runtime installation, upgrade, package download,
+  environment reconciliation, and contract update.
+- Make the operation previewable, confirmable, testable, and repeatable for
+  this repository and other legacy projects.
+
+#### Non-Goals
+
+- Do not install, upgrade, downgrade, or select a P2P Engine runtime.
+- Do not recover a missing required contract; recovery remains distinct from
+  adoption.
+- Do not repair invalid or unsupported contracts.
+- Do not overwrite an unmanaged human-owned `P2P-SETUP.md` implicitly.
+- Do not make `p2p init` a recovery or adoption shortcut.
+
+#### Suggested Scope
+
+# Suggested Scope
+
+In scope: add a CLI adoption primitive, validate proposed exact or bounded
+runtime requirements, create the first runtime contract, update the required
+marker, generate a managed setup guide, and test blocked states.
+
+Out of scope: runtime installation, package download, network release checks,
+contract recovery, invalid contract repair, unmanaged setup-guide adoption, MCP
+mutation parity, Git automation, and broad project migration tooling.
+
+### PROP-099 - Project Output Lifecycle and Retention Policy
+
+#### Goals
+
+- Define a Human Project Publication Pipeline from governed P2P state to complete export, curated Markdown, publication validation, and neutral PDF.
+- Keep deterministic export, semantic curation, owner review, publication validation, and PDF rendering as independent and inspectable stages.
+- Make the curated document project-first, vertical-aware, traceable, and readable by humans who do not know P2P internals.
+- Define an incremental implementation path with a minimal end-to-end slice first and richer CLI orchestration, publication packages, profiles, and themes later.
+
+#### Non-Goals
+
+- Do not make generated outputs a new source of truth; .p2p remains governed project memory.
+- Do not make the curator decide governance outcomes, readiness, implementation status, or owner choices.
+- Do not replace the P2P-native software specification lifecycle, OpenSpec, Spec Kit, or downstream implementation exports.
+- Do not require a fully deterministic curator in the first slice; semantic curation may be agentic but must be bounded by contracts and validation.
+- Do not introduce multiple themes, branding, visual editors, template marketplaces, sophisticated appendices, automatic permanent replacement of project.md, or full MCP parity in the first slice.
+
+#### Suggested Scope
+
+# Suggested Scope - PROP-099
+
+## In Scope
+
+- Human Project Publication Pipeline.
+- Deterministic complete export remains available.
+- Valid installable `p2p-project-curator` skill.
+- Compact-surfaces-first input discipline.
+- Vertical-aware project-first curation.
+- `outputs/latest/project.curated.md` as first curated candidate.
+- Minimal deterministic publication validation.
+- Neutral PDF renderer.
+- `outputs/latest/project.pdf`.
+- Manual owner review before promotion.
+- Source traceability.
+- No direct `.p2p/` mutation by the curator.
+
+## Out Of Scope For The First Slice
+
+- Multiple themes.
+- Branding.
+- Visual editor.
+- Template marketplace.
+- Sophisticated appendices.
+- Automatic permanent replacement of `project.md`.
+- Fully deterministic curation.
+- OpenSpec or Spec Kit integration in the same pipeline.
+- Software spec generation.
+- Advanced publication package.
+- Complete MCP parity unless separately accepted.
+
+## Later Slices
+
+1. CLI orchestration: prepare, validate, render, status.
+2. Publication package: `project.full.md`, curated `project.md`, appendix, PDF, manifest, render report.
+3. Profiles and themes: audience, depth, language, vertical publication profile, optional branding.
 
 ## Accepted Proposals And Decisions
 
@@ -4933,6 +6202,9 @@ but the namespace should remain project-scoped.
 - PROP-059 - P2PWorkspace Modular Refactoring Plan
   - source: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan
   - decision_reason: Owner accepts the modular refactoring direction after consolidating scope, alternatives, compatibility constraints, first deliverable, first future extraction, and specs binding boundary. This is an explicit owner decision despite the automated readiness score remaining weak.
+- PROP-060 - Real Test Coverage Reporting
+  - source: .p2p/proposals/PROP-060-real-test-coverage-reporting
+  - decision_reason: Accepted as Advisory Code Coverage Diagnostics: optional, non-blocking code coverage diagnostics for P2P Engine maintainers. No initial CI gate, fail-under threshold, HTML artifact, default per-change run, test impact routing, or user-facing project evidence coverage is included; deterministic validation routing remains in PROP-098.
 - PROP-061 - Focused README and Documentation Map
   - source: .p2p/proposals/PROP-061-focused-readme-and-documentation-map
   - decision_reason: Accepted to keep README focused on the p2p-engine repository and add a clear documentation map before expanding detailed guides.
@@ -5008,9 +6280,39 @@ but the namespace should remain project-scoped.
 - PROP-087 - Agent Personality Model For Decision Mediation
   - source: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation
   - decision_reason: Accepted by owner. The proposal is decision-ready and defines a project-level interaction_style model with three explicit scales, defaults, CLI/MCP surfaces, generated instruction updates, and no persisted presets.
+- PROP-088 - MCP Artifact Import Parity
+  - source: .p2p/proposals/PROP-088-mcp-artifact-import-parity
+  - decision_reason: Accepted by owner after resolving MCP artifact import scope toward full parity with existing controlled CLI import primitives. The MVP covers exploration, impact, clarification, synthesis/proposal, plan, and tasks imports through explicit write-safe MCP tools, supports both source paths and direct content payloads, and keeps generic unmanaged artifact import deferred. Readiness is decision_ready with score 100; remaining Q001 answered-not-applied signal is treated as a lifecycle bookkeeping anomaly because proposal.md reflects the accepted scope.
+- PROP-089 - Readiness Question-State Convergence
+  - source: .p2p/proposals/PROP-089-readiness-question-state-convergence
+  - decision_reason: Accepted by owner with explicit readiness override after verification: the readiness/question-state convergence behavior is already implemented and validated with focused readiness/question tests, CLI/MCP contract tests, full pytest, and p2p validate. Computed readiness remains partial at 70, but there are no failed gates, missing artifacts, suggested next actions, or eligible owner questions.
 - PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
   - source: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state
   - decision_reason: Owner reviewed the refined production hardening proposal, confirmed no further changes are needed, and accepts it as the follow-up to PROP-085 for project vertical pack runtime hardening and definition-state production readiness.
+- PROP-091 - Governance Policy Convergence
+  - source: .p2p/proposals/PROP-091-governance-policy-convergence
+  - decision_reason: Accepted by owner after guided refinement. The proposal is decision-ready with readiness score 100, high confidence, no failed gates, no missing artifacts, no suggested next actions, and clean validation. It defines Governance Policy Convergence with owner_decides as default, deterministic preflight, explicit precedent lookup, warning/blocking semantics, actor-role migration, and read-only/low-risk MCP phase 1.
+- PROP-092 - Local MCP Work Lifecycle Parity And Remote Gateway Boundary
+  - source: .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary
+  - decision_reason: Owner accepted local MCP Work lifecycle parity as the core direction: P2P Engine exposes the full Work lifecycle through local MCP using domain-specific, permission-gated commands, while remote multi-user MCP remains a separate Wavekit gateway boundary.
+- PROP-093 - Agent Persistence Boundaries And Proposal Authoring Flow
+  - source: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening
+  - decision_reason: Owner accepted PROP-093 after scope-lock refinement, readiness score 100, and validation confirming the proposal is decision-ready for implementation.
+- PROP-094 - P2P-Governed Software Specification Lifecycle
+  - source: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle
+  - decision_reason: Owner accepted after review; readiness is decision_ready with no missing gates or blocking questions.
+- PROP-095 - Project Runtime Contract Update Lifecycle
+  - source: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle
+  - decision_reason: Owner accepts the runtime contract update lifecycle after readiness reached decision_ready with all Q001-Q016 decisions applied and no missing evidence.
+- PROP-096 - Readiness Evidence Quality and Question State Normalization
+  - source: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization
+  - decision_reason: Owner accepts the readiness evidence quality and question state normalization fix after readiness reached decision_ready and the bug scope was fully bounded.
+- PROP-097 - Runtime Contract Adoption For Legacy Projects
+  - source: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects
+  - decision_reason: Owner accepted runtime contract adoption for legacy projects to close the undeclared contract state without manual .p2p edits.
+- PROP-099 - Project Output Lifecycle and Retention Policy
+  - source: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy
+  - decision_reason: Owner accepts the decision-ready human project publication pipeline as the direction for readable, vertical-aware project outputs.
 
 ## Requirements And Acceptance
 
@@ -5382,6 +6684,15 @@ but the namespace should remain project-scoped.
 - The proposal identifies impact and overlap with permission-gated MCP governance, draft proposal decisions via MCP, next actions MCP/skill support, domain-aware project export, runtime bootstrap, and the local specs binding workflow.
 - No source refactor is required merely to accept the proposal; implementation tasks are produced later through the local specs binding workflow.
 
+### PROP-060 - Real Test Coverage Reporting
+
+- pytest accepts the chosen coverage options locally through the development dependency.
+- A documented terminal command produces a missing-lines coverage report for src/p2p_engine.
+- The documentation states that coverage is diagnostic, optional, and non-blocking in the first slice.
+- No initial fail-under threshold, HTML report, generated coverage artifact, or CI gate is introduced.
+- The proposal explicitly points test impact routing to PROP-098 and does not claim to solve validation selection.
+- Existing smoke and focused validation scripts continue to pass.
+
 ### PROP-061 - Focused README and Documentation Map
 
 - README.md is focused on the p2p-engine repository scope.
@@ -5602,6 +6913,29 @@ but the namespace should remain project-scoped.
 - Persisted named presets are not introduced; scales remain the source of truth and any labels are non-authoritative help text only.
 - Tests cover defaults, validation bounds, CLI show/set, MCP status/update, generated instruction text, missing-config fallback, and no-direct-write guidance.
 
+### PROP-088 - MCP Artifact Import Parity
+
+- MCP exposes a controlled impact import tool that imports impact-map.yml, and related impact artifacts when supported by the existing service, without direct .p2p file writes by the agent.
+- MCP exposes a controlled exploration import tool that imports exploration.md, findings.md, alternatives.md, open-questions.md, risks.md, assumptions.md, and suggested-scope.md through the existing service.
+- The tools return structured imported path metadata and clear validation errors for malformed YAML or missing source content.
+- After MCP artifact imports, p2p_validate succeeds and proposal readiness/context can see the updated artifacts.
+- Unsupported artifact-content updates fail with explicit missing-primitive guidance and do not encourage filesystem workarounds.
+- docs/MCP.md and the MCP tool catalog describe the new tools, their write-safe status, and their governance boundary.
+- Tests cover successful impact import, successful exploration import, malformed impact YAML, missing source content, and the no-arbitrary-file-write boundary.
+
+### PROP-089 - Readiness Question-State Convergence
+
+- Given a proposal with questions.yml, owner_questions_resolution is computed from structured question state rather than parsing open-questions.md as a competing blocker.
+- A high-priority question with status to_answer or reopened blocks owner_questions_resolution by default.
+- A high-priority question with status answered does not block as missing owner input; readiness explain reports it as answered_not_applied or residual follow-up until applied.
+- Medium or low unresolved questions appear as residual follow-up, cautions, or confidence notes unless policy marks them blocking.
+- Questions in applied, retired, or superseded state are closed for owner-question readiness and do not count as open unanswered blockers.
+- Questions in muted or deferred state do not count as open unanswered blockers; deferred questions may reduce confidence or appear as cautions.
+- For proposals without questions.yml, the existing open-questions.md markdown fallback still works.
+- p2p proposal readiness explain identifies exact blocking structured questions and distinguishes them from answered_not_applied, residual follow-up, and confidence notes.
+- Owner acceptance with unresolved questions remains possible only as an explicit override/audit condition; computed readiness remains truthful and is not rewritten to resolved by the override.
+- The next-question workflow remains one question at a time and is not changed into a batch interaction.
+
 ### PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
 
 - A new local development feature can be derived from PROP-090 without changing the accepted meaning of PROP-085.
@@ -5633,6 +6967,226 @@ but the namespace should remain project-scoped.
 - Tests cover loader normalization, resolver precedence, lockfile behavior, explicit lock repair/migration, definition-state validation and updates, pack safety validation, rubric regeneration preservation, and regressions for existing p2p project vertical behavior.
 - Documentation covers pack layout, compatibility rules, resolver order, lockfile semantics, definition.yml semantics, agent guidance, explicit repair/migration, and deferred Wavekit/next-action behavior.
 - p2p validate passes with zero errors after implementation.
+
+### PROP-091 - Governance Policy Convergence
+
+- Governance status reports configured mode, effective owner identities,
+  artifact presence, warnings, and validation problems.
+- Governance preflight emits a stable `schema_version`.
+- Governance preflight output is deterministic for the same repository state
+  and command input.
+- Governance preflight distinguishes proposed `selection` from final decision
+  records.
+- Governance preflight includes actor resolution, resolved roles, capabilities,
+  and `can_decide`.
+- Governance preflight includes `result.status` with one of `ready`,
+  `requires_rationale`, `requires_owner_override`, or `blocked`.
+- Blocking errors and warnings use stable machine-readable codes.
+- Vote summaries are included when vote data exists or is relevant.
+- Vote disagreement with the selected option produces a warning, not a blocking
+  error.
+- Active explicit blockers are listed and block normal finalization.
+- Owner override of explicit blockers requires rationale recorded in the final
+  decision record.
+- Explicit precedents and deterministic tag-declared matches are listed
+  separately.
+- Precedent lookup uses only explicit artifact relationships or declared tags.
+- Project validation includes structural checks for `governance.yml`,
+  `roles.yml`, `decision-precedents.yml`, and `votes.yml`.
+- MCP phase 1 tools do not modify project artifacts, votes, precedents, choices,
+  proposals, or decision records.
+- MCP phase 1 exposes governance status, validation, choice preflight, vote
+  status, and deterministic precedent lookup.
+
+### PROP-092 - Local MCP Work Lifecycle Parity And Remote Gateway Boundary
+
+- Local MCP exposes Work lifecycle tools for branch, submit, review, publish, request-review, accept, finalize, and cleanup, in addition to existing list/status/show/plan coverage.
+- Each mutating Work MCP tool delegates to existing Work lifecycle services or a shared command layer; Work lifecycle rules are not reimplemented separately per adapter.
+- Privileged Work MCP operations require consent receipts for the matching operation, target Work ID, and actor_id, and consume or mark receipts with structured result metadata.
+- Tools fail closed on invalid Work state, dirty worktree, wrong branch, missing remote, malformed manifest, receipt mismatch, expired receipt, or unauthorized owner-controlled operation.
+- Work accept over MCP preserves existing merge-conflict semantics and returns structured conflict data with no finalize or cleanup side effects.
+- Work finalize and cleanup remain separate explicit operations; cleanup distinguishes local deletion from optional remote deletion.
+- The MCP catalog documents that these are local/core MCP tools, not a remote multi-user Wavekit gateway, and documents Wavekit remote MCP as an out-of-core adapter boundary.
+- No generic raw Git MCP tools are introduced for arbitrary push, merge, reset, clean, force-push, or branch deletion.
+
+### PROP-093 - Agent Persistence Boundaries And Proposal Authoring Flow
+
+- Generated agent instructions require action preview before meaningful persistent writes unless the owner explicitly requested the exact artifact or operation.
+- Generated policy defines persistent write classes and identifies which classes require preview.
+- Generated instructions state that direct manual edits under `.p2p/` are forbidden unless an explicit repair is requested or a supported CLI/MCP import/edit primitive exists.
+- Generated instructions or documentation explain that governed P2P state is mutated through supported P2P write primitives, while the filesystem is storage, compatibility, import, export, or human-readable projection rather than the normal agent write interface.
+- Generated agent instructions or project skills include a compact explanation of what P2P Engine is for: governed project intent, owner decisions, proposal flow, structured context, and agent-safe memory.
+- Generated agent instructions or project skills include request-routing guidance for chat-only exploration, project definition, proposals, alternatives/choices, software-spec lifecycle through PROP-094, implementation work, exact file requests, and outside-P2P work.
+- Maintained documentation such as `docs/AGENT-INTEGRATION.md` includes the longer form of the same playbook without duplicating the full CLI guide.
+- Proposal scope hierarchy is documented as semantic core, operational core, bootstrap UX scope, and opportunistic hygiene scope.
+- Implementation planning is split into additive slices 093-A through 093-E, with canonical authoring and artifact visibility separated from bootstrap and hygiene work.
+- Core documentation uses explicit vertical primitives for domain-specific artifacts, and does not treat software specs as a generic core P2P primitive.
+- `stable_documentation` is documented as a write class requiring preview and classification, not as a claim that P2P governs every durable repository document.
+- Proposal scaffold and help text explain the canonical authoring flow: structured inputs, synthesis/import, full review, owner decision.
+- Narrative proposal artifacts are not presented as manual-edit placeholders; they are either absent until generated, marked generated/read-only with command hints, or writable only through explicit import/edit primitives.
+- Every proposal exposes a deterministic logical artifact catalog through CLI/MCP or an equivalent artifact-state/full-view surface.
+- Proposal completeness, missing material, optional material, not-applicable material, and next action can be assessed without relying on filesystem directory contents.
+- Proposals with different workflow histories may have different physical files, but their logical artifact catalog reports consistent artifact slots and statuses.
+- Empty placeholder files are not created solely to make proposal directories uniform.
+- Contribution or question primitives cover the narrative concepts exposed by proposal artifacts, including alternatives, findings, risks, objections or constraints, and open questions, or the scaffold stops exposing unsupported concepts as writable-looking files.
+- A consolidated owner-friendly proposal view exists and includes proposal text, contributions, narrative artifacts, digest, readiness, artifact coverage, and suggested next action.
+- Fresh init always creates the generic baseline and adds the detected current adapter when detection is reliable.
+- Fresh init falls back to `all` when no supported current agent can be detected, and clearly explains the file footprint.
+- Explicit adapter selection remains available for one adapter, multiple adapters, or `all`.
+- Existing projects keep installed adapter files after upgrade unless the owner runs safe uninstall commands.
+- Init summary, generated `AGENTS.md`, and maintained docs explain how to list, add, update, inspect, refresh, and remove agent integrations through supported commands.
+- Agent removal is conservative: shared baseline files, unmanaged files, and drifted human-edited files are not removed silently.
+- Existing current-release workspaces remain loadable and valid after upgrade.
+- Missing PROP-093 metadata, write-class labels, artifact-catalog files, or refreshed agent templates are treated as legacy-compatible state, not validation errors.
+- Existing narrative proposal artifacts are preserved and rendered as legacy/generated/imported/readable evidence instead of being deleted or silently ignored.
+- Existing CLI/MCP command behavior remains stable by default; richer behavior is exposed through additive commands, flags, summaries, or preferred-command documentation.
+- Fresh interactive init protects common local artifacts with non-destructive gitignore handling, prints a robust decision-root-aware MCP hint, and groups created files by purpose.
+- Documentation explains the difference between decision root and current working directory without recommending sibling repositories or any other repository topology.
+- Tests cover adaptive init detection, unknown-agent fallback to `all`, explicit all-adapter selection, explicit narrow adapter selection, post-init integration lifecycle guidance, safe uninstall behavior, legacy workspace loading, legacy template drift handling, optional write-class inference, lazy artifact-catalog derivation, existing narrative artifact preservation, CLI/MCP output compatibility, gitignore handling, MCP hint generation, generated policy text, write-class policy, request-routing playbook text, proposal authoring guidance, deterministic artifact catalog semantics, generated narrative artifact handling, contribution/question type alignment, and full proposal rendering.
+
+### PROP-094 - P2P-Governed Software Specification Lifecycle
+
+- WHEN a project is initialized or refreshed with the software domain, THE SYSTEM SHALL generate agent guidance that treats specs as a downstream capability of the software vertical, not as an immediate standalone file-writing shortcut.
+- WHEN an owner asks an agent for specs in a software project, THE GENERATED GUIDANCE SHALL instruct the agent to classify the request as exploration, project definition, proposal/choice work, Change Set preparation, P2P-native spec generation, export, or explicit stable documentation.
+- WHEN the software vertical is incomplete and the owner asks for specs, THE GENERATED GUIDANCE SHALL instruct the agent to identify missing spec ingredients and route them into P2P project-definition questions, proposal updates, new proposals, or choices before creating durable implementation spec files.
+- WHEN spec content spans multiple concerns, THE GENERATED GUIDANCE SHALL allow and recommend multiple P2P proposals or choices rather than forcing all specification content into one monolithic document.
+- WHEN the owner asks for exploratory or requirements-level spec thinking, THE GENERATED GUIDANCE SHALL allow chat or P2P exploration/proposal material without requiring full readiness, while requiring unresolved assumptions and decisions to be marked clearly.
+- WHEN the owner asks for implementation-oriented specs or downstream exports, THE GENERATED GUIDANCE SHALL require a sufficiently accepted direction, resolved blocking choices, and a relevant Change Set before generating P2P-native specs or export bundles.
+- WHEN the owner explicitly asks for a concrete external spec file, THE GENERATED GUIDANCE SHALL allow the write only with PROP-093 action preview and with a clear statement whether the file is stable documentation, generated export, temporary scratch, or outside P2P governance.
+- Documentation SHALL explain the software-project flow from vertical definition to one or more proposals, choices, accepted direction, Change Set, P2P-native spec, and downstream export.
+- Tests SHALL verify generated guidance and documentation for spec requests, including the routing table, multi-proposal source model, readiness split, and the rule that standalone spec files are not primary untracked project memory.
+- The first implementation slice SHALL reuse existing proposal, readiness, choice, change, spec, and spec export primitives unless a later accepted proposal adds external artifact registration or new spec lifecycle commands.
+
+### PROP-095 - Project Runtime Contract Update Lifecycle
+
+### Command Surface
+
+- WHEN a user runs `p2p runtime contract preview`, THE SYSTEM SHALL perform a read-only preview and SHALL NOT modify project, governance, audit, consent, token, or environment state.
+- WHEN a user runs `p2p runtime contract apply`, THE SYSTEM SHALL treat it as the only mutating runtime contract update command.
+- THE FIRST IMPLEMENTATION SHALL NOT provide a single-command preview-and-apply mode.
+- WHEN preview output is requested as JSON, THE SYSTEM SHALL include the stable machine-readable fields required by agents.
+- WHEN apply output is requested as JSON, THE SYSTEM SHALL include status, files changed, final compatibility, release availability, audit mode, and blocker fields when applicable.
+
+### Proposed Contract Validation
+
+- WHEN proposed `requires` is outside the supported grammar, THE SYSTEM SHALL fail closed without producing an applicable token.
+- WHEN proposed `recommended` does not satisfy proposed `requires`, THE SYSTEM SHALL fail closed without producing an applicable token.
+- WHEN proposed `requires` and `recommended` are unchanged, THE SYSTEM SHALL return `no_change`, no applicable token, no apply operation, no reason requirement, no consent consumption, and no file changes.
+- WHEN only `recommended` changes and it satisfies unchanged `requires`, THE SYSTEM SHALL classify the update as `recommended_only` unless other independent labels also apply.
+
+### Impact Classification
+
+- WHEN proposed range accepts versions not accepted by the current range, THE SYSTEM SHALL add `range_widening`.
+- WHEN current range accepts versions not accepted by the proposed range, THE SYSTEM SHALL add `range_tightening`.
+- WHEN ranges partially overlap but neither is a subset of the other, THE SYSTEM SHALL add both `range_widening` and `range_tightening`.
+- WHEN ranges are disjoint, THE SYSTEM SHALL add both `range_widening` and `range_tightening` and report that ranges do not overlap.
+- WHEN the normalized recommended `major.minor` line changes, THE SYSTEM SHALL add `runtime_line_change`.
+- WHEN the active runtime does not satisfy the proposed range during an applicable transition, THE SYSTEM SHALL add `current_runtime_excluded`.
+- WHEN `range_tightening`, `runtime_line_change`, or `current_runtime_excluded` is present, THE SYSTEM SHALL require a structured reason for apply.
+
+### Current State Handling
+
+- WHEN current runtime status is `compatible`, THE SYSTEM SHALL allow applicable preview and apply subject to validation, structural blockers, token, authority, reason, and confirmation.
+- WHEN current runtime status is `incompatible` only because the active runtime is outside a valid, supported old range, THE SYSTEM SHALL allow the limited update exception subject to the same checks.
+- WHEN current runtime status is `invalid_contract`, `unsupported_contract`, `missing_contract`, or `legacy_undeclared`, THE SYSTEM SHALL return diagnostic-only preview, no applicable token, no apply plan, and blocked apply.
+- WHEN current state is untrusted, THE SYSTEM MAY validate proposed values and MAY report whether the active runtime would satisfy the proposed range as hypothetical diagnostics, but SHALL NOT emit transition impact labels.
+
+### Authority And Governance
+
+- WHEN preview is run by a non-owner or unresolved actor, THE SYSTEM SHALL still produce read-only diagnostics and report whether apply appears blocked for authority reasons.
+- WHEN apply is run, THE SYSTEM SHALL perform a fresh binding authority check and SHALL NOT rely on preview's authority assessment.
+- WHEN apply lacks owner or permission authority, THE SYSTEM SHALL fail without modifying files.
+- WHEN apply lacks explicit `--confirm`, THE SYSTEM SHALL fail without modifying files.
+- WHEN a linked decision is omitted, THE SYSTEM SHALL NOT block solely for that reason.
+- WHEN a linked decision is provided, THE SYSTEM SHALL bind it into the expected-state token and report it in output.
+
+### Expected-State Token
+
+- WHEN preview is applicable, THE SYSTEM SHALL return a deterministic stateless expected-state token.
+- WHEN apply is invoked, THE SYSTEM SHALL recompute the token from current state and supplied proposal values before mutation.
+- WHEN the supplied token does not match, THE SYSTEM SHALL fail as `stale_preview` with no file changes.
+- THE TOKEN SHALL NOT be treated as authority, confirmation, consent, audit, secret bearer capability, or persisted operation intent.
+- THE TOKEN SHALL NOT be persisted, consumed, marked used, expired, or actor-bound in the first implementation.
+- WHEN the proposed contract is invalid, current contract is untrusted, setup guide is unmanaged, another structural blocker exists, or the update is no-op, THE SYSTEM SHALL NOT return an applicable token.
+
+### Setup Guide
+
+- WHEN `P2P-SETUP.md` is missing and update is otherwise applicable, THE SYSTEM SHALL plan and generate a managed setup guide.
+- WHEN `P2P-SETUP.md` is managed and aligned, THE SYSTEM SHALL regenerate it from the proposed contract during a real update.
+- WHEN `P2P-SETUP.md` is managed and drifted, THE SYSTEM SHALL report drift, bind current drifted content in the token, and regenerate it during a real update.
+- WHEN `P2P-SETUP.md` is present but unmanaged, THE SYSTEM SHALL block apply before mutation and SHALL NOT produce an applicable token.
+- THE SYSTEM SHALL NOT provide an override flag to replace unmanaged setup guides in the first implementation.
+- WHEN only managed setup-guide drift exists and contract values are unchanged, THE SYSTEM SHALL report `no_change` plus drift finding and SHALL NOT perform repair-only mutation.
+
+### Coordinated Write
+
+- BEFORE the first write, THE SYSTEM SHALL validate token, authority, confirmation, reason, contract, and setup-guide plan.
+- THE SYSTEM SHALL prepare runtime contract and setup guide content in memory before writing.
+- THE SYSTEM SHALL replace managed `P2P-SETUP.md` before replacing `.p2p/project/runtime.yml`.
+- THE SYSTEM SHALL replace `.p2p/project/runtime.yml` last.
+- WHEN setup guide replacement fails, THE SYSTEM SHALL leave `.p2p/project/runtime.yml` unchanged.
+- WHEN a handled failure occurs, THE SYSTEM SHALL report the failure and files changed without claiming crash-proof transaction semantics.
+
+### Active Runtime Exclusion
+
+- WHEN the new contract excludes the active runtime, THE SYSTEM SHALL allow the update if all apply requirements are satisfied.
+- WHEN the final runtime contract has been replaced and the active runtime is now incompatible, THE SYSTEM SHALL perform no further governed mutations.
+- THE SYSTEM SHALL NOT automatically refresh registries, write proposal/contribution/change/work/governance state, sync, migrate, reconcile, audit after activation, or invoke Git automation after the active runtime becomes incompatible.
+- THE SYSTEM MAY perform narrowly scoped read-only verification of the files just written.
+- THE RESULT SHALL report that subsequent governed writes are blocked and full project validation is deferred until a compatible runtime is used.
+
+### Release Availability
+
+- WHEN trusted official local or packaged release metadata confirms the proposed recommended version, THE SYSTEM MAY report `release_availability: verified_available`.
+- WHEN no authoritative local metadata is available, THE SYSTEM SHALL allow an otherwise valid update with `release_availability: unverified`.
+- THE SYSTEM SHALL NOT query GitHub, download release metadata, resolve wheels, or install anything.
+- THE SYSTEM SHALL NOT treat absence from incomplete, stale, or optional local metadata as proof that a release does not exist.
+
+### Scope Protection
+
+- PROP-095 SHALL NOT implement runtime installation, upgrade, downgrade, selection, or environment reconciliation.
+- PROP-095 SHALL NOT implement unmanaged setup-guide adoption or replacement.
+- PROP-095 SHALL NOT implement invalid contract repair, unsupported schema migration, missing contract recovery, or legacy contract adoption.
+- PROP-095 SHALL NOT add MCP mutation in the first implementation.
+- PROP-095 SHALL NOT create commits, branches, pull requests, pushes, merges, or provider handoffs.
+
+### PROP-096 - Readiness Evidence Quality and Question State Normalization
+
+- Given proposal.md has meaningful Acceptance Criteria and execution-plan.md contains only the default placeholder line, when readiness assess runs, acceptance_criteria_quality is not classified as placeholder or missing solely because of the supplemental execution-plan.md placeholder.
+- Given all acceptance evidence is actually placeholder or absent, readiness still reports acceptance_criteria_quality as missing or placeholder.
+- Given a proposal question has state answered, applied_to_proposal true, and applied_at set, readiness owner_question_state does not report it as answered_not_applied after the supported normalization path runs.
+- Given a proposal question is answered and applied_to_proposal false, the existing apply flow still reports and applies it normally.
+- Regression tests cover readiness composed evidence, placeholder-only supplemental artifacts, and applied question state normalization.
+
+### PROP-097 - Runtime Contract Adoption For Legacy Projects
+
+- A `legacy_undeclared` project can adopt a runtime contract through a supported
+  CLI primitive.
+- Adoption writes `.p2p/project/runtime.yml`, adds
+  `runtime_contract.required: true`, and creates a managed `P2P-SETUP.md`.
+- `p2p runtime status` reports `compatible` after adopting the active runtime.
+- `p2p validate` no longer reports
+  `P2P267_RUNTIME_CONTRACT_LEGACY_UNDECLARED`.
+- Adoption is blocked for `missing_contract`, invalid, unsupported, and already
+  declared projects.
+- An unmanaged `P2P-SETUP.md` is not overwritten implicitly.
+- No runtime installation, package resolution, network operation, Git
+  automation, or environment mutation is performed.
+
+### PROP-099 - Project Output Lifecycle and Retention Policy
+
+- The proposal defines the Human Project Publication Pipeline and clearly separates governed content, deterministic complete export, agentic editorial curation, publication validation, owner review, and PDF rendering.
+- Each pipeline stage is independently reviewable: complete export, curated Markdown, validation result, owner review outcome, and rendered PDF have explicit boundaries and artifacts or reports.
+- The proposal defines the first implementation slice: installable p2p-project-curator skill, compact-surfaces-first input discipline, vertical-aware curation, project.curated.md, minimal deterministic publication validation, neutral project.pdf, manual owner review, traceability, and no direct .p2p mutation.
+- The proposal defines the agentic curator as the primary quality driver for human comprehensibility, vertical-specific narrative, capability grouping, repetition removal, and robust project-first flow.
+- The proposal defines deterministic stages as boundaries and controls around curation: input discipline, contracts, validation, archival behavior, and presentation-only rendering.
+- The proposal defines a minimal publication profile for the first slice: audience mixed, depth standard, language project_default, adaptive vertical structure, appendix disabled by default, and neutral-v1 theme.
+- The proposal defines status vocabulary for accepted, implemented, planned, partial, pending owner decision, missing evidence, legacy or not assessed, advisory, and blocked material.
+- The proposal defines that project.md remains the complete export in the first slice, while project.curated.md is the owner-review candidate and project.pdf is rendered from the curated validated Markdown.
+- The proposal defines a later migration path where project.full.md preserves the complete export, project.md may become the curated human document, and publication metadata or appendices may be added.
+- The proposal defines publication validation quality gates for headings, placeholders, executive summary, proposal dump avoidance, project versus implementation status separation, traceability, source-of-truth warning, vertical fit, and PDF-ready Markdown.
+- The proposal defines that the PDF renderer is neutral and presentation-only: it must not rewrite content, remove sections, alter evidence status, modify decisions, or reinterpret readiness.
+- The proposal defines alternatives, tradeoffs, risks, assumptions, impact with PROP-083, and out-of-scope boundaries for software-spec and downstream export workflows.
 
 ## Alternatives And Tradeoffs
 
@@ -7683,6 +9237,91 @@ None identified yet.
 
 findings: []
 
+### PROP-060 - Real Test Coverage Reporting
+
+#### alternatives.md
+
+# Alternatives - PROP-060
+
+## Alternative A: No Coverage Tooling
+
+Keep the current marker-based validation tiers and do not add coverage integration.
+
+Benefit: no new dependency and no new command surface.
+
+Cost: maintainers still cannot measure which runtime modules or branches are unexercised by selected tests.
+
+Assessment: viable but weaker than the preferred option because it preserves the observability gap.
+
+## Alternative B: Advisory Terminal Coverage Diagnostic
+
+Add a development-only coverage integration such as `pytest-cov` and document a terminal missing-lines report for `src/p2p_engine`.
+
+Benefit: gives maintainers useful visibility into unexercised code while keeping existing test tiers and validation scripts intact.
+
+Cost: adds a small development dependency and a diagnostic command that must be documented carefully to avoid misuse.
+
+Assessment: preferred option.
+
+## Alternative C: Mandatory Coverage Threshold In CI
+
+Add coverage and immediately enforce a fail-under threshold in CI.
+
+Benefit: creates a clear numeric gate.
+
+Cost: premature without a baseline, likely to make the percentage too central, and may incentivize tests that raise coverage without improving targeted regression confidence.
+
+Assessment: reject for the first slice; it can be reconsidered only after maintainers have a baseline and know which gaps matter.
+
+## Preferred Tradeoff
+
+Choose Alternative B. It gives real diagnostic value without pretending that coverage is a quality score, release gate, or deterministic routing mechanism.
+
+#### findings.md
+
+findings:
+  - id: F001
+    type: current_capability
+    title: Existing test tiers are already structured
+    impact: high
+    related_to:
+      - docs/TESTING.md
+      - scripts/test-focused.sh
+      - scripts/test-public.sh
+      - scripts/test-smoke.sh
+      - scripts/test-full.sh
+    evidence: "The repository already has marker-based pytest tiers and validation scripts; PROP-060 should not replace this structure."
+  - id: F002
+    type: gap
+    title: Coverage tooling is not currently available
+    impact: medium
+    related_to:
+      - pyproject.toml
+      - tests
+    evidence: "A coverage option such as --cov is not accepted by the current pytest setup without adding a development coverage integration."
+  - id: F003
+    type: scope_boundary
+    title: Coverage is not test impact routing
+    impact: high
+    related_to:
+      - PROP-098
+    evidence: "Coverage can show which code selected tests exercised, but it cannot deterministically decide which tests are required for a future change."
+  - id: F004
+    type: scope_boundary
+    title: Coverage is not user project evidence completeness
+    impact: high
+    related_to:
+      - PROP-060
+    evidence: "This proposal is internal to P2P Engine software maintenance and does not assess whether a user project design has enough evidence, risks, acceptance criteria, or domain validation."
+  - id: F005
+    type: implementation_constraint
+    title: First slice should avoid blocking gates
+    impact: medium
+    related_to:
+      - pyproject.toml
+      - docs/TESTING.md
+    evidence: "No baseline coverage exists yet; an immediate fail-under threshold would be premature and could incentivize superficial tests."
+
 ### PROP-061 - Focused README and Documentation Map
 
 #### alternatives.md
@@ -8435,6 +10074,157 @@ Status: rejected for persisted configuration.
 - If labels/presets become the source of truth, the model becomes hard to scale
   when additional dimensions are added.
 
+### PROP-088 - MCP Artifact Import Parity
+
+#### alternatives.md
+
+# Alternatives - PROP-088
+
+## Option A - Add MCP parity for existing imports first
+
+Expose `p2p_impact_import` and `p2p_explore_import` equivalents that call the
+existing import services. This is the recommended MVP because behavior,
+validation, and CLI semantics already exist.
+
+## Option B - Add a generic proposal artifact import tool
+
+Provide one MCP tool for multiple artifact kinds. This may be useful later, but
+it needs a strict allowlist, per-artifact validation, and clear ownership
+rules. It is riskier as the first step because it can become an arbitrary
+managed-file write path.
+
+## Option C - Keep MCP as state-only and require CLI for content imports
+
+This preserves the current boundary but leaves MCP agents unable to complete
+artifact-aware readiness workflows. It conflicts with the agent-first direction
+from PROP-086.
+
+#### findings.md
+
+# Findings - PROP-088
+
+- The gap is MCP parity for proposal artifact content imports, not the
+  underlying artifact import service itself.
+- The CLI currently exposes controlled import primitives for impact and
+  exploration output.
+- MCP exposes artifact coverage state tools, which are useful but do not write
+  the long-form artifact contents that readiness evaluates.
+- PROP-086 requires agents to stop when a needed public primitive is missing;
+  therefore this gap is expected behavior today but blocks the intended
+  artifact-aware agent workflow.
+- The first implementation should reuse existing services instead of
+  introducing a generic managed-file writer.
+
+### PROP-089 - Readiness Question-State Convergence
+
+#### alternatives.md
+
+# Alternatives - PROP-089
+
+## Option A - Make `questions.yml` authoritative when present
+
+Use structured question state as the primary source for
+`owner_questions_resolution`. `open-questions.md` remains readable supporting
+evidence, but no longer creates blocking gates when structured question state
+exists.
+
+Pros:
+
+- Aligns implementation with the question workflow design.
+- Avoids brittle markdown parsing.
+- Makes applied answers matter immediately.
+- Gives agents precise remaining question IDs and states.
+
+Cons:
+
+- Needs compatibility handling for proposals without `questions.yml`.
+- Requires careful migration semantics for existing proposals.
+
+## Option B - Keep markdown parsing but make it section-aware
+
+Continue using `open-questions.md`, but count only questions under a strict
+`Still Open` section and ignore `Answered` sections.
+
+Pros:
+
+- Small implementation change.
+- Keeps existing artifact-oriented model.
+
+Cons:
+
+- Still fragile: headings and prose style can drift.
+- Duplicates lifecycle logic that already exists in `questions.yml`.
+- Does not solve divergence between structured state and markdown.
+
+## Option C - Priority-weighted structured gating
+
+Use structured questions as source of truth, and make only high-priority
+unresolved questions hard blockers. Medium and low questions remain visible as
+residual follow-up or confidence cautions.
+
+Pros:
+
+- Prevents readiness from staying blocked forever on non-critical follow-up.
+- Matches the idea of stepped assertiveness.
+- Keeps owner-visible caution without overstating blocker status.
+
+Cons:
+
+- Requires clear policy: when is a medium question still decision-blocking?
+- Could be too permissive if agents classify questions too low.
+
+## Option D - Manual owner override only
+
+Keep current readiness logic and ask owners to override when readiness is
+obviously too conservative.
+
+Pros:
+
+- No implementation cost.
+- Maintains conservative behavior.
+
+Cons:
+
+- Normalizes false blockers.
+- Weakens trust in readiness scores.
+- Forces owners to use override for routine refinement completion.
+
+## Recommendation
+
+Combine Option A and Option C:
+
+- when `questions.yml` exists, use it as the source of truth;
+- unresolved high-priority questions are hard blockers;
+- unresolved medium/low questions reduce confidence or appear as residual
+  follow-up unless explicitly marked decision-blocking;
+- legacy proposals without `questions.yml` keep the markdown fallback.
+
+#### findings.md
+
+# Findings - PROP-089
+
+- In PROP-088, `questions.yml` records Q001 as `applied`, but readiness still
+  reports `owner_questions_resolution:needs_owner_input`.
+- `readiness.assess` uses `count_open_questions(open-questions.md)` as a
+  blocker source even when structured question state exists.
+- `count_open_questions` counts any bullet line ending in `?`, including
+  historical answered questions and recommended questions in prose.
+- `_pending_high_questions` only counts structured high-priority questions in
+  `to_answer` or `answered` states; medium and low priority structured questions
+  do not affect that counter.
+- `readiness.review` can report `owner_questions: none` while readiness still
+  has a failed gate, which is confusing for agents and owners.
+- The design for proposal readiness review says applied question answers should
+  be evidence for owner-question resolution, so implementation and design are
+  not fully converged.
+
+Relevant implementation areas:
+
+- `src/p2p_engine/services/readiness.py`
+- `src/p2p_engine/services/proposal_questions.py`
+- `tests/test_readiness_service.py`
+- `tests/test_proposal_questions_service.py`
+
 ### PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
 
 #### alternatives.md
@@ -8627,6 +10417,674 @@ findings:
     impact: high
     related_to:
       - PROP-085
+
+### PROP-091 - Governance Policy Convergence
+
+#### alternatives.md
+
+# Alternatives - PROP-091
+
+## Alternative A - Keep Governance Artifacts As Passive Audit Records
+
+Continue with the current model: votes, roles, precedents, blockers, and
+permissions are stored and inspectable, but no unified policy evaluation is
+introduced.
+
+Pros:
+
+- Minimal implementation effort.
+- No compatibility risk.
+- Avoids introducing a new policy service.
+
+Cons:
+
+- Agents and MCP clients lack a stable governance preflight contract.
+- Vote conflicts, active blockers, and precedents remain fragmented.
+- The owner lacks a single structured view before decision finalization.
+- The system remains artifact-rich but policy-weak.
+
+Assessment: insufficient for production-grade governance transparency.
+
+## Alternative B - Full Governance Enforcement
+
+Implement stronger governance rules immediately: quorum, weighted voting,
+deadlines, delegations, automatic vote enforcement, strict consensus, and
+mandatory override rationale for all contrary signals.
+
+Pros:
+
+- Strong formal governance semantics.
+- Clear decision mechanics for multi-owner or committee-driven projects.
+
+Cons:
+
+- Premature for the current project stage.
+- High compatibility and complexity risk.
+- Could confuse owner authority with voting machinery.
+- Requires deeper identity, authority, delegation, and remote enforcement model.
+
+Assessment: too heavy for the current phase.
+
+## Alternative C - Governance Policy Convergence With Owner Authority
+
+Introduce deterministic preflight evaluation across permissions, governance,
+choices, votes, blockers, and precedents. Keep `owner_decides` as default.
+Treat votes and precedents as transparent warning/context. Treat structural
+invalidity and unauthorized actors as blocking errors. Treat active explicit
+blockers as normal-flow blocks overrideable only by owner rationale.
+
+Pros:
+
+- Gives agents and tools a stable contract.
+- Keeps owner authority clear.
+- Makes vote alignment or conflict visible.
+- Preserves deterministic CLI behavior.
+- Avoids premature democratic enforcement.
+- Provides a migration path from legacy `roles.yml` to `permissions.yml`.
+
+Cons:
+
+- Requires a new policy-evaluation boundary.
+- Requires schema and validation decisions.
+- Does not solve advanced multi-owner governance yet.
+
+Assessment: recommended.
+
+## Alternative D - Agent Or UI Soft Governance Only
+
+Leave the core unchanged and let Wavekit or agents infer governance context from
+titles, text, votes, and precedents.
+
+Pros:
+
+- Flexible.
+- Can support richer analysis outside the core.
+
+Cons:
+
+- Not deterministic.
+- Harder to test.
+- Different agents may reach different conclusions.
+- Risk of hidden governance assumptions.
+
+Assessment: useful as authoring support, but not acceptable as core truth.
+
+## Recommended Direction
+
+Choose Alternative C. Keep the core deterministic and artifact-driven. Allow
+agents and UI layers to suggest links or analysis, but require those suggestions
+to become explicit versioned artifact relations before the core preflight uses
+them.
+
+#### findings.md
+
+# Findings - PROP-091
+
+## F001 - Governance Artifacts Are Present But Not Policy
+
+P2P Engine can store governance-related files and record votes or precedents,
+but the current system does not evaluate them together as a decision preflight.
+
+Impact: high.
+
+## F002 - Owner Authority Must Remain Explicit
+
+The owner remains the final decision maker in the current project phase. The
+system should make vote alignment and conflicts visible without converting votes
+into automatic outcomes.
+
+Impact: high.
+
+## F003 - Permissions Are The Better Actor Source
+
+`permissions.yml` contains project-declared identities and roles and already
+supports consent-sensitive flows. It is the strongest source for actor
+resolution. `governance/roles.yml` should remain available for legacy/display
+or fallback during migration.
+
+Impact: high.
+
+## F004 - Precedent Lookup Must Be Deterministic
+
+Core precedent lookup must avoid fuzzy matching, title inference, semantic
+similarity, embeddings, or AI. Explicit artifact links and declared tags keep
+preflight reproducible.
+
+Impact: high.
+
+## F005 - Blocking Errors Should Protect Reliability
+
+Blocking errors should represent inability to decide reliably, not ordinary
+dissent. Structural invalidity, unknown targets, invalid governance mode, and
+unauthorized actors must block. Vote disagreement and related precedents should
+warn.
+
+Impact: high.
+
+## F006 - MCP Should Start With Visibility
+
+MCP can safely expose status, validation, preflight, vote status, and
+deterministic precedent lookup. Mutation and final decision tools should wait
+until actor authority, override rationale, and managed delegation are fully
+specified.
+
+Impact: medium.
+
+### PROP-092 - Local MCP Work Lifecycle Parity And Remote Gateway Boundary
+
+#### alternatives.md
+
+# Alternatives - PROP-092
+
+## Alternative A - Keep Work lifecycle CLI-only
+
+Keep the Work lifecycle available only through CLI commands.
+
+Benefits:
+
+- Lowest implementation cost.
+- No new MCP mutating surface.
+- Avoids new consent/audit tests.
+
+Costs:
+
+- Agent-first local workflows remain incomplete.
+- Agents must hand control back to a shell user for key lifecycle steps.
+- External integrations may be tempted to use raw Git commands.
+- MCP remains inconsistent: proposal branches have permission-gated lifecycle tools, Work items do not.
+
+Verdict: rejected. It preserves safety by omission, but it weakens the agent-first product direction and leaves a predictable gap.
+
+## Alternative B - Add only read/status Work MCP tools
+
+Expose only list, status, show, scan, and perhaps plan.
+
+Benefits:
+
+- Safe and simple.
+- Useful for project visibility.
+- No owner-controlled lifecycle operations through MCP.
+
+Costs:
+
+- The current system is already close to this state.
+- It does not solve NEXT-004, which is explicitly about Work publish/finalize/accept/cleanup parity.
+- It creates a permanent CLI/MCP mismatch.
+
+Verdict: rejected as insufficient.
+
+## Alternative C - Full local MCP Work lifecycle parity with domain gates
+
+Expose the full CLI-backed Work lifecycle through local MCP tools, but only as domain-specific P2P operations with state, consent, branch, remote, and audit gates.
+
+Benefits:
+
+- Completes local agent-first workflows.
+- Reuses existing CLI/service behavior.
+- Avoids raw Git tools.
+- Keeps owner-controlled operations explicit.
+- Gives Wavekit a future reusable command contract without putting remote MCP into the core.
+
+Costs:
+
+- Requires careful MCP catalog and handler implementation.
+- Requires focused tests for consent consumption, failure modes, merge conflicts, cleanup, and remote handoff.
+- Requires clear documentation to avoid confusing local MCP parity with remote multi-user authorization.
+
+Verdict: selected.
+
+## Alternative D - Put remote MCP server into P2P Engine core
+
+Implement HTTP remote MCP, auth, sessions, grants, and multi-user behavior directly in P2P Engine.
+
+Benefits:
+
+- One installable package could expose both local and remote MCP.
+- Remote clients might integrate directly.
+
+Costs:
+
+- Pollutes the local-first core with Wavekit/server concerns.
+- Introduces OAuth, tenant isolation, rate limits, hosted audit, client registration, and abuse prevention before the core needs them.
+- Makes the commercial Wavekit boundary unclear.
+- Increases security and operational burden for local users.
+
+Verdict: rejected. Remote MCP should be a separate Wavekit gateway that calls P2P core commands.
+
+#### findings.md
+
+# Findings - PROP-092
+
+## Current System Position
+
+P2P Engine already has a complete CLI Work lifecycle: plan, branch, submit, review, publish, request-review, accept, finalize, cleanup, retire, list, status, show, and scan.
+
+P2P MCP already has a permission-gated pattern for proposal branch operations and managed sync. That pattern validates a consent receipt, executes a domain operation, consumes the receipt with structured result metadata, and records audit state.
+
+Work MCP coverage is currently incomplete. Agents can inspect Work state and create Work plans through MCP, but they cannot complete the operational lifecycle through local MCP without returning to CLI or using an unsafe raw Git escape hatch.
+
+## Architectural Finding
+
+The system should separate adapters, not duplicate lifecycle logic. The CLI, local MCP adapter, and future Wavekit remote gateway must all call the same Work lifecycle command layer or service methods.
+
+## Security Finding
+
+The local MCP adapter can expose the complete catalog because it operates in the self-managed local project context. That does not mean it has unrestricted authority. Every mutating tool must still validate Work state, branch context, consent, and operation target.
+
+## Product Boundary Finding
+
+Remote MCP is a different product boundary. It involves authenticated users, client identity, grants, rate limits, hosted projects, external agents, commercial policy, and anti-abuse controls. Those concerns belong in Wavekit or a separate gateway layer.
+
+### PROP-093 - Agent Persistence Boundaries And Proposal Authoring Flow
+
+#### alternatives.md
+
+# Alternatives
+
+1. Keep current scaffold and document it better.
+
+   This is small but leaves contradictory affordances in place.
+
+2. Add only action preview.
+
+   This improves consent but does not stop agents from writing the wrong proposal artifact.
+
+3. Remove empty narrative placeholders.
+
+   This avoids manual-edit temptation but may reduce filesystem transparency.
+
+4. Keep narrative files but mark them generated/read-only with command hints.
+
+   This preserves visibility while making canonical writes explicit.
+
+5. Add missing contribution/question primitives.
+
+   This aligns authoring inputs with rendered outputs, but still needs generated-file boundaries.
+
+6. Add a full proposal render command only.
+
+   This helps owners read state but does not fix write ambiguity.
+
+7. Treat sibling repositories as official product direction.
+
+   Rejected. The core concept is explicit decision root, not repository topology.
+
+#### findings.md
+
+# Findings
+
+- Early P2P use by agents is desirable and should not be discouraged.
+- The product issue is ambiguous persistent-write affordance, not agent proactivity.
+- Direct `.p2p/` edits become likely when scaffolded markdown looks editable.
+- If structured contributions are canonical, narrative markdown must be clearly generated/imported or absent until content exists.
+- Proposal authoring flow needs to be discoverable from the CLI, not reconstructed by reading multiple help pages.
+- Owners need a consolidated proposal view to avoid inspecting internal files.
+- Explicit decision-root support is core; sibling repositories are only a local topology and must not become product direction.
+
+### PROP-094 - P2P-Governed Software Specification Lifecycle
+
+#### alternatives.md
+
+# Alternatives
+
+1. Rely only on PROP-093.
+
+   This covers write consent and artifact visibility, but it does not guide the software-specific lifecycle.
+
+2. Always write the spec file immediately.
+
+   This is responsive, but it lets the file become primary project truth outside P2P.
+
+3. Block all spec drafting until the whole project is complete.
+
+   This is too rigid. Early spec outlines are useful for discovering missing project definition.
+
+4. Require every spec to derive from one accepted Change Set.
+
+   This is appropriate for implementation specs, but it is too narrow for exploratory and requirements-level work.
+
+5. Treat specs as a downstream capability of the software vertical.
+
+   This is the recommended approach. It lets the owner ask for specs naturally while keeping the source of truth in P2P.
+
+#### findings.md
+
+# Findings
+
+- A request for specs is often a signal that the software vertical needs to be completed, not that a standalone file should be written immediately.
+- The specification ingredients can be distributed across multiple proposals.
+- Change Sets are the right consolidation point for implementation-oriented specs.
+- P2P-native specs and downstream exports already provide a path to files without making the file the source of truth.
+- The agent needs a routing table for common spec requests.
+- Readiness should be contextual: advisory for exploration, stricter for implementation-oriented specs and exports.
+
+### PROP-095 - Project Runtime Contract Update Lifecycle
+
+#### alternatives.md
+
+# Alternatives Considered
+
+## 1. Leave Runtime Contract Changes As Manual Edits
+
+Manual edits to `.p2p/project/runtime.yml` followed by validation would keep the
+implementation small, but they would not provide a controlled lifecycle for
+coordinating the derived setup guide, stale-state protection, impact
+classification, owner authorization, or collaborator-facing diagnostics.
+
+This alternative is rejected because it recreates the core problem: an owner can
+change the required runtime line without a structured preview of who is affected
+and without a coordinated update of `P2P-SETUP.md`.
+
+## 2. Provide One `p2p runtime contract update` Command
+
+A single command could combine preview, confirmation, and mutation. It is simpler
+to document, but it makes read-only agent workflows weaker and encourages a
+mutation-first interaction model.
+
+This alternative is rejected in favor of separate commands:
+
+- `p2p runtime contract preview`
+- `p2p runtime contract apply`
+
+The split lets agents and non-owner collaborators prepare a complete technical
+request without acquiring owner authority or mutating project state. `apply`
+remains the only authoritative mutation path.
+
+## 3. Automatically Install Or Upgrade P2P Engine
+
+An automatic updater could try to resolve collaborator drift directly. This would
+mix project governance with environment management and would need to own package
+sources, network consent, installation paths, rollback, and platform-specific
+failure behavior.
+
+This alternative is rejected. PROP-095 updates the project runtime contract and
+diagnoses the local mismatch. It does not install, upgrade, downgrade, or
+reconcile the active P2P Engine runtime.
+
+## 4. Require A Linked P2P Proposal Or Decision For Every Update
+
+Mandatory proposal linkage would create a strong governance trail, but it is too
+heavy for routine maintenance and may be circular when the active runtime is
+already outside the current range and cannot safely perform ordinary governed
+writes.
+
+This alternative is rejected for the first implementation. Runtime contract
+updates are owner-controlled governed operations with preview, confirmation,
+reason where required, stale-preview protection, and authority checks. Linking an
+existing decision remains optional for traceability. A future project policy may
+make decisions mandatory for selected impacts such as runtime-line changes.
+
+## 5. Persist A Single-Use Preview Token
+
+A persisted token would allow strict consumption semantics, but it would require
+additional state writes during preview and would make read-only agent workflows
+harder.
+
+This alternative is rejected. The selected design uses a deterministic stateless
+expected-state token. The token binds protected project state and the proposed
+contract update. It is not actor authority, consent, or a persisted approval.
+
+## 6. Allow Replacement Of An Unmanaged `P2P-SETUP.md`
+
+An override flag could let owners replace an existing human-written setup guide
+while changing the runtime contract. That would introduce a distinct adoption or
+replacement capability with backup, merge, attribution, and data-loss concerns.
+
+This alternative is rejected. If `P2P-SETUP.md` exists without the P2P-managed
+marker, `apply` is blocked before mutation. Adoption or replacement of an
+unmanaged setup guide is a separate future capability.
+
+## 7. Block Updates When Release Availability Cannot Be Verified
+
+Release availability checks can prevent typos, but they depend on local metadata
+freshness and optional external state. Making them mandatory would turn a
+contract update into a release-discovery workflow.
+
+This alternative is rejected. PROP-095 may report `release_availability:
+unverified`, but that finding is informational when the proposed contract is
+otherwise valid.
+
+## Selected Approach
+
+PROP-095 defines a contract-update lifecycle, not an installation lifecycle:
+
+- read-only preview for owners, agents, and collaborators;
+- owner-authorized apply with explicit confirmation;
+- deterministic stateless stale-state protection;
+- structured impact classification;
+- coordinated updates to `runtime.yml` and managed `P2P-SETUP.md`;
+- no mutation after activating a contract that excludes the active runtime;
+- no implicit handling of unmanaged setup guides or untrusted current contracts.
+
+## Tradeoffs
+
+The selected approach adds command and test surface, but it keeps project state
+changes explicit and reviewable. It does not solve environment installation by
+itself; instead, it makes the project contract authoritative and tells the user
+when their local runtime is no longer compatible.
+
+The most important tradeoff is deliberate separation of responsibilities:
+project owners may update the contract, while collaborators remain responsible
+for installing a compatible P2P Engine version according to the generated setup
+guide.
+
+#### findings.md
+
+# Exploration Findings
+
+PROP-095 should be scoped as a project runtime contract update lifecycle, not as
+an upgrade or installation lifecycle. The real project risk is not that P2P
+Engine fails to install itself automatically; the risk is that the owner changes
+the project runtime requirement without a governed, previewable, and coordinated
+state change.
+
+The proposal therefore needs to handle two audiences:
+
+- owners who are allowed to apply a runtime contract update;
+- agents and collaborators who need to understand the proposed change, its
+  impact, and the next action when their local runtime is no longer compatible.
+
+The safest implementation shape is a read-only `preview` command plus a
+write-capable `apply` command. Preview validates and explains the proposed
+change without mutating state or requiring owner authority. Apply repeats all
+checks on current state and enforces owner authority before writing.
+
+The update must coordinate the normative contract and the generated setup guide.
+The contract is the source of truth, but the guide is the collaborator-facing
+artifact. Leaving them inconsistent would make the runtime contract harder to
+operate in a shared Git project.
+
+The lifecycle must also respect the boundary introduced by PROP-084: P2P may
+warn, block, or guide when the runtime is incompatible, but it must not silently
+install, upgrade, downgrade, or reconcile the user's environment.
+
+### PROP-096 - Readiness Evidence Quality and Question State Normalization
+
+#### alternatives.md
+
+# Alternatives Considered
+
+## 1. Ignore Placeholder Supplemental Artifacts Entirely
+
+The simplest fix is to drop supplemental artifacts from scoring when their
+content is placeholder-only. This solves the observed false negative and keeps
+the primary section authoritative.
+
+Tradeoff: it may hide the fact that a supplemental artifact still needs work.
+If this option is chosen, the implementation should still allow a separate weak
+artifact warning through artifact coverage.
+
+## 2. Score Each Evidence Source Separately, Then Aggregate
+
+This is the preferred option. The primary proposal section and supplemental
+artifact are scored independently. Meaningful primary evidence remains
+meaningful. Placeholder supplemental evidence can contribute zero additional
+value or a warning, but it cannot dominate the aggregate result.
+
+Tradeoff: this is slightly more code than string concatenation, but it matches
+how readiness evidence is presented to the user.
+
+## 3. Mark The Execution Plan As Optional For Acceptance Criteria
+
+Another option is to remove `execution-plan.md` from the acceptance criterion
+calculation. This eliminates the observed bug for one criterion.
+
+Tradeoff: it treats the symptom in one place and does not fix the general
+composed-evidence problem.
+
+## 4. Manually Repair Question State When It Happens
+
+Agents can import corrected `questions.yml` when state and applied markers
+disagree.
+
+Tradeoff: this is the workaround used during PROP-095, not a product behavior.
+It requires knowledge of internals and conflicts with the rule that `.p2p`
+state should be changed through supported primitives.
+
+## 5. Normalize Applied Question State In Reassess Or Summary
+
+This is the preferred direction. If a question has a durable applied marker,
+readiness should classify it consistently as closed, or the supported reassess
+path should promote it to `state: applied`.
+
+Tradeoff: the implementation must be careful not to classify arbitrary answered
+questions as applied. It should require `applied_to_proposal: true` and a
+non-empty `applied_at` or equivalent strong marker.
+
+## Selected Direction
+
+Use artifact-aware evidence aggregation for readiness criteria and supported
+question-state normalization for already-applied answered questions. Preserve
+all existing readiness profile weights and thresholds.
+
+#### findings.md
+
+# Findings
+
+- Readiness currently applies placeholder detection to concatenated evidence.
+  That makes a weak supplemental artifact capable of downgrading a meaningful
+  primary section.
+- The Acceptance Criteria criterion is especially exposed because it combines
+  the `proposal.md` section with `execution-plan.md`.
+- The proposal question workflow has two related signals: `state` and
+  `applied_to_proposal`. When they disagree, readiness and apply can disagree
+  about whether a question is still actionable.
+- The bug is reproducible without broad project state: a focused service test
+  can construct a proposal with meaningful acceptance criteria, add a
+  placeholder-only execution plan, run readiness assessment, and assert that the
+  criterion is not classified as placeholder.
+- A second focused test can construct a question state where `state` is
+  `answered`, `applied_to_proposal` is true, and `applied_at` is present, then
+  assert that readiness does not report `answered_not_applied` after the
+  supported normalization behavior.
+- The fix should not make placeholder detection less strict for primary
+  evidence. A proposal whose primary evidence is absent or placeholder-only
+  should still receive missing or placeholder findings.
+
+### PROP-097 - Runtime Contract Adoption For Legacy Projects
+
+#### alternatives.md
+
+# Alternatives
+
+## Manual Repair
+
+The owner could explicitly authorize a one-time direct edit of `.p2p/project.yml`,
+`.p2p/project/runtime.yml`, and `P2P-SETUP.md`. This solves the immediate local
+warning but bypasses the normal public write interface and does not give future
+legacy projects a repeatable path.
+
+## Reuse `p2p init`
+
+Initialization already creates runtime contracts for new projects, but using it
+for adoption would blur project creation with project migration. It would also
+contradict the existing rule that ordinary init must not recreate a missing
+required contract in an existing project.
+
+## Extend Runtime Contract Update
+
+PROP-095 updates a valid current contract. Extending it to legacy adoption would
+mix two trust models: update compares old and new contracts, while adoption has
+no current contract and must create the first declaration.
+
+## Dedicated Adoption Command
+
+A dedicated adoption command keeps the scope small and testable: only
+`legacy_undeclared` can proceed, adoption values are explicit, and the generated
+files are deterministic.
+
+#### findings.md
+
+# Findings
+
+The current P2P Engine repository is a representative legacy project: it has no
+`.p2p/project/runtime.yml`, no `runtime_contract.required` marker, and no
+managed setup guide. `p2p runtime status` reports `legacy_undeclared`, which is
+non-blocking but leaves compatibility unverifiable. The existing PROP-095 update
+lifecycle correctly refuses to operate in that state because there is no trusted
+current contract to compare against.
+
+### PROP-099 - Project Output Lifecycle and Retention Policy
+
+#### alternatives.md
+
+# Alternatives - PROP-099
+
+## Alternative A - Render The Complete Export Directly To PDF
+
+Rejected. This keeps the proposal-first structure and only changes presentation. It does not solve narrative flow, repetition, or reader comprehension.
+
+## Alternative B - Make The Deterministic Exporter Produce The Final Curated Narrative
+
+Rejected for the first implementation. The engine can normalize structure and remove placeholders, but semantic grouping, narrative emphasis, and vertical-specific editorial judgment are better handled by an agentic curator bounded by validation.
+
+## Alternative C - Use Only An Agentic Skill
+
+Rejected. A pure skill approach would be flexible but too variable. It needs deterministic contracts, quality gates, stable output paths, and owner review.
+
+## Alternative D - Add Only A Summary Above The Existing Export
+
+Rejected. A summary helps orientation but leaves the main document noisy, repetitive, and internal.
+
+## Recommended Alternative - Hybrid Publication Pipeline
+
+Adopt a hybrid flow:
+
+```text
+complete export -> curator skill -> publication validation -> owner review -> neutral PDF
+```
+
+This keeps auditability while producing a readable publication artifact.
+
+#### findings.md
+
+# Findings - PROP-099
+
+## Core Finding
+
+P2P Engine already has enough governed project memory to produce complete visible exports. The remaining gap is not content availability, but editorial readability.
+
+The current export is useful for audit and downstream processing, but it remains close to P2P internal structure: proposal-oriented sections, repeated governance detail, placeholder artifacts, long evidence lists, and historical material mixed with current project state.
+
+## Publication Finding
+
+Direct PDF rendering of the current complete export would not solve the problem. It would produce a formatted version of a document that is still too long, too internal, and too proposal-first for most human readers.
+
+## Architecture Finding
+
+The appropriate architecture is a hybrid publication pipeline:
+
+- deterministic complete export;
+- agentic semantic curation;
+- deterministic publication validation;
+- owner review;
+- presentation-only neutral PDF rendering.
+
+This separates governed content, editorial transformation, quality control, and visual rendering.
+
+## Evidence Finding
+
+The current `outputs/latest/project.md` is over 13,000 lines and contains many `PROP-*` sections, repeated artifact headings, and placeholder text. That confirms the need for a project-first publication layer.
 
 ## Risks
 
@@ -9550,6 +12008,36 @@ None identified yet.
 
 None identified yet.
 
+### PROP-060 - Real Test Coverage Reporting
+
+#### risks.md
+
+# Risks - PROP-060
+
+## R001: Coverage Becomes A False Quality Score
+
+Coverage can be misread as proof that the test suite is good. It only reports code execution, not assertion strength, public contract protection, or business correctness.
+
+Mitigation: document coverage as optional diagnostics only and avoid an initial fail-under threshold.
+
+## R002: Coverage Is Confused With Test Routing
+
+Coverage can show which code a test run exercised, but it cannot determine which tests are necessary after a future change.
+
+Mitigation: keep deterministic test selection in `PROP-098` and explicitly state that `PROP-060` does not solve routing.
+
+## R003: Tooling Adds Process Cost
+
+A coverage plugin adds a development dependency and another command for maintainers to understand.
+
+Mitigation: keep the first slice to a standard pytest integration and one terminal report command.
+
+## R004: Mandatory Threshold Is Premature
+
+Without a baseline, a global fail-under threshold could create noise or incentivize superficial tests.
+
+Mitigation: exclude fail-under gates, HTML reports, and CI blocking from the initial proposal.
+
 ### PROP-061 - Focused README and Documentation Map
 
 #### risks.md
@@ -9951,6 +12439,45 @@ None identified yet.
   Mitigation: expose CLI and MCP primitives and document them in generated
   skills/instructions.
 
+### PROP-088 - MCP Artifact Import Parity
+
+#### risks.md
+
+# Risks - PROP-088
+
+- A generic import tool could become an arbitrary write API for managed P2P
+  state if it is not narrowly allowlisted.
+- MCP clients may not share filesystem assumptions with CLI users; import input
+  shape must be explicit and testable.
+- Import tools that bypass existing validation would weaken artifact readiness.
+- Documentation drift could make agents believe unsupported artifact writes are
+  allowed.
+
+Mitigation: start with existing import services, keep unsupported artifact kinds
+explicitly rejected, and document the boundary in the MCP tool matrix.
+
+### PROP-089 - Readiness Question-State Convergence
+
+#### risks.md
+
+# Risks - PROP-089
+
+- If structured question priority is misused, readiness could become too
+  permissive.
+- Existing legacy proposals may depend on markdown-only open question behavior.
+- Agents may still write vague medium/low questions that hide important owner
+  decisions unless guidance is clear.
+- Group-level state could become stale if question transitions do not update it
+  consistently.
+
+Mitigations:
+
+- Keep markdown fallback only when `questions.yml` is absent.
+- Treat high-priority unresolved questions as blockers by default.
+- Surface medium/low unresolved questions in review output and confidence
+  reasons.
+- Add focused tests for all question states and priorities.
+
 ### PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
 
 #### risks.md
@@ -10040,6 +12567,379 @@ A full next-action engine may overfit before state semantics stabilize.
 Mitigation:
 - defer p2p project next-action --json;
 - expose JSON context and optional next_suggested_action field first.
+
+### PROP-091 - Governance Policy Convergence
+
+#### risks.md
+
+# Risks - PROP-091
+
+## R001 - Reintroducing Hidden Enforcement
+
+Risk: governance preflight could become de facto enforcement if warnings are
+treated as blocks.
+
+Mitigation: distinguish `warnings`, `blocking_errors`, and `result.status`
+clearly. Vote disagreement and related precedents remain non-blocking.
+
+## R002 - Bypassing Owner Authority Through MCP
+
+Risk: MCP decision tools could allow agents or external clients to finalize
+choices without owner intent.
+
+Mitigation: phase 1 MCP is read-only or low-risk. Mutating and finalization
+tools are deferred.
+
+## R003 - Ambiguous Actor Authority
+
+Risk: `roles.yml`, `permissions.yml`, CLI `--role`, and actor strings could
+disagree.
+
+Mitigation: use `permissions.yml` as primary when available, preserve
+`roles.yml` as fallback/legacy, and warn on mismatches.
+
+## R004 - Non-Deterministic Precedent Matching
+
+Risk: fuzzy matching or AI search could make preflight unstable and
+version-dependent.
+
+Mitigation: core precedent lookup uses only explicit identifiers and declared
+tags from versioned artifacts.
+
+## R005 - Overbuilding Governance
+
+Risk: adding quorum, weights, delegation, or automatic enforcement too early
+would make the system heavier than the current need.
+
+Mitigation: explicitly exclude full democratic enforcement from this proposal.
+
+## R006 - Schema Drift Across CLI, MCP, And Future UI
+
+Risk: each surface may represent governance preflight differently.
+
+Mitigation: define a versioned preflight output contract and reuse the same
+domain result across CLI, MCP, and future UI rendering.
+
+## R007 - Legacy Repository Compatibility
+
+Risk: older repositories may have governance artifacts without modern
+permissions or preflight metadata.
+
+Mitigation: use soft migration behavior and distinguish missing optional
+artifacts from corrupt present artifacts.
+
+### PROP-092 - Local MCP Work Lifecycle Parity And Remote Gateway Boundary
+
+#### risks.md
+
+# Risks - PROP-092
+
+## Raw Git Bypass
+
+Risk: agents may use raw Git commands instead of P2P lifecycle tools if Work MCP coverage remains incomplete.
+
+Mitigation: expose domain-specific Work MCP tools and explicitly exclude arbitrary Git tools.
+
+## Confused Deputy
+
+Risk: an agent has tool access but not legitimate authority for an owner-controlled action.
+
+Mitigation: require consent receipts for privileged and owner-controlled Work operations. Future Wavekit remote MCP must add authenticated principal, client identity, grants, scoped receipts, and server-side audit.
+
+## TOCTOU
+
+Risk: Work or repository state changes after consent is granted but before execution.
+
+Mitigation: fail closed on wrong Work status, wrong current branch, dirty worktree, missing branch, missing remote, malformed manifest, and receipt mismatch. Expected commit SHA binding should be considered for stronger future receipts.
+
+## Merge Conflict Ambiguity
+
+Risk: MCP accept could hide or mishandle merge conflicts.
+
+Mitigation: preserve existing Work accept conflict semantics and return structured conflict output. Do not finalize or cleanup after a conflict.
+
+## Cleanup Destructiveness
+
+Risk: cleanup can delete local and optionally remote managed branches.
+
+Mitigation: keep cleanup separate from finalize, make remote deletion explicit, consent-gate cleanup, and return local_deleted and remote_deleted metadata.
+
+## Remote Scope Creep
+
+Risk: local MCP parity could become a pretext for putting remote HTTP MCP, OAuth, Wavekit users, billing, and multi-tenancy into the P2P core.
+
+Mitigation: make the remote gateway boundary explicit in the proposal. P2P core is MCP-ready and local-MCP capable; remote multi-user MCP belongs to Wavekit or another external gateway.
+
+## Duplicated State Machine
+
+Risk: CLI, MCP, and future Wavekit adapters each implement their own Work logic.
+
+Mitigation: adapters must call shared Work lifecycle services or a shared command layer. No duplicate Work state machine per adapter.
+
+### PROP-093 - Agent Persistence Boundaries And Proposal Authoring Flow
+
+#### risks.md
+
+# Risks
+
+- The implementation could become too broad if scaffold, contributions, rendering, init, MCP hints, docs, and hygiene are delivered as one Change Set. Mitigation: implement slices 093-A through 093-E with independent verification.
+- Compatibility mistakes could break projects initialized by the current release. Mitigation: keep legacy metadata optional, derive artifact catalogs lazily, preserve existing narrative files, and maintain current CLI/MCP output by default.
+- Agent detection can be wrong or unavailable. Mitigation: install `generic` always, add a detected adapter only when reliable, and fallback to `all` with a concise warning when detection is unavailable.
+- The `all` fallback preserves compatibility but keeps some file-footprint noise. Mitigation: make the created-file summary and later integration lifecycle commands explicit.
+- Agent uninstall could delete shared files or human edits. Mitigation: remove only managed, unchanged, non-shared files and report drift instead of deleting it.
+- Generated/read-only headers on narrative artifacts could become noisy. Mitigation: apply them only where they prevent manual-edit ambiguity and keep owner-facing full views readable.
+- Adding contribution or question types without a rendering model could create a second ambiguous input layer. Mitigation: add types only with renderer/synthesis behavior or use a clear categorized contribution model.
+- The full proposal view could become overwhelming. Mitigation: keep existing compact output stable and expose richer detail through `--full`, `render`, or an equivalent additive surface.
+- Artifact catalog state could become stale when files change. Mitigation: derive legacy status when needed and keep write/import/render operations responsible for refreshing logical state.
+- The routing playbook could make agents over-process simple requests. Mitigation: keep chat-only exploration as a first-class route and preserve the exception for exact owner-requested artifacts.
+- `stable_documentation` could be misread as P2P owning all durable repository docs. Mitigation: document it as a write class requiring preview/classification, not as a governance ownership claim.
+- Mentioning `--root` could be misread as recommending sibling repositories. Mitigation: document decision root as independent from repository topology and keep sibling repository support explicitly out of scope.
+- Decision-root and MCP hint hardening could be treated as optional hygiene. Mitigation: classify them as core operational work because agents need them to apply the semantic model in the right workspace.
+- Vertical language could blur core and software-specific behavior. Mitigation: use "explicit vertical primitives" in core docs and route software-spec requests to PROP-094 rather than making `specs` a generic P2P primitive.
+- `.gitignore` handling could overwrite owner repository policy. Mitigation: append or offer changes non-destructively, never ignore `.p2p/`, and separate hygiene from governed P2P state in summaries.
+
+### PROP-094 - P2P-Governed Software Specification Lifecycle
+
+#### risks.md
+
+# Risks
+
+- Agents may become too procedural and delay useful exploratory synthesis.
+- Agents may treat a single proposal as enough when the spec actually spans multiple unresolved decisions.
+- Users may not understand why a requested file is being delayed unless the agent explains the lifecycle clearly.
+- Documentation may need examples to make the distinction between exploration, P2P-native specs, exports, and stable documentation clear.
+- If readiness is applied too strictly, early software design may feel blocked.
+
+### PROP-095 - Project Runtime Contract Update Lifecycle
+
+#### risks.md
+
+# Risks And Mitigations
+
+## Runtime Contract Update Becomes A Write-Gate Bypass
+
+PROP-095 must allow a controlled contract change even when the active runtime is
+about to become incompatible. If this exception is too broad, it can become a
+general-purpose bypass for governed writes.
+
+Mitigation: only `p2p runtime contract apply` may use the exception, only for
+the coordinated contract update, and only after preview, expected-state
+verification, owner authority, confirmation, and required reason checks.
+
+## Hidden Mutations After Activating An Incompatible Contract
+
+If `runtime.yml` is replaced before all required outputs are written, subsequent
+mutations may happen after the active runtime is outside the new compatible
+range.
+
+Mitigation: prepare and validate all output before mutation, write the managed
+setup guide before the contract, write `runtime.yml` last, and perform no
+further governed mutations afterward.
+
+## Expected-State Token Misunderstood As Authorization
+
+The preview token could be mistaken for owner consent or actor authorization.
+
+Mitigation: token semantics are limited to stale-state protection. `apply`
+always performs a fresh authority check and does not rely on the preview's
+authority assessment.
+
+## Agent Or Non-Owner Preview Leaks Permission Details
+
+Read-only preview is intentionally available to agents and collaborators, but it
+must not expose unnecessary authority structure.
+
+Mitigation: preview reports whether apply appears authorized or blocked, without
+listing privileged actors or internal permission details.
+
+## Human-Owned Setup Guide Is Overwritten
+
+`P2P-SETUP.md` may predate P2P management and contain human-owned instructions.
+
+Mitigation: if the stable P2P-managed marker is absent, `apply` is blocked before
+any mutation. PROP-095 does not adopt, replace, merge, back up, or overwrite the
+file.
+
+## Managed Setup Guide Drift Is Ignored
+
+A drifted managed guide can mislead collaborators if the runtime contract is
+updated without regenerating it.
+
+Mitigation: a true contract update may repair managed-guide drift in the same
+coordinated operation, and the preview token binds the current guide content or
+digest. A drift-only no-op remains outside this feature.
+
+## Invalid Or Missing Current Contract Produces Unsafe Comparison
+
+Impact labels such as `range_tightening` require a trustworthy current
+contract.
+
+Mitigation: preview may validate the proposed values in diagnostic mode, but it
+does not produce an applicable token, mutation plan, or full transition impact
+classification when the current contract is invalid, unsupported, missing, or
+legacy undeclared.
+
+## Range Classification Is Too Textual
+
+Textual range comparisons can misclassify equivalent or partially overlapping
+ranges.
+
+Mitigation: classification is based on accepted version sets using the supported
+PEP 440-compatible range grammar. Partially overlapping or disjoint ranges can
+produce both `range_widening` and `range_tightening`.
+
+## Partial Writes Leave Contract And Guide Inconsistent
+
+Filesystem failure during apply can leave one artifact updated and the other
+stale.
+
+Mitigation: apply uses coordinated write semantics, temporary content, stale
+checks before mutation, contract-last replacement, and handled failures that do
+not start mutation after a blocker is detected.
+
+## Release Availability Metadata Is Stale
+
+Release availability checks may be unavailable or stale.
+
+Mitigation: release availability is informational. The command may report
+`unverified` without blocking an otherwise valid update.
+
+## Reason Requirements Are Inconsistent
+
+Too many mandatory reasons create friction; too few reduce accountability for
+breaking changes.
+
+Mitigation: reasons are mandatory for `range_tightening`, runtime-line changes,
+and updates where the active runtime is excluded. Normal `recommended_only`
+updates do not require a reason.
+
+## Optional Decision Links Create Ambiguous Governance
+
+If decision links are optional, readers may assume the operation is not governed.
+
+Mitigation: the proposal states that owner authority, confirmation, reason where
+required, token verification, and audit reporting govern the operation. Decision
+links are optional traceability, not a prerequisite.
+
+### PROP-096 - Readiness Evidence Quality and Question State Normalization
+
+#### risks.md
+
+# Risks
+
+## Readiness Becomes Too Optimistic
+
+If supplemental placeholders are ignored too broadly, readiness may stop
+surfacing useful weak-artifact signals.
+
+Mitigation: keep placeholder detection strict for primary evidence, and surface
+weak supplemental artifacts through artifact coverage or criterion evidence
+notes where appropriate.
+
+## Applied Question Normalization Masks Real Work
+
+If normalization treats any answered question as applied, owner follow-up could
+be lost.
+
+Mitigation: normalize only when the durable applied marker is present, such as
+`applied_to_proposal: true` plus `applied_at`.
+
+## Existing Readiness Scores Shift Unexpectedly
+
+Changing evidence aggregation can affect score outputs for existing proposals.
+
+Mitigation: limit the change to composed evidence cases where meaningful
+primary evidence is combined with placeholder-only supplemental evidence. Add
+regression tests for unchanged missing and placeholder-only behavior.
+
+## Direct State Repair Becomes Normalized
+
+The observed workaround involved importing a corrected question state. That
+should not become the ordinary user workflow.
+
+Mitigation: implement the behavior in readiness/question services and expose it
+through existing reassess/apply paths rather than documenting direct YAML edits.
+
+## Artifact Coverage And Readiness Disagree
+
+A supplemental artifact can remain weak while the criterion is satisfied from
+primary evidence.
+
+Mitigation: report those as separate concepts. Criterion quality can be
+meaningful while artifact coverage still suggests improving the supplemental
+artifact.
+
+### PROP-097 - Runtime Contract Adoption For Legacy Projects
+
+#### risks.md
+
+# Risks
+
+The main risk is accidental contract declaration with the wrong runtime version.
+This is mitigated by requiring the proposed `requires` and `recommended` values
+to be visible and explicitly confirmed by the owner.
+
+A second risk is overwriting human setup documentation. Adoption must treat an
+unmanaged `P2P-SETUP.md` as a blocker and leave adoption, replacement, or backup
+of that document to a separate future capability.
+
+A third risk is scope creep into runtime installation or upgrade. The adoption
+command must write only project contract artifacts and must not call package
+managers, network release lookup, Git automation, or environment mutation.
+
+### PROP-099 - Project Output Lifecycle and Retention Policy
+
+#### risks.md
+
+# Risks - PROP-099
+
+## Elegant PDF On Weak Content
+
+Risk: rendering the raw export could create a polished but still unreadable artifact.
+
+Mitigation: render only curated Markdown that passes publication validation.
+
+## Parallel Source Of Truth
+
+Risk: generated outputs may be mistaken for governed project state.
+
+Mitigation: every output declares `.p2p/` as the source of truth and itself as derived.
+
+## Information Loss During Curation
+
+Risk: semantic compression may remove important decisions, risks, assumptions, or gaps.
+
+Mitigation: preserve traceability, keep optional appendices, and require explicit evidence status labels.
+
+## Status Confusion
+
+Risk: accepted direction, implemented behavior, planned work, pending material, and missing evidence may be blended.
+
+Mitigation: use a required status vocabulary and validation gates.
+
+## Rigid Structure
+
+Risk: the curator may impose a software-like outline on non-software projects.
+
+Mitigation: derive specific sections from the active vertical and project definition.
+
+## Excessive Agent Variability
+
+Risk: repeated curation runs may produce inconsistent structure.
+
+Mitigation: use publication profiles, stable output contracts, compact input discipline, and deterministic validation.
+
+## Renderer Overreach
+
+Risk: the PDF renderer may rewrite or filter content.
+
+Mitigation: define the renderer as presentation-only.
+
+## Scope Creep
+
+Risk: the proposal could absorb themes, branding, visual editors, template marketplaces, advanced packages, MCP parity, or software spec generation.
+
+Mitigation: deliver a minimal end-to-end slice first and defer advanced publication capabilities.
 
 ## Assumptions
 
@@ -10571,6 +13471,21 @@ None identified yet.
 
 None identified yet.
 
+### PROP-060 - Real Test Coverage Reporting
+
+#### assumptions.md
+
+# Assumptions - PROP-060
+
+- A small development-only coverage dependency is acceptable for P2P Engine maintainers.
+- Terminal `term-missing` output is sufficient for the first slice.
+- Existing smoke and focused validation scripts should remain the normal fast feedback path.
+- Coverage should be run occasionally, especially around refactors or new runtime areas.
+- Coverage should not run automatically after every small change.
+- Coverage should not become a release gate or CI fail-under threshold in the first slice.
+- Deterministic validation selection is handled by `PROP-098`.
+- User-facing project evidence coverage is a separate product concern and is not part of this proposal.
+
 ### PROP-061 - Focused README and Documentation Map
 
 #### assumptions.md
@@ -10879,6 +13794,34 @@ None identified yet.
 - Generated agent instructions are the first consumer of the model.
 - CLI and MCP should be the public mutation surfaces for interaction style.
 
+### PROP-088 - MCP Artifact Import Parity
+
+#### assumptions.md
+
+# Assumptions - PROP-088
+
+- Existing CLI import behavior for impact and exploration is the correct
+  baseline for MCP parity.
+- Artifact state remains separate from artifact content. Updating content does
+  not automatically decide governance.
+- P2P Engine should keep `.p2p/` mutations behind CLI or explicit MCP tools.
+- Tests can exercise MCP handlers without requiring a hosted MCP deployment.
+
+### PROP-089 - Readiness Question-State Convergence
+
+#### assumptions.md
+
+# Assumptions - PROP-089
+
+- `questions.yml` is the correct durable lifecycle record for proposal
+  questions.
+- `open-questions.md` remains valuable as a human-facing artifact, but should
+  not be the source of truth when structured state exists.
+- Readiness is advisory and must not perform owner governance decisions.
+- Existing proposals without structured question state must remain valid.
+- The improvement should be implemented in services, not directly in CLI or MCP
+  handlers.
+
 ### PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
 
 #### assumptions.md
@@ -10920,6 +13863,161 @@ None identified yet.
   not required in the first implementation.
 - The full next-action engine can be deferred until definition-state semantics
   stabilize.
+
+### PROP-091 - Governance Policy Convergence
+
+#### assumptions.md
+
+# Assumptions - PROP-091
+
+- The project remains owner-led for the current governance phase.
+- `owner_decides` is the default operational mode.
+- Votes are decision evidence and transparency, not automatic enforcement.
+- `permissions.yml` exists in modern projects and is the preferred actor source.
+- Some older projects may still rely on `governance/roles.yml`.
+- Missing optional governance artifacts should not block by themselves.
+- Corrupt governance artifacts should block because the core cannot evaluate
+  state reliably.
+- Precedent lookup in the core must be deterministic.
+- Agents and future UI tools may perform soft analysis outside the core.
+- Soft analysis affects core behavior only after explicit artifact links are
+  written.
+- MCP phase 1 should not mutate governance state.
+- The preflight schema should be reusable across CLI, MCP, tests, and future UI.
+
+### PROP-092 - Local MCP Work Lifecycle Parity And Remote Gateway Boundary
+
+#### assumptions.md
+
+# Assumptions - PROP-092
+
+- The existing CLI Work lifecycle is the behavioral source for local MCP parity.
+- Local MCP is an adapter distributed with P2P Engine and intended primarily for same-machine, self-managed, owner-controlled workflows.
+- Project-declared permissions and consent receipts are sufficient for the local MVP, consistent with PROP-066.
+- Strong remote identity, OAuth, client registration, grants, rate limits, billing, and tenant isolation are Wavekit gateway concerns, not core P2P concerns.
+- Provider PR/MR creation is out of scope and remains a future adapter decision.
+- Existing Work lifecycle services already enforce key state and repository preconditions and should be reused.
+- Existing proposal-branch MCP consent/audit patterns provide a suitable implementation precedent.
+- The owner remains the final authority over owner-controlled actions.
+
+### PROP-093 - Agent Persistence Boundaries And Proposal Authoring Flow
+
+#### assumptions.md
+
+# Assumptions
+
+- P2P CLI and explicit MCP write tools remain the public write interface for governed state.
+- Existing generated narrative artifacts can be made safer without removing all human-readable files from `.p2p/`.
+- The first implementation slice can choose between omitting placeholders, marking generated files, or adding explicit import/edit primitives.
+- The decision root may differ from current working directory, but repository topology is local setup and not core product direction.
+- Software-specific specs remain in PROP-094 and should not drive this core proposal.
+
+### PROP-094 - P2P-Governed Software Specification Lifecycle
+
+#### assumptions.md
+
+# Assumptions
+
+- The software vertical can include domain-specific guidance while P2P remains generic.
+- Existing proposal, choice, Change Set, spec, and export primitives are enough for the first implementation slice.
+- A spec can derive from several proposals if the traceability is explicit.
+- Owner intent remains authoritative: an explicit request for a concrete external file can be honored with preview and governance caveat.
+
+### PROP-095 - Project Runtime Contract Update Lifecycle
+
+#### assumptions.md
+
+# Assumptions
+
+- PROP-084 provides the project runtime contract, manifest marker, status
+  classification, setup-guide generation, managed marker, drift detection, and
+  write-gate behavior consumed by PROP-095.
+- A valid current contract is required for an applicable update preview. Invalid,
+  unsupported, missing, and legacy-undeclared current states require separate
+  repair, migration, recovery, or adoption workflows.
+- The first supported range grammar is intentionally limited and uses the same
+  PEP 440-compatible semantics already used to validate runtime contracts.
+- The command can determine the active P2P Engine version locally without
+  installing or upgrading anything.
+- Owner authority can be checked at apply time through the existing project
+  authority model, or through the narrow authority service added for this
+  lifecycle.
+- Preview can report whether apply appears authorized without exposing sensitive
+  permission details.
+- The stable P2P-managed marker in `P2P-SETUP.md` is sufficient to distinguish a
+  managed generated guide from a human-owned setup document.
+- `P2P-SETUP.md` is deterministic from the runtime contract, apart from newline
+  normalization.
+- Generic audit support may exist, but PROP-095 must remain correct when durable
+  audit is supplied by Git history rather than by a P2P audit artifact.
+- Agents may generate preview output and pass it to an owner; the expected-state
+  token is transferable because it does not authorize the actor.
+- Release availability can be checked only on a best-effort basis from local or
+  official metadata and must not become a hidden network or installation
+  dependency.
+- If an update makes the active runtime incompatible, broad validation and
+  subsequent governed writes are deferred until a compatible runtime is used.
+- Adoption or replacement of unmanaged setup guides is a separate capability.
+- Repair of invalid contracts, migration of unsupported schemas, and recovery of
+  missing required contracts are outside PROP-095.
+
+### PROP-096 - Readiness Evidence Quality and Question State Normalization
+
+#### assumptions.md
+
+# Assumptions
+
+- Readiness profile weights, labels, and thresholds should remain unchanged.
+- `proposal.md` sections are primary evidence for their matching criteria.
+- Supplemental artifacts such as `execution-plan.md` can strengthen evidence,
+  but they should not invalidate meaningful primary evidence.
+- Placeholder detection is still valuable and should remain strict when the
+  primary evidence is absent or placeholder-only.
+- `applied_to_proposal: true` with a non-empty `applied_at` is strong enough to
+  classify a question as already applied for readiness purposes.
+- Existing `p2p proposal questions apply` behavior should remain valid for
+  answered questions that are not yet applied.
+- The fix can be implemented with focused service tests and does not require a
+  broad redesign of the proposal artifact model.
+
+### PROP-097 - Runtime Contract Adoption For Legacy Projects
+
+#### assumptions.md
+
+# Assumptions
+
+Legacy projects are identifiable by `p2p runtime status` returning
+`legacy_undeclared`. The first adoption can use exact active-runtime
+compatibility when the owner explicitly confirms that this installed runtime is
+the intended baseline.
+
+The runtime contract schema remains the same schema introduced by PROP-084:
+`runtime_contract.schema_version: 1`, `runtime.p2p.requires`, and
+`runtime.p2p.recommended`.
+
+The managed setup guide marker from PROP-084 remains the stable way to identify
+P2P-owned `P2P-SETUP.md` content.
+
+### PROP-099 - Project Output Lifecycle and Retention Policy
+
+#### assumptions.md
+
+# Assumptions - PROP-099
+
+## Assumptions
+
+- `.p2p/` remains the governed source of truth.
+- `p2p project export` remains the deterministic complete export surface.
+- The first implementation should not automatically replace the complete export with the curated document.
+- `outputs/latest/project.curated.md` is the first owner-review candidate.
+- `outputs/latest/project.pdf` is rendered from validated curated Markdown.
+- The active vertical and project definition provide enough structure to guide document adaptation.
+- A neutral PDF theme is sufficient for the first slice.
+- Software specification and downstream export pipelines remain separate from human project publication.
+- Manual owner review is acceptable in the first slice.
+- Pipeline stages must remain separately reviewable so export, curation, validation, review, and rendering can be inspected or revised independently.
+- The agentic curator is the main quality driver for a comprehensible document and for a robust narrative around the selected vertical and its specific characteristics.
+- Deterministic preparation, validation, and rendering constrain and review the curator output, but do not replace semantic editorial judgment.
 
 ## Open Questions
 
@@ -12063,6 +15161,27 @@ None identified yet.
 
 None identified yet.
 
+### PROP-060 - Real Test Coverage Reporting
+
+#### open-questions.md
+
+# Open Questions - PROP-060
+
+No blocking owner questions remain for the current proposal scope.
+
+Closed questions:
+
+- Alternatives considered: no coverage tooling, advisory terminal diagnostic, immediate mandatory threshold.
+- Preferred alternative: advisory terminal diagnostic.
+- Main tradeoff: visibility without enforcement.
+- Main risk: coverage percentage may be misread as a global quality score or routing mechanism.
+- Main assumption: maintainers want occasional diagnostics, not default per-change coverage runs.
+- Scope decision: deterministic test impact routing belongs to `PROP-098`; project evidence coverage is outside `PROP-060`.
+
+Future non-blocking question:
+
+- After a baseline exists, maintainers may decide whether a narrow threshold is useful for selected modules or release validation.
+
 ### PROP-061 - Focused README and Documentation Map
 
 #### open-questions.md
@@ -12322,6 +15441,49 @@ Resolved:
 
 No remaining blocking owner question is currently known.
 
+### PROP-088 - MCP Artifact Import Parity
+
+#### open-questions.md
+
+# Open Questions - PROP-088
+
+## Answered
+
+- Should the MVP include only impact and exploration import parity?
+  Answer: yes. The MVP scope is limited to MCP parity for existing impact and
+  exploration imports. A generic artifact import primitive is deferred until the
+  specific import parity is proven and a stricter allowlist and validation model
+  are designed.
+
+## Still Open
+
+- Should clarification import parity be included in the same proposal?
+  Recommended answer: include it only if the implementation can reuse the
+  existing `clarify import` service without broadening scope.
+- Should MCP support direct content strings or source paths for imports?
+  Recommended answer: prefer the narrowest shape that fits stdio MCP clients and
+  preserves validation/audit clarity.
+
+### PROP-089 - Readiness Question-State Convergence
+
+#### open-questions.md
+
+# Open Questions - PROP-089
+
+- Should high-priority unresolved structured questions be the only default hard
+  blocker for `owner_questions_resolution`?
+  Recommended answer: yes.
+- Should medium/low unresolved questions lower confidence instead of creating a
+  failed gate?
+  Recommended answer: yes, unless a future policy marks them blocking.
+- Should `open-questions.md` remain part of readiness evidence when
+  `questions.yml` exists?
+  Recommended answer: yes as human-readable evidence, but not as lifecycle
+  authority.
+- Should `questions apply` automatically update group state when all questions
+  in the group are resolved?
+  Recommended answer: yes, but as a compatibility-safe enhancement with tests.
+
 ### PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
 
 #### open-questions.md
@@ -12356,6 +15518,225 @@ None currently open.
 - What prioritization algorithm should a future next-action engine use after
   definition-state semantics stabilize?
 
+### PROP-091 - Governance Policy Convergence
+
+#### open-questions.md
+
+# Open Questions - PROP-091
+
+## Resolved By Owner Discussion
+
+- Should the owner remain the final decision maker?
+  Resolved: yes. `owner_decides` remains the default for now.
+
+- Should vote conflict block owner decisions?
+  Resolved: no. Vote conflict creates a strong warning, not a hard block.
+
+- Should `permissions.yml` or `roles.yml` be authoritative for actors?
+  Resolved: use a soft migration. `permissions.yml` is primary when present;
+  `roles.yml` remains legacy/display/fallback.
+
+- Should core precedent lookup use fuzzy or AI matching?
+  Resolved: no. Core lookup is explicit, deterministic, and artifact-driven.
+
+- Should active explicit blockers be true blocks?
+  Resolved: yes for normal finalization, but owner override with explicit
+  rationale is allowed.
+
+- Should MCP phase 1 include mutation/finalization tools?
+  Resolved: no. MCP phase 1 is read-only or low-risk evaluation only.
+
+## Remaining Questions
+
+1. Which exact CLI command names should expose governance preflight?
+2. Should preflight be available for proposals immediately, or should phase 1
+   focus on choices first?
+3. What exact artifact fields should represent `related_precedents`,
+   `applies_to`, and `governance_tags`?
+4. Should `requires_rationale` be computed for vote conflicts even though it is
+   not mandatory for finalization?
+5. Should `governance/roles.yml` be regenerated from `permissions.yml` in a
+   later migration, or simply retained as legacy input?
+
+### PROP-092 - Local MCP Work Lifecycle Parity And Remote Gateway Boundary
+
+#### open-questions.md
+
+# Open Questions - PROP-092
+
+No blocking owner questions remain for the proposal direction.
+
+The owner selected the full local MCP lifecycle parity direction and agreed that remote MCP and Wavekit intermediary behavior should be treated as boundary context rather than core scope.
+
+Implementation-time questions remain non-blocking and should be handled in local development specs after acceptance:
+
+- Which exact structured response keys should each Work MCP tool return?
+- Should expected commit SHA binding be included in the first implementation or introduced after the initial parity layer?
+- Should Work branch and submit require consent, or remain write-safe preparatory tools aligned with existing local CLI semantics?
+
+### PROP-093 - Agent Persistence Boundaries And Proposal Authoring Flow
+
+#### open-questions.md
+
+# Open Questions
+
+- Should empty narrative proposal files be omitted until content exists, or generated with explicit read-only headers?
+- Should P2P add first-class contribution types for findings and open questions, or use a generic categorized contribution model?
+- Should the full owner-readable view be `proposal show --full`, `proposal render`, or both?
+- Should generated/read-only headers apply to all generated markdown under `.p2p/` or only proposal narrative artifacts?
+- Should action preview apply to every governed write or only first writes, ambiguous writes, batch writes, stable docs, exports, and external side effects?
+- Should MCP write tools support dry-run or manifest previews before applying changes?
+
+### PROP-094 - P2P-Governed Software Specification Lifecycle
+
+#### open-questions.md
+
+# Open Questions
+
+No open owner questions remain for the current proposal shape.
+
+The owner has selected software-domain guidance, P2P-governed spec ingredients, readiness as advisory for exploration and stricter for implementation/export, preliminary specs in chat or P2P exploration/proposal material, and a concrete routing table in generated guidance.
+
+### PROP-095 - Project Runtime Contract Update Lifecycle
+
+#### open-questions.md
+
+# Closed Questions
+
+All owner questions needed for synthesis are closed.
+
+## Q001 - Scope
+
+PROP-095 updates the project runtime contract and generated setup guidance. It
+does not install or upgrade P2P Engine.
+
+## Q002 - Governance Model
+
+Runtime contract updates are owner-controlled governed operations. A linked P2P
+decision is optional, not mandatory.
+
+## Q003 - Command Shape
+
+The public surface uses separate `preview` and `apply` commands.
+
+## Q004 - Release Availability
+
+Release availability is best-effort and informational. `unverified` is not a
+blocking result for an otherwise valid contract.
+
+## Q005 - Preview And Apply Split
+
+Preview is read-only and apply is the only mutation path.
+
+## Q006 - Current Runtime Incompatibility
+
+Apply may execute the narrowly authorized contract update even when the active
+runtime is currently outside the old range or will be outside the new range, but
+it must not use that exception for other governed writes.
+
+## Q007 - Release Metadata Boundary
+
+The feature consumes available release metadata but does not own release
+publication.
+
+## Q008 - CLI Surface
+
+`p2p runtime contract preview` and `p2p runtime contract apply` are the stable
+commands for this feature.
+
+## Q009 - Authority During Preview
+
+Preview does not require owner authority. Apply performs a fresh binding
+authority check.
+
+## Q010 - Unmanaged Setup Guide
+
+An unmanaged `P2P-SETUP.md` blocks apply before mutation. Adoption or replacement
+is out of scope.
+
+## Q011 - Untrusted Current Contract
+
+Preview may validate proposed values diagnostically, but cannot produce an
+applicable token or mutation plan when the current contract is untrusted.
+
+## Q012 - Token Semantics
+
+The expected-state token is deterministic, stateless, and replayable as a stale
+state guard. It is not authorization or consent.
+
+## Q013 - Recommended-Only Updates
+
+`recommended` may change independently when it remains inside `requires`.
+
+## Q014 - Managed Setup Guide Drift
+
+Managed guide drift may be repaired during a true contract update, but drift-only
+repair is a separate capability.
+
+## Q015 - Partially Overlapping Ranges
+
+Range classification is set-based. Partial overlaps and disjoint ranges can
+produce both widening and tightening.
+
+## Q016 - Post-Update Incompatibility
+
+When the new contract excludes the active runtime, `runtime.yml` is written last
+and no further governed mutations occur afterward.
+
+### PROP-096 - Readiness Evidence Quality and Question State Normalization
+
+#### open-questions.md
+
+# Open Questions
+
+No owner decision is currently blocking this proposal.
+
+## Resolved Technical Direction
+
+- The fix should be artifact-aware, not a readiness-policy redesign.
+- Supplemental placeholder artifacts should not downgrade meaningful primary
+  evidence.
+- Already-applied answered questions should not be reported as unapplied when a
+  durable applied marker is present.
+- Existing missing and placeholder findings should remain intact for genuinely
+  weak evidence.
+
+### PROP-097 - Runtime Contract Adoption For Legacy Projects
+
+#### open-questions.md
+
+# Open Questions
+
+No owner-blocking questions are currently required before drafting the first
+implementation. The remaining choices can be resolved during proposal
+refinement: whether to expose adoption as one confirmed command or a preview and
+apply pair, and whether an explicit reason is mandatory for exact active-runtime
+adoption.
+
+### PROP-099 - Project Output Lifecycle and Retention Policy
+
+#### open-questions.md
+
+# Open Questions - PROP-099
+
+## Resolved Owner Inputs
+
+### Q001 - Should PROP-099 include PDF rendering?
+
+Resolved. PROP-099 should define the full Human Project Publication Pipeline: complete export, curator skill, publication validation, owner review, and neutral PDF renderer.
+
+### Q002 - Should the first slice overwrite `outputs/latest/project.md`?
+
+Resolved. No. In the first slice `outputs/latest/project.md` remains the complete export, `outputs/latest/project.curated.md` is the curated candidate, and `outputs/latest/project.pdf` is rendered from the curated validated Markdown.
+
+### Q003 - Should curation be deterministic or agentic?
+
+Resolved. Curation should use a hybrid model. The engine prepares input and validates output; the skill performs semantic synthesis; the owner reviews; the renderer handles presentation only.
+
+## Remaining Open Questions
+
+No blocking owner questions remain for proposal refinement. Implementation details such as exact CLI names and renderer library can be resolved during local specs after acceptance.
+
 ## Readiness
 
 ### Project Vertical Skeleton
@@ -12366,16 +15747,22 @@ None currently open.
 
 ### Vertical Coverage
 
-- vision: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-006, PROP-010, PROP-011, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-089, PROP-090)
-- objective: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090)
-- stakeholders: covered (proposals: PROP-001, PROP-002, PROP-006, PROP-008, PROP-009, PROP-010, PROP-013, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-022, PROP-023, PROP-024, PROP-030, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-051, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-061, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090)
-- scope: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090)
-- assumptions: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-009, PROP-011, PROP-013, PROP-016, PROP-017, PROP-019, PROP-021, PROP-022, PROP-025, PROP-026, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-046, PROP-048, PROP-049, PROP-050, PROP-051, PROP-053, PROP-054, PROP-055, PROP-056, PROP-058, PROP-059, PROP-060, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-080, PROP-081, PROP-082, PROP-083, PROP-085, PROP-086, PROP-088, PROP-089, PROP-090)
-- risks: covered (proposals: PROP-001, PROP-002, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090)
-- decisions: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-005, PROP-006, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-039, PROP-040, PROP-041, PROP-042, PROP-045, PROP-046, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-059, PROP-060, PROP-064, PROP-065, PROP-066, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090)
-- milestones: covered (proposals: PROP-001, PROP-002, PROP-006, PROP-007, PROP-010, PROP-012, PROP-013, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-030, PROP-031, PROP-032, PROP-033, PROP-037, PROP-043, PROP-044, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-064, PROP-065, PROP-066, PROP-067, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-088, PROP-089, PROP-090)
-- definition_of_done: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090)
-- artifacts: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-010, PROP-011, PROP-012, PROP-013, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-022, PROP-024, PROP-026, PROP-027, PROP-028, PROP-029, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-058, PROP-059, PROP-062, PROP-063, PROP-064, PROP-067, PROP-072, PROP-073, PROP-074, PROP-076, PROP-078, PROP-080, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090)
+- vision: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-006, PROP-010, PROP-011, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-098, PROP-099)
+- objective: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-098, PROP-099, PROP-100)
+- stakeholders: covered (proposals: PROP-001, PROP-002, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-013, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-022, PROP-023, PROP-024, PROP-030, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-051, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-098, PROP-099, PROP-100)
+- scope: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-098, PROP-099, PROP-100)
+- assumptions: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-009, PROP-011, PROP-013, PROP-016, PROP-017, PROP-019, PROP-021, PROP-022, PROP-025, PROP-026, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-046, PROP-048, PROP-049, PROP-050, PROP-051, PROP-053, PROP-054, PROP-055, PROP-056, PROP-058, PROP-059, PROP-060, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-088, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-099, PROP-100)
+- risks: covered (proposals: PROP-001, PROP-002, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-098, PROP-099)
+- decisions: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-039, PROP-040, PROP-041, PROP-042, PROP-045, PROP-046, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-059, PROP-060, PROP-064, PROP-065, PROP-066, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-098, PROP-099, PROP-100)
+- milestones: covered (proposals: PROP-001, PROP-002, PROP-006, PROP-007, PROP-010, PROP-012, PROP-013, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-030, PROP-031, PROP-032, PROP-033, PROP-037, PROP-043, PROP-044, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-064, PROP-065, PROP-066, PROP-067, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-088, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-098, PROP-099)
+- definition_of_done: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-098, PROP-099, PROP-100)
+- artifacts: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-010, PROP-011, PROP-012, PROP-013, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-022, PROP-024, PROP-026, PROP-027, PROP-028, PROP-029, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-058, PROP-059, PROP-060, PROP-062, PROP-063, PROP-064, PROP-067, PROP-072, PROP-073, PROP-074, PROP-076, PROP-078, PROP-080, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-099)
+
+### Vertical Runtime State
+
+- lock_status: missing
+- definition_state_exists: false
+- definition_state_valid: false
 
 ### PROP-006 - Multi-Agent Integration Model
 
@@ -12593,6 +15980,188 @@ readiness:
   computed_score: 14
   computed_label: weak
   computed_at: '2026-06-05'
+
+### PROP-060 - Real Test Coverage Reporting
+
+#### readiness.yml
+
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: high
+  confidence_reasons:
+  - Evidence-aware assessment found no missing criteria, failed gates, blocking owner
+    questions, or artifact coverage gaps.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  missing: []
+  suggested_next: []
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    goal_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 15
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    risk_coverage:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: risks.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: assumptions.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: questions.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 5
+      artifact_quality: ready
+      evidence:
+      - artifact: impact-map.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  owner_question_state:
+    source: structured
+    markdown_fallback_used: false
+    blocking_owner_questions: []
+    answered_not_applied: []
+    residual_follow_up: []
+    closed_questions:
+    - id: Q001
+      group_id: QG001
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: alternatives_quality
+      gap: alternatives_quality
+      question: Which alternatives were considered for code coverage reporting?
+      reason: Question is closed with state `applied`.
+    - id: Q002
+      group_id: QG002
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: tradeoff_analysis
+      gap: tradeoff_analysis
+      question: What tradeoff does the preferred coverage approach make?
+      reason: Question is closed with state `applied`.
+    - id: Q003
+      group_id: QG003
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: risk_coverage
+      gap: risk_coverage
+      question: What is the main risk of adding code coverage reporting?
+      reason: Question is closed with state `applied`.
+    - id: Q004
+      group_id: QG004
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: assumptions_clarity
+      gap: assumptions_clarity
+      question: What assumptions does this proposal rely on?
+      reason: Question is closed with state `applied`.
+    - id: Q005
+      group_id: QG005
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: owner_questions_resolution
+      gap: owner_questions_resolution
+      question: What owner decisions close the scope of PROP-060?
+      reason: Question is closed with state `applied`.
+    - id: Q006
+      group_id: QG006
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: impact_overlap_analysis
+      gap: impact_overlap_analysis
+      question: How does PROP-060 overlap with existing or new testing proposals?
+      reason: Question is closed with state `applied`.
+    confidence_notes: []
+    suggested_next: []
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-07-13'
+  assessment_source: evidence_aware
+  assessed_at: '2026-07-13'
+  artifact_coverage_warnings: []
 
 ### PROP-082 - Readiness Assessment Refresh And Review Workflow
 
@@ -13183,6 +16752,276 @@ readiness:
   assessed_at: '2026-06-09'
   artifact_coverage_warnings: []
 
+### PROP-088 - MCP Artifact Import Parity
+
+#### readiness.yml
+
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: medium
+  confidence_reasons:
+  - Evidence-aware assessment found no missing criteria, failed gates, blocking owner
+    questions, or artifact coverage gaps.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  - 'Answered proposal question needs application: Q001.'
+  missing: []
+  suggested_next:
+  - p2p proposal questions apply PROP-088
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    goal_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 15
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    risk_coverage:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: risks.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: assumptions.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: questions.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 5
+      artifact_quality: ready
+      evidence:
+      - artifact: impact-map.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  owner_question_state:
+    source: structured
+    markdown_fallback_used: false
+    blocking_owner_questions: []
+    answered_not_applied:
+    - id: Q001
+      group_id: QG001
+      priority: high
+      state: answered
+      group_state: to_answer
+      criterion: owner_questions_resolution
+      gap: owner_questions_resolution
+      question: Should the MVP scope include only impact and exploration import parity,
+        deferring a generic artifact import primitive?
+      reason: Owner answer exists and still needs application to proposal artifacts.
+    residual_follow_up: []
+    closed_questions:
+    - id: Q002
+      group_id: QG001
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: owner_questions_resolution
+      gap: owner_questions_resolution
+      question: Should clarification import parity be included in PROP-088 if it can
+        reuse the existing clarify import service without broadening the scope?
+      reason: Question is closed with state `applied`.
+    - id: Q003
+      group_id: QG001
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: owner_questions_resolution
+      gap: owner_questions_resolution
+      question: Should MCP artifact import tools accept source paths, direct content
+        payloads, or both?
+      reason: Question is closed with state `applied`.
+    confidence_notes:
+    - 'Answered proposal question needs application: Q001.'
+    suggested_next:
+    - apply_answered_questions
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-07-06'
+  assessment_source: evidence_aware
+  assessed_at: '2026-07-06'
+  artifact_coverage_warnings: []
+
+### PROP-089 - Readiness Question-State Convergence
+
+#### readiness.yml
+
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: medium
+  confidence_reasons:
+  - Evidence-aware assessment recalculated current artifacts.
+  - 'Pending high-priority proposal questions remain: 2.'
+  missing: []
+  suggested_next: []
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 7
+      artifact_quality: meaningful
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      effective_points: 7
+    goal_clarity:
+      max_points: 10
+      awarded_points: 7
+      artifact_quality: meaningful
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      effective_points: 7
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 7
+      artifact_quality: meaningful
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      effective_points: 7
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 11
+      artifact_quality: meaningful
+      evidence:
+      - artifact: alternatives.md
+      effective_points: 11
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 7
+      artifact_quality: meaningful
+      evidence:
+      - artifact: alternatives.md
+      effective_points: 7
+    risk_coverage:
+      max_points: 10
+      awarded_points: 7
+      artifact_quality: meaningful
+      evidence:
+      - artifact: risks.md
+      effective_points: 7
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 7
+      artifact_quality: meaningful
+      evidence:
+      - artifact: assumptions.md
+      effective_points: 7
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 7
+      artifact_quality: meaningful
+      evidence:
+      - artifact: open-questions.md
+      effective_points: 7
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 7
+      artifact_quality: meaningful
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      effective_points: 7
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 3
+      artifact_quality: meaningful
+      evidence:
+      - artifact: impact-map.yml
+      effective_points: 3
+  computed_score: 70
+  computed_label: partial
+  computed_at: '2026-07-01'
+  assessment_source: evidence_aware
+  assessed_at: '2026-06-10'
+  artifact_coverage_warnings: []
+  owner_override: true
+  effective_status: forced_ready
+  effective_score: 100
+  override_reason: 'Accepted by owner with explicit readiness override after verification:
+    the readiness/question-state convergence behavior is already implemented and validated
+    with focused readiness/question tests, CLI/MCP contract tests, full pytest, and
+    p2p validate. Computed readiness remains partial at 70, but there are no failed
+    gates, missing artifacts, suggested next actions, or eligible owner questions.'
+  override_approver: local
+  override_recorded_at: '2026-07-02'
+
 ### PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
 
 #### readiness.yml
@@ -13372,6 +17211,1261 @@ readiness:
   assessed_at: '2026-07-02'
   artifact_coverage_warnings: []
 
+### PROP-091 - Governance Policy Convergence
+
+#### readiness.yml
+
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: high
+  confidence_reasons:
+  - Evidence-aware assessment found no missing criteria, failed gates, blocking owner
+    questions, or artifact coverage gaps.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  missing: []
+  suggested_next: []
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    goal_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 15
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    risk_coverage:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: risks.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: assumptions.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: questions.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 5
+      artifact_quality: ready
+      evidence:
+      - artifact: impact-map.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  owner_question_state:
+    source: structured
+    markdown_fallback_used: false
+    blocking_owner_questions: []
+    answered_not_applied: []
+    residual_follow_up: []
+    closed_questions: []
+    confidence_notes: []
+    suggested_next: []
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-07-02'
+  assessment_source: evidence_aware
+  assessed_at: '2026-07-02'
+  artifact_coverage_warnings: []
+
+### PROP-092 - Local MCP Work Lifecycle Parity And Remote Gateway Boundary
+
+#### readiness.yml
+
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: high
+  confidence_reasons:
+  - Evidence-aware assessment found no missing criteria, failed gates, blocking owner
+    questions, or artifact coverage gaps.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  missing: []
+  suggested_next: []
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    goal_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 15
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    risk_coverage:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: risks.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: assumptions.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: questions.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 5
+      artifact_quality: ready
+      evidence:
+      - artifact: impact-map.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  owner_question_state:
+    source: structured
+    markdown_fallback_used: false
+    blocking_owner_questions: []
+    answered_not_applied: []
+    residual_follow_up: []
+    closed_questions: []
+    confidence_notes: []
+    suggested_next: []
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-07-04'
+  assessment_source: evidence_aware
+  assessed_at: '2026-07-04'
+  artifact_coverage_warnings: []
+
+### PROP-093 - Agent Persistence Boundaries And Proposal Authoring Flow
+
+#### readiness.yml
+
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: high
+  confidence_reasons:
+  - Evidence-aware assessment found no missing criteria, failed gates, blocking owner
+    questions, or artifact coverage gaps.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  missing: []
+  suggested_next: []
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    goal_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 15
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    risk_coverage:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: risks.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: assumptions.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: questions.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 5
+      artifact_quality: ready
+      evidence:
+      - artifact: impact-map.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  owner_question_state:
+    source: structured
+    markdown_fallback_used: false
+    blocking_owner_questions: []
+    answered_not_applied: []
+    residual_follow_up: []
+    closed_questions: []
+    confidence_notes: []
+    suggested_next: []
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-07-09'
+  assessment_source: evidence_aware
+  assessed_at: '2026-07-09'
+  artifact_coverage_warnings: []
+
+### PROP-094 - P2P-Governed Software Specification Lifecycle
+
+#### readiness.yml
+
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: high
+  confidence_reasons:
+  - Evidence-aware assessment found no missing criteria, failed gates, blocking owner
+    questions, or artifact coverage gaps.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  missing: []
+  suggested_next: []
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    goal_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 15
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    risk_coverage:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: risks.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: assumptions.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: questions.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 5
+      artifact_quality: ready
+      evidence:
+      - artifact: impact-map.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  owner_question_state:
+    source: structured
+    markdown_fallback_used: false
+    blocking_owner_questions: []
+    answered_not_applied: []
+    residual_follow_up: []
+    closed_questions:
+    - id: Q001
+      group_id: QG001
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: owner_questions_resolution
+      gap: owner_questions_resolution
+      question: Should the software specification lifecycle guidance be software-domain
+        specific or general?
+      reason: Question is closed with state `applied`.
+    - id: Q002
+      group_id: QG001
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: owner_questions_resolution
+      gap: owner_questions_resolution
+      question: Should readiness be a hard precondition for every spec artifact?
+      reason: Question is closed with state `applied`.
+    - id: Q003
+      group_id: QG001
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: owner_questions_resolution
+      gap: owner_questions_resolution
+      question: Where should preliminary specs live before they become durable outputs?
+      reason: Question is closed with state `applied`.
+    - id: Q004
+      group_id: QG001
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: owner_questions_resolution
+      gap: owner_questions_resolution
+      question: Should generated guidance include an operational routing table for
+        spec requests?
+      reason: Question is closed with state `applied`.
+    confidence_notes: []
+    suggested_next: []
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-07-12'
+  assessment_source: evidence_aware
+  assessed_at: '2026-07-08'
+  artifact_coverage_warnings: []
+
+### PROP-095 - Project Runtime Contract Update Lifecycle
+
+#### readiness.yml
+
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: high
+  confidence_reasons:
+  - Evidence-aware assessment found no missing criteria, failed gates, blocking owner
+    questions, or artifact coverage gaps.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  missing: []
+  suggested_next: []
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    goal_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 15
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    risk_coverage:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: risks.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: assumptions.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: questions.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 5
+      artifact_quality: ready
+      evidence:
+      - artifact: impact-map.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  owner_question_state:
+    source: structured
+    markdown_fallback_used: false
+    blocking_owner_questions: []
+    answered_not_applied: []
+    residual_follow_up: []
+    closed_questions:
+    - id: Q001
+      group_id: QG001
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: audit_policy
+      gap: audit_policy
+      question: Should confirmed runtime contract updates require a structured reason,
+        or should historical audit rely on Git/external workflow until a generic P2P
+        audit primitive exists?
+      reason: Question is closed with state `applied`.
+    - id: Q002
+      group_id: QG002
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: owner_authority
+      gap: owner_authority
+      question: Which existing owner, permission, or consent primitive should authorize
+        confirmed runtime contract updates?
+      reason: Question is closed with state `applied`.
+    - id: Q003
+      group_id: QG003
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: agent_surface
+      gap: agent_surface
+      question: Should JSON preview and JSON result output be required in the first
+        implementation for agent workflows?
+      reason: Question is closed with state `applied`.
+    - id: Q004
+      group_id: QG004
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: impact_classification
+      gap: impact_classification
+      question: Which impact classification labels should be stable public contract
+        for runtime contract updates?
+      reason: Question is closed with state `applied`.
+    - id: Q005
+      group_id: QG005
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: governance_policy
+      gap: governance_policy
+      question: Should high-impact runtime contract updates require a linked P2P proposal
+        or decision, or is owner-authorized command execution sufficient?
+      reason: Question is closed with state `applied`.
+    - id: Q006
+      group_id: QG006
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: confirmation_flow
+      gap: confirmation_flow
+      question: Should runtime contract updates require two separate invocations,
+        or may interactive users preview and confirm within one process?
+      reason: Question is closed with state `applied`.
+    - id: Q007
+      group_id: QG007
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: release_availability
+      gap: release_availability
+      question: Should runtime contract updates verify that the proposed recommended
+        version is actually available as a release, or only validate contract syntax
+        and semantics?
+      reason: Question is closed with state `applied`.
+    - id: Q008
+      group_id: QG008
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: cli_command_surface
+      gap: cli_command_surface
+      question: Should the first runtime contract update implementation expose separate
+        preview/apply subcommands or a single update command with mode-dependent behavior?
+      reason: Question is closed with state `applied`.
+    - id: Q009
+      group_id: QG009
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: preview_authority
+      gap: preview_authority
+      question: Should runtime contract preview require owner authority, or remain
+        executable as read-only diagnostics for agents and non-owner collaborators?
+      reason: Question is closed with state `applied`.
+    - id: Q010
+      group_id: QG010
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: unmanaged_setup_guide
+      gap: unmanaged_setup_guide
+      question: Should runtime contract apply ever replace an existing unmanaged P2P-SETUP.md,
+        or must unmanaged setup guides block the update in the first implementation?
+      reason: Question is closed with state `applied`.
+    - id: Q011
+      group_id: QG011
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: untrusted_current_contract_preview
+      gap: untrusted_current_contract_preview
+      question: Should preview compute an applicable runtime contract transition when
+        the current contract state is invalid, unsupported, missing, or legacy undeclared?
+      reason: Question is closed with state `applied`.
+    - id: Q012
+      group_id: QG012
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: expected_state_token_semantics
+      gap: expected_state_token_semantics
+      question: Should expected-state tokens be deterministic and stateless, or persisted
+        and single-use in the first runtime contract update implementation?
+      reason: Question is closed with state `applied`.
+    - id: Q013
+      group_id: QG013
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: recommended_only_updates
+      gap: recommended_only_updates
+      question: Should the owner be allowed to update only the recommended runtime
+        version while keeping the compatible requires range unchanged?
+      reason: Question is closed with state `applied`.
+    - id: Q014
+      group_id: QG014
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: managed_setup_guide_drift
+      gap: managed_setup_guide_drift
+      question: Should apply regenerate a managed but drifted P2P-SETUP.md during
+        a valid runtime contract update, or block until a separate repair command
+        is run?
+      reason: Question is closed with state `applied`.
+    - id: Q015
+      group_id: QG015
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: partially_overlapping_ranges
+      gap: partially_overlapping_ranges
+      question: How should runtime contract updates classify partially overlapping
+        or disjoint compatible ranges?
+      reason: Question is closed with state `applied`.
+    - id: Q016
+      group_id: QG016
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: post_update_incompatible_runtime
+      gap: post_update_incompatible_runtime
+      question: What post-update actions are allowed when applying a new runtime contract
+        makes the active runtime incompatible?
+      reason: Question is closed with state `applied`.
+    confidence_notes: []
+    suggested_next: []
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-07-13'
+  assessment_source: evidence_aware
+  assessed_at: '2026-07-13'
+  artifact_coverage_warnings: []
+
+### PROP-096 - Readiness Evidence Quality and Question State Normalization
+
+#### readiness.yml
+
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: high
+  confidence_reasons:
+  - Evidence-aware assessment found no missing criteria, failed gates, blocking owner
+    questions, or artifact coverage gaps.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  missing: []
+  suggested_next: []
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    goal_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 15
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    risk_coverage:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: risks.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: assumptions.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: questions.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 5
+      artifact_quality: ready
+      evidence:
+      - artifact: impact-map.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  owner_question_state:
+    source: structured
+    markdown_fallback_used: false
+    blocking_owner_questions: []
+    answered_not_applied: []
+    residual_follow_up: []
+    closed_questions: []
+    confidence_notes: []
+    suggested_next: []
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-07-13'
+  assessment_source: evidence_aware
+  assessed_at: '2026-07-13'
+  artifact_coverage_warnings: []
+
+### PROP-097 - Runtime Contract Adoption For Legacy Projects
+
+#### readiness.yml
+
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: high
+  confidence_reasons:
+  - Evidence-aware assessment found no missing criteria, failed gates, blocking owner
+    questions, or artifact coverage gaps.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  missing: []
+  suggested_next: []
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    goal_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 15
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    risk_coverage:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: risks.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: assumptions.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: questions.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 5
+      artifact_quality: ready
+      evidence:
+      - artifact: impact-map.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  owner_question_state:
+    source: structured
+    markdown_fallback_used: false
+    blocking_owner_questions: []
+    answered_not_applied: []
+    residual_follow_up: []
+    closed_questions: []
+    confidence_notes: []
+    suggested_next: []
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-07-13'
+  assessment_source: evidence_aware
+  assessed_at: '2026-07-13'
+  artifact_coverage_warnings: []
+
+### PROP-099 - Project Output Lifecycle and Retention Policy
+
+#### readiness.yml
+
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: high
+  confidence_reasons:
+  - Evidence-aware assessment found no missing criteria, failed gates, blocking owner
+    questions, or artifact coverage gaps.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  missing: []
+  suggested_next: []
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    goal_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 15
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    risk_coverage:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: risks.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: assumptions.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: questions.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 5
+      artifact_quality: ready
+      evidence:
+      - artifact: impact-map.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  owner_question_state:
+    source: structured
+    markdown_fallback_used: false
+    blocking_owner_questions: []
+    answered_not_applied: []
+    residual_follow_up: []
+    closed_questions:
+    - id: Q001
+      group_id: QG001
+      priority: high
+      state: answered
+      group_state: to_answer
+      criterion: owner_questions_resolution
+      gap: owner_questions_resolution
+      question: Should PROP-099 stop at curated Markdown, or should it define the
+        full human publication pipeline including validation and neutral PDF rendering?
+      reason: Answered question already has a durable applied marker.
+    - id: Q002
+      group_id: QG001
+      priority: high
+      state: answered
+      group_state: to_answer
+      criterion: owner_questions_resolution
+      gap: owner_questions_resolution
+      question: Should the first implementation overwrite outputs/latest/project.md
+        with the curated document?
+      reason: Answered question already has a durable applied marker.
+    - id: Q003
+      group_id: QG001
+      priority: high
+      state: answered
+      group_state: to_answer
+      criterion: owner_questions_resolution
+      gap: owner_questions_resolution
+      question: Should curation be deterministic engine behavior or agentic skill
+        behavior?
+      reason: Answered question already has a durable applied marker.
+    confidence_notes: []
+    suggested_next: []
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-07-13'
+  assessment_source: evidence_aware
+  assessed_at: '2026-07-13'
+  artifact_coverage_warnings: []
+
 ## Delivery And Export Context
 
 The default visible export is this chaptered Markdown document. Specialized vertical or tool-specific exports belong under `outputs/latest/exports/<profile-or-vertical>/`. Existing `.p2p/outputs` spec exports remain compatibility artifacts unless a separate migration changes them.
@@ -13436,6 +18530,7 @@ The default visible export is this chaptered Markdown document. Specialized vert
 - .p2p/proposals/PROP-057-guided-rubric-selection-during-init
 - .p2p/proposals/PROP-058-project-readme-and-installation-guide
 - .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan
+- .p2p/proposals/PROP-060-real-test-coverage-reporting
 - .p2p/proposals/PROP-061-focused-readme-and-documentation-map
 - .p2p/proposals/PROP-062-readme-product-landing-page-refinement
 - .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model
@@ -13461,4 +18556,14 @@ The default visible export is this chaptered Markdown document. Specialized vert
 - .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration
 - .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration
 - .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation
+- .p2p/proposals/PROP-088-mcp-artifact-import-parity
+- .p2p/proposals/PROP-089-readiness-question-state-convergence
 - .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state
+- .p2p/proposals/PROP-091-governance-policy-convergence
+- .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary
+- .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening
+- .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle
+- .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle
+- .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization
+- .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects
+- .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy

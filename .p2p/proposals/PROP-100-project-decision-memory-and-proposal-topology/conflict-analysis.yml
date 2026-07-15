@@ -1,0 +1,26 @@
+conflicts:
+  - type: scope_guardrail
+    proposals:
+      - PROP-100
+    reason: The proposal would conflict with P2P source-of-truth policy if implemented as a new canonical memory instead of a derived decision context layer.
+    suggested_resolution: Keep proposal, decision, choice, Change Set, Markdown and YAML artifacts authoritative; make the decision context model derived and rebuildable.
+  - type: implementation_scope
+    proposals:
+      - PROP-100
+    reason: Implementing the full umbrella capability as one feature would create excessive blast radius across context, intake, prompts, registries, validation, freshness and MCP.
+    suggested_resolution: Accept PROP-100 only as an architecture umbrella, then split implementation into dependent features starting with the domain model, extraction session and initial extractors.
+  - type: implementation_order
+    proposals:
+      - PROP-100
+    reason: Integrating semantic context before fixing the current p2p context timeout would make the new capability difficult to inspect and debug.
+    suggested_resolution: Treat the timeout as a separate technical prerequisite and require later integrations to include performance regression checks.
+  - type: consumer_drift
+    proposals:
+      - PROP-100
+    reason: If context packets, intake, prompt generation, next actions and MCP handlers keep reading registries directly, they can diverge from the derived decision context model.
+    suggested_resolution: Add a consumer migration feature and route consumers through the domain service with compatibility adapters.
+  - type: authority_confusion
+    proposals:
+      - PROP-100
+    reason: Agent-proposed artifacts, proposal-local votes, owner-confirmed states, accepted decisions and heuristic vertical matches have different authority but can look similar after projection.
+    suggested_resolution: Require an authority matrix and expose source kind, lifecycle status, confirmation state, confidence and evidence for every derived record.

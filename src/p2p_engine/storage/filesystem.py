@@ -5,6 +5,7 @@ from pathlib import Path
 
 from p2p_engine.core.contribution import Contribution, ContributionType
 from p2p_engine.core.decision import Decision, DecisionOutcome
+from p2p_engine.core.decision_context import DecisionContextIndex
 from p2p_engine.core.proposal import Proposal
 from p2p_engine.core.project_verticals import (
     ActiveProjectVertical,
@@ -72,6 +73,7 @@ from p2p_engine.services.intake import IntakeAppliedAction, IntakeApplyPlan, Int
 from p2p_engine.services.next_actions import NextAction, NextActionService
 from p2p_engine.services.permissions import PermissionActor, PermissionsService
 from p2p_engine.services.context_packets import ContextPacket, ContextPacketService
+from p2p_engine.services.decision_context import ProjectDecisionContextService
 from p2p_engine.services.proposal_artifacts import (
     ArtifactImportKind,
     ArtifactImportResult,
@@ -207,6 +209,7 @@ class P2PWorkspace:
         self._permissions_service_instance: PermissionsService | None = None
         self._consent_service_instance: ConsentService | None = None
         self._context_packet_service_instance: ContextPacketService | None = None
+        self._decision_context_service_instance: ProjectDecisionContextService | None = None
         self._conflict_memory_service_instance: ConflictMemoryService | None = None
         self._governance_service_instance: GovernanceService | None = None
         self._governance_policy_service_instance: GovernancePolicyService | None = None
@@ -299,7 +302,7 @@ class P2PWorkspace:
                 project_name=self._project_name,
                 validate=self.validate,
                 registry_status=self.registry_status,
-                project_state_status=self.project_state_status,
+                project_state_status=lambda **snapshot: self._project_state_service().status(**snapshot),
                 proposal_summaries=self.proposal_summaries,
                 show_proposal=self.show_proposal,
                 choice_statuses=self.choice_statuses,
@@ -309,10 +312,19 @@ class P2PWorkspace:
                 work_summaries=self.work_summaries,
                 show_work=self.show_work,
                 next_actions=self.next_actions,
+                decision_context_index=self.decision_context_index,
                 proposal_artifacts=self.read_proposal_artifacts,
                 interaction_style=self.project_interaction_style,
             )
         return self._context_packet_service_instance
+
+    def _decision_context_service(self) -> ProjectDecisionContextService:
+        if self._decision_context_service_instance is None:
+            self._decision_context_service_instance = ProjectDecisionContextService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+            )
+        return self._decision_context_service_instance
 
     def _proposal_document_service(self) -> ProposalDocumentService:
         if self._proposal_document_service_instance is None:
@@ -483,8 +495,7 @@ class P2PWorkspace:
                 intake_statuses=self.intake_statuses,
                 proposal_summaries=self.proposal_summaries,
                 read_proposal_readiness=self.read_proposal_readiness,
-                choice_registry_records=self._registry_record_builder_service().choice_records,
-                choice_statuses=self.choice_statuses,
+                decision_context_index=self.decision_context_index,
                 show_choice=self.show_choice,
             )
         return self._next_action_service_instance
@@ -523,6 +534,7 @@ class P2PWorkspace:
                 root=self.root,
                 p2p_dir=self.p2p_dir,
                 find_proposal_dir=self._proposal_document_service().find_dir,
+                decision_context_index=self.decision_context_index,
             )
         return self._proposal_artifact_service_instance
 
@@ -544,6 +556,7 @@ class P2PWorkspace:
                 p2p_dir=self.p2p_dir,
                 registry_status=self.registry_status,
                 intake_context=self._project_context_renderer_service().render_intake_context,
+                decision_context_index=self.decision_context_index,
                 add_contribution=self.add_contribution,
                 create_choice=self.create_choice,
             )
@@ -582,6 +595,7 @@ class P2PWorkspace:
                 relation_records=records.relation_records,
                 artifact_records=records.artifact_records,
                 readiness_records=records.readiness_records,
+                proposal_records_with_changes=records.proposal_records,
             )
         return self._registry_service_instance
 
@@ -1131,8 +1145,10 @@ class P2PWorkspace:
     def check(self) -> WorkspaceCheck:
         return self._workspace_status_service().check()
 
-    def validate(self) -> ValidationResult:
-        return self._validation_service().validate()
+    def validate(self, *, registry_status_snapshot=None) -> ValidationResult:
+        return self._validation_service().validate(
+            registry_status_snapshot=registry_status_snapshot
+        )
 
     def runtime_status(self) -> RuntimeStatus:
         return self._runtime_contract_service().status()
@@ -1700,6 +1716,9 @@ class P2PWorkspace:
     def context_packet(self, budget: str = "small", target: str | None = None) -> ContextPacket:
         return self._context_packet_service().context_packet(budget, target)
 
+    def decision_context_index(self) -> DecisionContextIndex:
+        return self._decision_context_service().build_index()
+
     def refresh_software_spec(self, change_id: str) -> SoftwareSpecStatus:
         self._ensure_runtime_write_allowed("software_spec_refresh")
         lifecycle = self._software_spec_lifecycle_service().ensure_can_write(
@@ -1827,8 +1846,16 @@ class P2PWorkspace:
     def scan_work_branches(self) -> WorkScan:
         return self._work_branch_service().scan()
 
-    def next_actions(self, limit: int | None = None) -> list[NextAction]:
-        return self._next_action_service().list(limit=limit)
+    def next_actions(
+        self,
+        limit: int | None = None,
+        *,
+        context_snapshot: dict[str, object] | None = None,
+    ) -> list[NextAction]:
+        return self._next_action_service().list(
+            limit=limit,
+            context_snapshot=context_snapshot,
+        )
 
     def next_action_add(
         self,

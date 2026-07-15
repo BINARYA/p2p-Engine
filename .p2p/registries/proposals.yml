@@ -4664,3 +4664,122 @@ proposals:
   - risks.md
   - suggested-scope.md
   - tasks.yml
+- id: PROP-100
+  title: Project Decision Context Index and Proposal Neighborhood
+  status: draft
+  path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology
+  summary: 'Introdurre un livello di accesso decisionale derivato sopra gli artifact
+    canonici P2P esistenti. Il livello estrae, normalizza, collega e recupera decisioni,
+    vincoli, relazioni e contesto rilevante con provenance, authority, confidence
+    e freshness verificabili. Non sostituisce gli artifact originali, non introduce
+    una nuova fonte di verita e non richiede in questa fase un cambio del backend
+    di persistenza.
+
+
+    La proposta definisce una capability ombrello composta da feature successive:
+
+
+    1. Derived Decision Context Domain Model.
+
+    2. Project Relation Normalization.
+
+    3. Explainable Decision Context Retrieval.
+
+    4. Semantic Context Packets.
+
+    5. Intake Decision-Aware Context.
+
+    6. Proposal Prompt Neighborhood.
+
+    7. Derived Output Freshness.
+
+    8. Consumer Migration And API Parity.
+
+
+    La prima feature da estrarre deve riguardare il modello di dominio derivato, la
+    extraction session condivisa, la authority matrix e gli estrattori iniziali. Non
+    deve includere ancora CLI output, intake, prompt wiring, vertical governance completa,
+    relation normalization completa, retrieval scoring o scelta della persistenza.
+
+
+    Il modello deve distinguere almeno:
+
+
+    - entity/claim record: decisione, vincolo, principio, non-goal, tradeoff;
+
+    - relation record: collegamento tra entita o artifact;
+
+    - evidence reference: riferimento puntuale alla fonte;
+
+    - retrieval hit: risultato calcolato con score, reasons e signal contributions;
+
+    - index manifest: versione, generator, generated_at e dipendenze;
+
+    - extraction session: fonti scoperte, source hash, parsed fragments, extractor
+    diagnostics e partial-index status.
+
+
+    Il servizio e read-only rispetto alle fonti canoniche. Eventuali cache o projection
+    persistite sono output derivati, eliminabili e rigenerabili; non modificano governance,
+    proposal, decisioni, choice o Change Set.
+
+
+    Ogni fonte deve avere un''autorita esplicita. Una decisione owner-accepted non
+    ha lo stesso peso di una proposta draft, di un impact map agent-proposed, di una
+    contribution storica superseded-by-text, di un proposal-local vote o di un match
+    verticale euristico. Artifact state e question state devono contribuire a descrivere
+    la qualita e la conferma dell''evidenza, non a creare decisioni.
+
+
+    Le relazioni esplicite e artifact-derived appartengono alla topologia solo dopo
+    validazione di source kind, target type, direction, relation type, authority,
+    confidence ed evidence. Segnali come same surface, same artifact e same vertical
+    section dovrebbero essere inizialmente retrieval reasons, non necessariamente
+    edge persistiti.
+
+
+    Il retrieval deve essere deterministico e spiegabile. Il contratto di scoring
+    dovra specificare candidate set, segnali, pesi, cap per segnale, trattamento dello
+    status, authority filters, precedenza delle relazioni esplicite, tie-breaking,
+    numero massimo di risultati, esclusioni e comportamento quando non esiste contesto
+    rilevante.
+
+
+    `small` e `medium` devono diventare contratti semantici. `small` deve rispondere
+    a cosa serve sapere prima del prossimo passo sul target: decisioni accepted direttamente
+    applicabili, vincoli attivi, conflitti o blocker, relazioni esplicite principali,
+    massimo pochi elementi vicini e ragioni sintetiche. `medium` deve aggiungere rationale,
+    tradeoff, non-goal, proposal neighborhood piu ampio, alternative precedenti, contesto
+    deferred/rejected/superseded pertinente, relazioni transitive limitate, vertical
+    state, provenance, diagnostics e freshness. Il limite dimensionale va applicato
+    dopo la selezione per rilevanza.
+
+
+    La migrazione dei consumer deve essere progressiva. Context packets, intake, prompt
+    generation, next actions, registries/projections e MCP handlers devono passare
+    dal servizio di dominio in feature separate, preservando gli shape pubblici fino
+    a una variazione di schema esplicita.'
+  decision_file: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/decision.md
+  related_changes: []
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - artifact-state.yml
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - conflict-analysis.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - impact-map.yml
+  - open-questions.md
+  - proposal.md
+  - questions.yml
+  - readiness.yml
+  - related-proposals.yml
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml

@@ -5,6 +5,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
+from p2p_engine.core.decision_context import (
+    ContextBudget,
+    DecisionContextIndex,
+    DecisionContextPacket,
+    RetrievalRequest,
+)
+from p2p_engine.services.decision_context_retrieval import DecisionContextRetrievalService
+
 
 class _ValidationLike(Protocol):
     ok: bool
@@ -135,6 +143,7 @@ class ContextPacket:
     do_not_read: list[str]
     bounded_next_step: str
     notes: list[str]
+    nearby_context: DecisionContextPacket | None = None
 
 
 class ContextPacketService:
@@ -142,9 +151,9 @@ class ContextPacketService:
         self,
         *,
         project_name: Callable[[], str],
-        validate: Callable[[], _ValidationLike],
+        validate: Callable[..., _ValidationLike],
         registry_status: Callable[[], _RegistryStatusLike],
-        project_state_status: Callable[[], _ProjectStateLike],
+        project_state_status: Callable[..., _ProjectStateLike],
         proposal_summaries: Callable[..., list[_ProposalSummaryLike]],
         show_proposal: Callable[[str], _ProposalDetailLike],
         choice_statuses: Callable[[], list[_ChoiceStatusLike]],
@@ -154,6 +163,7 @@ class ContextPacketService:
         work_summaries: Callable[[], list[_WorkSummaryLike]],
         show_work: Callable[[str], _WorkDetailLike],
         next_actions: Callable[..., list[_NextActionLike]],
+        decision_context_index: Callable[[], DecisionContextIndex] | None = None,
         proposal_artifacts: Callable[[str], _ArtifactStateLike] | None = None,
         interaction_style: Callable[[], _InteractionStyleLike] | None = None,
     ) -> None:
@@ -170,6 +180,7 @@ class ContextPacketService:
         self.work_summaries = work_summaries
         self.show_work = show_work
         self.next_actions = next_actions
+        self.decision_context_index = decision_context_index
         self.proposal_artifacts = proposal_artifacts
         self.interaction_style = interaction_style
 
@@ -178,14 +189,33 @@ class ContextPacketService:
         if budget not in {"small", "medium"}:
             raise ValueError("Context budget must be small or medium")
         normalized_target = target.strip().upper() if target else None
-        validation = self.validate()
         registry_status = self.registry_status()
-        project_status = self.project_state_status()
+        validation = self.validate(registry_status_snapshot=registry_status)
         proposals = self.proposal_summaries()
         choices = self.choice_statuses()
         changes = self.change_set_statuses()
         works = self.work_summaries()
-        next_actions = self.next_actions(limit=3)
+        relevant_artifacts = (
+            [self._context_artifact(normalized_target, budget)]
+            if normalized_target
+            else self._default_context_artifacts(proposals, choices, changes)
+        )
+        context_snapshot = {
+            "registry_status": registry_status,
+            "proposal_summaries": proposals,
+            "choice_statuses": choices,
+            "change_statuses": changes,
+        }
+        decision_index = self.decision_context_index() if self.decision_context_index else None
+        if decision_index is not None:
+            context_snapshot["decision_context_index"] = decision_index
+        next_actions = self.next_actions(limit=3, context_snapshot=context_snapshot)
+        project_status = self.project_state_status(
+            accepted_proposals_count=len(
+                [proposal for proposal in proposals if proposal.status == "accepted"]
+            ),
+            next_actions_snapshot=next_actions,
+        )
 
         current_state = {
             "project": self.project_name(),
@@ -220,9 +250,19 @@ class ContextPacketService:
         if self.interaction_style is not None:
             current_state["interaction_style"] = _interaction_style_summary(self.interaction_style())
 
-        relevant_artifacts = (
-            [self._context_artifact(normalized_target, budget)] if normalized_target else self._default_context_artifacts()
-        )
+        nearby_context = None
+        if (
+            normalized_target
+            and normalized_target.startswith("PROP-")
+            and decision_index is not None
+        ):
+            nearby_context = DecisionContextRetrievalService().retrieve(
+                decision_index,
+                RetrievalRequest(
+                    budget=ContextBudget(budget),
+                    target_id=normalized_target,
+                ),
+            )
         allowed_commands = self._context_allowed_commands(normalized_target)
         bounded_next_step = (
             allowed_commands[0]
@@ -264,11 +304,17 @@ class ContextPacketService:
             ],
             bounded_next_step=bounded_next_step,
             notes=notes,
+            nearby_context=nearby_context,
         )
 
-    def _default_context_artifacts(self) -> list[dict[str, object]]:
+    def _default_context_artifacts(
+        self,
+        proposals: list[_ProposalSummaryLike],
+        choices: list[_ChoiceStatusLike],
+        changes: list[_ChangeStatusLike],
+    ) -> list[dict[str, object]]:
         artifacts: list[dict[str, object]] = []
-        for proposal in self.proposal_summaries(status="draft")[:3]:
+        for proposal in [item for item in proposals if item.status == "draft"][:3]:
             artifacts.append(
                 {
                     "type": "proposal",
@@ -279,7 +325,7 @@ class ContextPacketService:
                     "command": f"p2p proposal show {proposal.proposal_id}",
                 }
             )
-        for choice in self.choice_statuses()[:3]:
+        for choice in choices[:3]:
             if choice.status in {"open", "draft", "pending"} and not choice.selected_option:
                 artifacts.append(
                     {
@@ -291,7 +337,7 @@ class ContextPacketService:
                         "command": f"p2p choice show {choice.choice_id}",
                     }
                 )
-        for change in self.change_set_statuses()[:3]:
+        for change in changes[:3]:
             if change.status not in {"completed", "cancelled", "superseded"}:
                 artifacts.append(
                     {

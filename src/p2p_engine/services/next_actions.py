@@ -5,8 +5,16 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
+from p2p_engine.core.decision_context import (
+    Activation,
+    Authority,
+    DecisionContextIndex,
+    NodeType,
+    RecordKind,
+    RelationType,
+)
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
     yaml_dump as _yaml_dump,
@@ -35,8 +43,7 @@ class NextActionService:
         intake_statuses: Callable[[], list[Any]],
         proposal_summaries: Callable[..., list[Any]],
         read_proposal_readiness: Callable[[str], Any],
-        choice_registry_records: Callable[[], list[dict[str, object]]],
-        choice_statuses: Callable[[], list[Any]],
+        decision_context_index: Callable[[], DecisionContextIndex],
         show_choice: Callable[[str], Any],
     ) -> None:
         self.root = root
@@ -46,15 +53,20 @@ class NextActionService:
         self.intake_statuses = intake_statuses
         self.proposal_summaries = proposal_summaries
         self.read_proposal_readiness = read_proposal_readiness
-        self.choice_registry_records = choice_registry_records
-        self.choice_statuses = choice_statuses
+        self.decision_context_index = decision_context_index
         self.show_choice = show_choice
 
-    def list(self, limit: int | None = None) -> list[NextAction]:
+    def list(
+        self,
+        limit: int | None = None,
+        *,
+        context_snapshot: Mapping[str, object] | None = None,
+    ) -> list[NextAction]:
+        index = self._index(context_snapshot)
         actions = self._dedupe(
-            self._active_choice_blocker_actions()
+            self._active_choice_blocker_actions(index)
             + self._active_curated_actions()
-            + self._fallback_actions()
+            + self._fallback_actions(context_snapshot, index)
         )
         if limit is not None:
             return actions[: max(limit, 0)]
@@ -118,7 +130,10 @@ class NextActionService:
         ]
         payload["next_actions"] = normalized
         self._write_payload(payload)
-        generated = self._dedupe(self._active_choice_blocker_actions() + self._fallback_actions())
+        index = self.decision_context_index()
+        generated = self._dedupe(
+            self._active_choice_blocker_actions(index) + self._fallback_actions(None, index)
+        )
         return {
             "active_curated": len(normalized),
             "generated": len(generated),
@@ -247,9 +262,18 @@ class NextActionService:
             deduped.append(action)
         return deduped
 
-    def _fallback_actions(self) -> list[NextAction]:
+    def _fallback_actions(
+        self,
+        context_snapshot: Mapping[str, object] | None = None,
+        index: DecisionContextIndex | None = None,
+    ) -> list[NextAction]:
+        index = index or self._index(context_snapshot)
         actions: list[NextAction] = []
-        registry_status = self.registry_status()
+        registry_status = (
+            context_snapshot.get("registry_status")
+            if context_snapshot is not None
+            else None
+        ) or self.registry_status()
         if registry_status.stale:
             actions.append(
                 NextAction(
@@ -264,17 +288,33 @@ class NextActionService:
             )
 
         terminal_change_statuses = {"completed", "cancelled", "superseded"}
-        for change in self.change_registry_records():
-            status = str(change.get("status") or "unknown")
-            if status not in terminal_change_statuses:
+        changes = (
+            _snapshot_sequence(context_snapshot, "change_statuses")
+            if context_snapshot is not None
+            else self.change_registry_records()
+        )
+        change_nodes = {
+            node.node_id for node in index.nodes if node.node_type == NodeType.CHANGE
+        }
+        included_proposals = _active_change_proposals(index)
+        for change in changes:
+            status = str(_field(change, "status") or "unknown")
+            change_id = str(_field(change, "id", "change_id") or "")
+            if status not in terminal_change_statuses and change_id in change_nodes:
+                linked = included_proposals.get(change_id, ())
+                relation_context = (
+                    f" Included proposals: {', '.join(linked)}."
+                    if linked
+                    else ""
+                )
                 actions.append(
                     NextAction(
                         action_id=f"NEXT-FALLBACK-{len(actions) + 1:03d}",
                         priority="high" if status in {"planned", "blocked"} else "medium",
                         kind="continue_change",
-                        target=str(change.get("id") or ""),
-                        reason=f"Change Set is {status}, not completed.",
-                        command=f"p2p change tasks {change.get('id')}",
+                        target=change_id,
+                        reason=f"Change Set is {status}, not completed.{relation_context}",
+                        command=f"p2p change tasks {change_id}",
                         source="generated",
                     )
                 )
@@ -295,7 +335,16 @@ class NextActionService:
                 )
                 break
 
-        for proposal in self.proposal_summaries(status="draft"):
+        draft_proposals = (
+            [
+                proposal
+                for proposal in _snapshot_sequence(context_snapshot, "proposal_summaries")
+                if str(_field(proposal, "status") or "") == "draft"
+            ]
+            if context_snapshot is not None
+            else self.proposal_summaries(status="draft")
+        )
+        for proposal in draft_proposals:
             readiness = self.read_proposal_readiness(proposal.proposal_id)
             if readiness.status == "not_assessed":
                 actions.append(
@@ -327,7 +376,7 @@ class NextActionService:
                 )
                 break
 
-        for proposal in self.proposal_summaries(status="draft"):
+        for proposal in draft_proposals:
             has_readiness_action = any(
                 action.target == proposal.proposal_id
                 and action.kind in {"assess_proposal_readiness", "improve_proposal_readiness"}
@@ -348,22 +397,28 @@ class NextActionService:
             )
             break
 
-        for choice in self.choice_registry_records():
-            status = str(choice.get("status") or "unknown")
-            selected = choice.get("selected_option")
-            if status in {"open", "draft", "pending"} and not selected:
-                actions.append(
-                    NextAction(
-                        action_id=f"NEXT-FALLBACK-{len(actions) + 1:03d}",
-                        priority="medium",
-                        kind="resolve_choice",
-                        target=str(choice.get("id") or choice.get("proposal") or ""),
-                        reason=f"Choice is {status} and has no selected option.",
-                        command="p2p registry show choices",
-                        source="generated",
-                    )
+        blocked_choices = {
+            relation.source_id
+            for relation in index.relations
+            if relation.source_type == NodeType.CHOICE
+            and relation.relation_type == RelationType.BLOCKS
+            and relation.activation == Activation.ACTIVE
+        }
+        for choice_id in _open_project_choice_ids(index):
+            if choice_id in blocked_choices:
+                continue
+            actions.append(
+                NextAction(
+                    action_id=f"NEXT-FALLBACK-{len(actions) + 1:03d}",
+                    priority="medium",
+                    kind="resolve_choice",
+                    target=choice_id,
+                    reason="Project choice is open and has no selected option.",
+                    command=f"p2p choice show {choice_id}",
+                    source="generated",
                 )
-                break
+            )
+            break
 
         if not actions:
             actions.append(
@@ -379,29 +434,116 @@ class NextActionService:
             )
         return actions
 
-    def _active_choice_blocker_actions(self) -> list[NextAction]:
+    def _active_choice_blocker_actions(
+        self,
+        index: DecisionContextIndex,
+    ) -> list[NextAction]:
         actions: list[NextAction] = []
-        for choice in self.choice_statuses():
-            if choice.status == "decided":
-                continue
-            detail = self.show_choice(choice.choice_id)
-            for block in detail.blocks:
-                if not isinstance(block, dict) or block.get("status", "active") != "active":
-                    continue
-                target = str(block.get("target") or "")
-                target_type = str(block.get("target_type") or "target")
-                actions.append(
-                    NextAction(
-                        action_id=f"NEXT-BLOCKER-{len(actions) + 1:03d}",
-                        priority="high",
-                        kind="resolve_choice",
-                        target=choice.choice_id,
-                        reason=(
-                            f"{choice.choice_id} blocks {target_type} {target}: "
-                            f"{block.get('reason') or 'Decision required.'}"
-                        ),
-                        command=f"p2p choice show {choice.choice_id}",
-                        source=str(detail.path / "links.yml"),
-                    )
+        open_choices = set(_open_project_choice_ids(index))
+        evidence_map = index.evidence_map()
+        relations = sorted(
+            (
+                relation
+                for relation in index.relations
+                if relation.source_type == NodeType.CHOICE
+                and relation.source_id in open_choices
+                and relation.relation_type == RelationType.BLOCKS
+                and relation.activation == Activation.ACTIVE
+            ),
+            key=lambda item: (item.source_id, item.target_type.value, item.target_id),
+        )
+        for relation in relations:
+            detail = self.show_choice(relation.source_id)
+            block = next(
+                (
+                    item
+                    for item in detail.blocks
+                    if isinstance(item, dict)
+                    and str(item.get("target") or "") == relation.target_id
+                    and str(item.get("target_type") or "") == relation.target_type.value
+                    and item.get("status", "active") == "active"
+                ),
+                {},
+            )
+            source = "generated"
+            for evidence_id in relation.evidence_ids:
+                evidence = evidence_map.get(evidence_id)
+                if evidence is not None:
+                    source = evidence.source_path
+                    break
+            actions.append(
+                NextAction(
+                    action_id=f"NEXT-BLOCKER-{len(actions) + 1:03d}",
+                    priority="high",
+                    kind="resolve_choice",
+                    target=relation.source_id,
+                    reason=(
+                        f"{relation.source_id} blocks {relation.target_type.value} "
+                        f"{relation.target_id}: {block.get('reason') or 'Decision required.'}"
+                    ),
+                    command=f"p2p choice show {relation.source_id}",
+                    source=source,
                 )
+            )
         return actions
+
+    def _index(
+        self,
+        context_snapshot: Mapping[str, object] | None,
+    ) -> DecisionContextIndex:
+        if context_snapshot is not None:
+            value = context_snapshot.get("decision_context_index")
+            if isinstance(value, DecisionContextIndex):
+                return value
+        return self.decision_context_index()
+
+
+def _snapshot_sequence(
+    snapshot: Mapping[str, object] | None,
+    key: str,
+) -> list[Any]:
+    value = snapshot.get(key, ()) if snapshot is not None else ()
+    return list(value) if isinstance(value, (tuple, list)) else []
+
+
+def _field(value: object, *names: str) -> object:
+    for name in names:
+        if isinstance(value, Mapping):
+            if name in value:
+                return value[name]
+        elif hasattr(value, name):
+            return getattr(value, name)
+    return None
+
+
+def _open_project_choice_ids(index: DecisionContextIndex) -> tuple[str, ...]:
+    choices = sorted(
+        node.node_id for node in index.nodes if node.node_type == NodeType.CHOICE
+    )
+    decided = {
+        record.owner_id
+        for record in index.records
+        if record.owner_type == NodeType.CHOICE
+        and record.kind == RecordKind.DECISION_STATE
+        and record.authority == Authority.DECIDED_PROJECT_CHOICE
+        and record.activation == Activation.ACTIVE
+    }
+    return tuple(choice_id for choice_id in choices if choice_id not in decided)
+
+
+def _active_change_proposals(
+    index: DecisionContextIndex,
+) -> dict[str, tuple[str, ...]]:
+    related: dict[str, set[str]] = {}
+    for relation in index.relations:
+        if (
+            relation.source_type == NodeType.CHANGE
+            and relation.target_type == NodeType.PROPOSAL
+            and relation.relation_type == RelationType.INCLUDES
+            and relation.activation == Activation.ACTIVE
+        ):
+            related.setdefault(relation.source_id, set()).add(relation.target_id)
+    return {
+        change_id: tuple(sorted(proposals))
+        for change_id, proposals in sorted(related.items())
+    }
