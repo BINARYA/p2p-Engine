@@ -38,6 +38,7 @@ ARTIFACT_DEFINITIONS: tuple[ArtifactDefinition, ...] = (
     ArtifactDefinition("findings", "findings.md", ProposalArtifactExpectation.required_when_applicable),
     ArtifactDefinition("exploration", "exploration.md", ProposalArtifactExpectation.required_when_applicable),
     ArtifactDefinition("impact_map", "impact-map.yml", ProposalArtifactExpectation.required_when_applicable),
+    ArtifactDefinition("vertical_coverage", "vertical-coverage.yml", ProposalArtifactExpectation.required_when_applicable),
 )
 ARTIFACTS_BY_ID = {definition.artifact_id: definition for definition in ARTIFACT_DEFINITIONS}
 ARTIFACTS_BY_FILENAME = {definition.filename: definition for definition in ARTIFACT_DEFINITIONS}
@@ -219,6 +220,90 @@ class ProposalArtifactStateService:
         _atomic_write(path, _yaml_dump(payload))
         return self.read(proposal_id)
 
+    def render_satisfied_artifact_candidate(
+        self,
+        proposal_id: str,
+        artifact_id: str,
+        *,
+        actor: str,
+        source: str,
+        reason: str,
+        updated_at: str,
+        owner_confirmed: bool = False,
+    ) -> dict[str, object]:
+        proposal_dir = self.find_proposal_dir(proposal_id)
+        path = proposal_dir / ARTIFACT_STATE_FILENAME
+        if path.exists():
+            data = _read_yaml_mapping(path, default={})
+            validate_proposal_artifact_state_payload(data)
+        else:
+            data = {
+                "proposal_artifacts": {
+                    "schema_version": ARTIFACT_STATE_SCHEMA_VERSION,
+                    "proposal_id": proposal_id,
+                    "initialized_at": updated_at,
+                    "updated_at": updated_at,
+                    "status": "active",
+                    "legacy": {"state": "", "reason": ""},
+                    "artifacts": _initial_records(
+                        proposal_dir=proposal_dir,
+                        existing={},
+                        risk_flags=detect_risk_flags(_proposal_text(proposal_dir)),
+                        actor=actor,
+                        now=updated_at,
+                    ),
+                }
+            }
+        artifact_key = _normalize_artifact_id(artifact_id)
+        artifacts = _artifact_payloads(data)
+        try:
+            item = _find_artifact_payload(artifacts, artifact_key)
+        except ValueError:
+            if artifact_key not in ARTIFACTS_BY_ID:
+                raise
+            generated = {
+                str(candidate.get("id") or ""): candidate
+                for candidate in _initial_records(
+                    proposal_dir=proposal_dir,
+                    existing=data,
+                    risk_flags=detect_risk_flags(_proposal_text(proposal_dir)),
+                    actor=actor,
+                    now=updated_at,
+                )
+            }
+            item = generated[artifact_key]
+            state = data.get("proposal_artifacts")
+            assert isinstance(state, dict)
+            current = state.get("artifacts")
+            if not isinstance(current, list):
+                raise ValueError("Proposal artifact state artifacts must be a list.")
+            current.append(item)
+        old_item = dict(item)
+        item.update(
+            {
+                "expectation": ProposalArtifactExpectation.required_when_applicable.value,
+                "status": ProposalArtifactStatus.satisfied.value,
+                "reason": reason.strip(),
+                "source": source,
+                "actor": actor,
+                "confirmation": (
+                    ProposalArtifactConfirmation.owner_confirmed.value
+                    if owner_confirmed
+                    else ProposalArtifactConfirmation.agent_proposed.value
+                ),
+                "confirmed_by": actor if owner_confirmed else "",
+                "updated_at": updated_at,
+            }
+        )
+        history = item.setdefault("history", [])
+        if isinstance(history, list):
+            history.append(_history_entry_at(old_item, actor=actor, source=source, reason=reason, at=updated_at))
+        state = data.get("proposal_artifacts")
+        assert isinstance(state, dict)
+        state["updated_at"] = updated_at
+        validate_proposal_artifact_state_payload(data)
+        return data
+
     def _existing_payload(self, proposal_id: str) -> tuple[dict[str, object], Path]:
         proposal_dir = self.find_proposal_dir(proposal_id)
         path = proposal_dir / ARTIFACT_STATE_FILENAME
@@ -299,13 +384,14 @@ def _initial_records(
     existing: dict[str, object],
     risk_flags: list[ProposalArtifactRiskFlag],
     actor: str,
+    now: str | None = None,
 ) -> list[dict[str, object]]:
     existing_items = {
         _normalize_artifact_id(str(item.get("id") or "")): item
         for item in _artifact_payloads(existing)
         if isinstance(item, dict)
     }
-    now = _now()
+    now = now or _now()
     records: list[dict[str, object]] = []
     for definition in ARTIFACT_DEFINITIONS:
         previous = dict(existing_items.get(definition.artifact_id) or {})
@@ -594,8 +680,19 @@ def _touch(data: dict[str, object]) -> None:
 
 
 def _history_entry(old_item: dict[str, object], *, actor: str, source: str, reason: str) -> dict[str, object]:
+    return _history_entry_at(old_item, actor=actor, source=source, reason=reason, at=_now())
+
+
+def _history_entry_at(
+    old_item: dict[str, object],
+    *,
+    actor: str,
+    source: str,
+    reason: str,
+    at: str,
+) -> dict[str, object]:
     return {
-        "at": _now(),
+        "at": at,
         "actor": actor,
         "source": source,
         "previous_status": old_item.get("status", ""),

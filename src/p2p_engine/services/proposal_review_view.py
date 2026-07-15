@@ -100,6 +100,7 @@ ARTIFACT_SLOTS: tuple[_ArtifactSlot, ...] = (
     _ArtifactSlot("impact_map", "Impact Map", "impact-map.yml", ProposalArtifactExpectation.required_when_applicable, MATERIALIZATION_IMPORTED),
     _ArtifactSlot("related_proposals", "Related Proposals", "related-proposals.yml", ProposalArtifactExpectation.required_when_applicable, MATERIALIZATION_IMPORTED),
     _ArtifactSlot("conflict_analysis", "Conflict Analysis", "conflict-analysis.yml", ProposalArtifactExpectation.required_when_applicable, MATERIALIZATION_IMPORTED),
+    _ArtifactSlot("vertical_coverage", "Vertical Coverage", "vertical-coverage.yml", ProposalArtifactExpectation.required_when_applicable, MATERIALIZATION_IMPORTED),
     _ArtifactSlot("ai_digest", "AI Digest", "ai-digest.md", ProposalArtifactExpectation.optional_memory, MATERIALIZATION_GENERATED, narrative=True),
     _ArtifactSlot("execution_plan", "Execution Plan", "execution-plan.md", ProposalArtifactExpectation.required_when_applicable, MATERIALIZATION_GENERATED, narrative=True),
     _ArtifactSlot("tasks", "Implementation Tasks", "tasks.yml", ProposalArtifactExpectation.required_when_applicable, MATERIALIZATION_GENERATED, empty_file_satisfied=True),

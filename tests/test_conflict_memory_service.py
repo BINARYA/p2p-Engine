@@ -73,3 +73,93 @@ def test_conflict_memory_service_rejects_invalid_payload_shape(tmp_path: Path) -
 
     with pytest.raises(ValueError, match="expected `conflicts` list"):
         workspace._conflict_memory_service().status()
+
+
+def test_conflict_update_preview_is_stale_safe_and_updates_by_stable_id(tmp_path: Path) -> None:
+    workspace = _workspace(tmp_path)
+    service = workspace._conflict_memory_service()
+    service.record(
+        proposals=["PROP-001", "PROP-002"],
+        conflict_type="overlap",
+        reason="Initial reason.",
+        winner=None,
+    )
+    patch = {
+        "type": "mutually_exclusive",
+        "winner": "PROP-001",
+        "rejected": ["PROP-002"],
+        "reason": "Owner selected the first model.",
+        "provenance": {"source": "M3 review"},
+    }
+
+    preview = service.preview_update("CONFLICT-001", patch, actor="owner")
+    stale = service.update(
+        "CONFLICT-001",
+        {**patch, "reason": "Different candidate."},
+        preview_token=preview.preview_token,
+        actor="owner",
+        confirm=True,
+    )
+    result = service.update(
+        "CONFLICT-001",
+        patch,
+        preview_token=preview.preview_token,
+        actor="owner",
+        confirm=True,
+    )
+
+    assert preview.apply_allowed is True
+    assert stale.status == "stale_preview"
+    assert result.status == "applied"
+    assert service.status().conflicts_count == 1
+    conflict = service.show("CONFLICT-001")
+    assert conflict["winner"] == "PROP-001"
+    assert conflict["rejected"] == ["PROP-002"]
+    assert conflict["provenance"]["updated_by"] == "owner"
+
+
+def test_conflict_update_rejects_unauthorized_and_append_shaped_patch(tmp_path: Path) -> None:
+    workspace = _workspace(tmp_path)
+    service = workspace._conflict_memory_service()
+    service.record(
+        proposals=["PROP-001", "PROP-002"],
+        conflict_type="overlap",
+        reason="Initial reason.",
+        winner=None,
+    )
+    patch = {"reason": "Updated reason."}
+
+    preview = service.preview_update("CONFLICT-001", patch, actor="contributor")
+
+    assert preview.apply_allowed is False
+    assert service.update(
+        "CONFLICT-001",
+        patch,
+        preview_token=preview.preview_token,
+        actor="contributor",
+        confirm=True,
+    ).status == "blocked"
+    with pytest.raises(ValueError, match="Unsupported conflict patch field"):
+        service.preview_update("CONFLICT-001", {"conflicts": []}, actor="owner")
+    assert service.status().conflicts_count == 1
+
+
+def test_conflict_update_validates_resolution_consistency_before_write(tmp_path: Path) -> None:
+    workspace = _workspace(tmp_path)
+    service = workspace._conflict_memory_service()
+    service.record(
+        proposals=["PROP-001", "PROP-002"],
+        conflict_type="overlap",
+        reason="Initial reason.",
+        winner=None,
+    )
+    before = (tmp_path / ".p2p" / "project" / "conflicts.yml").read_bytes()
+
+    with pytest.raises(ValueError, match="reject every non-winning"):
+        service.preview_update(
+            "CONFLICT-001",
+            {"winner": "PROP-001", "rejected": []},
+            actor="owner",
+        )
+
+    assert (tmp_path / ".p2p" / "project" / "conflicts.yml").read_bytes() == before

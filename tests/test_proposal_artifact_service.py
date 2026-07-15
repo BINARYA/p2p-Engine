@@ -5,6 +5,7 @@ import yaml
 
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.storage.filesystem import P2PWorkspace
+from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 from tests.decision_context_fixtures import project_files
 
 
@@ -445,3 +446,190 @@ def test_proposal_artifact_service_rejects_invalid_import_requests_without_paylo
         assert not impact_path.exists()
     else:
         assert impact_path.read_text(encoding="utf-8") == original_impact
+
+
+def test_impact_preview_apply_requires_owner_and_matching_stateless_token(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Impact Correction")
+    target = workspace.create_proposal("Committed impact")
+    related = workspace.create_proposal("Related proposal")
+    workspace.record_decision(target.proposal_id, DecisionOutcome.accepted, "Accepted.", "owner")
+    service = workspace._proposal_artifact_service()
+    artifacts = {
+        "impact-map.yml": "impact:\n  capabilities: [migration]\n",
+        "related-proposals.yml": (
+            "related_proposals:\n"
+            f"  - proposal: {related.proposal_id}\n"
+            "    relationship: dependency\n"
+        ),
+    }
+
+    preview = service.preview_impact(target.proposal_id, artifacts, actor="owner")
+    unauthorized = service.preview_impact(target.proposal_id, artifacts, actor="contributor")
+    stale = service.apply_impact(
+        target.proposal_id,
+        {**artifacts, "impact-map.yml": "impact:\n  capabilities: [different]\n"},
+        preview_token=preview.preview_token,
+        actor="owner",
+        confirm=True,
+    )
+    applied = service.apply_impact(
+        target.proposal_id,
+        artifacts,
+        preview_token=preview.preview_token,
+        actor="owner",
+        confirm=True,
+    )
+
+    assert preview.apply_allowed is True
+    assert unauthorized.apply_allowed is False
+    assert stale.status == "stale_preview"
+    assert applied.status == "applied"
+    assert len(applied.changed_paths) == 2
+
+
+def test_impact_apply_rejects_changed_canonical_source_without_overwriting_it(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Impact Source Drift")
+    target = workspace.create_proposal("Committed impact")
+    related = workspace.create_proposal("Related proposal")
+    workspace.record_decision(target.proposal_id, DecisionOutcome.accepted, "Accepted.", "owner")
+    proposal_dir = tmp_path / target.path
+    impact_path = proposal_dir / "impact-map.yml"
+    related_path = proposal_dir / "related-proposals.yml"
+    impact_path.write_text("impact:\n  capabilities: [old]\n", encoding="utf-8")
+    related_path.write_text("related_proposals: []\n", encoding="utf-8")
+    artifacts = {
+        "impact-map.yml": "impact:\n  capabilities: [new]\n",
+        "related-proposals.yml": (
+            "related_proposals:\n"
+            f"  - proposal: {related.proposal_id}\n"
+            "    relationship: references\n"
+        ),
+    }
+    service = workspace._proposal_artifact_service()
+    preview = service.preview_impact(target.proposal_id, artifacts, actor="owner")
+    externally_changed = "impact:\n  capabilities: [external-change]\n"
+    impact_path.write_text(externally_changed, encoding="utf-8")
+
+    result = service.apply_impact(
+        target.proposal_id,
+        artifacts,
+        preview_token=preview.preview_token,
+        actor="owner",
+        confirm=True,
+    )
+
+    assert result.status == "stale_preview"
+    assert result.changed_paths == ()
+    assert impact_path.read_text(encoding="utf-8") == externally_changed
+    assert related_path.read_text(encoding="utf-8") == "related_proposals: []\n"
+
+
+def test_impact_preview_uses_legacy_owner_fallback_without_permissions(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Legacy Impact Authority")
+    target = workspace.create_proposal("Committed impact")
+    related = workspace.create_proposal("Related proposal")
+    workspace.record_decision(target.proposal_id, DecisionOutcome.accepted, "Accepted.", "owner")
+    (tmp_path / ".p2p" / "project" / "permissions.yml").unlink()
+    artifacts = {
+        "related-proposals.yml": (
+            "related_proposals:\n"
+            f"  - proposal: {related.proposal_id}\n"
+            "    relationship: references\n"
+        )
+    }
+
+    owner = workspace._proposal_artifact_service().preview_impact(
+        target.proposal_id,
+        artifacts,
+        actor="owner",
+    )
+    contributor = workspace._proposal_artifact_service().preview_impact(
+        target.proposal_id,
+        artifacts,
+        actor="contributor",
+    )
+
+    assert owner.authority == "owner_confirmed"
+    assert owner.apply_allowed is True
+    assert contributor.authority == "owner_required"
+    assert contributor.apply_allowed is False
+
+
+def test_impact_validation_rejects_invalid_set_before_any_target_write(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Impact Validation")
+    proposal = workspace.create_proposal("Impact target")
+    related = workspace.create_proposal("Related")
+    service = workspace._proposal_artifact_service()
+    impact_path = tmp_path / proposal.path / "impact-map.yml"
+
+    with pytest.raises(ValueError, match="ambiguous"):
+        service.import_content(
+            proposal.proposal_id,
+            "impact",
+            artifacts={
+                "impact-map.yml": "impact: []\n",
+                "related-proposals.yml": (
+                    "related_proposals:\n"
+                    f"  - proposal: {related.proposal_id}\n"
+                    "    relationship: enables\n"
+                ),
+            },
+        )
+    assert not impact_path.exists()
+
+    with pytest.raises(ValueError, match="proposal id"):
+        service.preview_impact(
+            proposal.proposal_id,
+            {"related-proposals.yml": "related_proposals:\n  - proposal: future workflow\n"},
+            actor="owner",
+        )
+    assert not impact_path.exists()
+
+
+def test_impact_multi_file_failure_rolls_back_every_target(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Impact Rollback")
+    proposal = workspace.create_proposal("Impact target")
+    related = workspace.create_proposal("Related")
+    service = workspace._proposal_artifact_service()
+    proposal_dir = tmp_path / proposal.path
+    original = {
+        "impact-map.yml": "impact:\n  capabilities: [old]\n",
+        "related-proposals.yml": "related_proposals: []\n",
+    }
+    for filename, content in original.items():
+        (proposal_dir / filename).write_text(content, encoding="utf-8")
+
+    def fail(stage: str, target: str) -> None:
+        if stage == "after_replace" and target.endswith("impact-map.yml"):
+            raise RuntimeError("injected")
+
+    service.atomic_writer = AtomicMutationWriter(
+        root=tmp_path,
+        p2p_dir=tmp_path / ".p2p",
+        failure_injector=fail,
+    )
+    artifacts = {
+        "impact-map.yml": "impact:\n  capabilities: [new]\n",
+        "related-proposals.yml": (
+            "related_proposals:\n"
+            f"  - proposal: {related.proposal_id}\n"
+            "    relationship: related\n"
+        ),
+    }
+    preview = service.preview_impact(proposal.proposal_id, artifacts, actor="owner")
+
+    result = service.apply_impact(
+        proposal.proposal_id,
+        artifacts,
+        preview_token=preview.preview_token,
+        actor="owner",
+        confirm=True,
+    )
+
+    assert result.status == "rolled_back"
+    assert {filename: (proposal_dir / filename).read_text(encoding="utf-8") for filename in original} == original

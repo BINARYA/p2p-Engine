@@ -1,0 +1,1473 @@
+schema_version: 1
+pipeline: human_project_publication
+publication_role: canonical_human_publication
+governance_authority: derived
+source_of_truth: .p2p/
+updated_at: '2026-07-13T15:44:39+00:00'
+source_state:
+  fingerprint_version: 1
+  fingerprint_sha256: 645a05ca7c7b125041f5d733876b8b6ccd28bc90512e99fc8b9074c2e0000f3a
+  inputs:
+  - path: .p2p/project.yml
+    sha256: c190b8c819c46401564dc40e69d28d1e636e0127bceb797126561e786b0b2c08
+  - path: .p2p/project/assessment.yml
+    sha256: 336feaa51535272fbaadd2d391da4f2e7007f1c28dbd0a95e44f88430357df37
+  - path: .p2p/project/conflicts.yml
+    sha256: 2182eae763b0d1d4e3a135a2995b4f3a4c97c30d1cc94cbd3856e40d26cffb29
+  - path: .p2p/project/decisions-map.yml
+    sha256: d67247810b7f443eac76a7b1a9c6c27986738e689d31e88865b834173290537d
+  - path: .p2p/project/interaction-style.yml
+    sha256: f5853451a762aaa1b6c0a2fecb8d28c3b578edb29217871849348bc4c842eaef
+  - path: .p2p/project/maturity-assessment.yml
+    sha256: df71b63630c8304c7e5c35d21e58907331f0b6f8206425c97e3fcef0e9c57227
+  - path: .p2p/project/next-actions-log.yml
+    sha256: d65e361792d774e56cc82ed9d9681d4445bab45ef9d9c2774273b002fd619409
+  - path: .p2p/project/next-actions.yml
+    sha256: 5cbb816263a8571cfd345b8e4178bce123fada77f51892c0a1f1d4da7f82c8de
+  - path: .p2p/project/rubrics.yml
+    sha256: 88278a603498ccf80ae467f24a5033ab77e4806232376d9bf4ba0f5239f43a93
+  - path: .p2p/project/runtime.yml
+    sha256: ae40e438a55ef7d3683d8d7e842952db1abe8c450f6795a5dcd0fdf1bde97272
+  - path: .p2p/proposals/PROP-001-cli-foundation/decision.md
+    sha256: de34b6ca43a42aaa4c5f7e6d615b798affd77d4552b6c753926c00aa5219e082
+  - path: .p2p/proposals/PROP-001-cli-foundation/proposal.md
+    sha256: a391bd9b0e46e25f2fac4609c122e8c693448859b13d9f9912c3280f6b388b87
+  - path: .p2p/proposals/PROP-002-exploration-phase/alternatives.md
+    sha256: a471a2d7bd874d6f0972a1a08900b3d855ad6a587ee50e055d11c841eadcf6a6
+  - path: .p2p/proposals/PROP-002-exploration-phase/assumptions.md
+    sha256: 3a8a350130a62eaf2840aced2de0d6ffd1a13480e3d6542ff7243079f5ac919a
+  - path: .p2p/proposals/PROP-002-exploration-phase/decision.md
+    sha256: cca6fcd1a75bc9d33321d278a28629a547441add27e6b39681b305b1fbbece26
+  - path: .p2p/proposals/PROP-002-exploration-phase/findings.md
+    sha256: db145d04d1a309086d894e776fe435eaedc5a48ece898f2425045356ef8ff276
+  - path: .p2p/proposals/PROP-002-exploration-phase/open-questions.md
+    sha256: 292412357019a5f8bf5a494fc9e9b81a5fad2ab8b275cea71edff40e20282659
+  - path: .p2p/proposals/PROP-002-exploration-phase/proposal.md
+    sha256: 6ffc8c034ad5029998de6107688492f93b82f1aaf52ba57d877daaf1434c8894
+  - path: .p2p/proposals/PROP-002-exploration-phase/risks.md
+    sha256: 1494045edf33399d2d971c4e7616ef36f1530ab9703e37626dab08689086a1d8
+  - path: .p2p/proposals/PROP-004-prompt-only-import-workflow/alternatives.md
+    sha256: 289762165b6a591aca3ac7c5a1a2eb4855dfd85d6178f7bbb66695c8e6b59873
+  - path: .p2p/proposals/PROP-004-prompt-only-import-workflow/assumptions.md
+    sha256: d7977c11a97cb9549b594cec642fc00def17efa8e1a2294fd601756bf06daf8d
+  - path: .p2p/proposals/PROP-004-prompt-only-import-workflow/decision.md
+    sha256: e0d81c368de41b9ac2f1a4474f33bdda3a6a9b3010132cbc73984a08a73d014f
+  - path: .p2p/proposals/PROP-004-prompt-only-import-workflow/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-004-prompt-only-import-workflow/open-questions.md
+    sha256: f4913502be58de186ac0ff31ee751f3b7456a7bdd7d95b6aa442e465a8c08534
+  - path: .p2p/proposals/PROP-004-prompt-only-import-workflow/proposal.md
+    sha256: 1df1d8dcb188ca83f9984eb1b0897ca5c468553bcd4e4f1ac66b640d3f27591a
+  - path: .p2p/proposals/PROP-004-prompt-only-import-workflow/risks.md
+    sha256: 774790e01be4e847f5a3cefd113574f7cce5cb32e0f30cd32c2cc402ac39e3bd
+  - path: .p2p/proposals/PROP-005-codex-skill-integration/alternatives.md
+    sha256: 39f1dc65787fa90b544d80b61f1bd45142288cc4a88da9f2daadf071cc98e3c6
+  - path: .p2p/proposals/PROP-005-codex-skill-integration/assumptions.md
+    sha256: 9b0389d01bd47d71af6dc8f137897cead2c90df16b538e41d74e89da51723594
+  - path: .p2p/proposals/PROP-005-codex-skill-integration/decision.md
+    sha256: cbfb99e4088bd9057d779b9cc99f7cf723ca55478b9b0935d965d026d246a176
+  - path: .p2p/proposals/PROP-005-codex-skill-integration/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-005-codex-skill-integration/open-questions.md
+    sha256: 4d5b38bb2357c8cb00e5f72b3ceea6414fe710d5f16611bc98f3c756be1b16ad
+  - path: .p2p/proposals/PROP-005-codex-skill-integration/proposal.md
+    sha256: ffd5ac6b55ac3fc88090de64503e61077ae709ec971d1cae280f693ecc07c4d2
+  - path: .p2p/proposals/PROP-005-codex-skill-integration/risks.md
+    sha256: d354b2fd8615b0c04292fb55a0373d04dc4eedc4d06d517edbc45b6f8ea97aa8
+  - path: .p2p/proposals/PROP-006-multi-agent-integration-model/alternatives.md
+    sha256: 4af30e3a4e0f1feb6c193cb5fbb1836a57e59b570c5001dba17098aed1d4510f
+  - path: .p2p/proposals/PROP-006-multi-agent-integration-model/assumptions.md
+    sha256: 0dd6c11746810bb8c30e939b639b4714a31dfa450f00c90040ac6fcbd931c2b5
+  - path: .p2p/proposals/PROP-006-multi-agent-integration-model/decision.md
+    sha256: 7d3d1e804bd34fcbb5af8b0dbc0ef84a75715679cdd74a3431b485a474e168ee
+  - path: .p2p/proposals/PROP-006-multi-agent-integration-model/findings.md
+    sha256: fda115f3f4a932d3439d86f47fc9ddaa0e30e68d84bd98db5070c198f4d8ac1b
+  - path: .p2p/proposals/PROP-006-multi-agent-integration-model/impact-map.yml
+    sha256: 07f6bccdde08928ab5ea67d7088da1ad78e56057b17057fa2c2d4d90a7773435
+  - path: .p2p/proposals/PROP-006-multi-agent-integration-model/open-questions.md
+    sha256: 50b9173ddec6f9b21d2313cf171f443ffbbd009b3ec4232c9f0a6e66e2848a03
+  - path: .p2p/proposals/PROP-006-multi-agent-integration-model/proposal.md
+    sha256: 314c7dec83d79cfdf633eb832ec12259733863a2c21243760f39f67b413978d1
+  - path: .p2p/proposals/PROP-006-multi-agent-integration-model/readiness.yml
+    sha256: 436b325ffb9727bc2ca7d662ae9dcec405dac296697b0e8b6e62af22f0426c05
+  - path: .p2p/proposals/PROP-006-multi-agent-integration-model/risks.md
+    sha256: 32c953ed4f8001409d540ef75fd0016c2351ce64473912e9fc7ada60adee1d1c
+  - path: .p2p/proposals/PROP-009-governance-cli-commands/alternatives.md
+    sha256: 5423307d85dd080faf57c52d78c3377a57fa4b887a39a0ba60a6ea9330559008
+  - path: .p2p/proposals/PROP-009-governance-cli-commands/assumptions.md
+    sha256: 7180f01408f6fa6758033f5137111c9b573630006eb8af35faf81b0c3958b4cc
+  - path: .p2p/proposals/PROP-009-governance-cli-commands/decision.md
+    sha256: 9bf60197c44649c2625e24b8f5876ddb8632f5f06f1573a1392cf92b22960520
+  - path: .p2p/proposals/PROP-009-governance-cli-commands/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-009-governance-cli-commands/open-questions.md
+    sha256: 2991a0b267ef567976ed0428514029b6d1676c0b8533f04f690b1a6ecff46d5d
+  - path: .p2p/proposals/PROP-009-governance-cli-commands/proposal.md
+    sha256: ebdaf014906b701d14681b129b781b202a92ef8fce50485641a6ca809fc21c3a
+  - path: .p2p/proposals/PROP-009-governance-cli-commands/risks.md
+    sha256: 1df2aaed9e2808dfb02ca306df9ebfb22baa5154116c7c57f9928d02b9e6b11a
+  - path: .p2p/proposals/PROP-010-p2p-software-specification-model/alternatives.md
+    sha256: 25ee4ba23369d06a22770c57bed0b6ab4a5aa500c5fa97f9d28cf9e502c7b46b
+  - path: .p2p/proposals/PROP-010-p2p-software-specification-model/assumptions.md
+    sha256: effc7965ac83b248c0595d3f9d28b8fde0b431b9d1499e75e7c10c31ed309eb8
+  - path: .p2p/proposals/PROP-010-p2p-software-specification-model/decision.md
+    sha256: 77bcd4195a2edc961aadd59b273dc2c84029adb95b8472800fc17b5c2bc7149b
+  - path: .p2p/proposals/PROP-010-p2p-software-specification-model/findings.md
+    sha256: fd6b39aa9f9a043ea9d6b269a49cf5ac4a9f009f6b53b5afa53339127cad5b63
+  - path: .p2p/proposals/PROP-010-p2p-software-specification-model/open-questions.md
+    sha256: 682a6672bc0aef5eecf67af2072408bbdcceaa46f7e7d205cb59a36079269a93
+  - path: .p2p/proposals/PROP-010-p2p-software-specification-model/proposal.md
+    sha256: 1532c4dbdce25a594d22ed1e0ed3575420f906a35db0eab118dd5be9bd13de9f
+  - path: .p2p/proposals/PROP-010-p2p-software-specification-model/risks.md
+    sha256: f8ecfe6461d85d23cee28d1061b1d36436b6aeb18c95f28573871d0893ce3cd5
+  - path: .p2p/proposals/PROP-011-project-refresh-mvp/alternatives.md
+    sha256: 396944fa939d28c0be4ec44a498eac601fc5f92b98bd1cde8f99934dbecc486e
+  - path: .p2p/proposals/PROP-011-project-refresh-mvp/assumptions.md
+    sha256: 8e02a6208caeab1fdee803c2d89ee04359560c8ce337a45213b4afede389e809
+  - path: .p2p/proposals/PROP-011-project-refresh-mvp/decision.md
+    sha256: 0b03a15b1426c45d9fd9dd3620c727e62d902a9fd3aa6cfc43fe021dde307437
+  - path: .p2p/proposals/PROP-011-project-refresh-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-011-project-refresh-mvp/open-questions.md
+    sha256: 8c7b0ff6dc75d5dc6dbe1a0d1a0c0154ee46fadc19a869b2dbe98fbeddbef2fa
+  - path: .p2p/proposals/PROP-011-project-refresh-mvp/proposal.md
+    sha256: 8297be7c408d2ea49a5e39344003638506f9fcac3b594ce158432a8fb2d29d8e
+  - path: .p2p/proposals/PROP-011-project-refresh-mvp/risks.md
+    sha256: 96724153d77c7e36244be74f179459748de3ca01e27bd9788fa904a4a3539c8c
+  - path: .p2p/proposals/PROP-012-impact-map-and-conflict-memory/alternatives.md
+    sha256: 0c743519b8eb3aee4efc1a757a28e7b9271330b943fea715869fbb603297fa2a
+  - path: .p2p/proposals/PROP-012-impact-map-and-conflict-memory/assumptions.md
+    sha256: 915db818ebdf42364519d07f91da8e9a5ce96295656dfbb0f8e9fc1d6181ef41
+  - path: .p2p/proposals/PROP-012-impact-map-and-conflict-memory/decision.md
+    sha256: 1ee2e1b72b0d9fcd32497b9f40cf05b00411a7cb833d67d43287c46ec6600ac0
+  - path: .p2p/proposals/PROP-012-impact-map-and-conflict-memory/findings.md
+    sha256: 784556fee86840f40d84d6eb71cad19e007fe8eebded8815ce03b3905f8ccebb
+  - path: .p2p/proposals/PROP-012-impact-map-and-conflict-memory/impact-map.yml
+    sha256: 1fdbef733dd05bc54ee9a724a0952514f0f5f5ba6cecf50d281626366e723bc8
+  - path: .p2p/proposals/PROP-012-impact-map-and-conflict-memory/open-questions.md
+    sha256: bd015dd01cef363568e827c8c034396213628adab2ac99d0974361a59e0b4dad
+  - path: .p2p/proposals/PROP-012-impact-map-and-conflict-memory/proposal.md
+    sha256: f6522dbbdd196aac0b4aa1f348c5a60e58d4f6bd1c82644c1996d7847acbaab2
+  - path: .p2p/proposals/PROP-012-impact-map-and-conflict-memory/risks.md
+    sha256: b4e6383934a69989ba17603652db49426a0d8f6fb682fc5faa4f2f073033c3cb
+  - path: .p2p/proposals/PROP-013-change-set-and-git-branch-model/alternatives.md
+    sha256: b845db9d69a099db51ec0d7837538e89986995a4d18aed5614e109622e71c8c6
+  - path: .p2p/proposals/PROP-013-change-set-and-git-branch-model/assumptions.md
+    sha256: 56236ebb6b9e6d5ae276f282cabf5f87631305a5f9baa5f8ab839e40922c2c06
+  - path: .p2p/proposals/PROP-013-change-set-and-git-branch-model/decision.md
+    sha256: 04ebeaef5054ba5727968442922afbcfd06a2a7addfde7d66fee52c60baa4178
+  - path: .p2p/proposals/PROP-013-change-set-and-git-branch-model/findings.md
+    sha256: 06ab96a61a83d8d792de74fe7bf9337a6a4c56c31c05d5ec3752be594b79f69e
+  - path: .p2p/proposals/PROP-013-change-set-and-git-branch-model/impact-map.yml
+    sha256: c92667a70533398b8441e4018201d9051423c2ac125dbfada22c7063d2440c79
+  - path: .p2p/proposals/PROP-013-change-set-and-git-branch-model/open-questions.md
+    sha256: f75307bb0916ae4f2413fb7027b0af2b3cfcefe01694aa737c02e2358d662453
+  - path: .p2p/proposals/PROP-013-change-set-and-git-branch-model/proposal.md
+    sha256: f4242f9e38ea5010a0bef99208a8254613d550833c452feedcf9532ee6ffac76
+  - path: .p2p/proposals/PROP-013-change-set-and-git-branch-model/risks.md
+    sha256: ca4b8e5ebf9e9468614d05483fdec1b8801a65ac35f6fef6f328bd64335bb3ed
+  - path: .p2p/proposals/PROP-014-change-set-metadata-mvp/alternatives.md
+    sha256: 1325caa7a8a36da24f5fb64a94a9e71453727a5167ad36c77afe3268e228f83b
+  - path: .p2p/proposals/PROP-014-change-set-metadata-mvp/assumptions.md
+    sha256: 4706deb1ca223b9d0376f63e2ce4fc64b219bdecbff1672c018c576e0dfbc574
+  - path: .p2p/proposals/PROP-014-change-set-metadata-mvp/decision.md
+    sha256: 7e6c31665439f0e192ae7a5a100020712cb27a2815f026f1ee5352e1a31b6fd8
+  - path: .p2p/proposals/PROP-014-change-set-metadata-mvp/findings.md
+    sha256: 80a3ccaf7fb3f5b5c03c592bed7d077faca230887ba57e91c3889d046488a38b
+  - path: .p2p/proposals/PROP-014-change-set-metadata-mvp/open-questions.md
+    sha256: 640684a5fa0946259af5802869a4bd9532b0722929880574feb820bef24cf5aa
+  - path: .p2p/proposals/PROP-014-change-set-metadata-mvp/proposal.md
+    sha256: c55353268fb0145fe0656038b344dd2fba1c8e79357bd68beab62220e21cf2c6
+  - path: .p2p/proposals/PROP-014-change-set-metadata-mvp/risks.md
+    sha256: 9a0173601959431cdd750ccd9ed9756d494d2ce4bb9591a573f1f99071e96721
+  - path: .p2p/proposals/PROP-015-change-set-lifecycle-and-task-tracking/alternatives.md
+    sha256: bd1468a57eb851ae28814294d4f2e2d35cb1d729450798da643c0ac0ff5d430d
+  - path: .p2p/proposals/PROP-015-change-set-lifecycle-and-task-tracking/assumptions.md
+    sha256: 60ae48e5b7bc77d243bfef9e0645b515090ac9c321ae0cbd17132a1ae23d652d
+  - path: .p2p/proposals/PROP-015-change-set-lifecycle-and-task-tracking/decision.md
+    sha256: f9ca0f4c83ebebe1cf44b209d2db5037e1d36a4f8dc53ab4d4dc660bed110d1f
+  - path: .p2p/proposals/PROP-015-change-set-lifecycle-and-task-tracking/findings.md
+    sha256: 71922d0a4034077ab4a5c27cd086cd7e577d0b20ff8bb68d8a56bc0438993dca
+  - path: .p2p/proposals/PROP-015-change-set-lifecycle-and-task-tracking/open-questions.md
+    sha256: 20a90bd250c553b56a8ee264c328184bf16d452d13854e0b4768187de68e2a48
+  - path: .p2p/proposals/PROP-015-change-set-lifecycle-and-task-tracking/proposal.md
+    sha256: 919b2d5eda0aac47bc16874626e0c726d60af1525a5cdbba2f61532c3fde96db
+  - path: .p2p/proposals/PROP-015-change-set-lifecycle-and-task-tracking/risks.md
+    sha256: 5dc6b336a691846941cedf9249ad66e8796bdf124154c8d3ceeabf2453fc9e59
+  - path: .p2p/proposals/PROP-016-project-registries-mvp/alternatives.md
+    sha256: 0f799836b3f84878fd005ae46704c0139e6e7a6a6d044399fcba4227ba7fdc30
+  - path: .p2p/proposals/PROP-016-project-registries-mvp/assumptions.md
+    sha256: 3d95a122dcb89749c746b294b1d866a4293ebe7300b18f38b8ac190da7a1fd08
+  - path: .p2p/proposals/PROP-016-project-registries-mvp/decision.md
+    sha256: 54e30e91cda4fd2f2aa6a4289c15e52c545f6750347ec04ea6c0276205bf8c1e
+  - path: .p2p/proposals/PROP-016-project-registries-mvp/findings.md
+    sha256: fe6d04f907c9f4d5f7a2f48a6fe3512b8203dd31f7b1776743689f37519667da
+  - path: .p2p/proposals/PROP-016-project-registries-mvp/open-questions.md
+    sha256: 29c3d09c4dd3b8f413e0f1b31effd0d8f4381a1be7c86873e485885550d3becb
+  - path: .p2p/proposals/PROP-016-project-registries-mvp/proposal.md
+    sha256: 63c4aacf242b6bc3f43aff27c61ed50bfc9658bdc862ee068a2b382319941b84
+  - path: .p2p/proposals/PROP-016-project-registries-mvp/risks.md
+    sha256: 33a371f2ba7918b9b0c88cbf75fccb937379d431eaa5edb6715ca6609dcc870c
+  - path: .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/alternatives.md
+    sha256: adccf782059caf6db44276e21c04545b4780f97f3a5c41263b32df5eb61a0101
+  - path: .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/assumptions.md
+    sha256: 462b5677d24b4371a7e9e223e6ab320915621e54f70ea1bee8f841465b5c5e39
+  - path: .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/decision.md
+    sha256: 3757e07318ab4e8058976363916678a41a1d4eec2e650c72e48d78cadbe125ae
+  - path: .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/findings.md
+    sha256: b75640f41367a5c970c89f5e359392ea994ad467085412cbbc1ab24cca32904a
+  - path: .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/open-questions.md
+    sha256: d7888aada9235ba60f0bf5cdc6cc36c76c8ff346f81cb19a100514be5ecd3942
+  - path: .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/proposal.md
+    sha256: 31d938118eecff1e9324d28073fa6f3bbecf6ea4ee6297526c7b3f74f7b3dff3
+  - path: .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/risks.md
+    sha256: 33a7bbadc50cd488c1d67d99726169651ca3ebe309745d19138d1c1f525b03fa
+  - path: .p2p/proposals/PROP-018-choice-management-cli-mvp/alternatives.md
+    sha256: 28c8241033a0ef8b09a8c66d53dffcca51609761f2a9ff1cc19d09f0dd2627ad
+  - path: .p2p/proposals/PROP-018-choice-management-cli-mvp/assumptions.md
+    sha256: 1d275a856cf04ad39be36cfa4a0ad446a754bf7fa9422ace23ba06a09747cd56
+  - path: .p2p/proposals/PROP-018-choice-management-cli-mvp/decision.md
+    sha256: 3f0913eca49724d90c5970e5e5b7a0f727eae3c6b69472c9850097e580be5692
+  - path: .p2p/proposals/PROP-018-choice-management-cli-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-018-choice-management-cli-mvp/open-questions.md
+    sha256: 92337c6caa589019792a064a661a0df15a7165fc1fbc3f59b0d0c9dea997b30a
+  - path: .p2p/proposals/PROP-018-choice-management-cli-mvp/proposal.md
+    sha256: 65d26b9282f4fdf37b1c3241838bf01388189c7293fb656f9713e6e276b84511
+  - path: .p2p/proposals/PROP-018-choice-management-cli-mvp/risks.md
+    sha256: ee9ef4eaddcb4f0a2497322e35cf35f858832d36fe3a3c197a11414f4f2341be
+  - path: .p2p/proposals/PROP-019-proposal-decision-shortcut-commands/alternatives.md
+    sha256: 9e3bb9ef37065829f187adb518f6d322b9a888e2340081716ba7b800364e8ca5
+  - path: .p2p/proposals/PROP-019-proposal-decision-shortcut-commands/assumptions.md
+    sha256: d7c5e3905b2d093a32f988915749677476ffb5d79301b8fc83103805f8abbdc6
+  - path: .p2p/proposals/PROP-019-proposal-decision-shortcut-commands/decision.md
+    sha256: 67d21f1cc9ec825d223e96baa03ba680296b9621e0d0e7dc13824cc39cbcc334
+  - path: .p2p/proposals/PROP-019-proposal-decision-shortcut-commands/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-019-proposal-decision-shortcut-commands/open-questions.md
+    sha256: 16cddbf054ff4cc54b297b09e2df5c482f3d75bad316f058ab1ab4e9cb25c5fe
+  - path: .p2p/proposals/PROP-019-proposal-decision-shortcut-commands/proposal.md
+    sha256: 873b4c3c2aad8bc636834c1ce02aaafc2337d88a55b0b38f53d425a7f5aeeecd
+  - path: .p2p/proposals/PROP-019-proposal-decision-shortcut-commands/risks.md
+    sha256: 0e2ed6e722d8940a77e16b74f65e679770e056f84da45519fbd7ea1838b930f2
+  - path: .p2p/proposals/PROP-020-proposal-inspection-cli-mvp/alternatives.md
+    sha256: b7c15085912680cad5252018aee0cf9f6750a5f8da774e49a4048b6f85f886bf
+  - path: .p2p/proposals/PROP-020-proposal-inspection-cli-mvp/assumptions.md
+    sha256: ad246479e8d0ac3cf92ff61b25b11f4a99c52d65eaef3cab6804d0b76fdd5d32
+  - path: .p2p/proposals/PROP-020-proposal-inspection-cli-mvp/decision.md
+    sha256: bfdfb9a02849cf19503f77cb9f73acbb152673405cc8e54ca9e83ebe1e7fae80
+  - path: .p2p/proposals/PROP-020-proposal-inspection-cli-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-020-proposal-inspection-cli-mvp/open-questions.md
+    sha256: 39937a38aee86dc4cb090214d0adcf265ab0a4cf7b8a315861f271ff76ab9786
+  - path: .p2p/proposals/PROP-020-proposal-inspection-cli-mvp/proposal.md
+    sha256: f24176348592f99d6743dbdeaf3d5f206fd89831e61562940000369cb48f35a3
+  - path: .p2p/proposals/PROP-020-proposal-inspection-cli-mvp/risks.md
+    sha256: b80fe544047de366ebc7ceecdb2927df8d69e2abde677e778bb27057cf8ae857
+  - path: .p2p/proposals/PROP-021-agent-skill-real-commands-update/alternatives.md
+    sha256: 7a29be9b86287e10ed29c39acd7670a77bec4beaff02af1973bff208396f9be9
+  - path: .p2p/proposals/PROP-021-agent-skill-real-commands-update/assumptions.md
+    sha256: eafd209b8cfb4adb02c700550f5ce6f71b822f9b0c232ffb484f8f6a81ed2ee1
+  - path: .p2p/proposals/PROP-021-agent-skill-real-commands-update/decision.md
+    sha256: 3188dde2a27474192bf10cc9b0c5575bf052b23606b611fa792d27fa9c537850
+  - path: .p2p/proposals/PROP-021-agent-skill-real-commands-update/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-021-agent-skill-real-commands-update/open-questions.md
+    sha256: cf36b8308e13f6adf51853c832c21daec62e2b0eee3c50c3671e3e3256564ba9
+  - path: .p2p/proposals/PROP-021-agent-skill-real-commands-update/proposal.md
+    sha256: 896faffd099748f78281a94ff47f91ff5ff1484bd9ac209a3e37eb7319294db1
+  - path: .p2p/proposals/PROP-021-agent-skill-real-commands-update/risks.md
+    sha256: c2b7454d2d01a3dd29ef94861e6b1d1865166f7877b6074665fe758a5b707c97
+  - path: .p2p/proposals/PROP-022-operational-brief-prompt-workflow/alternatives.md
+    sha256: 26a281d63e82b8a24873dad6c9d26a3e8052ef8239eff1aafa0b7c2db368adde
+  - path: .p2p/proposals/PROP-022-operational-brief-prompt-workflow/assumptions.md
+    sha256: 88c5bfadf1797bb8930f0b04018ba186cf27d487ab50edc18f8686195d8ff14c
+  - path: .p2p/proposals/PROP-022-operational-brief-prompt-workflow/decision.md
+    sha256: c70fefced41416b85e7eddaf7816c3b155ae760fc9747fe6a589288a50080bfe
+  - path: .p2p/proposals/PROP-022-operational-brief-prompt-workflow/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-022-operational-brief-prompt-workflow/open-questions.md
+    sha256: 994075186def7072a653b577e97f2baafc238de015244ce82fbaa579d88ee296
+  - path: .p2p/proposals/PROP-022-operational-brief-prompt-workflow/proposal.md
+    sha256: b344b98dc3c7bf1a7814e14bccf86542d71ded0264e3e7ff1be3e55236ec7ee3
+  - path: .p2p/proposals/PROP-022-operational-brief-prompt-workflow/risks.md
+    sha256: 129d2e29c9b6e791f00a261b86cf772fdf1413b737224c2d280301e5137238b6
+  - path: .p2p/proposals/PROP-023-next-action-recommender-mvp/alternatives.md
+    sha256: d16c40d9d723b40d391810141b62dc0d99ef69fa2496218d29da3e46a231dbee
+  - path: .p2p/proposals/PROP-023-next-action-recommender-mvp/assumptions.md
+    sha256: f6ca6760ba1ceb30c4412e7f6ee9c847a6df4237799fbeb79727e56e64e2c8ea
+  - path: .p2p/proposals/PROP-023-next-action-recommender-mvp/decision.md
+    sha256: 51e9587f00eea123cdb165a7350cf882da51902cdd0eb790cab165c6c5ef0cab
+  - path: .p2p/proposals/PROP-023-next-action-recommender-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-023-next-action-recommender-mvp/open-questions.md
+    sha256: 33d2ae5a2002a3fea91ede04915937bcd7773217095da9fce95d997af34a3257
+  - path: .p2p/proposals/PROP-023-next-action-recommender-mvp/proposal.md
+    sha256: 675eee4b835ea57b856282d87c971b5955f4fbcc86fe33156987087f884b397b
+  - path: .p2p/proposals/PROP-023-next-action-recommender-mvp/risks.md
+    sha256: d5f13a144f49696b59e14fc866fbbc8425f44bde38b5cb4662ed45e74aab6e57
+  - path: .p2p/proposals/PROP-024-choice-blocking-and-discovery-mvp/alternatives.md
+    sha256: f0806d6fe99839e77fd65c41939ada996fbd9c60ee965bd087f071370bab3742
+  - path: .p2p/proposals/PROP-024-choice-blocking-and-discovery-mvp/assumptions.md
+    sha256: d68c03db8695bbe4cd3fa9015b20277d42ad0e1f718e3df465c874a36445482f
+  - path: .p2p/proposals/PROP-024-choice-blocking-and-discovery-mvp/decision.md
+    sha256: 7247c1f22f1a18ed53494d4a4ea1f660d33b8ac02b059b54e4b9cd863b2b86f9
+  - path: .p2p/proposals/PROP-024-choice-blocking-and-discovery-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-024-choice-blocking-and-discovery-mvp/open-questions.md
+    sha256: 9781dfa3ec3c76e13954aa4face6374c624254d7d706a01de1e08a855a60cc70
+  - path: .p2p/proposals/PROP-024-choice-blocking-and-discovery-mvp/proposal.md
+    sha256: 3923c364050e7c8ca4d40130591d4f6a82c971b20043ed950717a64ee0ebb164
+  - path: .p2p/proposals/PROP-024-choice-blocking-and-discovery-mvp/risks.md
+    sha256: 32e146e34734a46ff87b61c0c8bb63de85e49f94cc9483c8b6728381bf347251
+  - path: .p2p/proposals/PROP-025-controlled-intake-apply-workflow/alternatives.md
+    sha256: b4bf4b5cb8a7e08b7a9e1c5db1506f8641eb4daef0959a095baafe25f27505c6
+  - path: .p2p/proposals/PROP-025-controlled-intake-apply-workflow/assumptions.md
+    sha256: a40048d737e42b9f3935f9e3647e419a3e722bda92bf795cde47b143eff7b9c2
+  - path: .p2p/proposals/PROP-025-controlled-intake-apply-workflow/decision.md
+    sha256: 7c53444f391f081ec145b18c238c697dab89b2299f43f853255b924adc34c31e
+  - path: .p2p/proposals/PROP-025-controlled-intake-apply-workflow/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-025-controlled-intake-apply-workflow/open-questions.md
+    sha256: 234d3f0f205b63fcc16271dde75f57d56231690cd81daef28af8a9eca221ba8e
+  - path: .p2p/proposals/PROP-025-controlled-intake-apply-workflow/proposal.md
+    sha256: 5d4560b9ab11d994c4674af95a002f49913e4a0f6be7d8ead781f7b05c36d5e4
+  - path: .p2p/proposals/PROP-025-controlled-intake-apply-workflow/risks.md
+    sha256: d1dd43e5b33eb91cbbcf69539ab796549ced476e5b28a281f2a3309eadc18474
+  - path: .p2p/proposals/PROP-026-p2p-software-spec-generator-mvp/alternatives.md
+    sha256: d8ab5729643179dc9a2d5b21864f025d6d09d9973a8b4d702a8d9b6d8e381fb0
+  - path: .p2p/proposals/PROP-026-p2p-software-spec-generator-mvp/assumptions.md
+    sha256: 3cec1b1d2d2ff976c441181f5e4b168178f4bdc7414e33fc078cc78aa5010ee7
+  - path: .p2p/proposals/PROP-026-p2p-software-spec-generator-mvp/decision.md
+    sha256: 14f9a8150ad4dcac378f416eff04c406fafd18ee4243235488da060fe211c29c
+  - path: .p2p/proposals/PROP-026-p2p-software-spec-generator-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-026-p2p-software-spec-generator-mvp/open-questions.md
+    sha256: 685fd768d3850ad20230fddc55718ff1d775e1f0b5733ddeec7201c1f0f215a1
+  - path: .p2p/proposals/PROP-026-p2p-software-spec-generator-mvp/proposal.md
+    sha256: 6994bc1e6c68a71dae8422415abeb2919f58fc99a719459b7e6412774cc0dc6e
+  - path: .p2p/proposals/PROP-026-p2p-software-spec-generator-mvp/risks.md
+    sha256: 7cf4359468c387374b3e43d4d9b168bbcd955dd2d1c64cb10f9d9687de989860
+  - path: .p2p/proposals/PROP-027-software-spec-exporter-mvp/alternatives.md
+    sha256: 2f02893d45cff801aea908ddaa315b86bb816d42c173acef7e0c7b87024e3964
+  - path: .p2p/proposals/PROP-027-software-spec-exporter-mvp/assumptions.md
+    sha256: 9721d8c4b380e8e9f01bc897fe7c7f4cc7a574d843fa189f9c3cf2cc2295e56a
+  - path: .p2p/proposals/PROP-027-software-spec-exporter-mvp/decision.md
+    sha256: adcc39cbd77bf322756d881d3d0f7f332ed0b993e56ee7c724184cd51fde1ebb
+  - path: .p2p/proposals/PROP-027-software-spec-exporter-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-027-software-spec-exporter-mvp/open-questions.md
+    sha256: ff8f512d5f8c005d673927bed23cb5beb651854a1ea946b38f8b15d25af097d4
+  - path: .p2p/proposals/PROP-027-software-spec-exporter-mvp/proposal.md
+    sha256: 53fff0cd5246c238ceabb90f8c8dbb45b6b6e1f69084ff5266a0dff1360036ef
+  - path: .p2p/proposals/PROP-027-software-spec-exporter-mvp/risks.md
+    sha256: 8f4461ae2c90f20f491cefc7e4c31339bea35e2e5e7fe725efe0d4eb62173b54
+  - path: .p2p/proposals/PROP-028-spec-kit-export-mapping-mvp/alternatives.md
+    sha256: 02a951d7cfc4a28e0711a6a7730ccfa90417bc939a967eaa1bdd6d5f696fb27f
+  - path: .p2p/proposals/PROP-028-spec-kit-export-mapping-mvp/assumptions.md
+    sha256: 7898200b3c71af9a855012ba43363d978a07c6abb273c0602dbc2dac498f8b9f
+  - path: .p2p/proposals/PROP-028-spec-kit-export-mapping-mvp/decision.md
+    sha256: 63a4f2df9136915d3c1e1f9ea6291727448082606f9ca8846f05037e08938746
+  - path: .p2p/proposals/PROP-028-spec-kit-export-mapping-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-028-spec-kit-export-mapping-mvp/open-questions.md
+    sha256: 8838b6b913c2a58a1ca646843b2cc1d8a65ec6eb911232b7f55aefef7507969b
+  - path: .p2p/proposals/PROP-028-spec-kit-export-mapping-mvp/proposal.md
+    sha256: a1ccd6e25a8f3a8041f7e3fd1767abd5e5f88079f4fa7c18309ec794b43423c8
+  - path: .p2p/proposals/PROP-028-spec-kit-export-mapping-mvp/risks.md
+    sha256: df4565895b37ea4763b72b374dc3317fba0d04d7c74c4a13dea6ac8f2002afff
+  - path: .p2p/proposals/PROP-029-spec-export-validation-mvp/alternatives.md
+    sha256: 9a5ec9d1961b59980c51024a3507b50e87c3fb4501a8d56ec330c2fe8d362efc
+  - path: .p2p/proposals/PROP-029-spec-export-validation-mvp/assumptions.md
+    sha256: a1032a219ab9e9472c00492fc2ac4174a2fc0b604ba9d69f687eca90eb09e017
+  - path: .p2p/proposals/PROP-029-spec-export-validation-mvp/decision.md
+    sha256: bb39b87d5c21c422169f97d129963a7aeae433b055784f444aca67893fb4c131
+  - path: .p2p/proposals/PROP-029-spec-export-validation-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-029-spec-export-validation-mvp/open-questions.md
+    sha256: 7a4b00ec77391fe8957883e108607ef821dfe77158197934cff0ff1e1706dcc5
+  - path: .p2p/proposals/PROP-029-spec-export-validation-mvp/proposal.md
+    sha256: 95c8f7ab519a7adc67f7be2c78648c6f4d34206858ae8e5cd3c8eb1a257e31c5
+  - path: .p2p/proposals/PROP-029-spec-export-validation-mvp/risks.md
+    sha256: ebbb006c768042774709595348eefa34116535013c46cb47329fffdc2f1596a0
+  - path: .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/alternatives.md
+    sha256: 07e9f8e25b3c9dc8bcadd1a3da4cfada94c89919eb02c3247ceeef3fdf82ba30
+  - path: .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/assumptions.md
+    sha256: a1b52cc0e7db14cf24fef3270d16093a553731704fbce205e9bc9b2ebf191ec7
+  - path: .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/decision.md
+    sha256: ce7ad5567d1c9f21ec49fdb86f16e01e0b9e6b37dcb576d3134c8d7cb9bb7b1c
+  - path: .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/open-questions.md
+    sha256: 799388c6ff4856d87dea8184946966ba8be19d93ecc9b99b1a5ea63a621bcf36
+  - path: .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/proposal.md
+    sha256: 54ad0e29b7420fa9010b190f3eb7320e9aa0ab10c881a11bc767690554ce071a
+  - path: .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/risks.md
+    sha256: 32e3d066007a1627f9ef54ceb8cfe01d5004514ff536bdf6e39929b4babab062
+  - path: .p2p/proposals/PROP-031-multi-branch-work-scan-mvp/alternatives.md
+    sha256: 00df2a198a82765afe4d61da2a6768e7b5aca05fb59a8ad354899124f1ddd6d4
+  - path: .p2p/proposals/PROP-031-multi-branch-work-scan-mvp/assumptions.md
+    sha256: c08b6a19c863b354b6172c94b9a3f2a85b4e7e9874aa0263bafdeabceed24b49
+  - path: .p2p/proposals/PROP-031-multi-branch-work-scan-mvp/decision.md
+    sha256: 6b72ca0674314e676f2fc70fdb2b50078c29521ebb726b3f2d79e7ff888a1f92
+  - path: .p2p/proposals/PROP-031-multi-branch-work-scan-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-031-multi-branch-work-scan-mvp/open-questions.md
+    sha256: 963459ab923ff010503416a2600e1389fa0e14fe1bdb00dbb9d6bac19d36d994
+  - path: .p2p/proposals/PROP-031-multi-branch-work-scan-mvp/proposal.md
+    sha256: c48ddf04d6061a0352acb837699bd8014de60ffb8244f4d43709ebb31d309db3
+  - path: .p2p/proposals/PROP-031-multi-branch-work-scan-mvp/risks.md
+    sha256: 5e3bbbc6541c5ea1eee54d3c80c8fddafd1382984b782100823a83314aae0b85
+  - path: .p2p/proposals/PROP-032-managed-work-branch-creation-mvp/alternatives.md
+    sha256: 49d1365033b152a5662b3e64b8d79fdfee56495a3babdca0bc07a4d93f85db67
+  - path: .p2p/proposals/PROP-032-managed-work-branch-creation-mvp/assumptions.md
+    sha256: 3dbbb4432a04f97f48a6781d78e74ae8eedb3bdd5cdb4fc9818eac29408b4632
+  - path: .p2p/proposals/PROP-032-managed-work-branch-creation-mvp/decision.md
+    sha256: 8fe5b6f539ecb007d936db987cf824252ed9e81ebe79cb4cbf8458b239e10bd0
+  - path: .p2p/proposals/PROP-032-managed-work-branch-creation-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-032-managed-work-branch-creation-mvp/open-questions.md
+    sha256: 3c4df9e2d00fc4686680285382d01fc7e9fb9e86a65dd3bc70358fe0eaa184c7
+  - path: .p2p/proposals/PROP-032-managed-work-branch-creation-mvp/proposal.md
+    sha256: d01304a01eb29fd217f4f3159ac1413a45b8b25bed74e70b087b6f7b1d0bec39
+  - path: .p2p/proposals/PROP-032-managed-work-branch-creation-mvp/risks.md
+    sha256: 33efef0e474cfe2e0baa9f53824952213353c4770c2271e802d11611dfbbc37e
+  - path: .p2p/proposals/PROP-033-managed-work-submit-mvp/alternatives.md
+    sha256: 3ce8550f2797b8c6a24942dd313ebab5327ebc63075452d7ac082eca56c59c91
+  - path: .p2p/proposals/PROP-033-managed-work-submit-mvp/assumptions.md
+    sha256: fbd02c323b4e7693174ce27ca71add3529d569d40f7e0e0974bbafd467886aa8
+  - path: .p2p/proposals/PROP-033-managed-work-submit-mvp/decision.md
+    sha256: 9f51885f2cec1687b468db8f2e27427c9c9b58c4a115d7d2274cf1ad6b85aa1e
+  - path: .p2p/proposals/PROP-033-managed-work-submit-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-033-managed-work-submit-mvp/open-questions.md
+    sha256: a23f439dd8e8963539e75cb922f355c72fca9ac21529fd363b5d84df6fb25366
+  - path: .p2p/proposals/PROP-033-managed-work-submit-mvp/proposal.md
+    sha256: 1e27bab4cee1fe7f363786b517c9b0887b4139678c498f0ba75c14ea2faa23e2
+  - path: .p2p/proposals/PROP-033-managed-work-submit-mvp/risks.md
+    sha256: 83f9e42626db43cd4b881897f108677110a6b4d7d123492bc2d22c718553f44b
+  - path: .p2p/proposals/PROP-034-managed-work-review-mvp/alternatives.md
+    sha256: 04c19e40850acc79c79725f96892c671c47b3188f6dccb4be0b6004bfbadc6e1
+  - path: .p2p/proposals/PROP-034-managed-work-review-mvp/assumptions.md
+    sha256: 14066c8e647bef8ebce86597e04ba0803f997e71fbc324c6e5a054512cb166a3
+  - path: .p2p/proposals/PROP-034-managed-work-review-mvp/decision.md
+    sha256: 6ccf8530c63bfe8037ac65688b3726607453a2d287309624d3b2e80c4a8163f1
+  - path: .p2p/proposals/PROP-034-managed-work-review-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-034-managed-work-review-mvp/open-questions.md
+    sha256: 4816ec03045ec42b420d0cb7a94e484bba0e87fbdd356f11ab60a17329a85fa0
+  - path: .p2p/proposals/PROP-034-managed-work-review-mvp/proposal.md
+    sha256: 944dd7cad90eff8b268c22872d87affbd479c60e2ae310be58178df631cbef8c
+  - path: .p2p/proposals/PROP-034-managed-work-review-mvp/risks.md
+    sha256: aaf3448ce124873bfb8c2df5b9d3d41d07dd7e33b9e3615eb467e6e064d64470
+  - path: .p2p/proposals/PROP-035-managed-work-publish-mvp/alternatives.md
+    sha256: 2168fe7f3069c526620c63ef9554d0870f0da3007408fccf13fdd8b64651920e
+  - path: .p2p/proposals/PROP-035-managed-work-publish-mvp/assumptions.md
+    sha256: ce318bad6c58da00684a742cffacde92d6ee5f59c5638d3a599ffa8d28fe39c5
+  - path: .p2p/proposals/PROP-035-managed-work-publish-mvp/decision.md
+    sha256: da51497d7ce3785f9067da791d6c0921cb219b68972784ab244b09a852d2945d
+  - path: .p2p/proposals/PROP-035-managed-work-publish-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-035-managed-work-publish-mvp/open-questions.md
+    sha256: d1cb410775115f181391177bdcc457e5c3d6abbbaabb2e8b323893e5aed5270d
+  - path: .p2p/proposals/PROP-035-managed-work-publish-mvp/proposal.md
+    sha256: d8bbc7cefe1a85e3c631485571fdc30ab6791f8c1640144735fe50c949806108
+  - path: .p2p/proposals/PROP-035-managed-work-publish-mvp/risks.md
+    sha256: 10ea5367a1e1571e226b77ae0c4586d9961c2c823218b8a442d9fb82e44b9d82
+  - path: .p2p/proposals/PROP-036-managed-work-accept-mvp/alternatives.md
+    sha256: 6967c23ab33a1389b3b89ca6643f65fc079001b7a8354ca05cac687f33691f5d
+  - path: .p2p/proposals/PROP-036-managed-work-accept-mvp/assumptions.md
+    sha256: d8b67ac2eb8fbeac0a45020ba66b738829375d92f2da4aaff77384aef4a6a849
+  - path: .p2p/proposals/PROP-036-managed-work-accept-mvp/decision.md
+    sha256: 869ce8f9f3dce74f312a9fecc44f919d6745902a6548bcf3abb3cae2d8ff4866
+  - path: .p2p/proposals/PROP-036-managed-work-accept-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-036-managed-work-accept-mvp/open-questions.md
+    sha256: 2e71523227d03c035954cc5f66c139b9a2c81e519a8608ea0cd635ee96bea782
+  - path: .p2p/proposals/PROP-036-managed-work-accept-mvp/proposal.md
+    sha256: e9c4b4bae00f1850db1f35e14fd75ba4892c5b6555ea699117c86d9a88225ed2
+  - path: .p2p/proposals/PROP-036-managed-work-accept-mvp/risks.md
+    sha256: 097038ac62645ce9c3ed74f051aa96b04bfbbe9e6b6bbb7aa22386adf2c4ba0e
+  - path: .p2p/proposals/PROP-037-managed-work-status-summary-mvp/alternatives.md
+    sha256: 41afeb23a4fddd0f6e693a6b946837ad0432b13dfb4f5201ed3247e1efe959b3
+  - path: .p2p/proposals/PROP-037-managed-work-status-summary-mvp/assumptions.md
+    sha256: 4cf09dcaa44de247b07e6ec3f19e629f444cdc68f272b71ba2ba828bd37e961f
+  - path: .p2p/proposals/PROP-037-managed-work-status-summary-mvp/decision.md
+    sha256: b4a1ee149c80c64390e002205dc76d55061bdc69bf86845dae53420a96c096f9
+  - path: .p2p/proposals/PROP-037-managed-work-status-summary-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-037-managed-work-status-summary-mvp/open-questions.md
+    sha256: 68d28307e161de01dd3dfb40372a9b4020ac04c1f4fc68ac0cc0a34289d86d37
+  - path: .p2p/proposals/PROP-037-managed-work-status-summary-mvp/proposal.md
+    sha256: 7c5354519f451918ee14e2315190e74da5e57e45aa0afeb72ec48a92f501bc24
+  - path: .p2p/proposals/PROP-037-managed-work-status-summary-mvp/risks.md
+    sha256: b460e6e0435d585839cce892d8058be2347d6bee00e0d4f95cb2c3bdceb41562
+  - path: .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp/alternatives.md
+    sha256: e242045572192927b2d4841782cddb2c25d0c65fd7b980cf9f58aa3cd3844ad4
+  - path: .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp/assumptions.md
+    sha256: d2bbdaedfb4a2783a59f8c199b9896a726255ef145092a2a7afe7999e0c6b55c
+  - path: .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp/decision.md
+    sha256: d596d63c81b717838790ab884549cfc46af5e3be9db544089ee9f5593b2836d4
+  - path: .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp/open-questions.md
+    sha256: ab39a6e0091136b1d07139f1dc899ccd6213ae7558802e7ad20227f4869ff5bd
+  - path: .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp/proposal.md
+    sha256: d99b5dd4dd0c4eaf1a0dcd426374611ae97507b722b1890d7dfe21b3ac46d598
+  - path: .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp/risks.md
+    sha256: 521df5f845f20b9329216324e622727bee6b4a109a7d0274c3a22b1a7c1eb5f4
+  - path: .p2p/proposals/PROP-039-managed-work-finalize-mvp/alternatives.md
+    sha256: 7794db13dfc4f15eaf01cf378a2ec14ca0edd1a4ab43f9546e803c3c8d02830d
+  - path: .p2p/proposals/PROP-039-managed-work-finalize-mvp/assumptions.md
+    sha256: 4ac1460961b7d4c3513e8b71188015db37adf38ac782a3a1239339c7610614c3
+  - path: .p2p/proposals/PROP-039-managed-work-finalize-mvp/decision.md
+    sha256: 07202fc1ae6e3f0c48e2cd51243a5c1f1030f4d0ac03136810a9d7ec0606bdf7
+  - path: .p2p/proposals/PROP-039-managed-work-finalize-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-039-managed-work-finalize-mvp/open-questions.md
+    sha256: 453d29646431c95d8f0e1f3b006da20cfa82da9efac9e9acf18aa57ab4ba2238
+  - path: .p2p/proposals/PROP-039-managed-work-finalize-mvp/proposal.md
+    sha256: 9fc16870cbbbe543c26bd0593bba85951a1332776b7ce2401cc79bb9da24964e
+  - path: .p2p/proposals/PROP-039-managed-work-finalize-mvp/risks.md
+    sha256: 63da76f9b1ba659cb9e86363853da502a19d4d066e6249dfa43137d3d361a400
+  - path: .p2p/proposals/PROP-040-managed-work-cleanup-mvp/alternatives.md
+    sha256: 9a7d1dcc40cd07200b594a59c16c7ec36eff56cead123ea4977e27d417df8c1f
+  - path: .p2p/proposals/PROP-040-managed-work-cleanup-mvp/assumptions.md
+    sha256: fe308a9b09497d091c2925b2d18ce1185d47be5f48b080bbfb5a39fa9020e3ed
+  - path: .p2p/proposals/PROP-040-managed-work-cleanup-mvp/decision.md
+    sha256: faeec2a5b4151289911ff1a32a670b097a5d7fd6e6bd5163508a84fb47ff002b
+  - path: .p2p/proposals/PROP-040-managed-work-cleanup-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-040-managed-work-cleanup-mvp/open-questions.md
+    sha256: 8fb3953e6d8eb8b39ef6e72835e9c12b404cf4c130d7ebf32f3e9baacbd2258d
+  - path: .p2p/proposals/PROP-040-managed-work-cleanup-mvp/proposal.md
+    sha256: 912f2528696b067cc7894542a9e2895bf1b922428c6b0d10fa185e1b73bd9c72
+  - path: .p2p/proposals/PROP-040-managed-work-cleanup-mvp/risks.md
+    sha256: 053ac7fba0139e6a57c9463f8bf06f807f2942b671c2df3ece72da54bf02c8f6
+  - path: .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy/alternatives.md
+    sha256: 69188dd27a2b0f5342de1147f7ef4ec47e9e90bc68e7e66add43fa07adb7bba6
+  - path: .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy/assumptions.md
+    sha256: b1d44a8ec38363a21c46c81dab599dca44192355f7934aa9c669fd1b67313b59
+  - path: .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy/decision.md
+    sha256: 33511a4bdaf99a757b24401f90ff846b9da1231c966f3e62a853fc2405e6f6f6
+  - path: .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy/open-questions.md
+    sha256: 2849c946a4293dc3c7235aefd94cae90a967e3ad7ccce4991a14fe227464eb83
+  - path: .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy/proposal.md
+    sha256: 66d6e6ee67bccefb65cd56a1db5b8b6e6220f0cc48c2000b8c8820bf6a4dadc0
+  - path: .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy/risks.md
+    sha256: bac99892c371d58bc5c58a8c7e68181918da61a038ba09c5b8b6cbbe6271defd
+  - path: .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary/alternatives.md
+    sha256: c0ca2d9b5c864621cbf961f93a1e38d824297b3e84dbdf0d2a9f7a5be042791e
+  - path: .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary/assumptions.md
+    sha256: dac9e34ff0b6b8ffea2b166b8a530a68b232c90c82f40bcc16afdc80b021325c
+  - path: .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary/decision.md
+    sha256: 62176b6574a312eb9d6268b17d35a92306edae7e97bd2a740f460c910a45ed51
+  - path: .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary/open-questions.md
+    sha256: 22c42828e92b603f3e91a7a362c0bc2136a6381dad580788623bad9fbf006f65
+  - path: .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary/proposal.md
+    sha256: 53cd4349e665881124d454217d6011ebd96f37687a401e0ca32235037b2d18a6
+  - path: .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary/risks.md
+    sha256: d972bf61b734772567f4ef118a679168299bfc717b9bbef0cc2bcaf8f4a660bf
+  - path: .p2p/proposals/PROP-043-managed-work-retire-mvp/alternatives.md
+    sha256: 013a2b2ef9ebd6d056ea182666fee11654a322f3d67a0a067f9969adf2fc7e84
+  - path: .p2p/proposals/PROP-043-managed-work-retire-mvp/assumptions.md
+    sha256: 17969ee1ced4cc38a7d0bba19f9a7da3e9fb6a96149fa80dc491ffc6cea970a4
+  - path: .p2p/proposals/PROP-043-managed-work-retire-mvp/decision.md
+    sha256: bcfd1d83881796a6cf61befbcaba36b0df2ed815d19452456496861444507295
+  - path: .p2p/proposals/PROP-043-managed-work-retire-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-043-managed-work-retire-mvp/open-questions.md
+    sha256: 3788122a88d6038a03b56e670e723e116b09df170b84a2b5ec41df0c9c88ae7c
+  - path: .p2p/proposals/PROP-043-managed-work-retire-mvp/proposal.md
+    sha256: b73528e664aa1d6509a0ea68b7f921f2ba341ba4df64bd3db4babda3293da36e
+  - path: .p2p/proposals/PROP-043-managed-work-retire-mvp/risks.md
+    sha256: 5cf772283b3f354b214b7d0bdaf8b2f1ab9bdde9f4460086f4a667ef8cf1c1da
+  - path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/alternatives.md
+    sha256: ecdb3e00015ed9323a8eed9b03a98453e8bbea565fe8c2b3bbec8144e0d03d22
+  - path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/assumptions.md
+    sha256: ef03c2b592e8f49de5e2e9e660a85b6e5db2db656ac564298db893edc50740c3
+  - path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/decision.md
+    sha256: 61a1dc124cf72686d62f02d940431514cc3c2877a788ab59eb33c47d93204f00
+  - path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/open-questions.md
+    sha256: 885c3d3ce3b94fcd3f90aec1f4a54f86fc4b460471ea5687fe3e66bfbad95cb3
+  - path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/proposal.md
+    sha256: bd42cdcdcda2477c3f4b5ba242d0238dc240b8fbb3be8fbb2ba0cfbbff9f5ab5
+  - path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/risks.md
+    sha256: 87d0f097ad0e72f3fdf6b46ce9db8ac58cb4aa14d9b9fe5efb1cbe4a7bfc1772
+  - path: .p2p/proposals/PROP-045-agent-safe-project-bootstrap-mvp/alternatives.md
+    sha256: 8cc8ac165b0867a88ae210cf0b66b04394920b53837136c3e174fc818a22a01f
+  - path: .p2p/proposals/PROP-045-agent-safe-project-bootstrap-mvp/assumptions.md
+    sha256: 64fddba9b28f46fb288ddc9ce3b4332b5b9b0f541fd0323acc2fd73e791b3687
+  - path: .p2p/proposals/PROP-045-agent-safe-project-bootstrap-mvp/decision.md
+    sha256: 6f6b2e71a18126ecf2034995276e103667645e5cf977f49dc6dedd21fb61f867
+  - path: .p2p/proposals/PROP-045-agent-safe-project-bootstrap-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-045-agent-safe-project-bootstrap-mvp/open-questions.md
+    sha256: 8acc4d21bf68d5886b8ac1ce760ee494924a44212143aa4a3b210821b0860bab
+  - path: .p2p/proposals/PROP-045-agent-safe-project-bootstrap-mvp/proposal.md
+    sha256: 45deeb2c159781abdd9be0d78a6701e0a49e72690a61f378e18494445eb76736
+  - path: .p2p/proposals/PROP-045-agent-safe-project-bootstrap-mvp/risks.md
+    sha256: 1f5ddc7f09249f4111f52f0d780838f47e487441d50a63a548a95bdf7a060fef
+  - path: .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp/alternatives.md
+    sha256: ac3f56ca706394985c4bd4aa2eb29d46fc3aa1b6aaf1df9846b5ffa73edbe8ed
+  - path: .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp/assumptions.md
+    sha256: 39dd2b56bb5768cd27816aa63d4fc6d3ab509e11f88af7d4ebad27d0fcec5f57
+  - path: .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp/decision.md
+    sha256: 8f12f0ec3f1800cc6aee372d77f5975ac97b4ebfcdad26e5c6cf5d9a33e24ba6
+  - path: .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp/open-questions.md
+    sha256: d49b1c87c5421d6235b6a9e10593b42baed40cc8594453bf0838679e5772d568
+  - path: .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp/proposal.md
+    sha256: 94162e4ca92b5f8e47d81f2b1cf97df62ef44f92dcda5014c92a6777a16b96ec
+  - path: .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp/risks.md
+    sha256: d26eb8ddc9745290b9a89db4f3c5cf338dd543eb5e38206c987d569983aa8671
+  - path: .p2p/proposals/PROP-047-guided-init-wizard-mvp/alternatives.md
+    sha256: e305a699a7580e1a57485e2ff6a586b5b868a39d012e0afd53935f8acd09f55b
+  - path: .p2p/proposals/PROP-047-guided-init-wizard-mvp/assumptions.md
+    sha256: afc87c1291d75c9a79e429e337dbc56a36e7209f6ed49ace79ea88131bafb816
+  - path: .p2p/proposals/PROP-047-guided-init-wizard-mvp/decision.md
+    sha256: 23e8b4574a0537ad7cb79107458cad83c6e3a6225304f9192e48dd366dcf1d6a
+  - path: .p2p/proposals/PROP-047-guided-init-wizard-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-047-guided-init-wizard-mvp/open-questions.md
+    sha256: fac683f64c5807e21de2f2882d41bc69434414657e60147ce17be7ed1185b9db
+  - path: .p2p/proposals/PROP-047-guided-init-wizard-mvp/proposal.md
+    sha256: 0e43fbd109d4cd38ab48653736d250db8699c6b0e31ecacb54e74084e31a75e9
+  - path: .p2p/proposals/PROP-047-guided-init-wizard-mvp/risks.md
+    sha256: feb3c5ebf27d27db1441fe503ccf37d6cebe44e6ceda9dd1bb821f5a6c9aef1a
+  - path: .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools/alternatives.md
+    sha256: d68fea5fdef4781d441f13d1fdf77fbd511421d03d96f0d6b40e0026ba3351b8
+  - path: .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools/assumptions.md
+    sha256: 508e59fba40bf0114bd0616ef1202c4174d338a8a67225a52c0515851159f2a5
+  - path: .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools/decision.md
+    sha256: 07f2ab031189a08d4e0a815f74f4a2677de5261e20f9b974ff5fe462d1bdc652
+  - path: .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools/open-questions.md
+    sha256: e9f29760a6cfafee538e04602e4c5caa8ba1f7479e677290074a92efe0c79b6f
+  - path: .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools/proposal.md
+    sha256: 5f161d108bea05ba433803cdfb8f326977a4beb4152dfed13dd2590cab69e63c
+  - path: .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools/risks.md
+    sha256: 783df60a1618ae033bf39581e900bd4374fe34c8954da262763b61dd1257eb35
+  - path: .p2p/proposals/PROP-049-mcp-level-4a-proposal-refinement-tools/alternatives.md
+    sha256: fcf6d4f4341439011bd2e2aaf2e228d02364f7c9c5e6cce918767a34a1040e93
+  - path: .p2p/proposals/PROP-049-mcp-level-4a-proposal-refinement-tools/assumptions.md
+    sha256: a42e433ad08a4664bb650af3bd9d947c4642a5d38f46b7cefeb1b60a0af1bf2b
+  - path: .p2p/proposals/PROP-049-mcp-level-4a-proposal-refinement-tools/decision.md
+    sha256: e54acb6819a154731c5996896277374cd55d81b8d279864e6069085f4aeaee64
+  - path: .p2p/proposals/PROP-049-mcp-level-4a-proposal-refinement-tools/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-049-mcp-level-4a-proposal-refinement-tools/open-questions.md
+    sha256: 0c4c776fa01badcb080ddeeca5488f66558a0949f615e8f33ad49f560c1c16c1
+  - path: .p2p/proposals/PROP-049-mcp-level-4a-proposal-refinement-tools/proposal.md
+    sha256: bd52496da0d4a6791fca16da1f6663aa834467e8b384aa7d1af0d1fe09351083
+  - path: .p2p/proposals/PROP-049-mcp-level-4a-proposal-refinement-tools/risks.md
+    sha256: b1018885bfb18ea1a341ac1b8390210ce00981918ee5dc922c9c88020645291d
+  - path: .p2p/proposals/PROP-050-mcp-level-4b-choice-conflict-impact-advisory-tools/alternatives.md
+    sha256: c9ad8a85e9d96679271082efb009782693cc264028f27eb8b9de5b5f76181e2f
+  - path: .p2p/proposals/PROP-050-mcp-level-4b-choice-conflict-impact-advisory-tools/assumptions.md
+    sha256: a7d27423ecff4f5c2f97632eb780faee83875abdeae504c834d14d2f911068ee
+  - path: .p2p/proposals/PROP-050-mcp-level-4b-choice-conflict-impact-advisory-tools/decision.md
+    sha256: 8c21e9bef695220cccfea5333e26ec11a218af70ee420267ad55dd8466464019
+  - path: .p2p/proposals/PROP-050-mcp-level-4b-choice-conflict-impact-advisory-tools/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-050-mcp-level-4b-choice-conflict-impact-advisory-tools/open-questions.md
+    sha256: 0141b50109fb1b8a9352ba7036c4903a11f75167080c9a1fb37698d717bcb098
+  - path: .p2p/proposals/PROP-050-mcp-level-4b-choice-conflict-impact-advisory-tools/proposal.md
+    sha256: a08448452c5dfd931efeedc1b1b41d25c5e3acf00fd35d8c51335223ada411b2
+  - path: .p2p/proposals/PROP-050-mcp-level-4b-choice-conflict-impact-advisory-tools/risks.md
+    sha256: e5c27e2f678da409a8bb6184649d5f7e6691599e79aea08729c9eb26b90b27fc
+  - path: .p2p/proposals/PROP-051-draft-proposal-next-action-and-agent-explanation-guard/alternatives.md
+    sha256: 0e0a5ad6831466d627c293dfb9fc0a6f800d2c5dd9a55f0c9251124b752133a6
+  - path: .p2p/proposals/PROP-051-draft-proposal-next-action-and-agent-explanation-guard/assumptions.md
+    sha256: a6be45e84ad57ddfb645580547b616176d00527b654f28b8825bac9d25597a2c
+  - path: .p2p/proposals/PROP-051-draft-proposal-next-action-and-agent-explanation-guard/decision.md
+    sha256: 6330c5a463b72ff31cdb006921370eac3a85bd46686fc74c7959a1eba39a4b21
+  - path: .p2p/proposals/PROP-051-draft-proposal-next-action-and-agent-explanation-guard/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-051-draft-proposal-next-action-and-agent-explanation-guard/open-questions.md
+    sha256: 0cf4682a0870ee277028ab123a785295b8f40e185107a49c403ed021c1a49532
+  - path: .p2p/proposals/PROP-051-draft-proposal-next-action-and-agent-explanation-guard/proposal.md
+    sha256: 879e0837622e070967aa9ed37f7400789c83f5cbaf70d1c6a5cbd3d2ad13951e
+  - path: .p2p/proposals/PROP-051-draft-proposal-next-action-and-agent-explanation-guard/risks.md
+    sha256: 1d8a7fe46e63de77500beeba69838ee8b2bee9226c185bf248d6469235a97301
+  - path: .p2p/proposals/PROP-052-mcp-proposal-contribution-tool/alternatives.md
+    sha256: ec5f42652a10bed3fbcff233d566574b44f177d14742bd10c83e8cf65ce5b3bb
+  - path: .p2p/proposals/PROP-052-mcp-proposal-contribution-tool/assumptions.md
+    sha256: 775c523c62761d1647e767943db0cf397ddfa00d292766d98686ad5d01cbe9b3
+  - path: .p2p/proposals/PROP-052-mcp-proposal-contribution-tool/decision.md
+    sha256: c9ac175f06db3f0fcd77603ec956411711f84f23c24839039f7af39084b68a7b
+  - path: .p2p/proposals/PROP-052-mcp-proposal-contribution-tool/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-052-mcp-proposal-contribution-tool/open-questions.md
+    sha256: 7014479076e3d5629b609e5c3134ad5c50a7377cd762f1c420f28d2fd04e6721
+  - path: .p2p/proposals/PROP-052-mcp-proposal-contribution-tool/proposal.md
+    sha256: b53953a26a8dc7fb051f0e9070a6b46229a56aa163dbcf0c68f1dea68da4c08f
+  - path: .p2p/proposals/PROP-052-mcp-proposal-contribution-tool/risks.md
+    sha256: 2365a9a1da77a16cc24cb05179267e057af9f3161e8f67ddc8df02bdad686410
+  - path: .p2p/proposals/PROP-053-core-validation-layer-mvp/alternatives.md
+    sha256: 0434f50448b60ac9dec9cdae4334c5ae43bc1e973dd05d6abb7e61d80ca380db
+  - path: .p2p/proposals/PROP-053-core-validation-layer-mvp/assumptions.md
+    sha256: a90559da4d7df731d01e10dc1e78aae07812a57617583933cf810af231b79c31
+  - path: .p2p/proposals/PROP-053-core-validation-layer-mvp/decision.md
+    sha256: 9ed6df22cbec71e18a1bef0fb061be80d6c21d8f7be68bb888f4872663cf8988
+  - path: .p2p/proposals/PROP-053-core-validation-layer-mvp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-053-core-validation-layer-mvp/open-questions.md
+    sha256: 96e0d5a52f9be030faa6cedcff570d153da320a217536b25c34968399aea31e3
+  - path: .p2p/proposals/PROP-053-core-validation-layer-mvp/proposal.md
+    sha256: 834f5f77a44067087142136ecf830664642135b8fef73e8381300332c5f5a85d
+  - path: .p2p/proposals/PROP-053-core-validation-layer-mvp/risks.md
+    sha256: a28de6eaa2fc618add23c6cad5742ffada1d2fe042cce59ecd56ed9599df9f86
+  - path: .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/alternatives.md
+    sha256: 9fd5e9d956522b083ab72d0ffff9e66998fe606d8e3a29fe36d718086a36bc4f
+  - path: .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/assumptions.md
+    sha256: 723745a02e7052ff1ddeb50e99c1d9a44026049d960296aea9843ba88d3107e3
+  - path: .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/decision.md
+    sha256: 47f985e1e7037a71b81da99d9c47661bff902f61b222175a6488b9f9ba20b232
+  - path: .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/findings.md
+    sha256: 545f8e78647023f1cdd7c3cc0f543cf89930d9be34f7a429edf44534c8462c43
+  - path: .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/open-questions.md
+    sha256: 284e3273b29e4845e68f7d839e16784adfacb9865ba1236081fff3545797cfd1
+  - path: .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/proposal.md
+    sha256: 2e8e7bfd1666055639bbd8b1673bdd270eb457c91ea37f2f9ac0e30e69f3fdbb
+  - path: .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/risks.md
+    sha256: 7e8825612fde63208b74651e19b4f2737581471203313daf7b0ac79c37fbfd1c
+  - path: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/alternatives.md
+    sha256: a96fef8f409b52975ac2ae3a6789dc3e3534cf3f77fa73df9f2b4c78d2e4801c
+  - path: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/assumptions.md
+    sha256: ee23e7ecdd8b366ee4f0ccd4726bcf48e5083d3edc9f73296c43e2b9eaaeb762
+  - path: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/decision.md
+    sha256: fbd9365d5837f4db39cbe665761fdde7ea352134312c3ab2c270dd4d8f399a27
+  - path: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/open-questions.md
+    sha256: 493e3c15072f5b090dacdd6911d1496c05fd27465bf6240366e2bf249379365f
+  - path: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/proposal.md
+    sha256: af9925c788d2df83ba74b484b8bbe30295b011ca900863af33be779c99bfe487
+  - path: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/risks.md
+    sha256: 18ebaab4521fe461ba8da1bf78453b950e12e0ce4ef13f0869aca14cafdbfa3f
+  - path: .p2p/proposals/PROP-056-project-definition-maturity-rubrics/alternatives.md
+    sha256: b478ee8116e59dfcf1cfdf0384f5fc0e6f13179d5e93e262f7b464219445d9f5
+  - path: .p2p/proposals/PROP-056-project-definition-maturity-rubrics/assumptions.md
+    sha256: af19919498089b1259ecc095e5cdeec6222df92d9d4e7240168d0b0f368ef571
+  - path: .p2p/proposals/PROP-056-project-definition-maturity-rubrics/decision.md
+    sha256: b5d055e9fec8baf18a2686b7dd8db6d16cb1aeafb8822b44db538c2bc8a804c4
+  - path: .p2p/proposals/PROP-056-project-definition-maturity-rubrics/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-056-project-definition-maturity-rubrics/open-questions.md
+    sha256: 9e851b605f04bef8db8da851da60175d173c3f3f4ebe4861c37c6dfa5467f9c5
+  - path: .p2p/proposals/PROP-056-project-definition-maturity-rubrics/proposal.md
+    sha256: 4d17222c9e667e38c2865d7ebc1db80f36cb125ef5fe7eff77df38c47587eac2
+  - path: .p2p/proposals/PROP-056-project-definition-maturity-rubrics/risks.md
+    sha256: 4e14d8b76507011389354c5106d80dedaa58b5dd35c0e1da53edb5717afcf80e
+  - path: .p2p/proposals/PROP-057-guided-rubric-selection-during-init/alternatives.md
+    sha256: 0dbfd2b48203555b168dcc9e6b3ce402ef49a3d9634fc314ca200020138b66bc
+  - path: .p2p/proposals/PROP-057-guided-rubric-selection-during-init/assumptions.md
+    sha256: f4369cc664d3dade906fce159557089ec24aea680df6c838809f64401d34a980
+  - path: .p2p/proposals/PROP-057-guided-rubric-selection-during-init/decision.md
+    sha256: e2302d118b92a9b6b0dd790e79a86838093e7a0af880d4d87d9b2090489741db
+  - path: .p2p/proposals/PROP-057-guided-rubric-selection-during-init/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-057-guided-rubric-selection-during-init/open-questions.md
+    sha256: d6af15cf4ea20bd0048cbd1434391b70e0df43cc5c9d0bbb65cb461512d1435e
+  - path: .p2p/proposals/PROP-057-guided-rubric-selection-during-init/proposal.md
+    sha256: b7e58ff5e16e1fdbfdb09da67d44895938b0bb13f92aa4f99b077749312767d9
+  - path: .p2p/proposals/PROP-057-guided-rubric-selection-during-init/risks.md
+    sha256: 882d022c345ce002c5ac64e3f3163287ca0cdea1ba9ac958c713597a8c92637f
+  - path: .p2p/proposals/PROP-058-project-readme-and-installation-guide/alternatives.md
+    sha256: 4c3a932051dfa26311149b4cf2834cfd2f5885cdba9918d0c5ef1d388e970656
+  - path: .p2p/proposals/PROP-058-project-readme-and-installation-guide/assumptions.md
+    sha256: 5a9fe30eb3223595e1e2867833eaae88a7dc8a4ea62f896892188a145c979ff1
+  - path: .p2p/proposals/PROP-058-project-readme-and-installation-guide/decision.md
+    sha256: 01ac23f410f8ed8af0b10bfdba6eb1113f44e58d2fbade3ed6b4737a4f4e38aa
+  - path: .p2p/proposals/PROP-058-project-readme-and-installation-guide/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-058-project-readme-and-installation-guide/open-questions.md
+    sha256: 6371826e29f46eaf64c81289059a15d5ebb86957a955bc33e79f7a4c433dd154
+  - path: .p2p/proposals/PROP-058-project-readme-and-installation-guide/proposal.md
+    sha256: 21b0fd0adb2eb0f892859d6dcccb62a211381b823e1218690c6f1e946dc1f1d2
+  - path: .p2p/proposals/PROP-058-project-readme-and-installation-guide/risks.md
+    sha256: b0d218cdc782f95b32f5c5163a7cbbb09358dd841601b410a3c8cecc270b1731
+  - path: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/alternatives.md
+    sha256: 0b80774c93fdcbac114cd3b8e87d1af2d809ea9846c4e4a5d82c620d7a6cce4f
+  - path: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/assumptions.md
+    sha256: b96b8952ad5c403284975ce41ffd96b1ec83db037ac33b5fb6c79ad2c3f401d5
+  - path: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/decision.md
+    sha256: de8a31b9ef1d3162438f655b9fbd20364f42d2ee2840fd9ca5fc48d8ea54d193
+  - path: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/open-questions.md
+    sha256: 3b23a061615545141253bbca618542e3e1dc989bdf1983440e42634d7240ce78
+  - path: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/proposal.md
+    sha256: 1a1e3fe1a562546d43d92064cdc7967ae76b8b8519855ee55214351cf8d710b4
+  - path: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/readiness.yml
+    sha256: cf9818e31495192f0b1768a4e2be3bc69443eff5cc6b7e9a6d6c7b82966d28a3
+  - path: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/risks.md
+    sha256: 06e0190d70b0bb28030cc962a1628cf92909baa2ba9c59307aec6a960bbe6f46
+  - path: .p2p/proposals/PROP-060-real-test-coverage-reporting/alternatives.md
+    sha256: cc2712df171757e82b73b8f9713aa0a908043687a3f825aff336b315a020e55d
+  - path: .p2p/proposals/PROP-060-real-test-coverage-reporting/artifact-state.yml
+    sha256: 6a322ba643ec9405ac25d029accff522efe2165ec0b309491f590b84c2648310
+  - path: .p2p/proposals/PROP-060-real-test-coverage-reporting/assumptions.md
+    sha256: ea555ae011f16a16312bc3147ff53b33c7059513aa08c7c9b3aba64eb5a7f826
+  - path: .p2p/proposals/PROP-060-real-test-coverage-reporting/decision.md
+    sha256: a73bbc28d4f1a74221bef3bda531b24a337fd08701da10126654f8cb86522e82
+  - path: .p2p/proposals/PROP-060-real-test-coverage-reporting/findings.md
+    sha256: 6c164fe45a3aef2d427f5efcd4e28d3f967f2bc85a276f9074932c7b71b06189
+  - path: .p2p/proposals/PROP-060-real-test-coverage-reporting/impact-map.yml
+    sha256: 357c138f4ba3c33a99e3da30a5904d31e62211ea988bc8f04f9134a18077f50f
+  - path: .p2p/proposals/PROP-060-real-test-coverage-reporting/open-questions.md
+    sha256: 1c9e64b0dfb0132db6dccaf4194a31cc93d6e5374fa02cc351c308b4eee2dcea
+  - path: .p2p/proposals/PROP-060-real-test-coverage-reporting/proposal.md
+    sha256: 591a2d4ea81ffa08f7b64650ce59eaf565a1196e43f8092fd7b47bb7a516485e
+  - path: .p2p/proposals/PROP-060-real-test-coverage-reporting/readiness.yml
+    sha256: ac95d2ef678533a0e9a55c6af09d9e43700943a22c5397a0f19e1a2b7848959a
+  - path: .p2p/proposals/PROP-060-real-test-coverage-reporting/risks.md
+    sha256: b29a45b41b52c1039149f207b69ac6da4a288bd5dc8ea863b623bb79f022eeb8
+  - path: .p2p/proposals/PROP-061-focused-readme-and-documentation-map/alternatives.md
+    sha256: 30c90ac61c86611ce7ab554058d87fc7b2e3318a0c9b03c0177e66c7d779087f
+  - path: .p2p/proposals/PROP-061-focused-readme-and-documentation-map/assumptions.md
+    sha256: 3605e42b23327b487b722a83554bbdd61001e61c746ba92e99ca2aa6c445173e
+  - path: .p2p/proposals/PROP-061-focused-readme-and-documentation-map/decision.md
+    sha256: c03b3758c6cfc5566778e3f076c6e6288c2cfee8856928bf5cbcf4693b5b2c3a
+  - path: .p2p/proposals/PROP-061-focused-readme-and-documentation-map/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-061-focused-readme-and-documentation-map/open-questions.md
+    sha256: f22c766c20032982f8d3854e3f2fa5f6ecbd430a0d7d93a3ca948f84e5ce781e
+  - path: .p2p/proposals/PROP-061-focused-readme-and-documentation-map/proposal.md
+    sha256: cb14065baa13196f5d9bf5a3268a55e6afde1083dd1efd892ea674b496b0ae26
+  - path: .p2p/proposals/PROP-061-focused-readme-and-documentation-map/risks.md
+    sha256: 0790289d82a4a07a54b393dcfae4a699b7951cda2b7012717dc7c7459919ac1d
+  - path: .p2p/proposals/PROP-062-readme-product-landing-page-refinement/alternatives.md
+    sha256: 057e4ec349d55f02f96806d87262ed5cc2fbc100a2e4ef913765e1810675b9f5
+  - path: .p2p/proposals/PROP-062-readme-product-landing-page-refinement/assumptions.md
+    sha256: 93ea4a76b94b2f679dc766f9112ded7bcefedbf121f750783be82342c70be7b3
+  - path: .p2p/proposals/PROP-062-readme-product-landing-page-refinement/decision.md
+    sha256: c729d9ad9925b2425937b6142194596cc7d68ecdbcdec5f2679457e84c9f4644
+  - path: .p2p/proposals/PROP-062-readme-product-landing-page-refinement/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-062-readme-product-landing-page-refinement/open-questions.md
+    sha256: fa4dc663de0a24eb0eb3cec4822526cf8c6713f5b4ad6cc5518daac29750badf
+  - path: .p2p/proposals/PROP-062-readme-product-landing-page-refinement/proposal.md
+    sha256: f549683db1c8e8b63f02e9e207a43a7314162ef5622c086f0ea7376c9dfbafe1
+  - path: .p2p/proposals/PROP-062-readme-product-landing-page-refinement/risks.md
+    sha256: c78ad833afae7f621125f187e9bf9b77ec2a8cafe7c8b952f0ce371b8eeb1879
+  - path: .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model/alternatives.md
+    sha256: cd69b5c9885de54fe2168e10d2b55b5d1aec61c26065817265b4a0d2c8f67149
+  - path: .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model/assumptions.md
+    sha256: 16093884d777867e85e3b9fb681099769128f0cc7731b18f1b3dfe9595e5b449
+  - path: .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model/decision.md
+    sha256: 8946cd284182808b906aa7d4b640240f8ae8bed0bf18f9526507b8c755a935e4
+  - path: .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model/open-questions.md
+    sha256: 2f80ce2d2710b8d21b336af50f1d3377a115fb33feff8f62b0e825493b3ef8d2
+  - path: .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model/proposal.md
+    sha256: 8c2b65ad389607333b53e1e386e00994bfe0a77c0c7f3152c38dfd8917f14007
+  - path: .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model/risks.md
+    sha256: ac81fa9bea53696c03d4d18197ac46fae5f30c5b37720df695810cecf5011213
+  - path: .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion/alternatives.md
+    sha256: 9c4676ba6e91d81ea19c7707847008e0e3189a6c4920d55dd472f5c043752279
+  - path: .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion/assumptions.md
+    sha256: d0ff66175682e731129191347a3929f2e39539e28d88670e1c2092176ef3f4e8
+  - path: .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion/decision.md
+    sha256: 540af5f74bde9a58a2e9c440ef97aac883c20fa0539c797a891065d5185249a7
+  - path: .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion/open-questions.md
+    sha256: ee88f91b49baa1a51a22a653ed3d4eda19f8fbb614eb0f44f5357312d95d0fc3
+  - path: .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion/proposal.md
+    sha256: b6edc1e39b37ba0d79ee85e75952c31f6c000bb16cd57f683c275346bca5adf5
+  - path: .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion/risks.md
+    sha256: 1b6f7b5da1a4a00f7bc9a4cb60613034214f199ea881044f8ef2fd3c925efdf6
+  - path: .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/alternatives.md
+    sha256: 799efe2153bf5b6d84b86bed35d1e437deb81ceab168b788f7dd5ddcdba45f89
+  - path: .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/assumptions.md
+    sha256: ac4f89ad8ca1e3d84b340e1f8a54e3fdd795f7fcffa81cd977de9d38d85c7a2e
+  - path: .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/decision.md
+    sha256: 690df061abf7cd90c23c6abc3bc85c0b542609ba333a65980d64e847432e9ecf
+  - path: .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/open-questions.md
+    sha256: a189e445add531625b599a498e827c72d19aed0f9bb655752b6d21670a2614b0
+  - path: .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/proposal.md
+    sha256: b6ac256104744fdf5d8c721fd36e8c649fcfafb92bd6f9358cc0416d07e1ab71
+  - path: .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/risks.md
+    sha256: b1aef92e4e18362a027aba04a3e4f1413e1d0ec14bacd11e822b1765a217455d
+  - path: .p2p/proposals/PROP-067-agent-first-setup-documentation-split/alternatives.md
+    sha256: 25f04576a18d47df92f35129bb01d904d0fbfb083c413a6b10c5897a09c36b67
+  - path: .p2p/proposals/PROP-067-agent-first-setup-documentation-split/assumptions.md
+    sha256: 42f14294c2948b56c14699647243a33029cbde77840c90c197c945563e3fd1cb
+  - path: .p2p/proposals/PROP-067-agent-first-setup-documentation-split/decision.md
+    sha256: 03ca25ac5a9d360036cfbbbbefee27b890592c93475febc7c102cdc7ef96a264
+  - path: .p2p/proposals/PROP-067-agent-first-setup-documentation-split/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-067-agent-first-setup-documentation-split/open-questions.md
+    sha256: d938dba26c1a993c2920a48649e71c115ae3e658d472f905b15092dc52d89759
+  - path: .p2p/proposals/PROP-067-agent-first-setup-documentation-split/proposal.md
+    sha256: 23e40e06655b2eea2e53bca9a68c43806483ad958a2e2f2ea98f010f6e4a0748
+  - path: .p2p/proposals/PROP-067-agent-first-setup-documentation-split/risks.md
+    sha256: 16594957a5e0fd7ea269d5efedf1d9a103aa8070c0ae3f328c33220ff476d547
+  - path: .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands/alternatives.md
+    sha256: a1c8f7f0b492be7a0e1492096256c0c41c9215e023c5839f84503eb406f8182e
+  - path: .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands/assumptions.md
+    sha256: 65b4a72437e81dff9a0a8f9a2483d310e61a1592b96ecde7d3e15a06874babe3
+  - path: .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands/decision.md
+    sha256: 68c1fb1861cc7a2221debc62ef401a328036e771e3286986afb2b456111d883a
+  - path: .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands/open-questions.md
+    sha256: f8130ad494bd15b8296f128cfb0a524f2e13c8f1fe0301b85bd601299aacf7c8
+  - path: .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands/proposal.md
+    sha256: d261150d39e6f6113a9d38c1493f2cfb4ae6b0d8564280858f70ac976ae57645
+  - path: .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands/risks.md
+    sha256: c574688e6048a078e21da77fa0f4ad4f78a31b1b957c899f52b61672da845fd8
+  - path: .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/alternatives.md
+    sha256: 1e22d88c90aeeefb3cae5c8fe39f59ff4c7a787486e8b1a78a69df6ca1a913a4
+  - path: .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/assumptions.md
+    sha256: 2151b827c2ebfe208fa7905ff38ed04adb8a59cc1e70d84ceae6e78bddbd61dc
+  - path: .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/decision.md
+    sha256: 21e9926c3947214357df2204d121f43c1eea12e87974230ab0ea1dfc0b526fa1
+  - path: .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/open-questions.md
+    sha256: c6e09d0ebb6a8f5ea6fb001f4bc5b49a6ccd35ab5ba7254e08db26d9eb8493eb
+  - path: .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/proposal.md
+    sha256: 6947995595bb5e8cfad3e174094a0a3c450fc1ec1fe5443a794a199ad78966c1
+  - path: .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/risks.md
+    sha256: 7e456be4f53d7c93073eb5568c9df172bb41a44b42908877425ed66dd7b623bf
+  - path: .p2p/proposals/PROP-070-clarify-readme-agent-access-modes/alternatives.md
+    sha256: 3e4af43d6503311d799cd2de304126d524925766335daf54e365d4bf52e5d750
+  - path: .p2p/proposals/PROP-070-clarify-readme-agent-access-modes/assumptions.md
+    sha256: 75d7cf5a7af45382372e96c2e75ad860992805d0ca27ff91ea7112cef6dd836c
+  - path: .p2p/proposals/PROP-070-clarify-readme-agent-access-modes/decision.md
+    sha256: 7e870d87029b977aa981b5f46b2222cb74cce6112f2002e4612a8933d4f681bd
+  - path: .p2p/proposals/PROP-070-clarify-readme-agent-access-modes/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-070-clarify-readme-agent-access-modes/open-questions.md
+    sha256: 14fb168b4d31d1e7749b823929d208944cf93e4eba0678f2003af1e2de03ff6d
+  - path: .p2p/proposals/PROP-070-clarify-readme-agent-access-modes/proposal.md
+    sha256: 4e17b1c2ffd8d07018384199a1264a10396783375fc634762a065701baab6a8e
+  - path: .p2p/proposals/PROP-070-clarify-readme-agent-access-modes/risks.md
+    sha256: 57a319c5f9f4bb63dc890d18b982e9c08d5fdc33481135d4212e0e0c587eaad7
+  - path: .p2p/proposals/PROP-071-custom-domain-definition-workflow/alternatives.md
+    sha256: 5de942669fb9e62840d23322590aedfddd1b82eb8691f3de4787515a9f373c9a
+  - path: .p2p/proposals/PROP-071-custom-domain-definition-workflow/assumptions.md
+    sha256: c9c2970ff2b3439b2c0b54f584bfd35aa5fea6a990c77c9a518e5fb24dc62c98
+  - path: .p2p/proposals/PROP-071-custom-domain-definition-workflow/decision.md
+    sha256: d0889a13a68352adb4099df848dea58260d691a00150fa9d1c3c9692d5f5f5c6
+  - path: .p2p/proposals/PROP-071-custom-domain-definition-workflow/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-071-custom-domain-definition-workflow/open-questions.md
+    sha256: d32991923ba729e63e89b587bcd136892b325a065cf1d43dbbdb4ef36d280e57
+  - path: .p2p/proposals/PROP-071-custom-domain-definition-workflow/proposal.md
+    sha256: b129d05c4de1666506a78a2e52c2eb46fd7a2f668372c4c3165ee0e346c4534e
+  - path: .p2p/proposals/PROP-071-custom-domain-definition-workflow/risks.md
+    sha256: 83a7596cb25150974abce09bcd2aeca8ae80151c70344683f5c77393d074c60f
+  - path: .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/alternatives.md
+    sha256: c98316d9854ff17520ec64c633d0f643d0f164f3f5f6b7b16d4444ec35f053ae
+  - path: .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/assumptions.md
+    sha256: 3cc70ffe8a431ed68b7c83e16b6d79eeda0d5a54a890e6c91663fca5fbd68828
+  - path: .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/decision.md
+    sha256: 1bd7b91c401685bd459af00ae3885dd25a6e778cd5c9a8fac46afe8bc59dcbcf
+  - path: .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/open-questions.md
+    sha256: 2215a15e6934d9083cac7ba05db47be3a4efc2d43c2f5e435a2fbe2ded5c6696
+  - path: .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/proposal.md
+    sha256: d72db12f20b1c8636b2834155db3ca1fbdaf2759ee4a3069888b6aff92c0effe
+  - path: .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/risks.md
+    sha256: 9bfed8cc907a17c7a649355e97ec639634e9c6ce3220da5d760105a3e3592ed3
+  - path: .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/alternatives.md
+    sha256: 782b9aaaa730559ab2c44396da69f3cf37cc455b7f11136ad66ca7ac312ab1c1
+  - path: .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/assumptions.md
+    sha256: 010ad835a280517ab1bc3296ed3f0e2f33cb56893f51bbffff51d42962125964
+  - path: .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/decision.md
+    sha256: afc61ce7b9d64b7454249db366fd54a801993d0adaf746d2a7fca59716082bfa
+  - path: .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/open-questions.md
+    sha256: bbbaf36977cce0a90efcbdbbdea71c5137f6ceda40bc98981c3915b28252bace
+  - path: .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/proposal.md
+    sha256: 0f1b0d9bf5bb6ec340fac6611b7d0771d54e2575cc2d8c4b5ef0f6a49928a9fb
+  - path: .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/risks.md
+    sha256: 186ceaa540f0bf73fb264848a90661c32795d6457a94b9c97f4a4101e6bc8f95
+  - path: .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness/alternatives.md
+    sha256: f0173a107c9ab5c88811e30d0c05ed0a33a19bc9090e7c2bdca060a1a8ffe745
+  - path: .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness/assumptions.md
+    sha256: 777033a379e312e20fb52389fe2067efa51773ba563e22f697be26a1fbca7486
+  - path: .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness/decision.md
+    sha256: b8344fa7eb686ea5f42082c2d92146d06024542e497cc0ce19fab184f3289da5
+  - path: .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness/open-questions.md
+    sha256: 13cc5df6caa6454de24fc16b5fadb7390aa92723643bddbaf6d141aa9b6deea6
+  - path: .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness/proposal.md
+    sha256: b194175a7a12c273b323fccf6be4bcffbb7c8e837bf261eb473a95afa9f721eb
+  - path: .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness/risks.md
+    sha256: 18d098d7e5dc241a7959a124fd0f66fe7a93d3cdf00e420c54242789b30b2c2d
+  - path: .p2p/proposals/PROP-075-mcp-end-to-end-proposal-collaboration-workflow/alternatives.md
+    sha256: 10522e2f910e1378d4425c0e1a0af94b835dfe30bad0d5ffbdd4e1d9387aac00
+  - path: .p2p/proposals/PROP-075-mcp-end-to-end-proposal-collaboration-workflow/assumptions.md
+    sha256: 24203fc6ce309818e6aec71dfc1f5546cda3fa807982355c3a2c764542b85527
+  - path: .p2p/proposals/PROP-075-mcp-end-to-end-proposal-collaboration-workflow/decision.md
+    sha256: 3a374074ce154ccfc15013a22ee87a2f1d8bb77f351ffe5171cd83ffe198541b
+  - path: .p2p/proposals/PROP-075-mcp-end-to-end-proposal-collaboration-workflow/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-075-mcp-end-to-end-proposal-collaboration-workflow/open-questions.md
+    sha256: 0dacad82b158ac22d651ddf5854906935472e073270ffe59f4f80db678d50808
+  - path: .p2p/proposals/PROP-075-mcp-end-to-end-proposal-collaboration-workflow/proposal.md
+    sha256: 030c36f7c3cb9c572d3ea2b8406a180c14b4d5657be0692764dd885f5ef94597
+  - path: .p2p/proposals/PROP-075-mcp-end-to-end-proposal-collaboration-workflow/risks.md
+    sha256: cad515aa62fbbda7aa4bd5bfe3baffd83e6721e00120368746bb19ad020a18b3
+  - path: .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model/alternatives.md
+    sha256: b2d17601f4881ea9dcac4d752f84c948f90e29afceb153ed11271246f9c999cb
+  - path: .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model/assumptions.md
+    sha256: 68fee4af6ce995d0c74aa6a3251592eff93a6bbff6986aefd9e2ffc95839eeb9
+  - path: .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model/decision.md
+    sha256: b8a0c6e45109755fb039a378c0e7b73e6840c6d9e6ee3b62841d937661dfda97
+  - path: .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model/open-questions.md
+    sha256: 3e25c18b8d38fa9a5f4b540221a31ab08f45ceb353460aa1bc41b276b5ad6151
+  - path: .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model/proposal.md
+    sha256: f7b32c4b3eba5c8e4b37fa6ccb7c6f1b3e05be983389f8b87132e9e1f9bfff77
+  - path: .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model/risks.md
+    sha256: 2194e02928e404e049f41b3e4cd7e9fad3183d32759dc36e024443a17e2527d0
+  - path: .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/alternatives.md
+    sha256: c8aa54f7ab17481657c92ffb30ba3db38c523a9361a3e00747ca71122073cdc8
+  - path: .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/assumptions.md
+    sha256: a75b2ab185254e5b7ff4f6b6de542e002f641c490171a4651726d68fe850d437
+  - path: .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/decision.md
+    sha256: 19a38d6c7736d838e14f7d52f870e3d39e6656e5242bed23c12c45982faf67b9
+  - path: .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/open-questions.md
+    sha256: c8fbe2ac0070906d34c7bdff27acde3468321005f893f4b239c5bf1a6f360766
+  - path: .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/proposal.md
+    sha256: d0d3b75b4700e2a28c9c9022b0e637804928fa9fcc7908949619b69bb412cc44
+  - path: .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/risks.md
+    sha256: a962a39c3231a494c24c052cd47b0d0a3389b2d3ec72606651522aa57703b162
+  - path: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/alternatives.md
+    sha256: 5d138fd8cd9c56000b658c45a980fd706c5f9ab11d025d4853796eced0e47a80
+  - path: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/assumptions.md
+    sha256: bc0f2b12d0db4d1bf321fd251006bb19b09c6a5f245fbf3b8a3fa1c5dd4e7851
+  - path: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/decision.md
+    sha256: 86ad353ff656f250991ac489edbf5a7bac2e997309ce79ad13410addda4bd2eb
+  - path: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/open-questions.md
+    sha256: 63ffb8486bfbdfb4902952cf72b6e441af4a9177234fdf377e5a1436152f177c
+  - path: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/proposal.md
+    sha256: cae01a350ca19b369898c14596f90a1ffd02d8ed8a0230e76471d96fae2d32d3
+  - path: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/risks.md
+    sha256: 692113c312f5840dead8fd2dc612c3b42568819dcdd36ab163266eb0fe444842
+  - path: .p2p/proposals/PROP-079-managed-next-action-lifecycle/alternatives.md
+    sha256: e5355860adfb54acae9aeb7a593189254a054cfe8258b8eab38c37e2954391d6
+  - path: .p2p/proposals/PROP-079-managed-next-action-lifecycle/assumptions.md
+    sha256: 3e70aab69559438a3eed5b134b01189fa1102379228ca6696a96cde2a9cf62b6
+  - path: .p2p/proposals/PROP-079-managed-next-action-lifecycle/decision.md
+    sha256: 725bd2dece1049c03d6c1c316ea3f4e3438c1e518952c290a6911cf6074598e9
+  - path: .p2p/proposals/PROP-079-managed-next-action-lifecycle/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-079-managed-next-action-lifecycle/open-questions.md
+    sha256: 71dd54694a85e69bb30f270e58b28ac9789d717b04a0253aac943145fc2efa24
+  - path: .p2p/proposals/PROP-079-managed-next-action-lifecycle/proposal.md
+    sha256: 743f532240446edd7fd45bc09e36f41ea71a1884cdf7bda54d2a6a8b2ab6402d
+  - path: .p2p/proposals/PROP-079-managed-next-action-lifecycle/risks.md
+    sha256: 4797b3ec64abcbc26a8cc52b5773fe0f57ef511b44ac9c43ebad19de11861e98
+  - path: .p2p/proposals/PROP-080-automated-github-release-wheel-publishing/alternatives.md
+    sha256: f4ba2cad2fb482d9d60c500e1ecc6ad8cc1c79947370ad5bfc8ef506ee3c611b
+  - path: .p2p/proposals/PROP-080-automated-github-release-wheel-publishing/assumptions.md
+    sha256: 8a41b8e223c1b0c1dc79a0de1a7325f4e5d01b087e5fc136fedff415394c38db
+  - path: .p2p/proposals/PROP-080-automated-github-release-wheel-publishing/decision.md
+    sha256: 0d04e6aec979b1b7336059540f1b524a06e906f1061c6d0e72629d40074d6c7d
+  - path: .p2p/proposals/PROP-080-automated-github-release-wheel-publishing/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-080-automated-github-release-wheel-publishing/open-questions.md
+    sha256: 764375b12b8087975e317bd3ba0aaecf97bc909114bb5037dda4c7092d4f5e90
+  - path: .p2p/proposals/PROP-080-automated-github-release-wheel-publishing/proposal.md
+    sha256: 35c4ea8e023b8af7afb973527a8e19338f49e1dbf92ed48cfc6888a60f4fbde4
+  - path: .p2p/proposals/PROP-080-automated-github-release-wheel-publishing/risks.md
+    sha256: b1c7987c0b0ed252a1d4813f845b48d07c3813657509d61c5243357f510de1bc
+  - path: .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions/alternatives.md
+    sha256: 21a485080054de93c9126e8882a1c2eecf708b6146b9cec2b1b05d2a81aa3737
+  - path: .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions/assumptions.md
+    sha256: 9f9354f2ec5f797640ab5ae207a8c7dd920d53a7f0d8458a73934c48558b9292
+  - path: .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions/decision.md
+    sha256: dbaaa61f77016c3432894592f24953def4ee85403a2ee27837d97a8e429566ec
+  - path: .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions/open-questions.md
+    sha256: 5eb61b4090a34a0942812ff8dee44bf3e405ea46bbd40d5b17ae59651a1c191c
+  - path: .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions/proposal.md
+    sha256: 2754398e3883b2e9d78f123606736b2575a4b587860f9ba5047983b2d3dfdf5b
+  - path: .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions/risks.md
+    sha256: 685b00723956367ab0a2b4982057219b7984e982c70e45c3b0d057e12245bd31
+  - path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/alternatives.md
+    sha256: 439c0494504bcb42029866ceeda96c5dfda5203968df7d28c560765467cdd4bf
+  - path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/assumptions.md
+    sha256: ffb713145a1e0edbd5a9fce1b6b419f7c267ab76f81badc541b0e825d69591cf
+  - path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/decision.md
+    sha256: 31b9611e04fe2a34df7d053c61fd63538d4e08fdbfb896a42f2280b394dfa7d8
+  - path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/findings.md
+    sha256: c9d61876690cfe1f39fc9ccf035a4c48b41d69e3c8e93f815bd29cda6ab69035
+  - path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/impact-map.yml
+    sha256: 1cb03ffa3d091d8d2ea1b56ac3630f6d41d0abe01107ce2a69166dec14136be7
+  - path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/open-questions.md
+    sha256: e89fd8646522451a86f5128ca753aef462f82d0b5701b71f2c7ccd8e7bcacebe
+  - path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/proposal.md
+    sha256: 1594a5b2d665dc662c99cf662cb5be3a9a899c28f4e52e6d54286144d5b2f0e3
+  - path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/readiness.yml
+    sha256: e99a9dfaaa3c3411a41e332b09af28811bc43a0b615a2d979143fd866b482ba1
+  - path: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/risks.md
+    sha256: 96f7599bbed441be6ba9ca1836a63fc248b4a2eb4eefab2f77b6639cfedc4113
+  - path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/alternatives.md
+    sha256: a6e5f662642c29574758963e364a78b7eed4c7574753ba2805c0d3d806a8c132
+  - path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/assumptions.md
+    sha256: 5c8d2af6784919c2630df0960825c9535981584bb0306c18e51e0d46ecd95127
+  - path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/decision.md
+    sha256: d06876a7f78f4c726f69798c381d213390788e95cda7463b8fe4b2b152e9d47d
+  - path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/findings.md
+    sha256: 54e2bba9029c1911ba4cd57fb08aa14d9d5de6190d8d98850681cb829ab8199d
+  - path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/impact-map.yml
+    sha256: 1b049a67d8048a3cd43404d81cc307c9fc786e9b2c4e4ec9a39b47ba3f2d968a
+  - path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/open-questions.md
+    sha256: 1dccbbfae6a7193ab2abff844a9bc8930e78194b7ca4fdf241a5cec0c178bcd8
+  - path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/proposal.md
+    sha256: 8504238148451e225db6c051259826c31dabf6c4626e29e0101ad65df1477b41
+  - path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/readiness.yml
+    sha256: 408b3d96d5685beb44d2a90bceaf90b91620ab10c7d7828adbda1023bd0798c7
+  - path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/risks.md
+    sha256: 90d2edd735159d560695e7432f3ba9ff75a14e9db7a088225d640acaf5e5af99
+  - path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/alternatives.md
+    sha256: 797d8f98ed088df96542a9b878b28e0c1f00ce7a44d2ca296bff2b3c158ad678
+  - path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/assumptions.md
+    sha256: e91ccee1148c5cb9f3d3936027d1ef4af674b5b401cc78d0da011123f3da0117
+  - path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/decision.md
+    sha256: 5070971dc3eed58f38120c9762895811f31c9e385b551dacabfae785dc200d1c
+  - path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/findings.md
+    sha256: 6d3725cde748aebeeb0f30989a69afdab54e5e9cc23b8b102f7a8687ac12bead
+  - path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/impact-map.yml
+    sha256: 582294cc15e83c05d42d8bc7d165c5f6d8e5064939f010825d190e694d5f9362
+  - path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/open-questions.md
+    sha256: 5e623524bb166a08767d1b66a716fd2aa4b538e016fe4a4bfea72aa4b60b9e5a
+  - path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/proposal.md
+    sha256: 36ab25a6d9c1a8f48b314d1ca65ac2ab4fafe3ffea72c0ec22b674fd5dc52036
+  - path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/readiness.yml
+    sha256: 7857ae1ecbfb6ed0a739162a2637999144ede9be14217f011bb75ca80f46fbf8
+  - path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/risks.md
+    sha256: cf649a52e7eb93749a9ea7298ff0e0cc9d95d589ab87114cd8b3d659c42012cc
+  - path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/alternatives.md
+    sha256: ec1c4be207a2b96877df710675c1f4185f3bd45142b10bae5c915427800cbe43
+  - path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/assumptions.md
+    sha256: e8b4ce8a482788f725b703ea8bfd395b91598026717470aa9c67cca6222e1004
+  - path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/decision.md
+    sha256: 5e81cc499f8a860234420bb0b3eba9966d4beb6a648b966341638a2c6ce0e386
+  - path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/findings.md
+    sha256: ce558f121aeac8f4a9e1cff3f462722cc6eeaad7a9dc4d7dd2e58cce2fd41b1d
+  - path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/open-questions.md
+    sha256: 06edea9b09fdfedd83e71ecf14d683124e9bec2cd79c3bb4b0bc4187693569e3
+  - path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/proposal.md
+    sha256: 80ea560b1e4a860b9b4bdfa55f9cc249e3bd6dbc5eb6238d178265ea7ec34ebc
+  - path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/readiness.yml
+    sha256: 870bc84004afb86317e6f8a244214b248960c14455fdfa202d184b8d1e1b82d5
+  - path: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/risks.md
+    sha256: dcdfd25c660b1454ae3659efc07b6f745aff1a018d555b54ac3ae1efb96f2169
+  - path: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/alternatives.md
+    sha256: 72f26dea67e9bdeabb627e5e341544dbadba2bf156617320a69ed9b24e4559d4
+  - path: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/artifact-state.yml
+    sha256: e4489805ea5ca7a5f5846e2d6ac8b9379508da71b24bf83ba6d4c9a3264e135b
+  - path: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/assumptions.md
+    sha256: 68abafc32e020c99f2a3d9a18db42c1244aaad7cf9f62bd255c6e7e3f710467b
+  - path: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/decision.md
+    sha256: ba4af1d68785651a7af7caec4b3a57cbacae7452572a79738ef5c95a4a406d20
+  - path: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/findings.md
+    sha256: 5e64bf37ac8d75a42abb49ee4d9124ebac3381682fd7c76972b4c54273952df0
+  - path: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/impact-map.yml
+    sha256: b7410c05d47dc1b0a14adaa038052b47803d31e076d8cc6ec9cb32470dea6d0d
+  - path: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/open-questions.md
+    sha256: 69861feabca6ebbe597467e09b1a79518e484ea46dac0c9c1d0523e55ffdb91b
+  - path: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/proposal.md
+    sha256: d02d42c66eb36e3135a9f7c1be32641e2fa58ed52dbce37a368ce8453b425036
+  - path: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/readiness.yml
+    sha256: df5d3baa617295b0df1a9951d6c8c4dc3808de7759afd2d0dc01a0f1ec4b7c67
+  - path: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/risks.md
+    sha256: bffa29d2e4ed2fa35261c210d89bc96fdccfc5343fd04462e2bff88ccc34de93
+  - path: .p2p/proposals/PROP-088-mcp-artifact-import-parity/alternatives.md
+    sha256: 52e71f86f58367660261bf20f5b5ea61ac8ab9d099b747960cb644dd3ce17c08
+  - path: .p2p/proposals/PROP-088-mcp-artifact-import-parity/artifact-state.yml
+    sha256: 1eca0654a1ec9ff3184879524a44c2573ba2fc9955b463919c2aefaf7c59ead4
+  - path: .p2p/proposals/PROP-088-mcp-artifact-import-parity/assumptions.md
+    sha256: 4e86598a595921ae1db1dcc4ca857c74ce1955614784639779432dd07fa1854b
+  - path: .p2p/proposals/PROP-088-mcp-artifact-import-parity/decision.md
+    sha256: 8d59306cf042632a4196b4ff78cd5c361ffbb159891504c4dd8e5576349a0549
+  - path: .p2p/proposals/PROP-088-mcp-artifact-import-parity/findings.md
+    sha256: ace11e1a574fe5d7dac15c3320a6dadaaac212d820929e2eb87a4dbf7bbf8886
+  - path: .p2p/proposals/PROP-088-mcp-artifact-import-parity/impact-map.yml
+    sha256: 38de1860a7cd820a4c4f7991be487bdabc5f12e725a24e6096335312e0114669
+  - path: .p2p/proposals/PROP-088-mcp-artifact-import-parity/open-questions.md
+    sha256: 04963195e5ad4fa2164e3c1faab61eab411eae8203e1a62b889c57df65ca924e
+  - path: .p2p/proposals/PROP-088-mcp-artifact-import-parity/proposal.md
+    sha256: 3ce821717bf67436912f6fd4fbae02c9e0001acc8b02140769dd55d6c795b71b
+  - path: .p2p/proposals/PROP-088-mcp-artifact-import-parity/readiness.yml
+    sha256: c53c751c84a9b18ddc04499017daf503f6b1a11fad10ef2539a5f3d6414ccb43
+  - path: .p2p/proposals/PROP-088-mcp-artifact-import-parity/risks.md
+    sha256: 6f5f674b2f649a96c03b90fbac43444107b33c318fed18f45fdf0377d2eb5fb2
+  - path: .p2p/proposals/PROP-089-readiness-question-state-convergence/alternatives.md
+    sha256: 15ebecc414918a46f05e89e7bab7d3831d057da59262ab7f657ea51f991231c2
+  - path: .p2p/proposals/PROP-089-readiness-question-state-convergence/artifact-state.yml
+    sha256: 16765491621b96fe8b6b96e128538ccdd9e4f8d15ac8b7ff091f66f9b0b52b72
+  - path: .p2p/proposals/PROP-089-readiness-question-state-convergence/assumptions.md
+    sha256: ace2dfbe1f07b8c3dcf3fb994534e32c6e4325ff01bce8d2b99defb5b20ef2d7
+  - path: .p2p/proposals/PROP-089-readiness-question-state-convergence/decision.md
+    sha256: 297f07a4ddc3435ab30f3c6f6e90507e64dc83631cbe20751f3e5bc54850f66c
+  - path: .p2p/proposals/PROP-089-readiness-question-state-convergence/findings.md
+    sha256: 99416bc68a6b40b74452ab743d7b3d4f4f043d5afc79164475851f0442199a13
+  - path: .p2p/proposals/PROP-089-readiness-question-state-convergence/impact-map.yml
+    sha256: dc1337c193bd01f4285205258d77c6257043eec0819c8b664e9fd4eb522a60b6
+  - path: .p2p/proposals/PROP-089-readiness-question-state-convergence/open-questions.md
+    sha256: 8cf11ded9d449e89d2b84ade0b2abcd82a084843738c6caf6b776efdbe2296b1
+  - path: .p2p/proposals/PROP-089-readiness-question-state-convergence/proposal.md
+    sha256: ecc1816862e454387d7d0e0146a907cce8b0ef310e46e66134ae167121598ce6
+  - path: .p2p/proposals/PROP-089-readiness-question-state-convergence/readiness.yml
+    sha256: 404b4bbea79ee6fd39e02453a2033d258c2b9a3546461192be23c781aece4c82
+  - path: .p2p/proposals/PROP-089-readiness-question-state-convergence/risks.md
+    sha256: 9710370739ed555ed408631ee77bff7fa58112a44622722ac51cfc9f9e0ce81a
+  - path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/alternatives.md
+    sha256: 0744d3e444a28067783061e2cc139ebe72de6e1085d0ac8355c4f4f1ba438e8d
+  - path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/artifact-state.yml
+    sha256: 20621db67ed5dc91705f933823c9857d83b51836e657874740584197e6996333
+  - path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/assumptions.md
+    sha256: e02187cfe799f6a3e0d05571f00b3e8740e367bab05d774a31b6aedae85e0eb2
+  - path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/decision.md
+    sha256: e484b5ec7162067ce1dda6d725b3b78ac062134448d44792dccfabf5990794fd
+  - path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/findings.md
+    sha256: ce1b4ce190f3b6b65852ec1692459178fe514a1cdc3a1213069e079e9ad874ef
+  - path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/impact-map.yml
+    sha256: d155c44128af3d387d98d4ab984125e00e86c34bec420aa461a020ac09b25ff6
+  - path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/open-questions.md
+    sha256: 918b54918716dc97e6db4176f219176efbd458eda2756bc6e6242a14409e3f8c
+  - path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/proposal.md
+    sha256: 46fa39047d64947152c2d94c2d2e57854a603381be87a0263f2b6d6879788e36
+  - path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/readiness.yml
+    sha256: 5abedc513a1b6a88027ed47677aac748f69cf6f5e612c7dab812a5e5d316739d
+  - path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/risks.md
+    sha256: fa9ac38124ff1b5c4a7f9e3d270d306fb2deff4bda57aed9a1e43af3fc48f132
+  - path: .p2p/proposals/PROP-091-governance-policy-convergence/alternatives.md
+    sha256: 8a28d00de179455db3e44c9dbc8df44d0a93fb70147ff8bfc277c5a9723d69ac
+  - path: .p2p/proposals/PROP-091-governance-policy-convergence/artifact-state.yml
+    sha256: de3b0cbcd7c328a931133c128fd4ee9c13de600a608cfedc800a86ccc7b1ffe0
+  - path: .p2p/proposals/PROP-091-governance-policy-convergence/assumptions.md
+    sha256: 0b5e5b57061f1b66e17f15de77012e6737b91aa8553db083c6304fb04672c402
+  - path: .p2p/proposals/PROP-091-governance-policy-convergence/decision.md
+    sha256: 1f0680aa318293bbc799312b85b4fc8cc0b212279d9ae77781efb64503247523
+  - path: .p2p/proposals/PROP-091-governance-policy-convergence/findings.md
+    sha256: 60c24bce7b2b550201ad1a52fe4a1e2cd8285d0f86bdb6fda7a5b22caa6ff7c4
+  - path: .p2p/proposals/PROP-091-governance-policy-convergence/impact-map.yml
+    sha256: 954c55ef6e9d081e39ad2f6a3726bc35fde565bd2c4edc03dd1bf1845c851612
+  - path: .p2p/proposals/PROP-091-governance-policy-convergence/open-questions.md
+    sha256: 01e2f91bb075fd616c080353ff30bbb5567243ccd763a9ee6fa487562336fc5b
+  - path: .p2p/proposals/PROP-091-governance-policy-convergence/proposal.md
+    sha256: ca516c3c2348bcb5a066133b0c68a9fbeb0b4db6bcd6769034defd3754844c93
+  - path: .p2p/proposals/PROP-091-governance-policy-convergence/readiness.yml
+    sha256: 66b127018673160e633a2f7a006ea688e44521f213d586967bd073f63d75013c
+  - path: .p2p/proposals/PROP-091-governance-policy-convergence/risks.md
+    sha256: c8e0e899acc4887e76a644c79c3b49735f4b13e832abad138905094c729fbae2
+  - path: .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/alternatives.md
+    sha256: 2a6720450f75ddf02c19a8e65ec0d146559494a680714ca90caa31eaed6a18eb
+  - path: .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/artifact-state.yml
+    sha256: 97b05d576dd713e4c3a74717ced978759f7385d0a090bb96c5a8c0a9a94c6893
+  - path: .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/assumptions.md
+    sha256: ffdeb5716e2116b149763fc4ee8a33bb8ccab00f67242e89bfd1864251bd780c
+  - path: .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/decision.md
+    sha256: c327af8b3f6d31fbcaf3bc5f88d72c9c15a9c50292431915a9116be2b9de7d7a
+  - path: .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/findings.md
+    sha256: 7481065b1ad987016e20b0ed46eb198f17732536b46590c39c1688c49d4d07b4
+  - path: .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/impact-map.yml
+    sha256: 818f81612bea4d4b2a8528c2e85d43c60d6efe411d62cdc99e4cf8b09d6a52f5
+  - path: .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/open-questions.md
+    sha256: b451d74fdef230ac3432b18e44bbdae0325ca82340f9510abd4625577762ea5d
+  - path: .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/proposal.md
+    sha256: bb7ee6b6d5fec677ace22950b5a21987da51e02f080c3cb105094699617e1908
+  - path: .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/readiness.yml
+    sha256: 44bee6a18a0befb4d8319179c1b5a84d328cddefb88afc4bb0ccfbecf743ffb8
+  - path: .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/risks.md
+    sha256: 89addc6758a2258496424a503c1eb1b7329635fbeb4bc9e30e409546687467e3
+  - path: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/alternatives.md
+    sha256: 34a1ff2c41f1ac98a46deb968170547d36ed811eae3d7dc620aee3e0c520cec6
+  - path: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/artifact-state.yml
+    sha256: 71dc3e5ea7c5bdd3e45db88c474a5c97d107328636d8b6bfcd8a14116e9333bd
+  - path: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/assumptions.md
+    sha256: 201a87c58500dd96e5eb774761f451958fb9883259a04549f8ce4dd0860ffc80
+  - path: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/decision.md
+    sha256: 561bf79ab8853c43f13c41ca96726972de5be2742831b7d9427e1a1fee0c2d01
+  - path: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/findings.md
+    sha256: 18668368e2e1c3d1558d45465c0ea8d03a76c71dd5056a32163ca63ead0551a6
+  - path: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/impact-map.yml
+    sha256: 7b1d5d50d9e575f784b76ddb48cdb643c0f205e2a19740629867471004795929
+  - path: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/open-questions.md
+    sha256: e59884fc07d03eb8d4f55e8f4ece832a285e35c65775ca3b2d17c46e0b2c0002
+  - path: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/proposal.md
+    sha256: ad10298705378ad0491a48f51dc67e4398fb5819a91734ff174b27495a753007
+  - path: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/readiness.yml
+    sha256: f81e8ccf954a449844afbe781d548da9bb870e2b512329203bc38725b20a4f50
+  - path: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/risks.md
+    sha256: bbbcf9ba642c96e62d2e9a9f9269df3ca93c6644bf316e8f242f423b45f0f793
+  - path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/alternatives.md
+    sha256: a41f4e7e261bc338c233b0f3f0f8fad84dbaebde03540312f0b0f4b6d8587e40
+  - path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/artifact-state.yml
+    sha256: b26bf7105dfc76f56dc96c6b0587ab855206040755c6b7aeb43907d53df83c1d
+  - path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/assumptions.md
+    sha256: 6a6be5c1247162794c6a47a33c7aaf70ab67c57e9d50fc685864dd729c68f02f
+  - path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/decision.md
+    sha256: f5711ec1a2b3732a151677c882147eee91bb07368d84b61356ff5f705d6c5c91
+  - path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/findings.md
+    sha256: 963feb839fa2e60bba029ae0205de63c1dbd127c10fed2d6efad587ad054f8bd
+  - path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/impact-map.yml
+    sha256: 5497939998e8685831896cbf6b606eb21f6a3daf22e989af57ac365f31952d73
+  - path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/open-questions.md
+    sha256: df4a1cb8a91b7127fd85016c4b9a6cbc420d28adbbb73e1c2f4d7b8ee4cfaa55
+  - path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/proposal.md
+    sha256: b941019a2bc0c682a31c8d03ff53f289f878bf6e19ac043f1cd26d6d259627e6
+  - path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/readiness.yml
+    sha256: 84beec485132e31231f5865ee6caa51aaa136e29b1d2e0958623325d60c409b9
+  - path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/risks.md
+    sha256: e8aac798455e23443c0f51737baa2326f080ad898d621c9fc21137b004894658
+  - path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/alternatives.md
+    sha256: 63a26f798fed78cf9f4d690bd1b52e2e2a21befedbcfc34432eb16760bfd67c3
+  - path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/artifact-state.yml
+    sha256: c63a34f020b33798aa5266b72f545c38b73d66bbcd94528a63206974ea8affa2
+  - path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/assumptions.md
+    sha256: c492eda9b04d01719a0e9f9972714103bfac1a93deb4a0e9c03c31bec6fcd794
+  - path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/decision.md
+    sha256: 05456536b8624abd2c57ca125297c42e31a4d639e18e8cb1c623225adf1eedd6
+  - path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/findings.md
+    sha256: a0cfe34077439a1bc9efabf1b27f24a987b0f3bcbad71bdf6515ecb1bab3fcc2
+  - path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/impact-map.yml
+    sha256: dfbdde56a9af538c4c6bbe25df1f678be9fd20644e750da6dd7f58574131292d
+  - path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/open-questions.md
+    sha256: fdb48e777e58bd1ddb0aa4f147f495907cea22a81230bd48ae64d99a0795b82b
+  - path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/proposal.md
+    sha256: 7b9ba4c9cadd61561bfea91843818cde0e44bf6ac99b77c2ea1ec8debd1f6fc5
+  - path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/readiness.yml
+    sha256: a37d085af31cf8d13f7cccce3f3cbaff601ed1867241324fdd90f4ce189f7b53
+  - path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/risks.md
+    sha256: ce36badd02ec59d568fe79076801c9954f3d3174a24dfde1efd5b16c0f17ddd4
+  - path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/alternatives.md
+    sha256: 3df56fd13e55894c47e3160975015c329527ab4945ff9d8c0e425a29f568dbcc
+  - path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/artifact-state.yml
+    sha256: 65001c83b98b454dffa1e3aa44c766e7eef72ecc26f482a479dc621631d84b27
+  - path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/assumptions.md
+    sha256: 1442820e7033d72c72d7744c652a16d7b8426c83fc1c0b3b2a8af64a323ccb2d
+  - path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/decision.md
+    sha256: d35329ef7b3f29bbdb5d0138f381694853876249b2e26534a7a047e1a0436f31
+  - path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/findings.md
+    sha256: 589ca7d773ed2b8e2a7b8a8cc01e38f06142bbe338e12c675b4ad701e8d16897
+  - path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/impact-map.yml
+    sha256: 230b85b11fb30f0c25bab5601c0042c8455f2f2d114f0626c1f876e068db4ace
+  - path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/open-questions.md
+    sha256: 38beaa3bacc096009c746ddd99ae801701a78441ca292ea0e348a4bd2b0db49b
+  - path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/proposal.md
+    sha256: 7355d457638037858d40fd6b5bc02a6a6d0409bad94cf22ec520262505e7f250
+  - path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/readiness.yml
+    sha256: a40c2ac456c4a8da9ef6277672afd9d5ef0285c5adc2b24a5f6e2d07d13ad4ef
+  - path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/risks.md
+    sha256: 2d409afa9952393ac97ffccd1d194046c62f0a1f663f098816b40d78a390a809
+  - path: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/alternatives.md
+    sha256: a8df40889a5e91de9aaefaf9250e919d6b81b37e5a16a26d66e8db31b035d881
+  - path: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/artifact-state.yml
+    sha256: ce6952df3597ffbc0ce9978d8f6e68ce94cee4eba7890bb151ae9ea20b65a7e7
+  - path: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/assumptions.md
+    sha256: a9250789b1d3331e306e11e656950e802013a3d2f401134509dbe3c54f3b91bd
+  - path: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/decision.md
+    sha256: cac567029a2e01747bc744a691517d47939524923999977bf9fb39b2c51f7dfe
+  - path: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/findings.md
+    sha256: 78c0eb046a94c29d3a4646f2449a4fea23cc9df2dc42654c7c78b797e8e218f9
+  - path: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/impact-map.yml
+    sha256: 62bb9ca6f1383fd2c2c3caa531df34d5209095b110683c6f8d8f340548f89b98
+  - path: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/open-questions.md
+    sha256: 8f5983296b6f75a6a2fec0c5b4676bb13ff564ca191d1482008914264c0de13b
+  - path: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/proposal.md
+    sha256: 20c6414130be94c8a66829cf68aa18369ba379540bfe777881d632e2e9fdd6c3
+  - path: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/readiness.yml
+    sha256: a40c2ac456c4a8da9ef6277672afd9d5ef0285c5adc2b24a5f6e2d07d13ad4ef
+  - path: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/risks.md
+    sha256: 85e1ff4f31bff28679a6c35e98d9acd56e9d79e266fc50024a4a72b691c727ce
+  - path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/alternatives.md
+    sha256: 7402f6b4a41beace6137a414f4a76e10588a2194ad091d9124a7e5855d8d1f03
+  - path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/artifact-state.yml
+    sha256: def86b3510bfe9f2667a8f1a54ed09b55bf864ce049efd81102eef77340df857
+  - path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/assumptions.md
+    sha256: 5d43c71d59f46bb7695e9951f8c02c533fe81144159d2490973fcb57bd2cc43c
+  - path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/decision.md
+    sha256: c0dfe73715912eb7b1dfee8cba23ad3e40838b7b5852aa8273ba60f905c02bce
+  - path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/findings.md
+    sha256: ae6366fae07af5d0b661d5a2c5135c9f42281b4464f13e5a9cbc3b81d0eecfe6
+  - path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/impact-map.yml
+    sha256: daf4ae1680d3a94ef4ebcc9f473f776952a8d813d38e9b879a6fdc7fbd33fdec
+  - path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/open-questions.md
+    sha256: 06fe5a285664ca45ee6c4e8962672d2f42d8ecba247a23cc3d3e93103b9a5d94
+  - path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/proposal.md
+    sha256: 8581dbc712f8378cb6f8b35c129a8a31c505eff83be25acea6d4ef0a22ebbdbc
+  - path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/readiness.yml
+    sha256: 416070567946c4a22591d053bfdcd5facc706c42fc87150ce49282be4922f21e
+  - path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/risks.md
+    sha256: b1b65aaae1fc8b00c4c743d6800c4934e7a3da53710ede9e0c3f1830fca1e307
+  - path: .p2p/registries/artifacts.yml
+    sha256: d5ad5513a474e8c0ddbf7407bfb79aed980b522bad5d83eb4db400579ce4bb7a
+  - path: .p2p/registries/decisions.yml
+    sha256: 8d71da485371b5149d27117e6947ec933683b51db62f04f72e1ed54dfc2a04a4
+  - path: .p2p/registries/proposals.yml
+    sha256: 05309d5d2eb914172852afeebf1d770e81980d9e1f6bf3b565bc7572c6ce4ca6
+  - path: .p2p/registries/readiness.yml
+    sha256: 09b5af1921adb6192448a7e8afdc95d35e2ff3b3634fcd150fb9e0ebe294cb22
+stages:
+  source_export:
+    path: outputs/latest/project.md
+    source_fingerprint_sha256: 645a05ca7c7b125041f5d733876b8b6ccd28bc90512e99fc8b9074c2e0000f3a
+    sha256: 72b2be19fcb5d51a23ac326ab3a7f4f98645421c6c8d192c7e6742c2adbd1622
+  profile:
+    path: outputs/latest/publication-profile.yml
+    profile_id: neutral-v1-standard
+    sha256: c47e93a77090506689c9cc3bc78bf524245e5c01a828fcf764a1ee5170336e78
+  curator_packet:
+    path: outputs/latest/curator-input.md
+    source_fingerprint_sha256: 645a05ca7c7b125041f5d733876b8b6ccd28bc90512e99fc8b9074c2e0000f3a
+    source_sha256: 72b2be19fcb5d51a23ac326ab3a7f4f98645421c6c8d192c7e6742c2adbd1622
+    profile_sha256: c47e93a77090506689c9cc3bc78bf524245e5c01a828fcf764a1ee5170336e78
+    sha256: 8da60dde11ac2659948545e098ae6ceebff89afedac8914e5fa06ab1c72ed74f
+  curated:
+    path: outputs/latest/project.curated.md
+    imported_from: outputs/latest/exports/project-curator-import.md
+    imported_at: '2026-07-13T15:44:30+00:00'
+    source_fingerprint_sha256: 645a05ca7c7b125041f5d733876b8b6ccd28bc90512e99fc8b9074c2e0000f3a
+    source_sha256: 72b2be19fcb5d51a23ac326ab3a7f4f98645421c6c8d192c7e6742c2adbd1622
+    profile_sha256: c47e93a77090506689c9cc3bc78bf524245e5c01a828fcf764a1ee5170336e78
+    curator_packet_sha256: 8da60dde11ac2659948545e098ae6ceebff89afedac8914e5fa06ab1c72ed74f
+    sha256: 4b259eee82844f32a9807800f8a957db8189309f7349af9333a725be6c941cad
+  validation:
+    path: outputs/latest/publication-validation.yml
+    curated_sha256: 4b259eee82844f32a9807800f8a957db8189309f7349af9333a725be6c941cad
+    profile_sha256: c47e93a77090506689c9cc3bc78bf524245e5c01a828fcf764a1ee5170336e78
+    validator_version: publication-validator-v1
+    validated_at: '2026-07-13'
+    status: passed
+    sha256: 4ecd5fc885221db2a49a566f19f08de169258824469edfc87ebef2eba8413b5e
+  render:
+    path: outputs/latest/project.pdf
+    curated_sha256: 4b259eee82844f32a9807800f8a957db8189309f7349af9333a725be6c941cad
+    validation_sha256: 4ecd5fc885221db2a49a566f19f08de169258824469edfc87ebef2eba8413b5e
+    theme: neutral-v1
+    renderer: weasyprint-neutral-v1
+    rendered_at: '2026-07-13T15:44:39+00:00'
+    status: rendered
+    sha256: 2036bc825989d1b7da69eb286a9cfdd633721bceb4bb4f4edda688699229c3bc

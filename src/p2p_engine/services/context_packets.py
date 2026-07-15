@@ -12,6 +12,7 @@ from p2p_engine.core.decision_context import (
     RetrievalRequest,
 )
 from p2p_engine.services.decision_context_retrieval import DecisionContextRetrievalService
+from p2p_engine.services.lifecycle_authority import is_active_project_projection
 
 
 class _ValidationLike(Protocol):
@@ -166,6 +167,8 @@ class ContextPacketService:
         decision_context_index: Callable[[], DecisionContextIndex] | None = None,
         proposal_artifacts: Callable[[str], _ArtifactStateLike] | None = None,
         interaction_style: Callable[[], _InteractionStyleLike] | None = None,
+        workspace_schema_status: Callable[[], object] | None = None,
+        derived_freshness_status: Callable[..., object] | None = None,
     ) -> None:
         self.project_name = project_name
         self.validate = validate
@@ -183,6 +186,8 @@ class ContextPacketService:
         self.decision_context_index = decision_context_index
         self.proposal_artifacts = proposal_artifacts
         self.interaction_style = interaction_style
+        self.workspace_schema_status = workspace_schema_status
+        self.derived_freshness_status = derived_freshness_status
 
     def context_packet(self, budget: str = "small", target: str | None = None) -> ContextPacket:
         budget = budget.strip().lower()
@@ -209,10 +214,24 @@ class ContextPacketService:
         decision_index = self.decision_context_index() if self.decision_context_index else None
         if decision_index is not None:
             context_snapshot["decision_context_index"] = decision_index
+        schema_status = self.workspace_schema_status() if self.workspace_schema_status else None
+        freshness_status = (
+            self.derived_freshness_status(
+                registry_status_snapshot=registry_status,
+                decision_context_index_snapshot=decision_index,
+                proposal_summaries_snapshot=proposals,
+            )
+            if self.derived_freshness_status
+            else None
+        )
+        if schema_status is not None:
+            context_snapshot["workspace_schema_status"] = schema_status
+        if freshness_status is not None:
+            context_snapshot["derived_freshness_status"] = freshness_status
         next_actions = self.next_actions(limit=3, context_snapshot=context_snapshot)
         project_status = self.project_state_status(
             accepted_proposals_count=len(
-                [proposal for proposal in proposals if proposal.status == "accepted"]
+                [proposal for proposal in proposals if is_active_project_projection(proposal.status)]
             ),
             next_actions_snapshot=next_actions,
         )
@@ -249,6 +268,29 @@ class ContextPacketService:
         }
         if self.interaction_style is not None:
             current_state["interaction_style"] = _interaction_style_summary(self.interaction_style())
+        if schema_status is not None:
+            recovery = getattr(schema_status, "recovery", {})
+            current_state["workspace_schema"] = {
+                "state": getattr(schema_status, "state", "unknown"),
+                "layout_status": getattr(schema_status, "layout_status", "unknown"),
+                "alignment_status": getattr(schema_status, "alignment_status", "unknown"),
+                "current_version": getattr(schema_status, "current_version", None),
+                "target_version": getattr(schema_status, "target_version", None),
+                "migration_required": bool(getattr(schema_status, "migration_required", False)),
+                "recovery_required": bool(
+                    recovery.get("required", False) if isinstance(recovery, dict) else False
+                ),
+            }
+        if freshness_status is not None:
+            nodes = tuple(getattr(freshness_status, "nodes", ()))
+            current_state["derived_freshness"] = {
+                "status": getattr(freshness_status, "status", "unknown"),
+                "attention_nodes": sum(
+                    1
+                    for node in nodes
+                    if getattr(node, "status", "") not in {"current", "current_legacy_fallback"}
+                ),
+            }
 
         nearby_context = None
         if (

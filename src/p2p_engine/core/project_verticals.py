@@ -204,6 +204,24 @@ class ProjectVerticalAddResult:
 
 
 @dataclass(frozen=True)
+class VerticalMigrationCandidate:
+    vertical_id: str
+    profile: str
+    modules: tuple[str, ...]
+    checksum: str
+    candidate_files: dict[str, bytes]
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "vertical_id": self.vertical_id,
+            "profile": self.profile,
+            "modules": list(self.modules),
+            "checksum": self.checksum,
+            "candidate_paths": sorted(self.candidate_files),
+        }
+
+
+@dataclass(frozen=True)
 class ProjectDefinitionFieldValue:
     field_id: str
     value: object
@@ -308,6 +326,7 @@ class ProposalVerticalCoverageSection:
     relevance: str
     rationale: str
     source: str = "declared"
+    provenance: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -316,6 +335,36 @@ class ProposalVerticalCoverage:
     vertical_id: str
     sections: list[ProposalVerticalCoverageSection]
     path: Path | None = None
+    schema_version: int = 1
+    provenance: dict[str, object] = field(default_factory=dict)
+    authority: str = "legacy_declared"
+
+
+@dataclass(frozen=True)
+class ProposalVerticalCoverageStatus:
+    proposal_id: str
+    state: str
+    path: Path
+    coverage: ProposalVerticalCoverage | None = None
+    message: str = ""
+
+
+@dataclass(frozen=True)
+class VerticalCoverageSuggestionSection:
+    section_id: str
+    confidence: float
+    evidence: list[dict[str, object]]
+    reasons: list[str]
+
+
+@dataclass(frozen=True)
+class ProposalVerticalCoverageSuggestion:
+    proposal_id: str
+    vertical_id: str
+    policy_version: int
+    candidates: list[VerticalCoverageSuggestionSection]
+    suppressed_sections: list[str]
+    source_paths: list[Path]
 
 
 @dataclass(frozen=True)
@@ -327,6 +376,9 @@ class VerticalSectionReview:
     gaps: list[str]
     risks: list[str]
     questions: list[str]
+    declared_proposals: list[str] = field(default_factory=list)
+    heuristic_proposals: list[str] = field(default_factory=list)
+    definition_status: str = "not_initialized"
 
 
 @dataclass(frozen=True)
@@ -339,3 +391,5 @@ class ProjectReadinessReview:
     missing_capisaldi: list[str]
     generated_questions: list[str]
     suggested_next: list[str]
+    definition_valid: bool = False
+    heuristic_mappings: dict[str, list[str]] = field(default_factory=dict)

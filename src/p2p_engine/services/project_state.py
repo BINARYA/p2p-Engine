@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+import hashlib
 import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-from p2p_engine.foundation.files import yaml_dump as _yaml_dump
+import yaml
+
+from p2p_engine.core.mutation_preview import MutationPreviewService, semantic_sha256, source_precondition
+from p2p_engine.foundation.files import read_yaml_mapping, yaml_dump as _yaml_dump
+from p2p_engine.services.lifecycle_authority import PROPOSAL_LIFECYCLE_AUTHORITY_POLICY_VERSION
+from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 
 
 class RegistryStatusLike(Protocol):
@@ -48,6 +54,7 @@ class ProjectStateService:
         registry_status: Callable[[], RegistryStatusLike],
         project_brief_context: Callable[[RegistryStatusLike], str],
         validate_yaml_key: Callable[[str, str], None],
+        atomic_writer: AtomicMutationWriter | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -57,25 +64,14 @@ class ProjectStateService:
         self.registry_status = registry_status
         self.project_brief_context = project_brief_context
         self.validate_yaml_key = validate_yaml_key
+        self.atomic_writer = atomic_writer or AtomicMutationWriter(root=root, p2p_dir=p2p_dir)
 
     def refresh(self) -> list[Path]:
         project_dir = self.p2p_dir / "project"
         features_dir = project_dir / "features"
-        exports_dir = project_dir / "exports"
-        for directory in (
-            project_dir,
-            features_dir,
-            exports_dir / "markdown",
-            exports_dir / "openspec",
-            exports_dir / "speckit",
-        ):
-            directory.mkdir(parents=True, exist_ok=True)
-
         accepted = self.accepted_proposals()
         project_name = self.project_name()
-        written: list[Path] = []
-
-        files = {
+        files: dict[Path, str] = {
             project_dir / "overview.md": project_overview_markdown(project_name, accepted),
             project_dir / "problem.md": project_problem_markdown(accepted),
             project_dir / "scope.md": project_scope_markdown(accepted),
@@ -95,26 +91,136 @@ class ProjectStateService:
                 }
             ),
         }
-        for path, content in files.items():
-            path.write_text(content, encoding="utf-8")
-            written.append(path.relative_to(self.root))
-        conflicts_path = project_dir / "conflicts.yml"
-        if not conflicts_path.exists():
-            conflicts_path.write_text(_yaml_dump({"conflicts": []}), encoding="utf-8")
-            written.append(conflicts_path.relative_to(self.root))
-
         for item in accepted:
             feature_dir = features_dir / str(item["feature_id"])
-            feature_dir.mkdir(parents=True, exist_ok=True)
-            feature_files = {
+            files.update({
                 feature_dir / "feature.md": feature_markdown(item),
                 feature_dir / "tasks.yml": _read_optional(Path(item["path"]) / "tasks.yml") or "tasks: []\n",
                 feature_dir / "actions.yml": _yaml_dump({"actions": []}),
+            })
+
+        expected_paths = {path.relative_to(self.root).as_posix() for path in files}
+        manifest_path = project_dir / "projection-manifest.yml"
+        manifest_relative = manifest_path.relative_to(self.root).as_posix()
+        owned_paths = sorted({*expected_paths, manifest_relative})
+        stale_paths, stale_dirs = self._stale_owned_projection_paths(set(owned_paths))
+        manifest = {
+            "project_projection": {
+                "manifest_version": 1,
+                "owner": "ProjectStateService",
+                "source_fingerprint_sha256": self.source_fingerprint(accepted),
+                "lifecycle_authority_policy_version": PROPOSAL_LIFECYCLE_AUTHORITY_POLICY_VERSION,
+                "accepted_projection_count": len(accepted),
+                "owned_paths": owned_paths,
             }
-            for path, content in feature_files.items():
-                path.write_text(content, encoding="utf-8")
-                written.append(path.relative_to(self.root))
+        }
+        files[manifest_path] = _yaml_dump(manifest)
+        candidates: dict[str, bytes | None] = {
+            path.relative_to(self.root).as_posix(): content.encode("utf-8")
+            for path, content in files.items()
+        }
+        for relative in stale_paths:
+            candidates[relative] = None
+        conflicts_path = project_dir / "conflicts.yml"
+        conflicts_relative = conflicts_path.relative_to(self.root).as_posix()
+        if not conflicts_path.exists():
+            candidates[conflicts_relative] = _yaml_dump({"conflicts": []}).encode("utf-8")
+        sources = tuple(
+            source_precondition(relative, (self.root / relative).read_bytes() if (self.root / relative).exists() else None)
+            for relative in sorted(candidates)
+        )
+        if all(
+            content is not None
+            and (self.root / relative).exists()
+            and (self.root / relative).read_bytes() == content
+            for relative, content in candidates.items()
+        ):
+            return [Path(relative) for relative in owned_paths]
+        token = MutationPreviewService.token(
+            operation_id="project-projection-refresh",
+            targets=tuple(candidates),
+            sources=sources,
+            candidate_semantics={
+                relative: (
+                    {"deleted": True}
+                    if content is None
+                    else semantic_sha256(yaml.safe_load(content.decode("utf-8")))
+                    if relative.endswith((".yml", ".yaml"))
+                    else hashlib.sha256(content).hexdigest()
+                )
+                for relative, content in candidates.items()
+            },
+        )
+        result = self.atomic_writer.apply(
+            operation_id="project-projection-refresh",
+            candidates=candidates,
+            sources=sources,
+            preview_token=token,
+            actor="system",
+        )
+        if result.status != "applied":
+            raise ValueError(result.message or f"Project projection refresh failed: {result.status}")
+        for directory in sorted(stale_dirs, key=lambda item: len(item.parts), reverse=True):
+            try:
+                directory.rmdir()
+            except OSError:
+                pass
+        written = [Path(relative) for relative in owned_paths]
+        if conflicts_relative in candidates:
+            written.append(conflicts_path.relative_to(self.root))
         return written
+
+    def source_fingerprint(self, accepted: list[dict[str, object]] | None = None) -> str:
+        records = accepted if accepted is not None else self.accepted_proposals()
+        inputs: list[dict[str, object]] = []
+        for item in records:
+            proposal_dir = Path(item["path"])
+            files = []
+            for name in ("proposal.md", "decision.md", "tasks.yml"):
+                path = proposal_dir / name
+                files.append(
+                    {
+                        "name": name,
+                        "sha256": hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None,
+                    }
+                )
+            inputs.append(
+                {
+                    "proposal_id": item["proposal_id"],
+                    "status": item["status"],
+                    "feature_id": item["feature_id"],
+                    "files": files,
+                }
+            )
+        return semantic_sha256(inputs)
+
+    def projection_manifest(self) -> dict[str, object]:
+        path = self.p2p_dir / "project" / "projection-manifest.yml"
+        return read_yaml_mapping(path, default={}) if path.exists() else {}
+
+    def _stale_owned_projection_paths(self, expected_paths: set[str]) -> tuple[set[str], set[Path]]:
+        manifest = self.projection_manifest()
+        data = manifest.get("project_projection") if isinstance(manifest, dict) else None
+        prior_owned = data.get("owned_paths") if isinstance(data, dict) else None
+        owned: set[str] = {
+            str(path) for path in prior_owned if isinstance(path, str)
+        } if isinstance(prior_owned, list) else set()
+        features_dir = self.p2p_dir / "project" / "features"
+        stale_dirs: set[Path] = set()
+        if features_dir.exists():
+            for directory in features_dir.iterdir():
+                if not directory.is_dir():
+                    continue
+                feature_path = directory / "feature.md"
+                generated = feature_path.exists() and "## Provenance" in feature_path.read_text(encoding="utf-8")
+                if generated:
+                    owned.update(path.relative_to(self.root).as_posix() for path in directory.rglob("*") if path.is_file())
+        stale = {path for path in owned - expected_paths if (self.root / path).is_file()}
+        for relative in stale:
+            parent = (self.root / relative).parent
+            if parent.parent == features_dir:
+                stale_dirs.add(parent)
+        return stale, stale_dirs
 
     def status(
         self,

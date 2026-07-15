@@ -38,6 +38,7 @@ from p2p_engine.core.runtime_contract import (
     RUNTIME_STATUS_MISSING_CONTRACT,
 )
 from p2p_engine.services.runtime_contract import RuntimeContractService
+from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 from p2p_engine.storage.filesystem import P2PWorkspace
 
 
@@ -231,6 +232,40 @@ def test_runtime_contract_service_reports_incompatible_runtime(tmp_path: Path) -
     assert status.requires == "==0.1.9"
 
 
+def test_workspace_runtime_contract_update_repairs_incompatible_contract(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Runtime Repair")
+    service = workspace._runtime_contract_service()
+    incompatible_contract = {
+        "runtime_contract": {"schema_version": 1},
+        "runtime": {"p2p": {"requires": "==0.1.9", "recommended": "0.1.9"}},
+    }
+    _write_yaml(service.contract_path, incompatible_contract)
+    service.setup_guide_path.write_text(
+        service.render_setup_guide(service._contract_from_payload(incompatible_contract)),
+        encoding="utf-8",
+    )
+    reason = "Move the project to the active runtime line."
+    preview = workspace.runtime_contract_update_preview(
+        requires=">=0.2.0,<0.3.0",
+        recommended=P2P_ENGINE_VERSION,
+        reason=reason,
+        actor="owner",
+    )
+
+    result = workspace.runtime_contract_update_apply(
+        requires=">=0.2.0,<0.3.0",
+        recommended=P2P_ENGINE_VERSION,
+        expected_state_token=preview.expected_state_token or "",
+        confirm=True,
+        reason=reason,
+        actor="owner",
+    )
+
+    assert result.status == RUNTIME_CONTRACT_UPDATE_STATUS_UPDATED
+    assert workspace.runtime_status().state == RUNTIME_STATUS_COMPATIBLE
+
+
 def test_runtime_setup_guide_drift_uses_full_rendered_content(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Runtime Setup")
@@ -381,11 +416,23 @@ def test_runtime_contract_update_apply_updates_contract_and_setup_guide(tmp_path
     assert "0.2.4" in service.setup_guide_path.read_text(encoding="utf-8")
 
 
-def test_runtime_contract_update_reports_setup_guide_write_failure_without_contract_change(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    service = RuntimeContractService(root=tmp_path, p2p_dir=tmp_path / ".p2p", current_version="0.2.3")
+def test_runtime_contract_update_rolls_back_when_first_target_write_fails(tmp_path: Path) -> None:
+    def fail(stage: str, target: str) -> None:
+        if stage == "before_replace" and target == ".p2p/project/runtime.yml":
+            raise OSError("contract write failed")
+
+    writer = AtomicMutationWriter(
+        root=tmp_path,
+        p2p_dir=tmp_path / ".p2p",
+        allowed_repository_targets=("P2P-SETUP.md",),
+        failure_injector=fail,
+    )
+    service = RuntimeContractService(
+        root=tmp_path,
+        p2p_dir=tmp_path / ".p2p",
+        current_version="0.2.3",
+        atomic_writer=writer,
+    )
     _write_yaml(service.project_manifest_path, _project_manifest(required=True))
     _write_yaml(
         service.contract_path,
@@ -395,11 +442,6 @@ def test_runtime_contract_update_reports_setup_guide_write_failure_without_contr
         },
     )
     preview = service.preview_update(requires=">=0.2.0,<0.3", recommended="0.2.4")
-
-    def fail_write_text(*args, **kwargs) -> None:
-        raise OSError("setup guide write failed")
-
-    monkeypatch.setattr("p2p_engine.services.runtime_contract.write_text_atomic", fail_write_text)
 
     result = service.apply_update(
         requires=">=0.2.0,<0.3",
@@ -414,11 +456,23 @@ def test_runtime_contract_update_reports_setup_guide_write_failure_without_contr
     assert payload["runtime"]["p2p"]["recommended"] == "0.2.1"
 
 
-def test_runtime_contract_update_reports_contract_write_failure_after_setup_change(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    service = RuntimeContractService(root=tmp_path, p2p_dir=tmp_path / ".p2p", current_version="0.2.3")
+def test_runtime_contract_update_rolls_back_all_targets_after_later_failure(tmp_path: Path) -> None:
+    def fail(stage: str, target: str) -> None:
+        if stage == "after_replace" and target == "P2P-SETUP.md":
+            raise OSError("setup guide write failed")
+
+    writer = AtomicMutationWriter(
+        root=tmp_path,
+        p2p_dir=tmp_path / ".p2p",
+        allowed_repository_targets=("P2P-SETUP.md",),
+        failure_injector=fail,
+    )
+    service = RuntimeContractService(
+        root=tmp_path,
+        p2p_dir=tmp_path / ".p2p",
+        current_version="0.2.3",
+        atomic_writer=writer,
+    )
     _write_yaml(service.project_manifest_path, _project_manifest(required=True))
     _write_yaml(
         service.contract_path,
@@ -429,11 +483,6 @@ def test_runtime_contract_update_reports_contract_write_failure_after_setup_chan
     )
     preview = service.preview_update(requires=">=0.2.0,<0.3", recommended="0.2.4")
 
-    def fail_write_yaml(*args, **kwargs) -> None:
-        raise OSError("contract write failed")
-
-    monkeypatch.setattr("p2p_engine.services.runtime_contract.write_yaml_atomic", fail_write_yaml)
-
     result = service.apply_update(
         requires=">=0.2.0,<0.3",
         recommended="0.2.4",
@@ -443,9 +492,9 @@ def test_runtime_contract_update_reports_contract_write_failure_after_setup_chan
 
     payload = yaml.safe_load(service.contract_path.read_text(encoding="utf-8"))
     assert result.status == RUNTIME_CONTRACT_UPDATE_STATUS_PARTIAL_FAILURE
-    assert result.files_changed == ["P2P-SETUP.md"]
+    assert result.files_changed == []
     assert payload["runtime"]["p2p"]["recommended"] == "0.2.1"
-    assert "0.2.4" in service.setup_guide_path.read_text(encoding="utf-8")
+    assert not service.setup_guide_path.exists()
 
 
 def test_runtime_contract_update_blocks_unmanaged_setup_guide(tmp_path: Path) -> None:

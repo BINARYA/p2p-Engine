@@ -9,6 +9,7 @@ from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
     yaml_dump as _yaml_dump,
 )
+from p2p_engine.services.lifecycle_authority import is_active_project_projection
 
 
 @dataclass(frozen=True)
@@ -24,6 +25,8 @@ class ProjectAssessment:
     suggested_actions: list[str]
     maturity_status: str
     maturity_score: int | None
+    basis: dict[str, object] | None = None
+    freshness: dict[str, object] | None = None
 
 
 class ProjectAssessmentService:
@@ -89,6 +92,8 @@ class ProjectAssessmentService:
             suggested_actions=[str(item) for item in suggested_actions] if isinstance(suggested_actions, list) else [],
             maturity_status=str(maturity.get("status") or "not_assessed"),
             maturity_score=maturity.get("score") if isinstance(maturity.get("score"), int) else None,
+            basis=data.get("basis") if isinstance(data.get("basis"), dict) else {"completion": "legacy_deterministic_readiness", "maturity": "heuristic_keyword_rubric"},
+            freshness=data.get("freshness") if isinstance(data.get("freshness"), dict) else None,
         )
 
     def compute(self) -> ProjectAssessment:
@@ -102,7 +107,10 @@ class ProjectAssessmentService:
         next_actions = self.next_actions(3)
 
         draft_proposals = [proposal for proposal in proposals if getattr(proposal, "status", None) == "draft"]
-        accepted_proposals = [proposal for proposal in proposals if getattr(proposal, "status", None) == "accepted"]
+        accepted_proposals = [
+            proposal for proposal in proposals
+            if is_active_project_projection(str(getattr(proposal, "status", "")))
+        ]
         open_choices = [
             choice
             for choice in choices
@@ -262,6 +270,11 @@ class ProjectAssessmentService:
             suggested_actions=suggested_actions,
             maturity_status=maturity_status,
             maturity_score=maturity_score,
+            basis={
+                "completion": "legacy_deterministic_readiness",
+                "maturity": "heuristic_keyword_rubric",
+                "authoritative_project_definition": False,
+            },
         )
 
 
@@ -281,4 +294,6 @@ def project_assessment_payload(assessment: ProjectAssessment) -> dict[str, objec
         "factors": assessment.factors,
         "gaps": assessment.gaps,
         "suggested_actions": assessment.suggested_actions,
+        "basis": assessment.basis or {},
+        "freshness": assessment.freshness or {"status": "not_assessed"},
     }

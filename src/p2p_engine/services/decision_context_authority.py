@@ -208,27 +208,33 @@ class SourceMetadataResolver:
                     self.confirmations[(owner_id, filename)] = confirmation
 
     def resolve(self, document: SourceDocument, default: SourceAuthority) -> SourceAuthority:
-        if document.classification != SourceClassification.GOVERNED_EVIDENCE:
+        tracked_semantic_source = document.source_kind == SourceKind.VERTICAL_COVERAGE
+        if document.classification != SourceClassification.GOVERNED_EVIDENCE and not tracked_semantic_source:
             return default
         filename = document.path.rsplit("/", 1)[-1]
         confirmation = self.confirmations.get((document.owner_id, filename), "")
+        canonicality = (
+            Canonicality.CANONICAL
+            if tracked_semantic_source
+            else Canonicality.GOVERNED_IMPORT
+        )
         if confirmation == "owner_confirmed":
             return SourceAuthority(
-                Canonicality.GOVERNED_IMPORT,
+                canonicality,
                 Authority.OWNER_CONFIRMED_EVIDENCE,
                 Activation.ACTIVE,
                 Confidence.EXPLICIT,
             )
         if confirmation == "system":
             return SourceAuthority(
-                Canonicality.GOVERNED_IMPORT,
+                canonicality,
                 Authority.SYSTEM_STATE,
                 Activation.ACTIVE,
                 Confidence.EXPLICIT,
             )
         if confirmation == "agent_proposed":
             return SourceAuthority(
-                Canonicality.GOVERNED_IMPORT,
+                canonicality,
                 Authority.AGENT_PROPOSED_EVIDENCE,
                 Activation.EXPLORATORY,
                 Confidence.EXPLICIT,
@@ -238,3 +244,7 @@ class SourceMetadataResolver:
 
 def lifecycle_rules() -> Mapping[str, LifecycleAuthority]:
     return _LIFECYCLE_RULES
+
+
+def lifecycle_state_tokens() -> tuple[str, ...]:
+    return tuple(sorted(_LIFECYCLE_RULES))

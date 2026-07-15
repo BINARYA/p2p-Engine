@@ -66,6 +66,8 @@ def test_project_state_service_refresh_writes_project_and_feature_artifacts(tmp_
     written = service.refresh()
 
     assert Path(".p2p/project/overview.md") in written
+    assert Path(".p2p/project/project-swot.md") in written
+    assert Path(".p2p/project/projection-manifest.yml") in written
     assert Path(".p2p/project/features/project-state/feature.md") in written
     overview = (tmp_path / ".p2p" / "project" / "overview.md").read_text(encoding="utf-8")
     feature = (tmp_path / ".p2p" / "project" / "features" / "project-state" / "feature.md").read_text(
@@ -141,3 +143,19 @@ def test_workspace_project_state_facade_delegates(tmp_path) -> None:
     assert status.accepted_proposals == 1
     assert "Facade State" in overview
     assert prompt.prompt_path == Path(".p2p/project/brief.prompt.md")
+
+
+def test_project_refresh_is_idempotent_and_preserves_projection_manifest(tmp_path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Idempotent project refresh")
+    proposal = workspace.create_proposal("Stable Projection")
+    workspace.record_decision(proposal.proposal_id, DecisionOutcome.accepted, "Ready.", "owner")
+
+    first_written = workspace.refresh_project_state()
+    manifest_path = tmp_path / ".p2p" / "project" / "projection-manifest.yml"
+    first_manifest = manifest_path.read_bytes()
+    second_written = workspace.refresh_project_state()
+
+    assert manifest_path.read_bytes() == first_manifest
+    assert Path(".p2p/project/projection-manifest.yml") in first_written
+    assert Path(".p2p/project/projection-manifest.yml") in second_written

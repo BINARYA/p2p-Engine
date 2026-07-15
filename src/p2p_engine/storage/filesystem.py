@@ -6,12 +6,18 @@ from pathlib import Path
 from p2p_engine.core.contribution import Contribution, ContributionType
 from p2p_engine.core.decision import Decision, DecisionOutcome
 from p2p_engine.core.decision_context import DecisionContextIndex
+from p2p_engine.core.derived_freshness import DerivedFreshnessStatus
+from p2p_engine.core.mutation_preview import MutationPreview, MutationResult
+from p2p_engine.core.project_metadata import ProjectMetadataView
+from p2p_engine.core.project_progress import ProjectProgress
 from p2p_engine.core.proposal import Proposal
 from p2p_engine.core.project_verticals import (
     ActiveProjectVertical,
     CustomVerticalCandidate,
     ProjectDefinitionPatchResult,
     ProjectDefinitionView,
+    ProposalVerticalCoverageStatus,
+    ProposalVerticalCoverageSuggestion,
     ProjectReadinessReview,
     ProjectVerticalAddResult,
     ProjectVerticalContext,
@@ -28,6 +34,14 @@ from p2p_engine.core.runtime_contract import (
     RuntimeContractUpdateResult,
     RuntimeStatus,
     RuntimeWritePreflight,
+)
+from p2p_engine.core.workspace_schema import (
+    CompatibilitySnapshot,
+    MigrationApplyResult,
+    MigrationPlan,
+    MigrationRecoveryResult,
+    MigrationRecoveryStatus,
+    WorkspaceSchemaStatus,
 )
 from p2p_engine.core.interaction_style import InteractionStyleView
 from p2p_engine.foundation.files import (
@@ -74,6 +88,7 @@ from p2p_engine.services.next_actions import NextAction, NextActionService
 from p2p_engine.services.permissions import PermissionActor, PermissionsService
 from p2p_engine.services.context_packets import ContextPacket, ContextPacketService
 from p2p_engine.services.decision_context import ProjectDecisionContextService
+from p2p_engine.services.derived_freshness import DerivedFreshnessService
 from p2p_engine.services.proposal_artifacts import (
     ArtifactImportKind,
     ArtifactImportResult,
@@ -101,6 +116,8 @@ from p2p_engine.services.project_maturity import (
     ProjectRubrics,
 )
 from p2p_engine.services.project_interaction_style import ProjectInteractionStyleService
+from p2p_engine.services.project_metadata import ProjectMetadataService
+from p2p_engine.services.project_progress import ProjectProgressService
 from p2p_engine.services.project_verticals import ProjectVerticalService
 from p2p_engine.services.project_initialization import (
     ProjectInitializationResult,
@@ -138,6 +155,10 @@ from p2p_engine.services.spec_export import (
 )
 from p2p_engine.services.sync import SyncResult, SyncService, SyncStatus
 from p2p_engine.services.validation import ValidationFinding, ValidationResult, ValidationService
+from p2p_engine.services.workspace_schema import WorkspaceSchemaService
+from p2p_engine.services.workspace_compatibility import WorkspaceCompatibilityService
+from p2p_engine.services.workspace_migrations import WorkspaceMigrationService
+from p2p_engine.services.workspace_transactions import MigrationLockService
 from p2p_engine.services.visible_project_export import (
     VisibleProjectExportResult,
     VisibleProjectExportService,
@@ -210,6 +231,7 @@ class P2PWorkspace:
         self._consent_service_instance: ConsentService | None = None
         self._context_packet_service_instance: ContextPacketService | None = None
         self._decision_context_service_instance: ProjectDecisionContextService | None = None
+        self._derived_freshness_service_instance: DerivedFreshnessService | None = None
         self._conflict_memory_service_instance: ConflictMemoryService | None = None
         self._governance_service_instance: GovernanceService | None = None
         self._governance_policy_service_instance: GovernancePolicyService | None = None
@@ -223,6 +245,8 @@ class P2PWorkspace:
         self._project_interaction_style_service_instance: ProjectInteractionStyleService | None = None
         self._project_initialization_service_instance: ProjectInitializationService | None = None
         self._project_maturity_service_instance: ProjectMaturityService | None = None
+        self._project_metadata_service_instance: ProjectMetadataService | None = None
+        self._project_progress_service_instance: ProjectProgressService | None = None
         self._project_publication_service_instance: ProjectPublicationService | None = None
         self._project_vertical_service_instance: ProjectVerticalService | None = None
         self._project_state_service_instance: ProjectStateService | None = None
@@ -245,6 +269,10 @@ class P2PWorkspace:
         self._work_branch_service_instance: WorkBranchService | None = None
         self._work_planning_service_instance: WorkPlanningService | None = None
         self._workspace_status_service_instance: WorkspaceStatusService | None = None
+        self._workspace_schema_service_instance: WorkspaceSchemaService | None = None
+        self._workspace_compatibility_service_instance: WorkspaceCompatibilityService | None = None
+        self._workspace_migration_service_instance: WorkspaceMigrationService | None = None
+        self._migration_lock_service_instance: MigrationLockService | None = None
 
     def _permissions_service(self) -> PermissionsService:
         if self._permissions_service_instance is None:
@@ -293,6 +321,7 @@ class P2PWorkspace:
                 interaction_style_validation_findings=self._project_interaction_style_service().validation_findings,
                 governance_validation_findings=self._governance_policy_service().validation_findings,
                 runtime_validation_findings=self._runtime_contract_service().validation_findings,
+                workspace_schema_validation_findings=self._workspace_schema_service().validation_findings,
             )
         return self._validation_service_instance
 
@@ -315,6 +344,8 @@ class P2PWorkspace:
                 decision_context_index=self.decision_context_index,
                 proposal_artifacts=self.read_proposal_artifacts,
                 interaction_style=self.project_interaction_style,
+                workspace_schema_status=self.workspace_schema_status,
+                derived_freshness_status=self.project_freshness,
             )
         return self._context_packet_service_instance
 
@@ -325,6 +356,21 @@ class P2PWorkspace:
                 p2p_dir=self.p2p_dir,
             )
         return self._decision_context_service_instance
+
+    def _derived_freshness_service(self) -> DerivedFreshnessService:
+        if self._derived_freshness_service_instance is None:
+            self._derived_freshness_service_instance = DerivedFreshnessService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                registry_status=self.registry_status,
+                project_state_service=self._project_state_service(),
+                decision_context_index=self.decision_context_index,
+                project_progress=self.project_progress,
+                software_spec_statuses=self.software_spec_statuses,
+                visible_export_status=self.visible_project_definition_export_status,
+                publication_status=self.project_publication_status,
+            )
+        return self._derived_freshness_service_instance
 
     def _proposal_document_service(self) -> ProposalDocumentService:
         if self._proposal_document_service_instance is None:
@@ -475,6 +521,24 @@ class P2PWorkspace:
             )
         return self._project_interaction_style_service_instance
 
+    def _project_metadata_service(self) -> ProjectMetadataService:
+        if self._project_metadata_service_instance is None:
+            self._project_metadata_service_instance = ProjectMetadataService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+            )
+        return self._project_metadata_service_instance
+
+    def _project_progress_service(self) -> ProjectProgressService:
+        if self._project_progress_service_instance is None:
+            self._project_progress_service_instance = ProjectProgressService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                vertical_service=self._project_vertical_service(),
+                proposal_summaries=self.proposal_summaries,
+            )
+        return self._project_progress_service_instance
+
     def _project_vertical_service(self) -> ProjectVerticalService:
         if self._project_vertical_service_instance is None:
             self._project_vertical_service_instance = ProjectVerticalService(
@@ -497,6 +561,8 @@ class P2PWorkspace:
                 read_proposal_readiness=self.read_proposal_readiness,
                 decision_context_index=self.decision_context_index,
                 show_choice=self.show_choice,
+                workspace_schema_status=self.workspace_schema_status,
+                derived_freshness_status=self.project_freshness,
             )
         return self._next_action_service_instance
 
@@ -535,6 +601,8 @@ class P2PWorkspace:
                 p2p_dir=self.p2p_dir,
                 find_proposal_dir=self._proposal_document_service().find_dir,
                 decision_context_index=self.decision_context_index,
+                vertical_service=self._project_vertical_service(),
+                artifact_state_service=self._proposal_artifact_state_service(),
             )
         return self._proposal_artifact_service_instance
 
@@ -744,8 +812,55 @@ class P2PWorkspace:
 
     def _workspace_status_service(self) -> WorkspaceStatusService:
         if self._workspace_status_service_instance is None:
-            self._workspace_status_service_instance = WorkspaceStatusService(root=self.root, p2p_dir=self.p2p_dir)
+            self._workspace_status_service_instance = WorkspaceStatusService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                workspace_schema_status=self.workspace_schema_status,
+                derived_freshness_status=self.project_freshness,
+            )
         return self._workspace_status_service_instance
+
+    def _workspace_schema_service(self) -> WorkspaceSchemaService:
+        if self._workspace_schema_service_instance is None:
+            self._workspace_schema_service_instance = WorkspaceSchemaService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                recovery_status=lambda: self._workspace_migration_service().recovery_status(),
+            )
+        return self._workspace_schema_service_instance
+
+    def _migration_lock_service(self) -> MigrationLockService:
+        if self._migration_lock_service_instance is None:
+            self._migration_lock_service_instance = MigrationLockService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+            )
+        return self._migration_lock_service_instance
+
+    def _workspace_compatibility_service(self) -> WorkspaceCompatibilityService:
+        if self._workspace_compatibility_service_instance is None:
+            self._workspace_compatibility_service_instance = WorkspaceCompatibilityService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                schema_service=self._workspace_schema_service(),
+                runtime_status=self.runtime_status,
+                vertical_context=self.project_vertical_context,
+                decision_context_index=self.decision_context_index,
+                freshness_status=self.project_freshness,
+                vertical_candidate_renderer=self._project_vertical_service().render_migration_candidate,
+            )
+        return self._workspace_compatibility_service_instance
+
+    def _workspace_migration_service(self) -> WorkspaceMigrationService:
+        if self._workspace_migration_service_instance is None:
+            self._workspace_migration_service_instance = WorkspaceMigrationService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                compatibility=self._workspace_compatibility_service(),
+                schema_service=self._workspace_schema_service(),
+                lock_service=self._migration_lock_service(),
+            )
+        return self._workspace_migration_service_instance
 
     def _project_initialization_service(self) -> ProjectInitializationService:
         if self._project_initialization_service_instance is None:
@@ -1153,6 +1268,65 @@ class P2PWorkspace:
     def runtime_status(self) -> RuntimeStatus:
         return self._runtime_contract_service().status()
 
+    def workspace_schema_status(self) -> WorkspaceSchemaStatus:
+        return self._workspace_schema_service().status()
+
+    def workspace_compatibility_snapshot(self) -> CompatibilitySnapshot:
+        return self._workspace_compatibility_service().snapshot()
+
+    def workspace_migration_plan(
+        self,
+        target_version: int = 1,
+        owner_inputs: dict[str, object] | None = None,
+    ) -> MigrationPlan:
+        return self._workspace_compatibility_service().plan(target_version, owner_inputs)
+
+    def workspace_migration_apply(
+        self,
+        *,
+        target_version: int,
+        owner_inputs: dict[str, object] | None,
+        plan_fingerprint: str,
+        actor: str,
+        confirm: bool,
+    ) -> MigrationApplyResult:
+        return self._workspace_migration_service().apply(
+            target_version=target_version,
+            owner_inputs=owner_inputs,
+            plan_fingerprint=plan_fingerprint,
+            actor=actor,
+            confirm=confirm,
+        )
+
+    def workspace_migration_recovery_status(self) -> MigrationRecoveryStatus:
+        return self._workspace_migration_service().recovery_status()
+
+    def workspace_migration_rollback(
+        self,
+        *,
+        transaction_id: str,
+        actor: str,
+        confirm: bool,
+    ) -> MigrationRecoveryResult:
+        return self._workspace_migration_service().rollback(
+            transaction_id=transaction_id,
+            actor=actor,
+            confirm=confirm,
+        )
+
+    def workspace_migration_resume(
+        self,
+        *,
+        transaction_id: str,
+        actor: str,
+        confirm: bool,
+    ) -> MigrationRecoveryResult:
+        return self._workspace_migration_service().resume(
+            transaction_id=transaction_id,
+            actor=actor,
+            confirm=confirm,
+        )
+
     def runtime_write_preflight(self, operation: str) -> RuntimeWritePreflight:
         return self._runtime_contract_service().write_preflight(operation)
 
@@ -1184,6 +1358,9 @@ class P2PWorkspace:
         decision: str = "",
         actor: str = "owner",
     ) -> RuntimeContractUpdateResult:
+        # Updating an incompatible contract is the recovery path, so the current
+        # contract cannot gate this operation. The migration lock still must.
+        self._migration_lock_service().require_write_available("runtime_contract_update")
         return self._runtime_contract_service().apply_update(
             requires=requires,
             recommended=recommended,
@@ -1202,6 +1379,7 @@ class P2PWorkspace:
         confirm: bool = False,
         actor: str = "owner",
     ) -> RuntimeContractAdoptionResult:
+        self._migration_lock_service().require_write_available("runtime_contract_adopt")
         return self._runtime_contract_service().adopt_contract(
             requires=requires,
             recommended=recommended,
@@ -1210,6 +1388,7 @@ class P2PWorkspace:
         )
 
     def _ensure_runtime_write_allowed(self, operation: str) -> RuntimeWritePreflight:
+        self._migration_lock_service().require_write_available(operation)
         if not self.p2p_dir.exists() or not (self.p2p_dir / "project.yml").exists():
             return self._runtime_contract_service().write_preflight(operation)
         preflight = self._runtime_contract_service().write_preflight(operation)
@@ -1468,6 +1647,37 @@ class P2PWorkspace:
         self._ensure_runtime_write_allowed("proposal_impact_import")
         return self._proposal_artifact_service().import_impact(proposal_id, source)
 
+    def preview_proposal_impact(
+        self,
+        proposal_id: str,
+        artifacts: dict[str, str],
+        *,
+        actor: str,
+    ) -> MutationPreview:
+        return self._proposal_artifact_service().preview_impact(
+            proposal_id,
+            artifacts,
+            actor=actor,
+        )
+
+    def apply_proposal_impact(
+        self,
+        proposal_id: str,
+        artifacts: dict[str, str],
+        *,
+        preview_token: str,
+        actor: str,
+        confirm: bool,
+    ) -> MutationResult:
+        self._ensure_runtime_write_allowed("proposal_impact_apply")
+        return self._proposal_artifact_service().apply_impact(
+            proposal_id,
+            artifacts,
+            preview_token=preview_token,
+            actor=actor,
+            confirm=confirm,
+        )
+
     def import_proposal_artifact_content(
         self,
         proposal_id: str,
@@ -1674,9 +1884,105 @@ class P2PWorkspace:
     def project_definition_view(self) -> ProjectDefinitionView:
         return self._project_vertical_service().project_definition_view()
 
+    def proposal_vertical_coverage_status(self, proposal_id: str) -> ProposalVerticalCoverageStatus:
+        return self._project_vertical_service().proposal_vertical_coverage_status(proposal_id)
+
+    def suggest_proposal_vertical_coverage(self, proposal_id: str) -> ProposalVerticalCoverageSuggestion:
+        return self._project_vertical_service().suggest_proposal_vertical_coverage(proposal_id)
+
+    def preview_proposal_vertical_coverage(
+        self,
+        proposal_id: str,
+        payload: dict[str, object],
+        *,
+        actor: str,
+    ) -> MutationPreview:
+        return self._proposal_artifact_service().preview_vertical_coverage(proposal_id, payload, actor=actor)
+
+    def apply_proposal_vertical_coverage(
+        self,
+        proposal_id: str,
+        payload: dict[str, object],
+        *,
+        preview_token: str,
+        actor: str,
+        confirm: bool,
+    ) -> MutationResult:
+        self._ensure_runtime_write_allowed("proposal_vertical_coverage_apply")
+        return self._proposal_artifact_service().apply_vertical_coverage(
+            proposal_id,
+            payload,
+            preview_token=preview_token,
+            actor=actor,
+            confirm=confirm,
+        )
+
+    def project_metadata_view(self) -> ProjectMetadataView:
+        return self._project_metadata_service().show()
+
+    def project_progress(
+        self,
+        *,
+        proposal_summaries_snapshot: list[ProposalSummary] | None = None,
+    ) -> ProjectProgress:
+        return self._project_progress_service().status(
+            proposal_summaries_snapshot=proposal_summaries_snapshot,
+        )
+
+    def project_freshness(
+        self,
+        *,
+        registry_status_snapshot: object | None = None,
+        decision_context_index_snapshot: object | None = None,
+        proposal_summaries_snapshot: list[ProposalSummary] | None = None,
+    ) -> DerivedFreshnessStatus:
+        return self._derived_freshness_service().status(
+            registry_status_snapshot=registry_status_snapshot,
+            decision_context_index_snapshot=decision_context_index_snapshot,
+            proposal_summaries_snapshot=proposal_summaries_snapshot,
+        )
+
+    def preview_project_metadata_update(self, patch_path: Path, *, actor: str) -> MutationPreview:
+        return self._project_metadata_service().preview(patch_path, actor=actor)
+
+    def apply_project_metadata_update(
+        self,
+        patch_path: Path,
+        *,
+        preview_token: str,
+        actor: str,
+        confirm: bool,
+    ) -> MutationResult:
+        self._ensure_runtime_write_allowed("project_metadata_apply")
+        return self._project_metadata_service().apply(
+            patch_path,
+            preview_token=preview_token,
+            actor=actor,
+            confirm=confirm,
+        )
+
     def update_project_definition(self, patch_path: Path) -> ProjectDefinitionPatchResult:
         self._ensure_runtime_write_allowed("project_definition_update")
         return self._project_vertical_service().apply_definition_patch(patch_path)
+
+    def preview_project_definition_update(self, patch_path: Path, *, actor: str) -> MutationPreview:
+        return self._project_vertical_service().preview_definition_patch(patch_path, actor=actor)
+
+    def apply_project_definition_update(
+        self,
+        patch_path: Path,
+        *,
+        preview_token: str,
+        actor: str,
+        confirm: bool,
+    ) -> MutationResult:
+        self._ensure_runtime_write_allowed("project_definition_apply")
+        return self._project_vertical_service().apply_definition_patch_previewed(
+            patch_path,
+            preview_token=preview_token,
+            actor=actor,
+            confirm=confirm,
+        )
 
     def create_project_brief_prompt(self) -> ProjectBriefPrompt:
         self._ensure_runtime_write_allowed("project_brief_prompt")
@@ -1906,6 +2212,36 @@ class P2PWorkspace:
 
     def conflict_status(self) -> ConflictStatus:
         return self._conflict_memory_service().status()
+
+    def conflict_show(self, conflict_id: str) -> dict[str, object]:
+        return self._conflict_memory_service().show(conflict_id)
+
+    def preview_conflict_update(
+        self,
+        conflict_id: str,
+        patch: dict[str, object],
+        *,
+        actor: str,
+    ) -> MutationPreview:
+        return self._conflict_memory_service().preview_update(conflict_id, patch, actor=actor)
+
+    def update_conflict(
+        self,
+        conflict_id: str,
+        patch: dict[str, object],
+        *,
+        preview_token: str,
+        actor: str,
+        confirm: bool,
+    ) -> MutationResult:
+        self._ensure_runtime_write_allowed("conflict_update")
+        return self._conflict_memory_service().update(
+            conflict_id,
+            patch,
+            preview_token=preview_token,
+            actor=actor,
+            confirm=confirm,
+        )
 
     def create_change_set(self, source: str, title: str | None = None) -> ChangeSetStatus:
         self._ensure_runtime_write_allowed("change_create")

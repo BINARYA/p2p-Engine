@@ -1,89 +1,13 @@
 commands:
-  - name: p2p spec refresh
-    status: completed
-    purpose: Generate deterministic P2P-native software spec artifacts from a Change Set.
-    invocation: "p2p spec refresh --change CHANGE-XXX"
-    inputs:
-      - name: change
-        required: true
-        description: Existing Change Set id to use as the source of truth.
-    outputs:
-      - ".p2p/outputs/software-spec/CHANGE-XXX/index.md"
-      - ".p2p/outputs/software-spec/CHANGE-XXX/requirements.md"
-      - ".p2p/outputs/software-spec/CHANGE-XXX/design.md"
-      - ".p2p/outputs/software-spec/CHANGE-XXX/commands.yml"
-      - ".p2p/outputs/software-spec/CHANGE-XXX/data-model.yml"
-      - ".p2p/outputs/software-spec/CHANGE-XXX/acceptance.md"
-      - ".p2p/outputs/software-spec/CHANGE-XXX/provenance.yml"
-    validation:
-      - Change Set exists.
-      - Source proposal and decision references are read from P2P artifacts when available.
-    errors:
-      - Unknown Change Set id.
-      - Missing source artifact required for generation.
-
-  - name: p2p spec status
-    status: completed
-    purpose: List generated or imported P2P-native software specs.
-    invocation: "p2p spec status"
-    inputs: []
-    outputs:
-      - Human-readable list of software spec directories keyed by Change Set id.
-    validation:
-      - Output directory scan is read-only.
-    errors: []
-
-  - name: p2p spec show
-    status: completed
-    purpose: Print the main human-readable spec entry point for a Change Set.
-    invocation: "p2p spec show CHANGE-XXX"
-    inputs:
-      - name: change
-        required: true
-        description: "Change Set id whose index.md should be printed."
-    outputs:
-      - "Contents of .p2p/outputs/software-spec/CHANGE-XXX/index.md."
-    validation:
-      - Spec directory exists.
-      - "index.md exists."
-    errors:
-      - Unknown or missing spec for the requested Change Set.
-
-  - name: p2p spec prompt
-    status: completed
-    purpose: Generate a refinement prompt from the current deterministic or imported spec.
-    invocation: "p2p spec prompt --change CHANGE-XXX"
-    inputs:
-      - name: change
-        required: true
-        description: Change Set id whose spec should be refined.
-    outputs:
-      - ".p2p/outputs/software-spec/CHANGE-XXX/spec-refine.prompt.md"
-    validation:
-      - Existing spec artifacts are available for context.
-    errors:
-      - Missing spec artifacts for the requested Change Set.
-
-  - name: p2p spec import
-    status: completed
-    purpose: Validate and import a refined software spec directory.
-    invocation: "p2p spec import CHANGE-XXX spec-output/"
-    inputs:
-      - name: change
-        required: true
-        description: Change Set id that will receive the refined artifacts.
-      - name: spec_output
-        required: true
-        description: Directory containing the refined required artifact set.
-    outputs:
-      - "Updated .p2p/outputs/software-spec/CHANGE-XXX/ artifact files after validation succeeds."
-    validation:
-      - Required Markdown and YAML files are present.
-      - YAML files parse successfully.
-      - "commands.yml contains top-level commands."
-      - "data-model.yml contains top-level entities."
-      - "provenance.yml contains top-level source."
-    errors:
-      - Missing required artifact.
-      - Invalid YAML.
-      - Missing required YAML top-level key.
+- name: Generate deterministic software spec
+  purpose: Not specified yet.
+  status: completed
+- name: Inspect generated software specs
+  purpose: Not specified yet.
+  status: completed
+- name: Generate refinement prompt
+  purpose: Not specified yet.
+  status: completed
+- name: Import refined software spec
+  purpose: Not specified yet.
+  status: completed

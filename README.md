@@ -284,6 +284,9 @@ Stable:
 - [docs/CLI-GUIDE.md](docs/CLI-GUIDE.md)  
   Practical CLI workflows, expected output shapes, and recovery patterns.
 
+- [docs/WORKSPACE-MIGRATION.md](docs/WORKSPACE-MIGRATION.md)
+  Workspace schema status, legacy migration planning, transactional apply, recovery, and freshness.
+
 - [docs/MCP.md](docs/MCP.md)  
   Local MCP server setup, tool matrix, safety boundaries, and example calls.
 

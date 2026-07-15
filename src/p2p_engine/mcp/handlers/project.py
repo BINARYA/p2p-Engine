@@ -88,8 +88,42 @@ def handle_project_tool(
             ),
             "mutation_performed": False,
         }
+    if name == "p2p_workspace_schema_status":
+        return {
+            "workspace_schema": workspace.workspace_schema_status().to_dict(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_workspace_migration_plan":
+        owner_inputs = arguments.get("owner_inputs")
+        if owner_inputs is not None and not isinstance(owner_inputs, dict):
+            raise ValueError("Expected object argument: owner_inputs")
+        return {
+            "migration_plan": workspace.workspace_migration_plan(
+                int(arguments.get("target_version") or 1),
+                owner_inputs if isinstance(owner_inputs, dict) else {},
+            ).to_dict(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_proposal_vertical_coverage_show":
+        return {
+            "vertical_coverage": to_jsonable(
+                workspace.proposal_vertical_coverage_status(required(arguments, "proposal_id"))
+            ),
+            "mutation_performed": False,
+        }
+    if name == "p2p_proposal_vertical_coverage_suggest":
+        return {
+            "vertical_coverage_suggestion": to_jsonable(
+                workspace.suggest_proposal_vertical_coverage(required(arguments, "proposal_id"))
+            ),
+            "mutation_performed": False,
+        }
     if name == "p2p_project_status":
         return {"project_status": to_jsonable(workspace.project_state_status())}
+    if name == "p2p_project_progress":
+        return {"project_progress": to_jsonable(workspace.project_progress()), "mutation_performed": False}
+    if name == "p2p_project_freshness":
+        return {"project_freshness": to_jsonable(workspace.project_freshness()), "mutation_performed": False}
     if name == "p2p_project_interaction_style_show":
         return {"interaction_style": to_jsonable(workspace.project_interaction_style())}
     if name == "p2p_project_interaction_style_set":

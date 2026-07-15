@@ -15,6 +15,7 @@ from p2p_engine.cli_commands.prompts import register_prompt_commands
 from p2p_engine.cli_commands.proposals import register_proposal_commands
 from p2p_engine.cli_commands.runtime import register_runtime_commands
 from p2p_engine.cli_commands.work_specs import register_work_spec_commands
+from p2p_engine.cli_commands.workspace_migrations import register_workspace_migration_commands
 from p2p_engine.cli_shared import console
 from p2p_engine.cli_shared import fail as _fail
 from p2p_engine.cli_shared import workspace as _workspace
@@ -68,6 +69,10 @@ assess_app = typer.Typer(help="Assess project readiness and maturity")
 assess_maturity_app = typer.Typer(help="Assess project definition maturity")
 next_app = typer.Typer(help="Manage advisory next actions", invoke_without_command=True)
 runtime_app = typer.Typer(help="Inspect project runtime compatibility")
+workspace_app = typer.Typer(help="Inspect and migrate workspace compatibility")
+workspace_schema_app = typer.Typer(help="Inspect workspace schema state")
+workspace_migrate_app = typer.Typer(help="Plan and apply workspace migrations")
+workspace_migration_recovery_app = typer.Typer(help="Inspect and recover interrupted migrations")
 
 proposal_app.add_typer(proposal_readiness_app, name="readiness")
 proposal_app.add_typer(proposal_questions_app, name="questions")
@@ -102,6 +107,10 @@ app.add_typer(agent_app, name="agent")
 app.add_typer(assess_app, name="assess")
 app.add_typer(next_app, name="next")
 app.add_typer(runtime_app, name="runtime")
+app.add_typer(workspace_app, name="workspace")
+workspace_app.add_typer(workspace_schema_app, name="schema")
+workspace_app.add_typer(workspace_migrate_app, name="migrate")
+workspace_migrate_app.add_typer(workspace_migration_recovery_app, name="recovery")
 project_app.add_typer(project_brief_app, name="brief")
 project_app.add_typer(project_remote_app, name="remote")
 project_app.add_typer(project_rubrics_app, name="rubrics")
@@ -118,6 +127,11 @@ register_doctor_commands(app, agent_app)
 register_agent_commands(agent_app, agent_instructions_app)
 register_next_commands(next_app)
 register_runtime_commands(runtime_app)
+register_workspace_migration_commands(
+    workspace_schema_app,
+    workspace_migrate_app,
+    workspace_migration_recovery_app,
+)
 register_project_status_commands(app, assess_app, assess_maturity_app)
 register_proposal_commands(
     proposal_app,

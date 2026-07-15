@@ -751,6 +751,21 @@ Generated from accepted proposal goals and non-goals.
 - Do not split cli.py mechanically before service/use-case boundaries are defined.
 - Do not translate this proposal into source-level implementation tasks inside specs/ until the proposal is accepted and intentionally bound.
 
+## PROP-060 - Real Test Coverage Reporting
+
+### Goals
+
+- Add optional, non-blocking code coverage observability for P2P Engine runtime code.
+- Use terminal coverage output to identify internal modules or branches that need better focused tests.
+- Keep coverage separate from deterministic test routing, project evidence coverage, and release gating.
+
+### Non-Goals
+
+- Do not implement test impact routing in this proposal; that belongs to PROP-098.
+- Do not measure project-design completeness or evidence coverage for P2P Engine user projects.
+- Do not introduce HTML coverage reports, generated coverage artifacts, or an initial CI fail-under gate.
+- Do not run coverage after every small code change as the default agent behavior.
+
 ## PROP-061 - Focused README and Documentation Map
 
 ### Goals
@@ -1075,6 +1090,26 @@ Generated from accepted proposal goals and non-goals.
 - Do not make the root outputs/ location configurable in the MVP.
 - Do not split the default human-facing project definition into many default files.
 
+## PROP-084 - Project-Local Runtime Bootstrap And Upgrade Flow
+
+### Goals
+
+- Define .p2p/project/runtime.yml as the authoritative project-local declaration of P2P Engine runtime compatibility.
+- Record a compatible runtime range and one recommended P2P Engine runtime version, without release source descriptors, wheel filenames, or digests.
+- Generate project-local setup guidance, such as P2P-SETUP.md, so a collaborator who cloned or copied a project can find the required runtime information without knowing P2P internals.
+- Provide read-only runtime status diagnostics and validation findings that tell humans and agents whether the installed runtime matches the project contract.
+- Block governed writes only when a project declares or requires a runtime contract and the contract is incompatible, invalid, unsupported, or missing under that declared policy.
+- Keep ownership boundaries clear: PROP-084 owns runtime contract, setup guidance, diagnostics, validation, and write-gate policy; PROP-078 owns installation mechanics; PROP-080 owns release artifact publication and integrity metadata.
+
+### Non-Goals
+
+- Do not make a mandatory bootstrap script central to the proposal.
+- Do not add an install, reconcile, upgrade, downgrade, replacement, source-switch, virtualenv, package-resolution, or download manager in this scope.
+- Do not put release tags, wheel filenames, SHA-256 digests, source descriptors, arbitrary URLs, arbitrary repositories, PyPI resolution, mirrors, source checkout installs, editable installs, or offline wheel behavior in the required runtime contract.
+- Do not block legacy projects solely because they lack runtime.yml; report legacy_undeclared with guidance instead.
+- Do not add broad command blocking across all commands; enforcement is limited to governed writes when a declared or required contract cannot be trusted.
+- Do not make Git required for P2P Core or introduce separate runtime-contract formats for standalone, local Git, and remote Git contexts.
+
 ## PROP-085 - Pluggable Project Verticals And Readiness Orchestration
 
 ### Goals
@@ -1125,6 +1160,39 @@ Generated from accepted proposal goals and non-goals.
 - Do not implement per-agent or runtime/session style overrides in the first slice.
 - Do not require migration or manual completion for existing projects.
 
+## PROP-088 - MCP Artifact Import Parity
+
+### Goals
+
+- Provide MCP parity for controlled proposal artifact content imports.
+- Start with existing CLI-backed impact and exploration imports, because those services and validation rules already exist.
+- Keep artifact state, readiness, context, and validation consistent after imports.
+- Make unsupported artifact-content mutations fail with explicit missing-primitive guidance.
+- Preserve owner governance boundaries and the rule that agents never write directly under .p2p/.
+
+### Non-Goals
+
+- Do not add proposal acceptance, rejection, deferral, or owner decision behavior.
+- Do not solve Work lifecycle MCP parity; Work publish, review, accept, finalize, and cleanup remain a separate product decision.
+- Do not add provider PR/MR automation.
+- Do not introduce a broad arbitrary file-write MCP tool for .p2p artifacts.
+
+## PROP-089 - Readiness Question-State Convergence
+
+### Goals
+
+- Make questions.yml authoritative for owner-question readiness whenever structured question state exists.
+- Keep open-questions.md as human-readable evidence and legacy fallback, not as a competing source of blocking state.
+- Preserve the one-question-at-a-time owner interaction flow.
+- Keep owner override explicit and auditable when the owner decides despite unresolved questions or partial readiness.
+
+### Non-Goals
+
+- Do not change whole-project readiness semantics.
+- Do not remove open-questions.md or require migration of all legacy proposals in this change.
+- Do not force the owner to answer every question before making a governance decision.
+- Do not turn agent questioning into a batch questionnaire.
+
 ## PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
 
 ### Goals
@@ -1155,3 +1223,264 @@ Generated from accepted proposal goals and non-goals.
 - Do not replace .p2p/project/rubrics.yml or change the meaning of enabled: false from PROP-057.
 - Do not silently upgrade vertical packs or project definition state during assessment, export, readiness review, or ordinary agent interaction.
 - Do not require a domain-specific agent skill for every vertical.
+
+## PROP-091 - Governance Policy Convergence
+
+### Goals
+
+- Keep `owner_decides` as the current operational default.
+- Preserve owner authority as the final decision source for now.
+- Make votes, blockers, and precedents transparent decision context rather than
+  automatic decision makers.
+- Introduce a deterministic governance preflight contract for proposed
+  selections and decision attempts.
+- Use `permissions.yml` as the primary actor and role source when available.
+- Keep `governance/roles.yml` as a legacy, display, or fallback artifact during
+  migration.
+- Make vote disagreement, ties, related precedents, reopened decisions, weak
+  consensus, and non-blocking concerns visible as warnings.
+- Treat structural invalidity, unauthorized actors, unknown targets, unsupported
+  governance modes, and corrupt governance artifacts as blocking errors.
+- Treat explicit unresolved blockers as normal-flow blockers that can be
+  overridden only by an authorized owner with recorded rationale.
+- Expose first-phase MCP parity through read-only or low-risk governance status,
+  validation, vote status, precedent lookup, and preflight tools.
+
+### Non-Goals
+
+- Do not implement a full democratic governance system.
+- Do not introduce quorum, weighted voting, delegation, complex voting
+  deadlines, or automatic vote enforcement.
+- Do not make votes automatically accept, reject, or decide proposals or
+  choices.
+- Do not allow agents or MCP tools to bypass owner-controlled governance.
+- Do not use fuzzy matching, semantic similarity, embeddings, title inference,
+  keyword guessing, or AI search in the core precedent lookup.
+- Do not expose MCP tools that mutate governance state or finalize decisions in
+  phase 1.
+- Do not remove compatibility for existing governance artifacts without a
+  migration path.
+
+## PROP-092 - Local MCP Work Lifecycle Parity And Remote Gateway Boundary
+
+### Goals
+
+- Expose the full managed Work lifecycle through the local P2P MCP adapter with functional parity to the CLI where the corresponding CLI transition already exists.
+- Keep every mutating Work MCP operation domain-specific, permission-gated, state-gated, consent-gated, and auditable.
+- Reuse the existing Work lifecycle services and P2P command layer instead of duplicating Work logic in CLI, MCP, or future Wavekit adapters.
+- Define a stable architectural boundary: P2P core is MCP-ready and local-MCP capable; remote multi-user MCP belongs to a separate Wavekit gateway/control-plane layer.
+- Prevent raw Git bypasses by exposing Work operations as P2P tools rather than generic Git tools.
+
+### Non-Goals
+
+- Do not implement a remote HTTP MCP server, OAuth flow, client registration, multi-tenancy, billing, global rate limiting, or hosted project access in P2P Engine core.
+- Do not create provider PR/MR automation; provider-specific PR/MR creation remains a separate adapter decision.
+- Do not grant agents autonomous authority over owner-controlled actions; owner-controlled transitions still require explicit consent and valid policy checks.
+- Do not expose generic Git tools such as arbitrary push, merge, reset, clean, or delete-branch operations.
+
+## PROP-093 - Agent Persistence Boundaries And Proposal Authoring Flow
+
+### Goals
+
+- Make every meaningful persistent agent write classified, owner-visible, and tied to a P2P primitive or policy.
+- Make canonical P2P state, structured proposal inputs, generated narrative artifacts, generated exports, stable documentation, scratch files, and external side effects distinct.
+- Expose a deterministic proposal artifact schema independent of physical file materialization.
+- Provide a compact agent-operational playbook that maps common owner requests to the correct P2P route.
+- Prevent agents from treating scaffolded narrative markdown under `.p2p/` as a manual editing surface.
+- Make proposal authoring discoverable: structured inputs first, then synthesis/import, then owner review and decision.
+- Align contribution primitives with narrative artifacts, or stop scaffolding narrative placeholders that cannot be populated through supported commands.
+- Provide an owner-friendly full proposal view so humans do not need to inspect internal proposal files manually.
+- Make `p2p init` deterministic, adaptive, and explicit about which agent integrations were created and why.
+- Preserve compatibility when the current agent cannot be reliably detected by falling back to the existing broad adapter setup with a concise warning.
+- Make add/remove/update/doctor lifecycle commands for agent integrations visible in init summaries, generated instructions, and docs.
+- Make runtime and MCP setup robust when the P2P decision root differs from the current working directory.
+- Avoid codifying local repository topology choices, including sibling repositories, as official P2P product direction.
+
+### Non-Goals
+
+- Do not discourage agents from creating P2P proposals, readiness artifacts, question state, choices, contributions, imports, or generated P2P artifacts when useful.
+- Do not force project reasoning to stay in chat.
+- Do not make P2P Engine less proactive.
+- Do not require every proposal directory to contain every possible artifact file.
+- Do not create empty placeholder files only to make proposal directories look uniform.
+- Do not make a long prose manual the primary agent control surface.
+- Do not duplicate the full CLI guide inside generated agent instructions.
+- Do not make agent routing so rigid that owner intent and explicit owner instructions are ignored.
+- Do not remove support for all built-in agent adapters.
+- Do not automatically remove existing adapter files from upgraded projects just because the new init default is adaptive.
+- Do not require users to manually edit `.p2p/agent-integrations.yml` or delete generated agent files by hand.
+- Do not invalidate projects generated by the current release merely because they lack new PROP-093 metadata, generated instructions, artifact-catalog state, or write-class labels.
+- Do not define or recommend a sibling repository model.
+- Do not require users to separate specification repositories from implementation repositories.
+- Do not solve the software specification lifecycle in this proposal; that belongs to PROP-094 and the software vertical.
+- Do not define file names such as `tech-stack.md`, `substrate.md`, or `phase0.md` as core P2P concepts.
+- Do not implement MCP HTTP, hosted service deployment, or remove local-first CLI/filesystem-backed operation in this proposal.
+- Do not implement remote MCP permissions, WaveKit hosted permissions, cloud collaboration authorization, or provider PR automation.
+- Do not change owner authority over governance decisions.
+- Do not require a full external artifact registry in the first implementation slice.
+
+## PROP-094 - P2P-Governed Software Specification Lifecycle
+
+### Goals
+
+- Treat the need for specs as a first-class part of the software vertical.
+- Make specification content emerge from P2P-governed project definition, one or more proposals, decisions, and Change Sets.
+- Teach generated agent instructions to route "make specs" requests through the software vertical and P2P state instead of creating an independent durable file by default.
+- Clarify when a spec request should produce chat discussion, project-definition questions, proposal work, choices, a Change Set, a P2P-native spec, a generated export, or stable documentation.
+- Allow early exploratory spec outlines, but prevent them from becoming primary project memory unless they are captured or exported through P2P.
+- Keep user intent respected: if the owner explicitly requests a concrete file outside the P2P flow, the agent may create it after previewing the write and explaining its relationship to P2P state.
+- Reuse existing P2P primitives instead of inventing a parallel specification workflow.
+
+### Non-Goals
+
+- Do not prohibit users from explicitly requesting a concrete spec file.
+- Do not replace existing P2P proposal, Change Set, spec refresh, or export primitives.
+- Do not implement external artifact registration unless explicitly accepted in a separate proposal.
+- Do not require all non-software projects to follow a software-spec lifecycle.
+- Do not require agents to complete every possible project-definition question before drafting any useful provisional outline.
+- Do not make generated specs authoritative when they contain unresolved questions, inferred details, or unaccepted alternatives.
+
+## PROP-095 - Project Runtime Contract Update Lifecycle
+
+### Goals
+
+- Give the owner an explicit, preview-first operation for changing the project runtime contract.
+- Expose separate read-only and mutating command surfaces.
+- Update `.p2p/project/runtime.yml` and managed `P2P-SETUP.md` as one coordinated policy change.
+- Classify upgrade, downgrade, range widening, range tightening, runtime-line change, recommended-only change, no-op, and active-runtime exclusion.
+- Preserve PROP-084 write-gate safety while allowing a narrow runtime-contract update exception for valid incompatible old contracts.
+- Allow agents and non-owner collaborators to produce read-only previews for owner review.
+- Require owner authority, explicit confirmation, stale-preview protection, and structured reasons where the impact is material.
+- Provide deterministic human-readable and JSON output for humans, agents, CI, and scripts.
+- Keep runtime installation, upgrade, downgrade, package resolution, remote lookup, and release availability enforcement out of scope.
+
+### Non-Goals
+
+- Do not install, upgrade, downgrade, select, or reconcile a local P2P Engine runtime.
+- Do not query GitHub, download release metadata, resolve wheels, or verify installability through the network.
+- Do not make release metadata from PROP-080 a blocking dependency for runtime contract updates.
+- Do not overwrite, adopt, merge, rename, back up, or replace unmanaged `P2P-SETUP.md` files.
+- Do not implement contract repair, schema migration, contract recovery, or legacy adoption workflows.
+- Do not add MCP mutation in the first implementation.
+- Do not create Git commits, branches, pushes, pull requests, merges, or provider handoffs.
+- Do not perform unrelated governed mutations after a new contract makes the active runtime incompatible.
+
+## PROP-096 - Readiness Evidence Quality and Question State Normalization
+
+### Goals
+
+- Make readiness quality scoring evaluate each evidence artifact without letting a placeholder-only supplemental artifact invalidate meaningful primary evidence.
+- Normalize proposal question state so answered questions already marked applied_to_proposal true are treated as applied or are repairable through a supported CLI flow.
+- Add regression tests that reproduce the PROP-095 failure mode and prove readiness assess does not produce false missing evidence.
+
+### Non-Goals
+
+- Do not redesign the readiness scoring model or readiness profile thresholds.
+- Do not change owner governance semantics or make readiness scores authoritative decisions.
+- Do not introduce direct editing of .p2p proposal question state as a supported user workflow.
+
+## PROP-097 - Runtime Contract Adoption For Legacy Projects
+
+### Goals
+
+- Provide an explicit owner-controlled adoption lifecycle for
+  `legacy_undeclared` projects.
+- Create the initial `.p2p/project/runtime.yml`, the
+  `runtime_contract.required: true` marker, and a managed `P2P-SETUP.md`.
+- Keep adoption separate from runtime installation, upgrade, package download,
+  environment reconciliation, and contract update.
+- Make the operation previewable, confirmable, testable, and repeatable for
+  this repository and other legacy projects.
+
+### Non-Goals
+
+- Do not install, upgrade, downgrade, or select a P2P Engine runtime.
+- Do not recover a missing required contract; recovery remains distinct from
+  adoption.
+- Do not repair invalid or unsupported contracts.
+- Do not overwrite an unmanaged human-owned `P2P-SETUP.md` implicitly.
+- Do not make `p2p init` a recovery or adoption shortcut.
+
+## PROP-099 - Project Output Lifecycle and Retention Policy
+
+### Goals
+
+- Define a Human Project Publication Pipeline from governed P2P state to complete export, curated Markdown, publication validation, and neutral PDF.
+- Keep deterministic export, semantic curation, owner review, publication validation, and PDF rendering as independent and inspectable stages.
+- Make the curated document project-first, vertical-aware, traceable, and readable by humans who do not know P2P internals.
+- Define an incremental implementation path with a minimal end-to-end slice first and richer CLI orchestration, publication packages, profiles, and themes later.
+
+### Non-Goals
+
+- Do not make generated outputs a new source of truth; .p2p remains governed project memory.
+- Do not make the curator decide governance outcomes, readiness, implementation status, or owner choices.
+- Do not replace the P2P-native software specification lifecycle, OpenSpec, Spec Kit, or downstream implementation exports.
+- Do not require a fully deterministic curator in the first slice; semantic curation may be agentic but must be bounded by contracts and validation.
+- Do not introduce multiple themes, branding, visual editors, template marketplaces, sophisticated appendices, automatic permanent replacement of project.md, or full MCP parity in the first slice.
+
+## PROP-100 - Project Decision Context Index and Proposal Neighborhood
+
+### Goals
+
+- Approvare un decision context index derivato, non canonico, rebuildable, read-only e spiegabile.
+- Introdurre un Source Catalog versionato che classifichi fonti semantiche, metadata di qualita, execution state, projection derivate e fonti escluse.
+- Richiedere uno snapshot immutabile per richiesta che scopra le fonti una volta e legga, hashi e parsifichi ogni fonte al massimo una volta usando gli stessi byte.
+- Mantenere `ProjectDecisionContextService` come facade stateless dietro `P2PWorkspace`, senza snapshot stale tra richieste.
+- Definire record, node, relation, evidence, diagnostic, retrieval hit, index e manifest tipizzati e serializzabili con schema versionato.
+- Separare canonicality, authority, activation, confidence e completeness.
+- Coprire l'intero proposal decision lifecycle, inclusi acceptance qualificata, split, merge, supersession, pending e legacy divergence.
+- Indicizzare decision precedents e un sottoinsieme esplicitamente catalogato di governance/project-definition constraints senza interpretazione libera di ogni testo.
+- Normalizzare progressivamente relazioni da proposal artifacts, Change Set, choices, blockers, conflict memory, vertical coverage e Work lineage.
+- Usare node namespace tipizzati, relation vocabulary versionata, evidence merge deterministico e traversal cycle-safe.
+- Distinguere edge di topologia da retrieval reasons quali lexical overlap, same surface e heuristic vertical match.
+- Fornire retrieval deterministico e spiegabile per proposal ID e idea text, con policy versionata, applicabilita esplicita, score ricostruibile e protezione dai falsi positivi.
+- Rendere `small` e `medium` budget semantici misurabili applicati dopo ranking e grouping.
+- Bloccare l'integrazione pubblica finche profiling, scan/read count e fixture di scala non dimostrano che il nuovo percorso non replica i timeout correnti.
+- Introdurre freshness basata su presenza/hash reali delle fonti e versioni delle policy, separando `generated_at` dall'identita semantica.
+- Migrare context packet, intake, prompt, next actions, projection e MCP per slice compatibili, mantenendo owner authority e controlled apply.
+
+### Non-Goals
+
+- Non sostituire proposal, decision, choice, Change Set, Work, YAML o Markdown canonici come source of truth.
+- Non creare una memoria canonica parallela aggiornata da sintesi LLM libera.
+- Non usare registri, decisions map, pubblicazioni, prompt o altri output derivati come input semantico dell'indice.
+- Non implementare PROP-100 come un unico Change Set senza gate intermedi.
+- Non scegliere o implementare una cache persistente nella prima realizzazione; una cache giustificata dalle misure richiede una feature separata.
+- Non introdurre embeddings o ricerca non spiegabile nel primo retrieval.
+- Non ridefinire proposal lifecycle, governance, owner authority, Git flow o controlled apply.
+- Non interpretare genericamente ogni documento di governance o project definition.
+- Non applicare automaticamente relazioni, tag, supersessioni, decisioni o vincoli.
+- Non pubblicare una nuova registry topology stabile senza un consumer e uno schema separatamente approvati.
+- Non estendere nella prima integrazione il retrieval pubblico a Change Set, Choice o Work target.
+- Non incorporare nel dominio semantico la correzione funzionale del timeout preesistente; profiling e remediation delle scansioni necessarie all'integrazione restano tuttavia un gate obbligatorio di PROP-100.
+- Non fissare nella proposta ombrello pesi numerici e layout dei moduli: tali dettagli appartengono alla feature versionata.
+
+## PROP-101 - Project Readiness Convergence Workflow
+
+### Goals
+
+- Model project-readiness gaps as typed, prioritized and explainable records.
+- Give each actionable required-section gap a declared question, a safe deterministic fallback or an explicit no-question diagnostic.
+- Persist project-question lifecycle state, revisions, authority and provenance across sessions.
+- Keep question answers distinct from applied project definition and owner decisions.
+- Render owner-reviewable candidate definition patches and commit definition plus question state through one transaction.
+- Integrate the highest-priority project gap into managed next actions.
+- Preserve independent definition completeness and declared evidence coverage.
+- Keep CLI and MCP contracts deterministic, bounded and semantically aligned.
+- Preserve schema-v1 valid operations and provide a real transition-specific v1-to-v2 migration.
+- Reconcile project questions safely across vertical revisions without re-opening or losing owner evidence.
+- Preserve `PROP-100` authority by keeping unapplied question state non-semantic.
+- Validate generic behavior against this repository without embedding repository-specific policy.
+
+### Non-Goals
+
+- Agents do not make owner decisions, fabricate owner answers, validate assumptions, complete sections, accept proposals or approve publication.
+- This proposal does not replace proposal readiness or proposal questions.
+- It does not create a second project definition, maturity, progress, next-action, decision-context or freshness engine.
+- It does not automatically declare vertical coverage for legacy proposals.
+- Heuristic matches never become owner-declared evidence automatically.
+- It does not introduce database-backed persistence, a remote registry or hosted orchestration.
+- It does not perform automatic agent curation, publication review or vertical upgrades.
+- It does not remove schema-v1 compatibility, migrate implicitly or bypass the workspace migration lifecycle.
+- It does not use clock-based preview expiry without an explicit durable preview-receipt contract.
+- It does not treat migration absence of a legacy question as evidence that a question was answered or applied.

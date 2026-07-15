@@ -1,0 +1,74 @@
+vertical_coverage:
+  schema_version: 2
+  proposal_id: PROP-090
+  vertical_id: software_project
+  sections:
+  - id: workflows_use_cases
+    relevance: direct
+    rationale: Defines vertical selection, lock inspection and repair, progressive
+      project-definition updates, rubric regeneration, and agent interview workflows.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - execution-plan.md
+  - id: data_model
+    relevance: direct
+    rationale: Defines production vertical-pack, selected configuration, resolved
+      lock, project-definition state, profile, module, rubric, and assumption contracts.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - suggested-scope.md
+  - id: integrations_dependencies
+    relevance: direct
+    rationale: Defines deterministic resolution across explicit, project-local, installed-local,
+      packaged, and future registry vertical sources.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+  - id: constraints_nfrs
+    relevance: direct
+    rationale: Requires declarative non-executable packs, explicit upgrades, checksum
+      pinning, safe fallback behavior, path validation, and preservation of owner
+      rubric choices.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - decision.md
+  - id: definition_of_done
+    relevance: direct
+    rationale: Defines explicit section completion, required-field, assumption, blocker,
+      maturity, and next-question semantics for actionable project readiness.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - suggested-scope.md
+  - id: acceptance_validation
+    relevance: direct
+    rationale: Defines pack, lock, definition, rubric, security, compatibility, and
+      structured-write validation as production runtime gates.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - execution-plan.md
+  - id: risks_alternatives_decisions
+    relevance: direct
+    rationale: Records explicit alternatives and tradeoffs for namespace compatibility,
+      pack shape, fallback, remote deferral, lockfiles, and durable definition state.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - decision.md
+  provenance:
+    operation_id: proposal-vertical-coverage:PROP-090
+    actor: mrjungle
+    authority: owner_confirmed
+    source: owner_review
+    imported_at: '2026-07-15T15:53:56Z'

@@ -8,6 +8,22 @@ tagged releases.
 
 ## Unreleased
 
+- Added workspace schema versioning independent from runtime compatibility,
+  deterministic legacy analysis and forward-only migration plans.
+- Added owner-confirmed transactional migration apply with process-safe locking,
+  candidate-overlay validation, exact rollback and interrupted recovery.
+- Added atomic preview/apply primitives for project definition, bounded metadata,
+  proposal vertical coverage, impact corrections and conflict-memory updates.
+- Corrected legacy decision/relation parsing and introduced explicit diagnostics
+  for ambiguous relations and invalid targets.
+- Added independent project definition/evidence progress axes, a full
+  derived-state freshness graph and owned-output reconciliation.
+- Added read-only CLI/MCP inspection for schema, plans, progress, freshness and
+  vertical coverage; migration apply and recovery remain CLI-only.
+- Source and package metadata now report `0.2.0`. Existing exact-pinned
+  workspaces must preview and approve a runtime-contract update before migration
+  apply; no environment change is performed automatically.
+
 ## 0.1.7 - 2026-06-09
 
 - Added proposal question orchestration and artifact-aware readiness coverage

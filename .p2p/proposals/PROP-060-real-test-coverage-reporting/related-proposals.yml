@@ -6,8 +6,8 @@ related_proposals:
     relationship: complements
     reason: "PROP-053 validates P2P project state and registries, while PROP-060 adds optional Python runtime test coverage diagnostics."
   - proposal: PROP-059
-    relationship: supports
+    relationship: references
     reason: "Coverage diagnostics can help maintainers inspect protection around modular refactors, without changing the P2PWorkspace compatibility-facade architecture."
   - proposal: PROP-065
-    relationship: distinguishes
+    relationship: references
     reason: "PROP-065 expands MCP tool-surface coverage for agents; PROP-060 uses code coverage in the pytest sense and does not expand MCP functionality."

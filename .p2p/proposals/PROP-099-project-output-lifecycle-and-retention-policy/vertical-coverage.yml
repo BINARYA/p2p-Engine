@@ -1,0 +1,65 @@
+vertical_coverage:
+  schema_version: 2
+  proposal_id: PROP-099
+  vertical_id: software_project
+  sections:
+  - id: mvp_scope
+    relevance: direct
+    rationale: Defines the first end-to-end publication slice and defers richer orchestration,
+      packages, profiles, appendices, and themes.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - suggested-scope.md
+  - id: workflows_use_cases
+    relevance: direct
+    rationale: Defines the staged export, curator, validation, owner-review, and neutral
+      PDF-render workflow with independently reviewable boundaries.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - decision.md
+  - id: data_model
+    relevance: direct
+    rationale: Defines publication stages, profiles, source fingerprints, validation
+      results, owner-review state, and derived-output boundaries.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - findings.md
+  - id: artifacts
+    relevance: direct
+    rationale: Defines complete export, curated Markdown, validation result, owner-review
+      outcome, PDF, and later publication manifests as explicit deliverables.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - findings.md
+  - id: acceptance_validation
+    relevance: direct
+    rationale: Defines deterministic publication checks for document structure, state
+      distinctions, traceability, source-of-truth warnings, and renderability.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - decision.md
+  - id: risks_alternatives_decisions
+    relevance: direct
+    rationale: Preserves the tradeoff between deterministic pipeline stages, semantic
+      curation, and separate owner approval without collapsing their authority.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - decision.md
+  provenance:
+    operation_id: proposal-vertical-coverage:PROP-099
+    actor: mrjungle
+    authority: owner_confirmed
+    source: owner_review
+    imported_at: '2026-07-15T15:57:45Z'

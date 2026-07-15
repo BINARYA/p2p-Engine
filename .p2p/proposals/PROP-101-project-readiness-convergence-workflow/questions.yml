@@ -1,0 +1,480 @@
+proposal_questions:
+  schema_version: 1
+  proposal_id: PROP-101
+  initialized_at: '2026-07-15'
+  updated_at: '2026-07-16'
+  updated_by: codex
+  groups:
+  - id: QG001
+    gap: project_question_authority
+    state: to_answer
+    priority: high
+    rationale: The source-of-truth boundary must be decided before persistence implementation
+      to avoid the dual-source failure already fixed for proposal questions.
+    created_at: '2026-07-15'
+    updated_at: '2026-07-15'
+  - id: QG002
+    gap: workspace_schema_compatibility
+    state: to_answer
+    priority: high
+    rationale: This determines whether the feature needs an additive contract only
+      or a tested forward-only v1-to-v2 migration.
+    created_at: '2026-07-15'
+    updated_at: '2026-07-15'
+  - id: QG003
+    gap: fallback_question_policy
+    state: to_answer
+    priority: high
+    rationale: Current assumptions and decisions gaps demonstrate that required sections
+      can otherwise remain unactionable.
+    created_at: '2026-07-15'
+    updated_at: '2026-07-15'
+  - id: QG004
+    gap: gap_priority_policy
+    state: to_answer
+    priority: high
+    rationale: A versioned priority policy is required for stable managed next actions
+      and must not let legacy evidence work displace real blockers.
+    created_at: '2026-07-15'
+    updated_at: '2026-07-15'
+  - id: QG005
+    gap: post_apply_freshness
+    state: to_answer
+    priority: medium
+    rationale: The side-effect boundary must remain explicit and freshness must not
+      imply autonomous publication or curation.
+    created_at: '2026-07-15'
+    updated_at: '2026-07-15'
+  - id: QG006
+    gap: mcp_write_scope
+    state: to_answer
+    priority: medium
+    rationale: This bounds the initial public write surface and reduces CLI/MCP semantic
+      drift.
+    created_at: '2026-07-15'
+    updated_at: '2026-07-15'
+  - id: QG007
+    gap: repository_pilot_exit
+    state: to_answer
+    priority: medium
+    rationale: The pilot must distinguish convergence of question state from falsely
+      claiming definition completeness.
+    created_at: '2026-07-15'
+    updated_at: '2026-07-15'
+  - id: QG008
+    gap: legacy_v1_write_mode
+    state: to_answer
+    priority: high
+    rationale: Backward-compatible reading and migratability are confirmed, but the
+      safe write boundary for an unmigrated v1 workspace must be explicit in the runtime
+      compatibility matrix.
+    created_at: '2026-07-15'
+    updated_at: '2026-07-15'
+  questions:
+  - id: Q001
+    group_id: QG001
+    gap: project_question_authority
+    criterion: project_question_authority
+    priority: high
+    state: applied
+    question: Should project-question lifecycle state use a dedicated project-scoped
+      artifact authoritative for question status and answers, while project definition
+      remains authoritative only for applied content?
+    rationale: The source-of-truth boundary must be decided before persistence implementation
+      to avoid the dual-source failure already fixed for proposal questions.
+    answer: Confirmed. Use a dedicated project-scoped question lifecycle artifact
+      as the authoritative source for project question status, owner answers and question
+      history. Keep project definition state authoritative only for content that has
+      passed the separate owner-reviewed preview/apply workflow. Legacy open questions
+      in definition state are fallback evidence only when structured project-question
+      state is absent.
+    answer_source: owner
+    answered_at: '2026-07-15'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-15'
+    audit:
+      created_by: codex
+      created_at: '2026-07-15'
+      updated_by: codex
+      updated_at: '2026-07-15'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: suggested-scope.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q002
+    group_id: QG002
+    gap: workspace_schema_compatibility
+    criterion: workspace_schema_compatibility
+    priority: high
+    state: applied
+    question: Should the project-question artifact remain optional and backward-compatible
+      in workspace schema v1 unless implementation proves that required layout or
+      existing semantics must change?
+    rationale: This determines whether the feature needs an additive contract only
+      or a tested forward-only v1-to-v2 migration.
+    answer: Confirmed with refinement. The feature must remain backward-compatible
+      with workspace schema v1 and must define workspace schema v2 as an explicit
+      upgrade target. A current runtime must recognize and inspect v1, report compatibility,
+      produce a deterministic v1-to-v2 migration plan, and apply that migration only
+      through the existing owner-confirmed transactional migration primitives with
+      idempotency and recovery. Fresh workspaces may adopt v2 according to the release
+      contract. Migration must never be implicit. The exact governed-write capability
+      retained while a workspace remains on v1 requires a separate owner decision.
+    answer_source: owner
+    answered_at: '2026-07-15'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-15'
+    audit:
+      created_by: codex
+      created_at: '2026-07-15'
+      updated_by: codex
+      updated_at: '2026-07-15'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q003
+    group_id: QG003
+    gap: fallback_question_policy
+    criterion: fallback_question_policy
+    priority: high
+    state: applied
+    question: When a required incomplete section has no declared vertical question,
+      should the engine use a conservative deterministic fallback and emit an explicit
+      diagnostic when safe generation is impossible?
+    rationale: Current assumptions and decisions gaps demonstrate that required sections
+      can otherwise remain unactionable.
+    answer: Confirmed. Question resolution must first use an applicable question declared
+      by the active locked vertical. If none exists for a required incomplete section,
+      the engine may generate only a conservative deterministic fallback from declarative
+      section metadata such as section purpose, missing required fields and completion
+      criteria, using a versioned policy and stable identity. The fallback remains
+      a question and cannot answer owner input, validate assumptions or complete the
+      section. If the available metadata cannot produce a safe actionable question,
+      the engine must emit an explicit machine-readable no_safe_question diagnostic
+      and must not invent content.
+    answer_source: owner
+    answered_at: '2026-07-16'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-16'
+    audit:
+      created_by: codex
+      created_at: '2026-07-15'
+      updated_by: codex
+      updated_at: '2026-07-16'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: assumptions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q004
+    group_id: QG004
+    gap: gap_priority_policy
+    criterion: gap_priority_policy
+    priority: high
+    state: applied
+    question: Should convergence prioritize blockers and explicit owner decisions
+      first, required definition gaps second, dependency-relevant assumptions next,
+      and optional evidence curation last?
+    rationale: A versioned priority policy is required for stable managed next actions
+      and must not let legacy evidence work displace real blockers.
+    answer: 'Confirmed. The versioned convergence priority order is: first integrity,
+      compatibility and authority blockers plus explicit owner-decision blockers;
+      second owner answers already received but not yet applied; third incomplete
+      required definition sections; fourth assumptions to validate ordered by dependency
+      impact; fifth optional declared-evidence curation; sixth informational legacy
+      state. Within the same class, ordering must be deterministic using vertical
+      section priority and stable gap or question id. Results must expose the priority
+      class, rationale and tie-break inputs rather than hiding them in an opaque aggregate
+      score.'
+    answer_source: owner
+    answered_at: '2026-07-16'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-16'
+    audit:
+      created_by: codex
+      created_at: '2026-07-15'
+      updated_by: codex
+      updated_at: '2026-07-16'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: assumptions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: impact-map.yml
+      action: import_impact_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: readiness.yml
+      action: run_readiness_assess
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q005
+    group_id: QG005
+    gap: post_apply_freshness
+    criterion: post_apply_freshness
+    priority: medium
+    state: applied
+    question: After a successful definition apply, should the engine update direct
+      deterministic state, mark downstream nodes stale, and avoid automatically running
+      agent-curated or owner-review actions?
+    rationale: The side-effect boundary must remain explicit and freshness must not
+      imply autonomous publication or curation.
+    answer: Confirmed. A successful convergence apply must atomically update only
+      the directly involved canonical project-definition and project-question state
+      after completing all validation required for the commit. It must then classify
+      dependent derived nodes as stale and return their deterministic topological
+      rebuild plan. It must not automatically run deterministic refreshes, agent-curated
+      stages, publication stages or owner-review actions. Rebuild remains a separate
+      explicit operation with its own result and failure reporting.
+    answer_source: owner
+    answered_at: '2026-07-16'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-16'
+    audit:
+      created_by: codex
+      created_at: '2026-07-15'
+      updated_by: codex
+      updated_at: '2026-07-16'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q006
+    group_id: QG006
+    gap: mcp_write_scope
+    criterion: mcp_write_scope
+    priority: medium
+    state: applied
+    question: Should the first slice stabilize service and CLI mutations plus MCP
+      read parity, deferring MCP answer/apply tools until they can reuse the final
+      permission-gated preview contract?
+    rationale: This bounds the initial public write surface and reduces CLI/MCP semantic
+      drift.
+    answer: Confirmed. Stabilize the core convergence service and CLI mutation contracts
+      first. Add MCP read parity only after the structured read payload is stable.
+      Defer project-question answer/apply MCP tools to a later gated slice. Any later
+      MCP write tool must be an explicit write-safe surface that delegates to the
+      same permission check, preview token, source preconditions, stale detection,
+      authority rules, atomic transaction and result serialization used by CLI. MCP
+      handlers must not implement independent domain, ranking or mutation logic.
+    answer_source: owner
+    answered_at: '2026-07-16'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-16'
+    audit:
+      created_by: codex
+      created_at: '2026-07-15'
+      updated_by: codex
+      updated_at: '2026-07-16'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: suggested-scope.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: readiness.yml
+      action: run_readiness_assess
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q007
+    group_id: QG007
+    gap: repository_pilot_exit
+    criterion: repository_pilot_exit
+    priority: medium
+    state: applied
+    question: May the repository pilot close a current readiness gap through an explicit
+      governed defer or mute outcome when evidence is intentionally unavailable, without
+      marking the section complete?
+    rationale: The pilot must distinguish convergence of question state from falsely
+      claiming definition completeness.
+    answer: Confirmed. The repository pilot and the general workflow may reach a converged
+      question-state outcome through an explicit governed deferred or muted question
+      when evidence is intentionally unavailable or the owner does not want to address
+      it now. The transition must record actor, reason, timestamp and provenance and
+      remain explicitly reopenable. Deferred may become eligible again according to
+      a declared trigger or explicit reopen; muted remains excluded from automatic
+      re-ask until explicit owner action. Neither state completes the vertical section,
+      resolves the underlying gap, validates an assumption nor increases definition
+      or evidence progress. The section remains partial, assumed or blocked as supported
+      by canonical definition state, and readiness continues exposing the residual
+      gap.
+    answer_source: owner
+    answered_at: '2026-07-16'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-16'
+    audit:
+      created_by: codex
+      created_at: '2026-07-15'
+      updated_by: codex
+      updated_at: '2026-07-16'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: assumptions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: open-questions.md
+      action: import_exploration_artifact
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: readiness.yml
+      action: run_readiness_assess
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+  - id: Q008
+    group_id: QG008
+    gap: legacy_v1_write_mode
+    criterion: legacy_v1_write_mode
+    priority: high
+    state: applied
+    question: While a workspace remains on schema v1 under a v2-capable runtime, should
+      P2P allow read, validation, status and migration planning but block only v2-dependent
+      governed writes until the explicit v1-to-v2 migration succeeds?
+    rationale: Backward-compatible reading and migratability are confirmed, but the
+      safe write boundary for an unmigrated v1 workspace must be explicit in the runtime
+      compatibility matrix.
+    answer: Confirmed. A v2-capable runtime must continue allowing every read and
+      governed write on a schema-v1 workspace whose canonical artifact contract and
+      semantics remain valid under v1. It must block only operations that depend on
+      schema-v2 state or semantics. A blocked operation must perform no partial write
+      and must report the current and required schema versions, the reason for the
+      gate, and the exact migration status or plan command. After successful v1-to-v2
+      migration, the same operation can proceed through its normal authority and preview
+      checks.
+    answer_source: owner
+    answered_at: '2026-07-15'
+    asked_count: 0
+    last_asked_at: ''
+    derived_from: []
+    superseded_by: ''
+    muted_reason: ''
+    deferred_reason: ''
+    applied_to_proposal: true
+    applied_at: '2026-07-15'
+    audit:
+      created_by: codex
+      created_at: '2026-07-15'
+      updated_by: codex
+      updated_at: '2026-07-15'
+    apply_plan:
+    - artifact: proposal.md
+      action: update_proposal_sections
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.
+    - artifact: readiness.yml
+      action: run_readiness_assess
+      status: deferred
+      reason: Use the matching p2p update/import command to persist this answer into
+        the artifact.

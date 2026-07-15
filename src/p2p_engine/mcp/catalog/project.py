@@ -122,8 +122,42 @@ def tool_definitions() -> list[dict[str, object]]:
              'tag': {'type': 'string'}},
         ),
         _tool(
+            'p2p_workspace_schema_status',
+            'Read workspace schema layout, semantic alignment and recovery status without mutation.',
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_workspace_migration_plan',
+            'Build a deterministic forward-only workspace migration plan without mutation.',
+            {'root': {'type': 'string'},
+             'target_version': {'type': 'integer', 'minimum': 0},
+             'owner_inputs': {'type': 'object', 'additionalProperties': True}},
+        ),
+        _tool(
+            'p2p_proposal_vertical_coverage_show',
+            'Read declared proposal vertical coverage and compatibility status without mutation.',
+            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},
+            ['proposal_id'],
+        ),
+        _tool(
+            'p2p_proposal_vertical_coverage_suggest',
+            'Suggest proposal vertical sections with heuristic evidence without creating authoritative state.',
+            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},
+            ['proposal_id'],
+        ),
+        _tool(
             'p2p_project_status',
             'Show deterministic P2P project state status.',
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_progress',
+            'Read independent project definition and declared evidence progress axes without mutation.',
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_freshness',
+            'Read derived-state freshness nodes and ordered rebuild actions without mutation.',
             {'root': {'type': 'string'}},
         ),
         _tool(

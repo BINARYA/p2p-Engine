@@ -185,6 +185,12 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_context` | read-only | no | no | First tool before broad reads. |
 | `p2p_validate` | read-only | no | no | Check structural and semantic consistency. |
 | `p2p_project_status` | read-only | no | no | Inspect deterministic project status. |
+| `p2p_workspace_schema_status` | read-only | no | no | Inspect workspace layout, semantic alignment and recovery state. |
+| `p2p_workspace_migration_plan` | read-only | no | no | Build a deterministic forward-only migration plan; apply and recovery remain CLI-only. |
+| `p2p_project_progress` | read-only | no | no | Inspect independent definition-completeness and declared-evidence axes. |
+| `p2p_project_freshness` | read-only | no | no | Inspect the full derived-state graph and ordered rebuild actions. |
+| `p2p_proposal_vertical_coverage_show` | read-only | no | no | Read declared proposal-to-vertical coverage status. |
+| `p2p_proposal_vertical_coverage_suggest` | advisory/read-only | no | no | Suggest bounded section mappings without creating authority. |
 | `p2p_project_interaction_style_show` | read-only | no | no | Read effective project interaction style values and descriptions. |
 | `p2p_project_interaction_style_set` | write-safe | yes | no | Set project-level interaction style values without governance side effects. |
 | `p2p_next` | read-only | no | no | Show advisory next actions. |

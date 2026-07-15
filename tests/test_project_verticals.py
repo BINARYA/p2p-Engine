@@ -10,6 +10,8 @@ import pytest
 from typer.testing import CliRunner
 
 from p2p_engine.cli import app
+from p2p_engine.services.project_verticals import ProjectVerticalService
+from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 from p2p_engine.storage.filesystem import P2PWorkspace
 
 runner = CliRunner()
@@ -274,6 +276,38 @@ def test_project_readiness_review_uses_declared_coverage_and_reports_missing_sec
     assert review.generated_questions
 
 
+def test_project_readiness_review_separates_complete_definition_from_proposal_evidence(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Definition Evidence", vertical_id="base_project")
+    patch = tmp_path / "definition-patch.yml"
+    patch.write_text(
+        "project_definition_patch:\n"
+        "  schema_version: 1\n"
+        "  actor: owner\n"
+        "  operations:\n"
+        "    - op: set_field\n"
+        "      section_id: vision\n"
+        "      field_id: summary\n"
+        "      value: Preserve governed project intent.\n"
+        "    - op: set_section_status\n"
+        "      section_id: vision\n"
+        "      status: complete\n",
+        encoding="utf-8",
+    )
+    workspace.update_project_definition(patch)
+
+    review = workspace.review_project_readiness()
+    vision = next(section for section in review.sections if section.section_id == "vision")
+
+    assert vision.definition_status == "complete"
+    assert vision.status == "defined"
+    assert vision.gaps == ["missing_proposal_coverage"]
+    assert "vision" not in review.missing_capisaldi
+    assert not any(question in review.generated_questions for question in vision.questions)
+
+
 def test_project_vertical_cli_and_validation_flow(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Vertical CLI Demo", "--root", str(tmp_path)])
 
@@ -476,6 +510,133 @@ def test_project_definition_patch_rejects_unknown_field_without_writing(tmp_path
         workspace.update_project_definition(patch)
 
     assert (tmp_path / ".p2p" / "project" / "definition.yml").read_text(encoding="utf-8") == before
+
+
+def test_vertical_migration_requires_explicit_rubric_collision_mapping_and_preserves_orphans(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Rubric Migration", owner="owner")
+    pack = _write_canonical_pack(
+        tmp_path / "packs",
+        vertical_id="rubric_migration",
+        name="Rubric Migration",
+    )
+    workspace.add_project_vertical(pack)
+    rubrics_path = tmp_path / ".p2p" / "project" / "rubrics.yml"
+    rubrics_path.write_text(
+        yaml.safe_dump(
+            {
+                "criteria": [
+                    {
+                        "id": "intent_quality",
+                        "title": "Conflicting historical meaning",
+                        "section_id": "legacy_intent",
+                        "enabled": False,
+                    },
+                    {
+                        "id": "legacy_metric",
+                        "title": "Legacy metric",
+                        "enabled": True,
+                    },
+                ]
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    service = workspace._project_vertical_service()
+
+    with pytest.raises(ValueError, match="collides semantically"):
+        service.render_migration_candidate("rubric_migration", actor="owner")
+
+    candidate = service.render_migration_candidate(
+        "rubric_migration",
+        actor="owner",
+        rubric_mapping={"intent_quality": "intent_quality"},
+    )
+    service.validate_migration_candidate(candidate)
+    payload = yaml.safe_load(candidate.candidate_files[".p2p/project/rubrics.yml"])
+    criteria = {item["id"]: item for item in payload["criteria"]}
+
+    assert criteria["intent_quality"]["enabled"] is False
+    assert criteria["legacy_metric"]["legacy_unmapped"] is True
+    assert criteria["legacy_metric"]["orphaned"] is True
+    assert criteria["legacy_metric"]["counts_toward_active_baseline"] is False
+
+
+def test_vertical_selection_failure_restores_complete_four_file_set(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Atomic Vertical", vertical_id="base_project", owner="owner")
+    paths = [
+        tmp_path / ".p2p" / "project" / name
+        for name in ("vertical.yml", "vertical.lock.yml", "definition.yml", "rubrics.yml")
+    ]
+    originals = {path: path.read_bytes() for path in paths}
+
+    def fail(stage: str, target: str) -> None:
+        if stage == "after_replace" and target == ".p2p/project/definition.yml":
+            raise OSError("injected vertical commit failure")
+
+    service = ProjectVerticalService(
+        root=tmp_path,
+        p2p_dir=tmp_path / ".p2p",
+        proposal_summaries=workspace.proposal_summaries,
+        find_proposal_dir=workspace._proposal_document_service().find_dir,
+        atomic_writer=AtomicMutationWriter(
+            root=tmp_path,
+            p2p_dir=tmp_path / ".p2p",
+            failure_injector=fail,
+        ),
+    )
+
+    with pytest.raises(ValueError, match="rolled back"):
+        service.select_vertical("software_project", actor="owner")
+
+    assert {path: path.read_bytes() for path in paths} == originals
+
+
+def test_definition_preview_apply_rejects_stale_source_and_non_owner(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Definition Preview", vertical_id="base_project", owner="owner")
+    patch = tmp_path / "definition-preview.yml"
+    patch.write_text(
+        "project_definition_patch:\n"
+        "  schema_version: 1\n"
+        "  actor: owner\n"
+        "  operations:\n"
+        "    - op: set_field\n"
+        "      section_id: vision\n"
+        "      field_id: summary\n"
+        "      value: Previewed definition.\n"
+        "      provenance:\n"
+        "        source: owner_answer\n",
+        encoding="utf-8",
+    )
+    definition_path = tmp_path / ".p2p" / "project" / "definition.yml"
+    before_preview = definition_path.read_bytes()
+    preview = workspace.preview_project_definition_update(patch, actor="owner")
+    assert definition_path.read_bytes() == before_preview
+    assert preview.apply_allowed is True
+
+    payload = yaml.safe_load(definition_path.read_text(encoding="utf-8"))
+    payload["project_definition"]["history"].append(
+        {"action": "external_test_change", "at": "2026-07-15", "actor": "owner"}
+    )
+    definition_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    changed = definition_path.read_bytes()
+    result = workspace.apply_project_definition_update(
+        patch,
+        preview_token=preview.preview_token,
+        actor="owner",
+        confirm=True,
+    )
+    assert result.status == "stale_preview"
+    assert definition_path.read_bytes() == changed
+
+    patch.write_text(patch.read_text(encoding="utf-8").replace("actor: owner", "actor: contributor"), encoding="utf-8")
+    unauthorized = workspace.preview_project_definition_update(patch, actor="contributor")
+    assert unauthorized.apply_allowed is False
 
 
 def test_project_vertical_cli_json_lock_context_sections_and_definition(tmp_path: Path) -> None:

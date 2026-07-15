@@ -2,7 +2,7 @@ proposal_artifacts:
   schema_version: 1
   proposal_id: PROP-095
   initialized_at: '2026-07-12T20:48:05Z'
-  updated_at: '2026-07-12T21:22:39Z'
+  updated_at: '2026-07-15T15:57:44Z'
   status: active
   legacy:
     state: ''
@@ -190,3 +190,23 @@ proposal_artifacts:
       previous_confirmation: system
       reason: impact-map.yml, related-proposals.yml, and conflict-analysis.yml identify
         dependencies, overlaps, touched surfaces, risks, and boundaries.
+  - id: vertical_coverage
+    filename: vertical-coverage.yml
+    expectation: required_when_applicable
+    status: satisfied
+    reason: Owner-reviewed vertical coverage was imported.
+    source: vertical_coverage_import
+    actor: mrjungle
+    confirmation: owner_confirmed
+    confirmed_by: mrjungle
+    risk_flags: []
+    created_at: '2026-07-15T15:57:44Z'
+    updated_at: '2026-07-15T15:57:44Z'
+    history:
+    - at: '2026-07-15T15:57:44Z'
+      actor: mrjungle
+      source: vertical_coverage_import
+      previous_status: missing
+      previous_expectation: required_when_applicable
+      previous_confirmation: system
+      reason: Owner-reviewed vertical coverage was imported.

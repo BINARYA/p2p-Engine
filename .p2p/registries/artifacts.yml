@@ -6,6 +6,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-001
   generated: false
+- path: .p2p/proposals/PROP-001-cli-foundation/artifact-state.yml
+  artifact_type: artifact-state.yml
+  owner_type: proposal
+  owner: PROP-001
+  generated: false
 - path: .p2p/proposals/PROP-001-cli-foundation/clarifications.md
   artifact_type: clarifications.md
   owner_type: proposal
@@ -38,6 +43,11 @@ artifacts:
   generated: false
 - path: .p2p/proposals/PROP-001-cli-foundation/tasks.yml
   artifact_type: tasks.yml
+  owner_type: proposal
+  owner: PROP-001
+  generated: false
+- path: .p2p/proposals/PROP-001-cli-foundation/vertical-coverage.yml
+  artifact_type: vertical-coverage.yml
   owner_type: proposal
   owner: PROP-001
   generated: false
@@ -316,6 +326,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-006
   generated: false
+- path: .p2p/proposals/PROP-006-multi-agent-integration-model/artifact-state.yml
+  artifact_type: artifact-state.yml
+  owner_type: proposal
+  owner: PROP-006
+  generated: false
 - path: .p2p/proposals/PROP-006-multi-agent-integration-model/assumptions.md
   artifact_type: assumptions.md
   owner_type: proposal
@@ -388,6 +403,11 @@ artifacts:
   generated: false
 - path: .p2p/proposals/PROP-006-multi-agent-integration-model/tasks.yml
   artifact_type: tasks.yml
+  owner_type: proposal
+  owner: PROP-006
+  generated: false
+- path: .p2p/proposals/PROP-006-multi-agent-integration-model/vertical-coverage.yml
+  artifact_type: vertical-coverage.yml
   owner_type: proposal
   owner: PROP-006
   generated: false
@@ -3236,6 +3256,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-044
   generated: false
+- path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/artifact-state.yml
+  artifact_type: artifact-state.yml
+  owner_type: proposal
+  owner: PROP-044
+  generated: false
 - path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/assumptions.md
   artifact_type: assumptions.md
   owner_type: proposal
@@ -3298,6 +3323,11 @@ artifacts:
   generated: false
 - path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/tasks.yml
   artifact_type: tasks.yml
+  owner_type: proposal
+  owner: PROP-044
+  generated: false
+- path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/vertical-coverage.yml
+  artifact_type: vertical-coverage.yml
   owner_type: proposal
   owner: PROP-044
   generated: false
@@ -4061,6 +4091,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-055
   generated: false
+- path: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/artifact-state.yml
+  artifact_type: artifact-state.yml
+  owner_type: proposal
+  owner: PROP-055
+  generated: false
 - path: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/assumptions.md
   artifact_type: assumptions.md
   owner_type: proposal
@@ -4123,6 +4158,11 @@ artifacts:
   generated: false
 - path: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/tasks.yml
   artifact_type: tasks.yml
+  owner_type: proposal
+  owner: PROP-055
+  generated: false
+- path: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/vertical-coverage.yml
+  artifact_type: vertical-coverage.yml
   owner_type: proposal
   owner: PROP-055
   generated: false
@@ -6421,6 +6461,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-084
   generated: false
+- path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/vertical-coverage.yml
+  artifact_type: vertical-coverage.yml
+  owner_type: proposal
+  owner: PROP-084
+  generated: false
 - path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/ai-digest.md
   artifact_type: ai-digest.md
   owner_type: proposal
@@ -6428,6 +6473,11 @@ artifacts:
   generated: false
 - path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/alternatives.md
   artifact_type: alternatives.md
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/artifact-state.yml
+  artifact_type: artifact-state.yml
   owner_type: proposal
   owner: PROP-085
   generated: false
@@ -6518,6 +6568,11 @@ artifacts:
   generated: false
 - path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/tasks.yml
   artifact_type: tasks.yml
+  owner_type: proposal
+  owner: PROP-085
+  generated: false
+- path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/vertical-coverage.yml
+  artifact_type: vertical-coverage.yml
   owner_type: proposal
   owner: PROP-085
   generated: false
@@ -7016,6 +7071,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-090
   generated: false
+- path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/vertical-coverage.yml
+  artifact_type: vertical-coverage.yml
+  owner_type: proposal
+  owner: PROP-090
+  generated: false
 - path: .p2p/proposals/PROP-091-governance-policy-convergence/ai-digest.md
   artifact_type: ai-digest.md
   owner_type: proposal
@@ -7118,6 +7178,11 @@ artifacts:
   generated: false
 - path: .p2p/proposals/PROP-091-governance-policy-convergence/tasks.yml
   artifact_type: tasks.yml
+  owner_type: proposal
+  owner: PROP-091
+  generated: false
+- path: .p2p/proposals/PROP-091-governance-policy-convergence/vertical-coverage.yml
+  artifact_type: vertical-coverage.yml
   owner_type: proposal
   owner: PROP-091
   generated: false
@@ -7426,6 +7491,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-094
   generated: false
+- path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/vertical-coverage.yml
+  artifact_type: vertical-coverage.yml
+  owner_type: proposal
+  owner: PROP-094
+  generated: false
 - path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/ai-digest.md
   artifact_type: ai-digest.md
   owner_type: proposal
@@ -7528,6 +7598,11 @@ artifacts:
   generated: false
 - path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/tasks.yml
   artifact_type: tasks.yml
+  owner_type: proposal
+  owner: PROP-095
+  generated: false
+- path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/vertical-coverage.yml
+  artifact_type: vertical-coverage.yml
   owner_type: proposal
   owner: PROP-095
   generated: false
@@ -7881,6 +7956,11 @@ artifacts:
   owner_type: proposal
   owner: PROP-099
   generated: false
+- path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/vertical-coverage.yml
+  artifact_type: vertical-coverage.yml
+  owner_type: proposal
+  owner: PROP-099
+  generated: false
 - path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/ai-digest.md
   artifact_type: ai-digest.md
   owner_type: proposal
@@ -7985,6 +8065,121 @@ artifacts:
   artifact_type: tasks.yml
   owner_type: proposal
   owner: PROP-100
+  generated: false
+- path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/vertical-coverage.yml
+  artifact_type: vertical-coverage.yml
+  owner_type: proposal
+  owner: PROP-100
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/ai-digest.md
+  artifact_type: ai-digest.md
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/alternatives.md
+  artifact_type: alternatives.md
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/artifact-state.yml
+  artifact_type: artifact-state.yml
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/assumptions.md
+  artifact_type: assumptions.md
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/clarifications.md
+  artifact_type: clarifications.md
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/comments.yml
+  artifact_type: comments.yml
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/conflict-analysis.yml
+  artifact_type: conflict-analysis.yml
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/contributions.yml
+  artifact_type: contributions.yml
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/decision.md
+  artifact_type: decision.md
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/execution-plan.md
+  artifact_type: execution-plan.md
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/exploration.md
+  artifact_type: exploration.md
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/findings.md
+  artifact_type: findings.md
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/impact-map.yml
+  artifact_type: impact-map.yml
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/open-questions.md
+  artifact_type: open-questions.md
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
+  artifact_type: proposal.md
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/questions.yml
+  artifact_type: questions.yml
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/readiness.yml
+  artifact_type: readiness.yml
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/related-proposals.yml
+  artifact_type: related-proposals.yml
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/risks.md
+  artifact_type: risks.md
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/suggested-scope.md
+  artifact_type: suggested-scope.md
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/tasks.yml
+  artifact_type: tasks.yml
+  owner_type: proposal
+  owner: PROP-101
+  generated: false
+- path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/vertical-coverage.yml
+  artifact_type: vertical-coverage.yml
+  owner_type: proposal
+  owner: PROP-101
   generated: false
 - path: .p2p/changes/CHANGE-001-managed-git-adapter-and-change-set-model/change.md
   artifact_type: change.md

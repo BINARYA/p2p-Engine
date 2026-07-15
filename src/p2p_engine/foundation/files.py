@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
@@ -31,13 +32,34 @@ def yaml_dump(data: object) -> str:
     return yaml.safe_dump(data, sort_keys=False, allow_unicode=False)
 
 
-def write_text_atomic(path: Path, content: str, *, encoding: str = "utf-8") -> None:
+@dataclass(frozen=True)
+class DurabilityReport:
+    file_synced: bool
+    directory_synced: bool
+    directory_sync_supported: bool
+
+
+def sync_directory(path: Path) -> bool:
+    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+    try:
+        descriptor = os.open(path, flags)
+    except (AttributeError, NotImplementedError, OSError):
+        return False
+    try:
+        os.fsync(descriptor)
+    except (AttributeError, NotImplementedError, OSError):
+        return False
+    finally:
+        os.close(descriptor)
+    return True
+
+
+def write_bytes_atomic(path: Path, content: bytes, *, mode: int | None = None) -> DurabilityReport:
     path.parent.mkdir(parents=True, exist_ok=True)
     temp_path: Path | None = None
     try:
         with tempfile.NamedTemporaryFile(
-            "w",
-            encoding=encoding,
+            "wb",
             dir=path.parent,
             delete=False,
         ) as temp_file:
@@ -45,15 +67,27 @@ def write_text_atomic(path: Path, content: str, *, encoding: str = "utf-8") -> N
             temp_file.flush()
             os.fsync(temp_file.fileno())
             temp_path = Path(temp_file.name)
+        if mode is not None:
+            temp_path.chmod(mode)
         temp_path.replace(path)
+        directory_synced = sync_directory(path.parent)
+        return DurabilityReport(
+            file_synced=True,
+            directory_synced=directory_synced,
+            directory_sync_supported=directory_synced,
+        )
     except Exception:
         if temp_path is not None:
             temp_path.unlink(missing_ok=True)
         raise
 
 
-def write_yaml_atomic(path: Path, data: object) -> None:
-    write_text_atomic(path, yaml_dump(data))
+def write_text_atomic(path: Path, content: str, *, encoding: str = "utf-8") -> DurabilityReport:
+    return write_bytes_atomic(path, content.encode(encoding))
+
+
+def write_yaml_atomic(path: Path, data: object) -> DurabilityReport:
+    return write_text_atomic(path, yaml_dump(data))
 
 
 def read_yaml(path: Path, default: object) -> object:

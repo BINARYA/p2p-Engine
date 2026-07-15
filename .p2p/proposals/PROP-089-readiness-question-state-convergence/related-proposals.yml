@@ -8,7 +8,7 @@ related_proposals:
     reason: "Introduced artifact-aware readiness and structured artifact coverage; PROP-089 keeps that model but prevents markdown question artifacts from overriding questions.yml."
     impact_boundary: "Does not change artifact applicability, artifact-state lifecycle, or direct-write boundaries."
   - proposal: PROP-088
-    relationship: triggered_by
+    relationship: derived_from
     reason: "MCP artifact import refinement exposed that readiness can remain blocked by stale question text after structured answers are applied."
     impact_boundary: "PROP-088 remains about MCP import parity; PROP-089 is the readiness/question-state convergence needed to interpret refined artifacts correctly."
   - proposal: PROP-012

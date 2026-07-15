@@ -209,7 +209,10 @@ def test_next_actions_fall_back_to_project_review_when_no_semantic_work_exists(
 
     actions = workspace._next_action_service().list()
 
-    assert [(action.kind, action.target) for action in actions] == [("review_project", "project")]
+    assert [(action.kind, action.target) for action in actions] == [
+        ("refresh_derived_state", "project_projections"),
+        ("review_project", "project"),
+    ]
 
 
 def test_next_action_service_rejects_invalid_payload_shapes(tmp_path: Path) -> None:

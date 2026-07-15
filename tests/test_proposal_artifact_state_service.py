@@ -42,8 +42,9 @@ def test_artifact_state_service_initializes_default_records(tmp_path: Path) -> N
         "clarifications",
         "findings",
         "exploration",
-        "impact_map",
-    }
+            "impact_map",
+            "vertical_coverage",
+        }
     proposal_record = next(artifact for artifact in view.artifacts if artifact.artifact_id == "proposal")
     assert proposal_record.expectation == ProposalArtifactExpectation.required
     assert proposal_record.status in {ProposalArtifactStatus.weak, ProposalArtifactStatus.satisfied}

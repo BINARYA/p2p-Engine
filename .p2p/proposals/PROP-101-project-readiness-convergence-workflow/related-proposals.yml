@@ -1,0 +1,34 @@
+related_proposals:
+  - proposal: PROP-085
+    relationship: depends_on
+    reason: Extends vertical-derived readiness review from diagnosis to governed convergence.
+  - proposal: PROP-090
+    relationship: depends_on
+    reason: Reuses locked vertical context and definition parsing and validation while replacing sequential apply with coordinated multi-target convergence.
+  - proposal: PROP-089
+    relationship: depends_on
+    reason: Reuses question-state and answered-versus-applied semantics while adding project-scope authority and transition hardening.
+  - proposal: PROP-096
+    relationship: depends_on
+    reason: Reuses question normalization and evidence-quality safeguards.
+  - proposal: PROP-079
+    relationship: depends_on
+    reason: Integrates convergence findings into the existing managed next-action lifecycle.
+  - proposal: PROP-091
+    relationship: depends_on
+    reason: Preserves owner authority persistent-write policy and explicit actor provenance.
+  - proposal: PROP-095
+    relationship: depends_on
+    reason: Extends workspace schema versioning with a declared v1-to-v2 compatibility and operation-gating matrix.
+  - proposal: PROP-097
+    relationship: depends_on
+    reason: Reuses transactional migration candidate overlay lock rollback and recovery primitives while requiring transition-specific handlers.
+  - proposal: PROP-100
+    relationship: depends_on
+    reason: Registers project questions as inactive metadata or pending evidence and keeps applied project definition as semantic authority.
+  - proposal: PROP-054
+    relationship: references
+    reason: Preserves the distinction between project assessment and vertical-definition progress axes.
+  - proposal: PROP-082
+    relationship: references
+    reason: Aligns explain and review behavior while keeping proposal-level readiness separate.

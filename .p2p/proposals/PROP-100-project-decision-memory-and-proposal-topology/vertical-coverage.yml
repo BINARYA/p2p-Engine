@@ -1,0 +1,75 @@
+vertical_coverage:
+  schema_version: 2
+  proposal_id: PROP-100
+  vertical_id: software_project
+  sections:
+  - id: assumptions
+    relevance: direct
+    rationale: Establishes that canonical Markdown and YAML remain sufficient sources
+      while retrieval and derived-memory loss are corrected before considering new
+      persistence technology.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - decision.md
+  - id: workflows_use_cases
+    relevance: direct
+    rationale: Defines indexed neighborhood retrieval for context, intake, proposal
+      prompts, next actions, and bounded decision support.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - execution-plan.md
+  - id: data_model
+    relevance: direct
+    rationale: Defines source catalog, evidence, records, authority dimensions, typed
+      nodes, relations, retrieval packets, and freshness fingerprints.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - suggested-scope.md
+  - id: integrations_dependencies
+    relevance: direct
+    rationale: Defines semantic parity and shared core behavior across context, intake,
+      CLI, MCP, next-action, registry, and publication consumers.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - decision.md
+  - id: constraints_nfrs
+    relevance: direct
+    rationale: Requires one bounded discovery and parse pass, zero source reads during
+      query, explainable scoring, deterministic fingerprints, and measured cache decisions.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - execution-plan.md
+  - id: acceptance_validation
+    relevance: direct
+    rationale: Defines parser, authority, topology, retrieval, performance, compatibility,
+      freshness, CLI, and MCP gates for each implementation slice.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - execution-plan.md
+  - id: risks_alternatives_decisions
+    relevance: direct
+    rationale: Records rejected early storage replacement, separation of similarity
+      from authority and topology, and the measured deferral of persistent caching.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - decision.md
+  provenance:
+    operation_id: proposal-vertical-coverage:PROP-100
+    actor: mrjungle
+    authority: owner_confirmed
+    source: owner_review
+    imported_at: '2026-07-15T15:57:46Z'

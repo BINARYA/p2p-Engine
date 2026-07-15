@@ -29,8 +29,75 @@ def register_project_ops_commands(
 ) -> None:
     project_publish_app = typer.Typer(help="Prepare and inspect canonical human project publication output")
     project_vertical_lock_app = typer.Typer(help="Inspect and repair project vertical lock state")
+    project_metadata_app = typer.Typer(help="Inspect and update bounded project metadata")
     project_app.add_typer(project_publish_app, name="publish")
+    project_app.add_typer(project_metadata_app, name="metadata")
     project_vertical_app.add_typer(project_vertical_lock_app, name="lock")
+
+    @project_metadata_app.command("show")
+    def project_metadata_show(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Show bounded project metadata and protected configuration hashes."""
+        try:
+            view = workspace_for(root).project_metadata_view()
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"project_metadata": view})
+            return
+        console.print("Project metadata")
+        for field, value in view.values.items():
+            console.print(f"  {field}: {value or 'not set'}")
+
+    @project_metadata_app.command("preview")
+    def project_metadata_preview(
+        patch: Path = typer.Argument(..., help="Project metadata patch YAML"),
+        actor: str = typer.Option(..., "--actor", help="Owner identity reviewing the patch"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Preview a bounded project metadata update without writing."""
+        try:
+            preview = workspace_for(root).preview_project_metadata_update(patch, actor=actor)
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"project_metadata_preview": preview})
+            return
+        console.print("Project metadata update preview")
+        console.print(f"  token: {preview.preview_token}")
+        console.print(f"  authority: {preview.authority}")
+        console.print(f"  applicable: {str(preview.apply_allowed).lower()}")
+
+    @project_metadata_app.command("apply")
+    def project_metadata_apply(
+        patch: Path = typer.Argument(..., help="Project metadata patch YAML supplied again"),
+        preview_token: str = typer.Option(..., "--preview-token", help="Token returned by metadata preview"),
+        actor: str = typer.Option(..., "--actor", help="Owner identity applying the patch"),
+        confirm: bool = typer.Option(False, "--confirm", help="Confirm the reviewed update"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Apply a matching owner-confirmed project metadata update."""
+        try:
+            result = workspace_for(root).apply_project_metadata_update(
+                patch,
+                preview_token=preview_token,
+                actor=actor,
+                confirm=confirm,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"project_metadata_apply": result})
+            return
+        console.print("Project metadata update")
+        console.print(f"  status: {result.status}")
+        console.print(f"  token: {result.preview_token}")
+        if result.message:
+            console.print(f"  message: {result.message}")
 
     @project_app.command("refresh")
     def project_refresh(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
@@ -71,6 +138,48 @@ def register_project_ops_commands(
                 f"{status.first_next_action.target}"
             )
             console.print(f"    command: {status.first_next_action.command or 'none'}")
+
+    @project_app.command("progress")
+    def project_progress(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Show independent project-definition and declared-evidence progress axes."""
+        try:
+            progress = workspace_for(root).project_progress()
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"project_progress": progress})
+            return
+        console.print("Project progress")
+        console.print(f"  vertical: {progress.vertical_id}")
+        for axis in (progress.definition, progress.evidence):
+            percentage = "not available" if axis.ratio.percentage is None else f"{axis.ratio.percentage:.2f}%"
+            console.print(f"  {axis.axis_id}: {axis.status} {axis.ratio.numerator}/{axis.ratio.denominator} ({percentage})")
+            console.print(f"    basis: {axis.basis}")
+
+    @project_app.command("freshness")
+    def project_freshness(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Inspect derived-state dependencies and ordered rebuild actions without writing."""
+        try:
+            freshness = workspace_for(root).project_freshness()
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"project_freshness": freshness})
+            return
+        console.print("Project derived freshness")
+        console.print(f"  status: {freshness.status}")
+        for node in freshness.nodes:
+            console.print(f"  {node.node_id}: {node.status}")
+        if freshness.rebuild_plan:
+            console.print("Rebuild plan:")
+            for action in freshness.rebuild_plan:
+                console.print(f"  {action.order}. {action.node_id} [{action.action_class}] {action.command or action.missing_primitive}")
 
     @project_app.command("show")
     def project_show(
@@ -600,7 +709,10 @@ def register_project_ops_commands(
         console.print("Sections:")
         for section in review.sections:
             proposals = ", ".join(section.proposals) if section.proposals else "none"
-            console.print(f"  - {section.section_id}  {section.status}  proposals: {proposals}")
+            console.print(
+                f"  - {section.section_id}  definition: {section.definition_status}  "
+                f"evidence: {section.status}  proposals: {proposals}"
+            )
         console.print("Missing capisaldi:")
         if review.missing_capisaldi:
             for section_id in review.missing_capisaldi:
@@ -866,6 +978,56 @@ def register_project_ops_commands(
         console.print("[green]Project definition updated.[/green]")
         console.print(f"  path: {result.path}")
         console.print(f"  operations_applied: {result.operations_applied}")
+
+    @project_definition_app.command("preview")
+    def project_definition_preview(
+        patch: Path = typer.Argument(..., help="Patch YAML file"),
+        actor: str = typer.Option(..., "--actor", help="Owner identity reviewing the patch"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Validate and preview a project definition patch without writing."""
+        try:
+            preview = workspace_for(root).preview_project_definition_update(patch, actor=actor)
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"definition_preview": preview})
+            return
+        console.print("Project definition update preview")
+        console.print(f"  token: {preview.preview_token}")
+        console.print(f"  authority: {preview.authority}")
+        console.print(f"  applicable: {str(preview.apply_allowed).lower()}")
+        console.print(f"  source: {preview.source_preconditions[0].physical_sha256 or 'missing'}")
+        console.print(f"  candidate: {preview.candidate_semantic_hashes.get(preview.targets[0], '')}")
+
+    @project_definition_app.command("apply")
+    def project_definition_apply(
+        patch: Path = typer.Argument(..., help="Patch YAML file supplied again at apply time"),
+        preview_token: str = typer.Option(..., "--preview-token", help="Token returned by definition preview"),
+        actor: str = typer.Option(..., "--actor", help="Owner identity applying the patch"),
+        confirm: bool = typer.Option(False, "--confirm", help="Confirm the reviewed semantic update"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Apply a matching, owner-confirmed project definition preview."""
+        try:
+            result = workspace_for(root).apply_project_definition_update(
+                patch,
+                preview_token=preview_token,
+                actor=actor,
+                confirm=confirm,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"definition_apply": result})
+            return
+        console.print("Project definition update")
+        console.print(f"  status: {result.status}")
+        console.print(f"  token: {result.preview_token}")
+        if result.message:
+            console.print(f"  message: {result.message}")
 
     @project_brief_app.command("prompt")
     def project_brief_prompt(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:

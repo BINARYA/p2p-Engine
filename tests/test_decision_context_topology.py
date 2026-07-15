@@ -445,6 +445,58 @@ def test_incompatible_active_lineage_assertions_emit_diagnostic(tmp_path: Path) 
     assert any(item.code == "DC-RELATION-INCOMPATIBLE-ASSERTIONS" for item in index.diagnostics)
 
 
+def test_dependency_alias_is_supported_but_ambiguous_terms_require_curation(tmp_path: Path) -> None:
+    _accepted_pair(tmp_path)
+    write_yaml(
+        tmp_path,
+        ".p2p/proposals/prop-001-example/related-proposals.yml",
+        {
+            "related_proposals": [
+                {"proposal": "PROP-002", "relationship": "dependency"},
+                {"proposal": "PROP-002", "relationship": "enables"},
+                {"proposal": "PROP-002", "relationship": "informs"},
+                {"proposal": "PROP-002", "relationship": "constrained_by"},
+            ]
+        },
+    )
+
+    index = _build(tmp_path)
+
+    dependencies = [item for item in index.relations if item.relation_type == RelationType.DEPENDS_ON]
+    assert len(dependencies) == 1
+    ambiguous = [item for item in index.diagnostics if item.code == "DC-RELATION-AMBIGUOUS-TYPE"]
+    assert len(ambiguous) == 3
+
+
+def test_conflict_collection_emits_one_supersession_per_rejected_proposal(tmp_path: Path) -> None:
+    for proposal_id in ("PROP-001", "PROP-002", "PROP-003"):
+        write_proposal(tmp_path, proposal_id, status="accepted", decision_outcome="accepted")
+    write_yaml(
+        tmp_path,
+        ".p2p/project/conflicts.yml",
+        {
+            "conflicts": [
+                {
+                    "id": "CONFLICT-001",
+                    "proposals": ["PROP-001", "PROP-002", "PROP-003"],
+                    "winner": "PROP-001",
+                    "rejected": ["PROP-002", "PROP-003"],
+                    "reason": "One approach remains authoritative.",
+                }
+            ]
+        },
+    )
+
+    index = _build(tmp_path)
+
+    supersessions = [item for item in index.relations if item.relation_type == RelationType.SUPERSEDES]
+    assert {(item.source_id, item.target_id) for item in supersessions} == {
+        ("PROP-001", "PROP-002"),
+        ("PROP-001", "PROP-003"),
+    }
+    assert not any("['PROP-002'" in item.target_id for item in index.relations)
+
+
 def test_vertical_coverage_and_work_lineage_are_explicit(tmp_path: Path) -> None:
     write_proposal(tmp_path, "PROP-001")
     write_yaml(
@@ -470,6 +522,49 @@ def test_vertical_coverage_and_work_lineage_are_explicit(tmp_path: Path) -> None
     work_state = next(item for item in index.records if item.owner_id == "WORK-001")
     assert work_state.kind == RecordKind.EXECUTION_STATE
     assert work_state.text == "completed"
+
+
+def test_vertical_coverage_preserves_tracked_owner_confirmation(tmp_path: Path) -> None:
+    write_proposal(tmp_path, "PROP-001", status="accepted", decision_outcome="accepted")
+    proposal_path = ".p2p/proposals/prop-001-example"
+    write_yaml(
+        tmp_path,
+        f"{proposal_path}/vertical-coverage.yml",
+        {
+            "vertical_coverage": {
+                "proposal_id": "PROP-001",
+                "vertical_id": "software_project",
+                "sections": [{"id": "architecture"}],
+            }
+        },
+    )
+    write_yaml(
+        tmp_path,
+        f"{proposal_path}/artifact-state.yml",
+        {
+            "proposal_artifacts": {
+                "artifacts": [
+                    {
+                        "filename": "vertical-coverage.yml",
+                        "confirmation": "owner_confirmed",
+                    }
+                ]
+            }
+        },
+    )
+
+    index = _build(tmp_path)
+    relation = next(
+        item
+        for item in index.relations
+        if item.relation_type == RelationType.MAPS_TO_VERTICAL_SECTION
+    )
+    evidence = next(item for item in index.evidence if item.evidence_id in relation.evidence_ids)
+
+    assert relation.authority == Authority.OWNER_CONFIRMED_EVIDENCE
+    assert relation.activation == Activation.ACTIVE
+    assert evidence.canonicality == Canonicality.CANONICAL
+    assert evidence.authority == Authority.OWNER_CONFIRMED_EVIDENCE
 
 
 def test_traversal_terminates_for_cycles_and_fan_out(tmp_path: Path) -> None:

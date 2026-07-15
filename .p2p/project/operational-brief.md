@@ -1,112 +1,111 @@
 # P2P Engine Operational Brief
 
-## Where We Are
+## Current Position
 
-P2P Engine now has a complete local Core/CLI/MCP path for concurrent managed proposal collaboration.
+P2P Engine is operating on runtime `0.2.0` with a compatible runtime contract
+(`>=0.2.0,<0.3.0`) and workspace schema v1. The workspace reports
+`layout_current`, semantic alignment, a valid `software_project` vertical and no
+active migration lock or recovery transaction.
 
-Current state:
+The repository contains 100 proposals. The committed project projection basis
+is 95 proposals: 94 `accepted` and one `accepted_with_changes`. Two proposals
+remain draft, two are superseded and one is deferred. There are 68 Change Sets;
+`CHANGE-068` is `implementation_ready` and is the only active Change Set. Four
+Work manifests exist and are terminal (`retired` or `cleaned`).
 
-- validation is clean;
-- registries are current;
-- project definition maturity is well defined;
-- all Change Sets are completed;
-- all Work manifests are retired;
-- draft proposals remain and still need normal product review before treating the roadmap as settled.
+The workspace migration has completed M1 through M4. Runtime/schema alignment,
+project definition, historical relation curation and the first selective
+vertical-coverage batch are applied. M5 is rebuilding and comparing derived
+state before the final migration gate.
 
-The MCP server is local and stdio-based. It now exposes both read/status tools and selected permission-gated write tools. It remains an interface to P2P Core, not a hosted IAM system, mediator, web app, or Git provider automation layer.
+## Product And Governance Shape
 
-## Accepted Direction
+P2P Engine remains a local, Git-native, file-backed Python system. Canonical
+project intent is held in governed Markdown and YAML under `.p2p`; registries,
+project projections, decision context, assessments, software specs and
+publication artifacts are derived views.
 
-- P2P Core remains deterministic, provider-neutral, and usable without AI or hosted infrastructure.
-- P2P CLI remains the reference local interface.
-- Agents must use P2P CLI or explicit MCP tools for managed project state instead of raw Git commands.
-- Permission-gated MCP operations use project-declared actors and single-use consent receipts.
-- Local/Git-only identity is declarative and auditable, not strong authentication.
-- Cloud enforcement depends on Git provider controls such as branch protection, token scopes, and protected main.
-- Provider PR/MR creation remains outside Core/MCP unless a dedicated adapter layer is accepted later.
+The CLI is the reference local write surface. MCP provides bounded read tools
+and explicitly authorized write-safe operations. Owner authority, project role
+policy and consent gates remain mandatory. Agents must not replace governed
+writes with direct `.p2p` edits or make proposal, choice, Work, merge or
+publication decisions for the owner.
 
-## Implemented Collaboration Surface
+## Project Definition And Evidence
 
-CLI now supports:
+The active software vertical has 19 required sections. Definition completeness
+is 40/43 units (93.02%). Declared owner-confirmed proposal evidence covers 13/19
+sections (68.42%); 390 heuristic matches are excluded from that numerator.
 
-```text
-p2p sync status/fetch/pull/push
-p2p proposal branch/status/publish/request-review
-p2p proposal accept-branch/reject-branch
-p2p proposal merge/finalize/cleanup
-p2p proposal scan
-```
+The first coverage batch contains 12 owner-confirmed proposals. The other 88
+proposals remain intentionally legacy and unmapped. Six definition-complete
+sections intentionally have no proposal evidence and must not be treated as
+missing definition. Two operating assumptions still require validation; there
+are no open project-definition questions.
 
-MCP now includes permission-gated tools for:
+The request-scoped decision-context index is partial but usable: it has 1,353
+sources, 2,944 evidence records, 2,218 semantic records, 544 nodes and 667 valid
+relations. Invalid, ambiguous and unsupported relation diagnostics are zero.
+The only source diagnostics are two intentional authority/status divergences
+for draft `PROP-063` and `PROP-098`. Bounded retrieval remains explainable and
+reports truncation explicitly.
 
-```text
-p2p_sync_pull
-p2p_sync_push
-p2p_proposal_publish
-p2p_proposal_request_review
-p2p_proposal_accept_branch
-p2p_proposal_reject_branch
-p2p_proposal_merge
-p2p_proposal_finalize
-p2p_proposal_cleanup
-```
+## Current Delivery And Publication Work
 
-These tools require matching consent receipts and record audit metadata.
+`CHANGE-068` implements the accepted Human Project Publication Pipeline from
+`PROP-099`. Its P2P software spec is generated and current. The intended stages
+remain separate: deterministic project export, publication packet preparation,
+agent curation, validation, neutral PDF render and explicit owner review.
 
-## Current Gaps
+Existing publication outputs are stale relative to current governed sources.
+No publication approval exists and none should be inferred from a generated,
+curated, validated or rendered artifact. The owner review stage remains
+missing by design.
 
-- MCP has been verified by tests and JSON-RPC paths, but still needs a real MCP client configuration smoke test.
-- README, install, MCP, and agent setup documentation now describe permission-gated write tools and should be tested by following them from a real client setup.
-- Cloud-agent dogfooding found that a repository can contain P2P policy and instructions but no available `p2p` runtime. A compliant agent then stops instead of creating proposals because manual `.p2p/` edits are forbidden.
-- MCP proposal collaboration is not yet end-to-end in agent-only environments: consent can be consumed but not requested, remote profile correction is CLI-only, draft creation can leave a dirty worktree, and branch creation can accidentally chain from the current proposal branch.
-- Remote init ergonomics need refinement: `--repository remote` is accepted as cloud-like behavior without an explicit message, and Git `origin` can diverge from the P2P remote profile.
-- The current proposal/MCP collaboration tranche is large and should be reviewed and committed before starting another implementation tranche.
-- Work lifecycle MCP parity is not yet decided. Proposal branch lifecycle is complete through permission-gated MCP, but Work publish/finalize/accept/cleanup MCP parity needs an explicit product decision.
-- Provider PR/MR automation is intentionally not implemented.
-- A future API/IAM server remains optional and should be introduced only through a new accepted proposal.
-- Draft proposals remain open and should be reviewed or retired as normal roadmap hygiene.
+## Derived-State Rebuild Status
+
+The following layers have been reconciled during M5:
+
+- registries are current at 100 proposals, 100 decisions, 68 changes, 2 choices,
+  136 relations, 2,293 artifact records and 100 readiness records;
+- project projections are current at 95 decision-map entries and 95 generated
+  feature directories, with an explicit 291-path ownership manifest;
+- decision context is current and request-scoped;
+- readiness assessment, rubric maturity and project progress expose separate
+  bases rather than one authoritative percentage;
+- brief context and prompt are current;
+- 11 software specs are generated and current, including `CHANGE-068`.
+
+Operational brief import is complete. Managed next actions, visible export and
+publication stages still need the remaining supported lifecycle steps. The
+legacy `spec-refine.prompt.md` for `CHANGE-012` is preserved as an optional
+prompt and is not part of the current software-spec refresh contract.
+
+## Risks And Residual Work
+
+- `PROP-063` and `PROP-098` remain drafts and require normal owner review; their
+  pending authority is intentionally not normalized by migration.
+- `CHANGE-068` remains active even though its generated spec and implementation
+  surface exist; completion requires its own governed lifecycle decision.
+- The 88 unmapped proposals and optional legacy artifacts must not be mistaken
+  for current declared vertical evidence.
+- Two project assumptions remain `to_validate`.
+- Assessment and maturity artifacts still use explicit legacy content/mtime
+  freshness fallback; the authoritative project-definition and evidence axes
+  remain the project progress result.
+- Publication curation, validation, rendering and owner review are separate
+  stages. A later stage must not silently mark an earlier stale stage current.
 
 ## Recommended Next Actions
 
-1. Verify the MCP server from a real MCP-capable client.
-   Reason: tests cover the internal JSON-RPC path, but agent/client configuration must prove the tool schemas, stdio command, root handling, and permission-gated calls work outside the test harness.
-   Command: `p2p-mcp-server --root /path/to/project`
+1. Refresh managed next actions with `p2p next refresh` and verify they no
+   longer recommend already-completed projection work.
+2. Refresh the visible project export with `p2p project export`.
+3. Prepare the publication packet with `p2p project publish prepare`.
+4. Run the project-curator import, publication validation and neutral render
+   through their existing commands, while leaving owner review unapproved.
+5. Complete M5 focused and full tests, baseline comparison, residual-state
+   recording and final diff review.
 
-2. Verify the documented MCP setup path.
-   Reason: README, install, MCP, and agent docs now explain permission-gated write tools; the next check is whether a user can follow them successfully from a real MCP client.
-   Command: follow `docs/INSTALL.md` and `docs/MCP.md` to configure a real MCP client.
-
-3. Decide PROP-075 MCP End-To-End Proposal Collaboration Workflow.
-   Reason: real agent/cloud use showed that proposal creation, branch creation, consent, remote profile correction, publish, and review are not yet one coherent P2P/MCP workflow.
-   Command: `.venv/bin/p2p proposal show PROP-075`
-
-4. Decide PROP-074 Agent Runtime Bootstrap Robustness.
-   Reason: cloud agents need actionable recovery when the repository has P2P instructions but no `p2p` executable in PATH.
-   Command: `.venv/bin/p2p proposal show PROP-074`
-
-5. Decide PROP-073 Ergonomic Remote Project Initialization.
-   Reason: remote-backed init, repository mode aliases, Git remote detection, and P2P remote profile correction should be explicit and guided.
-   Command: `.venv/bin/p2p proposal show PROP-073`
-
-6. Consolidate the completed proposal/MCP collaboration tranche.
-   Reason: the tranche is large, tests pass, and the project state is aligned; review and commit it before adding new scope.
-   Command: review current diff and prepare commit for the completed proposal/MCP collaboration tranche.
-
-7. Decide whether Work lifecycle MCP parity is in scope.
-   Reason: proposal branch lifecycle is complete through permission-gated MCP, but Work publish/finalize/accept/cleanup MCP parity remains a product decision.
-   Command: decide whether to create a proposal for permission-gated Work MCP lifecycle tools.
-
-8. Decide whether provider PR/MR automation belongs in a future adapter.
-   Reason: request-review currently records provider-agnostic handoff metadata only; opening GitHub PRs or GitLab MRs should remain outside Core/MCP unless accepted separately.
-   Command: decide whether provider PR/MR automation belongs in a future adapter proposal.
-
-9. Review remaining draft proposals.
-   Reason: readiness is limited mainly by unsettled draft roadmap items, not by active implementation work.
-   Command: `.venv/bin/p2p proposal list --status draft`
-
-## Not Yet
-
-- Do not add provider PR/MR automation without a new accepted proposal and Change Set.
-- Do not treat local actor names as strong authentication.
-- Do not move direct AI/provider invocation into Core or MCP.
-- Do not bypass P2P-managed Git commands for proposal collaboration unless the owner explicitly authorizes an escape hatch.
+Owner-controlled proposal, Change Set, Work and publication decisions remain
+outside this brief. `.p2p` remains the authoritative project source of truth.

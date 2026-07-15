@@ -127,13 +127,60 @@ the update is structurally applicable.
 
 `apply` rechecks the current state, owner authority, confirmation, reason
 requirements, and expected-state token before writing. It updates managed
-`P2P-SETUP.md` first and `.p2p/project/runtime.yml` last. It never installs,
-upgrades, downgrades, or reconciles the local P2P Engine runtime.
+`P2P-SETUP.md` and `.p2p/project/runtime.yml` in one rollback-safe local
+transaction. A handled failure restores the original bytes of both targets. It
+never installs, upgrades, downgrades, or reconciles the local P2P Engine runtime.
 
 Strong impacts such as range tightening, runtime line changes, or updates that
 exclude the active runtime require `--reason`. An unmanaged `P2P-SETUP.md`
 blocks apply; P2P does not overwrite human-owned setup documentation as a side
 effect of a contract update.
+
+### Workspace Schema And Migration
+
+Workspace layout versioning is independent from the runtime contract. Inspect
+layout, semantic alignment and interrupted transaction state without writing:
+
+```bash
+p2p workspace schema status
+p2p workspace schema status --format json
+p2p workspace migrate recovery status --format json
+```
+
+Build a deterministic forward-only plan. Supply a reviewed owner-input patch
+when the findings require vertical, owner or bounded metadata values:
+
+```bash
+p2p workspace migrate plan --to 1 --format json
+p2p workspace migrate plan --to 1 --input migration-input.yml --format json
+```
+
+Apply only the exact reviewed plan. The target, input patch and semantic
+fingerprint are resupplied; P2P recomputes and validates the plan before and
+after acquiring its process-safe lock:
+
+```bash
+p2p workspace migrate apply \
+  --to 1 \
+  --input migration-input.yml \
+  --plan-fingerprint '<reviewed-fingerprint>' \
+  --actor owner \
+  --confirm
+```
+
+An interrupted transaction blocks unrelated governed writes. Resume or roll it
+back only through the supported recovery commands:
+
+```bash
+p2p workspace migrate recovery resume \
+  --transaction-id migration-... --actor owner --confirm
+p2p workspace migrate recovery rollback \
+  --transaction-id migration-... --actor owner --confirm
+```
+
+Do not edit schema state, locks, journals or candidates by hand. See
+[WORKSPACE-MIGRATION.md](WORKSPACE-MIGRATION.md) for owner-input shape,
+recovery preconditions and post-migration freshness handling.
 
 ### Project Interaction Style
 
@@ -196,6 +243,19 @@ reader, while included-proposal context comes from normalized relations.
 `.p2p/registries/relations.yml` remains a backward-compatible generated
 projection. It is not a semantic source for decision context or next actions;
 editing it cannot change normalized topology.
+
+Inspect the two independent project progress axes and the complete derived-state
+rebuild order with read-only commands:
+
+```bash
+p2p project progress --format json
+p2p project freshness --format json
+```
+
+Definition completeness is not implementation completeness. Declared vertical
+coverage contributes evidence authority; heuristic suggestions remain advisory.
+Freshness actions identify deterministic commands separately from agent-curated,
+owner-review and approval boundaries.
 
 ## 2. Define Project Verticals And Capisaldi
 
@@ -340,6 +400,28 @@ state.
 Proposal-to-vertical traceability can be declared with an optional proposal
 artifact:
 
+```bash
+p2p proposal vertical-coverage show PROP-001 --format json
+p2p proposal vertical-coverage suggest PROP-001 --format json
+p2p proposal vertical-coverage preview PROP-001 coverage.yml --actor owner
+p2p proposal vertical-coverage import PROP-001 coverage.yml \
+  --preview-token '<token>' --actor owner --confirm
+```
+
+Suggestions are read-only and never authoritative. Preview/import validates the
+complete replacement and commits coverage plus artifact-state provenance as one
+operation. Project definition and bounded project metadata use the same
+preview/resupplied-patch/apply contract:
+
+```bash
+p2p project definition preview definition-patch.yml --actor owner
+p2p project definition apply definition-patch.yml \
+  --preview-token '<token>' --actor owner --confirm
+p2p project metadata preview metadata-patch.yml --actor owner
+p2p project metadata apply metadata-patch.yml \
+  --preview-token '<token>' --actor owner --confirm
+```
+
 ```yaml
 vertical_coverage:
   schema_version: 1
@@ -355,6 +437,28 @@ vertical_coverage:
 `p2p validate` checks project-local vertical packs, active vertical state,
 vertical lock state, definition state, safety/trust issues, and declared
 proposal coverage when present. Remote vertical registries are deferred.
+
+### Correct Legacy Semantic Artifacts
+
+Existing impact and conflict records can be corrected without append-as-repair
+or direct artifact edits. Preview reparses the complete resupplied content and
+returns a token tied to source preconditions and candidate semantics:
+
+```bash
+p2p impact preview PROP-001 impact-artifacts/ --actor owner --format json
+p2p impact apply PROP-001 impact-artifacts/ \
+  --preview-token '<token>' --actor owner --confirm
+
+p2p conflict show CONFLICT-001 --format json
+p2p conflict preview-update CONFLICT-001 conflict-patch.yml \
+  --actor owner --format json
+p2p conflict update CONFLICT-001 conflict-patch.yml \
+  --preview-token '<token>' --actor owner --confirm
+```
+
+Impact apply validates the complete supplied artifact set before atomically
+replacing any target. Conflict update validates proposal ids, winner/rejected
+consistency, reason and provenance for the stable conflict id.
 
 ## 3. Manage Agent Integrations
 

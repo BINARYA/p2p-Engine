@@ -279,6 +279,11 @@ decisions:
   status: accepted
   feature: p2pworkspace-modular-refactoring-plan
   source: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan
+- proposal: PROP-060
+  title: Real Test Coverage Reporting
+  status: accepted
+  feature: real-test-coverage-reporting
+  source: .p2p/proposals/PROP-060-real-test-coverage-reporting
 - proposal: PROP-061
   title: Focused README and Documentation Map
   status: accepted
@@ -389,6 +394,11 @@ decisions:
   status: accepted
   feature: domain-aware-visible-project-definition-export
   source: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export
+- proposal: PROP-084
+  title: Project-Local Runtime Bootstrap And Upgrade Flow
+  status: accepted_with_changes
+  feature: project-local-runtime-bootstrap-and-upgrade-flow
+  source: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow
 - proposal: PROP-085
   title: Pluggable Project Verticals And Readiness Orchestration
   status: accepted
@@ -404,8 +414,68 @@ decisions:
   status: accepted
   feature: agent-personality-model-for-decision-mediation
   source: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation
+- proposal: PROP-088
+  title: MCP Artifact Import Parity
+  status: accepted
+  feature: mcp-artifact-import-parity
+  source: .p2p/proposals/PROP-088-mcp-artifact-import-parity
+- proposal: PROP-089
+  title: Readiness Question-State Convergence
+  status: accepted
+  feature: readiness-question-state-convergence
+  source: .p2p/proposals/PROP-089-readiness-question-state-convergence
 - proposal: PROP-090
   title: Project Vertical Pack Runtime Hardening And Definition State
   status: accepted
   feature: project-vertical-pack-runtime-hardening-and-definition-state
   source: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state
+- proposal: PROP-091
+  title: Governance Policy Convergence
+  status: accepted
+  feature: governance-policy-convergence
+  source: .p2p/proposals/PROP-091-governance-policy-convergence
+- proposal: PROP-092
+  title: Local MCP Work Lifecycle Parity And Remote Gateway Boundary
+  status: accepted
+  feature: local-mcp-work-lifecycle-parity-and-remote-gateway-boundary
+  source: .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary
+- proposal: PROP-093
+  title: Agent Persistence Boundaries And Proposal Authoring Flow
+  status: accepted
+  feature: agent-persistence-boundaries-and-proposal-authoring-flow
+  source: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening
+- proposal: PROP-094
+  title: P2P-Governed Software Specification Lifecycle
+  status: accepted
+  feature: p2p-governed-software-specification-lifecycle
+  source: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle
+- proposal: PROP-095
+  title: Project Runtime Contract Update Lifecycle
+  status: accepted
+  feature: project-runtime-contract-update-lifecycle
+  source: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle
+- proposal: PROP-096
+  title: Readiness Evidence Quality and Question State Normalization
+  status: accepted
+  feature: readiness-evidence-quality-and-question-state-normalization
+  source: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization
+- proposal: PROP-097
+  title: Runtime Contract Adoption For Legacy Projects
+  status: accepted
+  feature: runtime-contract-adoption-for-legacy-projects
+  source: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects
+- proposal: PROP-099
+  title: Project Output Lifecycle and Retention Policy
+  status: accepted
+  feature: project-output-lifecycle-and-retention-policy
+  source: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy
+- proposal: PROP-100
+  title: Project Decision Context Index and Proposal Neighborhood
+  status: accepted
+  feature: project-decision-context-index-and-proposal-neighborhood
+  source: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology
+- proposal: PROP-101
+  title: Project Readiness Convergence Workflow
+  status: accepted
+  feature: project-readiness-convergence-workflow
+  source: .p2p/proposals/PROP-101-project-readiness-convergence-workflow

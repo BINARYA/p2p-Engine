@@ -243,6 +243,10 @@ P2P Engine now has a mature Core/CLI/MCP MVP with init wizard, context packets, 
 
 P2PWorkspace has grown into a large monolithic class that contains initialization, proposals, governance, project state, assessment, context, specs, Change Sets, Work lifecycle, registry, and Git-related behavior. This is functional for the MVP but increases cognitive load, regression risk, and difficulty for contributors.
 
+## PROP-060 - Real Test Coverage Reporting
+
+P2P Engine has a mature marker-based pytest suite, but it still lacks an occasional code coverage diagnostic. Maintainers cannot easily see which runtime modules or branches are never exercised by a chosen validation tier. This is an internal software-maintenance observability gap for P2P Engine itself, not a project-design evidence gap for users designing non-software projects with P2P Engine.
+
 ## PROP-061 - Focused README and Documentation Map
 
 The README should be the entry point for the p2p-engine repository, but it currently mixes engine scope with broader future product layers and does not yet provide a clean documentation map for CLI, MCP, agent integration, and core API references.
@@ -333,6 +337,10 @@ The current proposal readiness CLI can bootstrap and refresh readiness snapshots
 
 P2P Engine currently routes accepted project intent through Change Set software-spec and spec-export outputs. This makes every project look like a software implementation workflow, even when the project domain is not software. P2P Engine is meant to define projects in detail across many vertical domains, not only to produce software delivery artifacts. The current generated outputs are also hidden under .p2p/outputs, which makes the human-facing project definition hard for normal users to find and inspect. Users need a visible, comprehensive, domain-aware project definition that captures what emerged during proposal preparation, exploration, decisions, and refinement.
 
+## PROP-084 - Project-Local Runtime Bootstrap And Upgrade Flow
+
+A shared P2P-managed project must declare which P2P Engine runtime version is expected after clone, copy, or archive extraction. The problem is runtime version alignment: a human or agent must be able to determine the compatible runtime range and the recommended runtime version from project-local data, without relying on chat history, local machine state, Git history, or a separate P2P Engine source checkout.
+
 ## PROP-085 - Pluggable Project Verticals And Readiness Orchestration
 
 Project initialization and project readiness currently rely on domain/rubric defaults that are useful but too static: P2P can suggest rubric criteria, but it does not yet model verticals as extensible project-specific packages with sections, maturity rules, questions, artifacts, examples, and agent guidance. This risks hardcoding a finite catalog of domains inside the engine, or leaving agents without enough structure to proactively define what a project should achieve in its chosen vertical.
@@ -345,6 +353,18 @@ Agents are willing to explore new proposals, but proposal-side artifacts such as
 
 Agents currently adapt tone and technical detail only through prompt text or chat habit. The project needs an explicit, configurable interaction model for how an agent or mediator addresses the decision owner.
 
+## PROP-088 - MCP Artifact Import Parity
+
+Real MCP testing showed a gap in the proposal artifact workflow. MCP clients can generate prompts, update structured proposal sections, and set artifact coverage state, but they cannot import or update long-form proposal artifact content such as exploration.md, findings.md, clarifications.md, or impact-map.yml through MCP. The CLI already has controlled import primitives for impact and exploration outputs, so MCP users hit a missing primitive even when the core engine can perform the write safely.
+
+## PROP-089 - Readiness Question-State Convergence
+
+Proposal readiness currently has two competing sources for owner-question state: the structured questions.yml lifecycle and the legacy open-questions.md markdown text. When both exist, readiness can continue to treat stale markdown questions as open even after the corresponding structured questions have been answered and applied.
+
+This creates a false blocker at the per-proposal readiness level. A proposal can show owner_questions_resolution:needs_owner_input even though questions.yml shows that the owner has already answered or resolved the relevant questions. The issue does not affect whole-project readiness directly; it affects the readiness assessment for individual proposals and then propagates misleading next actions to agents and owners.
+
+The impact is practical: agents may keep asking for already-resolved input, owners may see a proposal as less mature than it is, and acceptance decisions may require unnecessary override. The root cause is that readiness still parses open-questions.md as blocking state instead of treating questions.yml as the authoritative lifecycle record whenever structured question state exists.
+
 ## PROP-090 - Project Vertical Pack Runtime Hardening And Definition State
 
 PROP-085 introduced pluggable project verticals and the first local implementation delivered an MVP: packaged vertical data, project-local override, active vertical state, CLI/MCP operations, readiness review, proposal-to-vertical coverage, and agent guidance. That MVP proves the direction, but it is not yet a production-grade vertical runtime.
@@ -354,3 +374,126 @@ The current implementation still relies on a compact single-file vertical model,
 Without a stronger contract, verticals may remain useful templates rather than a reliable operating layer for project definition. Agents can inspect available vertical data, but they cannot durably record what the owner has answered, what remains missing, what is assumed, which section is blocked, or which question should be asked next. Pack updates or local overrides may also change behavior unexpectedly if the project does not pin the resolved pack version and checksum.
 
 This proposal completes and hardens PROP-085 by defining the production-grade contracts for project vertical pack shape, source resolution, lockfiles, project definition state, CLI JSON access, agent-guided progressive interview behavior, validation, security, rubric regeneration, and future Wavekit-compatible installation.
+
+## PROP-091 - Governance Policy Convergence
+
+P2P Engine already has governance-aware artifacts and helper utilities, but they
+do not yet form a coherent operational governance policy. The project can store
+`governance.yml`, `roles.yml`, `permissions.yml`, choices, votes, decision
+precedents, explicit blockers, and owner-controlled decisions, but there is no
+single structured evaluation that answers these questions before a decision:
+
+- who is attempting to decide;
+- whether that actor is allowed to decide;
+- what target is being decided;
+- which governance mode applies;
+- whether the governance state is valid and readable;
+- how the proposed decision relates to votes, blockers, and precedents;
+- whether the decision can proceed normally, requires rationale, requires owner
+  override, or must be blocked.
+
+Without this layer, governance artifacts remain useful as audit records but weak
+as decision support. Agents and external clients can see fragments of governance
+state, yet they cannot consume a stable preflight contract that explains the
+decision context in a deterministic way.
+
+## PROP-092 - Local MCP Work Lifecycle Parity And Remote Gateway Boundary
+
+P2P Engine can execute the managed Work lifecycle through the CLI, and it already exposes permission-gated MCP tools for several proposal-branch and sync operations. Work items, however, still have only partial MCP coverage: agents can inspect or create Work plans, but cannot use the local MCP adapter to publish, request review, accept, finalize, or clean up Work items through the same domain-specific controls available in the CLI. This leaves agent-first local workflows incomplete and tempts agents or external integrations to fall back to raw Git operations, which would bypass the P2P Work lifecycle, consent receipts, state checks, and audit semantics.
+
+## PROP-093 - Agent Persistence Boundaries And Proposal Authoring Flow
+
+Real new-project and external-agent tests showed that P2P Engine installs and works, and that agents can use it to capture project reasoning as structured state. That early use of P2P is desirable.
+
+The problem is not that agents use P2P too soon. The problem is that P2P currently gives agents and owners some ambiguous signals about persistent writes and proposal authoring.
+
+An agent can create or modify durable project knowledge without first showing the owner exactly what will become persistent state. A second, deeper ambiguity is inside the proposal workspace itself: P2P scaffolds narrative markdown files such as `alternatives.md`, `findings.md`, and `open-questions.md`, while generated instructions also say not to edit `.p2p/` by hand. If the canonical input is structured contribution or question state, those markdown placeholders look like editable files but are not the right write interface.
+
+A related ambiguity is the physical shape of proposal directories. Different workflows can materialize different files for valid reasons: one proposal may have conflict analysis or related-proposal artifacts, while another may not. That can make the CLI feel non-deterministic if owners or agents infer proposal completeness from `ls`. The deterministic surface should be a CLI/MCP-visible logical artifact schema, not a requirement that every proposal directory contains every possible file.
+
+The feedback also shows a documentation gap. P2P already has README, concepts, CLI, MCP, and agent-integration documentation, but agents still need a compact operational routing guide that answers: what is P2P for, when should an agent stay in chat, when should it create or update P2P state, when should it use project definition, when should it create proposals or choices, when should it defer to an explicit vertical primitive such as the PROP-094 software-spec lifecycle, and when is a requested file outside P2P governance.
+
+The new-project bootstrap issue needs a more precise direction than simply changing the default from broad to narrow. A broad default creates noise when every adapter is generated without owner intent. A narrow default creates a different failure mode when the owner later opens the same project with Claude, Cursor, Copilot, Gemini, OpenCode, or another supported agent and cannot easily discover how to add that integration.
+
+The result is predictable: a capable agent may duplicate content, write directly under `.p2p/`, create external project documents, jump to a spec file, judge proposal completeness from filesystem shape, or fail to onboard a second agent because the engine does not make the canonical authoring flow, artifact status model, agent request-routing model, and integration lifecycle obvious enough.
+
+The core product issue is therefore:
+
+- persistent agent writes are not classified and previewed clearly enough;
+- canonical P2P inputs and generated narrative artifacts are not visually and operationally distinct enough;
+- proposal artifact status is not exposed as a deterministic logical catalog independent of physical file materialization;
+- agents lack a concise operational playbook that maps owner requests to the correct P2P route;
+- the proposal authoring flow is not discoverable enough from help text, scaffold output, and owner-facing views;
+- agent integration bootstrap is too broad today, but a narrow default would be unsafe unless add/remove lifecycle commands are visible from init summaries and generated instructions;
+- P2P's decision root must be explicit and robust, but this must not be misread as an endorsement of any specific repository topology such as sibling specification repositories.
+
+## PROP-094 - P2P-Governed Software Specification Lifecycle
+
+In software projects, an owner may legitimately ask an agent to produce system specifications before the project is fully defined. If the agent responds by creating a standalone spec file immediately, that file can become the effective source of truth while the P2P project definition remains incomplete or bypassed.
+
+This is a methodological failure, not a file-placement issue alone. The problem is not that specs are unnecessary or always premature. The problem is that the software vertical should guide the definition of the parts that make a useful specification, and those parts should be captured through P2P proposals, decisions, choices, readiness, and Change Sets before a durable spec file is treated as authoritative.
+
+Without that lifecycle, the owner receives a useful-looking document, but future agents, readiness checks, Change Sets, exports, and project status may not be able to explain which governed decisions the spec reflects, which assumptions remain unresolved, or whether the file is only an exploratory draft.
+
+## PROP-095 - Project Runtime Contract Update Lifecycle
+
+PROP-084 allows a P2P-managed project to declare the P2P Engine runtime range it trusts, recommend a runtime version to collaborators, expose compatibility diagnostics, and block governed writes when the declared runtime contract cannot be trusted.
+
+The project still lacks an explicit lifecycle for changing that contract after initialization.
+
+An owner may intentionally move a project to another P2P Engine version or runtime line. Editing `.p2p/project/runtime.yml` manually is unsafe because it bypasses validation, can leave generated setup guidance stale, provides no deterministic preview of collaborator impact, and does not define how the PROP-084 governed-write gate may be crossed when the active runtime is outside the old compatible range.
+
+The project-level decision to change the required runtime must remain distinct from installing, upgrading, downgrading, or reconciling the runtime installed on a collaborator's machine.
+
+## PROP-096 - Readiness Evidence Quality and Question State Normalization
+
+Readiness assessment can report false missing evidence when composed evidence includes a placeholder-only secondary artifact. We observed this when a meaningful Acceptance Criteria section was combined with an execution-plan.md file containing only the literal placeholder line `Pending`. The proposal question workflow can also leave answered questions in an inconsistent state where applied_to_proposal is true but state remains answered, causing readiness to keep reporting answered_not_applied even though the answer was already incorporated.
+
+## PROP-097 - Runtime Contract Adoption For Legacy Projects
+
+Projects created before the runtime contract feature can remain in
+`legacy_undeclared` state. They have no `.p2p/project/runtime.yml` and no
+`runtime_contract.required` marker, so `p2p validate` keeps warning that
+compatibility cannot be inferred. Manually editing `.p2p` would solve one
+repository once, but it would bypass the P2P write boundary and would not
+provide a reusable safe path for other legacy projects.
+
+## PROP-099 - Project Output Lifecycle and Retention Policy
+
+P2P Engine can already transform governed project memory, including ideas, contributions, proposals, decisions, readiness, verticals, Change Sets, Work items, risks, assumptions, and requirements, into a visible project export. That export is complete, traceable, useful as consolidated memory, and derived from the managed .p2p state. The problem is that completeness and editorial readability are different goals. The current export still reflects the internal P2P memory structure: proposal-oriented organization, repeated sections, detailed governance blocks, empty placeholders, long lists of requirements and risks, and historical information mixed with current project state. An owner, stakeholder, contributor, or implementer should not need to reconstruct the project by reading many proposals and internal artifacts. The project needs a human publication pipeline that transforms complete governed memory into a readable, project-first, publishable document.
+
+## PROP-100 - Project Decision Context Index and Proposal Neighborhood
+
+P2P conserva gia molte informazioni necessarie a ricostruire il ragionamento del progetto: decisioni e motivazioni nei Markdown, stati e readiness negli YAML, impact map, related proposals, conflict analysis, choice, Change Set, registri, artifact state, vertical coverage, decision precedents e artifact di pubblicazione. Il problema osservato non e prima di tutto il formato di persistenza. Il problema e che i servizi che generano registri, contesti e prompt ne usano solo una parte, perdendo motivazioni, vincoli, relazioni, autorita, provenienza e stato di attivazione.
+
+La revisione della codebase e della feature implementativa ha chiarito ulteriori cause:
+
+- `decisions-map.yml` e `relations.yml` sono projection lossy e non possono essere usati come memoria semantica autorevole;
+- intake e context rendering usano ancora selezioni first-N o letture globali non ordinate per rilevanza;
+- alcuni path ricostruiscono Change Set o summary ripetutamente e possono moltiplicare scansioni e tempi di risposta;
+- il parser Markdown corrente e stretto e non preserva span, sezioni duplicate o diagnostica affidabile per frontmatter malformato;
+- `P2PWorkspace` memoizza i service object, quindi un indice conservato nel service potrebbe diventare stale dopo una scrittura nella stessa sessione;
+- proposal status e decision outcome possono divergere e il lifecycle include stati come `accepted_with_changes`, `split`, `merged_into_other` e `superseded` che non possono essere ridotti a accepted/rejected;
+- decision precedents, project definition, governance constraints e Work execution state devono avere scope e authority espliciti;
+- Change Set frontmatter e file di relazione companion possono duplicare o contraddirsi;
+- similarity, topologia e authority sono dimensioni differenti e non devono essere fuse in uno score opaco;
+- `generated_at` non puo far cambiare l'identita semantica di un output deterministico;
+- CLI e MCP possono divergere se payload, serializer e target compatibility non vengono aggiornati nella stessa slice.
+
+L'effetto pratico resta invariato: P2P possiede memoria, ma non recupera in modo affidabile cio che e gia stato deciso o analizzato quando deve supportare una nuova proposta, un intake, una sintesi o il prossimo passo.
+
+## PROP-101 - Project Readiness Convergence Workflow
+
+P2P Engine can diagnose project readiness but cannot yet drive a project from a diagnosed vertical gap to an auditable owner-reviewed update. The current review identifies incomplete capisaldi, declared evidence and unmapped proposals, but its convergence behavior is incomplete:
+
+- it returns generic advice to complete the definition and rerun the review;
+- some required incomplete sections have no applicable generated question;
+- there is no persistent project-level question lifecycle equivalent to the proposal-question workflow;
+- owner answers are not connected to a governed candidate project-definition patch;
+- project-definition gaps are not coherently prioritized in managed next actions;
+- large legacy proposal lists are emitted without bounded detail or prioritization;
+- progress, readiness and freshness expose useful but separate states without an orchestration contract that closes the loop.
+
+The result is a system that knows what is incomplete but still depends on an agent or owner to reconstruct the next workflow manually across multiple commands and sessions.
+
+The implementation risk is broader than question generation. A naive implementation could create competing authority between project-question state, project definition, decision context, managed next actions and workspace migration state. It could also reuse the existing single-file definition apply in a way that leaves question and definition state partially committed, or register a v1-to-v2 migration while still executing the current legacy-to-v1 bootstrap planner.

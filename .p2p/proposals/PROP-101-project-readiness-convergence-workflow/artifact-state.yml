@@ -1,0 +1,380 @@
+proposal_artifacts:
+  schema_version: 1
+  proposal_id: PROP-101
+  initialized_at: '2026-07-15T21:30:41Z'
+  updated_at: '2026-07-15T22:43:47Z'
+  status: active
+  legacy:
+    state: ''
+    reason: ''
+  artifacts:
+  - id: proposal
+    filename: proposal.md
+    expectation: required
+    status: satisfied
+    reason: Revised proposal incorporates code-audit hardening through 14 contracts,
+      nine gated slices and 36 acceptance criteria covering transition-specific v1-to-v2
+      migration, deterministic legacy mapping, operation authority, one multi-target
+      apply, exact retry, vertical reconciliation, decision-context authority and
+      snapshot-bounded retrieval.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-07-15T21:30:41Z'
+    updated_at: '2026-07-15T22:42:57Z'
+    history:
+    - at: '2026-07-15T21:38:35Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Synthesized proposal contains current evidence, scope, eight contracts,
+        alternatives, trade-offs, risks, assumptions, owner questions, overlap, seven
+        delivery slices and 22 acceptance criteria.
+    - at: '2026-07-15T22:42:57Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: Revised proposal incorporates code-audit hardening through 14 contracts,
+        nine gated slices and 36 acceptance criteria covering transition-specific
+        v1-to-v2 migration, deterministic legacy mapping, operation authority, one
+        multi-target apply, exact retry, vertical reconciliation, decision-context
+        authority and snapshot-bounded retrieval.
+  - id: readiness
+    filename: readiness.yml
+    expectation: required
+    status: satisfied
+    reason: 'Readiness was reassessed after the complete robustness revision: score
+      100, decision_ready, high confidence, Q001-Q008 applied, with no failed gates,
+      missing evidence, unanswered owner questions or suggested next actions.'
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-07-15T21:30:41Z'
+    updated_at: '2026-07-15T22:43:47Z'
+    history:
+    - at: '2026-07-15T21:38:36Z'
+      actor: codex
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Deterministic readiness state exists and is refreshable; its weak score
+        remains an analytical result rather than an artifact-presence failure.
+    - at: '2026-07-15T22:18:42Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: Deterministic readiness state exists and will be reassessed after all
+        eight owner questions were applied; artifact satisfaction does not override
+        the computed score or vertical-coverage requirement.
+    - at: '2026-07-15T22:20:53Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: 'Readiness was reassessed after all eight owner questions and vertical
+        coverage were applied: score 100, label decision_ready, confidence high, with
+        no failed gates, missing evidence or suggested next actions.'
+    - at: '2026-07-15T22:43:47Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: 'Readiness was reassessed after the complete robustness revision: score
+        100, decision_ready, high confidence, Q001-Q008 applied, with no failed gates,
+        missing evidence, unanswered owner questions or suggested next actions.'
+  - id: open_questions
+    filename: open-questions.md
+    expectation: required
+    status: satisfied
+    reason: Q001-Q008 remain applied and no owner-policy question is open; post-definition
+      findings were incorporated as explicit technical contracts rather than hidden
+      implementation choices.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags: []
+    created_at: '2026-07-15T21:30:41Z'
+    updated_at: '2026-07-15T22:43:04Z'
+    history:
+    - at: '2026-07-15T21:38:36Z'
+      actor: codex
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Seven explicit owner questions are documented in open-questions.md and
+        persisted in structured questions.yml with priority, rationale and lifecycle
+        state.
+    - at: '2026-07-15T22:18:41Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: Eight structured owner questions are closed as applied; open-questions.md
+        separates resolved decisions from an explicit empty remaining-question set.
+    - at: '2026-07-15T22:43:04Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: Q001-Q008 remain applied and no owner-policy question is open; post-definition
+        findings were incorporated as explicit technical contracts rather than hidden
+        implementation choices.
+  - id: clarifications
+    filename: clarifications.md
+    expectation: required
+    status: satisfied
+    reason: Q001-Q008 remain owner-confirmed and are supplemented by eight owner-requested
+      robustness refinements for migration dispatch, legacy mapping, atomicity, authority,
+      retry, vertical reconciliation, decision-context activation and pagination.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - owner_clarification
+    created_at: '2026-07-15T21:30:41Z'
+    updated_at: '2026-07-15T22:43:10Z'
+    history:
+    - at: '2026-07-15T21:38:37Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Architectural recommendations are documented, but Q001-Q007 remain unanswered
+        and must not be treated as owner-approved clarifications.
+    - at: '2026-07-15T21:53:10Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: Q001 is owner-confirmed and incorporated across proposal, clarifications,
+        open questions and suggested scope. Q002-Q004 remain blocking owner questions;
+        Q005-Q007 remain residual follow-up.
+    - at: '2026-07-15T21:57:50Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: Q001 and Q002 are owner-confirmed and incorporated. Q003, Q004 and Q008
+        remain blocking owner questions; Q005-Q007 remain residual follow-up.
+    - at: '2026-07-15T21:59:56Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: Q001, Q002 and Q008 are owner-confirmed and incorporated. Q003 and Q004
+        remain blocking owner questions; Q005-Q007 remain residual follow-up.
+    - at: '2026-07-15T22:07:30Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: Q001, Q002, Q003 and Q008 are owner-confirmed and incorporated. Q004
+        remains a blocking owner question; Q005-Q007 remain residual follow-up.
+    - at: '2026-07-15T22:10:23Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: Q001-Q004 and Q008 are owner-confirmed and incorporated. No high-priority
+        owner question remains; Q005-Q007 are residual follow-up.
+    - at: '2026-07-15T22:13:25Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: Q001-Q005 and Q008 are owner-confirmed and incorporated. Q006-Q007 remain
+        residual follow-up.
+    - at: '2026-07-15T22:15:50Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: Q001-Q006 and Q008 are owner-confirmed and incorporated. Q007 remains
+        residual follow-up.
+    - at: '2026-07-15T22:18:41Z'
+      actor: codex
+      source: agent
+      previous_status: weak
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: Q001-Q008 are owner-confirmed, applied in structured question state
+        and incorporated into proposal, clarifications, exploration scope, assumptions
+        and impact where applicable.
+    - at: '2026-07-15T22:43:10Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: Q001-Q008 remain owner-confirmed and are supplemented by eight owner-requested
+        robustness refinements for migration dispatch, legacy mapping, atomicity,
+        authority, retry, vertical reconciliation, decision-context activation and
+        pagination.
+  - id: findings
+    filename: findings.md
+    expectation: required
+    status: satisfied
+    reason: Eighteen findings now cover the original convergence gaps plus single-target
+      apply, transition-planner leakage, legacy mapping, mutation authority, replay
+      semantics, vertical reconciliation, decision-context activation, schema gating
+      and measurable performance.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - governance_policy
+    - public_interface
+    - persistent_state
+    - compatibility_migration
+    - cross_module
+    - permission_security_sync
+    - source_of_truth_memory
+    - high_uncertainty_evidence
+    - alternatives
+    - owner_clarification
+    created_at: '2026-07-15T21:30:41Z'
+    updated_at: '2026-07-15T22:43:16Z'
+    history:
+    - at: '2026-07-15T21:38:38Z'
+      actor: codex
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Structured findings identify convergence, question coverage, next-action,
+        authority, compatibility, source-of-truth and integration gaps.
+    - at: '2026-07-15T22:43:16Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: Eighteen findings now cover the original convergence gaps plus single-target
+        apply, transition-planner leakage, legacy mapping, mutation authority, replay
+        semantics, vertical reconciliation, decision-context activation, schema gating
+        and measurable performance.
+  - id: exploration
+    filename: exploration.md
+    expectation: required
+    status: satisfied
+    reason: Exploration now records the source audit, required state boundaries, transition-specific
+      migration architecture, multi-target mutation invariant, lifecycle identity
+      and nine-slice delivery shape.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - high_uncertainty_evidence
+    - alternatives
+    created_at: '2026-07-15T21:30:41Z'
+    updated_at: '2026-07-15T22:43:22Z'
+    history:
+    - at: '2026-07-15T21:38:38Z'
+      actor: codex
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Exploration records current evidence, existing primitives, convergence
+        flow, state boundaries, slices and success boundary.
+    - at: '2026-07-15T22:43:22Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: Exploration now records the source audit, required state boundaries,
+        transition-specific migration architecture, multi-target mutation invariant,
+        lifecycle identity and nine-slice delivery shape.
+  - id: impact_map
+    filename: impact-map.yml
+    expectation: required
+    status: satisfied
+    reason: Impact artifacts now include workspace schema/status, migration registry
+      and handlers, compatibility planner, mutation preview/transactions, permissions,
+      decision-context sources, validation, CLI/MCP surfaces and their governing proposal
+      dependencies.
+    source: agent
+    actor: codex
+    confirmation: agent_proposed
+    confirmed_by: ''
+    risk_flags:
+    - governance_policy
+    - public_interface
+    - persistent_state
+    - compatibility_migration
+    - cross_module
+    - permission_security_sync
+    - source_of_truth_memory
+    - high_uncertainty_evidence
+    - alternatives
+    - owner_clarification
+    created_at: '2026-07-15T21:30:41Z'
+    updated_at: '2026-07-15T22:43:29Z'
+    history:
+    - at: '2026-07-15T21:38:39Z'
+      actor: codex
+      source: agent
+      previous_status: missing
+      previous_expectation: required
+      previous_confirmation: system
+      reason: Impact, related proposals and conflict analysis were imported through
+        the supported impact primitive with canonical relation vocabulary.
+    - at: '2026-07-15T22:43:29Z'
+      actor: codex
+      source: agent
+      previous_status: satisfied
+      previous_expectation: required
+      previous_confirmation: agent_proposed
+      reason: Impact artifacts now include workspace schema/status, migration registry
+        and handlers, compatibility planner, mutation preview/transactions, permissions,
+        decision-context sources, validation, CLI/MCP surfaces and their governing
+        proposal dependencies.
+  - id: vertical_coverage
+    filename: vertical-coverage.yml
+    expectation: required_when_applicable
+    status: satisfied
+    reason: Owner-reviewed vertical coverage was imported.
+    source: vertical_coverage_import
+    actor: mrjungle
+    confirmation: owner_confirmed
+    confirmed_by: mrjungle
+    risk_flags: []
+    created_at: '2026-07-15T21:30:41Z'
+    updated_at: '2026-07-15T22:20:19Z'
+    history:
+    - at: '2026-07-15T22:20:19Z'
+      actor: mrjungle
+      source: vertical_coverage_import
+      previous_status: missing
+      previous_expectation: required_when_applicable
+      previous_confirmation: system
+      reason: Owner-reviewed vertical coverage was imported.

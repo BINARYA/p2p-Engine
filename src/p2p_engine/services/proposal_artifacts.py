@@ -3,13 +3,23 @@ from __future__ import annotations
 import re
 import shutil
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Literal
+
+import yaml
 
 from p2p_engine.core.decision_context import (
     ContextBudget,
     DecisionContextIndex,
     RetrievalRequest,
+)
+from p2p_engine.core.mutation_preview import (
+    MutationPreview,
+    MutationPreviewService,
+    MutationResult,
+    semantic_sha256,
+    source_precondition,
 )
 from p2p_engine.foundation.validators import (
     validate_tasks_yaml,
@@ -25,6 +35,10 @@ from p2p_engine.prompts.synthesize import render_synthesize_prompt
 from p2p_engine.prompts.tasks import render_tasks_prompt
 from p2p_engine.services.decision_context_rendering import render_nearby_decision_context
 from p2p_engine.services.decision_context_retrieval import DecisionContextRetrievalService
+from p2p_engine.services.decision_context_topology import classify_relation_term
+from p2p_engine.services.project_verticals import ProjectVerticalService
+from p2p_engine.services.proposal_artifact_state import ProposalArtifactStateService
+from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 
 PromptKind = Literal["explore", "digest", "clarify", "synthesize", "plan", "tasks", "swot", "impact"]
 ImportKind = Literal["clarify", "synthesize", "plan", "tasks"]
@@ -151,11 +165,25 @@ class ProposalArtifactService:
         p2p_dir: Path,
         find_proposal_dir: Callable[[str], Path],
         decision_context_index: Callable[[], DecisionContextIndex],
+        atomic_writer: AtomicMutationWriter | None = None,
+        vertical_service: ProjectVerticalService | None = None,
+        artifact_state_service: ProposalArtifactStateService | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
         self.find_proposal_dir = find_proposal_dir
         self.decision_context_index = decision_context_index
+        self.atomic_writer = atomic_writer or AtomicMutationWriter(root=root, p2p_dir=p2p_dir)
+        self.vertical_service = vertical_service or ProjectVerticalService(
+            root=root,
+            p2p_dir=p2p_dir,
+            proposal_summaries=lambda: [],
+            find_proposal_dir=find_proposal_dir,
+        )
+        self.artifact_state_service = artifact_state_service or ProposalArtifactStateService(
+            root=root,
+            find_proposal_dir=find_proposal_dir,
+        )
 
     def generate_prompt(self, proposal_id: str, kind: PromptKind) -> Path:
         proposal_dir = self.find_proposal_dir(proposal_id)
@@ -255,26 +283,270 @@ class ProposalArtifactService:
 
     def import_impact(self, proposal_id: str, source: Path) -> list[Path]:
         proposal_dir = self.find_proposal_dir(proposal_id)
-        source = source.resolve()
-        imported: list[Path] = []
-        if source.is_dir():
-            for filename, key in IMPACT_ARTIFACTS.items():
-                source_path = source / filename
-                if source_path.exists():
-                    validate_yaml_key(source_path.read_text(encoding="utf-8"), key)
-                    target = proposal_dir / filename
-                    shutil.copyfile(source_path, target)
-                    imported.append(target.relative_to(self.root))
-        elif source.is_file():
-            validate_yaml_key(source.read_text(encoding="utf-8"), "impact")
-            target = proposal_dir / "impact-map.yml"
-            target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
-            imported.append(target.relative_to(self.root))
-        else:
-            raise ValueError(f"Impact source not found: {source}")
-        if not imported:
+        artifacts = load_impact_artifacts(source)
+        if not artifacts:
             raise ValueError(f"No impact artifacts found in: {source}")
-        return imported
+        return self._atomic_impact_import(proposal_id, proposal_dir, artifacts)
+
+    def preview_impact(
+        self,
+        proposal_id: str,
+        artifacts: dict[str, str],
+        *,
+        actor: str,
+    ) -> MutationPreview:
+        proposal_dir = self.find_proposal_dir(proposal_id)
+        parsed = self._validate_impact_set(proposal_id, artifacts)
+        targets = tuple((proposal_dir / filename).relative_to(self.root).as_posix() for filename in sorted(artifacts))
+        sources = []
+        semantic_diff: dict[str, object] = {}
+        candidate_semantics: dict[str, object] = {}
+        for filename in sorted(artifacts):
+            target = proposal_dir / filename
+            relative = target.relative_to(self.root).as_posix()
+            current = target.read_bytes() if target.exists() else None
+            sources.append(source_precondition(relative, current))
+            candidate_semantics[relative] = parsed[filename]
+            semantic_diff[relative] = {
+                "before_exists": current is not None,
+                "before_semantic_sha256": _yaml_semantic_hash(current),
+                "candidate_semantic_sha256": semantic_sha256(parsed[filename]),
+            }
+        authority = self._impact_authority(proposal_dir, actor)
+        blockers = () if authority in {"owner_confirmed", "known_actor"} else (authority,)
+        return MutationPreviewService.build(
+            operation_id=f"proposal-impact:{proposal_id}",
+            targets=targets,
+            actor=actor,
+            authority=authority,
+            sources=sources,
+            candidate_semantics=candidate_semantics,
+            semantic_diff=semantic_diff,
+            blockers=blockers,
+        )
+
+    def apply_impact(
+        self,
+        proposal_id: str,
+        artifacts: dict[str, str],
+        *,
+        preview_token: str,
+        actor: str,
+        confirm: bool,
+    ) -> MutationResult:
+        preview = self.preview_impact(proposal_id, artifacts, actor=actor)
+        if not confirm:
+            return MutationResult(
+                status="blocked",
+                operation_id=preview.operation_id,
+                preview_token=preview.preview_token,
+                actor=actor,
+                message="Explicit confirmation is required for impact correction.",
+            )
+        if preview.preview_token != preview_token:
+            return MutationResult(
+                status="stale_preview",
+                operation_id=preview.operation_id,
+                preview_token=preview.preview_token,
+                actor=actor,
+                message="Impact sources or candidate semantics changed after preview.",
+            )
+        if not preview.apply_allowed:
+            return MutationResult(
+                status="blocked",
+                operation_id=preview.operation_id,
+                preview_token=preview.preview_token,
+                actor=actor,
+                message="Actor is not authorized to replace committed impact evidence.",
+            )
+        proposal_dir = self.find_proposal_dir(proposal_id)
+        candidates = {
+            (proposal_dir / filename).relative_to(self.root).as_posix(): content.encode("utf-8")
+            for filename, content in artifacts.items()
+        }
+        return self.atomic_writer.apply(
+            operation_id=preview.operation_id,
+            candidates=candidates,
+            sources=preview.source_preconditions,
+            preview_token=preview.preview_token,
+            actor=actor,
+        )
+
+    def preview_vertical_coverage(
+        self,
+        proposal_id: str,
+        payload: dict[str, object],
+        *,
+        actor: str,
+    ) -> MutationPreview:
+        authority = self._coverage_authority(actor)
+        candidate = self._coverage_candidate_payload(
+            proposal_id,
+            payload,
+            actor=actor,
+            authority=authority,
+            imported_at="__P2P_APPLY_AT__",
+        )
+        self.vertical_service.validate_proposal_vertical_coverage_candidate(proposal_id, candidate)
+        proposal_dir = self.find_proposal_dir(proposal_id)
+        coverage_path = proposal_dir / "vertical-coverage.yml"
+        state_path = proposal_dir / "artifact-state.yml"
+        coverage_relative = coverage_path.relative_to(self.root).as_posix()
+        state_relative = state_path.relative_to(self.root).as_posix()
+        state_candidate = self.artifact_state_service.render_satisfied_artifact_candidate(
+            proposal_id,
+            "vertical_coverage",
+            actor=actor,
+            source="vertical_coverage_import",
+            reason="Owner-reviewed vertical coverage was imported.",
+            updated_at="__P2P_APPLY_AT__",
+            owner_confirmed=authority == "owner_confirmed",
+        )
+        current_coverage = coverage_path.read_bytes() if coverage_path.exists() else None
+        current_state = state_path.read_bytes() if state_path.exists() else None
+        candidate_semantics = {
+            coverage_relative: _without_audit_timestamps(candidate),
+            state_relative: _without_audit_timestamps(state_candidate),
+        }
+        before_sections = _coverage_section_ids(_yaml_mapping_or_empty(current_coverage))
+        candidate_sections = _coverage_section_ids(candidate)
+        return MutationPreviewService.build(
+            operation_id=f"proposal-vertical-coverage:{proposal_id}",
+            targets=(coverage_relative, state_relative),
+            actor=actor,
+            authority=authority,
+            sources=(
+                source_precondition(coverage_relative, current_coverage),
+                source_precondition(state_relative, current_state),
+            ),
+            candidate_semantics=candidate_semantics,
+            semantic_diff={
+                coverage_relative: {
+                    "before_sections": before_sections,
+                    "candidate_sections": candidate_sections,
+                    "added_sections": sorted(set(candidate_sections) - set(before_sections)),
+                    "removed_sections": sorted(set(before_sections) - set(candidate_sections)),
+                    "replacement": True,
+                },
+                state_relative: {
+                    "artifact_id": "vertical_coverage",
+                    "candidate_status": "satisfied",
+                    "candidate_confirmation": (
+                        "owner_confirmed" if authority == "owner_confirmed" else "agent_proposed"
+                    ),
+                },
+            },
+            blockers=() if authority == "owner_confirmed" else (authority,),
+        )
+
+    def apply_vertical_coverage(
+        self,
+        proposal_id: str,
+        payload: dict[str, object],
+        *,
+        preview_token: str,
+        actor: str,
+        confirm: bool,
+    ) -> MutationResult:
+        preview = self.preview_vertical_coverage(proposal_id, payload, actor=actor)
+        if not confirm:
+            return MutationResult(
+                status="blocked",
+                operation_id=preview.operation_id,
+                preview_token=preview.preview_token,
+                actor=actor,
+                message="Explicit confirmation is required for vertical coverage import.",
+            )
+        if preview.preview_token != preview_token:
+            return MutationResult(
+                status="stale_preview",
+                operation_id=preview.operation_id,
+                preview_token=preview.preview_token,
+                actor=actor,
+                message="Vertical coverage sources, active vertical, or candidate changed after preview.",
+            )
+        if not preview.apply_allowed:
+            return MutationResult(
+                status="blocked",
+                operation_id=preview.operation_id,
+                preview_token=preview.preview_token,
+                actor=actor,
+                message="Actor is not authorized to import declared vertical coverage.",
+            )
+        authority = self._coverage_authority(actor)
+        imported_at = _utc_now()
+        coverage = self._coverage_candidate_payload(
+            proposal_id,
+            payload,
+            actor=actor,
+            authority=authority,
+            imported_at=imported_at,
+        )
+        self.vertical_service.validate_proposal_vertical_coverage_candidate(proposal_id, coverage)
+        state = self.artifact_state_service.render_satisfied_artifact_candidate(
+            proposal_id,
+            "vertical_coverage",
+            actor=actor,
+            source="vertical_coverage_import",
+            reason="Owner-reviewed vertical coverage was imported.",
+            updated_at=imported_at,
+            owner_confirmed=True,
+        )
+        proposal_dir = self.find_proposal_dir(proposal_id)
+        candidates = {
+            (proposal_dir / "vertical-coverage.yml").relative_to(self.root).as_posix(): yaml.safe_dump(
+                coverage, sort_keys=False, allow_unicode=False
+            ).encode("utf-8"),
+            (proposal_dir / "artifact-state.yml").relative_to(self.root).as_posix(): yaml.safe_dump(
+                state, sort_keys=False, allow_unicode=False
+            ).encode("utf-8"),
+        }
+        return self.atomic_writer.apply(
+            operation_id=preview.operation_id,
+            candidates=candidates,
+            sources=preview.source_preconditions,
+            preview_token=preview.preview_token,
+            actor=actor,
+        )
+
+    def _coverage_candidate_payload(
+        self,
+        proposal_id: str,
+        payload: dict[str, object],
+        *,
+        actor: str,
+        authority: str,
+        imported_at: str,
+    ) -> dict[str, object]:
+        candidate = yaml.safe_load(yaml.safe_dump(payload, sort_keys=False))
+        if not isinstance(candidate, dict):
+            raise ValueError("Vertical coverage payload must be a mapping.")
+        coverage = candidate.get("vertical_coverage")
+        if not isinstance(coverage, dict):
+            raise ValueError("Vertical coverage payload requires vertical_coverage mapping.")
+        if coverage.get("schema_version", 2) != 2:
+            raise ValueError("New vertical coverage imports require schema_version 2.")
+        coverage["schema_version"] = 2
+        if str(coverage.get("proposal_id") or "") != proposal_id:
+            raise ValueError("Vertical coverage proposal_id does not match the target proposal.")
+        provenance = coverage.get("provenance")
+        if not isinstance(provenance, dict):
+            raise ValueError("Vertical coverage import requires provenance mapping.")
+        supplied_actor = str(provenance.get("actor") or "")
+        if supplied_actor and supplied_actor != actor:
+            raise ValueError("Vertical coverage provenance actor must match the requested actor.")
+        provenance.update(
+            {
+                "operation_id": f"proposal-vertical-coverage:{proposal_id}",
+                "actor": actor,
+                "authority": authority,
+                "imported_at": imported_at,
+            }
+        )
+        return candidate
+
+    def _coverage_authority(self, actor: str) -> str:
+        return "owner_confirmed" if _actor_role(self.p2p_dir / "project" / "permissions.yml", actor) == "owner" else "owner_required"
 
     def import_content(
         self,
@@ -327,6 +599,19 @@ class ProposalArtifactService:
             raise ValueError("Import content is required for content input mode.")
         target_name = _content_target(kind)
         _validate_content(kind, target_name, content)
+        if kind == "impact":
+            paths = self._atomic_impact_import(
+                proposal_id,
+                proposal_dir,
+                {target_name: content},
+            )
+            return _artifact_import_result(
+                proposal_id,
+                kind,
+                "content",
+                paths,
+                validated=True,
+            )
         target = proposal_dir / target_name
         target.write_text(content, encoding="utf-8")
         return _artifact_import_result(
@@ -356,8 +641,13 @@ class ProposalArtifactService:
                 f"Allowed: {', '.join(sorted(allowed))}"
             )
         if kind == "impact":
-            for filename, artifact_content in artifacts.items():
-                validate_yaml_key(artifact_content, IMPACT_ARTIFACTS[filename])
+            return _artifact_import_result(
+                proposal_id,
+                kind,
+                "artifacts",
+                self._atomic_impact_import(proposal_id, proposal_dir, artifacts),
+                validated=True,
+            )
 
         ordered_filenames = EXPLORATION_ARTIFACTS if kind == "explore" else tuple(IMPACT_ARTIFACTS)
         imported: list[Path] = []
@@ -368,6 +658,91 @@ class ProposalArtifactService:
             target.write_text(artifacts[filename], encoding="utf-8")
             imported.append(target.relative_to(self.root))
         return _artifact_import_result(proposal_id, kind, "artifacts", imported, validated=kind == "impact")
+
+    def _atomic_impact_import(
+        self,
+        proposal_id: str,
+        proposal_dir: Path,
+        artifacts: dict[str, str],
+    ) -> list[Path]:
+        self._validate_impact_set(proposal_id, artifacts)
+        existing = [proposal_dir / filename for filename in artifacts if (proposal_dir / filename).exists()]
+        if existing and _proposal_lifecycle_status(proposal_dir) in {"accepted", "accepted_with_changes"}:
+            raise ValueError(
+                "Committed impact correction requires impact preview/apply with actor and confirmation."
+            )
+        targets = {
+            (proposal_dir / filename).relative_to(self.root).as_posix(): content.encode("utf-8")
+            for filename, content in artifacts.items()
+        }
+        sources = tuple(
+            source_precondition(relative, (self.root / relative).read_bytes() if (self.root / relative).exists() else None)
+            for relative in sorted(targets)
+        )
+        result = self.atomic_writer.apply(
+            operation_id=f"proposal-impact-import:{proposal_id}",
+            candidates=targets,
+            sources=sources,
+            preview_token=MutationPreviewService.token(
+                operation_id=f"proposal-impact-import:{proposal_id}",
+                targets=tuple(targets),
+                sources=sources,
+                candidate_semantics={path: yaml.safe_load(content.decode("utf-8")) for path, content in targets.items()},
+            ),
+            actor="compatible-import",
+        )
+        if result.status != "applied":
+            raise ValueError(result.message or f"Impact import failed: {result.status}")
+        return [
+            (proposal_dir / filename).relative_to(self.root)
+            for filename in IMPACT_ARTIFACTS
+            if filename in artifacts
+        ]
+
+    def _validate_impact_set(self, proposal_id: str, artifacts: dict[str, str]) -> dict[str, object]:
+        if not artifacts:
+            raise ValueError("Impact artifact set must include at least one artifact.")
+        unexpected = sorted(set(artifacts) - set(IMPACT_ARTIFACTS))
+        if unexpected:
+            raise ValueError(f"Unsupported impact artifact filename: {unexpected[0]}")
+        parsed: dict[str, object] = {}
+        for filename in sorted(artifacts):
+            content = artifacts[filename]
+            validate_yaml_key(content, IMPACT_ARTIFACTS[filename])
+            value = yaml.safe_load(content)
+            if not isinstance(value, dict):
+                raise ValueError(f"Impact artifact must be a YAML mapping: {filename}")
+            parsed[filename] = value
+        related = parsed.get("related-proposals.yml")
+        if isinstance(related, dict):
+            payload = related.get("related_proposals")
+            if isinstance(payload, dict):
+                payload = payload.get("items")
+            if payload is None:
+                payload = []
+            if not isinstance(payload, list):
+                raise ValueError("related_proposals must be a sequence or an items mapping")
+            for index, item in enumerate(payload):
+                if not isinstance(item, dict):
+                    raise ValueError(f"related_proposals[{index}] must be a mapping")
+                target = str(item.get("proposal") or item.get("proposal_id") or item.get("id") or "").strip()
+                if not re.fullmatch(r"PROP-[0-9]+", target):
+                    raise ValueError(f"related_proposals[{index}] target must be a proposal id")
+                self.find_proposal_dir(target)
+                relation = str(item.get("relationship") or item.get("relation") or item.get("type") or "related")
+                policy = classify_relation_term(relation)
+                if policy["category"] in {"ambiguous", "invalid"}:
+                    raise ValueError(
+                        f"related_proposals[{index}] relation {relation!r} is {policy['category']} and requires curation"
+                    )
+        return parsed
+
+    def _impact_authority(self, proposal_dir: Path, actor: str) -> str:
+        lifecycle = _proposal_lifecycle_status(proposal_dir)
+        role = _actor_role(self.p2p_dir / "project" / "permissions.yml", actor)
+        if lifecycle in {"accepted", "accepted_with_changes"}:
+            return "owner_confirmed" if role == "owner" else "owner_required"
+        return "known_actor" if role else "actor_unknown"
 
     def _prompt_context(self, proposal_id: str, proposal_dir: Path) -> dict[str, str]:
         return {
@@ -416,6 +791,21 @@ def _artifact_import_input_mode(
     return modes[0]
 
 
+def load_impact_artifacts(source: Path) -> dict[str, str]:
+    source = source.resolve()
+    artifacts: dict[str, str] = {}
+    if source.is_dir():
+        for filename in IMPACT_ARTIFACTS:
+            source_path = source / filename
+            if source_path.exists():
+                artifacts[filename] = source_path.read_text(encoding="utf-8")
+    elif source.is_file():
+        artifacts["impact-map.yml"] = source.read_text(encoding="utf-8")
+    else:
+        raise ValueError(f"Impact source not found: {source}")
+    return artifacts
+
+
 def _content_target(kind: ArtifactImportKind) -> str:
     if kind == "explore":
         return "exploration.md"
@@ -454,3 +844,80 @@ def _artifact_import_result(
             for path in paths
         ],
     )
+
+
+def _yaml_semantic_hash(content: bytes | None) -> str | None:
+    if content is None:
+        return None
+    try:
+        return semantic_sha256(yaml.safe_load(content.decode("utf-8")))
+    except (UnicodeDecodeError, yaml.YAMLError):
+        return None
+
+
+def _proposal_lifecycle_status(proposal_dir: Path) -> str:
+    path = proposal_dir / "proposal.md"
+    if not path.exists():
+        return "unknown"
+    text = path.read_text(encoding="utf-8")
+    match = re.search(r"^## Status\s*\n+\s*`?([^`\n]+)`?", text, flags=re.MULTILINE)
+    return match.group(1).strip().lower().replace("-", "_") if match else "unknown"
+
+
+def _actor_role(path: Path, actor: str) -> str:
+    if not actor:
+        return ""
+    if not path.exists():
+        # Match PermissionsService.show() for legacy workspaces whose explicit
+        # policy has not yet been materialized by schema migration.
+        return "owner" if actor == "owner" else ""
+    try:
+        payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, yaml.YAMLError):
+        return ""
+    identities = payload.get("identities") if isinstance(payload, dict) else None
+    identity = identities.get(actor) if isinstance(identities, dict) else None
+    return str(identity.get("role") or "") if isinstance(identity, dict) else ""
+
+
+def _yaml_mapping_or_empty(content: bytes | None) -> dict[str, object]:
+    if content is None:
+        return {}
+    try:
+        payload = yaml.safe_load(content.decode("utf-8"))
+    except (UnicodeDecodeError, yaml.YAMLError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _coverage_section_ids(payload: dict[str, object]) -> list[str]:
+    coverage = payload.get("vertical_coverage")
+    sections = coverage.get("sections") if isinstance(coverage, dict) else None
+    if not isinstance(sections, list):
+        return []
+    return sorted(
+        str(item.get("id") or "")
+        for item in sections
+        if isinstance(item, dict) and str(item.get("id") or "")
+    )
+
+
+def _without_audit_timestamps(payload: dict[str, object]) -> dict[str, object]:
+    candidate = yaml.safe_load(yaml.safe_dump(payload, sort_keys=False))
+
+    def visit(value: object) -> None:
+        if isinstance(value, dict):
+            for key in ("at", "updated_at", "initialized_at", "created_at", "imported_at"):
+                value.pop(key, None)
+            for child in value.values():
+                visit(child)
+        elif isinstance(value, list):
+            for child in value:
+                visit(child)
+
+    visit(candidate)
+    return candidate if isinstance(candidate, dict) else {}
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")

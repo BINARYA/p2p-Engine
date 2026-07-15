@@ -8,6 +8,7 @@ from typing import Any
 import yaml
 
 from p2p_engine.foundation.markdown import read_frontmatter, read_markdown_section, read_title
+from p2p_engine.services.lifecycle_authority import is_active_project_projection
 
 
 def _slugify(value: str) -> str:
@@ -72,7 +73,7 @@ class RegistryRecordBuilderService:
                 continue
             proposal_path = path / "proposal.md"
             status = _read_proposal_status(proposal_path)
-            if status != "accepted":
+            if not is_active_project_projection(status):
                 continue
             text = _read_optional(proposal_path)
             proposal_id = "-".join(path.name.split("-", 2)[:2])

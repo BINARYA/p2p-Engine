@@ -4,8 +4,8 @@
 
 This project declares its required P2P Engine runtime in `.p2p/project/runtime.yml`.
 
-- Compatible runtime range: `==0.1.9`
-- Recommended runtime version: `0.1.9`
+- Compatible runtime range: `>=0.2.0,<0.3.0`
+- Recommended runtime version: `0.2.0`
 - Source of truth: `.p2p/project/runtime.yml`
 
 Install the recommended P2P Engine version using the official installation guidance.

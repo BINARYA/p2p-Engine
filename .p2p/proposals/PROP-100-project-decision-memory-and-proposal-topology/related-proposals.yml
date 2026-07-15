@@ -6,25 +6,25 @@ related_proposals:
     relationship: extends
     reason: Existing registries are the current derived project views; PROP-100 improves their decision-context use without replacing canonical state.
   - proposal: PROP-017
-    relationship: enables
+    relationship: references
     reason: Intake and context analysis need nearby decision context instead of generic first-N proposal context.
   - proposal: PROP-023
-    relationship: informs
+    relationship: references
     reason: Next-action recommendations show why raw registry records should not be treated as semantic truth by downstream consumers.
   - proposal: PROP-024
     relationship: overlaps
     reason: Choice blocking and discovery provide relationship signals that should be indexed with provenance and correct authority.
   - proposal: PROP-025
-    relationship: constrained_by
+    relationship: depends_on
     reason: Controlled apply remains the boundary for persistent relation or classification changes.
   - proposal: PROP-044
-    relationship: informs
+    relationship: references
     reason: MCP server exposure means context semantics need tool schema and JSON compatibility planning.
   - proposal: PROP-055
-    relationship: constrained_by
+    relationship: depends_on
     reason: Token-budget discipline requires compact, relevant context rather than broad artifact scans.
   - proposal: PROP-083
-    relationship: informs
+    relationship: references
     reason: Visible project definition export shows the need to preserve traceability and source-of-truth boundaries.
   - proposal: PROP-085
     relationship: overlaps
@@ -33,13 +33,13 @@ related_proposals:
     relationship: depends_on
     reason: Artifact-aware readiness identifies source confirmation and artifact expectations that decision context must consume.
   - proposal: PROP-088
-    relationship: informs
+    relationship: references
     reason: MCP artifact import parity defines safe import surfaces and highlights CLI/MCP parity requirements.
   - proposal: PROP-089
-    relationship: constrained_by
+    relationship: depends_on
     reason: Structured question state remains authoritative for owner question resolution.
   - proposal: PROP-094
-    relationship: informs
+    relationship: references
     reason: Software spec lifecycle will benefit from nearby decisions and constraints before downstream export.
   - proposal: PROP-096
     relationship: depends_on

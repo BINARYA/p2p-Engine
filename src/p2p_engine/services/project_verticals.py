@@ -29,6 +29,8 @@ from p2p_engine.core.project_verticals import (
     ProjectVerticalContext,
     ProposalVerticalCoverage,
     ProposalVerticalCoverageSection,
+    ProposalVerticalCoverageStatus,
+    ProposalVerticalCoverageSuggestion,
     ResolvedVerticalPack,
     VerticalArtifact,
     VerticalCompletionPolicy,
@@ -47,8 +49,19 @@ from p2p_engine.core.project_verticals import (
     VerticalSectionReview,
     VerticalValidationIssue,
     VerticalValidationResult,
+    VerticalMigrationCandidate,
+    VerticalCoverageSuggestionSection,
+)
+from p2p_engine.core.mutation_preview import (
+    MutationPreview,
+    MutationPreviewService,
+    MutationResult,
+    semantic_sha256,
+    source_precondition,
 )
 from p2p_engine.foundation.files import relative_to_root, slugify, write_text_atomic, write_yaml_atomic, yaml_dump
+from p2p_engine.services.workspace_transactions import AtomicMutationWriter
+from p2p_engine.services.lifecycle_authority import is_active_project_projection
 
 VERTICAL_SCHEMA_VERSION = 1
 ACTIVE_VERTICAL_SCHEMA_VERSION = 1
@@ -98,6 +111,19 @@ def validate_vertical_coverage_payload(payload: dict[str, object], *, target: st
         raise ValueError(f"Invalid {target}: missing vertical_id.")
     if not isinstance(sections, list):
         raise ValueError(f"Invalid {target}: sections must be a list.")
+    schema_version = coverage.get("schema_version", 1)
+    if schema_version not in {1, 2}:
+        raise ValueError(f"Invalid {target}: unsupported schema_version `{schema_version}`.")
+    if schema_version == 2:
+        unknown = set(coverage) - {"schema_version", "proposal_id", "vertical_id", "sections", "provenance"}
+        if unknown:
+            raise ValueError(f"Invalid {target}: unknown fields: {', '.join(sorted(unknown))}.")
+        provenance = coverage.get("provenance")
+        if not isinstance(provenance, dict):
+            raise ValueError(f"Invalid {target}: schema v2 requires provenance mapping.")
+        for field in ("actor", "authority", "source", "operation_id"):
+            if not str(provenance.get(field) or "").strip():
+                raise ValueError(f"Invalid {target}: provenance.{field} is required.")
     for index, item in enumerate(sections):
         if not isinstance(item, dict):
             raise ValueError(f"Invalid {target}: sections[{index}] must be a mapping.")
@@ -107,6 +133,16 @@ def validate_vertical_coverage_payload(payload: dict[str, object], *, target: st
             raise ValueError(f"Invalid {target}: sections[{index}].id is required.")
         if relevance not in RELEVANCE_VALUES:
             raise ValueError(f"Invalid {target}: sections[{index}].relevance must be one of {sorted(RELEVANCE_VALUES)}.")
+        if schema_version == 2:
+            unknown = set(item) - {"id", "relevance", "rationale", "source", "provenance"}
+            if unknown:
+                raise ValueError(f"Invalid {target}: sections[{index}] has unknown fields: {', '.join(sorted(unknown))}.")
+            if not str(item.get("rationale") or "").strip():
+                raise ValueError(f"Invalid {target}: sections[{index}].rationale is required.")
+            if not str(item.get("source") or "").strip():
+                raise ValueError(f"Invalid {target}: sections[{index}].source is required.")
+            if not isinstance(item.get("provenance"), dict):
+                raise ValueError(f"Invalid {target}: sections[{index}].provenance must be a mapping.")
 
 
 class ProjectVerticalService:
@@ -117,11 +153,13 @@ class ProjectVerticalService:
         p2p_dir: Path,
         proposal_summaries: Callable[[], list[_ProposalSummaryLike]],
         find_proposal_dir: Callable[[str], Path],
+        atomic_writer: AtomicMutationWriter | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
         self.proposal_summaries = proposal_summaries
         self.find_proposal_dir = find_proposal_dir
+        self.atomic_writer = atomic_writer or AtomicMutationWriter(root=root, p2p_dir=p2p_dir)
 
     def list_verticals(self) -> list[VerticalListItem]:
         active = self.active_vertical()
@@ -274,30 +312,141 @@ class ProjectVerticalService:
         profile: str = "default",
         modules: list[str] | None = None,
     ) -> ActiveProjectVertical:
+        candidate = self.render_migration_candidate(
+            vertical_id,
+            actor=actor,
+            profile=profile,
+            modules=modules,
+        )
+        self.validate_migration_candidate(candidate)
+        sources = tuple(
+            source_precondition(
+                path,
+                (self.root / path).read_bytes() if (self.root / path).exists() else None,
+            )
+            for path in sorted(candidate.candidate_files)
+        )
+        token = MutationPreviewService.token(
+            operation_id=f"project-vertical-select:{vertical_id}",
+            targets=tuple(candidate.candidate_files),
+            sources=sources,
+            candidate_semantics={
+                path: yaml.safe_load(content.decode("utf-8"))
+                for path, content in candidate.candidate_files.items()
+            },
+        )
+        result = self.atomic_writer.apply(
+            operation_id=f"project-vertical-select:{vertical_id}",
+            candidates=candidate.candidate_files,
+            sources=sources,
+            preview_token=token,
+            actor=actor,
+        )
+        if result.status != "applied":
+            raise ValueError(result.message or f"Project vertical selection failed: {result.status}")
+        return self.active_vertical()
+
+    def render_migration_candidate(
+        self,
+        vertical_id: str,
+        *,
+        actor: str,
+        profile: str = "default",
+        modules: list[str] | None = None,
+        audit_date: str | None = None,
+        rubric_mapping: dict[str, str] | None = None,
+    ) -> VerticalMigrationCandidate:
         resolved = self._resolve_available_pack(vertical_id)
         pack = resolved.pack
-        state_path = self._active_vertical_path()
-        state_path.parent.mkdir(parents=True, exist_ok=True)
-        payload = {
+        selected_at = audit_date or date.today().isoformat()
+        selected_modules = list(dict.fromkeys(modules if modules is not None else pack.modules))
+        available_profiles = {"default", *pack.profiles, *(item.profile_id for item in pack.profile_specs)}
+        if profile not in available_profiles:
+            raise ValueError(f"Unknown vertical profile `{profile}` for `{vertical_id}`.")
+        available_modules = {*pack.modules, *(item.module_id for item in pack.module_specs)}
+        unknown_modules = sorted(set(selected_modules) - available_modules)
+        if unknown_modules:
+            raise ValueError(f"Unknown vertical module `{unknown_modules[0]}` for `{vertical_id}`.")
+        active_payload = {
             "project_vertical": {
                 "schema_version": ACTIVE_VERTICAL_SCHEMA_VERSION,
                 "active_vertical_id": pack.vertical_id,
                 "active_source": pack.source,
-                "selected_at": date.today().isoformat(),
+                "selected_at": selected_at,
                 "selected_by": actor,
                 "fallback_used": False,
             }
         }
-        self._atomic_write(state_path, yaml_dump(payload))
-        self._write_vertical_lock(resolved, actor=actor)
-        self._write_initial_definition_state(
+        lock = VerticalLock(
+            vertical_id=pack.vertical_id,
+            name=pack.name,
+            version=pack.version,
+            pack_schema_version=pack.schema_version,
+            source=resolved.source,
+            checksum=resolved.checksum,
+            compatibility=pack.compatibility,
+            selected_at=selected_at,
+            selected_by=actor,
+            trust={"signed": False},
+            path=relative_to_root(self._vertical_lock_path(), self.root),
+        )
+        definition = self._initial_definition_state(
             resolved,
             profile=profile,
-            modules=modules if modules is not None else pack.modules,
+            modules=selected_modules,
             actor=actor,
+            audit_date=selected_at,
         )
-        self._write_vertical_rubrics(pack)
-        return self.active_vertical()
+        candidate_files = {
+            self._active_vertical_path().relative_to(self.root).as_posix(): yaml_dump(active_payload).encode("utf-8"),
+            self._vertical_lock_path().relative_to(self.root).as_posix(): yaml_dump(_vertical_lock_payload(lock)).encode("utf-8"),
+            self._definition_state_path().relative_to(self.root).as_posix(): yaml_dump(_definition_state_payload(definition)).encode("utf-8"),
+            (self.p2p_dir / "project" / "rubrics.yml").relative_to(self.root).as_posix(): yaml_dump(
+                self._vertical_rubrics_payload(pack, rubric_mapping=rubric_mapping)
+            ).encode("utf-8"),
+        }
+        return VerticalMigrationCandidate(
+            vertical_id=pack.vertical_id,
+            profile=profile,
+            modules=tuple(selected_modules),
+            checksum=resolved.checksum,
+            candidate_files=candidate_files,
+        )
+
+    def validate_migration_candidate(self, candidate: VerticalMigrationCandidate) -> None:
+        expected = {
+            ".p2p/project/vertical.yml",
+            ".p2p/project/vertical.lock.yml",
+            ".p2p/project/definition.yml",
+            ".p2p/project/rubrics.yml",
+        }
+        if set(candidate.candidate_files) != expected:
+            raise ValueError("Vertical migration candidate must contain the complete four-artifact set.")
+        payloads: dict[str, dict[str, object]] = {}
+        for path, content in candidate.candidate_files.items():
+            value = yaml.safe_load(content.decode("utf-8"))
+            if not isinstance(value, dict):
+                raise ValueError(f"Vertical migration candidate must be a YAML mapping: {path}")
+            payloads[path] = value
+        active = payloads[".p2p/project/vertical.yml"].get("project_vertical")
+        lock = payloads[".p2p/project/vertical.lock.yml"].get("project_vertical_lock")
+        definition = _definition_state_from_payload(
+            payloads[".p2p/project/definition.yml"],
+            path=Path(".p2p/project/definition.yml"),
+        )
+        if not isinstance(active, dict) or active.get("active_vertical_id") != candidate.vertical_id:
+            raise ValueError("Vertical migration active-state candidate is incoherent.")
+        checksum = lock.get("checksum") if isinstance(lock, dict) else None
+        if not isinstance(checksum, dict) or checksum.get("value") != candidate.checksum:
+            raise ValueError("Vertical migration lock checksum is incoherent.")
+        pack = self._load_available_pack(candidate.vertical_id)
+        issues = self._definition_state_issues(definition, pack)
+        if any(issue.severity == "error" for issue in issues):
+            first = next(issue for issue in issues if issue.severity == "error")
+            raise ValueError(f"Invalid vertical migration definition: {first.field}: {first.message}")
+        rubrics = payloads[".p2p/project/rubrics.yml"].get("criteria")
+        if not isinstance(rubrics, list):
+            raise ValueError("Vertical migration rubric candidate must contain criteria.")
 
     def active_vertical(self) -> ActiveProjectVertical:
         path = self._active_vertical_path()
@@ -480,9 +629,113 @@ class ProjectVerticalService:
         )
 
     def apply_definition_patch(self, patch_path: Path) -> ProjectDefinitionPatchResult:
+        patch = self._read_definition_patch(patch_path)
+        preview = self.preview_definition_patch(patch_path, actor=patch.actor)
+        result = self.apply_definition_patch_previewed(
+            patch_path,
+            preview_token=preview.preview_token,
+            actor=patch.actor,
+            confirm=True,
+        )
+        if result.status != "applied":
+            raise ValueError(result.message or f"Project definition update failed: {result.status}")
+        path = self._definition_state_path()
+        return ProjectDefinitionPatchResult(
+            state=self._read_definition_state(path),
+            path=relative_to_root(path, self.root),
+            operations_applied=len(patch.operations),
+        )
+
+    def preview_definition_patch(self, patch_path: Path, *, actor: str) -> MutationPreview:
+        patch = self._read_definition_patch(patch_path)
+        if patch.actor != actor:
+            raise ValueError("Project definition patch actor must match the preview actor.")
+        state, pack = self._definition_patch_context()
+        updated = self._apply_definition_patch(state, patch, pack)
+        path = self._definition_state_path()
+        relative = path.relative_to(self.root).as_posix()
+        current_bytes = path.read_bytes()
+        candidate_payload = _definition_state_payload(updated)
+        semantic_candidate = _definition_semantic_payload(candidate_payload)
+        authority = self._definition_actor_authority(actor)
+        changed_sections = sorted(
+            {
+                str(operation.get("section_id") or "")
+                for operation in patch.operations
+                if str(operation.get("section_id") or "")
+            }
+        )
+        return MutationPreviewService.build(
+            operation_id="project-definition-update",
+            targets=(relative,),
+            actor=actor,
+            authority=authority,
+            sources=(source_precondition(relative, current_bytes),),
+            candidate_semantics={relative: semantic_candidate},
+            semantic_diff={
+                relative: {
+                    "operations": [str(item.get("op") or "") for item in patch.operations],
+                    "changed_sections": changed_sections,
+                    "before_semantic_sha256": semantic_sha256(
+                        _definition_semantic_payload(_definition_state_payload(state))
+                    ),
+                    "candidate_semantic_sha256": semantic_sha256(semantic_candidate),
+                }
+            },
+            blockers=() if authority == "owner_confirmed" else (authority,),
+        )
+
+    def apply_definition_patch_previewed(
+        self,
+        patch_path: Path,
+        *,
+        preview_token: str,
+        actor: str,
+        confirm: bool,
+    ) -> MutationResult:
+        preview = self.preview_definition_patch(patch_path, actor=actor)
+        if not confirm:
+            return MutationResult(
+                status="blocked",
+                operation_id=preview.operation_id,
+                preview_token=preview.preview_token,
+                actor=actor,
+                message="Explicit confirmation is required for project definition updates.",
+            )
+        if preview.preview_token != preview_token:
+            return MutationResult(
+                status="stale_preview",
+                operation_id=preview.operation_id,
+                preview_token=preview.preview_token,
+                actor=actor,
+                message="Project definition source or patch changed after preview.",
+            )
+        if not preview.apply_allowed:
+            return MutationResult(
+                status="blocked",
+                operation_id=preview.operation_id,
+                preview_token=preview.preview_token,
+                actor=actor,
+                message="Actor is not authorized to update the project definition.",
+            )
+        patch = self._read_definition_patch(patch_path)
+        state, pack = self._definition_patch_context()
+        updated = self._apply_definition_patch(state, patch, pack)
+        relative = self._definition_state_path().relative_to(self.root).as_posix()
+        return self.atomic_writer.apply(
+            operation_id=preview.operation_id,
+            candidates={relative: yaml_dump(_definition_state_payload(updated)).encode("utf-8")},
+            sources=preview.source_preconditions,
+            preview_token=preview.preview_token,
+            actor=actor,
+        )
+
+    def _read_definition_patch(self, patch_path: Path) -> ProjectDefinitionPatch:
         source = patch_path if patch_path.is_absolute() else self.root / patch_path
         payload = _read_yaml_mapping(source)
-        patch = _definition_patch_from_payload(payload, target=str(source))
+        return _definition_patch_from_payload(payload, target=str(source))
+
+    def _definition_patch_context(self) -> tuple[ProjectDefinitionState, VerticalPack]:
         view = self.project_definition_view()
         if not view.exists or view.state is None:
             raise ValueError("Project definition state is missing. Select a project vertical before updating it.")
@@ -494,14 +747,18 @@ class ProjectVerticalService:
             )
         active = self.active_vertical()
         pack = self._load_available_pack(active.vertical_id)
-        updated = self._apply_definition_patch(view.state, patch, pack)
-        path = self._definition_state_path()
-        write_yaml_atomic(path, _definition_state_payload(updated))
-        return ProjectDefinitionPatchResult(
-            state=self._read_definition_state(path),
-            path=relative_to_root(path, self.root),
-            operations_applied=len(patch.operations),
-        )
+        return view.state, pack
+
+    def _definition_actor_authority(self, actor: str) -> str:
+        path = self.p2p_dir / "project" / "permissions.yml"
+        if not path.exists():
+            return "owner_required"
+        payload = _read_yaml_mapping(path)
+        identities = payload.get("identities")
+        if not isinstance(identities, dict):
+            return "owner_required"
+        identity = identities.get(slugify(actor))
+        return "owner_confirmed" if isinstance(identity, dict) and identity.get("role") == "owner" else "owner_required"
 
     def read_proposal_vertical_coverage(self, proposal_id: str) -> ProposalVerticalCoverage | None:
         proposal_dir = self.find_proposal_dir(proposal_id)
@@ -512,12 +769,15 @@ class ProjectVerticalService:
         validate_vertical_coverage_payload(payload, target=str(path))
         coverage = payload["vertical_coverage"]
         assert isinstance(coverage, dict)
+        schema_version = int(coverage.get("schema_version") or 1)
+        provenance = coverage.get("provenance") if isinstance(coverage.get("provenance"), dict) else {}
         sections = [
             ProposalVerticalCoverageSection(
                 section_id=str(item.get("id") or ""),
                 relevance=str(item.get("relevance") or "direct"),
                 rationale=str(item.get("rationale") or ""),
                 source=str(item.get("source") or "declared"),
+                provenance=item.get("provenance") if isinstance(item.get("provenance"), dict) else {},
             )
             for item in coverage.get("sections", [])
             if isinstance(item, dict)
@@ -527,6 +787,144 @@ class ProjectVerticalService:
             vertical_id=str(coverage.get("vertical_id") or ""),
             sections=sections,
             path=relative_to_root(path, self.root),
+            schema_version=schema_version,
+            provenance=provenance,
+            authority=str(provenance.get("authority") or "legacy_declared"),
+        )
+
+    def proposal_vertical_coverage_status(self, proposal_id: str) -> ProposalVerticalCoverageStatus:
+        proposal_dir = self.find_proposal_dir(proposal_id)
+        path = proposal_dir / "vertical-coverage.yml"
+        relative = relative_to_root(path, self.root)
+        if not path.exists():
+            return ProposalVerticalCoverageStatus(
+                proposal_id=proposal_id,
+                state="absent_legacy",
+                path=relative,
+                message="Proposal has no declared vertical coverage.",
+            )
+        try:
+            coverage = self.read_proposal_vertical_coverage(proposal_id)
+            assert coverage is not None
+            self.validate_proposal_vertical_coverage_candidate(proposal_id, _read_yaml_mapping(path))
+        except ValueError as exc:
+            return ProposalVerticalCoverageStatus(
+                proposal_id=proposal_id,
+                state="invalid",
+                path=relative,
+                message=str(exc),
+            )
+        active = self.active_vertical()
+        if coverage.vertical_id != active.vertical_id:
+            return ProposalVerticalCoverageStatus(
+                proposal_id=proposal_id,
+                state="vertical_mismatch",
+                path=relative,
+                coverage=coverage,
+                message=f"Coverage vertical `{coverage.vertical_id}` differs from active `{active.vertical_id}`.",
+            )
+        return ProposalVerticalCoverageStatus(
+            proposal_id=proposal_id,
+            state="valid",
+            path=relative,
+            coverage=coverage,
+        )
+
+    def validate_proposal_vertical_coverage_candidate(
+        self,
+        proposal_id: str,
+        payload: dict[str, object],
+    ) -> None:
+        validate_vertical_coverage_payload(payload, target=f"vertical coverage for {proposal_id}")
+        coverage = payload["vertical_coverage"]
+        assert isinstance(coverage, dict)
+        if str(coverage.get("proposal_id") or "") != proposal_id:
+            raise ValueError("Vertical coverage proposal_id does not match the target proposal.")
+        vertical_id = str(coverage.get("vertical_id") or "")
+        active = self.active_vertical()
+        if vertical_id != active.vertical_id:
+            raise ValueError(
+                f"Vertical coverage must target active vertical `{active.vertical_id}`, not `{vertical_id}`."
+            )
+        pack = self._load_available_pack(vertical_id)
+        valid_sections = {section.section_id for section in pack.sections}
+        seen: set[str] = set()
+        for item in coverage.get("sections", []):
+            assert isinstance(item, dict)
+            section_id = str(item.get("id") or "")
+            if section_id not in valid_sections:
+                raise ValueError(f"Unknown vertical section `{section_id}` for `{vertical_id}`.")
+            if section_id in seen:
+                raise ValueError(f"Duplicate vertical coverage section `{section_id}`.")
+            seen.add(section_id)
+        if not seen:
+            raise ValueError("Vertical coverage must declare at least one reviewed section.")
+
+    def suggest_proposal_vertical_coverage(self, proposal_id: str) -> ProposalVerticalCoverageSuggestion:
+        proposal_dir = self.find_proposal_dir(proposal_id)
+        active = self.active_vertical()
+        pack = self._load_available_pack(active.vertical_id)
+        source_weights = {
+            "proposal.md": 3.0,
+            "decision.md": 2.5,
+            "suggested-scope.md": 2.0,
+            "findings.md": 1.75,
+            "execution-plan.md": 1.5,
+        }
+        source_texts: dict[str, str] = {}
+        for filename in source_weights:
+            path = proposal_dir / filename
+            if path.exists():
+                source_texts[filename] = path.read_text(encoding="utf-8").lower()
+        terms_by_section = {
+            section.section_id: _vertical_section_terms(section, pack)
+            for section in pack.sections
+        }
+        term_frequency: dict[str, int] = {}
+        for terms in terms_by_section.values():
+            for term in terms:
+                term_frequency[term] = term_frequency.get(term, 0) + 1
+        candidates: list[VerticalCoverageSuggestionSection] = []
+        suppressed: list[str] = []
+        for section in pack.sections:
+            evidence: list[dict[str, object]] = []
+            score = 0.0
+            for term in sorted(terms_by_section[section.section_id]):
+                frequency = term_frequency.get(term, 1)
+                if frequency > max(2, int(len(pack.sections) * 0.35)):
+                    continue
+                pattern = re.compile(r"(?<![a-z0-9_])" + re.escape(term) + r"(?![a-z0-9_])")
+                for filename, text in source_texts.items():
+                    count = len(pattern.findall(text))
+                    if not count:
+                        continue
+                    phrase_bonus = 2.5 if " " in term else 1.0
+                    weight = source_weights[filename] * phrase_bonus / frequency
+                    contribution = min(count, 3) * weight
+                    score += contribution
+                    evidence.append(
+                        {"path": (proposal_dir / filename).relative_to(self.root), "term": term, "matches": count, "weight": round(contribution, 3)}
+                    )
+            confidence = round(min(0.99, score / (score + 8.0)), 3) if score else 0.0
+            phrase_evidence = any(" " in str(item.get("term") or "") for item in evidence)
+            if confidence >= 0.55 and (phrase_evidence or len(evidence) >= 2):
+                candidates.append(
+                    VerticalCoverageSuggestionSection(
+                        section_id=section.section_id,
+                        confidence=confidence,
+                        evidence=sorted(evidence, key=lambda item: (-float(item["weight"]), str(item["path"]), str(item["term"]))),
+                        reasons=["section_specific_evidence", "heuristic_only_requires_review"],
+                    )
+                )
+            else:
+                suppressed.append(section.section_id)
+        return ProposalVerticalCoverageSuggestion(
+            proposal_id=proposal_id,
+            vertical_id=active.vertical_id,
+            policy_version=1,
+            candidates=sorted(candidates, key=lambda item: (-item.confidence, item.section_id)),
+            suppressed_sections=sorted(suppressed),
+            source_paths=[relative_to_root(proposal_dir / name, self.root) for name in sorted(source_texts)],
         )
 
     def project_readiness_review(self, *, vertical_id: str | None = None) -> ProjectReadinessReview:
@@ -534,13 +932,22 @@ class ProjectVerticalService:
         pack = self._load_available_pack(vertical_id or active.vertical_id)
         fallback_used = active.fallback_used and vertical_id is None
         proposal_matches: dict[str, list[str]] = {section.section_id: [] for section in pack.sections}
+        heuristic_matches: dict[str, list[str]] = {section.section_id: [] for section in pack.sections}
         proposal_statuses: dict[str, str] = {}
         mapped_proposals: set[str] = set()
         unmapped: list[str] = []
 
         for proposal in self.proposal_summaries():
             proposal_statuses[proposal.proposal_id] = proposal.status
-            mapped_sections = self._mapped_sections_for_proposal(proposal, pack)
+            coverage = self.read_proposal_vertical_coverage(proposal.proposal_id)
+            mapped_sections = (
+                [section.section_id for section in coverage.sections]
+                if coverage and coverage.vertical_id == pack.vertical_id
+                else []
+            )
+            heuristic_sections = self._heuristic_sections_for_proposal(proposal, pack)
+            for section_id in heuristic_sections:
+                heuristic_matches.setdefault(section_id, []).append(proposal.proposal_id)
             if mapped_sections:
                 mapped_proposals.add(proposal.proposal_id)
                 for section_id in mapped_sections:
@@ -551,19 +958,37 @@ class ProjectVerticalService:
         section_reviews: list[VerticalSectionReview] = []
         missing_capisaldi: list[str] = []
         generated_questions: list[str] = []
+        definition_view = self.project_definition_view()
+        definition_sections = {
+            item.section_id: item.status
+            for item in definition_view.state.sections
+        } if definition_view.valid and definition_view.state is not None else {}
         for section in sorted(pack.sections, key=lambda item: item.priority):
             proposals = sorted(dict.fromkeys(proposal_matches.get(section.section_id, [])))
+            heuristic_proposals = sorted(dict.fromkeys(heuristic_matches.get(section.section_id, [])))
+            definition_status = definition_sections.get(section.section_id, "not_initialized")
             if proposals:
-                accepted = [proposal_id for proposal_id in proposals if proposal_statuses.get(proposal_id) == "accepted"]
+                accepted = [
+                    proposal_id for proposal_id in proposals
+                    if is_active_project_projection(proposal_statuses.get(proposal_id, ""))
+                ]
                 status = "covered" if accepted else "partial"
+            elif definition_status == "complete":
+                status = "defined"
+            elif definition_status == "not_applicable":
+                status = "not_applicable"
             elif section.required:
                 status = "missing"
             else:
                 status = "not_applicable"
             gaps = []
             questions = []
-            if status == "missing":
+            if not proposals and section.required and definition_status != "not_applicable":
                 gaps.append("missing_proposal_coverage")
+            if status == "partial":
+                gaps.append("proposal_coverage_not_accepted")
+            if section.required and definition_status not in {"complete", "not_applicable"}:
+                gaps.append("project_definition_incomplete")
                 missing_capisaldi.append(section.section_id)
                 questions = [
                     question.question
@@ -571,8 +996,6 @@ class ProjectVerticalService:
                     if question.section_id == section.section_id
                 ][:3]
                 generated_questions.extend(questions)
-            elif status == "partial":
-                gaps.append("proposal_coverage_not_accepted")
             section_reviews.append(
                 VerticalSectionReview(
                     section_id=section.section_id,
@@ -582,6 +1005,9 @@ class ProjectVerticalService:
                     gaps=gaps,
                     risks=[],
                     questions=questions,
+                    declared_proposals=proposals,
+                    heuristic_proposals=heuristic_proposals,
+                    definition_status=definition_status,
                 )
             )
 
@@ -589,7 +1015,9 @@ class ProjectVerticalService:
         if fallback_used:
             suggested.append('p2p project vertical propose "<project idea>"')
         if missing_capisaldi:
-            suggested.append("Map or create proposals for missing vertical capisaldi.")
+            suggested.append("Complete project definition for missing vertical capisaldi.")
+        if any(section.status == "defined" for section in section_reviews):
+            suggested.append("Review whether definition-only sections need declared proposal evidence.")
         suggested.append("p2p project readiness review")
         return ProjectReadinessReview(
             active_vertical_id=pack.vertical_id,
@@ -600,6 +1028,12 @@ class ProjectVerticalService:
             missing_capisaldi=missing_capisaldi,
             generated_questions=list(dict.fromkeys(generated_questions)),
             suggested_next=list(dict.fromkeys(suggested)),
+            definition_valid=definition_view.valid,
+            heuristic_mappings={
+                section_id: sorted(dict.fromkeys(proposal_ids))
+                for section_id, proposal_ids in heuristic_matches.items()
+                if proposal_ids
+            },
         )
 
     def validation_findings(self) -> list[tuple[str, str, Path, str, str]]:
@@ -715,10 +1149,7 @@ class ProjectVerticalService:
             )
         ]
 
-    def _mapped_sections_for_proposal(self, proposal: _ProposalSummaryLike, pack: VerticalPack) -> list[str]:
-        coverage = self.read_proposal_vertical_coverage(proposal.proposal_id)
-        if coverage and coverage.vertical_id == pack.vertical_id:
-            return [section.section_id for section in coverage.sections]
+    def _heuristic_sections_for_proposal(self, proposal: _ProposalSummaryLike, pack: VerticalPack) -> list[str]:
         base_section_ids: set[str] = set()
         if pack.extends:
             base = self._load_available_pack(pack.extends)
@@ -1012,6 +1443,7 @@ class ProjectVerticalService:
         profile: str,
         modules: list[str],
         actor: str,
+        audit_date: str | None = None,
     ) -> ProjectDefinitionState:
         sections: list[ProjectDefinitionSectionState] = []
         for section in sorted(resolved.pack.sections, key=lambda item: item.priority):
@@ -1056,7 +1488,7 @@ class ProjectVerticalService:
             next_suggested_action=next_action,
             history=[
                 ProjectDefinitionHistoryEntry(
-                    at=date.today().isoformat(),
+                    at=audit_date or date.today().isoformat(),
                     actor=actor,
                     operation="initialize_definition_state",
                 )
@@ -1340,8 +1772,20 @@ class ProjectVerticalService:
             "total": len([item for item in criteria if isinstance(item, dict)]),
         }
 
-    def _write_vertical_rubrics(self, pack: VerticalPack) -> None:
+    def _vertical_rubrics_payload(
+        self,
+        pack: VerticalPack,
+        *,
+        rubric_mapping: dict[str, str] | None = None,
+    ) -> dict[str, object]:
         path = self.p2p_dir / "project" / "rubrics.yml"
+        mapping = rubric_mapping or {}
+        new_ids = {rubric.rubric_id for rubric in pack.rubrics}
+        unknown_targets = sorted(set(mapping.values()) - new_ids)
+        if unknown_targets:
+            raise ValueError(
+                f"Rubric mapping targets unknown criterion `{unknown_targets[0]}` for vertical `{pack.vertical_id}`."
+            )
         existing_enabled: dict[str, bool] = {}
         existing_criteria: list[dict[str, object]] = []
         if path.exists():
@@ -1352,8 +1796,23 @@ class ProjectVerticalService:
                 for item in existing_criteria:
                     criterion_id = str(item.get("id") or "")
                     if criterion_id:
-                        existing_enabled[criterion_id] = item.get("enabled") is not False
-        new_ids = {rubric.rubric_id for rubric in pack.rubrics}
+                        target_id = mapping.get(criterion_id, criterion_id)
+                        if target_id in new_ids:
+                            rubric = next(item for item in pack.rubrics if item.rubric_id == target_id)
+                            collision = (
+                                criterion_id == target_id
+                                and criterion_id not in mapping
+                                and (
+                                    str(item.get("title") or "").strip() not in {"", rubric.title}
+                                    or str(item.get("section_id") or "").strip() not in {"", rubric.section_id}
+                                )
+                            )
+                            if collision:
+                                raise ValueError(
+                                    f"Rubric `{criterion_id}` collides semantically with the selected vertical; "
+                                    "provide an explicit rubric mapping."
+                                )
+                            existing_enabled[target_id] = item.get("enabled") is not False
         criteria_payload: list[dict[str, object]] = [
             {
                 "id": rubric.rubric_id,
@@ -1369,27 +1828,34 @@ class ProjectVerticalService:
         ]
         for item in existing_criteria:
             criterion_id = str(item.get("id") or "")
-            if criterion_id and criterion_id not in new_ids:
+            mapped_id = mapping.get(criterion_id, criterion_id)
+            if criterion_id and mapped_id not in new_ids:
                 orphan = dict(item)
                 orphan["orphaned"] = True
+                orphan["legacy_unmapped"] = True
+                orphan["counts_toward_active_baseline"] = False
                 orphan["enabled"] = item.get("enabled") is not False
                 criteria_payload.append(orphan)
-        write_yaml_atomic(
-            path,
-            {
-                "version": "1.0",
-                "domain": f"project_vertical:{pack.vertical_id}",
-                "status": "vertical_selected",
-                "template": pack.vertical_id,
-                "assessment_type": "project_definition_maturity",
-                "scoring": {"covered": 100, "partial": 50, "missing": 0},
-                "selected_scope": {
-                    "enabled": sum(1 for item in criteria_payload if item.get("enabled") is not False),
-                    "disabled": sum(1 for item in criteria_payload if item.get("enabled") is False),
-                    "total_default": len(pack.rubrics),
-                },
-                "criteria": criteria_payload,
+        active_criteria = [item for item in criteria_payload if item.get("counts_toward_active_baseline") is not False]
+        return {
+            "version": "1.0",
+            "domain": f"project_vertical:{pack.vertical_id}",
+            "status": "vertical_selected",
+            "template": pack.vertical_id,
+            "assessment_type": "project_definition_maturity",
+            "scoring": {"covered": 100, "partial": 50, "missing": 0},
+            "selected_scope": {
+                "enabled": sum(1 for item in active_criteria if item.get("enabled") is not False),
+                "disabled": sum(1 for item in active_criteria if item.get("enabled") is False),
+                "total_default": len(pack.rubrics),
             },
+            "criteria": criteria_payload,
+        }
+
+    def _write_vertical_rubrics(self, pack: VerticalPack) -> None:
+        write_yaml_atomic(
+            self.p2p_dir / "project" / "rubrics.yml",
+            self._vertical_rubrics_payload(pack),
         )
 
     def _definition_summary(self, definition: ProjectDefinitionView) -> dict[str, object]:
@@ -1786,6 +2252,30 @@ def _definition_state_payload(state: ProjectDefinitionState) -> dict[str, object
             ],
         }
     }
+
+
+def _definition_semantic_payload(payload: dict[str, object]) -> dict[str, object]:
+    """Remove audit-only dates while retaining every governed definition value."""
+    candidate = yaml.safe_load(yaml.safe_dump(payload, sort_keys=False))
+    data = candidate.get("project_definition") if isinstance(candidate, dict) else None
+    if not isinstance(data, dict):
+        return candidate if isinstance(candidate, dict) else {}
+    sections = data.get("sections")
+    if isinstance(sections, list):
+        for section in sections:
+            if not isinstance(section, dict):
+                continue
+            fields = section.get("fields")
+            if isinstance(fields, dict):
+                for field in fields.values():
+                    if isinstance(field, dict):
+                        field.pop("updated_at", None)
+    history = data.get("history")
+    if isinstance(history, list):
+        for entry in history:
+            if isinstance(entry, dict):
+                entry.pop("at", None)
+    return candidate
 
 
 def _definition_state_from_payload(payload: dict[str, object], *, path: Path) -> ProjectDefinitionState:
@@ -2237,6 +2727,29 @@ def _important_words(text: str) -> list[str]:
         "with",
     }
     return [word.replace("_", " ") for word in words if word not in stop][:12]
+
+
+def _vertical_section_terms(section: VerticalSection, pack: VerticalPack) -> set[str]:
+    terms: set[str] = set()
+    for raw in (section.title, section.purpose):
+        normalized = " ".join(re.findall(r"[a-z0-9]+", raw.lower()))
+        if 5 <= len(normalized) <= 80:
+            terms.add(normalized)
+        terms.update(_important_words(raw))
+    for field in _section_fields(section, pack):
+        for raw in (field.label, field.question):
+            normalized = " ".join(re.findall(r"[a-z0-9]+", raw.lower()))
+            if 5 <= len(normalized) <= 80:
+                terms.add(normalized)
+            terms.update(_important_words(raw))
+    for rubric in pack.rubrics:
+        if rubric.section_id != section.section_id:
+            continue
+        for raw in [rubric.title, *rubric.keywords]:
+            normalized = " ".join(re.findall(r"[a-z0-9]+", raw.lower()))
+            if len(normalized) >= 5:
+                terms.add(normalized)
+    return {term for term in terms if len(term) >= 5}
 
 
 def _read_optional(path: Path) -> str:

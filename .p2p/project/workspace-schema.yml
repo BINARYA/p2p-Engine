@@ -1,0 +1,13 @@
+workspace_schema:
+  contract_version: 1
+  current_version: 1
+  baseline: migrated_legacy
+  initialized_at: 2026-07-15T12:59:43Z
+  initialized_by: mrjungle
+  applied_migrations:
+  - id: workspace-legacy-to-v1
+    from: legacy_undeclared
+    to: 1
+    applied_at: 2026-07-15T12:59:43Z
+    actor: mrjungle
+    plan_fingerprint_sha256: a4272623498d6b3597f2bb10e2613fd9cb2a48ef1b3e4a645472eeec0eda4bf4

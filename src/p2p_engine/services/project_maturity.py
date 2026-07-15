@@ -9,6 +9,7 @@ from p2p_engine.foundation.files import (
     read_yaml_mapping as _foundation_read_yaml_mapping,
     yaml_dump as _yaml_dump,
 )
+from p2p_engine.services.lifecycle_authority import is_active_project_projection
 
 PROJECT_DOMAIN_TEMPLATES = {"generic", "software", "grant_document", "board_game"}
 PROJECT_DOMAINS = {"none", "custom", *PROJECT_DOMAIN_TEMPLATES}
@@ -87,6 +88,8 @@ class ProjectDefinitionMaturity:
     disabled_criteria_count: int = 0
     total_default_criteria_count: int = 0
     scope_label: str = "selected_project_rubric"
+    basis: str = "heuristic_keyword_rubric"
+    authoritative_definition_completeness: bool = False
 
 
 class ProjectMaturityService:
@@ -180,6 +183,8 @@ class ProjectMaturityService:
             disabled_criteria_count=int(data.get("disabled_criteria_count") or 0),
             total_default_criteria_count=int(data.get("total_default_criteria_count") or 0),
             scope_label=str(data.get("scope_label") or "selected_project_rubric"),
+            basis=str(data.get("basis") or "heuristic_keyword_rubric"),
+            authoritative_definition_completeness=bool(data.get("authoritative_definition_completeness", False)),
         )
 
     def compute_definition_maturity(self) -> ProjectDefinitionMaturity:
@@ -222,8 +227,11 @@ class ProjectMaturityService:
             title = str(criterion.get("title") or criterion_id)
             keywords = [str(item).lower() for item in criterion.get("keywords", []) if str(item).strip()]
             matches = _criterion_matches(evidence, keywords)
-            accepted = [item for item in matches if item["state"] in {"accepted", "completed"}]
-            partial = [item for item in matches if item["state"] not in {"accepted", "completed"}]
+            accepted = [
+                item for item in matches
+                if item["state"] == "completed" or is_active_project_projection(item["state"])
+            ]
+            partial = [item for item in matches if item not in accepted]
             if accepted:
                 status = "covered"
                 score = 100
@@ -428,6 +436,8 @@ def definition_maturity_payload(maturity: ProjectDefinitionMaturity) -> dict[str
         "disabled_criteria_count": maturity.disabled_criteria_count,
         "total_default_criteria_count": maturity.total_default_criteria_count,
         "scope_label": maturity.scope_label,
+        "basis": maturity.basis,
+        "authoritative_definition_completeness": maturity.authoritative_definition_completeness,
     }
 
 

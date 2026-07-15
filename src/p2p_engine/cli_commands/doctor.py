@@ -77,14 +77,41 @@ def _print_doctor(root: Path, *, agent_mode: bool) -> None:
     console.print(f"  git_clean: {str(git_status.is_clean).lower()}")
 
     if project_exists:
-        status = workspace_for(resolved_root).sync_status()
+        workspace = workspace_for(resolved_root)
+        status = workspace.sync_status()
         console.print(f"  repository_mode: {status.mode}")
         console.print(f"  sync_ready: {str(status.can_sync).lower()}")
         console.print(f"  sync_reason: {status.reason}")
+        try:
+            schema = workspace.workspace_schema_status()
+        except (OSError, ValueError) as exc:
+            console.print("  workspace_schema_state: inspection_failed")
+            console.print(f"  workspace_schema_reason: {exc}")
+        else:
+            console.print(f"  workspace_schema_state: {schema.state}")
+            console.print(f"  workspace_layout_status: {schema.layout_status}")
+            console.print(f"  workspace_alignment_status: {schema.alignment_status}")
+            console.print(
+                "  workspace_migration_required: "
+                f"{str(schema.migration_required).lower()}"
+            )
+            console.print(
+                "  workspace_recovery_required: "
+                f"{str(bool(schema.recovery.get('required', False))).lower()}"
+            )
+        try:
+            freshness = workspace.project_freshness()
+        except (OSError, ValueError) as exc:
+            console.print("  derived_freshness: inspection_failed")
+            console.print(f"  derived_freshness_reason: {exc}")
+        else:
+            console.print(f"  derived_freshness: {freshness.status}")
     else:
         console.print("  repository_mode: unknown")
         console.print("  sync_ready: false")
         console.print("  sync_reason: no .p2p/project.yml found")
+        console.print("  workspace_schema_state: unavailable")
+        console.print("  derived_freshness: unavailable")
 
     command = _recommended_p2p_command(resolved_root, p2p_path, local_p2p, package_importable)
     console.print("Recovery")

@@ -27,15 +27,14 @@ related_proposals:
     relationship: extends
     reason: Extends the MCP server surface with additional local Work lifecycle tools.
   - proposal: PROP-066
-    relationship: implements_boundary
+    relationship: depends_on
     reason: Applies the accepted permission-gated MCP governance and Git operation model to Work lifecycle parity.
   - proposal: PROP-075
     relationship: extends
     reason: Completes more of the end-to-end MCP collaboration workflow for Work items.
   - proposal: PROP-081
-    relationship: aligns_with
+    relationship: references
     reason: Continues MCP and skill support for managed operational actions.
   - proposal: PROP-091
-    relationship: aligns_with
+    relationship: depends_on
     reason: Preserves the governance policy distinction between warnings, blockers, owner authority, and preflight-style structured outputs.
-

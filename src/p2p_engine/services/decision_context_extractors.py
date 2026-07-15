@@ -218,10 +218,7 @@ class DecisionContextExtractorService:
         records: list[DecisionContextRecord] = []
         evidence: list[DecisionContextEvidence] = []
         diagnostics: list[DecisionContextDiagnostic] = []
-        outcome_fragment = next(
-            iter(fragments_for_label(document, "Outcome") or fragments_for_label(document, "Status")),
-            None,
-        )
+        outcome_fragment = _decision_state_fragment(document)
         canonical_date = _section_value(document, "Date")
         if outcome_fragment is not None and outcome:
             outcome_evidence = _evidence(
@@ -292,6 +289,34 @@ class DecisionContextExtractorService:
                     recovery="Review the decision outcome and extend the versioned policy if intentional.",
                 )
             )
+        statement_fragment = next(iter(fragments_for_label(document, "Outcome")), None)
+        if statement_fragment is not None:
+            statement_text = statement_fragment.text.strip()
+            if statement_text and _recognized_outcome(statement_text) is None:
+                statement_evidence = _evidence(
+                    document,
+                    fragment_id=statement_fragment.fragment_id,
+                    fragment_label=statement_fragment.label,
+                    authority=lifecycle.decision_authority,
+                    activation=lifecycle.decision_activation,
+                    completeness=statement_fragment.completeness,
+                    span=statement_fragment.span,
+                )
+                evidence.append(statement_evidence)
+                records.append(
+                    _record(
+                        owner_id=document.owner_id,
+                        source_kind=document.source_kind,
+                        kind=RecordKind.DECISION_STATEMENT,
+                        fragment_id=statement_fragment.fragment_id,
+                        activation=lifecycle.decision_activation,
+                        authority=lifecycle.decision_authority,
+                        text=statement_text,
+                        evidence_ids=(statement_evidence.evidence_id,),
+                        related_record_ids=related_record_ids,
+                        canonical_date=canonical_date,
+                    )
+                )
         return records, evidence, diagnostics
 
 
@@ -353,7 +378,29 @@ def _record(
 def _decision_outcome(document: SourceDocument | None) -> str:
     if document is None or document.presence != SourcePresence.PRESENT:
         return ""
-    return _normalize_status(_section_value(document, "Outcome") or _section_value(document, "Status"))
+    status = _recognized_outcome(_section_value(document, "Status"))
+    if status is not None:
+        return status
+    outcome_text = _section_value(document, "Outcome")
+    outcome = _recognized_outcome(outcome_text)
+    if outcome is not None:
+        return outcome
+    return _normalize_status(_section_value(document, "Status") or outcome_text)
+
+
+def _decision_state_fragment(document: SourceDocument):
+    status_fragment = next(iter(fragments_for_label(document, "Status")), None)
+    if status_fragment is not None and _recognized_outcome(status_fragment.text) is not None:
+        return status_fragment
+    outcome_fragment = next(iter(fragments_for_label(document, "Outcome")), None)
+    if outcome_fragment is not None and _recognized_outcome(outcome_fragment.text) is not None:
+        return outcome_fragment
+    return status_fragment or outcome_fragment
+
+
+def _recognized_outcome(value: str) -> str | None:
+    normalized = _normalize_status(value)
+    return normalized if normalized in _KNOWN_OUTCOMES else None
 
 
 def _status_divergence(

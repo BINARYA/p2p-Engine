@@ -3,8 +3,8 @@
 ## Source Export
 
 - path: `outputs/latest/project.md`
-- sha256: `72b2be19fcb5d51a23ac326ab3a7f4f98645421c6c8d192c7e6742c2adbd1622`
-- p2p_source_fingerprint_sha256: `645a05ca7c7b125041f5d733876b8b6ccd28bc90512e99fc8b9074c2e0000f3a`
+- sha256: `671c6355d8863fc0e05afd264d941b89aa470d281e189523ceca7f2c0536027e`
+- p2p_source_fingerprint_sha256: `8b3c645679a359a99b96108a90701d2146544e146a59d5cc24b22810269f5054`
 - source_of_truth: `.p2p/`
 
 ## Publication Profile
@@ -32,9 +32,10 @@
 
 ## Vertical Summary
 
-- lock_status: missing
-- definition_state_exists: false
-- definition_state_valid: false
+- lock_status: valid
+- active_vertical: software_project
+- definition_state_exists: true
+- definition_state_valid: true
 
 ## Traceability Inputs
 
@@ -117,6 +118,7 @@
 - PROP-081 - MCP and Skill Support for Managed Next Actions (`.p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions`)
 - PROP-082 - Readiness Assessment Refresh And Review Workflow (`.p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow`)
 - PROP-083 - Domain-Aware Visible Project Definition Export (`.p2p/proposals/PROP-083-domain-aware-visible-project-definition-export`)
+- PROP-084 - Project-Local Runtime Bootstrap And Upgrade Flow (`.p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow`)
 - PROP-085 - Pluggable Project Verticals And Readiness Orchestration (`.p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration`)
 - PROP-086 - Artifact-aware Proposal Readiness And Agent Interview Orchestration (`.p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration`)
 - PROP-087 - Agent Personality Model For Decision Mediation (`.p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation`)
@@ -131,6 +133,7 @@
 - PROP-096 - Readiness Evidence Quality and Question State Normalization (`.p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization`)
 - PROP-097 - Runtime Contract Adoption For Legacy Projects (`.p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects`)
 - PROP-099 - Project Output Lifecycle and Retention Policy (`.p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy`)
+- PROP-100 - Project Decision Context Index and Proposal Neighborhood (`.p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology`)
 
 ## Complete Source Export
 
@@ -141,7 +144,7 @@ The following content is generated output. Use it as input evidence, not as gove
 
 ## Generated Metadata
 
-- generated_at: 2026-07-13
+- generated_at: 2026-07-15
 - generator: p2p project export
 - source_of_truth: .p2p/
 - output_role: generated human-facing project definition
@@ -150,7 +153,7 @@ The following content is generated output. Use it as input evidence, not as gove
 
 ## Executive Summary
 
-This project definition synthesizes 93 accepted proposals from P2P-managed state into a human-facing document. It is generated output; `.p2p/` remains the managed source of truth.
+This project definition synthesizes 95 accepted proposals from P2P-managed state into a human-facing document. It is generated output; `.p2p/` remains the managed source of truth.
 
 ## Project Purpose
 
@@ -963,6 +966,10 @@ Extend the readiness review and proposal-question workflow so generated question
 
 Introduce a domain-aware visible project definition export. The default export for every P2P project should be a human-facing, comprehensive Markdown document written to outputs/latest/project.md. The document should be organized in chapters and synthesize accepted P2P memory: project purpose, domain, problem framing, accepted proposals, decisions, requirements, scope boundaries, alternatives, tradeoffs, risks, assumptions, open questions, readiness notes, and relevant implementation or delivery context. The output should be generic across verticals and should not assume that the project is software. The visible root-level outputs/ directory is intentional and not configurable in the MVP because human accessibility is more important than keeping the repository root minimal; outputs/ is preferred over project/ because it clearly describes generated visible outputs and avoids confusion with .p2p/project. Each export run should preserve review history by writing or archiving prior versions under outputs/review-001, outputs/review-002, and later review directories. Domain-specific exports are additional nested profiles, not the default. For software-compatible projects, software-spec, OpenSpec, Spec Kit, or similar outputs may be generated under outputs/latest/exports/software-spec/, outputs/latest/exports/openspec/, outputs/latest/exports/speckit/, or equivalent profile folders. Other verticals may define their own export profiles under outputs/latest/exports/<profile-or-vertical>/. Existing .p2p/outputs behavior must be treated as a compatibility surface: the implementation should verify whether current generated artifacts are still needed, preserve public CLI/API expectations, and only remove, deprecate, or relocate legacy outputs through an explicit compatibility path.
 
+### PROP-084 - Project-Local Runtime Bootstrap And Upgrade Flow
+
+Refocus PROP-084 on a minimal Project Runtime Contract and Runtime Version Alignment. Each P2P-managed project may declare .p2p/project/runtime.yml with a schema version, a compatible P2P Engine range, and a recommended P2P Engine runtime version. The contract tells a collaborator which runtime is expected and gives an installed runtime enough information to verify compatibility. New projects should receive both runtime.yml and a project-local P2P-SETUP.md that renders the same facts for humans and agents. When P2P Engine is available, runtime status reports compatible, incompatible, invalid_contract, unsupported_contract, missing_contract, or legacy_undeclared states with actionable guidance. Projects without any marker requiring runtime.yml are legacy_undeclared and warning-only. Projects that declare or require a runtime contract but are incompatible, invalid, unsupported, or missing the required contract must block governed writes before mutation. The proposal does not require a bootstrap script, does not add an install manager, does not perform runtime mutation, and does not depend on release wheel metadata.
+
 ### PROP-085 - Pluggable Project Verticals And Readiness Orchestration
 
 Introduce pluggable project verticals. A vertical package defines its id, name, version, base extension, sections, section detail packs, maturity levels, rubric criteria, blocking/refinement questions, artifact templates, examples, profiles, and optional compatible modules. P2P Engine provides a generic loader/validator and a project orchestrator skill that reads these definitions, evaluates project readiness, proposes capisaldi, creates initial refinement questions, and guides a one-question-at-a-time interview. Vertical packages are pure data packages made of text files, primarily .md and/or .yaml, not executable code in the MVP. They contain the project skeleton for the vertical: chapters, sections, topics to address, vertical-specific peculiarities, rubrics, questions, and useful artifacts. The minimum MVP vertical pack requires vertical.yml with id, name, version, description, and base/extends; project sections/chapters; minimal completeness/readiness rubrics; initial blocking questions; and expected or suggested artifacts. Examples, profiles, compatible modules, and rich output templates are optional in the MVP. Default vertical packs are distributed internally with the project/package as versioned, testable data resources for the MVP. The design should stay registry-ready, but an external registry is not part of the first slice; a later registry can expose REST endpoints to list available packs and fetch pack details/versions. The CLI remains deterministic: p2p init may ask deterministic setup questions and persist project/init state, but it does not launch or embody the agent. The proactive behavior belongs to the agent instructions. When the agent detects an uninitialized project, an initialization state, or missing project capisaldi and initial questions, it must treat that as priority context work because it determines project readiness. The agent should know how to initialize the project with the CLI, use owner answers to populate init/project objects, propose the vertical-derived capisaldi, save initial questions when possible, interview one question at a time, and return to deferred core-definition work unless the owner explicitly silences it. When a requested vertical is missing, resolution order is project-local vertical packs, core/default packs, configured data registry/plugin packs, then base_project fallback. The fallback is not passive: the agent proposes a default/base vertical, enters customization mode, extracts the missing vertical information from the owner, creates or updates a project-local custom vertical with sections/capisaldi, minimal rubrics, blocking questions, and expected artifacts, and uses it only after owner confirmation. This proposal extends and reuses the existing project rubrics and project maturity/readiness artifacts rather than replacing them. Vertical packs provide structured inputs that specialize the current system; they must not create a parallel maturity engine. The explicit command for later review is p2p project readiness review: the command goal is project readiness/context strengthening, while verticals are the data source used by the review. It should reuse existing project rubrics/maturity, read packaged and project-local verticals, identify missing capisaldi, produce initial or follow-up project questions, and guide the agent on readiness priorities. Core should start with base_project and a small MVP set of high-quality verticals, while additional verticals live in an external registry or project-local custom directory. Initial implementation scope is base_project plus the vertical pack loader/validator, the project orchestrator skill, one complete demonstration vertical, and project readiness review integration. The five-vertical MVP set remains a follow-up target, not part of the first implementation slice.
@@ -1754,6 +1761,40 @@ On successful apply, the operation writes `.p2p/project/runtime.yml`, adds
 
 Define PROP-099 as the Human Project Publication Pipeline. The target pipeline is: .p2p managed state to p2p project export to complete project.md, then p2p-project-curator skill to project.curated.md, then publication validation, then owner review, then neutral PDF renderer to project.pdf. The pipeline must remain explicitly separated into independently reviewable stages. The complete export, curated Markdown, validation result, owner review outcome, and rendered PDF should each have clear boundaries so a single stage can be inspected, revised, replaced, or improved without collapsing the whole flow. The existing deterministic export continues to be complete, traceable, regenerable, and close to P2P state. The curator is an agentic semantic editor and is expected to be the primary quality driver for a comprehensible project document: it identifies the central project thesis, reads the active vertical and project definition, adapts structure to the domain, builds a robust narrative thread around the selected vertical and its peculiarities, groups proposals by capability, separates current state from history, distinguishes accepted, implemented, planned, partial, pending, missing, and legacy evidence, removes placeholders and repetition, moves excessive detail to appendices where appropriate, preserves risks and open questions, and maintains traceability. The first slice should use a minimal publication profile to bound variability: audience mixed, depth standard, language project_default, vertical_structure adaptive, include_appendix false by default, and theme neutral-v1. Deterministic stages provide input discipline, contracts, validation, archival behavior, and rendering; they bound and review the curator output, but they must not replace the semantic editorial work. The publication validator is mostly deterministic and checks the document contract: one H1, coherent headings, executive summary, no known placeholders in the main body, no wholesale proposal dumps in the main text, explicit separation of project state and implementation state, accepted/planned/pending/missing distinctions, source-of-truth warning, traceability, vertical-compatible structure, and Markdown suitable for PDF rendering. The neutral PDF renderer consumes only validated curated Markdown and handles presentation, not content. The first implementation should be an end-to-end minimal slice: valid installable p2p-project-curator skill, compact-surfaces-first input discipline, vertical-aware structure, output project.curated.md, minimal publication validation, neutral project.pdf, manual owner review, traceability, and no direct .p2p mutation. Later slices may add CLI orchestration such as project publish prepare, validate, render, and status; publication packages such as project.full.md, project.md, project.appendix.md, project.pdf, publication-manifest.yml, and render-report.yml; and richer publication profiles for audience, depth, language, vertical structure, appendix inclusion, and theme.
 
+### PROP-100 - Project Decision Context Index and Proposal Neighborhood
+
+Introdurre un livello di accesso decisionale derivato sopra gli artifact canonici P2P esistenti. Il livello estrae, normalizza, collega e recupera decisioni, vincoli, relazioni e contesto rilevante con provenance, authority, activation, confidence, completeness e freshness verificabili. Non sostituisce gli artifact originali e non introduce una nuova fonte di verita.
+
+Il programma e organizzato in slice dipendenti:
+
+1. Domain, Source Catalog, request-scoped snapshot e proposal/decision extraction.
+2. Authority policy e typed topology normalization.
+3. Explainable retrieval e semantic budgets.
+4. Performance profiling/remediation gate.
+5. Context packet, CLI e MCP integration.
+6. Intake e proposal prompt neighborhood.
+7. Next actions e legacy projection migration.
+8. Freshness e materialized manifest.
+9. Cache decision basata su misure, senza cache implementation in PROP-100.
+
+Una singola specifica repository puo coordinare queste slice, ma non elimina i gate: ogni slice deve avere dipendenze, exit criteria, focused tests e compatibility evidence. La prima slice non cambia CLI, MCP, intake, prompt, registri o storage.
+
+Il Source Catalog dichiara cosa e semantic source e cosa e escluso. Proposal/decision, project choices, conflict memory, Change Set relation sources, declared vertical coverage e decision precedents possono produrre evidenza secondo policy. Readiness, artifact state, questions, contributions e Work status descrivono qualita, evento o execution state e non attivano decisioni. Registri e narrative generate restano projection escluse.
+
+L'extraction session cattura path root-relative, presence, bytes, hash, parsed fragments e diagnostics. Hash e parse usano gli stessi byte. Stable identity dipende da source path normalizzato, owner, record kind e semantic fragment anchor; content hash e line span restano metadata separati.
+
+La authority policy distingue canonicality, authority, activation, confidence e completeness. `accepted_with_changes` attiva una decisione qualificata dal reason; rejected/deferred/split/merged/superseded restano storia o lineage. Una divergenza tra proposal status e decision outcome produce diagnostics e non ripara automaticamente le fonti. Acceptance status da solo non rende una decisione applicabile a ogni query.
+
+La topologia usa node type distinti per proposal, decision, choice, Change Set, Work, vertical section, capability, surface, feature, command e file. Una relation canonica memorizza source, type e target; incoming/outgoing e calcolato rispetto alla query e non crea edge inversi duplicati. Assertion equivalenti fondono le evidence senza moltiplicare score. Change Set source duplicati vengono riconciliati con precedence e divergence diagnostics. Traversal e depth/fan-out bounded.
+
+Il retrieval usa un indice in memoria e non legge file dopo il build. Candidate selection, lexical normalization, applicability, score contributions, cap, status penalties, historical threshold, tie-breaking, grouping, empty result e budget sono policy versionate. Ogni score deve essere ricostruibile dalle contribution esposte. `small` e `medium` sono assemblati dopo ranking; non esiste fallback first-N.
+
+Il percorso pubblico puo partire da `PROP-*`. Target `CHANGE-*`, `CHOICE-*`, `WORK-*` e no-target mantengono il comportamento corrente finche non ricevono slice dedicate. CLI text, structured output e MCP espongono semantica equivalente; renderer e handler non devono rerankare.
+
+Il source fingerprint include catalog version, path, presence e source hash. Il semantic fingerprint include le versioni di extractor, authority e relation policy; i packet includono retrieval e budget policy. `generated_at` e metadata osservazionale con clock iniettabile e non cambia semantic equality.
+
+Il bug corrente di `p2p context` puo essere corretto come lavoro tecnico separato, ma PROP-100 non puo integrare altro lavoro nel path finche non sono rispettati: un discovery pass, una read/hash/parse per fonte, zero source read durante query, assenza di nested full scan e una fixture di scala con ceiling documentato.
+
 ## Domain And Context
 
 ### PROP-001 - — CLI Foundation
@@ -2093,6 +2134,10 @@ This proposal refines the accepted exploration and readiness direction by separa
 
 The accepted project memory already contains proposals, decisions, readiness, questions, risks, assumptions, alternatives, and refinement history. PROP-083 should turn that memory into a visible human-facing project definition. Existing software-specific exports may remain useful, but they should become specialized export profiles nested under the generic visible output model rather than the universal default. The root folder should be named outputs/ instead of project/ to avoid confusion with .p2p/project. Existing .p2p outputs should not be removed or moved without a compatibility check.
 
+### PROP-084 - Project-Local Runtime Bootstrap And Upgrade Flow
+
+This amendment applies the third owner review of PROP-084. The runtime contract remains necessary, but it must not carry installer-specific data. Wheel filenames, release tags, digests, source descriptors, package resolution, and environment mutation belong to release and installation concerns outside this proposal. PROP-084 is narrowed to a minimal project-local runtime contract, project-local setup guidance, read-only diagnostics, validation, and a contract-aware gate for governed writes when a declared contract is incompatible, invalid, unsupported, or required but missing. Legacy projects without a contract remain warning-only so existing repositories are not disrupted.
+
 ### PROP-085 - Pluggable Project Verticals And Readiness Orchestration
 
 This proposal extends the direction opened by PROP-057, Guided Rubric Selection During Init. PROP-057 lets the owner confirm suggested rubric criteria during init. The next step is to treat a vertical as a data-driven package loaded by a generic project orchestrator skill: base_project plus optional verticals/modules/profiles that can live in core defaults, registries, or project-local custom packs. The attached discussion distinguishes a stable orchestrator skill from vertical definitions and section detail packs, recommends a small high-quality default set, and keeps broader growth in plugins/registries rather than hardcoding all possible verticals in P2P Engine.
@@ -2210,6 +2255,16 @@ owner-controlled command.
 ### PROP-099 - Project Output Lifecycle and Retention Policy
 
 This proposal follows PROP-083. The source of truth remains .p2p. The existing project export remains valuable as a deterministic and auditable complete export. PROP-099 should add an explicit editorial and publication layer between that complete export and final human-facing outputs. Directly rendering the complete export to PDF would only create a formatted version of a still proposal-first document; therefore curation, validation, and rendering must be separate stages.
+
+### PROP-100 - Project Decision Context Index and Proposal Neighborhood
+
+PROP-017 ha introdotto intake e context analysis. PROP-025 ha introdotto il controlled intake apply workflow. PROP-012 ha introdotto impact map e conflict memory. PROP-016 ha introdotto i registri di progetto. PROP-023 e PROP-024 hanno introdotto next actions, choice blocking e choice discovery. PROP-044 e PROP-088 espongono superfici MCP e import parity. PROP-086, PROP-089 e PROP-096 hanno rafforzato readiness, artifact coverage e question state. PROP-099 ha evidenziato la tensione tra output derivati, pubblicazione e stato autorevole.
+
+PROP-100 resta una decisione architetturale ombrello. Non introduce una nuova memoria canonica e non sceglie ora SQLite, PostgreSQL o altri storage. Definisce un livello derivato, rebuildable, validabile e interrogabile sopra gli artifact canonici esistenti.
+
+La specifica repository `specs/features/prop-100-decision-context-index/` descrive l'intero programma implementativo tramite slice indipendenti e gate verificabili. Questo non trasforma PROP-100 in un singolo Change Set: ogni slice deve restare consegnabile, testabile e revisionabile separatamente. La prima consegna resta il dominio, il source snapshot e gli estrattori proposal/decision; le integrazioni pubbliche sono bloccate dai gate delle slice precedenti.
+
+La proposta e decision-ready come direzione architetturale. Non e implementation-ready come unita indivisibile e non autorizza automaticamente il completamento di tutte le slice.
 
 ## Scope
 
@@ -5107,6 +5162,59 @@ The proposal should require implementation to preserve existing CLI/MCP
 contracts or introduce explicit deprecation behavior where compatibility cannot
 be preserved.
 
+### PROP-084 - Project-Local Runtime Bootstrap And Upgrade Flow
+
+#### Goals
+
+- Define .p2p/project/runtime.yml as the authoritative project-local declaration of P2P Engine runtime compatibility.
+- Record a compatible runtime range and one recommended P2P Engine runtime version, without release source descriptors, wheel filenames, or digests.
+- Generate project-local setup guidance, such as P2P-SETUP.md, so a collaborator who cloned or copied a project can find the required runtime information without knowing P2P internals.
+- Provide read-only runtime status diagnostics and validation findings that tell humans and agents whether the installed runtime matches the project contract.
+- Block governed writes only when a project declares or requires a runtime contract and the contract is incompatible, invalid, unsupported, or missing under that declared policy.
+- Keep ownership boundaries clear: PROP-084 owns runtime contract, setup guidance, diagnostics, validation, and write-gate policy; PROP-078 owns installation mechanics; PROP-080 owns release artifact publication and integrity metadata.
+
+#### Non-Goals
+
+- Do not make a mandatory bootstrap script central to the proposal.
+- Do not add an install, reconcile, upgrade, downgrade, replacement, source-switch, virtualenv, package-resolution, or download manager in this scope.
+- Do not put release tags, wheel filenames, SHA-256 digests, source descriptors, arbitrary URLs, arbitrary repositories, PyPI resolution, mirrors, source checkout installs, editable installs, or offline wheel behavior in the required runtime contract.
+- Do not block legacy projects solely because they lack runtime.yml; report legacy_undeclared with guidance instead.
+- Do not add broad command blocking across all commands; enforcement is limited to governed writes when a declared or required contract cannot be trusted.
+- Do not make Git required for P2P Core or introduce separate runtime-contract formats for standalone, local Git, and remote Git contexts.
+
+#### Suggested Scope
+
+# Suggested Scope
+
+## In Scope
+
+- `.p2p/project/runtime.yml`.
+- Versioned runtime contract schema.
+- Compatible P2P Engine range.
+- Recommended P2P Engine runtime version.
+- Project-root `P2P-SETUP.md`.
+- Runtime status diagnostics with JSON output.
+- Runtime contract validation.
+- Distinction between `legacy_undeclared` and `missing_contract`.
+- Governed-write gate for incompatible, invalid, unsupported, or required but
+  missing contracts.
+- Public documentation and generated agent guidance.
+
+## Out Of Scope
+
+- Mandatory script-based setup.
+- Install manager.
+- Reconcile manager.
+- Environment mutation.
+- Virtualenv lifecycle.
+- Package resolver or package download.
+- Release tags, wheel filenames, digests, source descriptors, URLs, or
+  repository coordinates in the required runtime contract.
+- Release workflow changes.
+- Repository-local wheel behavior.
+- Broad command blocking outside governed writes.
+- Runtime MCP tools.
+
 ### PROP-085 - Pluggable Project Verticals And Readiness Orchestration
 
 #### Goals
@@ -6171,6 +6279,93 @@ mutation parity, Git automation, and broad project migration tooling.
 2. Publication package: `project.full.md`, curated `project.md`, appendix, PDF, manifest, render report.
 3. Profiles and themes: audience, depth, language, vertical publication profile, optional branding.
 
+### PROP-100 - Project Decision Context Index and Proposal Neighborhood
+
+#### Goals
+
+- Approvare un decision context index derivato, non canonico, rebuildable, read-only e spiegabile.
+- Introdurre un Source Catalog versionato che classifichi fonti semantiche, metadata di qualita, execution state, projection derivate e fonti escluse.
+- Richiedere uno snapshot immutabile per richiesta che scopra le fonti una volta e legga, hashi e parsifichi ogni fonte al massimo una volta usando gli stessi byte.
+- Mantenere `ProjectDecisionContextService` come facade stateless dietro `P2PWorkspace`, senza snapshot stale tra richieste.
+- Definire record, node, relation, evidence, diagnostic, retrieval hit, index e manifest tipizzati e serializzabili con schema versionato.
+- Separare canonicality, authority, activation, confidence e completeness.
+- Coprire l'intero proposal decision lifecycle, inclusi acceptance qualificata, split, merge, supersession, pending e legacy divergence.
+- Indicizzare decision precedents e un sottoinsieme esplicitamente catalogato di governance/project-definition constraints senza interpretazione libera di ogni testo.
+- Normalizzare progressivamente relazioni da proposal artifacts, Change Set, choices, blockers, conflict memory, vertical coverage e Work lineage.
+- Usare node namespace tipizzati, relation vocabulary versionata, evidence merge deterministico e traversal cycle-safe.
+- Distinguere edge di topologia da retrieval reasons quali lexical overlap, same surface e heuristic vertical match.
+- Fornire retrieval deterministico e spiegabile per proposal ID e idea text, con policy versionata, applicabilita esplicita, score ricostruibile e protezione dai falsi positivi.
+- Rendere `small` e `medium` budget semantici misurabili applicati dopo ranking e grouping.
+- Bloccare l'integrazione pubblica finche profiling, scan/read count e fixture di scala non dimostrano che il nuovo percorso non replica i timeout correnti.
+- Introdurre freshness basata su presenza/hash reali delle fonti e versioni delle policy, separando `generated_at` dall'identita semantica.
+- Migrare context packet, intake, prompt, next actions, projection e MCP per slice compatibili, mantenendo owner authority e controlled apply.
+
+#### Non-Goals
+
+- Non sostituire proposal, decision, choice, Change Set, Work, YAML o Markdown canonici come source of truth.
+- Non creare una memoria canonica parallela aggiornata da sintesi LLM libera.
+- Non usare registri, decisions map, pubblicazioni, prompt o altri output derivati come input semantico dell'indice.
+- Non implementare PROP-100 come un unico Change Set senza gate intermedi.
+- Non scegliere o implementare una cache persistente nella prima realizzazione; una cache giustificata dalle misure richiede una feature separata.
+- Non introdurre embeddings o ricerca non spiegabile nel primo retrieval.
+- Non ridefinire proposal lifecycle, governance, owner authority, Git flow o controlled apply.
+- Non interpretare genericamente ogni documento di governance o project definition.
+- Non applicare automaticamente relazioni, tag, supersessioni, decisioni o vincoli.
+- Non pubblicare una nuova registry topology stabile senza un consumer e uno schema separatamente approvati.
+- Non estendere nella prima integrazione il retrieval pubblico a Change Set, Choice o Work target.
+- Non incorporare nel dominio semantico la correzione funzionale del timeout preesistente; profiling e remediation delle scansioni necessarie all'integrazione restano tuttavia un gate obbligatorio di PROP-100.
+- Non fissare nella proposta ombrello pesi numerici e layout dei moduli: tali dettagli appartengono alla feature versionata.
+
+#### Suggested Scope
+
+# Suggested Scope
+
+## PROP-100 Scope
+
+- Umbrella architecture decision for a derived, non-canonical, read-only and rebuildable decision context layer.
+- Versioned Source Catalog and exclusion of registries/generated outputs from semantic input.
+- Request-scoped source snapshot, stable identity, evidence, completeness and diagnostics requirements.
+- Complete authority/lifecycle and typed topology invariants.
+- Deterministic explainable retrieval, semantic budgets and applicability requirements.
+- Performance-remediation gate before public integration.
+- Progressive consumer migration with CLI/MCP and non-proposal compatibility.
+- Fingerprint/freshness invariants and explicit no-cache first implementation.
+- One coherent repository feature specification delivered through independently gated slices.
+
+## First Delivery Slice
+
+Domain, Sources And Proposal Decisions:
+
+- typed core contracts and versioned serialization;
+- proposal/decision Source Catalog descriptors and exclusions;
+- immutable captured-byte snapshot;
+- robust Markdown/frontmatter parsing;
+- stable semantic-slot IDs and separate content hashes/spans;
+- proposal claim extraction;
+- complete decision lifecycle and divergence diagnostics;
+- stateless workspace facade;
+- no CLI, MCP, intake, prompt, registry or persistence change.
+
+## Later Gated Slices
+
+- Authority and typed topology.
+- Explainable retrieval and semantic budgets.
+- Performance remediation and scale gate.
+- Context packet, CLI and MCP integration.
+- Intake and proposal prompt neighborhood.
+- Next actions and legacy projections.
+- Freshness and materialized manifests.
+- Measurement-only cache decision.
+
+## Separate Work
+
+- Root-cause fix for pre-existing context latency where it is independent from semantic retrieval.
+- Persistent cache feature if measurements select `separate_cache_feature_required`.
+- Public normalized-topology projection if a concrete consumer requires it.
+- Retrieval support for Change Set, Choice and Work targets.
+- Embeddings as a later additive signal.
+- Deeper vertical/governance interpretation beyond explicit source contracts.
+
 ## Accepted Proposals And Decisions
 
 - PROP-001 - — CLI Foundation
@@ -6410,6 +6605,9 @@ mutation parity, Git automation, and broad project migration tooling.
 - PROP-083 - Domain-Aware Visible Project Definition Export
   - source: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export
   - decision_reason: Owner accepts the domain-aware visible project definition export. Readiness has no missing gaps after refinement, but computed score remains partial because the current readiness profile is conservative and keeps confidence low for artifact-derived assessments.
+- PROP-084 - Project-Local Runtime Bootstrap And Upgrade Flow
+  - source: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow
+  - decision_reason: Accepted with changes after owner rescope: PROP-084 is limited to a minimal project runtime contract, project-local P2P-SETUP.md guidance, runtime status, validation, and a contract-aware governed-write gate. Mandatory setup scripts, install/reconcile managers, release resolvers, wheel/digest/source metadata, environment mutation, and automatic fallback are out of scope.
 - PROP-085 - Pluggable Project Verticals And Readiness Orchestration
   - source: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration
   - decision_reason: Accepted by owner after readiness reached decision_ready. The proposal defines pluggable pure-data project verticals, base_project, custom vertical candidate flow, project readiness review, and proposal-to-vertical traceability while preserving backward compatibility.
@@ -6452,6 +6650,9 @@ mutation parity, Git automation, and broad project migration tooling.
 - PROP-099 - Project Output Lifecycle and Retention Policy
   - source: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy
   - decision_reason: Owner accepts the decision-ready human project publication pipeline as the direction for readable, vertical-aware project outputs.
+- PROP-100 - Project Decision Context Index and Proposal Neighborhood
+  - source: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology
+  - decision_reason: Accepted as the umbrella architecture direction for a derived, read-only and source-linked decision context index delivered through independently gated slices. Governed artifacts remain authoritative; public integration requires the defined performance and compatibility gates, and any persistent cache remains a separate measured feature.
 
 ## Requirements And Acceptance
 
@@ -7013,6 +7214,18 @@ mutation parity, Git automation, and broad project migration tooling.
 - Existing .p2p/outputs behavior is inventoried and either preserved, mirrored, deprecated, or migrated through an explicit compatibility path before any removal.
 - Generated outputs clearly indicate that .p2p remains the managed source of truth and outputs/ contains generated human-facing artifacts.
 
+### PROP-084 - Project-Local Runtime Bootstrap And Upgrade Flow
+
+- A P2P project can declare .p2p/project/runtime.yml with schema version, compatible runtime range, and recommended P2P Engine runtime version.
+- New project initialization creates runtime.yml and project-local P2P-SETUP.md using the active runtime version and configured compatibility policy, while preserving existing files during idempotent initialization.
+- Runtime status can report declared requirements, current runtime version, compatibility verdict, and actionable guidance without mutating project state or the runtime environment.
+- Runtime contract validation rejects unsupported schema versions, missing required fields, invalid version strings, and recommended-version/range mismatches.
+- missing_contract and legacy_undeclared are distinct: legacy projects without a marker requiring runtime.yml remain warning-only, while projects that require runtime.yml but lack it report missing_contract.
+- Governed writes are blocked before mutation when a declared or required runtime contract is incompatible, invalid, unsupported, or missing; legacy_undeclared projects are not blocked solely by absence of runtime.yml.
+- Public and project-local documentation explain how a collaborator reads the contract, installs the recommended P2P Engine version through existing installation guidance, and verifies with runtime status.
+- The implementation does not add a mandatory bootstrap script, install manager, reconcile manager, automatic installation, automatic upgrade, automatic downgrade, release resolver, digest verifier, source selector, or automatic offline fallback.
+- PROP-084 records that release wheel publication and digest metadata remain owned by PROP-080, and project-local installation mechanics remain owned by PROP-078, but neither is a blocking dependency for creating the runtime contract.
+
 ### PROP-085 - Pluggable Project Verticals And Readiness Orchestration
 
 - A pure-data vertical pack schema is defined and validated, with required fields for vertical metadata, sections/capisaldi, minimal readiness rubrics, blocking questions, and expected artifacts.
@@ -7326,6 +7539,31 @@ mutation parity, Git automation, and broad project migration tooling.
 - The proposal defines publication validation quality gates for headings, placeholders, executive summary, proposal dump avoidance, project versus implementation status separation, traceability, source-of-truth warning, vertical fit, and PDF-ready Markdown.
 - The proposal defines that the PDF renderer is neutral and presentation-only: it must not rewrite content, remove sections, alter evidence status, modify decisions, or reinterpret readiness.
 - The proposal defines alternatives, tradeoffs, risks, assumptions, impact with PROP-083, and out-of-scope boundaries for software-spec and downstream export workflows.
+
+### PROP-100 - Project Decision Context Index and Proposal Neighborhood
+
+- L'owner puo approvare o respingere consapevolmente la direzione di un decision context index derivato, non canonico e source-linked.
+- La proposta distingue umbrella decision, specifica multi-slice e Change Set indipendenti.
+- Il Source Catalog classifica fonti incluse, metadata e fonti derivate escluse; l'indice non legge registri o publication come semantic truth.
+- Una extraction session scopre le fonti una volta e legge/hasha/parsa ogni fonte al massimo una volta dagli stessi byte.
+- Un service memoizzato non conserva snapshot stale tra richieste; una modifica nella stessa workspace e visibile alla richiesta successiva.
+- Stable IDs, content hashes, evidence span e completeness sono contratti distinti e deterministici.
+- Il lifecycle copre accepted, accepted-with-changes, rejected, deferred, split, merged, superseded, pending e legacy divergence.
+- Accepted-with-changes conserva il reason come qualifier; acceptance status non trasmette automaticamente applicabilita globale.
+- Decision precedents, project choices, readiness, artifact state, questions, contributions, vertical signals e Work state ricevono authority/activation coerenti con il loro ruolo.
+- Node e relation type sono validati; query direction non duplica edge; evidence duplicate non moltiplicano lo score; traversal termina su cicli e fan-out.
+- Change Set relation sources discordanti producono divergence diagnostics e precedence deterministica.
+- Retrieval per proposal ID e idea text e deterministico, source-free dopo il build, versionato e spiegabile tramite contribution che ricostruiscono lo score.
+- `small` e `medium` hanno limiti misurabili definiti nella feature e applicati dopo ranking/grouping, senza fallback first-N.
+- Empty, partial e unavailable context sono distinguibili e mantengono evidence minima per i claim inclusi.
+- Profiling e performance remediation soddisfano structural read/scan gates prima della context integration.
+- `generated_at` non modifica semantic fingerprint; source presence/hash e policy version changes rendono stale le projection pertinenti.
+- La prima implementazione non persiste cache; una cache eventualmente necessaria richiede una feature separata.
+- `PROP-*` puo ricevere `nearby_context` mantenendo i legacy fields; non-proposal target restano compatibili nella prima integrazione.
+- CLI text, structured output e MCP mantengono semantica e schema allineati e read-only.
+- Intake e prompt usano context rilevante ma non estendono controlled apply o owner authority.
+- Golden, adversarial, malformed-source, determinism, same-workspace, cycle, scale e public-contract tests proteggono le slice.
+- Nessuna build/query del decision context modifica fonti canoniche o crea cache/projection implicite.
 
 ## Alternatives And Tradeoffs
 
@@ -9950,6 +10188,60 @@ prevents breaking existing CLI, MCP, tests, or scripts that may rely on current
 paths. The implementation should inventory current usage first, then choose
 mirroring, deprecation, migration, or removal deliberately.
 
+### PROP-084 - Project-Local Runtime Bootstrap And Upgrade Flow
+
+#### alternatives.md
+
+# Alternatives
+
+## How-To Only
+
+Rejected. A how-to without a machine-readable project contract does not give
+P2P Engine a stable way to validate compatibility or gate governed writes.
+
+## Installer-Oriented Contract
+
+Rejected. A contract that stores release tags, wheel filenames, digests, source
+descriptors, or install commands solves installer verification, not runtime
+version alignment.
+
+## Mandatory Script-Based Setup
+
+Rejected. A script is an optional ergonomic layer and introduces a separate
+distribution and trust problem. It is not required for this proposal.
+
+## Broad Command Blocking
+
+Rejected. Blocking all commands for legacy projects would disrupt existing
+repositories. The accepted scope gates governed writes only when a declared or
+required contract cannot be trusted.
+
+## Minimal Contract Plus Project Guide
+
+Accepted. `runtime.yml` provides the source of truth, `P2P-SETUP.md` makes it
+visible to collaborators, runtime status validates compatibility, and the
+write gate protects governed state mutation.
+
+#### findings.md
+
+# Findings
+
+- Runtime version alignment is a real problem for shared P2P-managed projects.
+- A minimal runtime contract solves the problem without installation
+  automation.
+- Wheel filenames, release tags, digests, source descriptors, resolvers, and
+  package sources are installer or release-integrity concerns and must stay out
+  of the required runtime contract.
+- `P2P-SETUP.md` is needed because a collaborator may not know where to look
+  inside `.p2p/`.
+- `legacy_undeclared` and `missing_contract` must be distinct. A missing file
+  is only `missing_contract` when a project-level marker or policy requires it.
+- The proposal should not introduce broad command blocking. It should gate only
+  governed writes when a declared or required contract cannot be trusted.
+- The write-gate guarantee applies to runtimes that implement PROP-084. Older
+  runtimes may ignore the new contract unless a separate compatibility marker is
+  introduced.
+
 ### PROP-085 - Pluggable Project Verticals And Readiness Orchestration
 
 #### alternatives.md
@@ -11225,6 +11517,70 @@ This separates governed content, editorial transformation, quality control, and 
 
 The current `outputs/latest/project.md` is over 13,000 lines and contains many `PROP-*` sections, repeated artifact headings, and placeholder text. That confirms the need for a project-first publication layer.
 
+### PROP-100 - Project Decision Context Index and Proposal Neighborhood
+
+#### alternatives.md
+
+# Alternatives
+
+## Deliver The Whole Specification In One Change Set
+
+One repository specification is useful for coherent contracts, but implementing every slice together would combine parsing, authority, topology, retrieval, performance, public context, prompts and freshness in one blast radius. The selected approach keeps one specification and independent delivery gates.
+
+## Add More Fields To Existing Registries
+
+This improves immediate output but keeps consumers coupled to lossy projection shapes and risks a semantic feedback loop. Registries remain derived compatibility views; the index reads governed sources directly through a Source Catalog.
+
+## Persist An Index First
+
+SQLite or another cache may later reduce rebuild cost, but persistence does not solve source authority, duplicate relations, applicability, parser loss or retrieval quality. The selected approach measures an in-memory model first and requires a separate cache feature if needed.
+
+## Use Embeddings First
+
+Embeddings may improve recall later but do not explain authority, applicability, conflict state or stale evidence. Deterministic versioned retrieval remains the first contract.
+
+## Assemble More Files Directly In Prompts
+
+Prompt-only context would duplicate selection logic across agents and could amplify tokens without stable provenance. Retrieval selects and explains context before phase-specific prompt assembly.
+
+## Reuse Publication Fingerprints Directly
+
+Publication fingerprinting is a useful pattern, but publication inputs include derived outputs and are not the decision-context source set. Decision context uses its own versioned Source Catalog and semantic-policy fingerprint.
+
+## Store Query Direction As Duplicate Edges
+
+Persisting incoming and outgoing copies simplifies some reads but duplicates identity and score. The selected topology stores one logical relation and computes direction relative to the query.
+
+#### findings.md
+
+# Findings
+
+- The original diagnosis remains valid: information exists in governed artifacts but is lost or underused by derived registries, contexts and prompts.
+- `decisions-map.yml` and `relations.yml` are lossy projections and must be excluded from semantic extraction to avoid feedback loops.
+- Current first-N selection is not retrieval and cannot explain why a proposal or decision is relevant.
+- `ContextPacketService` composes multiple global summary paths, and registry construction can rebuild Change Set records per proposal.
+- The performance problem is not only elapsed time: repeated discovery, reads and scans require structural counters and an integration gate.
+- `foundation/markdown.py` has narrow section parsing and does not preserve robust fragment spans or malformed-frontmatter diagnostics.
+- Hash and parse must use the same captured bytes; helpers that reopen a path inside one extraction session can produce duplicate I/O or inconsistent evidence.
+- `P2PWorkspace` memoizes services, so request snapshots must not be retained unvalidated by the service object.
+- Proposal status and decision outcome can diverge; the derived view needs diagnostics and source precedence without source repair.
+- The decision lifecycle includes `accepted_with_changes`, `split`, `merged_into_other` and `superseded`, not only accepted/deferred/rejected.
+- Conditional acceptance needs an active qualifier from the decision reason; acceptance status alone is not universal applicability.
+- Decision precedents are an existing project-wide source omitted from the earlier source list.
+- Governance/project-definition constraints require explicit allow-listed extraction rather than generic natural-language interpretation.
+- Proposal review has a wider artifact catalog than artifact-state tracking; absence of artifact-state cannot imply owner confirmation.
+- Readiness, question state and contributions describe quality/history and cannot activate decisions by themselves.
+- Change Set frontmatter and companion relation files can duplicate or diverge and need deterministic reconciliation.
+- Work status is useful execution context but cannot alter proposal decision authority.
+- Relation direction is query-relative; storing inverse edges would duplicate topology and score.
+- Equivalent relation assertions should merge evidence and score once.
+- Retrieval needs a versioned applicability rule so accepted decisions are selected only by explicit relation, declared domain match or qualified lexical evidence.
+- Generic and ubiquitous terms require deterministic suppression to avoid arbitrary proposal neighborhoods.
+- Retrieval must use prebuilt postings and perform zero source reads after index construction.
+- `generated_at` is observational metadata and must not change semantic fingerprints.
+- CLI text, structured output and MCP serialization require one compatibility slice, including unchanged Change/Choice/Work/no-target behavior.
+- A persistent cache remains unproven; cache design must follow measured need in a separate feature.
+
 ## Risks
 
 ### PROP-002 - Proposal Exploration And Readiness Workflow
@@ -12467,6 +12823,34 @@ Mitigation: do not delete legacy outputs as part of the proposal itself. The
 implementation should verify dependencies and decide whether to mirror, migrate,
 deprecate, or remove them in a controlled code change.
 
+### PROP-084 - Project-Local Runtime Bootstrap And Upgrade Flow
+
+#### risks.md
+
+# Risks
+
+- Risk: No existing project-level marker can distinguish a deleted required
+  contract from a legacy project.
+  Mitigation: report `missing_contract` only when an explicit marker or policy
+  requires `runtime.yml`; otherwise report `legacy_undeclared`.
+
+- Risk: Older runtimes ignore `runtime.yml`.
+  Mitigation: document that enforcement is guaranteed only by runtimes that
+  implement PROP-084. Consider a separate project-format compatibility proposal
+  if stronger rejection by older runtimes is required.
+
+- Risk: The governed-write gate is implemented in scattered command handlers.
+  Mitigation: centralize the preflight behind a reusable service/facade boundary
+  and test representative mutating paths.
+
+- Risk: Future install automation is treated as already approved.
+  Mitigation: keep script setup, installers, resolvers, source selectors,
+  virtualenv lifecycle, and package downloads explicitly out of scope.
+
+- Risk: `P2P-SETUP.md` drifts from `runtime.yml`.
+  Mitigation: generate it from the runtime contract and preserve or refresh it
+  only through explicit project initialization behavior.
+
 ### PROP-085 - Pluggable Project Verticals And Readiness Orchestration
 
 #### risks.md
@@ -13079,6 +13463,35 @@ Mitigation: define the renderer as presentation-only.
 Risk: the proposal could absorb themes, branding, visual editors, template marketplaces, advanced packages, MCP parity, or software spec generation.
 
 Mitigation: deliver a minimal end-to-end slice first and defer advanced publication capabilities.
+
+### PROP-100 - Project Decision Context Index and Proposal Neighborhood
+
+#### risks.md
+
+# Risks
+
+- A derived index could become a second source of truth if projections are read back as semantic input.
+- A memoized service could retain a stale source snapshot after a write in the same workspace.
+- Parser brittleness or silent malformed-YAML fallback could make a partial index appear complete.
+- Stable identity could be coupled incorrectly to content hash, line numbers, mtime or filesystem order.
+- `accepted_with_changes` could be treated as unconditional acceptance and lose its qualifier.
+- Accepted decisions or precedents could be broadcast globally without an applicability rule.
+- Proposal status and decision outcome divergence could be silently resolved in the wrong direction.
+- Untracked artifacts could be presented as owner-confirmed because artifact-state covers only a subset of artifact kinds.
+- Readiness, questions, contributions or Work state could accidentally gain decision authority.
+- Decision precedents or project-definition rules could be omitted from context or overinterpreted from generic prose.
+- Change Set frontmatter and companion relation files could produce duplicate or contradictory edges.
+- Inverse, symmetric or duplicate relation assertions could multiply score.
+- Cycles and high fan-out could make transitive retrieval non-terminating or unstable.
+- Lexical overlap on ubiquitous project terms could generate false neighborhoods.
+- Historical proposals could outrank active decisions through text overlap alone.
+- Context budgets could remain renderer truncation rather than semantic selection.
+- Repeated scans could worsen the current `p2p context` latency when the new index is integrated.
+- `generated_at` could break deterministic equality and stale checks.
+- A conditional cache task could introduce persistence without locking, migration or corruption design.
+- CLI, MCP and non-proposal target behavior could drift during context integration.
+- Prompt context could amplify tokens or expand controlled apply if phase-specific boundaries are not tested.
+- Broad feature coordination could be mistaken for authorization to implement all slices as one Change Set.
 
 ## Assumptions
 
@@ -13884,6 +14297,24 @@ requirements, risks, assumptions, choices, scope notes, readiness notes, and
 related P2P artifacts. Gaps should be surfaced in the generated document rather
 than silently invented.
 
+### PROP-084 - Project-Local Runtime Bootstrap And Upgrade Flow
+
+#### assumptions.md
+
+# Assumptions
+
+- P2P Engine can determine its own installed runtime version.
+- A compatibility range can be generated from the active runtime version and an
+  explicit compatibility policy selected during implementation.
+- The project can write `.p2p/project/runtime.yml` and project-root
+  `P2P-SETUP.md` during project initialization.
+- A reusable runtime preflight can be placed on representative governed-write
+  paths without changing read-only command behavior.
+- PROP-078 remains the source for installation mechanics.
+- PROP-080 remains the source for release artifact publication and integrity
+  metadata, but PROP-084 does not need that metadata to create or validate the
+  runtime contract.
+
 ### PROP-085 - Pluggable Project Verticals And Readiness Orchestration
 
 #### assumptions.md
@@ -14157,6 +14588,26 @@ P2P-owned `P2P-SETUP.md` content.
 - Pipeline stages must remain separately reviewable so export, curation, validation, review, and rendering can be inspected or revised independently.
 - The agentic curator is the main quality driver for a comprehensible document and for a robust narrative around the selected vertical and its specific characteristics.
 - Deterministic preparation, validation, and rendering constrain and review the curator output, but do not replace semantic editorial judgment.
+
+### PROP-100 - Project Decision Context Index and Proposal Neighborhood
+
+#### assumptions.md
+
+# Assumptions
+
+- Existing governed artifacts contain enough evidence for a useful deterministic first index, subject to parser and completeness diagnostics.
+- A versioned Source Catalog can classify semantic sources without making registries or generated narratives authoritative.
+- Proposal and decision extraction is sufficient to validate the first slice before relation or public integration.
+- A stateless facade and request-scoped captured-byte snapshot can prevent repeated reads and same-workspace stale state.
+- Existing decision formats provide outcome, reason, approver and date; accepted content is linked through proposal claims rather than invented decision text.
+- Explicit decision precedents and bounded project-definition fields can be indexed without generic interpretation of all governance prose.
+- Typed value nodes can represent capabilities, surfaces, features, commands and planned files without requiring every value to exist as a current filesystem object.
+- Deterministic lexical/topology retrieval can provide useful first recall without embeddings.
+- Structural scan/read assertions are more reliable than elapsed time alone, while a generous scale ceiling can catch major regressions.
+- Existing CLI and MCP surfaces can accept additive versioned nearby context without changing owner authority or write safety.
+- Materialized manifests are needed only where a consumer already persists a derived projection.
+- The initial in-memory index will be operationally adequate unless measurements prove otherwise.
+- One repository specification can coordinate the whole program while each slice remains an independently authorized delivery unit.
 
 ## Open Questions
 
@@ -15536,6 +15987,22 @@ No unresolved owner questions remain for the current proposal definition.
 - Whether legacy `.p2p/outputs` is mirrored, deprecated, migrated, or kept unchanged after compatibility analysis.
 - Retention policy for old `outputs/review-###/` snapshots beyond deterministic creation.
 
+### PROP-084 - Project-Local Runtime Bootstrap And Upgrade Flow
+
+#### open-questions.md
+
+# Open Questions
+
+No owner-blocking questions remain for PROP-084.
+
+Implementation must make one bounded technical choice before coding: where to
+place the reusable governed-write preflight so representative mutating paths are
+covered without scattering runtime checks through unrelated command handlers.
+
+Implementation must also confirm whether an existing project-level marker can
+identify projects that require `runtime.yml`. If no marker exists, missing files
+must be treated as `legacy_undeclared` until such a marker is introduced.
+
 ### PROP-085 - Pluggable Project Verticals And Readiness Orchestration
 
 #### open-questions.md
@@ -15876,32 +16343,77 @@ Resolved. Curation should use a hybrid model. The engine prepares input and vali
 
 No blocking owner questions remain for proposal refinement. Implementation details such as exact CLI names and renderer library can be resolved during local specs after acceptance.
 
+### PROP-100 - Project Decision Context Index and Proposal Neighborhood
+
+#### open-questions.md
+
+# Open Questions
+
+No blocking owner question is required to decide the revised umbrella direction.
+
+Closed direction and implementation-contract questions:
+
+- The semantic source set is controlled by a versioned Source Catalog with explicit exclusions.
+- Source snapshots are request-scoped and capture bytes once for hash and parse.
+- Complete/partial/unavailable and diagnostic fatality are explicit contracts.
+- The decision lifecycle includes conditional acceptance, split, merge, supersession and source divergence.
+- Relation direction is query-relative; typed topology, evidence merge and cycle bounds are required.
+- Retrieval uses versioned deterministic normalization, applicability, scoring, tie-breaking, grouping and exact feature-defined budgets.
+- CLI/MCP parity and non-proposal target compatibility are required in the public integration slice.
+- Performance structural counters and a representative scale ceiling block public integration.
+- `generated_at` is excluded from semantic identity.
+- Persistent cache implementation is excluded from PROP-100.
+
+Residual follow-up decisions after measurement or concrete consumer demand:
+
+- Whether measured rebuild/query cost justifies a separate persistent-cache feature.
+- Whether normalized topology needs a public durable projection and migration contract.
+- Whether retrieval should later support Change Set, Choice or Work targets.
+- Whether embeddings add useful recall after deterministic retrieval is stable.
+
 ## Readiness
 
 ### Project Vertical Skeleton
 
-- active_vertical: base_project
-- source: fallback
-- fallback_used: true
+- active_vertical: software_project
+- source: internal
+- fallback_used: false
 
 ### Vertical Coverage
 
-- vision: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-006, PROP-010, PROP-011, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-098, PROP-099)
-- objective: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-098, PROP-099, PROP-100)
-- stakeholders: covered (proposals: PROP-001, PROP-002, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-013, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-022, PROP-023, PROP-024, PROP-030, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-051, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-098, PROP-099, PROP-100)
-- scope: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-098, PROP-099, PROP-100)
-- assumptions: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-009, PROP-011, PROP-013, PROP-016, PROP-017, PROP-019, PROP-021, PROP-022, PROP-025, PROP-026, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-046, PROP-048, PROP-049, PROP-050, PROP-051, PROP-053, PROP-054, PROP-055, PROP-056, PROP-058, PROP-059, PROP-060, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-088, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-099, PROP-100)
-- risks: covered (proposals: PROP-001, PROP-002, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-098, PROP-099)
-- decisions: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-039, PROP-040, PROP-041, PROP-042, PROP-045, PROP-046, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-059, PROP-060, PROP-064, PROP-065, PROP-066, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-098, PROP-099, PROP-100)
-- milestones: covered (proposals: PROP-001, PROP-002, PROP-006, PROP-007, PROP-010, PROP-012, PROP-013, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-030, PROP-031, PROP-032, PROP-033, PROP-037, PROP-043, PROP-044, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-064, PROP-065, PROP-066, PROP-067, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-088, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-098, PROP-099)
-- definition_of_done: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-009, PROP-010, PROP-011, PROP-012, PROP-013, PROP-014, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-020, PROP-021, PROP-022, PROP-023, PROP-024, PROP-025, PROP-026, PROP-027, PROP-028, PROP-029, PROP-030, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-042, PROP-043, PROP-044, PROP-045, PROP-046, PROP-047, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-057, PROP-058, PROP-059, PROP-060, PROP-061, PROP-062, PROP-063, PROP-064, PROP-065, PROP-066, PROP-067, PROP-068, PROP-069, PROP-070, PROP-071, PROP-072, PROP-073, PROP-074, PROP-075, PROP-076, PROP-077, PROP-078, PROP-079, PROP-080, PROP-081, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-098, PROP-099, PROP-100)
-- artifacts: covered (proposals: PROP-001, PROP-002, PROP-003, PROP-004, PROP-005, PROP-006, PROP-007, PROP-008, PROP-010, PROP-011, PROP-012, PROP-013, PROP-015, PROP-016, PROP-017, PROP-018, PROP-019, PROP-022, PROP-024, PROP-026, PROP-027, PROP-028, PROP-029, PROP-031, PROP-032, PROP-033, PROP-034, PROP-035, PROP-036, PROP-037, PROP-038, PROP-039, PROP-040, PROP-041, PROP-048, PROP-049, PROP-050, PROP-051, PROP-052, PROP-053, PROP-054, PROP-055, PROP-056, PROP-058, PROP-059, PROP-060, PROP-062, PROP-063, PROP-064, PROP-067, PROP-072, PROP-073, PROP-074, PROP-076, PROP-078, PROP-080, PROP-082, PROP-083, PROP-084, PROP-085, PROP-086, PROP-087, PROP-088, PROP-089, PROP-090, PROP-091, PROP-092, PROP-093, PROP-094, PROP-095, PROP-096, PROP-097, PROP-099)
+- vision: defined (proposals: none)
+- objective: defined (proposals: none)
+- stakeholders: defined (proposals: none)
+- scope: defined (proposals: none)
+- assumptions: covered (proposals: PROP-100)
+- risks: defined (proposals: none)
+- decisions: covered (proposals: PROP-091)
+- milestones: defined (proposals: none)
+- definition_of_done: covered (proposals: PROP-085, PROP-090)
+- artifacts: covered (proposals: PROP-085, PROP-094, PROP-099)
+- system_objective: covered (proposals: PROP-001, PROP-085, PROP-094)
+- users_and_actors: covered (proposals: PROP-006, PROP-091)
+- mvp_scope: covered (proposals: PROP-001, PROP-044, PROP-055, PROP-084, PROP-085, PROP-094, PROP-099)
+- workflows_use_cases: covered (proposals: PROP-001, PROP-006, PROP-044, PROP-055, PROP-084, PROP-085, PROP-090, PROP-091, PROP-094, PROP-095, PROP-099, PROP-100)
+- data_model: covered (proposals: PROP-006, PROP-084, PROP-085, PROP-090, PROP-091, PROP-094, PROP-095, PROP-099, PROP-100)
+- integrations_dependencies: covered (proposals: PROP-006, PROP-044, PROP-084, PROP-090, PROP-094, PROP-095, PROP-100)
+- constraints_nfrs: covered (proposals: PROP-006, PROP-055, PROP-084, PROP-090, PROP-091, PROP-095, PROP-100)
+- acceptance_validation: covered (proposals: PROP-090, PROP-094, PROP-095, PROP-099, PROP-100)
+- risks_alternatives_decisions: covered (proposals: PROP-090, PROP-091, PROP-094, PROP-095, PROP-099, PROP-100)
+
+### Vertical Questions
+
+- Which owner decisions or unresolved alternatives block implementation?
 
 ### Vertical Runtime State
 
-- lock_status: missing
-- definition_state_exists: false
-- definition_state_valid: false
+- lock_status: valid
+- locked_vertical: software_project
+- definition_state_exists: true
+- definition_state_valid: true
+- definition_sections_assumed: 1
+- definition_sections_complete: 16
+- definition_sections_partial: 2
 
 ### PROP-006 - Multi-Agent Integration Model
 
@@ -16531,6 +17043,197 @@ readiness:
     for artifact-derived assessments.
   override_approver: owner
   override_recorded_at: '2026-06-08'
+
+### PROP-084 - Project-Local Runtime Bootstrap And Upgrade Flow
+
+#### readiness.yml
+
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: high
+  confidence_reasons:
+  - Evidence-aware assessment found no missing criteria, failed gates, blocking owner
+    questions, or artifact coverage gaps.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  missing: []
+  suggested_next: []
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    goal_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 15
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    risk_coverage:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: risks.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: assumptions.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: questions.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 5
+      artifact_quality: ready
+      evidence:
+      - artifact: impact-map.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  owner_question_state:
+    source: structured
+    markdown_fallback_used: false
+    blocking_owner_questions: []
+    answered_not_applied: []
+    residual_follow_up: []
+    closed_questions:
+    - id: Q001
+      group_id: QG001
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: scope_boundaries
+      gap: scope_boundaries
+      question: 'What should be the authoritative project runtime contract location
+        and schema: a managed .p2p project file, a repository-root bootstrap file,
+        pyproject metadata, or a combination with one explicit source of truth?'
+      reason: Question is closed with state `applied`.
+    - id: Q002
+      group_id: QG002
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: acceptance_criteria_quality
+      gap: acceptance_criteria_quality
+      question: 'What should a fresh clone rely on for runtime version alignment when
+        p2p is not installed yet: the runtime contract, documentation, an optional
+        helper, or another mechanism?'
+      reason: Question is closed with state `applied`.
+    - id: Q003
+      group_id: QG003
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: alternatives_quality
+      gap: alternatives_quality
+      question: Which runtime source metadata should this implementation recognize
+        in the contract, and which install mechanisms are outside scope?
+      reason: Question is closed with state `applied`.
+    - id: Q004
+      group_id: QG004
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: risk_coverage
+      gap: risk_coverage
+      question: How should missing, incompatible, invalid, unsupported, and undeclared
+        runtime contract states be reported without adding environment mutation?
+      reason: Question is closed with state `applied`.
+    - id: Q005
+      group_id: QG005
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: tradeoff_analysis
+      gap: tradeoff_analysis
+      question: Which project usage contexts must the runtime contract support, and
+        which platform-specific or hosted workflows remain outside this proposal?
+      reason: Question is closed with state `applied`.
+    - id: Q006
+      group_id: QG006
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: impact_overlap_analysis
+      gap: impact_overlap_analysis
+      question: 'How should PROP-084 relate to PROP-078 project-local install/upgrade
+        and PROP-080 release wheel publishing: depend on them, reuse them, or add
+        only verification/orchestration around them?'
+      reason: Question is closed with state `applied`.
+    confidence_notes: []
+    suggested_next: []
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-07-12'
+  assessment_source: evidence_aware
+  assessed_at: '2026-07-12'
+  artifact_coverage_warnings: []
 
 ### PROP-085 - Pluggable Project Verticals And Readiness Orchestration
 
@@ -18605,6 +19308,183 @@ readiness:
   assessed_at: '2026-07-13'
   artifact_coverage_warnings: []
 
+### PROP-100 - Project Decision Context Index and Proposal Neighborhood
+
+#### readiness.yml
+
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: high
+  confidence_reasons:
+  - Evidence-aware assessment found no missing criteria, failed gates, blocking owner
+    questions, or artifact coverage gaps.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  missing: []
+  suggested_next: []
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    goal_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 15
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    risk_coverage:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: risks.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: assumptions.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: questions.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 5
+      artifact_quality: ready
+      evidence:
+      - artifact: impact-map.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  owner_question_state:
+    source: structured
+    markdown_fallback_used: false
+    blocking_owner_questions: []
+    answered_not_applied: []
+    residual_follow_up: []
+    closed_questions:
+    - id: Q001
+      group_id: QG001
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: architecture_direction
+      gap: architecture_direction
+      question: Should PROP-100 use a derived decision context index instead of a
+        canonical project memory store?
+      reason: Question is closed with state `applied`.
+    - id: Q002
+      group_id: QG002
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: retrieval_strategy
+      gap: retrieval_strategy
+      question: Should the first retrieval implementation be deterministic and explainable
+        before embeddings?
+      reason: Question is closed with state `applied`.
+    - id: Q003
+      group_id: QG003
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: persistence_strategy
+      gap: persistence_strategy
+      question: Should PROP-100 change storage backend before the model and retrieval
+        costs are measured?
+      reason: Question is closed with state `applied`.
+    - id: Q004
+      group_id: QG004
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: integration_order
+      gap: integration_order
+      question: Should p2p context be the first visible consumer after the timeout
+        bug is fixed separately?
+      reason: Question is closed with state `applied`.
+    - id: Q005
+      group_id: QG005
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: vertical_scope
+      gap: vertical_scope
+      question: Should PROP-100 solve full vertical governance and runtime modeling?
+      reason: Question is closed with state `applied`.
+    confidence_notes: []
+    suggested_next: []
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-07-15'
+  assessment_source: evidence_aware
+  assessed_at: '2026-07-15'
+  artifact_coverage_warnings: []
+
 ## Delivery And Export Context
 
 The default visible export is this chaptered Markdown document. Specialized vertical or tool-specific exports belong under `outputs/latest/exports/<profile-or-vertical>/`. Existing `.p2p/outputs` spec exports remain compatibility artifacts unless a separate migration changes them.
@@ -18692,6 +19572,7 @@ The default visible export is this chaptered Markdown document. Specialized vert
 - .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions
 - .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow
 - .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export
+- .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow
 - .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration
 - .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration
 - .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation
@@ -18706,4 +19587,5 @@ The default visible export is this chaptered Markdown document. Specialized vert
 - .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization
 - .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects
 - .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy
+- .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology
 ```

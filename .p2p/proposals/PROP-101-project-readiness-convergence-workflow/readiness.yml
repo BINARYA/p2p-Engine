@@ -1,0 +1,211 @@
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: high
+  confidence_reasons:
+  - Evidence-aware assessment found no missing criteria, failed gates, blocking owner
+    questions, or artifact coverage gaps.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  missing: []
+  suggested_next: []
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    goal_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 15
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    risk_coverage:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: risks.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: assumptions.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: questions.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 5
+      artifact_quality: ready
+      evidence:
+      - artifact: impact-map.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  owner_question_state:
+    source: structured
+    markdown_fallback_used: false
+    blocking_owner_questions: []
+    answered_not_applied: []
+    residual_follow_up: []
+    closed_questions:
+    - id: Q001
+      group_id: QG001
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: project_question_authority
+      gap: project_question_authority
+      question: Should project-question lifecycle state use a dedicated project-scoped
+        artifact authoritative for question status and answers, while project definition
+        remains authoritative only for applied content?
+      reason: Question is closed with state `applied`.
+    - id: Q002
+      group_id: QG002
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: workspace_schema_compatibility
+      gap: workspace_schema_compatibility
+      question: Should the project-question artifact remain optional and backward-compatible
+        in workspace schema v1 unless implementation proves that required layout or
+        existing semantics must change?
+      reason: Question is closed with state `applied`.
+    - id: Q003
+      group_id: QG003
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: fallback_question_policy
+      gap: fallback_question_policy
+      question: When a required incomplete section has no declared vertical question,
+        should the engine use a conservative deterministic fallback and emit an explicit
+        diagnostic when safe generation is impossible?
+      reason: Question is closed with state `applied`.
+    - id: Q004
+      group_id: QG004
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: gap_priority_policy
+      gap: gap_priority_policy
+      question: Should convergence prioritize blockers and explicit owner decisions
+        first, required definition gaps second, dependency-relevant assumptions next,
+        and optional evidence curation last?
+      reason: Question is closed with state `applied`.
+    - id: Q005
+      group_id: QG005
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: post_apply_freshness
+      gap: post_apply_freshness
+      question: After a successful definition apply, should the engine update direct
+        deterministic state, mark downstream nodes stale, and avoid automatically
+        running agent-curated or owner-review actions?
+      reason: Question is closed with state `applied`.
+    - id: Q006
+      group_id: QG006
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: mcp_write_scope
+      gap: mcp_write_scope
+      question: Should the first slice stabilize service and CLI mutations plus MCP
+        read parity, deferring MCP answer/apply tools until they can reuse the final
+        permission-gated preview contract?
+      reason: Question is closed with state `applied`.
+    - id: Q007
+      group_id: QG007
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: repository_pilot_exit
+      gap: repository_pilot_exit
+      question: May the repository pilot close a current readiness gap through an
+        explicit governed defer or mute outcome when evidence is intentionally unavailable,
+        without marking the section complete?
+      reason: Question is closed with state `applied`.
+    - id: Q008
+      group_id: QG008
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: legacy_v1_write_mode
+      gap: legacy_v1_write_mode
+      question: While a workspace remains on schema v1 under a v2-capable runtime,
+        should P2P allow read, validation, status and migration planning but block
+        only v2-dependent governed writes until the explicit v1-to-v2 migration succeeds?
+      reason: Question is closed with state `applied`.
+    confidence_notes: []
+    suggested_next: []
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-07-16'
+  assessment_source: evidence_aware
+  assessed_at: '2026-07-16'
+  artifact_coverage_warnings: []

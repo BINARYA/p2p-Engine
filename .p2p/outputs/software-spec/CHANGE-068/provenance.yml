@@ -1,0 +1,9 @@
+source:
+  change: CHANGE-068
+  included_proposals:
+  - PROP-099
+  accepted_decisions: []
+generated_from:
+- .p2p/changes/CHANGE-068-human-project-publication-pipeline/change.md
+- .p2p/changes/CHANGE-068-human-project-publication-pipeline/tasks.yml
+- .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/proposal.md

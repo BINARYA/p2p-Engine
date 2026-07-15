@@ -1,84 +1,11 @@
 entities:
-  - name: ChangeSet
-    kind: source
-    description: Operational package derived from accepted P2P project intent and used as the source unit for spec generation.
-    key_fields:
-      - change_id
-      - title
-      - status
-      - execution_domains
-      - implementation_targets
-      - spec_targets
-      - export_targets
-      - source
-
-  - name: Proposal
-    kind: source
-    description: Accepted project proposal included by the Change Set source metadata.
-    key_fields:
-      - proposal_id
-      - status
-      - problem
-      - goals
-      - proposal
-      - acceptance_criteria
-
-  - name: SoftwareSpec
-    kind: output
-    description: P2P-native normalized implementation-facing specification generated or imported for a Change Set.
-    key_fields:
-      - change_id
-      - artifacts
-      - provenance
-      - targets
-
-  - name: SpecArtifact
-    kind: output
-    description: One required file in the P2P-native software spec directory.
-    key_fields:
-      - path
-      - format
-      - required
-      - validation_rules
-
-  - name: RefinementPrompt
-    kind: helper_output
-    description: Prompt artifact used by a human or AI assistant to refine the deterministic spec without expanding accepted scope.
-    key_fields:
-      - change_id
-      - governance_boundary
-      - required_output
-      - deterministic_context
-
-  - name: ImportedSpec
-    kind: input
-    description: External refined spec directory submitted to `p2p spec import` for validation and import.
-    key_fields:
-      - source_directory
-      - required_files
-      - yaml_artifacts
-      - validation_result
-
-  - name: SpecValidator
-    kind: process
-    description: Structural validation performed before importing refined spec artifacts.
-    key_fields:
-      - required_files
-      - yaml_parse_result
-      - required_top_level_keys
-
-  - name: Provenance
-    kind: output
-    description: Trace from generated or imported spec artifacts back to P2P source artifacts.
-    key_fields:
-      - source.change
-      - source.included_proposals
-      - source.accepted_decisions
-      - generated_from
-
-  - name: ExportTarget
-    kind: future_target
-    description: Downstream target declared by the Change Set but not implemented by this MVP.
-    allowed_values:
-      - openspec
-      - speckit
+- name: ChangeSet
+  description: Operational package derived from accepted project intent.
+- name: SoftwareSpec
+  description: P2P-native normalized implementation-facing specification.
+- name: ExportTarget:openspec
+  description: Downstream export target.
+- name: ExportTarget:speckit
+  description: Downstream export target.
+- name: PROP-026
+  description: P2P Software Spec Generator MVP

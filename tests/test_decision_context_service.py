@@ -73,6 +73,50 @@ def test_status_divergence_is_reported_without_source_repair(tmp_path: Path) -> 
     assert (proposal_dir / "proposal.md").read_text(encoding="utf-8") == original
 
 
+def test_decision_status_controls_state_and_free_form_outcome_is_preserved(tmp_path: Path) -> None:
+    proposal_dir = write_proposal(
+        tmp_path,
+        "PROP-001",
+        status="accepted",
+        decision_outcome="accepted",
+    )
+    decision = proposal_dir / "decision.md"
+    decision.write_text(
+        decision.read_text(encoding="utf-8").replace(
+            "## Outcome\n\naccepted",
+            "## Outcome\n\nAdopt the compatibility-first architecture.",
+        ),
+        encoding="utf-8",
+    )
+
+    index = ProjectDecisionContextService(root=tmp_path).build_index()
+
+    state = next(record for record in index.records if record.kind == RecordKind.DECISION_STATE)
+    statement = next(record for record in index.records if record.kind == RecordKind.DECISION_STATEMENT)
+    assert state.text == "accepted"
+    assert statement.text == "Adopt the compatibility-first architecture."
+    assert not any(item.code == "DC-AUTHORITY-UNKNOWN-DECISION-OUTCOME" for item in index.diagnostics)
+
+
+def test_legacy_outcome_token_controls_state_when_status_is_unrecognized(tmp_path: Path) -> None:
+    proposal_dir = write_proposal(
+        tmp_path,
+        "PROP-001",
+        status="accepted",
+        decision_outcome="accepted",
+    )
+    decision = proposal_dir / "decision.md"
+    decision.write_text(
+        decision.read_text(encoding="utf-8").replace("`accepted`", "`Decision recorded`", 1),
+        encoding="utf-8",
+    )
+
+    index = ProjectDecisionContextService(root=tmp_path).build_index()
+
+    state = next(record for record in index.records if record.kind == RecordKind.DECISION_STATE)
+    assert state.text == "accepted"
+
+
 def test_proposal_list_sections_become_independent_records(tmp_path: Path) -> None:
     write_proposal(
         tmp_path,

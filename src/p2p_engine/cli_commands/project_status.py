@@ -25,6 +25,20 @@ def register_project_status_commands(
         summary = workspace.status()
         console.print(f"Project: [bold]{summary.project_name}[/bold]")
         console.print(f"Workspace: {summary.root}")
+        if summary.workspace_schema is not None:
+            schema = summary.workspace_schema
+            console.print(
+                "Workspace schema: "
+                f"{schema['state']} layout={schema['layout_status']} "
+                f"alignment={schema['alignment_status']} "
+                f"version={schema['current_version']} target={schema['target_version']}"
+            )
+        if summary.derived_freshness is not None:
+            freshness = summary.derived_freshness
+            console.print(
+                "Derived freshness: "
+                f"{freshness['status']} attention_nodes={freshness['attention_nodes']}"
+            )
         if not summary.proposals:
             console.print("Proposals: none")
             return

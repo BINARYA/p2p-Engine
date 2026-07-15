@@ -99,3 +99,15 @@ next_action_log:
   closed_reason: Owner decided not to pursue provider PR/MR automation now; revisit
     when reviewing the internal Git architecture.
   closed_on: '2026-07-13'
+- id: NEXT-006
+  priority: medium
+  kind: review_backlog
+  target: draft-proposals
+  reason: There are no active Change Sets or Work items; readiness is now limited
+    mainly by draft proposals that should be reviewed, accepted, or retired.
+  command: .venv/bin/p2p proposal list --status draft
+  status: retired
+  closed_reason: 'Stale after repository migration: CHANGE-068 is implementation_ready;
+    the generated CHANGE-068 continuation action supersedes the legacy no-active-change
+    statement.'
+  closed_on: '2026-07-15'

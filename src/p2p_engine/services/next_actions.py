@@ -45,6 +45,8 @@ class NextActionService:
         read_proposal_readiness: Callable[[str], Any],
         decision_context_index: Callable[[], DecisionContextIndex],
         show_choice: Callable[[str], Any],
+        workspace_schema_status: Callable[[], Any] | None = None,
+        derived_freshness_status: Callable[[], Any] | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -55,6 +57,8 @@ class NextActionService:
         self.read_proposal_readiness = read_proposal_readiness
         self.decision_context_index = decision_context_index
         self.show_choice = show_choice
+        self.workspace_schema_status = workspace_schema_status
+        self.derived_freshness_status = derived_freshness_status
 
     def list(
         self,
@@ -64,7 +68,8 @@ class NextActionService:
     ) -> list[NextAction]:
         index = self._index(context_snapshot)
         actions = self._dedupe(
-            self._active_choice_blocker_actions(index)
+            self._workspace_alignment_actions(context_snapshot)
+            + self._active_choice_blocker_actions(index)
             + self._active_curated_actions()
             + self._fallback_actions(context_snapshot, index)
         )
@@ -132,7 +137,9 @@ class NextActionService:
         self._write_payload(payload)
         index = self.decision_context_index()
         generated = self._dedupe(
-            self._active_choice_blocker_actions(index) + self._fallback_actions(None, index)
+            self._workspace_alignment_actions(None)
+            + self._active_choice_blocker_actions(index)
+            + self._fallback_actions(None, index)
         )
         return {
             "active_curated": len(normalized),
@@ -261,6 +268,80 @@ class NextActionService:
             seen.add(key)
             deduped.append(action)
         return deduped
+
+    def _workspace_alignment_actions(
+        self,
+        context_snapshot: Mapping[str, object] | None,
+    ) -> list[NextAction]:
+        schema = (
+            context_snapshot.get("workspace_schema_status")
+            if context_snapshot is not None
+            else None
+        )
+        if schema is None and self.workspace_schema_status is not None:
+            schema = self.workspace_schema_status()
+        if schema is not None:
+            recovery = getattr(schema, "recovery", {})
+            if isinstance(recovery, Mapping) and bool(recovery.get("required", False)):
+                return [
+                    NextAction(
+                        action_id="NEXT-WORKSPACE-RECOVERY",
+                        priority="critical",
+                        kind="recover_workspace_migration",
+                        target=str(recovery.get("transaction_id") or "workspace"),
+                        reason="An interrupted workspace migration requires recovery before governed writes.",
+                        command="p2p workspace migrate recovery status",
+                        source="generated",
+                    )
+                ]
+            if bool(getattr(schema, "migration_required", False)):
+                target = getattr(schema, "target_version", 1)
+                return [
+                    NextAction(
+                        action_id="NEXT-WORKSPACE-MIGRATION",
+                        priority="critical",
+                        kind="plan_workspace_migration",
+                        target=f"schema-v{target}",
+                        reason="Workspace schema is legacy undeclared and requires an owner-reviewed migration plan.",
+                        command=f"p2p workspace migrate plan --to {target}",
+                        source="generated",
+                    )
+                ]
+
+        freshness = (
+            context_snapshot.get("derived_freshness_status")
+            if context_snapshot is not None
+            else None
+        )
+        if freshness is None and self.derived_freshness_status is not None:
+            freshness = self.derived_freshness_status()
+        if freshness is None or str(getattr(freshness, "status", "")) == "current":
+            return []
+        rebuild = tuple(getattr(freshness, "rebuild_plan", ()))
+        actionable = next(
+            (
+                item
+                for item in rebuild
+                if str(getattr(item, "node_id", "")) != "registries"
+                if not tuple(getattr(item, "blocked_by", ()))
+                and str(getattr(item, "command", "")).strip()
+            ),
+            None,
+        )
+        if actionable is None:
+            return []
+        action_class = str(getattr(actionable, "action_class", ""))
+        return [
+            NextAction(
+                action_id="NEXT-DERIVED-FRESHNESS",
+                priority="high" if action_class == "deterministic" else "medium",
+                kind="refresh_derived_state" if action_class == "deterministic" else "review_derived_state",
+                target=str(getattr(actionable, "node_id", "derived-state")),
+                reason="Derived project state is stale or incomplete according to the freshness graph.",
+                command=str(getattr(actionable, "command", "")),
+                source="generated",
+            )
+        ]
 
     def _fallback_actions(
         self,

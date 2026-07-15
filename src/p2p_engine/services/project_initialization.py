@@ -3,11 +3,17 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 import yaml
 
 from p2p_engine.core.runtime_contract import RUNTIME_SETUP_GUIDE_MARKER
+from p2p_engine.core.workspace_schema import (
+    CURRENT_WORKSPACE_SCHEMA_VERSION,
+    WORKSPACE_SCHEMA_CONTRACT_VERSION,
+    WorkspaceSchemaState,
+)
 from p2p_engine.services.agent_instructions import AgentInstructionsResult
 from p2p_engine.services.agent_selection import AgentProfileSelection, select_agent_profile
 from p2p_engine.services.gitignore_hygiene import GitignoreHygieneResult, apply_gitignore_hygiene
@@ -21,6 +27,7 @@ from p2p_engine.services.project_maturity import (
 )
 from p2p_engine.services.readiness import DEFAULT_READINESS_PROFILE_ID
 from p2p_engine.services.runtime_contract import RuntimeContractService
+from p2p_engine.services.workspace_schema import WorkspaceSchemaService
 
 REPOSITORY_MODES = {"local", "cloud"}
 
@@ -111,6 +118,7 @@ class ProjectInitializationService:
         remote_name: str = "origin",
         remote_url_value: str | None = None,
     ) -> ProjectInitializationResult:
+        is_new_project = not (self.p2p_dir / "project.yml").exists()
         agent_selection = self.select_agent_profile(agent_profile)
         repository_mode = normalize_repository_mode(repository_mode)
         project_domain = normalize_project_domain(project_domain)
@@ -142,6 +150,18 @@ class ProjectInitializationService:
         for path in [*instructions.created, *instructions.updated]:
             if path not in created:
                 created.append(path)
+        if is_new_project:
+            schema_service = WorkspaceSchemaService(root=self.root, p2p_dir=self.p2p_dir)
+            schema_service.write_state(
+                WorkspaceSchemaState(
+                    contract_version=WORKSPACE_SCHEMA_CONTRACT_VERSION,
+                    current_version=CURRENT_WORKSPACE_SCHEMA_VERSION,
+                    baseline="initialized_current",
+                    initialized_at=date.today().isoformat(),
+                    initialized_by=owner or "owner",
+                )
+            )
+            created.append(schema_service.path.relative_to(self.root))
         return ProjectInitializationResult(
             created=created,
             agent_selection=agent_selection,

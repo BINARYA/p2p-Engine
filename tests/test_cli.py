@@ -4629,7 +4629,7 @@ def test_cli_choice_discovery_blocking_and_next_integration(tmp_path: Path) -> N
     assert "Choice blocker cleared" in result.output
 
     runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
-    result = runner.invoke(app, ["next", "--top", "1", "--root", str(tmp_path)])
+    result = runner.invoke(app, ["next", "--top", "10", "--root", str(tmp_path)])
     assert result.exit_code == 0
     assert "continue_change" in result.output
     assert "target: CHANGE-001" in result.output
@@ -4879,7 +4879,7 @@ def test_cli_project_brief_prompt_import_and_show(tmp_path: Path) -> None:
     assert "p2p change create --from PROP-001" in result.output
     assert ".p2p/project/next-actions.yml" in result.output
 
-    result = runner.invoke(app, ["next", "--top", "1", "--root", str(tmp_path)])
+    result = runner.invoke(app, ["next", "--top", "10", "--root", str(tmp_path)])
     assert result.exit_code == 0
     assert "NEXT-001  high  create_change" in result.output
 
@@ -4887,8 +4887,9 @@ def test_cli_project_brief_prompt_import_and_show(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "operational:" in result.output
     assert "brief: available" in result.output
-    assert "next actions: 2" in result.output
-    assert "first next: NEXT-001 high create_change PROP-001" in result.output
+    assert "next actions: 3" in result.output
+    assert "first next: NEXT-DERIVED-FRESHNESS high refresh_derived_state assessment" in result.output
+    assert "command: p2p assess refresh" in result.output
 
 
 def test_cli_next_falls_back_without_imported_next_actions(tmp_path: Path) -> None:
@@ -4918,7 +4919,7 @@ def test_cli_next_falls_back_without_imported_next_actions(tmp_path: Path) -> No
     assert "p2p registry refresh" in result.output
 
     runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
-    result = runner.invoke(app, ["next", "--top", "1", "--root", str(tmp_path)])
+    result = runner.invoke(app, ["next", "--top", "10", "--root", str(tmp_path)])
     assert result.exit_code == 0
     assert "NEXT-FALLBACK-001  high  continue_change" in result.output
     assert "target: CHANGE-001" in result.output
@@ -4931,7 +4932,7 @@ def test_cli_next_falls_back_to_draft_proposal_review(tmp_path: Path) -> None:
     runner.invoke(app, ["proposal", "create", "Draft Work", "--root", str(tmp_path)])
     runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
 
-    result = runner.invoke(app, ["next", "--top", "1", "--root", str(tmp_path)])
+    result = runner.invoke(app, ["next", "--top", "10", "--root", str(tmp_path)])
 
     assert result.exit_code == 0
     assert "assess_proposal_readiness" in result.output
@@ -4955,7 +4956,7 @@ def test_cli_next_falls_back_to_improve_low_readiness_draft(tmp_path: Path) -> N
     )
     runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
 
-    result = runner.invoke(app, ["next", "--top", "1", "--root", str(tmp_path)])
+    result = runner.invoke(app, ["next", "--top", "10", "--root", str(tmp_path)])
 
     assert result.exit_code == 0
     assert "improve_proposal_readiness" in result.output

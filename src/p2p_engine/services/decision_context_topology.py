@@ -47,9 +47,11 @@ _RELATION_ALIASES: Mapping[str, RelationType] = {
     "hardens": RelationType.DEPENDS_ON,
     "consumes_context_from": RelationType.DEPENDS_ON,
     "depends_on": RelationType.DEPENDS_ON,
+    "dependency": RelationType.DEPENDS_ON,
     "blocks": RelationType.BLOCKS,
     "conflicts": RelationType.CONFLICTS_WITH,
     "conflicts_with": RelationType.CONFLICTS_WITH,
+    "mutually_exclusive": RelationType.CONFLICTS_WITH,
     "overlaps": RelationType.REFERENCES,
     "overlap": RelationType.REFERENCES,
     "high_overlap": RelationType.REFERENCES,
@@ -69,6 +71,13 @@ _RELATION_ALIASES: Mapping[str, RelationType] = {
     "related_to": RelationType.REFERENCES,
     "future_home": RelationType.REFERENCES,
 }
+_AMBIGUOUS_RELATION_TERMS = frozenset({"enables", "informs", "constrained_by"})
+_AMBIGUOUS_RELATION_MEANINGS: Mapping[str, tuple[str, ...]] = {
+    "enables": ("depends_on (reverse direction)", "references"),
+    "informs": ("references", "depends_on"),
+    "constrained_by": ("depends_on", "project constraint evidence"),
+}
+_CANONICAL_RELATION_TERMS = frozenset(item.value for item in RelationType)
 
 _SYMMETRIC_RELATIONS = frozenset({RelationType.CONFLICTS_WITH})
 _ACTIVATION_RANK: Mapping[Activation, int] = {
@@ -542,12 +551,24 @@ class DecisionContextTopologyService:
             for index, item in enumerate(_mapping_items(payload)):
                 target_id = _first_text(item, "proposal", "proposal_id", "id")
                 relation_name = _first_text(item, "relationship", "relation", "type") or "related"
-                relation_type = _RELATION_ALIASES.get(_slug(relation_name))
+                relation_slug = _slug(relation_name)
+                relation_policy = classify_relation_term(relation_name)
+                relation_type = relation_policy["relation_type"]
                 if relation_type is None:
+                    meanings = relation_policy["candidate_meanings"]
                     diagnostics.append(
                         _diagnostic(
-                            "DC-RELATION-UNSUPPORTED-TYPE",
-                            f"Unsupported relation type {relation_name!r}.",
+                            (
+                                "DC-RELATION-AMBIGUOUS-TYPE"
+                                if relation_slug in _AMBIGUOUS_RELATION_TERMS
+                                else "DC-RELATION-UNSUPPORTED-TYPE"
+                            ),
+                            (
+                                f"Ambiguous relation type {relation_name!r} requires explicit direction and semantics; "
+                                f"candidate meanings: {', '.join(meanings)}. Curate the source through impact preview/apply."
+                                if relation_slug in _AMBIGUOUS_RELATION_TERMS
+                                else f"Unsupported relation type {relation_name!r}."
+                            ),
                             source_path=document.path,
                             target_id=target_id,
                         )
@@ -624,9 +645,9 @@ class DecisionContextTopologyService:
                 proposals = list(_string_values(item.get("proposals")))
                 if not proposals:
                     for key in ("proposal", "other_proposal", "target", "rejected", "winner"):
-                        value = str(item.get(key) or "").strip()
-                        if value.startswith("PROP-") and value not in proposals:
-                            proposals.append(value)
+                        for value in _string_values(item.get(key)):
+                            if value.startswith("PROP-") and value not in proposals:
+                                proposals.append(value)
                 if document.owner_id.startswith("PROP-") and document.owner_id not in proposals:
                     proposals.insert(0, document.owner_id)
                 for left_index, left in enumerate(proposals):
@@ -643,21 +664,34 @@ class DecisionContextTopologyService:
                             item_evidence=source_evidence(document, f"yaml:/conflicts/{index}"),
                             known_nodes=known_nodes,
                         )
-                winner = str(item.get("winner") or "").strip()
-                rejected = str(item.get("rejected") or "").strip()
-                if winner and rejected:
-                    _append_relation(
-                        assertions,
-                        diagnostics,
-                        source_id=winner,
-                        source_type=NodeType.PROPOSAL,
-                        target_id=rejected,
-                        target_type=NodeType.PROPOSAL,
-                        relation_type=RelationType.SUPERSEDES,
-                        scope="conflict_resolution",
-                        item_evidence=source_evidence(document, f"yaml:/conflicts/{index}/winner"),
-                        known_nodes=known_nodes,
+                winners = _string_values(item.get("winner"))
+                rejected_values = _string_values(item.get("rejected"))
+                if len(winners) > 1:
+                    diagnostics.append(
+                        _diagnostic(
+                            "DC-CONFLICT-AMBIGUOUS-WINNER",
+                            "Conflict resolution contains multiple winners.",
+                            source_path=document.path,
+                            target_id=document.owner_id,
+                        )
                     )
+                if len(winners) == 1:
+                    for rejected_index, rejected in enumerate(rejected_values):
+                        _append_relation(
+                            assertions,
+                            diagnostics,
+                            source_id=winners[0],
+                            source_type=NodeType.PROPOSAL,
+                            target_id=rejected,
+                            target_type=NodeType.PROPOSAL,
+                            relation_type=RelationType.SUPERSEDES,
+                            scope="conflict_resolution",
+                            item_evidence=source_evidence(
+                                document,
+                                f"yaml:/conflicts/{index}/rejected/{rejected_index}",
+                            ),
+                            known_nodes=known_nodes,
+                        )
 
     @staticmethod
     def _normalize_choices(
@@ -689,7 +723,23 @@ class DecisionContextTopologyService:
                 else:
                     values.append((str(item).strip(), "related"))
             for index, (proposal_id, relation_name) in enumerate(values):
-                relation_type = _RELATION_ALIASES.get(_slug(relation_name), RelationType.REFERENCES)
+                relation_slug = _slug(relation_name)
+                relation_policy = classify_relation_term(relation_name)
+                relation_type = relation_policy["relation_type"]
+                if relation_type is None:
+                    diagnostics.append(
+                        _diagnostic(
+                            (
+                                "DC-RELATION-AMBIGUOUS-TYPE"
+                                if relation_slug in _AMBIGUOUS_RELATION_TERMS
+                                else "DC-RELATION-UNSUPPORTED-TYPE"
+                            ),
+                            f"Unsupported or ambiguous relation type {relation_name!r}.",
+                            source_path=document.path,
+                            target_id=proposal_id,
+                        )
+                    )
+                    continue
                 _append_relation(
                     assertions,
                     diagnostics,
@@ -800,6 +850,31 @@ class DecisionContextTopologyService:
 
 def relation_aliases() -> Mapping[str, RelationType]:
     return _RELATION_ALIASES
+
+
+def classify_relation_term(value: str) -> dict[str, object]:
+    term = _slug(value)
+    if term in _AMBIGUOUS_RELATION_TERMS:
+        return {
+            "term": term,
+            "category": "ambiguous",
+            "relation_type": None,
+            "candidate_meanings": _AMBIGUOUS_RELATION_MEANINGS[term],
+        }
+    relation_type = _RELATION_ALIASES.get(term)
+    if relation_type is None:
+        return {
+            "term": term,
+            "category": "invalid",
+            "relation_type": None,
+            "candidate_meanings": (),
+        }
+    return {
+        "term": term,
+        "category": "canonical" if term in _CANONICAL_RELATION_TERMS else "compatibility_alias",
+        "relation_type": relation_type,
+        "candidate_meanings": (relation_type.value,),
+    }
 
 
 def build_adjacency(

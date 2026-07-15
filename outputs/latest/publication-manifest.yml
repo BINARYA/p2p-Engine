@@ -3,31 +3,47 @@ pipeline: human_project_publication
 publication_role: canonical_human_publication
 governance_authority: derived
 source_of_truth: .p2p/
-updated_at: '2026-07-13T15:44:39+00:00'
+updated_at: '2026-07-15T20:52:24+00:00'
 source_state:
   fingerprint_version: 1
-  fingerprint_sha256: 645a05ca7c7b125041f5d733876b8b6ccd28bc90512e99fc8b9074c2e0000f3a
+  fingerprint_sha256: 8b3c645679a359a99b96108a90701d2146544e146a59d5cc24b22810269f5054
   inputs:
   - path: .p2p/project.yml
-    sha256: c190b8c819c46401564dc40e69d28d1e636e0127bceb797126561e786b0b2c08
+    sha256: 5622670e9f0a2878404d31e924a1f022e27ff835d908f70e6c57df0e627398f0
   - path: .p2p/project/assessment.yml
-    sha256: 336feaa51535272fbaadd2d391da4f2e7007f1c28dbd0a95e44f88430357df37
+    sha256: 40c36532e588dff064d58a5da6761f2fac680f346f901cf6a51debf5cfc6addd
   - path: .p2p/project/conflicts.yml
     sha256: 2182eae763b0d1d4e3a135a2995b4f3a4c97c30d1cc94cbd3856e40d26cffb29
   - path: .p2p/project/decisions-map.yml
-    sha256: d67247810b7f443eac76a7b1a9c6c27986738e689d31e88865b834173290537d
+    sha256: ff59537daa2ea2e5a2a9d88e9f8d9fd1377817f00b1580a31ec501d2521179ec
+  - path: .p2p/project/definition.yml
+    sha256: 8f5934ed64a72dbbdafc6a38a82b2a0eb06bfc56cc53ba8cbe0fb6b4c8e9185a
+  - path: .p2p/project/domain.yml
+    sha256: 82035c83719e51ac9493ff642b70241dc574437252928bad4a0dbb75b95c72d2
   - path: .p2p/project/interaction-style.yml
     sha256: f5853451a762aaa1b6c0a2fecb8d28c3b578edb29217871849348bc4c842eaef
   - path: .p2p/project/maturity-assessment.yml
-    sha256: df71b63630c8304c7e5c35d21e58907331f0b6f8206425c97e3fcef0e9c57227
+    sha256: 6775a6467a0fcab3f890e6f2833707bc2998642df65ec70ba215cf9d83dd5156
   - path: .p2p/project/next-actions-log.yml
-    sha256: d65e361792d774e56cc82ed9d9681d4445bab45ef9d9c2774273b002fd619409
+    sha256: bc8b7d4984c329adcdb30cf8e48755b2f0043ea346ddb0511d1209e4e54da2b8
   - path: .p2p/project/next-actions.yml
-    sha256: 5cbb816263a8571cfd345b8e4178bce123fada77f51892c0a1f1d4da7f82c8de
+    sha256: b0c47d0c48845fd23edd4dd72b12db1673d698b653a89ad20e53e5cfbd6158b7
+  - path: .p2p/project/permissions.yml
+    sha256: 781137a2a9d9519d154ead8d51871b62aba428b53f6d24ab0f80f95d105f2743
+  - path: .p2p/project/projection-manifest.yml
+    sha256: 9bdd1b565bb2824b9370bb677477033888b1f8afbc449e27d82af832dd609883
   - path: .p2p/project/rubrics.yml
-    sha256: 88278a603498ccf80ae467f24a5033ab77e4806232376d9bf4ba0f5239f43a93
+    sha256: 8f1cffa8242f2c4b74578d947ad293572829a864c137dc50160c4fee668c2b9d
   - path: .p2p/project/runtime.yml
-    sha256: ae40e438a55ef7d3683d8d7e842952db1abe8c450f6795a5dcd0fdf1bde97272
+    sha256: a4ebb02c13f5a5ef144a9d52a8343bf6ffd1626ebb9cd89802344620ff53ab21
+  - path: .p2p/project/vertical.lock.yml
+    sha256: 43fc512619ee107ab5a50b7cf5b731ef8cf6643eb69cff6793be1c0c27d17e4e
+  - path: .p2p/project/vertical.yml
+    sha256: 315d38c77451bec877016865d52253797f6a3e71e832a61fde756bda54751cf6
+  - path: .p2p/project/workspace-schema.yml
+    sha256: 891b245cfecb3b4d6a3a5555d254cbad69386fbe4e9c8329a57c0c0e3e7ff351
+  - path: .p2p/proposals/PROP-001-cli-foundation/artifact-state.yml
+    sha256: 901be694b2123152ec72c8b588eba3f7d866a5d2a5fa9a2a1a856e4c70f1971e
   - path: .p2p/proposals/PROP-001-cli-foundation/decision.md
     sha256: de34b6ca43a42aaa4c5f7e6d615b798affd77d4552b6c753926c00aa5219e082
   - path: .p2p/proposals/PROP-001-cli-foundation/proposal.md
@@ -76,6 +92,8 @@ source_state:
     sha256: d354b2fd8615b0c04292fb55a0373d04dc4eedc4d06d517edbc45b6f8ea97aa8
   - path: .p2p/proposals/PROP-006-multi-agent-integration-model/alternatives.md
     sha256: 4af30e3a4e0f1feb6c193cb5fbb1836a57e59b570c5001dba17098aed1d4510f
+  - path: .p2p/proposals/PROP-006-multi-agent-integration-model/artifact-state.yml
+    sha256: e3c8ed630453ce877296fd00f43186028354a1e0d47e758a17fe36b6dde30b95
   - path: .p2p/proposals/PROP-006-multi-agent-integration-model/assumptions.md
     sha256: 0dd6c11746810bb8c30e939b639b4714a31dfa450f00c90040ac6fcbd931c2b5
   - path: .p2p/proposals/PROP-006-multi-agent-integration-model/decision.md
@@ -588,6 +606,8 @@ source_state:
     sha256: 5cf772283b3f354b214b7d0bdaf8b2f1ab9bdde9f4460086f4a667ef8cf1c1da
   - path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/alternatives.md
     sha256: ecdb3e00015ed9323a8eed9b03a98453e8bbea565fe8c2b3bbec8144e0d03d22
+  - path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/artifact-state.yml
+    sha256: 14043db615f9c757cf998e7635d864422d01c93cedcc1678e7f4fcec04fc4d5f
   - path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/assumptions.md
     sha256: ef03c2b592e8f49de5e2e9e660a85b6e5db2db656ac564298db893edc50740c3
   - path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/decision.md
@@ -742,6 +762,8 @@ source_state:
     sha256: 7e8825612fde63208b74651e19b4f2737581471203313daf7b0ac79c37fbfd1c
   - path: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/alternatives.md
     sha256: a96fef8f409b52975ac2ae3a6789dc3e3534cf3f77fa73df9f2b4c78d2e4801c
+  - path: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/artifact-state.yml
+    sha256: da248593a8c4e0fe447f33d6466b95da2f13b508c601ea095607ece96b0ca58d
   - path: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/assumptions.md
     sha256: ee23e7ecdd8b366ee4f0ccd4726bcf48e5083d3edc9f73296c43e2b9eaaeb762
   - path: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/decision.md
@@ -1148,8 +1170,30 @@ source_state:
     sha256: 408b3d96d5685beb44d2a90bceaf90b91620ab10c7d7828adbda1023bd0798c7
   - path: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/risks.md
     sha256: 90d2edd735159d560695e7432f3ba9ff75a14e9db7a088225d640acaf5e5af99
+  - path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/alternatives.md
+    sha256: cdfec6ebe9a96800b3543f62034550cb84e27d232f347c75e790b4d4990de909
+  - path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/artifact-state.yml
+    sha256: 7e79386cfefb6070f11a54e2bf050ca1947a82503e9144ae8f15b461f4cac4fd
+  - path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/assumptions.md
+    sha256: 61003dadaeb2502075f7f5b7aaecdeade7d2d647bacb8763077a86a5ace5c3c6
+  - path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/decision.md
+    sha256: a67bc04ba44173145e44bb600229245312914ab6030a6c0774c7a867741a9069
+  - path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/findings.md
+    sha256: 825ce8c2c6028302c3a45674eed9f903aad7442f442992ac69b49eb13a174bd1
+  - path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/impact-map.yml
+    sha256: 7125ab012199ff2c8722bf3e789773ba7da1fb4298797700741a4959d60e25c9
+  - path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/open-questions.md
+    sha256: b3e855bd0ce328a8c5f7e02791feecbc6e1bbad4fa2c7da1b6f1746812a48cfc
+  - path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/proposal.md
+    sha256: 500adb4cf5b627dcb6f8aaa2ddb65e3e5481680350924e28c41e244657f29277
+  - path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/readiness.yml
+    sha256: c42d7061266efdb43800284f4352adf0d33eb85b80b17e219f431a14e2b31964
+  - path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/risks.md
+    sha256: b7062f343197bc24567ee873ba1cc76578557323fbfb32c162b14e98fe72fc9d
   - path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/alternatives.md
     sha256: 797d8f98ed088df96542a9b878b28e0c1f00ce7a44d2ca296bff2b3c158ad678
+  - path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/artifact-state.yml
+    sha256: 7e3a62ed9dc5bacfb6c40824f5ef45e2e448e465c6532759f6fd5d4ba3d58ab4
   - path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/assumptions.md
     sha256: e91ccee1148c5cb9f3d3936027d1ef4af674b5b401cc78d0da011123f3da0117
   - path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/decision.md
@@ -1245,7 +1289,7 @@ source_state:
   - path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/alternatives.md
     sha256: 0744d3e444a28067783061e2cc139ebe72de6e1085d0ac8355c4f4f1ba438e8d
   - path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/artifact-state.yml
-    sha256: 20621db67ed5dc91705f933823c9857d83b51836e657874740584197e6996333
+    sha256: 9eac980cbb9452ba26dbe66797a184b735285013212a29b1cec34ea3726dd74f
   - path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/assumptions.md
     sha256: e02187cfe799f6a3e0d05571f00b3e8740e367bab05d774a31b6aedae85e0eb2
   - path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/decision.md
@@ -1265,7 +1309,7 @@ source_state:
   - path: .p2p/proposals/PROP-091-governance-policy-convergence/alternatives.md
     sha256: 8a28d00de179455db3e44c9dbc8df44d0a93fb70147ff8bfc277c5a9723d69ac
   - path: .p2p/proposals/PROP-091-governance-policy-convergence/artifact-state.yml
-    sha256: de3b0cbcd7c328a931133c128fd4ee9c13de600a608cfedc800a86ccc7b1ffe0
+    sha256: 1dda1eb6fb05d48e137a75df8f2896193e6cf132b2f7dc419d4ff9243ee69bf6
   - path: .p2p/proposals/PROP-091-governance-policy-convergence/assumptions.md
     sha256: 0b5e5b57061f1b66e17f15de77012e6737b91aa8553db083c6304fb04672c402
   - path: .p2p/proposals/PROP-091-governance-policy-convergence/decision.md
@@ -1325,7 +1369,7 @@ source_state:
   - path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/alternatives.md
     sha256: a41f4e7e261bc338c233b0f3f0f8fad84dbaebde03540312f0b0f4b6d8587e40
   - path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/artifact-state.yml
-    sha256: b26bf7105dfc76f56dc96c6b0587ab855206040755c6b7aeb43907d53df83c1d
+    sha256: 06866f983f2550875c9e62b8b8c7ed3456260ee6990774a6545b57c29dfb87f5
   - path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/assumptions.md
     sha256: 6a6be5c1247162794c6a47a33c7aaf70ab67c57e9d50fc685864dd729c68f02f
   - path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/decision.md
@@ -1345,7 +1389,7 @@ source_state:
   - path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/alternatives.md
     sha256: 63a26f798fed78cf9f4d690bd1b52e2e2a21befedbcfc34432eb16760bfd67c3
   - path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/artifact-state.yml
-    sha256: c63a34f020b33798aa5266b72f545c38b73d66bbcd94528a63206974ea8affa2
+    sha256: 2b04744a65b8b36a3adc6c0a72ffe0ddb8265b02642159d90301dad6b4ee6f95
   - path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/assumptions.md
     sha256: c492eda9b04d01719a0e9f9972714103bfac1a93deb4a0e9c03c31bec6fcd794
   - path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/decision.md
@@ -1405,7 +1449,7 @@ source_state:
   - path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/alternatives.md
     sha256: 7402f6b4a41beace6137a414f4a76e10588a2194ad091d9124a7e5855d8d1f03
   - path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/artifact-state.yml
-    sha256: def86b3510bfe9f2667a8f1a54ed09b55bf864ce049efd81102eef77340df857
+    sha256: ddf79244aace66556e611ecc3479ef01b832feb165f0eadf79836dd96e2701fa
   - path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/assumptions.md
     sha256: 5d43c71d59f46bb7695e9951f8c02c533fe81144159d2490973fcb57bd2cc43c
   - path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/decision.md
@@ -1422,52 +1466,72 @@ source_state:
     sha256: 416070567946c4a22591d053bfdcd5facc706c42fc87150ce49282be4922f21e
   - path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/risks.md
     sha256: b1b65aaae1fc8b00c4c743d6800c4934e7a3da53710ede9e0c3f1830fca1e307
+  - path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/alternatives.md
+    sha256: 318442a1b723a8ed6f2b3c533e1f961c755e926d8636bb7fb588a2cdd9e96ca6
+  - path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/artifact-state.yml
+    sha256: eae498009a0f8a735fc64093e6f89f0cb898e932ddb777097258811340f746ce
+  - path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/assumptions.md
+    sha256: d59775478ce07059060a780d75c137da77aff6cf68e5cb664688f4b8a372d221
+  - path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/decision.md
+    sha256: 1d25cd82d2124ee1a4b13408feafe5aa57e0d45e125f3315c8c1a7f3af935eaa
+  - path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/findings.md
+    sha256: c3ecb535f52c87521e13f0600af8a57ee037b394e94f74e9c5caf8123096df12
+  - path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/impact-map.yml
+    sha256: 9d75be2b1af5decca3e2b37759c7c2a462f36bb0b844fa4ab7472b039a3c58d0
+  - path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/open-questions.md
+    sha256: 99442da8fe191cd7a4d10ce1500add8ff595f5a0e57831ac6742d655829fbe65
+  - path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/proposal.md
+    sha256: 557c708739e4d5aea998c336ac00f98fe67744baa73811131b68d3af53bc823e
+  - path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/readiness.yml
+    sha256: 2c0ff47652e17d4e7d3abb86128dd689a5bb822baab6cb67c6e680ef6bb5ce22
+  - path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/risks.md
+    sha256: eacd7751cd8eb9a4ed8731d080fa250cbbff5a5db176014250ca189b0c1b31dc
   - path: .p2p/registries/artifacts.yml
-    sha256: d5ad5513a474e8c0ddbf7407bfb79aed980b522bad5d83eb4db400579ce4bb7a
+    sha256: 9756847e02505d3813c588e7f35fcf24098743cfe755aaab0839e4d0351d0929
   - path: .p2p/registries/decisions.yml
-    sha256: 8d71da485371b5149d27117e6947ec933683b51db62f04f72e1ed54dfc2a04a4
+    sha256: 02d93b6708b0f15c11d97d1ea2c2dd81ea69f2bd94256d804bfe05338f68e616
   - path: .p2p/registries/proposals.yml
-    sha256: 05309d5d2eb914172852afeebf1d770e81980d9e1f6bf3b565bc7572c6ce4ca6
+    sha256: 2fcebf68ea8ceff15310f147c444ae8f19ff8c233e41654fbaf207f26caf3b01
   - path: .p2p/registries/readiness.yml
-    sha256: 09b5af1921adb6192448a7e8afdc95d35e2ff3b3634fcd150fb9e0ebe294cb22
+    sha256: 9df1ee21dd7cce52f26e4d77429d3cbb93b77dab283fb63911f0fa0d297f37cd
 stages:
   source_export:
     path: outputs/latest/project.md
-    source_fingerprint_sha256: 645a05ca7c7b125041f5d733876b8b6ccd28bc90512e99fc8b9074c2e0000f3a
-    sha256: 72b2be19fcb5d51a23ac326ab3a7f4f98645421c6c8d192c7e6742c2adbd1622
+    source_fingerprint_sha256: 8b3c645679a359a99b96108a90701d2146544e146a59d5cc24b22810269f5054
+    sha256: 671c6355d8863fc0e05afd264d941b89aa470d281e189523ceca7f2c0536027e
   profile:
     path: outputs/latest/publication-profile.yml
     profile_id: neutral-v1-standard
     sha256: c47e93a77090506689c9cc3bc78bf524245e5c01a828fcf764a1ee5170336e78
   curator_packet:
     path: outputs/latest/curator-input.md
-    source_fingerprint_sha256: 645a05ca7c7b125041f5d733876b8b6ccd28bc90512e99fc8b9074c2e0000f3a
-    source_sha256: 72b2be19fcb5d51a23ac326ab3a7f4f98645421c6c8d192c7e6742c2adbd1622
+    source_fingerprint_sha256: 8b3c645679a359a99b96108a90701d2146544e146a59d5cc24b22810269f5054
+    source_sha256: 671c6355d8863fc0e05afd264d941b89aa470d281e189523ceca7f2c0536027e
     profile_sha256: c47e93a77090506689c9cc3bc78bf524245e5c01a828fcf764a1ee5170336e78
-    sha256: 8da60dde11ac2659948545e098ae6ceebff89afedac8914e5fa06ab1c72ed74f
+    sha256: 22958b00f018306d1a3c56b393d216a8043fae14d13c2ea6971562f3f7559e43
   curated:
     path: outputs/latest/project.curated.md
-    imported_from: outputs/latest/exports/project-curator-import.md
-    imported_at: '2026-07-13T15:44:30+00:00'
-    source_fingerprint_sha256: 645a05ca7c7b125041f5d733876b8b6ccd28bc90512e99fc8b9074c2e0000f3a
-    source_sha256: 72b2be19fcb5d51a23ac326ab3a7f4f98645421c6c8d192c7e6742c2adbd1622
+    imported_from: drafts/p2p-m5-project.curated.md
+    imported_at: '2026-07-15T20:52:21+00:00'
+    source_fingerprint_sha256: 8b3c645679a359a99b96108a90701d2146544e146a59d5cc24b22810269f5054
+    source_sha256: 671c6355d8863fc0e05afd264d941b89aa470d281e189523ceca7f2c0536027e
     profile_sha256: c47e93a77090506689c9cc3bc78bf524245e5c01a828fcf764a1ee5170336e78
-    curator_packet_sha256: 8da60dde11ac2659948545e098ae6ceebff89afedac8914e5fa06ab1c72ed74f
-    sha256: 4b259eee82844f32a9807800f8a957db8189309f7349af9333a725be6c941cad
+    curator_packet_sha256: 22958b00f018306d1a3c56b393d216a8043fae14d13c2ea6971562f3f7559e43
+    sha256: 6bb66ec8828c8e3f32f0470f3f8a1cf2b85f13811c4013c254b9d51c06569914
   validation:
     path: outputs/latest/publication-validation.yml
-    curated_sha256: 4b259eee82844f32a9807800f8a957db8189309f7349af9333a725be6c941cad
+    curated_sha256: 6bb66ec8828c8e3f32f0470f3f8a1cf2b85f13811c4013c254b9d51c06569914
     profile_sha256: c47e93a77090506689c9cc3bc78bf524245e5c01a828fcf764a1ee5170336e78
     validator_version: publication-validator-v1
-    validated_at: '2026-07-13'
+    validated_at: '2026-07-15'
     status: passed
-    sha256: 4ecd5fc885221db2a49a566f19f08de169258824469edfc87ebef2eba8413b5e
+    sha256: 0ef3f4b34da892d9dcf6137e705743f4e1dd9c9961a682936a83e444b0fad3c8
   render:
     path: outputs/latest/project.pdf
-    curated_sha256: 4b259eee82844f32a9807800f8a957db8189309f7349af9333a725be6c941cad
-    validation_sha256: 4ecd5fc885221db2a49a566f19f08de169258824469edfc87ebef2eba8413b5e
+    curated_sha256: 6bb66ec8828c8e3f32f0470f3f8a1cf2b85f13811c4013c254b9d51c06569914
+    validation_sha256: 0ef3f4b34da892d9dcf6137e705743f4e1dd9c9961a682936a83e444b0fad3c8
     theme: neutral-v1
     renderer: weasyprint-neutral-v1
-    rendered_at: '2026-07-13T15:44:39+00:00'
+    rendered_at: '2026-07-15T20:52:24+00:00'
     status: rendered
-    sha256: 2036bc825989d1b7da69eb286a9cfdd633721bceb4bb4f4edda688699229c3bc
+    sha256: 556119d5482a286bedb4536d6abe3846c21baa2191b1eccd324739c97aeb4fa5

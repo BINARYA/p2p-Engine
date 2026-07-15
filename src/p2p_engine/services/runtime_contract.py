@@ -69,13 +69,16 @@ from p2p_engine.core.runtime_contract import (
     RuntimeStatus,
     RuntimeWritePreflight,
 )
+from p2p_engine.core.mutation_preview import semantic_sha256, source_precondition
 from p2p_engine.foundation.files import (
     identity_slug,
     read_yaml_mapping,
     relative_to_root,
     write_text_atomic,
     write_yaml_atomic,
+    yaml_dump,
 )
+from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 
 RUNTIME_CONTRACT_SCHEMA_VERSION = 1
 RUNTIME_CONTRACT_REQUIRED_MARKER = {"runtime_contract": {"required": True}}
@@ -112,10 +115,16 @@ class RuntimeContractService:
         root: Path,
         p2p_dir: Path,
         current_version: str = P2P_ENGINE_VERSION,
+        atomic_writer: AtomicMutationWriter | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
         self.current_version = current_version
+        self.atomic_writer = atomic_writer or AtomicMutationWriter(
+            root=root,
+            p2p_dir=p2p_dir,
+            allowed_repository_targets=("P2P-SETUP.md",),
+        )
 
     @property
     def project_manifest_path(self) -> Path:
@@ -542,26 +551,41 @@ class RuntimeContractService:
                 recommended=preview.proposed_recommended or "",
             ),
         )
-        files_changed: list[str] = []
         setup_action = str(preview.setup_guide.get("planned_action") or RUNTIME_SETUP_GUIDE_ACTION_NONE)
-        try:
-            if setup_action in {RUNTIME_SETUP_GUIDE_ACTION_GENERATE, RUNTIME_SETUP_GUIDE_ACTION_REGENERATE}:
-                write_text_atomic(self.setup_guide_path, self.render_setup_guide(proposed_contract))
-                files_changed.append(str(relative_to_root(self.setup_guide_path, self.root)))
-            write_yaml_atomic(
-                self.contract_path,
-                self._contract_payload(preview.proposed_requires or "", preview.proposed_recommended or ""),
-            )
-            files_changed.append(str(relative_to_root(self.contract_path, self.root)))
-        except OSError as exc:
+        candidates = {
+            str(relative_to_root(self.contract_path, self.root)): yaml_dump(
+                self._contract_payload(
+                    preview.proposed_requires or "",
+                    preview.proposed_recommended or "",
+                )
+            ).encode("utf-8"),
+        }
+        if setup_action in {RUNTIME_SETUP_GUIDE_ACTION_GENERATE, RUNTIME_SETUP_GUIDE_ACTION_REGENERATE}:
+            candidates[str(relative_to_root(self.setup_guide_path, self.root))] = self.render_setup_guide(
+                proposed_contract
+            ).encode("utf-8")
+        result = self.atomic_writer.apply(
+            operation_id="runtime-contract-update",
+            candidates=candidates,
+            sources=tuple(
+                source_precondition(
+                    target,
+                    (self.root / target).read_bytes() if (self.root / target).exists() else None,
+                )
+                for target in sorted(candidates)
+            ),
+            preview_token=preview.expected_state_token or "",
+            actor=actor,
+        )
+        if result.status != "applied":
             return RuntimeContractUpdateResult(
                 status=RUNTIME_CONTRACT_UPDATE_STATUS_PARTIAL_FAILURE,
                 current_state=preview.current_state,
                 proposed_requires=preview.proposed_requires,
                 proposed_recommended=preview.proposed_recommended,
-                files_changed=files_changed,
+                files_changed=[],
                 blocked_reason=RUNTIME_CONTRACT_UPDATE_STATUS_PARTIAL_FAILURE,
-                message=f"Runtime contract update write failed: {exc}",
+                message=f"Runtime contract update did not commit: {result.message}",
                 impact_labels=preview.impact_labels,
                 setup_guide=preview.setup_guide,
                 authority=preview.authority,
@@ -575,7 +599,7 @@ class RuntimeContractService:
             current_state=preview.current_state,
             proposed_requires=preview.proposed_requires,
             proposed_recommended=preview.proposed_recommended,
-            files_changed=files_changed,
+            files_changed=list(preview.files_changed),
             message="Runtime contract updated.",
             impact_labels=preview.impact_labels,
             setup_guide=preview.setup_guide,
@@ -655,39 +679,74 @@ class RuntimeContractService:
                 active_runtime_compatible_after_adoption=active_satisfies,
             )
 
-        files_changed: list[str] = []
         proposed_contract = RuntimeContract(
             schema_version=RUNTIME_CONTRACT_SCHEMA_VERSION,
             p2p=P2PRuntimeRequirement(requires=proposal.requires, recommended=proposal.recommended),
         )
-        try:
-            write_yaml_atomic(self.contract_path, self._contract_payload(proposal.requires, proposal.recommended))
-            files_changed.append(str(relative_to_root(self.contract_path, self.root)))
-            if setup_guide["planned_action"] in {RUNTIME_SETUP_GUIDE_ACTION_GENERATE, RUNTIME_SETUP_GUIDE_ACTION_REGENERATE}:
-                write_text_atomic(self.setup_guide_path, self.render_setup_guide(proposed_contract))
-                files_changed.append(str(relative_to_root(self.setup_guide_path, self.root)))
-            self._write_required_contract_marker()
-            files_changed.append(str(relative_to_root(self.project_manifest_path, self.root)))
-        except OSError as exc:
+        project_payload = read_yaml_mapping(self.project_manifest_path, default={})
+        project_payload["runtime_contract"] = {"required": True}
+        candidates = {
+            str(relative_to_root(self.contract_path, self.root)): yaml_dump(
+                self._contract_payload(proposal.requires, proposal.recommended)
+            ).encode("utf-8"),
+            str(relative_to_root(self.project_manifest_path, self.root)): yaml_dump(
+                project_payload
+            ).encode("utf-8"),
+        }
+        if setup_guide["planned_action"] in {
+            RUNTIME_SETUP_GUIDE_ACTION_GENERATE,
+            RUNTIME_SETUP_GUIDE_ACTION_REGENERATE,
+        }:
+            candidates[str(relative_to_root(self.setup_guide_path, self.root))] = self.render_setup_guide(
+                proposed_contract
+            ).encode("utf-8")
+        adoption_token = semantic_sha256(
+            {
+                "operation": "runtime-contract-adopt",
+                "actor": actor,
+                "candidates": {
+                    target: hashlib.sha256(content).hexdigest()
+                    for target, content in sorted(candidates.items())
+                },
+            }
+        )
+        result = self.atomic_writer.apply(
+            operation_id="runtime-contract-adopt",
+            candidates=candidates,
+            sources=tuple(
+                source_precondition(
+                    target,
+                    (self.root / target).read_bytes() if (self.root / target).exists() else None,
+                )
+                for target in sorted(candidates)
+            ),
+            preview_token=adoption_token,
+            actor=actor,
+        )
+        if result.status != "applied":
             return RuntimeContractAdoptionResult(
                 status=RUNTIME_CONTRACT_ADOPTION_STATUS_PARTIAL_FAILURE,
                 current_state=status.state,
                 proposed_requires=proposal.requires,
                 proposed_recommended=proposal.recommended,
-                files_changed=files_changed,
+                files_changed=[],
                 blocked_reason=RUNTIME_CONTRACT_ADOPTION_STATUS_PARTIAL_FAILURE,
-                message=f"Runtime contract adoption write failed: {exc}",
+                message=f"Runtime contract adoption did not commit: {result.message}",
                 setup_guide=setup_guide,
                 authority=authority,
                 active_runtime_compatible_after_adoption=active_satisfies,
             )
 
+        changed_order = [str(relative_to_root(self.contract_path, self.root))]
+        if str(relative_to_root(self.setup_guide_path, self.root)) in candidates:
+            changed_order.append(str(relative_to_root(self.setup_guide_path, self.root)))
+        changed_order.append(str(relative_to_root(self.project_manifest_path, self.root)))
         return RuntimeContractAdoptionResult(
             status=RUNTIME_CONTRACT_ADOPTION_STATUS_ADOPTED,
             current_state=status.state,
             proposed_requires=proposal.requires,
             proposed_recommended=proposal.recommended,
-            files_changed=files_changed,
+            files_changed=changed_order,
             message="Runtime contract adopted.",
             setup_guide=setup_guide,
             authority=authority,

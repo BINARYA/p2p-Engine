@@ -1,7 +1,7 @@
-generated_on: '2026-06-03'
+generated_on: '2026-07-15'
 assessment_type: deterministic_readiness
 completion:
-  score: 80
+  score: 84
   status: needs_review
   confidence: high
 maturity:
@@ -25,12 +25,12 @@ factors:
   reason: Fresh registries are required for reliable assessment.
 - id: draft_proposals
   label: Draft proposals
-  value: 7
-  impact: -20
+  value: 2
+  impact: -8
   reason: Draft proposals still need owner review or refinement.
 - id: accepted_proposals
   label: Accepted proposals
-  value: 68
+  value: 95
   impact: 0
   reason: Accepted proposals define committed project direction.
 - id: open_choices
@@ -40,8 +40,8 @@ factors:
   reason: Open choices represent unresolved alternatives.
 - id: active_changes
   label: Active Change Sets
-  value: 0
-  impact: 0
+  value: 1
+  impact: -8
   reason: Active Change Sets still need lifecycle progress.
 - id: blocked_changes
   label: Blocked Change Sets
@@ -60,8 +60,14 @@ factors:
   reason: An operational brief helps agents and owners understand current state.
 gaps:
 - Review draft proposals before treating project direction as settled.
+- Continue or complete active Change Sets.
 suggested_actions:
-- p2p-mcp-server --root /path/to/project
-- follow docs/INSTALL.md and docs/MCP.md to configure a real MCP client
-- review current diff and prepare commit for the completed proposal/MCP collaboration
-  tranche
+- p2p assess refresh
+- .venv/bin/p2p proposal list --status draft
+- p2p change tasks CHANGE-068
+basis:
+  completion: legacy_deterministic_readiness
+  maturity: heuristic_keyword_rubric
+  authoritative_project_definition: false
+freshness:
+  status: not_assessed

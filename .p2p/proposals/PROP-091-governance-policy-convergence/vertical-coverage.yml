@@ -1,0 +1,66 @@
+vertical_coverage:
+  schema_version: 2
+  proposal_id: PROP-091
+  vertical_id: software_project
+  sections:
+  - id: users_and_actors
+    relevance: direct
+    rationale: Defines owner, agent, contributor, tool, and external-provider authority
+      boundaries and identifies actions reserved to the owner.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - decision.md
+  - id: workflows_use_cases
+    relevance: direct
+    rationale: Defines routing for analysis, proposal authoring, specification work,
+      implementation, imports, exports, and external side effects through supported
+      surfaces.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - execution-plan.md
+  - id: data_model
+    relevance: direct
+    rationale: Defines persistent-write classes, artifact placement and canonicality
+      states, authority categories, and governance operation metadata.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+  - id: constraints_nfrs
+    relevance: direct
+    rationale: Requires source-of-truth boundaries, supported write primitives, previews
+      for durable effects, explicit consent, and prohibition of manual governed-state
+      workarounds.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - decision.md
+  - id: decisions
+    relevance: direct
+    rationale: Defines which governance choices remain owner-controlled and how agents
+      may prepare but not take those decisions.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - decision.md
+  - id: risks_alternatives_decisions
+    relevance: direct
+    rationale: Resolves governance-policy alternatives and tradeoffs between agent
+      autonomy, durable writes, owner authority, and external effects.
+    source: owner_review
+    provenance:
+      evidence:
+      - proposal.md
+      - suggested-scope.md
+  provenance:
+    operation_id: proposal-vertical-coverage:PROP-091
+    actor: mrjungle
+    authority: owner_confirmed
+    source: owner_review
+    imported_at: '2026-07-15T15:53:57Z'

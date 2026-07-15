@@ -1,6 +1,6 @@
 related_proposals:
   - proposal: PROP-083
-    relationship: informed_by
+    relationship: derived_from
     reason: PROP-083 refinement exposed that agents must push harder through missing readiness artifacts and that readiness recalculation remains too conservative.
   - proposal: PROP-054
     relationship: related

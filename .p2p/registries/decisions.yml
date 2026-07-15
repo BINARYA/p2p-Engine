@@ -758,7 +758,19 @@ decisions:
     direction for readable, vertical-aware project outputs.
 - proposal: PROP-100
   title: Project Decision Context Index and Proposal Neighborhood
-  outcome: pending
-  status: draft
+  outcome: accepted
+  status: accepted
   path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/decision.md
-  reason: ''
+  reason: Accepted as the umbrella architecture direction for a derived, read-only
+    and source-linked decision context index delivered through independently gated
+    slices. Governed artifacts remain authoritative; public integration requires the
+    defined performance and compatibility gates, and any persistent cache remains
+    a separate measured feature.
+- proposal: PROP-101
+  title: Project Readiness Convergence Workflow
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/decision.md
+  reason: The refined proposal addresses the identified readiness-convergence, schema
+    migration, atomicity, authority, retry, vertical reconciliation, decision-context
+    and bounded-retrieval risks with explicit delivery gates and acceptance criteria.

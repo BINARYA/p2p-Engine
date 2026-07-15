@@ -14,6 +14,17 @@ from p2p_engine.foundation.markdown import read_frontmatter, read_markdown_secti
 from p2p_engine.foundation.validators import validate_yaml_key
 
 
+SOFTWARE_SPEC_REQUIRED_FILES = (
+    "index.md",
+    "requirements.md",
+    "design.md",
+    "commands.yml",
+    "data-model.yml",
+    "acceptance.md",
+    "provenance.yml",
+)
+
+
 @dataclass(frozen=True)
 class SoftwareSpecStatus:
     change_id: str
@@ -58,15 +69,7 @@ class SoftwareSpecService:
         self.find_proposal_dir = find_proposal_dir
 
     def required_files(self) -> tuple[str, ...]:
-        return (
-            "index.md",
-            "requirements.md",
-            "design.md",
-            "commands.yml",
-            "data-model.yml",
-            "acceptance.md",
-            "provenance.yml",
-        )
+        return SOFTWARE_SPEC_REQUIRED_FILES
 
     def refresh(self, change_id: str) -> SoftwareSpecStatus:
         change_dir = self.find_change_dir(change_id)

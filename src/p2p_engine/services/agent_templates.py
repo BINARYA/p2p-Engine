@@ -263,6 +263,9 @@ RUNTIME_CONTRACT_GUIDANCE_BLOCK = """Project runtime compatibility is declared b
 Use:
 - `p2p runtime status`
 - `p2p runtime status --format json`
+- `p2p workspace schema status`
+- `p2p workspace migrate plan --to <version>`
+- `p2p workspace migrate recovery status`
 - `p2p validate`
 
 Behavior:
@@ -270,10 +273,13 @@ Behavior:
 2. use `P2P-SETUP.md` as human-facing setup guidance only when present;
 3. treat `recommended` as the exact version a fresh collaborator should install;
 4. treat `requires` as the compatible runtime range for operating the project;
-5. do not infer compatibility for `legacy_undeclared` projects;
-6. report `missing_contract`, `invalid_contract`, `unsupported_contract`, or `incompatible` before governed writes;
-7. ask the owner for explicit environment action before installing, upgrading, downgrading, or replacing P2P Engine;
-8. never edit `.p2p/project/runtime.yml` by hand as a repair shortcut."""
+5. inspect workspace schema separately from runtime compatibility;
+6. use the no-write migration plan and require reviewed owner inputs before apply;
+7. inspect and resolve interrupted migration recovery before unrelated governed writes;
+8. do not infer compatibility for `legacy_undeclared` projects;
+9. report `missing_contract`, `invalid_contract`, `unsupported_contract`, or `incompatible` before governed writes;
+10. ask the owner for explicit environment action before installing, upgrading, downgrading, or replacing P2P Engine;
+11. never edit runtime/schema state, migration locks, journals or candidates by hand as a repair shortcut."""
 
 
 WRITE_CLASS_ORDER = (
@@ -697,6 +703,11 @@ def agent_policy(
             "contract_path": ".p2p/project/runtime.yml",
             "setup_guide": "P2P-SETUP.md",
             "status_command": "p2p runtime status",
+            "workspace_schema_status_command": "p2p workspace schema status",
+            "workspace_migration_plan_command": "p2p workspace migrate plan --to <version>",
+            "workspace_recovery_status_command": "p2p workspace migrate recovery status",
+            "workspace_migration_apply_surface": "owner_confirmed_cli_only",
+            "manual_workspace_schema_repair": "forbidden",
             "legacy_undeclared": "warn_do_not_infer",
             "environment_mutation": "owner_explicit_action_required",
             "discovery_order": [

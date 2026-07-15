@@ -154,6 +154,8 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_synthesize_import",
         "p2p_plan_import",
         "p2p_tasks_import",
+        "p2p_workspace_schema_status",
+        "p2p_workspace_migration_plan",
         "p2p_project_status",
         "p2p_project_interaction_style_show",
         "p2p_project_interaction_style_set",
