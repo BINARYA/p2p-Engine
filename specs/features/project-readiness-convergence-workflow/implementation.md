@@ -253,3 +253,14 @@ it; they are not its creation point.
   after the immutable failed tag cannot identify itself as `0.3.0`. No
   corrective tag, release, workspace migration or runtime-contract mutation is
   authorized by this candidate bump.
+- The local corrective build passes the release artifact verifier: 184-file
+  wheel `p2p_engine-0.3.1-py3-none-any.whl` with SHA-256
+  `1df4622ca90a649bd013142cb51bd7b348d3c5c58b889affcfc069056fc56832`
+  and 393-file sdist `p2p_engine-0.3.1.tar.gz` with SHA-256
+  `2ccac787678b679555cedc67c8a5f383d55440a4c6b8417009211d0db8ca9ace`.
+  These are local candidate artifacts, not substitutes for a future published
+  release.
+- Installing the local wheel into disposable
+  `/tmp/p2p-engine-0.3.1-smoke-2OgxJy/venv` under Python 3.14.4 resolves import
+  from isolated `site-packages`, reports `0.3.1` and loads both CLI and MCP
+  entry points without modifying the development `.venv`.
