@@ -3,19 +3,19 @@ pipeline: human_project_publication
 publication_role: canonical_human_publication
 governance_authority: derived
 source_of_truth: .p2p/
-updated_at: '2026-07-16T23:05:27+00:00'
+updated_at: '2026-07-15T20:52:24+00:00'
 source_state:
   fingerprint_version: 1
-  fingerprint_sha256: fd764a2d4611014e45d9fa1079e8e766f3f2c36591209eedd2a7a586d878176f
+  fingerprint_sha256: 8b3c645679a359a99b96108a90701d2146544e146a59d5cc24b22810269f5054
   inputs:
   - path: .p2p/project.yml
     sha256: 5622670e9f0a2878404d31e924a1f022e27ff835d908f70e6c57df0e627398f0
   - path: .p2p/project/assessment.yml
-    sha256: 629ff8c012e6ca922f5ad18e3cce3ab3370dfca9b5735e0e3a1050e508417eef
+    sha256: 40c36532e588dff064d58a5da6761f2fac680f346f901cf6a51debf5cfc6addd
   - path: .p2p/project/conflicts.yml
     sha256: 2182eae763b0d1d4e3a135a2995b4f3a4c97c30d1cc94cbd3856e40d26cffb29
   - path: .p2p/project/decisions-map.yml
-    sha256: ac6cd6880babeda3db171162983caa70fc247ce87fc3d93030513ddb6fb8a2c8
+    sha256: ff59537daa2ea2e5a2a9d88e9f8d9fd1377817f00b1580a31ec501d2521179ec
   - path: .p2p/project/definition.yml
     sha256: 8f5934ed64a72dbbdafc6a38a82b2a0eb06bfc56cc53ba8cbe0fb6b4c8e9185a
   - path: .p2p/project/domain.yml
@@ -23,7 +23,7 @@ source_state:
   - path: .p2p/project/interaction-style.yml
     sha256: f5853451a762aaa1b6c0a2fecb8d28c3b578edb29217871849348bc4c842eaef
   - path: .p2p/project/maturity-assessment.yml
-    sha256: c3bc14f00fada0f3ffa98311d8d32dd12679737f2f23551357f65d19d1936864
+    sha256: 6775a6467a0fcab3f890e6f2833707bc2998642df65ec70ba215cf9d83dd5156
   - path: .p2p/project/next-actions-log.yml
     sha256: bc8b7d4984c329adcdb30cf8e48755b2f0043ea346ddb0511d1209e4e54da2b8
   - path: .p2p/project/next-actions.yml
@@ -31,19 +31,17 @@ source_state:
   - path: .p2p/project/permissions.yml
     sha256: 781137a2a9d9519d154ead8d51871b62aba428b53f6d24ab0f80f95d105f2743
   - path: .p2p/project/projection-manifest.yml
-    sha256: 2b13a26b7fc02915dde608400256d5b3c7459a2ac3e454d864b8bf22854e2733
-  - path: .p2p/project/questions.yml
-    sha256: 3bb5312ff0a1b63cc6557f5391ed5a269c1c8d27550546d238cf4295e077929a
+    sha256: 9bdd1b565bb2824b9370bb677477033888b1f8afbc449e27d82af832dd609883
   - path: .p2p/project/rubrics.yml
     sha256: 8f1cffa8242f2c4b74578d947ad293572829a864c137dc50160c4fee668c2b9d
   - path: .p2p/project/runtime.yml
-    sha256: d26e1efaf263fcde202df57fba9cf44513d2f4684d857b6f8b57b1be68f534a4
+    sha256: a4ebb02c13f5a5ef144a9d52a8343bf6ffd1626ebb9cd89802344620ff53ab21
   - path: .p2p/project/vertical.lock.yml
     sha256: 43fc512619ee107ab5a50b7cf5b731ef8cf6643eb69cff6793be1c0c27d17e4e
   - path: .p2p/project/vertical.yml
     sha256: 315d38c77451bec877016865d52253797f6a3e71e832a61fde756bda54751cf6
   - path: .p2p/project/workspace-schema.yml
-    sha256: 9c6372135269c27836ef80f3db7e2570aff06b363a37cebada58b606f0a76b0f
+    sha256: 891b245cfecb3b4d6a3a5555d254cbad69386fbe4e9c8329a57c0c0e3e7ff351
   - path: .p2p/proposals/PROP-001-cli-foundation/artifact-state.yml
     sha256: 901be694b2123152ec72c8b588eba3f7d866a5d2a5fa9a2a1a856e4c70f1971e
   - path: .p2p/proposals/PROP-001-cli-foundation/decision.md
@@ -1488,72 +1486,52 @@ source_state:
     sha256: 2c0ff47652e17d4e7d3abb86128dd689a5bb822baab6cb67c6e680ef6bb5ce22
   - path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/risks.md
     sha256: eacd7751cd8eb9a4ed8731d080fa250cbbff5a5db176014250ca189b0c1b31dc
-  - path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/alternatives.md
-    sha256: a2703c9b19e45c1ab952476edc4f966d6e7883e5a5038264d5238e4366e9afa6
-  - path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/artifact-state.yml
-    sha256: ad12f2ddd36dedffe1573745b6622d98b605ece125be581098481a9d1103c754
-  - path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/assumptions.md
-    sha256: 3870036da95e003169d52136eeff25adc6734573bf485675daf36def993f6af9
-  - path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/decision.md
-    sha256: 009efe53bfee830ee10774198b4f34a539df316d42f7295d6b327d4a96d4a58e
-  - path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/findings.md
-    sha256: 05a2d5450d61e56fa418282f22c707efbfc57d0177fc7d25babdb755ce6f76bd
-  - path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/impact-map.yml
-    sha256: b0585be27c83ee3f63f4830f41afd6c21d4ce4dd5187e97173bfde9a54c8b36d
-  - path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/open-questions.md
-    sha256: deeb8d6f9578480f4305e3f5abdbd990de8d1fd7b18f08f658eae88dbcd6a755
-  - path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
-    sha256: 571e497d3cd674f63f015addcf90aa66bf0356e310f666d3bdc218bf5759da0e
-  - path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/readiness.yml
-    sha256: fad01933f9b0c9117036c77961b4817dc5afa7a492b05ed7381719b62d436791
-  - path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/risks.md
-    sha256: e4ffe3eb4d4ceea7a9159af66d15f82006984847b50b38c0c3c7860f0cc6591d
   - path: .p2p/registries/artifacts.yml
-    sha256: 98c87c8f98fc6729859b9c1cb64f199d919eaa9573268ee085b82448429e1e5e
+    sha256: 9756847e02505d3813c588e7f35fcf24098743cfe755aaab0839e4d0351d0929
   - path: .p2p/registries/decisions.yml
-    sha256: 335b359c47dac252ae06beb6e69ba062ed9aee3f72dc6e1d9cbacf910d006ff4
+    sha256: 02d93b6708b0f15c11d97d1ea2c2dd81ea69f2bd94256d804bfe05338f68e616
   - path: .p2p/registries/proposals.yml
-    sha256: 1cad27e836d3bd92870b2cf9c8f4ecd330d68151b1faeea5dcfddbc2bb66ab51
+    sha256: 2fcebf68ea8ceff15310f147c444ae8f19ff8c233e41654fbaf207f26caf3b01
   - path: .p2p/registries/readiness.yml
-    sha256: 218e436df539caec6b99696aa3b1e5f8333495fcb19492e94d1b4102ca5275c8
+    sha256: 9df1ee21dd7cce52f26e4d77429d3cbb93b77dab283fb63911f0fa0d297f37cd
 stages:
   source_export:
     path: outputs/latest/project.md
-    source_fingerprint_sha256: fd764a2d4611014e45d9fa1079e8e766f3f2c36591209eedd2a7a586d878176f
-    sha256: cec40affb6b4a98b902f5a38c99b1c24e8d58b6cbd9a68a14956295ebd47fd9b
+    source_fingerprint_sha256: 8b3c645679a359a99b96108a90701d2146544e146a59d5cc24b22810269f5054
+    sha256: 671c6355d8863fc0e05afd264d941b89aa470d281e189523ceca7f2c0536027e
   profile:
     path: outputs/latest/publication-profile.yml
     profile_id: neutral-v1-standard
     sha256: c47e93a77090506689c9cc3bc78bf524245e5c01a828fcf764a1ee5170336e78
   curator_packet:
     path: outputs/latest/curator-input.md
-    source_fingerprint_sha256: fd764a2d4611014e45d9fa1079e8e766f3f2c36591209eedd2a7a586d878176f
-    source_sha256: cec40affb6b4a98b902f5a38c99b1c24e8d58b6cbd9a68a14956295ebd47fd9b
+    source_fingerprint_sha256: 8b3c645679a359a99b96108a90701d2146544e146a59d5cc24b22810269f5054
+    source_sha256: 671c6355d8863fc0e05afd264d941b89aa470d281e189523ceca7f2c0536027e
     profile_sha256: c47e93a77090506689c9cc3bc78bf524245e5c01a828fcf764a1ee5170336e78
-    sha256: 03b63342be8fde27bb23ddb98c588f224970b3149f3033378ddce6bb3bc1cd18
+    sha256: 22958b00f018306d1a3c56b393d216a8043fae14d13c2ea6971562f3f7559e43
   curated:
     path: outputs/latest/project.curated.md
-    imported_from: drafts/project.curated-v2-final.md
-    imported_at: '2026-07-16T23:05:08+00:00'
-    source_fingerprint_sha256: fd764a2d4611014e45d9fa1079e8e766f3f2c36591209eedd2a7a586d878176f
-    source_sha256: cec40affb6b4a98b902f5a38c99b1c24e8d58b6cbd9a68a14956295ebd47fd9b
+    imported_from: drafts/p2p-m5-project.curated.md
+    imported_at: '2026-07-15T20:52:21+00:00'
+    source_fingerprint_sha256: 8b3c645679a359a99b96108a90701d2146544e146a59d5cc24b22810269f5054
+    source_sha256: 671c6355d8863fc0e05afd264d941b89aa470d281e189523ceca7f2c0536027e
     profile_sha256: c47e93a77090506689c9cc3bc78bf524245e5c01a828fcf764a1ee5170336e78
-    curator_packet_sha256: 03b63342be8fde27bb23ddb98c588f224970b3149f3033378ddce6bb3bc1cd18
-    sha256: a1fe1698115be4072a0810126c304f25817ab8d96d397881b996af737c1793d5
+    curator_packet_sha256: 22958b00f018306d1a3c56b393d216a8043fae14d13c2ea6971562f3f7559e43
+    sha256: 6bb66ec8828c8e3f32f0470f3f8a1cf2b85f13811c4013c254b9d51c06569914
   validation:
     path: outputs/latest/publication-validation.yml
-    curated_sha256: a1fe1698115be4072a0810126c304f25817ab8d96d397881b996af737c1793d5
+    curated_sha256: 6bb66ec8828c8e3f32f0470f3f8a1cf2b85f13811c4013c254b9d51c06569914
     profile_sha256: c47e93a77090506689c9cc3bc78bf524245e5c01a828fcf764a1ee5170336e78
     validator_version: publication-validator-v1
-    validated_at: '2026-07-17'
+    validated_at: '2026-07-15'
     status: passed
-    sha256: 539e71706c9a7f8da279ad1fa5513595237506c7d3f2b155655f19c1f1667243
+    sha256: 0ef3f4b34da892d9dcf6137e705743f4e1dd9c9961a682936a83e444b0fad3c8
   render:
     path: outputs/latest/project.pdf
-    curated_sha256: a1fe1698115be4072a0810126c304f25817ab8d96d397881b996af737c1793d5
-    validation_sha256: 539e71706c9a7f8da279ad1fa5513595237506c7d3f2b155655f19c1f1667243
+    curated_sha256: 6bb66ec8828c8e3f32f0470f3f8a1cf2b85f13811c4013c254b9d51c06569914
+    validation_sha256: 0ef3f4b34da892d9dcf6137e705743f4e1dd9c9961a682936a83e444b0fad3c8
     theme: neutral-v1
     renderer: weasyprint-neutral-v1
-    rendered_at: '2026-07-16T23:05:27+00:00'
+    rendered_at: '2026-07-15T20:52:24+00:00'
     status: rendered
-    sha256: 398fd5dddcdf17c79e458fc6a01c28da0728c17c447c3188bc4cc05ccab1d3c0
+    sha256: 556119d5482a286bedb4536d6abe3846c21baa2191b1eccd324739c97aeb4fa5

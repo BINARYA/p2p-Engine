@@ -1,13 +1,19 @@
 workspace_schema:
   contract_version: 1
-  current_version: 1
-  baseline: migrated_legacy
-  initialized_at: 2026-07-15T12:59:43Z
+  current_version: 2
+  baseline: migrated_declared
+  initialized_at: 2026-07-15 12:59:43+00:00
   initialized_by: mrjungle
   applied_migrations:
   - id: workspace-legacy-to-v1
     from: legacy_undeclared
     to: 1
-    applied_at: 2026-07-15T12:59:43Z
+    applied_at: 2026-07-15 12:59:43+00:00
     actor: mrjungle
     plan_fingerprint_sha256: a4272623498d6b3597f2bb10e2613fd9cb2a48ef1b3e4a645472eeec0eda4bf4
+  - id: workspace-v1-to-v2
+    from: 1
+    to: 2
+    applied_at: 2026-07-16T22:13:47Z
+    actor: mrjungle
+    plan_fingerprint_sha256: ced57c2c45f15df4fe172e001cb6d65398517fc53d06e42501499db1470be40e

@@ -7,8 +7,9 @@
 - Governed software spec: `.p2p/outputs/software-spec/CHANGE-069`.
 - Local feature spec: `specs/features/project-readiness-convergence-workflow`.
 - Original owner-approved package version: `0.3.0`; its immutable tag failed
-  before artifact publication. Current corrective source candidate: `0.3.1`,
-  not approved or published as a release.
+  before artifact publication. Corrective release `0.3.1` is published from
+  commit `c587e24fcb024b3ca6453580f864a994c7cdfe0c` and is the deployed runtime
+  used for the repository migration.
 - Workspace support target: inspect and operate valid v1 where the operation is
   v1-safe; plan/apply v0->v1 and v1->v2; operate v2 fully; reject writes to a
   workspace ahead of the runtime.
@@ -39,10 +40,10 @@ it; they are not its creation point.
 | R-F6-001..014 | exact replay, concurrency, vertical reconciliation | S6-T001..017 | replay, two-process and vertical drift tests | complete: exact replay/mismatch, audit-clock metamorphism, one-commit concurrency, target/alias/module reconciliation |
 | R-F7-001..017 | next, progress, freshness and decision-context adapters | S7-T001..017 | focused consumer/source/topology/retrieval tests | complete: concrete actions, residual counts, explicit freshness impact and inactive question traceability without definition double-count |
 | R-F8-001..015 | CLI, bounded JSON/text, MCP reads, diagnostics | S8-T001..020 | CLI, MCP catalog/handler/registry and help/docs tests | complete: CLI writes, bounded read parity, safe answer files, stable diagnostics and explicit MCP write absence |
-| R-F9-001..034 | release, environment provenance, restart-safe repository migration and artifact alignment | G, D1, M1, A1, F | build/smoke/published-artifact/pilot/process/alignment/full validation evidence | G complete; v0.3.0 failed before build/publication; corrective source validated locally; release decision and M1/A1 remain gated |
-| N001..N020 | module boundaries, compatibility, atomicity, determinism, scale | P, S1..S8, G | architecture review plus focused/public/full suites | release-candidate gate complete: public 252; full 943; repository validation clean except expected upgrade info |
-| E001..E036 | malformed, stale, concurrent, release, migration and alignment edges | S1..S8, D1, M1, A1 | table, failure-injection, fixture, artifact and pilot tests | engine edge cases complete; release/pilot/alignment cases pending |
-| AC001..AC055 | all feature and rollout acceptance gates | G-T001..015, D1, M1, A1, F | requirement-specific evidence plus final suites and restart/environment provenance | engine evidence complete; rollout evidence pending |
+| R-F9-001..034 | release, environment provenance, restart-safe repository migration and artifact alignment | G, D1, M1, A1, F | build/smoke/published-artifact/pilot/process/alignment/full validation evidence | complete through published 0.3.1, isolated wheel provenance, schema-v2 migration and selective artifact alignment; owner commit/push handoff remains separate |
+| N001..N020 | module boundaries, compatibility, atomicity, determinism, scale | P, S1..S8, G | architecture review plus focused/public/full suites | final gates clean: focused 264, public 252 and full 947; repository validation 0/0/0 |
+| E001..E036 | malformed, stale, concurrent, release, migration and alignment edges | S1..S8, D1, M1, A1 | table, failure-injection, fixture, artifact and pilot tests | complete, including failed immutable tag, exact artifact recovery, idempotent pilot, no-safe question cases and intentionally-stale aggregate classification |
+| AC001..AC055 | all feature and rollout acceptance gates | G-T001..015, D1, M1, A1, F | requirement-specific evidence plus final suites and restart/environment provenance | implementation, release, migration and selected alignment have direct evidence; only owner commit/push/final handoff remains open |
 
 ## P Gate Evidence
 
@@ -168,9 +169,9 @@ it; they are not its creation point.
   version metadata and absence of forbidden roots/cache/bytecode.
 - Final candidate checksums are captured after the post-suite rebuild below;
   delivery specs are excluded from sdist to avoid checksum self-reference.
-- Installed the exact wheel into isolated
-  `/tmp/p2p-engine-0.3.0-smoke-eRZLtd/venv`; import resolves from its
-  `site-packages`, reports `0.3.0`, and both CLI and MCP entry points load.
+- Installed the exact wheel into a disposable isolated Python 3.14 environment;
+  import resolves from its `site-packages`, reports `0.3.0`, and both CLI and
+  MCP entry points load.
 - Minimal fresh init creates schema v2, exact runtime contract `==0.3.0` and an
   empty valid project-question collection. After registry refresh, validation
   reports 0 errors, 0 warnings and 0 infos. A separate software-vertical init
@@ -215,11 +216,10 @@ it; they are not its creation point.
   `pip show p2p-engine` still reports historical metadata `0.1.9`. This is an
   explicit environment advisory, not evidence of a runtime downgrade; no
   reinstall or interpreter change was performed or is authorized implicitly.
-- The prior isolated `/tmp/p2p-engine-0.3.0-smoke-eRZLtd` environment was
-  disposable and was absent after interruption. Its local-wheel results remain
-  development evidence only. D1/M1 must recreate an isolated environment from
-  the downloaded published wheel and bind the pilot to that artifact's URL and
-  SHA-256.
+- The prior isolated 0.3.0 smoke environment was disposable and was absent
+  after interruption. Its local-wheel results remain development evidence only.
+  D1/M1 must recreate an isolated environment from the downloaded published
+  wheel and bind the pilot to that artifact's URL and SHA-256.
 - Current repository state before D1 completion remains schema v1
   `upgrade_available`, semantically aligned and recovery-free. Validation has
   0 errors/0 warnings; registries, project projections, request-scoped decision
@@ -260,7 +260,129 @@ it; they are not its creation point.
   `2ccac787678b679555cedc67c8a5f383d55440a4c6b8417009211d0db8ca9ace`.
   These are local candidate artifacts, not substitutes for a future published
   release.
-- Installing the local wheel into disposable
-  `/tmp/p2p-engine-0.3.1-smoke-2OgxJy/venv` under Python 3.14.4 resolves import
-  from isolated `site-packages`, reports `0.3.1` and loads both CLI and MCP
-  entry points without modifying the development `.venv`.
+- Installing the local wheel into a disposable Python 3.14.4 environment
+  resolves import from isolated `site-packages`, reports `0.3.1` and loads both
+  CLI and MCP entry points without modifying the development `.venv`.
+
+### D1 Published Corrective Release
+
+- Owner-confirmed tag `v0.3.1` resolves to
+  `c587e24fcb024b3ca6453580f864a994c7cdfe0c`, the same commit as the release
+  checkpoint used for migration.
+- GitHub Actions run `29537534600` completed successfully on the declared
+  minimum Python 3.11 and published release
+  `https://github.com/BINARYA/p2p-Engine/releases/tag/v0.3.1`.
+- The published wheel SHA-256 is
+  `1df4622ca90a649bd013142cb51bd7b348d3c5c58b889affcfc069056fc56832`;
+  the published sdist SHA-256 is
+  `2ccac787678b679555cedc67c8a5f383d55440a4c6b8417009211d0db8ca9ace`.
+- The disposable pilot wrapper verifies the wheel hash before every command and
+  proves import version `0.3.1` originates from an isolated Python 3.14
+  `site-packages` environment. Its local scratch path is intentionally not
+  committed as project configuration.
+- Failed `v0.3.0` remains immutable and has no downloadable release assets; it
+  was neither moved nor reused.
+
+### M1 - Repository Schema-V2 Migration
+
+- The pre-apply workspace was schema v1, aligned, upgradeable and recovery-free.
+  Registries and project projections were already current and were not rebuilt
+  as migration side effects.
+- Three independent plans were byte-identical. Plan fingerprint:
+  `ced57c2c45f15df4fe172e001cb6d65398517fc53d06e42501499db1470be40e`;
+  full plan JSON SHA-256:
+  `eea9a9fa595f97b1f3e4d9e5573b46c7f8582218759bdb79ce9909b8676c5ebd`;
+  deterministic review digest SHA-256:
+  `2ad16d2f3827dda70555951219a616a36cd2d0abe32216291e124f95e43afeb8`.
+- The reviewed plan contained 182 operations: one project-question artifact
+  create, one schema update, 179 `preserve_legacy` observations and one
+  non-applicable derived refresh advisory. It requested no owner inputs and did
+  not target the project definition.
+- Owner `mrjungle` confirmed the exact fingerprint and foreground apply.
+  Transaction `migration-cb645638ac307b25` changed only
+  `.p2p/project/questions.yml` and `.p2p/project/workspace-schema.yml`.
+- The migrated question store contains one deterministic applicable question,
+  `PRQ-7070e7a631b1df44`, revision 1, state `to_answer`, bound to the current
+  software vertical lock. Answers, applications and transitions remain empty.
+  `assumptions` and `decisions` each expose `no_safe_question`; no owner answer,
+  decision or assumption validation was manufactured.
+- The project definition physical SHA-256 remained
+  `8f5934ed64a72dbbdafc6a38a82b2a0eb06bfc56cc53ba8cbe0fb6b4c8e9185a`.
+  Definition completeness remains 40/43 (93.02%), declared evidence remains
+  13/19 (68.42%) and `A001`/`A002` remain `to_validate`.
+- Exact plan/apply replay is a no-op with fingerprint
+  `5ad288e289fee9cc62c43381db9184acfe185813681602522b5eeee1d5fd1aee`;
+  canonical hashes are stable and recovery remains absent.
+- The final owner-confirmed runtime contract changed only
+  `.p2p/project/runtime.yml` and `P2P-SETUP.md`. It now requires
+  `>=0.3.0,<0.4.0`, recommends `0.3.1` and reports compatible under the
+  published runtime.
+
+### A1 - Artifact Alignment And Selective Reconciliation
+
+| Artifact/layer | Class and owner | Observed state | Action and evidence |
+| --- | --- | --- | --- |
+| Workspace schema and project questions | canonical, migration/question services | schema v2 current; one unanswered question | migrated by exact plan; no direct `.p2p` edit |
+| Definition, vertical lock and permissions | canonical, project vertical/governance services | current and byte-stable | no refresh or semantic mutation |
+| Proposals, decisions, choices, Change Sets and Work | canonical, respective lifecycle services | unchanged by migration | preserved; owner-controlled outcomes untouched |
+| Publication review | owner-controlled external stage | missing; `approved_for_publication=false` | intentionally pending; no review artifact created |
+| Registries | deterministic derived, registry service | current: 101/101/69/2/138/2325/101 | no refresh because source contract was current |
+| Project projections | deterministic derived, project refresh | current: 96 accepted-basis entries/directories | no refresh because projection manifest was current |
+| Decision context | request-scoped read model | current and partial by design | 1,369 sources, 3,187 evidence, 2,327 semantic records, 588 nodes, 800 valid relations, two intentional draft-authority diagnostics |
+| Assessment and maturity | persisted derived, assessment services | `current_legacy_fallback` | selectively refreshed; readiness basis remains separate from maturity |
+| Brief context/prompt | deterministic derived, brief service | `current_legacy_fallback` | regenerated through `p2p project brief prompt` |
+| Operational brief | managed narrative | `current_legacy_fallback` | agent-reviewed candidate imported through `p2p project brief import` |
+| Software specs | generated per Change Set | all 12 exact-current; aggregate reports stale | isolated candidate comparison found zero differing required files; report SHA-256 `27615aee3b3b73d63b340f35f7bad49fac96a03d0c73be5394eb7628507146c2`; no historical rewrite |
+| Managed next actions | curated store plus generated view | store normalized; dynamic readiness actions valid | one action per gap/question, no self-loop or approval shortcut; fallback omits active `CHANGE-069`, recorded as residual |
+| Visible export | deterministic generated export | publication manifest `ready` | regenerated; SHA-256 `cec40affb6b4a98b902f5a38c99b1c24e8d58b6cbd9a68a14956295ebd47fd9b` |
+| Publication packet/profile | deterministic generated publication input | manifest `ready` | prepared from source fingerprint `fd764a2d4611014e45d9fa1079e8e766f3f2c36591209eedd2a7a586d878176f` |
+| Curated publication | agent-curated derived output | manifest `ready` | imported through CLI; SHA-256 `a1fe1698115be4072a0810126c304f25817ab8d96d397881b996af737c1793d5` |
+| Publication validation and render | deterministic derived outputs | passed/rendered and manifest `ready` | validation SHA-256 `539e71706c9a7f8da279ad1fa5513595237506c7d3f2b155655f19c1f1667243`; PDF SHA-256 `398fd5dddcdf17c79e458fc6a01c28da0728c17c447c3188bc4cc05ccab1d3c0` |
+| Agent integrations | generated adapters | generic/codex/claude clean, no drift | no refresh required; agent doctor clean |
+| Review snapshots and optional legacy files | generated archive/preserved legacy | `outputs/review-006`, `outputs/review-007` and 179 legacy observations retained | preserve under owning retention/migration contracts; no deletion for cosmetic freshness |
+
+- Publication render first failed safely in the isolated base-wheel environment
+  because the optional WeasyPrint capability was absent. The existing local
+  Python 3.14 environment already provided source version `0.3.1` and
+  WeasyPrint `69.0`; it rendered the PDF without installation, Docker or an
+  interpreter change.
+- Publication status independently proves source export, profile, packet,
+  curated Markdown, validation and render are ready. Review remains missing and
+  approval false.
+- The global freshness graph still propagates aggregate `software_specs: stale`
+  to visible export, next actions and publication nodes. A1-T012A forbids using
+  aggregate status alone for bulk historical rewrites, and exact per-spec
+  candidate comparison found no differing required file. These nodes are
+  therefore intentionally stale in the global graph but current under their
+  owning content/manifest contracts.
+- The request-scoped decision context has no durable refresh primitive. This is
+  non-blocking under A1-T007A; no persistent cache was invented.
+
+### F - Final Verification And Residuals
+
+- Focused schema/migration/question/readiness/context/freshness/publication
+  suite: `264 passed in 61.41s`.
+- Public suite: `252 passed, 695 deselected in 126.65s`.
+- Full local Python 3.14 suite: `947 passed in 236.87s`.
+- Published release CI on Python 3.11 is clean, and the downloaded wheel was
+  independently smoke-tested under local Python 3.14. Neither result is used as
+  a substitute for the other.
+- Final runtime status is compatible on `0.3.1`; schema is v2/current/aligned;
+  migration lock and recovery are absent; validation reports 0 errors, 0
+  warnings and 0 infos.
+- Local source execution uses Python `3.14.4`, reports version `0.3.1` from
+  `src/p2p_engine`, and matches `pyproject.toml`. Historical editable
+  distribution metadata still reports `0.1.9`; this remains an explicit local
+  environment advisory and was not repaired by silent reinstall.
+- No test, build, release or migration process remains active for this
+  repository. A P2P MCP server observed for a different repository and the host
+  Docker daemon are unrelated and were left untouched.
+- MCP exposes only read-only project-readiness tools for this feature. Project
+  question answer/defer/mute/reconcile/apply writes remain CLI-only as designed.
+- Residual follow-ups are the aggregate software-spec mtime false positive, the
+  missing `CHANGE-069` fallback next action, optional durable decision-context
+  snapshot support and the historical editable-package metadata mismatch.
+- The owner explicitly confirmed the repository commit/push handoff on
+  2026-07-17. The resulting commit identity is recorded by Git rather than
+  embedded self-referentially in this evidence file. Change Set completion and
+  publication review remain separate owner-controlled actions.

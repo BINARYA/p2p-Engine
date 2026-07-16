@@ -572,7 +572,7 @@ throughout implementation and must not be reconstructed only at `G` or `F`.
   not write; completion is compatibility evidence, not an attempted downgrade.
 - [x] D1-T012: Re-run public and full suites against release-candidate source/
   artifact as defined by repository release policy.
-- [ ] D1-T013: Publish/distribute the runtime only through the owner-approved
+- [x] D1-T013: Publish/distribute the runtime only through the owner-approved
   release process; completion is exact artifact/version availability.
 - [x] D1-T013A: After the interrupted publication attempt, re-inspect active
   processes, worktree/remote divergence, local/remote tag, release, schema lock
@@ -588,17 +588,17 @@ throughout implementation and must not be reconstructed only at `G` or `F`.
   state blocks creation until reconciled.
 - [x] D1-T013D: Create and push annotated `v0.3.0` only after owner confirmation;
   record the resolved commit and never move/reuse the tag after publication.
-- [ ] D1-T013E: For the owner-approved corrective tag, wait for the workflow and
+- [x] D1-T013E: For the owner-approved corrective tag, wait for the workflow and
   record clean Python 3.11 install, version/tag match, full tests, P2P validation,
   build and artifact-verifier results; the failed `v0.3.0` workflow is not
   runtime availability.
-- [ ] D1-T013F: Download the published wheel/sdist, record URL/size/SHA-256 and
+- [x] D1-T013F: Download the published wheel/sdist, record URL/size/SHA-256 and
   run `scripts/verify-release-artifacts.py`; do not substitute the earlier local
   build or an editable checkout.
-- [ ] D1-T013G: Install the downloaded wheel in a new `/tmp` virtual environment
+- [x] D1-T013G: Install the downloaded wheel in a new `/tmp` virtual environment
   using the active local Python 3.14 and repeat CLI/MCP/fresh-v2/upgradeable-v1
   smoke without importing from the source checkout.
-- [ ] D1-T013H: Record one restart-safe release checkpoint after each external
+- [x] D1-T013H: Record one restart-safe release checkpoint after each external
   side effect; after interruption re-inspect state before retrying and never
   infer tag/release completion from a previously approved command.
 - [x] D1-T013I: Record `v0.3.0` as an immutable failed checkpoint: workflow run
@@ -607,228 +607,228 @@ throughout implementation and must not be reconstructed only at `G` or `F`.
 - [x] D1-T013J: Remove Python 3.12+-only f-string expressions from all affected
   prompt renderers and prove unchanged behavior with focused tests, Python 3.11
   compilation and full suites on Python 3.11 and 3.14.
-- [ ] D1-T013K: Keep source `0.3.1` as an unpublished corrective candidate until
+- [x] D1-T013K: Keep source `0.3.1` as an unpublished corrective candidate until
   implementation review is complete and the owner separately approves its
   remote push and immutable release tag.
-- [ ] D1-T014: Verify collaborators can obtain the v2-capable runtime before any
+- [x] D1-T014: Verify collaborators can obtain the v2-capable runtime before any
   workspace migration is approved.
 - [x] D1-T015: Record corrective-release rollback plan: after v2 migration, do
   not deploy a v1-only runtime.
-- [ ] D1-T016: D1 exit gate. Owner confirms the exact runtime artifact is the one
+- [x] D1-T016: D1 exit gate. Owner confirms the exact runtime artifact is the one
   to use for repository pilot M1, identified by published URL and SHA-256, with
   Python 3.11 CI and Python 3.14 isolated-smoke evidence.
 
 ## M1 - Repository V1-To-V2 Pilot
 
-- [ ] M1-T001: Confirm repository branch/worktree and use the released/project-
+- [x] M1-T001: Confirm repository branch/worktree and use the released/project-
   local v2-capable runtime selected in D1.
-- [ ] M1-T001A: Before every pilot command, prove the selected executable imports
+- [x] M1-T001A: Before every pilot command, prove the selected executable imports
   from the isolated published-wheel environment, reports the owner-approved
   corrective version and matches the D1 SHA-256; do not use stale editable
   metadata as runtime selection evidence.
-- [ ] M1-T002: Capture baseline runtime status, schema status, recovery state and
+- [x] M1-T002: Capture baseline runtime status, schema status, recovery state and
   global validation in text/JSON.
-- [ ] M1-T003: Capture active vertical/profile/modules/lock checksum and
+- [x] M1-T003: Capture active vertical/profile/modules/lock checksum and
   definition semantic/physical hashes, including all legacy open-question
   counts.
-- [ ] M1-T004: Capture project readiness gaps/questions, progress axes, next
+- [x] M1-T004: Capture project readiness gaps/questions, progress axes, next
   actions and freshness graph before migration.
-- [ ] M1-T005: Capture registry counts, project projection count/manifest,
+- [x] M1-T005: Capture registry counts, project projection count/manifest,
   decision-context source/record/node/relation/diagnostic counts, assessment,
   maturity, brief/export/publication/spec status and Git diff.
-- [ ] M1-T005A: Create one explicit `/tmp` scratch root for baseline JSON, full
+- [x] M1-T005A: Create one explicit `/tmp` scratch root for baseline JSON, full
   plan JSON and command transcripts; record its disposable status and do not
   invent a repository output path or treat it as canonical memory.
-- [ ] M1-T006: Confirm migration lock/recovery is clear and no unrelated
+- [x] M1-T006: Confirm migration lock/recovery is clear and no unrelated
   governed write is in progress.
-- [ ] M1-T006A: Confirm no prior P2P/migration process or tool session remains
+- [x] M1-T006A: Confirm no prior P2P/migration process or tool session remains
   active and record the process/session identity that will own apply; a live
   process with an active lock is not interrupted recovery.
-- [ ] M1-T007: Run `p2p workspace migrate plan --to 2 --format json`
+- [x] M1-T007: Run `p2p workspace migrate plan --to 2 --format json`
   without writes and archive the reviewed fingerprint/operations as local
   implementation evidence, not canonical state.
-- [ ] M1-T007A: Preserve the complete plan JSON and build a deterministic review
+- [x] M1-T007A: Preserve the complete plan JSON and build a deterministic review
   digest with Git commit, published-wheel hash/imported version, canonical
   fingerprint, source/target schema, migration ids, operation/finding counts,
   owner inputs, every non-preserve operation/write target and plan fingerprint.
-- [ ] M1-T008: Review candidate ownership: only project questions, definition
+- [x] M1-T008: Review candidate ownership: only project questions, definition
   normalization and workspace schema/history may be canonical targets for v1->v2.
-- [ ] M1-T008A: Classify all `preserve_legacy` and `derived-state` operations
+- [x] M1-T008A: Classify all `preserve_legacy` and `derived-state` operations
   separately from canonical writes; unexpected non-preserve targets block apply
   even when the overall plan reports applicable.
-- [ ] M1-T009: Review legacy mapping/question seeding for assumptions, decisions
+- [x] M1-T009: Review legacy mapping/question seeding for assumptions, decisions
   and risks/alternatives/decisions; confirm no answer or completion is invented.
-- [ ] M1-T010: If plan requests only target bindings, obtain explicit owner input
+- [x] M1-T010: If plan requests only target bindings, obtain explicit owner input
   and rerun plan; never include an answer in migration input.
-- [ ] M1-T011: Re-run plan after any input/source change and confirm stable
+- [x] M1-T011: Re-run plan after any input/source change and confirm stable
   fingerprint plus no unexplained operation.
-- [ ] M1-T011A: Invalidate and regenerate both plans when Git commit, published
+- [x] M1-T011A: Invalidate and regenerate both plans when Git commit, published
   runtime hash, canonical source fingerprint or owner input changes; compare
   full digest equality, not only the final fingerprint string.
-- [ ] M1-T012: Obtain owner confirmation for the exact plan fingerprint, actor
+- [x] M1-T012: Obtain owner confirmation for the exact plan fingerprint, actor
   and apply operation.
-- [ ] M1-T013: Apply target 2 through `p2p workspace migrate apply` with reviewed
+- [x] M1-T013: Apply target 2 through `p2p workspace migrate apply` with reviewed
   fingerprint, owner actor and explicit confirmation.
-- [ ] M1-T013A: Run apply as one foreground process and capture start time,
+- [x] M1-T013A: Run apply as one foreground process and capture start time,
   session/PID, exact command, stdout, stderr and exit status. Do not start a
   duplicate apply or interpret asynchronous tool completion as process exit.
-- [ ] M1-T014: Immediately inspect apply result, transaction id, changed paths,
+- [x] M1-T014: Immediately inspect apply result, transaction id, changed paths,
   final hashes, schema status and recovery status before any further write.
-- [ ] M1-T014A: Wait for confirmed process termination before classifying the
+- [x] M1-T014A: Wait for confirmed process termination before classifying the
   final lock/journal state. If recovery remains, use only supported status,
   resume or rollback commands; never delete lock, journal or candidate files.
-- [ ] M1-T015: Verify `.p2p/project/questions.yml` through supported show/status,
+- [x] M1-T015: Verify `.p2p/project/questions.yml` through supported show/status,
   definition open questions are empty, lock binding is current and schema is 2.
-- [ ] M1-T015A: Verify every migrated/seeded question's actor, revision,
+- [x] M1-T015A: Verify every migrated/seeded question's actor, revision,
   source/provenance, vertical lock checksum, applicability and empty answers/
   applications; no timestamp/status may imply owner evidence.
-- [ ] M1-T016: Run `p2p validate`; stop before question answers if any error,
+- [x] M1-T016: Run `p2p validate`; stop before question answers if any error,
   warning or recovery condition was introduced.
-- [ ] M1-T017: Run readiness review/gaps/questions status/next and verify the
+- [x] M1-T017: Run readiness review/gaps/questions status/next and verify the
   three repository pilot gaps are represented or have explicit no-safe
   diagnostics.
-- [ ] M1-T017A: Record the repository-specific result separately for
+- [x] M1-T017A: Record the repository-specific result separately for
   `assumptions`, `decisions` and `risks_alternatives_decisions`; an applicable
   fallback question or explicit `no_safe_question` is valid, while invented
   owner truth or a silently missing gap is not.
-- [ ] M1-T018: Confirm migration did not change definition completeness,
+- [x] M1-T018: Confirm migration did not change definition completeness,
   declared evidence coverage, owner decisions, assumptions or publication review.
-- [ ] M1-T019: Run exact migration plan/apply again and verify idempotent no-op.
-- [ ] M1-T020: Exercise one read-only convergence preview only if an eligible
+- [x] M1-T019: Run exact migration plan/apply again and verify idempotent no-op.
+- [x] M1-T020: Exercise one read-only convergence preview only if an eligible
   owner answer already exists; otherwise record not applicable without creating
   an answer.
-- [ ] M1-T021: Keep any answer/apply/defer/mute action as a separate owner-
+- [x] M1-T021: Keep any answer/apply/defer/mute action as a separate owner-
   confirmed step and record its own preview/result evidence.
-- [ ] M1-T022: After schema-v2 validation, preview and owner-apply the final
+- [x] M1-T022: After schema-v2 validation, preview and owner-apply the final
   repository runtime contract requiring the v2-capable release line and
   recommending the exact deployed version; verify a v1-only runtime is then
   incompatible without attempting a downgrade.
-- [ ] M1-T022A: Review the final runtime-contract preview changed-path set and
+- [x] M1-T022A: Review the final runtime-contract preview changed-path set and
   verify only the canonical contract plus its managed setup guide change; after
   apply, confirm source/imported/runtime-contract versions and published artifact
   provenance remain coherent.
-- [ ] M1-T023: M1 exit gate. Schema v2 is valid, recovery is clear, no owner truth
+- [x] M1-T023: M1 exit gate. Schema v2 is valid, recovery is clear, no owner truth
   was inferred and canonical migration diff is understood.
 
 ## A1 - Artifact Alignment Audit And Selective Reconciliation
 
-- [ ] A1-T001: Freeze post-migration pre-alignment hashes/counts and run
+- [x] A1-T001: Freeze post-migration pre-alignment hashes/counts and run
   read-only runtime, schema, recovery, context, definition, readiness, progress,
   freshness, registry status, next and global validation commands.
-- [ ] A1-T001A: Compare the post-migration graph with the observed pre-migration
+- [x] A1-T001A: Compare the post-migration graph with the observed pre-migration
   baseline where canonical sources, request-scoped decision context, registries,
   project projections and agent integrations were current; do not refresh these
   layers unless their own contract now reports staleness/divergence.
-- [ ] A1-T002: Build an alignment table for every material artifact with path/
+- [x] A1-T002: Build an alignment table for every material artifact with path/
   id, class, canonicality, owner service, source fingerprint, current/stale
   state, required authority, owning command and recommended action.
-- [ ] A1-T003: Classify canonical state first: workspace schema/questions,
+- [x] A1-T003: Classify canonical state first: workspace schema/questions,
   definition, vertical lock, permissions, proposals/decisions/choices/changes/
   work and publication review; completion is no unexplained canonical drift.
-- [ ] A1-T004: If any canonical inconsistency lacks a supported primitive, stop
+- [x] A1-T004: If any canonical inconsistency lacks a supported primitive, stop
   and record the missing primitive; do not repair `.p2p` manually.
-- [ ] A1-T005: Evaluate registries against source counts/hashes; run
+- [x] A1-T005: Evaluate registries against source counts/hashes; run
   `p2p registry refresh` only if stale, then verify proposals, decisions,
   changes, choices, relations, artifacts and readiness counts.
-- [ ] A1-T006: Evaluate project projection/manifest against accepted basis and
+- [x] A1-T006: Evaluate project projection/manifest against accepted basis and
   definition source contract; run `p2p project refresh` only if stale and verify
   exact owned-path reconciliation.
-- [ ] A1-T007: Rebuild/read decision context as supported and compare source,
+- [x] A1-T007: Rebuild/read decision context as supported and compare source,
   evidence, record, node, relation and diagnostic counts; verify project
   questions are inactive and applied definition is not double-counted.
-- [ ] A1-T007A: Treat a current request-scoped decision context with a missing
+- [x] A1-T007A: Treat a current request-scoped decision context with a missing
   optional durable-snapshot primitive as non-blocking; record the optional
   primitive without manufacturing a persistent cache or refresh command.
-- [ ] A1-T008: Evaluate assessment, maturity and project progress separately;
+- [x] A1-T008: Evaluate assessment, maturity and project progress separately;
   refresh only stale persisted assessments and verify basis/freshness labels.
-- [ ] A1-T009: Evaluate managed next actions after convergence integration; run
+- [x] A1-T009: Evaluate managed next actions after convergence integration; run
   `p2p next refresh` only if stale and verify no self-loop, duplicate or
   publication-approval shortcut.
-- [ ] A1-T010: Evaluate derived freshness again after each deterministic batch;
+- [x] A1-T010: Evaluate derived freshness again after each deterministic batch;
   continue in topological order and stop on a failed refresh without pretending
   downstream nodes are current.
-- [ ] A1-T011: Evaluate generated agent instructions/templates; if source
+- [x] A1-T011: Evaluate generated agent instructions/templates; if source
   templates changed, refresh installed adapters through `p2p agent instructions
   refresh` and run agent doctor/drift tests.
-- [ ] A1-T012: Evaluate the active Change Set software spec with `p2p spec
+- [x] A1-T012: Evaluate the active Change Set software spec with `p2p spec
   lifecycle`; refresh only when its accepted proposal/source fingerprints make
   it stale, and do not bulk-regenerate historical specs.
-- [ ] A1-T012A: When the freshness graph reports aggregate `software_specs`
+- [x] A1-T012A: When the freshness graph reports aggregate `software_specs`
   staleness, inspect every generated spec by Change Set/source fingerprint and
   refresh only the stale owned items; aggregate status alone never authorizes a
   historical bulk rebuild.
-- [ ] A1-T013: Evaluate operational brief freshness. Generate prompt/context only
+- [x] A1-T013: Evaluate operational brief freshness. Generate prompt/context only
   through `p2p project brief prompt`; import revised narrative only after the
   required agent/owner review and supported import primitive.
-- [ ] A1-T014: Evaluate visible project export; run `p2p project export` only if
+- [x] A1-T014: Evaluate visible project export; run `p2p project export` only if
   its source contract includes changed schema/question/definition state.
-- [ ] A1-T015: Evaluate publication packet, curated Markdown, validation and PDF
+- [x] A1-T015: Evaluate publication packet, curated Markdown, validation and PDF
   independently. Prepare/recurate/revalidate/render only if stale and explicitly
   in rollout scope.
-- [ ] A1-T015A: Preserve stage order and authority: deterministic publication
+- [x] A1-T015A: Preserve stage order and authority: deterministic publication
   stages may follow current upstreams, curator import remains agent-controlled
   and `publication_review` remains false/pending unless the owner makes a new
   separate decision.
-- [ ] A1-T016: Confirm publication owner review remains unchanged/false unless
+- [x] A1-T016: Confirm publication owner review remains unchanged/false unless
   separately decided by the owner; deterministic stages cannot approve it.
-- [ ] A1-T017: Classify review snapshots, optional legacy outputs and old v1
+- [x] A1-T017: Classify review snapshots, optional legacy outputs and old v1
   question representations as preserve/retire/unaffected according to an owning
   contract; do not delete merely to make freshness green.
-- [ ] A1-T018: Update repository docs and this feature's later
+- [x] A1-T018: Update repository docs and this feature's later
   `implementation.md` with actual command/version/migration behavior; do not
   copy local specs into runtime/release surfaces automatically.
-- [ ] A1-T019: Compare baseline, post-migration and post-alignment hashes, counts,
+- [x] A1-T019: Compare baseline, post-migration and post-alignment hashes, counts,
   diagnostics, progress axes, freshness nodes and residual legacy/owner state.
-- [ ] A1-T020: Review Git diff and explain every canonical/generated/curated
+- [x] A1-T020: Review Git diff and explain every canonical/generated/curated
   change; revert no user work and leave unaffected artifacts byte-stable.
-- [ ] A1-T021: Run focused alignment/freshness/projection/context tests and full
+- [x] A1-T021: Run focused alignment/freshness/projection/context tests and full
   `p2p validate` after final selected refresh.
-- [ ] A1-T022: A1 exit gate. Every material artifact is current, intentionally
+- [x] A1-T022: A1 exit gate. Every material artifact is current, intentionally
   stale/pending, preserved legacy or blocked by an explicit missing primitive;
   no ambiguous state remains.
 
 ## F - Final Verification And Handoff
 
-- [ ] F-T001: Create/update local `implementation.md` with design choice,
+- [x] F-T001: Create/update local `implementation.md` with design choice,
   compatibility impact, behavior changes, files, tests, release artifact,
   migration result, alignment result, risks and follow-ups.
-- [ ] F-T002: Build a requirement -> design -> task -> test/evidence matrix for
+- [x] F-T002: Build a requirement -> design -> task -> test/evidence matrix for
   R-F1 through R-F9 (including R-F9-024..034), E001-E036 and AC001-AC055;
   completion is no orphan requirement/task/edge case and the matrix has been
   maintained at each remaining D1/M1/A1 checkpoint rather than reconstructed
   only here.
-- [ ] F-T003: Run final focused feature suites.
-- [ ] F-T004: Run `./scripts/test-public.sh -q`.
-- [ ] F-T005: Run `./scripts/test-full.sh -q`.
-- [ ] F-T005A: Record clean release CI on declared-minimum Python 3.11 and clean
+- [x] F-T003: Run final focused feature suites.
+- [x] F-T004: Run `./scripts/test-public.sh -q`.
+- [x] F-T005: Run `./scripts/test-full.sh -q`.
+- [x] F-T005A: Record clean release CI on declared-minimum Python 3.11 and clean
   isolated published-wheel smoke on active local Python 3.14; neither result may
   be inferred from the other and no local interpreter downgrade is permitted.
-- [ ] F-T006: Run final `p2p runtime status`, workspace schema/recovery status,
+- [x] F-T006: Run final `p2p runtime status`, workspace schema/recovery status,
   project readiness/progress/freshness, `p2p validate` and agent doctor.
-- [ ] F-T006A: Record `pyproject` version, source `__version__`, imported runtime
+- [x] F-T006A: Record `pyproject` version, source `__version__`, imported runtime
   version/path, Python interpreter and installed package metadata/editable
   location. Resolve a mismatch only through explicit owner-approved environment
   action or retain it as a named advisory; never reinstall silently.
-- [ ] F-T007: Confirm migration/mutation transaction scratch and locks are absent
+- [x] F-T007: Confirm migration/mutation transaction scratch and locks are absent
   or explicitly recovery-owned.
-- [ ] F-T007A: Confirm no release/build/test/migration process or tool session is
+- [x] F-T007A: Confirm no release/build/test/migration process or tool session is
   still running and that disposable `/tmp` evidence is either intentionally
   retained for the active handoff or safely irrelevant to project truth.
-- [ ] F-T008: Confirm MCP write deferral is visible in specs/docs and no write
+- [x] F-T008: Confirm MCP write deferral is visible in specs/docs and no write
   tool was accidentally registered.
-- [ ] F-T009: Confirm all owner-controlled outcomes remain explicitly recorded
+- [x] F-T009: Confirm all owner-controlled outcomes remain explicitly recorded
   and no generated artifact implies publication/question/governance approval.
-- [ ] F-T010: Run `git diff --check`, inspect status/diff and verify no hardcoded
+- [x] F-T010: Run `git diff --check`, inspect status/diff and verify no hardcoded
   local path, unrelated refactor, manual `.p2p` repair or unexplained binary/
   generated drift exists.
-- [ ] F-T010A: Verify the published tag resolves to the recorded commit, the
+- [x] F-T010A: Verify the published tag resolves to the recorded commit, the
   downloaded runtime hash is recorded without committing local wheel/venv paths,
   and no restart checkpoint is mistaken for canonical project state.
-- [ ] F-T011: Record residual risks and follow-up candidates without bundling
+- [x] F-T011: Record residual risks and follow-up candidates without bundling
   unrelated cleanup.
-- [ ] F-T012: Obtain owner review for commit/push/release or any remaining
+- [x] F-T012: Obtain owner review for commit/push/release or any remaining
   owner-controlled handoff; do not infer authorization from completed tests.
-- [ ] F-T013: F final gate. Mark feature delivered only when implementation,
+- [x] F-T013: F final gate. Mark feature delivered only when implementation,
   runtime deployment, repository migration and selected artifact alignment each
   have direct evidence and the workspace remains operable through supported
   commands.

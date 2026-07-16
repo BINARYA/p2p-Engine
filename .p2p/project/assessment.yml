@@ -1,7 +1,7 @@
-generated_on: '2026-07-15'
+generated_on: '2026-07-17'
 assessment_type: deterministic_readiness
 completion:
-  score: 84
+  score: 76
   status: needs_review
   confidence: high
 maturity:
@@ -30,7 +30,7 @@ factors:
   reason: Draft proposals still need owner review or refinement.
 - id: accepted_proposals
   label: Accepted proposals
-  value: 95
+  value: 96
   impact: 0
   reason: Accepted proposals define committed project direction.
 - id: open_choices
@@ -40,8 +40,8 @@ factors:
   reason: Open choices represent unresolved alternatives.
 - id: active_changes
   label: Active Change Sets
-  value: 1
-  impact: -8
+  value: 2
+  impact: -16
   reason: Active Change Sets still need lifecycle progress.
 - id: blocked_changes
   label: Blocked Change Sets
@@ -63,8 +63,8 @@ gaps:
 - Continue or complete active Change Sets.
 suggested_actions:
 - p2p assess refresh
-- .venv/bin/p2p proposal list --status draft
-- p2p change tasks CHANGE-068
+- p2p project questions next
+- p2p project questions next
 basis:
   completion: legacy_deterministic_readiness
   maturity: heuristic_keyword_rubric
