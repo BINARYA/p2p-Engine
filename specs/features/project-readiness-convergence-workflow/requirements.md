@@ -577,6 +577,47 @@ approve a package release or authorize migration of any workspace.
 - R-F9-023: Final handoff SHALL require clean migration recovery state, clean
   validation, passing full suite, reviewed Git diff and no unexplained generated
   drift.
+- R-F9-024: Runtime evidence SHALL distinguish the source/imported engine
+  version, package metadata version, Python interpreter version, editable
+  development environment and isolated release-artifact environment; none SHALL
+  be treated as interchangeable without recorded evidence.
+- R-F9-025: The delivery SHALL NOT replace, reinstall, downgrade or otherwise
+  mutate the development Python environment merely to run the repository pilot;
+  environment normalization requires a separate explicit owner action.
+- R-F9-026: M1 SHALL use the exact wheel downloaded from the owner-approved
+  published release, record its SHA-256 and verify its version/content; a local
+  pre-release build SHALL NOT satisfy runtime-availability or pilot provenance.
+- R-F9-027: Release evidence SHALL cover the declared minimum Python version in
+  clean CI and the active local Python version in an isolated smoke environment,
+  without downgrading the local interpreter.
+- R-F9-028: Release/tag and migration execution SHALL be restart-safe: each
+  external or governed step SHALL record a completed checkpoint, and after an
+  interruption the operator SHALL re-inspect process, Git, tag, release, lock
+  and recovery state before retrying any side effect.
+- R-F9-029: Baseline, full migration plans and command transcripts SHALL be
+  stored only in an explicit local scratch directory outside durable project
+  memory until summarized into the implementation evidence; no new repository
+  output path SHALL be invented for raw operational logs.
+- R-F9-030: A large migration plan SHALL retain its complete JSON and expose a
+  deterministic review digest containing source/target versions, runtime
+  artifact hash, Git commit, canonical fingerprint, migration ids, operation
+  counts, non-preserve operations, write targets, finding counts, owner inputs
+  and plan fingerprint.
+- R-F9-031: The reviewed migration plan SHALL be invalidated and regenerated
+  when the selected runtime artifact, Git commit, owner input or canonical source
+  fingerprint changes, even if a previous plan fingerprint remains available.
+- R-F9-032: Migration apply SHALL run as one observed foreground process with
+  captured session/process identity, exit status, stdout and stderr. A live apply
+  lock SHALL NOT be classified as interrupted recovery until that process is
+  confirmed terminated.
+- R-F9-033: Post-migration verification SHALL inspect question actor, revision,
+  source/provenance, vertical lock checksum and answer/application emptiness and
+  SHALL accept either an applicable question or an explicit no-safe diagnostic
+  for each pilot gap according to the implemented fallback contract.
+- R-F9-034: Artifact alignment SHALL preserve nodes already reported current,
+  evaluate aggregate stale states such as software specs at their owning item
+  granularity, and treat a missing optional durable primitive as non-blocking
+  when the supported request-scoped view is current.
 
 ## Non-Functional Requirements
 
@@ -660,6 +701,18 @@ approve a package release or authorize migration of any workspace.
   stale by design.
 - E029: Active software spec is stale but historical specs are unchanged.
 - E030: Alignment discovers an artifact without an owning primitive.
+- E031: Editable source import/version is current while installed package
+  metadata reports a historical version or location.
+- E032: Execution stops after immutable tag publication but before release
+  workflow completion or published-asset verification.
+- E033: A downloaded release asset has an unexpected hash/content or a local
+  build shadows the selected published runtime.
+- E034: Tool orchestration is interrupted while migration apply is still alive
+  and owns the workspace lock.
+- E035: Git commit, runtime artifact, owner input or canonical fingerprint
+  changes after plan review and before apply.
+- E036: An aggregate artifact class is stale while some owned items remain
+  current and must stay byte-stable.
 
 ## Acceptance Criteria
 
@@ -737,3 +790,27 @@ approve a package release or authorize migration of any workspace.
 - AC046: A local implementation evidence report records design choice,
   compatibility impact, behavior/files/tests, release/migration results, risks
   and deferred work.
+- AC047: Release evidence proves the same `0.3.0` source on clean Python 3.11 CI
+  and an isolated Python 3.14 published-wheel smoke without changing the local
+  interpreter.
+- AC048: M1 records and uses the downloaded published-wheel hash; a local build
+  path or stale editable metadata cannot silently select the pilot runtime.
+- AC049: An interrupted release or migration resumes from inspected checkpoints
+  without duplicate tag publication, duplicate apply or manual lock deletion.
+- AC050: Two unchanged full plans produce the same fingerprint and deterministic
+  digest bound to Git commit, runtime hash and canonical fingerprint.
+- AC051: Apply evidence includes process/session identity and exit status; post-
+  apply validation starts only after process completion and recovery is clear or
+  explicitly owned by a supported recovery command.
+- AC052: Post-v2 question evidence proves actor/revision/provenance/lock binding,
+  no fabricated answer/application and the expected question-or-no-safe outcome
+  for all three repository pilot gaps.
+- AC053: Alignment leaves pre/post current nodes byte-stable unless a changed
+  source contract makes them stale, and evaluates aggregate software-spec state
+  per Change Set.
+- AC054: Source version, imported runtime version, package metadata and Python
+  interpreter are either consistent or recorded as an explicit non-blocking
+  advisory; no environment reinstall is performed implicitly.
+- AC055: Final handoff identifies the exact published release artifact, runtime
+  contract, workspace schema and remaining intentionally owner-controlled or
+  optional stale nodes without ambiguous readiness claims.

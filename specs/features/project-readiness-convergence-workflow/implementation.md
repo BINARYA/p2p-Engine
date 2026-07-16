@@ -37,10 +37,10 @@ it; they are not its creation point.
 | R-F6-001..014 | exact replay, concurrency, vertical reconciliation | S6-T001..017 | replay, two-process and vertical drift tests | complete: exact replay/mismatch, audit-clock metamorphism, one-commit concurrency, target/alias/module reconciliation |
 | R-F7-001..017 | next, progress, freshness and decision-context adapters | S7-T001..017 | focused consumer/source/topology/retrieval tests | complete: concrete actions, residual counts, explicit freshness impact and inactive question traceability without definition double-count |
 | R-F8-001..015 | CLI, bounded JSON/text, MCP reads, diagnostics | S8-T001..020 | CLI, MCP catalog/handler/registry and help/docs tests | complete: CLI writes, bounded read parity, safe answer files, stable diagnostics and explicit MCP write absence |
-| R-F9-001..023 | release, repository migration and artifact alignment | G, D1, M1, A1, F | build/smoke/pilot/alignment/full validation evidence | G complete; D1 active after owner-approved 0.3.0 policy; M1/A1 remain gated |
+| R-F9-001..034 | release, environment provenance, restart-safe repository migration and artifact alignment | G, D1, M1, A1, F | build/smoke/published-artifact/pilot/process/alignment/full validation evidence | G complete; D1 commit/push complete but tag/release/published-artifact selection pending; M1/A1 remain gated |
 | N001..N020 | module boundaries, compatibility, atomicity, determinism, scale | P, S1..S8, G | architecture review plus focused/public/full suites | release-candidate gate complete: public 252; full 943; repository validation clean except expected upgrade info |
-| E001..E030 | malformed, stale, concurrent, migration and alignment edges | S1..S8, M1, A1 | table, failure-injection, fixture and pilot tests | engine edge cases complete; repository pilot/alignment cases pending |
-| AC001..AC046 | all feature and rollout acceptance gates | G-T001..015, D1, M1, A1, F | requirement-specific evidence plus final suites | baseline only |
+| E001..E036 | malformed, stale, concurrent, release, migration and alignment edges | S1..S8, D1, M1, A1 | table, failure-injection, fixture, artifact and pilot tests | engine edge cases complete; release/pilot/alignment cases pending |
+| AC001..AC055 | all feature and rollout acceptance gates | G-T001..015, D1, M1, A1, F | requirement-specific evidence plus final suites and restart/environment provenance | engine evidence complete; rollout evidence pending |
 
 ## P Gate Evidence
 
@@ -161,7 +161,7 @@ it; they are not its creation point.
 - Initial sdist inspection found repository `.p2p` state and derived `outputs`;
   Hatch exclusions now remove governed/local/derived roots and the release
   workflow runs `scripts/verify-release-artifacts.py` as a permanent gate.
-- Clean rebuild produced a 184-file wheel and 738-file sdist. The verifier
+- An intermediate clean rebuild produced a 184-file wheel and 738-file sdist. The verifier
   confirmed required readiness/question/migration modules, vertical resources,
   version metadata and absence of forbidden roots/cache/bytecode.
 - Final candidate checksums are captured after the post-suite rebuild below;
@@ -196,3 +196,38 @@ it; they are not its creation point.
   `1b72fb4f6053ec18a2ec7e679f28a53e71837a4aef01c5d06412a17fe98acc46`;
   392-file sdist `dist/p2p_engine-0.3.0.tar.gz` with SHA-256
   `511cd9389d2ed3ac4227ea4b8fda990dcbe6215ff88a796dfc0f80a01737475a`.
+
+### D1 Restart Audit And Operational Refinement
+
+- Commit `ea55fa6` is present on synchronized `main`/`origin/main`; the worktree
+  was clean at the restart audit. No local `v0.3.0` tag, published release,
+  active release/migration process, migration lock or recovery transaction was
+  present, so tag publication and M1 remain incomplete rather than failed or
+  implicitly completed.
+- The system and development `.venv` both use Python `3.14.4`; Python 3.11 was
+  not installed or used locally. The release workflow intentionally targets
+  Python 3.11 as the declared minimum-support gate; the published wheel must be
+  smoke-tested separately on local Python 3.14.
+- The development environment is editable. Import resolves from
+  `src/p2p_engine`, reports `0.3.0` and provides current behavior, while
+  `pip show p2p-engine` still reports historical metadata `0.1.9`. This is an
+  explicit environment advisory, not evidence of a runtime downgrade; no
+  reinstall or interpreter change was performed or is authorized implicitly.
+- The prior isolated `/tmp/p2p-engine-0.3.0-smoke-eRZLtd` environment was
+  disposable and was absent after interruption. Its local-wheel results remain
+  development evidence only. D1/M1 must recreate an isolated environment from
+  the downloaded published wheel and bind the pilot to that artifact's URL and
+  SHA-256.
+- Current repository state before D1 completion remains schema v1
+  `upgrade_available`, semantically aligned and recovery-free. Validation has
+  0 errors/0 warnings; registries, project projections, request-scoped decision
+  context and agent integrations are current.
+- The pre-migration freshness graph reports assessment, brief prompt,
+  maturity/progress, aggregate software specs, visible export and deterministic
+  publication stages stale. Operational brief, next actions, curated
+  publication and publication review require agent/owner action. These are the
+  observed A1 baseline classes, not authorization for a blanket rebuild.
+- The remaining rollout now has explicit checkpoints for immutable tag/release,
+  Python 3.11 CI, published-asset verification, Python 3.14 isolated smoke,
+  scratch evidence, plan digest binding, foreground apply completion and
+  selective per-owner artifact reconciliation.

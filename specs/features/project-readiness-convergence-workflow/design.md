@@ -983,6 +983,37 @@ Readiness review itself remains diagnostic and does not auto-fix these findings.
 - Publish/distribute only through owner-approved release process.
 - Verify the released runtime can inspect/operate v1 before any migration.
 
+Runtime provenance is a five-part record, not one version string:
+
+```text
+source/package declaration
+imported runtime version and path
+Python interpreter version
+installed package metadata/editable location
+published wheel URL and SHA-256
+```
+
+The development `.venv` remains untouched during the pilot. The published wheel
+is downloaded and installed into local scratch with the active local Python
+interpreter. Clean release CI exercises the declared minimum Python version;
+the isolated local smoke exercises the active local version. A metadata mismatch
+in an editable development install is recorded as an advisory and can be
+normalized only through a separate owner-approved environment action.
+
+Release publication uses restart-safe checkpoints:
+
+| Checkpoint | Required evidence before continuing |
+| --- | --- |
+| commit_pushed | exact commit is clean and present on the intended remote branch |
+| tag_preflight | local/remote tag absence and immutable-tag policy confirmed |
+| tag_pushed | exact tag resolves to the reviewed commit |
+| workflow_complete | clean CI, version match, tests, validation and artifact verification passed |
+| artifact_downloaded | published URL, size, SHA-256 and content verifier recorded |
+| local_smoke_complete | isolated active-Python smoke passed without editable checkout |
+
+After interruption, inspect all checkpoints again. Never infer that an aborted
+tag command or a temporarily active migration lock completed or failed.
+
 ### Gate 5 - Repository V1-To-V2 Pilot
 
 - Freeze baseline and ensure clean recovery state.
@@ -993,6 +1024,35 @@ Readiness review itself remains diagnostic and does not auto-fix these findings.
 - After validation, preview and owner-apply the final runtime contract requiring
   the v2-capable release line so an old runtime cannot appear compatible.
 - Keep owner answers as separate later steps.
+
+Raw baseline, full plan JSON and command transcripts live under one explicit
+`/tmp` scratch root for the active run. They are not canonical project memory
+and are not copied into a newly invented repository output. The reviewed plan
+also has a compact deterministic digest containing:
+
+```text
+Git commit
+published wheel SHA-256 and imported runtime version
+canonical source fingerprint
+source/target schema and migration ids
+operation/finding counts
+all non-preserve operations and write targets
+owner inputs
+plan fingerprint
+```
+
+Apply runs as one observed foreground process. Capture session/PID, start time,
+exit status, stdout and stderr; do not start a second apply. Read-only status may
+show an active lock while apply is running, but recovery classification begins
+only after the process is confirmed terminated. Recovery uses only status,
+resume or rollback primitives and never manual lock/journal deletion.
+
+Post-v2 verification checks question actor, revision, provenance, lock checksum,
+answers and applications in addition to existence/count. For this repository,
+`assumptions`, `decisions` and `risks_alternatives_decisions` may resolve to an
+applicable question or an explicit no-safe diagnostic according to the fallback
+contract; the migration is not allowed to fabricate an answer merely to remove
+the diagnostic.
 
 ### Gate 6 - Artifact Alignment
 
@@ -1028,6 +1088,16 @@ Expected owning commands include `registry refresh`, `project refresh`,
 brief prompt/import, project export/publication prepare and agent instruction
 refresh. The final task list requires rechecking actual command support before
 executing any write.
+
+The pre-migration observed graph is a baseline, not a refresh instruction:
+canonical sources, decision context, registries, project projections and agent
+integrations are current. Assessment, brief prompt, maturity/progress, aggregate
+software specs, visible export and deterministic publication stages require
+post-migration re-evaluation. Operational brief, managed next actions, curated
+publication and publication review remain agent/owner controlled. A request-
+scoped current decision context with a missing optional durable snapshot
+primitive is not a blocker. Aggregate software-spec staleness must be resolved
+per Change Set rather than by historical bulk regeneration.
 
 ### Gate 7 - Final Comparison And Handoff
 
