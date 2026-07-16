@@ -109,6 +109,21 @@ def test_software_spec_freshness_owns_only_required_refresh_outputs() -> None:
     assert all("spec-refine.prompt.md" not in pattern for pattern in software_specs.output_patterns)
 
 
+def test_question_and_definition_impacts_are_explicit_and_topological(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Freshness Impact", owner="owner", vertical_id="base_project")
+    service = workspace._derived_freshness_service()
+
+    question_nodes = service.impact_node_ids((".p2p/project/questions.yml",))
+    definition_nodes = service.impact_node_ids((".p2p/project/definition.yml",))
+
+    assert {"decision_context", "maturity_progress", "next_actions"} <= set(question_nodes)
+    assert "project_projections" not in question_nodes
+    assert "software_specs" not in question_nodes
+    assert {"decision_context", "assessment", "maturity_progress", "brief_context_prompt", "visible_export"} <= set(definition_nodes)
+    assert "software_specs" not in definition_nodes
+
+
 def test_supported_brief_and_next_action_writes_satisfy_manual_freshness_until_inputs_change(
     tmp_path: Path,
 ) -> None:

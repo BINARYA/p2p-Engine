@@ -5397,7 +5397,8 @@ proposals:
     synthetic verticals, an uninitialized workspace, a v1 fixture and a workspace
     with no proposal coverage.'
   decision_file: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/decision.md
-  related_changes: []
+  related_changes:
+  - CHANGE-069
   source_files:
   - ai-digest.md
   - alternatives.md

@@ -748,7 +748,7 @@ def _work_source_descriptors(work_dir: Path, owner_id: str) -> tuple[SourceDescr
 
 
 def _project_source_descriptors(p2p_dir: Path) -> tuple[SourceDescriptor, ...]:
-    return (
+    descriptors = [
         SourceDescriptor(
             p2p_dir / "project" / "conflicts.yml",
             "PROJECT",
@@ -794,7 +794,20 @@ def _project_source_descriptors(p2p_dir: Path) -> tuple[SourceDescriptor, ...]:
             False,
             "yaml",
         ),
-    )
+    ]
+    questions = p2p_dir / "project" / "questions.yml"
+    if questions.exists():
+        descriptors.append(
+            SourceDescriptor(
+                questions,
+                "PROJECT",
+                SourceKind.PROJECT_QUESTIONS,
+                SourceClassification.QUALITY_METADATA,
+                False,
+                "yaml",
+            )
+        )
+    return tuple(descriptors)
 
 
 def fragment_for_label(document: SourceDocument, label: str) -> ParsedFragment | None:

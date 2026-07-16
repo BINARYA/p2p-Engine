@@ -55,22 +55,7 @@ jobs:
         run: python -m build
 
       - name: Verify distribution artifacts
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import tomllib
-
-          version = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
-          expected = [
-              Path(f"dist/p2p_engine-{version}-py3-none-any.whl"),
-              Path(f"dist/p2p_engine-{version}.tar.gz"),
-          ]
-          missing = [path.as_posix() for path in expected if not path.exists()]
-          if missing:
-              raise SystemExit("Missing release artifacts: " + ", ".join(missing))
-          for path in expected:
-              print(path.as_posix())
-          PY
+        run: python scripts/verify-release-artifacts.py
 
       - name: Create release notes
         run: |

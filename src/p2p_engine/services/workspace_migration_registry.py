@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Iterable, TYPE_CHECKING
 
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.version import InvalidVersion, Version
@@ -11,6 +11,9 @@ from p2p_engine.core.workspace_schema import (
     LEGACY_WORKSPACE_VERSION,
     TransitionRuntimeSupport,
 )
+
+if TYPE_CHECKING:
+    from p2p_engine.services.workspace_migration_handlers import RegisteredWorkspaceMigrationHandler
 
 
 KNOWN_TRANSITION_CAPABILITIES = frozenset(
@@ -52,16 +55,49 @@ class WorkspaceMigrationRegistry:
     def __init__(
         self,
         transitions: Iterable[MigrationTransition] | None = None,
+        handlers: Iterable["RegisteredWorkspaceMigrationHandler"] | None = None,
         *,
         current_version: int = CURRENT_WORKSPACE_SCHEMA_VERSION,
     ) -> None:
         self.current_version = current_version
-        self._transitions = tuple(transitions or default_workspace_migrations())
+        if transitions is not None and handlers is not None:
+            raise ValueError("Provide workspace migration transitions or handlers, not both")
+        if handlers is None:
+            source_transitions = tuple(transitions or default_workspace_migrations())
+            if transitions is None:
+                from p2p_engine.services.workspace_migration_handlers import (
+                    LegacyUndeclaredToV1Handler,
+                    WorkspaceV1ToV2ProjectQuestionsHandler,
+                )
+
+                self._handlers = (
+                    LegacyUndeclaredToV1Handler(source_transitions[0]),
+                    WorkspaceV1ToV2ProjectQuestionsHandler(source_transitions[1]),
+                )
+            else:
+                from p2p_engine.services.workspace_migration_handlers import RegisteredWorkspaceMigrationHandler
+
+                self._handlers = tuple(
+                    RegisteredWorkspaceMigrationHandler(
+                        transition=item,
+                        planner_key="metadata_only",
+                        owned_candidate_targets=(),
+                        validators=(),
+                    )
+                    for item in source_transitions
+                )
+        else:
+            self._handlers = tuple(handlers)
+        self._transitions = tuple(item.transition for item in self._handlers)
         self._validate()
 
     @property
     def transitions(self) -> tuple[MigrationTransition, ...]:
         return self._transitions
+
+    @property
+    def handlers(self) -> tuple["RegisteredWorkspaceMigrationHandler", ...]:
+        return self._handlers
 
     @property
     def migration_ids(self) -> frozenset[str]:
@@ -71,6 +107,12 @@ class WorkspaceMigrationRegistry:
         for transition in self._transitions:
             if transition.migration_id == migration_id:
                 return transition
+        raise ValueError(f"Unknown workspace migration id: {migration_id}")
+
+    def handler_by_id(self, migration_id: str) -> "RegisteredWorkspaceMigrationHandler":
+        for handler in self._handlers:
+            if handler.transition.migration_id == migration_id:
+                return handler
         raise ValueError(f"Unknown workspace migration id: {migration_id}")
 
     def resolve_path(self, source_version: int, target_version: int) -> tuple[MigrationTransition, ...]:
@@ -97,6 +139,29 @@ class WorkspaceMigrationRegistry:
         if version != target_version:
             raise ValueError(f"P2P312_MISSING_TRANSITION: cannot reach workspace schema {target_version}")
         return tuple(resolved)
+
+    def resolve_handlers(
+        self,
+        source_version: int,
+        target_version: int,
+    ) -> tuple["RegisteredWorkspaceMigrationHandler", ...]:
+        return tuple(self.handler_by_id(item.migration_id) for item in self.resolve_path(source_version, target_version))
+
+    def validate_candidate_ownership(
+        self,
+        migration_ids: Iterable[str],
+        targets: Iterable[str],
+    ) -> None:
+        handlers = tuple(self.handler_by_id(item) for item in migration_ids)
+        for target in targets:
+            owners = [
+                handler
+                for handler in handlers
+                if target in handler.owned_candidate_targets
+                or any(target.startswith(prefix) for prefix in handler.allow_managed_prefixes)
+            ]
+            if not owners:
+                raise ValueError(f"No selected workspace migration handler owns candidate `{target}`.")
 
     def _validate(self) -> None:
         ids: set[str] = set()
@@ -148,9 +213,9 @@ def default_workspace_migrations() -> tuple[MigrationTransition, ...]:
             migration_id="workspace-legacy-to-v1",
             source_version=0,
             target_version=1,
-            inspect_requires=">=0.2.0,<0.3.0",
-            plan_requires=">=0.2.0,<0.3.0",
-            apply_requires=">=0.2.0,<0.3.0",
+            inspect_requires=">=0.2.0,<0.4.0",
+            plan_requires=">=0.2.0,<0.4.0",
+            apply_requires=">=0.2.0,<0.4.0",
             capabilities=(
                 "candidate_overlay",
                 "durable_transactions",
@@ -158,6 +223,23 @@ def default_workspace_migrations() -> tuple[MigrationTransition, ...]:
                 "semantic_plan_hashes",
                 "stateless_preview",
             ),
+            required_owner_inputs=(),
+        ),
+        MigrationTransition(
+            migration_id="workspace-v1-to-v2",
+            source_version=1,
+            target_version=2,
+            inspect_requires=">=0.3.0,<0.4.0",
+            plan_requires=">=0.3.0,<0.4.0",
+            apply_requires=">=0.3.0,<0.4.0",
+            capabilities=(
+                "candidate_overlay",
+                "durable_transactions",
+                "exclusive_migration_lock",
+                "semantic_plan_hashes",
+                "stateless_preview",
+            ),
+            dependencies=("workspace-legacy-to-v1",),
             required_owner_inputs=(),
         ),
     )

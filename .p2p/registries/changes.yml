@@ -1127,3 +1127,20 @@ changes:
   - openspec
   - speckit
   task_count: 0
+- id: CHANGE-069
+  title: Project Readiness Convergence Workflow
+  status: implementation_ready
+  path: .p2p/changes/CHANGE-069-project-readiness-convergence-workflow
+  included_proposals:
+  - PROP-101
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 29

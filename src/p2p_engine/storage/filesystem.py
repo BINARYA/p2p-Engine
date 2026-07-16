@@ -10,6 +10,18 @@ from p2p_engine.core.derived_freshness import DerivedFreshnessStatus
 from p2p_engine.core.mutation_preview import MutationPreview, MutationResult
 from p2p_engine.core.project_metadata import ProjectMetadataView
 from p2p_engine.core.project_progress import ProjectProgress
+from p2p_engine.core.project_questions import (
+    ProjectQuestion,
+    ProjectQuestionArtifact,
+    ProjectQuestionOperationResult,
+)
+from p2p_engine.core.project_readiness import ProjectReadinessResult, ProjectReadinessSnapshot
+from p2p_engine.core.project_readiness import ProjectReadinessPage
+from p2p_engine.core.project_readiness_convergence import (
+    ProjectQuestionReconciliationPreview,
+    ProjectReadinessConvergencePreview,
+    ProjectReadinessConvergenceResult,
+)
 from p2p_engine.core.proposal import Proposal
 from p2p_engine.core.project_verticals import (
     ActiveProjectVertical,
@@ -118,6 +130,9 @@ from p2p_engine.services.project_maturity import (
 from p2p_engine.services.project_interaction_style import ProjectInteractionStyleService
 from p2p_engine.services.project_metadata import ProjectMetadataService
 from p2p_engine.services.project_progress import ProjectProgressService
+from p2p_engine.services.project_questions import ProjectQuestionStateService
+from p2p_engine.services.project_readiness import ProjectReadinessPaginationService
+from p2p_engine.services.project_readiness_convergence import ProjectReadinessConvergenceService
 from p2p_engine.services.project_verticals import ProjectVerticalService
 from p2p_engine.services.project_initialization import (
     ProjectInitializationResult,
@@ -187,6 +202,9 @@ from p2p_engine.services.workspace_status import (
     WorkspaceStatus,
     WorkspaceStatusService,
 )
+from p2p_engine.services.workspace_operation_compatibility import (
+    WorkspaceOperationCompatibilityService,
+)
 from p2p_engine.storage.git import (
     abort_merge,
     branch_exists,
@@ -247,6 +265,10 @@ class P2PWorkspace:
         self._project_maturity_service_instance: ProjectMaturityService | None = None
         self._project_metadata_service_instance: ProjectMetadataService | None = None
         self._project_progress_service_instance: ProjectProgressService | None = None
+        self._project_question_state_service_instance: ProjectQuestionStateService | None = None
+        self._project_readiness_convergence_service_instance: (
+            ProjectReadinessConvergenceService | None
+        ) = None
         self._project_publication_service_instance: ProjectPublicationService | None = None
         self._project_vertical_service_instance: ProjectVerticalService | None = None
         self._project_state_service_instance: ProjectStateService | None = None
@@ -272,6 +294,9 @@ class P2PWorkspace:
         self._workspace_schema_service_instance: WorkspaceSchemaService | None = None
         self._workspace_compatibility_service_instance: WorkspaceCompatibilityService | None = None
         self._workspace_migration_service_instance: WorkspaceMigrationService | None = None
+        self._workspace_operation_compatibility_service_instance: (
+            WorkspaceOperationCompatibilityService | None
+        ) = None
         self._migration_lock_service_instance: MigrationLockService | None = None
 
     def _permissions_service(self) -> PermissionsService:
@@ -536,8 +561,29 @@ class P2PWorkspace:
                 p2p_dir=self.p2p_dir,
                 vertical_service=self._project_vertical_service(),
                 proposal_summaries=self.proposal_summaries,
+                question_service=self._project_question_state_service(),
             )
         return self._project_progress_service_instance
+
+    def _project_question_state_service(self) -> ProjectQuestionStateService:
+        if self._project_question_state_service_instance is None:
+            self._project_question_state_service_instance = ProjectQuestionStateService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                permissions=self._permissions_service(),
+            )
+        return self._project_question_state_service_instance
+
+    def _project_readiness_convergence_service(self) -> ProjectReadinessConvergenceService:
+        if self._project_readiness_convergence_service_instance is None:
+            self._project_readiness_convergence_service_instance = ProjectReadinessConvergenceService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                vertical_service=self._project_vertical_service(),
+                question_service=self._project_question_state_service(),
+                permissions=self._permissions_service(),
+            )
+        return self._project_readiness_convergence_service_instance
 
     def _project_vertical_service(self) -> ProjectVerticalService:
         if self._project_vertical_service_instance is None:
@@ -563,6 +609,7 @@ class P2PWorkspace:
                 show_choice=self.show_choice,
                 workspace_schema_status=self.workspace_schema_status,
                 derived_freshness_status=self.project_freshness,
+                project_readiness_result=self.project_readiness_result,
             )
         return self._next_action_service_instance
 
@@ -828,6 +875,13 @@ class P2PWorkspace:
                 recovery_status=lambda: self._workspace_migration_service().recovery_status(),
             )
         return self._workspace_schema_service_instance
+
+    def _workspace_operation_compatibility_service(self) -> WorkspaceOperationCompatibilityService:
+        if self._workspace_operation_compatibility_service_instance is None:
+            self._workspace_operation_compatibility_service_instance = (
+                WorkspaceOperationCompatibilityService()
+            )
+        return self._workspace_operation_compatibility_service_instance
 
     def _migration_lock_service(self) -> MigrationLockService:
         if self._migration_lock_service_instance is None:
@@ -1393,6 +1447,10 @@ class P2PWorkspace:
             return self._runtime_contract_service().write_preflight(operation)
         preflight = self._runtime_contract_service().write_preflight(operation)
         preflight.require_allowed()
+        self._workspace_operation_compatibility_service().check(
+            operation,
+            self._workspace_schema_service().status(),
+        ).require_allowed()
         return preflight
 
     def readiness_profile(self, profile_id: str = DEFAULT_READINESS_PROFILE_ID) -> ReadinessProfile:
@@ -1864,6 +1922,207 @@ class P2PWorkspace:
 
     def review_project_readiness(self, vertical_id: str | None = None) -> ProjectReadinessReview:
         return self._project_vertical_service().project_readiness_review(vertical_id=vertical_id)
+
+    def project_readiness_result(self, vertical_id: str | None = None) -> ProjectReadinessResult:
+        return self._project_vertical_service().project_readiness_result(vertical_id=vertical_id)
+
+    def project_readiness_snapshot(self, vertical_id: str | None = None) -> ProjectReadinessSnapshot:
+        return self._project_vertical_service().project_readiness_snapshot(vertical_id=vertical_id)
+
+    def project_questions(self) -> ProjectQuestionArtifact:
+        self._workspace_operation_compatibility_service().check(
+            "project_questions_answer",
+            self.workspace_schema_status(),
+        ).require_allowed()
+        return self._project_question_state_service().read()
+
+    def project_question(self, question_id: str) -> ProjectQuestion:
+        self._workspace_operation_compatibility_service().check(
+            "project_questions_answer",
+            self.workspace_schema_status(),
+        ).require_allowed()
+        return self._project_question_state_service().question(question_id)
+
+    def project_questions_page(
+        self,
+        *,
+        state: str = "",
+        limit: int = 20,
+        cursor: str = "",
+    ) -> ProjectReadinessPage:
+        self._workspace_operation_compatibility_service().check(
+            "project_questions_answer",
+            self.workspace_schema_status(),
+        ).require_allowed()
+        return self._project_question_state_service().page(
+            state=state,
+            limit=limit,
+            cursor=cursor,
+        )
+
+    def project_readiness_gaps(
+        self,
+        *,
+        kind: str = "",
+        severity: str = "",
+        limit: int = 20,
+        cursor: str = "",
+    ) -> ProjectReadinessPage:
+        result = self.project_readiness_result()
+        return ProjectReadinessPaginationService().page_gaps(
+            result,
+            limit=limit,
+            cursor=cursor,
+            predicate=lambda item: (
+                (not kind or item.kind.value == kind)
+                and (not severity or item.severity.value == severity)
+            ),
+        )
+
+    def project_readiness_gap(self, gap_id: str):
+        result = self.project_readiness_result()
+        gap = next((item for item in result.gaps if item.gap_id == gap_id), None)
+        if gap is None:
+            raise ValueError(f"Project readiness gap not found: {gap_id}")
+        return gap
+
+    def next_project_question(self) -> ProjectQuestion | None:
+        self._workspace_operation_compatibility_service().check(
+            "project_questions_answer",
+            self.workspace_schema_status(),
+        ).require_allowed()
+        return self._project_question_state_service().next_question()
+
+    def answer_project_question(
+        self,
+        question_id: str,
+        *,
+        values: dict[str, object],
+        actor: str,
+        expected_revision: int,
+        replace_answer: bool = False,
+        evidence_refs: tuple[str, ...] = (),
+    ) -> ProjectQuestionOperationResult:
+        self._ensure_runtime_write_allowed("project_questions_answer")
+        return self._project_question_state_service().answer(
+            question_id,
+            values=values,
+            actor=actor,
+            expected_revision=expected_revision,
+            replace_answer=replace_answer,
+            evidence_refs=evidence_refs,
+        )
+
+    def defer_project_question(
+        self,
+        question_id: str,
+        *,
+        actor: str,
+        expected_revision: int,
+        reason: str,
+    ) -> ProjectQuestionOperationResult:
+        self._ensure_runtime_write_allowed("project_questions_defer")
+        return self._project_question_state_service().defer(
+            question_id,
+            actor=actor,
+            expected_revision=expected_revision,
+            reason=reason,
+        )
+
+    def mute_project_question(
+        self,
+        question_id: str,
+        *,
+        actor: str,
+        expected_revision: int,
+        reason: str,
+    ) -> ProjectQuestionOperationResult:
+        self._ensure_runtime_write_allowed("project_questions_mute")
+        return self._project_question_state_service().mute(
+            question_id,
+            actor=actor,
+            expected_revision=expected_revision,
+            reason=reason,
+        )
+
+    def reopen_project_question(
+        self,
+        question_id: str,
+        *,
+        actor: str,
+        expected_revision: int,
+        reason: str,
+    ) -> ProjectQuestionOperationResult:
+        self._ensure_runtime_write_allowed("project_questions_reopen")
+        return self._project_question_state_service().reopen(
+            question_id,
+            actor=actor,
+            expected_revision=expected_revision,
+            reason=reason,
+        )
+
+    def refresh_project_question_triggers(self, *, actor: str = "system") -> MutationResult:
+        self._ensure_runtime_write_allowed("project_questions_trigger_reopen")
+        view = self.project_definition_view()
+        if not view.valid or view.state is None:
+            raise ValueError("Project definition must be valid before evaluating deferred triggers.")
+        return self._project_question_state_service().reopen_deferred_triggers(
+            view.state,
+            actor=actor,
+        )
+
+    def preview_project_readiness_convergence(
+        self,
+        question_ids: list[str],
+        *,
+        actor: str,
+    ) -> ProjectReadinessConvergencePreview:
+        self._workspace_operation_compatibility_service().check(
+            "project_readiness_convergence_apply",
+            self.workspace_schema_status(),
+        ).require_allowed()
+        return self._project_readiness_convergence_service().preview(question_ids, actor=actor)
+
+    def apply_project_readiness_convergence(
+        self,
+        question_ids: list[str],
+        *,
+        actor: str,
+        preview_token: str,
+        confirm: bool,
+    ) -> ProjectReadinessConvergenceResult:
+        self._ensure_runtime_write_allowed("project_readiness_convergence_apply")
+        return self._project_readiness_convergence_service().apply(
+            question_ids,
+            actor=actor,
+            preview_token=preview_token,
+            confirm=confirm,
+        )
+
+    def preview_project_question_reconciliation(
+        self,
+        *,
+        actor: str,
+    ) -> ProjectQuestionReconciliationPreview:
+        self._workspace_operation_compatibility_service().check(
+            "project_questions_reconcile_apply",
+            self.workspace_schema_status(),
+        ).require_allowed()
+        return self._project_readiness_convergence_service().reconciliation_preview(actor=actor)
+
+    def apply_project_question_reconciliation(
+        self,
+        *,
+        actor: str,
+        preview_token: str,
+        confirm: bool,
+    ) -> ProjectReadinessConvergenceResult:
+        self._ensure_runtime_write_allowed("project_questions_reconcile_apply")
+        return self._project_readiness_convergence_service().reconciliation_apply(
+            actor=actor,
+            preview_token=preview_token,
+            confirm=confirm,
+        )
 
     def project_vertical_lock_status(self) -> VerticalLockStatus:
         return self._project_vertical_service().vertical_lock_status()

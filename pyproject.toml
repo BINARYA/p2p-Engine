@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "p2p-engine"
-version = "0.2.0"
+version = "0.3.0"
 description = "Proposal-to-Plan Engine CLI"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -29,6 +29,19 @@ pdf = [
 [project.scripts]
 p2p = "p2p_engine.cli:app"
 p2p-mcp-server = "p2p_engine.mcp.server:main"
+
+[tool.hatch.build]
+exclude = [
+  "/.agents",
+  "/.codex",
+  "/.p2p",
+  "/.pytest_cache",
+  "/.venv",
+  "/dist",
+  "/drafts",
+  "/outputs",
+  "/specs",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/p2p_engine"]

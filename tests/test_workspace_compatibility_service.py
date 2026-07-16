@@ -140,8 +140,8 @@ def test_current_and_downgrade_plans_have_stable_no_write_results(tmp_path: Path
     )
     before = _tree_hash(tmp_path)
 
-    current = service.plan(1)
-    downgrade = service.plan(0)
+    current = service.plan(2)
+    downgrade = service.plan(1)
 
     assert current.status == "no_op"
     assert current.applicable is True

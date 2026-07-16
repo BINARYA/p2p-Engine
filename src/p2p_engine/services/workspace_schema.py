@@ -20,6 +20,7 @@ from p2p_engine.core.workspace_schema import (
     LAYOUT_INVALID,
     LAYOUT_LEGACY,
     LAYOUT_UNSUPPORTED,
+    LAYOUT_UPGRADEABLE,
     WORKSPACE_SCHEMA_CONTRACT_VERSION,
     AppliedWorkspaceMigration,
     WorkspaceDiagnostic,
@@ -28,6 +29,7 @@ from p2p_engine.core.workspace_schema import (
 )
 from p2p_engine.foundation.files import read_yaml_mapping, write_yaml_atomic
 from p2p_engine.services.workspace_migration_registry import WorkspaceMigrationRegistry
+from p2p_engine.services.project_questions import ProjectQuestionStateService
 
 
 WORKSPACE_SCHEMA_PATH = Path(".p2p/project/workspace-schema.yml")
@@ -150,7 +152,11 @@ class WorkspaceSchemaService:
             )
 
         layout_findings = self.layout_findings(state.current_version)
-        layout_status = LAYOUT_CURRENT if state.current_version == CURRENT_WORKSPACE_SCHEMA_VERSION else LAYOUT_INCOMPLETE
+        layout_status = (
+            LAYOUT_CURRENT
+            if state.current_version == CURRENT_WORKSPACE_SCHEMA_VERSION
+            else LAYOUT_UPGRADEABLE
+        )
         alignment = ALIGNMENT_ALIGNED
         if recovery.get("required"):
             alignment = ALIGNMENT_RECOVERY_REQUIRED
@@ -158,9 +164,28 @@ class WorkspaceSchemaService:
             alignment = ALIGNMENT_DEGRADED
         findings = list(layout_findings)
         findings.extend(self._alignment_advisories())
+        transition_support = None
+        if layout_status == LAYOUT_UPGRADEABLE:
+            path = self.registry.resolve_path(state.current_version, CURRENT_WORKSPACE_SCHEMA_VERSION)
+            if path:
+                transition_support = path[0].runtime_support(self.engine_version)
+            findings.append(
+                WorkspaceDiagnostic(
+                    code="P2P308_WORKSPACE_SCHEMA_UPGRADE_AVAILABLE",
+                    severity="info",
+                    path=str(WORKSPACE_SCHEMA_PATH),
+                    message=(
+                        f"Workspace schema {state.current_version} remains operable and can be upgraded "
+                        f"to {CURRENT_WORKSPACE_SCHEMA_VERSION}."
+                    ),
+                    suggested_command=(
+                        f"p2p workspace migrate plan --to {CURRENT_WORKSPACE_SCHEMA_VERSION} --format json"
+                    ),
+                )
+            )
         return WorkspaceSchemaStatus(
             schema_path=str(WORKSPACE_SCHEMA_PATH),
-            state="current" if layout_status == LAYOUT_CURRENT else "migration_incomplete",
+            state="current" if layout_status == LAYOUT_CURRENT else "upgrade_available",
             layout_status=layout_status,
             alignment_status=alignment,
             current_version=state.current_version,
@@ -168,6 +193,7 @@ class WorkspaceSchemaService:
             contract_version=state.contract_version,
             schema=state,
             findings=tuple(findings),
+            transition_support=transition_support,
             recovery=recovery,
         )
 
@@ -229,7 +255,7 @@ class WorkspaceSchemaService:
         ).to_payload()
 
     def layout_requirements(self, version: int) -> dict[str, tuple[str, ...]]:
-        if version != 1:
+        if version not in {1, 2}:
             return {"canonical": (), "optional": (), "compatibility": (), "derived": (), "transient": ()}
         canonical = [
             ".p2p/project.yml",
@@ -254,6 +280,8 @@ class WorkspaceSchemaService:
                     ".p2p/project/definition.yml",
                 ]
             )
+        if version >= 2:
+            canonical.append(".p2p/project/questions.yml")
         return {
             "canonical": tuple(canonical),
             "optional": (
@@ -279,6 +307,57 @@ class WorkspaceSchemaService:
                         suggested_command="p2p workspace migrate recovery status",
                     )
                 )
+        if version >= 2:
+            questions_path = self.root / ".p2p/project/questions.yml"
+            if questions_path.exists():
+                try:
+                    ProjectQuestionStateService(root=self.root, p2p_dir=self.p2p_dir).read()
+                except ValueError as exc:
+                    findings.append(
+                        WorkspaceDiagnostic(
+                            code="P2P340_PROJECT_QUESTIONS_INVALID",
+                            severity="error",
+                            path=".p2p/project/questions.yml",
+                            message=str(exc),
+                            suggested_command="p2p project readiness questions status --format json",
+                        )
+                    )
+            definition_path = self.root / ".p2p/project/definition.yml"
+            if definition_path.exists():
+                try:
+                    definition = read_yaml_mapping(definition_path, default={})
+                    raw = definition.get("project_definition")
+                    sections = raw.get("sections") if isinstance(raw, dict) else None
+                    if not isinstance(sections, list):
+                        raise ValueError("project_definition.sections must be a sequence")
+                    legacy_sections = [
+                        str(item.get("id") or "")
+                        for item in sections
+                        if isinstance(item, dict) and item.get("open_questions")
+                    ]
+                    if legacy_sections:
+                        findings.append(
+                            WorkspaceDiagnostic(
+                                code="P2P354_LEGACY_PROJECT_QUESTIONS_PRESENT",
+                                severity="error",
+                                path=".p2p/project/definition.yml",
+                                message=(
+                                    "Workspace schema v2 requires definition open_questions to be empty: "
+                                    + ", ".join(sorted(legacy_sections))
+                                ),
+                                suggested_command="p2p workspace migrate plan --to 2 --format json",
+                            )
+                        )
+                except (OSError, ValueError, yaml.YAMLError) as exc:
+                    findings.append(
+                        WorkspaceDiagnostic(
+                            code="P2P255_PROJECT_DEFINITION_INVALID",
+                            severity="error",
+                            path=".p2p/project/definition.yml",
+                            message=str(exc),
+                            suggested_command="p2p project definition show --format json",
+                        )
+                    )
         return findings
 
     def validation_findings(self) -> list[WorkspaceDiagnostic]:
@@ -319,7 +398,11 @@ class WorkspaceSchemaService:
         if state.contract_version < 1 or state.current_version < 1:
             raise ValueError("Workspace schema contract and current versions must be positive integers")
         seen: set[str] = set()
-        expected_source = 0
+        expected_source = (
+            0
+            if state.baseline == "migrated_legacy"
+            else (state.applied_migrations[0].source_version if state.applied_migrations else state.current_version)
+        )
         for item in state.applied_migrations:
             if item.migration_id in seen:
                 raise ValueError(f"Duplicate applied workspace migration id: {item.migration_id}")
@@ -339,6 +422,8 @@ class WorkspaceSchemaService:
             raise ValueError("migrated_legacy baseline requires applied migration history")
         if state.baseline == "initialized_current" and state.applied_migrations:
             raise ValueError("initialized_current baseline cannot contain applied migration history")
+        if state.baseline == "migrated_declared" and not state.applied_migrations:
+            raise ValueError("migrated_declared baseline requires applied migration history")
 
     def _unsupported(self, state: WorkspaceSchemaState, recovery: dict[str, object]) -> WorkspaceSchemaStatus:
         return WorkspaceSchemaStatus(

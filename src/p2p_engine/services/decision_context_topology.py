@@ -386,18 +386,24 @@ class DecisionContextTopologyService:
             SourceKind.READINESS,
             SourceKind.QUESTIONS,
             SourceKind.CONTRIBUTIONS,
+            SourceKind.PROJECT_QUESTIONS,
         }
         for document in documents:
             if document.source_kind in quality_kinds:
                 summaries = _quality_summaries(document)
                 for pointer, text, activation in summaries:
                     item_evidence = source_evidence(document, pointer)
+                    owner_type = (
+                        NodeType.DECISION
+                        if document.source_kind == SourceKind.PROJECT_QUESTIONS
+                        else NodeType.PROPOSAL
+                    )
                     records.append(
                         _record(
                             document,
                             pointer,
                             RecordKind.EVENT,
-                            NodeType.PROPOSAL,
+                            owner_type,
                             document.owner_id,
                             text,
                             item_evidence,
@@ -1198,11 +1204,37 @@ def _quality_summaries(document: SourceDocument) -> tuple[tuple[str, str, Activa
             )
             for index, item in enumerate(_mapping_items(items))
         )
+    if document.source_kind == SourceKind.PROJECT_QUESTIONS:
+        payload = document.frontmatter.get("project_questions")
+        questions = payload.get("questions") if isinstance(payload, Mapping) else ()
+        result = []
+        for index, item in enumerate(_mapping_items(questions)):
+            if index >= 100:
+                break
+            question_id = _first_text(item, "id") or f"question-{index + 1}"
+            state = _first_text(item, "state") or "unknown"
+            target = item.get("target") if isinstance(item.get("target"), Mapping) else {}
+            target_kind = _first_text(target, "kind") or "unknown"
+            target_id = _first_text(target, "id") or "unknown"
+            answers = item.get("answers") if isinstance(item.get("answers"), list) else []
+            applications = item.get("applications") if isinstance(item.get("applications"), list) else []
+            result.append(
+                (
+                    f"yaml:/project_questions/questions/{index}",
+                    f"Project question {question_id}: {state}; target {target_kind}:{target_id}; "
+                    f"answer revisions {len(answers)}; applications {len(applications)}",
+                    Activation.INACTIVE,
+                )
+            )
+        return tuple(result)
     return ()
 
 
 def _project_definition_values(payload: Mapping[str, object]) -> tuple[tuple[str, str], ...]:
-    allowed = {"identity", "purpose", "scope", "principles", "constraints", "sections", "capabilities", "surfaces"}
+    wrapped = payload.get("project_definition")
+    if isinstance(wrapped, Mapping):
+        payload = wrapped
+    allowed = {"identity", "purpose", "scope", "principles", "constraints", "capabilities", "surfaces"}
     result: list[tuple[str, str]] = []
     for key in sorted(payload):
         if key not in allowed:
@@ -1210,6 +1242,35 @@ def _project_definition_values(payload: Mapping[str, object]) -> tuple[tuple[str
         for pointer, text in _scalar_text_values(payload[key], f"yaml:/{key}"):
             if text:
                 result.append((pointer, text))
+    sections = payload.get("sections")
+    for section_index, section in enumerate(_mapping_items(sections)):
+        fields = section.get("fields")
+        if isinstance(fields, Mapping):
+            for field_id in sorted(fields, key=str):
+                field = fields[field_id]
+                value = field.get("value") if isinstance(field, Mapping) else field
+                for pointer, text in _scalar_text_values(
+                    value,
+                    f"yaml:/sections/{section_index}/fields/{field_id}/value",
+                ):
+                    if text:
+                        result.append((pointer, text))
+        for assumption_index, assumption in enumerate(_mapping_items(section.get("assumptions"))):
+            if _first_text(assumption, "status") not in {"validated", "rejected"}:
+                continue
+            text = _first_text(assumption, "text")
+            if text:
+                result.append(
+                    (f"yaml:/sections/{section_index}/assumptions/{assumption_index}/text", text)
+                )
+        for blocker_index, blocker in enumerate(_mapping_items(section.get("blockers"))):
+            if _first_text(blocker, "status") != "open":
+                continue
+            text = _first_text(blocker, "text")
+            if text:
+                result.append(
+                    (f"yaml:/sections/{section_index}/blockers/{blocker_index}/text", text)
+                )
     return tuple(result)
 
 

@@ -302,6 +302,10 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_project_definition_show` | read-only | no | no | Read durable project definition state. |
 | `p2p_project_definition_update` | write-safe | yes | no | Apply a structured project definition patch file. |
 | `p2p_project_readiness_review` | advisory/read-only | no | no | Review capisaldi coverage, unmapped proposals, and questions against a vertical. |
+| `p2p_project_readiness_gaps` | advisory/read-only | no | no | List bounded prioritized gaps with filters and a snapshot-bound cursor. |
+| `p2p_project_readiness_gap_show` | advisory/read-only | no | no | Read one stable readiness gap. |
+| `p2p_project_questions_status` | advisory/read-only | no | no | List persistent project-question state with bounded pagination. |
+| `p2p_project_questions_next` | advisory/read-only | no | no | Read the next applicable project question. |
 | `p2p_spec_refresh` | write-safe | yes | no | Generate a P2P-native software spec after lifecycle preflight. |
 | `p2p_spec_export` | write-safe | yes | no | Export spec outputs for `generic`, `openspec`, or `speckit` after lifecycle preflight. |
 | `p2p_spec_export_validate` | read-only | no | no | Validate an existing spec export. |
@@ -528,6 +532,11 @@ Review project vertical readiness:
   }
 }
 ```
+
+Project-question and convergence mutations are intentionally absent from MCP in
+this release. Use the owner-authorized CLI commands. Write parity requires a
+separate consent-gated proposal after the CLI payloads have usage evidence and
+stable semantics.
 
 Generate a custom vertical candidate without selecting it:
 

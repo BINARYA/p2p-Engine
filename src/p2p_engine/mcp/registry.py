@@ -4,6 +4,7 @@ from p2p_engine.mcp.catalog import agents
 from p2p_engine.mcp.catalog import collaboration
 from p2p_engine.mcp.catalog import maintenance
 from p2p_engine.mcp.catalog import project
+from p2p_engine.mcp.catalog import project_readiness
 from p2p_engine.mcp.catalog import prompts
 from p2p_engine.mcp.catalog import proposals
 from p2p_engine.mcp.catalog import work_specs
@@ -80,6 +81,10 @@ TOOL_NAMES = (
     'p2p_project_definition_show',
     'p2p_project_definition_update',
     'p2p_project_readiness_review',
+    'p2p_project_readiness_gaps',
+    'p2p_project_readiness_gap_show',
+    'p2p_project_questions_status',
+    'p2p_project_questions_next',
     'p2p_next',
     'p2p_next_add',
     'p2p_next_complete',
@@ -174,6 +179,7 @@ def tool_definitions() -> list[dict[str, object]]:
         *maintenance.tool_definitions(),
         *agents.tool_definitions(),
         *project.tool_definitions(),
+        *project_readiness.tool_definitions(),
         *proposals.tool_definitions(),
         *collaboration.tool_definitions(),
         *work_specs.tool_definitions(),

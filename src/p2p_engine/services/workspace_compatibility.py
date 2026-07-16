@@ -36,10 +36,12 @@ from p2p_engine.core.workspace_schema import (
 )
 from p2p_engine.foundation.files import read_yaml_mapping, yaml_dump
 from p2p_engine.services.project_maturity import domain_state_payload
+from p2p_engine.services.candidate_workspace import CandidateWorkspaceView
 from p2p_engine.services.project_metadata import ProjectMetadataService
 from p2p_engine.services.project_verticals import ProjectVerticalService
 from p2p_engine.services.permissions import PermissionsService
 from p2p_engine.services.workspace_migration_registry import WorkspaceMigrationRegistry
+from p2p_engine.services.workspace_migration_handlers import TransitionPlanFragment
 from p2p_engine.services.workspace_schema import WorkspaceSchemaService
 
 
@@ -47,7 +49,7 @@ WORKSPACE_PLANNER_VERSION = 1
 SEMANTIC_AUDIT_TIMESTAMP = "__P2P_APPLY_AT__"
 SEMANTIC_AUDIT_ACTOR = "__P2P_ACTOR__"
 
-_OWNER_INPUT_KEYS = frozenset({"vertical", "owner", "metadata"})
+_OWNER_INPUT_KEYS = frozenset({"vertical", "owner", "metadata", "project_questions"})
 _VERTICAL_INPUT_KEYS = frozenset({"id", "profile", "modules", "rubric_mapping"})
 _OWNER_IDENTITY_KEYS = frozenset({"id", "name"})
 _METADATA_INPUT_KEYS = frozenset({"status", "workflow_phase", "current_objective"})
@@ -220,101 +222,95 @@ class WorkspaceCompatibilityService:
             )
             applicable = False
 
-        candidate_files: dict[str, bytes] = {}
-        operations: list[MigrationOperation] = []
-        migration_id = transitions[-1].migration_id
-        project = self._captured_yaml(".p2p/project.yml")
-        project_data = project.get("project") if isinstance(project, dict) else None
-        domain = str(project_data.get("domain") or "") if isinstance(project_data, dict) else ""
-
-        missing_inputs = self._required_owner_inputs(domain, normalized_inputs)
-        for input_name, message in missing_inputs:
-            findings.append(
-                CompatibilityFinding(
-                    code="P2P323_MIGRATION_OWNER_INPUT_REQUIRED",
-                    classification=FINDING_OWNER_INPUT_REQUIRED,
-                    message=message,
-                    recovery_action=f"Supply owner input: {input_name}",
-                    migration_id=migration_id,
-                )
+        fragment = None
+        for transition in transitions:
+            handler = self.registry.handler_by_id(transition.migration_id)
+            fragment = self._plan_with_handler(
+                handler=handler,
+                snapshot=snapshot,
+                findings=fragment.findings if fragment is not None else findings,
+                owner_inputs=normalized_inputs,
+                applicable=fragment.applicable if fragment is not None else applicable,
+                base_plan=fragment,
             )
-            operations.append(
-                MigrationOperation(
-                    operation_id=f"owner-input-{input_name.replace('.', '-')}",
-                    kind=OP_OWNER_INPUT,
-                    target=input_name,
-                    reason=message,
-                    migration_id=migration_id,
-                    write_class="chat_only",
-                    canonical=False,
-                    before_exists=False,
-                    before_physical_sha256=None,
-                    candidate_semantic_sha256=None,
-                    validator="WorkspaceMigrationOwnerInput",
-                    rollback="not applicable",
-                    applicable=False,
-                )
-            )
-            applicable = False
-
-        self._plan_domain(snapshot, project, domain, migration_id, candidate_files, operations)
-        try:
-            self._plan_permissions(snapshot, project, normalized_inputs, migration_id, candidate_files, operations)
-            self._plan_metadata(snapshot, project, normalized_inputs, migration_id, candidate_files, operations)
-        except ValueError as exc:
-            findings.append(
-                CompatibilityFinding(
-                    code="P2P336_INVALID_BOOTSTRAP_CANDIDATE",
-                    classification=FINDING_INVALID,
-                    message=str(exc),
-                    recovery_action="Correct permission or metadata owner inputs and re-plan.",
-                    migration_id=migration_id,
-                )
-            )
-            applicable = False
-        if not self._plan_vertical(
-            snapshot,
-            normalized_inputs,
-            domain,
-            migration_id,
-            candidate_files,
-            operations,
-            findings,
-        ):
-            applicable = False
-        self._plan_unknown_preservation(snapshot, migration_id, operations)
-        self._plan_derived_refresh(migration_id, operations)
-
-        schema_payload = self._semantic_schema_payload(
-            migration_id=migration_id,
+            if not fragment.applicable:
+                break
+        assert fragment is not None
+        return self._finalize_handler_plan(
             source_version=source_version,
             target_version=target_version,
-        )
-        candidate_files[".p2p/project/workspace-schema.yml"] = yaml_dump(schema_payload).encode("utf-8")
-        operations.append(
-            self._candidate_operation(
-                snapshot,
-                operation_id="create-workspace-schema",
-                kind=OP_CREATE_CANONICAL,
-                target=".p2p/project/workspace-schema.yml",
-                reason="Declare the successful legacy-to-v1 workspace transition.",
-                migration_id=migration_id,
-                candidate=schema_payload,
-                validator="WorkspaceSchemaService",
-                dependencies=tuple(item.operation_id for item in operations if item.canonical),
-            )
+            transitions=transitions,
+            owner_inputs=normalized_inputs,
+            fragment=fragment,
         )
 
+    def _plan_with_handler(
+        self,
+        *,
+        handler: Any,
+        snapshot: CompatibilitySnapshot,
+        findings: tuple[CompatibilityFinding, ...] | list[CompatibilityFinding],
+        owner_inputs: Mapping[str, object],
+        applicable: bool,
+        base_plan: Any | None = None,
+    ) -> Any:
+        planner = getattr(handler, "plan", None)
+        if not callable(planner):
+            return TransitionPlanFragment(
+                migration_id=handler.transition.migration_id,
+                operations=(),
+                candidate_files={},
+                findings=(
+                    CompatibilityFinding(
+                        code="P2P312_MISSING_TRANSITION",
+                        classification=FINDING_UNSUPPORTED,
+                        message=(
+                            f"Workspace migration handler `{handler.transition.migration_id}` "
+                            "has no planner."
+                        ),
+                        migration_id=handler.transition.migration_id,
+                    ),
+                ),
+                applicable=False,
+            )
+        arguments = {
+            "context": self,
+            "snapshot": snapshot,
+            "findings": findings,
+            "owner_inputs": owner_inputs,
+            "applicable": applicable,
+            "candidate_view": CandidateWorkspaceView(
+                root=self.root,
+                candidates=dict(base_plan.candidate_files) if base_plan is not None else {},
+                preserved={path: content for path, content in self._captured_bytes.items()},
+                owned_paths=(set(base_plan.candidate_files) if base_plan is not None else set()),
+            ),
+        }
+        if base_plan is not None:
+            arguments["base_plan"] = base_plan
+        return planner(
+            **arguments,
+        )
+
+    def _finalize_handler_plan(
+        self,
+        *,
+        source_version: int,
+        target_version: int,
+        transitions: tuple[Any, ...],
+        owner_inputs: Mapping[str, object],
+        fragment: Any,
+    ) -> MigrationPlan:
         return self._finalize_plan(
-            status="applicable" if applicable else MIGRATION_STATUS_BLOCKED,
+            status="applicable" if fragment.applicable else MIGRATION_STATUS_BLOCKED,
             source_version=source_version,
             target_version=target_version,
             migrations=transitions,
-            operations=tuple(operations),
-            findings=tuple(findings),
-            owner_inputs=normalized_inputs,
-            candidate_files=candidate_files,
-            applicable=applicable,
+            operations=fragment.operations,
+            findings=fragment.findings,
+            owner_inputs=owner_inputs,
+            candidate_files=dict(fragment.candidate_files),
+            applicable=fragment.applicable,
         )
 
     def _inventory(self) -> tuple[ArtifactInventoryEntry, ...]:
@@ -406,6 +402,21 @@ class WorkspaceCompatibilityService:
                     message="Workspace schema is undeclared and has a registered migration path.",
                     recovery_action="p2p workspace migrate plan --to 1",
                     migration_id="workspace-legacy-to-v1",
+                )
+            )
+        elif getattr(schema_status, "upgrade_available", False):
+            findings.append(
+                CompatibilityFinding(
+                    code="P2P308_WORKSPACE_SCHEMA_UPGRADE_AVAILABLE",
+                    classification=FINDING_MIGRATION_REQUIRED,
+                    message=(
+                        f"Workspace schema {schema_status.current_version} is valid and upgradeable "
+                        f"to {schema_status.target_version}."
+                    ),
+                    recovery_action=(
+                        f"p2p workspace migrate plan --to {schema_status.target_version} --format json"
+                    ),
+                    migration_id="workspace-v1-to-v2",
                 )
             )
         for item in inventory:
@@ -809,6 +820,8 @@ class WorkspaceCompatibilityService:
         applicable: bool,
     ) -> MigrationPlan:
         migration_ids = tuple(item.migration_id for item in migrations)
+        if migration_ids and candidate_files:
+            self.registry.validate_candidate_ownership(migration_ids, candidate_files)
         fingerprint_payload = {
             "source_version": source_version,
             "target_version": target_version,
@@ -952,6 +965,43 @@ def normalize_owner_inputs(owner_inputs: Mapping[str, object]) -> dict[str, obje
             _reject_unsafe_value(f"{key}.{nested_key}", normalized_text)
             nested[nested_key] = normalized_text
         normalized[key] = nested
+    project_questions = owner_inputs.get("project_questions")
+    if project_questions is not None:
+        if not isinstance(project_questions, Mapping):
+            raise ValueError("Migration owner input project_questions must be a mapping")
+        unknown_question_fields = set(project_questions) - {"legacy_bindings"}
+        if unknown_question_fields:
+            raise ValueError(
+                "Unknown migration owner input fields for project_questions: "
+                + ", ".join(sorted(unknown_question_fields))
+            )
+        raw_bindings = project_questions.get("legacy_bindings")
+        if not isinstance(raw_bindings, Mapping) or not raw_bindings:
+            raise ValueError("project_questions.legacy_bindings must be a non-empty mapping")
+        bindings: dict[str, dict[str, str]] = {}
+        for source_key, raw_binding in sorted(raw_bindings.items(), key=lambda item: str(item[0])):
+            if not isinstance(source_key, str) or not source_key.strip():
+                raise ValueError("Legacy question binding keys must be non-empty section/question ids")
+            _reject_unsafe_value("project_questions.legacy_bindings", source_key)
+            if not isinstance(raw_binding, Mapping):
+                raise ValueError(f"Legacy question binding `{source_key}` must be a mapping")
+            unknown_binding = set(raw_binding) - {"target_kind", "target_id", "answer_contract"}
+            if unknown_binding:
+                raise ValueError(
+                    f"Legacy question binding `{source_key}` contains forbidden fields: "
+                    + ", ".join(sorted(unknown_binding))
+                )
+            normalized_binding: dict[str, str] = {}
+            for field in ("target_kind", "target_id", "answer_contract"):
+                value = raw_binding.get(field)
+                if field == "answer_contract" and value is None:
+                    continue
+                if not isinstance(value, str) or not value.strip():
+                    raise ValueError(f"Legacy question binding `{source_key}` requires `{field}`")
+                _reject_unsafe_value(f"project_questions.legacy_bindings.{field}", value)
+                normalized_binding[field] = value.strip()
+            bindings[source_key.strip()] = normalized_binding
+        normalized["project_questions"] = {"legacy_bindings": bindings}
     return normalized
 
 

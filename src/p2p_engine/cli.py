@@ -10,6 +10,7 @@ from p2p_engine.cli_commands.collaboration import register_collaboration_command
 from p2p_engine.cli_commands.doctor import register_doctor_commands
 from p2p_engine.cli_commands.next_actions import register_next_commands
 from p2p_engine.cli_commands.project_ops import register_project_ops_commands
+from p2p_engine.cli_commands.project_readiness import register_project_readiness_commands
 from p2p_engine.cli_commands.project_status import register_project_status_commands
 from p2p_engine.cli_commands.prompts import register_prompt_commands
 from p2p_engine.cli_commands.proposals import register_proposal_commands
@@ -50,6 +51,7 @@ project_definition_app = typer.Typer(help="Manage project definition state")
 project_interaction_style_app = typer.Typer(help="Manage project interaction style")
 project_vertical_app = typer.Typer(help="Manage project vertical packs")
 project_readiness_app = typer.Typer(help="Review project readiness against vertical capisaldi")
+project_readiness_questions_app = typer.Typer(help="Manage persistent project-readiness questions")
 impact_app = typer.Typer(help="Analyze proposal impact")
 conflict_app = typer.Typer(help="Record and inspect project conflicts")
 change_app = typer.Typer(help="Manage operational Change Set metadata")
@@ -118,6 +120,7 @@ project_app.add_typer(project_definition_app, name="definition")
 project_app.add_typer(project_interaction_style_app, name="interaction-style")
 project_app.add_typer(project_vertical_app, name="vertical")
 project_app.add_typer(project_readiness_app, name="readiness")
+project_readiness_app.add_typer(project_readiness_questions_app, name="questions")
 assess_app.add_typer(assess_maturity_app, name="maturity")
 intake_app.add_typer(intake_apply_app, name="apply")
 agent_app.add_typer(agent_instructions_app, name="instructions")
@@ -164,6 +167,10 @@ register_project_ops_commands(
     permissions_app,
     permissions_actor_app,
     consent_app,
+)
+register_project_readiness_commands(
+    project_readiness_app,
+    project_readiness_questions_app,
 )
 register_work_spec_commands(change_app, spec_app, work_app)
 register_collaboration_commands(

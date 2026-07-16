@@ -117,7 +117,7 @@ def test_cli_migration_apply_commits_the_reviewed_plan(tmp_path: Path) -> None:
     payload = json.loads(apply_result.output)
     assert payload["status"] == "applied"
     assert payload["changed_paths"][-1] == ".p2p/project/workspace-schema.yml"
-    assert P2PWorkspace(tmp_path).workspace_schema_status().state == "current"
+    assert P2PWorkspace(tmp_path).workspace_schema_status().state == "upgrade_available"
 
 
 def test_cli_recovery_resume_completes_an_interrupted_transaction(tmp_path: Path) -> None:

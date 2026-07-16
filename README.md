@@ -28,6 +28,8 @@ P2P Engine keeps the working memory of a project in `.p2p/`, backed by Git.
 - generates compact context packets for agents;
 - validates P2P project state;
 - assesses project readiness and definition maturity;
+- converges owner-answered project questions into definition state through an
+  atomic preview/apply workflow;
 - generates and exports project specs for downstream tools.
 
 ## Who It Is For

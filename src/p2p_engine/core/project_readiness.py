@@ -1,0 +1,357 @@
+from __future__ import annotations
+
+import base64
+import hashlib
+import json
+from dataclasses import dataclass, field
+from enum import StrEnum
+from typing import Mapping, Sequence
+
+from p2p_engine.core.mutation_preview import canonical_json_bytes, semantic_sha256
+
+
+PROJECT_READINESS_GAP_POLICY_VERSION = 1
+PROJECT_READINESS_CURSOR_POLICY_VERSION = 1
+PROJECT_READINESS_DEFAULT_PAGE_SIZE = 20
+PROJECT_READINESS_MAX_PAGE_SIZE = 100
+PROJECT_READINESS_REVIEW_DETAIL_LIMIT = 10
+PROJECT_READINESS_DEFAULT_PAYLOAD_BYTES = 64 * 1024
+PROJECT_READINESS_NEUTRAL_DEPENDENCY_RANK = 100
+
+
+class ProjectReadinessGapKind(StrEnum):
+    INTEGRITY_BLOCKER = "integrity_blocker"
+    COMPATIBILITY_BLOCKER = "compatibility_blocker"
+    AUTHORITY_BLOCKER = "authority_blocker"
+    OWNER_DECISION_BLOCKER = "owner_decision_blocker"
+    ANSWERED_NOT_APPLIED = "answered_not_applied"
+    INCOMPLETE_REQUIRED_DEFINITION = "incomplete_required_definition"
+    ASSUMPTION_TO_VALIDATE = "assumption_to_validate"
+    OPTIONAL_DECLARED_EVIDENCE = "optional_declared_evidence"
+    INFORMATIONAL_LEGACY = "informational_legacy"
+
+
+class ProjectReadinessGapSeverity(StrEnum):
+    BLOCKER = "blocker"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    INFO = "info"
+
+
+_CLASS_RANKS = {
+    ProjectReadinessGapKind.INTEGRITY_BLOCKER: 1,
+    ProjectReadinessGapKind.COMPATIBILITY_BLOCKER: 1,
+    ProjectReadinessGapKind.AUTHORITY_BLOCKER: 1,
+    ProjectReadinessGapKind.OWNER_DECISION_BLOCKER: 1,
+    ProjectReadinessGapKind.ANSWERED_NOT_APPLIED: 2,
+    ProjectReadinessGapKind.INCOMPLETE_REQUIRED_DEFINITION: 3,
+    ProjectReadinessGapKind.ASSUMPTION_TO_VALIDATE: 4,
+    ProjectReadinessGapKind.OPTIONAL_DECLARED_EVIDENCE: 5,
+    ProjectReadinessGapKind.INFORMATIONAL_LEGACY: 6,
+}
+
+
+@dataclass(frozen=True)
+class ProjectReadinessSnapshotIdentity:
+    fingerprint: str
+    workspace_schema_version: int
+    workspace_schema_state: str
+    vertical_id: str
+    vertical_version: str
+    vertical_lock_checksum: str
+    profile: str
+    modules: tuple[str, ...]
+    source_hashes: Mapping[str, str]
+    policy_versions: Mapping[str, int]
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "fingerprint": self.fingerprint,
+            "workspace_schema_version": self.workspace_schema_version,
+            "workspace_schema_state": self.workspace_schema_state,
+            "vertical_id": self.vertical_id,
+            "vertical_version": self.vertical_version,
+            "vertical_lock_checksum": self.vertical_lock_checksum,
+            "profile": self.profile,
+            "modules": list(self.modules),
+            "source_hashes": dict(self.source_hashes),
+            "policy_versions": dict(self.policy_versions),
+        }
+
+
+@dataclass(frozen=True)
+class ProjectReadinessAssumptionSnapshot:
+    assumption_id: str
+    status: str
+    field_id: str = ""
+    dependency_rank: int = PROJECT_READINESS_NEUTRAL_DEPENDENCY_RANK
+
+
+@dataclass(frozen=True)
+class ProjectReadinessQuestionSnapshot:
+    question_id: str
+    revision: int
+    state: str
+    target_kind: str
+    target_id: str
+    applicability: str = "applicable"
+
+
+@dataclass(frozen=True)
+class ProjectReadinessSectionSnapshot:
+    section_id: str
+    title: str
+    required: bool
+    priority: int
+    definition_status: str
+    missing_required_fields: tuple[str, ...] = ()
+    assumptions: tuple[ProjectReadinessAssumptionSnapshot, ...] = ()
+    open_blocker_ids: tuple[str, ...] = ()
+    declared_proposals: tuple[str, ...] = ()
+    active_declared_proposals: tuple[str, ...] = ()
+    heuristic_proposals: tuple[str, ...] = ()
+    declared_questions: tuple[str, ...] = ()
+    question_states: tuple[ProjectReadinessQuestionSnapshot, ...] = ()
+
+
+@dataclass(frozen=True)
+class ProjectReadinessSnapshot:
+    identity: ProjectReadinessSnapshotIdentity
+    definition_valid: bool
+    definition_exists: bool
+    fallback_used: bool
+    vertical_source: str
+    sections: tuple[ProjectReadinessSectionSnapshot, ...]
+    unmapped_proposals: tuple[str, ...]
+    owner_available: bool = True
+    diagnostics: tuple["ProjectReadinessDiagnostic", ...] = ()
+
+
+@dataclass(frozen=True)
+class ProjectReadinessDiagnostic:
+    code: str
+    severity: str
+    message: str
+    suggested_command: str = ""
+    section_id: str = ""
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "code": self.code,
+            "severity": self.severity,
+            "message": self.message,
+            "suggested_command": self.suggested_command,
+            "section_id": self.section_id,
+        }
+
+
+@dataclass(frozen=True)
+class ProjectReadinessGap:
+    gap_id: str
+    identity_sha256: str
+    snapshot_fingerprint: str
+    vertical_id: str
+    vertical_version: str
+    vertical_lock_checksum: str
+    section_id: str
+    target_kind: str
+    target_id: str
+    kind: ProjectReadinessGapKind
+    severity: ProjectReadinessGapSeverity
+    applicability: str
+    definition_status: str
+    missing_fields: tuple[str, ...]
+    declared_evidence: tuple[str, ...]
+    heuristic_suggestions: tuple[str, ...]
+    required_authority: str
+    owner_input_required: bool
+    question_id: str
+    question_revision: int | None
+    next_operation: str
+    rationale: str
+    priority_class: int
+    priority_policy_version: int
+    priority_rationale: str
+    tie_break: tuple[object, ...]
+    dependency_rank: int = PROJECT_READINESS_NEUTRAL_DEPENDENCY_RANK
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "gap_id": self.gap_id,
+            "identity_sha256": self.identity_sha256,
+            "snapshot_fingerprint": self.snapshot_fingerprint,
+            "vertical_id": self.vertical_id,
+            "vertical_version": self.vertical_version,
+            "vertical_lock_checksum": self.vertical_lock_checksum,
+            "section_id": self.section_id,
+            "target_kind": self.target_kind,
+            "target_id": self.target_id,
+            "kind": self.kind.value,
+            "severity": self.severity.value,
+            "applicability": self.applicability,
+            "definition_status": self.definition_status,
+            "missing_fields": list(self.missing_fields),
+            "declared_evidence": list(self.declared_evidence),
+            "heuristic_suggestions": list(self.heuristic_suggestions),
+            "required_authority": self.required_authority,
+            "owner_input_required": self.owner_input_required,
+            "question_id": self.question_id,
+            "question_revision": self.question_revision,
+            "next_operation": self.next_operation,
+            "rationale": self.rationale,
+            "priority": {
+                "class": self.priority_class,
+                "policy_version": self.priority_policy_version,
+                "rationale": self.priority_rationale,
+                "tie_break": list(self.tie_break),
+                "dependency_rank": self.dependency_rank,
+            },
+        }
+
+
+@dataclass(frozen=True)
+class ProjectReadinessResult:
+    snapshot: ProjectReadinessSnapshotIdentity
+    gaps: tuple[ProjectReadinessGap, ...]
+    diagnostics: tuple[ProjectReadinessDiagnostic, ...]
+    counts: Mapping[str, int]
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "snapshot": self.snapshot.to_dict(),
+            "gaps": [item.to_dict() for item in self.gaps],
+            "diagnostics": [item.to_dict() for item in self.diagnostics],
+            "counts": dict(self.counts),
+        }
+
+
+@dataclass(frozen=True)
+class ProjectReadinessCursor:
+    collection: str
+    snapshot_fingerprint: str
+    policy_version: int
+    last_key: tuple[object, ...]
+
+    def encode(self) -> str:
+        body = {
+            "collection": self.collection,
+            "snapshot_fingerprint": self.snapshot_fingerprint,
+            "policy_version": self.policy_version,
+            "last_key": list(self.last_key),
+        }
+        envelope = {"body": body, "checksum": semantic_sha256(body)}
+        return base64.urlsafe_b64encode(canonical_json_bytes(envelope)).decode("ascii").rstrip("=")
+
+    @classmethod
+    def decode(cls, value: str) -> "ProjectReadinessCursor":
+        try:
+            padding = "=" * (-len(value) % 4)
+            envelope = json.loads(base64.urlsafe_b64decode(value + padding).decode("utf-8"))
+            body = envelope["body"]
+            checksum = envelope["checksum"]
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ValueError("Invalid readiness cursor. Restart pagination without a cursor.") from exc
+        if not isinstance(body, dict) or semantic_sha256(body) != checksum:
+            raise ValueError("Invalid readiness cursor checksum. Restart pagination without a cursor.")
+        try:
+            return cls(
+                collection=str(body["collection"]),
+                snapshot_fingerprint=str(body["snapshot_fingerprint"]),
+                policy_version=int(body["policy_version"]),
+                last_key=tuple(body["last_key"]),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError("Invalid readiness cursor payload. Restart pagination without a cursor.") from exc
+
+
+@dataclass(frozen=True)
+class ProjectReadinessPage:
+    collection: str
+    snapshot_fingerprint: str
+    items: tuple[object, ...]
+    total: int
+    limit: int
+    next_cursor: str = ""
+    truncated: bool = False
+    payload_bytes: int = 0
+    diagnostics: tuple[ProjectReadinessDiagnostic, ...] = field(default_factory=tuple)
+
+    def to_dict(self) -> dict[str, object]:
+        def serialize(item: object) -> object:
+            to_dict = getattr(item, "to_dict", None)
+            return to_dict() if callable(to_dict) else item
+
+        return {
+            "collection": self.collection,
+            "snapshot_fingerprint": self.snapshot_fingerprint,
+            "items": [serialize(item) for item in self.items],
+            "total": self.total,
+            "limit": self.limit,
+            "next_cursor": self.next_cursor,
+            "truncated": self.truncated,
+            "payload_bytes": self.payload_bytes,
+            "diagnostics": [item.to_dict() for item in self.diagnostics],
+        }
+
+
+def readiness_snapshot_identity(
+    *,
+    workspace_schema_version: int,
+    workspace_schema_state: str,
+    vertical_id: str,
+    vertical_version: str,
+    vertical_lock_checksum: str,
+    profile: str,
+    modules: Sequence[str],
+    source_hashes: Mapping[str, str],
+    policy_versions: Mapping[str, int],
+) -> ProjectReadinessSnapshotIdentity:
+    payload = {
+        "workspace_schema_version": workspace_schema_version,
+        "workspace_schema_state": workspace_schema_state,
+        "vertical_id": vertical_id,
+        "vertical_version": vertical_version,
+        "vertical_lock_checksum": vertical_lock_checksum,
+        "profile": profile,
+        "modules": sorted(str(item) for item in modules),
+        "source_hashes": {key: source_hashes[key] for key in sorted(source_hashes)},
+        "policy_versions": {key: policy_versions[key] for key in sorted(policy_versions)},
+    }
+    return ProjectReadinessSnapshotIdentity(
+        fingerprint=semantic_sha256(payload),
+        workspace_schema_version=workspace_schema_version,
+        workspace_schema_state=workspace_schema_state,
+        vertical_id=vertical_id,
+        vertical_version=vertical_version,
+        vertical_lock_checksum=vertical_lock_checksum,
+        profile=profile,
+        modules=tuple(sorted(str(item) for item in modules)),
+        source_hashes=dict(sorted(source_hashes.items())),
+        policy_versions=dict(sorted(policy_versions.items())),
+    )
+
+
+def readiness_gap_identity(
+    *,
+    vertical_id: str,
+    section_id: str,
+    kind: ProjectReadinessGapKind,
+    target_kind: str,
+    target_id: str,
+    policy_major: int = PROJECT_READINESS_GAP_POLICY_VERSION,
+) -> tuple[str, str]:
+    payload = {
+        "vertical_id": vertical_id,
+        "section_id": section_id,
+        "kind": kind.value,
+        "target_kind": target_kind,
+        "target_id": target_id,
+        "policy_major": policy_major,
+    }
+    digest = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+    return f"PGAP-{digest[:16]}", digest
+
+
+def readiness_class_rank(kind: ProjectReadinessGapKind) -> int:
+    return _CLASS_RANKS[kind]

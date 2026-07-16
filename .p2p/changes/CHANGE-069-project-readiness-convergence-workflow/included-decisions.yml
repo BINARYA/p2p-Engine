@@ -1,0 +1,3 @@
+included_decisions:
+- proposal: PROP-101
+  decision_file: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/decision.md

@@ -225,12 +225,6 @@ def handle_project_tool(
                 workspace.update_project_definition(Path(required(arguments, "patch")))
             )
         }
-    if name == "p2p_project_readiness_review":
-        return {
-            "readiness_review": to_jsonable(
-                workspace.review_project_readiness(optional_string(arguments, "vertical_id"))
-            )
-        }
     if name == "p2p_next":
         top = arguments.get("top")
         limit = int(top) if top is not None else None

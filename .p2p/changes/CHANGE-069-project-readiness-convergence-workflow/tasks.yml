@@ -1,0 +1,117 @@
+tasks:
+  - id: S1-01
+    status: pending
+    title: Define immutable convergence snapshot and typed gap contracts
+    description: Add versioned snapshot, gap, authority, question-reference, pagination and result models with explicit source fingerprints and separate definition, declared-evidence and heuristic inputs.
+  - id: S1-02
+    status: pending
+    title: Implement deterministic priority and bounded serialization
+    description: Implement the six-class policy, section/id tie-breaking, rationale output, bounded summaries and source-access accounting without an aggregate readiness score.
+  - id: S2-01
+    status: pending
+    title: Model declared older workspace schemas as upgradeable
+    description: Distinguish undeclared v0, valid upgradeable v1, current v2, ahead, invalid, incomplete and recovery-required states with transition support and exact plan commands.
+  - id: S2-02
+    status: pending
+    title: Introduce adjacent transition handler protocol
+    description: Make each migration handler own inventory interpretation, owner inputs, targets, candidate rendering and validators; compose handlers over candidate workspace overlays.
+  - id: S2-03
+    status: pending
+    title: Isolate legacy-to-v1 planning behind its handler
+    description: Preserve current migration behavior while proving later transitions cannot emit domain, permission, metadata or vertical bootstrap operations unless their own handler owns them.
+  - id: S3-01
+    status: pending
+    title: Define schema-v2 project-question artifact
+    description: Specify deterministic managed location, root schema, stable identity, revision, lifecycle, answer authority, history, apply references and semantic-hash exclusions.
+  - id: S3-02
+    status: pending
+    title: Implement deterministic legacy question mapper
+    description: Map valid v1 definition open questions exactly once using section-scoped identities, create no inferred owner state, and emit blocking diagnostics for ambiguity or loss.
+  - id: S3-03
+    status: pending
+    title: Register and implement workspace-v1-to-v2 transition
+    description: Plan and transactionally apply question-state initialization, normalize definition open_questions to empty, disable their v2 patch operations, update workspace schema history and preserve unknown artifacts.
+  - id: S3-04
+    status: pending
+    title: Cover fresh-v2 and incomplete-section initialization
+    description: Create a valid empty artifact for fresh v2 workspaces and seed declared, fallback or no-safe outcomes only when active vertical and definition context are available.
+  - id: S4-01
+    status: pending
+    title: Implement declared and fallback question resolution
+    description: Use locked-vertical questions first, deterministic metadata-derived fallback second, no-safe diagnostics last, with stable semantic identity and duplicate prevention.
+  - id: S4-02
+    status: pending
+    title: Enforce lifecycle transition and authority matrix
+    description: Validate source/target states, owner role, consent, reason, provided-by, recorded-by and side effects before every answer, replace, defer, mute, reopen, retire or supersede mutation.
+  - id: S4-03
+    status: pending
+    title: Implement vertical question reconciliation
+    description: Preserve wording revisions, supersede semantic changes, retire removed targets, invalidate previews and forbid automatic answer remapping across vertical/profile/module changes.
+  - id: S5-01
+    status: pending
+    title: Extract pure project-definition candidate rendering
+    description: Reuse current patch semantics and validators without invoking the existing single-target commit endpoint or injecting unstable audit values during semantic preview.
+  - id: S5-02
+    status: pending
+    title: Build coordinated convergence preview
+    description: Render definition and question candidates from one snapshot and bind semantic diff, affected gaps, freshness impact, actor, lock, preimages, candidate hashes and policies.
+  - id: S5-03
+    status: pending
+    title: Commit definition and question state atomically
+    description: Submit both candidates to one durable multi-target transaction and return final hashes, apply references, rollback or recovery state without sequential canonical writes.
+  - id: S6-01
+    status: pending
+    title: Add actor-bound audit-neutral preview tokens
+    description: Extend token semantics to include actor and every canonical dependency while excluding timestamps and generated observation fields from semantic hashes.
+  - id: S6-02
+    status: pending
+    title: Implement exact already-applied retry semantics
+    description: Persist apply references so response-loss retry returns the original committed result, while changed actor, source, candidate or policy reuse is rejected.
+  - id: S6-03
+    status: pending
+    title: Prove concurrency rollback and recovery behavior
+    description: Cover simultaneous apply, stale preimages, injected replacement failures, successful rollback, recovery-required journals and permitted retry after recovery.
+  - id: S7-01
+    status: pending
+    title: Integrate convergence into managed next actions
+    description: Add one generated action source with stable kind/target deduplication, six-class precedence, defer/mute handling and no readiness self-loop.
+  - id: S7-02
+    status: pending
+    title: Preserve project progress and freshness authority
+    description: Keep definition/evidence axes separate, expose descriptive question counts, classify question-only versus definition-apply staleness and return rebuild plans without execution.
+  - id: S7-03
+    status: pending
+    title: Register project questions in decision context
+    description: Add a dedicated source kind classified as inactive metadata or pending evidence; prevent active decisions, relations or double-counting until definition apply.
+  - id: S8-01
+    status: pending
+    title: Add backward-compatible readiness CLI workflows
+    description: Add gap detail, question lifecycle, reconcile and preview/apply operations with typed schema-gate diagnostics while preserving existing review behavior.
+  - id: S8-02
+    status: pending
+    title: Implement snapshot-bound pagination
+    description: Define default and maximum page sizes, opaque cursor contents, stable ordering and explicit stale-cursor restart behavior for legacy, heuristic and history detail.
+  - id: S8-03
+    status: pending
+    title: Add MCP read parity after payload stabilization
+    description: Expose the same bounded structured read semantics through thin handlers and keep answer/apply MCP tools absent until a later gated slice.
+  - id: S9-01
+    status: pending
+    title: Publish and test v1-v2 operation compatibility matrix
+    description: Prove all v1-valid reads and writes remain available and every v2-dependent operation is centrally blocked before mutation with actionable migration diagnostics.
+  - id: S9-02
+    status: pending
+    title: Build adversarial migration and vertical fixtures
+    description: Cover duplicate local ids, unknown fields, malformed states, missing questions, wording and semantic drift, section removal, no coverage, empty projects and multi-step transitions.
+  - id: S9-03
+    status: pending
+    title: Enforce representative source-access and payload budgets
+    description: Use a 100-proposal fixture to prove one discovery/read/hash/parse per source, zero post-snapshot filesystem reads and bounded default/page payloads.
+  - id: S9-04
+    status: pending
+    title: Execute supported repository v1-to-v2 pilot
+    description: Plan, owner-confirm, apply and validate this repository migration, then exercise its three readiness gaps without manual .p2p edits and record explicit residual state.
+  - id: S9-05
+    status: pending
+    title: Complete global verification and documentation gate
+    description: Run focused and full tests, global validation, recovery checks, CLI/MCP contract tests, documentation and generated-agent-template drift checks before recommending completion.

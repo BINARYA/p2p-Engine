@@ -58,9 +58,10 @@ class MutationPreview:
     policy_version: int = MUTATION_PREVIEW_POLICY_VERSION
     apply_allowed: bool = True
     blockers: tuple[str, ...] = ()
+    token_context: Mapping[str, object] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, object]:
-        return {
+        payload = {
             "operation_id": self.operation_id,
             "targets": list(self.targets),
             "actor": self.actor,
@@ -74,6 +75,9 @@ class MutationPreview:
             "apply_allowed": self.apply_allowed,
             "blockers": list(self.blockers),
         }
+        if self.token_context:
+            payload["token_context"] = dict(self.token_context)
+        return payload
 
 
 @dataclass(frozen=True)
@@ -110,6 +114,7 @@ class MutationPreviewService:
         targets: Sequence[str],
         sources: Sequence[SourcePrecondition],
         candidate_semantics: Mapping[str, object],
+        token_context: Mapping[str, object] | None = None,
         policy_version: int = MUTATION_PREVIEW_POLICY_VERSION,
     ) -> str:
         payload = {
@@ -124,6 +129,10 @@ class MutationPreviewService:
             },
             "policy_version": policy_version,
         }
+        if token_context is not None:
+            payload["token_context"] = {
+                key: token_context[key] for key in sorted(token_context)
+            }
         return semantic_sha256(payload)
 
     @staticmethod
@@ -136,6 +145,7 @@ class MutationPreviewService:
         sources: Sequence[SourcePrecondition],
         candidate_semantics: Mapping[str, object],
         semantic_diff: Mapping[str, object],
+        token_context: Mapping[str, object] | None = None,
         confirmation_required: bool = True,
         blockers: Sequence[str] = (),
         policy_version: int = MUTATION_PREVIEW_POLICY_VERSION,
@@ -151,6 +161,7 @@ class MutationPreviewService:
             targets=normalized_targets,
             sources=normalized_sources,
             candidate_semantics=candidate_semantics,
+            token_context=token_context,
             policy_version=policy_version,
         )
         normalized_blockers = tuple(str(item) for item in blockers)
@@ -167,6 +178,7 @@ class MutationPreviewService:
             policy_version=policy_version,
             apply_allowed=not normalized_blockers,
             blockers=normalized_blockers,
+            token_context=dict(token_context or {}),
         )
 
 

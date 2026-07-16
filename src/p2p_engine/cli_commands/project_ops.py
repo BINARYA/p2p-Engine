@@ -692,49 +692,6 @@ def register_project_ops_commands(
         console.print(f"  required: {str(section.required).lower()}")
         console.print(f"  purpose: {section.purpose}")
 
-    @project_readiness_app.command("review")
-    def project_readiness_review(
-        vertical: str | None = typer.Option(None, "--vertical", help="Review against a specific vertical ID"),
-        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
-    ) -> None:
-        """Review project readiness against the active project vertical."""
-        try:
-            review = workspace_for(root).review_project_readiness(vertical)
-        except ValueError as exc:
-            fail(str(exc))
-        console.print("Project readiness review")
-        console.print(f"  active_vertical: {review.active_vertical_id}")
-        console.print(f"  source: {review.vertical_source}")
-        console.print(f"  fallback_used: {str(review.fallback_used).lower()}")
-        console.print("Sections:")
-        for section in review.sections:
-            proposals = ", ".join(section.proposals) if section.proposals else "none"
-            console.print(
-                f"  - {section.section_id}  definition: {section.definition_status}  "
-                f"evidence: {section.status}  proposals: {proposals}"
-            )
-        console.print("Missing capisaldi:")
-        if review.missing_capisaldi:
-            for section_id in review.missing_capisaldi:
-                console.print(f"  - {section_id}")
-        else:
-            console.print("  none")
-        console.print("Unmapped proposals:")
-        if review.unmapped_proposals:
-            for proposal_id in review.unmapped_proposals:
-                console.print(f"  - {proposal_id}")
-        else:
-            console.print("  none")
-        console.print("Generated questions:")
-        if review.generated_questions:
-            for question in review.generated_questions:
-                console.print(f"  - {question}")
-        else:
-            console.print("  none")
-        console.print("Suggested next:")
-        for command in review.suggested_next:
-            console.print(f"  - {command}")
-
     @sync_app.command("status")
     def sync_status(
         remote: str | None = typer.Option(None, "--remote", help="Override configured Git remote"),

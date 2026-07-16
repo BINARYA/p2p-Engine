@@ -341,6 +341,11 @@ relations:
   type: includes
   rationale: Change Set includes accepted proposal.
   source_artifact: .p2p/changes/CHANGE-068-human-project-publication-pipeline
+- source: CHANGE-069
+  target: PROP-101
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-069-project-readiness-convergence-workflow
 - source: PROP-002
   target: CHANGE-063
   type: implemented_by
@@ -681,3 +686,8 @@ relations:
   type: implemented_by
   rationale: Proposal appears in Change Set source metadata.
   source_artifact: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy
+- source: PROP-101
+  target: CHANGE-069
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-101-project-readiness-convergence-workflow

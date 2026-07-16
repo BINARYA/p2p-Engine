@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
 from typing import Protocol
@@ -16,6 +17,7 @@ from p2p_engine.services.lifecycle_authority import (
     is_active_project_projection,
 )
 from p2p_engine.services.project_verticals import ProjectVerticalService, _section_fields
+from p2p_engine.services.project_questions import ProjectQuestionStateService
 
 
 class _ProposalLike(Protocol):
@@ -31,11 +33,13 @@ class ProjectProgressService:
         p2p_dir: Path,
         vertical_service: ProjectVerticalService,
         proposal_summaries: Callable[[], list[_ProposalLike]],
+        question_service: ProjectQuestionStateService | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
         self.vertical_service = vertical_service
         self.proposal_summaries = proposal_summaries
+        self.question_service = question_service or ProjectQuestionStateService(root=root, p2p_dir=p2p_dir)
 
     def status(
         self,
@@ -160,6 +164,30 @@ class ProjectProgressService:
             ),
             basis="owner_declared_vertical_coverage_from_active_committed_proposals",
         )
+        question_counts: Counter[str] = Counter()
+        question_artifact = self.question_service.read_optional()
+        active_question_sections: set[str] = set()
+        if question_artifact is not None:
+            question_counts.update(item.state.value for item in question_artifact.questions)
+            for item in question_artifact.questions:
+                if item.applicability.value == "active":
+                    active_question_sections.add(item.section_id)
+                else:
+                    question_counts[item.applicability.value] += 1
+        question_counts["no_safe_question"] = (
+            sum(
+                1
+                for section in pack.sections
+                if section.required
+                and section.section_id not in active_question_sections
+                and (
+                    state_by_section.get(section.section_id) is None
+                    or state_by_section[section.section_id].status not in {"complete", "not_applicable"}
+                )
+            )
+            if question_artifact is not None
+            else 0
+        )
         return ProjectProgress(
             vertical_id=active.vertical_id,
             policy_version=PROJECT_PROGRESS_POLICY_VERSION,
@@ -170,6 +198,7 @@ class ProjectProgressService:
             blockers=tuple(blockers),
             open_questions=tuple(questions),
             assumptions=tuple(assumptions),
+            question_counts=dict(sorted(question_counts.items())),
             warnings=tuple(sorted(warnings)),
         )
 

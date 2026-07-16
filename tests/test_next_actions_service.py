@@ -113,6 +113,32 @@ def test_next_actions_distinguish_project_choices_from_proposal_local_votes(tmp_
     )
 
 
+def test_next_actions_use_concrete_project_question_and_apply_operations(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Readiness Actions", owner="owner", vertical_id="base_project")
+    question = workspace.next_project_question()
+    assert question is not None
+
+    unanswered_actions = workspace._next_action_service().list()
+    assert any(
+        item.kind == "project_question_answer" and item.target == question.question_id
+        for item in unanswered_actions
+    )
+
+    workspace.answer_project_question(
+        question.question_id,
+        values={"value": "Owner answer"},
+        actor="owner",
+        expected_revision=question.revision,
+    )
+    answered_actions = workspace._next_action_service().list()
+    assert any(
+        item.kind == "project_question_apply" and item.target == question.question_id
+        for item in answered_actions
+    )
+    assert not any(item.kind == "review_project_readiness" for item in answered_actions)
+
+
 def test_next_actions_resolve_only_open_normalized_project_choices(tmp_path: Path) -> None:
     workspace = _workspace(tmp_path)
     choice = workspace.create_choice("Project Choice", ["A", "B"])

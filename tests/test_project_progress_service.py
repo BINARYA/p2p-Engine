@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import yaml
@@ -53,6 +54,41 @@ def test_progress_is_read_only_and_axes_are_independent(tmp_path: Path) -> None:
     data_model = next(item for item in progress.sections if item.section_id == "data_model")
     assert proposal_id in data_model.heuristic_proposals
     assert not data_model.declared_committed_proposals
+    assert progress.question_counts["to_answer"] > 0
+
+
+def test_question_lifecycle_counts_do_not_change_progress_percentages(tmp_path: Path) -> None:
+    workspace, _ = _software_workspace(tmp_path)
+    before = workspace.project_progress()
+    question = workspace.next_project_question()
+    assert question is not None
+
+    workspace.answer_project_question(
+        question.question_id,
+        values={"value": "Owner answer"},
+        actor="owner",
+        expected_revision=question.revision,
+    )
+    after = workspace.project_progress()
+
+    assert after.definition.ratio == before.definition.ratio
+    assert after.evidence.ratio == before.evidence.ratio
+    assert after.question_counts["answered"] == 1
+
+
+def test_progress_reports_residual_sections_without_safe_active_question(tmp_path: Path) -> None:
+    workspace, _ = _software_workspace(tmp_path)
+    question_service = workspace._project_question_state_service()
+    artifact = question_service.read()
+    question_service.path.write_bytes(
+        question_service.candidate_bytes(replace(artifact, groups=(), questions=()))
+    )
+
+    progress = workspace.project_progress()
+
+    assert progress.question_counts["no_safe_question"] > 0
+    assert progress.definition.ratio.percentage == 0.0
+    assert progress.evidence.ratio.percentage == 0.0
 
 
 def test_missing_definition_is_not_initialized_without_percentage(tmp_path: Path) -> None:

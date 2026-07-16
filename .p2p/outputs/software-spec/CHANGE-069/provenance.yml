@@ -1,0 +1,9 @@
+source:
+  change: CHANGE-069
+  included_proposals:
+  - PROP-101
+  accepted_decisions: []
+generated_from:
+- .p2p/changes/CHANGE-069-project-readiness-convergence-workflow/change.md
+- .p2p/changes/CHANGE-069-project-readiness-convergence-workflow/tasks.yml
+- .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md

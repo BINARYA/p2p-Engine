@@ -8,6 +8,20 @@ tagged releases.
 
 ## Unreleased
 
+- Target release is P2P Engine `0.3.0`. Workspace schema v1 remains operable;
+  the v1-to-v2 transition is advertised only by the `0.3.x` runtime line.
+- Added workspace schema v2 with a forward-only v1-to-v2 migration that moves
+  legacy definition questions into one validated project-question authority.
+- Added typed, bounded project-readiness gaps; persistent owner-controlled
+  project-question lifecycle; deterministic fallback questions; and explicit
+  vertical reconciliation.
+- Added owner-confirmed atomic convergence of answered project questions into
+  project definition state, including source-bound previews, exact replay,
+  rollback and concurrency protection.
+- Added concrete readiness next actions, descriptive question progress,
+  explicit freshness impacts and inactive decision-context question metadata.
+- Added CLI project-readiness gap/question/reconcile/apply workflows and bounded
+  read-only MCP parity; MCP project-question writes remain intentionally absent.
 - Added workspace schema versioning independent from runtime compatibility,
   deterministic legacy analysis and forward-only migration plans.
 - Added owner-confirmed transactional migration apply with process-safe locking,
@@ -20,9 +34,10 @@ tagged releases.
   derived-state freshness graph and owned-output reconciliation.
 - Added read-only CLI/MCP inspection for schema, plans, progress, freshness and
   vertical coverage; migration apply and recovery remain CLI-only.
-- Source and package metadata now report `0.2.0`. Existing exact-pinned
-  workspaces must preview and approve a runtime-contract update before migration
-  apply; no environment change is performed automatically.
+- Source and package metadata now report `0.3.0`. Existing workspaces must make
+  the v2-capable runtime available and preview/approve their runtime-contract
+  transition before schema migration; no environment change is performed
+  automatically.
 
 ## 0.1.7 - 2026-06-09
 

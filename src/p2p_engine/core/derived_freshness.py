@@ -15,6 +15,8 @@ class FreshnessNodeDefinition:
     command: str
     output_patterns: tuple[str, ...]
     missing_primitive: str = ""
+    source_classes: tuple[str, ...] = ()
+    source_patterns: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -32,6 +34,8 @@ class FreshnessNode:
     reasons: tuple[str, ...]
     command: str
     missing_primitive: str = ""
+    source_classes: tuple[str, ...] = ()
+    source_paths: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

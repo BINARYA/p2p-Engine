@@ -27,6 +27,7 @@ def initialize_legacy_workspace(
 ) -> P2PWorkspace:
     workspace = initialize_current_workspace(root, name=name, domain=domain, owner=owner)
     (root / ".p2p" / "project" / "workspace-schema.yml").unlink()
+    (root / ".p2p" / "project" / "questions.yml").unlink()
     return workspace
 
 

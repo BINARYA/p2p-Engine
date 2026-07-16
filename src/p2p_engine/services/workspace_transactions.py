@@ -18,6 +18,7 @@ from p2p_engine.core.workspace_schema import (
     MigrationLock,
 )
 from p2p_engine.core.mutation_preview import MutationResult, SourcePrecondition
+from p2p_engine.services.candidate_workspace import CandidateWorkspaceView
 from p2p_engine.foundation.files import sync_directory, write_bytes_atomic, write_yaml_atomic
 
 
@@ -294,6 +295,7 @@ class AtomicMutationWriter:
         sources: tuple[SourcePrecondition, ...],
         preview_token: str,
         actor: str,
+        candidate_validator=None,
     ) -> MutationResult:
         transaction_id = f"mutation-{operation_id.replace(':', '-')}-{os.getpid()}-{hashlib.sha256(preview_token.encode()).hexdigest()[:10]}"
         source_map = {item.path: item for item in sources}
@@ -306,6 +308,17 @@ class AtomicMutationWriter:
         try:
             transaction_dir = self.filesystem.create_transaction(transaction_id)
             targets = sorted(candidates)
+            preserved: dict[str, bytes | None] = {}
+            for source in sorted(sources, key=lambda item: item.path):
+                path = self.filesystem.target_path(source.path)
+                current_exists = path.exists()
+                current_hash = physical_sha256(path) if current_exists else None
+                if current_exists != source.exists or current_hash != source.physical_sha256:
+                    raise ValueError(
+                        f"Mutation source changed before lock-protected commit: {source.path}"
+                    )
+                preserved[source.path] = path.read_bytes() if current_exists else None
+            self._inject("after_source_recheck", "")
             journal = {
                 "journal_version": 1,
                 "transaction_id": transaction_id,
@@ -327,6 +340,7 @@ class AtomicMutationWriter:
             candidate_meta = journal["candidates"]
             assert isinstance(originals, dict)
             assert isinstance(candidate_meta, dict)
+            self._inject("before_staging", "")
             for target in targets:
                 original = self.filesystem.snapshot_target(transaction_dir, target)
                 expected = source_map.get(target)
@@ -341,6 +355,21 @@ class AtomicMutationWriter:
                     if content is not None
                     else {"physical_sha256": None, "size": 0, "delete": True}
                 )
+            if candidate_validator is not None:
+                self._inject("before_candidate_validation", "")
+                view = CandidateWorkspaceView(
+                    root=self.root,
+                    candidates={
+                        target: content
+                        for target, content in candidates.items()
+                        if content is not None
+                    },
+                    preserved=preserved,
+                    owned_paths=set(candidates),
+                )
+                candidate_validator(view)
+                self._inject("after_candidate_validation", "")
+            self._inject("before_journal", "")
             self.filesystem.write_journal(transaction_dir, journal)
             self._inject("after_journal", "")
             for target in targets:

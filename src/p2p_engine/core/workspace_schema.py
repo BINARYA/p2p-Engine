@@ -5,8 +5,8 @@ from typing import Any, Mapping
 
 
 WORKSPACE_SCHEMA_CONTRACT_VERSION = 1
-CURRENT_WORKSPACE_SCHEMA_VERSION = 1
-WORKSPACE_SCHEMA_POLICY_VERSION = 1
+CURRENT_WORKSPACE_SCHEMA_VERSION = 2
+WORKSPACE_SCHEMA_POLICY_VERSION = 2
 
 LEGACY_WORKSPACE_VERSION = 0
 
@@ -16,6 +16,7 @@ LAYOUT_AHEAD = "ahead"
 LAYOUT_INVALID = "invalid"
 LAYOUT_UNSUPPORTED = "unsupported"
 LAYOUT_INCOMPLETE = "incomplete"
+LAYOUT_UPGRADEABLE = "upgradeable"
 
 ALIGNMENT_ALIGNED = "aligned"
 ALIGNMENT_DEGRADED = "degraded"
@@ -162,6 +163,10 @@ class WorkspaceSchemaStatus:
     def migration_required(self) -> bool:
         return self.layout_status == LAYOUT_LEGACY
 
+    @property
+    def upgrade_available(self) -> bool:
+        return self.layout_status == LAYOUT_UPGRADEABLE
+
     def to_dict(self) -> dict[str, object]:
         return {
             "schema_path": self.schema_path,
@@ -173,6 +178,7 @@ class WorkspaceSchemaStatus:
             "contract_version": self.contract_version,
             "inspectable": self.inspectable,
             "migration_required": self.migration_required,
+            "upgrade_available": self.upgrade_available,
             "schema": self.schema.to_payload()["workspace_schema"] if self.schema else None,
             "transition_support": self.transition_support.to_dict() if self.transition_support else None,
             "recovery": dict(self.recovery),

@@ -320,14 +320,6 @@ def tool_definitions() -> list[dict[str, object]]:
             ['patch'],
         ),
         _tool(
-            'p2p_project_readiness_review',
-            (
-                'Advisory review tool: evaluate project capisaldi coverage against the active '
-                'or requested vertical without mutating governance state.'
-            ),
-            {'root': {'type': 'string'}, 'vertical_id': {'type': 'string'}},
-        ),
-        _tool(
             'p2p_next',
             'Show advisory next actions from P2P project state.',
             {'root': {'type': 'string'}, 'top': {'type': 'integer', 'minimum': 1}},

@@ -172,6 +172,52 @@ class PermissionsService:
             return self.default_policy_payload(owner_name=None, repository_mode=repository_mode)
         return _read_yaml_mapping(path, default={})
 
+    def resolve_actor(
+        self,
+        actor_id: str,
+        *,
+        repository_mode: str = "local",
+    ) -> PermissionActor:
+        return self.resolve_actor_payload(
+            actor_id,
+            self.show(repository_mode=repository_mode),
+        )
+
+    def resolve_actor_payload(
+        self,
+        actor_id: str,
+        payload: Mapping[str, object],
+    ) -> PermissionActor:
+        actor_slug = self.identity_slug(actor_id)
+        identities = payload.get("identities")
+        identity = identities.get(actor_slug) if isinstance(identities, Mapping) else None
+        if not isinstance(identity, Mapping):
+            raise ValueError(f"Unknown project actor: {actor_id}")
+        return PermissionActor(
+            actor_id=actor_slug,
+            role=self.normalize_role(str(identity.get("role") or "")),
+            kind=self.normalize_actor_kind(str(identity.get("kind") or "")),
+            display_name=str(identity.get("display_name") or actor_id),
+            path=self.path().relative_to(self.root),
+        )
+
+    def require_role(
+        self,
+        actor_id: str,
+        role: str,
+        *,
+        operation: str,
+        repository_mode: str = "local",
+    ) -> PermissionActor:
+        actor = self.resolve_actor(actor_id, repository_mode=repository_mode)
+        expected = self.normalize_role(role)
+        if actor.role != expected:
+            raise ValueError(
+                f"P2P343_PROJECT_QUESTION_OWNER_REQUIRED: operation `{operation}` requires "
+                f"role `{expected}`; actor `{actor.actor_id}` has role `{actor.role}`"
+            )
+        return actor
+
     def actor_add(
         self,
         actor_id: str,

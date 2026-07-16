@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from p2p_engine.core.project_readiness import ProjectReadinessDiagnostic, ProjectReadinessGap
+
 
 @dataclass(frozen=True)
 class VerticalSection:
@@ -31,6 +33,12 @@ class VerticalQuestion:
     question: str
     priority: str = "medium"
     rationale: str = ""
+    target_kind: str = ""
+    target_id: str = ""
+    answer_contract: dict[str, object] = field(default_factory=dict)
+    fallback_key: str = ""
+    aliases: tuple[str, ...] = ()
+    deferred_trigger: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -128,6 +136,8 @@ class ActiveProjectVertical:
     selected_at: str = ""
     selected_by: str = ""
     fallback_used: bool = False
+    reconciliation_required: bool = False
+    reconciliation_command: str = ""
 
 
 @dataclass(frozen=True)
@@ -210,6 +220,7 @@ class VerticalMigrationCandidate:
     modules: tuple[str, ...]
     checksum: str
     candidate_files: dict[str, bytes]
+    reconciliation_required: bool = False
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -297,6 +308,17 @@ class ProjectDefinitionPatchResult:
     state: ProjectDefinitionState
     path: Path
     operations_applied: int
+
+
+@dataclass(frozen=True)
+class ProjectDefinitionCandidate:
+    state: ProjectDefinitionState
+    payload: dict[str, object]
+    semantic_payload: dict[str, object]
+    candidate_bytes: bytes
+    semantic_sha256: str
+    operation_ids: tuple[str, ...]
+    changed_sections: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -393,3 +415,11 @@ class ProjectReadinessReview:
     suggested_next: list[str]
     definition_valid: bool = False
     heuristic_mappings: dict[str, list[str]] = field(default_factory=dict)
+    snapshot_fingerprint: str = ""
+    gaps: list[ProjectReadinessGap] = field(default_factory=list)
+    gap_counts: dict[str, int] = field(default_factory=dict)
+    diagnostics: list[ProjectReadinessDiagnostic] = field(default_factory=list)
+    unmapped_proposals_total: int = 0
+    unmapped_proposals_truncated: bool = False
+    generated_questions_total: int = 0
+    generated_questions_truncated: bool = False

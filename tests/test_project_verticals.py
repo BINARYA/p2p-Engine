@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import shutil
+from dataclasses import replace
 from importlib import resources
 from pathlib import Path
 
@@ -10,7 +11,7 @@ import pytest
 from typer.testing import CliRunner
 
 from p2p_engine.cli import app
-from p2p_engine.services.project_verticals import ProjectVerticalService
+from p2p_engine.services.project_verticals import ProjectVerticalService, _pack_payload
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 from p2p_engine.storage.filesystem import P2PWorkspace
 
@@ -145,6 +146,39 @@ def test_software_project_vertical_exposes_spec_lifecycle_ingredients(tmp_path: 
     } <= fields
 
 
+def test_empty_question_binding_metadata_does_not_change_legacy_pack_payload(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Vertical Checksum Compatibility")
+    pack = workspace.show_project_vertical("base_project")
+
+    payload = _pack_payload(pack)["vertical"]
+    assert isinstance(payload, dict)
+    questions = payload["questions"]
+    assert isinstance(questions, list) and questions
+    optional = {"target", "answer_contract", "fallback_key", "aliases", "deferred_trigger"}
+    assert all(optional.isdisjoint(question) for question in questions)
+
+    first = pack.questions[0]
+    enriched = replace(
+        first,
+        target_kind="field",
+        target_id="summary",
+        answer_contract={
+            "kind": "field_value",
+            "required_fields": ["value"],
+            "allowed_definition_operations": ["set_field"],
+        },
+    )
+    enriched_pack = replace(pack, questions=[enriched, *pack.questions[1:]])
+    enriched_payload = _pack_payload(enriched_pack)["vertical"]
+    assert isinstance(enriched_payload, dict)
+    enriched_questions = enriched_payload["questions"]
+    assert isinstance(enriched_questions, list)
+    assert enriched_questions[0]["target"] == {"kind": "field", "id": "summary"}
+
+
 def test_project_vertical_show_composes_base_project_sections(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Vertical Demo")
@@ -219,6 +253,48 @@ def test_project_vertical_validation_reports_duplicate_ids(tmp_path: Path) -> No
     assert any("duplicate id" in issue.message for issue in result.issues)
 
 
+def test_project_vertical_validation_rejects_invalid_question_binding_metadata(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Vertical Question Contract")
+    invalid_path = tmp_path / "invalid-question-contract.yml"
+    invalid_path.write_text(
+        "vertical:\n"
+        "  schema_version: 1\n"
+        "  id: invalid_question_contract\n"
+        "  name: Invalid Question Contract\n"
+        "  version: 1.0.0\n"
+        "  description: Invalid question metadata fixture.\n"
+        "  sections:\n"
+        "    - id: intent\n"
+        "      title: Intent\n"
+        "      purpose: Define intent.\n"
+        "      fields:\n"
+        "        - {id: summary, label: Summary}\n"
+        "  rubrics:\n"
+        "    - {id: coverage, title: Coverage, section_id: intent}\n"
+        "  questions:\n"
+        "    - id: question\n"
+        "      section_id: intent\n"
+        "      question: What is needed?\n"
+        "      target: {kind: field, id: missing}\n"
+        "      answer_contract:\n"
+        "        kind: field_value\n"
+        "        required_fields: [value]\n"
+        "        allowed_definition_operations: [unsafe_operation]\n"
+        "  artifacts:\n"
+        "    - {id: brief, title: Brief, section_ids: [intent]}\n",
+        encoding="utf-8",
+    )
+
+    result = workspace.validate_project_vertical(str(invalid_path))
+
+    assert result.valid is False
+    assert any("unknown field `missing`" in issue.message for issue in result.issues)
+    assert any("unknown operations" in issue.message for issue in result.issues)
+
+
 def test_project_readiness_review_uses_declared_coverage_and_reports_missing_sections(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Impact Demo", "--root", str(tmp_path)])
     runner.invoke(
@@ -274,6 +350,11 @@ def test_project_readiness_review_uses_declared_coverage_and_reports_missing_sec
     assert "theory_of_change" in review.missing_capisaldi
     assert "PROP-002" in review.unmapped_proposals
     assert review.generated_questions
+    assert review.snapshot_fingerprint
+    assert review.gaps
+    assert review.gap_counts["total"] == len(workspace.project_readiness_result().gaps)
+    assert review.unmapped_proposals_total == 1
+    assert review.unmapped_proposals_truncated is False
 
 
 def test_project_readiness_review_separates_complete_definition_from_proposal_evidence(

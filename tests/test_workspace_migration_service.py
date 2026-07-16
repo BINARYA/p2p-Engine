@@ -119,7 +119,7 @@ def test_migration_apply_commits_schema_last_and_is_idempotent(tmp_path: Path) -
     replace_targets = [target for stage, target in stages if stage == "before_replace"]
     assert replace_targets[-1] == ".p2p/project/workspace-schema.yml"
     assert second.status == "no_op"
-    assert migration.schema_service.status().state == "current"
+    assert migration.schema_service.status().state == "upgrade_available"
     assert migration.recovery_status().required is False
     assert not migration.lock_service.lock_path.exists()
     assert not migration.lock_service.transactions_root.exists()
@@ -403,7 +403,7 @@ def test_resume_after_crash_at_staged_journal_commits_exact_candidates(tmp_path:
     )
 
     assert resumed.status == "applied"
-    assert migration.schema_service.status().state == "current"
+    assert migration.schema_service.status().state == "upgrade_available"
     assert migration.recovery_status().required is False
     assert not migration.lock_service.transactions_root.exists()
 
@@ -445,7 +445,7 @@ def test_resume_after_crash_at_every_commit_boundary(
     )
 
     assert resumed.status == "applied"
-    assert migration.schema_service.status().state == "current"
+    assert migration.schema_service.status().state == "upgrade_available"
     assert migration.recovery_status().required is False
     assert not migration.lock_service.lock_path.exists()
     assert not migration.lock_service.transactions_root.exists()

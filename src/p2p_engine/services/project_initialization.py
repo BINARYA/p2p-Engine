@@ -26,6 +26,7 @@ from p2p_engine.services.project_maturity import (
     rubrics_payload,
 )
 from p2p_engine.services.readiness import DEFAULT_READINESS_PROFILE_ID
+from p2p_engine.services.project_questions import ProjectQuestionStateService
 from p2p_engine.services.runtime_contract import RuntimeContractService
 from p2p_engine.services.workspace_schema import WorkspaceSchemaService
 
@@ -137,6 +138,18 @@ class ProjectInitializationService:
             remote_profile=remote_profile,
         )
         created = self._write_missing_files(files)
+        if is_new_project:
+            schema_service = WorkspaceSchemaService(root=self.root, p2p_dir=self.p2p_dir)
+            schema_service.write_state(
+                WorkspaceSchemaState(
+                    contract_version=WORKSPACE_SCHEMA_CONTRACT_VERSION,
+                    current_version=CURRENT_WORKSPACE_SCHEMA_VERSION,
+                    baseline="initialized_current",
+                    initialized_at=date.today().isoformat(),
+                    initialized_by=owner or "owner",
+                )
+            )
+            created.append(schema_service.path.relative_to(self.root))
         warnings = self._setup_guide_warnings()
         created.extend(self._create_missing_directories())
         gitignore_hygiene = self.apply_gitignore_hygiene(self.root)
@@ -150,18 +163,6 @@ class ProjectInitializationService:
         for path in [*instructions.created, *instructions.updated]:
             if path not in created:
                 created.append(path)
-        if is_new_project:
-            schema_service = WorkspaceSchemaService(root=self.root, p2p_dir=self.p2p_dir)
-            schema_service.write_state(
-                WorkspaceSchemaState(
-                    contract_version=WORKSPACE_SCHEMA_CONTRACT_VERSION,
-                    current_version=CURRENT_WORKSPACE_SCHEMA_VERSION,
-                    baseline="initialized_current",
-                    initialized_at=date.today().isoformat(),
-                    initialized_by=owner or "owner",
-                )
-            )
-            created.append(schema_service.path.relative_to(self.root))
         return ProjectInitializationResult(
             created=created,
             agent_selection=agent_selection,
@@ -230,6 +231,19 @@ class ProjectInitializationService:
                 )
             ),
         }
+        if is_new_project:
+            question_service = ProjectQuestionStateService(root=self.root, p2p_dir=self.p2p_dir)
+            empty_questions = question_service.empty_artifact(
+                project_id=_slugify(name),
+                vertical_id="unselected",
+                vertical_version="0",
+                lock_checksum="unlocked",
+                actor=owner or "owner",
+                audit_at=date.today().isoformat(),
+            )
+            files[self.p2p_dir / "project" / "questions.yml"] = _yaml_dump(
+                empty_questions.to_payload()
+            )
         if project_domain not in PROJECT_DOMAIN_TEMPLATES:
             files[self.p2p_dir / "project" / "next-actions.yml"] = _yaml_dump(
                 domain_setup_next_actions_payload(project_domain)

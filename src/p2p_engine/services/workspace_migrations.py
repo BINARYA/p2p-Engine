@@ -30,6 +30,7 @@ from p2p_engine.services.permissions import PermissionsService
 from p2p_engine.services.project_maturity import domain_state_payload, normalize_project_domain
 from p2p_engine.services.project_metadata import ProjectMetadataService
 from p2p_engine.services.project_verticals import ProjectVerticalService
+from p2p_engine.services.project_questions import ProjectQuestionStateService
 from p2p_engine.core.project_metadata import ProjectMetadataPatch
 from p2p_engine.core.project_verticals import VerticalMigrationCandidate
 from p2p_engine.services.workspace_compatibility import (
@@ -212,8 +213,13 @@ class WorkspaceMigrationService:
                 self._inject("after_replace", target)
 
             final_status = self.schema_service.status()
-            if final_status.current_version != target_version or final_status.state != "current":
-                raise ValueError("Committed workspace schema did not validate as the requested current version")
+            expected_state = (
+                "current"
+                if target_version == CURRENT_WORKSPACE_SCHEMA_VERSION
+                else "upgrade_available"
+            )
+            if final_status.current_version != target_version or final_status.state != expected_state:
+                raise ValueError("Committed workspace schema did not validate as the requested target version")
             journal["state"] = "committed"
             journal["committed_at"] = self.clock()
             self.filesystem.write_journal(transaction_dir, journal)
@@ -507,8 +513,14 @@ class WorkspaceMigrationService:
         if schema_path in candidates:
             payload = view.read_yaml_mapping(schema_path)
             raw = payload.get("workspace_schema")
-            if not isinstance(raw, dict) or raw.get("current_version") != CURRENT_WORKSPACE_SCHEMA_VERSION:
-                raise ValueError("Candidate workspace schema is invalid or not current")
+            candidate_version = raw.get("current_version") if isinstance(raw, dict) else None
+            if (
+                isinstance(candidate_version, bool)
+                or not isinstance(candidate_version, int)
+                or candidate_version < 1
+                or candidate_version > CURRENT_WORKSPACE_SCHEMA_VERSION
+            ):
+                raise ValueError("Candidate workspace schema is invalid or unsupported by this runtime")
 
     def _validate_owned_candidates(
         self,
@@ -578,29 +590,49 @@ class WorkspaceMigrationService:
         }
         selected = vertical_paths.intersection(candidates)
         if selected:
-            if selected != vertical_paths:
-                raise ValueError("Vertical migration must own the complete four-artifact set.")
-            active = view.read_yaml_mapping(".p2p/project/vertical.yml").get("project_vertical")
-            lock = view.read_yaml_mapping(".p2p/project/vertical.lock.yml").get("project_vertical_lock")
-            definition = view.read_yaml_mapping(".p2p/project/definition.yml").get("project_definition")
-            if not isinstance(active, Mapping) or not isinstance(lock, Mapping) or not isinstance(definition, Mapping):
-                raise ValueError("Vertical migration candidate has invalid root mappings.")
-            checksum = lock.get("checksum")
-            if not isinstance(checksum, Mapping):
-                raise ValueError("Vertical migration lock candidate has no checksum mapping.")
-            vertical = VerticalMigrationCandidate(
-                vertical_id=str(active.get("active_vertical_id") or ""),
-                profile=str(definition.get("profile") or "default"),
-                modules=tuple(str(item) for item in definition.get("modules", []) if isinstance(item, str)),
-                checksum=str(checksum.get("value") or ""),
-                candidate_files={path: candidates[path] for path in vertical_paths},
+            definition_only_v2 = (
+                selected == {".p2p/project/definition.yml"}
+                and ".p2p/project/questions.yml" in candidates
             )
-            ProjectVerticalService(
-                root=self.root,
-                p2p_dir=self.p2p_dir,
-                proposal_summaries=lambda: [],
-                find_proposal_dir=lambda proposal_id: self.p2p_dir / "proposals" / proposal_id,
-            ).validate_migration_candidate(vertical)
+            if selected != vertical_paths and not definition_only_v2:
+                raise ValueError("Vertical migration must own the complete four-artifact set.")
+            definition = view.read_yaml_mapping(".p2p/project/definition.yml").get("project_definition")
+            if not isinstance(definition, Mapping):
+                raise ValueError("Vertical migration candidate has invalid root mappings.")
+            sections = definition.get("sections")
+            if not isinstance(sections, list) or any(
+                isinstance(item, Mapping) and item.get("open_questions")
+                for item in sections
+            ):
+                raise ValueError("Workspace schema v2 definition candidate retains legacy open questions.")
+            if not definition_only_v2:
+                active = view.read_yaml_mapping(".p2p/project/vertical.yml").get("project_vertical")
+                lock = view.read_yaml_mapping(".p2p/project/vertical.lock.yml").get("project_vertical_lock")
+                if not isinstance(active, Mapping) or not isinstance(lock, Mapping):
+                    raise ValueError("Vertical migration candidate has invalid root mappings.")
+                checksum = lock.get("checksum")
+                if not isinstance(checksum, Mapping):
+                    raise ValueError("Vertical migration lock candidate has no checksum mapping.")
+                vertical = VerticalMigrationCandidate(
+                    vertical_id=str(active.get("active_vertical_id") or ""),
+                    profile=str(definition.get("profile") or "default"),
+                    modules=tuple(str(item) for item in definition.get("modules", []) if isinstance(item, str)),
+                    checksum=str(checksum.get("value") or ""),
+                    candidate_files={path: candidates[path] for path in vertical_paths},
+                )
+                ProjectVerticalService(
+                    root=self.root,
+                    p2p_dir=self.p2p_dir,
+                    proposal_summaries=lambda: [],
+                    find_proposal_dir=lambda proposal_id: self.p2p_dir / "proposals" / proposal_id,
+                ).validate_migration_candidate(vertical)
+
+        questions_path = ".p2p/project/questions.yml"
+        if questions_path in candidates:
+            ProjectQuestionStateService(root=self.root, p2p_dir=self.p2p_dir).parse_payload(
+                view.read_yaml_mapping(questions_path),
+                target=questions_path,
+            )
 
     def _assert_preimage(self, target: str, original: Mapping[str, object]) -> None:
         current = physical_sha256(self.filesystem.target_path(target))

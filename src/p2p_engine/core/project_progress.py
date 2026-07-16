@@ -48,4 +48,5 @@ class ProjectProgress:
     blockers: tuple[Mapping[str, str], ...] = ()
     open_questions: tuple[Mapping[str, str], ...] = ()
     assumptions: tuple[Mapping[str, str], ...] = ()
+    question_counts: Mapping[str, int] = field(default_factory=dict)
     warnings: tuple[str, ...] = ()

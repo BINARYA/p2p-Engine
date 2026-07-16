@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import fnmatch
 import re
 from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
@@ -35,15 +36,15 @@ SOFTWARE_SPEC_OUTPUT_PATTERNS = tuple(
 NODE_CATALOG: tuple[FreshnessNodeDefinition, ...] = (
     FreshnessNodeDefinition("canonical_sources", (), "canonical", "none", "", ()),
     FreshnessNodeDefinition("registries", ("canonical_sources",), "RegistryService", "deterministic", "p2p registry refresh", REGISTRY_OUTPUT_PATTERNS),
-    FreshnessNodeDefinition("project_projections", ("canonical_sources", "registries"), "ProjectStateService", "deterministic", "p2p project refresh", (".p2p/project/overview.md", ".p2p/project/problem.md", ".p2p/project/scope.md", ".p2p/project/project-swot.md", ".p2p/project/decisions-map.yml", ".p2p/project/features/*/*", ".p2p/project/projection-manifest.yml")),
-    FreshnessNodeDefinition("decision_context", ("canonical_sources",), "ProjectDecisionContextService", "deterministic", "p2p context --budget small", (), "durable_decision_context_snapshot_refresh"),
-    FreshnessNodeDefinition("assessment", ("registries", "project_projections", "decision_context"), "ProjectAssessmentService", "deterministic", "p2p assess refresh", (".p2p/project/assessment.yml",)),
-    FreshnessNodeDefinition("maturity_progress", ("project_projections", "decision_context"), "ProjectMaturityService+ProjectProgressService", "deterministic", "p2p assess maturity refresh", (".p2p/project/maturity-assessment.yml",)),
-    FreshnessNodeDefinition("brief_context_prompt", ("registries", "project_projections"), "ProjectStateService", "deterministic", "p2p project brief prompt", (".p2p/project/brief-context.md", ".p2p/project/brief.prompt.md")),
+    FreshnessNodeDefinition("project_projections", ("canonical_sources", "registries"), "ProjectStateService", "deterministic", "p2p project refresh", (".p2p/project/overview.md", ".p2p/project/problem.md", ".p2p/project/scope.md", ".p2p/project/project-swot.md", ".p2p/project/decisions-map.yml", ".p2p/project/features/*/*", ".p2p/project/projection-manifest.yml"), source_classes=("accepted_proposals",), source_patterns=(".p2p/proposals/**/*",)),
+    FreshnessNodeDefinition("decision_context", ("canonical_sources",), "ProjectDecisionContextService", "deterministic", "p2p context --budget small", (), "durable_decision_context_snapshot_refresh", source_classes=("decision_sources", "project_definition", "project_questions"), source_patterns=(".p2p/proposals/**/*", ".p2p/choices/**/*", ".p2p/changes/**/*", ".p2p/work/**/*", ".p2p/project/definition.yml", ".p2p/project/questions.yml")),
+    FreshnessNodeDefinition("assessment", ("registries", "project_projections", "decision_context"), "ProjectAssessmentService", "deterministic", "p2p assess refresh", (".p2p/project/assessment.yml",), source_classes=("project_definition",), source_patterns=(".p2p/project/definition.yml",)),
+    FreshnessNodeDefinition("maturity_progress", ("project_projections", "decision_context"), "ProjectMaturityService+ProjectProgressService", "deterministic", "p2p assess maturity refresh", (".p2p/project/maturity-assessment.yml",), source_classes=("project_definition", "project_questions"), source_patterns=(".p2p/project/definition.yml", ".p2p/project/questions.yml")),
+    FreshnessNodeDefinition("brief_context_prompt", ("registries", "project_projections"), "ProjectStateService", "deterministic", "p2p project brief prompt", (".p2p/project/brief-context.md", ".p2p/project/brief.prompt.md"), source_classes=("project_definition",), source_patterns=(".p2p/project/definition.yml",)),
     FreshnessNodeDefinition("operational_brief", ("brief_context_prompt",), "owner_or_agent", "agent_curated", "p2p project brief import <source>", (".p2p/project/operational-brief.md",)),
-    FreshnessNodeDefinition("next_actions", ("operational_brief", "decision_context"), "NextActionService", "owner_review", "p2p next refresh", (".p2p/project/next-actions.yml", ".p2p/project/next-actions-log.yml")),
-    FreshnessNodeDefinition("software_specs", ("canonical_sources", "project_projections"), "SoftwareSpecService", "deterministic", "p2p spec refresh --change <CHANGE-ID>", SOFTWARE_SPEC_OUTPUT_PATTERNS),
-    FreshnessNodeDefinition("visible_export", ("project_projections", "maturity_progress", "software_specs"), "VisibleProjectExportService", "deterministic", "p2p project export", ("outputs/latest/project.md",)),
+    FreshnessNodeDefinition("next_actions", ("operational_brief", "decision_context"), "NextActionService", "owner_review", "p2p next refresh", (".p2p/project/next-actions.yml", ".p2p/project/next-actions-log.yml"), source_classes=("project_definition", "project_questions"), source_patterns=(".p2p/project/definition.yml", ".p2p/project/questions.yml")),
+    FreshnessNodeDefinition("software_specs", ("canonical_sources", "project_projections"), "SoftwareSpecService", "deterministic", "p2p spec refresh --change <CHANGE-ID>", SOFTWARE_SPEC_OUTPUT_PATTERNS, source_classes=("accepted_proposals", "change_sets"), source_patterns=(".p2p/proposals/**/*", ".p2p/changes/**/*")),
+    FreshnessNodeDefinition("visible_export", ("project_projections", "maturity_progress", "software_specs"), "VisibleProjectExportService", "deterministic", "p2p project export", ("outputs/latest/project.md",), source_classes=("project_definition",), source_patterns=(".p2p/project/definition.yml",)),
     FreshnessNodeDefinition("publication_packet", ("visible_export",), "ProjectPublicationService", "deterministic", "p2p project publish prepare", ("outputs/latest/publication-profile.yml", "outputs/latest/curator-input.md", "outputs/latest/publication-manifest.yml")),
     FreshnessNodeDefinition("curated_publication", ("publication_packet",), "project_curator", "agent_curated", "p2p project publish import <source>", ("outputs/latest/project.curated.md",)),
     FreshnessNodeDefinition("publication_validation", ("curated_publication",), "ProjectPublicationValidator", "deterministic", "p2p project publish validate", ("outputs/latest/publication-validation.yml",)),
@@ -95,6 +96,7 @@ class DerivedFreshnessService:
         } if publication is not None else {}
         for definition in self._order:
             outputs = self._output_paths(definition)
+            direct_sources = self._source_paths(definition)
             dependency_nodes = [node_by_id[node_id] for node_id in definition.dependencies]
             source_fingerprint = semantic_sha256(
                 {
@@ -102,6 +104,8 @@ class DerivedFreshnessService:
                     "dependencies": {
                         node.node_id: node.current_fingerprint_sha256 for node in dependency_nodes
                     },
+                    "direct_sources": _paths_fingerprint(self.root, direct_sources),
+                    "source_classes": list(definition.source_classes),
                     "lifecycle_authority_policy_version": PROPOSAL_LIFECYCLE_AUTHORITY_POLICY_VERSION,
                 }
             )
@@ -204,12 +208,17 @@ class DerivedFreshnessService:
                 action_class=definition.action_class,
                 current_fingerprint_sha256=current_fingerprint,
                 recorded_source_fingerprint_sha256=recorded,
-                source_count=sum(node.output_count for node in dependency_nodes) or len(canonical_paths),
+                source_count=(
+                    len(direct_sources)
+                    + (sum(node.output_count for node in dependency_nodes) or len(canonical_paths))
+                ),
                 output_count=len(outputs),
                 output_paths=tuple(path.relative_to(self.root).as_posix() for path in outputs),
                 reasons=tuple(dict.fromkeys(reasons)),
                 command=definition.command,
                 missing_primitive=definition.missing_primitive,
+                source_classes=definition.source_classes,
+                source_paths=tuple(path.relative_to(self.root).as_posix() for path in direct_sources),
             )
         nodes = tuple(node_by_id[item.node_id] for item in self._order)
         rebuild = self._rebuild_plan(nodes)
@@ -353,6 +362,29 @@ class DerivedFreshnessService:
         for pattern in definition.output_patterns:
             paths.update(path for path in self.root.glob(pattern) if path.is_file() and not path.is_symlink())
         return sorted(paths, key=lambda path: path.relative_to(self.root).as_posix())
+
+    def _source_paths(self, definition: FreshnessNodeDefinition) -> list[Path]:
+        paths: set[Path] = set()
+        for pattern in definition.source_patterns:
+            paths.update(path for path in self.root.glob(pattern) if path.is_file() and not path.is_symlink())
+        return sorted(paths, key=lambda path: path.relative_to(self.root).as_posix())
+
+    def impact_node_ids(self, changed_paths: Iterable[str]) -> tuple[str, ...]:
+        normalized = tuple(sorted({str(item).replace("\\", "/") for item in changed_paths}))
+        directly_affected = {
+            definition.node_id
+            for definition in self._order
+            if any(
+                fnmatch.fnmatch(path, pattern)
+                for path in normalized
+                for pattern in definition.source_patterns
+            )
+        }
+        affected = set(directly_affected)
+        for definition in self._order:
+            if set(definition.dependencies) & affected:
+                affected.add(definition.node_id)
+        return tuple(item.node_id for item in self._order if item.node_id in affected)
 
     def _publication_status(self) -> Any | None:
         try:

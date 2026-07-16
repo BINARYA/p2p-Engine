@@ -8,9 +8,9 @@ from types import MappingProxyType
 from typing import Mapping, Sequence
 
 
-SOURCE_CATALOG_VERSION = "decision-context-sources-v1"
+SOURCE_CATALOG_VERSION = "decision-context-sources-v2"
 SCHEMA_VERSION = "decision-context-v1"
-EXTRACTOR_VERSION = "decision-context-extractors-v2"
+EXTRACTOR_VERSION = "decision-context-extractors-v3"
 AUTHORITY_POLICY_VERSION = "decision-context-authority-v2"
 RELATION_POLICY_VERSION = "decision-context-relations-v2"
 LEXICAL_POLICY_VERSION = "decision-context-lexical-v1"
@@ -57,6 +57,7 @@ class SourceKind(StrEnum):
     DECISION_PRECEDENTS = "decision_precedents"
     GOVERNANCE_CONSTRAINT = "governance_constraint"
     PROJECT_DEFINITION = "project_definition"
+    PROJECT_QUESTIONS = "project_questions"
 
 
 class Canonicality(StrEnum):

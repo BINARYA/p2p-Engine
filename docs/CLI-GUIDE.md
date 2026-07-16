@@ -151,8 +151,8 @@ Build a deterministic forward-only plan. Supply a reviewed owner-input patch
 when the findings require vertical, owner or bounded metadata values:
 
 ```bash
-p2p workspace migrate plan --to 1 --format json
-p2p workspace migrate plan --to 1 --input migration-input.yml --format json
+p2p workspace migrate plan --to 2 --format json
+p2p workspace migrate plan --to 2 --input migration-input.yml --format json
 ```
 
 Apply only the exact reviewed plan. The target, input patch and semantic
@@ -161,7 +161,7 @@ after acquiring its process-safe lock:
 
 ```bash
 p2p workspace migrate apply \
-  --to 1 \
+  --to 2 \
   --input migration-input.yml \
   --plan-fingerprint '<reviewed-fingerprint>' \
   --actor owner \
@@ -391,11 +391,30 @@ Review project readiness against the active vertical:
 ```bash
 p2p project readiness review
 p2p project readiness review --vertical social_impact_program_design
+p2p project readiness gaps --limit 20 --format json
+p2p project readiness questions status --format json
+p2p project readiness questions next --format json
 ```
 
-The review reports section coverage, missing capisaldi, generated questions,
-unmapped proposals, and suggested next commands. It does not mutate governance
-state.
+The review reports prioritized typed gaps, counts, bounded legacy evidence and
+concrete next operations. On workspace schema v2, project questions live in
+`.p2p/project/questions.yml`; definition `open_questions` remain empty.
+
+Only the declared project owner can answer, replace, defer, mute, reopen or
+apply owner evidence. Recording an answer does not change project definition:
+
+```bash
+p2p project readiness questions answer PRQ-... \
+  --value "Owner answer" --actor owner --expected-revision 1
+p2p project readiness preview --question PRQ-... --actor owner --format json
+p2p project readiness apply --question PRQ-... \
+  --preview-token '<token>' --actor owner --confirm
+```
+
+Convergence commits definition and question state in one transaction. If the
+vertical changes while question evidence exists, use `questions
+reconcile-preview` and `reconcile-apply`; reconciliation never copies an answer
+to a semantically different target.
 
 Proposal-to-vertical traceability can be declared with an optional proposal
 artifact:

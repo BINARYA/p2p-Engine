@@ -15,6 +15,7 @@ from p2p_engine.core.decision_context import (
     RecordKind,
     RelationType,
 )
+from p2p_engine.core.project_readiness import ProjectReadinessGapKind, ProjectReadinessResult
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
     yaml_dump as _yaml_dump,
@@ -47,6 +48,7 @@ class NextActionService:
         show_choice: Callable[[str], Any],
         workspace_schema_status: Callable[[], Any] | None = None,
         derived_freshness_status: Callable[[], Any] | None = None,
+        project_readiness_result: Callable[[], ProjectReadinessResult] | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -59,6 +61,7 @@ class NextActionService:
         self.show_choice = show_choice
         self.workspace_schema_status = workspace_schema_status
         self.derived_freshness_status = derived_freshness_status
+        self.project_readiness_result = project_readiness_result
 
     def list(
         self,
@@ -71,6 +74,7 @@ class NextActionService:
             self._workspace_alignment_actions(context_snapshot)
             + self._active_choice_blocker_actions(index)
             + self._active_curated_actions()
+            + self._project_readiness_actions(context_snapshot)
             + self._fallback_actions(context_snapshot, index)
         )
         if limit is not None:
@@ -139,6 +143,7 @@ class NextActionService:
         generated = self._dedupe(
             self._workspace_alignment_actions(None)
             + self._active_choice_blocker_actions(index)
+            + self._project_readiness_actions(None)
             + self._fallback_actions(None, index)
         )
         return {
@@ -513,6 +518,59 @@ class NextActionService:
                     source="generated",
                 )
             )
+        return actions
+
+    def _project_readiness_actions(
+        self,
+        context_snapshot: Mapping[str, object] | None,
+    ) -> list[NextAction]:
+        result = (
+            context_snapshot.get("project_readiness_result")
+            if context_snapshot is not None
+            else None
+        )
+        if result is None and self.project_readiness_result is not None:
+            result = self.project_readiness_result()
+        if not isinstance(result, ProjectReadinessResult):
+            return []
+        if not result.snapshot.vertical_lock_checksum:
+            return []
+        actions: list[NextAction] = []
+        for gap in result.gaps:
+            if gap.kind == ProjectReadinessGapKind.INFORMATIONAL_LEGACY:
+                continue
+            if gap.kind == ProjectReadinessGapKind.COMPATIBILITY_BLOCKER:
+                kind = (
+                    "project_schema_migration"
+                    if gap.target_kind == "workspace_schema"
+                    else "project_question_reconcile"
+                )
+            elif gap.kind == ProjectReadinessGapKind.ANSWERED_NOT_APPLIED:
+                kind = "project_question_apply"
+            elif gap.question_id:
+                kind = "project_question_answer"
+            else:
+                kind = "project_definition_gap"
+            target = gap.question_id or gap.gap_id
+            actions.append(
+                NextAction(
+                    action_id=f"NEXT-READINESS-{gap.gap_id.removeprefix('PGAP-').upper()}",
+                    priority=(
+                        "critical"
+                        if gap.severity.value == "blocker"
+                        else "high"
+                        if gap.severity.value == "high"
+                        else "medium"
+                    ),
+                    kind=kind,
+                    target=target,
+                    reason=gap.rationale,
+                    command=gap.next_operation,
+                    source="project_readiness",
+                )
+            )
+            if len(actions) >= 10:
+                break
         return actions
 
     def _active_choice_blocker_actions(

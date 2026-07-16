@@ -5,6 +5,22 @@ runtime compatibility contract. Runtime compatibility answers which engine can
 operate the project. Workspace schema status answers which artifact layout is
 present and whether semantic alignment still needs owner input or curation.
 
+## Runtime Support Matrix
+
+| Runtime line | Legacy undeclared | Workspace schema v1 | Workspace schema v2 |
+| --- | --- | --- | --- |
+| `0.2.x` | inspect/plan/apply v0->v1 | current, v1-safe operations | ahead and write-blocked |
+| `0.3.x` | inspect/plan/apply v0->v1->v2 | valid, upgrade available, v1-safe operations | current, full readiness convergence |
+
+The `workspace-v1-to-v2` transition requires `>=0.3.0,<0.4.0`. A workspace
+must make that runtime line available before migration; after migration it must
+not be operated with a v1-only runtime.
+
+Runtime rollback after schema v2 must deploy a corrective release that still
+supports schema v2. Downgrading to a `0.2.x` v1-only runtime is unsupported;
+the old runtime must report the workspace as ahead and perform no governed
+write.
+
 ## Inspect
 
 All inspection and planning commands are read-only:
@@ -12,8 +28,8 @@ All inspection and planning commands are read-only:
 ```bash
 p2p workspace schema status
 p2p workspace schema status --format json
-p2p workspace migrate plan --to 1
-p2p workspace migrate plan --to 1 --input migration-input.yml --format json
+p2p workspace migrate plan --to 2
+p2p workspace migrate plan --to 2 --input migration-input.yml --format json
 p2p project progress --format json
 p2p project freshness --format json
 p2p validate
@@ -42,10 +58,17 @@ metadata:
   status: active
   workflow_phase: delivery
   current_objective: Complete the current implementation slice.
+project_questions:
+  legacy_bindings:
+    decisions/Q001:
+      target_kind: field
+      target_id: summary
+      answer_contract: field_value
 ```
 
-Omit values that should not change. Unknown fields and unsafe path-like values
-are rejected. A plan can remain useful while reporting owner-input or
+Legacy question input binds only a target. Answer, status and lifecycle fields
+are rejected; migration never invents owner evidence. Omit values that should
+not change. Unknown fields and unsafe path-like values are rejected. A plan can remain useful while reporting owner-input or
 repository-curation blockers, but it cannot be applied until they are resolved.
 
 ## Apply
@@ -55,7 +78,7 @@ receive the same target and owner input again:
 
 ```bash
 p2p workspace migrate apply \
-  --to 1 \
+  --to 2 \
   --input migration-input.yml \
   --plan-fingerprint '<reviewed-fingerprint>' \
   --actor owner \
@@ -103,6 +126,8 @@ Deterministic commands can be run in order. Stop before `agent_curated` or
 `owner_review` stages. Refreshing registries and project projections reconciles
 only declared generated outputs and preserves unknown/manual directories.
 
-Migration apply, rollback and resume are CLI-only in schema v1. MCP exposes
-read-only schema status, migration plan, progress, freshness and vertical
-coverage show/suggest tools.
+The v2-capable runtime keeps valid schema-v1 operations available and reports
+`upgrade_available`; project-question and convergence writes require v2.
+Migration apply, rollback and resume remain CLI-only. MCP exposes read-only
+schema status, migration plan, readiness gaps/questions, progress, freshness
+and vertical coverage show/suggest tools.
