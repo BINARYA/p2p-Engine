@@ -13,4 +13,4 @@ def test_source_package_and_mcp_versions_are_consistent() -> None:
 
     assert package["project"]["version"] == __version__
     assert server.__version__ == __version__
-    assert __version__ == "0.3.0"
+    assert __version__ == "0.3.1"

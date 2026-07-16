@@ -627,8 +627,11 @@ in the vertical selection candidate. Otherwise selection leaves a typed
 | `0.2.x` v1-only runtime | inspect/plan/apply v0->v1 | current | ahead/blocked |
 | `0.3.x` v2-capable runtime | inspect/plan/apply v0->v1->v2 | valid, upgrade available, v1-safe writes | current/full feature |
 
-The owner-approved release is `0.3.0`. Legacy-to-v1 remains available in
-`>=0.2.0,<0.4.0`; v1-to-v2 inspect/plan/apply require
+The original owner-approved release target was `0.3.0`. Its immutable tag
+failed the minimum-Python gate and produced no release artifact, so it cannot
+be reused or satisfy D1. Source proceeds as corrective candidate `0.3.1`, whose
+publication remains a separate owner decision. Legacy-to-v1 remains available
+in `>=0.2.0,<0.4.0`; v1-to-v2 inspect/plan/apply require
 `>=0.3.0,<0.4.0`. Transition metadata and tests encode these exact ranges.
 
 ### Transition Handler Protocol

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from p2p_engine.prompts.common import render_governance_context, render_missing_info_instruction
+from p2p_engine.prompts.common import (
+    render_governance_context,
+    render_missing_info_instruction,
+    render_nearby_decision_context,
+)
 
 
 def render_impact_prompt(context: dict[str, str]) -> str:
@@ -52,7 +56,7 @@ def render_impact_prompt(context: dict[str, str]) -> str:
         f"{context.get('exploration', '').strip() or 'Not provided.'}\n\n"
         "## Existing Project Decisions\n\n"
         "The following bounded neighborhood replaces registry-order and full decision-map context.\n\n"
-        f"{context.get('nearby_decision_context', '').strip() or '## Nearby Decision Context\n\nNot available.'}\n\n"
+        f"{render_nearby_decision_context(context)}\n\n"
         "## Project Overview\n\n"
         f"{context.get('project_overview', '').strip() or 'Not provided.'}\n\n"
         f"{render_governance_context(context)}\n"

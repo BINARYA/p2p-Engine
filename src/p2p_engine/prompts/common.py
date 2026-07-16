@@ -21,8 +21,13 @@ def render_missing_info_instruction() -> str:
     )
 
 
+def render_nearby_decision_context(context: dict[str, str]) -> str:
+    return context.get("nearby_decision_context", "").strip() or (
+        "## Nearby Decision Context\n\nNot available."
+    )
+
+
 def _fallback(value: str | None) -> str:
     if value and value.strip():
         return value.strip()
     return "Not provided."
-

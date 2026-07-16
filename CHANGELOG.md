@@ -8,8 +8,13 @@ tagged releases.
 
 ## Unreleased
 
-- Target release is P2P Engine `0.3.0`. Workspace schema v1 remains operable;
-  the v1-to-v2 transition is advertised only by the `0.3.x` runtime line.
+- The current source candidate is P2P Engine `0.3.1`. The immutable `v0.3.0`
+  tag failed its minimum-Python release gate and produced no GitHub Release or
+  published package; it is not reused or treated as an available runtime.
+- Fixed Python 3.11 parsing of nearby-decision-context prompt fallbacks while
+  preserving the rendered Explore, Impact and Synthesize output.
+- Workspace schema v1 remains operable; the v1-to-v2 transition is advertised
+  only by the `0.3.x` runtime line.
 - Added workspace schema v2 with a forward-only v1-to-v2 migration that moves
   legacy definition questions into one validated project-question authority.
 - Added typed, bounded project-readiness gaps; persistent owner-controlled
@@ -34,7 +39,7 @@ tagged releases.
   derived-state freshness graph and owned-output reconciliation.
 - Added read-only CLI/MCP inspection for schema, plans, progress, freshness and
   vertical coverage; migration apply and recovery remain CLI-only.
-- Source and package metadata now report `0.3.0`. Existing workspaces must make
+- Source and package metadata now report `0.3.1`. Existing workspaces must make
   the v2-capable runtime available and preview/approve their runtime-contract
   transition before schema migration; no environment change is performed
   automatically.

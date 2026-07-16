@@ -6,7 +6,9 @@
 - Change Set: `CHANGE-069`.
 - Governed software spec: `.p2p/outputs/software-spec/CHANGE-069`.
 - Local feature spec: `specs/features/project-readiness-convergence-workflow`.
-- Owner-approved package version: `0.3.0`.
+- Original owner-approved package version: `0.3.0`; its immutable tag failed
+  before artifact publication. Current corrective source candidate: `0.3.1`,
+  not approved or published as a release.
 - Workspace support target: inspect and operate valid v1 where the operation is
   v1-safe; plan/apply v0->v1 and v1->v2; operate v2 fully; reject writes to a
   workspace ahead of the runtime.
@@ -37,7 +39,7 @@ it; they are not its creation point.
 | R-F6-001..014 | exact replay, concurrency, vertical reconciliation | S6-T001..017 | replay, two-process and vertical drift tests | complete: exact replay/mismatch, audit-clock metamorphism, one-commit concurrency, target/alias/module reconciliation |
 | R-F7-001..017 | next, progress, freshness and decision-context adapters | S7-T001..017 | focused consumer/source/topology/retrieval tests | complete: concrete actions, residual counts, explicit freshness impact and inactive question traceability without definition double-count |
 | R-F8-001..015 | CLI, bounded JSON/text, MCP reads, diagnostics | S8-T001..020 | CLI, MCP catalog/handler/registry and help/docs tests | complete: CLI writes, bounded read parity, safe answer files, stable diagnostics and explicit MCP write absence |
-| R-F9-001..034 | release, environment provenance, restart-safe repository migration and artifact alignment | G, D1, M1, A1, F | build/smoke/published-artifact/pilot/process/alignment/full validation evidence | G complete; D1 commit/push complete but tag/release/published-artifact selection pending; M1/A1 remain gated |
+| R-F9-001..034 | release, environment provenance, restart-safe repository migration and artifact alignment | G, D1, M1, A1, F | build/smoke/published-artifact/pilot/process/alignment/full validation evidence | G complete; v0.3.0 failed before build/publication; corrective source validated locally; release decision and M1/A1 remain gated |
 | N001..N020 | module boundaries, compatibility, atomicity, determinism, scale | P, S1..S8, G | architecture review plus focused/public/full suites | release-candidate gate complete: public 252; full 943; repository validation clean except expected upgrade info |
 | E001..E036 | malformed, stale, concurrent, release, migration and alignment edges | S1..S8, D1, M1, A1 | table, failure-injection, fixture, artifact and pilot tests | engine edge cases complete; release/pilot/alignment cases pending |
 | AC001..AC055 | all feature and rollout acceptance gates | G-T001..015, D1, M1, A1, F | requirement-specific evidence plus final suites and restart/environment provenance | engine evidence complete; rollout evidence pending |
@@ -231,3 +233,23 @@ it; they are not its creation point.
   Python 3.11 CI, published-asset verification, Python 3.14 isolated smoke,
   scratch evidence, plan digest binding, foreground apply completion and
   selective per-owner artifact reconciliation.
+
+### D1 Failed Tag And Python 3.11 Correction
+
+- Owner-confirmed annotated tag `v0.3.0` resolves immutably to commit
+  `7f58f1cf35bdbe5dcc28e31e2d8c7dec80fe102f`. GitHub Actions run
+  `29533701609` passed checkout, Python 3.11 setup, editable install and
+  tag/version validation, then failed during test collection before validation,
+  build or release publication. No GitHub Release or downloadable asset exists.
+- Python 3.11 rejected newline escape sequences embedded in f-string
+  expressions in Explore, Impact and Synthesize prompt renderers. The shared
+  fallback is now computed by `render_nearby_decision_context` outside those
+  expressions, preserving rendered output on supported Python versions.
+- Corrective evidence: 22 focused tests pass; all 260 source/test Python files
+  compile under CPython 3.11; the complete Python 3.11 container suite passes
+  with `946 passed, 1 skipped`; the local Python 3.14 suite passes with
+  `947 passed`.
+- Source/package metadata advances to unpublished candidate `0.3.1` so code
+  after the immutable failed tag cannot identify itself as `0.3.0`. No
+  corrective tag, release, workspace migration or runtime-contract mutation is
+  authorized by this candidate bump.

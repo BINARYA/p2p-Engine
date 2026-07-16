@@ -582,15 +582,16 @@ throughout implementation and must not be reconstructed only at `G` or `F`.
   Python `3.14.4`, editable source import `0.3.0`, stale package metadata
   `0.1.9`; classify the metadata difference as an explicit advisory and do not
   reinstall/downgrade implicitly.
-- [ ] D1-T013C: Re-run immutable-tag preflight immediately before publication:
+- [x] D1-T013C: Re-run immutable-tag preflight immediately before publication:
   exact reviewed commit on `origin/main`, clean worktree and absent local/remote
   `v0.3.0` plus absent release/assets; any existing or ambiguous publication
   state blocks creation until reconciled.
-- [ ] D1-T013D: Create and push annotated `v0.3.0` only after owner confirmation;
+- [x] D1-T013D: Create and push annotated `v0.3.0` only after owner confirmation;
   record the resolved commit and never move/reuse the tag after publication.
-- [ ] D1-T013E: Wait for the tag workflow and record clean Python 3.11 install,
-  version/tag match, full tests, P2P validation, build and artifact-verifier
-  results; an incomplete/failed workflow is not runtime availability.
+- [ ] D1-T013E: For the owner-approved corrective tag, wait for the workflow and
+  record clean Python 3.11 install, version/tag match, full tests, P2P validation,
+  build and artifact-verifier results; the failed `v0.3.0` workflow is not
+  runtime availability.
 - [ ] D1-T013F: Download the published wheel/sdist, record URL/size/SHA-256 and
   run `scripts/verify-release-artifacts.py`; do not substitute the earlier local
   build or an editable checkout.
@@ -600,6 +601,15 @@ throughout implementation and must not be reconstructed only at `G` or `F`.
 - [ ] D1-T013H: Record one restart-safe release checkpoint after each external
   side effect; after interruption re-inspect state before retrying and never
   infer tag/release completion from a previously approved command.
+- [x] D1-T013I: Record `v0.3.0` as an immutable failed checkpoint: workflow run
+  `29533701609` failed on Python 3.11 prompt parsing before build/publication,
+  produced no release assets and must not be moved or reused.
+- [x] D1-T013J: Remove Python 3.12+-only f-string expressions from all affected
+  prompt renderers and prove unchanged behavior with focused tests, Python 3.11
+  compilation and full suites on Python 3.11 and 3.14.
+- [ ] D1-T013K: Keep source `0.3.1` as an unpublished corrective candidate until
+  implementation review is complete and the owner separately approves its
+  remote push and immutable release tag.
 - [ ] D1-T014: Verify collaborators can obtain the v2-capable runtime before any
   workspace migration is approved.
 - [x] D1-T015: Record corrective-release rollback plan: after v2 migration, do
@@ -613,8 +623,9 @@ throughout implementation and must not be reconstructed only at `G` or `F`.
 - [ ] M1-T001: Confirm repository branch/worktree and use the released/project-
   local v2-capable runtime selected in D1.
 - [ ] M1-T001A: Before every pilot command, prove the selected executable imports
-  from the isolated published-wheel environment, reports `0.3.0` and matches the
-  D1 SHA-256; do not use stale editable metadata as runtime selection evidence.
+  from the isolated published-wheel environment, reports the owner-approved
+  corrective version and matches the D1 SHA-256; do not use stale editable
+  metadata as runtime selection evidence.
 - [ ] M1-T002: Capture baseline runtime status, schema status, recovery state and
   global validation in text/JSON.
 - [ ] M1-T003: Capture active vertical/profile/modules/lock checksum and

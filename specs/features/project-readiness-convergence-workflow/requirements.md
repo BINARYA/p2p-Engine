@@ -790,9 +790,9 @@ approve a package release or authorize migration of any workspace.
 - AC046: A local implementation evidence report records design choice,
   compatibility impact, behavior/files/tests, release/migration results, risks
   and deferred work.
-- AC047: Release evidence proves the same `0.3.0` source on clean Python 3.11 CI
-  and an isolated Python 3.14 published-wheel smoke without changing the local
-  interpreter.
+- AC047: Release evidence proves the same owner-approved corrective source
+  version on clean Python 3.11 CI and an isolated Python 3.14 published-wheel
+  smoke without changing the local interpreter.
 - AC048: M1 records and uses the downloaded published-wheel hash; a local build
   path or stale editable metadata cannot silently select the pilot runtime.
 - AC049: An interrupted release or migration resumes from inspected checkpoints
