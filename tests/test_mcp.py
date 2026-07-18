@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -12,10 +13,13 @@ from typer.testing import CliRunner
 from p2p_engine import __version__
 from p2p_engine.cli import app
 from p2p_engine.core.contribution import allowed_contribution_type_values
+from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.mcp.server import handle_message
 from p2p_engine.mcp.handlers.common import to_jsonable
 from p2p_engine.mcp.tools import TOOL_NAMES, call_tool, tool_definitions
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.proposal_decision_fixtures import record_decision
+from tests.filesystem_assertions import assert_no_workspace_mutation
 
 runner = CliRunner()
 
@@ -42,7 +46,13 @@ def _setup_project(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    record_decision(
+        P2PWorkspace(tmp_path),
+        "PROP-001",
+        DecisionOutcome.accepted,
+        "Ready.",
+        "owner",
+    )
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
     runner.invoke(app, ["project", "refresh", "--root", str(tmp_path)])
@@ -67,7 +77,13 @@ def _setup_work_lifecycle_project(tmp_path: Path) -> Path:
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    record_decision(
+        P2PWorkspace(tmp_path),
+        "PROP-001",
+        DecisionOutcome.accepted,
+        "Ready.",
+        "matteo",
+    )
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     call_tool("p2p_spec_refresh", {"root": str(tmp_path), "change_id": "CHANGE-001"})
     call_tool("p2p_spec_export", {"root": str(tmp_path), "change_id": "CHANGE-001", "target": "generic"})
@@ -434,7 +450,13 @@ def test_mcp_project_visible_export_flow(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    record_decision(
+        P2PWorkspace(tmp_path),
+        "PROP-001",
+        DecisionOutcome.accepted,
+        "Ready.",
+        "owner",
+    )
 
     exported = call_tool("p2p_project_export", {"root": str(tmp_path)})
 
@@ -467,7 +489,13 @@ def test_mcp_project_publish_prepare_import_and_status(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    record_decision(
+        P2PWorkspace(tmp_path),
+        "PROP-001",
+        DecisionOutcome.accepted,
+        "Ready.",
+        "owner",
+    )
 
     prepared = call_tool("p2p_project_publish_prepare", {"root": str(tmp_path)})
     prepared_again = call_tool("p2p_project_publish_prepare", {"root": str(tmp_path)})
@@ -527,7 +555,13 @@ def test_mcp_project_publish_render_with_fake_renderer(tmp_path: Path, monkeypat
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    record_decision(
+        P2PWorkspace(tmp_path),
+        "PROP-001",
+        DecisionOutcome.accepted,
+        "Ready.",
+        "owner",
+    )
     call_tool("p2p_project_publish_prepare", {"root": str(tmp_path)})
     draft = tmp_path / "curated-draft.md"
     draft.write_text(
@@ -702,6 +736,56 @@ def test_mcp_next_retire_and_refresh(tmp_path: Path) -> None:
     assert refreshed["next_action_refresh"]["generated"] >= 1
 
 
+def test_cli_and_mcp_next_return_the_same_complete_and_bounded_prefix(
+    tmp_path: Path,
+) -> None:
+    _setup_project(tmp_path)
+    workspace = P2PWorkspace(tmp_path)
+    proposal = workspace.create_proposal_with_details(
+        "Second MCP Change",
+        problem="A second active Change Set needs an action.",
+        proposal="Expose every active Change Set.",
+    )
+    record_decision(
+        workspace,
+        proposal.proposal_id,
+        DecisionOutcome.accepted,
+        "Needed.",
+        "owner",
+    )
+    second = workspace.create_change_set(proposal.proposal_id, "Second MCP Change")
+    workspace.refresh_registries()
+
+    with assert_no_workspace_mutation(tmp_path):
+        cli_all = runner.invoke(app, ["next", "--root", str(tmp_path)])
+        mcp_all = call_tool("p2p_next", {"root": str(tmp_path)})
+        cli_top = runner.invoke(
+            app,
+            ["next", "--top", "2", "--root", str(tmp_path)],
+        )
+        mcp_top = call_tool("p2p_next", {"root": str(tmp_path), "top": 2})
+
+    assert cli_all.exit_code == 0, cli_all.output
+    assert cli_top.exit_code == 0, cli_top.output
+    cli_all_ids = re.findall(r"^\d+\. (\S+)", cli_all.output, re.MULTILINE)
+    cli_top_ids = re.findall(r"^\d+\. (\S+)", cli_top.output, re.MULTILINE)
+    mcp_all_ids = [
+        action["action_id"] for action in mcp_all["next_actions"]
+    ]
+    mcp_top_ids = [
+        action["action_id"] for action in mcp_top["next_actions"]
+    ]
+
+    assert cli_all_ids == mcp_all_ids
+    assert cli_top_ids == mcp_top_ids == cli_all_ids[:2]
+    continue_targets = {
+        action["target"]
+        for action in mcp_all["next_actions"]
+        if action["kind"] == "continue_change"
+    }
+    assert continue_targets == {"CHANGE-001", second.change_id}
+
+
 def test_mcp_safe_managed_sync_and_proposal_branch_tools(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "MCP Branch Demo", "--root", str(tmp_path)])
@@ -823,7 +907,9 @@ def test_mcp_requested_consent_does_not_authorize_publish(tmp_path: Path) -> Non
         raise AssertionError("requested consent should not authorize publish")
 
 
-def test_mcp_draft_proposal_decision_requires_granted_consent(tmp_path: Path) -> None:
+def test_mcp_legacy_draft_decision_consent_cannot_write_v3_event(
+    tmp_path: Path,
+) -> None:
     runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
     runner.invoke(app, ["permissions", "actor", "add", "lorenzo", "--role", "contributor", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "MCP Draft Reject Demo", "--root", str(tmp_path)])
@@ -838,21 +924,22 @@ def test_mcp_draft_proposal_decision_requires_granted_consent(tmp_path: Path) ->
         {"root": str(tmp_path), "operation": "proposal_reject", "target": "PROP-001", "actor_id": "lorenzo"},
     )
 
-    try:
-        call_tool(
-            "p2p_proposal_reject",
-            {
-                "root": str(tmp_path),
-                "proposal_id": "PROP-001",
-                "actor_id": "lorenzo",
-                "consent_id": "CONSENT-001",
-                "reason": "Out of scope.",
-            },
-        )
-    except ValueError as exc:
-        assert "Consent receipt is not granted" in str(exc)
-    else:
-        raise AssertionError("requested consent should not authorize draft proposal rejection")
+    requested = call_tool(
+        "p2p_proposal_reject",
+        {
+            "root": str(tmp_path),
+            "proposal_id": "PROP-001",
+            "actor_id": "lorenzo",
+            "consent_id": "CONSENT-001",
+            "reason": "Out of scope.",
+        },
+    )
+    workspace = P2PWorkspace(tmp_path)
+
+    assert requested["status"] == "preview_required"
+    assert requested["required_consent"]["operation"] == "proposal_decision_apply"
+    assert workspace.proposal_decision_status("PROP-001").event_count == 0
+    assert workspace.consent_show("CONSENT-001").status == "requested"
 
     runner.invoke(
         app,
@@ -872,7 +959,7 @@ def test_mcp_draft_proposal_decision_requires_granted_consent(tmp_path: Path) ->
     _git(tmp_path, "add", ".")
     _git(tmp_path, "commit", "-m", "grant draft proposal reject consent")
 
-    rejected = call_tool(
+    preview = call_tool(
         "p2p_proposal_reject",
         {
             "root": str(tmp_path),
@@ -883,16 +970,15 @@ def test_mcp_draft_proposal_decision_requires_granted_consent(tmp_path: Path) ->
         },
     )
 
-    assert rejected["proposal_decision"]["outcome"] == "rejected"
-    assert rejected["proposal_decision"]["approver"] == "lorenzo"
-    assert rejected["governance"]["decision_made"] is True
-    assert rejected["governance"]["decision_outcome"] == "rejected"
-    assert rejected["consent"]["status"] == "consumed"
-    proposal_text = next((tmp_path / ".p2p" / "proposals").glob("PROP-001-*/proposal.md")).read_text(encoding="utf-8")
-    assert "## Status\n\n`rejected`" in proposal_text
+    assert preview["status"] == "preview_required"
+    assert preview["governance"]["decision_made"] is False
+    assert workspace.proposal_decision_status("PROP-001").event_count == 0
+    assert workspace.consent_show("CONSENT-002").status == "granted"
 
 
-def test_mcp_draft_proposal_accept_and_defer_consume_matching_consent(tmp_path: Path) -> None:
+def test_mcp_legacy_accept_and_defer_consent_only_return_bound_preview(
+    tmp_path: Path,
+) -> None:
     runner.invoke(app, ["init", "Demo Project", "--owner", "matteo", "--root", str(tmp_path)])
     runner.invoke(app, ["permissions", "actor", "add", "lorenzo", "--role", "contributor", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "MCP Draft Accept Demo", "--root", str(tmp_path)])
@@ -904,9 +990,10 @@ def test_mcp_draft_proposal_accept_and_defer_consume_matching_consent(tmp_path: 
     _git(tmp_path, "commit", "-m", "baseline")
     _git(tmp_path, "branch", "-M", "main")
 
-    for operation, tool_name, proposal_id, expected in [
-        ("proposal_accept", "p2p_proposal_accept", "PROP-001", "accepted"),
-        ("proposal_defer", "p2p_proposal_defer", "PROP-002", "deferred"),
+    workspace = P2PWorkspace(tmp_path)
+    for operation, tool_name, proposal_id in [
+        ("proposal_accept", "p2p_proposal_accept", "PROP-001"),
+        ("proposal_defer", "p2p_proposal_defer", "PROP-002"),
     ]:
         runner.invoke(
             app,
@@ -937,9 +1024,11 @@ def test_mcp_draft_proposal_accept_and_defer_consume_matching_consent(tmp_path: 
             },
         )
 
-        assert result["proposal_decision"]["outcome"] == expected
-        assert result["governance"]["decision_outcome"] == expected
-        assert result["consent"]["status"] == "consumed"
+        assert result["status"] == "preview_required"
+        assert result["required_consent"]["operation"] == "proposal_decision_apply"
+        assert result["governance"]["decision_made"] is False
+        assert workspace.proposal_decision_status(proposal_id).event_count == 0
+        assert workspace.consent_show(consent_id).status == "granted"
 
 
 def test_mcp_proposal_draft_commit_then_branch_from_explicit_base(tmp_path: Path) -> None:
@@ -1932,7 +2021,13 @@ def test_mcp_project_definition_maturity(tmp_path: Path) -> None:
             "proposal": "Define sandbox permissions.",
         },
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Needed.", "--root", str(tmp_path)])
+    record_decision(
+        P2PWorkspace(tmp_path),
+        "PROP-001",
+        DecisionOutcome.accepted,
+        "Needed.",
+        "owner",
+    )
 
     maturity = call_tool("p2p_maturity_refresh", {"root": str(tmp_path)})
 
@@ -2192,7 +2287,8 @@ def test_mcp_write_safe_spec_export_and_work_flow(tmp_path: Path) -> None:
     assert work["work"]["work_id"] == "WORK-001"
     assert work["work"]["status"] == "planned"
 
-    spec_status = call_tool("p2p_spec_status", {"root": str(tmp_path)})
+    with assert_no_workspace_mutation(tmp_path):
+        spec_status = call_tool("p2p_spec_status", {"root": str(tmp_path)})
     spec_show = call_tool("p2p_spec_show", {"root": str(tmp_path), "change_id": "CHANGE-001"})
     export_status = call_tool("p2p_spec_export_status", {"root": str(tmp_path)})
     export_show = call_tool(
@@ -2203,6 +2299,10 @@ def test_mcp_write_safe_spec_export_and_work_flow(tmp_path: Path) -> None:
     work_show = call_tool("p2p_work_show", {"root": str(tmp_path), "work_id": "WORK-001"})
 
     assert spec_status["specs"][0]["change_id"] == "CHANGE-001"
+    assert spec_status["specs"][0]["status"] == "generated"
+    assert spec_status["specs"][0]["freshness"] == "current"
+    assert spec_status["specs"][0]["origin"] == "generated"
+    assert spec_status["specs"][0]["current_source_fingerprint_sha256"]
     assert "CHANGE-001" in spec_show["content"]
     assert export_status["exports"][0]["target"] == "generic"
     assert "# Demo Project Project Definition" in export_show["content"]
@@ -2346,9 +2446,12 @@ def test_mcp_work_lifecycle_tools_validate_required_arguments(tmp_path: Path) ->
 def test_mcp_change_create_is_metadata_only_for_accepted_proposal(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     call_tool("p2p_proposal_create", {"root": str(tmp_path), "title": "Accepted Candidate"})
-    runner.invoke(
-        app,
-        ["proposal", "accept", "PROP-001", "--reason", "Ready for metadata-only change.", "--root", str(tmp_path)],
+    record_decision(
+        P2PWorkspace(tmp_path),
+        "PROP-001",
+        DecisionOutcome.accepted,
+        "Ready for metadata-only change.",
+        "owner",
     )
 
     result = call_tool("p2p_change_create", {"root": str(tmp_path), "source": "PROP-001"})

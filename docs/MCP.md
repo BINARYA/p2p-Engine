@@ -156,11 +156,22 @@ it does not create contributions, choices, relations, decisions or imported
 proposal artifacts. MCP responses still return the existing intake metadata or
 prompt path only.
 
-`p2p_next` also keeps its existing payload. Generated choice actions are now
+`p2p_next` also keeps its existing payload. Generated choice actions are
 derived from normalized project-choice nodes and active relations, so
 proposal-local vote records cannot appear as project choices requiring a
-decision. Topology diagnostics remain visible only through existing read-only
-context/diagnostic payloads; no diagnostic file is created.
+decision. Every non-terminal Change Set registry record produces a stable
+`NEXT-CHANGE-<CHANGE-ID>` action even when the decision-context index is
+partial. The optional `top` argument truncates only the final composed and
+deduplicated list, so CLI and MCP return the same prefix. Topology diagnostics
+remain visible only through existing read-only context/diagnostic payloads; no
+diagnostic file is created.
+
+`p2p_spec_status` preserves the existing `status` field and adds per-spec
+`freshness`, `origin`, current/recorded fingerprints, changed paths, stable
+reason codes, and a suggested command. Generated freshness is based on exact
+source and candidate bytes, not mtimes. Legacy and imported origins are
+classified conservatively. The tool is read-only and never rewrites
+provenance.
 
 Permission-gated MCP tools validate:
 
@@ -193,13 +204,21 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_proposal_vertical_coverage_suggest` | advisory/read-only | no | no | Suggest bounded section mappings without creating authority. |
 | `p2p_project_interaction_style_show` | read-only | no | no | Read effective project interaction style values and descriptions. |
 | `p2p_project_interaction_style_set` | write-safe | yes | no | Set project-level interaction style values without governance side effects. |
-| `p2p_next` | read-only | no | no | Show advisory next actions. |
+| `p2p_next` | read-only | no | no | Show the complete composed advisory action set, optionally bounded by `top`. |
 | `p2p_next_add` | write-safe | yes | no | Add a curated next action to the operational board. |
 | `p2p_next_complete` | write-safe | yes | no | Complete a curated next action and audit it in the next-action log. |
 | `p2p_next_retire` | write-safe | yes | no | Retire a curated next action and audit it in the next-action log. |
 | `p2p_next_refresh` | write-safe | yes | no | Normalize curated next actions and report generated action count. |
 | `p2p_proposal_list` | read-only | no | no | List proposals, optionally by status. |
 | `p2p_proposal_show` | read-only | no | no | Inspect one proposal summary; pass `full: true` for the owner review view. |
+| `p2p_proposal_decision_status` | read-only | no | no | Read effective lifecycle, head, authority intervals and diagnostics. |
+| `p2p_proposal_decision_history` | read-only | no | no | Read bounded append-only decision history. |
+| `p2p_proposal_decision_impact` | read-only | no | no | Inspect complete dependency impact with bounded rendering. |
+| `p2p_proposal_decision_preview` | read-only | no | no | Create a source-bound decision preview without recording an event. |
+| `p2p_proposal_decision_apply` | consent-gated | yes | yes | Apply the exact preview using `proposal_decision_apply` consent bound to `PROP-XXX@preview-token`. |
+| `p2p_proposal_decision_projection_repair_preview/apply` | read/consent-gated | apply only | yes | Restore projections from a valid ledger. |
+| `p2p_proposal_decision_ledger_repair_preview/apply` | read/consent-gated | apply only | yes | Apply a reviewed ledger candidate that preserves the valid prefix. |
+| `p2p_proposal_decision_legacy_resolution_preview/apply` | read/consent-gated | apply only | yes | Resolve preserved unknown-legacy authority through an explicit owner event. |
 | `p2p_choice_list` | read-only | no | no | List project choices. |
 | `p2p_choice_show` | read-only | no | no | Inspect one choice. |
 | `p2p_governance_status` | read-only | no | no | Read governance mode and audit artifact counts. |
@@ -229,7 +248,7 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_proposal_branch_status` | read-only | no | no | Inspect one managed proposal branch. |
 | `p2p_proposal_branch_scan` | read-oriented | yes | no | Scan local managed proposal branches and refresh the proposal branch registry. |
 | `p2p_spec_lifecycle` | advisory/read-only | no | no | Inspect software spec lifecycle routing and preflight diagnostics. |
-| `p2p_spec_status` | read-only | no | no | List generated P2P-native software specs. |
+| `p2p_spec_status` | read-only | no | no | List P2P-native software specs with additive semantic freshness details. |
 | `p2p_spec_show` | read-only | no | no | Read a generated software spec index. |
 | `p2p_spec_export_status` | read-only | no | no | List generated downstream spec exports. |
 | `p2p_spec_export_show` | read-only | no | no | Read the primary file for a spec export target. |
@@ -322,9 +341,9 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_sync_push` | permission-gated | yes | yes | Push current branch with `sync_push` consent. |
 | `p2p_proposal_publish` | permission-gated | yes | yes | Publish current proposal branch with `proposal_publish` consent. |
 | `p2p_proposal_request_review` | permission-gated | yes | yes | Record review handoff metadata with `proposal_request_review` consent. |
-| `p2p_proposal_accept` | permission-gated | yes | yes | Accept a draft proposal with `proposal_accept` consent. |
-| `p2p_proposal_reject` | permission-gated | yes | yes | Reject a draft proposal with `proposal_reject` consent. |
-| `p2p_proposal_defer` | permission-gated | yes | yes | Defer a draft proposal with `proposal_defer` consent. |
+| `p2p_proposal_accept` | compatibility preview | no | yes | Return an acceptance preview; old unbound consent cannot write. |
+| `p2p_proposal_reject` | compatibility preview | no | yes | Return a rejection preview; old unbound consent cannot write. |
+| `p2p_proposal_defer` | compatibility preview | no | yes | Return a deferral preview; old unbound consent cannot write. |
 | `p2p_proposal_accept_branch` | permission-gated | yes | yes | Record owner-controlled branch acceptance with `proposal_accept_branch` consent. |
 | `p2p_proposal_reject_branch` | permission-gated | yes | yes | Record owner-controlled branch rejection with `proposal_reject_branch` consent. |
 | `p2p_proposal_merge` | permission-gated | yes | yes | Merge proposal branch into base branch with `proposal_merge` consent. |
@@ -439,7 +458,12 @@ Returned paths are backing evidence or source hints, not direct edit targets.
 Unsupported generic artifact writes remain unsupported. Agents should report the
 missing primitive instead of writing arbitrary files under `.p2p/`.
 
-MCP now exposes permission-gated draft proposal accept/reject/defer decisions.
+MCP exposes token-bound proposal decision preview/apply tools. Apply requires a
+granted `proposal_decision_apply` receipt whose target is exactly
+`PROP-XXX@preview-token`; owner authority and executor identity remain
+separate. Legacy `p2p_proposal_accept`, `p2p_proposal_reject`, and
+`p2p_proposal_defer` tools are preview-only compatibility surfaces. Their old
+unbound consent receipts cannot write schema-v3 events and are not consumed.
 It also exposes local MCP parity for the managed Work lifecycle through
 domain-specific Work tools. It still does not expose choice decisions, spec
 imports, conflict recording, voting, precedent recording, choice blocking, raw
@@ -576,9 +600,7 @@ sync_pull                 -> p2p_sync_pull
 sync_push                 -> p2p_sync_push
 proposal_publish          -> p2p_proposal_publish
 proposal_request_review   -> p2p_proposal_request_review
-proposal_accept           -> p2p_proposal_accept
-proposal_reject           -> p2p_proposal_reject
-proposal_defer            -> p2p_proposal_defer
+proposal_decision_apply   -> p2p_proposal_decision_apply
 proposal_accept_branch    -> p2p_proposal_accept_branch
 proposal_reject_branch    -> p2p_proposal_reject_branch
 proposal_merge            -> p2p_proposal_merge
@@ -590,6 +612,11 @@ work_accept               -> p2p_work_accept
 work_finalize             -> p2p_work_finalize
 work_cleanup              -> p2p_work_cleanup
 ```
+
+The `proposal_decision_apply` target is
+`PROP-XXX@<preview-token>`. Legacy `proposal_accept`,
+`proposal_reject`, and `proposal_defer` receipts have no write mapping in
+schema v3.
 
 Local Work lifecycle flow:
 

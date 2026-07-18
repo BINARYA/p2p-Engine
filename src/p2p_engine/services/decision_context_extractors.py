@@ -15,6 +15,7 @@ from p2p_engine.core.decision_context import (
     DecisionContextEvidence,
     DecisionContextNode,
     DecisionContextRecord,
+    DecisionContextRelation,
     DiagnosticSeverity,
     ExtractionSession,
     NodeType,
@@ -25,6 +26,10 @@ from p2p_engine.core.decision_context import (
 )
 from p2p_engine.services.decision_context_sources import fragments_for_label
 from p2p_engine.services.decision_context_authority import AuthorityPolicy, LifecycleAuthority
+from p2p_engine.services.decision_context_ledger import (
+    DecisionContextLedgerExtractor,
+    proposal_authority,
+)
 
 
 _LIST_ITEM_RE = re.compile(r"^(?:[-*+] |[0-9]+[.)] )(.*)$")
@@ -33,11 +38,15 @@ _KNOWN_OUTCOMES = {
     "accepted_with_changes",
     "rejected",
     "deferred",
+    "withdrawn",
+    "revoked",
+    "reinstated",
     "split",
     "merged_into_other",
     "superseded",
     "pending",
     "draft",
+    "unknown_legacy",
 }
 
 
@@ -47,6 +56,7 @@ class ExtractedDecisionContext:
     records: tuple[DecisionContextRecord, ...]
     evidence: tuple[DecisionContextEvidence, ...]
     nodes: tuple[DecisionContextNode, ...]
+    relations: tuple[DecisionContextRelation, ...]
     diagnostics: tuple[DecisionContextDiagnostic, ...]
 
 
@@ -56,6 +66,7 @@ class DecisionContextExtractorService:
         records: list[DecisionContextRecord] = []
         evidence: list[DecisionContextEvidence] = []
         nodes: list[DecisionContextNode] = []
+        relations: list[DecisionContextRelation] = []
         documents_by_owner: dict[str, dict[SourceKind, SourceDocument]] = defaultdict(dict)
         for document in session.sources:
             documents_by_owner[document.owner_id][document.source_kind] = document
@@ -64,6 +75,9 @@ class DecisionContextExtractorService:
             owner_documents = documents_by_owner[owner_id]
             proposal_document = owner_documents.get(SourceKind.PROPOSAL_BODY)
             decision_document = owner_documents.get(SourceKind.PROPOSAL_DECISION)
+            ledger_document = owner_documents.get(
+                SourceKind.PROPOSAL_DECISION_LEDGER
+            )
             if proposal_document is None or proposal_document.presence != SourcePresence.PRESENT:
                 continue
             title = _document_title(proposal_document) or owner_id
@@ -73,18 +87,50 @@ class DecisionContextExtractorService:
                 proposal_document.frontmatter, "status"
             )
             decision_outcome = _decision_outcome(decision_document)
-            lifecycle = AuthorityPolicy().lifecycle(proposal_status, decision_outcome)
+            ledger_context = None
+            if (
+                ledger_document is not None
+                and ledger_document.presence == SourcePresence.PRESENT
+            ):
+                ledger_context = DecisionContextLedgerExtractor().extract(
+                    ledger_document,
+                    decision_projection=decision_document,
+                    related_record_ids=(),
+                )
+                diagnostics.extend(ledger_context.diagnostics)
+                records.extend(ledger_context.records)
+                evidence.extend(ledger_context.evidence)
+                nodes.extend(ledger_context.nodes)
+                relations.extend(ledger_context.relations)
+
+            if ledger_context is not None and ledger_context.lifecycle is not None:
+                proposal_authority_value, proposal_activation = proposal_authority(
+                    ledger_context.lifecycle
+                )
+                lifecycle = None
+            else:
+                lifecycle = AuthorityPolicy().lifecycle(
+                    proposal_status,
+                    decision_outcome,
+                )
+                proposal_authority_value = lifecycle.proposal_authority
+                proposal_activation = lifecycle.proposal_activation
 
             proposal_records, proposal_evidence, proposal_diagnostics = self._extract_proposal(
                 proposal_document,
-                authority=lifecycle.proposal_authority,
-                activation=lifecycle.proposal_activation,
+                authority=proposal_authority_value,
+                activation=proposal_activation,
             )
             records.extend(proposal_records)
             evidence.extend(proposal_evidence)
             diagnostics.extend(proposal_diagnostics)
 
-            if decision_document is not None and decision_document.presence == SourcePresence.PRESENT:
+            if (
+                ledger_context is None
+                and decision_document is not None
+                and decision_document.presence == SourcePresence.PRESENT
+                and lifecycle is not None
+            ):
                 nodes.append(
                     DecisionContextNode(
                         node_id=f"decision:{owner_id}",
@@ -108,6 +154,16 @@ class DecisionContextExtractorService:
         records.sort(key=lambda item: (item.owner_type.value, item.owner_id, item.kind.value, item.record_id))
         evidence.sort(key=lambda item: (item.source_path, item.fragment_id, item.evidence_id))
         nodes.sort(key=lambda item: (item.node_type.value, item.node_id))
+        relations.sort(
+            key=lambda item: (
+                item.source_type.value,
+                item.source_id,
+                item.relation_type.value,
+                item.target_type.value,
+                item.target_id,
+                item.relation_id,
+            )
+        )
         diagnostics = _deduplicate_diagnostics(diagnostics)
         completeness = _extraction_completeness(session.completeness, diagnostics, records)
         return ExtractedDecisionContext(
@@ -115,6 +171,7 @@ class DecisionContextExtractorService:
             records=tuple(records),
             evidence=tuple(evidence),
             nodes=tuple(nodes),
+            relations=tuple(relations),
             diagnostics=tuple(diagnostics),
         )
 

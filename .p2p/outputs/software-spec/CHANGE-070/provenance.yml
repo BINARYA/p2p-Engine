@@ -1,0 +1,46 @@
+source:
+  change: CHANGE-070
+  included_proposals:
+  - PROP-102
+  accepted_decisions: []
+  decision_bindings:
+  - proposal: PROP-102
+    effective_state: accepted
+    head_event_id: null
+    decision_semantic_sha256: null
+    proposal_binding_status: current
+generated_from:
+- .p2p/changes/CHANGE-070-proposal-decision-revision-and-revocation-lifecycle/change.md
+- .p2p/changes/CHANGE-070-proposal-decision-revision-and-revocation-lifecycle/tasks.yml
+- .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/proposal.md
+p2p_generation:
+  schema_version: 1
+  origin: generated
+  generator: p2p_engine.software_spec
+  renderer_version: 1
+  source_fingerprint:
+    algorithm: sha256
+    value: 32b001651a093ab45b40962bd150433d5ffb07707473e50e2616ee3a67dee1d2
+  sources:
+  - path: .p2p/changes/CHANGE-070-proposal-decision-revision-and-revocation-lifecycle/change.md
+    exists: true
+    sha256: b272d2644151a2bab75cdf3b974d1cf6e0b6eb0bc0556edf4daeb02916172514
+  - path: .p2p/changes/CHANGE-070-proposal-decision-revision-and-revocation-lifecycle/tasks.yml
+    exists: true
+    sha256: 5881da4e97000d866443ccbf3857424c58f4890a91213bdc387e1b1f582d3887
+  - path: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/proposal.md
+    exists: true
+    sha256: 438da30da1aaf991adc2c4873260c253862f5c7292bdb64807e43030267eb16d
+  outputs:
+  - path: index.md
+    sha256: edf26759d5e8f63c0f35ec3863165282b97b975b24329d325a60bb8152fe5dd4
+  - path: requirements.md
+    sha256: 26d8aebdabad7c68fc454c3146a8d781047bdb3bb06b0fba58f639eebb966068
+  - path: design.md
+    sha256: a864a8e882ee09fd68e950a8bb25a5fa710387043ba6fa946178de493c7967e4
+  - path: commands.yml
+    sha256: 287258b629a2b80224a65b8df92b834b28c9d3ae981f43ab2d9c72f6adeac010
+  - path: data-model.yml
+    sha256: 5e52b523da543636b568f7a1ce9baee24e15b6fe13a5cab607edc4f0bd974180
+  - path: acceptance.md
+    sha256: 22fb6a2370d0543a2717e6691b90f24959f04a7f2f4e8e3455aaf942f799c062

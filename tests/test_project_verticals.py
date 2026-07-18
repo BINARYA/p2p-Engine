@@ -11,9 +11,15 @@ import pytest
 from typer.testing import CliRunner
 
 from p2p_engine.cli import app
-from p2p_engine.services.project_verticals import ProjectVerticalService, _pack_payload
+from p2p_engine.core.decision import DecisionOutcome
+from p2p_engine.services.project_verticals import (
+    ProjectVerticalService,
+    _pack_checksum,
+    _pack_payload,
+)
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.proposal_decision_fixtures import record_decision
 
 runner = CliRunner()
 
@@ -105,6 +111,88 @@ def test_project_verticals_list_internal_packs_and_fallback_base(tmp_path: Path)
     assert active.vertical_id == "base_project"
     assert active.fallback_used is True
     assert {"base_project", "packaging_or_physical_product_design", "social_impact_program_design", "software_project"} <= ids
+
+
+def test_bundled_vertical_seed_semantics_match_preconversion_baseline(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Bundled vertical baseline")
+    expected = {
+        "base_project": (
+            "c49eb35d4205ee3b4f3f265568d7e82cf475d4c8d8393e6366d443e0ce07b0e3",
+            10,
+            6,
+        ),
+        "software_project": (
+            "aa9fd9691890053c2abf390853b920c43b1b29160169f39539ac9f0fc7ad6d67",
+            19,
+            15,
+        ),
+        "social_impact_program_design": (
+            "9728a54a9a01fdaaf16743c58f3f04cc621ebdee5dd73fc71a237011e9e5c26b",
+            17,
+            10,
+        ),
+        "packaging_or_physical_product_design": (
+            "bd8819f923781bde2cbd879b47dcc5b1fcf9d1ae2787e714cec55614182fc864",
+            17,
+            10,
+        ),
+    }
+
+    for vertical_id, (checksum, section_count, rubric_count) in expected.items():
+        pack = workspace.show_project_vertical(vertical_id)
+        assert _pack_checksum(pack) == checksum
+        assert len(pack.sections) == section_count
+        assert len(pack.rubrics) == rubric_count
+
+
+def test_bundled_vertical_seeds_use_clean_canonical_layout(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Bundled canonical layout")
+    for vertical_id in (
+        "base_project",
+        "software_project",
+        "social_impact_program_design",
+        "packaging_or_physical_product_design",
+    ):
+        pack = workspace.show_project_vertical(vertical_id)
+        validation = workspace.validate_project_vertical(vertical_id)
+        assert pack.path is not None and pack.path.name == "manifest.yml"
+        assert validation.valid is True
+        assert validation.issues == []
+
+        vertical_path = pack.path.parent / "vertical.yml"
+        payload = yaml.safe_load(vertical_path.read_text(encoding="utf-8"))
+        assert "sections" not in payload["vertical"]
+        assert "rubrics" not in payload["vertical"]
+        assert (pack.path.parent / "rubrics.yml").is_file()
+        assert any((pack.path.parent / "sections").glob("*.yml"))
+
+
+@pytest.mark.parametrize("vertical_id", ["base_project", "software_project"])
+def test_bundled_vertical_lock_ignores_preconversion_diagnostic_path(
+    tmp_path: Path,
+    vertical_id: str,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Bundled lock compatibility", vertical_id=vertical_id)
+    lock_path = tmp_path / ".p2p" / "project" / "vertical.lock.yml"
+    payload = yaml.safe_load(lock_path.read_text(encoding="utf-8"))
+    source = payload["project_vertical_lock"]["source"]
+    source["path"] = (
+        f"src/p2p_engine/resources/verticals/{vertical_id}/vertical.yml"
+    )
+    lock_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    before = lock_path.read_bytes()
+
+    status = workspace.project_vertical_lock_status()
+
+    assert status.status == "valid"
+    assert lock_path.read_bytes() == before
 
 
 def test_software_project_vertical_exposes_spec_lifecycle_ingredients(tmp_path: Path) -> None:
@@ -313,7 +401,13 @@ def test_project_readiness_review_uses_declared_coverage_and_reports_missing_sec
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    record_decision(
+        P2PWorkspace(tmp_path),
+        "PROP-001",
+        DecisionOutcome.accepted,
+        "Ready.",
+        "owner",
+    )
     runner.invoke(
         app,
         [
@@ -485,6 +579,69 @@ def test_project_vertical_multifile_pack_normalizes_and_can_be_selected(tmp_path
     assert definition.exists is True
     assert definition.state is not None
     assert definition.state.sections[0].missing_required_fields == ["summary"]
+
+
+@pytest.mark.parametrize(
+    "missing_path",
+    ["manifest.yml", "vertical.yml", "rubrics.yml", "sections"],
+)
+def test_canonical_vertical_pack_requires_all_split_paths(
+    tmp_path: Path,
+    missing_path: str,
+) -> None:
+    workspace = P2PWorkspace(tmp_path / "project")
+    workspace.init_project("Canonical validation")
+    pack = _write_canonical_pack(tmp_path / "packs")
+    target = pack / missing_path
+    if target.is_dir():
+        shutil.rmtree(target)
+    else:
+        target.unlink()
+
+    validation = workspace.validate_project_vertical(str(pack))
+
+    assert validation.valid is False
+    assert "required" in validation.issues[0].message or "Expected" in validation.issues[0].message
+
+
+def test_canonical_vertical_pack_rejects_aggregate_split_duplication(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path / "project")
+    workspace.init_project("Canonical duplication")
+    pack = _write_canonical_pack(tmp_path / "packs")
+    vertical_path = pack / "vertical.yml"
+    payload = yaml.safe_load(vertical_path.read_text(encoding="utf-8"))
+    payload["vertical"]["sections"] = [
+        {
+            "id": "intent",
+            "title": "Intent",
+            "purpose": "Duplicated.",
+            "required": True,
+            "priority": 10,
+        }
+    ]
+    vertical_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+
+    validation = workspace.validate_project_vertical(str(pack))
+
+    assert validation.valid is False
+    assert "duplicates sections" in validation.issues[0].message
+
+
+def test_canonical_vertical_pack_rejects_duplicate_split_section_ids(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path / "project")
+    workspace.init_project("Canonical duplicate ids")
+    pack = _write_canonical_pack(tmp_path / "packs")
+    duplicate = pack / "sections" / "intent-copy.yml"
+    duplicate.write_bytes((pack / "sections" / "intent.yml").read_bytes())
+
+    validation = workspace.validate_project_vertical(str(pack))
+
+    assert validation.valid is False
+    assert any("duplicate id" in issue.message for issue in validation.issues)
 
 
 def test_project_vertical_resolver_precedence_for_installed_and_project_local(

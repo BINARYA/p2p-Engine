@@ -234,6 +234,7 @@ class DecisionContextTopologyService:
         kinds = {
             SourceKind.PROPOSAL_BODY: NodeType.PROPOSAL,
             SourceKind.PROPOSAL_DECISION: NodeType.DECISION,
+            SourceKind.PROPOSAL_DECISION_LEDGER: NodeType.DECISION,
             SourceKind.PROJECT_CHOICE: NodeType.CHOICE,
             SourceKind.CHANGE_SET: NodeType.CHANGE,
             SourceKind.WORK_MANIFEST: NodeType.WORK,

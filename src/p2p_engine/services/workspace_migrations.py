@@ -31,6 +31,11 @@ from p2p_engine.services.project_maturity import domain_state_payload, normalize
 from p2p_engine.services.project_metadata import ProjectMetadataService
 from p2p_engine.services.project_verticals import ProjectVerticalService
 from p2p_engine.services.project_questions import ProjectQuestionStateService
+from p2p_engine.services.proposal_decision_ledger import (
+    ProposalDecisionLedgerCodec,
+    render_decision_projection,
+    render_proposal_projection,
+)
 from p2p_engine.core.project_metadata import ProjectMetadataPatch
 from p2p_engine.core.project_verticals import VerticalMigrationCandidate
 from p2p_engine.services.workspace_compatibility import (
@@ -633,6 +638,42 @@ class WorkspaceMigrationService:
                 view.read_yaml_mapping(questions_path),
                 target=questions_path,
             )
+
+        ledger_targets = sorted(
+            path
+            for path in candidates
+            if path.startswith(".p2p/proposals/")
+            and path.endswith("/decision-events.yml")
+        )
+        codec = ProposalDecisionLedgerCodec()
+        for ledger_path in ledger_targets:
+            proposal_dir = ledger_path.rsplit("/", 1)[0]
+            directory_name = proposal_dir.rsplit("/", 1)[-1]
+            proposal_id = "-".join(directory_name.split("-", 2)[:2])
+            ledger = codec.loads(
+                view.read_bytes(ledger_path),
+                expected_proposal_id=proposal_id,
+            )
+            proposal_path = f"{proposal_dir}/proposal.md"
+            decision_path = f"{proposal_dir}/decision.md"
+            proposal_text = view.read_bytes(proposal_path).decode("utf-8")
+            decision_text = view.read_bytes(decision_path).decode("utf-8")
+            if (
+                render_proposal_projection(proposal_text, ledger.effective_state)
+                != proposal_text
+            ):
+                raise ValueError(
+                    f"Proposal projection does not match migrated ledger: {proposal_path}"
+                )
+            expected_decision = render_decision_projection(
+                proposal_id,
+                ledger.events[-1] if ledger.events else None,
+                empty_state=ledger.effective_state,
+            )
+            if expected_decision != decision_text:
+                raise ValueError(
+                    f"Decision projection does not match migrated ledger: {decision_path}"
+                )
 
     def _assert_preimage(self, target: str, original: Mapping[str, object]) -> None:
         current = physical_sha256(self.filesystem.target_path(target))

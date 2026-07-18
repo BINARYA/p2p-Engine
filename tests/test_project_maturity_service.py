@@ -7,6 +7,7 @@ from p2p_engine.services.changes import ChangeSetLifecycleService
 from p2p_engine.services.project_maturity import ProjectMaturityService
 from p2p_engine.services.proposals import ProposalDocumentService
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.proposal_decision_fixtures import record_decision
 
 
 def _service(workspace: P2PWorkspace) -> ProjectMaturityService:
@@ -62,7 +63,7 @@ def test_project_maturity_service_scores_accepted_evidence(tmp_path: Path) -> No
         problem="Security and privacy need explicit permission boundaries.",
         proposal="Define auth, sandbox permissions, and privacy expectations.",
     )
-    workspace.record_decision(proposal.proposal_id, DecisionOutcome.accepted, "Needed.", "owner")
+    record_decision(workspace, proposal.proposal_id, DecisionOutcome.accepted, "Needed.", "owner")
 
     maturity = _service(workspace).refresh_definition_maturity()
     security = next(criterion for criterion in maturity.criteria if criterion["id"] == "security_privacy")

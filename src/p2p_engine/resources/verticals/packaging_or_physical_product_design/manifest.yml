@@ -1,0 +1,7 @@
+manifest:
+  schema_version: 1
+  id: packaging_or_physical_product_design
+  name: Packaging Or Physical Product Design
+  version: 1.0.0
+  publisher: p2p_engine
+  source: packaged

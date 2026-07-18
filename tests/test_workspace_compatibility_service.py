@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from p2p_engine.core.workspace_schema import (
+    CURRENT_WORKSPACE_SCHEMA_VERSION,
     FINDING_OWNER_INPUT_REQUIRED,
     OP_PRESERVE_LEGACY,
 )
@@ -140,8 +141,8 @@ def test_current_and_downgrade_plans_have_stable_no_write_results(tmp_path: Path
     )
     before = _tree_hash(tmp_path)
 
-    current = service.plan(2)
-    downgrade = service.plan(1)
+    current = service.plan(CURRENT_WORKSPACE_SCHEMA_VERSION)
+    downgrade = service.plan(CURRENT_WORKSPACE_SCHEMA_VERSION - 1)
 
     assert current.status == "no_op"
     assert current.applicable is True

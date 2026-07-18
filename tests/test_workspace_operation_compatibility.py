@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 
 import pytest
+import yaml
 
 from p2p_engine.core.workspace_schema import (
     ALIGNMENT_DEGRADED,
@@ -20,8 +21,12 @@ def _v1_status(tmp_path: Path):
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("V1 Operation", owner="owner")
     schema_path = tmp_path / ".p2p" / "project" / "workspace-schema.yml"
-    payload = schema_path.read_text(encoding="utf-8").replace("current_version: 2", "current_version: 1")
-    schema_path.write_text(payload, encoding="utf-8")
+    payload = yaml.safe_load(schema_path.read_text(encoding="utf-8"))
+    payload["workspace_schema"]["current_version"] = 1
+    schema_path.write_text(
+        yaml.safe_dump(payload, sort_keys=False),
+        encoding="utf-8",
+    )
     (tmp_path / ".p2p" / "project" / "questions.yml").unlink()
     return workspace.workspace_schema_status()
 

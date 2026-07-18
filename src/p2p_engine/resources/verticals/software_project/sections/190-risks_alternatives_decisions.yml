@@ -1,0 +1,24 @@
+section:
+  id: risks_alternatives_decisions
+  title: Risks Alternatives And Owner Decisions
+  purpose: Unresolved risks, alternatives, tradeoffs, and owner-controlled decisions.
+  required: true
+  priority: 190
+  fields:
+  - id: risks
+    label: Risks
+    required: true
+    question: Which implementation or product risks remain?
+  - id: alternatives
+    label: Alternatives
+    required: false
+    question: Which alternatives were considered?
+  - id: owner_decisions
+    label: Owner decisions
+    required: true
+    question: Which decisions must the owner make or has the owner made?
+  completion_policy:
+    allow_assumed_completion: false
+    required_fields:
+    - risks
+    - owner_decisions

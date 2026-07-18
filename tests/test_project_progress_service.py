@@ -11,6 +11,7 @@ from typer.testing import CliRunner
 from p2p_engine.cli import app
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.proposal_decision_fixtures import record_decision
 
 
 runner = CliRunner()
@@ -165,7 +166,7 @@ def test_definition_and_committed_declared_evidence_advance_separately(tmp_path:
     assert draft_data.declared_non_committed_proposals == (proposal_id,)
     assert draft_progress.evidence.ratio.numerator == 0
 
-    workspace.record_decision(proposal_id, DecisionOutcome.accepted, "Defines project evidence.", "owner")
+    record_decision(workspace, proposal_id, DecisionOutcome.accepted, "Defines project evidence.", "owner")
     accepted_progress = workspace.project_progress()
     accepted_data = next(item for item in accepted_progress.sections if item.section_id == "data_model")
     assert accepted_data.declared_committed_proposals == (proposal_id,)

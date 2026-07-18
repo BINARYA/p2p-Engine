@@ -109,13 +109,14 @@ def tool_definitions() -> list[dict[str, object]]:
         _tool(
             'p2p_proposal_accept',
             (
-                'Permission-gated governance tool: accept a draft proposal with a valid '
-                'proposal_accept consent receipt. This records the same proposal decision as '
-                'the CLI and does not branch, publish, merge, or cleanup.'
+                'Deprecated compatibility tool: return a token-bound acceptance preview. '
+                'Legacy proposal_accept consent cannot write a schema-v3 event; apply through '
+                'p2p_proposal_decision_apply with preview-bound consent.'
             ),
             {'root': {'type': 'string'},
              'proposal_id': {'type': 'string'},
              'actor_id': {'type': 'string'},
+             'owner_id': {'type': 'string'},
              'consent_id': {'type': 'string'},
              'reason': {'type': 'string'}},
             ['proposal_id', 'actor_id', 'consent_id', 'reason'],
@@ -123,13 +124,14 @@ def tool_definitions() -> list[dict[str, object]]:
         _tool(
             'p2p_proposal_reject',
             (
-                'Permission-gated governance tool: reject a draft proposal with a valid '
-                'proposal_reject consent receipt. This records the same proposal decision as '
-                'the CLI and does not branch, publish, merge, or cleanup.'
+                'Deprecated compatibility tool: return a token-bound rejection preview. '
+                'Legacy proposal_reject consent cannot write a schema-v3 event; apply through '
+                'p2p_proposal_decision_apply with preview-bound consent.'
             ),
             {'root': {'type': 'string'},
              'proposal_id': {'type': 'string'},
              'actor_id': {'type': 'string'},
+             'owner_id': {'type': 'string'},
              'consent_id': {'type': 'string'},
              'reason': {'type': 'string'}},
             ['proposal_id', 'actor_id', 'consent_id', 'reason'],
@@ -137,13 +139,14 @@ def tool_definitions() -> list[dict[str, object]]:
         _tool(
             'p2p_proposal_defer',
             (
-                'Permission-gated governance tool: defer a draft proposal with a valid '
-                'proposal_defer consent receipt. This records the same proposal decision as the '
-                'CLI and does not branch, publish, merge, or cleanup.'
+                'Deprecated compatibility tool: return a token-bound deferral preview. '
+                'Legacy proposal_defer consent cannot write a schema-v3 event; apply through '
+                'p2p_proposal_decision_apply with preview-bound consent.'
             ),
             {'root': {'type': 'string'},
              'proposal_id': {'type': 'string'},
              'actor_id': {'type': 'string'},
+             'owner_id': {'type': 'string'},
              'consent_id': {'type': 'string'},
              'reason': {'type': 'string'}},
             ['proposal_id', 'actor_id', 'consent_id', 'reason'],

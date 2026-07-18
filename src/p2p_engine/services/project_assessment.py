@@ -9,6 +9,7 @@ from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
     yaml_dump as _yaml_dump,
 )
+from p2p_engine.services.changes import CHANGE_TERMINAL_STATUSES
 from p2p_engine.services.lifecycle_authority import is_active_project_projection
 
 
@@ -116,8 +117,11 @@ class ProjectAssessmentService:
             for choice in choices
             if getattr(choice, "status", None) in {"open", "draft", "pending"} and not getattr(choice, "selected_option", None)
         ]
-        terminal_changes = {"completed", "cancelled", "superseded"}
-        active_changes = [change for change in changes if getattr(change, "status", None) not in terminal_changes]
+        active_changes = [
+            change
+            for change in changes
+            if getattr(change, "status", None) not in CHANGE_TERMINAL_STATUSES
+        ]
         blocked_changes = [change for change in changes if getattr(change, "status", None) == "blocked"]
         terminal_work = {"accepted", "finalized", "cleaned", "retired", "completed", "cancelled", "superseded"}
         active_work = [work for work in works if getattr(work, "status", None) not in terminal_work]

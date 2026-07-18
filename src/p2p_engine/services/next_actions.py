@@ -15,11 +15,48 @@ from p2p_engine.core.decision_context import (
     RecordKind,
     RelationType,
 )
+from p2p_engine.core.mutation_preview import semantic_sha256
 from p2p_engine.core.project_readiness import ProjectReadinessGapKind, ProjectReadinessResult
+from p2p_engine.core.proposal_decision_events import (
+    ProposalDecisionDependencyKind,
+    ProposalDecisionDependencyStatus,
+    ProposalDecisionEventType,
+    ProposalDecisionImpactSeverity,
+    ProposalDecisionImpactSnapshot,
+    ProposalDecisionLifecycleView,
+)
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
     yaml_dump as _yaml_dump,
 )
+from p2p_engine.services.changes import (
+    CHANGE_TERMINAL_STATUSES,
+    change_next_action_status_rank,
+)
+
+_REMEDIATION_EVENT_TYPES = frozenset(
+    {
+        ProposalDecisionEventType.revoked,
+        ProposalDecisionEventType.superseded,
+        ProposalDecisionEventType.split,
+        ProposalDecisionEventType.merged_into_other,
+        ProposalDecisionEventType.reinstated,
+    }
+)
+_REMEDIATION_KIND_RANK = {
+    kind: index
+    for index, kind in enumerate(ProposalDecisionDependencyKind)
+}
+_REMEDIATION_STATUS_RANK = {
+    ProposalDecisionDependencyStatus.active: 0,
+    ProposalDecisionDependencyStatus.current: 1,
+    ProposalDecisionDependencyStatus.completed: 2,
+    ProposalDecisionDependencyStatus.generated: 3,
+    ProposalDecisionDependencyStatus.stale: 4,
+    ProposalDecisionDependencyStatus.unknown: 5,
+    ProposalDecisionDependencyStatus.historical: 6,
+    ProposalDecisionDependencyStatus.terminal: 7,
+}
 
 
 @dataclass(frozen=True)
@@ -49,6 +86,20 @@ class NextActionService:
         workspace_schema_status: Callable[[], Any] | None = None,
         derived_freshness_status: Callable[[], Any] | None = None,
         project_readiness_result: Callable[[], ProjectReadinessResult] | None = None,
+        proposal_decision_lifecycles: (
+            Callable[[], Mapping[str, ProposalDecisionLifecycleView]] | None
+        ) = None,
+        proposal_decision_impact: (
+            Callable[
+                [
+                    str,
+                    ProposalDecisionEventType,
+                    ProposalDecisionLifecycleView,
+                ],
+                ProposalDecisionImpactSnapshot,
+            ]
+            | None
+        ) = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -62,6 +113,8 @@ class NextActionService:
         self.workspace_schema_status = workspace_schema_status
         self.derived_freshness_status = derived_freshness_status
         self.project_readiness_result = project_readiness_result
+        self.proposal_decision_lifecycles = proposal_decision_lifecycles
+        self.proposal_decision_impact = proposal_decision_impact
 
     def list(
         self,
@@ -74,6 +127,7 @@ class NextActionService:
             self._workspace_alignment_actions(context_snapshot)
             + self._active_choice_blocker_actions(index)
             + self._active_curated_actions()
+            + self._decision_remediation_actions()
             + self._project_readiness_actions(context_snapshot)
             + self._fallback_actions(context_snapshot, index)
         )
@@ -140,17 +194,25 @@ class NextActionService:
         payload["next_actions"] = normalized
         self._write_payload(payload)
         index = self.decision_context_index()
-        generated = self._dedupe(
-            self._workspace_alignment_actions(None)
-            + self._active_choice_blocker_actions(index)
-            + self._project_readiness_actions(None)
-            + self._fallback_actions(None, index)
-        )
+        generated = self._generated_actions(None, index)
         return {
             "active_curated": len(normalized),
             "generated": len(generated),
             "path": str(self._path().relative_to(self.root)),
         }
+
+    def _generated_actions(
+        self,
+        context_snapshot: Mapping[str, object] | None,
+        index: DecisionContextIndex,
+    ) -> list[NextAction]:
+        return self._dedupe(
+            self._workspace_alignment_actions(context_snapshot)
+            + self._active_choice_blocker_actions(index)
+            + self._decision_remediation_actions()
+            + self._project_readiness_actions(context_snapshot)
+            + self._fallback_actions(context_snapshot, index)
+        )
 
     def _active_curated_actions(self) -> list[NextAction]:
         path = self._path()
@@ -274,6 +336,72 @@ class NextActionService:
             deduped.append(action)
         return deduped
 
+    def _decision_remediation_actions(self) -> list[NextAction]:
+        if (
+            self.proposal_decision_lifecycles is None
+            or self.proposal_decision_impact is None
+        ):
+            return []
+        ranked: list[tuple[int, int, str, NextAction]] = []
+        for proposal_id, lifecycle in sorted(
+            self.proposal_decision_lifecycles().items()
+        ):
+            event_type = lifecycle.head_event_type
+            head_event_id = lifecycle.head_event_id
+            if event_type not in _REMEDIATION_EVENT_TYPES or not head_event_id:
+                continue
+            snapshot = self.proposal_decision_impact(
+                proposal_id,
+                event_type,
+                lifecycle,
+            )
+            if not snapshot.complete:
+                continue
+            for item in snapshot.items:
+                if item.dependency_status in {
+                    ProposalDecisionDependencyStatus.terminal,
+                    ProposalDecisionDependencyStatus.historical,
+                }:
+                    continue
+                identity = semantic_sha256(
+                    {
+                        "proposal_id": proposal_id,
+                        "head_event_id": head_event_id,
+                        "dependency_kind": item.dependency_kind.value,
+                        "dependency_id": item.dependency_id,
+                    }
+                )
+                state = (
+                    "reinstated"
+                    if event_type == ProposalDecisionEventType.reinstated
+                    else "revoked"
+                    if event_type == ProposalDecisionEventType.revoked
+                    else "replaced"
+                )
+                action = NextAction(
+                    action_id=f"NEXT-DECISION-{identity[:24].upper()}",
+                    priority=_impact_priority(item.severity),
+                    kind=item.remediation_kind,
+                    target=item.dependency_id,
+                    reason=(
+                        f"Source decision {proposal_id} is {state}; dependent "
+                        f"{item.dependency_kind.value} {item.dependency_id} "
+                        "requires separate review. No rollback or technical "
+                        "restoration is implied."
+                    ),
+                    command=item.remediation_command,
+                    source=f"generated:{proposal_id}:{head_event_id}",
+                )
+                ranked.append(
+                    (
+                        _REMEDIATION_KIND_RANK[item.dependency_kind],
+                        _REMEDIATION_STATUS_RANK[item.dependency_status],
+                        action.action_id,
+                        action,
+                    )
+                )
+        return [entry[-1] for entry in sorted(ranked)]
+
     def _workspace_alignment_actions(
         self,
         context_snapshot: Mapping[str, object] | None,
@@ -373,38 +501,46 @@ class NextActionService:
                 )
             )
 
-        terminal_change_statuses = {"completed", "cancelled", "superseded"}
         changes = (
             _snapshot_sequence(context_snapshot, "change_statuses")
             if context_snapshot is not None
             else self.change_registry_records()
         )
-        change_nodes = {
-            node.node_id for node in index.nodes if node.node_type == NodeType.CHANGE
-        }
         included_proposals = _active_change_proposals(index)
+        active_changes: list[tuple[int, str, str]] = []
         for change in changes:
-            status = str(_field(change, "status") or "unknown")
-            change_id = str(_field(change, "id", "change_id") or "")
-            if status not in terminal_change_statuses and change_id in change_nodes:
-                linked = included_proposals.get(change_id, ())
-                relation_context = (
-                    f" Included proposals: {', '.join(linked)}."
-                    if linked
-                    else ""
+            status = str(_field(change, "status") or "unknown").strip().lower()
+            change_id = str(_field(change, "id", "change_id") or "").strip()
+            if not change_id or status in CHANGE_TERMINAL_STATUSES:
+                continue
+            active_changes.append(
+                (
+                    change_next_action_status_rank(status),
+                    change_id,
+                    status,
                 )
-                actions.append(
-                    NextAction(
-                        action_id=f"NEXT-FALLBACK-{len(actions) + 1:03d}",
-                        priority="high" if status in {"planned", "blocked"} else "medium",
-                        kind="continue_change",
-                        target=change_id,
-                        reason=f"Change Set is {status}, not completed.{relation_context}",
-                        command=f"p2p change tasks {change_id}",
-                        source="generated",
-                    )
+            )
+        for _, change_id, status in sorted(
+            active_changes,
+            key=lambda item: (item[0], item[1]),
+        ):
+            linked = included_proposals.get(change_id, ())
+            relation_context = (
+                f" Included proposals: {', '.join(linked)}."
+                if linked
+                else ""
+            )
+            actions.append(
+                NextAction(
+                    action_id=f"NEXT-CHANGE-{change_id.upper()}",
+                    priority="high" if status in {"planned", "blocked"} else "medium",
+                    kind="continue_change",
+                    target=change_id,
+                    reason=f"Change Set is {status}, not completed.{relation_context}",
+                    command=f"p2p change tasks {change_id}",
+                    source="generated",
                 )
-                break
+            )
 
         for intake in self.intake_statuses():
             if intake.status == "pending":
@@ -643,6 +779,17 @@ def _snapshot_sequence(
 ) -> list[Any]:
     value = snapshot.get(key, ()) if snapshot is not None else ()
     return list(value) if isinstance(value, (tuple, list)) else []
+
+
+def _impact_priority(severity: ProposalDecisionImpactSeverity) -> str:
+    if severity in {
+        ProposalDecisionImpactSeverity.blocker,
+        ProposalDecisionImpactSeverity.high,
+    }:
+        return "high"
+    if severity == ProposalDecisionImpactSeverity.medium:
+        return "medium"
+    return "low"
 
 
 def _field(value: object, *names: str) -> object:

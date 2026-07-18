@@ -7,6 +7,7 @@ import yaml
 
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.proposal_decision_fixtures import record_decision
 
 
 def _workspace(root: Path) -> P2PWorkspace:
@@ -18,7 +19,7 @@ def _workspace(root: Path) -> P2PWorkspace:
 def _accepted_change_workspace(root: Path) -> P2PWorkspace:
     workspace = _workspace(root)
     workspace.create_proposal("Governance Model")
-    workspace.record_decision("PROP-001", DecisionOutcome.accepted, "Needed.", "owner")
+    record_decision(workspace, "PROP-001", DecisionOutcome.accepted, "Needed.", "owner")
     workspace.create_change_set("PROP-001", "Governance Model")
     workspace.update_change_set_status("CHANGE-001", "planned")
     return workspace

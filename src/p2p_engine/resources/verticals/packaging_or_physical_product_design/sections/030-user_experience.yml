@@ -1,0 +1,6 @@
+section:
+  id: user_experience
+  title: User And Unboxing Experience
+  purpose: Define handling, opening, reuse, and perceived value.
+  required: true
+  priority: 30

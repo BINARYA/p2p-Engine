@@ -8,6 +8,7 @@ from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.services.registry_records import RegistryRecordBuilderService
 from p2p_engine.services.spec_export import SpecExportService
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.proposal_decision_fixtures import record_decision
 
 
 def _workspace_with_spec(root: Path) -> P2PWorkspace:
@@ -19,7 +20,7 @@ def _workspace_with_spec(root: Path) -> P2PWorkspace:
         proposal="Generate a deterministic software spec.",
         acceptance_criteria=["Spec artifacts exist."],
     )
-    workspace.record_decision("PROP-001", DecisionOutcome.accepted, "Needed.", "owner")
+    record_decision(workspace, "PROP-001", DecisionOutcome.accepted, "Needed.", "owner")
     workspace.create_change_set("PROP-001")
     workspace.refresh_software_spec("CHANGE-001")
     return workspace

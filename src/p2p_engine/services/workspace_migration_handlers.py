@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
+import hashlib
 from pathlib import Path
 from typing import Any, Mapping, Protocol, Sequence
 
@@ -16,7 +18,29 @@ from p2p_engine.core.workspace_schema import (
     CompatibilitySnapshot,
     MigrationOperation,
 )
-from p2p_engine.foundation.files import yaml_dump
+from p2p_engine.foundation.files import identity_slug, yaml_dump
+from p2p_engine.core.mutation_preview import semantic_sha256
+from p2p_engine.core.proposal_decision_events import (
+    ProposalDecisionAffectedDecision,
+    ProposalDecisionAuthorityEvidence,
+    ProposalDecisionAuthorityResolution,
+    ProposalDecisionEffectiveState,
+    ProposalDecisionEventType,
+    ProposalDecisionImpactBinding,
+    ProposalDecisionLedger,
+    ProposalDecisionMigrationProvenance,
+    ProposalDecisionReadinessBinding,
+)
+from p2p_engine.services.proposal_decision_legacy import ProposalDecisionLegacyAdapter
+from p2p_engine.services.proposal_decision_ledger import (
+    ProposalDecisionLedgerCodec,
+    decision_semantic_sha256,
+    operation_key,
+    proposal_semantic_sha256,
+    render_decision_projection,
+    render_proposal_projection,
+)
+from p2p_engine.services.permissions import PermissionsService
 from p2p_engine.services.workspace_migration_registry import MigrationTransition
 from p2p_engine.services.project_questions import ProjectQuestionStateService
 from p2p_engine.services.project_verticals import (
@@ -550,3 +574,434 @@ class WorkspaceV1ToV2ProjectQuestionsHandler(RegisteredWorkspaceMigrationHandler
             for key, value in bindings.items()
             if isinstance(value, Mapping)
         }
+
+
+class WorkspaceV2ToV3ProposalDecisionLedgerHandler(RegisteredWorkspaceMigrationHandler):
+    def __init__(self, transition: MigrationTransition) -> None:
+        super().__init__(
+            transition=transition,
+            planner_key="v2_to_v3_proposal_decision_ledgers",
+            owned_candidate_targets=(".p2p/project/workspace-schema.yml",),
+            allow_managed_prefixes=(".p2p/proposals/",),
+            validators=(
+                "ProposalDecisionLedgerCodec",
+                "ProposalLifecycleAuthorityService",
+                "WorkspaceSchemaService",
+            ),
+        )
+        object.__setattr__(self, "codec", ProposalDecisionLedgerCodec())
+        object.__setattr__(self, "legacy", ProposalDecisionLegacyAdapter())
+
+    def plan(
+        self,
+        *,
+        context: Any,
+        snapshot: CompatibilitySnapshot,
+        findings: Sequence[CompatibilityFinding],
+        owner_inputs: Mapping[str, object],
+        applicable: bool,
+        candidate_view: Any,
+        base_plan: Any | None = None,
+    ) -> TransitionPlanFragment:
+        del owner_inputs
+        migration_id = self.transition.migration_id
+        schema_target = ".p2p/project/workspace-schema.yml"
+        candidate_files = {
+            path: content
+            for path, content in (base_plan.candidate_files.items() if base_plan else ())
+            if path != schema_target
+        }
+        operations = [
+            operation
+            for operation in (base_plan.operations if base_plan else ())
+            if operation.target != schema_target
+            and operation.operation_id != "refresh-derived-after-migration"
+        ]
+        plan_findings = list(findings)
+        owned_candidates: set[str] = set()
+        proposal_sources = self._proposal_sources(snapshot, candidate_files)
+        permission_payload = self._overlay_yaml(
+            candidate_view,
+            ".p2p/project/permissions.yml",
+        )
+        permission_sha256 = semantic_sha256(permission_payload)
+        seen_ids: set[str] = set()
+
+        for proposal_id, proposal_dir in proposal_sources:
+            if proposal_id in seen_ids:
+                plan_findings.append(
+                    CompatibilityFinding(
+                        code="P2P361_DECISION_LEDGER_INVALID",
+                        classification=FINDING_INVALID,
+                        message=f"Duplicate proposal identity `{proposal_id}` blocks ledger migration.",
+                        path=proposal_dir,
+                        recovery_action="Repair duplicate proposal directories through an owning primitive.",
+                        migration_id=migration_id,
+                    )
+                )
+                applicable = False
+                continue
+            seen_ids.add(proposal_id)
+            proposal_target = f"{proposal_dir}/proposal.md"
+            decision_target = f"{proposal_dir}/decision.md"
+            ledger_target = f"{proposal_dir}/decision-events.yml"
+            try:
+                proposal_bytes = candidate_view.read_bytes(proposal_target)
+            except FileNotFoundError:
+                plan_findings.append(
+                    CompatibilityFinding(
+                        code="P2P361_DECISION_LEDGER_INVALID",
+                        classification=FINDING_INVALID,
+                        message=f"{proposal_id} has no readable proposal.md source.",
+                        path=proposal_target,
+                        recovery_action="Repair the proposal source before migration.",
+                        migration_id=migration_id,
+                    )
+                )
+                applicable = False
+                continue
+            try:
+                proposal_text = proposal_bytes.decode("utf-8")
+            except UnicodeDecodeError:
+                plan_findings.append(
+                    CompatibilityFinding(
+                        code="P2P361_DECISION_LEDGER_INVALID",
+                        classification=FINDING_INVALID,
+                        message=f"{proposal_id} proposal.md is not UTF-8.",
+                        path=proposal_target,
+                        recovery_action="Repair the proposal source before migration.",
+                        migration_id=migration_id,
+                    )
+                )
+                applicable = False
+                continue
+            try:
+                decision_bytes = candidate_view.read_bytes(decision_target)
+            except FileNotFoundError:
+                decision_bytes = None
+            snapshot_value = self.legacy.capture_bytes(
+                proposal_id=proposal_id,
+                proposal_path=proposal_target,
+                decision_path=decision_target,
+                proposal_bytes=proposal_bytes,
+                decision_bytes=decision_bytes,
+            )
+            ledger = self._ledger_candidate(
+                snapshot_value,
+                proposal_text=proposal_text,
+                permission_payload=permission_payload,
+                permission_sha256=permission_sha256,
+                migration_id=migration_id,
+            )
+            if (
+                ledger.authority_resolution
+                == ProposalDecisionAuthorityResolution.unknown_legacy
+            ):
+                plan_findings.append(
+                    CompatibilityFinding(
+                        code="P2P360_DECISION_LEGACY_AUTHORITY_UNRESOLVED",
+                        classification=FINDING_DEGRADED,
+                        message=(
+                            f"{proposal_id} legacy authority is preserved but requires "
+                            "owner resolution before a later decision event."
+                        ),
+                        path=ledger_target,
+                        recovery_action=(
+                            f"After migration run `p2p decision legacy-resolution preview {proposal_id}`."
+                        ),
+                        migration_id=migration_id,
+                    )
+                )
+            ledger_bytes = self.codec.dumps(ledger)
+            projected_proposal = render_proposal_projection(
+                proposal_text,
+                ledger.effective_state,
+            ).encode("utf-8")
+            projected_decision = render_decision_projection(
+                proposal_id,
+                ledger.events[-1] if ledger.events else None,
+                empty_state=ledger.effective_state,
+            ).encode("utf-8")
+            candidates = (
+                (ledger_target, ledger_bytes, "create-proposal-decision-ledger"),
+                (proposal_target, projected_proposal, "normalize-proposal-decision-status"),
+                (decision_target, projected_decision, "normalize-decision-projection"),
+            )
+            for target, content, operation_prefix in candidates:
+                existing = self._overlay_bytes(candidate_view, target)
+                candidate_files[target] = content
+                owned_candidates.add(target)
+                candidate_value: object
+                if target.endswith((".yml", ".yaml")):
+                    candidate_value = yaml.safe_load(content.decode("utf-8"))
+                else:
+                    candidate_value = content.decode("utf-8")
+                operations.append(
+                    context._candidate_operation(
+                        snapshot,
+                        operation_id=f"{operation_prefix}-{proposal_id.lower()}",
+                        kind=(
+                            OP_CREATE_CANONICAL
+                            if existing is None
+                            else "update_canonical"
+                        ),
+                        target=target,
+                        reason=(
+                            "Materialize schema-v3 proposal decision authority and "
+                            "matching engine-owned projections."
+                        ),
+                        migration_id=migration_id,
+                        candidate=candidate_value,
+                        validator="ProposalDecisionLedgerCodec+ProposalLifecycleAuthorityService",
+                    )
+                )
+
+        try:
+            schema_payload = self._schema_payload(
+                candidate_view=candidate_view,
+                base_plan=base_plan,
+            )
+        except ValueError as exc:
+            plan_findings.append(
+                CompatibilityFinding(
+                    code="P2P302_WORKSPACE_SCHEMA_INVALID",
+                    classification=FINDING_INVALID,
+                    message=str(exc),
+                    path=schema_target,
+                    migration_id=migration_id,
+                )
+            )
+            schema_payload = {}
+            applicable = False
+        if schema_payload:
+            candidate_files[schema_target] = yaml_dump(schema_payload).encode("utf-8")
+            owned_candidates.add(schema_target)
+            operations.append(
+                context._candidate_operation(
+                    snapshot,
+                    operation_id="upgrade-workspace-schema-v3",
+                    kind="update_canonical",
+                    target=schema_target,
+                    reason=(
+                        "Commit workspace schema v3 after every proposal ledger and "
+                        "projection candidate validates."
+                    ),
+                    migration_id=migration_id,
+                    candidate=schema_payload,
+                    validator="WorkspaceSchemaService+ProposalDecisionLedgerCodec",
+                    dependencies=tuple(
+                        item.operation_id for item in operations if item.canonical
+                    ),
+                )
+            )
+        context._plan_derived_refresh(migration_id, operations)
+        self.validate_candidate_targets(sorted(owned_candidates))
+        return TransitionPlanFragment(
+            migration_id=migration_id,
+            operations=tuple(operations),
+            candidate_files=candidate_files,
+            findings=tuple(plan_findings),
+            required_owner_inputs=(),
+            validators=self.validators,
+            owned_candidate_targets=tuple(sorted(owned_candidates)),
+            applicable=applicable,
+        )
+
+    def _ledger_candidate(
+        self,
+        snapshot: Any,
+        *,
+        proposal_text: str,
+        permission_payload: Mapping[str, object],
+        permission_sha256: str,
+        migration_id: str,
+    ) -> ProposalDecisionLedger:
+        if snapshot.normalized_state == "undecided":
+            return self.codec.empty(snapshot.proposal_id)
+        event_type = self._migratable_event(snapshot, permission_payload)
+        if event_type is None:
+            return ProposalDecisionLedger(
+                contract_version=1,
+                proposal_id=snapshot.proposal_id,
+                authority_resolution=ProposalDecisionAuthorityResolution.unknown_legacy,
+                effective_state=ProposalDecisionEffectiveState.unknown_legacy,
+                head_event_id=None,
+                legacy_evidence=(
+                    self.legacy.legacy_evidence(snapshot, migration_id=migration_id),
+                ),
+            )
+        proposal_sha = proposal_semantic_sha256(snapshot.proposal_id, proposal_text)
+        effective_state = ProposalDecisionEffectiveState(event_type.value)
+        decision_sha = decision_semantic_sha256(
+            proposal_sha256=proposal_sha,
+            outcome=effective_state,
+            rationale=snapshot.reason,
+        )
+        source_sha256 = {
+            "proposal.md": hashlib.sha256(snapshot.proposal_bytes or b"").hexdigest(),
+        }
+        if snapshot.decision_bytes is not None:
+            source_sha256["decision.md"] = hashlib.sha256(
+                snapshot.decision_bytes
+            ).hexdigest()
+        preserved_values = {
+            "proposal_status": snapshot.proposal_status,
+            "decision_status": snapshot.decision_status,
+            "outcome": snapshot.outcome,
+            "reason": snapshot.reason,
+            "approver": snapshot.approver,
+            "decided_on": snapshot.decided_on,
+        }
+        migration = ProposalDecisionMigrationProvenance(
+            migration_id=migration_id,
+            source_paths=(snapshot.proposal_path, snapshot.decision_path),
+            source_sha256=source_sha256,
+            preserved_values=preserved_values,
+        )
+        request_semantics = {
+            "migration_id": migration_id,
+            "proposal_id": snapshot.proposal_id,
+            "event_type": event_type.value,
+            "decision_semantic_sha256": decision_sha,
+            "source_sha256": source_sha256,
+        }
+        preview_token = semantic_sha256(
+            {"migration_preview": request_semantics}
+        )
+        request_sha256 = semantic_sha256(request_semantics)
+        event = self.codec.build_event(
+            proposal_id=snapshot.proposal_id,
+            event_type=event_type,
+            effective_state=effective_state,
+            rationale=snapshot.reason,
+            conditions=(),
+            decided_on=snapshot.decided_on,
+            authority=ProposalDecisionAuthorityEvidence(
+                owner_id=snapshot.approver,
+                owner_role="owner",
+                executor_actor_id=snapshot.approver,
+                executor_kind="person",
+                channel="workspace_migration",
+                permission_policy_sha256=permission_sha256,
+            ),
+            predecessor=None,
+            proposal_semantic_sha256=proposal_sha,
+            decision_semantic_sha256=decision_sha,
+            affected_decision=ProposalDecisionAffectedDecision(),
+            lineage=self._empty_lineage(),
+            impact=ProposalDecisionImpactBinding(),
+            readiness=ProposalDecisionReadinessBinding(),
+            preview_token=preview_token,
+            request_fingerprint_sha256=request_sha256,
+            operation_key=operation_key(request_semantics, None),
+            migration=migration,
+        )
+        return self.codec.append(self.codec.empty(snapshot.proposal_id), event)
+
+    def _migratable_event(
+        self,
+        snapshot: Any,
+        permission_payload: Mapping[str, object],
+    ) -> ProposalDecisionEventType | None:
+        if not snapshot.aligned or not snapshot.authority_fields_complete:
+            return None
+        try:
+            date.fromisoformat(snapshot.decided_on)
+        except ValueError:
+            return None
+        if snapshot.proposal_status not in {
+            "accepted",
+            "deferred",
+            "withdrawn",
+            "rejected",
+        }:
+            return None
+        identities = permission_payload.get("identities")
+        identity = (
+            identities.get(identity_slug(snapshot.approver))
+            if isinstance(identities, Mapping)
+            else None
+        )
+        if not isinstance(identity, Mapping):
+            return None
+        if str(identity.get("role") or "") != "owner":
+            return None
+        return ProposalDecisionEventType(snapshot.proposal_status)
+
+    @staticmethod
+    def _empty_lineage():
+        from p2p_engine.core.proposal_decision_events import ProposalDecisionLineage
+
+        return ProposalDecisionLineage()
+
+    def _proposal_sources(
+        self,
+        snapshot: CompatibilitySnapshot,
+        candidates: Mapping[str, bytes],
+    ) -> tuple[tuple[str, str], ...]:
+        directories: set[str] = set()
+        for path in [
+            *(item.path for item in snapshot.inventory),
+            *candidates,
+        ]:
+            if not path.startswith(".p2p/proposals/") or not path.endswith("/proposal.md"):
+                continue
+            directories.add(path.rsplit("/", 1)[0])
+        result: list[tuple[str, str]] = []
+        for directory in sorted(directories):
+            name = directory.rsplit("/", 1)[-1]
+            parts = name.split("-", 2)
+            if len(parts) < 2 or parts[0] != "PROP" or not parts[1].isdigit():
+                continue
+            result.append((f"PROP-{parts[1]}", directory))
+        return tuple(result)
+
+    @staticmethod
+    def _overlay_bytes(candidate_view: Any, target: str) -> bytes | None:
+        try:
+            return candidate_view.read_bytes(target)
+        except FileNotFoundError:
+            return None
+
+    @staticmethod
+    def _overlay_yaml(candidate_view: Any, target: str) -> dict[str, object]:
+        try:
+            return candidate_view.read_yaml_mapping(target)
+        except FileNotFoundError:
+            return {}
+
+    def _schema_payload(
+        self,
+        *,
+        candidate_view: Any,
+        base_plan: Any | None,
+    ) -> dict[str, object]:
+        target = ".p2p/project/workspace-schema.yml"
+        content = self._overlay_bytes(candidate_view, target)
+        if content is None:
+            raise ValueError("Workspace schema v2 source is missing")
+        try:
+            payload = yaml.safe_load(content.decode("utf-8"))
+        except (UnicodeDecodeError, yaml.YAMLError) as exc:
+            raise ValueError(f"Cannot parse workspace schema v2 source: {exc}") from exc
+        if not isinstance(payload, dict) or not isinstance(
+            payload.get("workspace_schema"),
+            dict,
+        ):
+            raise ValueError("Workspace schema v2 source is invalid")
+        raw = dict(payload["workspace_schema"])
+        history = list(raw.get("applied_migrations") or [])
+        history.append(
+            {
+                "id": self.transition.migration_id,
+                "from": self.transition.source_version,
+                "to": self.transition.target_version,
+                "applied_at": SEMANTIC_AUDIT_TIMESTAMP,
+                "actor": SEMANTIC_AUDIT_ACTOR,
+                "plan_fingerprint_sha256": PLAN_FINGERPRINT_PLACEHOLDER,
+            }
+        )
+        raw["current_version"] = self.transition.target_version
+        raw["baseline"] = "migrated_legacy" if base_plan else "migrated_declared"
+        raw["applied_migrations"] = history
+        return {"workspace_schema": raw}

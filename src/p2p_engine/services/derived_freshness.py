@@ -19,6 +19,12 @@ from p2p_engine.services.lifecycle_authority import (
     PROPOSAL_LIFECYCLE_AUTHORITY_POLICY_VERSION,
     is_active_project_projection,
 )
+from p2p_engine.services.proposal_decision_ledger import (
+    DECISION_SEMANTICS_POLICY_VERSION,
+    EVENT_SCHEMA_VERSION,
+    LEDGER_CONTRACT_VERSION,
+    PROPOSAL_SEMANTICS_POLICY_VERSION,
+)
 from p2p_engine.services.registries import REGISTRY_DEFINITIONS
 from p2p_engine.services.software_spec import SOFTWARE_SPEC_REQUIRED_FILES
 
@@ -107,6 +113,14 @@ class DerivedFreshnessService:
                     "direct_sources": _paths_fingerprint(self.root, direct_sources),
                     "source_classes": list(definition.source_classes),
                     "lifecycle_authority_policy_version": PROPOSAL_LIFECYCLE_AUTHORITY_POLICY_VERSION,
+                    "decision_ledger_contract_version": LEDGER_CONTRACT_VERSION,
+                    "decision_event_schema_version": EVENT_SCHEMA_VERSION,
+                    "proposal_semantics_policy_version": (
+                        PROPOSAL_SEMANTICS_POLICY_VERSION
+                    ),
+                    "decision_semantics_policy_version": (
+                        DECISION_SEMANTICS_POLICY_VERSION
+                    ),
                 }
             )
             output_fingerprint = _paths_fingerprint(self.root, outputs)
@@ -157,11 +171,37 @@ class DerivedFreshnessService:
                 reasons.append("progress_is_request_scoped")
             elif definition.node_id == "software_specs":
                 specs = self.software_spec_statuses()
-                incomplete = [item for item in specs if str(getattr(item, "status", "")) != "generated"]
-                status, reasons = self._legacy_output_state(definition, outputs, dependency_nodes, optional=not specs)
-                if incomplete:
-                    status = "partial"
-                    reasons.append(f"incomplete_software_specs:{len(incomplete)}")
+                if not specs:
+                    status, reasons = self._legacy_output_state(
+                        definition,
+                        outputs,
+                        dependency_nodes,
+                        optional=True,
+                    )
+                else:
+                    states = [
+                        str(getattr(item, "freshness", "unknown_origin"))
+                        for item in specs
+                    ]
+                    counts = {
+                        state: states.count(state)
+                        for state in sorted(set(states))
+                    }
+                    reasons = [
+                        f"software_specs_{state}:{count}"
+                        for state, count in counts.items()
+                    ]
+                    if any(state in {"stale", "modified"} for state in states):
+                        status = "stale"
+                    elif any(
+                        state in {"unknown_origin", "incomplete"}
+                        for state in states
+                    ):
+                        status = "partial"
+                    elif "current_legacy" in states:
+                        status = "current_legacy_fallback"
+                    else:
+                        status = "current"
             elif definition.node_id == "visible_export":
                 visible = self.visible_export_status()
                 status, reasons = self._legacy_output_state(definition, outputs, dependency_nodes)
@@ -191,7 +231,7 @@ class DerivedFreshnessService:
                     manual_action_satisfied_by_fresh_output=optional,
                 )
 
-            if definition.node_id != "canonical_sources" and any(
+            if definition.node_id not in {"canonical_sources", "software_specs"} and any(
                 node.status not in {"current", "current_legacy_fallback"}
                 for node in dependency_nodes
             ):

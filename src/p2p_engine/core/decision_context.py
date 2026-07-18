@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, fields, is_dataclass
+from dataclasses import dataclass, field, fields, is_dataclass
 from datetime import date, datetime
 from enum import StrEnum
 from pathlib import Path
@@ -8,13 +8,14 @@ from types import MappingProxyType
 from typing import Mapping, Sequence
 
 
-SOURCE_CATALOG_VERSION = "decision-context-sources-v2"
+LEGACY_SOURCE_CATALOG_VERSION = "decision-context-sources-v2"
+SOURCE_CATALOG_VERSION = "decision-context-sources-v3"
 SCHEMA_VERSION = "decision-context-v1"
-EXTRACTOR_VERSION = "decision-context-extractors-v3"
-AUTHORITY_POLICY_VERSION = "decision-context-authority-v2"
-RELATION_POLICY_VERSION = "decision-context-relations-v2"
+EXTRACTOR_VERSION = "decision-context-extractors-v4"
+AUTHORITY_POLICY_VERSION = "decision-context-authority-v3"
+RELATION_POLICY_VERSION = "decision-context-relations-v3"
 LEXICAL_POLICY_VERSION = "decision-context-lexical-v1"
-RETRIEVAL_POLICY_VERSION = "decision-context-retrieval-v1"
+RETRIEVAL_POLICY_VERSION = "decision-context-retrieval-v2"
 BUDGET_POLICY_VERSION = "decision-context-budget-v1"
 
 
@@ -38,6 +39,7 @@ class SourcePresence(StrEnum):
 class SourceKind(StrEnum):
     PROPOSAL_BODY = "proposal_body"
     PROPOSAL_DECISION = "proposal_decision"
+    PROPOSAL_DECISION_LEDGER = "proposal_decision_ledger"
     RELATED_PROPOSALS = "related_proposals"
     IMPACT_MAP = "impact_map"
     CONFLICT_ANALYSIS = "conflict_analysis"
@@ -159,6 +161,7 @@ class RecordKind(StrEnum):
 class NodeType(StrEnum):
     PROPOSAL = "proposal"
     DECISION = "decision"
+    DECISION_EVENT = "decision_event"
     CHOICE = "choice"
     CHANGE = "change"
     WORK = "work"
@@ -188,6 +191,9 @@ class RelationType(StrEnum):
     TOUCHES_FILE = "touches_file"
     MAPS_TO_VERTICAL_SECTION = "maps_to_vertical_section"
     DERIVED_FROM = "derived_from"
+    PRECEDES = "precedes"
+    AFFECTS_DECISION = "affects_decision"
+    REINSTATES = "reinstates"
 
 
 class ContextBudget(StrEnum):
@@ -273,6 +279,15 @@ class DecisionContextRecord:
     applicability_tokens: tuple[str, ...] = ()
     diagnostic_ids: tuple[str, ...] = ()
     canonical_date: str = ""
+    event_id: str = ""
+    head_event_id: str = ""
+    decision_semantic_sha256: str = ""
+    authority_interval: Mapping[str, object] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    lineage: Mapping[str, object] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     schema_version: str = SCHEMA_VERSION
 
 
@@ -324,6 +339,12 @@ class RetrievalHit:
     reasons: tuple[RetrievalReason, ...]
     evidence_ids: tuple[str, ...]
     canonical_date: str = ""
+    head_event_id: str = ""
+    decision_semantic_sha256: str = ""
+    authority_intervals: tuple[Mapping[str, object], ...] = ()
+    lineage: Mapping[str, object] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
 
 
 @dataclass(frozen=True)

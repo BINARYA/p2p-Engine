@@ -4,7 +4,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from p2p_engine.core.contribution import Contribution, ContributionType
-from p2p_engine.core.decision import Decision, DecisionOutcome
+from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.core.decision_context import DecisionContextIndex
 from p2p_engine.core.derived_freshness import DerivedFreshnessStatus
 from p2p_engine.core.mutation_preview import MutationPreview, MutationResult
@@ -21,6 +21,16 @@ from p2p_engine.core.project_readiness_convergence import (
     ProjectQuestionReconciliationPreview,
     ProjectReadinessConvergencePreview,
     ProjectReadinessConvergenceResult,
+)
+from p2p_engine.core.proposal_decision_events import (
+    ProposalDecisionApplyResult,
+    ProposalDecisionEventType,
+    ProposalDecisionHistoryPage,
+    ProposalDecisionImpactPage,
+    ProposalDecisionImpactSnapshot,
+    ProposalDecisionLifecycleView,
+    ProposalDecisionPreview,
+    ProposalDecisionRequest,
 )
 from p2p_engine.core.proposal import Proposal
 from p2p_engine.core.project_verticals import (
@@ -96,6 +106,7 @@ from p2p_engine.services.governance_policy import (
     PrecedentMatch,
 )
 from p2p_engine.services.intake import IntakeAppliedAction, IntakeApplyPlan, IntakeLifecycleService, IntakePrompt, IntakeStatus
+from p2p_engine.services.lifecycle_authority import ProposalLifecycleAuthorityService
 from p2p_engine.services.next_actions import NextAction, NextActionService
 from p2p_engine.services.permissions import PermissionActor, PermissionsService
 from p2p_engine.services.context_packets import ContextPacket, ContextPacketService
@@ -112,6 +123,7 @@ from p2p_engine.services.proposal_artifacts import (
 )
 from p2p_engine.services.proposal_artifact_state import ProposalArtifactStateService
 from p2p_engine.services.proposal_decisions import ProposalDecisionService
+from p2p_engine.services.proposal_decision_impact import ProposalDecisionImpactService
 from p2p_engine.services.proposal_drafts import ProposalDraftCommit, ProposalDraftCommitService
 from p2p_engine.services.proposal_questions import ProposalQuestionService
 from p2p_engine.services.proposal_review_view import (
@@ -255,6 +267,12 @@ class P2PWorkspace:
         self._governance_policy_service_instance: GovernancePolicyService | None = None
         self._intake_lifecycle_service_instance: IntakeLifecycleService | None = None
         self._proposal_decision_service_instance: ProposalDecisionService | None = None
+        self._proposal_decision_impact_service_instance: (
+            ProposalDecisionImpactService | None
+        ) = None
+        self._proposal_lifecycle_authority_service_instance: (
+            ProposalLifecycleAuthorityService | None
+        ) = None
         self._proposal_draft_commit_service_instance: ProposalDraftCommitService | None = None
         self._proposal_document_service_instance: ProposalDocumentService | None = None
         self._proposal_question_service_instance: ProposalQuestionService | None = None
@@ -347,6 +365,9 @@ class P2PWorkspace:
                 governance_validation_findings=self._governance_policy_service().validation_findings,
                 runtime_validation_findings=self._runtime_contract_service().validation_findings,
                 workspace_schema_validation_findings=self._workspace_schema_service().validation_findings,
+                proposal_lifecycle_status=(
+                    self._proposal_lifecycle_authority_service().status
+                ),
             )
         return self._validation_service_instance
 
@@ -399,7 +420,17 @@ class P2PWorkspace:
 
     def _proposal_document_service(self) -> ProposalDocumentService:
         if self._proposal_document_service_instance is None:
-            self._proposal_document_service_instance = ProposalDocumentService(root=self.root, p2p_dir=self.p2p_dir)
+            self._proposal_document_service_instance = ProposalDocumentService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                lifecycle_status=(
+                    lambda proposal_id: (
+                        self._proposal_lifecycle_authority_service().status(
+                            proposal_id
+                        )
+                    )
+                ),
+            )
         return self._proposal_document_service_instance
 
     def _proposal_question_service(self) -> ProposalQuestionService:
@@ -482,8 +513,39 @@ class P2PWorkspace:
                 root=self.root,
                 p2p_dir=self.p2p_dir,
                 find_proposal_dir=self._proposal_document_service().find_dir,
+                workspace_schema_status=self.workspace_schema_status,
+                permissions=self._permissions_service(),
+                readiness=self._readiness_service(),
+                impact_provider=self._proposal_decision_impact_service().provider,
+                lifecycle=self._proposal_lifecycle_authority_service(),
             )
         return self._proposal_decision_service_instance
+
+    def _proposal_decision_impact_service(self) -> ProposalDecisionImpactService:
+        if self._proposal_decision_impact_service_instance is None:
+            self._proposal_decision_impact_service_instance = (
+                ProposalDecisionImpactService(
+                    root=self.root,
+                    p2p_dir=self.p2p_dir,
+                    find_proposal_dir=self._proposal_document_service().find_dir,
+                    freshness_status=self.project_freshness,
+                )
+            )
+        return self._proposal_decision_impact_service_instance
+
+    def _proposal_lifecycle_authority_service(
+        self,
+    ) -> ProposalLifecycleAuthorityService:
+        if self._proposal_lifecycle_authority_service_instance is None:
+            self._proposal_lifecycle_authority_service_instance = (
+                ProposalLifecycleAuthorityService(
+                    root=self.root,
+                    p2p_dir=self.p2p_dir,
+                    find_proposal_dir=self._proposal_document_service().find_dir,
+                    workspace_schema_status=self.workspace_schema_status,
+                )
+            )
+        return self._proposal_lifecycle_authority_service_instance
 
     def _project_state_service(self) -> ProjectStateService:
         if self._project_state_service_instance is None:
@@ -610,6 +672,18 @@ class P2PWorkspace:
                 workspace_schema_status=self.workspace_schema_status,
                 derived_freshness_status=self.project_freshness,
                 project_readiness_result=self.project_readiness_result,
+                proposal_decision_lifecycles=(
+                    self._proposal_lifecycle_authority_service().capture_all
+                ),
+                proposal_decision_impact=(
+                    lambda proposal_id, event_type, lifecycle: (
+                        self._proposal_decision_impact_service().capture(
+                            proposal_id,
+                            source_head_event_id=lifecycle.head_event_id,
+                            event_type=event_type,
+                        )
+                    )
+                ),
             )
         return self._next_action_service_instance
 
@@ -650,6 +724,9 @@ class P2PWorkspace:
                 decision_context_index=self.decision_context_index,
                 vertical_service=self._project_vertical_service(),
                 artifact_state_service=self._proposal_artifact_state_service(),
+                proposal_lifecycle_status=(
+                    self._proposal_lifecycle_authority_service().status
+                ),
             )
         return self._proposal_artifact_service_instance
 
@@ -683,6 +760,9 @@ class P2PWorkspace:
                 root=self.root,
                 p2p_dir=self.p2p_dir,
                 find_proposal_dir=self._proposal_document_service().find_dir,
+                proposal_lifecycle_status=(
+                    self._proposal_lifecycle_authority_service().status
+                ),
             )
         return self._change_set_lifecycle_service_instance
 
@@ -720,6 +800,9 @@ class P2PWorkspace:
                 root=self.root,
                 p2p_dir=self.p2p_dir,
                 read_proposal_readiness=self.read_proposal_readiness,
+                proposal_decision_lifecycles=(
+                    self._proposal_lifecycle_authority_service().capture_all
+                ),
             )
         return self._registry_record_builder_service_instance
 
@@ -743,9 +826,11 @@ class P2PWorkspace:
                 root=self.root,
                 p2p_dir=self.p2p_dir,
                 find_change_dir=self._change_set_lifecycle_service().find_dir,
-                show_proposal=self.show_proposal,
                 show_change_set=self.show_change_set,
                 find_proposal_dir=self._proposal_document_service().find_dir,
+                proposal_lifecycle_status=(
+                    self._proposal_lifecycle_authority_service().status
+                ),
             )
         return self._software_spec_service_instance
 
@@ -760,6 +845,9 @@ class P2PWorkspace:
                 project_definition_view=self.project_definition_view,
                 choice_statuses=self.choice_statuses,
                 show_choice=self.show_choice,
+                proposal_lifecycle_status=(
+                    self._proposal_lifecycle_authority_service().status
+                ),
             )
         return self._software_spec_lifecycle_service_instance
 
@@ -799,6 +887,9 @@ class P2PWorkspace:
                 project_readiness_review=self.review_project_readiness,
                 project_vertical_lock_status=self.project_vertical_lock_status,
                 project_definition_view=self.project_definition_view,
+                proposal_decision_lifecycles=(
+                    self._proposal_lifecycle_authority_service().capture_all
+                ),
             )
         return self._visible_project_export_service_instance
 
@@ -811,6 +902,9 @@ class P2PWorkspace:
                 accepted_proposals=self._registry_record_builder_service().accepted_proposals,
                 project_vertical_lock_status=self.project_vertical_lock_status,
                 project_definition_view=self.project_definition_view,
+                proposal_decision_lifecycles=(
+                    self._proposal_lifecycle_authority_service().capture_all
+                ),
             )
         return self._project_publication_service_instance
 
@@ -823,6 +917,9 @@ class P2PWorkspace:
                 validate_export=self.validate_software_spec_export,
                 find_change_dir=self._change_set_lifecycle_service().find_dir,
                 scanned_work_items=self._scanned_work_items,
+                proposal_lifecycle_status=(
+                    self._proposal_lifecycle_authority_service().status
+                ),
             )
         return self._work_planning_service_instance
 
@@ -864,6 +961,9 @@ class P2PWorkspace:
                 p2p_dir=self.p2p_dir,
                 workspace_schema_status=self.workspace_schema_status,
                 derived_freshness_status=self.project_freshness,
+                proposal_decision_lifecycles=(
+                    self._proposal_lifecycle_authority_service().capture_all
+                ),
             )
         return self._workspace_status_service_instance
 
@@ -1682,9 +1782,199 @@ class P2PWorkspace:
         outcome: DecisionOutcome,
         reason: str,
         approver: str,
-    ) -> Decision:
-        self._ensure_runtime_write_allowed("proposal_decision_record")
-        return self._proposal_decision_service().record(proposal_id, outcome, reason, approver)
+        *,
+        decided_on: str = "",
+        operation_key: str = "",
+        source_head_event_id: str | None = None,
+        preview_token: str = "",
+        confirm: bool = False,
+        readiness_override: bool = False,
+    ) -> ProposalDecisionPreview | ProposalDecisionApplyResult:
+        if preview_token:
+            self._ensure_runtime_write_allowed("proposal_decision_record")
+        return self._proposal_decision_service().record(
+            proposal_id,
+            outcome,
+            reason,
+            approver,
+            decided_on=decided_on,
+            operation_key_value=operation_key,
+            source_head_event_id=source_head_event_id,
+            preview_token=preview_token,
+            confirm=confirm,
+            readiness_override=readiness_override,
+        )
+
+    def proposal_decision_status(
+        self,
+        proposal_id: str,
+    ) -> ProposalDecisionLifecycleView:
+        return self._proposal_decision_service().status(proposal_id)
+
+    def proposal_decision_lifecycles(
+        self,
+        *,
+        strict: bool = False,
+    ) -> dict[str, ProposalDecisionLifecycleView]:
+        return self._proposal_lifecycle_authority_service().capture_all(
+            strict=strict
+        )
+
+    def proposal_decision_history(
+        self,
+        proposal_id: str,
+        *,
+        limit: int = 20,
+        cursor: str | None = None,
+    ) -> ProposalDecisionHistoryPage:
+        return self._proposal_decision_service().history(
+            proposal_id,
+            limit=limit,
+            cursor=cursor,
+        )
+
+    def proposal_decision_impact(
+        self,
+        proposal_id: str,
+        *,
+        event_type: ProposalDecisionEventType,
+        source_head_event_id: str | None = None,
+    ) -> ProposalDecisionImpactSnapshot:
+        lifecycle = self.proposal_decision_status(proposal_id)
+        selected_head = (
+            lifecycle.head_event_id
+            if source_head_event_id is None
+            else source_head_event_id
+        )
+        if selected_head != lifecycle.head_event_id:
+            raise ValueError(
+                "P2P365_DECISION_STALE_PREVIEW: impact source head does not "
+                "match the current lifecycle head"
+            )
+        return self._proposal_decision_impact_service().capture(
+            proposal_id,
+            source_head_event_id=selected_head,
+            event_type=event_type,
+        )
+
+    def proposal_decision_impact_page(
+        self,
+        snapshot: ProposalDecisionImpactSnapshot,
+        *,
+        limit: int = 20,
+        cursor: str | None = None,
+    ) -> ProposalDecisionImpactPage:
+        return self._proposal_decision_impact_service().page(
+            snapshot,
+            limit=limit,
+            cursor=cursor,
+        )
+
+    def preview_proposal_decision(
+        self,
+        request: ProposalDecisionRequest,
+    ) -> ProposalDecisionPreview:
+        return self._proposal_decision_service().preview(request)
+
+    def apply_proposal_decision(
+        self,
+        request: ProposalDecisionRequest,
+        *,
+        preview_token: str,
+        confirm: bool,
+    ) -> ProposalDecisionApplyResult:
+        self._ensure_runtime_write_allowed("proposal_decision_apply")
+        return self._proposal_decision_service().apply(
+            request,
+            preview_token=preview_token,
+            confirm=confirm,
+        )
+
+    def preview_proposal_decision_projection_repair(
+        self,
+        proposal_id: str,
+        *,
+        actor_id: str,
+        executor_actor_id: str | None = None,
+    ):
+        return self._proposal_decision_service().projection_repair_preview(
+            proposal_id,
+            actor_id=actor_id,
+            executor_actor_id=executor_actor_id,
+        )
+
+    def apply_proposal_decision_projection_repair(
+        self,
+        proposal_id: str,
+        *,
+        actor_id: str,
+        executor_actor_id: str | None = None,
+        preview_token: str,
+        confirm: bool,
+    ):
+        self._ensure_runtime_write_allowed("proposal_decision_projection_repair")
+        return self._proposal_decision_service().projection_repair_apply(
+            proposal_id,
+            actor_id=actor_id,
+            executor_actor_id=executor_actor_id,
+            preview_token=preview_token,
+            confirm=confirm,
+        )
+
+    def preview_proposal_decision_ledger_repair(
+        self,
+        proposal_id: str,
+        *,
+        candidate_path: Path,
+        actor_id: str,
+        executor_actor_id: str | None = None,
+    ):
+        return self._proposal_decision_service().ledger_repair_preview(
+            proposal_id,
+            candidate_path=candidate_path,
+            actor_id=actor_id,
+            executor_actor_id=executor_actor_id,
+        )
+
+    def apply_proposal_decision_ledger_repair(
+        self,
+        proposal_id: str,
+        *,
+        candidate_path: Path,
+        actor_id: str,
+        executor_actor_id: str | None = None,
+        preview_token: str,
+        confirm: bool,
+    ):
+        self._ensure_runtime_write_allowed("proposal_decision_ledger_repair")
+        return self._proposal_decision_service().ledger_repair_apply(
+            proposal_id,
+            candidate_path=candidate_path,
+            actor_id=actor_id,
+            executor_actor_id=executor_actor_id,
+            preview_token=preview_token,
+            confirm=confirm,
+        )
+
+    def preview_proposal_decision_legacy_resolution(
+        self,
+        request: ProposalDecisionRequest,
+    ) -> ProposalDecisionPreview:
+        return self._proposal_decision_service().legacy_resolution_preview(request)
+
+    def apply_proposal_decision_legacy_resolution(
+        self,
+        request: ProposalDecisionRequest,
+        *,
+        preview_token: str,
+        confirm: bool,
+    ) -> ProposalDecisionApplyResult:
+        self._ensure_runtime_write_allowed("proposal_decision_legacy_resolution")
+        return self._proposal_decision_service().legacy_resolution_apply(
+            request,
+            preview_token=preview_token,
+            confirm=confirm,
+        )
 
     def generate_prompt(self, proposal_id: str, kind: PromptKind) -> Path:
         self._ensure_runtime_write_allowed("proposal_prompt_generate")

@@ -1,0 +1,6 @@
+section:
+  id: risks
+  title: Risks
+  purpose: Failure modes, mitigations, and tradeoffs.
+  required: true
+  priority: 60

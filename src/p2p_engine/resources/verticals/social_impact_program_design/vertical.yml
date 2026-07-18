@@ -3,94 +3,53 @@ vertical:
   id: social_impact_program_design
   name: Social Impact Program Design
   version: 1.0.0
-  description: Design social impact initiatives that are measurable, governed, credible, and connected to stakeholder needs.
+  description: Design social impact initiatives that are measurable, governed, credible,
+    and connected to stakeholder needs.
   extends: base_project
-  sections:
-    - id: social_impact_vision
-      title: Social Impact Vision
-      purpose: Define the social change the program should create.
-      required: true
-      priority: 10
-    - id: theory_of_change
-      title: Theory Of Change
-      purpose: Explain how activities create outcomes for beneficiaries.
-      required: true
-      priority: 20
-    - id: beneficiary_communities
-      title: Beneficiary Communities
-      purpose: Identify who benefits and why they are prioritized.
-      required: true
-      priority: 30
-    - id: impact_areas
-      title: Impact Areas
-      purpose: Select financial inclusion, education, credit access, territory, work, environment, or other impact domains.
-      required: true
-      priority: 40
-    - id: governance_accountability
-      title: Governance And Accountability
-      purpose: Define ownership, decision rights, controls, and anti-social-washing safeguards.
-      required: true
-      priority: 50
-    - id: measurement_reporting
-      title: Measurement And Reporting
-      purpose: Define outcome metrics, evidence, and reporting cadence.
-      required: true
-      priority: 60
-    - id: program_roadmap
-      title: Program Roadmap
-      purpose: Plan activities, partners, budget, and milestones.
-      required: true
-      priority: 70
-  rubrics:
-    - id: impact_vision_clarity
-      title: Impact Vision Clarity
-      section_id: social_impact_vision
-      required: true
-      keywords: [impact, social, change, vision]
-    - id: beneficiary_specificity
-      title: Beneficiary Specificity
-      section_id: beneficiary_communities
-      required: true
-      keywords: [beneficiary, community, population, stakeholder]
-    - id: theory_of_change_quality
-      title: Theory Of Change Quality
-      section_id: theory_of_change
-      required: true
-      keywords: [theory of change, activity, outcome, causal]
-    - id: measurement_quality
-      title: Measurement Quality
-      section_id: measurement_reporting
-      required: true
-      keywords: [metric, outcome, report, evidence]
   questions:
-    - id: beneficiary_main
-      section_id: beneficiary_communities
-      priority: high
-      question: Which community or population should benefit?
-      rationale: Social impact must name beneficiaries.
-    - id: impact_area_main
-      section_id: impact_areas
-      priority: high
-      question: Is the desired impact about financial inclusion, education, credit access, territory, environment, work, or another area?
-      rationale: Impact areas guide program design.
-    - id: measurement_main
-      section_id: measurement_reporting
-      priority: high
-      question: How will real impact be measured and how will social-washing be avoided?
-      rationale: Credibility depends on evidence and governance.
+  - id: beneficiary_main
+    section_id: beneficiary_communities
+    priority: high
+    question: Which community or population should benefit?
+    rationale: Social impact must name beneficiaries.
+  - id: impact_area_main
+    section_id: impact_areas
+    priority: high
+    question: Is the desired impact about financial inclusion, education, credit access,
+      territory, environment, work, or another area?
+    rationale: Impact areas guide program design.
+  - id: measurement_main
+    section_id: measurement_reporting
+    priority: high
+    question: How will real impact be measured and how will social-washing be avoided?
+    rationale: Credibility depends on evidence and governance.
   artifacts:
-    - id: social_impact_strategy_brief
-      title: Social Impact Strategy Brief
-      section_ids: [social_impact_vision, impact_areas, program_roadmap]
-      required: true
-    - id: theory_of_change
-      title: Theory Of Change
-      section_ids: [theory_of_change, beneficiary_communities]
-      required: true
-    - id: outcome_metric_framework
-      title: Outcome Metric Framework
-      section_ids: [measurement_reporting, governance_accountability]
-      required: true
-  profiles: [bank_program, community_partnership, financial_education]
-  modules: [stakeholder_alignment, risk_management, responsible_communication]
-  examples: ["progettare attivita volte a migliorare l'impatto sociale di una banca"]
+  - id: social_impact_strategy_brief
+    title: Social Impact Strategy Brief
+    section_ids:
+    - social_impact_vision
+    - impact_areas
+    - program_roadmap
+    required: true
+  - id: theory_of_change
+    title: Theory Of Change
+    section_ids:
+    - theory_of_change
+    - beneficiary_communities
+    required: true
+  - id: outcome_metric_framework
+    title: Outcome Metric Framework
+    section_ids:
+    - measurement_reporting
+    - governance_accountability
+    required: true
+  profiles:
+  - bank_program
+  - community_partnership
+  - financial_education
+  modules:
+  - stakeholder_alignment
+  - risk_management
+  - responsible_communication
+  examples:
+  - progettare attivita volte a migliorare l'impatto sociale di una banca

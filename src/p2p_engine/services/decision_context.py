@@ -13,6 +13,7 @@ from p2p_engine.core.decision_context import (
     DecisionContextIndex,
     SourceAccessStats,
     freeze_string_tuple_mapping,
+    to_json_ready,
 )
 from p2p_engine.services.decision_context_extractors import DecisionContextExtractorService
 from p2p_engine.services.decision_context_freshness import semantic_fingerprint
@@ -72,9 +73,34 @@ class ProjectDecisionContextService:
                 key=lambda item: (item.severity.value, item.code, item.source_path, item.target_id, item.diagnostic_id),
             )
         )
-        incoming, outgoing = build_adjacency(normalized.relations)
+        relations = tuple(
+            sorted(
+                {
+                    item.relation_id: item
+                    for item in (*extracted.relations, *normalized.relations)
+                }.values(),
+                key=lambda item: (
+                    item.source_type.value,
+                    item.source_id,
+                    item.relation_type.value,
+                    item.target_type.value,
+                    item.target_id,
+                    item.relation_id,
+                ),
+            )
+        )
+        nodes = tuple(
+            sorted(
+                {
+                    (item.node_type, item.node_id): item
+                    for item in (*extracted.nodes, *normalized.nodes)
+                }.values(),
+                key=lambda item: (item.node_type.value, item.node_id),
+            )
+        )
+        incoming, outgoing = build_adjacency(relations)
         token_postings, domain_postings, owner_authority, owner_activation = build_retrieval_postings(
-            records, normalized.nodes, normalized.relations
+            records, nodes, relations
         )
         records_by_owner: dict[str, list[str]] = defaultdict(list)
         for record in records:
@@ -86,6 +112,10 @@ class ProjectDecisionContextService:
             extractor_version=EXTRACTOR_VERSION,
             authority_policy_version=AUTHORITY_POLICY_VERSION,
             relation_policy_version=RELATION_POLICY_VERSION,
+            semantic_payload={
+                "records": to_json_ready(records),
+                "relations": to_json_ready(relations),
+            },
         )
         return DecisionContextIndex(
             schema_version=SCHEMA_VERSION,
@@ -99,8 +129,8 @@ class ProjectDecisionContextService:
             sources=session.sources,
             evidence=evidence,
             records=records,
-            nodes=normalized.nodes,
-            relations=normalized.relations,
+            nodes=nodes,
+            relations=relations,
             diagnostics=diagnostics,
             access_stats=session.access_stats,
             records_by_owner=freeze_string_tuple_mapping(records_by_owner),

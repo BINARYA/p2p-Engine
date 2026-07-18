@@ -5,92 +5,51 @@ vertical:
   version: 1.0.0
   description: Design a box or packaging solution from concept to manufacturable specification.
   extends: base_project
-  sections:
-    - id: contained_product
-      title: Contained Product And Use Case
-      purpose: Define what the box contains and how it will be used.
-      required: true
-      priority: 10
-    - id: success_definition
-      title: Meaning Of Perfect
-      purpose: Clarify which tradeoffs define a perfect box.
-      required: true
-      priority: 20
-    - id: user_experience
-      title: User And Unboxing Experience
-      purpose: Define handling, opening, reuse, and perceived value.
-      required: true
-      priority: 30
-    - id: structure_materials
-      title: Structure And Materials
-      purpose: Define dimensions, materials, sustainability, and physical structure.
-      required: true
-      priority: 40
-    - id: protection_logistics
-      title: Protection And Logistics
-      purpose: Ensure transport, storage, and resistance needs are covered.
-      required: true
-      priority: 50
-    - id: production_cost
-      title: Production And Cost
-      purpose: Define manufacturability, suppliers, and cost targets.
-      required: true
-      priority: 60
-    - id: prototype_testing
-      title: Prototype And Tests
-      purpose: Define prototype plan and validation checks.
-      required: true
-      priority: 70
-  rubrics:
-    - id: product_fit
-      title: Product Fit
-      section_id: contained_product
-      required: true
-      keywords: [product, contain, use case]
-    - id: tradeoff_clarity
-      title: Tradeoff Clarity
-      section_id: success_definition
-      required: true
-      keywords: [perfect, cost, resistant, sustainable, memorable]
-    - id: manufacturability
-      title: Manufacturability
-      section_id: production_cost
-      required: true
-      keywords: [manufacturing, supplier, cost, production]
-    - id: testability
-      title: Testability
-      section_id: prototype_testing
-      required: true
-      keywords: [prototype, test, resistance, checklist]
   questions:
-    - id: contained_product_main
-      section_id: contained_product
-      priority: high
-      question: What must the box contain?
-      rationale: The packaging cannot be designed without product constraints.
-    - id: perfect_tradeoff_main
-      section_id: success_definition
-      priority: high
-      question: Does perfect mean beautiful, resistant, cheap, sustainable, memorable, or a weighted combination?
-      rationale: Packaging design is tradeoff-heavy.
-    - id: context_main
-      section_id: protection_logistics
-      priority: high
-      question: Is the main context shipping, retail shelf, gift, luxury, e-commerce, or reuse?
-      rationale: Context changes structure and materials.
+  - id: contained_product_main
+    section_id: contained_product
+    priority: high
+    question: What must the box contain?
+    rationale: The packaging cannot be designed without product constraints.
+  - id: perfect_tradeoff_main
+    section_id: success_definition
+    priority: high
+    question: Does perfect mean beautiful, resistant, cheap, sustainable, memorable,
+      or a weighted combination?
+    rationale: Packaging design is tradeoff-heavy.
+  - id: context_main
+    section_id: protection_logistics
+    priority: high
+    question: Is the main context shipping, retail shelf, gift, luxury, e-commerce,
+      or reuse?
+    rationale: Context changes structure and materials.
   artifacts:
-    - id: packaging_brief
-      title: Packaging Brief
-      section_ids: [contained_product, success_definition, user_experience]
-      required: true
-    - id: requirement_matrix
-      title: Requirement Matrix
-      section_ids: [structure_materials, protection_logistics, production_cost]
-      required: true
-    - id: prototype_test_checklist
-      title: Prototype Test Checklist
-      section_ids: [prototype_testing]
-      required: true
-  profiles: [shipping_ready, retail_ready, sustainable_packaging]
-  modules: [production_feasibility, sustainability, brand_positioning]
-  examples: ["progettare la scatola perfetta"]
+  - id: packaging_brief
+    title: Packaging Brief
+    section_ids:
+    - contained_product
+    - success_definition
+    - user_experience
+    required: true
+  - id: requirement_matrix
+    title: Requirement Matrix
+    section_ids:
+    - structure_materials
+    - protection_logistics
+    - production_cost
+    required: true
+  - id: prototype_test_checklist
+    title: Prototype Test Checklist
+    section_ids:
+    - prototype_testing
+    required: true
+  profiles:
+  - shipping_ready
+  - retail_ready
+  - sustainable_packaging
+  modules:
+  - production_feasibility
+  - sustainability
+  - brand_positioning
+  examples:
+  - progettare la scatola perfetta

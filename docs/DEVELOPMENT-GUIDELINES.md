@@ -145,6 +145,35 @@ Consent, Git, and sync compatibility:
 Breaking changes to these surfaces require a separate accepted proposal or an
 explicit local feature spec derived from one.
 
+## Derived Artifact Contracts
+
+Bundled verticals are canonical package resources. Each bundled pack owns one
+`manifest.yml`, metadata-only `vertical.yml`, `rubrics.yml`, and ordered split
+section files. Semantic checksums are computed from normalized typed content,
+not resource paths or mtimes. External single-file packs remain a separate
+compatibility input.
+
+`SoftwareSpecService` owns exact source collection, pure candidate rendering,
+versioned provenance, per-spec freshness and atomic complete-set writes. New
+renderer inputs must be added to both the candidate model and source manifest;
+workspace-wide fingerprints are not an acceptable shortcut. Status paths must
+remain read-only.
+
+`NextActionService` composes complete action families before dedupe and limit.
+Change Set terminal states and active ordering come from
+`services/changes.py`; decision context may enrich an action but cannot suppress
+an active registry record. Generated actions remain derived and must not be
+written to curated next-action storage.
+
+`ProposalDecisionService` owns all proposal authority mutations. Workspace
+schema v3 stores one append-only proposal-local ledger and derives proposal and
+decision projections from it. CLI and MCP adapters must use the same
+preview/apply request, token, retry and transition rules. A read, preview or
+failed apply must not write state. MCP consent binds the exact proposal and
+preview token and must not collapse owner authority into executor identity.
+Dependent Change, Work, spec, vertical, project or publication lifecycles are
+reported as impact and remediation work; decision apply never rewrites them.
+
 ## Testing Expectations
 
 For every extraction:

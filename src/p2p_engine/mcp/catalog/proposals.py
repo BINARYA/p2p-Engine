@@ -33,8 +33,226 @@ def _artifact_import_tool(name: str, label: str) -> dict[str, object]:
     )
 
 
+def _decision_request_properties() -> dict[str, object]:
+    return {
+        'root': {'type': 'string'},
+        'proposal_id': {'type': 'string'},
+        'event_type': {
+            'type': 'string',
+            'enum': [
+                'accepted',
+                'accepted_with_changes',
+                'deferred',
+                'withdrawn',
+                'rejected',
+                'revoked',
+                'superseded',
+                'split',
+                'merged_into_other',
+                'reinstated',
+            ],
+        },
+        'reason': {'type': 'string'},
+        'owner_id': {'type': 'string'},
+        'actor_id': {'type': 'string'},
+        'executor_kind': {'type': 'string'},
+        'decided_on': {'type': 'string'},
+        'operation_key': {'type': 'string'},
+        'source_head_event_id': {'type': ['string', 'null']},
+        'conditions': {
+            'type': 'array',
+            'items': {
+                'type': 'object',
+                'properties': {
+                    'id': {'type': 'string'},
+                    'text': {'type': 'string'},
+                },
+                'required': ['id', 'text'],
+            },
+        },
+        'lineage': {
+            'type': 'object',
+            'properties': {
+                'kind': {
+                    'type': ['string', 'null'],
+                    'enum': ['supersedes', 'split', 'merged_into', None],
+                },
+                'targets': {'type': 'array', 'items': {'type': 'string'}},
+            },
+        },
+        'affected_event_id': {'type': ['string', 'null']},
+        'revocation_event_id': {'type': ['string', 'null']},
+        'impact_preview_token': {'type': ['string', 'null']},
+        'drift_acknowledged': {'type': 'boolean'},
+        'readiness_override': {'type': 'boolean'},
+    }
+
+
+def _decision_tool_definitions() -> list[dict[str, object]]:
+    request = _decision_request_properties()
+    return [
+        _tool(
+            'p2p_proposal_decision_status',
+            'Read-only resolved proposal decision lifecycle, head, intervals, lineage, and diagnostics.',
+            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},
+            ['proposal_id'],
+        ),
+        _tool(
+            'p2p_proposal_decision_history',
+            'Read-only bounded proposal decision event history.',
+            {
+                'root': {'type': 'string'},
+                'proposal_id': {'type': 'string'},
+                'limit': {'type': 'integer', 'minimum': 1, 'maximum': 100},
+                'cursor': {'type': 'string'},
+            },
+            ['proposal_id'],
+        ),
+        _tool(
+            'p2p_proposal_decision_impact',
+            'Read-only bounded dependency impact for a proposed lifecycle event.',
+            {
+                'root': {'type': 'string'},
+                'proposal_id': {'type': 'string'},
+                'event_type': request['event_type'],
+                'source_head_event_id': {'type': ['string', 'null']},
+                'limit': {'type': 'integer', 'minimum': 1, 'maximum': 100},
+                'cursor': {'type': 'string'},
+            },
+            ['proposal_id', 'event_type'],
+        ),
+        _tool(
+            'p2p_proposal_decision_preview',
+            'Read-only two-phase decision preview. It never records a governance event.',
+            request,
+            ['proposal_id', 'event_type', 'reason', 'owner_id', 'actor_id'],
+        ),
+        _tool(
+            'p2p_proposal_decision_apply',
+            (
+                'Permission-gated decision apply using an exact preview and a '
+                'proposal_decision_apply consent targeted to PROP-XXX@preview-token.'
+            ),
+            {
+                **request,
+                'preview_token': {'type': 'string'},
+                'confirm': {'type': 'boolean'},
+                'consent_id': {'type': 'string'},
+            },
+            [
+                'proposal_id',
+                'event_type',
+                'reason',
+                'owner_id',
+                'actor_id',
+                'decided_on',
+                'operation_key',
+                'preview_token',
+                'confirm',
+                'consent_id',
+            ],
+        ),
+        _tool(
+            'p2p_proposal_decision_projection_repair_preview',
+            'Read-only preview for restoring ledger-derived proposal projections.',
+            {
+                'root': {'type': 'string'},
+                'proposal_id': {'type': 'string'},
+                'owner_id': {'type': 'string'},
+                'actor_id': {'type': 'string'},
+            },
+            ['proposal_id', 'owner_id', 'actor_id'],
+        ),
+        _tool(
+            'p2p_proposal_decision_projection_repair_apply',
+            'Permission-gated apply for an exact projection-repair preview.',
+            {
+                'root': {'type': 'string'},
+                'proposal_id': {'type': 'string'},
+                'owner_id': {'type': 'string'},
+                'actor_id': {'type': 'string'},
+                'preview_token': {'type': 'string'},
+                'confirm': {'type': 'boolean'},
+                'consent_id': {'type': 'string'},
+            },
+            [
+                'proposal_id',
+                'owner_id',
+                'actor_id',
+                'preview_token',
+                'confirm',
+                'consent_id',
+            ],
+        ),
+        _tool(
+            'p2p_proposal_decision_ledger_repair_preview',
+            'Read-only preview for a reviewed ledger repair candidate file.',
+            {
+                'root': {'type': 'string'},
+                'proposal_id': {'type': 'string'},
+                'candidate_path': {'type': 'string'},
+                'owner_id': {'type': 'string'},
+                'actor_id': {'type': 'string'},
+            },
+            ['proposal_id', 'candidate_path', 'owner_id', 'actor_id'],
+        ),
+        _tool(
+            'p2p_proposal_decision_ledger_repair_apply',
+            'Permission-gated apply for an exact ledger-repair preview.',
+            {
+                'root': {'type': 'string'},
+                'proposal_id': {'type': 'string'},
+                'candidate_path': {'type': 'string'},
+                'owner_id': {'type': 'string'},
+                'actor_id': {'type': 'string'},
+                'preview_token': {'type': 'string'},
+                'confirm': {'type': 'boolean'},
+                'consent_id': {'type': 'string'},
+            },
+            [
+                'proposal_id',
+                'candidate_path',
+                'owner_id',
+                'actor_id',
+                'preview_token',
+                'confirm',
+                'consent_id',
+            ],
+        ),
+        _tool(
+            'p2p_proposal_decision_legacy_resolution_preview',
+            'Read-only explicit owner resolution preview for unknown legacy authority.',
+            request,
+            ['proposal_id', 'event_type', 'reason', 'owner_id', 'actor_id'],
+        ),
+        _tool(
+            'p2p_proposal_decision_legacy_resolution_apply',
+            'Permission-gated apply for an exact unknown-legacy resolution preview.',
+            {
+                **request,
+                'preview_token': {'type': 'string'},
+                'confirm': {'type': 'boolean'},
+                'consent_id': {'type': 'string'},
+            },
+            [
+                'proposal_id',
+                'event_type',
+                'reason',
+                'owner_id',
+                'actor_id',
+                'decided_on',
+                'operation_key',
+                'preview_token',
+                'confirm',
+                'consent_id',
+            ],
+        ),
+    ]
+
+
 def tool_definitions() -> list[dict[str, object]]:
     return [
+        *_decision_tool_definitions(),
         _tool(
             'p2p_proposal_create',
             (

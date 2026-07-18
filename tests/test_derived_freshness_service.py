@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -10,11 +11,19 @@ from typer.testing import CliRunner
 
 from p2p_engine.cli import app
 from p2p_engine.core.decision import DecisionOutcome
+from p2p_engine.core.proposal_decision_events import (
+    ProposalDecisionLineage,
+    ProposalDecisionLineageKind,
+)
 from p2p_engine.core.derived_freshness import FreshnessNodeDefinition
 from p2p_engine.services.derived_freshness import NODE_CATALOG, validate_freshness_graph
 from p2p_engine.services.project_state import ProjectStateService
 from p2p_engine.services.registries import REGISTRY_DEFINITIONS
-from p2p_engine.services.software_spec import SOFTWARE_SPEC_REQUIRED_FILES
+from tests.proposal_decision_fixtures import record_decision
+from p2p_engine.services.software_spec import (
+    SOFTWARE_SPEC_REQUIRED_FILES,
+    SoftwareSpecFreshness,
+)
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 from p2p_engine.storage.filesystem import P2PWorkspace
 
@@ -37,7 +46,7 @@ def _accepted(workspace: P2PWorkspace, title: str, outcome: DecisionOutcome = De
         problem=f"{title} needs a deterministic project projection.",
         proposal=f"Project {title} into derived state.",
     )
-    workspace.record_decision(proposal.proposal_id, outcome, "Committed project direction.", "owner")
+    record_decision(workspace, proposal.proposal_id, outcome, "Committed project direction.", "owner")
     return proposal.proposal_id
 
 
@@ -102,11 +111,225 @@ def test_software_spec_freshness_owns_only_required_refresh_outputs() -> None:
         definition for definition in NODE_CATALOG if definition.node_id == "software_specs"
     )
 
+    assert software_specs.dependencies == (
+        "canonical_sources",
+        "project_projections",
+    )
     assert software_specs.output_patterns == tuple(
         f".p2p/outputs/software-spec/*/{filename}"
         for filename in SOFTWARE_SPEC_REQUIRED_FILES
     )
     assert all("spec-refine.prompt.md" not in pattern for pattern in software_specs.output_patterns)
+
+
+def test_semantically_current_legacy_software_spec_is_not_stale_by_mtime(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Legacy spec freshness")
+    proposal_id = _accepted(workspace, "Software spec source")
+    change = workspace.create_change_set(proposal_id, "Software spec source")
+    workspace.refresh_registries()
+    workspace.refresh_project_state()
+    workspace.refresh_software_spec(change.change_id)
+    spec_dir = tmp_path / ".p2p" / "outputs" / "software-spec" / change.change_id
+    provenance_path = spec_dir / "provenance.yml"
+    provenance = yaml.safe_load(provenance_path.read_text(encoding="utf-8"))
+    provenance.pop("p2p_generation", None)
+    provenance_path.write_text(yaml.safe_dump(provenance, sort_keys=False), encoding="utf-8")
+    for path in spec_dir.iterdir():
+        if path.is_file():
+            os.utime(path, (1, 1))
+
+    node = next(
+        item for item in workspace.project_freshness().nodes if item.node_id == "software_specs"
+    )
+
+    assert node.status == "current_legacy_fallback"
+
+
+def test_software_spec_aggregate_uses_per_spec_semantic_states(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Semantic software specs")
+    proposal_id = _accepted(workspace, "Software spec source")
+    change = workspace.create_change_set(proposal_id, "Software spec source")
+    workspace.refresh_registries()
+    workspace.refresh_project_state()
+    workspace.refresh_software_spec(change.change_id)
+
+    current = next(
+        item
+        for item in workspace.project_freshness().nodes
+        if item.node_id == "software_specs"
+    )
+    assert current.status == "current"
+    assert current.reasons == ("software_specs_current:1",)
+
+    spec_dir = tmp_path / ".p2p" / "outputs" / "software-spec" / change.change_id
+    index_path = spec_dir / "index.md"
+    index_path.write_text(
+        index_path.read_text(encoding="utf-8") + "\nManual edit.\n",
+        encoding="utf-8",
+    )
+
+    modified = next(
+        item
+        for item in workspace.project_freshness().nodes
+        if item.node_id == "software_specs"
+    )
+    assert modified.status == "stale"
+    assert modified.reasons == ("software_specs_modified:1",)
+
+    (spec_dir / "acceptance.md").unlink()
+    incomplete = next(
+        item
+        for item in workspace.project_freshness().nodes
+        if item.node_id == "software_specs"
+    )
+    assert incomplete.status == "partial"
+    assert incomplete.reasons == ("software_specs_incomplete:1",)
+
+
+def test_imported_and_empty_software_spec_aggregate_policies_are_explicit(
+    tmp_path: Path,
+) -> None:
+    empty_workspace = P2PWorkspace(tmp_path / "empty")
+    empty_workspace.init_project("No software specs")
+    empty = next(
+        item
+        for item in empty_workspace.project_freshness().nodes
+        if item.node_id == "software_specs"
+    )
+    assert empty.status == "owner_action_required"
+    assert empty.reasons == ("optional_or_curated_output_missing",)
+
+    workspace = P2PWorkspace(tmp_path / "imported")
+    workspace.init_project("Imported software spec")
+    proposal_id = _accepted(workspace, "Imported source")
+    change = workspace.create_change_set(proposal_id, "Imported source")
+    source = tmp_path / "refined"
+    source.mkdir()
+    for filename in ("index.md", "requirements.md", "design.md", "acceptance.md"):
+        (source / filename).write_text(f"# {filename}\n", encoding="utf-8")
+    (source / "commands.yml").write_text("commands: []\n", encoding="utf-8")
+    (source / "data-model.yml").write_text("entities: []\n", encoding="utf-8")
+    (source / "provenance.yml").write_text(
+        f"source:\n  change: {change.change_id}\n",
+        encoding="utf-8",
+    )
+    workspace.import_software_spec(change.change_id, source)
+
+    imported = next(
+        item
+        for item in workspace.project_freshness().nodes
+        if item.node_id == "software_specs"
+    )
+    assert imported.status == "partial"
+    assert imported.reasons == ("software_specs_unknown_origin:1",)
+
+
+def test_unrelated_project_projection_drift_does_not_stale_current_spec(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Scoped software spec freshness")
+    proposal_id = _accepted(workspace, "Software spec source")
+    change = workspace.create_change_set(proposal_id, "Software spec source")
+    workspace.refresh_registries()
+    workspace.refresh_project_state()
+    workspace.refresh_software_spec(change.change_id)
+    _accepted(workspace, "Unrelated proposal")
+    workspace.refresh_registries()
+
+    nodes = {
+        item.node_id: item for item in workspace.project_freshness().nodes
+    }
+
+    assert nodes["project_projections"].status == "stale"
+    assert nodes["software_specs"].status == "current"
+    assert nodes["software_specs"].reasons == ("software_specs_current:1",)
+
+
+def test_semantic_software_spec_state_propagates_to_export_and_publication(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project(
+        "Semantic downstream freshness",
+        owner="owner",
+        vertical_id="base_project",
+    )
+    proposal_id = _accepted(workspace, "Software spec source")
+    change = workspace.create_change_set(proposal_id, "Software spec source")
+    workspace.refresh_registries()
+    workspace.refresh_project_state()
+    workspace.refresh_definition_maturity()
+    workspace.refresh_software_spec(change.change_id)
+    spec_dir = tmp_path / ".p2p" / "outputs" / "software-spec" / change.change_id
+    provenance_path = spec_dir / "provenance.yml"
+    provenance = yaml.safe_load(provenance_path.read_text(encoding="utf-8"))
+    provenance.pop("p2p_generation")
+    provenance_path.write_text(
+        yaml.safe_dump(provenance, sort_keys=False),
+        encoding="utf-8",
+    )
+    for path in spec_dir.iterdir():
+        if path.is_file():
+            os.utime(path, (1, 1))
+    workspace.export_visible_project_definition()
+    workspace.prepare_project_publication()
+
+    legacy_nodes = {
+        item.node_id: item for item in workspace.project_freshness().nodes
+    }
+
+    assert legacy_nodes["software_specs"].status == "current_legacy_fallback"
+    assert legacy_nodes["visible_export"].status in {
+        "current",
+        "current_legacy_fallback",
+    }
+    assert "upstream_not_current" not in legacy_nodes["visible_export"].reasons
+    assert legacy_nodes["publication_packet"].status == "current"
+    assert "upstream_not_current" not in legacy_nodes["publication_packet"].reasons
+
+    index_path = spec_dir / "index.md"
+    index_path.write_text(
+        index_path.read_text(encoding="utf-8") + "\nChanged.\n",
+        encoding="utf-8",
+    )
+    stale_nodes = {
+        item.node_id: item for item in workspace.project_freshness().nodes
+    }
+
+    assert stale_nodes["software_specs"].status == "stale"
+    assert stale_nodes["visible_export"].status == "stale"
+    assert "upstream_not_current" in stale_nodes["visible_export"].reasons
+    assert stale_nodes["publication_packet"].status == "stale"
+    assert "upstream_not_current" in stale_nodes["publication_packet"].reasons
+
+
+def test_software_spec_status_and_freshness_reads_are_side_effect_free(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Read-only software spec status")
+    proposal_id = _accepted(workspace, "Software spec source")
+    change = workspace.create_change_set(proposal_id, "Software spec source")
+    workspace.refresh_registries()
+    workspace.refresh_project_state()
+    workspace.refresh_software_spec(change.change_id)
+    before = _tree_hash(tmp_path)
+
+    statuses = workspace.software_spec_statuses()
+    freshness = workspace.project_freshness()
+
+    assert statuses[0].freshness == SoftwareSpecFreshness.CURRENT
+    assert next(
+        item for item in freshness.nodes if item.node_id == "software_specs"
+    ).status == "current"
+    assert _tree_hash(tmp_path) == before
 
 
 def test_question_and_definition_impacts_are_explicit_and_topological(tmp_path: Path) -> None:
@@ -185,7 +408,17 @@ def test_projection_refresh_counts_conditional_acceptance_and_reconciles_owned_o
     unknown = features / "manual-owner-notes"
     unknown.mkdir()
     (unknown / "notes.md").write_text("Owner maintained.\n", encoding="utf-8")
-    workspace.record_decision(conditional, DecisionOutcome.superseded, "Replaced by another proposal.", "owner")
+    record_decision(
+        workspace,
+        conditional,
+        DecisionOutcome.superseded,
+        "Replaced by another proposal.",
+        "owner",
+        lineage=ProposalDecisionLineage(
+            kind=ProposalDecisionLineageKind.supersedes,
+            targets=(first,),
+        ),
+    )
     workspace.refresh_project_state()
 
     assert len(workspace._project_state_service().accepted_proposals()) == 1
@@ -223,6 +456,13 @@ def test_freshness_detects_82_projections_for_93_accepted_plus_one_conditional(
 ) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Ninety four projections", owner="owner")
+    schema_path = tmp_path / ".p2p" / "project" / "workspace-schema.yml"
+    schema = yaml.safe_load(schema_path.read_text(encoding="utf-8"))
+    schema["workspace_schema"]["current_version"] = 2
+    schema_path.write_text(
+        yaml.safe_dump(schema, sort_keys=False),
+        encoding="utf-8",
+    )
     proposals = tmp_path / ".p2p" / "proposals"
     for number in range(1, 95):
         proposal_id = f"PROP-{number:03d}"
@@ -232,16 +472,21 @@ def test_freshness_detects_82_projections_for_93_accepted_plus_one_conditional(
         proposal_dir.mkdir()
         (proposal_dir / "proposal.md").write_text(
             f"# {proposal_id} - {title}\n\n"
-            f"## Status\n`{status}`\n\n"
-            "## Problem\nProjection evidence is missing.\n\n"
-            "## Goals\n- Preserve committed authority.\n\n"
-            "## Non-Goals\n- None.\n\n"
-            "## Proposal\nGenerate the exact project projection.\n\n"
-            "## Decision\nCommitted.\n",
+            f"## Status\n\n`{status}`\n\n"
+            "## Problem\n\nProjection evidence is missing.\n\n"
+            "## Goals\n\n- Preserve committed authority.\n\n"
+            "## Non-Goals\n\n- None.\n\n"
+            "## Proposal\n\nGenerate the exact project projection.\n\n"
+            "## Decision\n\nCommitted.\n",
             encoding="utf-8",
         )
         (proposal_dir / "decision.md").write_text(
-            f"# Decision - {proposal_id}\n\n## Status\n`{status}`\n",
+            f"# Decision - {proposal_id}\n\n"
+            f"## Status\n\n`{status}`\n\n"
+            f"## Outcome\n\n{status}\n\n"
+            "## Reason\n\nLegacy projection fixture.\n\n"
+            "## Date\n\n2026-07-17\n\n"
+            "## Approver\n\nowner\n",
             encoding="utf-8",
         )
         (proposal_dir / "tasks.yml").write_text("tasks: []\n", encoding="utf-8")

@@ -230,6 +230,25 @@ class ReadinessService:
         return path.relative_to(self.root)
 
     def record_override(self, proposal_id: str, reason: str, approver: str) -> Path:
+        candidate = self.render_override_candidate(
+            proposal_id,
+            reason=reason,
+            approver=approver,
+            recorded_on=date.today().isoformat(),
+        )
+        proposal_dir = self.find_proposal_dir(proposal_id)
+        path = proposal_dir / "readiness.yml"
+        path.write_bytes(candidate)
+        return path.relative_to(self.root)
+
+    def render_override_candidate(
+        self,
+        proposal_id: str,
+        *,
+        reason: str,
+        approver: str,
+        recorded_on: str,
+    ) -> bytes:
         proposal_dir = self.find_proposal_dir(proposal_id)
         path = proposal_dir / "readiness.yml"
         if path.exists():
@@ -243,8 +262,10 @@ class ReadinessService:
         readiness["effective_score"] = 100
         readiness["override_reason"] = reason
         readiness["override_approver"] = approver
-        readiness["override_recorded_at"] = date.today().isoformat()
-        return self.write(proposal_id, readiness)
+        readiness["override_recorded_at"] = recorded_on
+        payload = {"readiness": readiness}
+        validate_readiness_assessment_payload(payload)
+        return _yaml_dump(payload).encode("utf-8")
 
     def refresh(self, proposal_id: str) -> ProposalReadiness:
         proposal_dir = self.find_proposal_dir(proposal_id)

@@ -6,6 +6,11 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from p2p_engine.core.proposal_decision_events import (
+    ProposalDecisionAuthorityResolution,
+    ProposalDecisionBindingStatus,
+    ProposalDecisionLifecycleView,
+)
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
     slugify as _foundation_slugify,
@@ -30,6 +35,30 @@ CHANGE_STATUS_TRANSITIONS = {
     "cancelled": [],
     "superseded": [],
 }
+CHANGE_TERMINAL_STATUSES = frozenset(
+    status
+    for status, next_statuses in CHANGE_STATUS_TRANSITIONS.items()
+    if not next_statuses
+)
+CHANGE_NEXT_ACTION_STATUS_ORDER = (
+    "blocked",
+    "planned",
+    "implementation_ready",
+    "in_progress",
+    "in_review",
+    "proposed",
+)
+_CHANGE_NEXT_ACTION_STATUS_RANK = {
+    status: rank
+    for rank, status in enumerate(CHANGE_NEXT_ACTION_STATUS_ORDER)
+}
+
+
+def change_next_action_status_rank(status: str) -> int:
+    return _CHANGE_NEXT_ACTION_STATUS_RANK.get(
+        status,
+        len(CHANGE_NEXT_ACTION_STATUS_ORDER),
+    )
 
 
 @dataclass(frozen=True)
@@ -38,6 +67,7 @@ class ChangeSetStatus:
     title: str
     status: str
     path: Path
+    source_authority_diagnostics: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -63,6 +93,7 @@ class ChangeSetDetail:
     export_targets: list[str]
     plan_ref: str
     tasks_ref: str
+    source_authority_diagnostics: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -168,20 +199,42 @@ class ChangeSetLifecycleService:
         root: Path,
         p2p_dir: Path,
         find_proposal_dir: Callable[[str], Path],
+        proposal_lifecycle_status: (
+            Callable[[str], ProposalDecisionLifecycleView] | None
+        ) = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
         self.find_proposal_dir = find_proposal_dir
+        self.proposal_lifecycle_status = proposal_lifecycle_status
 
     def create(self, source: str, title: str | None = None) -> ChangeSetStatus:
         proposal_dir = self.find_proposal_dir(source)
         proposal_path = proposal_dir / "proposal.md"
         proposal_text = _read_optional(proposal_path)
-        proposal_status = _read_proposal_status(proposal_path)
-        if proposal_status != "accepted":
+        lifecycle = (
+            self.proposal_lifecycle_status(source)
+            if self.proposal_lifecycle_status is not None
+            else None
+        )
+        proposal_status = (
+            lifecycle.effective_state.value
+            if lifecycle is not None
+            else _read_proposal_status(proposal_path)
+        )
+        accepted = (
+            lifecycle.authority_resolution
+            == ProposalDecisionAuthorityResolution.resolved
+            and lifecycle.active
+            and lifecycle.proposal_binding_status
+            == ProposalDecisionBindingStatus.current
+            if lifecycle is not None
+            else proposal_status in {"accepted", "accepted_with_changes"}
+        )
+        if not accepted:
             raise ValueError(
-                f"Cannot create Change Set. {source} is not accepted yet. "
-                f"Current status: {proposal_status}"
+                f"Cannot create Change Set. {source} has no current active "
+                f"decision authority. Current state: {proposal_status}"
             )
 
         change_id = self.next_id()
@@ -209,6 +262,26 @@ class ChangeSetLifecycleService:
                         {
                             "proposal": source,
                             "decision_file": str((proposal_dir / "decision.md").relative_to(self.root)),
+                            "ledger_file": (
+                                str(
+                                    (proposal_dir / "decision-events.yml").relative_to(
+                                        self.root
+                                    )
+                                )
+                                if (proposal_dir / "decision-events.yml").exists()
+                                else None
+                            ),
+                            "head_event_id": (
+                                lifecycle.head_event_id
+                                if lifecycle is not None
+                                else None
+                            ),
+                            "decision_semantic_sha256": (
+                                lifecycle.decision_semantic_sha256
+                                if lifecycle is not None
+                                else None
+                            ),
+                            "effective_state": proposal_status,
                         }
                     ]
                 }
@@ -248,6 +321,9 @@ class ChangeSetLifecycleService:
                     title=title,
                     status=status,
                     path=path.relative_to(self.root),
+                    source_authority_diagnostics=(
+                        self._source_authority_diagnostics(path)
+                    ),
                 )
             )
         return statuses
@@ -289,7 +365,80 @@ class ChangeSetLifecycleService:
             export_targets=_string_list(frontmatter.get("export_targets")),
             plan_ref=str(frontmatter.get("plan_ref") or "execution-plan.md"),
             tasks_ref=str(frontmatter.get("tasks_ref") or "tasks.yml"),
+            source_authority_diagnostics=self._source_authority_diagnostics(
+                change_dir
+            ),
         )
+
+    def _source_authority_diagnostics(
+        self,
+        change_dir: Path,
+    ) -> tuple[str, ...]:
+        if self.proposal_lifecycle_status is None:
+            return ()
+        payload = _read_yaml_mapping(
+            change_dir / "included-decisions.yml",
+            default={"included_decisions": []},
+        )
+        records = payload.get("included_decisions", [])
+        if not isinstance(records, list):
+            return ("included-decisions.yml is not a sequence",)
+        diagnostics: list[str] = []
+        for record in records:
+            if not isinstance(record, dict):
+                diagnostics.append("included decision entry is not a mapping")
+                continue
+            proposal_id = str(record.get("proposal") or "").strip()
+            if not proposal_id:
+                diagnostics.append("included decision entry has no proposal ID")
+                continue
+            try:
+                lifecycle = self.proposal_lifecycle_status(proposal_id)
+            except ValueError:
+                diagnostics.append(
+                    f"source proposal {proposal_id} cannot be resolved"
+                )
+                continue
+            if (
+                lifecycle.authority_resolution
+                != ProposalDecisionAuthorityResolution.resolved
+            ):
+                diagnostics.append(
+                    f"source proposal {proposal_id} authority is "
+                    f"{lifecycle.authority_resolution.value}"
+                )
+            if not lifecycle.active:
+                diagnostics.append(
+                    f"source proposal {proposal_id} is now "
+                    f"{lifecycle.effective_state.value}; dependent Change Set "
+                    "remains unchanged"
+                )
+            if (
+                lifecycle.proposal_binding_status
+                != ProposalDecisionBindingStatus.current
+            ):
+                diagnostics.append(
+                    f"source proposal {proposal_id} semantic binding is "
+                    f"{lifecycle.proposal_binding_status.value}"
+                )
+            bound_head = str(record.get("head_event_id") or "")
+            if bound_head and bound_head != (lifecycle.head_event_id or ""):
+                diagnostics.append(
+                    f"source proposal {proposal_id} head changed from "
+                    f"{bound_head} to {lifecycle.head_event_id or 'none'}"
+                )
+            bound_fingerprint = str(
+                record.get("decision_semantic_sha256") or ""
+            )
+            if (
+                bound_fingerprint
+                and bound_fingerprint
+                != (lifecycle.decision_semantic_sha256 or "")
+            ):
+                diagnostics.append(
+                    f"source proposal {proposal_id} decision fingerprint changed"
+                )
+        return tuple(diagnostics)
 
     def update_status(self, change_id: str, new_status: str) -> ChangeSetStatus:
         change_dir = self.find_dir(change_id)
@@ -311,6 +460,9 @@ class ChangeSetLifecycleService:
             title=str(frontmatter.get("title") or change_id),
             status=new_status,
             path=change_dir.relative_to(self.root),
+            source_authority_diagnostics=self._source_authority_diagnostics(
+                change_dir
+            ),
         )
 
     def tasks(self, change_id: str) -> ChangeSetTaskView:

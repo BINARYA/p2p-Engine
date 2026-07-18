@@ -1,0 +1,6 @@
+section:
+  id: success_definition
+  title: Meaning Of Perfect
+  purpose: Clarify which tradeoffs define a perfect box.
+  required: true
+  priority: 20

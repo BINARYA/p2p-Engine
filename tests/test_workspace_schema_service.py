@@ -7,6 +7,7 @@ import yaml
 
 from p2p_engine.core.workspace_schema import (
     ALIGNMENT_DEGRADED,
+    CURRENT_WORKSPACE_SCHEMA_VERSION,
     LAYOUT_AHEAD,
     LAYOUT_CURRENT,
     LAYOUT_INVALID,
@@ -62,7 +63,7 @@ def test_fresh_initialization_writes_current_schema_last(tmp_path: Path) -> None
     assert status.schema.baseline == "initialized_current"
     assert status.schema.initialized_by == "Davide"
     assert status.schema.applied_migrations == ()
-    assert status.schema.current_version == 2
+    assert status.schema.current_version == CURRENT_WORKSPACE_SCHEMA_VERSION
     assert (tmp_path / ".p2p" / "project" / "questions.yml").exists()
 
 
@@ -120,7 +121,7 @@ def test_schema_status_distinguishes_unsupported_contract_and_ahead_layout(tmp_p
     assert service.status().layout_status == LAYOUT_UNSUPPORTED
 
     payload["contract_version"] = 1
-    payload["current_version"] = 3
+    payload["current_version"] = CURRENT_WORKSPACE_SCHEMA_VERSION + 1
     _write_schema(tmp_path, payload)
     assert service.status().layout_status == LAYOUT_AHEAD
 

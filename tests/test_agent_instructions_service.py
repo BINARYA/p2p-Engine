@@ -67,6 +67,14 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert policy["runtime_bootstrap"]["manual_workspace_schema_repair"] == "forbidden"
     assert policy["runtime_bootstrap"]["legacy_undeclared"] == "warn_do_not_infer"
     assert policy["runtime_bootstrap"]["environment_mutation"] == "owner_explicit_action_required"
+    decision_policy = policy["proposal_decision_lifecycle"]
+    assert decision_policy["canonical_schema_v3_artifact"] == "decision-events.yml"
+    assert decision_policy["write_protocol"] == "preview_then_exact_apply"
+    assert decision_policy["reject_means_never_active"] is True
+    assert decision_policy["revoke_preserves_accepted_history"] is True
+    assert decision_policy["dependent_lifecycle_mutation"] == "forbidden"
+    assert decision_policy["mcp"]["consent_target"] == "PROP-XXX@preview-token"
+    assert decision_policy["mcp"]["legacy_unbound_consent_can_write"] is False
     agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
     assert "p2p proposal artifact status PROP-XXX" in agents
     assert "copying a\nprepared temporary file into an artifact" in agents
@@ -87,10 +95,16 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert "migration locks, journals or candidates by hand" in agents
     assert "do not infer compatibility for `legacy_undeclared` projects" in agents
     assert "ask the owner for explicit environment action" in agents
+    assert "Proposal Decision Lifecycle" in agents
+    assert "Reject only a proposal that was never active" in agents
+    assert "p2p_proposal_decision_apply" in agents
+    assert "Legacy MCP\naccept/reject/defer consent cannot write" in agents
     codex_skill = (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").read_text(encoding="utf-8")
     assert "p2p project interaction-style set --technical-verbosity 2 --formality 2 --assertiveness 0" in codex_skill
     assert "p2p project definition show --format json" in codex_skill
     assert "p2p spec lifecycle --intent downstream_export --change CHANGE-001 --target speckit" in codex_skill
+    assert "Proposal Decision Lifecycle" in codex_skill
+    assert "proposal_decision_apply" in codex_skill
     curator_skill = (
         tmp_path / ".codex" / "skills" / "p2p-project-curator" / "SKILL.md"
     ).read_text(encoding="utf-8")

@@ -1,0 +1,37 @@
+rubrics:
+- id: impact_vision_clarity
+  title: Impact Vision Clarity
+  section_id: social_impact_vision
+  required: true
+  keywords:
+  - impact
+  - social
+  - change
+  - vision
+- id: beneficiary_specificity
+  title: Beneficiary Specificity
+  section_id: beneficiary_communities
+  required: true
+  keywords:
+  - beneficiary
+  - community
+  - population
+  - stakeholder
+- id: theory_of_change_quality
+  title: Theory Of Change Quality
+  section_id: theory_of_change
+  required: true
+  keywords:
+  - theory of change
+  - activity
+  - outcome
+  - causal
+- id: measurement_quality
+  title: Measurement Quality
+  section_id: measurement_reporting
+  required: true
+  keywords:
+  - metric
+  - outcome
+  - report
+  - evidence

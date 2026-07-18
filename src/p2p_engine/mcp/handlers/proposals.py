@@ -4,19 +4,18 @@ from pathlib import Path
 from typing import Any
 
 from p2p_engine.core.contribution import ContributionType, parse_contribution_type
-from p2p_engine.core.decision import DecisionOutcome
+from p2p_engine.core.proposal_decision_events import ProposalDecisionEventType
 from p2p_engine.core.proposal_artifact_state import (
     ProposalArtifactExpectation,
     ProposalArtifactRiskFlag,
     ProposalArtifactStatus,
 )
 from p2p_engine.core.proposal_questions import ProposalQuestionPriority
-from p2p_engine.mcp.consent_audit import (
-    consume_consent_with_audit,
-    mark_consent_error_on_head_change,
-    safe_head,
-)
 from p2p_engine.mcp.handlers.common import optional_string, optional_string_list, required, to_jsonable
+from p2p_engine.mcp.handlers.proposal_decisions import (
+    compatibility_preview,
+    handle_proposal_decision_tool,
+)
 from p2p_engine.storage.filesystem import P2PWorkspace
 
 
@@ -35,6 +34,13 @@ def handle_proposal_tool(
     name: str,
     arguments: dict[str, Any],
 ) -> dict[str, object] | None:
+    decision_result = handle_proposal_decision_tool(
+        workspace,
+        name,
+        arguments,
+    )
+    if decision_result is not None:
+        return decision_result
     if name in ARTIFACT_IMPORT_KINDS:
         return _proposal_artifact_import_tool(workspace, name, arguments)
     if name == "p2p_proposal_create":
@@ -268,11 +274,23 @@ def handle_proposal_tool(
             "governance": {"owner_decision_required": False, "decision_made": False},
         }
     if name == "p2p_proposal_accept":
-        return _proposal_decision_tool(workspace, arguments, "proposal_accept", DecisionOutcome.accepted)
+        return compatibility_preview(
+            workspace,
+            arguments,
+            event_type=ProposalDecisionEventType.accepted,
+        )
     if name == "p2p_proposal_reject":
-        return _proposal_decision_tool(workspace, arguments, "proposal_reject", DecisionOutcome.rejected)
+        return compatibility_preview(
+            workspace,
+            arguments,
+            event_type=ProposalDecisionEventType.rejected,
+        )
     if name == "p2p_proposal_defer":
-        return _proposal_decision_tool(workspace, arguments, "proposal_defer", DecisionOutcome.deferred)
+        return compatibility_preview(
+            workspace,
+            arguments,
+            event_type=ProposalDecisionEventType.deferred,
+        )
     if name == "p2p_proposal_branch_scan":
         return {"proposal_branch_scan": to_jsonable(workspace.scan_proposal_branches())}
     return None
@@ -366,66 +384,3 @@ def _artifact_risk_flags(arguments: dict[str, Any]) -> list[ProposalArtifactRisk
             allowed = ", ".join(item.value for item in ProposalArtifactRiskFlag)
             raise ValueError(f"Invalid artifact risk flag: {value}. Allowed: {allowed}") from exc
     return flags
-
-
-def _proposal_decision_tool(
-    workspace: P2PWorkspace,
-    arguments: dict[str, Any],
-    operation: str,
-    outcome: DecisionOutcome,
-) -> dict[str, object]:
-    proposal_id = required(arguments, "proposal_id")
-    actor_id = required(arguments, "actor_id")
-    consent_id = required(arguments, "consent_id")
-    reason = required(arguments, "reason")
-    workspace.consent_validate(
-        consent_id,
-        operation=operation,
-        target=proposal_id,
-        actor_id=actor_id,
-    )
-    before_head = safe_head(workspace)
-    try:
-        decision = workspace.record_decision(
-            proposal_id=proposal_id,
-            outcome=outcome,
-            reason=reason,
-            approver=actor_id,
-        )
-    except ValueError as exc:
-        mark_consent_error_on_head_change(
-            workspace,
-            consent_id,
-            before_head,
-            str(exc),
-            operation,
-            proposal_id,
-            actor_id,
-        )
-        raise
-    consumed = consume_consent_with_audit(
-        workspace,
-        consent_id,
-        result={
-            "operation": operation,
-            "target": proposal_id,
-            "actor_id": actor_id,
-            "decision_outcome": decision.outcome.value,
-        },
-    )
-    return {
-        "proposal_decision": {
-            "proposal_id": decision.proposal_id,
-            "outcome": decision.outcome.value,
-            "reason": decision.reason,
-            "approver": decision.approver,
-            "decided_on": decision.decided_on.isoformat(),
-        },
-        "consent": to_jsonable(consumed),
-        "governance": {
-            "owner_decision_required": True,
-            "decision_made": True,
-            "decision_outcome": decision.outcome.value,
-            "merge_performed": False,
-        },
-    }

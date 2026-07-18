@@ -2,6 +2,7 @@ from pathlib import Path
 
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.proposal_decision_fixtures import record_decision
 
 
 def _workspace_with_records(root: Path) -> P2PWorkspace:
@@ -14,7 +15,7 @@ def _workspace_with_records(root: Path) -> P2PWorkspace:
         non_goals=["Non goal."],
         proposal="Proposal text.",
     )
-    workspace.record_decision(proposal.proposal_id, DecisionOutcome.accepted, "Approved.", "owner")
+    record_decision(workspace, proposal.proposal_id, DecisionOutcome.accepted, "Approved.", "owner")
     change = workspace.create_change_set(proposal.proposal_id)
     workspace._choice_lifecycle_service().create("Registry Choice", ["A", "B"], related=[proposal.proposal_id])
     workspace.record_vote(proposal.proposal_id, choice="A", reason="A wins", voter="owner", role="owner")

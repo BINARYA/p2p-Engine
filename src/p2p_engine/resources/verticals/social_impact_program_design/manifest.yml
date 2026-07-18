@@ -1,0 +1,7 @@
+manifest:
+  schema_version: 1
+  id: social_impact_program_design
+  name: Social Impact Program Design
+  version: 1.0.0
+  publisher: p2p_engine
+  source: packaged

@@ -255,7 +255,7 @@ class WorkspaceSchemaService:
         ).to_payload()
 
     def layout_requirements(self, version: int) -> dict[str, tuple[str, ...]]:
-        if version not in {1, 2}:
+        if version not in {1, 2, 3}:
             return {"canonical": (), "optional": (), "compatibility": (), "derived": (), "transient": ()}
         canonical = [
             ".p2p/project.yml",
@@ -356,6 +356,51 @@ class WorkspaceSchemaService:
                             path=".p2p/project/definition.yml",
                             message=str(exc),
                             suggested_command="p2p project definition show --format json",
+                        )
+                    )
+        if version >= 3:
+            proposals_dir = self.p2p_dir / "proposals"
+            for proposal_dir in (
+                sorted(proposals_dir.iterdir(), key=lambda item: item.name)
+                if proposals_dir.exists()
+                else ()
+            ):
+                if not proposal_dir.is_dir() or not proposal_dir.name.startswith("PROP-"):
+                    continue
+                ledger_path = proposal_dir / "decision-events.yml"
+                relative = ledger_path.relative_to(self.root).as_posix()
+                if not ledger_path.exists():
+                    findings.append(
+                        WorkspaceDiagnostic(
+                            code="P2P361_DECISION_LEDGER_INVALID",
+                            severity="error",
+                            path=relative,
+                            message="Workspace schema v3 requires one decision ledger per proposal.",
+                            suggested_command="p2p decision status "
+                            + "-".join(proposal_dir.name.split("-", 2)[:2]),
+                        )
+                    )
+                    continue
+                try:
+                    from p2p_engine.services.proposal_decision_ledger import (
+                        ProposalDecisionLedgerCodec,
+                    )
+
+                    ProposalDecisionLedgerCodec().loads(
+                        ledger_path.read_bytes(),
+                        expected_proposal_id="-".join(
+                            proposal_dir.name.split("-", 2)[:2]
+                        ),
+                    )
+                except (OSError, ValueError) as exc:
+                    findings.append(
+                        WorkspaceDiagnostic(
+                            code="P2P361_DECISION_LEDGER_INVALID",
+                            severity="error",
+                            path=relative,
+                            message=str(exc),
+                            suggested_command="p2p decision repair ledger preview "
+                            + "-".join(proposal_dir.name.split("-", 2)[:2]),
                         )
                     )
         return findings

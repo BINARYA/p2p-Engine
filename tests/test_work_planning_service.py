@@ -8,6 +8,7 @@ import pytest
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.services.work_planning import WorkPlanningService
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.proposal_decision_fixtures import record_decision
 
 
 @dataclass(frozen=True)
@@ -140,7 +141,7 @@ def test_workspace_work_planning_facade_delegates(tmp_path) -> None:
         proposal="Create a Work plan.",
         acceptance_criteria=["Work manifest exists."],
     )
-    workspace.record_decision(proposal.proposal_id, DecisionOutcome.accepted, "Ready.", "owner")
+    record_decision(workspace, proposal.proposal_id, DecisionOutcome.accepted, "Ready.", "owner")
     change = workspace.create_change_set(proposal.proposal_id)
     workspace.refresh_software_spec(change.change_id)
     workspace.export_software_spec(change.change_id, "generic")

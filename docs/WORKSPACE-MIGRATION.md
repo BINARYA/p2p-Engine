@@ -7,14 +7,22 @@ present and whether semantic alignment still needs owner input or curation.
 
 ## Runtime Support Matrix
 
-| Runtime line | Legacy undeclared | Workspace schema v1 | Workspace schema v2 |
-| --- | --- | --- | --- |
-| `0.2.x` | inspect/plan/apply v0->v1 | current, v1-safe operations | ahead and write-blocked |
-| `0.3.x` | inspect/plan/apply v0->v1->v2 | valid, upgrade available, v1-safe operations | current, full readiness convergence |
+| Runtime line | Legacy undeclared | Schema v1 | Schema v2 | Schema v3 |
+| --- | --- | --- | --- | --- |
+| `0.2.x` | inspect/plan/apply v0->v1 | current | ahead/write-blocked | ahead/write-blocked |
+| `0.3.x` | inspect/plan/apply v0->v1->v2 | upgradeable | current | ahead/write-blocked |
+| `0.4.x` | inspect/plan/apply v0->v1->v2->v3 | upgradeable | upgradeable/readable | current |
 
 The `workspace-v1-to-v2` transition requires `>=0.3.0,<0.4.0`. A workspace
 must make that runtime line available before migration; after migration it must
 not be operated with a v1-only runtime.
+
+The adjacent `workspace-v2-to-v3` transition requires `>=0.4.0,<0.5.0`.
+Schema v3 adds one canonical append-only decision ledger per proposal. Valid
+aligned legacy decisions become one provenance-bearing event; draft/pending
+proposals receive an empty ledger; missing, malformed, unsupported, or
+divergent legacy authority is preserved as `unknown_legacy` evidence for
+explicit owner resolution.
 
 Runtime rollback after schema v2 must deploy a corrective release that still
 supports schema v2. Downgrading to a `0.2.x` v1-only runtime is unsupported;
@@ -28,8 +36,8 @@ All inspection and planning commands are read-only:
 ```bash
 p2p workspace schema status
 p2p workspace schema status --format json
-p2p workspace migrate plan --to 2
-p2p workspace migrate plan --to 2 --input migration-input.yml --format json
+p2p workspace migrate plan --to 3
+p2p workspace migrate plan --to 3 --input migration-input.yml --format json
 p2p project progress --format json
 p2p project freshness --format json
 p2p validate
@@ -78,7 +86,7 @@ receive the same target and owner input again:
 
 ```bash
 p2p workspace migrate apply \
-  --to 2 \
+  --to 3 \
   --input migration-input.yml \
   --plan-fingerprint '<reviewed-fingerprint>' \
   --actor owner \
@@ -126,8 +134,8 @@ Deterministic commands can be run in order. Stop before `agent_curated` or
 `owner_review` stages. Refreshing registries and project projections reconciles
 only declared generated outputs and preserves unknown/manual directories.
 
-The v2-capable runtime keeps valid schema-v1 operations available and reports
-`upgrade_available`; project-question and convergence writes require v2.
-Migration apply, rollback and resume remain CLI-only. MCP exposes read-only
-schema status, migration plan, readiness gaps/questions, progress, freshness
-and vertical coverage show/suggest tools.
+The v3-capable runtime keeps v2 reads and unrelated compatible writes
+available, reports `upgrade_available`, and blocks decision event writes until
+migration. Migration apply, rollback and resume remain CLI-only. MCP exposes
+read-only schema status and migration planning; decision mutation tools become
+available only after schema v3 and exact owner consent.

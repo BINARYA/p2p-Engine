@@ -1,0 +1,37 @@
+rubrics:
+- id: product_fit
+  title: Product Fit
+  section_id: contained_product
+  required: true
+  keywords:
+  - product
+  - contain
+  - use case
+- id: tradeoff_clarity
+  title: Tradeoff Clarity
+  section_id: success_definition
+  required: true
+  keywords:
+  - perfect
+  - cost
+  - resistant
+  - sustainable
+  - memorable
+- id: manufacturability
+  title: Manufacturability
+  section_id: production_cost
+  required: true
+  keywords:
+  - manufacturing
+  - supplier
+  - cost
+  - production
+- id: testability
+  title: Testability
+  section_id: prototype_testing
+  required: true
+  keywords:
+  - prototype
+  - test
+  - resistance
+  - checklist

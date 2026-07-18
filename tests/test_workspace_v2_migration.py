@@ -97,7 +97,8 @@ def test_v1_to_v2_apply_preserves_legacy_question_once_and_is_idempotent(tmp_pat
 
     assert result.status == "applied"
     assert result.changed_paths[-1] == ".p2p/project/workspace-schema.yml"
-    assert workspace.workspace_schema_status().state == "current"
+    assert workspace.workspace_schema_status().state == "upgrade_available"
+    assert workspace.workspace_schema_status().current_version == 2
     definition = yaml.safe_load(definition_path.read_text(encoding="utf-8"))
     assert all(
         not section["open_questions"]

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from p2p_engine.core.proposal_decision_events import ProposalDecisionLifecycleView
 from p2p_engine.core.project_verticals import ProjectDefinitionView, ProjectReadinessReview, VerticalLockStatus
 from p2p_engine.foundation.markdown import read_markdown_section
 
@@ -59,6 +60,9 @@ class VisibleProjectExportService:
         project_readiness_review: Callable[[], ProjectReadinessReview] | None = None,
         project_vertical_lock_status: Callable[[], VerticalLockStatus] | None = None,
         project_definition_view: Callable[[], ProjectDefinitionView] | None = None,
+        proposal_decision_lifecycles: (
+            Callable[[], dict[str, ProposalDecisionLifecycleView]] | None
+        ) = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -67,6 +71,7 @@ class VisibleProjectExportService:
         self.project_readiness_review = project_readiness_review
         self.project_vertical_lock_status = project_vertical_lock_status
         self.project_definition_view = project_definition_view
+        self.proposal_decision_lifecycles = proposal_decision_lifecycles
 
     def export(self) -> VisibleProjectExportResult:
         outputs_dir = self.root / "outputs"
@@ -119,6 +124,11 @@ class VisibleProjectExportService:
     def _render_project_markdown(self) -> str:
         project_name = self.project_name()
         accepted = self.accepted_proposals()
+        lifecycles = (
+            self.proposal_decision_lifecycles()
+            if self.proposal_decision_lifecycles is not None
+            else {}
+        )
         lines: list[str] = [
             f"# {project_name} Project Definition",
             "",
@@ -150,6 +160,10 @@ class VisibleProjectExportService:
             "## Accepted Proposals And Decisions",
             "",
             self._accepted_proposals_section(accepted),
+            "",
+            "## Historical And Inactive Proposal Decisions",
+            "",
+            self._historical_decisions_section(lifecycles),
             "",
             "## Requirements And Acceptance",
             "",
@@ -195,6 +209,58 @@ class VisibleProjectExportService:
             "",
         ]
         return "\n".join(lines)
+
+    def _historical_decisions_section(
+        self,
+        lifecycles: dict[str, ProposalDecisionLifecycleView],
+    ) -> str:
+        lines: list[str] = []
+        for proposal_id, lifecycle in sorted(lifecycles.items()):
+            if lifecycle.active or (
+                lifecycle.event_count == 0
+                and lifecycle.authority_resolution.value == "resolved"
+            ):
+                continue
+            classification = (
+                "unresolved"
+                if lifecycle.authority_resolution.value != "resolved"
+                else "previously_active"
+                if lifecycle.ever_active
+                else "never_active"
+            )
+            proposal_dir = self._proposal_dir(proposal_id)
+            reason = "Not recorded."
+            if proposal_dir is not None:
+                reason = (
+                    read_markdown_section(
+                        _read_optional(proposal_dir / "decision.md"),
+                        "Reason",
+                    )
+                    or reason
+                )
+            lines.extend(
+                [
+                    f"- {proposal_id}",
+                    f"  - classification: {classification}",
+                    f"  - effective_state: {lifecycle.effective_state.value}",
+                    f"  - head_event_id: {lifecycle.head_event_id or 'none'}",
+                    f"  - decision_reason: {reason}",
+                ]
+            )
+        return (
+            "\n".join(lines)
+            if lines
+            else "No historical or inactive proposal decisions are recorded."
+        )
+
+    def _proposal_dir(self, proposal_id: str) -> Path | None:
+        proposals = self.p2p_dir / "proposals"
+        matches = (
+            sorted(proposals.glob(f"{proposal_id}-*"))
+            if proposals.exists()
+            else []
+        )
+        return matches[0] if len(matches) == 1 and matches[0].is_dir() else None
 
     def _vertical_state_summary_section(self) -> str:
         lines = ["### Vertical Runtime State", ""]

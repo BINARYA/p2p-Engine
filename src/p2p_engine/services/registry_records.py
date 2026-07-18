@@ -7,8 +7,11 @@ from typing import Any
 
 import yaml
 
+from p2p_engine.core.proposal_decision_events import (
+    ProposalDecisionBindingStatus,
+    ProposalDecisionLifecycleView,
+)
 from p2p_engine.foundation.markdown import read_frontmatter, read_markdown_section, read_title
-from p2p_engine.services.lifecycle_authority import is_active_project_projection
 
 
 def _slugify(value: str) -> str:
@@ -53,6 +56,30 @@ def _clean_proposal_title(title: str, proposal_id: str) -> str:
     return cleaned or title
 
 
+def _lifecycle_metadata(
+    lifecycle: ProposalDecisionLifecycleView | None,
+) -> dict[str, object]:
+    if lifecycle is None:
+        return {}
+    return {
+        "effective_state": lifecycle.effective_state.value,
+        "head_event_type": (
+            lifecycle.head_event_type.value
+            if lifecycle.head_event_type is not None
+            else None
+        ),
+        "head_event_id": lifecycle.head_event_id,
+        "event_count": lifecycle.event_count,
+        "authority_resolution": lifecycle.authority_resolution.value,
+        "active": lifecycle.active,
+        "ever_active": lifecycle.ever_active,
+        "proposal_binding_status": lifecycle.proposal_binding_status.value,
+        "decision_semantic_sha256": lifecycle.decision_semantic_sha256,
+        "proposal_semantic_sha256": lifecycle.proposal_semantic_sha256,
+        "lineage": lifecycle.lineage.to_dict(),
+    }
+
+
 class RegistryRecordBuilderService:
     def __init__(
         self,
@@ -60,23 +87,43 @@ class RegistryRecordBuilderService:
         root: Path,
         p2p_dir: Path,
         read_proposal_readiness: Callable[[str], Any],
+        proposal_decision_lifecycles: (
+            Callable[[], dict[str, ProposalDecisionLifecycleView]] | None
+        ) = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
         self.read_proposal_readiness = read_proposal_readiness
+        self.proposal_decision_lifecycles = proposal_decision_lifecycles
 
     def accepted_proposals(self) -> list[dict[str, object]]:
         proposals_dir = self.p2p_dir / "proposals"
+        lifecycles = self._lifecycles()
         accepted: list[dict[str, object]] = []
         for path in sorted(proposals_dir.iterdir()) if proposals_dir.exists() else []:
             if not path.is_dir():
                 continue
             proposal_path = path / "proposal.md"
-            status = _read_proposal_status(proposal_path)
-            if not is_active_project_projection(status):
+            proposal_id = "-".join(path.name.split("-", 2)[:2])
+            lifecycle = lifecycles.get(proposal_id)
+            status = (
+                lifecycle.effective_state.value
+                if lifecycle is not None
+                else _read_proposal_status(proposal_path)
+            )
+            if (
+                lifecycle is not None
+                and (
+                    not lifecycle.active
+                    or lifecycle.proposal_binding_status
+                    != ProposalDecisionBindingStatus.current
+                )
+            ) or (
+                lifecycle is None
+                and status not in {"accepted", "accepted_with_changes"}
+            ):
                 continue
             text = _read_optional(proposal_path)
-            proposal_id = "-".join(path.name.split("-", 2)[:2])
             title = _clean_proposal_title(read_title(text) or path.name, proposal_id)
             accepted.append(
                 {
@@ -91,6 +138,12 @@ class RegistryRecordBuilderService:
                     "non_goals": read_markdown_section(text, "Non-Goals") or "- Not provided.",
                     "proposal": read_markdown_section(text, "Proposal") or "Not provided.",
                     "decision": _read_optional(path / "decision.md"),
+                    "ledger_file": (
+                        str((path / "decision-events.yml").relative_to(self.root))
+                        if (path / "decision-events.yml").exists()
+                        else None
+                    ),
+                    **_lifecycle_metadata(lifecycle),
                 }
             )
         return accepted
@@ -103,29 +156,43 @@ class RegistryRecordBuilderService:
         changes_by_proposal = self._changes_by_proposal(
             changes if changes is not None else self.change_records()
         )
+        lifecycles = self._lifecycles()
         records: list[dict[str, object]] = []
         for path in sorted(proposals_dir.iterdir()) if proposals_dir.exists() else []:
             if not path.is_dir():
                 continue
             proposal_id = "-".join(path.name.split("-", 2)[:2])
             proposal_text = _read_optional(path / "proposal.md")
+            lifecycle = lifecycles.get(proposal_id)
+            status = (
+                lifecycle.effective_state.value
+                if lifecycle is not None
+                else _read_proposal_status(path / "proposal.md")
+            )
             title = _clean_proposal_title(read_title(proposal_text) or path.name, proposal_id)
             records.append(
                 {
                     "id": proposal_id,
                     "title": title,
-                    "status": _read_proposal_status(path / "proposal.md"),
+                    "status": status,
                     "path": str(path.relative_to(self.root)),
                     "summary": read_markdown_section(proposal_text, "Proposal") or "",
                     "decision_file": str((path / "decision.md").relative_to(self.root)),
                     "related_changes": list(changes_by_proposal.get(proposal_id, ())),
                     "source_files": sorted(file.name for file in path.iterdir() if file.is_file()),
+                    "ledger_file": (
+                        str((path / "decision-events.yml").relative_to(self.root))
+                        if (path / "decision-events.yml").exists()
+                        else None
+                    ),
+                    **_lifecycle_metadata(lifecycle),
                 }
             )
         return records
 
     def decision_records(self, proposals: list[dict[str, object]]) -> list[dict[str, object]]:
         records: list[dict[str, object]] = []
+        lifecycles = self._lifecycles()
         for proposal in proposals:
             decision_path = self.root / str(proposal["decision_file"])
             decision_text = _read_optional(decision_path)
@@ -133,17 +200,27 @@ class RegistryRecordBuilderService:
             if not outcome:
                 status = read_markdown_section(decision_text, "Status")
                 outcome = status.strip("`") if status else "pending"
+            proposal_id = str(proposal["id"])
+            lifecycle = lifecycles.get(proposal_id)
+            if lifecycle is not None:
+                outcome = lifecycle.effective_state.value
             records.append(
                 {
-                    "proposal": proposal["id"],
+                    "proposal": proposal_id,
                     "title": proposal["title"],
                     "outcome": outcome,
                     "status": proposal["status"],
                     "path": str(decision_path.relative_to(self.root)),
                     "reason": read_markdown_section(decision_text, "Reason") or "",
+                    **_lifecycle_metadata(lifecycle),
                 }
             )
         return records
+
+    def _lifecycles(self) -> dict[str, ProposalDecisionLifecycleView]:
+        if self.proposal_decision_lifecycles is None:
+            return {}
+        return dict(self.proposal_decision_lifecycles())
 
     def change_records(self) -> list[dict[str, object]]:
         changes_dir = self.p2p_dir / "changes"
@@ -293,6 +370,15 @@ class RegistryRecordBuilderService:
                             "owner_type": "proposal",
                             "owner": proposal["id"],
                             "generated": False,
+                            "authority_role": (
+                                "canonical_decision_ledger"
+                                if file.name == "decision-events.yml"
+                                else "decision_projection"
+                                if file.name == "decision.md"
+                                else "canonical_proposal_body"
+                                if file.name == "proposal.md"
+                                else "supporting_artifact"
+                            ),
                         }
                     )
         for change in changes:

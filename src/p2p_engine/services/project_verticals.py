@@ -1710,6 +1710,14 @@ class ProjectVerticalService:
         path = Path(target)
         if path.exists():
             source = path if path.is_absolute() else self.root / path
+            if (
+                source.is_dir()
+                and _looks_like_canonical_pack_dir(source)
+                and not (source / "manifest.yml").exists()
+            ):
+                raise ValueError(
+                    "Canonical vertical pack is missing required paths: manifest.yml"
+                )
             if source.is_dir() and (source / "manifest.yml").exists():
                 payload = self._canonical_pack_payload(source)
                 pack_path = source / "manifest.yml"
@@ -1725,6 +1733,14 @@ class ProjectVerticalService:
     def _load_pack_from_path(self, pack_source: Path, *, source: str = PROJECT_LOCAL_SOURCE) -> VerticalPack:
         if not pack_source.is_absolute():
             pack_source = self.root / pack_source
+        if (
+            pack_source.is_dir()
+            and _looks_like_canonical_pack_dir(pack_source)
+            and not (pack_source / "manifest.yml").exists()
+        ):
+            raise ValueError(
+                "Canonical vertical pack is missing required paths: manifest.yml"
+            )
         if pack_source.is_dir() and (pack_source / "manifest.yml").exists():
             payload = self._canonical_pack_payload(pack_source)
             path = pack_source / "manifest.yml"
@@ -1799,9 +1815,37 @@ class ProjectVerticalService:
         return packs
 
     def _canonical_pack_payload(self, pack_root: Path) -> dict[str, object]:
+        required = (
+            pack_root / "manifest.yml",
+            pack_root / "vertical.yml",
+            pack_root / "sections",
+            pack_root / "rubrics.yml",
+        )
+        missing = [path.name for path in required if not path.exists()]
+        if missing:
+            raise ValueError(
+                "Canonical vertical pack is missing required paths: "
+                + ", ".join(sorted(missing))
+            )
+        if not (pack_root / "sections").is_dir():
+            raise ValueError("Canonical vertical pack `sections` must be a directory.")
         manifest = _unwrap_mapping(_read_yaml_mapping(pack_root / "manifest.yml"), "manifest")
         vertical = _unwrap_mapping(_read_yaml_mapping(pack_root / "vertical.yml"), "vertical")
-        sections = [_unwrap_mapping(_read_yaml_mapping(path), "section") for path in sorted((pack_root / "sections").glob("*.yml"))]
+        section_paths = sorted((pack_root / "sections").glob("*.yml"))
+        if not section_paths:
+            raise ValueError("Canonical vertical pack must define at least one split section.")
+        if _mapping_list(vertical.get("sections")):
+            raise ValueError(
+                "Canonical vertical pack duplicates sections in vertical.yml and sections/."
+            )
+        if _mapping_list(vertical.get("rubrics")):
+            raise ValueError(
+                "Canonical vertical pack duplicates rubrics in vertical.yml and rubrics.yml."
+            )
+        sections = [
+            _unwrap_mapping(_read_yaml_mapping(path), "section")
+            for path in section_paths
+        ]
         rubrics_payload = _read_yaml_mapping(pack_root / "rubrics.yml") if (pack_root / "rubrics.yml").exists() else {}
         rubrics = _unwrap_list(rubrics_payload, "rubrics")
         artifacts = _mapping_list(vertical.get("artifacts"))
@@ -2626,6 +2670,10 @@ def _normalise_pack_payload(payload: dict[str, object]) -> dict[str, object]:
     if isinstance(candidate_payload, dict):
         return {"vertical": candidate_payload}
     return payload
+
+
+def _looks_like_canonical_pack_dir(path: Path) -> bool:
+    return (path / "sections").exists() or (path / "rubrics.yml").exists()
 
 
 def _completion_policy_from_payload(value: object) -> VerticalCompletionPolicy | None:

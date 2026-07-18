@@ -5422,3 +5422,128 @@ proposals:
   - suggested-scope.md
   - tasks.yml
   - vertical-coverage.yml
+- id: PROP-102
+  title: Proposal Decision Revision and Revocation Lifecycle
+  status: accepted
+  path: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle
+  summary: "### Decision Event Model\n\nIntroduce one versioned canonical decision-event\
+    \ ledger per proposal. The\nledger is the semantic source for proposal decision\
+    \ history. `proposal.md`\nstatus and the human-readable current decision remain\
+    \ compatible projections\nof the ledger rather than independent authority sources.\n\
+    \nEvery event must include enough structured data to validate and reconstruct\
+    \ the\nlifecycle:\n\n- schema and event identity;\n- proposal identity;\n- event\
+    \ type and resulting effective state;\n- rationale;\n- owner/approver identity\
+    \ and validated authority provenance;\n- canonical decision date;\n- predecessor\
+    \ event identity and integrity evidence;\n- semantic fingerprint of the decision\
+    \ being affected;\n- optional replacement, split or merge lineage;\n- optional\
+    \ impact-preview binding;\n- migration provenance when derived from a legacy artifact.\n\
+    \nAudit timestamps, file mtimes and Git author metadata must not determine event\n\
+    identity or manufacture owner evidence. The design will define the exact file\n\
+    name, serialization, predecessor/hash protection and recovery format. Replacing\n\
+    the single-ledger direction requires explicit technical evidence.\n\n### Effective\
+    \ State Projection\n\nCurrent status, decision authority and active/historical\
+    \ classification are\nderived from the validated event head and lineage. A stored\
+    \ projection that\ndoes not match the ledger is stale or invalid; it cannot silently\
+    \ override the\nledger.\n\nThe public vocabulary has distinct meanings:\n\n| Event\
+    \ or state | Preconditions | Effective result |\n| --- | --- | --- |\n| `accepted`\
+    \ | Proposal has never been active, or exact retry | Active |\n| `accepted_with_changes`\
+    \ | Proposal has never been active, or exact retry | Active and qualified |\n\
+    | `deferred` | Proposal is undecided, or exact retry | Unresolved |\n| `withdrawn`\
+    \ | Proposal has never been active | Historical, never active |\n| `rejected`\
+    \ | Proposal has never been active | Historical, never active |\n| `revoked` |\
+    \ Current authority is accepted or conditionally accepted | Historical, previously\
+    \ active |\n| `superseded` | Current authority is active and replacement lineage\
+    \ is valid | Historical with explicit replacement |\n| `split` | Valid explicit\
+    \ split targets exist | Historical with split lineage |\n| `merged_into_other`\
+    \ | Valid explicit merge target exists | Historical with merge lineage |\n| `reinstated`\
+    \ | Exact previously revoked decision is restored | Returns to the referenced\
+    \ prior active authority |\n\n`deprecated` belongs to downstream operational policy\
+    \ and cannot be used to\nreplace a proposal decision event.\n\nRejected or withdrawn\
+    \ proposals are reconsidered through a new linked proposal.\nA revoked decision\
+    \ may be reinstated only when:\n\n- its semantic fingerprint is identical to the\
+    \ referenced prior decision;\n- the revocation event is referenced explicitly;\n\
+    - a current impact preview is bound to the operation;\n- owner authority is validated\
+    \ again;\n- no dependent technical effect is assumed to be restored.\n\nAny changed\
+    \ content, condition or constraint requires a new linked proposal.\n\n### Transition\
+    \ And Retry Rules\n\nThe implementation specification must provide a complete\
+    \ matrix for every\ncurrent state and requested event. Invalid transitions fail\
+    \ before writes.\n\nRepeating the exact same operation with the same source head,\
+    \ semantic payload,\nowner authority and idempotency identity returns the already-applied\
+    \ result.\nReusing an operation identity with different inputs, applying against\
+    \ a changed\nhead or attempting to reorder history fails with a stable diagnostic.\n\
+    \nThe model must also specify:\n\n- whether an event is terminal or may have a\
+    \ later valid successor;\n- required lineage fields;\n- no-op and exact-retry\
+    \ behavior;\n- stale preview behavior;\n- concurrent-head conflict behavior;\n\
+    - recovery after interruption;\n- explicit repair behavior for corrupted or divergent\
+    \ projections.\n\n### Governed Mutation\n\nAll decision writes use one domain\
+    \ service shared by CLI and permission-gated\nMCP. A write requires:\n\n1. validated\
+    \ owner authority;\n2. current workspace compatibility;\n3. valid current ledger\
+    \ and projection;\n4. a source-bound preview token;\n5. confirmation for authority-changing\
+    \ operations;\n6. unchanged proposal, ledger head, permissions and relevant impact\
+    \ sources;\n7. atomic replacement of the ledger and all engine-owned projections;\n\
+    8. deterministic exact-retry behavior.\n\nManaged branch accept/reject operations\
+    \ remain separate collaboration\noperations and cannot create or revise proposal\
+    \ decision events implicitly.\n\n### Revocation Impact And Remediation\n\nRevocation\
+    \ remains available to the owner even when Change Sets, Work,\nspecifications,\
+    \ vertical evidence or implemented behavior depend on the\ndecision. Before revocation,\
+    \ the system produces a bounded impact preview that\nidentifies:\n\n- active and\
+    \ completed dependent lifecycle objects;\n- affected vertical sections and project\
+    \ projections;\n- decision-context and relation consequences;\n- stale generated\
+    \ artifacts;\n- possible conflicts with other active decisions;\n- remediation,\
+    \ replacement or rollback actions requiring separate governance.\n\nAfter confirmation,\
+    \ revocation removes the decision from active authority,\npreserves its previously\
+    \ active interval and emits stable remediation next\nactions. It does not mutate\
+    \ dependent lifecycle states, remove implementation\nevidence or claim that remediation\
+    \ is complete.\n\n### Legacy Compatibility And Migration\n\nThe canonical ledger\
+    \ changes workspace decision semantics and therefore\nrequires a registered forward\
+    \ workspace-schema transition from the current\nschema to the next supported schema.\
+    \ Older workspaces remain readable through\nan explicit compatibility layer, while\
+    \ event-dependent writes are blocked\nuntil a safe migration is applied.\n\nFor\
+    \ an aligned legacy proposal, the current decision is preserved as the first\n\
+    ledger event with legacy provenance. Migration must:\n\n- retain every valid value;\n\
+    - preserve readable original malformed values as evidence;\n- use `unknown_legacy`\
+    \ for missing or unusable fields;\n- never infer owner, date or rationale from\
+    \ Git metadata or mtimes;\n- diagnose proposal/decision status divergence;\n-\
+    \ mark authority unresolved when the outcome cannot be established;\n- block later\
+    \ decision revisions until owner curation resolves authority\n  ambiguity;\n-\
+    \ remain dry-run plannable, atomic, idempotent, recoverable and forward-only;\n\
+    - avoid fabricating prior events that are not present in canonical evidence.\n\
+    \n### Consumer Convergence\n\nOne lifecycle-authority service must drive every\
+    \ consumer. At minimum, the\nimplementation must reconcile:\n\n- proposal show/list/status\
+    \ and registries;\n- validation and migration diagnostics;\n- project status,\
+    \ progress, maturity and assessment;\n- active proposal projections and vertical\
+    \ evidence;\n- decision-context extraction, authority, topology and retrieval;\n\
+    - relations, conflicts, split/merge/supersession lineage;\n- Change Set and Work\
+    \ preconditions and impact reporting;\n- software-spec lifecycle and freshness;\n\
+    - managed next actions;\n- visible project export and publication;\n- future thematic\
+    \ decision-memory consolidation.\n\nInactive decisions remain retrievable as historical\
+    \ rationale and alternatives,\nbut cannot be presented as current constraints.\
+    \ A future consolidated memory\nrecord must bind to event head, authority interval,\
+    \ lineage and source\nfingerprint so that revocation or reinstatement invalidates\
+    \ stale summaries."
+  decision_file: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/decision.md
+  related_changes:
+  - CHANGE-070
+  source_files:
+  - ai-digest.md
+  - alternatives.md
+  - artifact-state.yml
+  - assumptions.md
+  - clarifications.md
+  - comments.yml
+  - conflict-analysis.yml
+  - contributions.yml
+  - decision.md
+  - execution-plan.md
+  - exploration.md
+  - findings.md
+  - impact-map.yml
+  - open-questions.md
+  - proposal.md
+  - questions.yml
+  - readiness.yml
+  - related-proposals.yml
+  - risks.md
+  - suggested-scope.md
+  - tasks.yml
+  - vertical-coverage.yml

@@ -1,0 +1,6 @@
+section:
+  id: protection_logistics
+  title: Protection And Logistics
+  purpose: Ensure transport, storage, and resistance needs are covered.
+  required: true
+  priority: 50

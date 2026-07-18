@@ -1,0 +1,80 @@
+rubrics:
+- id: software_objective_clarity
+  title: Software Objective Clarity
+  section_id: system_objective
+  required: true
+  keywords:
+  - objective
+  - product
+  - system
+  - outcome
+- id: software_user_actor_coverage
+  title: Software User And Actor Coverage
+  section_id: users_and_actors
+  required: true
+  keywords:
+  - user
+  - actor
+  - operator
+  - stakeholder
+- id: software_scope_boundaries
+  title: Software Scope Boundaries
+  section_id: mvp_scope
+  required: true
+  keywords:
+  - scope
+  - mvp
+  - non-goal
+  - boundary
+- id: software_workflow_coverage
+  title: Software Workflow Coverage
+  section_id: workflows_use_cases
+  required: true
+  keywords:
+  - workflow
+  - use case
+  - journey
+- id: software_data_model_coverage
+  title: Software Data Model Coverage
+  section_id: data_model
+  required: true
+  keywords:
+  - data
+  - entity
+  - model
+  - status
+- id: software_integration_coverage
+  title: Software Integration Coverage
+  section_id: integrations_dependencies
+  required: true
+  keywords:
+  - integration
+  - dependency
+  - api
+- id: software_constraints_nfr_coverage
+  title: Software Constraints And NFR Coverage
+  section_id: constraints_nfrs
+  required: true
+  keywords:
+  - constraint
+  - reliability
+  - performance
+  - security
+  - privacy
+- id: software_acceptance_validation
+  title: Software Acceptance And Validation
+  section_id: acceptance_validation
+  required: true
+  keywords:
+  - acceptance
+  - validation
+  - test
+- id: software_decision_risk_coverage
+  title: Software Decisions And Risks
+  section_id: risks_alternatives_decisions
+  required: true
+  keywords:
+  - risk
+  - alternative
+  - decision
+  - tradeoff

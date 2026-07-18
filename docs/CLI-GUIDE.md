@@ -151,8 +151,8 @@ Build a deterministic forward-only plan. Supply a reviewed owner-input patch
 when the findings require vertical, owner or bounded metadata values:
 
 ```bash
-p2p workspace migrate plan --to 2 --format json
-p2p workspace migrate plan --to 2 --input migration-input.yml --format json
+p2p workspace migrate plan --to 3 --format json
+p2p workspace migrate plan --to 3 --input migration-input.yml --format json
 ```
 
 Apply only the exact reviewed plan. The target, input patch and semantic
@@ -161,7 +161,7 @@ after acquiring its process-safe lock:
 
 ```bash
 p2p workspace migrate apply \
-  --to 2 \
+  --to 3 \
   --input migration-input.yml \
   --plan-fingerprint '<reviewed-fingerprint>' \
   --actor owner \
@@ -239,6 +239,15 @@ become project choices. Active `choice -> blocks -> proposal/change` relations
 retain highest precedence; decided choices and missing relation targets do not
 produce resolution actions. Change Set status still comes from its lifecycle
 reader, while included-proposal context comes from normalized relations.
+
+Every non-terminal Change Set produces one generated `continue_change` action.
+Generated Change Set IDs use `NEXT-CHANGE-<CHANGE-ID>` and remain stable when
+registry order or unrelated actions change. Actions are ordered by lifecycle
+priority and then Change Set ID. `--top` is applied only after complete
+composition and curated/generated deduplication; omit it to inspect the full
+set. A curated action with the same `(kind, target)` remains authoritative in
+the displayed list. `p2p next refresh` normalizes only curated records and
+reports the complete generated count without persisting generated actions.
 
 `.p2p/registries/relations.yml` remains a backward-compatible generated
 projection. It is not a semantic source for decision context or next actions;
@@ -357,6 +366,13 @@ Production packs may use the canonical multi-file layout:
   artifacts/<artifact-id>.yml
   examples/<example-id>.md
 ```
+
+The four bundled seed packs use this canonical layout. Their section filenames
+carry a stable priority prefix, such as
+`sections/010-project-identity.yml`, so filesystem ordering preserves semantic
+section order. `vertical.yml` contains metadata only; split sections and
+rubrics must not also be embedded there. External single-file `vertical.yml`
+packs remain supported for compatibility.
 
 Selecting a vertical writes explicit project state:
 
@@ -686,15 +702,77 @@ evidence hints only; follow the displayed P2P commands for changes.
 ## 6. Decide A Proposal
 
 Proposal decisions are owner-controlled. Use these only when the owner has made
-the corresponding decision.
+the corresponding decision. Schema-v3 decisions are append-only events in
+`decision-events.yml`; `decision.md` and the proposal status are deterministic
+projections.
 
 ```bash
-p2p proposal accept PROP-001 --reason "The read-only MCP boundary is clear."
-p2p proposal reject PROP-001 --reason "The scope conflicts with current priorities."
-p2p proposal defer PROP-001 --reason "Needs more design evidence."
+p2p decision status PROP-001
+p2p decision history PROP-001 --limit 20
 ```
 
-After a decision:
+Every decision write is two-phase. The preview is read-only and returns the
+canonical `decided_on`, `operation_key`, source head and `preview_token`:
+
+```bash
+p2p decision preview PROP-001 \
+  --event-type accepted \
+  --reason "The read-only MCP boundary is clear." \
+  --actor owner \
+  --format json
+```
+
+Apply by resubmitting the exact normalized inputs from that response:
+
+```bash
+p2p decision apply PROP-001 \
+  --event-type accepted \
+  --reason "The read-only MCP boundary is clear." \
+  --actor owner \
+  --decided-on '<preview-decided-on>' \
+  --operation-key '<preview-operation-key>' \
+  --preview-token '<preview-token>' \
+  --confirm
+```
+
+`proposal accept`, `proposal reject`, `proposal defer`, and `decision record`
+remain compatibility commands. Without a token they only return
+`preview_required`; they write only when rerun with the returned date,
+operation key, source head when present, token, and `--confirm`.
+
+Rejection is an initial decision for a proposal that was never active.
+Revocation closes the authority of a previously accepted proposal without
+deleting its rationale or rewriting dependent Change Sets, Work, specs, or
+publication state. Inspect complete dependency impact before revocation:
+
+```bash
+p2p decision impact PROP-001 --event-type revoked --format json
+p2p decision preview PROP-001 \
+  --event-type revoked \
+  --reason "The accepted direction is no longer valid." \
+  --source-head-event-id '<current-head>' \
+  --impact-preview-token '<impact-token>' \
+  --acknowledge-drift \
+  --format json
+```
+
+Use `reinstated` only with the original accepted event and matching revocation
+references. Use typed lineage for `superseded`, `split`, and
+`merged_into_other`. Managed branch accept/reject commands remain branch
+operations and never append proposal decision events.
+
+Projection, ledger, and unknown-legacy repair have separate preview/apply
+commands:
+
+```bash
+p2p decision projection-repair-preview PROP-001
+p2p decision ledger-repair-preview PROP-001 --candidate reviewed-ledger.yml
+p2p decision legacy-resolution-preview PROP-001 \
+  --event-type rejected \
+  --reason "Owner reviewed preserved legacy evidence."
+```
+
+After an applied decision:
 
 ```bash
 p2p registry refresh
@@ -837,6 +915,21 @@ p2p spec prompt --change CHANGE-001
 `refresh` and `export` run the same lifecycle preflight. Blockers such as a
 missing governed Change Set source stop the write; advisories such as inactive
 `software_project` vertical coverage are reported without blocking generation.
+
+`refresh` renders a pure candidate from the Change Set `change.md`,
+`tasks.yml`, and the `proposal.md` of each included proposal. Generated
+`provenance.yml` records versioned relative-source SHA-256 digests, a source
+fingerprint, renderer version, origin, and generated-output digests. Absolute
+checkout paths and mtimes are not fingerprint inputs. The seven required files
+are committed atomically, and refreshing an unchanged current spec does not
+rewrite bytes or mtimes.
+
+`p2p spec status` preserves the existing completeness value (`generated` or
+`incomplete`) and adds semantic freshness. Freshness can be `current`,
+`current_legacy`, `stale`, `modified`, `unknown_origin`, or `incomplete`.
+Legacy generated specs are compared with the deterministic non-provenance
+candidate; imported or ambiguous specs are not guessed from age. CLI and MCP
+status reads never refresh or overwrite a spec.
 
 After reviewing refined spec output:
 

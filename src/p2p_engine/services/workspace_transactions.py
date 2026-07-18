@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import os
 import shutil
+import time
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -296,13 +297,23 @@ class AtomicMutationWriter:
         preview_token: str,
         actor: str,
         candidate_validator=None,
+        lock_wait_timeout: float = 0.0,
     ) -> MutationResult:
         transaction_id = f"mutation-{operation_id.replace(':', '-')}-{os.getpid()}-{hashlib.sha256(preview_token.encode()).hexdigest()[:10]}"
         source_map = {item.path: item for item in sources}
-        try:
-            self.lock_service.acquire(transaction_id, owner=actor)
-        except ValueError as exc:
-            return MutationResult(status="blocked", operation_id=operation_id, message=str(exc))
+        lock_deadline = time.monotonic() + max(0.0, lock_wait_timeout)
+        while True:
+            try:
+                self.lock_service.acquire(transaction_id, owner=actor)
+                break
+            except ValueError as exc:
+                if time.monotonic() >= lock_deadline:
+                    return MutationResult(
+                        status="blocked",
+                        operation_id=operation_id,
+                        message=str(exc),
+                    )
+                time.sleep(min(0.01, max(0.0, lock_deadline - time.monotonic())))
         transaction_dir: Path | None = None
         journal: dict[str, object] = {}
         try:

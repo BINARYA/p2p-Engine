@@ -8,9 +8,11 @@ from typer.testing import CliRunner
 
 from p2p_engine.mcp.handlers import work_specs
 from p2p_engine.cli import app
+from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.mcp.handlers.work_specs import handle_work_spec_tool
 from p2p_engine.mcp.tools import call_tool
 from p2p_engine.storage.filesystem import P2PWorkspace, WorkAcceptConflict
+from tests.proposal_decision_fixtures import record_decision
 
 runner = CliRunner()
 
@@ -178,7 +180,13 @@ def _setup_project(tmp_path: Path) -> P2PWorkspace:
             "acceptance_criteria": ["Spec export can be generated."],
         },
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    record_decision(
+        P2PWorkspace(tmp_path),
+        "PROP-001",
+        DecisionOutcome.accepted,
+        "Ready.",
+        "owner",
+    )
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     return P2PWorkspace(tmp_path)
 

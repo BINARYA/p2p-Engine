@@ -1,0 +1,180 @@
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: high
+  confidence_reasons:
+  - Evidence-aware assessment found no missing criteria, failed gates, blocking owner
+    questions, or artifact coverage gaps.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  missing: []
+  suggested_next: []
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    goal_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 15
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    risk_coverage:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: risks.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: assumptions.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: questions.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 5
+      artifact_quality: ready
+      evidence:
+      - artifact: impact-map.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  owner_question_state:
+    source: structured
+    markdown_fallback_used: false
+    blocking_owner_questions: []
+    answered_not_applied: []
+    residual_follow_up: []
+    closed_questions:
+    - id: Q001
+      group_id: QG001
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: owner_questions_resolution
+      gap: owner_questions_resolution
+      question: "Confermi questa terminologia canonica: withdrawn per una proposta\
+        \ abbandonata prima dell'adozione, revoked per una decisione accettata poi\
+        \ annullata senza sostituzione, superseded per una decisione sostituita con\
+        \ lineage esplicita, e deprecated come stato operativo downstream anzich\xE9\
+        \ esito terminale della proposta?"
+      reason: Question is closed with state `applied`.
+    - id: Q002
+      group_id: QG001
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: owner_questions_resolution
+      gap: owner_questions_resolution
+      question: "Una decisione revoked pu\xF2 essere riattivata con un evento owner-controlled\
+        \ reinstated quando il contenuto torna identico, oppure ogni riattivazione\
+        \ deve passare da una nuova proposta collegata?"
+      reason: Question is closed with state `applied`.
+    - id: Q003
+      group_id: QG002
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: tradeoff_analysis
+      gap: tradeoff_analysis
+      question: Confermi che la revoca debba restare consentita anche in presenza
+        di Change Set, Work o implementazioni dipendenti, dopo un impact preview,
+        generando remediation actions senza mutare automaticamente i loro lifecycle?
+      reason: Question is closed with state `applied`.
+    - id: Q004
+      group_id: QG003
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: alternatives_quality
+      gap: alternatives_quality
+      question: "Per la persistenza preferisci fissare gi\xE0 nella proposta un ledger\
+        \ versionato per proposta, oppure lasciare al design il confronto tra ledger\
+        \ unico e file evento immutabili purch\xE9 il contratto pubblico resti event-based?"
+      reason: Question is closed with state `applied`.
+    - id: Q005
+      group_id: QG004
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: assumptions_clarity
+      gap: assumptions_clarity
+      question: Confermi che la migrazione dei decision artifact legacy debba preservare
+        valori mancanti o malformati come unknown_legacy con provenienza esplicita,
+        senza inferire owner, data o motivazione dai timestamp Git?
+      reason: Question is closed with state `applied`.
+    confidence_notes: []
+    suggested_next: []
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-07-17'
+  assessment_source: evidence_aware
+  assessed_at: '2026-07-17'
+  artifact_coverage_warnings: []

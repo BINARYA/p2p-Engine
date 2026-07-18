@@ -8,6 +8,10 @@ from typing import Any, Callable
 
 import yaml
 
+from p2p_engine.core.proposal_decision_diagnostics import (
+    proposal_decision_diagnostic,
+)
+from p2p_engine.core.proposal_decision_events import ProposalDecisionLifecycleView
 from p2p_engine.foundation.markdown import (
     markdown_has_section as _markdown_has_section,
     read_markdown_section as _read_markdown_section,
@@ -58,6 +62,9 @@ class ValidationService:
         governance_validation_findings: Callable[[], list[tuple[str, str, Path, str, str]]] | None = None,
         runtime_validation_findings: Callable[[], list[Any]] | None = None,
         workspace_schema_validation_findings: Callable[[], list[Any]] | None = None,
+        proposal_lifecycle_status: (
+            Callable[[str], ProposalDecisionLifecycleView] | None
+        ) = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -70,6 +77,7 @@ class ValidationService:
         self.governance_validation_findings = governance_validation_findings
         self.runtime_validation_findings = runtime_validation_findings
         self.workspace_schema_validation_findings = workspace_schema_validation_findings
+        self.proposal_lifecycle_status = proposal_lifecycle_status
 
     def validate(self, *, registry_status_snapshot: Any | None = None) -> ValidationResult:
         findings: list[ValidationFinding] = []
@@ -258,7 +266,8 @@ class ValidationService:
         if not proposals_dir.exists():
             return
 
-        for proposal_id, paths in self.duplicate_proposal_ids().items():
+        duplicate_ids = self.duplicate_proposal_ids()
+        for proposal_id, paths in duplicate_ids.items():
             relative_paths = ", ".join(str(_relative_to_root(path, self.root)) for path in paths)
             add(
                 "P2P104_DUPLICATE_PROPOSAL_ID",
@@ -305,6 +314,85 @@ class ValidationService:
                     "proposal.md is missing a machine-readable status.",
                     "",
                 )
+            lifecycle = (
+                self.proposal_lifecycle_status(proposal_id)
+                if (
+                    self.proposal_lifecycle_status is not None
+                    and proposal_id not in duplicate_ids
+                )
+                else None
+            )
+            if lifecycle is not None:
+                for diagnostic in lifecycle.diagnostics:
+                    if diagnostic.startswith(
+                        "P2P362_DECISION_PROJECTION_DIVERGENCE"
+                    ):
+                        target = (
+                            proposal_path
+                            if diagnostic.endswith("proposal.md")
+                            else decision_path
+                        )
+                        add(
+                            "P2P362_DECISION_PROJECTION_DIVERGENCE",
+                            "warning",
+                            target,
+                            diagnostic,
+                            (
+                                f"p2p decision projection-repair preview "
+                                f"{proposal_id}"
+                            ),
+                        )
+                    elif diagnostic.startswith(
+                        "P2P377_DECISION_PROPOSAL_BINDING_DIVERGED"
+                    ):
+                        add(
+                            "P2P377_DECISION_PROPOSAL_BINDING_DIVERGED",
+                            "error",
+                            proposal_path,
+                            diagnostic,
+                            f"p2p decision status {proposal_id}",
+                        )
+                    elif diagnostic.startswith(
+                        "P2P307_WORKSPACE_MIGRATION_RECOVERY_REQUIRED"
+                    ):
+                        # Workspace-schema validation owns this diagnostic.
+                        continue
+                    else:
+                        definition = proposal_decision_diagnostic(diagnostic)
+                        code = (
+                            definition.code
+                            if definition is not None
+                            else "P2P361_DECISION_LEDGER_INVALID"
+                        )
+                        severity = (
+                            definition.severity
+                            if definition is not None
+                            else "error"
+                        )
+                        target = proposal_dir / "decision-events.yml"
+                        suggested_command = f"p2p decision status {proposal_id}"
+                        if code == "P2P360_DECISION_LEGACY_AUTHORITY_UNRESOLVED":
+                            if lifecycle.source_model == "legacy_projection_v2":
+                                target = decision_path
+                                suggested_command = (
+                                    "p2p workspace migrate plan --to 3 "
+                                    "--format json"
+                                )
+                        elif code == (
+                            "P2P378_DECISION_RECONSIDERATION_REQUIRES_NEW_PROPOSAL"
+                        ):
+                            target = proposal_path
+                            suggested_command = (
+                                lifecycle.suggested_next_command
+                                or f"p2p decision status {proposal_id}"
+                            )
+                        add(
+                            code,
+                            severity,
+                            target,
+                            diagnostic,
+                            suggested_command,
+                        )
 
             if not decision_path.exists():
                 add("P2P110_MISSING_DECISION_FILE", "warning", decision_path, "decision.md is missing.", "")
@@ -320,6 +408,8 @@ class ValidationService:
                     )
                 decision_status = (_read_markdown_section(decision_text, "Status") or "").strip("`")
                 if (
+                    lifecycle is None
+                    and
                     proposal_status in {"accepted", "rejected", "deferred"}
                     and decision_status
                     and decision_status != proposal_status

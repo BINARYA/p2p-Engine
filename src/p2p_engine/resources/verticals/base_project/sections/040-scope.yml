@@ -1,0 +1,6 @@
+section:
+  id: scope
+  title: Scope And Non-Goals
+  purpose: Boundaries, included work, exclusions, and constraints.
+  required: true
+  priority: 40

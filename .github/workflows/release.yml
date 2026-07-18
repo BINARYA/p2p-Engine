@@ -9,8 +9,37 @@ permissions:
   contents: write
 
 jobs:
+  test-matrix:
+    name: Test Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.11"
+          - "3.14"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install project with development dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Run public contract tests
+        run: ./scripts/test-public.sh -q
+
+      - name: Run full tests
+        run: ./scripts/test-full.sh -q
+
   build-release:
     name: Build and publish release artifacts
+    needs: test-matrix
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -42,14 +71,21 @@ jobs:
           print(f"Release version verified: {version}")
           PY
 
-      - name: Run tests
-        run: pytest -q
+      - name: Run release contract tests
+        run: pytest -q tests/test_version_consistency.py tests/test_release_artifacts.py
 
-      - name: Prepare ignored P2P runtime directories
-        run: mkdir -p .p2p/prompts
-
-      - name: Validate P2P state
-        run: p2p validate
+      - name: Validate a fresh current-schema workspace
+        run: |
+          smoke_root="$(mktemp -d)"
+          trap 'rm -rf "${smoke_root}"' EXIT
+          p2p init "Release Smoke" \
+            --owner release-ci \
+            --agent generic \
+            --root "${smoke_root}"
+          p2p runtime status --root "${smoke_root}"
+          p2p workspace schema status --root "${smoke_root}"
+          p2p registry refresh --root "${smoke_root}"
+          p2p validate --root "${smoke_root}"
 
       - name: Build source and wheel distributions
         run: python -m build

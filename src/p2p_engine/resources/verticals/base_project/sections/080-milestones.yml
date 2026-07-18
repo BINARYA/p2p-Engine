@@ -1,0 +1,6 @@
+section:
+  id: milestones
+  title: Milestones And Next Actions
+  purpose: Staged path from definition to execution.
+  required: true
+  priority: 80

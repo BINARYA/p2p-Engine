@@ -5,6 +5,7 @@ import pytest
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.storage.filesystem import P2PWorkspace
 from tests.decision_context_fixtures import project_files, write_yaml
+from tests.proposal_decision_fixtures import record_decision
 
 
 def _workspace_with_context_items(root: Path) -> P2PWorkspace:
@@ -16,7 +17,7 @@ def _workspace_with_context_items(root: Path) -> P2PWorkspace:
         proposal="This proposal should appear in medium context.",
     )
     workspace._choice_lifecycle_service().create("Context Choice", ["A", "B"], related=[proposal.proposal_id])
-    workspace.record_decision(proposal.proposal_id, DecisionOutcome.accepted, "Ready.", "owner")
+    record_decision(workspace, proposal.proposal_id, DecisionOutcome.accepted, "Ready.", "owner")
     change = workspace.create_change_set(proposal.proposal_id)
     workspace.refresh_software_spec(change.change_id)
     workspace.export_software_spec(change.change_id, "generic")
@@ -33,7 +34,8 @@ def _workspace_with_nearby_items(root: Path) -> P2PWorkspace:
         non_goals=["Replace canonical Markdown."],
         proposal="Build a derived decision index.",
     )
-    workspace.record_decision(
+    record_decision(
+        workspace,
         related.proposal_id,
         DecisionOutcome.accepted,
         "Keep canonical files and derive retrieval.",

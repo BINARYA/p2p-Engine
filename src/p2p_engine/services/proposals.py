@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+import yaml
+
 from p2p_engine.core.contribution import Contribution, ContributionType, parse_contribution_type
 from p2p_engine.core.proposal import Proposal
+from p2p_engine.core.proposal_decision_events import ProposalDecisionLifecycleView
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
     relative_to_root as _relative_to_root,
@@ -13,6 +17,11 @@ from p2p_engine.foundation.files import (
     yaml_dump as _yaml_dump,
 )
 from p2p_engine.foundation.markdown import read_markdown_section, read_title, replace_section
+from p2p_engine.services.lifecycle_authority import proposal_display_status
+from p2p_engine.services.proposal_decision_ledger import (
+    ProposalDecisionLedgerCodec,
+    proposal_semantic_sha256,
+)
 
 
 @dataclass(frozen=True)
@@ -25,6 +34,17 @@ class ProposalDetail:
     proposal: str
     decision_status: str
     decision_reason: str
+    effective_state: str = "unknown"
+    head_event_type: str | None = None
+    head_event_id: str | None = None
+    event_count: int = 0
+    authority_resolution: str = "invalid"
+    ever_active: bool = False
+    active: bool = False
+    proposal_binding_status: str = "unavailable"
+    decision_semantic_sha256: str | None = None
+    proposal_semantic_sha256: str | None = None
+    lifecycle_diagnostics: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -104,9 +124,18 @@ def _proposal_markdown(
 
 
 class ProposalDocumentService:
-    def __init__(self, *, root: Path, p2p_dir: Path) -> None:
+    def __init__(
+        self,
+        *,
+        root: Path,
+        p2p_dir: Path,
+        lifecycle_status: (
+            Callable[[str], ProposalDecisionLifecycleView] | None
+        ) = None,
+    ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
+        self.lifecycle_status = lifecycle_status
 
     def create(self, title: str) -> Proposal:
         return self.create_with_details(title=title)
@@ -148,6 +177,10 @@ class ProposalDocumentService:
             "execution-plan.md": f"# Execution Plan - {proposal_id}\n\nPending.\n",
             "tasks.yml": "tasks: []\n",
         }
+        if self._workspace_schema_version() >= 3:
+            files["decision-events.yml"] = ProposalDecisionLedgerCodec().dumps(
+                ProposalDecisionLedgerCodec().empty(proposal_id)
+            ).decode("ascii")
         for filename, content in files.items():
             (proposal_dir / filename).write_text(content, encoding="utf-8")
 
@@ -159,19 +192,83 @@ class ProposalDocumentService:
             path=proposal_dir.relative_to(self.root),
         )
 
+    def _workspace_schema_version(self) -> int:
+        path = self.p2p_dir / "project" / "workspace-schema.yml"
+        if not path.exists():
+            return 0
+        try:
+            payload = _read_yaml_mapping(path, default={})
+        except (OSError, ValueError, yaml.YAMLError):
+            return 0
+        raw = payload.get("workspace_schema")
+        version = raw.get("current_version") if isinstance(raw, dict) else 0
+        return version if isinstance(version, int) and not isinstance(version, bool) else 0
+
     def show(self, proposal_id: str) -> ProposalDetail:
         proposal_dir = self.find_dir(proposal_id)
         proposal_text = _read_optional(proposal_dir / "proposal.md")
         decision_text = _read_optional(proposal_dir / "decision.md")
+        lifecycle = (
+            self.lifecycle_status(proposal_id)
+            if self.lifecycle_status is not None
+            else None
+        )
+        effective_state = (
+            lifecycle.effective_state.value
+            if lifecycle is not None
+            else _read_proposal_status(proposal_dir / "proposal.md")
+        )
+        projected_status = _read_proposal_status(proposal_dir / "proposal.md")
+        display_status = (
+            proposal_display_status(
+                lifecycle,
+                undecided_fallback=projected_status,
+            )
+            if lifecycle is not None
+            else projected_status
+        )
         return ProposalDetail(
             proposal_id=proposal_id,
             title=_clean_proposal_title(read_title(proposal_text) or proposal_id, proposal_id),
-            status=_read_proposal_status(proposal_dir / "proposal.md"),
+            status=display_status,
             path=proposal_dir.relative_to(self.root),
             problem=read_markdown_section(proposal_text, "Problem") or "Not provided.",
             proposal=read_markdown_section(proposal_text, "Proposal") or "Not provided.",
             decision_status=(read_markdown_section(decision_text, "Status") or "pending").strip("`"),
             decision_reason=read_markdown_section(decision_text, "Reason") or "Not provided.",
+            effective_state=effective_state,
+            head_event_type=(
+                lifecycle.head_event_type.value
+                if lifecycle is not None and lifecycle.head_event_type is not None
+                else None
+            ),
+            head_event_id=lifecycle.head_event_id if lifecycle is not None else None,
+            event_count=lifecycle.event_count if lifecycle is not None else 0,
+            authority_resolution=(
+                lifecycle.authority_resolution.value
+                if lifecycle is not None
+                else "invalid"
+            ),
+            ever_active=lifecycle.ever_active if lifecycle is not None else False,
+            active=lifecycle.active if lifecycle is not None else False,
+            proposal_binding_status=(
+                lifecycle.proposal_binding_status.value
+                if lifecycle is not None
+                else "unavailable"
+            ),
+            decision_semantic_sha256=(
+                lifecycle.decision_semantic_sha256
+                if lifecycle is not None
+                else None
+            ),
+            proposal_semantic_sha256=(
+                lifecycle.proposal_semantic_sha256
+                if lifecycle is not None
+                else None
+            ),
+            lifecycle_diagnostics=(
+                lifecycle.diagnostics if lifecycle is not None else ()
+            ),
         )
 
     def update(
@@ -198,6 +295,20 @@ class ProposalDocumentService:
         for section, replacement in replacements.items():
             if replacement is not None:
                 text = replace_section(text, section, replacement)
+        if self.lifecycle_status is not None:
+            lifecycle = self.lifecycle_status(proposal_id)
+            if lifecycle.effective_state.value not in {"undecided", "deferred"}:
+                before_sha = proposal_semantic_sha256(
+                    proposal_id,
+                    proposal_path.read_text(encoding="utf-8"),
+                )
+                after_sha = proposal_semantic_sha256(proposal_id, text)
+                if before_sha != after_sha:
+                    raise ValueError(
+                        "P2P377_DECISION_PROPOSAL_BINDING_DIVERGED: a decided "
+                        "proposal cannot be changed in place; create a linked "
+                        "proposal for revised semantics"
+                    )
         proposal_path.write_text(text, encoding="utf-8")
         return proposal_path.relative_to(self.root)
 

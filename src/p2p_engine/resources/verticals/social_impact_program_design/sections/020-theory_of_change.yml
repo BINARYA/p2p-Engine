@@ -1,0 +1,6 @@
+section:
+  id: theory_of_change
+  title: Theory Of Change
+  purpose: Explain how activities create outcomes for beneficiaries.
+  required: true
+  priority: 20

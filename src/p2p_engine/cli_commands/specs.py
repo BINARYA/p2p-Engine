@@ -51,7 +51,10 @@ def register_spec_commands(spec_app: typer.Typer) -> None:
             console.print("  none")
             return
         for spec in specs:
-            console.print(f"  {spec.change_id}  {spec.status}  {spec.title}")
+            console.print(
+                f"  {spec.change_id}  {spec.status}  {spec.title}"
+                f"  freshness={spec.freshness}"
+            )
 
     @spec_app.command("show")
     def spec_show(
@@ -100,7 +103,7 @@ def register_spec_commands(spec_app: typer.Typer) -> None:
         target: str = typer.Option(..., "--target", help="Export target: generic, openspec, or speckit"),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
     ) -> None:
-        """Export P2P project definition outputs for an agent/downstream target."""
+        """Export a software-spec handoff bundle for a downstream target."""
         try:
             status = workspace_for(root).export_software_spec(change, target)
         except ValueError as exc:

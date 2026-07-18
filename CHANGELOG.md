@@ -6,11 +6,24 @@ This project is early-stage and did not previously maintain a public changelog.
 Use this file for human-readable release notes as the repository moves toward
 tagged releases.
 
-## Unreleased
+## 0.4.0 - 2026-07-18
 
-- The current source candidate is P2P Engine `0.3.1`. The immutable `v0.3.0`
-  tag failed its minimum-Python release gate and produced no GitHub Release or
-  published package; it is not reused or treated as an available runtime.
+- The immutable `v0.3.0` tag failed its minimum-Python release gate and
+  produced no GitHub Release or published package; it is not reused or treated
+  as an available runtime.
+- Added workspace schema v3 with append-only proposal decision event ledgers,
+  deterministic proposal/decision projections and a forward-only v2-to-v3
+  migration that preserves unresolved legacy evidence.
+- Added owner-governed proposal decision status, history, impact,
+  preview/apply, revocation, reinstatement, lineage, projection repair, ledger
+  repair and unknown-legacy resolution.
+- Replaced one-step proposal decision writes with token-bound two-phase CLI and
+  MCP workflows. MCP consent is bound to `PROP-XXX@preview-token`; old
+  accept/reject/defer consent cannot write schema-v3 events.
+- Converged proposal, registry, Change, Work, software-spec, project,
+  publication and decision-context consumers on lifecycle authority while
+  preserving historical rationale and reporting dependent remediation without
+  mutating downstream lifecycles.
 - Fixed Python 3.11 parsing of nearby-decision-context prompt fallbacks while
   preserving the rendered Explore, Impact and Synthesize output.
 - Workspace schema v1 remains operable; the v1-to-v2 transition is advertised

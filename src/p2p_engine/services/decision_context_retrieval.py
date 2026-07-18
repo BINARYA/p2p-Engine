@@ -625,6 +625,33 @@ class DecisionContextRetrievalService:
             (record.canonical_date for record in selected_records if record.canonical_date),
             reverse=True,
         )
+        bound_records = [
+            record
+            for record in selected_records
+            if record.head_event_id or record.decision_semantic_sha256
+        ]
+        bound_records.sort(
+            key=lambda record: (
+                -_ACTIVATION_RANK[record.activation],
+                -AUTHORITY_RANK[record.authority],
+                record.record_id,
+            )
+        )
+        authority_intervals: list[Mapping[str, object]] = []
+        seen_intervals: set[str] = set()
+        for record in bound_records:
+            if not record.authority_interval:
+                continue
+            identity = json.dumps(
+                dict(record.authority_interval),
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            if identity in seen_intervals:
+                continue
+            seen_intervals.add(identity)
+            authority_intervals.append(record.authority_interval)
+        binding = bound_records[0] if bound_records else None
         return RetrievalHit(
             owner_id=candidate.owner_id,
             owner_type=candidate.owner_type,
@@ -640,6 +667,12 @@ class DecisionContextRetrievalService:
             reasons=tuple(sorted(reasons, key=lambda item: (-item.contribution, item.signal, item.detail))),
             evidence_ids=tuple(sorted(evidence_ids)),
             canonical_date=canonical_dates[0] if canonical_dates else "",
+            head_event_id=binding.head_event_id if binding is not None else "",
+            decision_semantic_sha256=(
+                binding.decision_semantic_sha256 if binding is not None else ""
+            ),
+            authority_intervals=tuple(authority_intervals),
+            lineage=binding.lineage if binding is not None else MappingProxyType({}),
         )
 
     def _assemble_packet(
@@ -878,6 +911,7 @@ def _selected_records(records: Sequence[DecisionContextRecord]) -> tuple[Decisio
         key=lambda record: (
             -int(record.kind in _DECISION_KINDS),
             -int(record.kind == RecordKind.CONSTRAINT),
+            -_ACTIVATION_RANK[record.activation],
             -AUTHORITY_RANK[record.authority],
             record.kind.value,
             record.record_id,

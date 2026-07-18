@@ -18,6 +18,7 @@ from p2p_engine.services.readiness import ProposalReadiness
 
 
 MATERIALIZATION_CANONICAL = "canonical_state"
+MATERIALIZATION_PROJECTION = "derived_projection"
 MATERIALIZATION_GENERATED = "generated_file"
 MATERIALIZATION_IMPORTED = "imported_file"
 MATERIALIZATION_LEGACY = "legacy_file"
@@ -70,6 +71,15 @@ class ProposalFullView:
     questions: ProposalQuestionGroupsView
     narrative_artifacts: list[ProposalArtifactCatalogItem]
     next_actions: list[str]
+    effective_state: str = "unknown"
+    head_event_type: str | None = None
+    head_event_id: str | None = None
+    event_count: int = 0
+    authority_resolution: str = "invalid"
+    ever_active: bool = False
+    active: bool = False
+    proposal_binding_status: str = "unavailable"
+    decision_semantic_sha256: str | None = None
 
 
 @dataclass(frozen=True)
@@ -85,7 +95,8 @@ class _ArtifactSlot:
 
 ARTIFACT_SLOTS: tuple[_ArtifactSlot, ...] = (
     _ArtifactSlot("proposal", "Proposal Body", "proposal.md", ProposalArtifactExpectation.required, MATERIALIZATION_CANONICAL),
-    _ArtifactSlot("decision", "Decision State", "decision.md", ProposalArtifactExpectation.required, MATERIALIZATION_CANONICAL, empty_file_satisfied=True),
+    _ArtifactSlot("decision_ledger", "Decision Event Ledger", "decision-events.yml", ProposalArtifactExpectation.optional_memory, MATERIALIZATION_CANONICAL, empty_file_satisfied=True),
+    _ArtifactSlot("decision", "Decision Projection", "decision.md", ProposalArtifactExpectation.required, MATERIALIZATION_PROJECTION, empty_file_satisfied=True),
     _ArtifactSlot("readiness", "Readiness Snapshot", "readiness.yml", ProposalArtifactExpectation.required, MATERIALIZATION_CANONICAL),
     _ArtifactSlot("contributions", "Structured Contributions", "contributions.yml", ProposalArtifactExpectation.optional_memory, MATERIALIZATION_CANONICAL, empty_file_satisfied=True),
     _ArtifactSlot("questions", "Structured Owner Questions", "questions.yml", ProposalArtifactExpectation.required_when_applicable, MATERIALIZATION_CANONICAL, empty_file_satisfied=True),
@@ -170,6 +181,15 @@ class ProposalReviewViewService:
                     *self._question_next_actions(proposal_id, questions),
                 ]
             ),
+            effective_state=proposal.effective_state,
+            head_event_type=proposal.head_event_type,
+            head_event_id=proposal.head_event_id,
+            event_count=proposal.event_count,
+            authority_resolution=proposal.authority_resolution,
+            ever_active=proposal.ever_active,
+            active=proposal.active,
+            proposal_binding_status=proposal.proposal_binding_status,
+            decision_semantic_sha256=proposal.decision_semantic_sha256,
         )
 
     def _catalog_item(

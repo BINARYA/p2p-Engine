@@ -171,7 +171,6 @@ _V1_SAFE_OPERATIONS = frozenset(
         "proposal_contribution_add",
         "proposal_create",
         "proposal_decide_branch",
-        "proposal_decision_record",
         "proposal_draft_commit",
         "proposal_exploration_import",
         "proposal_finalize",
@@ -239,6 +238,16 @@ _V2_ONLY_OPERATIONS = frozenset(
     }
 )
 
+_V3_ONLY_OPERATIONS = frozenset(
+    {
+        "proposal_decision_apply",
+        "proposal_decision_ledger_repair",
+        "proposal_decision_legacy_resolution",
+        "proposal_decision_projection_repair",
+        "proposal_decision_record",
+    }
+)
+
 
 def default_workspace_operation_requirements() -> tuple[WorkspaceOperationRequirement, ...]:
     schema_independent_operations = {
@@ -265,6 +274,17 @@ def default_workspace_operation_requirements() -> tuple[WorkspaceOperationRequir
             reason="Project-question and convergence writes require workspace schema v2.",
         )
         for item in sorted(_V2_ONLY_OPERATIONS)
+    )
+    values.extend(
+        WorkspaceOperationRequirement(
+            operation_id=item,
+            minimum_schema_version=3,
+            reason=(
+                "Proposal decision event writes require workspace schema v3. "
+                "Preview remains read-only; migrate before apply."
+            ),
+        )
+        for item in sorted(_V3_ONLY_OPERATIONS)
     )
     values.append(
         WorkspaceOperationRequirement(

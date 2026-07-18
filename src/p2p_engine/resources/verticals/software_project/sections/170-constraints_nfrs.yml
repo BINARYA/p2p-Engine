@@ -1,0 +1,21 @@
+section:
+  id: constraints_nfrs
+  title: Constraints And Non-Functional Requirements
+  purpose: Constraints, performance, reliability, privacy, security, and operating
+    assumptions.
+  required: true
+  priority: 170
+  fields:
+  - id: constraints
+    label: Constraints
+    required: true
+    question: Which technical, operational, or policy constraints apply?
+  - id: non_functional_requirements
+    label: Non-functional requirements
+    required: true
+    question: Which reliability, performance, privacy, or security properties matter?
+  completion_policy:
+    allow_assumed_completion: false
+    required_fields:
+    - constraints
+    - non_functional_requirements

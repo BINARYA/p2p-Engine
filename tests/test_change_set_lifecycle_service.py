@@ -7,6 +7,7 @@ import yaml
 
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.proposal_decision_fixtures import record_decision
 
 
 def _workspace(root: Path) -> P2PWorkspace:
@@ -18,7 +19,7 @@ def _workspace(root: Path) -> P2PWorkspace:
 
 def _accepted_workspace(root: Path) -> P2PWorkspace:
     workspace = _workspace(root)
-    workspace.record_decision("PROP-001", DecisionOutcome.accepted, "Ready for operational work.", "owner")
+    record_decision(workspace, "PROP-001", DecisionOutcome.accepted, "Ready for operational work.", "owner")
     return workspace
 
 
@@ -81,10 +82,10 @@ def test_change_set_lifecycle_service_validates_error_paths(tmp_path: Path) -> N
     workspace = _workspace(tmp_path)
     service = workspace._change_set_lifecycle_service()
 
-    with pytest.raises(ValueError, match="PROP-001 is not accepted yet"):
+    with pytest.raises(ValueError, match="no current active decision authority"):
         service.create("PROP-001")
 
-    workspace.record_decision("PROP-001", DecisionOutcome.accepted, "Ready.", "owner")
+    record_decision(workspace, "PROP-001", DecisionOutcome.accepted, "Ready.", "owner")
     service.create("PROP-001")
     change_dir = tmp_path / ".p2p" / "changes" / "CHANGE-001-draft-work"
 

@@ -149,18 +149,30 @@ Problem:
 
 ## 5. Record The Owner Decision
 
-When the owner decides, record the outcome:
+When the owner decides, preview the outcome without writing:
 
 ```bash
-p2p proposal accept PROP-001 \
-  --reason "This keeps the first implementation local, inspectable, and agent-safe."
+p2p decision preview PROP-001 \
+  --event-type accepted \
+  --reason "This keeps the first implementation local, inspectable, and agent-safe." \
+  --format json
 ```
 
-The proposal now has a decision trail:
+Review the response, then apply the exact returned date, operation key, source
+head when present, and preview token:
 
 ```bash
-p2p proposal show PROP-001
+p2p decision apply PROP-001 \
+  --event-type accepted \
+  --reason "This keeps the first implementation local, inspectable, and agent-safe." \
+  --decided-on '<preview-decided-on>' \
+  --operation-key '<preview-operation-key>' \
+  --preview-token '<preview-token>' \
+  --confirm
 ```
+
+The proposal now has an append-only decision trail. Inspect it with
+`p2p decision status PROP-001` and `p2p decision history PROP-001`.
 
 Expected shape:
 

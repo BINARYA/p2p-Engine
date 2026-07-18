@@ -39,10 +39,10 @@ Install a versioned wheel from GitHub Releases:
 
 ```bash
 .venv/bin/python -m pip install \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.1.9/p2p_engine-0.1.9-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.4.0/p2p_engine-0.4.0-py3-none-any.whl
 ```
 
-Replace `v0.1.9` and `p2p_engine-0.1.9-py3-none-any.whl` with the release you
+Replace `v0.4.0` and `p2p_engine-0.4.0-py3-none-any.whl` with the release you
 intend to use. The wheel filename is expected to follow:
 
 ```text
@@ -218,7 +218,7 @@ From the target project:
 
 ```bash
 .venv/bin/python -m pip install --upgrade \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.1.9/p2p_engine-0.1.9-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.4.0/p2p_engine-0.4.0-py3-none-any.whl
 
 .venv/bin/p2p doctor
 .venv/bin/p2p runtime status
@@ -245,20 +245,20 @@ version, commit and push `main`, then push a matching version tag:
 ```bash
 # pyproject.toml
 # [project]
-# version = "0.1.9"
+# version = "0.4.0"
 
 git add pyproject.toml
-git commit -m "Bump version to 0.1.9"
+git commit -m "Bump version to 0.4.0"
 git push origin main
 
-git tag -a v0.1.9 -m "P2P Engine v0.1.9"
-git push origin v0.1.9
+git tag -a v0.4.0 -m "P2P Engine v0.4.0"
+git push origin v0.4.0
 ```
 
 The release workflow runs tests, runs `p2p validate`, builds the source
 distribution and wheel, and uploads both files to the matching GitHub Release.
-The tag must match `pyproject.toml`: tag `v0.1.9` requires
-`version = "0.1.9"`. Do not reuse an existing version or tag for different
+The tag must match `pyproject.toml`: tag `v0.4.0` requires
+`version = "0.4.0"`. Do not reuse an existing version or tag for different
 contents.
 
 Expected release assets:
@@ -292,7 +292,7 @@ Attach that `.whl` and the matching `.tar.gz` to the GitHub Release only if the
 automated workflow is unavailable. For example:
 
 ```text
-v0.1.9 -> p2p_engine-0.1.9-py3-none-any.whl, p2p_engine-0.1.9.tar.gz
+v0.4.0 -> p2p_engine-0.4.0-py3-none-any.whl, p2p_engine-0.4.0.tar.gz
 ```
 
 ## Connect An Agent
@@ -594,11 +594,20 @@ Inspect it:
 p2p proposal show PROP-001
 ```
 
-Accept it when the owner decides:
+Preview it when the owner decides:
 
 ```bash
-p2p proposal accept PROP-001 --reason "This is the initial direction."
+p2p decision preview PROP-001 \
+  --event-type accepted \
+  --reason "This is the initial direction." \
+  --format json
 ```
+
+Apply only after reviewing the response, resubmitting its exact
+`decided_on`, `operation_key`, source head when present, and `preview_token`
+with `p2p decision apply ... --confirm`. The compatibility
+`p2p proposal accept` command follows the same two-phase contract and does not
+write without those apply ingredients.
 
 Create a Change Set:
 

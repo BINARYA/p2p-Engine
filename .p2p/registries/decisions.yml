@@ -774,3 +774,12 @@ decisions:
   reason: The refined proposal addresses the identified readiness-convergence, schema
     migration, atomicity, authority, retry, vertical reconciliation, decision-context
     and bounded-retrieval risks with explicit delivery gates and acceptance criteria.
+- proposal: PROP-102
+  title: Proposal Decision Revision and Revocation Lifecycle
+  outcome: accepted
+  status: accepted
+  path: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/decision.md
+  reason: La proposta definisce in modo completo e verificabile il lifecycle delle
+    decisioni, distinguendo rifiuto, revoca, sostituzione e reinstatement, con autorita
+    owner, migrazione legacy, impatto sui consumer e criteri di robustezza. La readiness
+    e decision_ready al 100%, con confidenza alta e senza gap o gate falliti.

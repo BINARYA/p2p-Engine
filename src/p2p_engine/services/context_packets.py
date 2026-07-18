@@ -11,6 +11,7 @@ from p2p_engine.core.decision_context import (
     DecisionContextPacket,
     RetrievalRequest,
 )
+from p2p_engine.services.changes import CHANGE_TERMINAL_STATUSES
 from p2p_engine.services.decision_context_retrieval import DecisionContextRetrievalService
 from p2p_engine.services.lifecycle_authority import is_active_project_projection
 
@@ -260,7 +261,7 @@ class ContextPacketService:
                 [
                     change
                     for change in changes
-                    if change.status not in {"completed", "cancelled", "superseded"}
+                    if change.status not in CHANGE_TERMINAL_STATUSES
                 ]
             ),
             "work_items": len(works),
@@ -380,7 +381,7 @@ class ContextPacketService:
                     }
                 )
         for change in changes[:3]:
-            if change.status not in {"completed", "cancelled", "superseded"}:
+            if change.status not in CHANGE_TERMINAL_STATUSES:
                 artifacts.append(
                     {
                         "type": "change",

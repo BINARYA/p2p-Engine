@@ -176,7 +176,12 @@ class ProjectStateService:
         for item in records:
             proposal_dir = Path(item["path"])
             files = []
-            for name in ("proposal.md", "decision.md", "tasks.yml"):
+            for name in (
+                "proposal.md",
+                "decision-events.yml",
+                "decision.md",
+                "tasks.yml",
+            ):
                 path = proposal_dir / name
                 files.append(
                     {
@@ -189,6 +194,10 @@ class ProjectStateService:
                     "proposal_id": item["proposal_id"],
                     "status": item["status"],
                     "feature_id": item["feature_id"],
+                    "head_event_id": item.get("head_event_id"),
+                    "decision_semantic_sha256": item.get(
+                        "decision_semantic_sha256"
+                    ),
                     "files": files,
                 }
             )

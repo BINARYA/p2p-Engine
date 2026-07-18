@@ -95,6 +95,41 @@ Default to proactive guidance. If the user wants the interview to stop, they can
 ask you to stop, defer, or mute questions."""
 
 
+PROPOSAL_DECISION_LIFECYCLE_BLOCK = """Proposal decisions are append-only governance events in workspace schema v3.
+
+Before explaining or changing authority:
+- inspect `p2p decision status PROP-XXX`;
+- inspect bounded history with `p2p decision history PROP-XXX`;
+- inspect `p2p decision impact PROP-XXX --event-type EVENT` for authority-closing or lineage events.
+
+All decision writes are two-phase. Preview is read-only. Apply must resubmit the
+exact date, operation key, source head, semantic inputs and preview token with
+explicit confirmation. `proposal accept`, `proposal reject`, `proposal defer`
+and `decision record` are compatibility commands with the same contract; a
+tokenless call must not be described as an applied decision.
+
+Reject only a proposal that was never active. Revoke a previously accepted
+proposal when its authority must end; do not rewrite it as rejected or delete
+its history. Reinstatement must reference the original accepted event and its
+matching revocation. Supersession, split and merge require typed lineage.
+
+Decision apply never rewrites dependent Change Sets, Work, specs, vertical
+evidence, code or publication state. Report impact and use generated
+remediation actions. Managed branch accept/reject commands are separate Git
+lifecycle operations and never create proposal decision events.
+
+With MCP, use `p2p_proposal_decision_preview` and token-bound
+`p2p_proposal_decision_apply`. Consent operation is
+`proposal_decision_apply`, targeted to `PROP-XXX@preview-token`; owner
+authority and executor identity must remain separate. Legacy MCP
+accept/reject/defer consent cannot write schema-v3 events.
+
+On schema v2, decision reads remain compatible but event writes are blocked.
+Use the governed workspace migration plan/apply/recovery flow to reach schema
+v3. Do not create or repair `decision-events.yml`, projections, migration
+state, locks or journals manually."""
+
+
 PROJECT_VERTICAL_ORCHESTRATION_BLOCK = """When the project is uninitialized, uses the base-project fallback, or has weak capisaldi coverage, treat project definition as the priority context-building task.
 
 Use project vertical commands:
@@ -740,6 +775,10 @@ def agent_policy(
             "proposal_accept",
             "proposal_reject",
             "proposal_defer",
+            "proposal_withdraw",
+            "proposal_revoke",
+            "proposal_replace",
+            "proposal_reinstate",
             "choice_decide",
             "work_accept",
             "work_finalize",
@@ -795,6 +834,31 @@ def agent_policy(
             ],
             "computed_score_is_advisory": True,
             "owner_override_must_not_falsify_computed_score": True,
+        },
+        "proposal_decision_lifecycle": {
+            "canonical_schema_v3_artifact": "decision-events.yml",
+            "history": "append_only",
+            "write_protocol": "preview_then_exact_apply",
+            "status_command": "p2p decision status PROP-XXX",
+            "history_command": "p2p decision history PROP-XXX",
+            "impact_command": (
+                "p2p decision impact PROP-XXX --event-type <event>"
+            ),
+            "compatibility_commands_are_two_phase": True,
+            "reject_means_never_active": True,
+            "revoke_preserves_accepted_history": True,
+            "dependent_lifecycle_mutation": "forbidden",
+            "branch_decisions_are_separate": True,
+            "schema_v2_event_writes": "blocked_until_governed_migration",
+            "manual_ledger_or_projection_repair": "forbidden",
+            "mcp": {
+                "preview": "p2p_proposal_decision_preview",
+                "apply": "p2p_proposal_decision_apply",
+                "consent_operation": "proposal_decision_apply",
+                "consent_target": "PROP-XXX@preview-token",
+                "owner_executor_separation": True,
+                "legacy_unbound_consent_can_write": False,
+            },
         },
         "project_vertical_orchestration": {
             "prioritize_when_missing_or_fallback": True,
@@ -1007,7 +1071,7 @@ The owner controls governance decisions. Agents may draft, analyze, compare, and
 
 Owner-controlled actions include:
 
-- accepting, rejecting, or deferring proposals;
+- accepting, rejecting, deferring, revoking, replacing, or reinstating proposals;
 - deciding choices;
 - accepting, finalizing, cleaning up, or merging managed work;
 - accepting, rejecting, merging, or finalizing managed proposal branches;
@@ -1036,6 +1100,10 @@ If readiness is missing, weak, below target, or blocked by failed gates, ask foc
 ### Readiness Gap Handling
 
 {READINESS_GAP_HANDLING_BLOCK}
+
+## Proposal Decision Lifecycle
+
+{PROPOSAL_DECISION_LIFECYCLE_BLOCK}
 
 ## Project Vertical Orchestration
 
@@ -1173,6 +1241,10 @@ Use P2P Engine as the source of truth for project governance and planning.
 
 {READINESS_GAP_HANDLING_BLOCK}
 
+## Proposal Decision Lifecycle
+
+{PROPOSAL_DECISION_LIFECYCLE_BLOCK}
+
 ## Project Vertical Orchestration
 
 {PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
@@ -1248,6 +1320,10 @@ Use P2P Engine as the source of truth for project governance and planning.
 ## Readiness Gap Handling
 
 {READINESS_GAP_HANDLING_BLOCK}
+
+## Proposal Decision Lifecycle
+
+{PROPOSAL_DECISION_LIFECYCLE_BLOCK}
 
 ## Project Vertical Orchestration
 
@@ -1336,6 +1412,10 @@ Key rules:
 
 {READINESS_GAP_HANDLING_BLOCK}
 
+## Proposal Decision Lifecycle
+
+{PROPOSAL_DECISION_LIFECYCLE_BLOCK}
+
 ## Project Vertical Orchestration
 
 {PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
@@ -1387,6 +1467,10 @@ alwaysApply: true
 
 {READINESS_GAP_HANDLING_BLOCK}
 
+## Proposal Decision Lifecycle
+
+{PROPOSAL_DECISION_LIFECYCLE_BLOCK}
+
 ## Project Vertical Orchestration
 
 {PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
@@ -1432,6 +1516,10 @@ This repository is managed with P2P Engine.
 
 {READINESS_GAP_HANDLING_BLOCK}
 
+## Proposal Decision Lifecycle
+
+{PROPOSAL_DECISION_LIFECYCLE_BLOCK}
+
 ## Project Vertical Orchestration
 
 {PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
@@ -1475,6 +1563,10 @@ This repository is managed with P2P Engine.
 ## Readiness Gap Handling
 
 {READINESS_GAP_HANDLING_BLOCK}
+
+## Proposal Decision Lifecycle
+
+{PROPOSAL_DECISION_LIFECYCLE_BLOCK}
 
 ## Project Vertical Orchestration
 

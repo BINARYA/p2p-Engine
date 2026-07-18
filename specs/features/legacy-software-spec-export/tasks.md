@@ -13,6 +13,9 @@
   evidenced by `src/p2p_engine/cli.py:2356`, `src/p2p_engine/cli.py:2368`,
   `src/p2p_engine/cli.py:2381`, `src/p2p_engine/cli.py:2396`, and
   `tests/test_cli.py:1935`.
-- [ ] T005: Reclassify this workflow as software-only compatibility in CLI help,
-  docs, MCP descriptions, and skills; completion is updated text plus focused
-  tests where public output changes.
+- [x] T005: Reclassify this workflow as software-only compatibility in CLI help,
+  docs, MCP descriptions, and skills; completion evidenced by
+  `src/p2p_engine/cli_commands/specs.py`,
+  `docs/CLI-GUIDE.md`, `docs/GLOSSARY.md`,
+  `src/p2p_engine/mcp/catalog/work_specs.py`,
+  `src/p2p_engine/services/agent_templates.py`, and focused CLI/MCP/docs tests.

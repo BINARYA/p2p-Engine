@@ -1,0 +1,6 @@
+section:
+  id: governance_accountability
+  title: Governance And Accountability
+  purpose: Define ownership, decision rights, controls, and anti-social-washing safeguards.
+  required: true
+  priority: 50

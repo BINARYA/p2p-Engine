@@ -4,6 +4,11 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from p2p_engine.core.proposal_decision_events import (
+    ProposalDecisionAuthorityResolution,
+    ProposalDecisionBindingStatus,
+    ProposalDecisionLifecycleView,
+)
 from p2p_engine.core.software_spec_lifecycle import (
     SPEC_LIFECYCLE_INTENTS,
     SpecLifecycleDiagnostic,
@@ -108,6 +113,9 @@ class SoftwareSpecLifecycleService:
         project_definition_view: Callable[[], Any],
         choice_statuses: Callable[[], list[Any]],
         show_choice: Callable[[str], Any],
+        proposal_lifecycle_status: (
+            Callable[[str], ProposalDecisionLifecycleView] | None
+        ) = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -117,6 +125,7 @@ class SoftwareSpecLifecycleService:
         self.project_definition_view = project_definition_view
         self.choice_statuses = choice_statuses
         self.show_choice = show_choice
+        self.proposal_lifecycle_status = proposal_lifecycle_status
 
     def lifecycle(
         self,
@@ -219,6 +228,79 @@ class SoftwareSpecLifecycleService:
 
         blockers: list[SpecLifecycleDiagnostic] = []
         for proposal_id in accepted_proposals:
+            if self.proposal_lifecycle_status is not None:
+                try:
+                    lifecycle = self.proposal_lifecycle_status(proposal_id)
+                except ValueError:
+                    lifecycle = None
+                if lifecycle is None:
+                    blockers.append(
+                        SpecLifecycleDiagnostic(
+                            code="source_proposal_not_found",
+                            severity="blocker",
+                            message=(
+                                f"Source proposal {proposal_id} referenced by "
+                                f"{change_id} was not found."
+                            ),
+                            artifact_id=proposal_id,
+                            suggested_command=f"p2p proposal show {proposal_id}",
+                        )
+                    )
+                    continue
+                if (
+                    lifecycle.authority_resolution
+                    != ProposalDecisionAuthorityResolution.resolved
+                ):
+                    blockers.append(
+                        SpecLifecycleDiagnostic(
+                            code="source_authority_unresolved",
+                            severity="blocker",
+                            message=(
+                                f"Source proposal {proposal_id} authority is "
+                                f"{lifecycle.authority_resolution.value}."
+                            ),
+                            artifact_id=proposal_id,
+                            suggested_command=(
+                                f"p2p decision status {proposal_id}"
+                            ),
+                        )
+                    )
+                    continue
+                if not lifecycle.active:
+                    blockers.append(
+                        SpecLifecycleDiagnostic(
+                            code="source_decision_inactive",
+                            severity="blocker",
+                            message=(
+                                f"Source proposal {proposal_id} is now "
+                                f"`{lifecycle.effective_state.value}`; existing "
+                                "spec artifacts remain historical and must not "
+                                "be overwritten by normal refresh."
+                            ),
+                            artifact_id=proposal_id,
+                            suggested_command=f"p2p change show {change_id}",
+                        )
+                    )
+                    continue
+                if (
+                    lifecycle.proposal_binding_status
+                    != ProposalDecisionBindingStatus.current
+                ):
+                    blockers.append(
+                        SpecLifecycleDiagnostic(
+                            code="source_proposal_binding_diverged",
+                            severity="blocker",
+                            message=(
+                                f"Source proposal {proposal_id} semantic binding "
+                                f"is {lifecycle.proposal_binding_status.value}."
+                            ),
+                            artifact_id=proposal_id,
+                            suggested_command=(
+                                f"p2p decision status {proposal_id}"
+                            ),
+                        )
+                    )
+                continue
             try:
                 proposal = self.show_proposal(proposal_id)
             except ValueError:
@@ -232,7 +314,10 @@ class SoftwareSpecLifecycleService:
                     )
                 )
                 continue
-            if getattr(proposal, "status", "") != "accepted":
+            if getattr(proposal, "status", "") not in {
+                "accepted",
+                "accepted_with_changes",
+            }:
                 blockers.append(
                     SpecLifecycleDiagnostic(
                         code="source_not_accepted",

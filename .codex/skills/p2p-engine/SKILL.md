@@ -363,7 +363,9 @@ p2p clarify import PROP-XXX clarification-output.md
 p2p synthesize prompt PROP-XXX
 p2p synthesize import PROP-XXX proposal-output.md
 
-p2p proposal accept PROP-XXX --reason "Reason"
+p2p decision preview PROP-XXX --event-type accepted --reason "Reason" --format json
+# Review the response, then run decision apply with its exact
+# decided_on, operation_key, source head, preview_token, and --confirm.
 
 p2p plan prompt PROP-XXX
 p2p plan import PROP-XXX plan-output.md
@@ -372,7 +374,7 @@ p2p tasks prompt PROP-XXX
 p2p tasks import PROP-XXX tasks-output.yml
 ```
 
-Use shortcut proposal decision commands when possible:
+Compatibility proposal commands use the same two-phase service:
 
 ```bash
 p2p proposal accept PROP-XXX --reason "Reason"
@@ -380,7 +382,11 @@ p2p proposal reject PROP-XXX --reason "Reason"
 p2p proposal defer PROP-XXX --reason "Reason"
 ```
 
-Use `p2p decision record` only when a non-shortcut outcome is needed, such as `accepted_with_changes`, `split`, `merged_into_other`, or `superseded`.
+Without a token they only preview. They apply only when rerun with the exact
+preview date, operation key, source head when present, preview token and
+confirmation. Use generic `p2p decision preview/apply` for
+`accepted_with_changes`, `withdrawn`, `revoked`, `superseded`, `split`,
+`merged_into_other`, and `reinstated`.
 
 Before recommending acceptance, inspect proposal readiness:
 
@@ -391,6 +397,28 @@ p2p proposal readiness explain PROP-XXX
 ```
 
 Treat readiness as advisory but methodologically important. If readiness is `not_assessed`, weak, below the target threshold, or has failed gates, ask focused owner questions and identify concrete missing artifacts before recommending acceptance. The owner can still decide to accept, but the agent must distinguish computed readiness from owner override and must not describe an override as analytical quality.
+
+## Proposal Decision Lifecycle
+
+- Read `p2p decision status PROP-XXX` and bounded history before explaining an
+  existing proposal decision.
+- Treat rejection as an initial never-active outcome. To end authority from an
+  accepted proposal, use a reviewed `revoked` event; never overwrite acceptance
+  as rejection or delete its history.
+- Inspect complete impact before revoke, supersede, split, merge, or reinstate.
+  Applying an event must not rewrite dependent Change, Work, spec, vertical,
+  code, or publication state.
+- Reinstatement references the original accepted event and its matching
+  revocation. Replacement events require typed lineage.
+- Keep proposal decisions separate from managed proposal branch accept/reject
+  operations.
+- On schema v2, use the governed v2-to-v3 migration flow before event writes.
+  Do not create or repair ledgers, projections, locks, journals, or migration
+  state manually.
+- With MCP, use `p2p_proposal_decision_preview` followed by
+  `p2p_proposal_decision_apply`. Consent must use operation
+  `proposal_decision_apply` and target `PROP-XXX@preview-token`; old unbound
+  accept/reject/defer consent cannot write a schema-v3 event.
 
 ## Choices
 
@@ -644,9 +672,10 @@ p2p proposal update PROP-XXX --problem "..." --goal "..."
 p2p proposal readiness show PROP-XXX
 p2p proposal readiness refresh PROP-XXX
 p2p proposal readiness explain PROP-XXX
-p2p proposal accept PROP-XXX --reason "..."
-p2p proposal reject PROP-XXX --reason "..."
-p2p proposal defer PROP-XXX --reason "..."
+p2p decision status PROP-XXX
+p2p decision history PROP-XXX
+p2p decision impact PROP-XXX --event-type revoked
+p2p decision preview PROP-XXX --event-type accepted --reason "..." --format json
 p2p contribution add PROP-XXX "Text" --type suggestion --relevance medium
 p2p intake prompt "Raw idea"
 p2p intake status

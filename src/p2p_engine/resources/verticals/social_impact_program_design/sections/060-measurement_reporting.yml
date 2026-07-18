@@ -1,0 +1,6 @@
+section:
+  id: measurement_reporting
+  title: Measurement And Reporting
+  purpose: Define outcome metrics, evidence, and reporting cadence.
+  required: true
+  priority: 60

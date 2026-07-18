@@ -1,0 +1,6 @@
+section:
+  id: structure_materials
+  title: Structure And Materials
+  purpose: Define dimensions, materials, sustainability, and physical structure.
+  required: true
+  priority: 40

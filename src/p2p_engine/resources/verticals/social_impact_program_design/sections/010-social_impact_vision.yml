@@ -1,0 +1,6 @@
+section:
+  id: social_impact_vision
+  title: Social Impact Vision
+  purpose: Define the social change the program should create.
+  required: true
+  priority: 10

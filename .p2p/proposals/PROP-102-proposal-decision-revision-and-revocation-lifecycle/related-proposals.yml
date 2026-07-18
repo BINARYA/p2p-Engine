@@ -1,0 +1,37 @@
+related_proposals:
+  - proposal: PROP-010
+    relationship: extends
+    reason: Adds event history and derived effective authority to the project state model.
+  - proposal: PROP-012
+    relationship: references
+    reason: Conflict and relation memory must retain historical decisions and replacement lineage.
+  - proposal: PROP-019
+    relationship: extends
+    reason: Existing proposal decision shortcuts expose initial outcomes but not revision lifecycle semantics.
+  - proposal: PROP-053
+    relationship: depends_on
+    reason: Validation must detect invalid transitions event corruption and projection divergence.
+  - proposal: PROP-066
+    relationship: references
+    reason: Privileged MCP revision operations require canonical permissions and consent receipts.
+  - proposal: PROP-077
+    relationship: extends
+    reason: Draft proposal MCP decisions need parity with the expanded revision lifecycle.
+  - proposal: PROP-079
+    relationship: references
+    reason: Revoked or superseded decisions must produce stable impact and remediation next actions.
+  - proposal: PROP-091
+    relationship: extends
+    reason: Governance policy needs explicit meanings and authority for every decision revision outcome.
+  - proposal: PROP-093
+    relationship: depends_on
+    reason: Decision-event writes must follow persistent-write and owner-authority boundaries.
+  - proposal: PROP-094
+    relationship: references
+    reason: Software specifications sourced from inactive decisions require explicit stale or historical treatment.
+  - proposal: PROP-100
+    relationship: extends
+    reason: Decision context already distinguishes active and historical outcomes but needs immutable event history and authority intervals.
+  - proposal: PROP-101
+    relationship: reuses
+    reason: Source-bound preview atomic replacement migration and stale-check patterns should be reused.

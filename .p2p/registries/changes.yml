@@ -1144,3 +1144,20 @@ changes:
   - openspec
   - speckit
   task_count: 29
+- id: CHANGE-070
+  title: Proposal Decision Revision and Revocation Lifecycle
+  status: in_progress
+  path: .p2p/changes/CHANGE-070-proposal-decision-revision-and-revocation-lifecycle
+  included_proposals:
+  - PROP-102
+  referenced_proposals: []
+  execution_domains:
+  - software
+  implementation_targets:
+  - local_cli
+  spec_targets:
+  - p2p_spec
+  export_targets:
+  - openspec
+  - speckit
+  task_count: 0

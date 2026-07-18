@@ -8,6 +8,7 @@ import yaml
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.storage.filesystem import P2PWorkspace
 from tests.decision_context_fixtures import project_files
+from tests.proposal_decision_fixtures import record_decision
 
 
 def _workspace(root: Path) -> P2PWorkspace:
@@ -62,7 +63,8 @@ def test_intake_uses_relevant_idea_context_without_first_n_or_writeback(tmp_path
         goals=["Preserve quasar constraints."],
         proposal="Retrieve quasar decisions by semantic proximity.",
     )
-    workspace.record_decision(
+    record_decision(
+        workspace,
         relevant.proposal_id,
         DecisionOutcome.accepted,
         "Quasar retrieval is the accepted constraint.",

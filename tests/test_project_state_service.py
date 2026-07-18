@@ -8,6 +8,7 @@ import pytest
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.services.project_state import ProjectStateService
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.proposal_decision_fixtures import record_decision
 
 
 @dataclass(frozen=True)
@@ -132,7 +133,7 @@ def test_workspace_project_state_facade_delegates(tmp_path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Project State Facade")
     proposal = workspace.create_proposal("Facade State")
-    workspace.record_decision(proposal.proposal_id, DecisionOutcome.accepted, "Ready.", "owner")
+    record_decision(workspace, proposal.proposal_id, DecisionOutcome.accepted, "Ready.", "owner")
 
     written = workspace.refresh_project_state()
     status = workspace.project_state_status()
@@ -149,7 +150,7 @@ def test_project_refresh_is_idempotent_and_preserves_projection_manifest(tmp_pat
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Idempotent project refresh")
     proposal = workspace.create_proposal("Stable Projection")
-    workspace.record_decision(proposal.proposal_id, DecisionOutcome.accepted, "Ready.", "owner")
+    record_decision(workspace, proposal.proposal_id, DecisionOutcome.accepted, "Ready.", "owner")
 
     first_written = workspace.refresh_project_state()
     manifest_path = tmp_path / ".p2p" / "project" / "projection-manifest.yml"

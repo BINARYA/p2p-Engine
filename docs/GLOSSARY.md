@@ -41,14 +41,43 @@ next actions without requiring every possible artifact to exist as a file.
 
 ## Decision
 
-An owner-controlled governance outcome. Proposal decisions include accept,
-reject, and defer. Choice decisions select one option and record the rationale.
+An owner-controlled governance event. Proposal decision history is append-only
+in workspace schema v3; the current effective state is reduced from the event
+chain. Choice decisions remain a separate lifecycle.
+
+## Rejection
+
+An initial terminal proposal decision for a direction that was never active. A
+rejected proposal is reconsidered through a new linked proposal rather than by
+rewriting its history. Decision status exposes the supported creation command
+without creating the replacement automatically.
+
+## Revocation
+
+An event that closes the active authority of a previously accepted proposal.
+It preserves the original decision, rationale, authority interval and dependent
+artifact history. It does not cancel or rewrite Change Sets, Work, specs, code,
+vertical evidence or publication state.
+
+## Reinstatement
+
+An explicit owner decision that reopens authority from a prior accepted event
+after its matching revocation. Reinstatement does not restore technical state
+automatically; affected dependencies remain reviewable.
+
+## Decision Event Ledger
+
+The canonical schema-v3 `decision-events.yml` chain for one proposal. Events
+bind predecessor, operation key, proposal/decision fingerprints, authority,
+lineage and impact evidence. `proposal.md` status and `decision.md` are derived
+projections, not independent authority.
 
 ## Export Target
 
-A downstream-oriented prompt or document generated from P2P-native project
-state. Current software spec export targets include generic, OpenSpec, and Spec
-Kit initialization outputs.
+A downstream-oriented software-spec handoff generated from a P2P-native
+software spec. Current compatibility targets include generic, OpenSpec, and
+Spec Kit initialization outputs. This is distinct from the visible project
+definition produced by `p2p project export`.
 
 ## Governance
 
@@ -88,6 +117,13 @@ decisions.
 
 A generated index over P2P artifacts such as proposals, decisions, relations,
 changes, and other project state. Registries are refreshed from source artifacts.
+
+## Software Spec Freshness
+
+A per-spec semantic comparison between exact authoritative inputs, versioned
+generated provenance, and deterministic candidate bytes. It distinguishes
+current, compatible legacy, stale source, manually modified output, unknown
+origin, and incomplete artifacts without using file age as identity.
 
 ## Rubric
 

@@ -22,13 +22,17 @@ def semantic_fingerprint(
     extractor_version: str,
     authority_policy_version: str,
     relation_policy_version: str,
+    semantic_payload: object | None = None,
 ) -> str:
     payload = {
-        "source_fingerprint_sha256": source_fingerprint_sha256,
         "extractor_version": extractor_version,
         "authority_policy_version": authority_policy_version,
         "relation_policy_version": relation_policy_version,
     }
+    if semantic_payload is None:
+        payload["source_fingerprint_sha256"] = source_fingerprint_sha256
+    else:
+        payload["semantic_content_sha256"] = _payload_hash(semantic_payload)
     return _payload_hash(payload)
 
 

@@ -59,15 +59,17 @@
   and missing required metadata. Covers R005-R007, E008-E009, AC001.
   Focused validation: validation tests for pack fixtures.
 
-- [ ] T009: Convert or mirror internal seed packs into canonical multi-file
+- [x] T009: Convert or mirror internal seed packs into canonical multi-file
   fixtures only after compatibility tests exist; completion is internal
   `base_project` and demo verticals validating cleanly while current single-file
   compatibility tests still pass. Covers R001-R009, R063, AC001, AC012.
   Focused validation: project vertical service tests and packaging/resource
   tests.
-  Status note: runtime support, validation, and canonical fixtures are
-  implemented; packaged seed files intentionally remain single-file
-  compatibility packs to avoid duplicated seed content in this slice.
+  Completion evidence: all four packaged seeds now use one canonical
+  manifest/vertical/sections/rubrics source, retain their pre-conversion
+  normalized checksums and lock validity, and pass service, release-artifact
+  and isolated installed-wheel tests. External single-file compatibility
+  remains covered.
 
 ## Phase 2 - Resolver And Lockfile
 

@@ -8,6 +8,7 @@ import yaml
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.foundation.markdown import read_frontmatter, replace_frontmatter
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.proposal_decision_fixtures import record_decision
 
 
 def _workspace_with_change(root: Path) -> P2PWorkspace:
@@ -19,7 +20,7 @@ def _workspace_with_change(root: Path) -> P2PWorkspace:
         proposal="Generate a P2P-native software spec.",
         acceptance_criteria=["Spec lifecycle preflight passes."],
     )
-    workspace.record_decision("PROP-001", DecisionOutcome.accepted, reason="Ready.", approver="owner")
+    record_decision(workspace, "PROP-001", DecisionOutcome.accepted, reason="Ready.", approver="owner")
     workspace.create_change_set("PROP-001")
     return workspace
 
@@ -88,7 +89,7 @@ def test_lifecycle_preflight_blocks_non_accepted_source_and_choice_blocker(tmp_p
 
     draft_source = workspace.software_spec_lifecycle("implementation_spec", change_id="CHANGE-001")
 
-    assert draft_source.blockers[0].code == "source_not_accepted"
+    assert draft_source.blockers[0].code == "source_decision_inactive"
 
     _replace_change_source(tmp_path, {"accepted_proposals": ["PROP-001"]})
     choice = workspace.create_choice("Architecture Choice", ["A", "B"])

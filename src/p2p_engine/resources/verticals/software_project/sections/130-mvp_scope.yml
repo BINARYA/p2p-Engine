@@ -1,0 +1,20 @@
+section:
+  id: mvp_scope
+  title: Scope And MVP Boundaries
+  purpose: MVP scope, non-goals, and release boundaries.
+  required: true
+  priority: 130
+  fields:
+  - id: in_scope
+    label: In scope
+    required: true
+    question: What is included in the first useful software scope?
+  - id: out_of_scope
+    label: Out of scope
+    required: true
+    question: What is explicitly excluded?
+  completion_policy:
+    allow_assumed_completion: false
+    required_fields:
+    - in_scope
+    - out_of_scope

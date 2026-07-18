@@ -1,0 +1,26 @@
+contributions:
+- id: C001
+  type: finding
+  author: codex
+  relevance_hint: high
+  text: The current ProposalDecisionService writes decision.md first and proposal.md
+    second, performs no source-state or transition validation, and overwrites the
+    previous decision artifact. A failure between writes can leave status divergence,
+    while a later decision can erase the previously visible acceptance from normal
+    runtime memory.
+- id: C002
+  type: architectural_principle
+  author: codex
+  relevance_hint: high
+  text: Canonical decision memory should preserve immutable decision events, while
+    current proposal status and authority should be a deterministic projection of
+    those events. Git history is audit support, not a substitute for queryable project
+    memory.
+- id: C003
+  type: constraint
+  author: codex
+  relevance_hint: high
+  text: The future thematic decision-memory consolidation must depend on this lifecycle
+    authority contract so that summaries cannot present rejected, revoked, deprecated,
+    or superseded decisions as active and cannot hide that a once-active decision
+    was later reversed.

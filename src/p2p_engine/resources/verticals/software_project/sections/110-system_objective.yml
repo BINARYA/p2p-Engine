@@ -1,0 +1,20 @@
+section:
+  id: system_objective
+  title: System Objective
+  purpose: Product or system objective and measurable outcome.
+  required: true
+  priority: 110
+  fields:
+  - id: objective
+    label: Product or system objective
+    required: true
+    question: What product or system outcome should this software deliver?
+  - id: success_signal
+    label: Success signal
+    required: true
+    question: What observable signal proves the software achieved the objective?
+  completion_policy:
+    allow_assumed_completion: false
+    required_fields:
+    - objective
+    - success_signal

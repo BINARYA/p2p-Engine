@@ -1,0 +1,7 @@
+manifest:
+  schema_version: 1
+  id: base_project
+  name: Base Project
+  version: 1.0.0
+  publisher: p2p_engine
+  source: packaged

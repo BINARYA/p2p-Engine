@@ -346,6 +346,11 @@ relations:
   type: includes
   rationale: Change Set includes accepted proposal.
   source_artifact: .p2p/changes/CHANGE-069-project-readiness-convergence-workflow
+- source: CHANGE-070
+  target: PROP-102
+  type: includes
+  rationale: Change Set includes accepted proposal.
+  source_artifact: .p2p/changes/CHANGE-070-proposal-decision-revision-and-revocation-lifecycle
 - source: PROP-002
   target: CHANGE-063
   type: implemented_by
@@ -691,3 +696,8 @@ relations:
   type: implemented_by
   rationale: Proposal appears in Change Set source metadata.
   source_artifact: .p2p/proposals/PROP-101-project-readiness-convergence-workflow
+- source: PROP-102
+  target: CHANGE-070
+  type: implemented_by
+  rationale: Proposal appears in Change Set source metadata.
+  source_artifact: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle

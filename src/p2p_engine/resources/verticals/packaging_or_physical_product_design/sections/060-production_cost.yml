@@ -1,0 +1,6 @@
+section:
+  id: production_cost
+  title: Production And Cost
+  purpose: Define manufacturability, suppliers, and cost targets.
+  required: true
+  priority: 60

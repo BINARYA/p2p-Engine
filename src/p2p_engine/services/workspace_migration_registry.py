@@ -68,11 +68,13 @@ class WorkspaceMigrationRegistry:
                 from p2p_engine.services.workspace_migration_handlers import (
                     LegacyUndeclaredToV1Handler,
                     WorkspaceV1ToV2ProjectQuestionsHandler,
+                    WorkspaceV2ToV3ProposalDecisionLedgerHandler,
                 )
 
                 self._handlers = (
                     LegacyUndeclaredToV1Handler(source_transitions[0]),
                     WorkspaceV1ToV2ProjectQuestionsHandler(source_transitions[1]),
+                    WorkspaceV2ToV3ProposalDecisionLedgerHandler(source_transitions[2]),
                 )
             else:
                 from p2p_engine.services.workspace_migration_handlers import RegisteredWorkspaceMigrationHandler
@@ -213,9 +215,9 @@ def default_workspace_migrations() -> tuple[MigrationTransition, ...]:
             migration_id="workspace-legacy-to-v1",
             source_version=0,
             target_version=1,
-            inspect_requires=">=0.2.0,<0.4.0",
-            plan_requires=">=0.2.0,<0.4.0",
-            apply_requires=">=0.2.0,<0.4.0",
+            inspect_requires=">=0.2.0,<0.5.0",
+            plan_requires=">=0.2.0,<0.5.0",
+            apply_requires=">=0.2.0,<0.5.0",
             capabilities=(
                 "candidate_overlay",
                 "durable_transactions",
@@ -229,9 +231,9 @@ def default_workspace_migrations() -> tuple[MigrationTransition, ...]:
             migration_id="workspace-v1-to-v2",
             source_version=1,
             target_version=2,
-            inspect_requires=">=0.3.0,<0.4.0",
-            plan_requires=">=0.3.0,<0.4.0",
-            apply_requires=">=0.3.0,<0.4.0",
+            inspect_requires=">=0.3.0,<0.5.0",
+            plan_requires=">=0.3.0,<0.5.0",
+            apply_requires=">=0.3.0,<0.5.0",
             capabilities=(
                 "candidate_overlay",
                 "durable_transactions",
@@ -240,6 +242,23 @@ def default_workspace_migrations() -> tuple[MigrationTransition, ...]:
                 "stateless_preview",
             ),
             dependencies=("workspace-legacy-to-v1",),
+            required_owner_inputs=(),
+        ),
+        MigrationTransition(
+            migration_id="workspace-v2-to-v3",
+            source_version=2,
+            target_version=3,
+            inspect_requires=">=0.4.0,<0.5.0",
+            plan_requires=">=0.4.0,<0.5.0",
+            apply_requires=">=0.4.0,<0.5.0",
+            capabilities=(
+                "candidate_overlay",
+                "durable_transactions",
+                "exclusive_migration_lock",
+                "semantic_plan_hashes",
+                "stateless_preview",
+            ),
+            dependencies=("workspace-legacy-to-v1", "workspace-v1-to-v2"),
             required_owner_inputs=(),
         ),
     )

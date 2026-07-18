@@ -1,0 +1,6 @@
+section:
+  id: beneficiary_communities
+  title: Beneficiary Communities
+  purpose: Identify who benefits and why they are prioritized.
+  required: true
+  priority: 30

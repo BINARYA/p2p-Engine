@@ -64,9 +64,9 @@ def _distinct_proposal(
     )
 
 
-def test_policy_constants_are_versioned_and_match_v1_limits() -> None:
+def test_policy_constants_are_versioned_and_match_v2_limits() -> None:
     policy = retrieval_policy()
-    assert policy.version == "decision-context-retrieval-v1"
+    assert policy.version == "decision-context-retrieval-v2"
     assert policy.candidate_limit == 200
     assert policy.minimum_score == 15
     assert policy.historical_threshold == 35

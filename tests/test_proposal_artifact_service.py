@@ -4,9 +4,11 @@ import pytest
 import yaml
 
 from p2p_engine.core.decision import DecisionOutcome
+from p2p_engine.core.proposal_decision_events import ProposalDecisionEventType
 from p2p_engine.storage.filesystem import P2PWorkspace
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 from tests.decision_context_fixtures import project_files
+from tests.proposal_decision_fixtures import record_decision
 
 
 NARRATIVE_ARTIFACTS = (
@@ -108,7 +110,8 @@ def test_phase_prompts_use_bounded_nearby_context_without_writeback(tmp_path: Pa
         non_goals=["Replace canonical Markdown and YAML."],
         proposal="Preserve topology evidence references.",
     )
-    workspace.record_decision(
+    record_decision(
+        workspace,
         accepted.proposal_id,
         DecisionOutcome.accepted,
         "Topology evidence provenance is mandatory.",
@@ -119,7 +122,8 @@ def test_phase_prompts_use_bounded_nearby_context_without_writeback(tmp_path: Pa
         problem="An earlier topology model used registry order.",
         proposal="Select the first topology records by identifier.",
     )
-    workspace.record_decision(
+    record_decision(
+        workspace,
         historical.proposal_id,
         DecisionOutcome.rejected,
         "Registry order is not semantic relevance.",
@@ -453,7 +457,7 @@ def test_impact_preview_apply_requires_owner_and_matching_stateless_token(tmp_pa
     workspace.init_project("Impact Correction")
     target = workspace.create_proposal("Committed impact")
     related = workspace.create_proposal("Related proposal")
-    workspace.record_decision(target.proposal_id, DecisionOutcome.accepted, "Accepted.", "owner")
+    record_decision(workspace, target.proposal_id, DecisionOutcome.accepted, "Accepted.", "owner")
     service = workspace._proposal_artifact_service()
     artifacts = {
         "impact-map.yml": "impact:\n  capabilities: [migration]\n",
@@ -493,7 +497,7 @@ def test_impact_apply_rejects_changed_canonical_source_without_overwriting_it(tm
     workspace.init_project("Impact Source Drift")
     target = workspace.create_proposal("Committed impact")
     related = workspace.create_proposal("Related proposal")
-    workspace.record_decision(target.proposal_id, DecisionOutcome.accepted, "Accepted.", "owner")
+    record_decision(workspace, target.proposal_id, DecisionOutcome.accepted, "Accepted.", "owner")
     proposal_dir = tmp_path / target.path
     impact_path = proposal_dir / "impact-map.yml"
     related_path = proposal_dir / "related-proposals.yml"
@@ -531,7 +535,7 @@ def test_impact_preview_uses_legacy_owner_fallback_without_permissions(tmp_path:
     workspace.init_project("Legacy Impact Authority")
     target = workspace.create_proposal("Committed impact")
     related = workspace.create_proposal("Related proposal")
-    workspace.record_decision(target.proposal_id, DecisionOutcome.accepted, "Accepted.", "owner")
+    record_decision(workspace, target.proposal_id, DecisionOutcome.accepted, "Accepted.", "owner")
     (tmp_path / ".p2p" / "project" / "permissions.yml").unlink()
     artifacts = {
         "related-proposals.yml": (
@@ -554,6 +558,76 @@ def test_impact_preview_uses_legacy_owner_fallback_without_permissions(tmp_path:
 
     assert owner.authority == "owner_confirmed"
     assert owner.apply_allowed is True
+    assert contributor.authority == "owner_required"
+    assert contributor.apply_allowed is False
+
+
+def test_impact_authority_uses_ledger_when_proposal_projection_is_corrupted(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Impact Ledger Authority")
+    target = workspace.create_proposal("Committed impact")
+    record_decision(
+        workspace,
+        target.proposal_id,
+        DecisionOutcome.accepted,
+        "Accepted.",
+        "owner",
+    )
+    proposal_path = tmp_path / target.path / "proposal.md"
+    proposal_path.write_text(
+        proposal_path.read_text(encoding="utf-8").replace(
+            "## Status\n\n`accepted`",
+            "## Status\n\n`draft`",
+        ),
+        encoding="utf-8",
+    )
+    artifacts = {"impact-map.yml": "impact:\n  capabilities: [ledger]\n"}
+    service = workspace._proposal_artifact_service()
+
+    contributor = service.preview_impact(
+        target.proposal_id,
+        artifacts,
+        actor="contributor",
+    )
+
+    assert contributor.authority == "owner_required"
+    assert contributor.apply_allowed is False
+
+
+def test_revoked_proposal_impact_remains_owner_controlled(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Historical Impact Authority")
+    target = workspace.create_proposal("Historical impact")
+    record_decision(
+        workspace,
+        target.proposal_id,
+        DecisionOutcome.accepted,
+        "Accepted.",
+        "owner",
+    )
+    service = workspace._proposal_decision_service()
+    request = service.request(
+        proposal_id=target.proposal_id,
+        event_type=ProposalDecisionEventType.revoked,
+        reason="No longer active.",
+        actor_id="owner",
+    )
+    preview = service.preview(request)
+    service.apply(
+        preview.request,
+        preview_token=preview.mutation.preview_token,
+        confirm=True,
+    )
+    artifacts = {"impact-map.yml": "impact:\n  capabilities: [historical]\n"}
+
+    contributor = workspace._proposal_artifact_service().preview_impact(
+        target.proposal_id,
+        artifacts,
+        actor="contributor",
+    )
+
     assert contributor.authority == "owner_required"
     assert contributor.apply_allowed is False
 

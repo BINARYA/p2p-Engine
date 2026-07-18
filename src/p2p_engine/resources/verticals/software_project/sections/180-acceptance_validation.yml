@@ -1,0 +1,20 @@
+section:
+  id: acceptance_validation
+  title: Acceptance And Validation Strategy
+  purpose: Acceptance criteria, tests, rollout validation, and quality gates.
+  required: true
+  priority: 180
+  fields:
+  - id: acceptance_criteria
+    label: Acceptance criteria
+    required: true
+    question: What proves the software behavior is accepted?
+  - id: validation_strategy
+    label: Validation strategy
+    required: true
+    question: Which tests or checks will validate the implementation?
+  completion_policy:
+    allow_assumed_completion: false
+    required_fields:
+    - acceptance_criteria
+    - validation_strategy

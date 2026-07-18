@@ -7,6 +7,11 @@ from datetime import date
 from pathlib import Path
 from typing import Protocol
 
+from p2p_engine.core.proposal_decision_events import (
+    ProposalDecisionAuthorityResolution,
+    ProposalDecisionBindingStatus,
+    ProposalDecisionLifecycleView,
+)
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
     yaml_dump as _yaml_dump,
@@ -81,6 +86,9 @@ class WorkPlanningService:
         validate_export: Callable[[str, str], WorkExportValidation],
         find_change_dir: Callable[[str], Path],
         scanned_work_items: Callable[[], list[dict[str, object]]],
+        proposal_lifecycle_status: (
+            Callable[[str], ProposalDecisionLifecycleView] | None
+        ) = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -88,18 +96,46 @@ class WorkPlanningService:
         self.validate_export = validate_export
         self.find_change_dir = find_change_dir
         self.scanned_work_items = scanned_work_items
+        self.proposal_lifecycle_status = proposal_lifecycle_status
 
     def create_plan(self, change_id: str, target: str) -> WorkDetail:
         target = target.lower()
         if target not in self.export_targets():
             raise ValueError(f"Unsupported work handoff target: {target}")
-        validation = self.validate_export(change_id, target)
         change_dir = self.find_change_dir(change_id)
         change_text = _read_optional(change_dir / "change.md")
         change_frontmatter = read_frontmatter(change_text)
         source = change_frontmatter.get("source", {})
         if not isinstance(source, dict):
             source = {}
+        source_proposals = _string_list(source.get("accepted_proposals"))
+        source_decisions: list[dict[str, object]] = []
+        if self.proposal_lifecycle_status is not None:
+            for proposal_id in source_proposals:
+                lifecycle = self.proposal_lifecycle_status(proposal_id)
+                if (
+                    lifecycle.authority_resolution
+                    != ProposalDecisionAuthorityResolution.resolved
+                    or not lifecycle.active
+                    or lifecycle.proposal_binding_status
+                    != ProposalDecisionBindingStatus.current
+                ):
+                    raise ValueError(
+                        "Cannot create Work. Governing proposal "
+                        f"{proposal_id} has no current active bound authority "
+                        f"({lifecycle.effective_state.value}, "
+                        f"{lifecycle.proposal_binding_status.value})."
+                    )
+                source_decisions.append(
+                    {
+                        "proposal": proposal_id,
+                        "head_event_id": lifecycle.head_event_id,
+                        "decision_semantic_sha256": (
+                            lifecycle.decision_semantic_sha256
+                        ),
+                    }
+                )
+        validation = self.validate_export(change_id, target)
         work_id = self.next_id()
         work_dir = self.p2p_dir / "work" / work_id
         work_dir.mkdir(parents=True)
@@ -110,7 +146,8 @@ class WorkPlanningService:
             target=target,
             branch_name=branch_name,
             export_path=str(validation.path),
-            source_proposals=_string_list(source.get("accepted_proposals")),
+            source_proposals=source_proposals,
+            source_decisions=source_decisions,
             allowed_files=[str(path) for path in validation.checked],
         )
         (work_dir / "manifest.yml").write_text(_yaml_dump(manifest), encoding="utf-8")
@@ -291,6 +328,7 @@ def work_manifest(
     branch_name: str,
     export_path: str,
     source_proposals: list[str],
+    source_decisions: list[dict[str, object]] | None = None,
     allowed_files: list[str],
 ) -> dict[str, object]:
     return {
@@ -301,6 +339,7 @@ def work_manifest(
         "source": {
             "change": change_id,
             "proposals": source_proposals,
+            "decisions": source_decisions or [],
         },
         "handoff": {
             "target": target,

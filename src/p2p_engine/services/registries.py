@@ -37,7 +37,13 @@ RegistryRecordsWithChanges = Callable[[list[dict[str, object]]], list[dict[str, 
 
 REGISTRY_DEFINITIONS: dict[str, dict[str, str]] = {
     "proposals": {"filename": "proposals.yml", "source": ".p2p/proposals"},
-    "decisions": {"filename": "decisions.yml", "source": ".p2p/proposals/*/decision.md"},
+    "decisions": {
+        "filename": "decisions.yml",
+        "source": (
+            ".p2p/proposals/*/decision-events.yml "
+            "and schema-v2 decision.md compatibility projections"
+        ),
+    },
     "changes": {"filename": "changes.yml", "source": ".p2p/changes"},
     "choices": {"filename": "choices.yml", "source": ".p2p/choices and proposal votes"},
     "relations": {"filename": "relations.yml", "source": ".p2p proposal and change metadata"},

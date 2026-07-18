@@ -8,7 +8,9 @@ from typing import Any
 
 import yaml
 
+from p2p_engine.core.proposal_decision_events import ProposalDecisionLifecycleView
 from p2p_engine.foundation.markdown import read_title
+from p2p_engine.services.lifecycle_authority import proposal_display_status
 
 
 @dataclass(frozen=True)
@@ -17,6 +19,15 @@ class ProposalSummary:
     slug: str
     status: str
     title: str = ""
+    effective_state: str = "unknown"
+    head_event_type: str | None = None
+    head_event_id: str | None = None
+    event_count: int = 0
+    authority_resolution: str = "invalid"
+    ever_active: bool = False
+    active: bool = False
+    proposal_binding_status: str = "unavailable"
+    decision_semantic_sha256: str | None = None
 
 
 @dataclass(frozen=True)
@@ -42,11 +53,15 @@ class WorkspaceStatusService:
         p2p_dir: Path,
         workspace_schema_status: Callable[[], Any] | None = None,
         derived_freshness_status: Callable[[], Any] | None = None,
+        proposal_decision_lifecycles: (
+            Callable[[], Mapping[str, ProposalDecisionLifecycleView]] | None
+        ) = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
         self.workspace_schema_status = workspace_schema_status
         self.derived_freshness_status = derived_freshness_status
+        self.proposal_decision_lifecycles = proposal_decision_lifecycles
 
     def status(self) -> WorkspaceStatus:
         project_name = "Unknown"
@@ -68,13 +83,32 @@ class WorkspaceStatusService:
 
     def _read_proposal_summaries(self) -> list[ProposalSummary]:
         proposals: list[ProposalSummary] = []
+        lifecycles = (
+            self.proposal_decision_lifecycles()
+            if self.proposal_decision_lifecycles is not None
+            else {}
+        )
         proposals_dir = self.p2p_dir / "proposals"
         if proposals_dir.exists():
             for path in sorted(proposals_dir.iterdir()):
                 if not path.is_dir():
                     continue
                 proposal_id = "-".join(path.name.split("-", 2)[:2])
-                status = _read_proposal_status(path / "proposal.md")
+                lifecycle = lifecycles.get(proposal_id)
+                projected_status = _read_proposal_status(path / "proposal.md")
+                effective_state = (
+                    lifecycle.effective_state.value
+                    if lifecycle is not None
+                    else projected_status
+                )
+                status = (
+                    proposal_display_status(
+                        lifecycle,
+                        undecided_fallback=projected_status,
+                    )
+                    if lifecycle is not None
+                    else projected_status
+                )
                 proposals.append(
                     ProposalSummary(
                         proposal_id=proposal_id,
@@ -83,6 +117,48 @@ class WorkspaceStatusService:
                         title=_clean_proposal_title(
                             read_title(_read_optional(path / "proposal.md")) or path.name,
                             proposal_id,
+                        ),
+                        effective_state=effective_state,
+                        head_event_type=(
+                            lifecycle.head_event_type.value
+                            if lifecycle is not None
+                            and lifecycle.head_event_type is not None
+                            else None
+                        ),
+                        head_event_id=(
+                            lifecycle.head_event_id
+                            if lifecycle is not None
+                            else None
+                        ),
+                        event_count=(
+                            lifecycle.event_count
+                            if lifecycle is not None
+                            else 0
+                        ),
+                        authority_resolution=(
+                            lifecycle.authority_resolution.value
+                            if lifecycle is not None
+                            else "invalid"
+                        ),
+                        ever_active=(
+                            lifecycle.ever_active
+                            if lifecycle is not None
+                            else False
+                        ),
+                        active=(
+                            lifecycle.active
+                            if lifecycle is not None
+                            else False
+                        ),
+                        proposal_binding_status=(
+                            lifecycle.proposal_binding_status.value
+                            if lifecycle is not None
+                            else "unavailable"
+                        ),
+                        decision_semantic_sha256=(
+                            lifecycle.decision_semantic_sha256
+                            if lifecycle is not None
+                            else None
                         ),
                     )
                 )

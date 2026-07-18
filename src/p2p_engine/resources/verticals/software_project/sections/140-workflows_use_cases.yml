@@ -1,0 +1,15 @@
+section:
+  id: workflows_use_cases
+  title: Workflows And Use Cases
+  purpose: Core workflows, use cases, and user journeys.
+  required: true
+  priority: 140
+  fields:
+  - id: core_workflows
+    label: Core workflows
+    required: true
+    question: Which workflows must the software support?
+  completion_policy:
+    allow_assumed_completion: false
+    required_fields:
+    - core_workflows

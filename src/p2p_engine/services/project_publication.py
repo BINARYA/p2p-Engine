@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from p2p_engine.core.proposal_decision_events import ProposalDecisionLifecycleView
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
     relative_to_root as _relative_to_root,
@@ -37,6 +38,7 @@ FINGERPRINT_VERSION = 1
 _PROPOSAL_FINGERPRINT_FILES = (
     "proposal.md",
     "alternatives.md",
+    "decision-events.yml",
     "decision.md",
     "findings.md",
     "risks.md",
@@ -138,6 +140,9 @@ class ProjectPublicationService:
         accepted_proposals: Callable[[], list[dict[str, object]]],
         project_vertical_lock_status: Callable[[], Any] | None = None,
         project_definition_view: Callable[[], Any] | None = None,
+        proposal_decision_lifecycles: (
+            Callable[[], dict[str, ProposalDecisionLifecycleView]] | None
+        ) = None,
         pdf_renderer: PdfRenderer | None = None,
     ) -> None:
         self.root = root
@@ -146,6 +151,7 @@ class ProjectPublicationService:
         self.accepted_proposals = accepted_proposals
         self.project_vertical_lock_status = project_vertical_lock_status
         self.project_definition_view = project_definition_view
+        self.proposal_decision_lifecycles = proposal_decision_lifecycles
         self.pdf_renderer = pdf_renderer or render_pdf_with_weasyprint
 
     def paths(self) -> PublicationPaths:
@@ -508,6 +514,24 @@ class ProjectPublicationService:
             if proposal_dir is None:
                 continue
             paths.extend(proposal_dir / filename for filename in _PROPOSAL_FINGERPRINT_FILES)
+        if self.proposal_decision_lifecycles is not None:
+            proposals_root = self.p2p_dir / "proposals"
+            for proposal_id, lifecycle in sorted(
+                self.proposal_decision_lifecycles().items()
+            ):
+                if lifecycle.event_count == 0 and not lifecycle.diagnostics:
+                    continue
+                matches = (
+                    sorted(proposals_root.glob(f"{proposal_id}-*"))
+                    if proposals_root.exists()
+                    else []
+                )
+                if len(matches) != 1 or not matches[0].is_dir():
+                    continue
+                paths.extend(
+                    matches[0] / filename
+                    for filename in _PROPOSAL_FINGERPRINT_FILES
+                )
         unique: dict[str, Path] = {}
         for path in paths:
             unique[str(path.resolve())] = path

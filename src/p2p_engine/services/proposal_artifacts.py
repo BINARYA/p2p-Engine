@@ -21,6 +21,7 @@ from p2p_engine.core.mutation_preview import (
     semantic_sha256,
     source_precondition,
 )
+from p2p_engine.core.proposal_decision_events import ProposalDecisionLifecycleView
 from p2p_engine.foundation.validators import (
     validate_tasks_yaml,
     validate_yaml_key,
@@ -168,6 +169,9 @@ class ProposalArtifactService:
         atomic_writer: AtomicMutationWriter | None = None,
         vertical_service: ProjectVerticalService | None = None,
         artifact_state_service: ProposalArtifactStateService | None = None,
+        proposal_lifecycle_status: (
+            Callable[[str], ProposalDecisionLifecycleView] | None
+        ) = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -184,6 +188,7 @@ class ProposalArtifactService:
             root=root,
             find_proposal_dir=find_proposal_dir,
         )
+        self.proposal_lifecycle_status = proposal_lifecycle_status
 
     def generate_prompt(self, proposal_id: str, kind: PromptKind) -> Path:
         proposal_dir = self.find_proposal_dir(proposal_id)
@@ -312,7 +317,7 @@ class ProposalArtifactService:
                 "before_semantic_sha256": _yaml_semantic_hash(current),
                 "candidate_semantic_sha256": semantic_sha256(parsed[filename]),
             }
-        authority = self._impact_authority(proposal_dir, actor)
+        authority = self._impact_authority(proposal_id, proposal_dir, actor)
         blockers = () if authority in {"owner_confirmed", "known_actor"} else (authority,)
         return MutationPreviewService.build(
             operation_id=f"proposal-impact:{proposal_id}",
@@ -667,7 +672,7 @@ class ProposalArtifactService:
     ) -> list[Path]:
         self._validate_impact_set(proposal_id, artifacts)
         existing = [proposal_dir / filename for filename in artifacts if (proposal_dir / filename).exists()]
-        if existing and _proposal_lifecycle_status(proposal_dir) in {"accepted", "accepted_with_changes"}:
+        if existing and self._impact_requires_owner(proposal_id, proposal_dir):
             raise ValueError(
                 "Committed impact correction requires impact preview/apply with actor and confirmation."
             )
@@ -737,12 +742,29 @@ class ProposalArtifactService:
                     )
         return parsed
 
-    def _impact_authority(self, proposal_dir: Path, actor: str) -> str:
-        lifecycle = _proposal_lifecycle_status(proposal_dir)
+    def _impact_authority(
+        self,
+        proposal_id: str,
+        proposal_dir: Path,
+        actor: str,
+    ) -> str:
         role = _actor_role(self.p2p_dir / "project" / "permissions.yml", actor)
-        if lifecycle in {"accepted", "accepted_with_changes"}:
+        if self._impact_requires_owner(proposal_id, proposal_dir):
             return "owner_confirmed" if role == "owner" else "owner_required"
         return "known_actor" if role else "actor_unknown"
+
+    def _impact_requires_owner(
+        self,
+        proposal_id: str,
+        proposal_dir: Path,
+    ) -> bool:
+        if self.proposal_lifecycle_status is not None:
+            lifecycle = self.proposal_lifecycle_status(proposal_id)
+            return lifecycle.active or lifecycle.ever_active
+        return _proposal_lifecycle_status(proposal_dir) in {
+            "accepted",
+            "accepted_with_changes",
+        }
 
     def _prompt_context(self, proposal_id: str, proposal_dir: Path) -> dict[str, str]:
         return {

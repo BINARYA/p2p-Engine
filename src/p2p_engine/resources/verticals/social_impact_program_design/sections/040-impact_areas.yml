@@ -1,0 +1,7 @@
+section:
+  id: impact_areas
+  title: Impact Areas
+  purpose: Select financial inclusion, education, credit access, territory, work,
+    environment, or other impact domains.
+  required: true
+  priority: 40

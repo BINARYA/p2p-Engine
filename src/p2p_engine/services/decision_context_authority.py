@@ -56,6 +56,30 @@ _LIFECYCLE_RULES: Mapping[str, LifecycleAuthority] = {
         Authority.HISTORICAL_PROPOSAL,
         Activation.HISTORICAL,
     ),
+    "withdrawn": LifecycleAuthority(
+        Authority.HISTORICAL_PROPOSAL,
+        Activation.HISTORICAL,
+        Authority.HISTORICAL_PROPOSAL,
+        Activation.HISTORICAL,
+    ),
+    "revoked": LifecycleAuthority(
+        Authority.HISTORICAL_PROPOSAL,
+        Activation.HISTORICAL,
+        Authority.HISTORICAL_PROPOSAL,
+        Activation.HISTORICAL,
+    ),
+    "reinstated": LifecycleAuthority(
+        Authority.ACCEPTED_PROPOSAL_CONTEXT,
+        Activation.ACTIVE,
+        Authority.ACCEPTED_DECISION,
+        Activation.ACTIVE,
+    ),
+    "unknown_legacy": LifecycleAuthority(
+        Authority.HISTORICAL_PROPOSAL,
+        Activation.UNRESOLVED,
+        Authority.UNKNOWN,
+        Activation.UNRESOLVED,
+    ),
     "split": LifecycleAuthority(
         Authority.HISTORICAL_PROPOSAL,
         Activation.HISTORICAL,

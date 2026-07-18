@@ -1,0 +1,19 @@
+section:
+  id: users_and_actors
+  title: Users And Actors
+  purpose: Intended users, actors, operators, and stakeholders.
+  required: true
+  priority: 120
+  fields:
+  - id: primary_users
+    label: Primary users
+    required: true
+    question: Who are the primary users or actors?
+  - id: operator_roles
+    label: Operator roles
+    required: false
+    question: Which operators, maintainers, or external systems interact with it?
+  completion_policy:
+    allow_assumed_completion: false
+    required_fields:
+    - primary_users

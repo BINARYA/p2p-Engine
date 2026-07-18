@@ -1,0 +1,6 @@
+section:
+  id: contained_product
+  title: Contained Product And Use Case
+  purpose: Define what the box contains and how it will be used.
+  required: true
+  priority: 10

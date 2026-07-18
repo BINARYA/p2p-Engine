@@ -86,6 +86,17 @@ EXPECTED_TOOL_NAMES = (
     "p2p_next_refresh",
     "p2p_proposal_list",
     "p2p_proposal_show",
+    "p2p_proposal_decision_status",
+    "p2p_proposal_decision_history",
+    "p2p_proposal_decision_impact",
+    "p2p_proposal_decision_preview",
+    "p2p_proposal_decision_apply",
+    "p2p_proposal_decision_projection_repair_preview",
+    "p2p_proposal_decision_projection_repair_apply",
+    "p2p_proposal_decision_ledger_repair_preview",
+    "p2p_proposal_decision_ledger_repair_apply",
+    "p2p_proposal_decision_legacy_resolution_preview",
+    "p2p_proposal_decision_legacy_resolution_apply",
     "p2p_proposal_readiness_get",
     "p2p_proposal_readiness_init",
     "p2p_proposal_readiness_refresh",
@@ -167,6 +178,16 @@ EXPECTED_TOOL_NAMES = (
     "p2p_swot_prompt",
     "p2p_spec_prompt",
 )
+
+
+def test_software_spec_mcp_descriptions_preserve_native_and_export_boundary() -> None:
+    definitions = {item["name"]: item for item in tool_definitions()}
+
+    assert "P2P-native software specs" in definitions["p2p_spec_status"]["description"]
+    export_description = definitions["p2p_spec_export"]["description"]
+    assert "spec artifacts" in export_description
+    assert "target" in export_description
+    assert "project definition" not in export_description
 
 
 def test_mcp_registry_definitions_match_declared_tool_names() -> None:

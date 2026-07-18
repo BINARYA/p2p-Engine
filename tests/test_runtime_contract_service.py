@@ -247,14 +247,14 @@ def test_workspace_runtime_contract_update_repairs_incompatible_contract(tmp_pat
     )
     reason = "Move the project to the active runtime line."
     preview = workspace.runtime_contract_update_preview(
-        requires=">=0.2.0,<0.4.0",
+        requires=">=0.4.0,<0.5.0",
         recommended=P2P_ENGINE_VERSION,
         reason=reason,
         actor="owner",
     )
 
     result = workspace.runtime_contract_update_apply(
-        requires=">=0.2.0,<0.4.0",
+        requires=">=0.4.0,<0.5.0",
         recommended=P2P_ENGINE_VERSION,
         expected_state_token=preview.expected_state_token or "",
         confirm=True,

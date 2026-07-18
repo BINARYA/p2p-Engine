@@ -13,12 +13,81 @@ from p2p_engine import __version__ as P2P_ENGINE_VERSION
 from p2p_engine.cli import app
 from p2p_engine.foundation.markdown import read_frontmatter, replace_frontmatter
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.filesystem_assertions import assert_no_workspace_mutation
 
 runner = CliRunner()
 
 
+def test_cli_spec_export_help_classifies_software_spec_handoff() -> None:
+    group = runner.invoke(app, ["spec", "--help"])
+    command = runner.invoke(app, ["spec", "export", "--help"])
+
+    assert group.exit_code == 0
+    assert command.exit_code == 0
+    assert "software-spec handoff bundle" in group.output
+    assert "software-spec handoff bundle" in command.output
+    assert "project definition outputs" not in group.output
+    assert "project definition outputs" not in command.output
+
+
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True)
+
+
+def _apply_proposal_decision(
+    root: Path,
+    proposal_id: str,
+    *,
+    outcome: str = "accepted",
+    reason: str = "Ready.",
+    approver: str = "owner",
+    override_readiness: bool = False,
+):
+    command = {
+        "accepted": "accept",
+        "rejected": "reject",
+        "deferred": "defer",
+    }[outcome]
+    base = [
+        "proposal",
+        command,
+        proposal_id,
+        "--reason",
+        reason,
+        "--approver",
+        approver,
+    ]
+    if override_readiness:
+        base.append("--override-readiness")
+    preview = runner.invoke(
+        app,
+        [*base, "--format", "json", "--root", str(root)],
+    )
+    assert preview.exit_code == 0, preview.output
+    payload = json.loads(preview.output)
+    request = payload["request"]
+    mutation = payload["preview"]
+    apply_arguments = [
+        *base,
+        "--decided-on",
+        request["decided_on"],
+        "--operation-key",
+        request["operation_key"],
+        "--preview-token",
+        mutation["preview_token"],
+        "--confirm",
+        "--format",
+        "json",
+        "--root",
+        str(root),
+    ]
+    if request["source_head_event_id"]:
+        apply_arguments.extend(
+            ["--source-head-event-id", request["source_head_event_id"]]
+        )
+    applied = runner.invoke(app, apply_arguments)
+    assert applied.exit_code == 0, applied.output
+    return applied
 
 
 def _assert_codex_curator_skill(root: Path) -> None:
@@ -458,7 +527,7 @@ def test_cli_project_export_writes_visible_latest_and_review_snapshot(tmp_path: 
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001")
 
     result = runner.invoke(app, ["project", "export", "--root", str(tmp_path)])
 
@@ -507,7 +576,7 @@ def test_cli_project_publish_prepare_import_and_status(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001")
 
     first = runner.invoke(app, ["project", "publish", "prepare", "--root", str(tmp_path)])
     second = runner.invoke(app, ["project", "publish", "prepare", "--root", str(tmp_path)])
@@ -580,7 +649,7 @@ def test_cli_project_publish_render_and_review_with_fake_renderer(tmp_path: Path
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["project", "publish", "prepare", "--root", str(tmp_path)])
     draft = tmp_path / "curated-draft.md"
     draft.write_text(
@@ -1271,6 +1340,14 @@ def test_cli_proposal_merge_merges_reviewed_branch_into_base(tmp_path: Path) -> 
 def test_cli_proposal_accept_branch_records_governance_decision(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "Chiusura Magnetica", "--root", str(tmp_path)])
+    ledger_path = (
+        tmp_path
+        / ".p2p"
+        / "proposals"
+        / "PROP-001-chiusura-magnetica"
+        / "decision-events.yml"
+    )
+    ledger_before = ledger_path.read_bytes()
     _git(tmp_path, "init")
     _git(tmp_path, "config", "user.email", "test@example.com")
     _git(tmp_path, "config", "user.name", "Test User")
@@ -1298,6 +1375,7 @@ def test_cli_proposal_accept_branch_records_governance_decision(tmp_path: Path) 
     assert data["status"] == "accepted"
     assert data["branch_decision"]["outcome"] == "accepted"
     assert data["branch_decision"]["reason"] == "Ready to merge."
+    assert ledger_path.read_bytes() == ledger_before
 
     _git(tmp_path, "checkout", "main")
     result = runner.invoke(app, ["proposal", "merge", "PROP-001", "--root", str(tmp_path)])
@@ -1434,7 +1512,7 @@ def test_cli_project_rubrics_and_definition_maturity(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Needed.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001", reason="Needed.")
 
     result = runner.invoke(app, ["project", "rubrics", "show", "--root", str(tmp_path)])
 
@@ -1999,6 +2077,27 @@ def test_cli_import_exploration_file_and_record_decision(tmp_path: Path) -> None
     assert result.exit_code == 0
     assert "Exploration imported" in result.output
 
+    preview_result = runner.invoke(
+        app,
+        [
+            "decision",
+            "record",
+            "PROP-001",
+            "--outcome",
+            "accepted",
+            "--reason",
+            "Scope is clear enough.",
+            "--format",
+            "json",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert preview_result.exit_code == 0
+    preview = json.loads(preview_result.output)
+    assert preview["status"] == "preview_required"
+
+    request = preview["request"]
     result = runner.invoke(
         app,
         [
@@ -2009,12 +2108,21 @@ def test_cli_import_exploration_file_and_record_decision(tmp_path: Path) -> None
             "accepted",
             "--reason",
             "Scope is clear enough.",
+            "--decided-on",
+            request["decided_on"],
+            "--operation-key",
+            request["operation_key"],
+            "--preview-token",
+            preview["preview"]["preview_token"],
+            "--confirm",
+            "--format",
+            "json",
             "--root",
             str(tmp_path),
         ],
     )
     assert result.exit_code == 0
-    assert "Decision recorded" in result.output
+    assert json.loads(result.output)["status"] == "applied"
 
     decision = (
         tmp_path / ".p2p" / "proposals" / "PROP-001-decision-flow" / "decision.md"
@@ -2326,8 +2434,15 @@ def test_cli_accepts_canonical_contribution_types_and_reports_allowed_invalid_ty
 def test_cli_proposal_accept_can_record_readiness_override(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "Override Readiness", "--root", str(tmp_path)])
+    readiness_path = (
+        tmp_path
+        / ".p2p"
+        / "proposals"
+        / "PROP-001-override-readiness"
+        / "readiness.yml"
+    )
 
-    result = runner.invoke(
+    preview = runner.invoke(
         app,
         [
             "proposal",
@@ -2338,16 +2453,25 @@ def test_cli_proposal_accept_can_record_readiness_override(tmp_path: Path) -> No
             "--approver",
             "owner",
             "--override-readiness",
+            "--format",
+            "json",
             "--root",
             str(tmp_path),
         ],
     )
+    assert preview.exit_code == 0, preview.output
+    assert json.loads(preview.output)["status"] == "preview_required"
+    assert not readiness_path.exists()
 
-    readiness_path = tmp_path / ".p2p" / "proposals" / "PROP-001-override-readiness" / "readiness.yml"
+    result = _apply_proposal_decision(
+        tmp_path,
+        "PROP-001",
+        reason="Owner accepts this intentionally as-is.",
+        override_readiness=True,
+    )
     readiness = yaml.safe_load(readiness_path.read_text(encoding="utf-8"))["readiness"]
 
-    assert result.exit_code == 0
-    assert "Readiness override recorded" in result.output
+    assert json.loads(result.output)["status"] == "applied"
     assert readiness["status"] == "not_assessed"
     assert readiness["owner_override"] is True
     assert readiness["effective_status"] == "forced_ready"
@@ -2362,53 +2486,43 @@ def test_cli_proposal_decision_shortcuts(tmp_path: Path) -> None:
     runner.invoke(app, ["proposal", "create", "Rejected Work", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "Deferred Work", "--root", str(tmp_path)])
 
-    result = runner.invoke(
-        app,
-        [
-            "proposal",
-            "accept",
-            "PROP-001",
-            "--reason",
-            "Ready for implementation.",
-            "--approver",
-            "owner",
-            "--root",
-            str(tmp_path),
-        ],
+    cases = (
+        ("accepted", "PROP-001", "Ready for implementation."),
+        ("rejected", "PROP-002", "Out of scope."),
+        ("deferred", "PROP-003", "Needs more context."),
     )
-    assert result.exit_code == 0
-    assert "Proposal decision recorded" in result.output
-    assert "outcome: accepted" in result.output
+    for outcome, proposal_id, reason in cases:
+        command = {
+            "accepted": "accept",
+            "rejected": "reject",
+            "deferred": "defer",
+        }[outcome]
+        preview = runner.invoke(
+            app,
+            [
+                "proposal",
+                command,
+                proposal_id,
+                "--reason",
+                reason,
+                "--format",
+                "json",
+                "--root",
+                str(tmp_path),
+            ],
+        )
+        assert preview.exit_code == 0, preview.output
+        assert json.loads(preview.output)["status"] == "preview_required"
 
-    result = runner.invoke(
-        app,
-        [
-            "proposal",
-            "reject",
-            "PROP-002",
-            "--reason",
-            "Out of scope.",
-            "--root",
-            str(tmp_path),
-        ],
-    )
-    assert result.exit_code == 0
-    assert "outcome: rejected" in result.output
-
-    result = runner.invoke(
-        app,
-        [
-            "proposal",
-            "defer",
-            "PROP-003",
-            "--reason",
-            "Needs more context.",
-            "--root",
-            str(tmp_path),
-        ],
-    )
-    assert result.exit_code == 0
-    assert "outcome: deferred" in result.output
+        applied = _apply_proposal_decision(
+            tmp_path,
+            proposal_id,
+            outcome=outcome,
+            reason=reason,
+        )
+        payload = json.loads(applied.output)
+        assert payload["status"] == "applied"
+        assert payload["lifecycle"]["effective_state"] == outcome
 
     result = runner.invoke(app, ["status", "--root", str(tmp_path)])
     assert result.exit_code == 0
@@ -2439,17 +2553,10 @@ def test_cli_proposal_list_show_and_choice_registry_output(tmp_path: Path) -> No
             str(tmp_path),
         ],
     )
-    runner.invoke(
-        app,
-        [
-            "proposal",
-            "accept",
-            "PROP-001",
-            "--reason",
-            "Useful for agent skills.",
-            "--root",
-            str(tmp_path),
-        ],
+    _apply_proposal_decision(
+        tmp_path,
+        "PROP-001",
+        reason="Useful for agent skills.",
     )
 
     result = runner.invoke(app, ["proposal", "list", "--root", str(tmp_path)])
@@ -2692,19 +2799,10 @@ def test_cli_project_refresh_status_and_show(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(
-        app,
-        [
-            "decision",
-            "record",
-            "PROP-001",
-            "--outcome",
-            "accepted",
-            "--reason",
-            "Required for bootstrap.",
-            "--root",
-            str(tmp_path),
-        ],
+    _apply_proposal_decision(
+        tmp_path,
+        "PROP-001",
+        reason="Required for bootstrap.",
     )
 
     result = runner.invoke(app, ["project", "refresh", "--root", str(tmp_path)])
@@ -2734,19 +2832,10 @@ def test_cli_impact_import_and_conflict_memory(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "Project State", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "Alternative State", "--root", str(tmp_path)])
-    runner.invoke(
-        app,
-        [
-            "decision",
-            "record",
-            "PROP-001",
-            "--outcome",
-            "accepted",
-            "--reason",
-            "Chosen baseline.",
-            "--root",
-            str(tmp_path),
-        ],
+    _apply_proposal_decision(
+        tmp_path,
+        "PROP-001",
+        reason="Chosen baseline.",
     )
     runner.invoke(app, ["project", "refresh", "--root", str(tmp_path)])
 
@@ -2830,21 +2919,13 @@ def test_cli_change_create_status_and_policy(tmp_path: Path) -> None:
         ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)],
     )
     assert result.exit_code == 1
-    assert "PROP-001 is not accepted yet" in result.output
+    assert "PROP-001 has no current active decision" in result.output
+    assert "Current state: undecided" in result.output
 
-    runner.invoke(
-        app,
-        [
-            "decision",
-            "record",
-            "PROP-001",
-            "--outcome",
-            "accepted",
-            "--reason",
-            "Ready for operational work.",
-            "--root",
-            str(tmp_path),
-        ],
+    _apply_proposal_decision(
+        tmp_path,
+        "PROP-001",
+        reason="Ready for operational work.",
     )
 
     result = runner.invoke(
@@ -2884,19 +2965,10 @@ def test_cli_change_create_status_and_policy(tmp_path: Path) -> None:
 def test_cli_change_lifecycle_show_and_tasks(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "Lifecycle Work", "--root", str(tmp_path)])
-    runner.invoke(
-        app,
-        [
-            "decision",
-            "record",
-            "PROP-001",
-            "--outcome",
-            "accepted",
-            "--reason",
-            "Ready for lifecycle tracking.",
-            "--root",
-            str(tmp_path),
-        ],
+    _apply_proposal_decision(
+        tmp_path,
+        "PROP-001",
+        reason="Ready for lifecycle tracking.",
     )
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
 
@@ -2941,19 +3013,10 @@ def test_cli_change_lifecycle_show_and_tasks(tmp_path: Path) -> None:
 def test_cli_registry_refresh_status_and_show(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "Project Registries", "--root", str(tmp_path)])
-    runner.invoke(
-        app,
-        [
-            "decision",
-            "record",
-            "PROP-001",
-            "--outcome",
-            "accepted",
-            "--reason",
-            "Needed for project navigation.",
-            "--root",
-            str(tmp_path),
-        ],
+    _apply_proposal_decision(
+        tmp_path,
+        "PROP-001",
+        reason="Needed for project navigation.",
     )
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
 
@@ -3025,17 +3088,10 @@ def test_cli_software_spec_refresh_prompt_import_status_and_show(tmp_path: Path)
             str(tmp_path),
         ],
     )
-    runner.invoke(
-        app,
-        [
-            "proposal",
-            "accept",
-            "PROP-001",
-            "--reason",
-            "Needed before export.",
-            "--root",
-            str(tmp_path),
-        ],
+    _apply_proposal_decision(
+        tmp_path,
+        "PROP-001",
+        reason="Needed before export.",
     )
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
 
@@ -3064,9 +3120,11 @@ def test_cli_software_spec_refresh_prompt_import_status_and_show(tmp_path: Path)
     )
     assert "source:" in (spec_dir / "provenance.yml").read_text(encoding="utf-8")
 
-    result = runner.invoke(app, ["spec", "status", "--root", str(tmp_path)])
+    with assert_no_workspace_mutation(tmp_path):
+        result = runner.invoke(app, ["spec", "status", "--root", str(tmp_path)])
     assert result.exit_code == 0
     assert "CHANGE-001  generated  Spec Work" in result.output
+    assert "freshness=current" in result.output
 
     result = runner.invoke(app, ["spec", "show", "CHANGE-001", "--root", str(tmp_path)])
     assert result.exit_code == 0
@@ -3213,7 +3271,7 @@ def test_cli_spec_lifecycle_guidance_and_blocking_preflight(tmp_path: Path) -> N
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
 
     result = runner.invoke(
@@ -3268,9 +3326,10 @@ def test_cli_work_plan_list_and_show(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(
-        app,
-        ["proposal", "accept", "PROP-001", "--reason", "Ready for handoff.", "--root", str(tmp_path)],
+    _apply_proposal_decision(
+        tmp_path,
+        "PROP-001",
+        reason="Ready for handoff.",
     )
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
@@ -3338,7 +3397,7 @@ def test_cli_work_retire_marks_planned_work_retired(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
@@ -3392,7 +3451,7 @@ def test_cli_work_retire_requires_planned_status(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
@@ -3431,10 +3490,7 @@ def test_cli_work_branch_creates_managed_branch(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(
-        app,
-        ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)],
-    )
+    _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
@@ -3479,10 +3535,7 @@ def test_cli_work_branch_requires_clean_worktree(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(
-        app,
-        ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)],
-    )
+    _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
@@ -3518,7 +3571,7 @@ def test_cli_work_submit_creates_local_commit(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
@@ -3572,7 +3625,7 @@ def test_cli_work_submit_requires_non_manifest_changes(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
@@ -3609,7 +3662,7 @@ def test_cli_work_review_requests_local_review(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
@@ -3662,7 +3715,7 @@ def test_cli_work_review_requires_submitted_clean_branch(tmp_path: Path) -> None
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
@@ -3707,7 +3760,7 @@ def test_cli_work_publish_pushes_reviewed_branch(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
@@ -3934,7 +3987,7 @@ def test_cli_work_publish_requires_review_and_remote(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
@@ -4017,7 +4070,7 @@ def test_cli_work_request_review_records_provider_handoff(tmp_path: Path) -> Non
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
@@ -4090,7 +4143,7 @@ def test_cli_work_accept_merges_published_branch(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
@@ -4200,7 +4253,7 @@ def test_cli_work_accept_requires_published_base_branch(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
@@ -4245,7 +4298,7 @@ def test_cli_work_finalize_requires_accepted_and_remote(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
@@ -4297,7 +4350,7 @@ def test_cli_work_cleanup_requires_finalized_branch(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
@@ -4333,7 +4386,7 @@ def test_cli_work_accept_conflict_continue_and_abort(tmp_path: Path) -> None:
             str(tmp_path),
         ],
     )
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Ready.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "refresh", "--change", "CHANGE-001", "--root", str(tmp_path)])
     runner.invoke(app, ["spec", "export", "--change", "CHANGE-001", "--target", "speckit", "--root", str(tmp_path)])
@@ -4559,7 +4612,7 @@ def test_cli_choice_discovery_blocking_and_next_integration(tmp_path: Path) -> N
     runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "Governance Model", "--root", str(tmp_path)])
     runner.invoke(app, ["vote", "record", "PROP-001", "--choice", "A", "--reason", "Prefer A", "--root", str(tmp_path)])
-    runner.invoke(app, ["proposal", "accept", "PROP-001", "--reason", "Needed.", "--root", str(tmp_path)])
+    _apply_proposal_decision(tmp_path, "PROP-001", reason="Needed.")
     runner.invoke(app, ["change", "create", "--from", "PROP-001", "--title", "Governance Model", "--root", str(tmp_path)])
     runner.invoke(app, ["change", "set-status", "CHANGE-001", "planned", "--root", str(tmp_path)])
     runner.invoke(
@@ -4638,19 +4691,10 @@ def test_cli_choice_discovery_blocking_and_next_integration(tmp_path: Path) -> N
 def test_cli_intake_prompt_import_and_status(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "CLI Foundation", "--root", str(tmp_path)])
-    runner.invoke(
-        app,
-        [
-            "decision",
-            "record",
-            "PROP-001",
-            "--outcome",
-            "accepted",
-            "--reason",
-            "Baseline CLI work.",
-            "--root",
-            str(tmp_path),
-        ],
+    _apply_proposal_decision(
+        tmp_path,
+        "PROP-001",
+        reason="Baseline CLI work.",
     )
     runner.invoke(app, ["project", "refresh", "--root", str(tmp_path)])
     runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
@@ -4814,17 +4858,10 @@ def test_cli_intake_apply_plan_show_and_run(tmp_path: Path) -> None:
 def test_cli_project_brief_prompt_import_and_show(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "CLI Foundation", "--root", str(tmp_path)])
-    runner.invoke(
-        app,
-        [
-            "proposal",
-            "accept",
-            "PROP-001",
-            "--reason",
-            "Baseline CLI work.",
-            "--root",
-            str(tmp_path),
-        ],
+    _apply_proposal_decision(
+        tmp_path,
+        "PROP-001",
+        reason="Baseline CLI work.",
     )
     runner.invoke(app, ["project", "refresh", "--root", str(tmp_path)])
     runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
@@ -4895,17 +4932,10 @@ def test_cli_project_brief_prompt_import_and_show(tmp_path: Path) -> None:
 def test_cli_next_falls_back_without_imported_next_actions(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "Managed Git", "--root", str(tmp_path)])
-    runner.invoke(
-        app,
-        [
-            "proposal",
-            "accept",
-            "PROP-001",
-            "--reason",
-            "Needed for collaboration.",
-            "--root",
-            str(tmp_path),
-        ],
+    _apply_proposal_decision(
+        tmp_path,
+        "PROP-001",
+        reason="Needed for collaboration.",
     )
     runner.invoke(
         app,
@@ -4921,7 +4951,7 @@ def test_cli_next_falls_back_without_imported_next_actions(tmp_path: Path) -> No
     runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
     result = runner.invoke(app, ["next", "--top", "10", "--root", str(tmp_path)])
     assert result.exit_code == 0
-    assert "NEXT-FALLBACK-001  high  continue_change" in result.output
+    assert "NEXT-CHANGE-CHANGE-001  high  continue_change" in result.output
     assert "target: CHANGE-001" in result.output
     assert "p2p change tasks CHANGE-001" in result.output
     assert "source: generated" in result.output

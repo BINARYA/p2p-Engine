@@ -1,0 +1,19 @@
+section:
+  id: data_model
+  title: Domain Concepts And Data Model
+  purpose: Domain entities, data model, and state transitions.
+  required: true
+  priority: 150
+  fields:
+  - id: domain_entities
+    label: Domain entities
+    required: true
+    question: Which domain concepts and data entities matter?
+  - id: state_lifecycle
+    label: State lifecycle
+    required: false
+    question: Which statuses or lifecycle transitions are important?
+  completion_policy:
+    allow_assumed_completion: false
+    required_fields:
+    - domain_entities

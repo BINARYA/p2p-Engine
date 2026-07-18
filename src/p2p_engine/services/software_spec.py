@@ -1,17 +1,26 @@
 from __future__ import annotations
 
-import shutil
-from collections.abc import Callable
+import hashlib
+import re
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
+import yaml
+
+from p2p_engine.core.proposal_decision_events import ProposalDecisionLifecycleView
+from p2p_engine.core.mutation_preview import (
+    MutationPreviewService,
+    SourcePrecondition,
+)
 from p2p_engine.foundation.files import (
-    read_yaml_mapping_or_default as _read_yaml_mapping,
     yaml_dump as _yaml_dump,
 )
 from p2p_engine.foundation.markdown import read_frontmatter, read_markdown_section, read_title
 from p2p_engine.foundation.validators import validate_yaml_key
+from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 
 
 SOFTWARE_SPEC_REQUIRED_FILES = (
@@ -23,6 +32,69 @@ SOFTWARE_SPEC_REQUIRED_FILES = (
     "acceptance.md",
     "provenance.yml",
 )
+SOFTWARE_SPEC_PROVENANCE_SCHEMA_VERSION = 1
+SOFTWARE_SPEC_RENDERER_VERSION = 1
+SOFTWARE_SPEC_GENERATOR = "p2p_engine.software_spec"
+SOFTWARE_SPEC_NON_PROVENANCE_FILES = tuple(
+    filename for filename in SOFTWARE_SPEC_REQUIRED_FILES if filename != "provenance.yml"
+)
+
+
+class SoftwareSpecFreshness(StrEnum):
+    CURRENT = "current"
+    CURRENT_LEGACY = "current_legacy"
+    STALE = "stale"
+    MODIFIED = "modified"
+    UNKNOWN_ORIGIN = "unknown_origin"
+    INCOMPLETE = "incomplete"
+
+
+class SoftwareSpecOrigin(StrEnum):
+    GENERATED = "generated"
+    IMPORTED = "imported"
+    LEGACY_GENERATED = "legacy_generated"
+    LEGACY_UNKNOWN = "legacy_unknown"
+
+
+@dataclass(frozen=True)
+class SoftwareSpecSourceRecord:
+    path: str
+    exists: bool
+    sha256: str = ""
+
+    def payload(self) -> dict[str, object]:
+        return {
+            "path": self.path,
+            "exists": self.exists,
+            "sha256": self.sha256,
+        }
+
+    def precondition(self) -> SourcePrecondition:
+        return SourcePrecondition(
+            path=self.path,
+            exists=self.exists,
+            physical_sha256=self.sha256 or None,
+        )
+
+
+@dataclass(frozen=True)
+class SoftwareSpecProposalInput:
+    proposal_id: str
+    title: str
+    proposal: str
+
+
+@dataclass(frozen=True)
+class SoftwareSpecCandidate:
+    change_id: str
+    title: str
+    files: tuple[tuple[str, str], ...]
+    sources: tuple[SoftwareSpecSourceRecord, ...]
+    source_fingerprint_sha256: str
+    renderer_version: int = SOFTWARE_SPEC_RENDERER_VERSION
+
+    def file_map(self) -> dict[str, str]:
+        return dict(self.files)
 
 
 @dataclass(frozen=True)
@@ -32,6 +104,14 @@ class SoftwareSpecStatus:
     status: str
     path: Path
     lifecycle: Any | None = None
+    freshness: SoftwareSpecFreshness = SoftwareSpecFreshness.UNKNOWN_ORIGIN
+    origin: SoftwareSpecOrigin = SoftwareSpecOrigin.LEGACY_UNKNOWN
+    current_source_fingerprint_sha256: str = ""
+    recorded_source_fingerprint_sha256: str = ""
+    changed_sources: tuple[str, ...] = ()
+    changed_outputs: tuple[str, ...] = ()
+    reasons: tuple[str, ...] = ()
+    suggested_command: str = ""
 
 
 @dataclass(frozen=True)
@@ -50,6 +130,30 @@ def _string_list(value: object) -> list[str]:
     return [str(item) for item in value if str(item).strip()]
 
 
+def _physical_sha256(content: bytes) -> str:
+    return hashlib.sha256(content).hexdigest()
+
+
+def _proposal_title(proposal_id: str, text: str) -> str:
+    title = read_title(text) or proposal_id
+    cleaned = re.sub(rf"^{re.escape(proposal_id)}\s*[-—]\s*", "", title).strip()
+    return cleaned or title
+
+
+def _mapping_from_bytes(content: bytes | None, *, default: dict[str, object]) -> dict[str, object]:
+    if content is None:
+        return dict(default)
+    value = yaml.safe_load(content.decode("utf-8"))
+    return value if isinstance(value, dict) else dict(default)
+
+
+def _safe_int(value: object, *, default: int = 0) -> int:
+    try:
+        return int(value or default)
+    except (TypeError, ValueError):
+        return default
+
+
 class SoftwareSpecService:
     def __init__(
         self,
@@ -57,38 +161,138 @@ class SoftwareSpecService:
         root: Path,
         p2p_dir: Path,
         find_change_dir: Callable[[str], Path],
-        show_proposal: Callable[[str], Any],
         show_change_set: Callable[[str], Any],
         find_proposal_dir: Callable[[str], Path],
+        proposal_lifecycle_status: (
+            Callable[[str], ProposalDecisionLifecycleView] | None
+        ) = None,
+        atomic_writer: AtomicMutationWriter | None = None,
+        source_reader: Callable[[Path], bytes] | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
         self.find_change_dir = find_change_dir
-        self.show_proposal = show_proposal
         self.show_change_set = show_change_set
         self.find_proposal_dir = find_proposal_dir
+        self.proposal_lifecycle_status = proposal_lifecycle_status
+        self.atomic_writer = atomic_writer or AtomicMutationWriter(
+            root=self.root,
+            p2p_dir=self.p2p_dir,
+        )
+        self.source_reader = source_reader or (lambda path: path.read_bytes())
 
     def required_files(self) -> tuple[str, ...]:
         return SOFTWARE_SPEC_REQUIRED_FILES
 
     def refresh(self, change_id: str) -> SoftwareSpecStatus:
+        candidate = self.build_candidate(change_id)
+        spec_dir = self.p2p_dir / "outputs" / "software-spec" / change_id
+        self._commit_required_files(
+            operation_id=f"software-spec-refresh:{change_id}",
+            spec_dir=spec_dir,
+            files=candidate.file_map(),
+            dependency_sources=candidate.sources,
+            actor="system",
+        )
+        return SoftwareSpecStatus(
+            change_id=change_id,
+            title=candidate.title,
+            status="generated",
+            path=spec_dir.relative_to(self.root),
+            freshness=SoftwareSpecFreshness.CURRENT,
+            origin=SoftwareSpecOrigin.GENERATED,
+            current_source_fingerprint_sha256=candidate.source_fingerprint_sha256,
+            recorded_source_fingerprint_sha256=candidate.source_fingerprint_sha256,
+            reasons=(
+                "source_fingerprint_matches",
+                "generated_outputs_match_candidate",
+            ),
+        )
+
+    def build_candidate(self, change_id: str) -> SoftwareSpecCandidate:
+        for _attempt in range(2):
+            candidate = self._build_candidate_once(change_id)
+            if self._sources_still_match(candidate.sources):
+                return candidate
+        raise ValueError(
+            f"software_spec_source_changed_during_read:{change_id}"
+        )
+
+    def _build_candidate_once(self, change_id: str) -> SoftwareSpecCandidate:
         change_dir = self.find_change_dir(change_id)
-        change_text = _read_optional(change_dir / "change.md")
+        change_path = change_dir / "change.md"
+        tasks_path = change_dir / "tasks.yml"
+        change_content = self._read_source(change_path)
+        tasks_content = self._read_source(tasks_path)
+        self._require_source(change_path, change_content)
+        self._require_source(tasks_path, tasks_content)
+        change_text = (change_content or b"").decode("utf-8")
         frontmatter = read_frontmatter(change_text)
         title = str(frontmatter.get("title") or read_title(change_text) or change_id)
         source = frontmatter.get("source", {})
         if not isinstance(source, dict):
             source = {}
         included_proposals = _string_list(source.get("accepted_proposals"))
-        spec_dir = self.p2p_dir / "outputs" / "software-spec" / change_id
-        spec_dir.mkdir(parents=True, exist_ok=True)
+        proposal_inputs: list[SoftwareSpecProposalInput] = []
+        source_records = [
+            self._source_record(change_path, change_content),
+            self._source_record(tasks_path, tasks_content),
+        ]
+        generated_from = [
+            str(change_path.relative_to(self.root)),
+            str(tasks_path.relative_to(self.root)),
+        ]
+        decision_bindings: list[dict[str, object]] = []
+        for proposal_id in included_proposals:
+            proposal_dir = self.find_proposal_dir(proposal_id)
+            proposal_path = proposal_dir / "proposal.md"
+            proposal_content = self._read_source(proposal_path)
+            self._require_source(proposal_path, proposal_content)
+            proposal_text = (proposal_content or b"").decode("utf-8")
+            proposal_inputs.append(
+                SoftwareSpecProposalInput(
+                    proposal_id=proposal_id,
+                    title=_proposal_title(proposal_id, proposal_text),
+                    proposal=(
+                        read_markdown_section(proposal_text, "Proposal")
+                        or "Not provided."
+                    ),
+                )
+            )
+            source_records.append(
+                self._source_record(proposal_path, proposal_content)
+            )
+            generated_from.append(str(proposal_path.relative_to(self.root)))
+            if self.proposal_lifecycle_status is not None:
+                lifecycle = self.proposal_lifecycle_status(proposal_id)
+                decision_bindings.append(
+                    {
+                        "proposal": proposal_id,
+                        "effective_state": lifecycle.effective_state.value,
+                        "head_event_id": lifecycle.head_event_id,
+                        "decision_semantic_sha256": (
+                            lifecycle.decision_semantic_sha256
+                        ),
+                        "proposal_binding_status": (
+                            lifecycle.proposal_binding_status.value
+                        ),
+                    }
+                )
+                ledger_path = proposal_dir / "decision-events.yml"
+                if ledger_path.exists():
+                    ledger_content = self._read_source(ledger_path)
+                    self._require_source(ledger_path, ledger_content)
+                    source_records.append(
+                        self._source_record(ledger_path, ledger_content)
+                    )
+                    generated_from.append(
+                        str(ledger_path.relative_to(self.root))
+                    )
 
-        proposal_details = [self.show_proposal(proposal_id) for proposal_id in included_proposals]
-        tasks_data = _read_yaml_mapping(change_dir / "tasks.yml", default={"tasks": []})
+        tasks_data = _mapping_from_bytes(tasks_content, default={"tasks": []})
         tasks = tasks_data.get("tasks", [])
         task_list = tasks if isinstance(tasks, list) else []
-
-        files = {
+        non_provenance = {
             "index.md": self._index_markdown(
                 change_id=change_id,
                 title=title,
@@ -97,36 +301,61 @@ class SoftwareSpecService:
                 frontmatter=frontmatter,
                 included_proposals=included_proposals,
             ),
-            "requirements.md": self._requirements_markdown(proposal_details, change_text),
+            "requirements.md": self._requirements_markdown(
+                proposal_inputs,
+                change_text,
+            ),
             "design.md": self._design_markdown(frontmatter, change_text),
             "commands.yml": _yaml_dump({"commands": self._commands(task_list)}),
-            "data-model.yml": _yaml_dump({"entities": self._entities(frontmatter, proposal_details)}),
-            "acceptance.md": self._acceptance_markdown(change_text, task_list),
-            "provenance.yml": _yaml_dump(
-                {
-                    "source": {
-                        "change": change_id,
-                        "included_proposals": included_proposals,
-                        "accepted_decisions": source.get("accepted_decisions", []),
-                    },
-                    "generated_from": [
-                        str((change_dir / "change.md").relative_to(self.root)),
-                        str((change_dir / "tasks.yml").relative_to(self.root)),
-                        *[
-                            str((self.find_proposal_dir(proposal_id) / "proposal.md").relative_to(self.root))
-                            for proposal_id in included_proposals
-                        ],
-                    ],
-                }
+            "data-model.yml": _yaml_dump(
+                {"entities": self._entities(frontmatter, proposal_inputs)}
             ),
+            "acceptance.md": self._acceptance_markdown(change_text, task_list),
         }
-        for filename, content in files.items():
-            (spec_dir / filename).write_text(content, encoding="utf-8")
-        return SoftwareSpecStatus(
+        ordered_sources = tuple(sorted(source_records, key=lambda item: item.path))
+        source_fingerprint = self._source_fingerprint(
+            change_id=change_id,
+            sources=ordered_sources,
+        )
+        provenance = {
+            "source": {
+                "change": change_id,
+                "included_proposals": included_proposals,
+                "accepted_decisions": source.get("accepted_decisions", []),
+                "decision_bindings": decision_bindings,
+            },
+            "generated_from": generated_from,
+            "p2p_generation": {
+                "schema_version": SOFTWARE_SPEC_PROVENANCE_SCHEMA_VERSION,
+                "origin": SoftwareSpecOrigin.GENERATED.value,
+                "generator": SOFTWARE_SPEC_GENERATOR,
+                "renderer_version": SOFTWARE_SPEC_RENDERER_VERSION,
+                "source_fingerprint": {
+                    "algorithm": "sha256",
+                    "value": source_fingerprint,
+                },
+                "sources": [item.payload() for item in ordered_sources],
+                "outputs": [
+                    {
+                        "path": filename,
+                        "sha256": _physical_sha256(
+                            non_provenance[filename].encode("utf-8")
+                        ),
+                    }
+                    for filename in SOFTWARE_SPEC_NON_PROVENANCE_FILES
+                ],
+            },
+        }
+        files = {
+            **non_provenance,
+            "provenance.yml": _yaml_dump(provenance),
+        }
+        return SoftwareSpecCandidate(
             change_id=change_id,
             title=title,
-            status="generated",
-            path=spec_dir.relative_to(self.root),
+            files=tuple((filename, files[filename]) for filename in self.required_files()),
+            sources=ordered_sources,
+            source_fingerprint_sha256=source_fingerprint,
         )
 
     def statuses(self) -> list[SoftwareSpecStatus]:
@@ -142,15 +371,7 @@ class SoftwareSpecService:
             except ValueError:
                 index_title = read_title(_read_optional(path / "index.md"))
                 title = index_title or change_id
-            status = "generated" if all((path / filename).exists() for filename in self.required_files()) else "incomplete"
-            statuses.append(
-                SoftwareSpecStatus(
-                    change_id=change_id,
-                    title=title,
-                    status=status,
-                    path=path.relative_to(self.root),
-                )
-            )
+            statuses.append(self._status(path, change_id=change_id, title=title))
         return statuses
 
     def show(self, change_id: str) -> str:
@@ -179,21 +400,462 @@ class SoftwareSpecService:
         source = source.resolve()
         if not source.is_dir():
             raise ValueError(f"Software spec source directory not found: {source}")
+        files: dict[str, str] = {}
         for filename in self.required_files():
-            if not (source / filename).exists():
+            path = source / filename
+            if not path.exists():
                 raise ValueError(f"Missing required software spec artifact: {filename}")
-        validate_yaml_key((source / "commands.yml").read_text(encoding="utf-8"), "commands")
-        validate_yaml_key((source / "data-model.yml").read_text(encoding="utf-8"), "entities")
-        validate_yaml_key((source / "provenance.yml").read_text(encoding="utf-8"), "source")
+            files[filename] = path.read_bytes().decode("utf-8")
+        validate_yaml_key(files["commands.yml"], "commands")
+        validate_yaml_key(files["data-model.yml"], "entities")
+        validate_yaml_key(files["provenance.yml"], "source")
+        provenance = yaml.safe_load(files["provenance.yml"])
+        if not isinstance(provenance, dict):
+            raise ValueError("Invalid provenance.yml: expected a mapping.")
+        if "p2p_generation" in provenance:
+            raise ValueError(
+                "Imported provenance must not define reserved `p2p_generation` metadata."
+            )
+        provenance["p2p_generation"] = {
+            "schema_version": SOFTWARE_SPEC_PROVENANCE_SCHEMA_VERSION,
+            "origin": SoftwareSpecOrigin.IMPORTED.value,
+            "generator": f"{SOFTWARE_SPEC_GENERATOR}.import",
+        }
+        files["provenance.yml"] = _yaml_dump(provenance)
 
         target_dir = self.p2p_dir / "outputs" / "software-spec" / change_id
-        target_dir.mkdir(parents=True, exist_ok=True)
-        imported: list[Path] = []
-        for filename in self.required_files():
-            target = target_dir / filename
-            shutil.copyfile(source / filename, target)
-            imported.append(target.relative_to(self.root))
-        return imported
+        self._commit_required_files(
+            operation_id=f"software-spec-import:{change_id}",
+            spec_dir=target_dir,
+            files=files,
+            dependency_sources=(),
+            actor="import",
+        )
+        return [
+            (target_dir / filename).relative_to(self.root)
+            for filename in self.required_files()
+        ]
+
+    def _status(
+        self,
+        spec_dir: Path,
+        *,
+        change_id: str,
+        title: str,
+    ) -> SoftwareSpecStatus:
+        relative = spec_dir.relative_to(self.root)
+        missing = tuple(
+            filename
+            for filename in self.required_files()
+            if not (spec_dir / filename).is_file()
+        )
+        if missing:
+            return SoftwareSpecStatus(
+                change_id=change_id,
+                title=title,
+                status="incomplete",
+                path=relative,
+                freshness=SoftwareSpecFreshness.INCOMPLETE,
+                reasons=("missing_required_files:" + ",".join(missing),),
+                suggested_command=f"p2p spec refresh --change {change_id}",
+            )
+        try:
+            provenance = yaml.safe_load(
+                (spec_dir / "provenance.yml").read_text(encoding="utf-8")
+            )
+        except (OSError, UnicodeDecodeError, yaml.YAMLError):
+            return self._unknown_status(
+                change_id,
+                title,
+                relative,
+                "invalid_provenance",
+            )
+        if not isinstance(provenance, dict):
+            return self._unknown_status(
+                change_id,
+                title,
+                relative,
+                "invalid_provenance",
+            )
+        generation = provenance.get("p2p_generation")
+        if generation is not None:
+            return self._current_provenance_status(
+                spec_dir,
+                change_id=change_id,
+                title=title,
+                provenance=generation,
+            )
+        return self._legacy_status(
+            spec_dir,
+            change_id=change_id,
+            title=title,
+            provenance=provenance,
+        )
+
+    def _current_provenance_status(
+        self,
+        spec_dir: Path,
+        *,
+        change_id: str,
+        title: str,
+        provenance: object,
+    ) -> SoftwareSpecStatus:
+        relative = spec_dir.relative_to(self.root)
+        if not isinstance(provenance, Mapping):
+            return self._unknown_status(
+                change_id,
+                title,
+                relative,
+                "invalid_generation_provenance",
+            )
+        schema_version = _safe_int(provenance.get("schema_version"))
+        if schema_version != SOFTWARE_SPEC_PROVENANCE_SCHEMA_VERSION:
+            return self._unknown_status(
+                change_id,
+                title,
+                relative,
+                "unsupported_generation_provenance",
+            )
+        origin = str(provenance.get("origin") or "")
+        if origin == SoftwareSpecOrigin.IMPORTED.value:
+            return SoftwareSpecStatus(
+                change_id=change_id,
+                title=title,
+                status="generated",
+                path=relative,
+                freshness=SoftwareSpecFreshness.UNKNOWN_ORIGIN,
+                origin=SoftwareSpecOrigin.IMPORTED,
+                reasons=("imported_source_contract_unverifiable",),
+                suggested_command=f"p2p spec refresh --change {change_id}",
+            )
+        if origin != SoftwareSpecOrigin.GENERATED.value:
+            return self._unknown_status(
+                change_id,
+                title,
+                relative,
+                "unsupported_artifact_origin",
+            )
+        try:
+            candidate = self.build_candidate(change_id)
+        except (OSError, UnicodeDecodeError, ValueError, yaml.YAMLError):
+            return self._unknown_status(
+                change_id,
+                title,
+                relative,
+                "authoritative_source_unavailable",
+                origin=SoftwareSpecOrigin.GENERATED,
+            )
+        fingerprint = provenance.get("source_fingerprint")
+        if (
+            not isinstance(fingerprint, Mapping)
+            or str(fingerprint.get("algorithm") or "") != "sha256"
+            or not str(fingerprint.get("value") or "")
+        ):
+            return self._unknown_status(
+                change_id,
+                title,
+                relative,
+                "invalid_source_fingerprint",
+                origin=SoftwareSpecOrigin.GENERATED,
+            )
+        recorded = str(fingerprint.get("value") or "")
+        current = candidate.source_fingerprint_sha256
+        if recorded != current:
+            reasons = ["source_fingerprint_changed"]
+            if _safe_int(provenance.get("renderer_version")) != SOFTWARE_SPEC_RENDERER_VERSION:
+                reasons.append("renderer_contract_changed")
+            return SoftwareSpecStatus(
+                change_id=change_id,
+                title=title,
+                status="generated",
+                path=relative,
+                freshness=SoftwareSpecFreshness.STALE,
+                origin=SoftwareSpecOrigin.GENERATED,
+                current_source_fingerprint_sha256=current,
+                recorded_source_fingerprint_sha256=recorded,
+                changed_sources=self._changed_sources(
+                    provenance.get("sources"),
+                    candidate.sources,
+                ),
+                reasons=tuple(reasons),
+                suggested_command=f"p2p spec refresh --change {change_id}",
+            )
+        changed_outputs = self._changed_outputs(spec_dir, candidate.file_map())
+        if changed_outputs:
+            return SoftwareSpecStatus(
+                change_id=change_id,
+                title=title,
+                status="generated",
+                path=relative,
+                freshness=SoftwareSpecFreshness.MODIFIED,
+                origin=SoftwareSpecOrigin.GENERATED,
+                current_source_fingerprint_sha256=current,
+                recorded_source_fingerprint_sha256=recorded,
+                changed_outputs=changed_outputs,
+                reasons=("generated_output_changed",),
+                suggested_command=f"p2p spec refresh --change {change_id}",
+            )
+        return SoftwareSpecStatus(
+            change_id=change_id,
+            title=title,
+            status="generated",
+            path=relative,
+            freshness=SoftwareSpecFreshness.CURRENT,
+            origin=SoftwareSpecOrigin.GENERATED,
+            current_source_fingerprint_sha256=current,
+            recorded_source_fingerprint_sha256=recorded,
+            reasons=(
+                "source_fingerprint_matches",
+                "generated_outputs_match_candidate",
+            ),
+        )
+
+    def _legacy_status(
+        self,
+        spec_dir: Path,
+        *,
+        change_id: str,
+        title: str,
+        provenance: Mapping[str, object],
+    ) -> SoftwareSpecStatus:
+        relative = spec_dir.relative_to(self.root)
+        try:
+            candidate = self.build_candidate(change_id)
+        except (OSError, UnicodeDecodeError, ValueError, yaml.YAMLError):
+            return self._unknown_status(
+                change_id,
+                title,
+                relative,
+                "authoritative_source_unavailable",
+            )
+        if not self._legacy_provenance_is_coherent(
+            provenance,
+            change_id=change_id,
+            sources=candidate.sources,
+        ):
+            return self._unknown_status(
+                change_id,
+                title,
+                relative,
+                "legacy_origin_ambiguous",
+                current_fingerprint=candidate.source_fingerprint_sha256,
+            )
+        candidate_files = candidate.file_map()
+        changed = tuple(
+            filename
+            for filename in SOFTWARE_SPEC_NON_PROVENANCE_FILES
+            if (spec_dir / filename).read_bytes()
+            != candidate_files[filename].encode("utf-8")
+        )
+        if changed:
+            return SoftwareSpecStatus(
+                change_id=change_id,
+                title=title,
+                status="generated",
+                path=relative,
+                freshness=SoftwareSpecFreshness.STALE,
+                origin=SoftwareSpecOrigin.LEGACY_GENERATED,
+                current_source_fingerprint_sha256=(
+                    candidate.source_fingerprint_sha256
+                ),
+                changed_outputs=changed,
+                reasons=("legacy_generated_candidate_changed",),
+                suggested_command=f"p2p spec refresh --change {change_id}",
+            )
+        return SoftwareSpecStatus(
+            change_id=change_id,
+            title=title,
+            status="generated",
+            path=relative,
+            freshness=SoftwareSpecFreshness.CURRENT_LEGACY,
+            origin=SoftwareSpecOrigin.LEGACY_GENERATED,
+            current_source_fingerprint_sha256=candidate.source_fingerprint_sha256,
+            reasons=("legacy_generated_candidate_matches",),
+            suggested_command=f"p2p spec refresh --change {change_id}",
+        )
+
+    def _unknown_status(
+        self,
+        change_id: str,
+        title: str,
+        relative: Path,
+        reason: str,
+        *,
+        origin: SoftwareSpecOrigin = SoftwareSpecOrigin.LEGACY_UNKNOWN,
+        current_fingerprint: str = "",
+    ) -> SoftwareSpecStatus:
+        return SoftwareSpecStatus(
+            change_id=change_id,
+            title=title,
+            status="generated",
+            path=relative,
+            freshness=SoftwareSpecFreshness.UNKNOWN_ORIGIN,
+            origin=origin,
+            current_source_fingerprint_sha256=current_fingerprint,
+            reasons=(reason,),
+            suggested_command=f"p2p spec refresh --change {change_id}",
+        )
+
+    def _commit_required_files(
+        self,
+        *,
+        operation_id: str,
+        spec_dir: Path,
+        files: Mapping[str, str],
+        dependency_sources: tuple[SoftwareSpecSourceRecord, ...],
+        actor: str,
+    ) -> None:
+        targets = {
+            (spec_dir / filename).relative_to(self.root).as_posix():
+            files[filename].encode("utf-8")
+            for filename in self.required_files()
+        }
+        unchanged = all(
+            (self.root / relative).is_file()
+            and (self.root / relative).read_bytes() == content
+            for relative, content in targets.items()
+        )
+        if unchanged and dependency_sources and not self._sources_still_match(
+            dependency_sources
+        ):
+            raise ValueError("software_spec_source_changed_before_commit")
+        if unchanged:
+            return
+        source_map = {item.path: item.precondition() for item in dependency_sources}
+        for relative in targets:
+            path = self.root / relative
+            content = path.read_bytes() if path.is_file() else None
+            source_map[relative] = SourcePrecondition(
+                path=relative,
+                exists=content is not None,
+                physical_sha256=(
+                    _physical_sha256(content) if content is not None else None
+                ),
+            )
+        sources = tuple(source_map[path] for path in sorted(source_map))
+        token = MutationPreviewService.token(
+            operation_id=operation_id,
+            targets=tuple(targets),
+            sources=sources,
+            candidate_semantics={
+                relative: _physical_sha256(content)
+                for relative, content in targets.items()
+            },
+        )
+        result = self.atomic_writer.apply(
+            operation_id=operation_id,
+            candidates=targets,
+            sources=sources,
+            preview_token=token,
+            actor=actor,
+        )
+        if result.status != "applied":
+            raise ValueError(
+                result.message
+                or f"Software spec mutation failed: {result.status}"
+            )
+
+    def _read_source(self, path: Path) -> bytes | None:
+        try:
+            return self.source_reader(path)
+        except FileNotFoundError:
+            return None
+
+    def _source_record(
+        self,
+        path: Path,
+        content: bytes | None,
+    ) -> SoftwareSpecSourceRecord:
+        return SoftwareSpecSourceRecord(
+            path=path.relative_to(self.root).as_posix(),
+            exists=content is not None,
+            sha256=_physical_sha256(content) if content is not None else "",
+        )
+
+    def _require_source(self, path: Path, content: bytes | None) -> None:
+        if content is None:
+            relative = path.relative_to(self.root).as_posix()
+            raise ValueError(f"software_spec_source_missing:{relative}")
+
+    def _source_fingerprint(
+        self,
+        *,
+        change_id: str,
+        sources: tuple[SoftwareSpecSourceRecord, ...],
+    ) -> str:
+        from p2p_engine.core.mutation_preview import semantic_sha256
+
+        return semantic_sha256(
+            {
+                "contract_version": SOFTWARE_SPEC_PROVENANCE_SCHEMA_VERSION,
+                "renderer_version": SOFTWARE_SPEC_RENDERER_VERSION,
+                "change_id": change_id,
+                "sources": [item.payload() for item in sources],
+            }
+        )
+
+    def _sources_still_match(
+        self,
+        sources: tuple[SoftwareSpecSourceRecord, ...],
+    ) -> bool:
+        for source in sources:
+            path = self.root / source.path
+            if path.is_file() != source.exists:
+                return False
+            if source.exists and _physical_sha256(path.read_bytes()) != source.sha256:
+                return False
+        return True
+
+    def _changed_sources(
+        self,
+        recorded: object,
+        current: tuple[SoftwareSpecSourceRecord, ...],
+    ) -> tuple[str, ...]:
+        recorded_map = {
+            str(item.get("path") or ""): (
+                bool(item.get("exists", True)),
+                str(item.get("sha256") or ""),
+            )
+            for item in recorded
+            if isinstance(item, Mapping) and str(item.get("path") or "")
+        } if isinstance(recorded, list) else {}
+        current_map = {
+            item.path: (item.exists, item.sha256)
+            for item in current
+        }
+        return tuple(
+            path
+            for path in sorted(set(recorded_map) | set(current_map))
+            if recorded_map.get(path) != current_map.get(path)
+        )
+
+    def _changed_outputs(
+        self,
+        spec_dir: Path,
+        candidate: Mapping[str, str],
+    ) -> tuple[str, ...]:
+        return tuple(
+            filename
+            for filename in self.required_files()
+            if (spec_dir / filename).read_bytes()
+            != candidate[filename].encode("utf-8")
+        )
+
+    def _legacy_provenance_is_coherent(
+        self,
+        provenance: Mapping[str, object],
+        *,
+        change_id: str,
+        sources: tuple[SoftwareSpecSourceRecord, ...],
+    ) -> bool:
+        source = provenance.get("source")
+        generated_from = provenance.get("generated_from")
+        if not isinstance(source, Mapping) or not isinstance(generated_from, list):
+            return False
+        if str(source.get("change") or "") != change_id:
+            return False
+        generated_paths = {str(item) for item in generated_from if str(item)}
+        return {item.path for item in sources} <= generated_paths
 
     def _index_markdown(
         self,

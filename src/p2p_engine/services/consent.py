@@ -12,6 +12,7 @@ from p2p_engine.foundation.files import (
 from p2p_engine.services.permissions import PermissionsService
 
 CONSENT_OPERATIONS = {
+    "proposal_decision_apply",
     "proposal_accept",
     "proposal_reject",
     "proposal_defer",

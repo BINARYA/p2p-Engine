@@ -1,0 +1,15 @@
+section:
+  id: integrations_dependencies
+  title: Integrations And Dependencies
+  purpose: External systems, APIs, services, tools, and runtime dependencies.
+  required: true
+  priority: 160
+  fields:
+  - id: external_integrations
+    label: External integrations
+    required: true
+    question: Which external systems or APIs does the software depend on?
+  completion_policy:
+    allow_assumed_completion: false
+    required_fields:
+    - external_integrations

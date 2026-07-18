@@ -1,0 +1,6 @@
+section:
+  id: prototype_testing
+  title: Prototype And Tests
+  purpose: Define prototype plan and validation checks.
+  required: true
+  priority: 70

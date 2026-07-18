@@ -8,6 +8,7 @@ import yaml
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.services.registries import RegistryService
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.proposal_decision_fixtures import record_decision
 
 
 def _service(tmp_path, *, proposals=None, changes=None):
@@ -52,10 +53,13 @@ def test_registry_service_refresh_writes_existing_registry_shape(tmp_path) -> No
         Path(".p2p/registries/readiness.yml"),
     ]
     proposals = yaml.safe_load((tmp_path / ".p2p" / "registries" / "proposals.yml").read_text(encoding="utf-8"))
+    decisions = yaml.safe_load((tmp_path / ".p2p" / "registries" / "decisions.yml").read_text(encoding="utf-8"))
     readiness = yaml.safe_load((tmp_path / ".p2p" / "registries" / "readiness.yml").read_text(encoding="utf-8"))
     assert proposals["generated"] is True
     assert proposals["source"] == ".p2p/proposals"
     assert proposals["proposals"][0]["id"] == "PROP-001"
+    assert "decision-events.yml" in decisions["source"]
+    assert "schema-v2 decision.md" in decisions["source"]
     assert readiness["source"] == ".p2p/proposals/*/readiness.yml"
     assert readiness["readiness"][0]["status"] == "not_assessed"
 
@@ -105,7 +109,7 @@ def test_workspace_registry_facade_delegates(tmp_path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Registry Facade")
     proposal = workspace.create_proposal("Registry Proposal")
-    workspace.record_decision(proposal.proposal_id, DecisionOutcome.accepted, "Ready.", "owner")
+    record_decision(workspace, proposal.proposal_id, DecisionOutcome.accepted, "Ready.", "owner")
     workspace.create_change_set(proposal.proposal_id)
 
     missing = workspace.registry_status()

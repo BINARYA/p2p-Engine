@@ -1373,3 +1373,16 @@ readiness:
   missing: []
   suggested_next: []
   path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/readiness.yml
+- proposal: PROP-102
+  title: Proposal Decision Revision and Revocation Lifecycle
+  proposal_status: accepted
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  computed_score: 100
+  computed_label: decision_ready
+  confidence: high
+  failed_gates: []
+  missing: []
+  suggested_next: []
+  path: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/readiness.yml
