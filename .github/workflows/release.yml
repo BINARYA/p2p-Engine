@@ -12,6 +12,8 @@ jobs:
   test-matrix:
     name: Test Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    env:
+      PYTEST_BIN: pytest
     strategy:
       fail-fast: false
       matrix:
