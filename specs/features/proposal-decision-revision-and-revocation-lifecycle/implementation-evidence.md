@@ -260,7 +260,7 @@ The following checks were run from the implementation worktree:
 | Version/release contract tests | `5 passed in 0.35s` |
 | Diff whitespace | `git diff --check`, clean |
 
-Final package candidate:
+Pre-release package candidate before the exact release commit:
 
 | Artifact | Evidence |
 | --- | --- |
@@ -312,7 +312,7 @@ inputs; they do not prevent schema-v2 reads or unrelated compatible writes.
 G-T013, G-T014 and G-T015 are complete. No compatibility check was bypassed
 and no `.p2p` file was edited manually.
 
-## Deployment Preparation
+## Runtime Release And Deployment Evidence
 
 - Target release: P2P Engine `0.4.0`, wheel and sdist via the GitHub Release
   attached to tag `v0.4.0`.
@@ -331,8 +331,72 @@ and no `.p2p` file was edited manually.
   state, the two completed local feature specifications, their source/tests,
   generated vertical-pack conversion and associated documentation/release
   changes. No unexplained manual `.p2p` mutation was identified.
-- D-T002 remains open until the authorized release commit exists and the clean
-  suites can be attributed to that exact commit.
+- The release implementation commit is
+  `6db2d36fc5465e3484f780a4428bc41ae10399e8`. The final tagged commit is
+  `ae1324c75e43d21cbf2c88ec88eb19e1e2549750`, which adds the verified CI test
+  runner correction.
+- Exact-candidate local/container evidence:
+  - Python 3.11 public: `259 passed, 955 deselected`;
+  - Python 3.11 full: `1213 passed, 1 skipped`;
+  - Python 3.14 public: `259 passed, 955 deselected`;
+  - Python 3.14 full: `1214 passed`;
+  - test-script and release-workflow regressions: `14 passed`.
+- The first tag-triggered run `29640020457` stopped before tests because the
+  scripts assumed `.venv/bin/pytest` in GitHub Actions. It did not publish a
+  release. The correction makes every test script fall back to the active
+  `pytest`, sets `PYTEST_BIN=pytest` explicitly in the release matrix and adds
+  regression coverage.
+- The owner authorized replacing the unpublished failed tag. `v0.4.0` was
+  moved with a remote `--force-with-lease` bound to the known failed tag object;
+  no unrelated remote update could be overwritten.
+- GitHub Actions run `29640890775` completed successfully for Python 3.11,
+  Python 3.14 and the build/publish job. Tag/version validation, release
+  contract tests, fresh schema-v3 validation, archive verification and GitHub
+  Release creation all passed.
+
+Published release:
+
+| Item | Evidence |
+| --- | --- |
+| Release | `https://github.com/BINARYA/p2p-Engine/releases/tag/v0.4.0` |
+| Tag target | `ae1324c75e43d21cbf2c88ec88eb19e1e2549750` |
+| Wheel | `p2p_engine-0.4.0-py3-none-any.whl`, 592328 bytes |
+| Wheel SHA-256 | `72ba01e25d1d36df12ed851b7ec9cd4e04eb33a8e30a7afe3a0dcc6bd72ab595` |
+| Sdist | `p2p_engine-0.4.0.tar.gz`, 781247 bytes |
+| Sdist SHA-256 | `6a096b82f993b5d6c64a8eb84801bb723828029eca7d32982f958dc8a0faf980` |
+| Archive contract | 232 wheel files and 454 sdist files |
+| Published install | version `0.4.0`, imported from an isolated temporary `site-packages` |
+
+The wheel installed successfully from the public GitHub Release URL without
+using or modifying the repository `.venv`. A fresh workspace initialized by
+that installed runtime is schema v3 and validates cleanly after registry
+refresh.
+
+Source-checkout and published-wheel comparison against the still-schema-v2
+repository produced identical normalized payload hashes:
+
+| Surface | SHA-256 |
+| --- | --- |
+| Runtime status | `8605df77d96b9318c8a903565497ad73c209ec92b0960fdcca9a80fcb4378fdb` |
+| Workspace schema status | `0a5a80d22e2bf883dd9696d5856aaf23c051fafbd42d3dda872b9bac72caa5a2` |
+| `PROP-102` legacy decision status | `2ce6104ec5f39444d8e875a908a993feadd855e34b2d7d47684a82e93eccc7fc` |
+| V2-to-v3 migration plan | `c3c0b76cf96ee75fd922c14b60e5149c472cb501826140cd9c4d990d79b68749` |
+
+The decision-help diff contains only the expected executable label:
+`python -m p2p_engine` for the checkout and `p2p` for the installed wheel.
+The installed runtime reports the repository contract as compatible, schema
+state `upgrade_available`, current schema 2 and target schema 3. The read-only
+plan is applicable, contains 308 operations and has fingerprint
+`78b8058d1da2391cc98cd16b9571bcb529f0f8789059c4ea8c31bcfefdf6bfef`.
+
+The development `.venv` still has stale distribution metadata from its old
+editable installation even though it imports source `__version__ == 0.4.0`.
+M-T003 must therefore select the verified published 0.4.0 executable or
+explicitly reinstall the project environment before migration; it must not
+infer runtime identity from that stale metadata.
+
+D-T001 through D-T009 are complete. The repository `.p2p` workspace remains
+schema v2 and no D operation changed canonical workspace state.
 
 ## Explicitly Deferred Gates
 
@@ -340,13 +404,12 @@ The following are intentionally not implementation side effects:
 
 - no P2P-generated agent adapter was refreshed;
 - `CHANGE-070` is `in_progress`; no completion state was inferred;
-- no commit, tag, push or package publication was performed;
 - this repository recommends runtime `0.3.1` while temporarily accepting
-  `>=0.3.0,<0.5.0` before release;
+  `>=0.3.0,<0.5.0` after release;
 - this repository's `.p2p` workspace remains schema v2;
 - no registry, project projection, decision-context, export or publication
   rebuild was run for a schema-v3 repository;
 - publication approval was not inferred or changed.
 
-These operations remain under slices `D`, `M`, `A` and `F` and require the
+The remaining operations are under slices `M`, `A` and `F` and require the
 corresponding supported P2P primitives and owner confirmations.

@@ -751,22 +751,22 @@ state.
 - [x] D-T001: Select the target `0.4.x` version and confirm package metadata,
   runtime support ranges, migration transition requirements, templates,
   changelog and docs agree. Covers R-F9-001.
-- [ ] D-T002: Run clean full/public/package tests from the exact candidate
+- [x] D-T002: Run clean full/public/package tests from the exact candidate
   commit on the supported Python matrix. Covers R-F9-002..003.
 - [x] D-T003: Inspect the complete candidate diff for unrelated files,
   generated-source drift and accidental `.p2p` manual edits.
 - [x] D-T004: Ask the owner for explicit authorization before commit/tag/push or
   package publication; record exact version, commit and target.
-- [ ] D-T005: Create the release commit and tag only after authorization and
+- [x] D-T005: Create the release commit and tag only after authorization and
   only when G remains green.
-- [ ] D-T006: Build wheel/sdist from the tagged commit, verify hashes and run
+- [x] D-T006: Build wheel/sdist from the tagged commit, verify hashes and run
   isolated installation smoke tests without source-tree import leakage.
   Covers R-F9-002.
-- [ ] D-T007: Publish the runtime artifact only after owner authorization, then
+- [x] D-T007: Publish the runtime artifact only after owner authorization, then
   verify the published artifact/version and installation command.
-- [ ] D-T008: Compare installed runtime behavior with source-checkout behavior
+- [x] D-T008: Compare installed runtime behavior with source-checkout behavior
   for runtime status, schema status, v2 reads, migration plan and decision help.
-- [ ] D-T009: D exit gate. A reproducible installed v3-capable runtime exists;
+- [x] D-T009: D exit gate. A reproducible installed v3-capable runtime exists;
   the repository workspace is still v2 and unchanged by this gate.
 
 ## M - Repository V2-To-V3 Migration

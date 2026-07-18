@@ -35,7 +35,7 @@ migration and derived alignment remain separate owner-confirmed gates.
 | R-F8-007..010 | D010-D011; MCP Contract | S9-T001..009 | shared serialization, token-bound consent, current-owner recheck and exact consumed-result binding; `test_proposal_decision_mcp.py` and MCP suite | complete |
 | R-F8-011..015 | Diagnostics And Documentation | S9-T010..017 | P2P360..P2P389 registry, CLI recovery rendering, validation, docs, source templates and hygiene tests | complete except generated adapter refresh |
 | R-F8-016..017 | D018; Compatibility Commands | S8-T010..018, S9-T006 | old CLI/MCP names return bound preview or require matching apply; readiness override stays atomic; compatibility tests | complete |
-| R-F9-001..004 | Release And Repository Dogfooding | D-T001..009 | local 0.4.0 candidate build is verified; exact commit/tag/published runtime and owner release authorization are intentionally absent | pending owner release gate |
+| R-F9-001..004 | Release And Repository Dogfooding | D-T001..009 | owner-authorized `v0.4.0` release at `ae1324c`; GitHub run `29640890775`, published wheel/sdist hashes, isolated install and source/published parity evidence | complete |
 | R-F9-005..009 | Repository Migration | M-T001..016 | migration primitives and temporary-fixture evidence exist; this repository remains schema v2 and has not been migrated | pending owner migration gate |
 | R-F9-010..014 | Derived Alignment | A-T001..014 | consumer implementations are ready; registries/projections/context/publication have not been rebuilt against a migrated repository | pending migration and alignment gates |
 
@@ -46,7 +46,7 @@ migration and derived alignment remain separate owner-confirmed gates.
 | N001..005 | S1, S4, S5 | typed immutable models, centralized policy, versioned fingerprints, read-only preview and bounded normalization tests | complete |
 | N006..010 | S2, S3, S7 | explicit schema compatibility, no Git/mtime inference, recovery journal and 100-proposal deterministic fixtures | complete |
 | N011..015 | S4, S6, S8, S9 | byte invariance, additive JSON, two-phase public writes and dependent-state preservation tests | complete |
-| N016..020 | G-T006..012 | compile/version checks, public/full suites, verified wheel/sdist and installed-artifact smoke | complete at local engine gate |
+| N016..020 | G-T006..012, D-T002..008 | compile/version checks, Python 3.11/3.14 public/full suites, verified published wheel/sdist and installed-artifact smoke | complete at release gate |
 | E001..005 | S1, S3 | malformed/duplicate/future ledger and unknown-legacy migration tests | complete |
 | E006..010 | S1, S2 | chain, transition, date, authority and binding failure tests | complete |
 | E011..015 | S2, S4, S5 | lineage, stale impact, replay, concurrent head and failure-injection tests | complete |
@@ -58,14 +58,14 @@ migration and derived alignment remain separate owner-confirmed gates.
 | AC011..015 | S3, S5 | complete impact, bounded rendering, dependent invariance and deterministic migration planning | complete |
 | AC016..020 | S3, S4, S6 | migration classification, no-op/recovery, repairs and consumer convergence tests | complete |
 | AC021..025 | S7, S8, S9 | retrieval goldens, CLI/MCP contract tests, diagnostics and 100-proposal/100-chain fixtures | complete |
-| AC026..028 | G | public `259 passed`, full `1208 passed`, verified local artifacts and installed-package smoke | complete |
-| AC029..030 | D, M, A, F | require owner-authorized runtime deployment, repository migration and final derived-state comparison | pending owner gates |
+| AC026..028 | G, D | public `259 passed`; full Python 3.11 `1213 passed, 1 skipped`; full Python 3.14 `1214 passed`; verified published artifacts and installed-package smoke | complete |
+| AC029..030 | D, M, A, F | owner-authorized runtime deployment is complete; repository migration and final derived-state comparison remain separate gates | partial; M/A/F pending |
 
 ## Slice Evidence
 
 | Slice | Status | Evidence |
 | --- | --- | --- |
-| P | partial | baseline and regressions complete; governed `CHANGE-070` transition not performed |
+| P | complete | baseline and regressions complete; `CHANGE-070` transitioned through governed commands |
 | S1 | complete | ledger/codec/fingerprint/projection tests |
 | S2 | complete | exhaustive transition, authority, legacy and scale tests |
 | S3 | complete | schema/migration/rollback/resume/compatibility tests |
@@ -75,8 +75,8 @@ migration and derived alignment remain separate owner-confirmed gates.
 | S7 | complete | ledger context, retrieval, topology, freshness and scale tests |
 | S8 | complete | CLI and compatibility contract tests |
 | S9 | complete with deferred generated refresh | MCP/consent/diagnostics/docs/template tests; actual adapter refresh waits for supported lifecycle |
-| G | partial | technical checks complete; P2P spec refresh and Change lifecycle update remain governed |
-| D | pending | no commit, tag, push or publication |
+| G | complete | technical checks, governed spec refresh and `CHANGE-070` lifecycle update complete |
+| D | complete | `v0.4.0` published and verified from exact tag `ae1324c` |
 | M | pending | repository workspace remains schema v2 |
 | A | pending | no post-migration derived rebuild |
 | F | pending | depends on D, M and A |
