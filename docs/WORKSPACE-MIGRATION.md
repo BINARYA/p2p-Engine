@@ -79,6 +79,53 @@ are rejected; migration never invents owner evidence. Omit values that should
 not change. Unknown fields and unsafe path-like values are rejected. A plan can remain useful while reporting owner-input or
 repository-curation blockers, but it cannot be applied until they are resolved.
 
+### Legacy Decision Authority Attestation
+
+For a schema-v2 workspace, first generate a read-only template for legacy
+decisions whose recorded actor is not the current declared owner:
+
+```bash
+p2p workspace migrate attestation-template \
+  --to 3 \
+  --owner owner \
+  --format json
+```
+
+The command does not write a patch or workspace state. Its `owner_input`
+contains immediately attestable aligned decisions and exact hashes for their
+`proposal.md` and `decision.md` sources. `manual_review` separates decisions
+that need structured accepted conditions, historical lineage or source repair.
+
+Review the output and place the intended entries in the normal migration input:
+
+```yaml
+proposal_decisions:
+  attestation_contract_version: 1
+  authority_attestations:
+    PROP-001:
+      owner_id: owner
+      legacy_status: accepted
+      legacy_approver: local
+      decided_on: 2026-05-19
+      source_sha256:
+        proposal.md: <64 lowercase hex>
+        decision.md: <64 lowercase hex>
+```
+
+For `accepted_with_changes`, add a non-empty `conditions` sequence containing
+stable `id` and `text` fields. Outcomes such as `superseded` require
+predecessor or lineage history and are deliberately left `unknown_legacy`;
+attestation never converts them into fabricated initial events.
+
+An attested event records the current declared owner as the reviewing
+authority. Migration provenance separately retains the legacy actor, status,
+date, rationale and source hashes. The operation does not add legacy actors to
+permissions or infer that two identities represent the same person.
+
+The complete normalized attestation patch participates in the plan
+fingerprint. A source edit, changed summary, omitted patch or different
+condition therefore invalidates or changes the reviewed plan before apply.
+
 ## Apply
 
 Review the complete JSON plan and retain its semantic fingerprint. Apply must

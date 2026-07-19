@@ -32,6 +32,8 @@ P
 -> S9
 -> G
 -> D
+-> H
+-> D2
 -> M
 -> A
 -> F
@@ -49,6 +51,9 @@ P
 - `S9`: MCP parity, consent binding, diagnostics, docs and agent templates.
 - `G`: engine implementation completion gate.
 - `D`: reproducible runtime release/deployment gate.
+- `H`: pre-migration owner-attestation hardening discovered by repository
+  dry-run.
+- `D2`: reproducible patch runtime release/deployment gate for hardening.
 - `M`: this repository's owner-controlled v2-to-v3 migration.
 - `A`: derived artifact alignment and baseline comparison.
 - `F`: final validation, residual review and handoff.
@@ -72,6 +77,8 @@ test-only fixture or independent documentation inventory.
 | S9 | R-F8-007..015 | MCP consent/parity, validation, docs and skill drift tests |
 | G | AC001..028 | focused, public, full, package and installed-runtime evidence |
 | D | R-F9-001..004 | release artifact and runtime installation evidence |
+| H | R-F5-024..031, AC031..034 | attestation parser, template, planner, apply and failure tests |
+| D2 | D026, R-F9-001..004 | patch release and installed-runtime parity |
 | M | R-F9-005..009 | repository dry-run, apply, recovery and authority curation |
 | A | R-F9-010..014 | derived rebuild, publication and baseline comparison |
 | F | AC029..030, residual state | final traceability and owner handoff |
@@ -697,7 +704,7 @@ state.
 - [x] S9-T013: Update source agent templates and P2P engine/project skills with
   rejection vs revocation, two-phase writes, migration v3 and branch-operation
   separation. Covers R-F8-014..015.
-- [ ] S9-T014: Refresh generated agent instructions only through
+- [x] S9-T014: Refresh generated agent instructions only through
   `p2p agent ...` lifecycle commands when required and test template/generated
   drift. Covers R-F8-015.
 - [x] S9-T015: Add docs/root/MCP hygiene tests preventing direct `.p2p` edit
@@ -769,29 +776,96 @@ state.
 - [x] D-T009: D exit gate. A reproducible installed v3-capable runtime exists;
   the repository workspace is still v2 and unchanged by this gate.
 
+## H - Pre-Migration Owner Attestation Hardening
+
+- [x] H-T001: Extend requirements, design, task order and live traceability for
+  the owner-attestation contract, source binding, unsupported lineage cases,
+  patch-release gate and repository dry-run evidence. Covers R-F5-024..031.
+- [x] H-T002: Add a closed, versioned normalization contract for
+  `proposal_decisions.authority_attestations`, including stable proposal and
+  condition ordering, exact source-hash keys and bounded structured
+  conditions. Covers R-F5-024..026, R-F5-030.
+- [x] H-T003: Add a typed, read-only attestation-template result that exposes
+  source-plan fingerprint, normalized owner input, included proposal IDs and
+  explicit manual-review reasons. Covers R-F5-029.
+- [x] H-T004: Generate templates only for aligned, authority-complete simple
+  outcomes and a currently declared owner. Classify accepted-with-changes as
+  requiring conditions and terminal lineage states as requiring historical
+  review. Covers R-F5-025..026, R-F5-029..031.
+- [x] H-T005: Consume attestations in the v2-to-v3 handler without changing
+  target ownership, operation order, schema-last behavior or transaction
+  boundaries. Covers R-F5-024, R-F5-028, R-F5-031.
+- [x] H-T006: Validate exact legacy summary, owner role and source bytes before
+  creating an event; emit `P2P390_MIGRATION_ATTESTATION_INVALID` and block apply
+  on semantic mismatch. Covers R-F5-025, R-F5-030.
+- [x] H-T007: Build attested events with current-owner authority and
+  `workspace_migration_owner_attestation` channel while preserving original
+  actor and values in migration provenance. Covers R-F5-027.
+- [x] H-T008: Support explicit structured conditions for
+  `accepted_with_changes`; prove `superseded` and other predecessor/lineage
+  states remain unknown rather than becoming fabricated initial events. Covers
+  R-F5-026..027.
+- [x] H-T009: Add `p2p workspace migrate attestation-template` as a read-only
+  text/JSON command and expose the typed service through `P2PWorkspace`.
+  Covers R-F5-029.
+- [x] H-T010: Add normalization and template unit tests for unknown fields,
+  unsafe identities, duplicate IDs, malformed dates/hashes, deterministic
+  ordering, unsupported states and no-write behavior.
+- [x] H-T011: Add migration tests for exact attestation success, non-owner,
+  source-summary/hash mismatch, accepted-with-changes conditions, unsupported
+  lineage, fingerprint changes, omitted input and lock-time source staleness.
+  Covers AC031..034.
+- [x] H-T012: Add CLI tests and update workspace migration documentation with
+  the generated-template review flow, authority semantics and patch-release
+  prerequisite.
+- [x] H-T013: Run formatting/static checks, focused migration/service/CLI
+  suites, full public/full repository suites and `git diff --check`; update
+  implementation evidence and the live traceability matrix.
+- [x] H-T014: H exit gate. The source implementation is releasable, exact owner
+  attestations preserve active simple legacy authority, and unsupported history
+  remains explicit. Repository schema remains v2.
+
+## D2 - Attestation Patch Runtime Release And Deployment
+
+- [x] D2-T001: Select the next `0.4.x` patch version and align package metadata,
+  changelog, runtime support and docs without weakening schema-v2 reads.
+- [ ] D2-T002: Run clean Python 3.11 and local Python matrix tests, package
+  verification and isolated installed-artifact smoke from the exact candidate
+  commit.
+- [x] D2-T003: Review the complete patch diff and confirm no migration,
+  `.p2p` repair, derived rebuild or publication approval was included.
+- [ ] D2-T004: Ask for explicit owner authorization before commit, tag, push or
+  package publication; record exact version, commit and target.
+- [ ] D2-T005: Publish and install the owner-authorized patch artifact, then
+  prove source/installed parity for template, plan, fingerprint and apply help.
+- [ ] D2-T006: D2 exit gate. The repository runtime contract accepts the
+  installed patch and M may resume using that executable.
+
 ## M - Repository V2-To-V3 Migration
 
-- [ ] M-T001: Ask the owner to confirm repository runtime-contract update and
+- [x] M-T001: Ask the owner to confirm repository runtime-contract update and
   v2-to-v3 migration as separate persistent operations.
-- [ ] M-T002: Through supported runtime preview/apply, update this project's
+- [x] M-T002: Through supported runtime preview/apply, update this project's
   runtime contract to the verified `0.4.x` version/range; do not edit the YAML
   manually. Covers R-F9-008.
-- [ ] M-T003: Verify the active installed executable, package location, runtime
+- [x] M-T003: Verify the active installed executable, package location, runtime
   contract and source commit before any migration plan.
-- [ ] M-T004: Capture read-only baseline: runtime/schema status, validation,
+- [x] M-T004: Capture read-only baseline: runtime/schema status, validation,
   proposal lifecycle distribution, registries, project progress/maturity/
   assessment, Changes, Work, specs, freshness, export/publication and Git diff.
   Covers R-F9-005.
-- [ ] M-T005: Run `p2p workspace migrate plan --to 3 --format json` with no
+- [x] M-T005: Run `p2p workspace migrate plan --to 3 --format json` with no
   owner patch and archive the reviewed plan evidence outside canonical `.p2p`
   state in the feature implementation evidence. Covers R-F9-005..006.
-- [ ] M-T006: Verify plan target ownership, proposal count, ledger count,
+- [x] M-T006: Verify plan target ownership, proposal count, ledger count,
   operation order, candidate validation, source hashes, unknown preservation,
   derived refresh advisories and schema-last commit. Covers R-F9-006.
-- [ ] M-T007: Enumerate every unknown-legacy/blocking proposal and request owner
+- [x] M-T007: Enumerate every unknown-legacy/blocking proposal and request owner
   input only where safe authority cannot be established. Covers R-F9-007.
-- [ ] M-T008: Re-plan after any supported owner input and confirm fingerprint,
-  candidate changes and no unrelated target changes.
+- [ ] M-T008: After D2, generate and review the owner-attestation template,
+  complete structured accepted-with-changes input, re-plan with the supported
+  patch and confirm fingerprint, candidate changes, residual manual-review
+  cases and no unrelated target changes.
 - [ ] M-T009: Ask for explicit owner confirmation of the exact applicable plan
   fingerprint and actor.
 - [ ] M-T010: Apply the migration through `p2p workspace migrate apply`; do not

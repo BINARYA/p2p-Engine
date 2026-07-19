@@ -86,6 +86,21 @@ DECISION_LIFECYCLE_SDIST_MEMBERS = {
     "tests/proposal_decision_fixtures.py",
     "tests/test_proposal_decision_cli.py",
     "tests/test_proposal_decision_ledger.py",
+    "tests/test_proposal_decision_service.py",
+    "tests/test_workspace_v3_migration.py",
+}
+ATTESTATION_WHEEL_MEMBERS = {
+    "p2p_engine/cli_commands/workspace_migrations.py",
+    "p2p_engine/core/workspace_schema.py",
+    "p2p_engine/services/workspace_compatibility.py",
+    "p2p_engine/services/workspace_migration_handlers.py",
+    "p2p_engine/services/workspace_migrations.py",
+    "p2p_engine/storage/filesystem.py",
+}
+ATTESTATION_SDIST_MEMBERS = {
+    *(f"src/{member}" for member in ATTESTATION_WHEEL_MEMBERS),
+    "tests/test_cli_workspace_migration.py",
+    "tests/test_workspace_compatibility_service.py",
     "tests/test_workspace_v3_migration.py",
 }
 
@@ -171,6 +186,7 @@ def verify_wheel(path: Path, *, version: str) -> int:
         metadata,
     }
     required.update(DECISION_LIFECYCLE_WHEEL_MEMBERS)
+    required.update(ATTESTATION_WHEEL_MEMBERS)
     required.update(_vertical_pack_required_members("p2p_engine"))
     with zipfile.ZipFile(path) as archive:
         members = _normalized_members(archive.namelist(), archive_root=None)
@@ -196,6 +212,7 @@ def verify_sdist(path: Path, *, version: str) -> int:
         "src/p2p_engine/services/workspace_migration_handlers.py",
     }
     required.update(DECISION_LIFECYCLE_SDIST_MEMBERS)
+    required.update(ATTESTATION_SDIST_MEMBERS)
     required.update(_vertical_pack_required_members("src/p2p_engine"))
     with tarfile.open(path, mode="r:gz") as archive:
         members = _normalized_members(archive.getnames(), archive_root=archive_root)

@@ -59,6 +59,7 @@ from p2p_engine.core.runtime_contract import (
 )
 from p2p_engine.core.workspace_schema import (
     CompatibilitySnapshot,
+    MigrationAttestationTemplate,
     MigrationApplyResult,
     MigrationPlan,
     MigrationRecoveryResult,
@@ -1434,6 +1435,20 @@ class P2PWorkspace:
         owner_inputs: dict[str, object] | None = None,
     ) -> MigrationPlan:
         return self._workspace_compatibility_service().plan(target_version, owner_inputs)
+
+    def workspace_migration_attestation_template(
+        self,
+        *,
+        target_version: int,
+        owner_id: str,
+    ) -> MigrationAttestationTemplate:
+        return (
+            self._workspace_compatibility_service()
+            .proposal_decision_attestation_template(
+                target_version=target_version,
+                owner_id=owner_id,
+            )
+        )
 
     def workspace_migration_apply(
         self,

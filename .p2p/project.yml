@@ -42,7 +42,7 @@ runtime_contract:
   required: true
 metadata_audit:
 - policy_version: 1
-  at: 2026-07-15T12:59:43Z
+  at: 2026-07-15 12:59:43+00:00
   actor: mrjungle
   changed_fields:
   - current_objective

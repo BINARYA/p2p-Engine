@@ -24,6 +24,7 @@ from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionAffectedDecision,
     ProposalDecisionAuthorityEvidence,
     ProposalDecisionAuthorityResolution,
+    ProposalDecisionCondition,
     ProposalDecisionEffectiveState,
     ProposalDecisionEventType,
     ProposalDecisionImpactBinding,
@@ -603,7 +604,6 @@ class WorkspaceV2ToV3ProposalDecisionLedgerHandler(RegisteredWorkspaceMigrationH
         candidate_view: Any,
         base_plan: Any | None = None,
     ) -> TransitionPlanFragment:
-        del owner_inputs
         migration_id = self.transition.migration_id
         schema_target = ".p2p/project/workspace-schema.yml"
         candidate_files = {
@@ -625,6 +625,7 @@ class WorkspaceV2ToV3ProposalDecisionLedgerHandler(RegisteredWorkspaceMigrationH
             ".p2p/project/permissions.yml",
         )
         permission_sha256 = semantic_sha256(permission_payload)
+        attestations = self._authority_attestations(owner_inputs)
         seen_ids: set[str] = set()
 
         for proposal_id, proposal_dir in proposal_sources:
@@ -686,13 +687,34 @@ class WorkspaceV2ToV3ProposalDecisionLedgerHandler(RegisteredWorkspaceMigrationH
                 proposal_bytes=proposal_bytes,
                 decision_bytes=decision_bytes,
             )
-            ledger = self._ledger_candidate(
-                snapshot_value,
-                proposal_text=proposal_text,
-                permission_payload=permission_payload,
-                permission_sha256=permission_sha256,
-                migration_id=migration_id,
-            )
+            try:
+                ledger = self._ledger_candidate(
+                    snapshot_value,
+                    proposal_text=proposal_text,
+                    permission_payload=permission_payload,
+                    permission_sha256=permission_sha256,
+                    migration_id=migration_id,
+                    attestation=attestations.get(proposal_id),
+                )
+            except ValueError as exc:
+                plan_findings.append(
+                    CompatibilityFinding(
+                        code="P2P390_MIGRATION_ATTESTATION_INVALID",
+                        classification=FINDING_INVALID,
+                        message=str(exc),
+                        path=ledger_target,
+                        recovery_action=(
+                            "Regenerate the read-only attestation template, review "
+                            "the exact legacy sources and re-plan with a corrected input."
+                        ),
+                        migration_id=migration_id,
+                    )
+                )
+                applicable = False
+                ledger = self._unknown_legacy_ledger(
+                    snapshot_value,
+                    migration_id=migration_id,
+                )
             if (
                 ledger.authority_resolution
                 == ProposalDecisionAuthorityResolution.unknown_legacy
@@ -756,6 +778,25 @@ class WorkspaceV2ToV3ProposalDecisionLedgerHandler(RegisteredWorkspaceMigrationH
                     )
                 )
 
+        for proposal_id in sorted(set(attestations) - seen_ids):
+            plan_findings.append(
+                CompatibilityFinding(
+                    code="P2P390_MIGRATION_ATTESTATION_INVALID",
+                    classification=FINDING_INVALID,
+                    message=(
+                        f"Attestation references proposal `{proposal_id}`, which is "
+                        "not present in the migration source set."
+                    ),
+                    path=".p2p/proposals",
+                    recovery_action=(
+                        "Regenerate the read-only attestation template and remove "
+                        "stale proposal entries."
+                    ),
+                    migration_id=migration_id,
+                )
+            )
+            applicable = False
+
         try:
             schema_payload = self._schema_payload(
                 candidate_view=candidate_view,
@@ -815,27 +856,47 @@ class WorkspaceV2ToV3ProposalDecisionLedgerHandler(RegisteredWorkspaceMigrationH
         permission_payload: Mapping[str, object],
         permission_sha256: str,
         migration_id: str,
+        attestation: Mapping[str, object] | None,
     ) -> ProposalDecisionLedger:
         if snapshot.normalized_state == "undecided":
+            if attestation is not None:
+                raise ValueError(
+                    f"{snapshot.proposal_id} is undecided and cannot be attested "
+                    "as a historical decision."
+                )
             return self.codec.empty(snapshot.proposal_id)
         event_type = self._migratable_event(snapshot, permission_payload)
-        if event_type is None:
-            return ProposalDecisionLedger(
-                contract_version=1,
-                proposal_id=snapshot.proposal_id,
-                authority_resolution=ProposalDecisionAuthorityResolution.unknown_legacy,
-                effective_state=ProposalDecisionEffectiveState.unknown_legacy,
-                head_event_id=None,
-                legacy_evidence=(
-                    self.legacy.legacy_evidence(snapshot, migration_id=migration_id),
-                ),
+        attested = False
+        authority_owner = snapshot.approver
+        authority_kind = "person"
+        conditions: tuple[ProposalDecisionCondition, ...] = ()
+        if event_type is not None and attestation is not None:
+            raise ValueError(
+                f"{snapshot.proposal_id} already has owner-resolved legacy authority; "
+                "an attestation is not applicable."
             )
+        if event_type is None and attestation is None:
+            return self._unknown_legacy_ledger(
+                snapshot,
+                migration_id=migration_id,
+            )
+        if event_type is None:
+            assert attestation is not None
+            event_type, authority_owner, authority_kind, conditions = (
+                self._validate_attestation(
+                    snapshot,
+                    permission_payload=permission_payload,
+                    attestation=attestation,
+                )
+            )
+            attested = True
         proposal_sha = proposal_semantic_sha256(snapshot.proposal_id, proposal_text)
         effective_state = ProposalDecisionEffectiveState(event_type.value)
         decision_sha = decision_semantic_sha256(
             proposal_sha256=proposal_sha,
             outcome=effective_state,
             rationale=snapshot.reason,
+            conditions=conditions,
         )
         source_sha256 = {
             "proposal.md": hashlib.sha256(snapshot.proposal_bytes or b"").hexdigest(),
@@ -852,6 +913,16 @@ class WorkspaceV2ToV3ProposalDecisionLedgerHandler(RegisteredWorkspaceMigrationH
             "approver": snapshot.approver,
             "decided_on": snapshot.decided_on,
         }
+        if attested:
+            assert attestation is not None
+            preserved_values["owner_attestation"] = {
+                "attestation_contract_version": 1,
+                "owner_id": authority_owner,
+                "legacy_status": snapshot.proposal_status,
+                "legacy_approver": snapshot.approver,
+                "decided_on": snapshot.decided_on,
+                "source_sha256": source_sha256,
+            }
         migration = ProposalDecisionMigrationProvenance(
             migration_id=migration_id,
             source_paths=(snapshot.proposal_path, snapshot.decision_path),
@@ -865,6 +936,10 @@ class WorkspaceV2ToV3ProposalDecisionLedgerHandler(RegisteredWorkspaceMigrationH
             "decision_semantic_sha256": decision_sha,
             "source_sha256": source_sha256,
         }
+        if attested:
+            request_semantics["owner_attestation"] = preserved_values[
+                "owner_attestation"
+            ]
         preview_token = semantic_sha256(
             {"migration_preview": request_semantics}
         )
@@ -874,14 +949,18 @@ class WorkspaceV2ToV3ProposalDecisionLedgerHandler(RegisteredWorkspaceMigrationH
             event_type=event_type,
             effective_state=effective_state,
             rationale=snapshot.reason,
-            conditions=(),
+            conditions=conditions,
             decided_on=snapshot.decided_on,
             authority=ProposalDecisionAuthorityEvidence(
-                owner_id=snapshot.approver,
+                owner_id=authority_owner,
                 owner_role="owner",
-                executor_actor_id=snapshot.approver,
-                executor_kind="person",
-                channel="workspace_migration",
+                executor_actor_id=authority_owner,
+                executor_kind=authority_kind,
+                channel=(
+                    "workspace_migration_owner_attestation"
+                    if attested
+                    else "workspace_migration"
+                ),
                 permission_policy_sha256=permission_sha256,
             ),
             predecessor=None,
@@ -897,6 +976,111 @@ class WorkspaceV2ToV3ProposalDecisionLedgerHandler(RegisteredWorkspaceMigrationH
             migration=migration,
         )
         return self.codec.append(self.codec.empty(snapshot.proposal_id), event)
+
+    def _validate_attestation(
+        self,
+        snapshot: Any,
+        *,
+        permission_payload: Mapping[str, object],
+        attestation: Mapping[str, object],
+    ) -> tuple[
+        ProposalDecisionEventType,
+        str,
+        str,
+        tuple[ProposalDecisionCondition, ...],
+    ]:
+        if not snapshot.aligned or not snapshot.authority_fields_complete:
+            raise ValueError(
+                f"{snapshot.proposal_id} legacy sources are divergent or incomplete."
+            )
+        status = str(attestation.get("legacy_status") or "")
+        if status != snapshot.proposal_status:
+            raise ValueError(
+                f"{snapshot.proposal_id} legacy status changed after attestation."
+            )
+        if str(attestation.get("legacy_approver") or "") != snapshot.approver:
+            raise ValueError(
+                f"{snapshot.proposal_id} legacy approver changed after attestation."
+            )
+        if str(attestation.get("decided_on") or "") != snapshot.decided_on:
+            raise ValueError(
+                f"{snapshot.proposal_id} decision date changed after attestation."
+            )
+        actual_hashes = {
+            "proposal.md": hashlib.sha256(snapshot.proposal_bytes or b"").hexdigest(),
+            "decision.md": hashlib.sha256(snapshot.decision_bytes or b"").hexdigest(),
+        }
+        supplied_hashes = attestation.get("source_sha256")
+        if not isinstance(supplied_hashes, Mapping) or dict(supplied_hashes) != actual_hashes:
+            raise ValueError(
+                f"{snapshot.proposal_id} source hashes changed after attestation."
+            )
+
+        owner_id = str(attestation.get("owner_id") or "")
+        identities = permission_payload.get("identities")
+        identity = (
+            identities.get(identity_slug(owner_id))
+            if isinstance(identities, Mapping)
+            else None
+        )
+        if not isinstance(identity, Mapping) or str(identity.get("role") or "") != "owner":
+            raise ValueError(
+                f"{snapshot.proposal_id} attesting actor `{owner_id}` is not a "
+                "current project owner."
+            )
+        actor_kind = str(identity.get("kind") or "")
+        if actor_kind not in {"person", "agent", "client"}:
+            raise ValueError(
+                f"{snapshot.proposal_id} attesting owner has an invalid actor kind."
+            )
+        raw_conditions = attestation.get("conditions")
+        conditions = tuple(
+            ProposalDecisionCondition(
+                condition_id=str(item["id"]),
+                text=str(item["text"]),
+            )
+            for item in (raw_conditions if isinstance(raw_conditions, list) else ())
+            if isinstance(item, Mapping)
+        )
+        return (
+            ProposalDecisionEventType(status),
+            identity_slug(owner_id),
+            actor_kind,
+            conditions,
+        )
+
+    def _unknown_legacy_ledger(
+        self,
+        snapshot: Any,
+        *,
+        migration_id: str,
+    ) -> ProposalDecisionLedger:
+        return ProposalDecisionLedger(
+            contract_version=1,
+            proposal_id=snapshot.proposal_id,
+            authority_resolution=ProposalDecisionAuthorityResolution.unknown_legacy,
+            effective_state=ProposalDecisionEffectiveState.unknown_legacy,
+            head_event_id=None,
+            legacy_evidence=(
+                self.legacy.legacy_evidence(snapshot, migration_id=migration_id),
+            ),
+        )
+
+    @staticmethod
+    def _authority_attestations(
+        owner_inputs: Mapping[str, object],
+    ) -> Mapping[str, Mapping[str, object]]:
+        proposal_decisions = owner_inputs.get("proposal_decisions")
+        if not isinstance(proposal_decisions, Mapping):
+            return {}
+        values = proposal_decisions.get("authority_attestations")
+        if not isinstance(values, Mapping):
+            return {}
+        return {
+            str(proposal_id): attestation
+            for proposal_id, attestation in values.items()
+            if isinstance(attestation, Mapping)
+        }
 
     def _migratable_event(
         self,

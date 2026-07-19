@@ -47,8 +47,24 @@ def test_release_verifier_requires_decision_lifecycle_runtime_members() -> None:
     assert {
         "src/p2p_engine/core/proposal_decision_events.py",
         "src/p2p_engine/services/proposal_decision_ledger.py",
+        "tests/test_proposal_decision_service.py",
         "tests/test_workspace_v3_migration.py",
     } <= MODULE.DECISION_LIFECYCLE_SDIST_MEMBERS
+
+
+def test_release_verifier_requires_attestation_runtime_and_regression_members() -> None:
+    assert {
+        "p2p_engine/cli_commands/workspace_migrations.py",
+        "p2p_engine/core/workspace_schema.py",
+        "p2p_engine/services/workspace_compatibility.py",
+        "p2p_engine/storage/filesystem.py",
+    } <= MODULE.ATTESTATION_WHEEL_MEMBERS
+    assert {
+        "src/p2p_engine/services/workspace_compatibility.py",
+        "tests/test_cli_workspace_migration.py",
+        "tests/test_workspace_compatibility_service.py",
+        "tests/test_workspace_v3_migration.py",
+    } <= MODULE.ATTESTATION_SDIST_MEMBERS
 
 
 @pytest.mark.parametrize(

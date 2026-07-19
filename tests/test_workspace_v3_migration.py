@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 from datetime import date
 from pathlib import Path
@@ -349,6 +350,315 @@ def test_v2_to_v3_preserves_unusable_legacy_authority_without_fabricating_event(
         item.code == "P2P360_DECISION_LEGACY_AUTHORITY_UNRESOLVED"
         for item in plan.findings
     )
+
+
+def test_attestation_template_is_read_only_and_separates_manual_review(
+    tmp_path: Path,
+) -> None:
+    workspace = _v2_workspace(tmp_path)
+    accepted_id, _ = _legacy_proposal(
+        workspace,
+        title="Legacy accepted by local",
+        proposal_status="accepted",
+        decision_status="accepted",
+        outcome="accepted",
+        reason="Reviewed legacy rationale.",
+        approver="local",
+        decided_on="2026-07-17",
+    )
+    conditional_id, _ = _legacy_proposal(
+        workspace,
+        title="Legacy conditional",
+        proposal_status="accepted_with_changes",
+        decision_status="accepted_with_changes",
+        outcome="accepted_with_changes",
+        reason="Conditions must be reconstructed explicitly.",
+        approver="local",
+        decided_on="2026-07-17",
+    )
+    superseded_id, _ = _legacy_proposal(
+        workspace,
+        title="Legacy superseded",
+        proposal_status="superseded",
+        decision_status="superseded",
+        outcome="superseded",
+        reason="Historical lineage is required.",
+        approver="local",
+        decided_on="2026-07-17",
+    )
+    before = _workspace_digest(tmp_path)
+
+    template = workspace.workspace_migration_attestation_template(
+        target_version=3,
+        owner_id="owner",
+    )
+
+    assert _workspace_digest(tmp_path) == before
+    assert template.status == "review_required"
+    assert template.included_proposal_ids == (accepted_id,)
+    attestations = template.owner_input["proposal_decisions"][
+        "authority_attestations"
+    ]
+    assert list(attestations) == [accepted_id]
+    reasons = {
+        item["proposal_id"]: item["reason"] for item in template.manual_review
+    }
+    assert reasons == {
+        conditional_id: "structured_conditions_required",
+        superseded_id: "historical_lineage_required",
+    }
+
+
+def test_v2_to_v3_owner_attestation_creates_source_bound_initial_event(
+    tmp_path: Path,
+) -> None:
+    workspace = _v2_workspace(tmp_path)
+    proposal_id, proposal_dir = _legacy_proposal(
+        workspace,
+        title="Legacy accepted by local",
+        proposal_status="accepted",
+        decision_status="accepted",
+        outcome="accepted",
+        reason="Reviewed legacy rationale.",
+        approver="local",
+        decided_on="2026-07-17",
+    )
+    base_plan = workspace.workspace_migration_plan(3)
+    owner_input = workspace.workspace_migration_attestation_template(
+        target_version=3,
+        owner_id="owner",
+    ).owner_input
+
+    plan = workspace.workspace_migration_plan(3, dict(owner_input))
+    ledger_path = (
+        proposal_dir.relative_to(tmp_path).as_posix() + "/decision-events.yml"
+    )
+    ledger = ProposalDecisionLedgerCodec().loads(
+        plan.candidate_files[ledger_path],
+        expected_proposal_id=proposal_id,
+    )
+
+    assert plan.applicable is True
+    assert plan.fingerprint_sha256 != base_plan.fingerprint_sha256
+    assert ledger.authority_resolution == ProposalDecisionAuthorityResolution.resolved
+    assert ledger.effective_state == ProposalDecisionEffectiveState.accepted
+    event = ledger.events[0]
+    assert event.authority.owner_id == "owner"
+    assert event.authority.channel == "workspace_migration_owner_attestation"
+    assert event.migration is not None
+    assert event.migration.preserved_values["approver"] == "local"
+    assert event.migration.preserved_values["owner_attestation"][
+        "legacy_approver"
+    ] == "local"
+
+    omitted = workspace.workspace_migration_apply(
+        target_version=3,
+        owner_inputs={},
+        plan_fingerprint=plan.fingerprint_sha256,
+        actor="owner",
+        confirm=True,
+    )
+    assert omitted.status == "stale_plan"
+    assert not (proposal_dir / "decision-events.yml").exists()
+
+    applied = workspace.workspace_migration_apply(
+        target_version=3,
+        owner_inputs=dict(owner_input),
+        plan_fingerprint=plan.fingerprint_sha256,
+        actor="owner",
+        confirm=True,
+    )
+    assert applied.status == "applied"
+    assert workspace.workspace_schema_status().current_version == 3
+
+
+@pytest.mark.parametrize("mutation", ("owner", "status", "hash"))
+def test_v2_to_v3_attestation_mismatch_blocks_plan(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    workspace = _v2_workspace(tmp_path)
+    _, proposal_dir = _legacy_proposal(
+        workspace,
+        title="Attestation mismatch",
+        proposal_status="accepted",
+        decision_status="accepted",
+        outcome="accepted",
+        reason="Reviewed legacy rationale.",
+        approver="local",
+        decided_on="2026-07-17",
+    )
+    owner_input = copy.deepcopy(
+        workspace.workspace_migration_attestation_template(
+            target_version=3,
+            owner_id="owner",
+        ).owner_input
+    )
+    attestation = next(
+        iter(
+            owner_input["proposal_decisions"]["authority_attestations"].values()
+        )
+    )
+    if mutation == "owner":
+        attestation["owner_id"] = "contributor"
+    elif mutation == "status":
+        attestation["legacy_status"] = "rejected"
+    else:
+        attestation["source_sha256"]["decision.md"] = "f" * 64
+
+    plan = workspace.workspace_migration_plan(3, owner_input)
+
+    assert plan.applicable is False
+    assert any(
+        item.code == "P2P390_MIGRATION_ATTESTATION_INVALID"
+        for item in plan.findings
+    )
+    assert not (proposal_dir / "decision-events.yml").exists()
+    assert workspace.workspace_schema_status().current_version == 2
+
+
+def test_v2_to_v3_conditional_attestation_requires_and_preserves_conditions(
+    tmp_path: Path,
+) -> None:
+    workspace = _v2_workspace(tmp_path)
+    proposal_id, proposal_dir = _legacy_proposal(
+        workspace,
+        title="Legacy conditional",
+        proposal_status="accepted_with_changes",
+        decision_status="accepted_with_changes",
+        outcome="accepted_with_changes",
+        reason="Owner reconstructed explicit conditions.",
+        approver="davide",
+        decided_on="2026-07-17",
+    )
+    proposal_bytes = (proposal_dir / "proposal.md").read_bytes()
+    decision_bytes = (proposal_dir / "decision.md").read_bytes()
+    owner_input = {
+        "proposal_decisions": {
+            "attestation_contract_version": 1,
+            "authority_attestations": {
+                proposal_id: {
+                    "owner_id": "owner",
+                    "legacy_status": "accepted_with_changes",
+                    "legacy_approver": "davide",
+                    "decided_on": "2026-07-17",
+                    "source_sha256": {
+                        "proposal.md": hashlib.sha256(proposal_bytes).hexdigest(),
+                        "decision.md": hashlib.sha256(decision_bytes).hexdigest(),
+                    },
+                    "conditions": [
+                        {
+                            "id": "C001",
+                            "text": "Preserve this explicit acceptance condition.",
+                        }
+                    ],
+                }
+            },
+        }
+    }
+
+    plan = workspace.workspace_migration_plan(3, owner_input)
+    ledger = ProposalDecisionLedgerCodec().loads(
+        plan.candidate_files[
+            proposal_dir.relative_to(tmp_path).as_posix() + "/decision-events.yml"
+        ],
+        expected_proposal_id=proposal_id,
+    )
+
+    assert plan.applicable is True
+    assert (
+        ledger.effective_state
+        == ProposalDecisionEffectiveState.accepted_with_changes
+    )
+    assert [item.to_dict() for item in ledger.events[0].conditions] == [
+        {
+            "id": "C001",
+            "text": "Preserve this explicit acceptance condition.",
+        }
+    ]
+
+
+def test_v2_to_v3_source_edit_after_attestation_blocks_apply(
+    tmp_path: Path,
+) -> None:
+    workspace = _v2_workspace(tmp_path)
+    _, proposal_dir = _legacy_proposal(
+        workspace,
+        title="Stale attestation",
+        proposal_status="accepted",
+        decision_status="accepted",
+        outcome="accepted",
+        reason="Reviewed legacy rationale.",
+        approver="local",
+        decided_on="2026-07-17",
+    )
+    owner_input = workspace.workspace_migration_attestation_template(
+        target_version=3,
+        owner_id="owner",
+    ).owner_input
+    plan = workspace.workspace_migration_plan(3, dict(owner_input))
+    decision_path = proposal_dir / "decision.md"
+    decision_path.write_bytes(decision_path.read_bytes() + b"\n")
+
+    result = workspace.workspace_migration_apply(
+        target_version=3,
+        owner_inputs=dict(owner_input),
+        plan_fingerprint=plan.fingerprint_sha256,
+        actor="owner",
+        confirm=True,
+    )
+
+    assert result.status == "blocked"
+    assert not (proposal_dir / "decision-events.yml").exists()
+    assert workspace.workspace_schema_status().current_version == 2
+
+
+def test_v2_to_v3_lock_time_source_change_returns_stale_plan(
+    tmp_path: Path,
+) -> None:
+    workspace = _v2_workspace(tmp_path)
+    _, proposal_dir = _legacy_proposal(
+        workspace,
+        title="Lock-time staleness",
+        proposal_status="accepted",
+        decision_status="accepted",
+        outcome="accepted",
+        reason="Reviewed legacy rationale.",
+        approver="local",
+        decided_on="2026-07-17",
+    )
+    owner_input = workspace.workspace_migration_attestation_template(
+        target_version=3,
+        owner_id="owner",
+    ).owner_input
+    reviewed_plan = workspace.workspace_migration_plan(3, dict(owner_input))
+    compatibility = workspace._workspace_compatibility_service()
+    original_plan = compatibility.plan
+    calls = 0
+
+    def plan_then_change_source(*args, **kwargs):
+        nonlocal calls
+        result = original_plan(*args, **kwargs)
+        calls += 1
+        if calls == 1:
+            decision_path = proposal_dir / "decision.md"
+            decision_path.write_bytes(decision_path.read_bytes() + b"\n")
+        return result
+
+    compatibility.plan = plan_then_change_source  # type: ignore[method-assign]
+
+    result = workspace.workspace_migration_apply(
+        target_version=3,
+        owner_inputs=dict(owner_input),
+        plan_fingerprint=reviewed_plan.fingerprint_sha256,
+        actor="owner",
+        confirm=True,
+    )
+
+    assert result.status == "stale_plan"
+    assert not (proposal_dir / "decision-events.yml").exists()
+    assert workspace.workspace_schema_status().current_version == 2
+    assert workspace.workspace_migration_recovery_status().required is False
 
 
 def test_schema_v2_validation_preserves_unknown_legacy_diagnostic_identity(

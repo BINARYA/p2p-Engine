@@ -1228,6 +1228,86 @@ receipt with missing or different result binding remains invalid.
 Legacy MCP accept/reject/defer tools delegate to preview/apply compatibility
 logic and cannot consume old unbound consent for a v3 decision.
 
+## Pre-Migration Owner Attestation
+
+### D022 - Extend The Existing Migration Input Contract
+
+The v2-to-v3 planner consumes owner attestations through the existing
+`--input` patch, plan fingerprint and lock-protected apply protocol. No second
+decision write surface or persistent preview cache is introduced.
+
+```yaml
+proposal_decisions:
+  attestation_contract_version: 1
+  authority_attestations:
+    PROP-001:
+      owner_id: mrjungle
+      legacy_status: accepted
+      legacy_approver: local
+      decided_on: 2026-05-19
+      source_sha256:
+        proposal.md: <64 lowercase hex>
+        decision.md: <64 lowercase hex>
+```
+
+`accepted_with_changes` additionally requires a non-empty `conditions` list
+with stable `id` and `text` fields. Every mapping is closed and normalized by
+proposal and condition ID before fingerprinting.
+
+### D023 - Separate Legacy Provenance From Current Authority
+
+An attestation means the current declared owner has reviewed the exact legacy
+sources and authorizes their values as the initial v3 decision. The event
+authority is therefore the current owner and uses channel
+`workspace_migration_owner_attestation`. Migration provenance separately
+preserves the original approver, status, date, reason, source hashes and
+attestation contract. The implementation never adds old actors to permissions
+or claims they were current owners.
+
+### D024 - Source-Bound Eligibility And Fail-Closed Semantics
+
+Attestation eligibility requires:
+
+1. aligned proposal status, decision status and outcome;
+2. non-empty rationale, legacy approver and valid ISO decision date;
+3. exact `proposal.md` and `decision.md` SHA-256 matches;
+4. an attesting identity with current `owner` role;
+5. an initial event type that does not require predecessor or lineage history.
+
+The accepted initial set is `accepted`, `accepted_with_changes`, `deferred`,
+`withdrawn` and `rejected`. `superseded`, `revoked`, split and merge outcomes
+remain loss-aware `unknown_legacy`; converting them to one initial event would
+fabricate history.
+
+Malformed attestation structure is rejected while loading the input patch.
+Source, owner or summary mismatch produces
+`P2P390_MIGRATION_ATTESTATION_INVALID`, marks the plan non-applicable and leaves
+the source-preserving unknown ledger candidate visible for diagnosis.
+
+### D025 - Deterministic Read-Only Template
+
+`p2p workspace migrate attestation-template --to 3 --owner OWNER` captures the
+same workspace snapshot used by migration planning and emits:
+
+- the unmodified source-plan fingerprint;
+- a normalized owner-input patch for eligible simple outcomes;
+- included proposal IDs;
+- manual-review entries for accepted-with-changes conditions, lineage-dependent
+  histories and other unsafe sources.
+
+The command performs no write and never inserts placeholder conditions.
+Operators copy or transform the emitted `owner_input` into a reviewed YAML
+patch. The regular `plan --input` command remains the only way to obtain the
+applicable attested plan fingerprint.
+
+### D026 - Release And Migration Ordering
+
+This hardening changes source after runtime `0.4.0`. It therefore requires a
+new tested patch runtime, explicit owner-authorized release, isolated install
+and source/installed parity check before repository migration resumes. M-T008
+must use that installed runtime; source-checkout execution is not acceptable
+evidence for the repository apply gate.
+
 ## Diagnostics
 
 Reserve `P2P360` through `P2P389` for this lifecycle. Initial assignments:

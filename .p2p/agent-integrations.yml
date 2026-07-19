@@ -1,6 +1,6 @@
 schema_version: 1
 baseline_profile: generic
-generated_at: '2026-07-13'
+generated_at: '2026-07-18'
 adapters:
   claude:
     status: installed
@@ -17,14 +17,14 @@ adapters:
       owner: generic
       managed: true
       template_id: generic-agents-md-v1
-      sha256: 1d2a8fa5390dda1fc337ba85fd33513a6e6cc70021bdab388e768ff57da3f0fd
+      sha256: 841ac5378019c25363f2ee54bc972b3be01a8820863f39d2899b8f059f03b50c
       drift: clean
     - path: CLAUDE.md
       shared: false
       owner: claude
       managed: true
       template_id: claude-md-v1
-      sha256: 7a09eab581b538a0a7f43a3b743eb76a0b2d384f7b119e3f2d7a3bbb365eec3f
+      sha256: e0dfe36421b8eb900b28e46c384a24a7f6235bbd50284344e2043ca857cf9530
       drift: clean
   codex:
     status: installed
@@ -41,21 +41,21 @@ adapters:
       owner: generic
       managed: true
       template_id: generic-agents-md-v1
-      sha256: 1d2a8fa5390dda1fc337ba85fd33513a6e6cc70021bdab388e768ff57da3f0fd
+      sha256: 841ac5378019c25363f2ee54bc972b3be01a8820863f39d2899b8f059f03b50c
       drift: clean
     - path: .agents/skills/p2p-project/SKILL.md
       shared: false
       owner: codex
       managed: true
       template_id: codex-p2p-skill-v1
-      sha256: 7dfdfb5333be7df34c51592804b7c12657d889fd7df3940f2895aaa263db5f46
+      sha256: 833b4858682e3b7ad2a323e3d9388a3bfcdebb9d02eddd40b79ba763ac908aa1
       drift: clean
     - path: .codex/skills/p2p-project/SKILL.md
       shared: false
       owner: codex
       managed: true
       template_id: codex-legacy-p2p-skill-v1
-      sha256: 8bc16ecc7e82d6d4013affc2c0a4fc13a4c085c3b4550dcc54dbeefe60cb2fef
+      sha256: b4e63e859b4617c7c5b128994e7189ed4a2e9ed0b6aee5985da6ca5871cc8243
       drift: clean
     - path: .agents/skills/p2p-project-curator/SKILL.md
       shared: false
@@ -86,12 +86,12 @@ adapters:
       owner: generic
       managed: true
       template_id: generic-agents-md-v1
-      sha256: 1d2a8fa5390dda1fc337ba85fd33513a6e6cc70021bdab388e768ff57da3f0fd
+      sha256: 841ac5378019c25363f2ee54bc972b3be01a8820863f39d2899b8f059f03b50c
       drift: clean
     - path: .p2p/agent-policy.yml
       shared: true
       owner: generic
       managed: true
       template_id: generic-agent-policy-v1
-      sha256: 523aaf3209fff3529b8eae9bb275a08adbac07e163f14ee6a8987636754b28b9
+      sha256: 34b23ceb84e659228023a28c3b35cf0b7c11f1345d8557ec871c9e2bb3383223
       drift: clean

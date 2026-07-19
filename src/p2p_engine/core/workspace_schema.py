@@ -316,6 +316,32 @@ class MigrationPlan:
 
 
 @dataclass(frozen=True)
+class MigrationAttestationTemplate:
+    status: str
+    source_version: int
+    target_version: int
+    owner_id: str
+    source_plan_fingerprint_sha256: str
+    owner_input: Mapping[str, object]
+    included_proposal_ids: tuple[str, ...] = ()
+    manual_review: tuple[Mapping[str, object], ...] = ()
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "status": self.status,
+            "source_version": self.source_version,
+            "target_version": self.target_version,
+            "owner_id": self.owner_id,
+            "source_plan_fingerprint_sha256": self.source_plan_fingerprint_sha256,
+            "owner_input": dict(self.owner_input),
+            "included_proposal_ids": list(self.included_proposal_ids),
+            "included_count": len(self.included_proposal_ids),
+            "manual_review": [dict(item) for item in self.manual_review],
+            "manual_review_count": len(self.manual_review),
+        }
+
+
+@dataclass(frozen=True)
 class MigrationApplyResult:
     status: str
     source_version: int

@@ -10,6 +10,7 @@ import pytest
 from typer.testing import CliRunner
 
 from p2p_engine.cli import app
+from p2p_engine.foundation.markdown import replace_section
 from p2p_engine.services.workspace_migrations import WorkspaceMigrationService
 from p2p_engine.storage.filesystem import P2PWorkspace
 from tests.workspace_migration_fixtures import initialize_legacy_workspace
@@ -72,6 +73,70 @@ def test_cli_migration_plan_is_read_only_and_json_stable(tmp_path: Path) -> None
     assert json.loads(first.output) == json.loads(second.output)
     assert _hash_tree(tmp_path) == before
     assert not (tmp_path / ".p2p" / ".internal").exists()
+
+
+def test_cli_attestation_template_is_read_only_in_text_and_json(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Legacy authority", owner="owner")
+    schema_path = tmp_path / ".p2p" / "project" / "workspace-schema.yml"
+    schema = yaml.safe_load(schema_path.read_text(encoding="utf-8"))
+    schema["workspace_schema"]["current_version"] = 2
+    schema["workspace_schema"]["applied_migrations"] = []
+    schema_path.write_text(
+        yaml.safe_dump(schema, sort_keys=False),
+        encoding="utf-8",
+    )
+    proposal = workspace.create_proposal("Accepted by a legacy actor")
+    proposal_dir = tmp_path / proposal.path
+    proposal_path = proposal_dir / "proposal.md"
+    proposal_path.write_text(
+        replace_section(
+            proposal_path.read_text(encoding="utf-8"),
+            "Status",
+            "`accepted`",
+        ),
+        encoding="utf-8",
+    )
+    (proposal_dir / "decision.md").write_text(
+        f"# Decision - {proposal.proposal_id}\n\n"
+        "## Status\n\n`accepted`\n\n"
+        "## Outcome\n\naccepted\n\n"
+        "## Reason\n\nReviewed legacy rationale.\n\n"
+        "## Date\n\n2026-07-17\n\n"
+        "## Approver\n\nlocal\n",
+        encoding="utf-8",
+    )
+    before = _hash_tree(tmp_path)
+    command = [
+        "workspace",
+        "migrate",
+        "attestation-template",
+        "--to",
+        "3",
+        "--owner",
+        "owner",
+        "--root",
+        str(tmp_path),
+    ]
+
+    text = runner.invoke(app, command)
+    json_result = runner.invoke(app, [*command, "--format", "json"])
+
+    assert text.exit_code == 0
+    assert "included_count: 1" in text.output
+    assert json_result.exit_code == 0
+    payload = json.loads(json_result.output)
+    assert payload["included_proposal_ids"] == [proposal.proposal_id]
+    assert payload["manual_review_count"] == 0
+    assert (
+        payload["owner_input"]["proposal_decisions"]["authority_attestations"][
+            proposal.proposal_id
+        ]["legacy_approver"]
+        == "local"
+    )
+    assert _hash_tree(tmp_path) == before
 
 
 def test_cli_migration_apply_commits_the_reviewed_plan(tmp_path: Path) -> None:

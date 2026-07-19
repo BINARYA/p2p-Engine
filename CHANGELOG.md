@@ -6,6 +6,22 @@ This project is early-stage and did not previously maintain a public changelog.
 Use this file for human-readable release notes as the repository moves toward
 tagged releases.
 
+## 0.4.1 - 2026-07-19
+
+- Added a read-only, source-bound owner-attestation template for workspace
+  schema v2-to-v3 migration plans, allowing unambiguous legacy accepted
+  decisions to become initial events without weakening unresolved evidence.
+- Added closed and bounded attestation input validation, duplicate-key-safe YAML
+  loading, exact owner/source/status/date binding, structured
+  accepted-with-changes conditions and plan/apply stale-source protection.
+- Preserved manual review for divergent, incomplete or lineage-dependent legacy
+  authority instead of fabricating proposal decisions or relationships.
+- Hardened concurrent proposal decision preview/apply and recovery behavior so
+  stale competing writes fail without deleting or replacing the winning event.
+- Expanded release artifact checks to require the attestation and concurrency
+  implementation and their regression tests in the wheel and source
+  distribution.
+
 ## 0.4.0 - 2026-07-18
 
 - The immutable `v0.3.0` tag failed its minimum-Python release gate and

@@ -13,6 +13,7 @@ from p2p_engine.core.workspace_schema import (
 )
 from p2p_engine.services.workspace_compatibility import (
     WorkspaceCompatibilityService,
+    load_owner_input_patch,
     normalize_owner_inputs,
 )
 from p2p_engine.services.workspace_schema import WorkspaceSchemaService
@@ -192,3 +193,199 @@ def test_owner_input_normalization_is_order_independent() -> None:
         }
     )
     assert first == second
+
+
+def test_decision_attestation_input_is_closed_bounded_and_order_independent() -> None:
+    hashes = {
+        "proposal.md": "a" * 64,
+        "decision.md": "b" * 64,
+    }
+    first = normalize_owner_inputs(
+        {
+            "proposal_decisions": {
+                "attestation_contract_version": 1,
+                "authority_attestations": {
+                    "PROP-010": {
+                        "owner_id": "owner",
+                        "legacy_status": "accepted_with_changes",
+                        "legacy_approver": "local",
+                        "decided_on": "2026-07-19",
+                        "source_sha256": hashes,
+                        "conditions": [
+                            {"id": "C002", "text": "Second."},
+                            {"id": "C001", "text": "First."},
+                        ],
+                    }
+                },
+            }
+        }
+    )
+    second = normalize_owner_inputs(
+        {
+            "proposal_decisions": {
+                "authority_attestations": {
+                    "PROP-010": {
+                        "conditions": [
+                            {"text": "First.", "id": "C001"},
+                            {"text": "Second.", "id": "C002"},
+                        ],
+                        "source_sha256": {
+                            "decision.md": "b" * 64,
+                            "proposal.md": "a" * 64,
+                        },
+                        "decided_on": "2026-07-19",
+                        "legacy_approver": "local",
+                        "legacy_status": "accepted_with_changes",
+                        "owner_id": "owner",
+                    }
+                },
+                "attestation_contract_version": 1,
+            }
+        }
+    )
+
+    assert first == second
+    conditions = first["proposal_decisions"]["authority_attestations"][
+        "PROP-010"
+    ]["conditions"]
+    assert [item["id"] for item in conditions] == ["C001", "C002"]
+
+
+@pytest.mark.parametrize(
+    "attestation",
+    (
+        {
+            "owner_id": "owner",
+            "legacy_status": "superseded",
+            "legacy_approver": "local",
+            "decided_on": "2026-07-19",
+            "source_sha256": {
+                "proposal.md": "a" * 64,
+                "decision.md": "b" * 64,
+            },
+        },
+        {
+            "owner_id": "Owner Name",
+            "legacy_status": "accepted",
+            "legacy_approver": "local",
+            "decided_on": "2026-07-19",
+            "source_sha256": {
+                "proposal.md": "a" * 64,
+                "decision.md": "b" * 64,
+            },
+        },
+        {
+            "owner_id": "owner",
+            "legacy_status": "accepted",
+            "legacy_approver": "local",
+            "decided_on": "not-a-date",
+            "source_sha256": {
+                "proposal.md": "a" * 64,
+                "decision.md": "b" * 64,
+            },
+        },
+        {
+            "owner_id": "owner",
+            "legacy_status": "accepted",
+            "legacy_approver": "local",
+            "decided_on": "2026-07-19",
+            "source_sha256": {"proposal.md": "a" * 64},
+        },
+    ),
+)
+def test_decision_attestation_input_rejects_unsafe_or_incomplete_values(
+    attestation: dict[str, object],
+) -> None:
+    with pytest.raises(
+        ValueError,
+        match="P2P390_MIGRATION_ATTESTATION_INVALID",
+    ):
+        normalize_owner_inputs(
+            {
+                "proposal_decisions": {
+                    "attestation_contract_version": 1,
+                    "authority_attestations": {"PROP-001": attestation},
+                }
+            }
+        )
+
+
+def test_decision_attestation_requires_conditions_only_for_conditional_acceptance() -> None:
+    base = {
+        "owner_id": "owner",
+        "legacy_approver": "local",
+        "decided_on": "2026-07-19",
+        "source_sha256": {
+            "proposal.md": "a" * 64,
+            "decision.md": "b" * 64,
+        },
+    }
+    with pytest.raises(ValueError, match="requires at least one structured condition"):
+        normalize_owner_inputs(
+            {
+                "proposal_decisions": {
+                    "attestation_contract_version": 1,
+                    "authority_attestations": {
+                        "PROP-001": {
+                            **base,
+                            "legacy_status": "accepted_with_changes",
+                        }
+                    },
+                }
+            }
+        )
+    with pytest.raises(ValueError, match="allowed only"):
+        normalize_owner_inputs(
+            {
+                "proposal_decisions": {
+                    "attestation_contract_version": 1,
+                    "authority_attestations": {
+                        "PROP-001": {
+                            **base,
+                            "legacy_status": "accepted",
+                            "conditions": [{"id": "C001", "text": "Not allowed."}],
+                        }
+                    },
+                }
+            }
+        )
+
+
+def test_decision_attestation_yaml_rejects_duplicate_proposal_and_condition_ids(
+    tmp_path: Path,
+) -> None:
+    duplicate_proposal = tmp_path / "duplicate-proposal.yml"
+    duplicate_proposal.write_text(
+        "proposal_decisions:\n"
+        "  attestation_contract_version: 1\n"
+        "  authority_attestations:\n"
+        "    PROP-001: {}\n"
+        "    PROP-001: {}\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="Duplicate migration owner input YAML key"):
+        load_owner_input_patch(duplicate_proposal)
+
+    duplicate_condition = {
+        "proposal_decisions": {
+            "attestation_contract_version": 1,
+            "authority_attestations": {
+                "PROP-001": {
+                    "owner_id": "owner",
+                    "legacy_status": "accepted_with_changes",
+                    "legacy_approver": "local",
+                    "decided_on": "2026-07-19",
+                    "source_sha256": {
+                        "proposal.md": "a" * 64,
+                        "decision.md": "b" * 64,
+                    },
+                    "conditions": [
+                        {"id": "C001", "text": "First."},
+                        {"id": "C001", "text": "Second."},
+                    ],
+                }
+            },
+        }
+    }
+    with pytest.raises(ValueError, match="duplicate condition ID"):
+        normalize_owner_inputs(duplicate_condition)

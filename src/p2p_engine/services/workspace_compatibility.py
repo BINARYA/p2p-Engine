@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from collections.abc import Callable, Mapping
+from datetime import date
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -10,6 +12,7 @@ import yaml
 from p2p_engine import __version__
 from p2p_engine.core.mutation_preview import canonical_json_bytes, semantic_sha256
 from p2p_engine.core.project_metadata import ProjectMetadataPatch
+from p2p_engine.core.proposal_decision_events import ProposalDecisionCondition
 from p2p_engine.core.workspace_schema import (
     CURRENT_WORKSPACE_SCHEMA_VERSION,
     FINDING_COMPATIBLE,
@@ -31,15 +34,23 @@ from p2p_engine.core.workspace_schema import (
     CompatibilityFinding,
     CompatibilitySnapshot,
     ArtifactInventoryEntry,
+    MigrationAttestationTemplate,
     MigrationOperation,
     MigrationPlan,
 )
-from p2p_engine.foundation.files import read_yaml_mapping, yaml_dump
+from p2p_engine.foundation.files import yaml_dump
 from p2p_engine.services.project_maturity import domain_state_payload
 from p2p_engine.services.candidate_workspace import CandidateWorkspaceView
 from p2p_engine.services.project_metadata import ProjectMetadataService
 from p2p_engine.services.project_verticals import ProjectVerticalService
 from p2p_engine.services.permissions import PermissionsService
+from p2p_engine.services.proposal_decision_ledger import (
+    MAX_CONDITION_BYTES,
+    MAX_CONDITIONS,
+    ProposalDecisionLedgerCodec,
+    normalize_scalar,
+    validate_conditions,
+)
 from p2p_engine.services.workspace_migration_registry import WorkspaceMigrationRegistry
 from p2p_engine.services.workspace_migration_handlers import TransitionPlanFragment
 from p2p_engine.services.workspace_schema import WorkspaceSchemaService
@@ -49,10 +60,53 @@ WORKSPACE_PLANNER_VERSION = 1
 SEMANTIC_AUDIT_TIMESTAMP = "__P2P_APPLY_AT__"
 SEMANTIC_AUDIT_ACTOR = "__P2P_ACTOR__"
 
-_OWNER_INPUT_KEYS = frozenset({"vertical", "owner", "metadata", "project_questions"})
+_OWNER_INPUT_KEYS = frozenset(
+    {"vertical", "owner", "metadata", "project_questions", "proposal_decisions"}
+)
 _VERTICAL_INPUT_KEYS = frozenset({"id", "profile", "modules", "rubric_mapping"})
 _OWNER_IDENTITY_KEYS = frozenset({"id", "name"})
 _METADATA_INPUT_KEYS = frozenset({"status", "workflow_phase", "current_objective"})
+_ATTESTATION_CONTRACT_VERSION = 1
+_PROPOSAL_ID = re.compile(r"^PROP-[0-9]{3,}$")
+_OWNER_ACTOR_ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_ATTESTABLE_INITIAL_STATES = frozenset(
+    {"accepted", "accepted_with_changes", "deferred", "withdrawn", "rejected"}
+)
+_SIMPLE_ATTESTABLE_INITIAL_STATES = _ATTESTABLE_INITIAL_STATES - {
+    "accepted_with_changes"
+}
+_MAX_OWNER_INPUT_BYTES = 4 * 1024 * 1024
+
+
+class _MigrationOwnerInputLoader(yaml.SafeLoader):
+    pass
+
+
+def _construct_unique_owner_input_mapping(
+    loader: yaml.SafeLoader,
+    node: yaml.MappingNode,
+    deep: bool = False,
+) -> dict[object, object]:
+    mapping: dict[object, object] = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        try:
+            duplicate = key in mapping
+        except TypeError as exc:
+            raise ValueError(
+                "Migration owner input YAML keys must be scalar values"
+            ) from exc
+        if duplicate:
+            raise ValueError(f"Duplicate migration owner input YAML key `{key}`")
+        mapping[key] = loader.construct_object(value_node, deep=deep)
+    return mapping
+
+
+_MigrationOwnerInputLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+    _construct_unique_owner_input_mapping,
+)
 
 
 class WorkspaceCompatibilityService:
@@ -243,6 +297,132 @@ class WorkspaceCompatibilityService:
             owner_inputs=normalized_inputs,
             fragment=fragment,
         )
+
+    def proposal_decision_attestation_template(
+        self,
+        *,
+        target_version: int,
+        owner_id: str,
+    ) -> MigrationAttestationTemplate:
+        plan = self.plan(target_version)
+        if plan.source_version != 2 or target_version != 3:
+            raise ValueError(
+                "Proposal decision attestation templates require a schema-v2 "
+                "workspace and target schema 3."
+            )
+        permissions = PermissionsService(root=self.root, p2p_dir=self.p2p_dir)
+        actor = permissions.resolve_actor(owner_id)
+        if actor.role != "owner":
+            raise ValueError(
+                "P2P390_MIGRATION_ATTESTATION_INVALID: attestation template "
+                f"owner `{actor.actor_id}` does not have role `owner`."
+            )
+
+        codec = ProposalDecisionLedgerCodec()
+        attestations: dict[str, object] = {}
+        included: list[str] = []
+        manual_review: list[dict[str, object]] = []
+        ledger_targets = sorted(
+            path
+            for path in plan.candidate_files
+            if path.startswith(".p2p/proposals/")
+            and path.endswith("/decision-events.yml")
+        )
+        for target in ledger_targets:
+            ledger = codec.loads(plan.candidate_files[target])
+            if not ledger.legacy_evidence:
+                continue
+            evidence = ledger.legacy_evidence[0]
+            values = evidence.values
+            status = str(values.get("proposal_status") or "")
+            reason = self._attestation_manual_review_reason(
+                values=values,
+                source_sha256=evidence.source_sha256,
+            )
+            if reason is None and status in _SIMPLE_ATTESTABLE_INITIAL_STATES:
+                attestations[ledger.proposal_id] = {
+                    "owner_id": actor.actor_id,
+                    "legacy_status": status,
+                    "legacy_approver": str(values["approver"]),
+                    "decided_on": str(values["decided_on"]),
+                    "source_sha256": {
+                        key: evidence.source_sha256[key]
+                        for key in ("proposal.md", "decision.md")
+                    },
+                }
+                included.append(ledger.proposal_id)
+                continue
+            if reason is None and status == "accepted_with_changes":
+                reason = "structured_conditions_required"
+            elif reason is None:
+                reason = "historical_lineage_required"
+            manual_review.append(
+                {
+                    "proposal_id": ledger.proposal_id,
+                    "legacy_status": status or "unknown",
+                    "reason": reason,
+                    "ledger_target": target,
+                }
+            )
+
+        proposal_decisions = {
+            "attestation_contract_version": _ATTESTATION_CONTRACT_VERSION,
+            "authority_attestations": attestations,
+        }
+        return MigrationAttestationTemplate(
+            status=(
+                "review_required"
+                if manual_review
+                else ("ready" if attestations else "not_required")
+            ),
+            source_version=plan.source_version,
+            target_version=target_version,
+            owner_id=actor.actor_id,
+            source_plan_fingerprint_sha256=plan.fingerprint_sha256,
+            owner_input=(
+                {"proposal_decisions": proposal_decisions}
+                if attestations
+                else {}
+            ),
+            included_proposal_ids=tuple(included),
+            manual_review=tuple(manual_review),
+        )
+
+    @staticmethod
+    def _attestation_manual_review_reason(
+        *,
+        values: Mapping[str, object],
+        source_sha256: Mapping[str, str],
+    ) -> str | None:
+        status = str(values.get("proposal_status") or "")
+        decision_status = str(values.get("decision_status") or "")
+        outcome = str(values.get("outcome") or "")
+        if status != decision_status or status != outcome:
+            return "legacy_sources_diverge"
+        if status not in _ATTESTABLE_INITIAL_STATES:
+            if status in {
+                "revoked",
+                "superseded",
+                "split",
+                "merged_into_other",
+            }:
+                return "historical_lineage_required"
+            return "unsupported_legacy_status"
+        if not all(
+            str(values.get(field) or "") not in {"", "unknown_legacy"}
+            for field in ("reason", "approver", "decided_on")
+        ):
+            return "legacy_authority_incomplete"
+        try:
+            date.fromisoformat(str(values["decided_on"]))
+        except ValueError:
+            return "legacy_decision_date_invalid"
+        if set(source_sha256) != {"proposal.md", "decision.md"} or not all(
+            _SHA256.fullmatch(str(source_sha256[key]))
+            for key in ("proposal.md", "decision.md")
+        ):
+            return "legacy_source_hashes_incomplete"
+        return None
 
     def _plan_with_handler(
         self,
@@ -907,11 +1087,24 @@ class WorkspaceCompatibilityService:
 
 
 def load_owner_input_patch(path: Path) -> dict[str, object]:
-    payload = read_yaml_mapping(
-        path,
-        default={},
-        error_message="Migration input patch must be a YAML mapping: {path}",
-    )
+    content = path.read_bytes()
+    if len(content) > _MAX_OWNER_INPUT_BYTES:
+        raise ValueError(
+            "Migration input patch exceeds the 4 MiB safety limit."
+        )
+    try:
+        payload = yaml.load(
+            content.decode("utf-8"),
+            Loader=_MigrationOwnerInputLoader,
+        )
+    except (UnicodeDecodeError, yaml.YAMLError) as exc:
+        raise ValueError(
+            f"Migration input patch must be valid UTF-8 YAML: {path}"
+        ) from exc
+    if payload is None:
+        payload = {}
+    if not isinstance(payload, dict):
+        raise ValueError(f"Migration input patch must be a YAML mapping: {path}")
     return normalize_owner_inputs(payload)
 
 
@@ -1002,7 +1195,199 @@ def normalize_owner_inputs(owner_inputs: Mapping[str, object]) -> dict[str, obje
                 normalized_binding[field] = value.strip()
             bindings[source_key.strip()] = normalized_binding
         normalized["project_questions"] = {"legacy_bindings": bindings}
+    proposal_decisions = owner_inputs.get("proposal_decisions")
+    if proposal_decisions is not None:
+        normalized["proposal_decisions"] = _normalize_proposal_decision_inputs(
+            proposal_decisions
+        )
     return normalized
+
+
+def _normalize_proposal_decision_inputs(value: object) -> dict[str, object]:
+    if not isinstance(value, Mapping):
+        raise _attestation_error("proposal_decisions must be a mapping")
+    allowed = {"attestation_contract_version", "authority_attestations"}
+    unknown = set(value) - allowed
+    if unknown:
+        raise _attestation_error(
+            "proposal_decisions contains unknown fields: "
+            + ", ".join(sorted(str(item) for item in unknown))
+        )
+    contract_version = value.get("attestation_contract_version")
+    if (
+        isinstance(contract_version, bool)
+        or contract_version != _ATTESTATION_CONTRACT_VERSION
+    ):
+        raise _attestation_error(
+            "proposal_decisions.attestation_contract_version must be 1"
+        )
+    raw_attestations = value.get("authority_attestations")
+    if not isinstance(raw_attestations, Mapping) or not raw_attestations:
+        raise _attestation_error(
+            "proposal_decisions.authority_attestations must be a non-empty mapping"
+        )
+
+    attestations: dict[str, object] = {}
+    for proposal_id, raw in sorted(
+        raw_attestations.items(),
+        key=lambda item: str(item[0]),
+    ):
+        if not isinstance(proposal_id, str) or not _PROPOSAL_ID.fullmatch(proposal_id):
+            raise _attestation_error(
+                f"invalid proposal attestation identity `{proposal_id}`"
+            )
+        if proposal_id in attestations:
+            raise _attestation_error(
+                f"duplicate proposal attestation identity `{proposal_id}`"
+            )
+        attestations[proposal_id] = _normalize_authority_attestation(
+            proposal_id,
+            raw,
+        )
+    return {
+        "attestation_contract_version": _ATTESTATION_CONTRACT_VERSION,
+        "authority_attestations": attestations,
+    }
+
+
+def _normalize_authority_attestation(
+    proposal_id: str,
+    value: object,
+) -> dict[str, object]:
+    if not isinstance(value, Mapping):
+        raise _attestation_error(f"{proposal_id} attestation must be a mapping")
+    required = {
+        "owner_id",
+        "legacy_status",
+        "legacy_approver",
+        "decided_on",
+        "source_sha256",
+    }
+    allowed = required | {"conditions"}
+    unknown = set(value) - allowed
+    missing = required - set(value)
+    if unknown:
+        raise _attestation_error(
+            f"{proposal_id} attestation contains unknown fields: "
+            + ", ".join(sorted(str(item) for item in unknown))
+        )
+    if missing:
+        raise _attestation_error(
+            f"{proposal_id} attestation is missing fields: "
+            + ", ".join(sorted(missing))
+        )
+
+    owner_id = str(value.get("owner_id") or "").strip()
+    if not _OWNER_ACTOR_ID.fullmatch(owner_id):
+        raise _attestation_error(
+            f"{proposal_id} owner_id must be a canonical project actor identity"
+        )
+    legacy_status = str(value.get("legacy_status") or "").strip()
+    if legacy_status not in _ATTESTABLE_INITIAL_STATES:
+        raise _attestation_error(
+            f"{proposal_id} legacy_status `{legacy_status}` cannot form an initial event"
+        )
+    try:
+        legacy_approver = normalize_scalar(
+            str(value.get("legacy_approver") or ""),
+            f"{proposal_id}.legacy_approver",
+            4 * 1024,
+        )
+    except ValueError as exc:
+        raise _attestation_error(str(exc)) from exc
+    decided_on = str(value.get("decided_on") or "").strip()
+    try:
+        date.fromisoformat(decided_on)
+    except ValueError as exc:
+        raise _attestation_error(
+            f"{proposal_id} decided_on must be an ISO date"
+        ) from exc
+
+    raw_hashes = value.get("source_sha256")
+    if not isinstance(raw_hashes, Mapping):
+        raise _attestation_error(f"{proposal_id} source_sha256 must be a mapping")
+    if set(raw_hashes) != {"proposal.md", "decision.md"}:
+        raise _attestation_error(
+            f"{proposal_id} source_sha256 requires exactly proposal.md and decision.md"
+        )
+    source_sha256: dict[str, str] = {}
+    for source_name in ("proposal.md", "decision.md"):
+        digest = str(raw_hashes.get(source_name) or "")
+        if not _SHA256.fullmatch(digest):
+            raise _attestation_error(
+                f"{proposal_id} source_sha256.{source_name} must be 64 lowercase hex"
+            )
+        source_sha256[source_name] = digest
+
+    conditions = _normalize_attestation_conditions(
+        proposal_id,
+        value.get("conditions"),
+        required=legacy_status == "accepted_with_changes",
+    )
+    normalized: dict[str, object] = {
+        "owner_id": owner_id,
+        "legacy_status": legacy_status,
+        "legacy_approver": legacy_approver,
+        "decided_on": decided_on,
+        "source_sha256": source_sha256,
+    }
+    if conditions:
+        normalized["conditions"] = [item.to_dict() for item in conditions]
+    return normalized
+
+
+def _normalize_attestation_conditions(
+    proposal_id: str,
+    value: object,
+    *,
+    required: bool,
+) -> tuple[ProposalDecisionCondition, ...]:
+    if value is None:
+        raw_conditions: list[object] = []
+    elif isinstance(value, list):
+        raw_conditions = value
+    else:
+        raise _attestation_error(f"{proposal_id} conditions must be a sequence")
+    if len(raw_conditions) > MAX_CONDITIONS:
+        raise _attestation_error(
+            f"{proposal_id} conditions exceed maximum count {MAX_CONDITIONS}"
+        )
+    conditions: list[ProposalDecisionCondition] = []
+    for raw in raw_conditions:
+        if not isinstance(raw, Mapping) or set(raw) != {"id", "text"}:
+            raise _attestation_error(
+                f"{proposal_id} conditions require exactly id and text"
+            )
+        try:
+            condition = ProposalDecisionCondition(
+                condition_id=normalize_scalar(
+                    str(raw.get("id") or ""),
+                    f"{proposal_id}.condition.id",
+                    256,
+                ),
+                text=normalize_scalar(
+                    str(raw.get("text") or ""),
+                    f"{proposal_id}.condition.text",
+                    MAX_CONDITION_BYTES,
+                ),
+            )
+        except ValueError as exc:
+            raise _attestation_error(str(exc)) from exc
+        conditions.append(condition)
+    conditions.sort(key=lambda item: item.condition_id)
+    try:
+        validate_conditions(tuple(conditions), required=required)
+    except ValueError as exc:
+        raise _attestation_error(str(exc)) from exc
+    if not required and conditions:
+        raise _attestation_error(
+            f"{proposal_id} conditions are allowed only for accepted_with_changes"
+        )
+    return tuple(conditions)
+
+
+def _attestation_error(message: str) -> ValueError:
+    return ValueError(f"P2P390_MIGRATION_ATTESTATION_INVALID: {message}")
 
 
 def _reject_unsafe_value(field: str, value: str) -> None:

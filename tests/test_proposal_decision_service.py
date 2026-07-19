@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import multiprocessing
+import os
 from pathlib import Path
 
 import pytest
@@ -324,6 +325,115 @@ def test_two_previews_from_same_head_produce_one_commit_and_one_head_conflict(
     with pytest.raises(ValueError, match="P2P367_DECISION_CONCURRENT_HEAD"):
         _apply(workspace, rejected)
     assert _tree_digest(tmp_path) == before
+
+
+def test_same_request_commit_during_preview_rebuild_becomes_exact_retry(
+    tmp_path: Path,
+) -> None:
+    workspace, proposal_id, _ = _workspace(tmp_path)
+    preview = _preview(workspace, proposal_id)
+    service = workspace._proposal_decision_service()
+    original_preview = service._preview
+    committed = False
+
+    def preview_after_competing_commit(*args, **kwargs):
+        nonlocal committed
+        if not committed:
+            committed = True
+            competing = P2PWorkspace(tmp_path)._proposal_decision_service()
+            assert (
+                competing.apply(
+                    preview.request,
+                    preview_token=preview.mutation.preview_token,
+                    confirm=True,
+                ).status
+                == "applied"
+            )
+        return original_preview(*args, **kwargs)
+
+    service._preview = preview_after_competing_commit  # type: ignore[method-assign]
+
+    result = service.apply(
+        preview.request,
+        preview_token=preview.mutation.preview_token,
+        confirm=True,
+    )
+
+    assert result.status == "already_applied"
+
+
+def test_conflicting_commit_during_preview_rebuild_becomes_head_conflict(
+    tmp_path: Path,
+) -> None:
+    workspace, proposal_id, _ = _workspace(tmp_path)
+    accepted = _preview(workspace, proposal_id, reason="Accept.")
+    rejected = _preview(
+        workspace,
+        proposal_id,
+        ProposalDecisionEventType.rejected,
+        reason="Reject.",
+    )
+    service = workspace._proposal_decision_service()
+    original_preview = service._preview
+    committed = False
+
+    def preview_after_competing_commit(*args, **kwargs):
+        nonlocal committed
+        if not committed:
+            committed = True
+            competing = P2PWorkspace(tmp_path)._proposal_decision_service()
+            assert (
+                competing.apply(
+                    accepted.request,
+                    preview_token=accepted.mutation.preview_token,
+                    confirm=True,
+                ).status
+                == "applied"
+            )
+        return original_preview(*args, **kwargs)
+
+    service._preview = preview_after_competing_commit  # type: ignore[method-assign]
+
+    with pytest.raises(ValueError, match="P2P367_DECISION_CONCURRENT_HEAD"):
+        service.apply(
+            rejected.request,
+            preview_token=rejected.mutation.preview_token,
+            confirm=True,
+        )
+
+
+def test_schema_gate_distinguishes_live_decision_lock_from_stale_recovery(
+    tmp_path: Path,
+) -> None:
+    workspace, _, _ = _workspace(tmp_path)
+    service = workspace._proposal_decision_service()
+
+    def status_for(pid: int):
+        return type(
+            "WorkspaceSchema",
+            (),
+            {
+                "current_version": 3,
+                "layout_status": "current",
+                "recovery": {
+                    "required": True,
+                    "transaction_id": (
+                        "mutation-proposal-decision-apply-test-transaction"
+                    ),
+                    "lock": {"pid": pid},
+                },
+            },
+        )()
+
+    service.workspace_schema_status = lambda: status_for(os.getpid())
+    service._require_schema_v3()
+
+    service.workspace_schema_status = lambda: status_for(2**31 - 1)
+    with pytest.raises(
+        ValueError,
+        match="P2P307_WORKSPACE_MIGRATION_RECOVERY_REQUIRED",
+    ):
+        service._require_schema_v3()
 
 
 def test_separate_process_same_request_has_one_commit_and_one_exact_retry(

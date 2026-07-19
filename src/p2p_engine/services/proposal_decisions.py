@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import time
 from collections.abc import Callable, Mapping
@@ -534,8 +535,8 @@ class ProposalDecisionService:
         allow_unknown_legacy: bool,
     ) -> ProposalDecisionApplyResult:
         self._wait_for_competing_decision_mutation()
-        self._require_schema_v3()
         if not confirm:
+            self._require_schema_v3()
             preview = self._preview(
                 request,
                 allow_unknown_legacy=allow_unknown_legacy,
@@ -560,10 +561,23 @@ class ProposalDecisionService:
             raise ValueError(
                 "P2P367_DECISION_CONCURRENT_HEAD: ledger head changed after preview"
             )
-        preview = self._preview(
-            request,
-            allow_unknown_legacy=allow_unknown_legacy,
-        )
+        self._require_schema_v3()
+        try:
+            preview = self._preview(
+                request,
+                allow_unknown_legacy=allow_unknown_legacy,
+            )
+        except ValueError:
+            retry = self._exact_retry(request, preview_token)
+            if retry is not None:
+                return retry
+            latest = self._read_ledger(request.proposal_id)
+            if latest.head_event_id != request.source_head_event_id:
+                raise ValueError(
+                    "P2P367_DECISION_CONCURRENT_HEAD: ledger head changed "
+                    "while rebuilding the lock-bound preview"
+                ) from None
+            raise
         if preview.mutation.preview_token != preview_token:
             return ProposalDecisionApplyResult(
                 status="stale_preview",
@@ -1768,7 +1782,15 @@ class ProposalDecisionService:
         version = getattr(status, "current_version", None)
         layout = str(getattr(status, "layout_status", "invalid"))
         recovery = getattr(status, "recovery", {})
-        if isinstance(recovery, Mapping) and recovery.get("required"):
+        active_decision_mutation = (
+            isinstance(recovery, Mapping)
+            and self._active_decision_mutation(recovery)
+        )
+        if (
+            isinstance(recovery, Mapping)
+            and recovery.get("required")
+            and not active_decision_mutation
+        ):
             raise ValueError(
                 "P2P307_WORKSPACE_MIGRATION_RECOVERY_REQUIRED: recover the active "
                 "workspace transaction before decision mutation"
@@ -1809,6 +1831,26 @@ class ProposalDecisionService:
                 "recovery": {},
             },
         )()
+
+    @staticmethod
+    def _active_decision_mutation(recovery: Mapping[str, object]) -> bool:
+        transaction_id = str(recovery.get("transaction_id") or "")
+        lock = recovery.get("lock")
+        if (
+            not transaction_id.startswith(_DECISION_TRANSACTION_PREFIX)
+            or not isinstance(lock, Mapping)
+        ):
+            return False
+        pid = lock.get("pid")
+        if isinstance(pid, bool) or not isinstance(pid, int) or pid <= 0:
+            return False
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            return True
+        return True
 
     @staticmethod
     def _permission_payload(content: object) -> dict[str, object]:

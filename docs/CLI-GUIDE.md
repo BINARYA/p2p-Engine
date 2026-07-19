@@ -151,9 +151,15 @@ Build a deterministic forward-only plan. Supply a reviewed owner-input patch
 when the findings require vertical, owner or bounded metadata values:
 
 ```bash
+p2p workspace migrate attestation-template --to 3 --owner owner --format json
 p2p workspace migrate plan --to 3 --format json
 p2p workspace migrate plan --to 3 --input migration-input.yml --format json
 ```
+
+The attestation template is read-only. For schema-v2 decision migration it
+emits source-bound owner input for aligned simple outcomes and lists
+accepted-with-changes or lineage-dependent cases that still require explicit
+review. It never creates a patch or changes permissions.
 
 Apply only the exact reviewed plan. The target, input patch and semantic
 fingerprint are resupplied; P2P recomputes and validates the plan before and

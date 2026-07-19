@@ -16,6 +16,11 @@ runtime_bootstrap:
   contract_path: .p2p/project/runtime.yml
   setup_guide: P2P-SETUP.md
   status_command: p2p runtime status
+  workspace_schema_status_command: p2p workspace schema status
+  workspace_migration_plan_command: p2p workspace migrate plan --to <version>
+  workspace_recovery_status_command: p2p workspace migrate recovery status
+  workspace_migration_apply_surface: owner_confirmed_cli_only
+  manual_workspace_schema_repair: forbidden
   legacy_undeclared: warn_do_not_infer
   environment_mutation: owner_explicit_action_required
   discovery_order:
@@ -37,6 +42,10 @@ owner_controlled_actions:
 - proposal_accept
 - proposal_reject
 - proposal_defer
+- proposal_withdraw
+- proposal_revoke
+- proposal_replace
+- proposal_reinstate
 - choice_decide
 - work_accept
 - work_finalize
@@ -195,6 +204,27 @@ proposal_readiness:
   - p2p_proposal_artifact_set
   computed_score_is_advisory: true
   owner_override_must_not_falsify_computed_score: true
+proposal_decision_lifecycle:
+  canonical_schema_v3_artifact: decision-events.yml
+  history: append_only
+  write_protocol: preview_then_exact_apply
+  status_command: p2p decision status PROP-XXX
+  history_command: p2p decision history PROP-XXX
+  impact_command: p2p decision impact PROP-XXX --event-type <event>
+  compatibility_commands_are_two_phase: true
+  reject_means_never_active: true
+  revoke_preserves_accepted_history: true
+  dependent_lifecycle_mutation: forbidden
+  branch_decisions_are_separate: true
+  schema_v2_event_writes: blocked_until_governed_migration
+  manual_ledger_or_projection_repair: forbidden
+  mcp:
+    preview: p2p_proposal_decision_preview
+    apply: p2p_proposal_decision_apply
+    consent_operation: proposal_decision_apply
+    consent_target: PROP-XXX@preview-token
+    owner_executor_separation: true
+    legacy_unbound_consent_can_write: false
 project_vertical_orchestration:
   prioritize_when_missing_or_fallback: true
   review_command: p2p project readiness review

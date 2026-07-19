@@ -427,6 +427,37 @@ write behavior.
 - R-F5-023: FRESH schema-v3 initialization, proposal creation, workspace
   validation, migration fixtures and operation-gate fixtures SHALL all use the
   same version constants and artifact contract.
+- R-F5-024: THE v2-to-v3 migration SHALL accept a closed, versioned
+  `proposal_decisions.authority_attestations` owner-input mapping for legacy
+  decisions whose source authority cannot otherwise be established.
+- R-F5-025: EACH authority attestation SHALL identify the current declared
+  owner and restate the reviewed legacy status, approver and decision date. It
+  SHALL bind exact SHA-256 hashes for both `proposal.md` and `decision.md`.
+- R-F5-026: THE planner SHALL accept attested initial events only for aligned,
+  authority-complete `accepted`, `accepted_with_changes`, `deferred`,
+  `withdrawn` and `rejected` sources. `accepted_with_changes` SHALL require
+  explicit structured conditions. Terminal histories requiring predecessor or
+  lineage evidence, including `superseded`, SHALL remain `unknown_legacy`.
+- R-F5-027: OWNER attestation SHALL NOT rewrite the legacy actor as the
+  historical decision maker. The created event SHALL record the current owner
+  as attesting authority while migration provenance preserves the legacy
+  actor, values, source hashes and attestation contract.
+- R-F5-028: NORMALIZED attestations SHALL participate in the migration plan
+  fingerprint. Apply SHALL require the identical input patch and SHALL reject
+  omitted, changed or stale attestations through the existing two-phase
+  migration contract.
+- R-F5-029: A read-only CLI primitive SHALL generate a deterministic
+  attestation template from captured legacy sources, separating immediately
+  attestable decisions from cases requiring structured conditions or lineage
+  review. It SHALL NOT write a patch or workspace state.
+- R-F5-030: UNKNOWN fields, duplicate proposal or condition identities,
+  unsupported states, malformed dates or hashes, non-owner identities,
+  source-summary divergence and source-hash mismatch SHALL fail closed with an
+  actionable migration finding.
+- R-F5-031: AUTHORITY attestation SHALL NOT modify the permissions policy,
+  register legacy aliases as owners, infer identity equivalence, create MCP
+  write parity or bypass the existing migration lock, staging, validation,
+  rollback and recovery transaction.
 
 ### F6 - Consumer Convergence And Derived State
 
@@ -756,3 +787,15 @@ write behavior.
   refreshed.
 - AC030: Final alignment reports no unexplained ledger/projection divergence,
   no missing schema-v3 ledgers and no automatic publication approval.
+- AC031: A legacy decision attributed to a non-owner remains unknown without
+  input and becomes one resolved initial event only with an exact current-owner
+  attestation bound to unchanged source bytes.
+- AC032: Attestation templates and normalized patches are deterministic;
+  changing or omitting an attestation, source hash, legacy summary or structured
+  condition changes or invalidates the reviewed migration plan.
+- AC033: Accepted-with-changes attestation preserves explicit structured
+  conditions, while superseded and other history-dependent legacy states remain
+  unresolved without fabricated predecessor or lineage events.
+- AC034: Focused service and CLI tests prove read-only template generation,
+  owner validation, fingerprint binding, lock-time stale detection, atomic
+  apply and exact rollback behavior for attested migrations.

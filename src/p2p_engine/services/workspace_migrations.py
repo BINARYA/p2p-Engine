@@ -752,7 +752,21 @@ class WorkspaceMigrationService:
                 return False
             identities = payload.get("identities")
             identity = identities.get(actor) if isinstance(identities, dict) else None
-            return isinstance(identity, dict) and identity.get("role") == "owner"
+            if not isinstance(identity, dict) or identity.get("role") != "owner":
+                return False
+            proposal_decisions = owner_inputs.get("proposal_decisions")
+            attestations = (
+                proposal_decisions.get("authority_attestations")
+                if isinstance(proposal_decisions, Mapping)
+                else None
+            )
+            if isinstance(attestations, Mapping) and any(
+                not isinstance(attestation, Mapping)
+                or str(attestation.get("owner_id") or "") != actor
+                for attestation in attestations.values()
+            ):
+                return False
+            return True
         owner = owner_inputs.get("owner")
         if not isinstance(owner, dict):
             return False

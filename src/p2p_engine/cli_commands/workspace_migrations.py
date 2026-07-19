@@ -53,6 +53,41 @@ def register_workspace_migration_commands(
         if any(item.classification in {"invalid", "unsupported"} for item in plan.findings):
             raise typer.Exit(code=1)
 
+    @migrate_app.command("attestation-template")
+    def migration_attestation_template(
+        target_version: int = typer.Option(
+            3,
+            "--to",
+            help="Target workspace schema version",
+        ),
+        owner: str = typer.Option(
+            ...,
+            "--owner",
+            help="Current declared owner reviewing legacy decisions",
+        ),
+        output_format: str = typer.Option(
+            "text",
+            "--format",
+            help="Output format: text or json",
+        ),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Generate a read-only, source-bound legacy authority input template."""
+        try:
+            template = workspace_for(
+                root
+            ).workspace_migration_attestation_template(
+                target_version=target_version,
+                owner_id=owner,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        _print_payload(
+            template.to_dict(),
+            output_format=output_format,
+            title="Workspace migration attestation template",
+        )
+
     @migrate_app.command("apply")
     def migrate_apply(
         target_version: int = typer.Option(..., "--to", help="Target workspace schema version"),
@@ -142,10 +177,13 @@ def _print_payload(payload: dict[str, object], *, output_format: str, title: str
         "target_version",
         "applicable",
         "fingerprint_sha256",
+        "source_plan_fingerprint_sha256",
         "transaction_id",
         "required",
         "journal_state",
         "message",
+        "included_count",
+        "manual_review_count",
     ):
         if key in payload and payload[key] not in (None, ""):
             console.print(f"  {key}: {payload[key]}")
@@ -165,6 +203,15 @@ def _print_payload(payload: dict[str, object], *, output_format: str, title: str
                 classification = finding.get("classification") or finding.get("severity")
                 console.print(f"  {classification} {finding.get('code')} {finding.get('path') or ''}".rstrip())
                 console.print(f"    {finding.get('message')}")
+    manual_review = payload.get("manual_review")
+    if isinstance(manual_review, list) and manual_review:
+        console.print("Manual review:")
+        for item in manual_review:
+            if isinstance(item, dict):
+                console.print(
+                    f"  {item.get('proposal_id')} {item.get('legacy_status')} "
+                    f"{item.get('reason')}"
+                )
     for key in ("changed_paths", "restored_paths"):
         paths = payload.get(key)
         if isinstance(paths, list) and paths:
