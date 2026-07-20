@@ -29,6 +29,14 @@ Revise evidence-aware proposal readiness so questions.yml is the authoritative s
 
 accepted
 
+## Event Type
+
+accepted
+
+## Effective State
+
+accepted
+
 ## Reason
 
 Accepted by owner with explicit readiness override after verification: the readiness/question-state convergence behavior is already implemented and validated with focused readiness/question tests, CLI/MCP contract tests, full pytest, and p2p validate. Computed readiness remains partial at 70, but there are no failed gates, missing artifacts, suggested next actions, or eligible owner questions.
@@ -39,4 +47,24 @@ Accepted by owner with explicit readiness override after verification: the readi
 
 ## Approver
 
-local
+mrjungle
+
+## Owner
+
+mrjungle
+
+## Ledger Head
+
+PDE-0a2498d3fcdd4b96e0dd9c08
+
+## Decision Fingerprint
+
+ad24260657b2fa59962f54358e656cee84e152fce774e24cd052dd9b663763fa
+
+## Lineage
+
+None.
+
+## Canonical Source
+
+decision-events.yml

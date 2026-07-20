@@ -1,0 +1,135 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-008
+  authority_resolution: resolved
+  effective_state: superseded
+  head_event_id: PDE-2bb422381ef86784c09435db
+  events:
+  - event_schema_version: 1
+    event_id: PDE-29096c07d7e0643eefaaa82e
+    operation_key: P2POP-b70a6f382357fca5eb2adfda
+    proposal_id: PROP-008
+    event_type: accepted
+    effective_state: accepted
+    rationale: Current owner resolves the legacy authority of PROP-008 by confirming
+      that its file-based governance MVP was historically valid and may be represented
+      as active solely to record its owner-reviewed supersession by PROP-091 in the
+      next governed decision. Preserved legacy evidence retains the historical ambiguity;
+      this event does not assert an earlier acceptance date or authority interval.
+    conditions: []
+    decided_on: '2026-07-19'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: cli
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: ceda34a37103e29d1cc6f49df1ea0a246d832448a9b765e39ba34c7bb6cbfc73
+    decision_semantic_sha256: 39b9fc8535fb3d8453cc77f07fd96ebf4487ecb6219a8cfbfd15435a8036434f
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 724349f2fa942a3ae0983e6717e73c8b150485616f81c9b84cc5b3f5fac77a69
+      request_fingerprint_sha256: f0e83a87a93347c608726ee5154e8f882829b803b8d17da2d9119f26f43a3ed1
+    migration:
+      migration_id: legacy-owner-resolution
+      source_paths:
+      - .p2p/proposals/PROP-008-governance-model/proposal.md
+      - .p2p/proposals/PROP-008-governance-model/decision.md
+      source_sha256:
+        legacy_evidence_001: de59687ea12e24e5619e6109517b39304f11c232612eb73abd69ed1503789fed
+      preserved_values:
+        legacy_evidence_count: 1
+        legacy_evidence_sha256: 1e13d994dc6e1c0430b6098fdf98fa0ddb8885d7be4c1bb5f0819909a3da24b9
+        historical_interval_precision: unknown_legacy
+    event_sha256: 40bece5687c664dbb80a48c0df108a6aba1ca262ebae824cbcb194a9b46a7793
+  - event_schema_version: 1
+    event_id: PDE-2bb422381ef86784c09435db
+    operation_key: P2POP-6371a04f417b991c128101b7
+    proposal_id: PROP-008
+    event_type: superseded
+    effective_state: superseded
+    rationale: Current owner closes the recovered authority of PROP-008 as superseded
+      by PROP-091, which carries forward operational Governance Policy Convergence
+      beyond the technical and documentary governance MVP. PROP-008's delivered artifacts
+      remain historical evidence, and dependent freshness or publication state must
+      be reviewed separately rather than changed by this decision.
+    conditions: []
+    decided_on: '2026-07-19'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: cli
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: PDE-29096c07d7e0643eefaaa82e
+      event_sha256: 40bece5687c664dbb80a48c0df108a6aba1ca262ebae824cbcb194a9b46a7793
+    proposal_semantic_sha256: ceda34a37103e29d1cc6f49df1ea0a246d832448a9b765e39ba34c7bb6cbfc73
+    decision_semantic_sha256: 39b9fc8535fb3d8453cc77f07fd96ebf4487ecb6219a8cfbfd15435a8036434f
+    affected_decision:
+      event_id: PDE-29096c07d7e0643eefaaa82e
+      decision_semantic_sha256: 39b9fc8535fb3d8453cc77f07fd96ebf4487ecb6219a8cfbfd15435a8036434f
+      revocation_event_id: null
+    lineage:
+      kind: supersedes
+      targets:
+      - PROP-091
+    impact:
+      required: true
+      preview_token: 41e0301cb821b674023f5f3195975cec85f33c38a861ea7b074e7fec5a29111b
+      source_fingerprint_sha256: 7aceabf0239643f3677c351cdc8cf8f69d569997bdd68602dd4a82015884bdec
+      total_count: 2
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 62dfb6f209b84d5d7a93d834642f4cbed2338cb8a1c605e050f4bfbe9de74ba1
+      request_fingerprint_sha256: 1f4274385c8287e59e1276195a738a58ebaff415dbdecbc04bb148e41e148c69
+    migration: null
+    event_sha256: 1d05e7a476b994924264b2c620ad024b0e2e58f1d3d99b4d65625cc97dfaaf32
+  legacy_evidence:
+  - migration_id: workspace-v2-to-v3
+    source_paths:
+    - .p2p/proposals/PROP-008-governance-model/proposal.md
+    - .p2p/proposals/PROP-008-governance-model/decision.md
+    source_sha256:
+      proposal.md: 02d4770eeee8fde3236d01193eb1f5d4742229a279c8ee2f04aa48b68a91a5d3
+      decision.md: 93a0c05d7ce19447657427a755ed22affaa58ecb1011c027668155231611df81
+    values:
+      proposal_status: superseded
+      decision_status: superseded
+      outcome: superseded
+      reason: 'Owner annotated closure: PROP-008 delivered the technical/documental
+        MVP for governance artifacts, vote recording, precedent recording, and SWOT
+        prompt support. It did not deliver a complete operational governance policy
+        model. The remaining direction is superseded by a focused follow-up proposal
+        for Governance Policy Convergence across permissions, governance, choices,
+        votes, and precedents.'
+      approver: local
+      decided_on: '2026-07-02'
+    diagnostics:
+    - P2P360_DECISION_LEGACY_AUTHORITY_UNRESOLVED
+    truncated_fields: []

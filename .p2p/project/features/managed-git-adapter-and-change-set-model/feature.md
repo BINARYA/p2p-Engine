@@ -25,33 +25,42 @@ Adopt a managed Git model: proposals and change sets are the public P2P concepts
 
 accepted
 
-## Decision
+## Event Type
 
-Adopt Alternative D - Managed Git Under The Hood.
+accepted
+
+## Effective State
+
+accepted
 
 ## Reason
 
-P2P Engine should expose proposal, choice, decision, change, and task concepts to users. Git remains the internal layer for persistence, audit, synchronization, and collaboration, but users should not need to reason about branches, commits, merges, or tags during normal workflows.
+Current owner confirms the historical acceptance of PROP-013 for the Managed Git Under The Hood model, with Change Set as the visible operational unit and Git as the internal persistence, audit, synchronization, and collaboration adapter. The MVP remained metadata-only, hid Git details by default, disabled automatic commits, branches, and tags, and required Change Sets to originate from accepted proposals or decisions.
 
-## MVP Policy
+## Date
 
-```yaml
-git_policy:
-  mode: managed
-  operation_level: metadata_only
-  expose_git_details: false
-  commits:
-    auto_commit: false
-  branches:
-    auto_create: false
-  tags:
-    auto_create: false
-```
+2026-05-26
 
-## Change Set Policy
+## Approver
 
-- Change Sets can be created only from accepted proposals or accepted decisions.
-- Draft proposals can be referenced as non-binding context.
-- Change Sets are multi-domain.
-- `.p2p/project/features/` is a derived project view.
-- Future internal branches require `implementation_ready`, accepted source, plan, tasks, doctor OK, safe worktree or snapshot, recovery strategy, and explicit command or enabled policy.
+mrjungle
+
+## Owner
+
+mrjungle
+
+## Ledger Head
+
+PDE-20b6debbe45862ae86007979
+
+## Decision Fingerprint
+
+0e72530b61916bbb95fb093adf375a31c222dfd14b72db465e2d0d75c302b009
+
+## Lineage
+
+None.
+
+## Canonical Source
+
+decision-events.yml

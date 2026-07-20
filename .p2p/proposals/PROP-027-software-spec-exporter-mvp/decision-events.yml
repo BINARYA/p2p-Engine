@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-027
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-ca4acdee6d9db3201737f03a
+  events:
+  - event_schema_version: 1
+    event_id: PDE-ca4acdee6d9db3201737f03a
+    operation_key: P2POP-0050d9d9bc961890f649c3c5
+    proposal_id: PROP-027
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted to add the first downstream export layer after the refined
+      P2P-native software spec MVP.
+    conditions: []
+    decided_on: '2026-05-26'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: c7d87ad481889d2cc99f1edbdef8070a347c0575be1205caa2e32052d6354125
+    decision_semantic_sha256: d50e9b1c5673112e107f0a3fa01384c4fbdd9a45411f71b6dd5e01f7f576aa48
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 65292cca306fcfe5300f952eeb23b879d348123f6f566b899fd9121f4de0cfa2
+      request_fingerprint_sha256: 55a111b8c26e930d927fab5215bd24fcc91837348253fd550d570e4e9e153678
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-027-software-spec-exporter-mvp/proposal.md
+      - .p2p/proposals/PROP-027-software-spec-exporter-mvp/decision.md
+      source_sha256:
+        proposal.md: 53fff0cd5246c238ceabb90f8c8dbb45b6b6e1f69084ff5266a0dff1360036ef
+        decision.md: adcc39cbd77bf322756d881d3d0f7f332ed0b993e56ee7c724184cd51fde1ebb
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted to add the first downstream export layer after the refined
+          P2P-native software spec MVP.
+        approver: local
+        decided_on: '2026-05-26'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-26'
+          source_sha256:
+            proposal.md: 53fff0cd5246c238ceabb90f8c8dbb45b6b6e1f69084ff5266a0dff1360036ef
+            decision.md: adcc39cbd77bf322756d881d3d0f7f332ed0b993e56ee7c724184cd51fde1ebb
+    event_sha256: 2899c447cbebf4b67658fba9ac1e233bc5f9e2236c7148d85cf9327cc0cc015f
+  legacy_evidence: []

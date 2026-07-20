@@ -677,11 +677,12 @@ class P2PWorkspace:
                     self._proposal_lifecycle_authority_service().capture_all
                 ),
                 proposal_decision_impact=(
-                    lambda proposal_id, event_type, lifecycle: (
+                    lambda proposal_id, event_type, lifecycle, freshness: (
                         self._proposal_decision_impact_service().capture(
                             proposal_id,
                             source_head_event_id=lifecycle.head_event_id,
                             event_type=event_type,
+                            freshness_status_snapshot=freshness,
                         )
                     )
                 ),
@@ -2123,8 +2124,16 @@ class P2PWorkspace:
         self._ensure_runtime_write_allowed("project_state_refresh")
         return self._project_state_service().refresh()
 
-    def project_state_status(self) -> ProjectStateStatus:
-        return self._project_state_service().status()
+    def project_state_status(
+        self,
+        *,
+        accepted_proposals_count: int | None = None,
+        next_actions_snapshot: list[object] | None = None,
+    ) -> ProjectStateStatus:
+        return self._project_state_service().status(
+            accepted_proposals_count=accepted_proposals_count,
+            next_actions_snapshot=next_actions_snapshot,
+        )
 
     def show_project_state(self, section: str) -> str:
         return self._project_state_service().show(section)

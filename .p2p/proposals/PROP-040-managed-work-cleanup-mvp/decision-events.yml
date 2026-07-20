@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-040
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-5f2ffd8e9c7c485100b28d88
+  events:
+  - event_schema_version: 1
+    event_id: PDE-5f2ffd8e9c7c485100b28d88
+    operation_key: P2POP-8e246008827507d49e087e8d
+    proposal_id: PROP-040
+    event_type: accepted
+    effective_state: accepted
+    rationale: Cleanup is the explicit post-finalize branch housekeeping step and
+      keeps branch deletion separate from accept/finalize.
+    conditions: []
+    decided_on: '2026-05-27'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: beead787fc80bf75bd808dad99d2421d960d157fe8bf1d324f308f4f84c1ee2f
+    decision_semantic_sha256: b3cfc57fd3a86a07c97adb01f4ead40d5b23da4f588e4f4a8985a92ce75f8124
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: b18f0a27e746b7552fbf0c4004bdf71e50c2fe9f52298a32388b5dca596a1d73
+      request_fingerprint_sha256: 75c8754bfc8580a3132fcae5c0c2fa3019aeb52d415c6647afa0967989b19bc7
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-040-managed-work-cleanup-mvp/proposal.md
+      - .p2p/proposals/PROP-040-managed-work-cleanup-mvp/decision.md
+      source_sha256:
+        proposal.md: 912f2528696b067cc7894542a9e2895bf1b922428c6b0d10fa185e1b73bd9c72
+        decision.md: faeec2a5b4151289911ff1a32a670b097a5d7fd6e6bd5163508a84fb47ff002b
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Cleanup is the explicit post-finalize branch housekeeping step and
+          keeps branch deletion separate from accept/finalize.
+        approver: local
+        decided_on: '2026-05-27'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-27'
+          source_sha256:
+            proposal.md: 912f2528696b067cc7894542a9e2895bf1b922428c6b0d10fa185e1b73bd9c72
+            decision.md: faeec2a5b4151289911ff1a32a670b097a5d7fd6e6bd5163508a84fb47ff002b
+    event_sha256: 41c6008e843c3efaaae3a196cf0d372e9930f10207ad4fac0940edb0509892fa
+  legacy_evidence: []

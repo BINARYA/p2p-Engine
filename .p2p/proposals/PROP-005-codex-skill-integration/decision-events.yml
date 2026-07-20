@@ -1,0 +1,78 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-005
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-f26bbb308a2d202c1301f7ac
+  events:
+  - event_schema_version: 1
+    event_id: PDE-f26bbb308a2d202c1301f7ac
+    operation_key: P2POP-82788988197087015462b11b
+    proposal_id: PROP-005
+    event_type: accepted
+    effective_state: accepted
+    rationale: P2P Engine now has enough CLI workflow surface for Codex to use it
+      as a structured method. A local skill makes the expected behavior explicit and
+      reduces the risk of leaving decisions only in chat.
+    conditions: []
+    decided_on: '2026-05-19'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 048bfdb3110f8e41a5715a967a300b75ac81a7bcb32f5d0e32fcc8a2b251eec8
+    decision_semantic_sha256: 77d7bcdb6c7b3f062b06d79a8cc7739eba00620bac640202f35e9ad1e3b59f6f
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 903c05a87f1964ec0e57a36395b01146360c487414c2628d8d6bfc99d221bfd5
+      request_fingerprint_sha256: 8f01dace43e2ec603e0d6f517cbc1b56f08cfbd17d8ce21585a545f6c81082ae
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-005-codex-skill-integration/proposal.md
+      - .p2p/proposals/PROP-005-codex-skill-integration/decision.md
+      source_sha256:
+        proposal.md: ffd5ac6b55ac3fc88090de64503e61077ae709ec971d1cae280f693ecc07c4d2
+        decision.md: cbfb99e4088bd9057d779b9cc99f7cf723ca55478b9b0935d965d026d246a176
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: P2P Engine now has enough CLI workflow surface for Codex to use it
+          as a structured method. A local skill makes the expected behavior explicit
+          and reduces the risk of leaving decisions only in chat.
+        approver: bootstrap maintainer
+        decided_on: '2026-05-19'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: bootstrap maintainer
+          decided_on: '2026-05-19'
+          source_sha256:
+            proposal.md: ffd5ac6b55ac3fc88090de64503e61077ae709ec971d1cae280f693ecc07c4d2
+            decision.md: cbfb99e4088bd9057d779b9cc99f7cf723ca55478b9b0935d965d026d246a176
+    event_sha256: a243a9a43f06f649fe3bbd979677d49bf83714758331f4f2f1d7c85d6fc19961
+  legacy_evidence: []

@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-002
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-40bb9fc4ad4fb5072eba4077
+  events:
+  - event_schema_version: 1
+    event_id: PDE-40bb9fc4ad4fb5072eba4077
+    operation_key: P2POP-5c34becdfd063bbd75a6cb14
+    proposal_id: PROP-002
+    event_type: accepted
+    effective_state: accepted
+    rationale: Owner accepts the proposal exploration and readiness workflow after
+      review.
+    conditions: []
+    decided_on: '2026-06-04'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: d3ac9975b9d45bc48ff841f10060fbfc5de939f7fcf0c5a49c2b11365bd78156
+    decision_semantic_sha256: aa7ab4d393d704b8d42ebfadf6e1810104ea20cf6d909c629c485e98225aa225
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 6582854d05fa2de6d1affc5cd3a474bb5d4c7d94ee0b44bc98a5619f4ad13b13
+      request_fingerprint_sha256: 40529b00d8d25f6f21f4b6e6d5ec68183beffec675c42136bb3a0dea02ea1225
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-002-exploration-phase/proposal.md
+      - .p2p/proposals/PROP-002-exploration-phase/decision.md
+      source_sha256:
+        proposal.md: 6ffc8c034ad5029998de6107688492f93b82f1aaf52ba57d877daaf1434c8894
+        decision.md: cca6fcd1a75bc9d33321d278a28629a547441add27e6b39681b305b1fbbece26
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Owner accepts the proposal exploration and readiness workflow after
+          review.
+        approver: local
+        decided_on: '2026-06-04'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-06-04'
+          source_sha256:
+            proposal.md: 6ffc8c034ad5029998de6107688492f93b82f1aaf52ba57d877daaf1434c8894
+            decision.md: cca6fcd1a75bc9d33321d278a28629a547441add27e6b39681b305b1fbbece26
+    event_sha256: cfb3a388882a78c1637763eb42db0d5017568f3c7167be118ecf99576365d7ce
+  legacy_evidence: []

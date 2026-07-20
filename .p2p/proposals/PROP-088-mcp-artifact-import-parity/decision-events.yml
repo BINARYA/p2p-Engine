@@ -1,0 +1,87 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-088
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-c0e6fb2a99fa8f913bf87c3e
+  events:
+  - event_schema_version: 1
+    event_id: PDE-c0e6fb2a99fa8f913bf87c3e
+    operation_key: P2POP-fd047b9788e02046c509f53f
+    proposal_id: PROP-088
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted by owner after resolving MCP artifact import scope toward
+      full parity with existing controlled CLI import primitives. The MVP covers exploration,
+      impact, clarification, synthesis/proposal, plan, and tasks imports through explicit
+      write-safe MCP tools, supports both source paths and direct content payloads,
+      and keeps generic unmanaged artifact import deferred. Readiness is decision_ready
+      with score 100; remaining Q001 answered-not-applied signal is treated as a lifecycle
+      bookkeeping anomaly because proposal.md reflects the accepted scope.
+    conditions: []
+    decided_on: '2026-07-06'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 675e2b0a7f1b608ae20f03d4a91b37ea0aa5047e8ea99f261980bcd94ec67b43
+    decision_semantic_sha256: 5595e622fbc050d478f566a8894cfa2639f532e7c08f7920398aad6e5f23c028
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: b0cbabf59be689e4226dd3b565d5905de763e8a59f5bf4b1705b55715e7cde5e
+      request_fingerprint_sha256: 03ff7a80e94a38bad0fd40380227222c7be04e9dc6ae2d49c2b98e55bde4bbfb
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-088-mcp-artifact-import-parity/proposal.md
+      - .p2p/proposals/PROP-088-mcp-artifact-import-parity/decision.md
+      source_sha256:
+        proposal.md: 3ce821717bf67436912f6fd4fbae02c9e0001acc8b02140769dd55d6c795b71b
+        decision.md: 8d59306cf042632a4196b4ff78cd5c361ffbb159891504c4dd8e5576349a0549
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted by owner after resolving MCP artifact import scope toward
+          full parity with existing controlled CLI import primitives. The MVP covers
+          exploration, impact, clarification, synthesis/proposal, plan, and tasks
+          imports through explicit write-safe MCP tools, supports both source paths
+          and direct content payloads, and keeps generic unmanaged artifact import
+          deferred. Readiness is decision_ready with score 100; remaining Q001 answered-not-applied
+          signal is treated as a lifecycle bookkeeping anomaly because proposal.md
+          reflects the accepted scope.
+        approver: local
+        decided_on: '2026-07-06'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-07-06'
+          source_sha256:
+            proposal.md: 3ce821717bf67436912f6fd4fbae02c9e0001acc8b02140769dd55d6c795b71b
+            decision.md: 8d59306cf042632a4196b4ff78cd5c361ffbb159891504c4dd8e5576349a0549
+    event_sha256: 8c90e94b72b6ae92cc5790488a277de1ea6124cb4d97ee3cd9e120d95d557464
+  legacy_evidence: []

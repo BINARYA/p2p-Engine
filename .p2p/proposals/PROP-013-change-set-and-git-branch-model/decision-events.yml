@@ -1,0 +1,86 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-013
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-20b6debbe45862ae86007979
+  events:
+  - event_schema_version: 1
+    event_id: PDE-20b6debbe45862ae86007979
+    operation_key: P2POP-5ccedb2416daa87fc1c3e76a
+    proposal_id: PROP-013
+    event_type: accepted
+    effective_state: accepted
+    rationale: Current owner confirms the historical acceptance of PROP-013 for the
+      Managed Git Under The Hood model, with Change Set as the visible operational
+      unit and Git as the internal persistence, audit, synchronization, and collaboration
+      adapter. The MVP remained metadata-only, hid Git details by default, disabled
+      automatic commits, branches, and tags, and required Change Sets to originate
+      from accepted proposals or decisions.
+    conditions: []
+    decided_on: '2026-05-26'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: cli
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: b131d0c0c58c8ce4790fa8989d26d14cc87d625783810f86462c73203c851380
+    decision_semantic_sha256: 0e72530b61916bbb95fb093adf375a31c222dfd14b72db465e2d0d75c302b009
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 95ca709bb7ac140f6719e2b2d161ad2475c5f5d984b262c13a822aece30cf605
+      request_fingerprint_sha256: 266ce97014a4eb02536be095ca3cb74e976c4470c987c13e24b84b58dd9f513b
+    migration:
+      migration_id: legacy-owner-resolution
+      source_paths:
+      - .p2p/proposals/PROP-013-change-set-and-git-branch-model/proposal.md
+      - .p2p/proposals/PROP-013-change-set-and-git-branch-model/decision.md
+      source_sha256:
+        legacy_evidence_001: 9b0da39cc3cbbc4cf2f16b8ddf29524031ed81b2908787ca1ca422455b0c1197
+      preserved_values:
+        legacy_evidence_count: 1
+        legacy_evidence_sha256: 16452dc4fbe046d5df2693956192d003b5d3d17a89bda9c3a307039c7ea1be08
+        historical_interval_precision: unknown_legacy
+    event_sha256: 47a3a5945511680480649e2651a40bba160bbc525b04dcb45ef1ed16a9545e58
+  legacy_evidence:
+  - migration_id: workspace-v2-to-v3
+    source_paths:
+    - .p2p/proposals/PROP-013-change-set-and-git-branch-model/proposal.md
+    - .p2p/proposals/PROP-013-change-set-and-git-branch-model/decision.md
+    source_sha256:
+      proposal.md: f4242f9e38ea5010a0bef99208a8254613d550833c452feedcf9532ee6ffac76
+      decision.md: 04ebeaef5054ba5727968442922afbcfd06a2a7addfde7d66fee52c60baa4178
+    values:
+      proposal_status: accepted
+      decision_status: accepted
+      outcome: accepted
+      reason: P2P Engine should expose proposal, choice, decision, change, and task
+        concepts to users. Git remains the internal layer for persistence, audit,
+        synchronization, and collaboration, but users should not need to reason about
+        branches, commits, merges, or tags during normal workflows.
+      approver: unknown_legacy
+      decided_on: unknown_legacy
+    diagnostics:
+    - P2P360_DECISION_LEGACY_AUTHORITY_UNRESOLVED
+    truncated_fields: []

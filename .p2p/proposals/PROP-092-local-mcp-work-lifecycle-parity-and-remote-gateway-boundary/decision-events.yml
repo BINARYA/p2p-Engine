@@ -1,0 +1,80 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-092
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-43ee93f4bad029501144e656
+  events:
+  - event_schema_version: 1
+    event_id: PDE-43ee93f4bad029501144e656
+    operation_key: P2POP-f36c389efd0ee0d235a41638
+    proposal_id: PROP-092
+    event_type: accepted
+    effective_state: accepted
+    rationale: 'Owner accepted local MCP Work lifecycle parity as the core direction:
+      P2P Engine exposes the full Work lifecycle through local MCP using domain-specific,
+      permission-gated commands, while remote multi-user MCP remains a separate Wavekit
+      gateway boundary.'
+    conditions: []
+    decided_on: '2026-07-04'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: f933d9491e419718f31dcca743997c51b5f628a0509b125949da22cb8e428cf9
+    decision_semantic_sha256: 73e6a51ac7b74ca441ae6cadb249f74be04ce2ed3a1b5f515c93c544e46f45b8
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 2cf342dd5283f7463aa5d537b6c42b1dd6f365ba09eb37af3615634696a12a0b
+      request_fingerprint_sha256: 137b8aa75fee69f93c9b0a0e2c3902c10aaac4edd5f03c650691711c962063b6
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/proposal.md
+      - .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/decision.md
+      source_sha256:
+        proposal.md: bb7ee6b6d5fec677ace22950b5a21987da51e02f080c3cb105094699617e1908
+        decision.md: c327af8b3f6d31fbcaf3bc5f88d72c9c15a9c50292431915a9116be2b9de7d7a
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: 'Owner accepted local MCP Work lifecycle parity as the core direction:
+          P2P Engine exposes the full Work lifecycle through local MCP using domain-specific,
+          permission-gated commands, while remote multi-user MCP remains a separate
+          Wavekit gateway boundary.'
+        approver: local
+        decided_on: '2026-07-04'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-07-04'
+          source_sha256:
+            proposal.md: bb7ee6b6d5fec677ace22950b5a21987da51e02f080c3cb105094699617e1908
+            decision.md: c327af8b3f6d31fbcaf3bc5f88d72c9c15a9c50292431915a9116be2b9de7d7a
+    event_sha256: 9cf5b3c5ef19b4754e24eed866cb38542e30dca58dc1bb1ab8dc0ad46a4b7130
+  legacy_evidence: []

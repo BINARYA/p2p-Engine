@@ -83,7 +83,7 @@ readiness:
   path: .p2p/proposals/PROP-006-multi-agent-integration-model/readiness.yml
 - proposal: PROP-007
   title: Proposal Intake and Overlap Analysis
-  proposal_status: superseded
+  proposal_status: split
   status: not_assessed
   profile_id: null
   profile_version: null
@@ -827,7 +827,7 @@ readiness:
   path: .p2p/proposals/PROP-062-readme-product-landing-page-refinement/readiness.yml
 - proposal: PROP-063
   title: Public Documentation Gap Closure
-  proposal_status: draft
+  proposal_status: undecided
   status: assessed
   profile_id: default-readiness-v0.1
   profile_version: '0.1'
@@ -1311,7 +1311,7 @@ readiness:
   path: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/readiness.yml
 - proposal: PROP-098
   title: Test Impact and Validation Routing
-  proposal_status: draft
+  proposal_status: undecided
   status: assessed
   profile_id: default-readiness-v0.1
   profile_version: '0.1'

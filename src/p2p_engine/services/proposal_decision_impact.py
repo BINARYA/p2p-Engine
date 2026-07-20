@@ -30,6 +30,7 @@ MAX_IMPACT_PAGE_LIMIT = 100
 _CURSOR = re.compile(r"^PDIC-(\d+)-([0-9a-f]{16})$")
 _CHANGE_TERMINAL = frozenset({"completed", "cancelled", "rejected", "superseded"})
 _WORK_TERMINAL = frozenset({"accepted", "retired", "cleaned", "completed", "cancelled"})
+_FRESHNESS_NOT_PROVIDED = object()
 _KIND_RANK = {
     kind: index
     for index, kind in enumerate(
@@ -103,6 +104,7 @@ class ProposalDecisionImpactService:
         *,
         source_head_event_id: str | None,
         event_type: ProposalDecisionEventType,
+        freshness_status_snapshot: object = _FRESHNESS_NOT_PROVIDED,
     ) -> ProposalDecisionImpactSnapshot:
         capture = _ImpactCapture(root=self.root, p2p_dir=self.p2p_dir)
         items: list[ProposalDecisionImpactItem] = []
@@ -167,6 +169,7 @@ class ProposalDecisionImpactService:
             bool(items),
             items,
             diagnostics,
+            freshness_status_snapshot,
         )
         ordered = tuple(
             sorted(
@@ -659,16 +662,24 @@ class ProposalDecisionImpactService:
         has_dependencies: bool,
         items: list[ProposalDecisionImpactItem],
         diagnostics: list[str],
+        freshness_status_snapshot: object,
     ) -> None:
-        if not has_dependencies or self.freshness_status is None:
+        if not has_dependencies:
             return
-        try:
-            status = self.freshness_status()
-        except (OSError, ValueError) as exc:
-            diagnostics.append(
-                "P2P370_DECISION_IMPACT_INCOMPLETE: freshness status failed: "
-                f"{exc}"
-            )
+        if freshness_status_snapshot is _FRESHNESS_NOT_PROVIDED:
+            if self.freshness_status is None:
+                return
+            try:
+                status = self.freshness_status()
+            except (OSError, ValueError) as exc:
+                diagnostics.append(
+                    "P2P370_DECISION_IMPACT_INCOMPLETE: freshness status failed: "
+                    f"{exc}"
+                )
+                return
+        else:
+            status = freshness_status_snapshot
+        if status is None:
             return
         state = str(getattr(status, "status", "unknown"))
         items.append(
@@ -686,7 +697,7 @@ class ProposalDecisionImpactService:
                 "tracks_decision_dependent_derivations",
                 (),
                 remediation_kind="review_decision_freshness",
-                remediation_command="p2p derived freshness status",
+                remediation_command="p2p project freshness",
                 severity=ProposalDecisionImpactSeverity.low,
                 capture=capture,
                 additional_fingerprint={"freshness_status": state},

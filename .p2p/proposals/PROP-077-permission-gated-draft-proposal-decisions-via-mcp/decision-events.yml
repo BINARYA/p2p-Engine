@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-077
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-5a6828b39348afde1ac4057c
+  events:
+  - event_schema_version: 1
+    event_id: PDE-5a6828b39348afde1ac4057c
+    operation_key: P2POP-85926987b465cfde12d9f3e1
+    proposal_id: PROP-077
+    event_type: accepted
+    effective_state: accepted
+    rationale: Owner requested this refinement after real MCP usage exposed that draft
+      proposal rejection was not available as a permission-gated MCP operation.
+    conditions: []
+    decided_on: '2026-06-03'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 9cb10765a6a5f3650c943e6d8b8e852119b529733be37baff6f5d515a1822a39
+    decision_semantic_sha256: 2a9ab636534612f64008d5e2db899f043dae64493f8b6fefb6a16b36f412d8c1
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 40137a8e96c5fe808938b63aee3ebd1fd21b319c89458d4c7dac7c0fc12f7d36
+      request_fingerprint_sha256: 51f507e637574777ce6de695872bf6d21478daa8805c1115fcce8605c6753e78
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/proposal.md
+      - .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/decision.md
+      source_sha256:
+        proposal.md: d0d3b75b4700e2a28c9c9022b0e637804928fa9fcc7908949619b69bb412cc44
+        decision.md: 19a38d6c7736d838e14f7d52f870e3d39e6656e5242bed23c12c45982faf67b9
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Owner requested this refinement after real MCP usage exposed that
+          draft proposal rejection was not available as a permission-gated MCP operation.
+        approver: owner
+        decided_on: '2026-06-03'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: owner
+          decided_on: '2026-06-03'
+          source_sha256:
+            proposal.md: d0d3b75b4700e2a28c9c9022b0e637804928fa9fcc7908949619b69bb412cc44
+            decision.md: 19a38d6c7736d838e14f7d52f870e3d39e6656e5242bed23c12c45982faf67b9
+    event_sha256: 27ffbb30b8326fca63cc7ee20c6ae35e1c7f9342b3feda29fab6aa6fb5155dc9
+  legacy_evidence: []

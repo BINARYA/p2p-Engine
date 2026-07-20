@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-011
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-fabc1791b9eb7f41b7a80254
+  events:
+  - event_schema_version: 1
+    event_id: PDE-fabc1791b9eb7f41b7a80254
+    operation_key: P2POP-df3611b6b40d1d203129f780
+    proposal_id: PROP-011
+    event_type: accepted
+    effective_state: accepted
+    rationale: Project refresh MVP is implemented with deterministic .p2p/project
+      generation and CLI inspection commands.
+    conditions: []
+    decided_on: '2026-05-19'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 9b4da73c70ad192a92c7e0480624025ea7f285c79284321cf3bd6c0d5910a8d5
+    decision_semantic_sha256: 905d7ae4e0fb612760f4c12773c42232b1cd971e8c5d7bd9635f6f280cb97a3e
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: ae6d025e6f1943758a47b73e12448b153a9ae4071eaadf32ae1986a834648539
+      request_fingerprint_sha256: 3ea21c1e222679ac7eb9f3ba5e7ce5441a21b2a3900a91b330792bfb71585965
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-011-project-refresh-mvp/proposal.md
+      - .p2p/proposals/PROP-011-project-refresh-mvp/decision.md
+      source_sha256:
+        proposal.md: 8297be7c408d2ea49a5e39344003638506f9fcac3b594ce158432a8fb2d29d8e
+        decision.md: 0b03a15b1426c45d9fd9dd3620c727e62d902a9fd3aa6cfc43fe021dde307437
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Project refresh MVP is implemented with deterministic .p2p/project
+          generation and CLI inspection commands.
+        approver: local
+        decided_on: '2026-05-19'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-19'
+          source_sha256:
+            proposal.md: 8297be7c408d2ea49a5e39344003638506f9fcac3b594ce158432a8fb2d29d8e
+            decision.md: 0b03a15b1426c45d9fd9dd3620c727e62d902a9fd3aa6cfc43fe021dde307437
+    event_sha256: e6cf4a245a089e9bb9d0d58603fc709a0add91ce0ee6b2f1f92a7692211e6d16
+  legacy_evidence: []

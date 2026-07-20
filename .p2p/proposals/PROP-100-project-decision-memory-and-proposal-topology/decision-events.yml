@@ -1,0 +1,82 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-100
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-dca2e0af8d9225336efbbf35
+  events:
+  - event_schema_version: 1
+    event_id: PDE-dca2e0af8d9225336efbbf35
+    operation_key: P2POP-7f8622886e9c997527558d6b
+    proposal_id: PROP-100
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted as the umbrella architecture direction for a derived, read-only
+      and source-linked decision context index delivered through independently gated
+      slices. Governed artifacts remain authoritative; public integration requires
+      the defined performance and compatibility gates, and any persistent cache remains
+      a separate measured feature.
+    conditions: []
+    decided_on: '2026-07-15'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: b8220a8d282b5a1d00db38264c2544c852cf938ae98f99524fa1739c7d8125c0
+    decision_semantic_sha256: a6030e7b98871a0da42af9f9cca9533e260adf0eefe951c28c7db33944c71a8a
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 00135a49374d5eda60c52525d262cd0d68ddeb97c374328fba316fdd22681727
+      request_fingerprint_sha256: f2d907708303150eeb60824ead622a02cd9e6e11032147dc2b27046bb4278868
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/proposal.md
+      - .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/decision.md
+      source_sha256:
+        proposal.md: 557c708739e4d5aea998c336ac00f98fe67744baa73811131b68d3af53bc823e
+        decision.md: 1d25cd82d2124ee1a4b13408feafe5aa57e0d45e125f3315c8c1a7f3af935eaa
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted as the umbrella architecture direction for a derived, read-only
+          and source-linked decision context index delivered through independently
+          gated slices. Governed artifacts remain authoritative; public integration
+          requires the defined performance and compatibility gates, and any persistent
+          cache remains a separate measured feature.
+        approver: owner
+        decided_on: '2026-07-15'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: owner
+          decided_on: '2026-07-15'
+          source_sha256:
+            proposal.md: 557c708739e4d5aea998c336ac00f98fe67744baa73811131b68d3af53bc823e
+            decision.md: 1d25cd82d2124ee1a4b13408feafe5aa57e0d45e125f3315c8c1a7f3af935eaa
+    event_sha256: 2252cecc77d05a5bb3c6439703c3899d9b09cbcb1301ffbaffcf6925e8ce1c7d
+  legacy_evidence: []

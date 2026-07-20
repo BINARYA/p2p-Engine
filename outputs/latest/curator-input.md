@@ -3,8 +3,8 @@
 ## Source Export
 
 - path: `outputs/latest/project.md`
-- sha256: `cec40affb6b4a98b902f5a38c99b1c24e8d58b6cbd9a68a14956295ebd47fd9b`
-- p2p_source_fingerprint_sha256: `fd764a2d4611014e45d9fa1079e8e766f3f2c36591209eedd2a7a586d878176f`
+- sha256: `cc5f0c70ef678245b96086ccf936a0707d8f80e054abe8a7e1c5337c37f162ad`
+- p2p_source_fingerprint_sha256: `f83544654dee8db3979aa11e95a5e3308a690db85fa63b5c641672612c404c5a`
 - source_of_truth: `.p2p/`
 
 ## Publication Profile
@@ -135,6 +135,7 @@
 - PROP-099 - Project Output Lifecycle and Retention Policy (`.p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy`)
 - PROP-100 - Project Decision Context Index and Proposal Neighborhood (`.p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology`)
 - PROP-101 - Project Readiness Convergence Workflow (`.p2p/proposals/PROP-101-project-readiness-convergence-workflow`)
+- PROP-102 - Proposal Decision Revision and Revocation Lifecycle (`.p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle`)
 
 ## Complete Source Export
 
@@ -145,7 +146,7 @@ The following content is generated output. Use it as input evidence, not as gove
 
 ## Generated Metadata
 
-- generated_at: 2026-07-17
+- generated_at: 2026-07-20
 - generator: p2p project export
 - source_of_truth: .p2p/
 - output_role: generated human-facing project definition
@@ -154,7 +155,7 @@ The following content is generated output. Use it as input evidence, not as gove
 
 ## Executive Summary
 
-This project definition synthesizes 96 accepted proposals from P2P-managed state into a human-facing document. It is generated output; `.p2p/` remains the managed source of truth.
+This project definition synthesizes 97 accepted proposals from P2P-managed state into a human-facing document. It is generated output; `.p2p/` remains the managed source of truth.
 
 ## Project Purpose
 
@@ -2054,6 +2055,171 @@ An explicit governed `deferred` or `muted` outcome may converge question state w
 
 Before the pilot, this repository is upgraded from schema v1 to v2 using only supported plan/apply/recovery commands. The migration plan and post-migration validation become pilot evidence. Repository-specific content is evidence only. Generic priority, fallback, migration and completion rules are also tested with synthetic verticals, an uninitialized workspace, a v1 fixture and a workspace with no proposal coverage.
 
+### PROP-102 - Proposal Decision Revision and Revocation Lifecycle
+
+### Decision Event Model
+
+Introduce one versioned canonical decision-event ledger per proposal. The
+ledger is the semantic source for proposal decision history. `proposal.md`
+status and the human-readable current decision remain compatible projections
+of the ledger rather than independent authority sources.
+
+Every event must include enough structured data to validate and reconstruct the
+lifecycle:
+
+- schema and event identity;
+- proposal identity;
+- event type and resulting effective state;
+- rationale;
+- owner/approver identity and validated authority provenance;
+- canonical decision date;
+- predecessor event identity and integrity evidence;
+- semantic fingerprint of the decision being affected;
+- optional replacement, split or merge lineage;
+- optional impact-preview binding;
+- migration provenance when derived from a legacy artifact.
+
+Audit timestamps, file mtimes and Git author metadata must not determine event
+identity or manufacture owner evidence. The design will define the exact file
+name, serialization, predecessor/hash protection and recovery format. Replacing
+the single-ledger direction requires explicit technical evidence.
+
+### Effective State Projection
+
+Current status, decision authority and active/historical classification are
+derived from the validated event head and lineage. A stored projection that
+does not match the ledger is stale or invalid; it cannot silently override the
+ledger.
+
+The public vocabulary has distinct meanings:
+
+| Event or state | Preconditions | Effective result |
+| --- | --- | --- |
+| `accepted` | Proposal has never been active, or exact retry | Active |
+| `accepted_with_changes` | Proposal has never been active, or exact retry | Active and qualified |
+| `deferred` | Proposal is undecided, or exact retry | Unresolved |
+| `withdrawn` | Proposal has never been active | Historical, never active |
+| `rejected` | Proposal has never been active | Historical, never active |
+| `revoked` | Current authority is accepted or conditionally accepted | Historical, previously active |
+| `superseded` | Current authority is active and replacement lineage is valid | Historical with explicit replacement |
+| `split` | Valid explicit split targets exist | Historical with split lineage |
+| `merged_into_other` | Valid explicit merge target exists | Historical with merge lineage |
+| `reinstated` | Exact previously revoked decision is restored | Returns to the referenced prior active authority |
+
+`deprecated` belongs to downstream operational policy and cannot be used to
+replace a proposal decision event.
+
+Rejected or withdrawn proposals are reconsidered through a new linked proposal.
+A revoked decision may be reinstated only when:
+
+- its semantic fingerprint is identical to the referenced prior decision;
+- the revocation event is referenced explicitly;
+- a current impact preview is bound to the operation;
+- owner authority is validated again;
+- no dependent technical effect is assumed to be restored.
+
+Any changed content, condition or constraint requires a new linked proposal.
+
+### Transition And Retry Rules
+
+The implementation specification must provide a complete matrix for every
+current state and requested event. Invalid transitions fail before writes.
+
+Repeating the exact same operation with the same source head, semantic payload,
+owner authority and idempotency identity returns the already-applied result.
+Reusing an operation identity with different inputs, applying against a changed
+head or attempting to reorder history fails with a stable diagnostic.
+
+The model must also specify:
+
+- whether an event is terminal or may have a later valid successor;
+- required lineage fields;
+- no-op and exact-retry behavior;
+- stale preview behavior;
+- concurrent-head conflict behavior;
+- recovery after interruption;
+- explicit repair behavior for corrupted or divergent projections.
+
+### Governed Mutation
+
+All decision writes use one domain service shared by CLI and permission-gated
+MCP. A write requires:
+
+1. validated owner authority;
+2. current workspace compatibility;
+3. valid current ledger and projection;
+4. a source-bound preview token;
+5. confirmation for authority-changing operations;
+6. unchanged proposal, ledger head, permissions and relevant impact sources;
+7. atomic replacement of the ledger and all engine-owned projections;
+8. deterministic exact-retry behavior.
+
+Managed branch accept/reject operations remain separate collaboration
+operations and cannot create or revise proposal decision events implicitly.
+
+### Revocation Impact And Remediation
+
+Revocation remains available to the owner even when Change Sets, Work,
+specifications, vertical evidence or implemented behavior depend on the
+decision. Before revocation, the system produces a bounded impact preview that
+identifies:
+
+- active and completed dependent lifecycle objects;
+- affected vertical sections and project projections;
+- decision-context and relation consequences;
+- stale generated artifacts;
+- possible conflicts with other active decisions;
+- remediation, replacement or rollback actions requiring separate governance.
+
+After confirmation, revocation removes the decision from active authority,
+preserves its previously active interval and emits stable remediation next
+actions. It does not mutate dependent lifecycle states, remove implementation
+evidence or claim that remediation is complete.
+
+### Legacy Compatibility And Migration
+
+The canonical ledger changes workspace decision semantics and therefore
+requires a registered forward workspace-schema transition from the current
+schema to the next supported schema. Older workspaces remain readable through
+an explicit compatibility layer, while event-dependent writes are blocked
+until a safe migration is applied.
+
+For an aligned legacy proposal, the current decision is preserved as the first
+ledger event with legacy provenance. Migration must:
+
+- retain every valid value;
+- preserve readable original malformed values as evidence;
+- use `unknown_legacy` for missing or unusable fields;
+- never infer owner, date or rationale from Git metadata or mtimes;
+- diagnose proposal/decision status divergence;
+- mark authority unresolved when the outcome cannot be established;
+- block later decision revisions until owner curation resolves authority
+  ambiguity;
+- remain dry-run plannable, atomic, idempotent, recoverable and forward-only;
+- avoid fabricating prior events that are not present in canonical evidence.
+
+### Consumer Convergence
+
+One lifecycle-authority service must drive every consumer. At minimum, the
+implementation must reconcile:
+
+- proposal show/list/status and registries;
+- validation and migration diagnostics;
+- project status, progress, maturity and assessment;
+- active proposal projections and vertical evidence;
+- decision-context extraction, authority, topology and retrieval;
+- relations, conflicts, split/merge/supersession lineage;
+- Change Set and Work preconditions and impact reporting;
+- software-spec lifecycle and freshness;
+- managed next actions;
+- visible project export and publication;
+- future thematic decision-memory consolidation.
+
+Inactive decisions remain retrievable as historical rationale and alternatives,
+but cannot be presented as current constraints. A future consolidated memory
+record must bind to event head, authority interval, lineage and source
+fingerprint so that revocation or reinstatement invalidates stale summaries.
+
 ## Domain And Context
 
 ### PROP-001 - — CLI Foundation
@@ -2528,6 +2694,35 @@ La proposta e decision-ready come direzione architetturale. Non e implementation
 ### PROP-101 - Project Readiness Convergence Workflow
 
 Not recorded.
+
+### PROP-102 - Proposal Decision Revision and Revocation Lifecycle
+
+P2P already supports `accepted`, `accepted_with_changes`, `rejected`,
+`deferred`, `split`, `merged_into_other` and `superseded` outcomes. Decision
+context assigns active or historical authority to these outcomes, while project
+projections generally include accepted decisions and exclude inactive ones.
+These consumers currently infer authority from one stored status and one
+decision artifact.
+
+The missing capability is not the initial reject command. It is a revision
+lifecycle that preserves historical truth when the owner changes a decision
+after it has become effective.
+
+The following terminology is owner-confirmed:
+
+- `withdrawn`: an undecided proposal abandoned before adoption;
+- `rejected`: a proposal evaluated but never adopted;
+- `revoked`: a previously accepted decision cancelled without replacement;
+- `superseded`: a previously effective decision replaced through explicit
+  lineage;
+- `deprecated`: a downstream operational state, not a terminal proposal
+  decision outcome;
+- `reinstated`: an event that restores the exact same previously revoked
+  decision under strict identity and impact checks.
+
+Changing normative authority does not change physical reality. Revoking a
+decision does not prove that code was rolled back, a deployment was reverted or
+dependent delivery work was cancelled.
 
 ## Scope
 
@@ -6691,11 +6886,91 @@ Domain, Sources And Proposal Decisions:
 
 Do not begin repository adoption until transition-specific planning, legacy mapping, authority checks, multi-target failure injection and exact retry tests pass. Do not claim project-definition convergence when only question state has been deferred or muted.
 
+### PROP-102 - Proposal Decision Revision and Revocation Lifecycle
+
+#### Goals
+
+- Preserve an append-only, queryable history of proposal decision events,
+  including rationale, owner authority, date, predecessor and lineage.
+- Derive current proposal status and authority deterministically from the valid
+  event sequence.
+- Define an exhaustive transition matrix with exact retry, invalid transition
+  and reconsideration behavior.
+- Distinguish initial rejection from withdrawal, revocation, supersession,
+  reinstatement and downstream deprecation.
+- Make decision mutations owner-controlled, previewed, source-bound,
+  stale-safe, atomic, idempotent where appropriate and recoverable.
+- Keep current CLI and human-readable status views available as projections
+  during a forward compatibility transition.
+- Migrate current single-decision artifacts without inventing missing owner
+  evidence or erasing legacy values.
+- Propagate lifecycle authority consistently to validation, registries,
+  project projections, decision context, relations, vertical evidence, Change
+  Sets, Work, software specifications, next actions and publication.
+- Produce explicit impact and remediation guidance without automatically
+  changing dependent owner-controlled lifecycles.
+- Establish the stable authority and lineage contract required by future
+  thematic decision-memory consolidation.
+
+#### Non-Goals
+
+- Physically delete accepted, rejected, revoked or superseded proposals.
+- Rewrite history so that a previously accepted decision appears never to have
+  been active.
+- Automatically roll back source code, deployments, completed Change Sets,
+  Work or external effects.
+- Automatically cancel, supersede, complete or reopen dependent lifecycle
+  objects.
+- Implement thematic proposal compaction, persistent decision-context caching
+  or publication curator refinement.
+- Treat `deprecated` as another proposal decision outcome.
+- Allow an agent-supplied actor string to establish owner authority.
+- Conflate proposal-decision rejection with managed proposal-branch rejection.
+
+#### Suggested Scope
+
+# Suggested Scope
+
+## Include
+
+- versioned decision-event and effective-state domain models;
+- explicit transition matrix and lifecycle authority policy;
+- initial rejection, withdrawal, revocation, supersession and narrowly defined
+  reinstatement semantics;
+- preview, owner authority, consent, idempotency, stale checks, locking,
+  atomicity and recovery;
+- migration and compatibility for current single-decision proposal artifacts;
+- CLI and permission-gated MCP parity;
+- validation, diagnostics and repair guidance;
+- project status, registries, decision context, vertical evidence, conflicts,
+  Change Sets, Work, software specs, next actions and publication impact;
+- tests for every transition and affected consumer;
+- a stable authority and lineage contract for later memory consolidation.
+
+## Exclude
+
+- automatic source-code rollback;
+- automatic cancellation or completion of Change Sets and Work;
+- physical deletion of decided proposals;
+- thematic decision-memory compaction;
+- persistent decision-context caching;
+- publication curator redesign;
+- provider-specific remote orchestration.
+
+## Suggested Delivery Slices
+
+1. Domain vocabulary, transition matrix and authority contract.
+2. Versioned event persistence, projection, preview and atomic mutation.
+3. Legacy compatibility and forward migration.
+4. CLI and permission-gated MCP operations.
+5. Downstream consumer convergence and impact diagnostics.
+6. Validation, recovery, documentation and full regression evidence.
+
 ## Accepted Proposals And Decisions
 
 - PROP-001 - — CLI Foundation
   - source: .p2p/proposals/PROP-001-cli-foundation
-  - decision_reason: The project needs a minimal executable workflow before adding AI adapters, exporters, MCP, or a web interface. Automating the manually bootstrapped `.p2p/` structure is the shortest path to dogfooding.
+  - decision_reason: Current owner confirms the historical acceptance of PROP-001 for the first local, Git-native, file-based Python and Typer CLI. The initial MVP excluded a web application and direct AI provider integration; the legacy source wording divergence remains preserved in migration provenance.
 - PROP-002 - Proposal Exploration And Readiness Workflow
   - source: .p2p/proposals/PROP-002-exploration-phase
   - decision_reason: Owner accepts the proposal exploration and readiness workflow after review.
@@ -6710,10 +6985,10 @@ Do not begin repository adoption until transition-specific planning, legacy mapp
   - decision_reason: Owner accepts PROP-006 after refinement. The proposal is considered ready as-is because remaining low readiness score reflects the current conservative readiness CLI, not unresolved product direction. A separate follow-up proposal will address readiness assessment refresh and review workflow.
 - PROP-009 - Governance CLI Commands
   - source: .p2p/proposals/PROP-009-governance-cli-commands
-  - decision_reason: PROP-008 ha definito il modello di governance, ma senza comandi CLI il workflow resta solo documentale. I comandi governance, swot, vote e precedent rendono il modello provabile nel repository senza introdurre ancora un sistema di privilegi applicativi.
+  - decision_reason: Current owner confirms the historical acceptance of PROP-009 to make the file-based governance model operational through governance, SWOT, vote, and precedent CLI commands. The accepted scope remained audit-only: human or governance-defined decisions, Git as the audit layer, and no application-level permission enforcement.
 - PROP-010 - P2P Project State Model
   - source: .p2p/proposals/PROP-010-p2p-software-specification-model
-  - decision_reason: P2P Engine needs an internal rationalized project state before exporting to OpenSpec, Spec Kit, or task systems. Raw proposal folders contain discussion, governance, alternatives, and decision history; they should not be treated directly as implementation specifications.
+  - decision_reason: Current owner confirms the historical acceptance of PROP-010 to establish a versioned .p2p/project layer as rationalized derived state from accepted proposals and decisions. Canonical proposal and decision artifacts remain authoritative, external specification and task systems remain downstream targets, and the MVP refresh is explicit through p2p project refresh.
 - PROP-011 - Project Refresh MVP
   - source: .p2p/proposals/PROP-011-project-refresh-mvp
   - decision_reason: Project refresh MVP is implemented with deterministic .p2p/project generation and CLI inspection commands.
@@ -6722,7 +6997,7 @@ Do not begin repository adoption until transition-specific planning, legacy mapp
   - decision_reason: Impact analysis and conflict memory are implemented as prompt-only impact artifacts plus persistent .p2p/project/conflicts.yml commands.
 - PROP-013 - Managed Git Adapter and Change Set Model
   - source: .p2p/proposals/PROP-013-change-set-and-git-branch-model
-  - decision_reason: P2P Engine should expose proposal, choice, decision, change, and task concepts to users. Git remains the internal layer for persistence, audit, synchronization, and collaboration, but users should not need to reason about branches, commits, merges, or tags during normal workflows.
+  - decision_reason: Current owner confirms the historical acceptance of PROP-013 for the Managed Git Under The Hood model, with Change Set as the visible operational unit and Git as the internal persistence, audit, synchronization, and collaboration adapter. The MVP remained metadata-only, hid Git details by default, disabled automatic commits, branches, and tags, and required Change Sets to originate from accepted proposals or decisions.
 - PROP-014 - Change Set Metadata MVP
   - source: .p2p/proposals/PROP-014-change-set-metadata-mvp
   - decision_reason: Change Set metadata MVP is implemented with create/status/policy commands and metadata-only managed Git policy.
@@ -6981,6 +7256,27 @@ Do not begin repository adoption until transition-specific planning, legacy mapp
 - PROP-101 - Project Readiness Convergence Workflow
   - source: .p2p/proposals/PROP-101-project-readiness-convergence-workflow
   - decision_reason: The refined proposal addresses the identified readiness-convergence, schema migration, atomicity, authority, retry, vertical reconciliation, decision-context and bounded-retrieval risks with explicit delivery gates and acceptance criteria.
+- PROP-102 - Proposal Decision Revision and Revocation Lifecycle
+  - source: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle
+  - decision_reason: La proposta definisce in modo completo e verificabile il lifecycle delle decisioni, distinguendo rifiuto, revoca, sostituzione e reinstatement, con autorita owner, migrazione legacy, impatto sui consumer e criteri di robustezza. La readiness e decision_ready al 100%, con confidenza alta e senza gap o gate falliti.
+
+## Historical And Inactive Proposal Decisions
+
+- PROP-003
+  - classification: never_active
+  - effective_state: deferred
+  - head_event_id: PDE-e9e273372c87693c12b19535
+  - decision_reason: Prompt hardening remains useful but is deferred after intake, choices and proposal decision shortcuts.
+- PROP-007
+  - classification: previously_active
+  - effective_state: split
+  - head_event_id: PDE-7dc3b675d8b005864a265c26
+  - decision_reason: Current owner closes the recovered authority of PROP-007 by classifying its direction as split into PROP-017 and PROP-025. PROP-017 carries forward proposal intake and context analysis, while PROP-025 carries forward the controlled intake apply workflow; preserved legacy evidence remains available for the historical superseded wording.
+- PROP-008
+  - classification: previously_active
+  - effective_state: superseded
+  - head_event_id: PDE-2bb422381ef86784c09435db
+  - decision_reason: Current owner closes the recovered authority of PROP-008 as superseded by PROP-091, which carries forward operational Governance Policy Convergence beyond the technical and documentary governance MVP. PROP-008's delivered artifacts remain historical evidence, and dependent freshness or publication state must be reviewed separately rather than changed by this decision.
 
 ## Requirements And Acceptance
 
@@ -7931,6 +8227,59 @@ Do not begin repository adoption until transition-specific planning, legacy mapp
 34. The repository pilot migrates v1-to-v2 and can answer/apply or defer/mute its three current gaps through supported commands.
 35. Global validation completes without introduced errors or warnings, with migration recovery clear and residual state explicit.
 36. Public documentation, migration guidance and generated agent instructions describe authority, retry, lifecycle, compatibility and source-of-truth behavior accurately.
+
+### PROP-102 - Proposal Decision Revision and Revocation Lifecycle
+
+- The public model defines mutually exclusive semantics for withdrawal,
+  rejection, revocation, supersession, reinstatement and downstream
+  deprecation.
+- A versioned canonical ledger preserves every valid decision event; supported
+  operations cannot overwrite, delete or reorder prior history.
+- Current proposal status and current-decision views are deterministic
+  projections and validation detects divergence.
+- The specification contains an exhaustive state/event transition matrix,
+  including prerequisites, lineage, exact retry, no-op and prohibited cases.
+- Initial rejection is allowed only before adoption; reversing an accepted
+  decision records revocation or supersession and preserves the acceptance.
+- Reinstatement is accepted only for an identical semantic fingerprint, a
+  referenced revocation, current impact preview and new owner authorization.
+- Changed content, conditions or constraints require a new linked proposal.
+- Authority-changing operations require owner authority, source-bound preview,
+  confirmation, unchanged preconditions, locking and atomic replacement.
+- Exact retries are idempotent; divergent token reuse, concurrent heads and
+  stale sources fail without partial writes.
+- CLI and permission-gated MCP call the same lifecycle service and expose
+  equivalent results and diagnostics.
+- Proposal-decision rejection and managed-branch rejection remain separate and
+  cannot trigger each other implicitly.
+- Revocation impact preview identifies active and completed dependencies,
+  affected authority, stale artifacts and explicit remediation options.
+- Revocation does not automatically mutate Change Set, Work, specification,
+  implementation, deployment or external lifecycle state.
+- Revoked, rejected, withdrawn, split, merged and superseded decisions remain
+  available as correctly labelled historical context.
+- Inactive decisions are excluded from active project projections and cannot be
+  rendered as current constraints.
+- Existing single-decision workspaces remain readable and have a deterministic,
+  registered, forward-only migration to the next workspace schema.
+- Migration preserves valid legacy values, represents missing or malformed data
+  as `unknown_legacy`, retains provenance and never infers owner evidence from
+  Git metadata.
+- Ambiguous legacy authority blocks later revision but does not prevent
+  loss-aware preservation of the historical record.
+- Migration is dry-run plannable, atomic, idempotent, recoverable and covered by
+  aligned, divergent, malformed, interrupted and concurrent fixtures.
+- Every downstream consumer uses the centralized lifecycle-authority contract
+  or an explicitly versioned compatible projection.
+- Stable next actions distinguish decision remediation from technical rollback
+  and do not duplicate on repeated refresh.
+- Future consolidated memory can bind to stable event identity, effective
+  authority, lineage and freshness without reading an overwrite-shaped
+  decision.
+- Documentation explains the lifecycle, migration, owner boundary, branch
+  distinction and non-automatic rollback behavior.
+- Focused, public, full and migrated-workspace validation complete without
+  unexplained errors, warnings or canonical history loss.
 
 ## Alternatives And Tradeoffs
 
@@ -12098,6 +12447,182 @@ findings:
 
 The principal architectural requirement is one owner for every state transition. Schema, question lifecycle, definition truth, decision authority and derived projections must remain separate even though convergence orchestrates them.
 
+### PROP-102 - Proposal Decision Revision and Revocation Lifecycle
+
+#### alternatives.md
+
+# Alternatives
+
+## A. Keep Current Overwrite Model And Rely On Git
+
+Continue replacing `decision.md` and proposal status, and use Git history when
+an earlier decision must be reconstructed.
+
+Benefits:
+
+- no schema or command changes;
+- minimal implementation cost.
+
+Costs and risks:
+
+- ordinary project memory loses visible decision history;
+- retrieval and derived artifacts cannot reason about prior authority;
+- state can diverge after partial writes;
+- consolidation can summarize the wrong current or historical meaning.
+
+Assessment: reject. Git auditability is not a queryable lifecycle model.
+
+## B. Require A New Corrective Proposal For Every Reversal
+
+Keep accepted proposals immutable and require a new proposal to explain that an
+old decision should no longer apply.
+
+Benefits:
+
+- preserves the original proposal and decision;
+- creates explicit rationale for corrective work;
+- requires little change to existing decision storage.
+
+Costs and risks:
+
+- the old proposal remains marked active unless another authority mechanism
+  deactivates it;
+- every consumer must infer that the corrective proposal cancels the original;
+- a reversal without replacement is awkward;
+- relation omissions can leave contradictory active decisions.
+
+Assessment: useful as a remediation pattern, but insufficient as the lifecycle
+authority model.
+
+## C. Append-Only Decision Events With Derived Effective State
+
+Record every owner decision as an immutable event and derive current proposal
+status and authority from a validated transition sequence.
+
+Benefits:
+
+- preserves historical truth and reasons;
+- supports rejection, revocation, replacement and reconsideration explicitly;
+- provides stable input for retrieval and future consolidation;
+- enables deterministic validation and impact diagnostics.
+
+Costs and risks:
+
+- introduces a versioned schema and migration;
+- requires updates across several downstream consumers;
+- needs atomic multi-artifact replacement and concurrency handling.
+
+Assessment: recommended.
+
+## D. Store Individual Immutable Event Files Plus A Manifest
+
+Create one file per event and maintain a manifest that identifies order and the
+current head.
+
+Benefits:
+
+- individual corruption can be isolated;
+- event files are independently readable.
+
+Costs and risks:
+
+- manifest and event files can diverge;
+- ordering and atomic multi-file replacement are more complex;
+- directory and migration overhead is unnecessary for the expected low event
+  volume per proposal.
+
+Assessment: not selected. The owner selected one versioned canonical
+decision-event ledger per proposal, with current state maintained as a separate
+projection.
+
+#### findings.md
+
+# Findings
+
+```yaml
+findings:
+  - id: F001
+    type: data_integrity
+    title: Current decisions are overwrite-shaped rather than event-shaped
+    impact: critical
+    related_to:
+      - PROP-019
+      - PROP-077
+  - id: F002
+    type: hidden_decision
+    title: Rejection before adoption and reversal after adoption require different semantics
+    impact: high
+    related_to:
+      - PROP-091
+      - PROP-100
+  - id: F003
+    type: architectural_implication
+    title: Effective status should be derived from immutable decision events
+    impact: high
+    related_to:
+      - PROP-010
+      - PROP-016
+      - PROP-100
+  - id: F004
+    type: consistency_risk
+    title: Proposal status and decision artifact are currently written independently
+    impact: high
+    related_to:
+      - PROP-053
+      - PROP-101
+  - id: F005
+    type: downstream_impact
+    title: Revocation changes authority but does not roll back implemented behavior
+    impact: high
+    related_to:
+      - PROP-015
+      - PROP-079
+      - PROP-094
+  - id: F006
+    type: compatibility_migration
+    title: Existing single-decision artifacts need loss-aware legacy import
+    impact: high
+    related_to:
+      - PROP-095
+      - PROP-097
+      - PROP-101
+  - id: F007
+    type: scope_boundary
+    title: Managed branch rejection is distinct from proposal decision rejection
+    impact: medium
+    related_to:
+      - PROP-066
+      - PROP-072
+      - PROP-075
+  - id: F008
+    type: future_dependency
+    title: Thematic memory consolidation depends on stable lifecycle authority and lineage
+    impact: high
+    related_to:
+      - PROP-100
+  - id: F009
+    type: owner_policy
+    title: Revocation remains available after impact preview without automatic downstream lifecycle mutation
+    impact: high
+    related_to:
+      - PROP-079
+      - PROP-094
+  - id: F010
+    type: architecture_decision
+    title: One versioned decision-event ledger per proposal is the canonical history source
+    impact: high
+    related_to:
+      - PROP-010
+      - PROP-101
+  - id: F011
+    type: compatibility_policy
+    title: Unknown legacy evidence is preserved without inference and blocks later revision when authority is ambiguous
+    impact: high
+    related_to:
+      - PROP-095
+      - PROP-097
+```
+
 ## Risks
 
 ### PROP-002 - Proposal Exploration And Readiness Workflow
@@ -14033,6 +14558,74 @@ Mitigation: deliver a minimal end-to-end slice first and defer advanced publicat
 - **Performance regression.** Repeated scans could make each question expensive. Mitigation: immutable request snapshot and deterministic read/hash/parse budgets.
 - **Pilot overfitting.** Generic policy could encode this repository's three gaps. Mitigation: synthetic vertical, v1 migration, no-coverage and empty-workspace fixtures.
 
+### PROP-102 - Proposal Decision Revision and Revocation Lifecycle
+
+#### risks.md
+
+# Risks
+
+## R001 - Status Explosion
+
+Adding too many terminal states can make CLI output and downstream policy hard
+to understand.
+
+Mitigation: keep a small public vocabulary, define exact meanings and separate
+event type, effective authority and downstream remediation state.
+
+## R002 - Partial Migration
+
+Some consumers may continue reading only the legacy current status and ignore
+event history.
+
+Mitigation: centralize lifecycle authority, inventory every consumer, version
+the projection and add compatibility and cross-consumer contract tests.
+
+## R003 - False Rollback
+
+Users may interpret `revoked` as proof that implemented behavior was removed.
+
+Mitigation: report decision authority and implementation/remediation state
+separately; never auto-complete rollback work.
+
+## R004 - Concurrent Decisions
+
+Two owner operations based on the same prior event could create conflicting
+heads.
+
+Mitigation: source-bound preview tokens, expected-head checks, idempotency keys,
+locking and atomic replacement.
+
+## R005 - History Mutation
+
+A generic update or migration path could rewrite or reorder old events.
+
+Mitigation: immutable event identities, content hashes, append-only validation,
+explicit repair diagnostics and no silent normalization.
+
+## R006 - Broken Replacement Lineage
+
+Supersession may refer to a missing, rejected or incompatible replacement.
+
+Mitigation: validate target identity and lifecycle, represent pending
+replacement separately and prevent active lineage claims without direct
+evidence.
+
+## R007 - Authority Bypass
+
+CLI and MCP implementations may diverge or allow an agent-controlled actor field
+to simulate owner authority.
+
+Mitigation: one domain service, canonical role resolution, consent binding and
+equivalence tests across every privileged operation.
+
+## R008 - Compaction Hides Reversal
+
+A later thematic summary could retain the accepted claim while omitting its
+revocation.
+
+Mitigation: make event head, authority interval, replacement lineage and source
+fingerprint mandatory inputs to consolidation freshness.
+
 ## Assumptions
 
 ### PROP-002 - Proposal Exploration And Readiness Workflow
@@ -15173,6 +15766,32 @@ P2P-owned `P2P-SETUP.md` content.
 - **A016, technical contract:** project-question evidence remains inactive in decision context until applied definition becomes the semantic authority.
 - **A017, to validate in feature design:** freshness can distinguish question-only changes from definition-apply changes without introducing a second persisted authority.
 - **A018, scope assumption:** the current repository pilot validates orchestration but does not define universal migration, question or priority policy.
+
+### PROP-102 - Proposal Decision Revision and Revocation Lifecycle
+
+#### assumptions.md
+
+# Assumptions
+
+- Proposal and decision history remains local, Git-native and file-backed.
+- Owner authority is required for every final proposal decision and revision.
+- Existing proposal IDs and accepted proposal content remain stable.
+- A rejected, revoked or superseded proposal remains valuable historical
+  evidence and is not physically deleted.
+- Current proposal status remains useful as a compact projection for existing
+  commands, provided it is derived from the decision event sequence.
+- Migration can represent each current aligned legacy decision as one initial
+  event without inventing missing earlier history.
+- Missing or malformed legacy values use `unknown_legacy` with provenance;
+  ambiguous authority blocks later revision until owner curation.
+- Revocation changes normative authority; implementation, deployment and
+  external side effects require separate evidence and remediation.
+- Revocation remains available after an impact preview and does not
+  automatically mutate dependent lifecycle states.
+- One versioned decision-event ledger per proposal is the canonical history
+  source; current status and current decision are projections.
+- Future memory consolidation will consume the centralized authority contract,
+  not infer state independently from prose.
 
 ## Open Questions
 
@@ -16944,6 +17563,41 @@ Residual follow-up decisions after measurement or concrete consumer demand:
 
 No remaining owner-policy questions. Feature design must satisfy the recorded migration, authority, transaction, replay, reconciliation and source-classification contracts. Any newly discovered owner choice must be raised explicitly rather than hidden in implementation defaults.
 
+### PROP-102 - Proposal Decision Revision and Revocation Lifecycle
+
+#### open-questions.md
+
+# Open Questions
+
+## Resolved Owner Policy
+
+1. `withdrawn`, `rejected`, `revoked` and `superseded` have distinct meanings;
+   `deprecated` is a downstream operational state.
+2. Revocation remains available after an impact preview even when dependent
+   work exists; remediation is explicit and downstream lifecycles are not
+   mutated automatically.
+3. `reinstated` may restore only the exact same semantic decision with an
+   explicit revocation reference, current impact preview and new owner
+   authorization.
+4. One versioned decision-event ledger per proposal is the canonical decision
+   history source; current status is a projection.
+5. Legacy migration preserves unknown or malformed fields as `unknown_legacy`
+   with provenance, never infers owner evidence from Git and blocks later
+   revision when authority is ambiguous.
+
+## Remaining Design Obligations
+
+These are not unresolved owner policy questions:
+
+1. exact ledger path and serialization;
+2. event identity, predecessor and integrity-hash formula;
+3. lock, atomic replacement, exact-retry and recovery mechanics;
+4. next workspace schema and compatibility-window details;
+5. complete downstream consumer and invalidation inventory;
+6. current-decision projection format;
+7. bounded impact-preview and remediation-action payload;
+8. large-history and large-workspace performance ceilings.
+
 ## Readiness
 
 ### Project Vertical Skeleton
@@ -16960,19 +17614,19 @@ No remaining owner-policy questions. Feature design must satisfy the recorded mi
 - scope: defined (proposals: none)
 - assumptions: covered (proposals: PROP-100)
 - risks: defined (proposals: none)
-- decisions: covered (proposals: PROP-091, PROP-101)
+- decisions: covered (proposals: PROP-091, PROP-101, PROP-102)
 - milestones: defined (proposals: none)
 - definition_of_done: covered (proposals: PROP-085, PROP-090, PROP-101)
-- artifacts: covered (proposals: PROP-085, PROP-094, PROP-099, PROP-101)
+- artifacts: covered (proposals: PROP-085, PROP-094, PROP-099, PROP-101, PROP-102)
 - system_objective: covered (proposals: PROP-001, PROP-085, PROP-094)
 - users_and_actors: covered (proposals: PROP-006, PROP-091)
 - mvp_scope: covered (proposals: PROP-001, PROP-044, PROP-055, PROP-084, PROP-085, PROP-094, PROP-099)
 - workflows_use_cases: covered (proposals: PROP-001, PROP-006, PROP-044, PROP-055, PROP-084, PROP-085, PROP-090, PROP-091, PROP-094, PROP-095, PROP-099, PROP-100, PROP-101)
-- data_model: covered (proposals: PROP-006, PROP-084, PROP-085, PROP-090, PROP-091, PROP-094, PROP-095, PROP-099, PROP-100, PROP-101)
+- data_model: covered (proposals: PROP-006, PROP-084, PROP-085, PROP-090, PROP-091, PROP-094, PROP-095, PROP-099, PROP-100, PROP-101, PROP-102)
 - integrations_dependencies: covered (proposals: PROP-006, PROP-044, PROP-084, PROP-090, PROP-094, PROP-095, PROP-100)
-- constraints_nfrs: covered (proposals: PROP-006, PROP-055, PROP-084, PROP-090, PROP-091, PROP-095, PROP-100, PROP-101)
-- acceptance_validation: covered (proposals: PROP-090, PROP-094, PROP-095, PROP-099, PROP-100, PROP-101)
-- risks_alternatives_decisions: covered (proposals: PROP-090, PROP-091, PROP-094, PROP-095, PROP-099, PROP-100, PROP-101)
+- constraints_nfrs: covered (proposals: PROP-006, PROP-055, PROP-084, PROP-090, PROP-091, PROP-095, PROP-100, PROP-101, PROP-102)
+- acceptance_validation: covered (proposals: PROP-090, PROP-094, PROP-095, PROP-099, PROP-100, PROP-101, PROP-102)
+- risks_alternatives_decisions: covered (proposals: PROP-090, PROP-091, PROP-094, PROP-095, PROP-099, PROP-100, PROP-101, PROP-102)
 
 ### Vertical Questions
 
@@ -20274,6 +20928,191 @@ readiness:
   assessed_at: '2026-07-16'
   artifact_coverage_warnings: []
 
+### PROP-102 - Proposal Decision Revision and Revocation Lifecycle
+
+#### readiness.yml
+
+readiness:
+  status: assessed
+  profile_id: default-readiness-v0.1
+  profile_version: '0.1'
+  tier: medium
+  confidence: high
+  confidence_reasons:
+  - Evidence-aware assessment found no missing criteria, failed gates, blocking owner
+    questions, or artifact coverage gaps.
+  - Criterion evidence was recalculated from current proposal artifacts.
+  missing: []
+  suggested_next: []
+  failed_gates: []
+  criteria:
+    problem_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Problem
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    goal_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    scope_boundaries:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Non-Goals
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    alternatives_quality:
+      max_points: 15
+      awarded_points: 15
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 15
+    tradeoff_analysis:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: alternatives.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    risk_coverage:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: risks.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    assumptions_clarity:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: assumptions.md
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    owner_questions_resolution:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: questions.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    acceptance_criteria_quality:
+      max_points: 10
+      awarded_points: 10
+      artifact_quality: ready
+      evidence:
+      - artifact: proposal.md
+        section: Acceptance Criteria
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 10
+    impact_overlap_analysis:
+      max_points: 5
+      awarded_points: 5
+      artifact_quality: ready
+      evidence:
+      - artifact: impact-map.yml
+      - artifact: questions.yml
+        reason: artifact evidence assessed with no unresolved blocking questions
+      effective_points: 5
+  owner_question_state:
+    source: structured
+    markdown_fallback_used: false
+    blocking_owner_questions: []
+    answered_not_applied: []
+    residual_follow_up: []
+    closed_questions:
+    - id: Q001
+      group_id: QG001
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: owner_questions_resolution
+      gap: owner_questions_resolution
+      question: "Confermi questa terminologia canonica: withdrawn per una proposta\
+        \ abbandonata prima dell'adozione, revoked per una decisione accettata poi\
+        \ annullata senza sostituzione, superseded per una decisione sostituita con\
+        \ lineage esplicita, e deprecated come stato operativo downstream anzich\xE9\
+        \ esito terminale della proposta?"
+      reason: Question is closed with state `applied`.
+    - id: Q002
+      group_id: QG001
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: owner_questions_resolution
+      gap: owner_questions_resolution
+      question: "Una decisione revoked pu\xF2 essere riattivata con un evento owner-controlled\
+        \ reinstated quando il contenuto torna identico, oppure ogni riattivazione\
+        \ deve passare da una nuova proposta collegata?"
+      reason: Question is closed with state `applied`.
+    - id: Q003
+      group_id: QG002
+      priority: high
+      state: applied
+      group_state: to_answer
+      criterion: tradeoff_analysis
+      gap: tradeoff_analysis
+      question: Confermi che la revoca debba restare consentita anche in presenza
+        di Change Set, Work o implementazioni dipendenti, dopo un impact preview,
+        generando remediation actions senza mutare automaticamente i loro lifecycle?
+      reason: Question is closed with state `applied`.
+    - id: Q004
+      group_id: QG003
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: alternatives_quality
+      gap: alternatives_quality
+      question: "Per la persistenza preferisci fissare gi\xE0 nella proposta un ledger\
+        \ versionato per proposta, oppure lasciare al design il confronto tra ledger\
+        \ unico e file evento immutabili purch\xE9 il contratto pubblico resti event-based?"
+      reason: Question is closed with state `applied`.
+    - id: Q005
+      group_id: QG004
+      priority: medium
+      state: applied
+      group_state: to_answer
+      criterion: assumptions_clarity
+      gap: assumptions_clarity
+      question: Confermi che la migrazione dei decision artifact legacy debba preservare
+        valori mancanti o malformati come unknown_legacy con provenienza esplicita,
+        senza inferire owner, data o motivazione dai timestamp Git?
+      reason: Question is closed with state `applied`.
+    confidence_notes: []
+    suggested_next: []
+  computed_score: 100
+  computed_label: decision_ready
+  computed_at: '2026-07-17'
+  assessment_source: evidence_aware
+  assessed_at: '2026-07-17'
+  artifact_coverage_warnings: []
+
 ## Delivery And Export Context
 
 The default visible export is this chaptered Markdown document. Specialized vertical or tool-specific exports belong under `outputs/latest/exports/<profile-or-vertical>/`. Existing `.p2p/outputs` spec exports remain compatibility artifacts unless a separate migration changes them.
@@ -20378,4 +21217,5 @@ The default visible export is this chaptered Markdown document. Specialized vert
 - .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy
 - .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology
 - .p2p/proposals/PROP-101-project-readiness-convergence-workflow
+- .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle
 ```

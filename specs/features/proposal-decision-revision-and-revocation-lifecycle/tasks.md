@@ -829,16 +829,16 @@ state.
 
 - [x] D2-T001: Select the next `0.4.x` patch version and align package metadata,
   changelog, runtime support and docs without weakening schema-v2 reads.
-- [ ] D2-T002: Run clean Python 3.11 and local Python matrix tests, package
+- [x] D2-T002: Run clean Python 3.11 and local Python matrix tests, package
   verification and isolated installed-artifact smoke from the exact candidate
   commit.
 - [x] D2-T003: Review the complete patch diff and confirm no migration,
   `.p2p` repair, derived rebuild or publication approval was included.
-- [ ] D2-T004: Ask for explicit owner authorization before commit, tag, push or
+- [x] D2-T004: Ask for explicit owner authorization before commit, tag, push or
   package publication; record exact version, commit and target.
-- [ ] D2-T005: Publish and install the owner-authorized patch artifact, then
+- [x] D2-T005: Publish and install the owner-authorized patch artifact, then
   prove source/installed parity for template, plan, fingerprint and apply help.
-- [ ] D2-T006: D2 exit gate. The repository runtime contract accepts the
+- [x] D2-T006: D2 exit gate. The repository runtime contract accepts the
   installed patch and M may resume using that executable.
 
 ## M - Repository V2-To-V3 Migration
@@ -862,100 +862,100 @@ state.
   derived refresh advisories and schema-last commit. Covers R-F9-006.
 - [x] M-T007: Enumerate every unknown-legacy/blocking proposal and request owner
   input only where safe authority cannot be established. Covers R-F9-007.
-- [ ] M-T008: After D2, generate and review the owner-attestation template,
+- [x] M-T008: After D2, generate and review the owner-attestation template,
   complete structured accepted-with-changes input, re-plan with the supported
   patch and confirm fingerprint, candidate changes, residual manual-review
   cases and no unrelated target changes.
-- [ ] M-T009: Ask for explicit owner confirmation of the exact applicable plan
+- [x] M-T009: Ask for explicit owner confirmation of the exact applicable plan
   fingerprint and actor.
-- [ ] M-T010: Apply the migration through `p2p workspace migrate apply`; do not
+- [x] M-T010: Apply the migration through `p2p workspace migrate apply`; do not
   run concurrent governed writes.
-- [ ] M-T011: If apply is interrupted, stop normal work and use migration
+- [x] M-T011: If apply is interrupted, stop normal work and use migration
   recovery status/rollback/resume according to the journal; record result
   before continuing.
-- [ ] M-T012: Verify schema v3, migration history, one ledger per proposal,
+- [x] M-T012: Verify schema v3, migration history, one ledger per proposal,
   valid chains, matching projections and no unexplained authority divergence.
   Covers R-F9-009.
-- [ ] M-T013: Resolve each remaining unknown-legacy proposal only through the
+- [x] M-T013: Resolve each remaining unknown-legacy proposal only through the
   owner legacy-resolution preview/apply primitive, one reviewed operation at a
   time. Covers R-F9-007, R-F9-009.
-- [ ] M-T014: Re-run validation and lifecycle distribution after every curation
+- [x] M-T014: Re-run validation and lifecycle distribution after every curation
   batch; stop on any new active-authority count not explained by owner input.
-- [ ] M-T015: Run a second v3 migration plan and prove it is a no-op.
-- [ ] M-T016: M exit gate. Canonical workspace state is schema v3, ledger-valid,
+- [x] M-T015: Run a second v3 migration plan and prove it is a no-op.
+- [x] M-T016: M exit gate. Canonical workspace state is schema v3, ledger-valid,
   projection-aligned and owner-curated where required; derived artifacts may
   still be stale.
 
 ## A - Derived Artifact Alignment
 
-- [ ] A-T001: Run registry status/refresh through the owning command and compare
+- [x] A-T001: Run registry status/refresh through the owning command and compare
   proposal/decision/change/artifact counts with baseline. Covers R-F9-010..012.
-- [ ] A-T002: Refresh project projections through the owning command; verify
+- [x] A-T002: Refresh project projections through the owning command; verify
   active decisions, historical states, decision map bindings and ownership
   manifest. Covers R-F9-010..012.
-- [ ] A-T003: Rebuild/read decision context and compare source/evidence/node/
+- [x] A-T003: Rebuild/read decision context and compare source/evidence/node/
   relation counts, diagnostics, semantic fingerprint and active/historical
   authority distribution.
-- [ ] A-T004: Refresh assessment and maturity where owned; recompute progress
+- [x] A-T004: Refresh assessment and maturity where owned; recompute progress
   and verify definition completeness remains distinct from active proposal
   evidence.
-- [ ] A-T005: Inspect every software spec status. Refresh only specs whose
+- [x] A-T005: Inspect every software spec status. Refresh only specs whose
   lifecycle permits deterministic refresh; leave modified/imported/inactive-
   source specs explicit for review.
-- [ ] A-T006: Refresh managed next actions and verify deterministic revocation/
+- [x] A-T006: Refresh managed next actions and verify deterministic revocation/
   migration/remediation actions, curated precedence and no obsolete schema-v2
   instructions.
-- [ ] A-T007: Refresh visible project export through its owner command and
+- [x] A-T007: Refresh visible project export through its owner command and
   verify active/historical/unresolved decision wording and traceability.
-- [ ] A-T008: Prepare/refresh publication packet only when its prerequisites are
+- [x] A-T008: Prepare/refresh publication packet only when its prerequisites are
   current; do not silently curate or approve publication.
-- [ ] A-T009: Run curator import, publication validation and render only through
+- [x] A-T009: Run curator import, publication validation and render only through
   their separate supported stages if requested; keep owner publication review
   unchanged. Covers R-F9-011, R-F9-013.
-- [ ] A-T010: Run full derived freshness status and ensure every stale/partial
+- [x] A-T010: Run full derived freshness status and ensure every stale/partial
   node has an owning command, explicit blocker or owner/agent review class.
-- [ ] A-T011: Compare pre/post proposal state counts, event counts,
+- [x] A-T011: Compare pre/post proposal state counts, event counts,
   ever-active/current-active counts, Change/Work/spec impacts, vertical
   evidence, progress axes, registry/context/projection fingerprints and
   publication status. Covers R-F9-012.
-- [ ] A-T012: Record every residual manual repository action with target,
+- [x] A-T012: Record every residual manual repository action with target,
   evidence, supported primitive and required owner authority; no direct `.p2p`
   repair. Covers R-F9-014.
-- [ ] A-T013: Run focused and full tests against the migrated repository state
+- [x] A-T013: Run focused and full tests against the migrated repository state
   plus `p2p validate`.
-- [ ] A-T014: A exit gate. Canonical and derived state are aligned or every
+- [x] A-T014: A exit gate. Canonical and derived state are aligned or every
   remaining non-current artifact is explicitly lifecycle-controlled.
 
 ## F - Final Validation And Handoff
 
-- [ ] F-T001: Review `PROP-102`, `CHANGE-070`, generated software spec and local
+- [x] F-T001: Review `PROP-102`, `CHANGE-070`, generated software spec and local
   implementation specs against the final code and migrated workspace.
-- [ ] F-T002: Complete the full requirement -> design -> task -> test/evidence
+- [x] F-T002: Complete the full requirement -> design -> task -> test/evidence
   matrix with direct evidence for AC001..AC030 and no unchecked implemented
   work.
-- [ ] F-T003: Re-run source audits for direct decision writes, direct projection
+- [x] F-T003: Re-run source audits for direct decision writes, direct projection
   authority reads, unknown operation IDs, unbound MCP consent and mtime/Git
   inference.
-- [ ] F-T004: Re-run all focused S1-S9 tests, public suite, full suite, package
+- [x] F-T004: Re-run all focused S1-S9 tests, public suite, full suite, package
   verification, installed smoke tests and repository validation.
-- [ ] F-T005: Confirm exact retry, concurrency, migration recovery, projection
+- [x] F-T005: Confirm exact retry, concurrency, migration recovery, projection
   repair, ledger repair rejection and unknown-legacy curation evidence remains
   passing after all integration changes.
-- [ ] F-T006: Confirm no decision apply changed dependent Change, Work, spec,
+- [x] F-T006: Confirm no decision apply changed dependent Change, Work, spec,
   vertical, code, Git or publication lifecycle state automatically.
-- [ ] F-T007: Confirm current exports and retrieval never present revoked,
+- [x] F-T007: Confirm current exports and retrieval never present revoked,
   rejected, withdrawn or replaced decisions as active constraints.
-- [ ] F-T008: Confirm future memory-compaction inputs expose proposal, head,
+- [x] F-T008: Confirm future memory-compaction inputs expose proposal, head,
   interval, lineage and source fingerprint without implementing compaction.
-- [ ] F-T009: Review Git diff and generated artifacts, preserving unrelated
+- [x] F-T009: Review Git diff and generated artifacts, preserving unrelated
   owner changes and excluding temporary build/test output.
-- [ ] F-T010: Through P2P CLI, set `CHANGE-070` lifecycle status according to
+- [x] F-T010: Through P2P CLI, set `CHANGE-070` lifecycle status according to
   actual implementation/review completion; owner-controlled completion remains
   with the owner.
-- [ ] F-T011: Produce a concise final handoff with implemented behavior, public
+- [x] F-T011: Produce a concise final handoff with implemented behavior, public
   compatibility change, migration outcome, test evidence, residual risks and
   publication state.
-- [ ] F-T012: F exit gate. AC029 and AC030 are directly proven: the repository
+- [x] F-T012: F exit gate. AC029 and AC030 are directly proven: the repository
   migration was owner-controlled, all ledgers/projections are explained and no
   publication approval was inferred.
 

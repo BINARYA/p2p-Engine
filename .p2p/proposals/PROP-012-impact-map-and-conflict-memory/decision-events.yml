@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-012
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-bb8aa22c4115c25bb0786483
+  events:
+  - event_schema_version: 1
+    event_id: PDE-bb8aa22c4115c25bb0786483
+    operation_key: P2POP-6b2402323b897211b8802f3a
+    proposal_id: PROP-012
+    event_type: accepted
+    effective_state: accepted
+    rationale: Impact analysis and conflict memory are implemented as prompt-only
+      impact artifacts plus persistent .p2p/project/conflicts.yml commands.
+    conditions: []
+    decided_on: '2026-05-20'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: a978ef2a2bd77045f377181b28ce0c3da88d5058c6dc0aec14a12c82f9f71a18
+    decision_semantic_sha256: 531da25524a56c804f3eae90d20f61d024dbc2ba58177869d1f17ab6f7830437
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 8424592939e41a9e07f86219487f3cda8436b267340716f61427748d18e1efdf
+      request_fingerprint_sha256: 85dca5931ac3af1645629489279bf1c727a6d794f21f593696f4ea1ae73925f5
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-012-impact-map-and-conflict-memory/proposal.md
+      - .p2p/proposals/PROP-012-impact-map-and-conflict-memory/decision.md
+      source_sha256:
+        proposal.md: f6522dbbdd196aac0b4aa1f348c5a60e58d4f6bd1c82644c1996d7847acbaab2
+        decision.md: 1ee2e1b72b0d9fcd32497b9f40cf05b00411a7cb833d67d43287c46ec6600ac0
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Impact analysis and conflict memory are implemented as prompt-only
+          impact artifacts plus persistent .p2p/project/conflicts.yml commands.
+        approver: local
+        decided_on: '2026-05-20'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-20'
+          source_sha256:
+            proposal.md: f6522dbbdd196aac0b4aa1f348c5a60e58d4f6bd1c82644c1996d7847acbaab2
+            decision.md: 1ee2e1b72b0d9fcd32497b9f40cf05b00411a7cb833d67d43287c46ec6600ac0
+    event_sha256: d6bcccb5d291f05b8e312289ee30d4661c065847ca3c98bab756ba2acbc1427f
+  legacy_evidence: []

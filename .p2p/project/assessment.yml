@@ -1,4 +1,4 @@
-generated_on: '2026-07-17'
+generated_on: '2026-07-20'
 assessment_type: deterministic_readiness
 completion:
   score: 76
@@ -30,7 +30,7 @@ factors:
   reason: Draft proposals still need owner review or refinement.
 - id: accepted_proposals
   label: Accepted proposals
-  value: 96
+  value: 97
   impact: 0
   reason: Accepted proposals define committed project direction.
 - id: open_choices
@@ -62,9 +62,9 @@ gaps:
 - Review draft proposals before treating project direction as settled.
 - Continue or complete active Change Sets.
 suggested_actions:
-- p2p assess refresh
-- p2p project questions next
-- p2p project questions next
+- p2p spec refresh --change <CHANGE-ID>
+- p2p project freshness
+- p2p project publish status
 basis:
   completion: legacy_deterministic_readiness
   maturity: heuristic_keyword_rubric

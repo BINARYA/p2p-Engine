@@ -25,6 +25,14 @@ Implement dedicated proposal decision shortcut commands that call the existing d
 
 accepted
 
+## Event Type
+
+accepted
+
+## Effective State
+
+accepted
+
 ## Reason
 
 Accepted to make proposal lifecycle decisions easier for users and AI agents.
@@ -35,4 +43,24 @@ Accepted to make proposal lifecycle decisions easier for users and AI agents.
 
 ## Approver
 
-local
+mrjungle
+
+## Owner
+
+mrjungle
+
+## Ledger Head
+
+PDE-ed75430021d1c4286eceaba9
+
+## Decision Fingerprint
+
+4ae98db7e00f3ad1350713d124841898bd365359561480ad3e80c770960a642f
+
+## Lineage
+
+None.
+
+## Canonical Source
+
+decision-events.yml

@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-024
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-4bc8e55c19b3f8fc9876da06
+  events:
+  - event_schema_version: 1
+    event_id: PDE-4bc8e55c19b3f8fc9876da06
+    operation_key: P2POP-2fa7d6da5c6409742c1d80f6
+    proposal_id: PROP-024
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted to make choices operational through advisory discovery first
+      and explicit owner-controlled blockers second.
+    conditions: []
+    decided_on: '2026-05-25'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 46869ed7aae8e913e22c0f86b57772af34e5e4ffe1559690ffef2f3f346a58e1
+    decision_semantic_sha256: e3cfcb4684c711fe5e95fa8a0fc1ee5dfc0ade833fd8c6db73e15713f8289308
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 425b101b362fb562ec70a426c107d4cf23b89d873210233c31ff2b00fcbd7a44
+      request_fingerprint_sha256: 434277be8cb2c020dfdf135bd9bea324ebbc1f90e0fc6b7929183d87eb90ce4f
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-024-choice-blocking-and-discovery-mvp/proposal.md
+      - .p2p/proposals/PROP-024-choice-blocking-and-discovery-mvp/decision.md
+      source_sha256:
+        proposal.md: 3923c364050e7c8ca4d40130591d4f6a82c971b20043ed950717a64ee0ebb164
+        decision.md: 7247c1f22f1a18ed53494d4a4ea1f660d33b8ac02b059b54e4b9cd863b2b86f9
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted to make choices operational through advisory discovery first
+          and explicit owner-controlled blockers second.
+        approver: local
+        decided_on: '2026-05-25'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-25'
+          source_sha256:
+            proposal.md: 3923c364050e7c8ca4d40130591d4f6a82c971b20043ed950717a64ee0ebb164
+            decision.md: 7247c1f22f1a18ed53494d4a4ea1f660d33b8ac02b059b54e4b9cd863b2b86f9
+    event_sha256: a7895b571dadda5a2cb3a51309a33e6a9a5811ca13602a8574d5980e2b89403a
+  legacy_evidence: []

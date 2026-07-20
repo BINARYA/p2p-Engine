@@ -897,7 +897,7 @@ class ProjectVerticalService:
         if self._workspace_schema_version() >= 2 and legacy_question_operations:
             raise ValueError(
                 "P2P352_LEGACY_DEFINITION_QUESTION_OPERATION: schema v2 uses project-question "
-                "commands; run `p2p project questions status` instead."
+                "commands; run `p2p project readiness questions status` instead."
             )
         return patch
 

@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-080
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-c803ff7b0db4bc7e327d16f0
+  events:
+  - event_schema_version: 1
+    event_id: PDE-c803ff7b0db4bc7e327d16f0
+    operation_key: P2POP-ec260efc447797edcb3cd3c2
+    proposal_id: PROP-080
+    event_type: accepted
+    effective_state: accepted
+    rationale: Owner approved automated tag-triggered GitHub release publishing to
+      replace the manual wheel upload path.
+    conditions: []
+    decided_on: '2026-06-03'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 99f9b4d616778f52599a29911fa0db51cc58ace558033e2e833ff08dae42f904
+    decision_semantic_sha256: 5cf3b798ae898e4eb7cb575f1b6b8ab58a369e95f200507c8816d8330c29b93d
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: eca2edbe85eb3d820422c54a4cd9dfeb4027caa016bac215d3e387d0aba57e55
+      request_fingerprint_sha256: 99f3d019fcb07743e4ffc82a66abfd5a7ae52d574fdf6ef307eaf4574227968b
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-080-automated-github-release-wheel-publishing/proposal.md
+      - .p2p/proposals/PROP-080-automated-github-release-wheel-publishing/decision.md
+      source_sha256:
+        proposal.md: 35c4ea8e023b8af7afb973527a8e19338f49e1dbf92ed48cfc6888a60f4fbde4
+        decision.md: 0d04e6aec979b1b7336059540f1b524a06e906f1061c6d0e72629d40074d6c7d
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Owner approved automated tag-triggered GitHub release publishing to
+          replace the manual wheel upload path.
+        approver: owner
+        decided_on: '2026-06-03'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: owner
+          decided_on: '2026-06-03'
+          source_sha256:
+            proposal.md: 35c4ea8e023b8af7afb973527a8e19338f49e1dbf92ed48cfc6888a60f4fbde4
+            decision.md: 0d04e6aec979b1b7336059540f1b524a06e906f1061c6d0e72629d40074d6c7d
+    event_sha256: b6b2666bffda655893edb65368e42300681f148fa0935bcba9234b212f22a236
+  legacy_evidence: []

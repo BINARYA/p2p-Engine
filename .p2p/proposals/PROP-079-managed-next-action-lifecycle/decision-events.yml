@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-079
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-ca0b2e2e247f5cb8177812d3
+  events:
+  - event_schema_version: 1
+    event_id: PDE-ca0b2e2e247f5cb8177812d3
+    operation_key: P2POP-c675adc3b3f896999ae0ca60
+    proposal_id: PROP-079
+    event_type: accepted
+    effective_state: accepted
+    rationale: Owner selected the hybrid generated plus curated next-action model
+      and requested implementation.
+    conditions: []
+    decided_on: '2026-06-03'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 033a5eea1390fd5288e795bec234e7236195827fec34448fccc872bc0ff779b3
+    decision_semantic_sha256: 4f47baf782881dd1ac69604687c41948f14d6682103ba36dd2ae3a23451c3bca
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 6f5d857272ac1f4af521ebcf8e86acf4e6e6f662f080e95ed7144a308c32beeb
+      request_fingerprint_sha256: 16fceb032bdbdac4a4094ec9ab3a48fd6a7849b7192f04977f96a4a1b1398d24
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-079-managed-next-action-lifecycle/proposal.md
+      - .p2p/proposals/PROP-079-managed-next-action-lifecycle/decision.md
+      source_sha256:
+        proposal.md: 743f532240446edd7fd45bc09e36f41ea71a1884cdf7bda54d2a6a8b2ab6402d
+        decision.md: 725bd2dece1049c03d6c1c316ea3f4e3438c1e518952c290a6911cf6074598e9
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Owner selected the hybrid generated plus curated next-action model
+          and requested implementation.
+        approver: owner
+        decided_on: '2026-06-03'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: owner
+          decided_on: '2026-06-03'
+          source_sha256:
+            proposal.md: 743f532240446edd7fd45bc09e36f41ea71a1884cdf7bda54d2a6a8b2ab6402d
+            decision.md: 725bd2dece1049c03d6c1c316ea3f4e3438c1e518952c290a6911cf6074598e9
+    event_sha256: b11aba568fbdff32161187896d177794a0640c34b7055f17755308f974921d72
+  legacy_evidence: []

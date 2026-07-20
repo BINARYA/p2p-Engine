@@ -8,6 +8,14 @@
 
 accepted
 
+## Event Type
+
+accepted
+
+## Effective State
+
+accepted
+
 ## Reason
 
 Accepted to add an explainable deterministic project readiness assessment before subjective maturity rubrics, packaging, or owner-gated automation.
@@ -18,4 +26,24 @@ Accepted to add an explainable deterministic project readiness assessment before
 
 ## Approver
 
-local
+mrjungle
+
+## Owner
+
+mrjungle
+
+## Ledger Head
+
+PDE-1f058faadb452a7254749467
+
+## Decision Fingerprint
+
+dad2821aaa2fa12a0d1705785656c2b982c2cde421a169272012eb03a2ff06b0
+
+## Lineage
+
+None.
+
+## Canonical Source
+
+decision-events.yml

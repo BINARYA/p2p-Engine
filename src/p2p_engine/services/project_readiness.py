@@ -224,7 +224,10 @@ class ProjectReadinessGapService:
                         severity=ProjectReadinessGapSeverity.BLOCKER,
                         target_kind=question.target_kind,
                         target_id=question.target_id,
-                        next_operation="p2p project questions reconcile-preview",
+                        next_operation=(
+                            "p2p project readiness questions reconcile-preview "
+                            "--actor <ACTOR>"
+                        ),
                         rationale=f"Question `{question.question_id}` is not compatible with the active vertical.",
                         question_id=question.question_id,
                         question_revision=question.revision,
@@ -272,7 +275,7 @@ class ProjectReadinessGapService:
                         severity=ProjectReadinessGapSeverity.BLOCKER,
                         target_kind="blocker",
                         target_id=blocker_id,
-                        next_operation="p2p project questions next",
+                        next_operation="p2p project readiness questions next",
                         rationale=f"Required section `{section.section_id}` has an unresolved blocker.",
                     )
                 )
@@ -295,7 +298,7 @@ class ProjectReadinessGapService:
                     target_kind="section",
                     target_id=section.section_id,
                     missing_fields=section.missing_required_fields,
-                    next_operation="p2p project questions next",
+                    next_operation="p2p project readiness questions next",
                     rationale=f"Required section `{section.section_id}` is not complete.",
                 )
             )
@@ -310,7 +313,7 @@ class ProjectReadinessGapService:
                     severity=ProjectReadinessGapSeverity.MEDIUM,
                     target_kind="assumption",
                     target_id=assumption.assumption_id,
-                    next_operation="p2p project questions next",
+                    next_operation="p2p project readiness questions next",
                     rationale=f"Assumption `{assumption.assumption_id}` requires owner validation.",
                     dependency_rank=assumption.dependency_rank,
                 )

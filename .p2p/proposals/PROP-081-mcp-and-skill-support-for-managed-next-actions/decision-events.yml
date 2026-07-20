@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-081
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-4f801b7836715b90ed233095
+  events:
+  - event_schema_version: 1
+    event_id: PDE-4f801b7836715b90ed233095
+    operation_key: P2POP-48a4b7f7e7d43afeefce8e66
+    proposal_id: PROP-081
+    event_type: accepted
+    effective_state: accepted
+    rationale: Owner requested MCP and skill alignment for the newly implemented managed
+      next-action lifecycle.
+    conditions: []
+    decided_on: '2026-06-03'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: e12de6022114b0a6407562db34a8fa58140a627d213911df490634a8c0b267a8
+    decision_semantic_sha256: 5376442856142dc38457b2084f994ed57087b910bc476961d86aacf4f43d4721
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 4166be7504ecf521725ee75cdc6d4fb73371fdc06be04e9bdbd8d1f7725a3372
+      request_fingerprint_sha256: ccda20bd82a614e00df1556038681fa05194b66b2d9b3cd98b32f9c7e35cd70f
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions/proposal.md
+      - .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions/decision.md
+      source_sha256:
+        proposal.md: 2754398e3883b2e9d78f123606736b2575a4b587860f9ba5047983b2d3dfdf5b
+        decision.md: dbaaa61f77016c3432894592f24953def4ee85403a2ee27837d97a8e429566ec
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Owner requested MCP and skill alignment for the newly implemented
+          managed next-action lifecycle.
+        approver: owner
+        decided_on: '2026-06-03'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: owner
+          decided_on: '2026-06-03'
+          source_sha256:
+            proposal.md: 2754398e3883b2e9d78f123606736b2575a4b587860f9ba5047983b2d3dfdf5b
+            decision.md: dbaaa61f77016c3432894592f24953def4ee85403a2ee27837d97a8e429566ec
+    event_sha256: e6de484333a91be1d8fbc60e01ef8a1a6716849ca38a2e52fcf86fdc69c429b1
+  legacy_evidence: []

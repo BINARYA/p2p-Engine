@@ -1,0 +1,77 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-095
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-72b6ee4f2bee15dc3c351628
+  events:
+  - event_schema_version: 1
+    event_id: PDE-72b6ee4f2bee15dc3c351628
+    operation_key: P2POP-dfb003b81cec0b8cfb4816ec
+    proposal_id: PROP-095
+    event_type: accepted
+    effective_state: accepted
+    rationale: Owner accepts the runtime contract update lifecycle after readiness
+      reached decision_ready with all Q001-Q016 decisions applied and no missing evidence.
+    conditions: []
+    decided_on: '2026-07-13'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 17928b2e221350991f55e4b127a473627a45dc9da3b0f406dd09b3d762b98186
+    decision_semantic_sha256: d17f5f4ade0dd04f0fd3e15570e68332029d78029fbc6958a251dbc651f889fa
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 5591792e4abcd664521aa9622ec5e57d39df7318bc282f8d394ca59ff7f042bd
+      request_fingerprint_sha256: b669f84adcfa2ca1806ac9eaae274c6fbfcd68a1a901730dfb564df0780b55d7
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/proposal.md
+      - .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/decision.md
+      source_sha256:
+        proposal.md: 7b9ba4c9cadd61561bfea91843818cde0e44bf6ac99b77c2ea1ec8debd1f6fc5
+        decision.md: 05456536b8624abd2c57ca125297c42e31a4d639e18e8cb1c623225adf1eedd6
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Owner accepts the runtime contract update lifecycle after readiness
+          reached decision_ready with all Q001-Q016 decisions applied and no missing
+          evidence.
+        approver: codex
+        decided_on: '2026-07-13'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: codex
+          decided_on: '2026-07-13'
+          source_sha256:
+            proposal.md: 7b9ba4c9cadd61561bfea91843818cde0e44bf6ac99b77c2ea1ec8debd1f6fc5
+            decision.md: 05456536b8624abd2c57ca125297c42e31a4d639e18e8cb1c623225adf1eedd6
+    event_sha256: ae607c2d5c5061f48377e64a5f48557b24ce843a27f9c6ee9fddfd12a7d75afa
+  legacy_evidence: []

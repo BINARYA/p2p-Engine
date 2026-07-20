@@ -377,6 +377,33 @@ def test_supported_brief_and_next_action_writes_satisfy_manual_freshness_until_i
     assert changed["next_actions"].status == "owner_action_required"
 
 
+def test_next_action_audit_log_age_does_not_stale_refreshed_active_actions(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Next action audit freshness", owner="owner")
+    workspace.refresh_registries()
+    workspace.refresh_project_state()
+    workspace.create_project_brief_prompt()
+    source = tmp_path / "brief.md"
+    source.write_text("# Operational Brief\n\nCurrent.\n", encoding="utf-8")
+    workspace.import_project_brief(source)
+    log_path = tmp_path / ".p2p" / "project" / "next-actions-log.yml"
+    log_path.write_text("next_action_log: []\n", encoding="utf-8")
+    os.utime(log_path, (1, 1))
+
+    workspace.next_actions_refresh()
+    node = next(
+        item
+        for item in workspace.project_freshness().nodes
+        if item.node_id == "next_actions"
+    )
+
+    assert node.status == "current_legacy_fallback"
+    assert node.output_paths == (".p2p/project/next-actions.yml",)
+    assert "output_older_than_dependency" not in node.reasons
+
+
 def test_publication_review_cannot_become_current_from_a_fresh_file_alone(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Publication review freshness", owner="owner")

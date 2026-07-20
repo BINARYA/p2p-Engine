@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-019
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-ed75430021d1c4286eceaba9
+  events:
+  - event_schema_version: 1
+    event_id: PDE-ed75430021d1c4286eceaba9
+    operation_key: P2POP-673032403c0a0c880dfb14df
+    proposal_id: PROP-019
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted to make proposal lifecycle decisions easier for users and
+      AI agents.
+    conditions: []
+    decided_on: '2026-05-20'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 8352a2c9c346f4ffbb159be8c486890aefa59d509e053b61edff426a53202cb9
+    decision_semantic_sha256: 4ae98db7e00f3ad1350713d124841898bd365359561480ad3e80c770960a642f
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: b42167a6580a2b37e848a6d02d23e20b00b2d035de6ab7aaa60228b24047cf4d
+      request_fingerprint_sha256: 047ed3746f0d60d0220bcad9bd4b5b063c51861e9c6339cee184e61eb92d2a42
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-019-proposal-decision-shortcut-commands/proposal.md
+      - .p2p/proposals/PROP-019-proposal-decision-shortcut-commands/decision.md
+      source_sha256:
+        proposal.md: 873b4c3c2aad8bc636834c1ce02aaafc2337d88a55b0b38f53d425a7f5aeeecd
+        decision.md: 67d21f1cc9ec825d223e96baa03ba680296b9621e0d0e7dc13824cc39cbcc334
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted to make proposal lifecycle decisions easier for users and
+          AI agents.
+        approver: local
+        decided_on: '2026-05-20'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-20'
+          source_sha256:
+            proposal.md: 873b4c3c2aad8bc636834c1ce02aaafc2337d88a55b0b38f53d425a7f5aeeecd
+            decision.md: 67d21f1cc9ec825d223e96baa03ba680296b9621e0d0e7dc13824cc39cbcc334
+    event_sha256: 278a7fef9b75a4df1fbdbc57362ab7deb426a7629e27aba22dc8128951688a73
+  legacy_evidence: []

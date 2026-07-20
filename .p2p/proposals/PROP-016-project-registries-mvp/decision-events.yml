@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-016
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-069833ff483a530465f937f6
+  events:
+  - event_schema_version: 1
+    event_id: PDE-069833ff483a530465f937f6
+    operation_key: P2POP-d54c2989cc134b9194d10a37
+    proposal_id: PROP-016
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted as the next MVP step to introduce generated project registries
+      for proposals, decisions, changes, choices, relations and artifacts.
+    conditions: []
+    decided_on: '2026-05-20'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 7b50bcd983afee4c062b5ade97b5ed844ab0fb0390b1a1d4a90272fbfcb8e8bc
+    decision_semantic_sha256: f3ce9c63f3a95564d38a84e38e445829847337bd4d72df50d8095b428715016f
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: be51d87de85e8500abc58fd35dcd691e1c8cff4ae521976c8cf91f5d6a799339
+      request_fingerprint_sha256: 44144ab9030ad3de597e170a58dfa9c47daf7dc16ed9997db7d5f1f9ee4393eb
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-016-project-registries-mvp/proposal.md
+      - .p2p/proposals/PROP-016-project-registries-mvp/decision.md
+      source_sha256:
+        proposal.md: 63c4aacf242b6bc3f43aff27c61ed50bfc9658bdc862ee068a2b382319941b84
+        decision.md: 54e30e91cda4fd2f2aa6a4289c15e52c545f6750347ec04ea6c0276205bf8c1e
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted as the next MVP step to introduce generated project registries
+          for proposals, decisions, changes, choices, relations and artifacts.
+        approver: local
+        decided_on: '2026-05-20'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-20'
+          source_sha256:
+            proposal.md: 63c4aacf242b6bc3f43aff27c61ed50bfc9658bdc862ee068a2b382319941b84
+            decision.md: 54e30e91cda4fd2f2aa6a4289c15e52c545f6750347ec04ea6c0276205bf8c1e
+    event_sha256: 8a95e2004caabbcf953d04d5f58a044b2c41bf27056feb5ef06cfce92a7e0f3b
+  legacy_evidence: []

@@ -479,3 +479,8 @@ decisions:
   status: accepted
   feature: project-readiness-convergence-workflow
   source: .p2p/proposals/PROP-101-project-readiness-convergence-workflow
+- proposal: PROP-102
+  title: Proposal Decision Revision and Revocation Lifecycle
+  status: accepted
+  feature: proposal-decision-revision-and-revocation-lifecycle
+  source: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle

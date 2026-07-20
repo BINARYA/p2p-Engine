@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-046
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-f22a6b8b182d10102e47dedb
+  events:
+  - event_schema_version: 1
+    event_id: PDE-f22a6b8b182d10102e47dedb
+    operation_key: P2POP-be0f92e9a2aa8efc3adf833b
+    proposal_id: PROP-046
+    event_type: accepted
+    effective_state: accepted
+    rationale: 'Accepted as the next controlled MCP increment after agent-safe init:
+      expose only bootstrap and registry refresh primitives, not governance decisions.'
+    conditions: []
+    decided_on: '2026-05-27'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: a67db09876476933968fd1069f48aaf0ee99021fff83edd64a8f9b07a7176ad3
+    decision_semantic_sha256: e5ee08429444255c9f5761d92611779daef8644dffb0e3c368cc440498a92c61
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 2454dbdc0e6fd561cc2aad7da0f5421ef60921c694c67a6a0f499399191d26d7
+      request_fingerprint_sha256: 0af459e09ac56c7502103a6803a84c8cb25cd4913116e4c6139a296b2ec41641
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp/proposal.md
+      - .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp/decision.md
+      source_sha256:
+        proposal.md: 94162e4ca92b5f8e47d81f2b1cf97df62ef44f92dcda5014c92a6777a16b96ec
+        decision.md: 8f12f0ec3f1800cc6aee372d77f5975ac97b4ebfcdad26e5c6cf5d9a33e24ba6
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: 'Accepted as the next controlled MCP increment after agent-safe init:
+          expose only bootstrap and registry refresh primitives, not governance decisions.'
+        approver: local
+        decided_on: '2026-05-27'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-27'
+          source_sha256:
+            proposal.md: 94162e4ca92b5f8e47d81f2b1cf97df62ef44f92dcda5014c92a6777a16b96ec
+            decision.md: 8f12f0ec3f1800cc6aee372d77f5975ac97b4ebfcdad26e5c6cf5d9a33e24ba6
+    event_sha256: 9885f57b678bf4a9af3b283bcaea743cb1bfbd51fae63c86a624b0387b21d72c
+  legacy_evidence: []

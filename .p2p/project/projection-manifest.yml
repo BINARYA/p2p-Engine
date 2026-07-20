@@ -1,9 +1,9 @@
 project_projection:
   manifest_version: 1
   owner: ProjectStateService
-  source_fingerprint_sha256: a7fa8e215b0e5461609e326394bf625f6d406e9877f5cf2f1c9865bb38f14dfc
-  lifecycle_authority_policy_version: 1
-  accepted_projection_count: 96
+  source_fingerprint_sha256: 9ffc44b41d1434c254b5074227c363ff877210576c47c429301dae3908d89f7b
+  lifecycle_authority_policy_version: 2
+  accepted_projection_count: 97
   owned_paths:
   - .p2p/project/decisions-map.yml
   - .p2p/project/features/agent-first-setup-documentation-split/actions.yml
@@ -249,6 +249,9 @@ project_projection:
   - .p2p/project/features/prompt-only-import-workflow/actions.yml
   - .p2p/project/features/prompt-only-import-workflow/feature.md
   - .p2p/project/features/prompt-only-import-workflow/tasks.yml
+  - .p2p/project/features/proposal-decision-revision-and-revocation-lifecycle/actions.yml
+  - .p2p/project/features/proposal-decision-revision-and-revocation-lifecycle/feature.md
+  - .p2p/project/features/proposal-decision-revision-and-revocation-lifecycle/tasks.yml
   - .p2p/project/features/proposal-decision-shortcut-commands/actions.yml
   - .p2p/project/features/proposal-decision-shortcut-commands/feature.md
   - .p2p/project/features/proposal-decision-shortcut-commands/tasks.yml

@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-093
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-c12a5a5335a0654dc56448de
+  events:
+  - event_schema_version: 1
+    event_id: PDE-c12a5a5335a0654dc56448de
+    operation_key: P2POP-a73b08e05bdf61c8beea5ca3
+    proposal_id: PROP-093
+    event_type: accepted
+    effective_state: accepted
+    rationale: Owner accepted PROP-093 after scope-lock refinement, readiness score
+      100, and validation confirming the proposal is decision-ready for implementation.
+    conditions: []
+    decided_on: '2026-07-09'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: bbe4b88e3f5963c47d43cd477e73dd5b39acc1cdd010b35b75537362eac2a402
+    decision_semantic_sha256: 705417572765e77e4d965759fa724879504b9b6e569ee06418d316cc41eb1cc8
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 1e9d1e8e2f0829556a46168795fa6508916441003604ccdc1c8cb9dcda0f587e
+      request_fingerprint_sha256: ea9cff3f6881ee56d769d68f33f0ce182b1a47e7eb169d0eb8020a32cd3d41bc
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/proposal.md
+      - .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/decision.md
+      source_sha256:
+        proposal.md: ad10298705378ad0491a48f51dc67e4398fb5819a91734ff174b27495a753007
+        decision.md: 561bf79ab8853c43f13c41ca96726972de5be2742831b7d9427e1a1fee0c2d01
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Owner accepted PROP-093 after scope-lock refinement, readiness score
+          100, and validation confirming the proposal is decision-ready for implementation.
+        approver: owner
+        decided_on: '2026-07-09'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: owner
+          decided_on: '2026-07-09'
+          source_sha256:
+            proposal.md: ad10298705378ad0491a48f51dc67e4398fb5819a91734ff174b27495a753007
+            decision.md: 561bf79ab8853c43f13c41ca96726972de5be2742831b7d9427e1a1fee0c2d01
+    event_sha256: 06a1eeeb04baef0fb22fb7ac08da67ed9a0892802fa4fee3bf7fb6704ef6e961
+  legacy_evidence: []

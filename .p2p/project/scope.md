@@ -1484,3 +1484,44 @@ Generated from accepted proposal goals and non-goals.
 - It does not remove schema-v1 compatibility, migrate implicitly or bypass the workspace migration lifecycle.
 - It does not use clock-based preview expiry without an explicit durable preview-receipt contract.
 - It does not treat migration absence of a legacy question as evidence that a question was answered or applied.
+
+## PROP-102 - Proposal Decision Revision and Revocation Lifecycle
+
+### Goals
+
+- Preserve an append-only, queryable history of proposal decision events,
+  including rationale, owner authority, date, predecessor and lineage.
+- Derive current proposal status and authority deterministically from the valid
+  event sequence.
+- Define an exhaustive transition matrix with exact retry, invalid transition
+  and reconsideration behavior.
+- Distinguish initial rejection from withdrawal, revocation, supersession,
+  reinstatement and downstream deprecation.
+- Make decision mutations owner-controlled, previewed, source-bound,
+  stale-safe, atomic, idempotent where appropriate and recoverable.
+- Keep current CLI and human-readable status views available as projections
+  during a forward compatibility transition.
+- Migrate current single-decision artifacts without inventing missing owner
+  evidence or erasing legacy values.
+- Propagate lifecycle authority consistently to validation, registries,
+  project projections, decision context, relations, vertical evidence, Change
+  Sets, Work, software specifications, next actions and publication.
+- Produce explicit impact and remediation guidance without automatically
+  changing dependent owner-controlled lifecycles.
+- Establish the stable authority and lineage contract required by future
+  thematic decision-memory consolidation.
+
+### Non-Goals
+
+- Physically delete accepted, rejected, revoked or superseded proposals.
+- Rewrite history so that a previously accepted decision appears never to have
+  been active.
+- Automatically roll back source code, deployments, completed Change Sets,
+  Work or external effects.
+- Automatically cancel, supersede, complete or reopen dependent lifecycle
+  objects.
+- Implement thematic proposal compaction, persistent decision-context caching
+  or publication curator refinement.
+- Treat `deprecated` as another proposal decision outcome.
+- Allow an agent-supplied actor string to establish owner authority.
+- Conflate proposal-decision rejection with managed proposal-branch rejection.

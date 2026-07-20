@@ -25,6 +25,14 @@ Add p2p spec refresh/status/show/prompt/import. The refresh command deterministi
 
 accepted
 
+## Event Type
+
+accepted
+
+## Effective State
+
+accepted
+
 ## Reason
 
 Accepted to introduce the P2P-native software spec layer before downstream OpenSpec or Spec Kit export.
@@ -35,4 +43,24 @@ Accepted to introduce the P2P-native software spec layer before downstream OpenS
 
 ## Approver
 
-local
+mrjungle
+
+## Owner
+
+mrjungle
+
+## Ledger Head
+
+PDE-3eb96abd79945af2e84644ea
+
+## Decision Fingerprint
+
+c0ab66d785edf5a647386edfbb06d7a536ba5ada4e334b175e30dde36e01da9b
+
+## Lineage
+
+None.
+
+## Canonical Source
+
+decision-events.yml

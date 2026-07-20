@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-048
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-dddd2373a3668d3c06a4c7ef
+  events:
+  - event_schema_version: 1
+    event_id: PDE-dddd2373a3668d3c06a4c7ef
+    operation_key: P2POP-ac38ddc6286ba88605405dd0
+    proposal_id: PROP-048
+    event_type: accepted
+    effective_state: accepted
+    rationale: 'Accepted as MCP Level 3: safe contribution draft tools are needed
+      after bootstrap hardening, while governance decisions remain out of MCP.'
+    conditions: []
+    decided_on: '2026-05-27'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 3f2377ec9fe95633033439fa466baa848f56f79b179012b1bd42d8e6666dc4d9
+    decision_semantic_sha256: 1010f4c013ae49f6fb3d1cf7864632221ae066ff9242f2d11fd79d7e02d8032a
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 9015a3b13517e2dde30147e232f800141c93bbda7a9e4c48297a2d475d163f72
+      request_fingerprint_sha256: 2e946fe04d44323f8f388ca4629b28026915b4c0ac18b92701f30e49cbb1b50b
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools/proposal.md
+      - .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools/decision.md
+      source_sha256:
+        proposal.md: 5f161d108bea05ba433803cdfb8f326977a4beb4152dfed13dd2590cab69e63c
+        decision.md: 07f2ab031189a08d4e0a815f74f4a2677de5261e20f9b974ff5fe462d1bdc652
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: 'Accepted as MCP Level 3: safe contribution draft tools are needed
+          after bootstrap hardening, while governance decisions remain out of MCP.'
+        approver: local
+        decided_on: '2026-05-27'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-27'
+          source_sha256:
+            proposal.md: 5f161d108bea05ba433803cdfb8f326977a4beb4152dfed13dd2590cab69e63c
+            decision.md: 07f2ab031189a08d4e0a815f74f4a2677de5261e20f9b974ff5fe462d1bdc652
+    event_sha256: 5c5a7a5dbc90b93d1f506be0009391d66ebe05a7d3e3364c2046d49e1e1277ad
+  legacy_evidence: []

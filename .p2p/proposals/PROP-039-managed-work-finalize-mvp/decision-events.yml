@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-039
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-6dbcb4f70fe2e021423de998
+  events:
+  - event_schema_version: 1
+    event_id: PDE-6dbcb4f70fe2e021423de998
+    operation_key: P2POP-48ae14a6aae0565ee42e07fc
+    proposal_id: PROP-039
+    event_type: accepted
+    effective_state: accepted
+    rationale: Finalize is the explicit post-accept publication step and keeps base-branch
+      push separate from cleanup and PR creation.
+    conditions: []
+    decided_on: '2026-05-26'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: ae04f6c2efb978df4016c512cc1c69e5d763f70596bb8b4cd7b9125076cf8f3c
+    decision_semantic_sha256: c7810ee5065c61e6c2790dad8578ac465cf4a7636892acebaf91f34fa381e13f
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 9a1a758c955af8a0183104accdcb31d055ea3b3a716461418cf58822ce4b0e48
+      request_fingerprint_sha256: 39c41a1e7bedaae5a2909fc2dd07c0c8d00ea328b1e50f83a47343e922479144
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-039-managed-work-finalize-mvp/proposal.md
+      - .p2p/proposals/PROP-039-managed-work-finalize-mvp/decision.md
+      source_sha256:
+        proposal.md: 9fc16870cbbbe543c26bd0593bba85951a1332776b7ce2401cc79bb9da24964e
+        decision.md: 07202fc1ae6e3f0c48e2cd51243a5c1f1030f4d0ac03136810a9d7ec0606bdf7
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Finalize is the explicit post-accept publication step and keeps base-branch
+          push separate from cleanup and PR creation.
+        approver: local
+        decided_on: '2026-05-26'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-26'
+          source_sha256:
+            proposal.md: 9fc16870cbbbe543c26bd0593bba85951a1332776b7ce2401cc79bb9da24964e
+            decision.md: 07202fc1ae6e3f0c48e2cd51243a5c1f1030f4d0ac03136810a9d7ec0606bdf7
+    event_sha256: 06d4200199d408c4fb7bdf531e1a215780d77bc1753a35cd4c71808e34a7784a
+  legacy_evidence: []

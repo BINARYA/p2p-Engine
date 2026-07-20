@@ -25,6 +25,14 @@ Add speckit as a supported p2p spec export target. Export to .p2p/outputs/spec-e
 
 accepted
 
+## Event Type
+
+accepted
+
+## Effective State
+
+accepted
+
 ## Reason
 
 Accepted to complete the declared Spec Kit export target with a conservative P2P-spec-derived mapping.
@@ -35,4 +43,24 @@ Accepted to complete the declared Spec Kit export target with a conservative P2P
 
 ## Approver
 
-local
+mrjungle
+
+## Owner
+
+mrjungle
+
+## Ledger Head
+
+PDE-f9c0a407d07f4c3c214294d8
+
+## Decision Fingerprint
+
+70a616847aec7564109e553112abef8d402ceb008e8f84380991cfc97ca8883d
+
+## Lineage
+
+None.
+
+## Canonical Source
+
+decision-events.yml

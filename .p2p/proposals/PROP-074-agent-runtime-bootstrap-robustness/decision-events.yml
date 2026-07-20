@@ -1,0 +1,80 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-074
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-4e2cc6ff61af6eefc51307ba
+  events:
+  - event_schema_version: 1
+    event_id: PDE-4e2cc6ff61af6eefc51307ba
+    operation_key: P2POP-e36a2453451821e7e10b3e81
+    proposal_id: PROP-074
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted to make P2P-managed repositories usable in local and cloud
+      agent runtimes when the p2p executable is missing or not on PATH, by adding
+      runtime diagnostics, documented discovery fallbacks, and actionable recovery
+      while preserving the Missing Primitive Rule.
+    conditions: []
+    decided_on: '2026-06-03'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: db3e128500aae5b22c72e0b47b4313e6d3950a1ad25b1ea0029849e7c5a02a53
+    decision_semantic_sha256: 3ada67365ca647d7d4549a414325e957b3a6322538f416f7b364141d86334927
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: e8d013ff5f47bfc0930ee294c179a4e36fb65e21b63c53c6d0a3714dcd5e0197
+      request_fingerprint_sha256: 8b55b46ae008882bf5b4a42eb0cd5739b3426cecf0c3ef06828ad9cfaa9e50a8
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness/proposal.md
+      - .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness/decision.md
+      source_sha256:
+        proposal.md: b194175a7a12c273b323fccf6be4bcffbb7c8e837bf261eb473a95afa9f721eb
+        decision.md: b8344fa7eb686ea5f42082c2d92146d06024542e497cc0ce19fab184f3289da5
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted to make P2P-managed repositories usable in local and cloud
+          agent runtimes when the p2p executable is missing or not on PATH, by adding
+          runtime diagnostics, documented discovery fallbacks, and actionable recovery
+          while preserving the Missing Primitive Rule.
+        approver: local
+        decided_on: '2026-06-03'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-06-03'
+          source_sha256:
+            proposal.md: b194175a7a12c273b323fccf6be4bcffbb7c8e837bf261eb473a95afa9f721eb
+            decision.md: b8344fa7eb686ea5f42082c2d92146d06024542e497cc0ce19fab184f3289da5
+    event_sha256: 02b82f8b41f67d2076baf335eb20dccd28d60de5abcf151db0763900f8c73601
+  legacy_evidence: []

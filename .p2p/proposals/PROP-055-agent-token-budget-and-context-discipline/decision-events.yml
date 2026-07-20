@@ -1,0 +1,78 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-055
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-722e8d72ceb428111005e047
+  events:
+  - event_schema_version: 1
+    event_id: PDE-722e8d72ceb428111005e047
+    operation_key: P2POP-8f0ed9e9037ba36ae7ec647c
+    proposal_id: PROP-055
+    event_type: accepted
+    effective_state: accepted
+    rationale: 'Accepted as the C-light MVP: combine skill policy, CLI compact context,
+      and MCP compact context to reduce agent token consumption without adding advanced
+      token estimation yet.'
+    conditions: []
+    decided_on: '2026-05-28'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: bca94d59d2fcd9e5ca654ac2e8637e7b2f40281dbc881f42a3e1bb9c243faa3f
+    decision_semantic_sha256: 3fb8726465550f533b2c9c5ec24cae9742ab9994f665fd2e01c1a39892576684
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 529d30fc4563c9a6191d5d1e6ae173b900df8eee74832b5b651654f497ece691
+      request_fingerprint_sha256: 3150ec9e5e055872f2adabbd867934d3d57650b3944192e828e54c428be98455
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/proposal.md
+      - .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/decision.md
+      source_sha256:
+        proposal.md: af9925c788d2df83ba74b484b8bbe30295b011ca900863af33be779c99bfe487
+        decision.md: fbd9365d5837f4db39cbe665761fdde7ea352134312c3ab2c270dd4d8f399a27
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: 'Accepted as the C-light MVP: combine skill policy, CLI compact context,
+          and MCP compact context to reduce agent token consumption without adding
+          advanced token estimation yet.'
+        approver: local
+        decided_on: '2026-05-28'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-28'
+          source_sha256:
+            proposal.md: af9925c788d2df83ba74b484b8bbe30295b011ca900863af33be779c99bfe487
+            decision.md: fbd9365d5837f4db39cbe665761fdde7ea352134312c3ab2c270dd4d8f399a27
+    event_sha256: 1ff923f035fe6fd2d187d74ab3b1c7fbc4a98f6d0fa0e0bc505f63007bc1e6f0
+  legacy_evidence: []

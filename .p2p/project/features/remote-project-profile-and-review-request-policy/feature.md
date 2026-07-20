@@ -25,6 +25,14 @@ Add a Remote Project Profile and a provider-agnostic review-request command. The
 
 accepted
 
+## Event Type
+
+accepted
+
+## Effective State
+
+accepted
+
 ## Reason
 
 Remote review must remain optional and provider-agnostic; publish should stay separate from PR/MR handoff.
@@ -35,4 +43,24 @@ Remote review must remain optional and provider-agnostic; publish should stay se
 
 ## Approver
 
-local
+mrjungle
+
+## Owner
+
+mrjungle
+
+## Ledger Head
+
+PDE-e571eb54493752c25b826972
+
+## Decision Fingerprint
+
+0192e1442e27bd41e65aece081081abfc895bd15cda39bd9629f6bc29ad87d6d
+
+## Lineage
+
+None.
+
+## Canonical Source
+
+decision-events.yml

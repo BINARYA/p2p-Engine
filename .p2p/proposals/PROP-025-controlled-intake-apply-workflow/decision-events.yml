@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-025
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-a265bfb09c18f593d4517ca5
+  events:
+  - event_schema_version: 1
+    event_id: PDE-a265bfb09c18f593d4517ca5
+    operation_key: P2POP-54870b96ebf821d2af77f68f
+    proposal_id: PROP-025
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted to implement intake apply as an auditable plan/show/run workflow
+      rather than direct automatic application.
+    conditions: []
+    decided_on: '2026-05-25'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 603918784f86d930f7cefcc78796965a3f09161307050797d7f80187aa5e272f
+    decision_semantic_sha256: 5ba9e792f575dbe6ca884abf5b506012edf69847abbe8f92101f043c846109fd
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: f47e3215ebf3c739def0ee0e2cccdabc685d43d4be92d239be2da948be95246c
+      request_fingerprint_sha256: 7c22cff32d3e707ba33c3db0d3e4de4668cb17c4a55b8ce1d9993a3376ed1dad
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-025-controlled-intake-apply-workflow/proposal.md
+      - .p2p/proposals/PROP-025-controlled-intake-apply-workflow/decision.md
+      source_sha256:
+        proposal.md: 5d4560b9ab11d994c4674af95a002f49913e4a0f6be7d8ead781f7b05c36d5e4
+        decision.md: 7c53444f391f081ec145b18c238c697dab89b2299f43f853255b924adc34c31e
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted to implement intake apply as an auditable plan/show/run workflow
+          rather than direct automatic application.
+        approver: local
+        decided_on: '2026-05-25'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-25'
+          source_sha256:
+            proposal.md: 5d4560b9ab11d994c4674af95a002f49913e4a0f6be7d8ead781f7b05c36d5e4
+            decision.md: 7c53444f391f081ec145b18c238c697dab89b2299f43f853255b924adc34c31e
+    event_sha256: 4a3cb47e15f2cdaebd0d86996967e90ba3825870a9db727e1863d6a5a40e00a3
+  legacy_evidence: []

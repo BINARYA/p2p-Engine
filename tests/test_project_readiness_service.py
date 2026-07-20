@@ -95,6 +95,12 @@ def test_gap_classification_is_typed_prioritized_and_explainable() -> None:
     )
     assert incomplete.declared_evidence == ()
     assert incomplete.heuristic_suggestions == ("PROP-010",)
+    assert all(
+        not gap.next_operation.startswith("p2p project questions ")
+        for gap in result.gaps
+    )
+    assert assumption.next_operation == "p2p project readiness questions next"
+    assert incomplete.next_operation == "p2p project readiness questions next"
 
 
 def test_gap_classification_covers_compatibility_authority_and_answered_state() -> None:
@@ -136,6 +142,15 @@ def test_gap_classification_covers_compatibility_authority_and_answered_state() 
     answered = next(gap for gap in result.gaps if gap.kind == ProjectReadinessGapKind.ANSWERED_NOT_APPLIED)
     assert answered.question_id == "PRQ-answered"
     assert answered.question_revision == 2
+    compatibility = next(
+        gap
+        for gap in result.gaps
+        if gap.kind == ProjectReadinessGapKind.COMPATIBILITY_BLOCKER
+        and gap.question_id == "PRQ-stale"
+    )
+    assert compatibility.next_operation == (
+        "p2p project readiness questions reconcile-preview --actor <ACTOR>"
+    )
 
 
 def test_gap_identity_is_independent_from_snapshot_drift() -> None:

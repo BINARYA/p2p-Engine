@@ -2,28 +2,25 @@
 
 ## Current Position
 
-P2P Engine is operating on the published runtime `0.3.1` with the compatible
-runtime contract `>=0.3.0,<0.4.0` and workspace schema v2. The workspace reports
-the current layout, semantic alignment, a valid `software_project` vertical and
-no active migration lock or recovery transaction.
+P2P Engine is operating with runtime `0.4.1`, a compatible runtime contract
+(`>=0.4.0,<0.5.0`) and workspace schema v3. The workspace reports the current
+layout, semantic alignment, a valid `software_project` vertical and no active
+migration lock or recovery transaction. A repeated migration plan to v3 is a
+read-only no-op.
 
-The repository contains 101 proposals. The committed project projection basis
-is 96 proposals: 95 `accepted` and one `accepted_with_changes`. Two proposals
-remain draft, two are superseded and one is deferred. There are 69 Change Sets:
-67 are completed, while `CHANGE-068` and `CHANGE-069` are
+The repository contains 102 proposals. The current project projection basis is
+97 active committed proposals: 96 `accepted` and one
+`accepted_with_changes`. Two proposals remain draft, one is deferred, one is
+historically `split` and one is historically `superseded`. There are 70 Change
+Sets: 68 are completed, while `CHANGE-068` and `CHANGE-069` remain
 `implementation_ready`. Four Work manifests exist and are terminal (`retired`
 or `cleaned`).
 
-The schema v1 to v2 migration completed successfully through transaction
-`migration-cb645638ac307b25`. The applied plan preserved 179 unknown legacy
-artifacts, created the canonical project-question store and updated the schema
-contract without changing the project definition. A repeated plan and apply are
-no-ops, and runtime, schema, recovery and validation checks are clean.
-
-The selected artifact-alignment pass is complete. Canonical sources,
-registries, projections, decision context, assessment, maturity, operational
-brief and publication outputs have been evaluated through their owning
-contracts. Final focused, public and full test gates are clean.
+The v2 to v3 migration completed through transaction
+`migration-6fc36d34399ec5c9`. It introduced append-only proposal decision
+ledgers without rewriting dependent Change Sets, Work, specs, vertical evidence
+or publication state. Six residual legacy authorities were reviewed by the
+owner. The final distribution has no `unknown_legacy` proposal authority.
 
 ## Product And Governance Shape
 
@@ -35,98 +32,100 @@ publication artifacts are derived views.
 The CLI is the reference local write surface. MCP provides bounded read tools
 and explicitly authorized write-safe operations. Owner authority, project role
 policy and consent gates remain mandatory. Agents must not replace governed
-writes with direct `.p2p` edits or make proposal, choice, Work, merge,
-project-definition or publication decisions for the owner.
+writes with direct `.p2p` edits or make proposal, choice, Change Set, Work,
+merge, project-definition or publication decisions for the owner.
+
+Proposal decisions are append-only governance events in schema v3. A proposal
+that was never active may be rejected. A previously accepted proposal must be
+revoked, superseded, split or merged through a typed event; its accepted history
+must not be deleted or rewritten. Decision events report dependent impacts but
+do not mutate those dependents automatically.
 
 ## Project Definition And Readiness
 
 The active `software_project` vertical has 19 required sections. Definition
 completeness remains 40/43 units (93.02%). Declared owner-confirmed proposal
-evidence covers 13/19 sections (68.42%). Heuristic matches remain suggestions
-and are excluded from the declared-evidence numerator.
+evidence covers 13/19 sections (68.42%). The 433 heuristic matches remain
+suggestions and are excluded from the declared-evidence numerator.
 
 Three required sections are incomplete: `assumptions`, `decisions` and
 `risks_alternatives_decisions`. Assumptions `A001` and `A002` still require
-owner validation. Schema v2 persists one applicable owner question,
-`PRQ-7070e7a631b1df44`, for `risks_alternatives_decisions`. It is unanswered and
-has not produced a candidate patch. The migration correctly recorded
-`no_safe_question` for `assumptions` and `decisions` rather than inventing owner
-input.
+owner validation. One applicable owner question,
+`PRQ-7070e7a631b1df44`, remains `to_answer` for
+`risks_alternatives_decisions`; it has no answer or applied definition patch.
+These are owner-input gaps, not migration defects.
 
-The first vertical-coverage batch contains 12 owner-confirmed proposals. The
-other 88 proposals remain intentionally legacy and unmapped. Six
-definition-complete sections intentionally have no declared proposal evidence;
-that optional evidence gap must not be treated as missing definition.
+The deterministic project assessment is 76/100 (`needs_review`, high
+confidence), while rubric maturity remains 100/100 (`well_defined`). These
+figures have different bases and must not be collapsed into one authoritative
+readiness percentage.
 
 ## Decision Context And Derived State
 
-The request-scoped decision-context index is partial but usable. The current
-full diagnostic build has 1,369 sources, 3,187 evidence records, 2,327 semantic
-records, 588 nodes and 800 valid relations. There are no fatal, invalid,
-ambiguous or unsupported relation diagnostics. The two source diagnostics are
-the intentional authority/status divergences for draft `PROP-063` and
-`PROP-098`. The new unanswered project question is indexed as inactive system
-state, not as an accepted decision.
+The request-scoped decision-context index is complete and has no diagnostics.
+The latest measured build contains 1,486 sources, 3,249 evidence records, 2,495
+semantic records, 716 nodes and 1,019 valid relations.
 
-Registries are current at 101 proposals, 101 decisions, 69 changes, two
-choices, 138 relations, 2,325 artifact records and 101 readiness records.
-Project projections are current at 96 decision-map entries and 96 generated
-feature directories. Readiness assessment, rubric maturity, brief context and
-brief prompt have been rebuilt after migration.
+Registries are current at 102 proposals, 102 decisions, 70 Change Sets, two
+choices, 140 relations, 2,459 artifact records and 102 readiness records.
+Project projections are current for the 97 active committed proposals.
+Historical `PROP-007` is recorded as a split into `PROP-017` and `PROP-025`;
+historical `PROP-008` is recorded as superseded by `PROP-091`. Both remain
+ever-active but are excluded from the active projection basis.
 
-All 12 generated software specs are byte-equivalent to fresh isolated
-candidates, including the active `CHANGE-068` and `CHANGE-069` specs. The
-aggregate software-spec freshness node still reports a legacy mtime fallback;
-this is a known diagnostic limitation, not evidence of a differing required
-spec file. The optional legacy `spec-refine.prompt.md` for `CHANGE-012` remains
-outside the current refresh contract.
+Assessment, maturity, project brief context, managed next actions and the
+`CHANGE-070` software spec have been rebuilt after migration and final Change
+Set completion. There are 17 generated next actions and none targets completed
+`CHANGE-070`. Twelve older generated software specs remain explicitly
+`unknown_origin`; they must not be overwritten merely to remove a legacy
+diagnostic.
 
 ## Delivery And Publication
 
-`CHANGE-068` implements the accepted Human Project Publication Pipeline from
-`PROP-099`. `CHANGE-069` implements the accepted Project Readiness Convergence
-Workflow from `PROP-101`. Both are implementation-ready but still require their
-normal owner-controlled Change Set lifecycle decisions.
+`CHANGE-068` implements the Human Project Publication Pipeline from
+`PROP-099`. `CHANGE-069` implements the Project Readiness Convergence Workflow
+from `PROP-101`. `CHANGE-070` implements the Proposal Decision Revision and
+Revocation Lifecycle from `PROP-102`; after technical review, the owner
+confirmed its governed transitions from `in_progress` through `in_review` to
+`completed` on 2026-07-20. The two remaining Change Set lifecycle states remain
+separate from source implementation evidence and require normal
+owner-controlled decisions.
 
-The visible export, publication packet, curated Markdown, validation and PDF
-have been regenerated and are current under the publication manifest. No
-publication approval exists. Generated, curated, validated or rendered output
-must not imply approval; the owner review stage remains intentionally missing
-and `approved_for_publication` remains false.
+The local source includes request-scoped freshness reuse and next-action
+freshness corrections discovered during repository alignment. They prevent
+decision remediations and project assessment from rebuilding the same snapshot
+repeatedly, and prevent append-only next-action audit history from making a
+fresh action set appear stale. Focused, public and full tests are clean.
+
+The visible project export and downstream technical publication stages have
+been rebuilt after final lifecycle alignment. Publication review remains
+owner-controlled and no publication approval may be inferred from preparation,
+curation, validation or rendering.
 
 ## Risks And Residual Work
 
-- `PROP-063` and `PROP-098` remain drafts; migration must not normalize their
-  pending authority.
-- The owner question `PRQ-7070e7a631b1df44` and assumptions `A001` and `A002`
-  remain unresolved owner input, not migration defects.
-- The 88 unmapped proposals and optional legacy artifacts must not be mistaken
-  for current declared vertical evidence.
-- Assessment, maturity and aggregate software-spec freshness retain explicit
-  legacy fallback diagnostics; semantic and candidate comparisons remain the
-  controlling evidence for this alignment pass.
-- The global freshness graph propagates aggregate software-spec mtime staleness
-  to otherwise current downstream outputs. Per-spec candidate comparison and
-  the publication manifest are the controlling evidence; historical specs were
-  not rewritten only to update mtimes.
-- The generated next-action fallback currently shows `CHANGE-068` but omits the
-  second active Change Set, `CHANGE-069`; readiness gap actions remain present
-  and correctly bounded.
+- `PROP-063` and `PROP-098` remain drafts and require normal owner review.
+- `CHANGE-068` and `CHANGE-069` remain `implementation_ready`.
+- The unresolved project question and two assumptions remain owner input.
+- Twelve legacy software specs have `unknown_origin`; the completed
+  `CHANGE-070` spec is semantically current under the newer per-spec contract.
+- Derived freshness is computationally expensive on this repository. Snapshot
+  reuse removes repeated scans within one request, but a full graph build still
+  needs final performance evidence.
 - Publication curation, validation, rendering and owner review are separate
   stages. A later stage must not silently approve publication.
 
 ## Recommended Next Actions
 
-1. Present the unresolved project question and assumptions to the owner only
-   through the governed readiness workflow; do not infer an answer.
-2. Review the normal owner-controlled lifecycle state of `CHANGE-068` and
-   `CHANGE-069` separately from implementation evidence.
-3. Decide separately whether to address the aggregate software-spec freshness
-   diagnostic and the missing `CHANGE-069` fallback action in a future change.
-4. Perform publication review only through the explicit owner command when the
-   owner intends to approve or reject the current draft.
-5. Review and publish the repository migration/alignment diff through the
-   normal owner-controlled Git handoff.
+1. Resolve or defer the remaining project question and validate assumptions
+   `A001` and `A002` through the governed readiness workflow.
+2. Review draft `PROP-063` and `PROP-098` without inferring owner decisions.
+3. Complete or deliberately defer the owner-controlled lifecycle decisions for
+   `CHANGE-068` and `CHANGE-069`.
+4. Review the rendered publication separately; keep
+   `approved_for_publication: false` until the owner explicitly approves it.
+5. Measure full freshness rebuild cost before selecting any persistent-cache
+   optimization.
 
 Owner-controlled proposal, Change Set, Work, project-definition and publication
 decisions remain outside this brief. `.p2p` remains the authoritative project

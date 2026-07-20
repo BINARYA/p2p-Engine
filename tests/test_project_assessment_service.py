@@ -55,7 +55,8 @@ def _service(
         choice_statuses=choices or (lambda: []),
         change_set_statuses=changes or (lambda: []),
         work_summaries=works or (lambda: []),
-        project_state_status=project_status or (lambda: _Item("project", operational_brief_available=False)),
+        project_state_status=project_status
+        or (lambda **_: _Item("project", operational_brief_available=False)),
         next_actions=next_actions or (lambda limit=3: [_Item("next", command="p2p registry refresh")]),
         maturity_exists=lambda: maturity is not None,
         show_maturity=lambda: maturity,
@@ -82,6 +83,33 @@ def test_project_assessment_service_handles_validation_and_registry_confidence(t
     assert blocked.completion_status == "blocked"
     assert blocked.confidence == "low"
     assert stale.confidence == "medium"
+
+
+def test_project_assessment_reuses_next_actions_for_project_status(tmp_path) -> None:
+    next_action_calls = 0
+    status_snapshots: list[list[_Item]] = []
+
+    def next_actions(limit: int = 3) -> list[_Item]:
+        nonlocal next_action_calls
+        next_action_calls += 1
+        assert limit == 3
+        return [_Item("next", command="p2p registry refresh")]
+
+    def project_status(*, next_actions_snapshot: list[_Item]) -> _Item:
+        status_snapshots.append(next_actions_snapshot)
+        return _Item("project", operational_brief_available=True)
+
+    assessment = _service(
+        tmp_path,
+        next_actions=next_actions,
+        project_status=project_status,
+    ).compute()
+
+    assert next_action_calls == 1
+    assert status_snapshots == [
+        [_Item("next", command="p2p registry refresh")]
+    ]
+    assert assessment.suggested_actions == ["p2p registry refresh"]
 
 
 def test_project_assessment_service_persists_shows_and_includes_maturity(tmp_path) -> None:

@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-067
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-2b8cc77fdf4e41b467d96a32
+  events:
+  - event_schema_version: 1
+    event_id: PDE-2b8cc77fdf4e41b467d96a32
+    operation_key: P2POP-fde0724f7d05cd21b12557a7
+    proposal_id: PROP-067
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted to align public setup documentation with the agent-first new-project
+      workflow and move P2P Engine contributor setup into CONTRIBUTING.md.
+    conditions: []
+    decided_on: '2026-05-29'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 9aab4486bbdcfc52933a5257d66b8bbcd3f7d1bd2a82389310a9117d078da14c
+    decision_semantic_sha256: 7386d1b46345cbac0ef42bef1e7332adec9864eb06ad3fb2a5bbb3d22935b5e3
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: a0a54d7868127cd6838363788a8d0aee8983e5e974230ebeecef382ed67c93b8
+      request_fingerprint_sha256: d8fa60339630b543952f243d13b2dccbfb9b2d546893f225412ba1677abfc1c9
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-067-agent-first-setup-documentation-split/proposal.md
+      - .p2p/proposals/PROP-067-agent-first-setup-documentation-split/decision.md
+      source_sha256:
+        proposal.md: 23e40e06655b2eea2e53bca9a68c43806483ad958a2e2f2ea98f010f6e4a0748
+        decision.md: 03ca25ac5a9d360036cfbbbbefee27b890592c93475febc7c102cdc7ef96a264
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted to align public setup documentation with the agent-first
+          new-project workflow and move P2P Engine contributor setup into CONTRIBUTING.md.
+        approver: local
+        decided_on: '2026-05-29'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-29'
+          source_sha256:
+            proposal.md: 23e40e06655b2eea2e53bca9a68c43806483ad958a2e2f2ea98f010f6e4a0748
+            decision.md: 03ca25ac5a9d360036cfbbbbefee27b890592c93475febc7c102cdc7ef96a264
+    event_sha256: 8536db21e83b36155c82a0deb4001e517e7aeda8642e7adfb5c23abc71601ca0
+  legacy_evidence: []

@@ -84,7 +84,7 @@ class NextActionService:
         decision_context_index: Callable[[], DecisionContextIndex],
         show_choice: Callable[[str], Any],
         workspace_schema_status: Callable[[], Any] | None = None,
-        derived_freshness_status: Callable[[], Any] | None = None,
+        derived_freshness_status: Callable[..., Any] | None = None,
         project_readiness_result: Callable[[], ProjectReadinessResult] | None = None,
         proposal_decision_lifecycles: (
             Callable[[], Mapping[str, ProposalDecisionLifecycleView]] | None
@@ -95,6 +95,7 @@ class NextActionService:
                     str,
                     ProposalDecisionEventType,
                     ProposalDecisionLifecycleView,
+                    object | None,
                 ],
                 ProposalDecisionImpactSnapshot,
             ]
@@ -123,11 +124,12 @@ class NextActionService:
         context_snapshot: Mapping[str, object] | None = None,
     ) -> list[NextAction]:
         index = self._index(context_snapshot)
+        freshness = self._freshness(context_snapshot, index)
         actions = self._dedupe(
-            self._workspace_alignment_actions(context_snapshot)
+            self._workspace_alignment_actions(context_snapshot, freshness)
             + self._active_choice_blocker_actions(index)
             + self._active_curated_actions()
-            + self._decision_remediation_actions()
+            + self._decision_remediation_actions(freshness)
             + self._project_readiness_actions(context_snapshot)
             + self._fallback_actions(context_snapshot, index)
         )
@@ -206,10 +208,11 @@ class NextActionService:
         context_snapshot: Mapping[str, object] | None,
         index: DecisionContextIndex,
     ) -> list[NextAction]:
+        freshness = self._freshness(context_snapshot, index)
         return self._dedupe(
-            self._workspace_alignment_actions(context_snapshot)
+            self._workspace_alignment_actions(context_snapshot, freshness)
             + self._active_choice_blocker_actions(index)
-            + self._decision_remediation_actions()
+            + self._decision_remediation_actions(freshness)
             + self._project_readiness_actions(context_snapshot)
             + self._fallback_actions(context_snapshot, index)
         )
@@ -336,7 +339,10 @@ class NextActionService:
             deduped.append(action)
         return deduped
 
-    def _decision_remediation_actions(self) -> list[NextAction]:
+    def _decision_remediation_actions(
+        self,
+        freshness_status_snapshot: object | None,
+    ) -> list[NextAction]:
         if (
             self.proposal_decision_lifecycles is None
             or self.proposal_decision_impact is None
@@ -354,6 +360,7 @@ class NextActionService:
                 proposal_id,
                 event_type,
                 lifecycle,
+                freshness_status_snapshot,
             )
             if not snapshot.complete:
                 continue
@@ -405,6 +412,7 @@ class NextActionService:
     def _workspace_alignment_actions(
         self,
         context_snapshot: Mapping[str, object] | None,
+        freshness_status_snapshot: object | None,
     ) -> list[NextAction]:
         schema = (
             context_snapshot.get("workspace_schema_status")
@@ -441,13 +449,7 @@ class NextActionService:
                     )
                 ]
 
-        freshness = (
-            context_snapshot.get("derived_freshness_status")
-            if context_snapshot is not None
-            else None
-        )
-        if freshness is None and self.derived_freshness_status is not None:
-            freshness = self.derived_freshness_status()
+        freshness = freshness_status_snapshot
         if freshness is None or str(getattr(freshness, "status", "")) == "current":
             return []
         rebuild = tuple(getattr(freshness, "rebuild_plan", ()))
@@ -771,6 +773,21 @@ class NextActionService:
             if isinstance(value, DecisionContextIndex):
                 return value
         return self.decision_context_index()
+
+    def _freshness(
+        self,
+        context_snapshot: Mapping[str, object] | None,
+        index: DecisionContextIndex,
+    ) -> object | None:
+        if context_snapshot is not None:
+            freshness = context_snapshot.get("derived_freshness_status")
+            if freshness is not None:
+                return freshness
+        if self.derived_freshness_status is None:
+            return None
+        return self.derived_freshness_status(
+            decision_context_index_snapshot=index,
+        )
 
 
 def _snapshot_sequence(

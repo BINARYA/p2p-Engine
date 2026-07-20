@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-035
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-2c07609d67e6bbe756b67f3a
+  events:
+  - event_schema_version: 1
+    event_id: PDE-2c07609d67e6bbe756b67f3a
+    operation_key: P2POP-9ed95b5ec9552ffa33811792
+    proposal_id: PROP-035
+    event_type: accepted
+    effective_state: accepted
+    rationale: This adds the remote handoff step after local review while keeping
+      PR creation and merge separate.
+    conditions: []
+    decided_on: '2026-05-26'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 352993e55e61bdb256143dfa39f45543b586d6090499e3e5b5dc1ab96f1d56e3
+    decision_semantic_sha256: ac6dfd04a0d9256702c8fdd8258ac8764160f17518d80b90f60d34f0a81ce3e3
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 45ef7d327eabdc3829976fdfa0bb3c6b286b302d97ea8d5dee57b9e6310fdbf1
+      request_fingerprint_sha256: 6077a8896f8308c60306d83af5625499253f6473c405ccdb99b1f3814e36356f
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-035-managed-work-publish-mvp/proposal.md
+      - .p2p/proposals/PROP-035-managed-work-publish-mvp/decision.md
+      source_sha256:
+        proposal.md: d8bbc7cefe1a85e3c631485571fdc30ab6791f8c1640144735fe50c949806108
+        decision.md: da51497d7ce3785f9067da791d6c0921cb219b68972784ab244b09a852d2945d
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: This adds the remote handoff step after local review while keeping
+          PR creation and merge separate.
+        approver: local
+        decided_on: '2026-05-26'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-26'
+          source_sha256:
+            proposal.md: d8bbc7cefe1a85e3c631485571fdc30ab6791f8c1640144735fe50c949806108
+            decision.md: da51497d7ce3785f9067da791d6c0921cb219b68972784ab244b09a852d2945d
+    event_sha256: ddd4cc4ac93be6aaeb51085afcd8c196afbafeb29f82db2c3fb7bdd55419347a
+  legacy_evidence: []

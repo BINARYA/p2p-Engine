@@ -531,6 +531,53 @@ def test_revoked_decision_generates_stable_remediation_with_curated_precedence(
     ]
 
 
+def test_next_actions_reuse_freshness_for_decision_remediation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = _workspace(tmp_path)
+    proposal = workspace.create_proposal("Revoked freshness source")
+    _apply_decision(
+        workspace,
+        proposal.proposal_id,
+        ProposalDecisionEventType.accepted,
+        "Initially accepted.",
+    )
+    change = workspace.create_change_set(proposal.proposal_id, "Dependent change")
+    workspace.update_change_set_status(change.change_id, "planned")
+    workspace.update_change_set_status(change.change_id, "implementation_ready")
+    workspace.update_change_set_status(change.change_id, "in_progress")
+    freshness_calls = 0
+
+    def freshness_status(**kwargs: object) -> object:
+        nonlocal freshness_calls
+        freshness_calls += 1
+        assert kwargs.get("decision_context_index_snapshot") is not None
+        return type(
+            "Freshness",
+            (),
+            {"status": "attention_required", "rebuild_plan": ()},
+        )()
+
+    monkeypatch.setattr(workspace, "project_freshness", freshness_status)
+    _apply_decision(
+        workspace,
+        proposal.proposal_id,
+        ProposalDecisionEventType.revoked,
+        "The accepted direction is no longer authoritative.",
+    )
+    freshness_calls = 0
+
+    actions = workspace._next_action_service().list()
+
+    assert freshness_calls == 1
+    assert any(
+        action.kind == "review_decision_freshness"
+        and action.target == "derived_freshness"
+        for action in actions
+    )
+
+
 def test_reinstatement_keeps_review_actions_without_restoring_dependents(
     tmp_path: Path,
 ) -> None:

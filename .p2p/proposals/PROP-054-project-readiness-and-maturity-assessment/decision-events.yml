@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-054
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-1f058faadb452a7254749467
+  events:
+  - event_schema_version: 1
+    event_id: PDE-1f058faadb452a7254749467
+    operation_key: P2POP-00aa3fbaa82e8ad6b03a66b6
+    proposal_id: PROP-054
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted to add an explainable deterministic project readiness assessment
+      before subjective maturity rubrics, packaging, or owner-gated automation.
+    conditions: []
+    decided_on: '2026-05-28'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: cb58d07e4901b17e8032046b14fadca519ea4061725e773fd724b8b49e3c3302
+    decision_semantic_sha256: dad2821aaa2fa12a0d1705785656c2b982c2cde421a169272012eb03a2ff06b0
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 1dbb968de907e89c598910c464f243301cad9b3d7566e3fedade48d3179c9ef3
+      request_fingerprint_sha256: 43a5452f10c3be1e456cd5f1060fa3b7c5bebd6e4ea6a013eba1160c4e76701d
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/proposal.md
+      - .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/decision.md
+      source_sha256:
+        proposal.md: 2e8e7bfd1666055639bbd8b1673bdd270eb457c91ea37f2f9ac0e30e69f3fdbb
+        decision.md: 47f985e1e7037a71b81da99d9c47661bff902f61b222175a6488b9f9ba20b232
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted to add an explainable deterministic project readiness assessment
+          before subjective maturity rubrics, packaging, or owner-gated automation.
+        approver: local
+        decided_on: '2026-05-28'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-28'
+          source_sha256:
+            proposal.md: 2e8e7bfd1666055639bbd8b1673bdd270eb457c91ea37f2f9ac0e30e69f3fdbb
+            decision.md: 47f985e1e7037a71b81da99d9c47661bff902f61b222175a6488b9f9ba20b232
+    event_sha256: 5e14856f5c3cfc2373a7fb15630dc64890a0e02c12531f64980b97704f244f57
+  legacy_evidence: []

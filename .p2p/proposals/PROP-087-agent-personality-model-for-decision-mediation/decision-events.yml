@@ -1,0 +1,78 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-087
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-7974b74bc80506dd96bd98a8
+  events:
+  - event_schema_version: 1
+    event_id: PDE-7974b74bc80506dd96bd98a8
+    operation_key: P2POP-cb312fc0b65d2bb5e82c3f67
+    proposal_id: PROP-087
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted by owner. The proposal is decision-ready and defines a project-level
+      interaction_style model with three explicit scales, defaults, CLI/MCP surfaces,
+      generated instruction updates, and no persisted presets.
+    conditions: []
+    decided_on: '2026-06-09'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 488b01fb0c0a5aaeb79b31d866f2f571093364e7790cfa6156f3876318503e19
+    decision_semantic_sha256: e6beff120e8eeff9010757cef20f363e476dbd794da8f40dfb5f61b20578d6cd
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 1f4e412ba02d42d7ae67afd8a2214a5af37f2063932d6e4d869905a1ad9e2327
+      request_fingerprint_sha256: 68e4b0e62862799c6aefa962b14ebccf66effa1321134f0dedb96bf1952eea9e
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/proposal.md
+      - .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/decision.md
+      source_sha256:
+        proposal.md: d02d42c66eb36e3135a9f7c1be32641e2fa58ed52dbce37a368ce8453b425036
+        decision.md: ba4af1d68785651a7af7caec4b3a57cbacae7452572a79738ef5c95a4a406d20
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted by owner. The proposal is decision-ready and defines a project-level
+          interaction_style model with three explicit scales, defaults, CLI/MCP surfaces,
+          generated instruction updates, and no persisted presets.
+        approver: owner
+        decided_on: '2026-06-09'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: owner
+          decided_on: '2026-06-09'
+          source_sha256:
+            proposal.md: d02d42c66eb36e3135a9f7c1be32641e2fa58ed52dbce37a368ce8453b425036
+            decision.md: ba4af1d68785651a7af7caec4b3a57cbacae7452572a79738ef5c95a4a406d20
+    event_sha256: 0682646026ea237c3bd9897d01baa96b07abb6b53f7453303da06d5cc7103966
+  legacy_evidence: []

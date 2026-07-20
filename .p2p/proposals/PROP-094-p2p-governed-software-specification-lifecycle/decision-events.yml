@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-094
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-b948a4d0fffef8cca8d60c06
+  events:
+  - event_schema_version: 1
+    event_id: PDE-b948a4d0fffef8cca8d60c06
+    operation_key: P2POP-d9ddbaef8739263cb0d2e2be
+    proposal_id: PROP-094
+    event_type: accepted
+    effective_state: accepted
+    rationale: Owner accepted after review; readiness is decision_ready with no missing
+      gates or blocking questions.
+    conditions: []
+    decided_on: '2026-07-12'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: e2c4fd7e1f9f6d8efd9cd5ae8333c14c2972cc604d31e9fa72404f79343e6b73
+    decision_semantic_sha256: 79da00bcc5c503fc5cd4227084bc9b9aafd1428627284cbd7ee91ed027d7eaa5
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 740426ab76635776b3af72f6ff0f7960b18e2eb88a5b0c4c50fb057608b16700
+      request_fingerprint_sha256: 2bc70119839c89eff50d5c0bac8f936337f45251b7519a8285b877a60b120c08
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/proposal.md
+      - .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/decision.md
+      source_sha256:
+        proposal.md: b941019a2bc0c682a31c8d03ff53f289f878bf6e19ac043f1cd26d6d259627e6
+        decision.md: f5711ec1a2b3732a151677c882147eee91bb07368d84b61356ff5f705d6c5c91
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Owner accepted after review; readiness is decision_ready with no missing
+          gates or blocking questions.
+        approver: owner
+        decided_on: '2026-07-12'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: owner
+          decided_on: '2026-07-12'
+          source_sha256:
+            proposal.md: b941019a2bc0c682a31c8d03ff53f289f878bf6e19ac043f1cd26d6d259627e6
+            decision.md: f5711ec1a2b3732a151677c882147eee91bb07368d84b61356ff5f705d6c5c91
+    event_sha256: 02b1e84df95eb6232f55cb6d1cd70ed432a8991d741d2f382aa40a9fec3cc746
+  legacy_evidence: []

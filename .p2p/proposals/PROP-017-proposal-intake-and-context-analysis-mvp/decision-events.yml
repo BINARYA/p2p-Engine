@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-017
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-91c9badb383c477dbe8bb703
+  events:
+  - event_schema_version: 1
+    event_id: PDE-91c9badb383c477dbe8bb703
+    operation_key: P2POP-9f2ddd098bea28fc0eccac0b
+    proposal_id: PROP-017
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted to add registry-backed proposal intake and context analysis
+      as the next usability layer for multi-user and multi-agent P2P workflows.
+    conditions: []
+    decided_on: '2026-05-20'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 1e76589f28958737bc37961c1334757b270ba5f60095388cefdaeedea9d49b4d
+    decision_semantic_sha256: 23ce87be01aeb896d502ade412b2c5d8f88aad96ff5996b87d97fda8e67b5f9f
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: cf4d084c6b5253d6e66264a88226aaa76d0f4a961f1c8f043b431af725e93567
+      request_fingerprint_sha256: efb6df54ff6800cddcc0902c4d6b87de2de14a611375ac77599d70713e7b1f86
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/proposal.md
+      - .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/decision.md
+      source_sha256:
+        proposal.md: 31d938118eecff1e9324d28073fa6f3bbecf6ea4ee6297526c7b3f74f7b3dff3
+        decision.md: 3757e07318ab4e8058976363916678a41a1d4eec2e650c72e48d78cadbe125ae
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted to add registry-backed proposal intake and context analysis
+          as the next usability layer for multi-user and multi-agent P2P workflows.
+        approver: local
+        decided_on: '2026-05-20'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-20'
+          source_sha256:
+            proposal.md: 31d938118eecff1e9324d28073fa6f3bbecf6ea4ee6297526c7b3f74f7b3dff3
+            decision.md: 3757e07318ab4e8058976363916678a41a1d4eec2e650c72e48d78cadbe125ae
+    event_sha256: cd254314fa0e0c5d4529403a0ec62be4ff599f1ff378154f7f623231593b1d9c
+  legacy_evidence: []

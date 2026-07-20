@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-057
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-08db8f45bb1be38e2e48d6f6
+  events:
+  - event_schema_version: 1
+    event_id: PDE-08db8f45bb1be38e2e48d6f6
+    operation_key: P2POP-e134b622e3354da5c200bad1
+    proposal_id: PROP-057
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted to close the domain-to-rubric onboarding loop by letting the
+      owner confirm which suggested criteria drive project definition maturity.
+    conditions: []
+    decided_on: '2026-05-28'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 31402ea14576ae8c88ad363896cbb261f48cdb73a09f306e62c7b043c54fd68d
+    decision_semantic_sha256: 4c52e1bdc9ec39714b4ed7e77def0489c6f7d66c8a51fdd892cd42b7aa548cd4
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 4340a267ec84ac50992f7ec62e0e10456bcd66992123ad90f3be095f75793a0e
+      request_fingerprint_sha256: c169dcd4442c57256b4b49ef077deb2639e2e8d3ce7bc84eda4fd7aa9a60cb37
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-057-guided-rubric-selection-during-init/proposal.md
+      - .p2p/proposals/PROP-057-guided-rubric-selection-during-init/decision.md
+      source_sha256:
+        proposal.md: b7e58ff5e16e1fdbfdb09da67d44895938b0bb13f92aa4f99b077749312767d9
+        decision.md: e2302d118b92a9b6b0dd790e79a86838093e7a0af880d4d87d9b2090489741db
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted to close the domain-to-rubric onboarding loop by letting
+          the owner confirm which suggested criteria drive project definition maturity.
+        approver: local
+        decided_on: '2026-05-28'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-28'
+          source_sha256:
+            proposal.md: b7e58ff5e16e1fdbfdb09da67d44895938b0bb13f92aa4f99b077749312767d9
+            decision.md: e2302d118b92a9b6b0dd790e79a86838093e7a0af880d4d87d9b2090489741db
+    event_sha256: 8ac64241c3a7faf8cf0bc1c4f87a392d53283004d6dc2cac03876d17be5693cf
+  legacy_evidence: []

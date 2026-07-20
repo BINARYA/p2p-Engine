@@ -25,19 +25,42 @@ Aggiungere comandi governance file-based per rendere operativo il modello di PRO
 
 accepted
 
+## Event Type
+
+accepted
+
+## Effective State
+
+accepted
+
 ## Reason
 
-PROP-008 ha definito il modello di governance, ma senza comandi CLI il workflow resta solo documentale. I comandi governance, swot, vote e precedent rendono il modello provabile nel repository senza introdurre ancora un sistema di privilegi applicativi.
+Current owner confirms the historical acceptance of PROP-009 to make the file-based governance model operational through governance, SWOT, vote, and precedent CLI commands. The accepted scope remained audit-only: human or governance-defined decisions, Git as the audit layer, and no application-level permission enforcement.
 
-## Scope
+## Date
 
-- Inizializzare governance.yml, roles.yml e decision-precedents.yml.
-- Generare prompt SWOT per alternative contrapposte.
-- Registrare voti in votes.yml e mostrare conteggi.
-- Registrare precedenti decisionali riutilizzabili.
+2026-05-26
 
-## Constraints
+## Approver
 
-- La governance MVP e audit-only.
-- La decisione resta umana o governance-defined.
-- Git resta il layer di audit e permessi reali fino a una fase successiva.
+mrjungle
+
+## Owner
+
+mrjungle
+
+## Ledger Head
+
+PDE-4ba6bc02e77a0d2b6ed47313
+
+## Decision Fingerprint
+
+0ee1be35ede7210281ae08de615778b31f2f1bd93a04455dd673bfefe892464e
+
+## Lineage
+
+None.
+
+## Canonical Source
+
+decision-events.yml

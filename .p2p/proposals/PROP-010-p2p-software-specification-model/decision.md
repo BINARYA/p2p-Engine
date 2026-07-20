@@ -8,43 +8,42 @@
 
 accepted
 
+## Event Type
+
+accepted
+
+## Effective State
+
+accepted
+
 ## Reason
 
-P2P Engine needs an internal rationalized project state before exporting to OpenSpec, Spec Kit, or task systems. Raw proposal folders contain discussion, governance, alternatives, and decision history; they should not be treated directly as implementation specifications.
+Current owner confirms the historical acceptance of PROP-010 to establish a versioned .p2p/project layer as rationalized derived state from accepted proposals and decisions. Canonical proposal and decision artifacts remain authoritative, external specification and task systems remain downstream targets, and the MVP refresh is explicit through p2p project refresh.
 
-## Decision
+## Date
 
-Create a versioned `.p2p/project/` layer.
+2026-05-26
 
-The official `.p2p/project/` state lives on `main`. Proposal branches may contain preview changes. When a proposal is accepted and merged, the corresponding project-state changes become official.
+## Approver
 
-## Initial Model
+mrjungle
 
-```text
-.p2p/project/
-  overview.md
-  problem.md
-  scope.md
-  project-swot.md
-  features/
-    <feature-id>/
-      feature.md
-      tasks.yml
-      actions.yml
-  decisions-map.yml
-  conflicts.yml
-  exports/
-    markdown/
-    openspec/
-    speckit/
-```
+## Owner
 
-## Refresh Policy
+mrjungle
 
-The MVP uses explicit refresh:
+## Ledger Head
 
-```bash
-p2p project refresh
-```
+PDE-1d5b2741827957b057d0364f
 
-Automatic refresh after accepted decisions can be added later as an opt-in behavior.
+## Decision Fingerprint
+
+328f87feb5b0f3ab00436aefeaf549c88466e63e9dc11b4fe4159c5d90b309d0
+
+## Lineage
+
+None.
+
+## Canonical Source
+
+decision-events.yml

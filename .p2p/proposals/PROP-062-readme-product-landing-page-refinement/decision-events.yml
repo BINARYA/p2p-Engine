@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-062
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-d8749ca430a1bd6f81ee1e0e
+  events:
+  - event_schema_version: 1
+    event_id: PDE-d8749ca430a1bd6f81ee1e0e
+    operation_key: P2POP-c28215ee98a8749a290fb310
+    proposal_id: PROP-062
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted to make the public README more effective as the p2p-engine
+      landing page while keeping future hosted layers out of scope.
+    conditions: []
+    decided_on: '2026-05-29'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: dab547f3777d14e0d2ed6c26437fe798444d5f4e38505f3f3ba4f462daf16858
+    decision_semantic_sha256: 0129ed220fce64fccb499f440863e48092d7cec8bceb4153da2ef91dd481269c
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 808e9f07ec041775d700bbaa8648a23ac487982a8a48cc481fc619521793ae34
+      request_fingerprint_sha256: b8fe667697e1c0d1443838aede0ded1e0b7037ffbdfdebe1c0c01f32dbca2155
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-062-readme-product-landing-page-refinement/proposal.md
+      - .p2p/proposals/PROP-062-readme-product-landing-page-refinement/decision.md
+      source_sha256:
+        proposal.md: f549683db1c8e8b63f02e9e207a43a7314162ef5622c086f0ea7376c9dfbafe1
+        decision.md: c729d9ad9925b2425937b6142194596cc7d68ecdbcdec5f2679457e84c9f4644
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted to make the public README more effective as the p2p-engine
+          landing page while keeping future hosted layers out of scope.
+        approver: local
+        decided_on: '2026-05-29'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-29'
+          source_sha256:
+            proposal.md: f549683db1c8e8b63f02e9e207a43a7314162ef5622c086f0ea7376c9dfbafe1
+            decision.md: c729d9ad9925b2425937b6142194596cc7d68ecdbcdec5f2679457e84c9f4644
+    event_sha256: 1a6a592a454631326d6fa9f7d830a8ff6640afa3370beeb3aee913df00fe0092
+  legacy_evidence: []

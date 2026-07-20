@@ -1,0 +1,80 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-059
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-f6946a3894334b7cbd16107a
+  events:
+  - event_schema_version: 1
+    event_id: PDE-f6946a3894334b7cbd16107a
+    operation_key: P2POP-cfb7274d535af77033f7b6f2
+    proposal_id: PROP-059
+    event_type: accepted
+    effective_state: accepted
+    rationale: Owner accepts the modular refactoring direction after consolidating
+      scope, alternatives, compatibility constraints, first deliverable, first future
+      extraction, and specs binding boundary. This is an explicit owner decision despite
+      the automated readiness score remaining weak.
+    conditions: []
+    decided_on: '2026-06-05'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: be26a7551fd4374b71a34a37bb4be8e6f6ffeb8d42d892fb0ebd585535a165c9
+    decision_semantic_sha256: 0032b6e1e6b3071afbc0333aeb7c6fd0bc8adaacbcabf969fd5db2c676e68f67
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 613994b9762b87f885429a86b9fa70428800813d27ed2426f4df6788ac9e477c
+      request_fingerprint_sha256: 3bdd5b1575366545f04aefb56dd8fbd23cce654a4a05df69132eb4efa7eab864
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/proposal.md
+      - .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/decision.md
+      source_sha256:
+        proposal.md: 1a1e3fe1a562546d43d92064cdc7967ae76b8b8519855ee55214351cf8d710b4
+        decision.md: de8a31b9ef1d3162438f655b9fbd20364f42d2ee2840fd9ca5fc48d8ea54d193
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Owner accepts the modular refactoring direction after consolidating
+          scope, alternatives, compatibility constraints, first deliverable, first
+          future extraction, and specs binding boundary. This is an explicit owner
+          decision despite the automated readiness score remaining weak.
+        approver: local
+        decided_on: '2026-06-05'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-06-05'
+          source_sha256:
+            proposal.md: 1a1e3fe1a562546d43d92064cdc7967ae76b8b8519855ee55214351cf8d710b4
+            decision.md: de8a31b9ef1d3162438f655b9fbd20364f42d2ee2840fd9ca5fc48d8ea54d193
+    event_sha256: b8222b27e8bbb98c009727e31322670a6248929d662b29edd2a4415d37dc2d04
+  legacy_evidence: []

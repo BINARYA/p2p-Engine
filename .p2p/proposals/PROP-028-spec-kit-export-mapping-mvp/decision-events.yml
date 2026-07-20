@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-028
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-f9c0a407d07f4c3c214294d8
+  events:
+  - event_schema_version: 1
+    event_id: PDE-f9c0a407d07f4c3c214294d8
+    operation_key: P2POP-817c3689c320cad88e04bb0d
+    proposal_id: PROP-028
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted to complete the declared Spec Kit export target with a conservative
+      P2P-spec-derived mapping.
+    conditions: []
+    decided_on: '2026-05-26'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: facc1ca72e5b994a0106af6a2a0f8c6651108c9b050ca1d49079753e8a1cba8b
+    decision_semantic_sha256: 70a616847aec7564109e553112abef8d402ceb008e8f84380991cfc97ca8883d
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: bfd3d8200e54a8912a3f18bdf8acdeb36d92f08902db71461a6e9e7b32e6fa12
+      request_fingerprint_sha256: 064a9b425add797108d917a5476e3996d1c75aecc24be2f8919f67bfbf20046f
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-028-spec-kit-export-mapping-mvp/proposal.md
+      - .p2p/proposals/PROP-028-spec-kit-export-mapping-mvp/decision.md
+      source_sha256:
+        proposal.md: a1ccd6e25a8f3a8041f7e3fd1767abd5e5f88079f4fa7c18309ec794b43423c8
+        decision.md: 63a4f2df9136915d3c1e1f9ea6291727448082606f9ca8846f05037e08938746
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted to complete the declared Spec Kit export target with a conservative
+          P2P-spec-derived mapping.
+        approver: local
+        decided_on: '2026-05-26'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-26'
+          source_sha256:
+            proposal.md: a1ccd6e25a8f3a8041f7e3fd1767abd5e5f88079f4fa7c18309ec794b43423c8
+            decision.md: 63a4f2df9136915d3c1e1f9ea6291727448082606f9ca8846f05037e08938746
+    event_sha256: a378a9342d3bfb9d63550718d2245c37cba9c65206a3293a0a2e34a3c940d6f0
+  legacy_evidence: []

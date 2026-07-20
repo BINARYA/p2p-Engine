@@ -1,7 +1,7 @@
 ---
 change_id: CHANGE-070
 title: Proposal Decision Revision and Revocation Lifecycle
-status: in_progress
+status: completed
 created_at: '2026-07-17'
 created_by: local
 execution_domains:

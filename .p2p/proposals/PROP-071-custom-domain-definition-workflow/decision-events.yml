@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-071
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-db12e1eb148c58478bc49735
+  events:
+  - event_schema_version: 1
+    event_id: PDE-db12e1eb148c58478bc49735
+    operation_key: P2POP-32c800b4767d4e4e7fac2139
+    proposal_id: PROP-071
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted to make domain and rubric initialization explicit and template-based
+      across all projects, with custom/none treated as unresolved setup work.
+    conditions: []
+    decided_on: '2026-05-29'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: d04ec51ac0be642246309d326d5edc843ef9ebec4842a5c8e17124b01005284b
+    decision_semantic_sha256: bbc7af42a43a1ef2262405b2f2a620e716dd951a4ace1c7ff33b419f85746300
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 349048d9e0911d7f9029b1be3340fa169e64c6277f1b68c5d713c8be648cdd4b
+      request_fingerprint_sha256: 69cd20c01c54b2aea6e05609576c69a29573f3da902a1d348902505ee15a25f1
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-071-custom-domain-definition-workflow/proposal.md
+      - .p2p/proposals/PROP-071-custom-domain-definition-workflow/decision.md
+      source_sha256:
+        proposal.md: b129d05c4de1666506a78a2e52c2eb46fd7a2f668372c4c3165ee0e346c4534e
+        decision.md: d0889a13a68352adb4099df848dea58260d691a00150fa9d1c3c9692d5f5f5c6
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted to make domain and rubric initialization explicit and template-based
+          across all projects, with custom/none treated as unresolved setup work.
+        approver: local
+        decided_on: '2026-05-29'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-29'
+          source_sha256:
+            proposal.md: b129d05c4de1666506a78a2e52c2eb46fd7a2f668372c4c3165ee0e346c4534e
+            decision.md: d0889a13a68352adb4099df848dea58260d691a00150fa9d1c3c9692d5f5f5c6
+    event_sha256: f2bbe8ad5f49ee6af8a441c372d0cf0a311610177958d5ac9b1b7c7de6b129b8
+  legacy_evidence: []

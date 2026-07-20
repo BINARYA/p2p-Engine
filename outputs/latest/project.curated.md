@@ -2,233 +2,234 @@
 
 ## Executive Summary
 
-P2P Engine e un motore locale e Git-native che trasforma intenzioni,
-conversazioni e decisioni in memoria di progetto governata, verificabile e
-riutilizzabile da persone e agenti. Il prodotto mantiene separati lo stato
-canonico sotto `.p2p/`, gli output derivati per consultazione o handoff e il
-codice applicativo del repository.
+P2P Engine e un motore locale, Git-native e file-backed che trasforma
+intenzioni, conversazioni e decisioni in memoria di progetto governata,
+verificabile e riutilizzabile da persone e agenti. Il prodotto mantiene
+separati lo stato canonico sotto `.p2p/`, gli output derivati per consultazione
+o handoff e il codice applicativo del repository.
 
-Lo stato corrente comprende 101 proposte. La base di autorita impegnata ne
-contiene 96: 95 sono `accepted` e una e `accepted_with_changes`. Il progetto
-dispone di 69 Change Set, 67 completati e due ancora
-`implementation_ready` (`CHANGE-068` e `CHANGE-069`), e di quattro Work
-terminali. Il runtime pubblicato `0.3.1` e compatibile con il contratto
-`>=0.3.0,<0.4.0`; il workspace e stato migrato allo schema v2 e non presenta
-lock o recovery pendenti.
+Il repository contiene 102 proposte. La base corrente di autorita attiva ne
+comprende 97: 96 sono `accepted` e una e `accepted_with_changes`. Una proposta
+e `deferred`, due sono draft e due restano storia esplicita, una `split` e una
+`superseded`. Sono presenti 70 Change Set: 68 completati, mentre `CHANGE-068`
+e `CHANGE-069` sono `implementation_ready`. I quattro Work manifest presenti
+sono terminali.
 
-La direzione centrale e preservare l'intento in Markdown e YAML leggibili,
-senza ridurre la memoria a registri lossy. Registri, proiezioni, indice del
-contesto decisionale, assessment, specifiche e pubblicazioni sono viste
-derivate e ricostruibili. CLI e MCP forniscono le primitive operative; l'owner
-mantiene l'autorita sulle decisioni, incluse risposte di progetto, modifiche
-alla definizione, accettazioni, merge e approvazione editoriale.
+Il runtime installato `0.4.1` e compatibile con il contratto
+`>=0.4.0,<0.5.0`. Il workspace usa lo schema v3, e allineato e non presenta
+lock o recovery pendenti. Lo schema v3 rende la storia delle decisioni
+append-only: una proposta mai attiva puo essere rifiutata, mentre una decisione
+precedentemente accettata deve essere revocata o chiusa tramite lineage
+tipizzata senza cancellarne l'autorita storica.
+
+La direzione centrale resta preservare intento, motivazioni e provenienza nei
+Markdown e YAML governati senza ridurre la memoria a registri lossy. Registri,
+proiezioni, decision context, assessment, specifiche, next action ed export
+sono viste derivate e ricostruibili. CLI e MCP forniscono primitive operative
+controllate; l'owner mantiene l'autorita sulle decisioni di governance,
+definizione, delivery e pubblicazione.
 
 Questo documento e una pubblicazione umana curata. Non sostituisce `.p2p/` e
-non implica approvazione: import, validazione, rendering e review owner sono
-stadi distinti della pipeline.
+non implica approvazione: preparazione, curatela, import, validazione, rendering
+e review owner sono stadi distinti.
 
 ## Project Identity And Vertical Framing
 
 P2P Engine e governato come progetto software. Il verticale attivo
-`software_project` e selezionato, bloccato alla versione `1.0.0` e valido. Il
-verticale organizza il progetto attorno a obiettivi di sistema, utenti e
-attori, confini MVP, workflow, modello dati, integrazioni, requisiti non
-funzionali, validazione, rischi e decisioni di implementazione.
+`software_project` e valido e organizza il progetto attorno a obiettivi di
+sistema, utenti e attori, confini MVP, workflow, modello dati, integrazioni,
+requisiti non funzionali, validazione, rischi e decisioni di implementazione.
 
-La definizione ha 19 sezioni richieste. La completezza esplicita e 40/43 unita
-(93.02%); la copertura di evidenza owner-declared e 13/19 sezioni (68.42%). I
-due valori misurano aspetti diversi: il primo descrive quanto e definito il
-progetto, il secondo quanta definizione e collegata a proposte attive tramite
-coverage dichiarata. I match euristici restano suggerimenti esclusi dal
-numeratore autorevole.
+Il verticale contiene 19 sezioni richieste. La completezza esplicita e 40/43
+unita (93.02%); la copertura di evidenza dichiarata dall'owner e 13/19 sezioni
+(68.42%). I valori misurano aspetti diversi: il primo descrive quanto il
+progetto e definito, il secondo quanta definizione e collegata a proposte
+attive attraverso coverage dichiarata. I 433 match euristici sono suggerimenti
+e non entrano nel numeratore autorevole.
 
-Sedici sezioni sono complete, due parziali e una e `assumed`. Dodici proposte
-compongono il primo batch di coverage confermato dall'owner; le altre 88
-restano intenzionalmente legacy e non mappate. Sei sezioni complete non hanno
-evidenza di proposta dichiarata: non sono per questo definizioni mancanti.
+Tre sezioni richieste restano incomplete: `assumptions`, `decisions` e
+`risks_alternatives_decisions`. Le assunzioni `A001` e `A002` richiedono ancora
+validazione owner. La domanda `PRQ-7070e7a631b1df44` resta `to_answer` per
+`risks_alternatives_decisions`; non contiene una risposta ne una patch
+applicata. Questi sono gap di input, non difetti della migrazione.
 
 ## Current Project Shape
 
-### Governed Project Memory
+### Governed Project Memory And Decision Lifecycle
 
-La memoria canonica comprende progetto, proposte, contributi, domande,
-readiness, artifact state, decisioni, choice, conflitti, precedenti, Change Set,
-Work e relazioni verticali. Le mutazioni devono passare dalla CLI o da
+La memoria canonica comprende identita del progetto, proposte, contributi,
+domande, readiness, decision event, choice, conflitti, precedenti, Change Set,
+Work, permessi e relazioni verticali. Le mutazioni passano dalla CLI o da
 primitive MCP esplicitamente write-safe; gli agenti non devono ricostruire o
-modificare manualmente i layout sotto `.p2p/`.
+modificare manualmente il layout sotto `.p2p/`.
 
-Il ciclo proposta-decisione conserva alternative, rischi, assunzioni e
-motivazioni. Readiness e rubriche sono advisory: rendono visibili lacune e gate,
-ma non sostituiscono il giudizio dell'owner. Riferimenti principali: PROP-002,
-PROP-012, PROP-016, PROP-017, PROP-018, PROP-054, PROP-056, PROP-082, PROP-086,
-PROP-089 e PROP-096.
+`PROP-102` introduce un ledger decisionale versionato per proposta. Il ledger
+e la fonte semantica della storia; lo stato in `proposal.md` e il documento
+decisionale leggibile sono proiezioni compatibili. Preview e apply sono
+separati, legati a source head, token, operation key e autorita owner. Retry,
+concorrenza, recovery e repair hanno contratti espliciti.
+
+Revoca, supersession, split, merge e reinstatement preservano gli intervalli di
+autorita. `PROP-007` e registrata come split verso `PROP-017` e `PROP-025`;
+`PROP-008` e superseded da `PROP-091`. Restano recuperabili come storia
+ever-active, ma non fanno parte dei vincoli attivi. La migrazione v2-v3 e stata
+applicata in modo transazionale e tutte le autorita legacy residue sono state
+curate dall'owner; non rimangono proposte `unknown_legacy`.
 
 ### Project Readiness Convergence
 
-PROP-101 estende la readiness da diagnostica a workflow governato. Lo schema v2
-introduce una memoria canonica delle domande di progetto con identita stabile,
-revisione, applicabilita, transizioni e provenienza. Le risposte possono
-produrre candidate patch, ma l'applicazione riusa preview token, controllo
-anti-stale e conferma owner della definizione.
+`PROP-101` rende la readiness un workflow governato, non soltanto un report.
+Le domande di progetto hanno identita, revisione, stato, applicabilita e
+provenienza. Le risposte possono generare candidate patch, ma la definizione
+cambia soltanto tramite preview anti-stale e conferma owner.
 
-Nel workspace corrente risultano tre sezioni richieste incomplete:
-`assumptions`, `decisions` e `risks_alternatives_decisions`. La migrazione ha
-creato una sola domanda applicabile, `PRQ-7070e7a631b1df44`, per l'ultima
-sezione. La domanda e ancora `to_answer`; non contiene risposte o applicazioni.
-Per `assumptions` e `decisions` il sistema registra `no_safe_question`, evitando
-di inventare input owner. Le assunzioni `A001` e `A002` restano da validare.
+L'assessment deterministico corrente e 76/100 (`needs_review`, confidence
+alta), mentre la rubric maturity e 100/100 (`well_defined`). Sono misure con
+basi diverse e non devono essere fuse in una percentuale unica. I gap
+strutturali e gli input owner rimangono visibili anche quando le rubriche
+considerano il progetto ben trattato.
 
 ### Decision Context And Proposal Neighborhood
 
-PROP-100 affronta la perdita informativa tra fonti canoniche e viste derivate.
-L'indice corrente e request-scoped, source-linked e read-only: distingue
-authority, activation, confidence, completeness, provenance e freshness;
-normalizza relazioni tipizzate e applica ranking e budget spiegabili senza
-fallback first-N.
+`PROP-100` affronta la perdita informativa tra fonti canoniche e viste
+derivate. L'indice request-scoped distingue authority, activation, confidence,
+completeness, provenance e freshness; normalizza relazioni tipizzate e usa
+ranking e budget spiegabili invece di un fallback first-N.
 
-Il build diagnostico corrente contiene 1,369 fonti, 3,187 evidenze, 2,327
-record semantici, 588 nodi e 800 relazioni valide. Non risultano relazioni
-invalide, ambigue o non supportate. Le due sole diagnostiche di fonte sono le
-divergenze intenzionali tra stato draft e autorita pending in PROP-063 e
-PROP-098. La domanda di progetto senza risposta e indicizzata come stato di
-sistema inattivo, non come decisione accettata.
+L'ultimo build misurato comprende 1.486 fonti, 3.249 evidenze, 2.495 record
+semantici, 716 nodi e 1.019 relazioni valide, senza diagnostiche. Le decisioni
+storiche restano recuperabili come motivazioni e alternative, ma non sono
+presentate come autorita corrente.
 
 ### Delivery, Work And Git Collaboration
 
 Le proposte accettate possono alimentare Change Set, task e Work. I lifecycle
 distinguono pianificazione, readiness di implementazione, esecuzione, review e
 stati terminali. La collaborazione Git gestita copre branch, publish, review,
-merge, finalize, cleanup e retire, con `main` come contenitore dello stato
-accettato e con operazioni sensibili soggette ad autorita o consent receipt.
+merge, finalize, cleanup e retire; le operazioni sensibili restano soggette ad
+autorita o consent receipt.
 
-Questa superficie deriva soprattutto da PROP-013, PROP-015 e PROP-030 fino a
-PROP-043, con gli sviluppi di collaborazione concorrente in PROP-072 e della
-parita MCP Work in PROP-092 e PROP-093. I quattro Work presenti sono terminali;
-non sono prova che ogni Change Set sia completato.
+Questa superficie deriva soprattutto da `PROP-013`, `PROP-015` e
+`PROP-030`-`PROP-043`, con collaborazione concorrente in `PROP-072` e parita MCP
+Work in `PROP-092` e `PROP-093`. I quattro Work presenti sono terminali, ma
+questo non prova che ogni Change Set sia completato.
 
 ### CLI, MCP And Agent Boundaries
 
-La CLI e l'interfaccia locale di riferimento. MCP espone letture bounded e un
-insieme dichiarato di operazioni di scrittura; non e un IAM hosted, non concede
-mutazioni arbitrarie e non trasforma nomi locali di attore in autenticazione
-forte. Le azioni esterne o di governance restano capability-limited e, quando
-previsto, permission-gated.
+La CLI e la superficie locale di riferimento. MCP offre letture bounded e un
+insieme dichiarato di operazioni write-safe; non concede mutazioni arbitrarie
+e non trasforma un nome locale di attore in autenticazione forte. Le decisioni
+owner-controlled restano separate dall'esecuzione tecnica dell'agente.
 
-Le integrazioni agent sono generate da template di release e gestite tramite
-un lifecycle di installazione e aggiornamento. Le skill adapter-specifiche non
-sono una fonte alternativa di governance. Riferimenti: PROP-005, PROP-006,
-PROP-044 fino a PROP-052, PROP-065, PROP-066, PROP-075, PROP-077, PROP-081,
-PROP-088, PROP-092 e PROP-093.
+Le integrazioni agent sono generate dai template di release e gestite tramite
+il relativo lifecycle. Le skill adapter-specifiche non sono una fonte
+alternativa di governance. Riferimenti principali: `PROP-005`, `PROP-006`,
+`PROP-044`-`PROP-052`, `PROP-065`, `PROP-066`, `PROP-075`, `PROP-077`,
+`PROP-081`, `PROP-088`, `PROP-092` e `PROP-093`.
 
 ### Specifications, Validation And Derived Outputs
 
 Il lifecycle delle specifiche collega Change Set accettati a specifiche P2P e
 handoff downstream, mantenendo distinti input canonici, output generati e
-documenti locali di sviluppo sotto `specs/`. Dodici Change Set dispongono di
-una specifica generata conforme al contratto corrente. Il confronto isolato
-con candidate appena generate non rileva differenze nei file richiesti,
-incluse le specifiche di `CHANGE-068` e `CHANGE-069`.
+documenti locali di sviluppo sotto `specs/`. La specifica di `CHANGE-070` e
+semanticamente corrente. Dodici specifiche storiche restano
+`unknown_origin`: sono evidenza legacy esplicita e non devono essere
+sovrascritte solo per eliminare il diagnostico.
 
-Runtime e workspace schema sono contratti indipendenti. Il runtime `0.3.1`
-mantiene la lettura compatibile dello schema v1 e fornisce la migrazione
-forward-only allo schema v2. La migrazione applicata e transazionale,
-preserve-by-default, idempotente e separata dalle correzioni semantiche
-owner-reviewed. Ha preservato 179 artefatti legacy sconosciuti, creato lo store
-canonico delle domande e lasciato invariata la definizione del progetto.
+Registri e proiezioni sono correnti: 102 proposte, 102 decisioni, 70 Change
+Set, due choice, 140 relazioni, 2.459 artifact record e 102 readiness record.
+La proiezione attiva comprende 97 proposte. La validazione strutturale del
+workspace non riporta errori, warning o informazioni.
 
-Il grafo di freshness ordina la ricostruzione degli output e non considera un
-artefatto approvato per la sola presenza del file. Assessment, maturity e
-software specs conservano alcuni fallback legacy basati su contenuto o mtime;
-nel caso delle specifiche il confronto delle candidate e l'evidenza semantica
-che nessun file richiesto deve essere riscritto.
+Il sorgente locale contiene correzioni post-release che riusano lo stesso
+snapshot di freshness nelle next action e nell'assessment, evitando
+ricostruzioni duplicate nella stessa richiesta, e separano l'action set
+corrente dal relativo audit log append-only. Le regressioni mirate, la suite
+pubblica, la suite completa e il package smoke sono verdi. Una singola
+costruzione completa del grafo resta tuttavia costosa e richiede un successivo
+intervento prestazionale separato.
 
 ### Human Project Publication
 
-PROP-099 definisce una sola pubblicazione umana canonica, non varianti per
+`PROP-099` definisce una sola pubblicazione umana canonica, non varianti per
 audience. La pipeline separa export deterministico, profilo, packet del
-curatore, Markdown curato, validazione, PDF e review owner. Questa separazione
-permette di rigenerare uno stadio senza modificare lo stato governato o
-attribuire approvazioni implicite.
+curatore, Markdown curato, validazione, PDF e review owner. Uno stadio puo
+essere rigenerato senza modificare decisioni governate o attribuire
+approvazioni implicite.
 
 ## Current Operating State
 
 | Area | Stato corrente | Interpretazione |
 | --- | --- | --- |
-| Runtime | `0.3.1`, compatibile | Contratto `>=0.3.0,<0.4.0` valido |
-| Workspace schema | v2, current e aligned | Nessuna migrazione o recovery attiva |
-| Verticale | `software_project` 1.0.0, lock valido | Struttura software formalmente attiva |
-| Proposte | 101 totali, 96 committed, 2 draft | Draft e storia non sono autorita attiva |
-| Change Set | 69 totali, 2 attivi | `CHANGE-068` e `CHANGE-069` sono `implementation_ready` |
+| Runtime | `0.4.1`, compatibile | Contratto `>=0.4.0,<0.5.0` valido |
+| Workspace schema | v3, current e aligned | Nessuna migrazione o recovery attiva |
+| Verticale | `software_project`, lock valido | Struttura software formalmente attiva |
+| Proposte | 102 totali, 97 attive, 2 draft | Split e superseded sono storia, non autorita corrente |
+| Change Set | 70 totali, 2 attivi | `CHANGE-068`, `CHANGE-069` |
 | Work | 4 terminali | Nessun Work attivo |
 | Definizione | 40/43, 93.02% | Tre sezioni richieste non complete |
 | Evidenza verticale | 13/19, 68.42% | Solo coverage dichiarata dall'owner |
-| Domande di progetto | 1 `to_answer`, 2 `no_safe_question` | Nessuna risposta o patch applicata |
-| Validazione strutturale | 0 errori, 0 warning | Ultimo controllo del workspace pulito |
-| Pubblicazione | Export, packet, curato, validation e PDF correnti | Review owner mancante; approvazione false |
+| Assessment | 76/100, `needs_review` | Diagnostica operativa, distinta dalla maturity |
+| Maturity | 100/100, `well_defined` | Copertura delle rubriche, non completion |
+| Decision context | 716 nodi, 1.019 relazioni | Request-scoped, senza diagnostiche |
+| Software spec | `CHANGE-070` current, 12 legacy | Nessuna riscrittura automatica delle fonti ignote |
+| Validazione | 0 errori, 0 warning | Workspace strutturalmente valido |
+| Pubblicazione | Stadi tecnici rigenerati | Review owner mancante; approvazione false |
 
 ## Planned And Pending Work
 
-`CHANGE-068`, Human Project Publication Pipeline, e `CHANGE-069`, Project
-Readiness Convergence Workflow, sono i due Change Set attivi. Le implementazioni
-sono presenti nel runtime pubblicato e le rispettive specifiche sono correnti,
-ma lo stato governato resta `implementation_ready`: il completamento richiede
-il normale lifecycle owner-controlled e non puo essere dedotto dal codice o
-dagli output esistenti.
+`CHANGE-068` implementa la Human Project Publication Pipeline da `PROP-099`.
+`CHANGE-069` implementa il Project Readiness Convergence Workflow da
+`PROP-101`. Entrambi restano `implementation_ready`. `CHANGE-070` implementa
+il Proposal Decision Revision and Revocation Lifecycle da `PROP-102`: dopo la
+review tecnica, l'owner ne ha confermato le transizioni governate da
+`in_progress` a `in_review` e quindi a `completed` il 2026-07-20.
 
-La migrazione dello schema, il confronto con la baseline e la registrazione dei
-limiti diagnostici residui sono completati. Il nuovo ciclo di pubblicazione e
-stato preparato, curato, validato e renderizzato; la review owner resta fuori
-dalla migrazione e dall'automazione agent.
+Il core di `PROP-102`, la release v3-capable e la migrazione del repository
+sono completati. Le correzioni locali emerse nell'allineamento sono validate e
+la relativa evidenza finale e registrata. Un eventuale commit o rilascio
+successivo resta una decisione separata e non e implicito nella chiusura del
+Change Set.
 
 Due proposte sono ancora pending owner decision:
 
-- PROP-063, `Public Documentation Gap Closure`, e draft con readiness bassa e
-  propone tutorial, glossario e chiusura dei gap della documentazione pubblica.
-- PROP-098, `Test Impact and Validation Routing`, e draft e propone routing
-  deterministico dei test in base alle aree modificate e al rischio.
+- `PROP-063`, Public Documentation Gap Closure, resta draft;
+- `PROP-098`, Test Impact and Validation Routing, resta draft.
 
 Le prossime azioni di definizione sono governate separatamente: rispondere o
-deferire `PRQ-7070e7a631b1df44`, validare `A001` e `A002`, e decidere se le sei
-lacune di evidenza facoltativa richiedano ulteriore coverage dichiarata.
+deferire `PRQ-7070e7a631b1df44`, validare `A001` e `A002` e decidere se i gap
+facoltativi di evidenza richiedano altra coverage dichiarata.
 
 ## Risks, Assumptions And Open Questions
 
-I rischi principali sono la confusione tra fonti canoniche e viste derivate, la
-staleness dopo mutazioni, l'uso di euristiche come se fossero autorita, le
-scritture multi-file parziali, il source drift tra preview e apply e
-l'attribuzione implicita di approvazione ad artefatti generati. Le mitigazioni
-sono provenance e freshness esplicite, transazioni atomiche con rollback,
-preimage checks, policy di authority condivise, budget bounded e stage owner o
-curator separati.
+I rischi principali sono la confusione tra fonti canoniche e viste derivate,
+la staleness dopo mutazioni, l'uso di euristiche come autorita, le scritture
+multi-file parziali, il source drift tra preview e apply e l'attribuzione
+implicita di approvazione agli output. Le mitigazioni sono provenance e
+freshness esplicite, transazioni atomiche, preimage check, policy condivise,
+payload bounded e stage owner o curator separati.
 
-Restano quattro limiti operativi visibili:
+Restano quattro limiti operativi:
 
-- le 88 proposte non mappate sono storia valida, ma non coverage verticale
-  dichiarata;
-- le due divergenze draft/pending mantengono l'indice parziale per scelta, non
-  per errore del parser;
-- assessment, maturity e aggregazione software-spec usano ancora fallback
-  legacy espliciti, anche quando il confronto dei contenuti e corrente;
-- il fallback delle next action evidenzia `CHANGE-068` ma non il secondo Change
-  Set attivo, `CHANGE-069`, mentre i gap di readiness sono correttamente
-  prioritizzati.
+- le dodici software spec `unknown_origin` richiedono provenienza o review e
+  non possono essere normalizzate automaticamente;
+- il decision context resta request-scoped e non dispone di uno snapshot
+  persistente, per scelta dell'attuale contratto;
+- le operazioni che enumerano tutte le sorgenti richiedono diversi minuti
+  nonostante il riuso dello snapshot nella singola richiesta;
+- la pubblicazione puo essere preparata, curata, validata e renderizzata senza
+  essere approvata: la review resta un atto separato dell'owner.
 
-Due assunzioni sono ancora `to_validate`: il progetto continua a disporre di un
-filesystem locale scrivibile con Git come audit substrate, e un owner
-responsabile resta disponibile per decisioni e curatela semantica. E invece
-validata l'assunzione che registri e indici deterministici possano essere
-ricostruiti dalle fonti governate.
-
-Le decisioni owner aperte riguardano PROP-063, PROP-098, la domanda
-`PRQ-7070e7a631b1df44`, le due assunzioni, l'eventuale chiusura governata di
-`CHANGE-068` e `CHANGE-069` e la review finale della pubblicazione. Cache
-persistente del decision context, database, migrazioni remote di flotte e
-automazione delle fasi curator/owner restano alternative rinviate.
+Le assunzioni `A001` e `A002` restano `to_validate`. Le decisioni owner aperte
+riguardano `PROP-063`, `PROP-098`, la domanda di progetto, le due assunzioni,
+la chiusura dei due Change Set attivi e la review della pubblicazione. Cache
+persistente del decision context, database e compattazione tematica della
+memoria restano direzioni future, non capacita implicite del runtime corrente.
 
 ## Source Of Truth And Publication Status
 
-`.p2p/` remains authoritative for project identity, proposals, decisions,
-readiness, project questions, choices, Change Sets, Work, permissions, vertical
+`.p2p/` remains authoritative for project identity, proposals, decision event,
+readiness, project questions, choice, Change Set, Work, permissions, vertical
 definition and governance state. `outputs/latest/project.md` is a deterministic
 generated export. This curated document is a derived human-readable
 publication draft.
@@ -240,21 +241,22 @@ esplicitamente un esito attraverso la primitiva dedicata.
 ## Traceability Notes
 
 Il packet di curatela e `outputs/latest/curator-input.md`. Il source export
-`outputs/latest/project.md` ha sha256
-`cec40affb6b4a98b902f5a38c99b1c24e8d58b6cbd9a68a14956295ebd47fd9b`;
+`outputs/latest/project.md` ha SHA-256
+`cc5f0c70ef678245b96086ccf936a0707d8f80e054abe8a7e1c5337c37f162ad`;
 il fingerprint P2P del packet e
-`fd764a2d4611014e45d9fa1079e8e766f3f2c36591209eedd2a7a586d878176f`.
+`f83544654dee8db3979aa11e95a5e3308a690db85fa63b5c641672612c404c5a`.
 Il profilo applicato e `neutral-v1-standard`, audience mixed, depth standard,
 struttura verticale adaptive e nessuna appendice.
 
 Le capacita principali sono tracciate ai seguenti gruppi: fondazione e memoria
-(PROP-001, PROP-002, PROP-009, PROP-010, PROP-012, PROP-016), intake e decision
-flow (PROP-017 fino a PROP-025), specifiche (PROP-026 fino a PROP-029, PROP-064,
-PROP-094), Work e Git (PROP-030 fino a PROP-043, PROP-072), MCP e agenti
-(PROP-044 fino a PROP-052, PROP-065, PROP-066, PROP-075, PROP-077, PROP-081,
-PROP-088, PROP-092, PROP-093), verticali e definizione (PROP-071, PROP-083,
-PROP-085, PROP-090), runtime e release (PROP-058, PROP-061, PROP-062, PROP-067
-fino a PROP-070, PROP-073, PROP-074, PROP-078, PROP-080, PROP-095, PROP-097),
-readiness e qualita (PROP-054, PROP-056, PROP-057, PROP-060, PROP-082,
-PROP-086, PROP-089, PROP-096, PROP-101), decision context (PROP-100) e
-pubblicazione umana (PROP-099).
+(`PROP-001`, `PROP-002`, `PROP-009`, `PROP-010`, `PROP-012`, `PROP-016`);
+intake e decision flow (`PROP-017`-`PROP-025`, `PROP-102`); specifiche
+(`PROP-026`-`PROP-029`, `PROP-064`, `PROP-094`); Work e Git
+(`PROP-030`-`PROP-043`, `PROP-072`); MCP e agenti (`PROP-044`-`PROP-052`,
+`PROP-065`, `PROP-066`, `PROP-075`, `PROP-077`, `PROP-081`, `PROP-088`,
+`PROP-092`, `PROP-093`); verticali e definizione (`PROP-071`, `PROP-083`,
+`PROP-085`, `PROP-090`); runtime e release (`PROP-058`, `PROP-061`, `PROP-062`,
+`PROP-067`-`PROP-070`, `PROP-073`, `PROP-074`, `PROP-078`, `PROP-080`,
+`PROP-095`, `PROP-097`); readiness e qualita (`PROP-054`, `PROP-056`,
+`PROP-057`, `PROP-060`, `PROP-082`, `PROP-086`, `PROP-089`, `PROP-096`,
+`PROP-101`); decision context (`PROP-100`) e pubblicazione (`PROP-099`).

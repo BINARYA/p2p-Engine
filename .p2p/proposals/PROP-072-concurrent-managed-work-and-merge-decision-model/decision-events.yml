@@ -1,0 +1,78 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-072
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-a4ce1762234efae2fce2c253
+  events:
+  - event_schema_version: 1
+    event_id: PDE-a4ce1762234efae2fce2c253
+    operation_key: P2POP-e25afd20a583a26ffc29fbf4
+    proposal_id: PROP-072
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted as the core CLI-facing collaboration model for concurrent
+      proposal branches, managed remote sync, candidate Work selection, safe proposal
+      ID collision handling, and agent-safe Git abstraction.
+    conditions: []
+    decided_on: '2026-06-02'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 2cbd8cb8a604c5834d37218321917f688b78757d31939265f2b62260a6514584
+    decision_semantic_sha256: 501801c774ce9b98db0bf45d741279f173c9fefbdb4aa24d49660ab5ecdb0ac7
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 25d3e0229d8cf7eb61c03969661dac937186dae78a3451565bf1cef166f9fb4a
+      request_fingerprint_sha256: 04653bdb3c797df1479f48f3ae16d32f5c5634f56423e60866b075012f799c74
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/proposal.md
+      - .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/decision.md
+      source_sha256:
+        proposal.md: d72db12f20b1c8636b2834155db3ca1fbdaf2759ee4a3069888b6aff92c0effe
+        decision.md: 1bd7b91c401685bd459af00ae3885dd25a6e778cd5c9a8fac46afe8bc59dcbcf
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted as the core CLI-facing collaboration model for concurrent
+          proposal branches, managed remote sync, candidate Work selection, safe proposal
+          ID collision handling, and agent-safe Git abstraction.
+        approver: davide
+        decided_on: '2026-06-02'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: davide
+          decided_on: '2026-06-02'
+          source_sha256:
+            proposal.md: d72db12f20b1c8636b2834155db3ca1fbdaf2759ee4a3069888b6aff92c0effe
+            decision.md: 1bd7b91c401685bd459af00ae3885dd25a6e778cd5c9a8fac46afe8bc59dcbcf
+    event_sha256: 30caced3cf2ac84b2ca98774fc33f275b00b03dd19e9f0f889b594b68d2c7898
+  legacy_evidence: []

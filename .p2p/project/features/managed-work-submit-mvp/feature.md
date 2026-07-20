@@ -25,6 +25,14 @@ Add p2p work submit WORK-XXX. The command verifies the current branch is the Wor
 
 accepted
 
+## Event Type
+
+accepted
+
+## Effective State
+
+accepted
+
 ## Reason
 
 This is the next incremental managed Git level: local auditable submit without push or merge.
@@ -35,4 +43,24 @@ This is the next incremental managed Git level: local auditable submit without p
 
 ## Approver
 
-local
+mrjungle
+
+## Owner
+
+mrjungle
+
+## Ledger Head
+
+PDE-e8c2adf067d885127c043be3
+
+## Decision Fingerprint
+
+116e7c110265d72d9e77942d717684a0d0c3fd79951b9135985cb90e36b4cb77
+
+## Lineage
+
+None.
+
+## Canonical Source
+
+decision-events.yml

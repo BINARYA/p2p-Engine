@@ -45,7 +45,7 @@ The user can then provide that prompt to Codex, ChatGPT, Claude, Llama, or anoth
 
 ## Decision
 
-# Decision — PROP-001 CLI Foundation
+# Decision - PROP-001
 
 ## Status
 
@@ -53,19 +53,19 @@ The user can then provide that prompt to Codex, ChatGPT, Claude, Llama, or anoth
 
 ## Outcome
 
-Build the first P2P Engine CLI as a local, Git-native, prompt-only Python application.
+accepted
+
+## Event Type
+
+accepted
+
+## Effective State
+
+accepted
 
 ## Reason
 
-The project needs a minimal executable workflow before adding AI adapters, exporters, MCP, or a web interface. Automating the manually bootstrapped `.p2p/` structure is the shortest path to dogfooding.
-
-## Conditions
-
-- Keep the MVP file-based.
-- Do not add direct AI provider integration yet.
-- Do not add a web app yet.
-- Prefer explicit, inspectable artifacts over hidden state.
-- Make generated files easy to edit manually.
+Current owner confirms the historical acceptance of PROP-001 for the first local, Git-native, file-based Python and Typer CLI. The initial MVP excluded a web application and direct AI provider integration; the legacy source wording divergence remains preserved in migration provenance.
 
 ## Date
 
@@ -73,4 +73,24 @@ The project needs a minimal executable workflow before adding AI adapters, expor
 
 ## Approver
 
-bootstrap maintainer
+mrjungle
+
+## Owner
+
+mrjungle
+
+## Ledger Head
+
+PDE-61f7c7e703420d7d5c4ad807
+
+## Decision Fingerprint
+
+427d1a2189435caf2866b199690a27eddf525734b39316189799d95a0ed2c280
+
+## Lineage
+
+None.
+
+## Canonical Source
+
+decision-events.yml

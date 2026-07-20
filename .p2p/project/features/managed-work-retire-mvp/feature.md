@@ -25,6 +25,14 @@ Add p2p work retire WORK-XXX --reason TEXT. The command requires Work status pla
 
 accepted
 
+## Event Type
+
+accepted
+
+## Effective State
+
+accepted
+
 ## Reason
 
 Obsolete planned Work manifests should be retired through an explicit metadata-only command instead of manual manifest edits.
@@ -35,4 +43,24 @@ Obsolete planned Work manifests should be retired through an explicit metadata-o
 
 ## Approver
 
-local
+mrjungle
+
+## Owner
+
+mrjungle
+
+## Ledger Head
+
+PDE-24220dd5f0232cf059f33448
+
+## Decision Fingerprint
+
+16af43d73a5bd40aa8d9806ff2cc1cc5db8c2daca6ede04e4bc9d720c5000a27
+
+## Lineage
+
+None.
+
+## Canonical Source
+
+decision-events.yml

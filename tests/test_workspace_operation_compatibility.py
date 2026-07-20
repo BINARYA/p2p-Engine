@@ -99,5 +99,11 @@ def test_schema_v2_rejects_definition_embedded_question_operations(tmp_path: Pat
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="P2P352_LEGACY_DEFINITION_QUESTION_OPERATION"):
+    with pytest.raises(
+        ValueError,
+        match=(
+            "P2P352_LEGACY_DEFINITION_QUESTION_OPERATION.*"
+            "p2p project readiness questions status"
+        ),
+    ):
         workspace.preview_project_definition_update(patch, actor="owner")

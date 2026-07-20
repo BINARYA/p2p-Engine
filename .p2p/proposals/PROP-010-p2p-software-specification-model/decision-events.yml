@@ -1,0 +1,85 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-010
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-1d5b2741827957b057d0364f
+  events:
+  - event_schema_version: 1
+    event_id: PDE-1d5b2741827957b057d0364f
+    operation_key: P2POP-f63624c591c9ae97dd1d59f5
+    proposal_id: PROP-010
+    event_type: accepted
+    effective_state: accepted
+    rationale: Current owner confirms the historical acceptance of PROP-010 to establish
+      a versioned .p2p/project layer as rationalized derived state from accepted proposals
+      and decisions. Canonical proposal and decision artifacts remain authoritative,
+      external specification and task systems remain downstream targets, and the MVP
+      refresh is explicit through p2p project refresh.
+    conditions: []
+    decided_on: '2026-05-26'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: cli
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 8914adeff68d6bf992a48de63a7d269f0f3f8fb3ef0ffb54a78f83e31e1d0420
+    decision_semantic_sha256: 328f87feb5b0f3ab00436aefeaf549c88466e63e9dc11b4fe4159c5d90b309d0
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: e000f05249602df8d78aff0902d354ce1b0520d83015c3179faecaa924683906
+      request_fingerprint_sha256: 5fcb400492c7cd09257294d0e7f0885f74abe9dc81445c57ff9ec4abe1085295
+    migration:
+      migration_id: legacy-owner-resolution
+      source_paths:
+      - .p2p/proposals/PROP-010-p2p-software-specification-model/proposal.md
+      - .p2p/proposals/PROP-010-p2p-software-specification-model/decision.md
+      source_sha256:
+        legacy_evidence_001: 807b6f89ad0a65acddf1fe7cf8f57030b877ac48c0b780fd7851aaa9e0845ec8
+      preserved_values:
+        legacy_evidence_count: 1
+        legacy_evidence_sha256: 18a1d0281a7eaf789041bc5e9a702cfdd3a11eab41cf5e912638350670130ce9
+        historical_interval_precision: unknown_legacy
+    event_sha256: ed797b3ca1bdce479fa7268679141ec9b8afa644020e6d91e0248b4e2827dbac
+  legacy_evidence:
+  - migration_id: workspace-v2-to-v3
+    source_paths:
+    - .p2p/proposals/PROP-010-p2p-software-specification-model/proposal.md
+    - .p2p/proposals/PROP-010-p2p-software-specification-model/decision.md
+    source_sha256:
+      proposal.md: 1532c4dbdce25a594d22ed1e0ed3575420f906a35db0eab118dd5be9bd13de9f
+      decision.md: 77bcd4195a2edc961aadd59b273dc2c84029adb95b8472800fc17b5c2bc7149b
+    values:
+      proposal_status: accepted
+      decision_status: accepted
+      outcome: accepted
+      reason: P2P Engine needs an internal rationalized project state before exporting
+        to OpenSpec, Spec Kit, or task systems. Raw proposal folders contain discussion,
+        governance, alternatives, and decision history; they should not be treated
+        directly as implementation specifications.
+      approver: unknown_legacy
+      decided_on: unknown_legacy
+    diagnostics:
+    - P2P360_DECISION_LEGACY_AUTHORITY_UNRESOLVED
+    truncated_fields: []

@@ -497,3 +497,23 @@ P2P Engine can diagnose project readiness but cannot yet drive a project from a 
 The result is a system that knows what is incomplete but still depends on an agent or owner to reconstruct the next workflow manually across multiple commands and sessions.
 
 The implementation risk is broader than question generation. A naive implementation could create competing authority between project-question state, project definition, decision context, managed next actions and workspace migration state. It could also reuse the existing single-file definition apply in a way that leaves question and definition state partially committed, or register a v1-to-v2 migration while still executing the current legacy-to-v1 bootstrap planner.
+
+## PROP-102 - Proposal Decision Revision and Revocation Lifecycle
+
+P2P currently represents a proposal decision primarily as one current outcome.
+The decision write path replaces `decision.md` and then replaces the status in
+`proposal.md`, without validating the previous lifecycle state or preserving a
+queryable sequence of owner decisions.
+
+As a result, an accepted proposal can be rewritten as rejected. The current
+workspace then appears to say that the proposal was never adopted, even though
+it may already have influenced project definition, Change Sets, Work,
+specifications, implementation, publication and later decisions. Git can
+recover earlier bytes, but normal validation, retrieval and derived-state
+consumers do not use Git history as the proposal decision model.
+
+The model also lacks a precise distinction between rejection before adoption,
+withdrawal before decision, revocation after acceptance, replacement,
+reinstatement and downstream deprecation. Without that distinction, future
+decision-memory consolidation cannot reliably determine which decisions are
+active, historical, previously active, replaced or merely deferred.

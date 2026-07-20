@@ -42,7 +42,7 @@ class ProjectAssessmentService:
         choice_statuses: Callable[[], list[object]],
         change_set_statuses: Callable[[], list[object]],
         work_summaries: Callable[[], list[object]],
-        project_state_status: Callable[[], object],
+        project_state_status: Callable[..., object],
         next_actions: Callable[[int], list[object]],
         maturity_exists: Callable[[], bool],
         show_maturity: Callable[[], object],
@@ -104,8 +104,10 @@ class ProjectAssessmentService:
         choices = self.choice_statuses()
         changes = self.change_set_statuses()
         works = self.work_summaries()
-        project_status = self.project_state_status()
         next_actions = self.next_actions(3)
+        project_status = self.project_state_status(
+            next_actions_snapshot=next_actions,
+        )
 
         draft_proposals = [proposal for proposal in proposals if getattr(proposal, "status", None) == "draft"]
         accepted_proposals = [

@@ -76,6 +76,14 @@ Persistent writes must follow PROP-093: preview the operation, target, artifact 
 
 accepted
 
+## Event Type
+
+accepted
+
+## Effective State
+
+accepted
+
 ## Reason
 
 Owner accepted after review; readiness is decision_ready with no missing gates or blocking questions.
@@ -86,4 +94,24 @@ Owner accepted after review; readiness is decision_ready with no missing gates o
 
 ## Approver
 
-owner
+mrjungle
+
+## Owner
+
+mrjungle
+
+## Ledger Head
+
+PDE-b948a4d0fffef8cca8d60c06
+
+## Decision Fingerprint
+
+79da00bcc5c503fc5cd4227084bc9b9aafd1428627284cbd7ee91ed027d7eaa5
+
+## Lineage
+
+None.
+
+## Canonical Source
+
+decision-events.yml

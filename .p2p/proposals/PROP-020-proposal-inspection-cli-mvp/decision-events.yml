@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-020
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-a6d9136ca28d1be4a8b55658
+  events:
+  - event_schema_version: 1
+    event_id: PDE-a6d9136ca28d1be4a8b55658
+    operation_key: P2POP-8ca143ccdae8456bcdeb7231
+    proposal_id: PROP-020
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted to provide stable proposal inspection commands needed before
+      updating agent skills.
+    conditions: []
+    decided_on: '2026-05-20'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: a84379c9be3ddf8c91fd4c5ef9fb04be73b06baf2a8111b2033ef9d9403419ae
+    decision_semantic_sha256: 0b43caa7452862b2457a3f52d3c2d9784079f591f267d951a092fb7b56d5d7b3
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: daeef2e902eb354d9464237e6b39f28f6e0429b9386f4c9229e0049814954888
+      request_fingerprint_sha256: 4500c37cc1d483aa4e135faa41136d91697bc0c49f3c204fccc7dbe42f5b29b0
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-020-proposal-inspection-cli-mvp/proposal.md
+      - .p2p/proposals/PROP-020-proposal-inspection-cli-mvp/decision.md
+      source_sha256:
+        proposal.md: f24176348592f99d6743dbdeaf3d5f206fd89831e61562940000369cb48f35a3
+        decision.md: bfdfb9a02849cf19503f77cb9f73acbb152673405cc8e54ca9e83ebe1e7fae80
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted to provide stable proposal inspection commands needed before
+          updating agent skills.
+        approver: local
+        decided_on: '2026-05-20'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-20'
+          source_sha256:
+            proposal.md: f24176348592f99d6743dbdeaf3d5f206fd89831e61562940000369cb48f35a3
+            decision.md: bfdfb9a02849cf19503f77cb9f73acbb152673405cc8e54ca9e83ebe1e7fae80
+    event_sha256: bceac19199874d2a2d3b1be3cf8b7f1b1f7998b8e900a8020f9cb480c2217168
+  legacy_evidence: []

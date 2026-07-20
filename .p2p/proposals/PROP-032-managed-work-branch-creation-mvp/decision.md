@@ -8,6 +8,14 @@
 
 accepted
 
+## Event Type
+
+accepted
+
+## Effective State
+
+accepted
+
 ## Reason
 
 This is the next incremental step toward invisible managed Git: isolate operational work in P2P-managed branches without automatic commit or merge.
@@ -18,4 +26,24 @@ This is the next incremental step toward invisible managed Git: isolate operatio
 
 ## Approver
 
-local
+mrjungle
+
+## Owner
+
+mrjungle
+
+## Ledger Head
+
+PDE-86849708cbc2614dca0d0899
+
+## Decision Fingerprint
+
+a59a2bfeddd368690c6afa0d46e1360f35866d805b83a816b9efa26ba7d655df
+
+## Lineage
+
+None.
+
+## Canonical Source
+
+decision-events.yml

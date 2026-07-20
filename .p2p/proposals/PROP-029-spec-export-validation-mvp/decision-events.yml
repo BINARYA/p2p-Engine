@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-029
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-81615988a6e1b504c9c94a9c
+  events:
+  - event_schema_version: 1
+    event_id: PDE-81615988a6e1b504c9c94a9c
+    operation_key: P2POP-fd0655ea0b8fad119dde9d44
+    proposal_id: PROP-029
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted to add read-only validation before downstream use of generated
+      export bundles.
+    conditions: []
+    decided_on: '2026-05-26'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: c82966eda571cae10fb7465afeb08da81ce28c65114b343025af0d5cbe3233b9
+    decision_semantic_sha256: f42f5950d06cdc474a26b68a9ed05f8121d304602a414b6f13df6b150da62e0a
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 7724924277ab3c0ebb48aa4cd2a30638e0fa4931b1e34796ab07dbe7843d73d8
+      request_fingerprint_sha256: 39394b054887ab47e4317b53306a7c03161fd93a9c4b19d4db8f47851804a056
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-029-spec-export-validation-mvp/proposal.md
+      - .p2p/proposals/PROP-029-spec-export-validation-mvp/decision.md
+      source_sha256:
+        proposal.md: 95c8f7ab519a7adc67f7be2c78648c6f4d34206858ae8e5cd3c8eb1a257e31c5
+        decision.md: bb39b87d5c21c422169f97d129963a7aeae433b055784f444aca67893fb4c131
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted to add read-only validation before downstream use of generated
+          export bundles.
+        approver: local
+        decided_on: '2026-05-26'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-26'
+          source_sha256:
+            proposal.md: 95c8f7ab519a7adc67f7be2c78648c6f4d34206858ae8e5cd3c8eb1a257e31c5
+            decision.md: bb39b87d5c21c422169f97d129963a7aeae433b055784f444aca67893fb4c131
+    event_sha256: b9915457862c09fb6b3450af07898f5bddf5a5460a5a26db8cde39a708fcfba1
+  legacy_evidence: []

@@ -168,6 +168,47 @@ def test_capture_finds_direct_and_transitive_dependencies_with_stable_identity(
     assert first.access_counters["software_spec_directories"] == 1
 
 
+def test_capture_reuses_supplied_freshness_snapshot(
+    tmp_path: Path,
+) -> None:
+    workspace, proposal_id, proposal_dir = _workspace(tmp_path)
+    _write_dependency_graph(tmp_path, proposal_id, proposal_dir)
+    provider_calls = 0
+
+    def freshness_provider() -> object:
+        nonlocal provider_calls
+        provider_calls += 1
+        return type("Freshness", (), {"status": "current"})()
+
+    service = ProposalDecisionImpactService(
+        root=tmp_path,
+        p2p_dir=tmp_path / ".p2p",
+        find_proposal_dir=workspace._proposal_document_service().find_dir,
+        freshness_status=freshness_provider,
+    )
+    snapshot = service.capture(
+        proposal_id,
+        source_head_event_id=workspace.proposal_decision_status(
+            proposal_id
+        ).head_event_id,
+        event_type=ProposalDecisionEventType.revoked,
+        freshness_status_snapshot=type(
+            "Freshness",
+            (),
+            {"status": "attention_required"},
+        )(),
+    )
+
+    freshness = next(
+        item
+        for item in snapshot.items
+        if item.dependency_kind == ProposalDecisionDependencyKind.freshness
+    )
+    assert provider_calls == 0
+    assert freshness.dependency_status.value == "stale"
+    assert freshness.remediation_command == "p2p project freshness"
+
+
 def test_page_is_bounded_but_hidden_source_changes_snapshot_and_apply_token(
     tmp_path: Path,
 ) -> None:

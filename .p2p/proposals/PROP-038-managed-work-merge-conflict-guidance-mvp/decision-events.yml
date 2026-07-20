@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-038
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-e55684c8eb42da60029a3f35
+  events:
+  - event_schema_version: 1
+    event_id: PDE-e55684c8eb42da60029a3f35
+    operation_key: P2POP-76dfe784544a4fe804d82942
+    proposal_id: PROP-038
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accept/merge is the riskiest step in the managed Work lifecycle; conflicts
+      need explicit P2P guidance before finalize or GitHub handoff.
+    conditions: []
+    decided_on: '2026-05-26'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 6e840616eac32b54bf18d85727e0cab438e770daa2e12b6c41d5bfb4eb52b98a
+    decision_semantic_sha256: 2fd1f6767febf56229c429e6f63cb5c755431b5ee1037a931318d27f06e4ee45
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 2839e31a9f00c511e19a619b5fccecec45a05611bed4701228bb0f11e0f0c59f
+      request_fingerprint_sha256: c066f4cc7d0f3fbd315d1a3f901cca1adeffd83145dea2dd05d6b351fe895abf
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp/proposal.md
+      - .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp/decision.md
+      source_sha256:
+        proposal.md: d99b5dd4dd0c4eaf1a0dcd426374611ae97507b722b1890d7dfe21b3ac46d598
+        decision.md: d596d63c81b717838790ab884549cfc46af5e3be9db544089ee9f5593b2836d4
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accept/merge is the riskiest step in the managed Work lifecycle; conflicts
+          need explicit P2P guidance before finalize or GitHub handoff.
+        approver: local
+        decided_on: '2026-05-26'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-26'
+          source_sha256:
+            proposal.md: d99b5dd4dd0c4eaf1a0dcd426374611ae97507b722b1890d7dfe21b3ac46d598
+            decision.md: d596d63c81b717838790ab884549cfc46af5e3be9db544089ee9f5593b2836d4
+    event_sha256: a6d333712ff2be3608f67acfde490359e55ce60555634c47faa49d4220443fe2
+  legacy_evidence: []

@@ -1,4 +1,4 @@
-generated_on: '2026-07-17'
+generated_on: '2026-07-19'
 assessment_type: project_definition_maturity
 domain: project_vertical:software_project
 score: 100
@@ -16,11 +16,6 @@ criteria:
     state: accepted
     matched: change
   - type: proposal
-    id: PROP-010
-    title: P2P Project State Model
-    state: accepted
-    matched: change
-  - type: proposal
     id: PROP-013
     title: Managed Git Adapter and Change Set Model
     state: accepted
@@ -33,6 +28,11 @@ criteria:
   - type: proposal
     id: PROP-015
     title: Change Set Lifecycle and Task Tracking
+    state: accepted
+    matched: change
+  - type: proposal
+    id: PROP-016
+    title: Project Registries MVP
     state: accepted
     matched: change
   suggested_action: ''
@@ -78,10 +78,20 @@ criteria:
     id: PROP-001
     title: CLI Foundation
     state: accepted
-    matched: user
+    matched: owner, user
   - type: proposal
     id: PROP-002
     title: Proposal Exploration And Readiness Workflow
+    state: accepted
+    matched: owner
+  - type: proposal
+    id: PROP-004
+    title: Prompt-only Import Workflow
+    state: accepted
+    matched: owner
+  - type: proposal
+    id: PROP-005
+    title: Codex Skill Integration
     state: accepted
     matched: owner
   - type: proposal
@@ -89,16 +99,6 @@ criteria:
     title: Multi-Agent Integration Model
     state: accepted
     matched: owner, user
-  - type: proposal
-    id: PROP-009
-    title: Governance CLI Commands
-    state: accepted
-    matched: owner
-  - type: proposal
-    id: PROP-013
-    title: Managed Git Adapter and Change Set Model
-    state: accepted
-    matched: user
   suggested_action: ''
 - id: scope_boundaries
   title: Scope Boundaries
@@ -400,11 +400,6 @@ criteria:
     state: accepted
     matched: security
   - type: proposal
-    id: PROP-009
-    title: Governance CLI Commands
-    state: accepted
-    matched: constraint
-  - type: proposal
     id: PROP-052
     title: MCP Proposal Contribution Tool
     state: accepted
@@ -419,6 +414,11 @@ criteria:
     title: Agent Token Budget and Context Discipline
     state: accepted
     matched: performance
+  - type: proposal
+    id: PROP-056
+    title: Project Definition Maturity Rubrics
+    state: accepted
+    matched: security, privacy
   suggested_action: ''
 - id: software_acceptance_validation
   title: Software Acceptance And Validation
@@ -430,7 +430,7 @@ criteria:
     id: PROP-001
     title: CLI Foundation
     state: accepted
-    matched: acceptance, validation, test
+    matched: acceptance, validation
   - type: proposal
     id: PROP-002
     title: Proposal Exploration And Readiness Workflow
@@ -494,7 +494,7 @@ criteria:
     id: PROP-001
     title: CLI Foundation
     state: accepted
-    matched: problem, need, goal, context
+    matched: problem, goal, context
   - type: proposal
     id: PROP-002
     title: Proposal Exploration And Readiness Workflow
@@ -634,13 +634,13 @@ criteria:
     state: accepted
     matched: auth
   - type: proposal
-    id: PROP-018
-    title: Choice Management CLI MVP
+    id: PROP-009
+    title: Governance CLI Commands
     state: accepted
     matched: permission
   - type: proposal
-    id: PROP-044
-    title: P2P MCP Server MVP
+    id: PROP-010
+    title: P2P Project State Model
     state: accepted
     matched: auth
   suggested_action: ''
@@ -666,13 +666,13 @@ criteria:
     state: accepted
     matched: schema, json, registry
   - type: proposal
-    id: PROP-013
-    title: Managed Git Adapter and Change Set Model
-    state: accepted
-    matched: yaml
-  - type: proposal
     id: PROP-016
     title: Project Registries MVP
+    state: accepted
+    matched: registry
+  - type: proposal
+    id: PROP-017
+    title: Proposal Intake and Context Analysis MVP
     state: accepted
     matched: registry
   suggested_action: ''
@@ -720,11 +720,6 @@ criteria:
     state: accepted
     matched: install, deploy, local
   - type: proposal
-    id: PROP-002
-    title: Proposal Exploration And Readiness Workflow
-    state: accepted
-    matched: local
-  - type: proposal
     id: PROP-005
     title: Codex Skill Integration
     state: accepted
@@ -735,8 +730,13 @@ criteria:
     state: accepted
     matched: install, local
   - type: proposal
-    id: PROP-011
-    title: Project Refresh MVP
+    id: PROP-021
+    title: Agent Skill Real Commands Update
+    state: accepted
+    matched: local
+  - type: proposal
+    id: PROP-024
+    title: Choice Blocking and Discovery MVP
     state: accepted
     matched: local
   suggested_action: ''
@@ -750,7 +750,7 @@ criteria:
     id: PROP-001
     title: CLI Foundation
     state: accepted
-    matched: test, validation
+    matched: validation
   - type: proposal
     id: PROP-002
     title: Proposal Exploration And Readiness Workflow
@@ -834,7 +834,7 @@ criteria:
     id: PROP-009
     title: Governance CLI Commands
     state: accepted
-    matched: alternative, constraint
+    matched: alternative
   suggested_action: ''
 - id: acceptance_criteria
   title: Acceptance Criteria

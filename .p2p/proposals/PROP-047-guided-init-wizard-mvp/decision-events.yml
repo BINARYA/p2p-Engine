@@ -1,0 +1,76 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-047
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-18cd7fc4ed3e9f1c61a19139
+  events:
+  - event_schema_version: 1
+    event_id: PDE-18cd7fc4ed3e9f1c61a19139
+    operation_key: P2POP-d83749b97baecf39b2bccf1e
+    proposal_id: PROP-047
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted to make the newly hardened init path usable for first-time
+      users before broadening MCP mutations.
+    conditions: []
+    decided_on: '2026-05-27'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: f3d0231b125d089d2785addf93fdb34235d2d3456de8da69e05d8b66e2933b33
+    decision_semantic_sha256: f5a440a2f7c5c5d76469442d1139ab3ebd1801034b989decd08c3351a896aa53
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: bec377dffd81240118775cbab5666fd78500dcdabf2f459758132a7dc8439d64
+      request_fingerprint_sha256: d9443e64bb4a5a8c47700ae0f696eeff44982e93deab829d46b58ce7a8625e6d
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-047-guided-init-wizard-mvp/proposal.md
+      - .p2p/proposals/PROP-047-guided-init-wizard-mvp/decision.md
+      source_sha256:
+        proposal.md: 0e43fbd109d4cd38ab48653736d250db8699c6b0e31ecacb54e74084e31a75e9
+        decision.md: 23e8b4574a0537ad7cb79107458cad83c6e3a6225304f9192e48dd366dcf1d6a
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted to make the newly hardened init path usable for first-time
+          users before broadening MCP mutations.
+        approver: local
+        decided_on: '2026-05-27'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-27'
+          source_sha256:
+            proposal.md: 0e43fbd109d4cd38ab48653736d250db8699c6b0e31ecacb54e74084e31a75e9
+            decision.md: 23e8b4574a0537ad7cb79107458cad83c6e3a6225304f9192e48dd366dcf1d6a
+    event_sha256: 0384603b61bcc33d5f0db3b826f0a4c1c4d1a887b0f0f2c42ff64398a843fe6c
+  legacy_evidence: []

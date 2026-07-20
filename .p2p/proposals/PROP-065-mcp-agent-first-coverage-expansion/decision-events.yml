@@ -1,0 +1,78 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-065
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-f662a92ee466a07eafcb46b8
+  events:
+  - event_schema_version: 1
+    event_id: PDE-f662a92ee466a07eafcb46b8
+    operation_key: P2POP-bfe8a3e2ab45930e5ec1734b
+    proposal_id: PROP-065
+    event_type: accepted
+    effective_state: accepted
+    rationale: Accepted to expose priority 1 read-only, priority 2 write-safe deterministic,
+      and priority 3 prompt/advisory MCP tools while preserving owner-only governance
+      boundaries.
+    conditions: []
+    decided_on: '2026-05-29'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: faff30cbbbc013097b2b092afecac14c0a4e594ebb6f5a47d39226e124505670
+    decision_semantic_sha256: 9e654834d6e191b0ab69a97aeae7ec0c3c578ee59001aff13e2d4fceda6fb3f4
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: ec8ca75ce9dab369ce641d6b930511cfc1303691bb90e5cace915886cfe80424
+      request_fingerprint_sha256: b7e9d0ceddd65f91be453692e292e072482eabb8f2bcb59efc1efcad879ffa75
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion/proposal.md
+      - .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion/decision.md
+      source_sha256:
+        proposal.md: b6edc1e39b37ba0d79ee85e75952c31f6c000bb16cd57f683c275346bca5adf5
+        decision.md: 540af5f74bde9a58a2e9c440ef97aac883c20fa0539c797a891065d5185249a7
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Accepted to expose priority 1 read-only, priority 2 write-safe deterministic,
+          and priority 3 prompt/advisory MCP tools while preserving owner-only governance
+          boundaries.
+        approver: local
+        decided_on: '2026-05-29'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: local
+          decided_on: '2026-05-29'
+          source_sha256:
+            proposal.md: b6edc1e39b37ba0d79ee85e75952c31f6c000bb16cd57f683c275346bca5adf5
+            decision.md: 540af5f74bde9a58a2e9c440ef97aac883c20fa0539c797a891065d5185249a7
+    event_sha256: b03961a6780ba0f5a2407bfa78b81ff2a71c1f229cf5cb75bcdc26e650405655
+  legacy_evidence: []

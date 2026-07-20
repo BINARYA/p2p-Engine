@@ -1,21 +1,48 @@
 generated: true
-source: .p2p/proposals/*/decision.md
+source: .p2p/proposals/*/decision-events.yml and schema-v2 decision.md compatibility
+  projections
 decisions:
 - proposal: PROP-001
   title: "\u2014 CLI Foundation"
-  outcome: Build the first P2P Engine CLI as a local, Git-native, prompt-only Python
-    application.
+  outcome: accepted
   status: accepted
   path: .p2p/proposals/PROP-001-cli-foundation/decision.md
-  reason: The project needs a minimal executable workflow before adding AI adapters,
-    exporters, MCP, or a web interface. Automating the manually bootstrapped `.p2p/`
-    structure is the shortest path to dogfooding.
+  reason: Current owner confirms the historical acceptance of PROP-001 for the first
+    local, Git-native, file-based Python and Typer CLI. The initial MVP excluded a
+    web application and direct AI provider integration; the legacy source wording
+    divergence remains preserved in migration provenance.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-61f7c7e703420d7d5c4ad807
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 427d1a2189435caf2866b199690a27eddf525734b39316189799d95a0ed2c280
+  proposal_semantic_sha256: dfd6146075bac52b44ae94880459f5367b972f9c2d214f515f6cf21f82edddbd
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-002
   title: Proposal Exploration And Readiness Workflow
   outcome: accepted
   status: accepted
   path: .p2p/proposals/PROP-002-exploration-phase/decision.md
   reason: Owner accepts the proposal exploration and readiness workflow after review.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-40bb9fc4ad4fb5072eba4077
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: aa7ab4d393d704b8d42ebfadf6e1810104ea20cf6d909c629c485e98225aa225
+  proposal_semantic_sha256: d3ac9975b9d45bc48ff841f10060fbfc5de939f7fcf0c5a49c2b11365bd78156
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-003
   title: Prompt generator hardening
   outcome: deferred
@@ -23,6 +50,19 @@ decisions:
   path: .p2p/proposals/PROP-003-prompt-generator-hardening/decision.md
   reason: Prompt hardening remains useful but is deferred after intake, choices and
     proposal decision shortcuts.
+  effective_state: deferred
+  head_event_type: deferred
+  head_event_id: PDE-e9e273372c87693c12b19535
+  event_count: 1
+  authority_resolution: resolved
+  active: false
+  ever_active: false
+  proposal_binding_status: current
+  decision_semantic_sha256: d302b687688e4ba1617711b3d220be8cadba1d9ec8dd5dc0d9185958af4e26cd
+  proposal_semantic_sha256: f8778becbbcd30761d7f73d6322a1d5b579671f20071183c2734734b9e298e0b
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-004
   title: Prompt-only Import Workflow
   outcome: accepted
@@ -30,6 +70,19 @@ decisions:
   path: .p2p/proposals/PROP-004-prompt-only-import-workflow/decision.md
   reason: 'Il workflow prompt-only deve essere completo: ogni fase che genera prompt
     deve poter importare l''output prodotto da AI, agenti esterni o dall''utente.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-8b282b2dfe3da5d7e4b9add4
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: c6d8c7800621c41f011f0622e015c34bbe851d03cc28917e66f5f46271931bff
+  proposal_semantic_sha256: aac3c4780bd5a750256c5e6b81bc02cf578a7de84c74b0a593710875fe9a115a
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-005
   title: Codex Skill Integration
   outcome: accepted
@@ -38,6 +91,19 @@ decisions:
   reason: P2P Engine now has enough CLI workflow surface for Codex to use it as a
     structured method. A local skill makes the expected behavior explicit and reduces
     the risk of leaving decisions only in chat.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-f26bbb308a2d202c1301f7ac
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 77d7bcdb6c7b3f062b06d79a8cc7739eba00620bac640202f35e9ad1e3b59f6f
+  proposal_semantic_sha256: 048bfdb3110f8e41a5715a967a300b75ac81a7bcb32f5d0e32fcc8a2b251eec8
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-006
   title: Multi-Agent Integration Model
   outcome: accepted
@@ -47,42 +113,113 @@ decisions:
     as-is because remaining low readiness score reflects the current conservative
     readiness CLI, not unresolved product direction. A separate follow-up proposal
     will address readiness assessment refresh and review workflow.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-cf71cf96ba2288769305e65d
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 5f88a0ce4a1fae2eef77a3150da61b0bf1c0860bc5179222b678631c0968752e
+  proposal_semantic_sha256: 9b78fae0b86536e2ac908dec9120ad451ab1415af52065ca326a5575df03125f
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-007
   title: Proposal Intake and Overlap Analysis
-  outcome: superseded
-  status: superseded
+  outcome: split
+  status: split
   path: .p2p/proposals/PROP-007-proposal-intake-and-overlap-analysis/decision.md
-  reason: Superseded by PROP-017 Proposal Intake and Context Analysis MVP and PROP-025
-    Controlled Intake Apply Workflow, which implemented the intake and controlled
-    apply capabilities in a more complete form.
+  reason: Current owner closes the recovered authority of PROP-007 by classifying
+    its direction as split into PROP-017 and PROP-025. PROP-017 carries forward proposal
+    intake and context analysis, while PROP-025 carries forward the controlled intake
+    apply workflow; preserved legacy evidence remains available for the historical
+    superseded wording.
+  effective_state: split
+  head_event_type: split
+  head_event_id: PDE-7dc3b675d8b005864a265c26
+  event_count: 2
+  authority_resolution: resolved
+  active: false
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 6e26f2482af15e085dd348efe92398dc3a9428d314c27dfa1f2e2d78555c7091
+  proposal_semantic_sha256: 18e9ce89ef4abd5fcc21ebb1fd79fb02ec3cf8fcb6c49bef971867bf8374f900
+  lineage:
+    kind: split
+    targets:
+    - PROP-017
+    - PROP-025
 - proposal: PROP-008
   title: Governance Model
   outcome: superseded
   status: superseded
   path: .p2p/proposals/PROP-008-governance-model/decision.md
-  reason: 'Owner annotated closure: PROP-008 delivered the technical/documental MVP
-    for governance artifacts, vote recording, precedent recording, and SWOT prompt
-    support. It did not deliver a complete operational governance policy model. The
-    remaining direction is superseded by a focused follow-up proposal for Governance
-    Policy Convergence across permissions, governance, choices, votes, and precedents.'
+  reason: Current owner closes the recovered authority of PROP-008 as superseded by
+    PROP-091, which carries forward operational Governance Policy Convergence beyond
+    the technical and documentary governance MVP. PROP-008's delivered artifacts remain
+    historical evidence, and dependent freshness or publication state must be reviewed
+    separately rather than changed by this decision.
+  effective_state: superseded
+  head_event_type: superseded
+  head_event_id: PDE-2bb422381ef86784c09435db
+  event_count: 2
+  authority_resolution: resolved
+  active: false
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 39b9fc8535fb3d8453cc77f07fd96ebf4487ecb6219a8cfbfd15435a8036434f
+  proposal_semantic_sha256: ceda34a37103e29d1cc6f49df1ea0a246d832448a9b765e39ba34c7bb6cbfc73
+  lineage:
+    kind: supersedes
+    targets:
+    - PROP-091
 - proposal: PROP-009
   title: Governance CLI Commands
   outcome: accepted
   status: accepted
   path: .p2p/proposals/PROP-009-governance-cli-commands/decision.md
-  reason: PROP-008 ha definito il modello di governance, ma senza comandi CLI il workflow
-    resta solo documentale. I comandi governance, swot, vote e precedent rendono il
-    modello provabile nel repository senza introdurre ancora un sistema di privilegi
-    applicativi.
+  reason: 'Current owner confirms the historical acceptance of PROP-009 to make the
+    file-based governance model operational through governance, SWOT, vote, and precedent
+    CLI commands. The accepted scope remained audit-only: human or governance-defined
+    decisions, Git as the audit layer, and no application-level permission enforcement.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-4ba6bc02e77a0d2b6ed47313
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 0ee1be35ede7210281ae08de615778b31f2f1bd93a04455dd673bfefe892464e
+  proposal_semantic_sha256: 61604c415f0833a05b82f4590b1143dae3648835b60060eec5aeb86545554b93
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-010
   title: P2P Project State Model
   outcome: accepted
   status: accepted
   path: .p2p/proposals/PROP-010-p2p-software-specification-model/decision.md
-  reason: P2P Engine needs an internal rationalized project state before exporting
-    to OpenSpec, Spec Kit, or task systems. Raw proposal folders contain discussion,
-    governance, alternatives, and decision history; they should not be treated directly
-    as implementation specifications.
+  reason: Current owner confirms the historical acceptance of PROP-010 to establish
+    a versioned .p2p/project layer as rationalized derived state from accepted proposals
+    and decisions. Canonical proposal and decision artifacts remain authoritative,
+    external specification and task systems remain downstream targets, and the MVP
+    refresh is explicit through p2p project refresh.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-1d5b2741827957b057d0364f
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 328f87feb5b0f3ab00436aefeaf549c88466e63e9dc11b4fe4159c5d90b309d0
+  proposal_semantic_sha256: 8914adeff68d6bf992a48de63a7d269f0f3f8fb3ef0ffb54a78f83e31e1d0420
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-011
   title: Project Refresh MVP
   outcome: accepted
@@ -90,6 +227,19 @@ decisions:
   path: .p2p/proposals/PROP-011-project-refresh-mvp/decision.md
   reason: Project refresh MVP is implemented with deterministic .p2p/project generation
     and CLI inspection commands.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-fabc1791b9eb7f41b7a80254
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 905d7ae4e0fb612760f4c12773c42232b1cd971e8c5d7bd9635f6f280cb97a3e
+  proposal_semantic_sha256: 9b4da73c70ad192a92c7e0480624025ea7f285c79284321cf3bd6c0d5910a8d5
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-012
   title: Impact Map and Conflict Memory
   outcome: accepted
@@ -97,15 +247,43 @@ decisions:
   path: .p2p/proposals/PROP-012-impact-map-and-conflict-memory/decision.md
   reason: Impact analysis and conflict memory are implemented as prompt-only impact
     artifacts plus persistent .p2p/project/conflicts.yml commands.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-bb8aa22c4115c25bb0786483
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 531da25524a56c804f3eae90d20f61d024dbc2ba58177869d1f17ab6f7830437
+  proposal_semantic_sha256: a978ef2a2bd77045f377181b28ce0c3da88d5058c6dc0aec14a12c82f9f71a18
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-013
   title: Managed Git Adapter and Change Set Model
   outcome: accepted
   status: accepted
   path: .p2p/proposals/PROP-013-change-set-and-git-branch-model/decision.md
-  reason: P2P Engine should expose proposal, choice, decision, change, and task concepts
-    to users. Git remains the internal layer for persistence, audit, synchronization,
-    and collaboration, but users should not need to reason about branches, commits,
-    merges, or tags during normal workflows.
+  reason: Current owner confirms the historical acceptance of PROP-013 for the Managed
+    Git Under The Hood model, with Change Set as the visible operational unit and
+    Git as the internal persistence, audit, synchronization, and collaboration adapter.
+    The MVP remained metadata-only, hid Git details by default, disabled automatic
+    commits, branches, and tags, and required Change Sets to originate from accepted
+    proposals or decisions.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-20b6debbe45862ae86007979
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 0e72530b61916bbb95fb093adf375a31c222dfd14b72db465e2d0d75c302b009
+  proposal_semantic_sha256: b131d0c0c58c8ce4790fa8989d26d14cc87d625783810f86462c73203c851380
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-014
   title: Change Set Metadata MVP
   outcome: accepted
@@ -113,6 +291,19 @@ decisions:
   path: .p2p/proposals/PROP-014-change-set-metadata-mvp/decision.md
   reason: Change Set metadata MVP is implemented with create/status/policy commands
     and metadata-only managed Git policy.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-7c5395595e8e716e41a4ded9
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 829436e34ddf8240eec868d781af13edf20007148d08338b59669bc1ab846fd2
+  proposal_semantic_sha256: 1e8cfd7d00c96c174c83e49dc95711489a92764778b021b273b1e4eae2dda1e0
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-015
   title: Change Set Lifecycle and Task Tracking
   outcome: accepted
@@ -120,6 +311,19 @@ decisions:
   path: .p2p/proposals/PROP-015-change-set-lifecycle-and-task-tracking/decision.md
   reason: Change Set lifecycle transitions and task/action inspection are implemented
     with validated status changes and metadata-only behavior.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-cb8df271cf76f0bff218d2d5
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 41a39e695e2154eb4626ae30ded92327626578864b6de74132e8b13ecf7d1ae5
+  proposal_semantic_sha256: c9da9cc2521d21f3d6030082be13deb5e452a862f6a3139a7880cc9bd5c12d81
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-016
   title: Project Registries MVP
   outcome: accepted
@@ -127,6 +331,19 @@ decisions:
   path: .p2p/proposals/PROP-016-project-registries-mvp/decision.md
   reason: Accepted as the next MVP step to introduce generated project registries
     for proposals, decisions, changes, choices, relations and artifacts.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-069833ff483a530465f937f6
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: f3ce9c63f3a95564d38a84e38e445829847337bd4d72df50d8095b428715016f
+  proposal_semantic_sha256: 7b50bcd983afee4c062b5ade97b5ed844ab0fb0390b1a1d4a90272fbfcb8e8bc
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-017
   title: Proposal Intake and Context Analysis MVP
   outcome: accepted
@@ -134,6 +351,19 @@ decisions:
   path: .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/decision.md
   reason: Accepted to add registry-backed proposal intake and context analysis as
     the next usability layer for multi-user and multi-agent P2P workflows.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-91c9badb383c477dbe8bb703
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 23ce87be01aeb896d502ade412b2c5d8f88aad96ff5996b87d97fda8e67b5f9f
+  proposal_semantic_sha256: 1e76589f28958737bc37961c1334757b270ba5f60095388cefdaeedea9d49b4d
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-018
   title: Choice Management CLI MVP
   outcome: accepted
@@ -141,12 +371,38 @@ decisions:
   path: .p2p/proposals/PROP-018-choice-management-cli-mvp/decision.md
   reason: Accepted to make choices first-class CLI-managed artifacts after INTAKE-001
     required opening CHOICE-001.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-216d6ed690b621c29c8a76df
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: e2aa3e347f651a8f74a8c059d33b8d08d615004e31c333603cb281f46e750663
+  proposal_semantic_sha256: 5209516da7906005a72a974b8bf1d5b9b48082702eef2fd9479ea0b4d2fc4293
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-019
   title: Proposal Decision Shortcut Commands
   outcome: accepted
   status: accepted
   path: .p2p/proposals/PROP-019-proposal-decision-shortcut-commands/decision.md
   reason: Accepted to make proposal lifecycle decisions easier for users and AI agents.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-ed75430021d1c4286eceaba9
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 4ae98db7e00f3ad1350713d124841898bd365359561480ad3e80c770960a642f
+  proposal_semantic_sha256: 8352a2c9c346f4ffbb159be8c486890aefa59d509e053b61edff426a53202cb9
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-020
   title: Proposal Inspection CLI MVP
   outcome: accepted
@@ -154,6 +410,19 @@ decisions:
   path: .p2p/proposals/PROP-020-proposal-inspection-cli-mvp/decision.md
   reason: Accepted to provide stable proposal inspection commands needed before updating
     agent skills.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-a6d9136ca28d1be4a8b55658
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 0b43caa7452862b2457a3f52d3c2d9784079f591f267d951a092fb7b56d5d7b3
+  proposal_semantic_sha256: a84379c9be3ddf8c91fd4c5ef9fb04be73b06baf2a8111b2033ef9d9403419ae
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-021
   title: Agent Skill Real Commands Update
   outcome: accepted
@@ -161,6 +430,19 @@ decisions:
   path: .p2p/proposals/PROP-021-agent-skill-real-commands-update/decision.md
   reason: Accepted to align the Codex skill with the current P2P CLI before using
     agents more heavily.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-92c09720cdb53958dbb7b86b
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: f27b8b10cf15cbebdfa7d27e819e6a73d6a16a7d8ba2dea25c5ec606cc3271a5
+  proposal_semantic_sha256: 4148d01d554591b699cf22173093d52dcbe1cb5294fca5ec1b34d8748db57f7e
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-022
   title: Operational Brief Prompt Workflow
   outcome: accepted
@@ -168,6 +450,19 @@ decisions:
   path: .p2p/proposals/PROP-022-operational-brief-prompt-workflow/decision.md
   reason: Accepted to introduce intelligence through a prompt-only operational brief
     workflow while preserving CLI-owned context and owner-controlled decisions.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-b7b93fd24e788ba31124a507
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 3efe1131daf7a261e647be679afe1c39f9bc53b6096075515784aa10c83ecb24
+  proposal_semantic_sha256: 1c2c9c34246a4404df1dcdfedffdaa338ac66c7e348d9680b8976970c1830084
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-023
   title: Next Action Recommender MVP
   outcome: accepted
@@ -175,6 +470,19 @@ decisions:
   path: .p2p/proposals/PROP-023-next-action-recommender-mvp/decision.md
   reason: Accepted to connect operational brief next-actions to a top-level advisory
     p2p next command and concise project status summary.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-b87673d0dc521e8af87fe8e8
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 5cac653c259b95f63154d93986d7f52c966ba930d0eb24fc262d2bae29ba5cbb
+  proposal_semantic_sha256: b95a3324348729f57d0d604912bbc2d2cb5e3eed717733b1d9358923b4de90a1
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-024
   title: Choice Blocking and Discovery MVP
   outcome: accepted
@@ -182,6 +490,19 @@ decisions:
   path: .p2p/proposals/PROP-024-choice-blocking-and-discovery-mvp/decision.md
   reason: Accepted to make choices operational through advisory discovery first and
     explicit owner-controlled blockers second.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-4bc8e55c19b3f8fc9876da06
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: e3cfcb4684c711fe5e95fa8a0fc1ee5dfc0ade833fd8c6db73e15713f8289308
+  proposal_semantic_sha256: 46869ed7aae8e913e22c0f86b57772af34e5e4ffe1559690ffef2f3f346a58e1
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-025
   title: Controlled Intake Apply Workflow
   outcome: accepted
@@ -189,6 +510,19 @@ decisions:
   path: .p2p/proposals/PROP-025-controlled-intake-apply-workflow/decision.md
   reason: Accepted to implement intake apply as an auditable plan/show/run workflow
     rather than direct automatic application.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-a265bfb09c18f593d4517ca5
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 5ba9e792f575dbe6ca884abf5b506012edf69847abbe8f92101f043c846109fd
+  proposal_semantic_sha256: 603918784f86d930f7cefcc78796965a3f09161307050797d7f80187aa5e272f
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-026
   title: P2P Software Spec Generator MVP
   outcome: accepted
@@ -196,6 +530,19 @@ decisions:
   path: .p2p/proposals/PROP-026-p2p-software-spec-generator-mvp/decision.md
   reason: Accepted to introduce the P2P-native software spec layer before downstream
     OpenSpec or Spec Kit export.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-3eb96abd79945af2e84644ea
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: c0ab66d785edf5a647386edfbb06d7a536ba5ada4e334b175e30dde36e01da9b
+  proposal_semantic_sha256: e0fc153c23cc80f2a6ca4f7baad7450b47567f1171f92d5efbc04cb5eef8fa06
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-027
   title: Software Spec Exporter MVP
   outcome: accepted
@@ -203,6 +550,19 @@ decisions:
   path: .p2p/proposals/PROP-027-software-spec-exporter-mvp/decision.md
   reason: Accepted to add the first downstream export layer after the refined P2P-native
     software spec MVP.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-ca4acdee6d9db3201737f03a
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: d50e9b1c5673112e107f0a3fa01384c4fbdd9a45411f71b6dd5e01f7f576aa48
+  proposal_semantic_sha256: c7d87ad481889d2cc99f1edbdef8070a347c0575be1205caa2e32052d6354125
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-028
   title: Spec Kit Export Mapping MVP
   outcome: accepted
@@ -210,6 +570,19 @@ decisions:
   path: .p2p/proposals/PROP-028-spec-kit-export-mapping-mvp/decision.md
   reason: Accepted to complete the declared Spec Kit export target with a conservative
     P2P-spec-derived mapping.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-f9c0a407d07f4c3c214294d8
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 70a616847aec7564109e553112abef8d402ceb008e8f84380991cfc97ca8883d
+  proposal_semantic_sha256: facc1ca72e5b994a0106af6a2a0f8c6651108c9b050ca1d49079753e8a1cba8b
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-029
   title: Spec Export Validation MVP
   outcome: accepted
@@ -217,6 +590,19 @@ decisions:
   path: .p2p/proposals/PROP-029-spec-export-validation-mvp/decision.md
   reason: Accepted to add read-only validation before downstream use of generated
     export bundles.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-81615988a6e1b504c9c94a9c
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: f42f5950d06cdc474a26b68a9ed05f8121d304602a414b6f13df6b150da62e0a
+  proposal_semantic_sha256: c82966eda571cae10fb7465afeb08da81ce28c65114b343025af0d5cbe3233b9
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-030
   title: Managed Work and Multi-Branch Visibility Policy
   outcome: accepted
@@ -224,6 +610,19 @@ decisions:
   path: .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/decision.md
   reason: Accepted to introduce P2P Work as the user-facing abstraction for the incremental
     path toward invisible managed Git.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-9f668df61ac648126dcd94d0
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 1bbb8b33002973af929cc95d35764d4ec3bf13b9e65c66d59fae4f33660ce71e
+  proposal_semantic_sha256: d2f6eb89a1bc292ed1e315c5db8b74bbcdcfc255bc1551bc7b3fabf5eaff08b8
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-031
   title: Multi-Branch Work Scan MVP
   outcome: accepted
@@ -231,6 +630,19 @@ decisions:
   path: .p2p/proposals/PROP-031-multi-branch-work-scan-mvp/decision.md
   reason: Accepted to add read-only visibility into P2P-managed work manifests on
     parallel local branches.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-cd85ea1db7cd737634b466c2
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: dc1c1a89586cd8ad2775804335284af23cc8397212891df14d90b23a0f04530c
+  proposal_semantic_sha256: aaff6db1d67684960c94e6fb8b1a4581692e14d4aa3693627a8ffb4eb237f41a
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-032
   title: Managed Work Branch Creation MVP
   outcome: accepted
@@ -238,6 +650,19 @@ decisions:
   path: .p2p/proposals/PROP-032-managed-work-branch-creation-mvp/decision.md
   reason: 'This is the next incremental step toward invisible managed Git: isolate
     operational work in P2P-managed branches without automatic commit or merge.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-86849708cbc2614dca0d0899
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: a59a2bfeddd368690c6afa0d46e1360f35866d805b83a816b9efa26ba7d655df
+  proposal_semantic_sha256: c297d9a7c24c4f104400b7954642cecd8b5b90c5525085eb05648b473704b9bd
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-033
   title: Managed Work Submit MVP
   outcome: accepted
@@ -245,6 +670,19 @@ decisions:
   path: .p2p/proposals/PROP-033-managed-work-submit-mvp/decision.md
   reason: 'This is the next incremental managed Git level: local auditable submit
     without push or merge.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-e8c2adf067d885127c043be3
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 116e7c110265d72d9e77942d717684a0d0c3fd79951b9135985cb90e36b4cb77
+  proposal_semantic_sha256: f02065d7cd8abe800181c0c968f304aa9f4b08ec0681f3f5672fbac033101556
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-034
   title: Managed Work Review MVP
   outcome: accepted
@@ -252,6 +690,19 @@ decisions:
   path: .p2p/proposals/PROP-034-managed-work-review-mvp/decision.md
   reason: This completes the local review-request level before remote handoff and
     owner merge.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-1c9a69e1c1ea4f127a3cf6d0
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 4ceca33fb8a0588b4101692b6f332c68644ae0bdd2055295d4622c0076179c0f
+  proposal_semantic_sha256: 1dddf04c76e6b5e770c00222e53f100163fe180e2b72ec7fb67f21fd5c37ef2e
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-035
   title: Managed Work Publish MVP
   outcome: accepted
@@ -259,6 +710,19 @@ decisions:
   path: .p2p/proposals/PROP-035-managed-work-publish-mvp/decision.md
   reason: This adds the remote handoff step after local review while keeping PR creation
     and merge separate.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-2c07609d67e6bbe756b67f3a
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: ac6dfd04a0d9256702c8fdd8258ac8764160f17518d80b90f60d34f0a81ce3e3
+  proposal_semantic_sha256: 352993e55e61bdb256143dfa39f45543b586d6090499e3e5b5dc1ab96f1d56e3
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-036
   title: Managed Work Accept MVP
   outcome: accepted
@@ -266,6 +730,19 @@ decisions:
   path: .p2p/proposals/PROP-036-managed-work-accept-mvp/decision.md
   reason: This completes the local owner-controlled managed Work lifecycle before
     optional base-branch push and cleanup.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-7c794d01387ecaff9a687116
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: d33f79f3ade5d6126c093a6bf23390afe99784bf2205ae35af88709c07c61216
+  proposal_semantic_sha256: 1a9eba7b4612d1f2bc7163e7e46c0769342d6d66d9798171fcf92a6100846e72
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-037
   title: Managed Work Status Summary MVP
   outcome: accepted
@@ -273,6 +750,19 @@ decisions:
   path: .p2p/proposals/PROP-037-managed-work-status-summary-mvp/decision.md
   reason: 'This is the safest next refinement: a read-only operational view before
     conflict handling, finalize, or GitHub PR work.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-3baf130fe918d77863dd2599
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: ab9fc9efab6739c7d93eafde1f044f761f6e766c77b771d526fcb3fccb60abbf
+  proposal_semantic_sha256: 6d9ff7cd837af4406e96ddd22c1033539a32125f258ebac72248a176d43f3922
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-038
   title: Managed Work Merge Conflict Guidance MVP
   outcome: accepted
@@ -280,6 +770,19 @@ decisions:
   path: .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp/decision.md
   reason: Accept/merge is the riskiest step in the managed Work lifecycle; conflicts
     need explicit P2P guidance before finalize or GitHub handoff.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-e55684c8eb42da60029a3f35
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 2fd1f6767febf56229c429e6f63cb5c755431b5ee1037a931318d27f06e4ee45
+  proposal_semantic_sha256: 6e840616eac32b54bf18d85727e0cab438e770daa2e12b6c41d5bfb4eb52b98a
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-039
   title: Managed Work Finalize MVP
   outcome: accepted
@@ -287,6 +790,19 @@ decisions:
   path: .p2p/proposals/PROP-039-managed-work-finalize-mvp/decision.md
   reason: Finalize is the explicit post-accept publication step and keeps base-branch
     push separate from cleanup and PR creation.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-6dbcb4f70fe2e021423de998
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: c7810ee5065c61e6c2790dad8578ac465cf4a7636892acebaf91f34fa381e13f
+  proposal_semantic_sha256: ae04f6c2efb978df4016c512cc1c69e5d763f70596bb8b4cd7b9125076cf8f3c
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-040
   title: Managed Work Cleanup MVP
   outcome: accepted
@@ -294,6 +810,19 @@ decisions:
   path: .p2p/proposals/PROP-040-managed-work-cleanup-mvp/decision.md
   reason: Cleanup is the explicit post-finalize branch housekeeping step and keeps
     branch deletion separate from accept/finalize.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-5f2ffd8e9c7c485100b28d88
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: b3cfc57fd3a86a07c97adb01f4ead40d5b23da4f588e4f4a8985a92ce75f8124
+  proposal_semantic_sha256: beead787fc80bf75bd808dad99d2421d960d157fe8bf1d324f308f4f84c1ee2f
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-041
   title: Remote Project Profile and Review Request Policy
   outcome: accepted
@@ -301,6 +830,19 @@ decisions:
   path: .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy/decision.md
   reason: Remote review must remain optional and provider-agnostic; publish should
     stay separate from PR/MR handoff.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-e571eb54493752c25b826972
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 0192e1442e27bd41e65aece081081abfc895bd15cda39bd9629f6bc29ad87d6d
+  proposal_semantic_sha256: 9ca4302f7f4a89e5ee446d52395241ddf1c96cc4ab5f562741f3c97d9c488777
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-042
   title: P2P Core CLI MCP Mediator Web Boundary
   outcome: accepted
@@ -308,6 +850,19 @@ decisions:
   path: .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary/decision.md
   reason: The five-layer boundary keeps the core deterministic and open-source usable
     while allowing optional MCP, mediator, and web layers to evolve independently.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-92468b24ea8efc1e612b671d
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 72ad8aa0cfe1a6f4dd3a19b65df920f80a11635ffd8f5ca7f04b082ff7de0023
+  proposal_semantic_sha256: 7dc23a0671da80b4907a050dcff4eb0433ad9a2581d4a0bedc83ddc71af6e7b0
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-043
   title: Managed Work Retire MVP
   outcome: accepted
@@ -315,6 +870,19 @@ decisions:
   path: .p2p/proposals/PROP-043-managed-work-retire-mvp/decision.md
   reason: Obsolete planned Work manifests should be retired through an explicit metadata-only
     command instead of manual manifest edits.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-24220dd5f0232cf059f33448
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 16af43d73a5bd40aa8d9806ff2cc1cc5db8c2daca6ede04e4bc9d720c5000a27
+  proposal_semantic_sha256: af5d4cbe877096cf48ba44b3f3a828bb659d178cf1068ec4e99556ec36e5790b
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-044
   title: P2P MCP Server MVP
   outcome: accepted
@@ -322,6 +890,19 @@ decisions:
   path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/decision.md
   reason: A local read-only MCP server is the safest first agent-facing interface
     over the deterministic P2P Core.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-5ed6ca13b3639bbf10be8419
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: ff01db1cd65d6613e860143644900b1c0955c10bd2844a9684fbc0cd9c6209fb
+  proposal_semantic_sha256: 222c73d5b7ac271d1d121df84f6a766e7f20948ab570b43f5500fba9cbe3757f
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-045
   title: Agent-Safe Project Bootstrap MVP
   outcome: accepted
@@ -330,6 +911,19 @@ decisions:
   reason: Accepted as the immediate hardening step after the MCP local test showed
     that agents need explicit project-level boundaries before write-capable MCP tools
     are added.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-043eadb6eeb2f83b4262d07f
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: de0297772689a118671f3bd2cf07e11912fdf46c547b486be6339905df8715ea
+  proposal_semantic_sha256: d6a62f68213c26ef01f1ce22daf05877c6fee8544eb844c6e53b09a441e9be0a
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-046
   title: MCP Write-Safe Bootstrap Tools MVP
   outcome: accepted
@@ -337,6 +931,19 @@ decisions:
   path: .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp/decision.md
   reason: 'Accepted as the next controlled MCP increment after agent-safe init: expose
     only bootstrap and registry refresh primitives, not governance decisions.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-f22a6b8b182d10102e47dedb
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: e5ee08429444255c9f5761d92611779daef8644dffb0e3c368cc440498a92c61
+  proposal_semantic_sha256: a67db09876476933968fd1069f48aaf0ee99021fff83edd64a8f9b07a7176ad3
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-047
   title: Guided Init Wizard MVP
   outcome: accepted
@@ -344,6 +951,19 @@ decisions:
   path: .p2p/proposals/PROP-047-guided-init-wizard-mvp/decision.md
   reason: Accepted to make the newly hardened init path usable for first-time users
     before broadening MCP mutations.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-18cd7fc4ed3e9f1c61a19139
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: f5a440a2f7c5c5d76469442d1139ab3ebd1801034b989decd08c3351a896aa53
+  proposal_semantic_sha256: f3d0231b125d089d2785addf93fdb34235d2d3456de8da69e05d8b66e2933b33
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-048
   title: MCP Level 3 Proposal and Intake Draft Tools
   outcome: accepted
@@ -351,6 +971,19 @@ decisions:
   path: .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools/decision.md
   reason: 'Accepted as MCP Level 3: safe contribution draft tools are needed after
     bootstrap hardening, while governance decisions remain out of MCP.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-dddd2373a3668d3c06a4c7ef
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 1010f4c013ae49f6fb3d1cf7864632221ae066ff9242f2d11fd79d7e02d8032a
+  proposal_semantic_sha256: 3f2377ec9fe95633033439fa466baa848f56f79b179012b1bd42d8e6666dc4d9
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-049
   title: MCP Level 4A Proposal Refinement Tools
   outcome: accepted
@@ -358,6 +991,19 @@ decisions:
   path: .p2p/proposals/PROP-049-mcp-level-4a-proposal-refinement-tools/decision.md
   reason: 'Accepted as MCP Level 4A: support advisory draft refinement and brief prompt/show
     without opening governance mutations.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-bb784b56b376730d51b2e650
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: cccbbb0d60a4a4039339359f4d5de4a60fb0ea45e5ac24ddb6970fb9794b860c
+  proposal_semantic_sha256: a161da1a6acec2c012cb307d388d62cdfab8015b403e2260046874771bf952a3
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-050
   title: MCP Level 4B Choice Conflict Impact Advisory Tools
   outcome: accepted
@@ -365,6 +1011,19 @@ decisions:
   path: .p2p/proposals/PROP-050-mcp-level-4b-choice-conflict-impact-advisory-tools/decision.md
   reason: 'Accepted as MCP Level 4B: expose advisory analysis for choices, conflicts,
     and impact without governance mutations.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-fd7b075b133c3841860691c4
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 23f0bd3eca55d9736ba9e8979e4e1ede3635c9ebdc690d70e19cfc959bb07dc6
+  proposal_semantic_sha256: a3ce72d4bed91c4eb59a9b2001dbecc19f4789666b7e27266fdf33d982a97772
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-051
   title: Draft Proposal Next Action and Agent Explanation Guard
   outcome: accepted
@@ -373,6 +1032,19 @@ decisions:
   reason: 'Accepted to tighten the observed MCP test behavior: draft proposals should
     produce useful next actions, and explanations should be grounded in show/read
     tools.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-d257c3981c624c6f8479aa9d
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: a19719aa030cb966eeb6e75724820ccd20ca2267bf3b1377cb02491a1105d7fc
+  proposal_semantic_sha256: a51f854caa815739f9ae86d1ce3bc229f32c571c0956ff248274967eb44738f3
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-052
   title: MCP Proposal Contribution Tool
   outcome: accepted
@@ -380,6 +1052,19 @@ decisions:
   path: .p2p/proposals/PROP-052-mcp-proposal-contribution-tool/decision.md
   reason: 'Accepted as MCP Level 5A: adding contributions is a safe way to reduce
     duplicate proposal proliferation without opening governance decisions.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-80ae1c5125d02c0714c372b0
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: a26388efccb447a8aaf8454e78e20bf54e0b9e066f9f2221738b7fda9bec789d
+  proposal_semantic_sha256: 3ccd2a9252f89c54062ceaadab5bcc7771a57a431c72b85c4d55c45ee96f742c
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-053
   title: Core Validation Layer MVP
   outcome: accepted
@@ -387,6 +1072,19 @@ decisions:
   path: .p2p/proposals/PROP-053-core-validation-layer-mvp/decision.md
   reason: Accepted to harden the deterministic core before packaging, Rust migration
     planning, or owner-gated MCP mutations.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-b3ff0dbff17a424fc4908a11
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 684d77a79b9793a60e5656935a1bf35edd746ab9a0e359fe14a9882131803bd8
+  proposal_semantic_sha256: c0431fd91dff742d88fcd988439b74096f47ae40f57a5451f4f4d0a724249bec
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-054
   title: Project Readiness and Maturity Assessment
   outcome: accepted
@@ -394,6 +1092,19 @@ decisions:
   path: .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/decision.md
   reason: Accepted to add an explainable deterministic project readiness assessment
     before subjective maturity rubrics, packaging, or owner-gated automation.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-1f058faadb452a7254749467
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: dad2821aaa2fa12a0d1705785656c2b982c2cde421a169272012eb03a2ff06b0
+  proposal_semantic_sha256: cb58d07e4901b17e8032046b14fadca519ea4061725e773fd724b8b49e3c3302
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-055
   title: Agent Token Budget and Context Discipline
   outcome: accepted
@@ -402,6 +1113,19 @@ decisions:
   reason: 'Accepted as the C-light MVP: combine skill policy, CLI compact context,
     and MCP compact context to reduce agent token consumption without adding advanced
     token estimation yet.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-722e8d72ceb428111005e047
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 3fb8726465550f533b2c9c5ec24cae9742ab9994f665fd2e01c1a39892576684
+  proposal_semantic_sha256: bca94d59d2fcd9e5ca654ac2e8637e7b2f40281dbc881f42a3e1bb9c243faa3f
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-056
   title: Project Definition Maturity Rubrics
   outcome: accepted
@@ -409,6 +1133,19 @@ decisions:
   path: .p2p/proposals/PROP-056-project-definition-maturity-rubrics/decision.md
   reason: Accepted to distinguish structural readiness from project definition maturity
     and introduce extensible domain rubrics as deterministic drivers for export readiness.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-0619ce664d038ebb0f909ce6
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 9c45ad593e333c3b063d13c5b9bdbf6d093e2f3e799b7f162a3f3dd004e54d05
+  proposal_semantic_sha256: a733a15eb9a62337601605a1e3363bf95e2beec0fc86eb88b1d0c3f8d35c28b0
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-057
   title: Guided Rubric Selection During Init
   outcome: accepted
@@ -416,6 +1153,19 @@ decisions:
   path: .p2p/proposals/PROP-057-guided-rubric-selection-during-init/decision.md
   reason: Accepted to close the domain-to-rubric onboarding loop by letting the owner
     confirm which suggested criteria drive project definition maturity.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-08db8f45bb1be38e2e48d6f6
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 4c52e1bdc9ec39714b4ed7e77def0489c6f7d66c8a51fdd892cd42b7aa548cd4
+  proposal_semantic_sha256: 31402ea14576ae8c88ad363896cbb261f48cdb73a09f306e62c7b043c54fd68d
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-058
   title: Project README and Installation Guide
   outcome: accepted
@@ -423,6 +1173,19 @@ decisions:
   path: .p2p/proposals/PROP-058-project-readme-and-installation-guide/decision.md
   reason: Accepted to make the repository self-explanatory for new users now that
     Core, CLI, MCP, context, and maturity rubric MVPs are implemented.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-70b99ea933b3d37b3b6991d2
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 86c82dbf6b25a17cb8e9495e0cd7bb55eb39abde6a882da82ddf680c5aed37ba
+  proposal_semantic_sha256: 3040415891815158f60d39c5dd09e352a7155df76ef5f9791e5f32ece06616bb
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-059
   title: P2PWorkspace Modular Refactoring Plan
   outcome: accepted
@@ -432,6 +1195,19 @@ decisions:
     alternatives, compatibility constraints, first deliverable, first future extraction,
     and specs binding boundary. This is an explicit owner decision despite the automated
     readiness score remaining weak.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-f6946a3894334b7cbd16107a
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 0032b6e1e6b3071afbc0333aeb7c6fd0bc8adaacbcabf969fd5db2c676e68f67
+  proposal_semantic_sha256: be26a7551fd4374b71a34a37bb4be8e6f6ffeb8d42d892fb0ebd585535a165c9
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-060
   title: Real Test Coverage Reporting
   outcome: accepted
@@ -442,6 +1218,19 @@ decisions:
     threshold, HTML artifact, default per-change run, test impact routing, or user-facing
     project evidence coverage is included; deterministic validation routing remains
     in PROP-098.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-a092a072fe5b20e723d91675
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 913aed5067fb3b22e2b29988b1fb0de796cb4a9916ad2ece4315e79bf0940f4a
+  proposal_semantic_sha256: fb5c23a06c345499f4943c4f7b62924c2a59578eaf94bff31d343994eca67240
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-061
   title: Focused README and Documentation Map
   outcome: accepted
@@ -449,6 +1238,19 @@ decisions:
   path: .p2p/proposals/PROP-061-focused-readme-and-documentation-map/decision.md
   reason: Accepted to keep README focused on the p2p-engine repository and add a clear
     documentation map before expanding detailed guides.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-74ae67987198996d2ec1a38b
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: dc554cef819d075b120f32d3f5801cad1e1e51fad596accea6ce9f6d5dd85480
+  proposal_semantic_sha256: 8e986a42684d806ffa74c3df05f47886faaa81e04be6c671170927308794eecd
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-062
   title: README Product Landing Page Refinement
   outcome: accepted
@@ -456,12 +1258,38 @@ decisions:
   path: .p2p/proposals/PROP-062-readme-product-landing-page-refinement/decision.md
   reason: Accepted to make the public README more effective as the p2p-engine landing
     page while keeping future hosted layers out of scope.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-d8749ca430a1bd6f81ee1e0e
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 0129ed220fce64fccb499f440863e48092d7cec8bceb4153da2ef91dd481269c
+  proposal_semantic_sha256: dab547f3777d14e0d2ed6c26437fe798444d5f4e38505f3f3ba4f462daf16858
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-063
   title: Public Documentation Gap Closure
-  outcome: pending
-  status: draft
+  outcome: undecided
+  status: undecided
   path: .p2p/proposals/PROP-063-public-documentation-gap-closure/decision.md
   reason: ''
+  effective_state: undecided
+  head_event_type: null
+  head_event_id: null
+  event_count: 0
+  authority_resolution: resolved
+  active: false
+  ever_active: false
+  proposal_binding_status: current
+  decision_semantic_sha256: null
+  proposal_semantic_sha256: 14ca72e55fc56b5c6e44dd95efb335e166613c83070587056b4ca5a9de6a2d87
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-064
   title: Spec Kit Three-Prompt Export Model
   outcome: accepted
@@ -472,6 +1300,19 @@ decisions:
     discontinuous ideas and contributions into an organized project definition while
     supporting the decision flow. Exports should therefore be agent-first project
     definition and prompt/document outputs derived from accepted P2P memory.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-609d507c972355fea54acd3c
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: c7ea963d4220f29c97a7059a0b0e981f65325eb41d3773fcfa110d47e11308b3
+  proposal_semantic_sha256: 63dd6337df2fd53fadf280deb13c599730e902b5bfb512f4c2194527ac265a38
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-065
   title: MCP Agent-First Coverage Expansion
   outcome: accepted
@@ -480,6 +1321,19 @@ decisions:
   reason: Accepted to expose priority 1 read-only, priority 2 write-safe deterministic,
     and priority 3 prompt/advisory MCP tools while preserving owner-only governance
     boundaries.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-f662a92ee466a07eafcb46b8
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 9e654834d6e191b0ab69a97aeae7ec0c3c578ee59001aff13e2d4fceda6fb3f4
+  proposal_semantic_sha256: faff30cbbbc013097b2b092afecac14c0a4e594ebb6f5a47d39226e124505670
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-066
   title: Permission-Gated MCP Governance And Git Operations
   outcome: accepted
@@ -488,6 +1342,19 @@ decisions:
   reason: 'Accepted as the permission-gated MCP model: project-declared roles, owner/contributor
     fallback identities, consent receipts for privileged operations, audit records,
     and Git provider enforcement for cloud-backed repositories.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-41d214f07fc04f5872539575
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 70cd014fc145bfa64fb696e3efe7eabf4633ee546207b0f4ef71661747431d90
+  proposal_semantic_sha256: 45b9a91e5a59ca92c860e3c6f8de627e9e964f70f4ccf62785e63122e31eaa8a
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-067
   title: Agent-First Setup Documentation Split
   outcome: accepted
@@ -495,6 +1362,19 @@ decisions:
   path: .p2p/proposals/PROP-067-agent-first-setup-documentation-split/decision.md
   reason: Accepted to align public setup documentation with the agent-first new-project
     workflow and move P2P Engine contributor setup into CONTRIBUTING.md.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-2b8cc77fdf4e41b467d96a32
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 7386d1b46345cbac0ef42bef1e7332adec9864eb06ad3fb2a5bbb3d22935b5e3
+  proposal_semantic_sha256: 9aab4486bbdcfc52933a5257d66b8bbcd3f7d1bd2a82389310a9117d078da14c
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-068
   title: Document Agent MCP Client Setup Commands
   outcome: accepted
@@ -502,6 +1382,19 @@ decisions:
   path: .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands/decision.md
   reason: Accepted to make new-project MCP client setup copy-pastable for verified
     agent environments while keeping contributor setup isolated in CONTRIBUTING.md.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-661c3c04dcda79edc6d5d97a
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: d3f0a717e2981aa302ec947172b1ccec41c776b46f19a8d4c309bee073728ff7
+  proposal_semantic_sha256: 31c99448ec58ee1dbbe0282b356d8c9daa311755c9fa23bd42211e128a05f875
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-069
   title: Clarify MCP Stdio Integration Model
   outcome: accepted
@@ -509,6 +1402,19 @@ decisions:
   path: .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/decision.md
   reason: Accepted to make MCP stdio setup and client integration semantics precise
     before public users rely on the install docs.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-1c74a1b02b4379e2915f4854
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 652a03997166b328844ce8c6fbaddab6c972fa2091aa3d4dd3e66419a19f3fee
+  proposal_semantic_sha256: 803cf4afd450f36101b5acbaa29acd015a7cda0357050859c196ad3ac3dd1f2f
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-070
   title: Clarify README Agent Access Modes
   outcome: accepted
@@ -517,6 +1423,19 @@ decisions:
   reason: 'Accepted to clarify README quick start semantics: agents can use CLI or
     MCP, and MCP is intentionally limited until permission/ownership governance is
     decided.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-b67e941a7f11fb901bb90d11
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: f8541318d3f9114ad43adda15d9123dd43aa643ec44988b8f27909d764e3d76f
+  proposal_semantic_sha256: 11252489bc42c362fb2126ec337f22d7e2194b1df26b221d253fb2d3311df3cf
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-071
   title: Custom Domain Definition Workflow
   outcome: accepted
@@ -524,6 +1443,19 @@ decisions:
   path: .p2p/proposals/PROP-071-custom-domain-definition-workflow/decision.md
   reason: Accepted to make domain and rubric initialization explicit and template-based
     across all projects, with custom/none treated as unresolved setup work.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-db12e1eb148c58478bc49735
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: bbc7af42a43a1ef2262405b2f2a620e716dd951a4ace1c7ff33b419f85746300
+  proposal_semantic_sha256: d04ec51ac0be642246309d326d5edc843ef9ebec4842a5c8e17124b01005284b
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-072
   title: Concurrent Managed Work and Merge Decision Model
   outcome: accepted
@@ -532,6 +1464,19 @@ decisions:
   reason: Accepted as the core CLI-facing collaboration model for concurrent proposal
     branches, managed remote sync, candidate Work selection, safe proposal ID collision
     handling, and agent-safe Git abstraction.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-a4ce1762234efae2fce2c253
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 501801c774ce9b98db0bf45d741279f173c9fefbdb4aa24d49660ab5ecdb0ac7
+  proposal_semantic_sha256: 2cbd8cb8a604c5834d37218321917f688b78757d31939265f2b62260a6514584
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-073
   title: Ergonomic Remote Project Initialization
   outcome: accepted
@@ -541,6 +1486,19 @@ decisions:
     init must validate repository mode, configure P2P remote profile ergonomically,
     detect Git origin/profile divergence, and provide actionable recovery without
     requiring raw Git knowledge.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-360e17a4067a1365afbfde03
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 277f779d51411290c496a200baa7df894cfb798f7b886e605eb4a17700a20389
+  proposal_semantic_sha256: 605b7f9b3d6e70efae34db98d34ff6bfaa565709eca73501519c8703364e9e11
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-074
   title: Agent Runtime Bootstrap Robustness
   outcome: accepted
@@ -550,6 +1508,19 @@ decisions:
     runtimes when the p2p executable is missing or not on PATH, by adding runtime
     diagnostics, documented discovery fallbacks, and actionable recovery while preserving
     the Missing Primitive Rule.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-4e2cc6ff61af6eefc51307ba
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 3ada67365ca647d7d4549a414325e957b3a6322538f416f7b364141d86334927
+  proposal_semantic_sha256: db3e128500aae5b22c72e0b47b4313e6d3950a1ad25b1ea0029849e7c5a02a53
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-075
   title: MCP End-To-End Proposal Collaboration Workflow
   outcome: accepted
@@ -560,6 +1531,19 @@ decisions:
     branch from an explicit safe base, request owner consent without granting it,
     and then use existing permission-gated publish/review tools once owner consent
     is granted.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-2ceabb86e28cae9b1ef1c07f
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 79f7758bc79e1181438c9728846bd2181277e2202be11f78b00c2c40877be983
+  proposal_semantic_sha256: 686a421762439e6eeb279fd91ac247b06784475fb527370e1e52e61d57f3540c
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-076
   title: P2P Cloud Runner Boundary and Containerized Execution Model
   outcome: accepted
@@ -568,6 +1552,19 @@ decisions:
   reason: 'Accepted as the architectural boundary for future cloud work: P2P Engine
     remains local CLI/filesystem/Git/local-MCP, while P2P Cloud owns web/API/auth/UI/workflows/database
     and invokes P2P through isolated runner containers.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-3d548bebf715932a059ace7c
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 71bd1a857a7e3ede66405d9d430647f03deaa962f6d7fc85985da4b2ea3ee9ce
+  proposal_semantic_sha256: fd2cb6aa3b16cb0f9407a7bc6d094b1ab191f41c8d1d872712611bf4d3ceaa17
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-077
   title: Permission-Gated Draft Proposal Decisions via MCP
   outcome: accepted
@@ -575,6 +1572,19 @@ decisions:
   path: .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/decision.md
   reason: Owner requested this refinement after real MCP usage exposed that draft
     proposal rejection was not available as a permission-gated MCP operation.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-5a6828b39348afde1ac4057c
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 2a9ab636534612f64008d5e2db899f043dae64493f8b6fefb6a16b36f412d8c1
+  proposal_semantic_sha256: 9cb10765a6a5f3650c943e6d8b8e852119b529733be37baff6f5d515a1822a39
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-078
   title: Project-Local Wheel Installation and Upgrade Model
   outcome: accepted
@@ -582,6 +1592,19 @@ decisions:
   path: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/decision.md
   reason: Owner approved project-local wheel installation as the transitional packaging
     model before public package distribution.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-17511e4112d3eb8d5006f03c
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 9557c65f2432579bfdafa6992aaac67602090e7c84d2a502972e03e8b1f23bf8
+  proposal_semantic_sha256: 8a121f02084f34cb6d1d8f9692342ba02b7867d53d75188093244c54ccad50d9
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-079
   title: Managed Next Action Lifecycle
   outcome: accepted
@@ -589,6 +1612,19 @@ decisions:
   path: .p2p/proposals/PROP-079-managed-next-action-lifecycle/decision.md
   reason: Owner selected the hybrid generated plus curated next-action model and requested
     implementation.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-ca0b2e2e247f5cb8177812d3
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 4f47baf782881dd1ac69604687c41948f14d6682103ba36dd2ae3a23451c3bca
+  proposal_semantic_sha256: 033a5eea1390fd5288e795bec234e7236195827fec34448fccc872bc0ff779b3
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-080
   title: Automated GitHub Release Wheel Publishing
   outcome: accepted
@@ -596,6 +1632,19 @@ decisions:
   path: .p2p/proposals/PROP-080-automated-github-release-wheel-publishing/decision.md
   reason: Owner approved automated tag-triggered GitHub release publishing to replace
     the manual wheel upload path.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-c803ff7b0db4bc7e327d16f0
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 5cf3b798ae898e4eb7cb575f1b6b8ab58a369e95f200507c8816d8330c29b93d
+  proposal_semantic_sha256: 99f9b4d616778f52599a29911fa0db51cc58ace558033e2e833ff08dae42f904
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-081
   title: MCP and Skill Support for Managed Next Actions
   outcome: accepted
@@ -603,6 +1652,19 @@ decisions:
   path: .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions/decision.md
   reason: Owner requested MCP and skill alignment for the newly implemented managed
     next-action lifecycle.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-4f801b7836715b90ed233095
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 5376442856142dc38457b2084f994ed57087b910bc476961d86aacf4f43d4721
+  proposal_semantic_sha256: e12de6022114b0a6407562db34a8fa58140a627d213911df490634a8c0b267a8
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-082
   title: Readiness Assessment Refresh And Review Workflow
   outcome: accepted
@@ -611,6 +1673,19 @@ decisions:
   reason: Owner confirms the refined second-slice direction for artifact-aware proposal
     questions, stepped readiness-driven agent assertiveness, evidence-aware readiness
     recalculation, and proactive low-readiness interview behavior.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-042338e7885e5d5de38e91a1
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: a5293fc385f9061f8a0c591a2b86b0792f86d53f941cefc8b7b4c635e520c70b
+  proposal_semantic_sha256: d32d1065dad3fad2249af3de38ab5773037f53e09e578e1f0d1cfb795754b9cb
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-083
   title: Domain-Aware Visible Project Definition Export
   outcome: accepted
@@ -620,6 +1695,19 @@ decisions:
     has no missing gaps after refinement, but computed score remains partial because
     the current readiness profile is conservative and keeps confidence low for artifact-derived
     assessments.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-bd33295c27d038f9908d06e3
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: a37fc92b9c79f93af6ebd0477c71587d879fbcc11b448341e28a1b87de4113ea
+  proposal_semantic_sha256: 9042ee9a8e82bb3a25e18227a870e7cd5b0e8b92ecd8df3a660b80c84551d799
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-084
   title: Project-Local Runtime Bootstrap And Upgrade Flow
   outcome: accepted_with_changes
@@ -630,6 +1718,19 @@ decisions:
     validation, and a contract-aware governed-write gate. Mandatory setup scripts,
     install/reconcile managers, release resolvers, wheel/digest/source metadata, environment
     mutation, and automatic fallback are out of scope.'
+  effective_state: accepted_with_changes
+  head_event_type: accepted_with_changes
+  head_event_id: PDE-8dcc66c7d70a5b8ca9b18209
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: e3d9f636f7a53d28d21216e1e75df4c1c441275b1633212c812ffc4c989ee66b
+  proposal_semantic_sha256: a0529b144cc00f72750f69c0bbe89ccebfb20962bac1c9070014a43aab99f756
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-085
   title: Pluggable Project Verticals And Readiness Orchestration
   outcome: accepted
@@ -639,6 +1740,19 @@ decisions:
     pluggable pure-data project verticals, base_project, custom vertical candidate
     flow, project readiness review, and proposal-to-vertical traceability while preserving
     backward compatibility.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-bfc14622b8e2748a30b2db0a
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 78b95a7dae26ba6445d034fabc2e1a951ba1a11ddcc75259011edead14d4dae3
+  proposal_semantic_sha256: b23b620d31b5e44535406ed884a38fcdce807cdbc8330f81e86277a692b336f2
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-086
   title: Artifact-aware Proposal Readiness And Agent Interview Orchestration
   outcome: accepted
@@ -650,6 +1764,19 @@ decisions:
     graduated-by-risk artifact requirements, default coverage for new proposals, advisory
     absent_legacy handling for old proposals, strict CLI/MCP-only memory mutation,
     and tests for readiness/context/MCP/missing-primitive behavior.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-12499f915ac68a11df8f790f
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 7791fdfff8855def782e1263bc6d84f7f58135dea70fe5c440ed9cdad30d69d1
+  proposal_semantic_sha256: 425cf61ad4aeea9bdd8118bd4f8755f750fe8d85df02bdc01d0590edbbb49cc9
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-087
   title: Agent Personality Model For Decision Mediation
   outcome: accepted
@@ -658,6 +1785,19 @@ decisions:
   reason: Accepted by owner. The proposal is decision-ready and defines a project-level
     interaction_style model with three explicit scales, defaults, CLI/MCP surfaces,
     generated instruction updates, and no persisted presets.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-7974b74bc80506dd96bd98a8
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: e6beff120e8eeff9010757cef20f363e476dbd794da8f40dfb5f61b20578d6cd
+  proposal_semantic_sha256: 488b01fb0c0a5aaeb79b31d866f2f571093364e7790cfa6156f3876318503e19
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-088
   title: MCP Artifact Import Parity
   outcome: accepted
@@ -670,6 +1810,19 @@ decisions:
     and keeps generic unmanaged artifact import deferred. Readiness is decision_ready
     with score 100; remaining Q001 answered-not-applied signal is treated as a lifecycle
     bookkeeping anomaly because proposal.md reflects the accepted scope.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-c0e6fb2a99fa8f913bf87c3e
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 5595e622fbc050d478f566a8894cfa2639f532e7c08f7920398aad6e5f23c028
+  proposal_semantic_sha256: 675e2b0a7f1b608ae20f03d4a91b37ea0aa5047e8ea99f261980bcd94ec67b43
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-089
   title: Readiness Question-State Convergence
   outcome: accepted
@@ -680,6 +1833,19 @@ decisions:
     with focused readiness/question tests, CLI/MCP contract tests, full pytest, and
     p2p validate. Computed readiness remains partial at 70, but there are no failed
     gates, missing artifacts, suggested next actions, or eligible owner questions.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-0a2498d3fcdd4b96e0dd9c08
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: ad24260657b2fa59962f54358e656cee84e152fce774e24cd052dd9b663763fa
+  proposal_semantic_sha256: 5c355719893d32a6ec1077a7c8056805e5e80fd0fc54f1429626fd39961397fc
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-090
   title: Project Vertical Pack Runtime Hardening And Definition State
   outcome: accepted
@@ -688,6 +1854,19 @@ decisions:
   reason: Owner reviewed the refined production hardening proposal, confirmed no further
     changes are needed, and accepts it as the follow-up to PROP-085 for project vertical
     pack runtime hardening and definition-state production readiness.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-677c1d9bff19a26b755298d7
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 48632dd4c6beebbe284ffd2c8b3106a8c03b022b6e2e74b268a5d8517018007d
+  proposal_semantic_sha256: 16730f0964406e5f35ca175b6683b882e471a359d2b0f2fcaf99438426d52456
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-091
   title: Governance Policy Convergence
   outcome: accepted
@@ -699,6 +1878,19 @@ decisions:
     Convergence with owner_decides as default, deterministic preflight, explicit precedent
     lookup, warning/blocking semantics, actor-role migration, and read-only/low-risk
     MCP phase 1.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-c4807cff1d66a97d62e3c451
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: b3573ac5b0e0be944dad52afc25b36a59b6259305c1997273d166f3f2f9b46e2
+  proposal_semantic_sha256: 88d3140970165380c1c76f18de584755528db6fe5e8e73e79a7a2833ce26161e
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-092
   title: Local MCP Work Lifecycle Parity And Remote Gateway Boundary
   outcome: accepted
@@ -708,6 +1900,19 @@ decisions:
     Engine exposes the full Work lifecycle through local MCP using domain-specific,
     permission-gated commands, while remote multi-user MCP remains a separate Wavekit
     gateway boundary.'
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-43ee93f4bad029501144e656
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 73e6a51ac7b74ca441ae6cadb249f74be04ce2ed3a1b5f515c93c544e46f45b8
+  proposal_semantic_sha256: f933d9491e419718f31dcca743997c51b5f628a0509b125949da22cb8e428cf9
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-093
   title: Agent Persistence Boundaries And Proposal Authoring Flow
   outcome: accepted
@@ -715,6 +1920,19 @@ decisions:
   path: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/decision.md
   reason: Owner accepted PROP-093 after scope-lock refinement, readiness score 100,
     and validation confirming the proposal is decision-ready for implementation.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-c12a5a5335a0654dc56448de
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 705417572765e77e4d965759fa724879504b9b6e569ee06418d316cc41eb1cc8
+  proposal_semantic_sha256: bbe4b88e3f5963c47d43cd477e73dd5b39acc1cdd010b35b75537362eac2a402
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-094
   title: P2P-Governed Software Specification Lifecycle
   outcome: accepted
@@ -722,6 +1940,19 @@ decisions:
   path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/decision.md
   reason: Owner accepted after review; readiness is decision_ready with no missing
     gates or blocking questions.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-b948a4d0fffef8cca8d60c06
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 79da00bcc5c503fc5cd4227084bc9b9aafd1428627284cbd7ee91ed027d7eaa5
+  proposal_semantic_sha256: e2c4fd7e1f9f6d8efd9cd5ae8333c14c2972cc604d31e9fa72404f79343e6b73
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-095
   title: Project Runtime Contract Update Lifecycle
   outcome: accepted
@@ -729,6 +1960,19 @@ decisions:
   path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/decision.md
   reason: Owner accepts the runtime contract update lifecycle after readiness reached
     decision_ready with all Q001-Q016 decisions applied and no missing evidence.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-72b6ee4f2bee15dc3c351628
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: d17f5f4ade0dd04f0fd3e15570e68332029d78029fbc6958a251dbc651f889fa
+  proposal_semantic_sha256: 17928b2e221350991f55e4b127a473627a45dc9da3b0f406dd09b3d762b98186
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-096
   title: Readiness Evidence Quality and Question State Normalization
   outcome: accepted
@@ -736,6 +1980,19 @@ decisions:
   path: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/decision.md
   reason: Owner accepts the readiness evidence quality and question state normalization
     fix after readiness reached decision_ready and the bug scope was fully bounded.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-96cf784b12e1ef5801ed0303
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: a2cd5cc59a9a249bfc86b83acc9891f50895efc55a9628ca8d88aad62732f5b3
+  proposal_semantic_sha256: 6a5826e627f5a116e0651983a00d461e943386c8965b4a30421b6affaf571705
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-097
   title: Runtime Contract Adoption For Legacy Projects
   outcome: accepted
@@ -743,12 +2000,38 @@ decisions:
   path: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/decision.md
   reason: Owner accepted runtime contract adoption for legacy projects to close the
     undeclared contract state without manual .p2p edits.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-5a0f2b63295bd014ed1db83d
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: b14e73073ea66a1d8ce0c83c653716cbaa6c5cdbb20d90907bc17d8cf3e4f599
+  proposal_semantic_sha256: 02ac6aff3bcaca0f0b938b60eb1b054718f774e9132d93f6b45e48c7e6d0ac27
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-098
   title: Test Impact and Validation Routing
-  outcome: pending
-  status: draft
+  outcome: undecided
+  status: undecided
   path: .p2p/proposals/PROP-098-test-impact-and-validation-routing/decision.md
   reason: ''
+  effective_state: undecided
+  head_event_type: null
+  head_event_id: null
+  event_count: 0
+  authority_resolution: resolved
+  active: false
+  ever_active: false
+  proposal_binding_status: current
+  decision_semantic_sha256: null
+  proposal_semantic_sha256: 99e7aaeef40d0959ecc5f1e5dcdcb27cb44bbd7c81e65de7790641a1fb0172d5
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-099
   title: Project Output Lifecycle and Retention Policy
   outcome: accepted
@@ -756,6 +2039,19 @@ decisions:
   path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/decision.md
   reason: Owner accepts the decision-ready human project publication pipeline as the
     direction for readable, vertical-aware project outputs.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-5ef0ae2e007f0b6e55b94013
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: a7eef08e06ed144e46cadc58b7e14050adef348f31a97e99dacbc1d5c3a1616e
+  proposal_semantic_sha256: 3aa087de6987ac5c32fb7d5b02fbb029285939caa588e67a70ac2bab33523541
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-100
   title: Project Decision Context Index and Proposal Neighborhood
   outcome: accepted
@@ -766,6 +2062,19 @@ decisions:
     slices. Governed artifacts remain authoritative; public integration requires the
     defined performance and compatibility gates, and any persistent cache remains
     a separate measured feature.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-dca2e0af8d9225336efbbf35
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: a6030e7b98871a0da42af9f9cca9533e260adf0eefe951c28c7db33944c71a8a
+  proposal_semantic_sha256: b8220a8d282b5a1d00db38264c2544c852cf938ae98f99524fa1739c7d8125c0
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-101
   title: Project Readiness Convergence Workflow
   outcome: accepted
@@ -774,6 +2083,19 @@ decisions:
   reason: The refined proposal addresses the identified readiness-convergence, schema
     migration, atomicity, authority, retry, vertical reconciliation, decision-context
     and bounded-retrieval risks with explicit delivery gates and acceptance criteria.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-543016c164d3c4566c853c74
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 393fddc0e3d2ad7b0ecfbc6bc10051aa99ba14ebcda3164221b4241e6f60641e
+  proposal_semantic_sha256: 47d92c16246ec2f341d456d5507ef39ff1152f815f2653f1899d04e152eea932
+  lineage:
+    kind: null
+    targets: []
 - proposal: PROP-102
   title: Proposal Decision Revision and Revocation Lifecycle
   outcome: accepted
@@ -783,3 +2105,16 @@ decisions:
     decisioni, distinguendo rifiuto, revoca, sostituzione e reinstatement, con autorita
     owner, migrazione legacy, impatto sui consumer e criteri di robustezza. La readiness
     e decision_ready al 100%, con confidenza alta e senza gap o gate falliti.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-568a29c09673a60b82d5ae8a
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 9515a8ba8394a52c529447f48a92829513ccce7127ce2a5378dc8f551374fc13
+  proposal_semantic_sha256: 87c69d8a92dd62ac2ea47b6d020cee70dc8c2efaf159d68fc884322e9448131c
+  lineage:
+    kind: null
+    targets: []

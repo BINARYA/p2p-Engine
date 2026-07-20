@@ -1,0 +1,80 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-083
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-bd33295c27d038f9908d06e3
+  events:
+  - event_schema_version: 1
+    event_id: PDE-bd33295c27d038f9908d06e3
+    operation_key: P2POP-9eeefcabd9733775cd740f1b
+    proposal_id: PROP-083
+    event_type: accepted
+    effective_state: accepted
+    rationale: Owner accepts the domain-aware visible project definition export. Readiness
+      has no missing gaps after refinement, but computed score remains partial because
+      the current readiness profile is conservative and keeps confidence low for artifact-derived
+      assessments.
+    conditions: []
+    decided_on: '2026-06-08'
+    authority:
+      owner_id: mrjungle
+      owner_role: owner
+      executor_actor_id: mrjungle
+      executor_kind: person
+      channel: workspace_migration_owner_attestation
+      permission_policy_sha256: 58980cd2d346a83f0d8b3db387175d47ace0bb719878b3dc33127f503a8fc29c
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 9042ee9a8e82bb3a25e18227a870e7cd5b0e8b92ecd8df3a660b80c84551d799
+    decision_semantic_sha256: a37fc92b9c79f93af6ebd0477c71587d879fbcc11b448341e28a1b87de4113ea
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: null
+      owner_override: false
+    mutation:
+      preview_token: 638cd3ae5affca448ea88bb9c765ab9cc8122c98dae7345df2831f462464d877
+      request_fingerprint_sha256: 3ca0247336402082d6dfa67aed7997acaa225785593bc6d438ec5917b37652db
+    migration:
+      migration_id: workspace-v2-to-v3
+      source_paths:
+      - .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/proposal.md
+      - .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/decision.md
+      source_sha256:
+        proposal.md: 8504238148451e225db6c051259826c31dabf6c4626e29e0101ad65df1477b41
+        decision.md: d06876a7f78f4c726f69798c381d213390788e95cda7463b8fe4b2b152e9d47d
+      preserved_values:
+        proposal_status: accepted
+        decision_status: accepted
+        outcome: accepted
+        reason: Owner accepts the domain-aware visible project definition export.
+          Readiness has no missing gaps after refinement, but computed score remains
+          partial because the current readiness profile is conservative and keeps
+          confidence low for artifact-derived assessments.
+        approver: owner
+        decided_on: '2026-06-08'
+        owner_attestation:
+          attestation_contract_version: 1
+          owner_id: mrjungle
+          legacy_status: accepted
+          legacy_approver: owner
+          decided_on: '2026-06-08'
+          source_sha256:
+            proposal.md: 8504238148451e225db6c051259826c31dabf6c4626e29e0101ad65df1477b41
+            decision.md: d06876a7f78f4c726f69798c381d213390788e95cda7463b8fe4b2b152e9d47d
+    event_sha256: 908f30fef115a30458c9af276aa2a4c71ffd26d41650db1e7907347b0cc7e943
+  legacy_evidence: []
