@@ -187,6 +187,38 @@ class WorkspaceSchemaStatus:
 
 
 @dataclass(frozen=True)
+class WorkspaceSchemaPreflight:
+    schema_path: str
+    state: str
+    layout_status: str
+    current_version: int | None
+    target_version: int
+    contract_version: int | None = None
+    recovery: Mapping[str, object] = field(default_factory=dict)
+
+    @property
+    def inspectable(self) -> bool:
+        return self.layout_status not in {LAYOUT_INVALID, LAYOUT_UNSUPPORTED}
+
+    @property
+    def migration_required(self) -> bool:
+        return self.layout_status == LAYOUT_LEGACY
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "schema_path": self.schema_path,
+            "state": self.state,
+            "layout_status": self.layout_status,
+            "current_version": self.current_version,
+            "target_version": self.target_version,
+            "contract_version": self.contract_version,
+            "inspectable": self.inspectable,
+            "migration_required": self.migration_required,
+            "recovery": dict(self.recovery),
+        }
+
+
+@dataclass(frozen=True)
 class ArtifactInventoryEntry:
     path: str
     classification: str

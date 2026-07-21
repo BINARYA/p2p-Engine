@@ -6,6 +6,8 @@ from pathlib import Path
 
 import yaml
 
+from p2p_engine.foundation.yaml_loaders import load_yaml
+
 from p2p_engine.core.interaction_style import (
     ASSERTIVENESS,
     FORMALITY,
@@ -153,7 +155,7 @@ class ProjectInteractionStyleService:
 
 
 def _read_yaml_mapping(path: Path) -> dict[str, object]:
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    data = load_yaml(path.read_bytes())
     if not isinstance(data, dict):
         raise ValueError(f"Invalid interaction style YAML mapping: {path}")
     return data

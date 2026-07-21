@@ -1,0 +1,88 @@
+schema_version: 2
+pipeline: human_project_publication
+publication_role: human_project_language_edition
+governance_authority: derived
+source_of_truth: .p2p/
+edition:
+  output_name: project
+  language: it
+  path_language: it
+  key: project-it
+updated_at: '2026-07-21T16:33:14+00:00'
+source_state:
+  fingerprint_version: 2
+  fingerprint_sha256: cc52e887730dd3c6ca238574f9c0f06f74a139077084ac7799d0eaeb76f759b9
+  input_count: 2474
+stages:
+  source_export:
+    path: outputs/latest/project.md
+    source_fingerprint_sha256: cc52e887730dd3c6ca238574f9c0f06f74a139077084ac7799d0eaeb76f759b9
+    sha256: f7a8d13d0471d4845d4e55e5a9bc0acf6233b1427ee0c1d1a8ec63d53352e009
+  evidence_index:
+    path: outputs/latest/publication-evidence.yml
+    source_fingerprint_sha256: cc52e887730dd3c6ca238574f9c0f06f74a139077084ac7799d0eaeb76f759b9
+    source_sha256: f7a8d13d0471d4845d4e55e5a9bc0acf6233b1427ee0c1d1a8ec63d53352e009
+    semantic_sha256: 848d5959c20c86ebd3509cec4ee5caf4bc6d9f56632bbaa0d7987d163e455579
+    sha256: 5685fc281c49701a8e9f62fde31e2bf68a9a68eba253f35d0de6b7abcf3aa433
+  profile:
+    path: outputs/latest/publications/project-it/profile.yml
+    profile_id: human-project-publication-v2
+    sha256: 88cec0b18502eed762b845593a61129f21e974d2abb4730ab36df9b67255463e
+  curator_packet:
+    path: outputs/latest/publications/project-it/curator-input.md
+    source_fingerprint_sha256: cc52e887730dd3c6ca238574f9c0f06f74a139077084ac7799d0eaeb76f759b9
+    source_sha256: f7a8d13d0471d4845d4e55e5a9bc0acf6233b1427ee0c1d1a8ec63d53352e009
+    evidence_sha256: 5685fc281c49701a8e9f62fde31e2bf68a9a68eba253f35d0de6b7abcf3aa433
+    evidence_semantic_sha256: 848d5959c20c86ebd3509cec4ee5caf4bc6d9f56632bbaa0d7987d163e455579
+    profile_sha256: 88cec0b18502eed762b845593a61129f21e974d2abb4730ab36df9b67255463e
+    sha256: 4a19abfd99a5ef48e80f8c42fd3eb703822a3425c7847789e5a498e10b4d0c13
+  model:
+    path: outputs/latest/publications/project-it/project-model.yml
+    imported_from: drafts/project-publication/project-it.model.yml
+    imported_at: '2026-07-21T16:32:47+00:00'
+    curator_packet_sha256: 4a19abfd99a5ef48e80f8c42fd3eb703822a3425c7847789e5a498e10b4d0c13
+    evidence_index_sha256: 848d5959c20c86ebd3509cec4ee5caf4bc6d9f56632bbaa0d7987d163e455579
+    source_export_sha256: f7a8d13d0471d4845d4e55e5a9bc0acf6233b1427ee0c1d1a8ec63d53352e009
+    source_fingerprint_sha256: cc52e887730dd3c6ca238574f9c0f06f74a139077084ac7799d0eaeb76f759b9
+    profile_sha256: 88cec0b18502eed762b845593a61129f21e974d2abb4730ab36df9b67255463e
+    sha256: 8dee2e7a2beea8bc01f5cc355bd2f89162ce105b04e510ad2cfaab245107329e
+  evidence_accounting:
+    path: outputs/latest/publications/project-it/evidence-accounting.yml
+    imported_from: drafts/project-publication/project-it.evidence.yml
+    imported_at: '2026-07-21T16:32:47+00:00'
+    model_sha256: 8dee2e7a2beea8bc01f5cc355bd2f89162ce105b04e510ad2cfaab245107329e
+    evidence_index_sha256: 848d5959c20c86ebd3509cec4ee5caf4bc6d9f56632bbaa0d7987d163e455579
+    sha256: ec1ecbc134c39fce5fecd10e5c0c524ee330386dc59d44497c779936a900c58d
+  curated:
+    path: outputs/latest/project-it.md
+    imported_from: drafts/project-publication/project-it.md
+    imported_at: '2026-07-21T16:32:47+00:00'
+    model_sha256: 8dee2e7a2beea8bc01f5cc355bd2f89162ce105b04e510ad2cfaab245107329e
+    evidence_accounting_sha256: ec1ecbc134c39fce5fecd10e5c0c524ee330386dc59d44497c779936a900c58d
+    curator_packet_sha256: 4a19abfd99a5ef48e80f8c42fd3eb703822a3425c7847789e5a498e10b4d0c13
+    evidence_index_sha256: 848d5959c20c86ebd3509cec4ee5caf4bc6d9f56632bbaa0d7987d163e455579
+    source_export_sha256: f7a8d13d0471d4845d4e55e5a9bc0acf6233b1427ee0c1d1a8ec63d53352e009
+    source_fingerprint_sha256: cc52e887730dd3c6ca238574f9c0f06f74a139077084ac7799d0eaeb76f759b9
+    profile_sha256: 88cec0b18502eed762b845593a61129f21e974d2abb4730ab36df9b67255463e
+    sha256: fa22a892444b33b3950a8be0eee747dd4362c2e51120e6b7fa5217cf1565ad9b
+  validation:
+    path: outputs/latest/publications/project-it/validation.yml
+    curated_sha256: fa22a892444b33b3950a8be0eee747dd4362c2e51120e6b7fa5217cf1565ad9b
+    model_sha256: 8dee2e7a2beea8bc01f5cc355bd2f89162ce105b04e510ad2cfaab245107329e
+    evidence_accounting_sha256: ec1ecbc134c39fce5fecd10e5c0c524ee330386dc59d44497c779936a900c58d
+    profile_sha256: 88cec0b18502eed762b845593a61129f21e974d2abb4730ab36df9b67255463e
+    validator_version: publication-validator-v2
+    validated_at: '2026-07-21'
+    status: passed
+    sha256: 94d4333b57dd0a1516ee4f59d9e0085341d68f7b8f225d730ce7287c2d54b41b
+  render:
+    path: outputs/latest/project-it.pdf
+    curated_sha256: fa22a892444b33b3950a8be0eee747dd4362c2e51120e6b7fa5217cf1565ad9b
+    model_sha256: 8dee2e7a2beea8bc01f5cc355bd2f89162ce105b04e510ad2cfaab245107329e
+    evidence_accounting_sha256: ec1ecbc134c39fce5fecd10e5c0c524ee330386dc59d44497c779936a900c58d
+    validation_sha256: 94d4333b57dd0a1516ee4f59d9e0085341d68f7b8f225d730ce7287c2d54b41b
+    theme: neutral-v1
+    renderer: weasyprint-neutral-v1
+    rendered_at: '2026-07-21T16:33:13+00:00'
+    status: rendered
+    sha256: 61b541e59054324f102fceaed78adccac1885d7690e625ee890f7bea8dd08bd4

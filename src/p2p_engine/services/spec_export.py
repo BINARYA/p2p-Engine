@@ -6,9 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 from p2p_engine.foundation.markdown import markdown_has_section, strip_markdown_title
+from p2p_engine.foundation.yaml_loaders import load_yaml
 
 
 @dataclass(frozen=True)
@@ -553,7 +552,7 @@ class SpecExportService:
     def _read_yaml_mapping(self, path: Path, default: dict[str, object]) -> dict[str, object]:
         if not path.exists():
             return default
-        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        data = load_yaml(path.read_bytes())
         if data is None:
             return default
         if not isinstance(data, dict):

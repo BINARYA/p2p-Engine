@@ -23,6 +23,7 @@ from p2p_engine.services.proposal_decision_ledger import (
     render_proposal_projection,
 )
 from p2p_engine.services.proposals import ProposalDocumentService
+from p2p_engine.services.workspace_reads import WorkspaceReadContext
 
 
 pytestmark = pytest.mark.unit
@@ -304,3 +305,83 @@ def test_lifecycle_map_is_stable_for_one_hundred_proposals(tmp_path) -> None:
         f"PROP-{number:03d}" for number in range(1, 101)
     ]
     assert sum(item.active for item in lifecycles.values()) == 50
+
+
+def test_lifecycle_batch_resolves_schema_and_directories_once(tmp_path: Path) -> None:
+    schema_path = tmp_path / ".p2p/project/workspace-schema.yml"
+    schema_path.parent.mkdir(parents=True)
+    schema_path.write_text("workspace_schema:\n  current_version: 3\n", encoding="utf-8")
+    proposals = ProposalDocumentService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
+    codec = ProposalDecisionLedgerCodec()
+    for number in range(1, 11):
+        proposal_id = f"PROP-{number:03d}"
+        write_v3_proposal(
+            tmp_path / ".p2p/proposals" / f"{proposal_id}-batch",
+            codec.empty(proposal_id),
+        )
+    calls = 0
+
+    def schema() -> object:
+        nonlocal calls
+        calls += 1
+        return type(
+            "Schema",
+            (),
+            {"current_version": 3, "layout_status": "current", "recovery": {}},
+        )()
+
+    service = ProposalLifecycleAuthorityService(
+        root=tmp_path,
+        p2p_dir=tmp_path / ".p2p",
+        find_proposal_dir=proposals.find_dir,
+        workspace_schema_status=schema,
+    )
+
+    values = service.evaluate_many([f"PROP-{number:03d}" for number in range(1, 11)])
+
+    assert len(values) == 10
+    assert calls == 1
+
+
+def test_lifecycle_batch_reuses_captured_ledgers_within_read_context(
+    tmp_path: Path,
+) -> None:
+    proposals = ProposalDocumentService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
+    codec = ProposalDecisionLedgerCodec()
+    for number in range(1, 11):
+        proposal_id = f"PROP-{number:03d}"
+        ledger = codec.empty(proposal_id)
+        proposal_dir = tmp_path / ".p2p/proposals" / f"{proposal_id}-batch"
+        write_v3_proposal(proposal_dir, ledger)
+        (proposal_dir / "decision.md").write_text(
+            render_decision_projection(
+                proposal_id,
+                None,
+                empty_state=ledger.effective_state,
+            ),
+            encoding="utf-8",
+        )
+    service = ProposalLifecycleAuthorityService(
+        root=tmp_path,
+        p2p_dir=tmp_path / ".p2p",
+        find_proposal_dir=proposals.find_dir,
+        workspace_schema_status=lambda: type(
+            "Schema",
+            (),
+            {"current_version": 3, "layout_status": "current", "recovery": {}},
+        )(),
+    )
+    context = WorkspaceReadContext(tmp_path)
+
+    first = service.capture_all(read_context=context)
+    second = service.capture_all(read_context=context)
+
+    assert first == second
+    assert context.counters.schema_preflights == 1
+    assert len(context.counters.ledger_parses) == 10
+    assert set(context.counters.ledger_parses.values()) == {1}
+    assert context.counters.provider_calls["proposal_lifecycle_batch"] == 2
+    assert context.counters.provider_cache_hits["proposal_lifecycle_batch"] == 1
+    assert context.counters.discovery_passes == {
+        ".p2p/proposals:proposal-directories-v1": 1
+    }

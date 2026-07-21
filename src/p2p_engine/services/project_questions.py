@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Callable, Mapping, Sequence
 
 import yaml
+from p2p_engine.foundation.yaml_loaders import load_yaml
 
 from p2p_engine.core.mutation_preview import (
     MutationPreviewService,
@@ -239,7 +240,7 @@ class ProjectQuestionStateService:
 
     def parse_bytes(self, content: bytes, *, target: str) -> ProjectQuestionArtifact:
         try:
-            payload = yaml.safe_load(content.decode("utf-8"))
+            payload = load_yaml(content)
         except (UnicodeDecodeError, yaml.YAMLError) as exc:
             raise ValueError(f"Invalid project question artifact {target}: {exc}") from exc
         if not isinstance(payload, dict):

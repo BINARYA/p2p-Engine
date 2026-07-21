@@ -1,0 +1,18 @@
+schema_version: 2
+profile_id: human-project-publication-v2
+profile_role: edition_applied_manifest
+edition:
+  output_name: project
+  language: en
+  path_language: en
+  key: project-en
+reader:
+  knowledge_of_p2p: none
+  audience_variant: false
+editorial:
+  structure: vertical_adaptive
+  traceability_in_body: false
+  contributions: auto
+  include_contributions: true
+render:
+  theme: neutral-v1

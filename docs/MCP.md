@@ -148,6 +148,14 @@ the in-memory manifest/stale contract without changing this read-only behavior.
 The index reads canonical/governed P2P evidence, not generated registries,
 decision maps, project narratives, prompts, publications or cache files.
 
+Untargeted compact context uses the vertical-aware project-memory read model as
+its primary project shape. `p2p_project_memory_status` and
+`p2p_project_memory_show` provide read-only parity with the CLI. The show tool
+uses exact section IDs, bounded results, explicit history and source-bound
+cursors. Neither tool refreshes files. Materialized project memory is derived;
+canonical `.p2p` intent remains authoritative and accepted proposals are not
+evidence of implementation.
+
 Prompt tools keep their existing output contracts. `p2p_intake_prompt` selects a
 bounded idea-text neighborhood internally, while `p2p_explore_prompt`,
 `p2p_impact_prompt` and `p2p_synthesize_prompt` select a bounded proposal
@@ -200,6 +208,8 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_workspace_migration_plan` | read-only | no | no | Build a deterministic forward-only migration plan; apply and recovery remain CLI-only. |
 | `p2p_project_progress` | read-only | no | no | Inspect independent definition-completeness and declared-evidence axes. |
 | `p2p_project_freshness` | read-only | no | no | Inspect the full derived-state graph and ordered rebuild actions. |
+| `p2p_project_memory_status` | read-only | no | no | Inspect vertical-memory contract, source fingerprint and freshness without rebuilding it. |
+| `p2p_project_memory_show` | read-only | no | no | Read a bounded aggregate or exact vertical section; history requires an explicit option. |
 | `p2p_proposal_vertical_coverage_show` | read-only | no | no | Read declared proposal-to-vertical coverage status. |
 | `p2p_proposal_vertical_coverage_suggest` | advisory/read-only | no | no | Suggest bounded section mappings without creating authority. |
 | `p2p_project_interaction_style_show` | read-only | no | no | Read effective project interaction style values and descriptions. |
@@ -302,11 +312,12 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_project_refresh` | write-safe | yes | no | Refresh generated project definition files. |
 | `p2p_project_export` | write-safe | yes | no | Export the visible human-facing project definition to `outputs/latest/project.md`. |
 | `p2p_project_export_status` | read-only | no | no | Read visible project definition export status and review snapshots. |
-| `p2p_project_publish_prepare` | write-safe | yes | no | Prepare canonical human publication inputs under `outputs/latest/` without mutating governance state. |
-| `p2p_project_publish_import` | write-safe | yes | no | Import a curated Markdown draft from a safe project-root path into `outputs/latest/project.curated.md`. |
-| `p2p_project_publish_validate` | write-safe | yes | no | Validate curated publication Markdown and write `outputs/latest/publication-validation.yml`. |
-| `p2p_project_publish_render` | write-safe | yes | no | Render validated curated Markdown to `outputs/latest/project.pdf` when `p2p-engine[pdf]` is installed. |
-| `p2p_project_publish_status` | read-only | no | no | Read stage-level publication status, staleness, validation/render/review state, and publication approval. |
+| `p2p_project_publish_prepare` | write-safe | yes | no | Prepare shared evidence and one language edition using optional `language`, `output_name`, and `contributions`. |
+| `p2p_project_publish_import` | write-safe | yes | no | Atomically import Markdown, model, and evidence-accounting candidates for one edition. |
+| `p2p_project_publish_validate` | write-safe | yes | no | Validate one edition's complete evidence/model/Markdown hash chain. |
+| `p2p_project_publish_render` | write-safe | yes | no | Render one validated edition to `<edition-key>.pdf` when `p2p-engine[pdf]` is installed. |
+| `p2p_project_publish_status` | read-only | no | no | Read stage-level status and approval for one selected edition. |
+| `p2p_project_publish_list` | read-only | no | no | List committed editions and legacy classification without rebuilding publication state. |
 | `p2p_project_vertical_list` | read-only | no | no | List internal and project-local vertical packs plus active/fallback state. |
 | `p2p_project_vertical_show` | read-only | no | no | Read one vertical pack, including inherited `base_project` sections. |
 | `p2p_project_vertical_validate` | read-only | no | no | Validate a vertical ID, `vertical.yml`, or pack directory. |
@@ -369,8 +380,11 @@ fixed proposal artifact targets and never accept, reject, defer, publish,
 merge, finalize, or otherwise decide a proposal.
 
 Project publication MCP tools write only derived files under `outputs/`. They do
-not mutate `.p2p/`, do not run an external curator/model, and do not expose owner
-review in the first slice. Owner publication review remains a CLI/human action.
+not mutate `.p2p/`, run an external curator/model, or expose owner review.
+Prepare/import/validate/render accept optional `language` and `output_name`;
+prepare also accepts `contributions`, while import accepts `model` and
+`evidence_accounting`. Omitted edition fields preserve the `project-en` default.
+Owner publication review remains a CLI/human action and is isolated per edition.
 
 Use exactly one input mode per call:
 

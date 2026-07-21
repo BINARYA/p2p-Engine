@@ -1,0 +1,898 @@
+vertical_memory_section:
+  schema_version: 1
+  section:
+    id: decisions
+    title: Decisions And Open Questions
+    purpose: Unresolved owner choices and recorded decisions.
+    required: true
+    priority: 70
+  definition:
+    status: partial
+    fields:
+      summary:
+        value: Accepted project direction keeps canonical intent in Git-backed Markdown
+          and YAML, preserves owner authority, exposes core behavior through CLI and
+          bounded MCP surfaces, uses the software_project vertical for this repository,
+          versions runtime and workspace schema independently, permits only explicit
+          forward migration, and treats registries, decision context, progress, specifications
+          and publications as derived views with provenance and freshness. Repository
+          migration decisions select owner mrjungle, the default software profile
+          and active delivery metadata, and approve canonical relation corrections
+          with no residual relation diagnostic. The first declared vertical-coverage
+          batch contains 12 owner-confirmed proposals covering 13 of 19 sections;
+          the remaining 88 proposals are intentionally legacy and unmapped, and six
+          definition-complete sections intentionally have no proposal evidence. The
+          remaining owner choice is the later publication review.
+        source: M4_owner_decisions+specs/features/workspace-schema-versioning-and-legacy-migration/implementation.md
+    required_field_ids:
+    - summary
+    missing_required_fields: []
+    assumptions: []
+    open_questions: []
+    blockers: []
+  questions: []
+  declared_questions: []
+  heuristic_suggestions: []
+  active_contributions:
+  - id: VMC-284708a8b6fb93cc95d7e6f6
+    proposal_id: PROP-091
+    title: Governance Policy Convergence
+    section_id: decisions
+    authority: resolved
+    activation: active
+    effective_state: accepted
+    head_event_id: PDE-c4807cff1d66a97d62e3c451
+    head_event_type: accepted
+    rationale: Accepted by owner after guided refinement. The proposal is decision-ready
+      with readiness score 100, high confidence, no failed gates, no missing artifacts,
+      no suggested next actions, and clean validation. It defines Governance Policy
+      Convergence with owner_decides as default, deterministic preflight, explicit
+      precedent lookup, warning/blocking semantics, actor-role migration, and read-only/low-risk
+      MCP phase 1.
+    constraints: []
+    applicability: decisions
+    coverage_rationale: Defines which governance choices remain owner-controlled and
+      how agents may prepare but not take those decisions.
+    source_path: .p2p/proposals/PROP-091-governance-policy-convergence/proposal.md
+    proposal_semantic_sha256: 88d3140970165380c1c76f18de584755528db6fe5e8e73e79a7a2833ce26161e
+    decision_semantic_sha256: b3573ac5b0e0be944dad52afc25b36a59b6259305c1997273d166f3f2f9b46e2
+    lineage:
+      kind: null
+      targets: []
+    evidence:
+    - id: VME-a595849db855e7d18119a70b
+      source_path: .p2p/proposals/PROP-091-governance-policy-convergence/proposal.md
+      source_sha256: ca516c3c2348bcb5a066133b0c68a9fbeb0b4db6bcd6769034defd3754844c93
+      fragment: "P2P Engine already has governance-aware artifacts and helper utilities,\
+        \ but they\ndo not yet form a coherent operational governance policy. The\
+        \ project can store\n`governance.yml`, `roles.yml`, `permissions.yml`, choices,\
+        \ votes, decision\nprecedents, explicit blockers, and owner-controlled decisions,\
+        \ but there is no\nsingle structured evaluation that answers these questions\
+        \ before a decision:\n\n- who is attempting to decide;\n- whether that actor\
+        \ is allowed to decide;\n- what target is being decided;\n- which governance\
+        \ mode applies;\n- whether the governance state is valid and readable;\n-\
+        \ how the proposed decision relates to votes, blockers, and precedents;\n\
+        - whether the decision can proceed normally, requires rationale, requires\
+        \ owner\n  override, or must be blocked.\n\nWithout this layer, governance\
+        \ artifacts remain useful as audit records but weak\nas decision support.\
+        \ Agents and external clients can see fragments of governance\nstate, yet\
+        \ they cannot consume a stable preflight contract that explains the\ndecision\
+        \ context in a deterministic way."
+      fragment_kind: problem
+      truncated: false
+    - id: VME-8d10157f85d22bc6b8681a6e
+      source_path: .p2p/proposals/PROP-091-governance-policy-convergence/proposal.md
+      source_sha256: ca516c3c2348bcb5a066133b0c68a9fbeb0b4db6bcd6769034defd3754844c93
+      fragment: "- Keep `owner_decides` as the current operational default.\n- Preserve\
+        \ owner authority as the final decision source for now.\n- Make votes, blockers,\
+        \ and precedents transparent decision context rather than\n  automatic decision\
+        \ makers.\n- Introduce a deterministic governance preflight contract for proposed\n\
+        \  selections and decision attempts.\n- Use `permissions.yml` as the primary\
+        \ actor and role source when available.\n- Keep `governance/roles.yml` as\
+        \ a legacy, display, or fallback artifact during\n  migration.\n- Make vote\
+        \ disagreement, ties, related precedents, reopened decisions, weak\n  consensus,\
+        \ and non-blocking concerns visible as warnings.\n- Treat structural invalidity,\
+        \ unauthorized actors, unknown targets, unsupported\n  governance modes, and\
+        \ corrupt governance artifacts as blocking errors.\n- Treat explicit unresolved\
+        \ blockers as normal-flow blockers that can be\n  overridden only by an authorized\
+        \ owner with recorded rationale.\n- Expose first-phase MCP parity through\
+        \ read-only or low-risk governance status,\n  validation, vote status, precedent\
+        \ lookup, and preflight tools."
+      fragment_kind: goals
+      truncated: false
+    - id: VME-56689f1b4972aec05787e5e9
+      source_path: .p2p/proposals/PROP-091-governance-policy-convergence/proposal.md
+      source_sha256: ca516c3c2348bcb5a066133b0c68a9fbeb0b4db6bcd6769034defd3754844c93
+      fragment: "- Do not implement a full democratic governance system.\n- Do not\
+        \ introduce quorum, weighted voting, delegation, complex voting\n  deadlines,\
+        \ or automatic vote enforcement.\n- Do not make votes automatically accept,\
+        \ reject, or decide proposals or\n  choices.\n- Do not allow agents or MCP\
+        \ tools to bypass owner-controlled governance.\n- Do not use fuzzy matching,\
+        \ semantic similarity, embeddings, title inference,\n  keyword guessing, or\
+        \ AI search in the core precedent lookup.\n- Do not expose MCP tools that\
+        \ mutate governance state or finalize decisions in\n  phase 1.\n- Do not remove\
+        \ compatibility for existing governance artifacts without a\n  migration path."
+      fragment_kind: non-goals
+      truncated: false
+    - id: VME-7ed165a1085d4c03698ed178
+      source_path: .p2p/proposals/PROP-091-governance-policy-convergence/proposal.md
+      source_sha256: ca516c3c2348bcb5a066133b0c68a9fbeb0b4db6bcd6769034defd3754844c93
+      fragment: "Introduce a Governance Policy Convergence layer.\n\nThe layer should\
+        \ evaluate governance state before finalization and return a\nstable, versioned,\
+        \ deterministic, machine-readable preflight structure. The\npreflight output\
+        \ is not a decision record. It represents a proposed selection\nand the governance\
+        \ evaluation before the final owner decision.\n\nThe initial preflight contract\
+        \ should include:\n\n- `schema_version`;\n- `target`;\n- `governance`;\n-\
+        \ `actor`;\n- `selection`;\n- `result`;\n- `blocking_errors`;\n- `warnings`;\n\
+        - `vote_summary`;\n- `blockers`;\n- `precedents`.\n\nThe `result.status` field\
+        \ should summarize one of:\n\n- `ready`;\n- `requires_rationale`;\n- `requires_owner_override`;\n\
+        - `blocked`.\n\nBlocking errors and warnings should be structured objects\
+        \ with stable\nmachine-readable codes, human-readable messages, override or\
+        \ rationale metadata\nwhen relevant, and optional references.\n\n### Authority\
+        \ And Votes\n\n`owner_decides` remains the operational default. The owner\
+        \ remains the final\ndecision maker. Votes are transparency and decision evidence.\
+        \ A proposed owner\ndecision that conflicts with the recorded vote winner\
+        \ should produce a strong\nwarning and make the contrast explicit, but it\
+        \ should not block finalization and\nshould not require a mandatory override\
+        \ reason in the current model.\n\n### Actor And Role Resolution\n\nUse a soft\
+        \ migration path:\n\n- `permissions.yml` is the primary actor and role source\
+        \ whenever present;\n- `governance/roles.yml` remains legacy/display/fallback;\n\
+        - vote and preflight flows move toward actor-based input;\n- when an actor\
+        \ exists in `permissions.yml`, the effective role is inferred from\n  that\
+        \ file;\n- legacy role fields may be tolerated during transition;\n- mismatches\
+        \ between a supplied legacy role and the inferred role produce\n  warnings.\n\
+        \n### Precedents\n\nCore precedent lookup is explicit and deterministic. The\
+        \ core considers\nprecedents related only when links are declared in versioned\
+        \ artifacts through\nstable identifiers or explicit tags, such as `related_precedents`,\n\
+        `applies_to.proposal_ids`, `applies_to.choice_ids`, or `governance_tags`.\n\
+        \nThe core must not infer precedent relationships from titles, keywords, fuzzy\n\
+        matching, semantic similarity, embeddings, or AI-based search. Intermediary\n\
+        tools may suggest links, but the core only considers those links after they\
+        \ are\nwritten back as explicit artifact relations.\n\n### Blocking And Warning\
+        \ Semantics\n\nWarnings are valid governance signals that may influence the\
+        \ owner decision but\ndo not prevent finalization by themselves.\n\nBlocking\
+        \ errors are conditions where the core cannot reliably establish the\ndecision\
+        \ actor, decision target, governance mode, or integrity of governance\nstate.\n\
+        \nInitial non-overrideable blocking errors include:\n\n- missing, unknown,\
+        \ or unauthorized decision actor;\n- invalid required permissions or governance\
+        \ context;\n- missing target proposal or choice;\n- structurally invalid target\
+        \ artifacts;\n- unsupported governance mode;\n- structurally invalid governance\
+        \ artifacts;\n- structurally invalid vote or precedent artifacts when present.\n\
+        \nAn explicit unresolved blocker attached to the target proposal or choice\
+        \ blocks\nnormal finalization. It may be overridden only by an authorized\
+        \ owner with\nexplicit rationale recorded in the final decision record.\n\n\
+        Vote disagreement, ties, related precedents, reopened decisions, open concerns\n\
+        not marked as blockers, weak consensus, no votes, and no related precedents\
+        \ are\nwarnings or neutral signals, not automatic blockers.\n\n### MCP Phase\
+        \ 1\n\nMCP phase 1 exposes governance visibility, validation, vote summaries,\n\
+        deterministic precedent lookup, and governance preflight evaluation. It does\
+        \ not\nexpose governance mutation or final decision execution.\n\nIncluded\
+        \ phase-1 tools:\n\n- `p2p_governance_status`;\n- `p2p_governance_validate`;\n\
+        - `p2p_choice_governance_preflight`;\n- `p2p_vote_status`;\n- `p2p_precedent_search`.\n\
+        \nDeferred tools:\n\n- `p2p_vote_record`;\n- `p2p_precedent_record`;\n- `p2p_choice_decide`.\n\
+        \n`p2p_choice_governance_pre"
+      fragment_kind: proposal
+      truncated: true
+    - id: VME-24c707312194e0cc548f5bb3
+      source_path: .p2p/proposals/PROP-091-governance-policy-convergence/proposal.md
+      source_sha256: ca516c3c2348bcb5a066133b0c68a9fbeb0b4db6bcd6769034defd3754844c93
+      fragment: "- Governance status reports configured mode, effective owner identities,\n\
+        \  artifact presence, warnings, and validation problems.\n- Governance preflight\
+        \ emits a stable `schema_version`.\n- Governance preflight output is deterministic\
+        \ for the same repository state\n  and command input.\n- Governance preflight\
+        \ distinguishes proposed `selection` from final decision\n  records.\n- Governance\
+        \ preflight includes actor resolution, resolved roles, capabilities,\n  and\
+        \ `can_decide`.\n- Governance preflight includes `result.status` with one\
+        \ of `ready`,\n  `requires_rationale`, `requires_owner_override`, or `blocked`.\n\
+        - Blocking errors and warnings use stable machine-readable codes.\n- Vote\
+        \ summaries are included when vote data exists or is relevant.\n- Vote disagreement\
+        \ with the selected option produces a warning, not a blocking\n  error.\n\
+        - Active explicit blockers are listed and block normal finalization.\n- Owner\
+        \ override of explicit blockers requires rationale recorded in the final\n\
+        \  decision record.\n- Explicit precedents and deterministic tag-declared\
+        \ matches are listed\n  separately.\n- Precedent lookup uses only explicit\
+        \ artifact relationships or declared tags.\n- Project validation includes\
+        \ structural checks for `governance.yml`,\n  `roles.yml`, `decision-precedents.yml`,\
+        \ and `votes.yml`.\n- MCP phase 1 tools do not modify project artifacts, votes,\
+        \ precedents, choices,\n  proposals, or decision records.\n- MCP phase 1 exposes\
+        \ governance status, validation, choice preflight, vote\n  status, and deterministic\
+        \ precedent lookup."
+      fragment_kind: acceptance_criteria
+      truncated: false
+  - id: VMC-9e55d1d5fdcab77641428378
+    proposal_id: PROP-101
+    title: Project Readiness Convergence Workflow
+    section_id: decisions
+    authority: resolved
+    activation: active
+    effective_state: accepted
+    head_event_id: PDE-543016c164d3c4566c853c74
+    head_event_type: accepted
+    rationale: The refined proposal addresses the identified readiness-convergence,
+      schema migration, atomicity, authority, retry, vertical reconciliation, decision-context
+      and bounded-retrieval risks with explicit delivery gates and acceptance criteria.
+    constraints: []
+    applicability: decisions
+    coverage_rationale: Defines how unresolved owner decisions and project questions
+      remain explicit until separately answered and applied.
+    source_path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
+    proposal_semantic_sha256: 47d92c16246ec2f341d456d5507ef39ff1152f815f2653f1899d04e152eea932
+    decision_semantic_sha256: 393fddc0e3d2ad7b0ecfbc6bc10051aa99ba14ebcda3164221b4241e6f60641e
+    lineage:
+      kind: null
+      targets: []
+    evidence:
+    - id: VME-8e1cd9c06d57e32d85fbe768
+      source_path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
+      source_sha256: 571e497d3cd674f63f015addcf90aa66bf0356e310f666d3bdc218bf5759da0e
+      fragment: 'P2P Engine can diagnose project readiness but cannot yet drive a
+        project from a diagnosed vertical gap to an auditable owner-reviewed update.
+        The current review identifies incomplete capisaldi, declared evidence and
+        unmapped proposals, but its convergence behavior is incomplete:
+
+
+        - it returns generic advice to complete the definition and rerun the review;
+
+        - some required incomplete sections have no applicable generated question;
+
+        - there is no persistent project-level question lifecycle equivalent to the
+        proposal-question workflow;
+
+        - owner answers are not connected to a governed candidate project-definition
+        patch;
+
+        - project-definition gaps are not coherently prioritized in managed next actions;
+
+        - large legacy proposal lists are emitted without bounded detail or prioritization;
+
+        - progress, readiness and freshness expose useful but separate states without
+        an orchestration contract that closes the loop.
+
+
+        The result is a system that knows what is incomplete but still depends on
+        an agent or owner to reconstruct the next workflow manually across multiple
+        commands and sessions.
+
+
+        The implementation risk is broader than question generation. A naive implementation
+        could create competing authority between project-question state, project definition,
+        decision context, managed next actions and workspace migration state. It could
+        also reuse the existing single-file definition apply in a way that leaves
+        question and definition state partially committed, or register a v1-to-v2
+        migration while still executing the current legacy-to-v1 bootstrap planner.'
+      fragment_kind: problem
+      truncated: false
+    - id: VME-4144a719c351590589d22d8d
+      source_path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
+      source_sha256: 571e497d3cd674f63f015addcf90aa66bf0356e310f666d3bdc218bf5759da0e
+      fragment: '- Model project-readiness gaps as typed, prioritized and explainable
+        records.
+
+        - Give each actionable required-section gap a declared question, a safe deterministic
+        fallback or an explicit no-question diagnostic.
+
+        - Persist project-question lifecycle state, revisions, authority and provenance
+        across sessions.
+
+        - Keep question answers distinct from applied project definition and owner
+        decisions.
+
+        - Render owner-reviewable candidate definition patches and commit definition
+        plus question state through one transaction.
+
+        - Integrate the highest-priority project gap into managed next actions.
+
+        - Preserve independent definition completeness and declared evidence coverage.
+
+        - Keep CLI and MCP contracts deterministic, bounded and semantically aligned.
+
+        - Preserve schema-v1 valid operations and provide a real transition-specific
+        v1-to-v2 migration.
+
+        - Reconcile project questions safely across vertical revisions without re-opening
+        or losing owner evidence.
+
+        - Preserve `PROP-100` authority by keeping unapplied question state non-semantic.
+
+        - Validate generic behavior against this repository without embedding repository-specific
+        policy.'
+      fragment_kind: goals
+      truncated: false
+    - id: VME-06bc3330b93fc264be61867c
+      source_path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
+      source_sha256: 571e497d3cd674f63f015addcf90aa66bf0356e310f666d3bdc218bf5759da0e
+      fragment: '- Agents do not make owner decisions, fabricate owner answers, validate
+        assumptions, complete sections, accept proposals or approve publication.
+
+        - This proposal does not replace proposal readiness or proposal questions.
+
+        - It does not create a second project definition, maturity, progress, next-action,
+        decision-context or freshness engine.
+
+        - It does not automatically declare vertical coverage for legacy proposals.
+
+        - Heuristic matches never become owner-declared evidence automatically.
+
+        - It does not introduce database-backed persistence, a remote registry or
+        hosted orchestration.
+
+        - It does not perform automatic agent curation, publication review or vertical
+        upgrades.
+
+        - It does not remove schema-v1 compatibility, migrate implicitly or bypass
+        the workspace migration lifecycle.
+
+        - It does not use clock-based preview expiry without an explicit durable preview-receipt
+        contract.
+
+        - It does not treat migration absence of a legacy question as evidence that
+        a question was answered or applied.'
+      fragment_kind: non-goals
+      truncated: false
+    - id: VME-07c4d9c35555fb592d73de1e
+      source_path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
+      source_sha256: 571e497d3cd674f63f015addcf90aa66bf0356e310f666d3bdc218bf5759da0e
+      fragment: 'Introduce a `Project Readiness Convergence` application service above
+        the project vertical, definition, question-state, permission, migration, next-action,
+        progress, freshness and decision-context services. It owns orchestration and
+        result composition, while existing services retain authority over their canonical
+        data.
+
+
+        The convergence service must be request-scoped or explicitly invalidated.
+        It must load one immutable source snapshot and must not retain stale definition,
+        lock, question, evidence or schema state through the memoized workspace service
+        facade.
+
+
+        ### Contract 1 - Typed Gap Inventory
+
+
+        A gap record must include at least:
+
+
+        - stable gap id and policy version;
+
+        - snapshot fingerprint;
+
+        - vertical id, version, lock checksum and section id;
+
+        - gap kind, severity, applicability and lifecycle condition;
+
+        - definition status and missing fields;
+
+        - declared evidence references and separately labelled heuristic suggestions;
+
+        - assumption, blocker or owner-decision state when applicable;
+
+        - required authority and whether owner input is needed;
+
+        - current question reference and revision, if any;
+
+        - deterministic next operation and explanation;
+
+        - source hashes needed for stale detection.
+
+
+        Initial gap classes must distinguish:
+
+
+        - blocked required section;
+
+        - unresolved owner decision;
+
+        - incomplete required project definition;
+
+        - assumption requiring validation;
+
+        - answered question not yet applied;
+
+        - stale or incompatible question/definition state;
+
+        - optional declared-evidence curation;
+
+        - informational legacy or heuristic state.
+
+
+        Priority is versioned, deterministic and explainable. The order confirmed
+        in Q004 is:
+
+
+        1. integrity, compatibility and authority blockers plus explicit owner-decision
+        blockers;
+
+        2. owner answers already received but not yet applied;
+
+        3. incomplete required definition sections;
+
+        4. assumptions to validate ordered by declared dependency impact;
+
+        5. optional declared-evidence curation;
+
+        6. informational legacy state.
+
+
+        Within one class, vertical section priority and stable gap or question id
+        provide tie-breaking. Results expose class, rationale and tie-break inputs
+        instead of an opaque aggregate score. Missing dependency metadata must use
+        a documented neutral fallback and must not be inferred from free text.
+
+
+        ### Contract 2 - Project-Question Persistence And Identity
+
+
+        Project questions are distinct from proposal questions. They are linked to
+        active vertical sections and project-definition gaps, not to proposal readiness
+        criteria.
+
+
+        Workspace schema v2 owns one registered project-question artifact contract
+        at a deterministic engine-managed location. The exact path, root key and artifact
+        schema version must be declared in feature specifications and owned by one
+        `ProjectQuestionStateService`; callers and adapters may not derive alternate
+        paths.
+
+
+        Each record preserves:
+
+
+        - stable question id and stable identity key;
+
+        - question revision and presentation-text hash;
+
+        - group and gap id;
+
+        - vertical section and target field, assumption, blocker or owner-decision
+        reference;
+
+        - priority and rationale;
+
+        - declared, deterministic-fallback or migrated-legacy source type;
+
+        - source vertical id/version/checksum and fallback policy version;
+
+        - current lifecycle state and applicability;
+
+        - answer revisions, provided-by authority, recorded-by actor and provenance;
+
+        - created, updated, answered, applied and terminal timestamps;
+
+        - apply operation, preview and definition references;
+
+        - transition history and supersession links.
+
+
+        Stable identity is based on semantic target, not wording or audit timestamps.
+        It includes vertical id, section id, gap kind, target field or domain object,
+        and declared question id or deterministic fallback key. Vertical checksum,
+        wording hash and policy version identify a revision but do not by themselves
+        create a new identity.
+
+
+        Wording-only changes preserve identity, answer and lifecycle state while appending
+        a revision. A changed semantic target creates a replacement and supersedes
+        the old question. Reassessment cannot reopen cl'
+      fragment_kind: proposal
+      truncated: true
+    - id: VME-f1697d3e0d10afbe5607fa81
+      source_path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
+      source_sha256: 571e497d3cd674f63f015addcf90aa66bf0356e310f666d3bdc218bf5759da0e
+      fragment: '1. Readiness returns deterministic typed gaps with explicit kind,
+        severity, authority, evidence basis, snapshot fingerprint and next operation.
+
+        2. Blockers, definition gaps, assumptions, answered-not-applied work, optional
+        evidence and informational legacy state remain distinguishable.
+
+        3. Every required incomplete section produces an applicable declared/fallback
+        question or `no_safe_question` diagnostic.
+
+        4. Project-question state persists lifecycle, revision, provenance, authority
+        and history without conflation with proposal questions.
+
+        5. Stable identity excludes wording and audit timestamps; wording-only reassessment
+        cannot reopen or duplicate work.
+
+        6. A documented transition matrix rejects invalid states before writes and
+        defines authority for every mutation.
+
+        7. Caller-controlled `source=owner` or actor strings cannot create owner-confirmed
+        answer authority by themselves.
+
+        8. Answers do not change definition, validate assumptions or resolve owner
+        decisions by themselves.
+
+        9. Candidate preview includes semantic diff, affected gaps, both candidate
+        hashes and all canonical source preconditions without writing state.
+
+        10. Apply requires owner authority and a token bound to actor, definition,
+        question state, vertical lock, both candidates and policy versions.
+
+        11. Definition and question state commit through one multi-target transaction;
+        sequential canonical commits are not used.
+
+        12. Failure injection proves no committed definition can reference an unapplied
+        question and no applied question can lack its definition commit.
+
+        13. Exact retry after a successful commit returns `already_applied`; divergent
+        token reuse, changed locks and changed sources are rejected.
+
+        14. Audit timestamps and generated observation times do not destabilize semantic
+        hashes or retries.
+
+        15. Vertical reconciliation preserves wording-only revisions, supersedes semantic
+        changes, retires removed targets and never copies answers automatically.
+
+        16. Managed next actions surface the highest-priority actionable project gap
+        with stable deduplication and no self-loop when a concrete operation exists.
+
+        17. Deferred and muted questions suppress re-ask according to policy without
+        hiding residual project gaps.
+
+        18. Definition completeness and declared evidence coverage remain independent;
+        question counts do not become an aggregate readiness percentage.
+
+        19. Freshness reports downstream impact and never auto-runs refresh, curation,
+        publication or owner review.
+
+        20. Project-question sources are cataloged as inactive metadata/evidence until
+        definition apply and cannot create active decisions or duplicate applied content.
+
+        21. Default CLI/MCP output is bounded; full legacy/history detail requires
+        explicit limit and snapshot-bound pagination.
+
+        22. A cursor used against a changed snapshot returns `stale_cursor` rather
+        than inconsistent continuation.
+
+        23. A v2 runtime distinguishes undeclared v0, upgradeable v1, current v2,
+        ahead, invalid and recovery-required workspaces.
+
+        24. Migration planning dispatches transition-specific handlers; v1-to-v2 never
+        executes legacy-to-v1 bootstrap ownership.
+
+        25. The v1-to-v2 transition is registered, forward-only, dry-run plannable,
+        transactional, idempotent and recoverable.
+
+        26. Every valid legacy open question is preserved once with section-scoped
+        identity; absence never fabricates an answered/applied state.
+
+        27. Ambiguous legacy ids, sections, fields, statuses or texts produce typed
+        blocking diagnostics without partial migration.
+
+        28. The v1-to-v2 transaction copies legacy questions and normalizes definition
+        `open_questions` to empty atomically; v2 validation rejects their reintroduction
+        and only the dedicated artifact remains authoritative.
+
+        29. Every v1-valid read/write remains available and each v2-dependent operation
+        is blocked centrally before writes with actionable migration diagnostics.
+
+        30. Fresh v2 workspace initialization and later vertical selection create/reconcile
+        valid question state without implicit owner content.
+
+        31. CLI and MCP read payloads a'
+      fragment_kind: acceptance_criteria
+      truncated: true
+  - id: VMC-79357c5b57d49b5d3b547c8d
+    proposal_id: PROP-102
+    title: Proposal Decision Revision and Revocation Lifecycle
+    section_id: decisions
+    authority: resolved
+    activation: active
+    effective_state: accepted
+    head_event_id: PDE-568a29c09673a60b82d5ae8a
+    head_event_type: accepted
+    rationale: La proposta definisce in modo completo e verificabile il lifecycle
+      delle decisioni, distinguendo rifiuto, revoca, sostituzione e reinstatement,
+      con autorita owner, migrazione legacy, impatto sui consumer e criteri di robustezza.
+      La readiness e decision_ready al 100%, con confidenza alta e senza gap o gate
+      falliti.
+    constraints: []
+    applicability: decisions
+    coverage_rationale: Preserves owner decision history and the confirmed policies
+      for lifecycle vocabulary, revocation, reinstatement, impact handling and legacy
+      ambiguity.
+    source_path: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/proposal.md
+    proposal_semantic_sha256: 87c69d8a92dd62ac2ea47b6d020cee70dc8c2efaf159d68fc884322e9448131c
+    decision_semantic_sha256: 9515a8ba8394a52c529447f48a92829513ccce7127ce2a5378dc8f551374fc13
+    lineage:
+      kind: null
+      targets: []
+    evidence:
+    - id: VME-43062e3e83542d81e50ad6bf
+      source_path: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/proposal.md
+      source_sha256: 438da30da1aaf991adc2c4873260c253862f5c7292bdb64807e43030267eb16d
+      fragment: 'P2P currently represents a proposal decision primarily as one current
+        outcome.
+
+        The decision write path replaces `decision.md` and then replaces the status
+        in
+
+        `proposal.md`, without validating the previous lifecycle state or preserving
+        a
+
+        queryable sequence of owner decisions.
+
+
+        As a result, an accepted proposal can be rewritten as rejected. The current
+
+        workspace then appears to say that the proposal was never adopted, even though
+
+        it may already have influenced project definition, Change Sets, Work,
+
+        specifications, implementation, publication and later decisions. Git can
+
+        recover earlier bytes, but normal validation, retrieval and derived-state
+
+        consumers do not use Git history as the proposal decision model.
+
+
+        The model also lacks a precise distinction between rejection before adoption,
+
+        withdrawal before decision, revocation after acceptance, replacement,
+
+        reinstatement and downstream deprecation. Without that distinction, future
+
+        decision-memory consolidation cannot reliably determine which decisions are
+
+        active, historical, previously active, replaced or merely deferred.'
+      fragment_kind: problem
+      truncated: false
+    - id: VME-ea9c54a4d313f4621a7a4cfd
+      source_path: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/proposal.md
+      source_sha256: 438da30da1aaf991adc2c4873260c253862f5c7292bdb64807e43030267eb16d
+      fragment: "- Preserve an append-only, queryable history of proposal decision\
+        \ events,\n  including rationale, owner authority, date, predecessor and lineage.\n\
+        - Derive current proposal status and authority deterministically from the\
+        \ valid\n  event sequence.\n- Define an exhaustive transition matrix with\
+        \ exact retry, invalid transition\n  and reconsideration behavior.\n- Distinguish\
+        \ initial rejection from withdrawal, revocation, supersession,\n  reinstatement\
+        \ and downstream deprecation.\n- Make decision mutations owner-controlled,\
+        \ previewed, source-bound,\n  stale-safe, atomic, idempotent where appropriate\
+        \ and recoverable.\n- Keep current CLI and human-readable status views available\
+        \ as projections\n  during a forward compatibility transition.\n- Migrate\
+        \ current single-decision artifacts without inventing missing owner\n  evidence\
+        \ or erasing legacy values.\n- Propagate lifecycle authority consistently\
+        \ to validation, registries,\n  project projections, decision context, relations,\
+        \ vertical evidence, Change\n  Sets, Work, software specifications, next actions\
+        \ and publication.\n- Produce explicit impact and remediation guidance without\
+        \ automatically\n  changing dependent owner-controlled lifecycles.\n- Establish\
+        \ the stable authority and lineage contract required by future\n  thematic\
+        \ decision-memory consolidation."
+      fragment_kind: goals
+      truncated: false
+    - id: VME-689bd9fd5d8f1065457d75d1
+      source_path: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/proposal.md
+      source_sha256: 438da30da1aaf991adc2c4873260c253862f5c7292bdb64807e43030267eb16d
+      fragment: "- Physically delete accepted, rejected, revoked or superseded proposals.\n\
+        - Rewrite history so that a previously accepted decision appears never to\
+        \ have\n  been active.\n- Automatically roll back source code, deployments,\
+        \ completed Change Sets,\n  Work or external effects.\n- Automatically cancel,\
+        \ supersede, complete or reopen dependent lifecycle\n  objects.\n- Implement\
+        \ thematic proposal compaction, persistent decision-context caching\n  or\
+        \ publication curator refinement.\n- Treat `deprecated` as another proposal\
+        \ decision outcome.\n- Allow an agent-supplied actor string to establish owner\
+        \ authority.\n- Conflate proposal-decision rejection with managed proposal-branch\
+        \ rejection."
+      fragment_kind: non-goals
+      truncated: false
+    - id: VME-b129ff83eb9d0f84c5bc6e45
+      source_path: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/proposal.md
+      source_sha256: 438da30da1aaf991adc2c4873260c253862f5c7292bdb64807e43030267eb16d
+      fragment: '### Decision Event Model
+
+
+        Introduce one versioned canonical decision-event ledger per proposal. The
+
+        ledger is the semantic source for proposal decision history. `proposal.md`
+
+        status and the human-readable current decision remain compatible projections
+
+        of the ledger rather than independent authority sources.
+
+
+        Every event must include enough structured data to validate and reconstruct
+        the
+
+        lifecycle:
+
+
+        - schema and event identity;
+
+        - proposal identity;
+
+        - event type and resulting effective state;
+
+        - rationale;
+
+        - owner/approver identity and validated authority provenance;
+
+        - canonical decision date;
+
+        - predecessor event identity and integrity evidence;
+
+        - semantic fingerprint of the decision being affected;
+
+        - optional replacement, split or merge lineage;
+
+        - optional impact-preview binding;
+
+        - migration provenance when derived from a legacy artifact.
+
+
+        Audit timestamps, file mtimes and Git author metadata must not determine event
+
+        identity or manufacture owner evidence. The design will define the exact file
+
+        name, serialization, predecessor/hash protection and recovery format. Replacing
+
+        the single-ledger direction requires explicit technical evidence.
+
+
+        ### Effective State Projection
+
+
+        Current status, decision authority and active/historical classification are
+
+        derived from the validated event head and lineage. A stored projection that
+
+        does not match the ledger is stale or invalid; it cannot silently override
+        the
+
+        ledger.
+
+
+        The public vocabulary has distinct meanings:
+
+
+        | Event or state | Preconditions | Effective result |
+
+        | --- | --- | --- |
+
+        | `accepted` | Proposal has never been active, or exact retry | Active |
+
+        | `accepted_with_changes` | Proposal has never been active, or exact retry
+        | Active and qualified |
+
+        | `deferred` | Proposal is undecided, or exact retry | Unresolved |
+
+        | `withdrawn` | Proposal has never been active | Historical, never active
+        |
+
+        | `rejected` | Proposal has never been active | Historical, never active |
+
+        | `revoked` | Current authority is accepted or conditionally accepted | Historical,
+        previously active |
+
+        | `superseded` | Current authority is active and replacement lineage is valid
+        | Historical with explicit replacement |
+
+        | `split` | Valid explicit split targets exist | Historical with split lineage
+        |
+
+        | `merged_into_other` | Valid explicit merge target exists | Historical with
+        merge lineage |
+
+        | `reinstated` | Exact previously revoked decision is restored | Returns to
+        the referenced prior active authority |
+
+
+        `deprecated` belongs to downstream operational policy and cannot be used to
+
+        replace a proposal decision event.
+
+
+        Rejected or withdrawn proposals are reconsidered through a new linked proposal.
+
+        A revoked decision may be reinstated only when:
+
+
+        - its semantic fingerprint is identical to the referenced prior decision;
+
+        - the revocation event is referenced explicitly;
+
+        - a current impact preview is bound to the operation;
+
+        - owner authority is validated again;
+
+        - no dependent technical effect is assumed to be restored.
+
+
+        Any changed content, condition or constraint requires a new linked proposal.
+
+
+        ### Transition And Retry Rules
+
+
+        The implementation specification must provide a complete matrix for every
+
+        current state and requested event. Invalid transitions fail before writes.
+
+
+        Repeating the exact same operation with the same source head, semantic payload,
+
+        owner authority and idempotency identity returns the already-applied result.
+
+        Reusing an operation identity with different inputs, applying against a changed
+
+        head or attempting to reorder history fails with a stable diagnostic.
+
+
+        The model must also specify:
+
+
+        - whether an event is terminal or may have a later valid successor;
+
+        - required lineage fields;
+
+        - no-op and exact-retry behavior;
+
+        - stale preview behavior;
+
+        - concurrent-head conflict behavior;
+
+        - recovery after interruption;
+
+        - explicit repair behavior for corrupted or divergent projections.
+
+
+        ### Governed Mutation
+
+
+        All decision writes use one domain service shared by CLI and permission-gated
+
+        MCP. A write requires:
+
+
+        1. validated owner'
+      fragment_kind: proposal
+      truncated: true
+    - id: VME-dd21ed9fafc64cab882a65da
+      source_path: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/proposal.md
+      source_sha256: 438da30da1aaf991adc2c4873260c253862f5c7292bdb64807e43030267eb16d
+      fragment: "- The public model defines mutually exclusive semantics for withdrawal,\n\
+        \  rejection, revocation, supersession, reinstatement and downstream\n  deprecation.\n\
+        - A versioned canonical ledger preserves every valid decision event; supported\n\
+        \  operations cannot overwrite, delete or reorder prior history.\n- Current\
+        \ proposal status and current-decision views are deterministic\n  projections\
+        \ and validation detects divergence.\n- The specification contains an exhaustive\
+        \ state/event transition matrix,\n  including prerequisites, lineage, exact\
+        \ retry, no-op and prohibited cases.\n- Initial rejection is allowed only\
+        \ before adoption; reversing an accepted\n  decision records revocation or\
+        \ supersession and preserves the acceptance.\n- Reinstatement is accepted\
+        \ only for an identical semantic fingerprint, a\n  referenced revocation,\
+        \ current impact preview and new owner authorization.\n- Changed content,\
+        \ conditions or constraints require a new linked proposal.\n- Authority-changing\
+        \ operations require owner authority, source-bound preview,\n  confirmation,\
+        \ unchanged preconditions, locking and atomic replacement.\n- Exact retries\
+        \ are idempotent; divergent token reuse, concurrent heads and\n  stale sources\
+        \ fail without partial writes.\n- CLI and permission-gated MCP call the same\
+        \ lifecycle service and expose\n  equivalent results and diagnostics.\n- Proposal-decision\
+        \ rejection and managed-branch rejection remain separate and\n  cannot trigger\
+        \ each other implicitly.\n- Revocation impact preview identifies active and\
+        \ completed dependencies,\n  affected authority, stale artifacts and explicit\
+        \ remediation options.\n- Revocation does not automatically mutate Change\
+        \ Set, Work, specification,\n  implementation, deployment or external lifecycle\
+        \ state.\n- Revoked, rejected, withdrawn, split, merged and superseded decisions\
+        \ remain\n  available as correctly labelled historical context.\n- Inactive\
+        \ decisions are excluded from active project projections and cannot be\n \
+        \ rendered as current constraints.\n- Existing single-decision workspaces\
+        \ remain readable and have a deterministic,\n  registered, forward-only migration\
+        \ to the next workspace schema.\n- Migration preserves valid legacy values,\
+        \ represents missing or malformed data\n  as `unknown_legacy`, retains provenance\
+        \ and never infers owner evidence from\n  Git metadata.\n- Ambiguous legacy\
+        \ authority blocks later revision but does not prevent\n  loss-aware preservation\
+        \ of the historical record.\n- Migration is dry-run plannable, atomic, idempotent,\
+        \ recoverable and covered by\n  aligned, divergent, malformed, interrupted\
+        \ and concurrent fixtures.\n- Every downstream consumer uses the centralized\
+        \ lifecycle-authority contract\n  or an explicitly versioned compatible projection.\n\
+        - Stable next actions distinguish decision remediation from technical rollback\n\
+        \  and do not duplicate on repeated refresh.\n- Future consolidated memory\
+        \ can bind to stable event identity, effective\n  authority, lineage and freshness\
+        \ without reading an overwrite-shaped\n  decision.\n- Documentation explains\
+        \ the lifecycle, migration, owner boundary, branch\n  distinction and non-automatic\
+        \ rollback behavior.\n- Focused, public, full and migrated-workspace validation\
+        \ complete without\n  unexplained errors, warnings or canonical history loss."
+      fragment_kind: acceptance_criteria
+      truncated: false
+  historical_contributions: []
+  conflicts: []
+  diagnostics: []

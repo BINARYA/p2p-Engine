@@ -8,6 +8,8 @@ from typing import Mapping
 
 import yaml
 
+from p2p_engine.foundation.yaml_loaders import DuplicateYamlKeyError, load_yaml
+
 from p2p_engine.core.mutation_preview import semantic_sha256
 from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionAffectedDecision,
@@ -126,30 +128,6 @@ _PROPOSAL_ID = re.compile(r"^PROP-\d{3,}$")
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 
-class _UniqueKeyLoader(yaml.SafeLoader):
-    pass
-
-
-def _construct_unique_mapping(
-    loader: yaml.SafeLoader,
-    node: yaml.MappingNode,
-    deep: bool = False,
-) -> dict[object, object]:
-    mapping: dict[object, object] = {}
-    for key_node, value_node in node.value:
-        key = loader.construct_object(key_node, deep=deep)
-        if key in mapping:
-            raise ValueError(f"P2P361_DECISION_LEDGER_INVALID: duplicate YAML key `{key}`")
-        mapping[key] = loader.construct_object(value_node, deep=deep)
-    return mapping
-
-
-_UniqueKeyLoader.add_constructor(
-    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-    _construct_unique_mapping,
-)
-
-
 def strict_yaml_load(content: bytes) -> object:
     if len(content) > MAX_LEDGER_BYTES:
         raise ValueError(
@@ -161,7 +139,11 @@ def strict_yaml_load(content: bytes) -> object:
     except UnicodeDecodeError as exc:
         raise ValueError("P2P361_DECISION_LEDGER_INVALID: ledger is not UTF-8") from exc
     try:
-        return yaml.load(text, Loader=_UniqueKeyLoader)
+        return load_yaml(text, loader_contract="unique-v1")
+    except DuplicateYamlKeyError as exc:
+        raise ValueError(
+            f"P2P361_DECISION_LEDGER_INVALID: duplicate YAML key `{exc.key}`"
+        ) from exc
     except ValueError:
         raise
     except yaml.YAMLError as exc:

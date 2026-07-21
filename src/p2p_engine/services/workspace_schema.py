@@ -25,6 +25,7 @@ from p2p_engine.core.workspace_schema import (
     AppliedWorkspaceMigration,
     WorkspaceDiagnostic,
     WorkspaceSchemaState,
+    WorkspaceSchemaPreflight,
     WorkspaceSchemaStatus,
 )
 from p2p_engine.foundation.files import read_yaml_mapping, write_yaml_atomic
@@ -64,6 +65,50 @@ class WorkspaceSchemaService:
         self.registry = registry or WorkspaceMigrationRegistry()
         self.engine_version = engine_version
         self.recovery_status = recovery_status
+
+    def preflight(self) -> WorkspaceSchemaPreflight:
+        recovery = self._recovery_summary()
+        if not self.path.exists():
+            return WorkspaceSchemaPreflight(
+                schema_path=str(WORKSPACE_SCHEMA_PATH),
+                state="legacy_undeclared",
+                layout_status=LAYOUT_LEGACY,
+                current_version=0,
+                target_version=CURRENT_WORKSPACE_SCHEMA_VERSION,
+                recovery=recovery,
+            )
+        try:
+            state = self.read_state()
+        except ValueError:
+            return WorkspaceSchemaPreflight(
+                schema_path=str(WORKSPACE_SCHEMA_PATH),
+                state="invalid",
+                layout_status=LAYOUT_INVALID,
+                current_version=None,
+                target_version=CURRENT_WORKSPACE_SCHEMA_VERSION,
+                recovery=recovery,
+            )
+        if state.contract_version > WORKSPACE_SCHEMA_CONTRACT_VERSION:
+            layout_status = LAYOUT_UNSUPPORTED
+            state_name = "unsupported_contract"
+        elif state.current_version > CURRENT_WORKSPACE_SCHEMA_VERSION:
+            layout_status = LAYOUT_AHEAD
+            state_name = "ahead_of_runtime"
+        elif state.current_version == CURRENT_WORKSPACE_SCHEMA_VERSION:
+            layout_status = LAYOUT_CURRENT
+            state_name = "current"
+        else:
+            layout_status = LAYOUT_UPGRADEABLE
+            state_name = "upgrade_available"
+        return WorkspaceSchemaPreflight(
+            schema_path=str(WORKSPACE_SCHEMA_PATH),
+            state=state_name,
+            layout_status=layout_status,
+            current_version=state.current_version,
+            target_version=CURRENT_WORKSPACE_SCHEMA_VERSION,
+            contract_version=state.contract_version,
+            recovery=recovery,
+        )
 
     def status(self) -> WorkspaceSchemaStatus:
         recovery = self._recovery_summary()

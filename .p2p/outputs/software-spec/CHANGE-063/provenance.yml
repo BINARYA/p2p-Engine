@@ -3,7 +3,48 @@ source:
   included_proposals:
   - PROP-002
   accepted_decisions: []
+  decision_bindings:
+  - proposal: PROP-002
+    effective_state: accepted
+    head_event_id: PDE-40bb9fc4ad4fb5072eba4077
+    decision_semantic_sha256: aa7ab4d393d704b8d42ebfadf6e1810104ea20cf6d909c629c485e98225aa225
+    proposal_binding_status: current
 generated_from:
 - .p2p/changes/CHANGE-063-readiness-profile-and-storage-mvp/change.md
 - .p2p/changes/CHANGE-063-readiness-profile-and-storage-mvp/tasks.yml
 - .p2p/proposals/PROP-002-exploration-phase/proposal.md
+- .p2p/proposals/PROP-002-exploration-phase/decision-events.yml
+p2p_generation:
+  schema_version: 1
+  origin: generated
+  generator: p2p_engine.software_spec
+  renderer_version: 1
+  source_fingerprint:
+    algorithm: sha256
+    value: d23ec9946613ada78806a243821f1fd0cf139d3ecb26ede505814b285ea2e7f7
+  sources:
+  - path: .p2p/changes/CHANGE-063-readiness-profile-and-storage-mvp/change.md
+    exists: true
+    sha256: ce5247a00394c43320982931b16b37b060655607ef76f8d55e1e1482fdc9e793
+  - path: .p2p/changes/CHANGE-063-readiness-profile-and-storage-mvp/tasks.yml
+    exists: true
+    sha256: 6b2774953ed9ff7413dcfed36942d34d143a9071dd93d36640db5a11c9391604
+  - path: .p2p/proposals/PROP-002-exploration-phase/decision-events.yml
+    exists: true
+    sha256: e7e2bd2d999f2a0868d349f70f7162b322cfcfbdfc7f8d1c75a9695f1d94e92f
+  - path: .p2p/proposals/PROP-002-exploration-phase/proposal.md
+    exists: true
+    sha256: 6ffc8c034ad5029998de6107688492f93b82f1aaf52ba57d877daaf1434c8894
+  outputs:
+  - path: index.md
+    sha256: bce932e0e7198e376e895e252a2bd0d5dd79fd763a5024f0114a0c37c0a453e5
+  - path: requirements.md
+    sha256: cdd73ab6974b7d779efc7b525466088786b38d12f64b83487fb3d94f9929ff4c
+  - path: design.md
+    sha256: a864a8e882ee09fd68e950a8bb25a5fa710387043ba6fa946178de493c7967e4
+  - path: commands.yml
+    sha256: cb253b11b8fc3c67349601b23aeef8bfc2ec6b24e7fc62973d74598547cbea2d
+  - path: data-model.yml
+    sha256: 4255dda211a369e880896c07185b1eb152ecc14fb0f58b6ee8440b3fa5abc7d9
+  - path: acceptance.md
+    sha256: a7f553809600a7dd56c7b96945efddd40968240619ce9811285ae6347d38e850

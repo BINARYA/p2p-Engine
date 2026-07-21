@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Mapping
 
 from p2p_engine.core.project_readiness import ProjectReadinessDiagnostic, ProjectReadinessGap
 
@@ -138,6 +139,18 @@ class ActiveProjectVertical:
     fallback_used: bool = False
     reconciliation_required: bool = False
     reconciliation_command: str = ""
+    derived_updates: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class VerticalReadState:
+    active: ActiveProjectVertical
+    pack: "VerticalPack"
+    valid_section_ids: frozenset[str]
+    terms_by_section: Mapping[str, tuple[str, ...]]
+    term_frequency: Mapping[str, int]
+    base_section_ids: frozenset[str] = frozenset()
+    readiness_terms_by_section: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -308,6 +321,7 @@ class ProjectDefinitionPatchResult:
     state: ProjectDefinitionState
     path: Path
     operations_applied: int
+    derived_updates: Mapping[str, object] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

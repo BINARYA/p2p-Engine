@@ -113,6 +113,103 @@ def test_mcp_progress_freshness_and_coverage_reads_are_mutation_free(tmp_path: P
     assert suggestion["mutation_performed"] is False
 
 
+def test_project_memory_cli_and_mcp_reads_are_bounded_and_mutation_free(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project(
+        "Memory public surface",
+        project_domain="software",
+        vertical_id="software_project",
+        owner="owner",
+    )
+    workspace.refresh_vertical_project_memory()
+
+    with assert_no_workspace_mutation(tmp_path):
+        cli_status = runner.invoke(
+            app,
+            [
+                "project",
+                "memory",
+                "status",
+                "--format",
+                "json",
+                "--root",
+                str(tmp_path),
+            ],
+        )
+        cli_show = runner.invoke(
+            app,
+            [
+                "project",
+                "memory",
+                "show",
+                "--limit",
+                "1",
+                "--format",
+                "json",
+                "--root",
+                str(tmp_path),
+            ],
+        )
+        mcp_status = call_tool("p2p_project_memory_status", {"root": str(tmp_path)})
+        mcp_show = call_tool(
+            "p2p_project_memory_show",
+            {"root": str(tmp_path), "limit": 1},
+        )
+
+    assert cli_status.exit_code == 0
+    assert cli_show.exit_code == 0
+    assert json.loads(cli_status.stdout)["project_memory_status"]["state"] == "current"
+    aggregate = json.loads(cli_show.stdout)["project_memory"]
+    assert aggregate["returned"] <= 1
+    assert mcp_status["project_memory_status"]["state"] == "current"
+    assert mcp_status["mutation_performed"] is False
+    assert mcp_show["project_memory"]["returned"] <= 1
+    assert mcp_show["mutation_performed"] is False
+
+
+def test_project_memory_public_reads_reject_invalid_identity_and_bounds(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project(
+        "Memory public errors",
+        project_domain="software",
+        vertical_id="software_project",
+        owner="owner",
+    )
+
+    unknown = runner.invoke(
+        app,
+        [
+            "project",
+            "memory",
+            "show",
+            "--section",
+            "does_not_exist",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    invalid_limit = runner.invoke(
+        app,
+        [
+            "project",
+            "memory",
+            "show",
+            "--limit",
+            "101",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    assert unknown.exit_code != 0
+    assert "Unknown vertical-memory section" in unknown.stdout
+    assert invalid_limit.exit_code != 0
+
+
 def test_mcp_project_readiness_reads_are_bounded_and_expose_no_write_tools(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("MCP readiness", owner="owner", vertical_id="base_project")

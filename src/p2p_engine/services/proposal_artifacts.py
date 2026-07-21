@@ -26,6 +26,7 @@ from p2p_engine.foundation.validators import (
     validate_tasks_yaml,
     validate_yaml_key,
 )
+from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.prompts.clarify import render_clarify_prompt
 from p2p_engine.prompts.digest import render_digest_prompt
 from p2p_engine.prompts.explore import render_explore_prompt
@@ -692,7 +693,7 @@ class ProposalArtifactService:
                 operation_id=f"proposal-impact-import:{proposal_id}",
                 targets=tuple(targets),
                 sources=sources,
-                candidate_semantics={path: yaml.safe_load(content.decode("utf-8")) for path, content in targets.items()},
+                candidate_semantics={path: load_yaml(content) for path, content in targets.items()},
             ),
             actor="compatible-import",
         )
@@ -714,7 +715,7 @@ class ProposalArtifactService:
         for filename in sorted(artifacts):
             content = artifacts[filename]
             validate_yaml_key(content, IMPACT_ARTIFACTS[filename])
-            value = yaml.safe_load(content)
+            value = load_yaml(content)
             if not isinstance(value, dict):
                 raise ValueError(f"Impact artifact must be a YAML mapping: {filename}")
             parsed[filename] = value
@@ -872,7 +873,7 @@ def _yaml_semantic_hash(content: bytes | None) -> str | None:
     if content is None:
         return None
     try:
-        return semantic_sha256(yaml.safe_load(content.decode("utf-8")))
+        return semantic_sha256(load_yaml(content))
     except (UnicodeDecodeError, yaml.YAMLError):
         return None
 
@@ -894,7 +895,7 @@ def _actor_role(path: Path, actor: str) -> str:
         # policy has not yet been materialized by schema migration.
         return "owner" if actor == "owner" else ""
     try:
-        payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+        payload = load_yaml(path.read_bytes())
     except (OSError, UnicodeDecodeError, yaml.YAMLError):
         return ""
     identities = payload.get("identities") if isinstance(payload, dict) else None
@@ -906,7 +907,7 @@ def _yaml_mapping_or_empty(content: bytes | None) -> dict[str, object]:
     if content is None:
         return {}
     try:
-        payload = yaml.safe_load(content.decode("utf-8"))
+        payload = load_yaml(content)
     except (UnicodeDecodeError, yaml.YAMLError):
         return {}
     return payload if isinstance(payload, dict) else {}

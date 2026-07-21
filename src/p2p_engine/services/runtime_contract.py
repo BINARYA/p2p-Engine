@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+
+from p2p_engine.foundation.yaml_loaders import load_yaml
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.version import InvalidVersion, Version
 
@@ -192,7 +194,7 @@ class RuntimeContractService:
             return self._missing_status()
 
         try:
-            data = yaml.safe_load(self.contract_path.read_text(encoding="utf-8"))
+            data = load_yaml(self.contract_path.read_bytes())
         except yaml.YAMLError as exc:
             return self._invalid_status(RUNTIME_CONTRACT_INVALID, f"Invalid runtime contract YAML: {exc}")
 

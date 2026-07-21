@@ -33,6 +33,11 @@ def register_registry_commands(registry_app: typer.Typer) -> None:
         console.print(f"  source proposals: {status.proposals_count}")
         console.print(f"  source changes: {status.changes_count}")
         console.print(f"  stale: {status.stale}")
+        console.print(f"  state: {status.state}")
+        console.print(f"  reason: {status.reason}")
+        if status.manifest_version is not None:
+            console.print(f"  manifest version: {status.manifest_version}")
+            console.print(f"  source fingerprint: {status.source_fingerprint_sha256}")
         console.print("  files:")
         for file in status.files:
             marker = "✓" if file["exists"] and file["generated"] else "✗"

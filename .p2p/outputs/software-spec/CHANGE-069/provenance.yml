@@ -3,7 +3,48 @@ source:
   included_proposals:
   - PROP-101
   accepted_decisions: []
+  decision_bindings:
+  - proposal: PROP-101
+    effective_state: accepted
+    head_event_id: PDE-543016c164d3c4566c853c74
+    decision_semantic_sha256: 393fddc0e3d2ad7b0ecfbc6bc10051aa99ba14ebcda3164221b4241e6f60641e
+    proposal_binding_status: current
 generated_from:
 - .p2p/changes/CHANGE-069-project-readiness-convergence-workflow/change.md
 - .p2p/changes/CHANGE-069-project-readiness-convergence-workflow/tasks.yml
 - .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
+- .p2p/proposals/PROP-101-project-readiness-convergence-workflow/decision-events.yml
+p2p_generation:
+  schema_version: 1
+  origin: generated
+  generator: p2p_engine.software_spec
+  renderer_version: 1
+  source_fingerprint:
+    algorithm: sha256
+    value: 7f5770581301251c9955cb57d26d1882fcf9d024baffef83dcf81c19d29a9911
+  sources:
+  - path: .p2p/changes/CHANGE-069-project-readiness-convergence-workflow/change.md
+    exists: true
+    sha256: b612a11a4264612bf6c83612b34b5c4fef209c6d67993dfdda0d9041d41cec31
+  - path: .p2p/changes/CHANGE-069-project-readiness-convergence-workflow/tasks.yml
+    exists: true
+    sha256: a848b8101789ca13b92504fb03909c88eddacacbdeeb684f4b20c58e5297728a
+  - path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/decision-events.yml
+    exists: true
+    sha256: 0290a3541f7d6ae42881e221d23edf5927cd66d10588a4f15877bfdd4f2b81b8
+  - path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
+    exists: true
+    sha256: 571e497d3cd674f63f015addcf90aa66bf0356e310f666d3bdc218bf5759da0e
+  outputs:
+  - path: index.md
+    sha256: f283a09827ada270d8a2e2ca0a94ab323893c454d5552d62de041a8ca5b73ac0
+  - path: requirements.md
+    sha256: 425f528441a1870744515172dd942556ba41165317c1cacbb76e4b6656ce32d4
+  - path: design.md
+    sha256: a864a8e882ee09fd68e950a8bb25a5fa710387043ba6fa946178de493c7967e4
+  - path: commands.yml
+    sha256: 287258b629a2b80224a65b8df92b834b28c9d3ae981f43ab2d9c72f6adeac010
+  - path: data-model.yml
+    sha256: cc5658c0d7f415b2d00f378d9749fef73a40f678c3dea78158728c09cb02955f
+  - path: acceptance.md
+    sha256: 96af25d662fe5dfe834a9bbf07b3be7d339535cf9feb43b325b21b6ea91bca02

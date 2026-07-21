@@ -1274,7 +1274,7 @@ decisions:
 - proposal: PROP-063
   title: Public Documentation Gap Closure
   outcome: undecided
-  status: undecided
+  status: draft
   path: .p2p/proposals/PROP-063-public-documentation-gap-closure/decision.md
   reason: ''
   effective_state: undecided
@@ -2016,7 +2016,7 @@ decisions:
 - proposal: PROP-098
   title: Test Impact and Validation Routing
   outcome: undecided
-  status: undecided
+  status: draft
   path: .p2p/proposals/PROP-098-test-impact-and-validation-routing/decision.md
   reason: ''
   effective_state: undecided

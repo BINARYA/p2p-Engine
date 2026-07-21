@@ -25,6 +25,7 @@ from p2p_engine.services.readiness import (
 from p2p_engine.services.proposal_questions import validate_proposal_questions_payload
 from p2p_engine.services.proposal_artifact_state import validate_proposal_artifact_state_payload
 from p2p_engine.services.runtime_contract import RuntimeContractService
+from p2p_engine.foundation.yaml_loaders import load_yaml
 
 BUILT_IN_AGENT_ADAPTERS = ("generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode")
 
@@ -156,7 +157,7 @@ class ValidationService:
         for path in sorted(set(structured_files)):
             if path.exists() and path.is_file():
                 try:
-                    yaml.safe_load(path.read_text(encoding="utf-8"))
+                    load_yaml(path.read_bytes())
                 except yaml.YAMLError as exc:
                     add("P2P010_INVALID_YAML", "error", path, f"Invalid YAML: {exc}", "")
 
@@ -495,7 +496,7 @@ def _relative_to_root(path: Path, root: Path) -> Path:
 def _read_yaml_mapping(path: Path, default: dict[str, object]) -> dict[str, object]:
     if not path.exists():
         return default
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    data = load_yaml(path.read_bytes())
     if data is None:
         return default
     if not isinstance(data, dict):

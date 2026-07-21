@@ -531,7 +531,7 @@ def test_revoked_decision_generates_stable_remediation_with_curated_precedence(
     ]
 
 
-def test_next_actions_reuse_freshness_for_decision_remediation(
+def test_next_actions_skip_deep_freshness_for_decision_remediation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -570,12 +570,13 @@ def test_next_actions_reuse_freshness_for_decision_remediation(
 
     actions = workspace._next_action_service().list()
 
-    assert freshness_calls == 1
-    assert any(
+    assert freshness_calls == 0
+    assert not any(
         action.kind == "review_decision_freshness"
         and action.target == "derived_freshness"
         for action in actions
     )
+    assert any(action.target == change.change_id for action in actions)
 
 
 def test_reinstatement_keeps_review_actions_without_restoring_dependents(

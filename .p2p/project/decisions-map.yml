@@ -1,486 +1,1096 @@
+projection:
+  kind: vertical_first_derived_project_memory
+  vertical_id: software_project
+  source_fingerprint_sha256: c4e21758eaf09a9deecbbfb248f97c93aeddfd7fffe99853eb16a1892b4a3631
+  source: materialized
+  canonical_source: .p2p/
 decisions:
-- proposal: PROP-001
-  title: "\u2014 CLI Foundation"
-  status: accepted
-  feature: cli-foundation
-  source: .p2p/proposals/PROP-001-cli-foundation
 - proposal: PROP-002
   title: Proposal Exploration And Readiness Workflow
   status: accepted
   feature: proposal-exploration-and-readiness-workflow
   source: .p2p/proposals/PROP-002-exploration-phase
+  authority: active_unmapped
+  head_event_id: PDE-40bb9fc4ad4fb5072eba4077
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-004
   title: Prompt-only Import Workflow
   status: accepted
   feature: prompt-only-import-workflow
   source: .p2p/proposals/PROP-004-prompt-only-import-workflow
+  authority: active_unmapped
+  head_event_id: PDE-8b282b2dfe3da5d7e4b9add4
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-005
   title: Codex Skill Integration
   status: accepted
   feature: codex-skill-integration
   source: .p2p/proposals/PROP-005-codex-skill-integration
-- proposal: PROP-006
-  title: Multi-Agent Integration Model
-  status: accepted
-  feature: multi-agent-integration-model
-  source: .p2p/proposals/PROP-006-multi-agent-integration-model
+  authority: active_unmapped
+  head_event_id: PDE-f26bbb308a2d202c1301f7ac
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-009
   title: Governance CLI Commands
   status: accepted
   feature: governance-cli-commands
   source: .p2p/proposals/PROP-009-governance-cli-commands
+  authority: active_unmapped
+  head_event_id: PDE-4ba6bc02e77a0d2b6ed47313
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-010
   title: P2P Project State Model
   status: accepted
   feature: p2p-project-state-model
   source: .p2p/proposals/PROP-010-p2p-software-specification-model
+  authority: active_unmapped
+  head_event_id: PDE-1d5b2741827957b057d0364f
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-011
   title: Project Refresh MVP
   status: accepted
   feature: project-refresh-mvp
   source: .p2p/proposals/PROP-011-project-refresh-mvp
+  authority: active_unmapped
+  head_event_id: PDE-fabc1791b9eb7f41b7a80254
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-012
   title: Impact Map and Conflict Memory
   status: accepted
   feature: impact-map-and-conflict-memory
   source: .p2p/proposals/PROP-012-impact-map-and-conflict-memory
+  authority: active_unmapped
+  head_event_id: PDE-bb8aa22c4115c25bb0786483
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-013
   title: Managed Git Adapter and Change Set Model
   status: accepted
   feature: managed-git-adapter-and-change-set-model
   source: .p2p/proposals/PROP-013-change-set-and-git-branch-model
+  authority: active_unmapped
+  head_event_id: PDE-20b6debbe45862ae86007979
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-014
   title: Change Set Metadata MVP
   status: accepted
   feature: change-set-metadata-mvp
   source: .p2p/proposals/PROP-014-change-set-metadata-mvp
+  authority: active_unmapped
+  head_event_id: PDE-7c5395595e8e716e41a4ded9
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-015
   title: Change Set Lifecycle and Task Tracking
   status: accepted
   feature: change-set-lifecycle-and-task-tracking
   source: .p2p/proposals/PROP-015-change-set-lifecycle-and-task-tracking
+  authority: active_unmapped
+  head_event_id: PDE-cb8df271cf76f0bff218d2d5
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-016
   title: Project Registries MVP
   status: accepted
   feature: project-registries-mvp
   source: .p2p/proposals/PROP-016-project-registries-mvp
+  authority: active_unmapped
+  head_event_id: PDE-069833ff483a530465f937f6
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-017
   title: Proposal Intake and Context Analysis MVP
   status: accepted
   feature: proposal-intake-and-context-analysis-mvp
   source: .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp
+  authority: active_unmapped
+  head_event_id: PDE-91c9badb383c477dbe8bb703
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-018
   title: Choice Management CLI MVP
   status: accepted
   feature: choice-management-cli-mvp
   source: .p2p/proposals/PROP-018-choice-management-cli-mvp
+  authority: active_unmapped
+  head_event_id: PDE-216d6ed690b621c29c8a76df
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-019
   title: Proposal Decision Shortcut Commands
   status: accepted
   feature: proposal-decision-shortcut-commands
   source: .p2p/proposals/PROP-019-proposal-decision-shortcut-commands
+  authority: active_unmapped
+  head_event_id: PDE-ed75430021d1c4286eceaba9
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-020
   title: Proposal Inspection CLI MVP
   status: accepted
   feature: proposal-inspection-cli-mvp
   source: .p2p/proposals/PROP-020-proposal-inspection-cli-mvp
+  authority: active_unmapped
+  head_event_id: PDE-a6d9136ca28d1be4a8b55658
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-021
   title: Agent Skill Real Commands Update
   status: accepted
   feature: agent-skill-real-commands-update
   source: .p2p/proposals/PROP-021-agent-skill-real-commands-update
+  authority: active_unmapped
+  head_event_id: PDE-92c09720cdb53958dbb7b86b
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-022
   title: Operational Brief Prompt Workflow
   status: accepted
   feature: operational-brief-prompt-workflow
   source: .p2p/proposals/PROP-022-operational-brief-prompt-workflow
+  authority: active_unmapped
+  head_event_id: PDE-b7b93fd24e788ba31124a507
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-023
   title: Next Action Recommender MVP
   status: accepted
   feature: next-action-recommender-mvp
   source: .p2p/proposals/PROP-023-next-action-recommender-mvp
+  authority: active_unmapped
+  head_event_id: PDE-b87673d0dc521e8af87fe8e8
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-024
   title: Choice Blocking and Discovery MVP
   status: accepted
   feature: choice-blocking-and-discovery-mvp
   source: .p2p/proposals/PROP-024-choice-blocking-and-discovery-mvp
+  authority: active_unmapped
+  head_event_id: PDE-4bc8e55c19b3f8fc9876da06
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-025
   title: Controlled Intake Apply Workflow
   status: accepted
   feature: controlled-intake-apply-workflow
   source: .p2p/proposals/PROP-025-controlled-intake-apply-workflow
+  authority: active_unmapped
+  head_event_id: PDE-a265bfb09c18f593d4517ca5
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-026
   title: P2P Software Spec Generator MVP
   status: accepted
   feature: p2p-software-spec-generator-mvp
   source: .p2p/proposals/PROP-026-p2p-software-spec-generator-mvp
+  authority: active_unmapped
+  head_event_id: PDE-3eb96abd79945af2e84644ea
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-027
   title: Software Spec Exporter MVP
   status: accepted
   feature: software-spec-exporter-mvp
   source: .p2p/proposals/PROP-027-software-spec-exporter-mvp
+  authority: active_unmapped
+  head_event_id: PDE-ca4acdee6d9db3201737f03a
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-028
   title: Spec Kit Export Mapping MVP
   status: accepted
   feature: spec-kit-export-mapping-mvp
   source: .p2p/proposals/PROP-028-spec-kit-export-mapping-mvp
+  authority: active_unmapped
+  head_event_id: PDE-f9c0a407d07f4c3c214294d8
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-029
   title: Spec Export Validation MVP
   status: accepted
   feature: spec-export-validation-mvp
   source: .p2p/proposals/PROP-029-spec-export-validation-mvp
+  authority: active_unmapped
+  head_event_id: PDE-81615988a6e1b504c9c94a9c
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-030
   title: Managed Work and Multi-Branch Visibility Policy
   status: accepted
   feature: managed-work-and-multi-branch-visibility-policy
   source: .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy
+  authority: active_unmapped
+  head_event_id: PDE-9f668df61ac648126dcd94d0
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-031
   title: Multi-Branch Work Scan MVP
   status: accepted
   feature: multi-branch-work-scan-mvp
   source: .p2p/proposals/PROP-031-multi-branch-work-scan-mvp
+  authority: active_unmapped
+  head_event_id: PDE-cd85ea1db7cd737634b466c2
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-032
   title: Managed Work Branch Creation MVP
   status: accepted
   feature: managed-work-branch-creation-mvp
   source: .p2p/proposals/PROP-032-managed-work-branch-creation-mvp
+  authority: active_unmapped
+  head_event_id: PDE-86849708cbc2614dca0d0899
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-033
   title: Managed Work Submit MVP
   status: accepted
   feature: managed-work-submit-mvp
   source: .p2p/proposals/PROP-033-managed-work-submit-mvp
+  authority: active_unmapped
+  head_event_id: PDE-e8c2adf067d885127c043be3
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-034
   title: Managed Work Review MVP
   status: accepted
   feature: managed-work-review-mvp
   source: .p2p/proposals/PROP-034-managed-work-review-mvp
+  authority: active_unmapped
+  head_event_id: PDE-1c9a69e1c1ea4f127a3cf6d0
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-035
   title: Managed Work Publish MVP
   status: accepted
   feature: managed-work-publish-mvp
   source: .p2p/proposals/PROP-035-managed-work-publish-mvp
+  authority: active_unmapped
+  head_event_id: PDE-2c07609d67e6bbe756b67f3a
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-036
   title: Managed Work Accept MVP
   status: accepted
   feature: managed-work-accept-mvp
   source: .p2p/proposals/PROP-036-managed-work-accept-mvp
+  authority: active_unmapped
+  head_event_id: PDE-7c794d01387ecaff9a687116
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-037
   title: Managed Work Status Summary MVP
   status: accepted
   feature: managed-work-status-summary-mvp
   source: .p2p/proposals/PROP-037-managed-work-status-summary-mvp
+  authority: active_unmapped
+  head_event_id: PDE-3baf130fe918d77863dd2599
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-038
   title: Managed Work Merge Conflict Guidance MVP
   status: accepted
   feature: managed-work-merge-conflict-guidance-mvp
   source: .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp
+  authority: active_unmapped
+  head_event_id: PDE-e55684c8eb42da60029a3f35
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-039
   title: Managed Work Finalize MVP
   status: accepted
   feature: managed-work-finalize-mvp
   source: .p2p/proposals/PROP-039-managed-work-finalize-mvp
+  authority: active_unmapped
+  head_event_id: PDE-6dbcb4f70fe2e021423de998
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-040
   title: Managed Work Cleanup MVP
   status: accepted
   feature: managed-work-cleanup-mvp
   source: .p2p/proposals/PROP-040-managed-work-cleanup-mvp
+  authority: active_unmapped
+  head_event_id: PDE-5f2ffd8e9c7c485100b28d88
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-041
   title: Remote Project Profile and Review Request Policy
   status: accepted
   feature: remote-project-profile-and-review-request-policy
   source: .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy
+  authority: active_unmapped
+  head_event_id: PDE-e571eb54493752c25b826972
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-042
   title: P2P Core CLI MCP Mediator Web Boundary
   status: accepted
   feature: p2p-core-cli-mcp-mediator-web-boundary
   source: .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary
+  authority: active_unmapped
+  head_event_id: PDE-92468b24ea8efc1e612b671d
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-043
   title: Managed Work Retire MVP
   status: accepted
   feature: managed-work-retire-mvp
   source: .p2p/proposals/PROP-043-managed-work-retire-mvp
-- proposal: PROP-044
-  title: P2P MCP Server MVP
-  status: accepted
-  feature: p2p-mcp-server-mvp
-  source: .p2p/proposals/PROP-044-p2p-mcp-server-mvp
+  authority: active_unmapped
+  head_event_id: PDE-24220dd5f0232cf059f33448
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-045
   title: Agent-Safe Project Bootstrap MVP
   status: accepted
   feature: agent-safe-project-bootstrap-mvp
   source: .p2p/proposals/PROP-045-agent-safe-project-bootstrap-mvp
+  authority: active_unmapped
+  head_event_id: PDE-043eadb6eeb2f83b4262d07f
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-046
   title: MCP Write-Safe Bootstrap Tools MVP
   status: accepted
   feature: mcp-write-safe-bootstrap-tools-mvp
   source: .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp
+  authority: active_unmapped
+  head_event_id: PDE-f22a6b8b182d10102e47dedb
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-047
   title: Guided Init Wizard MVP
   status: accepted
   feature: guided-init-wizard-mvp
   source: .p2p/proposals/PROP-047-guided-init-wizard-mvp
+  authority: active_unmapped
+  head_event_id: PDE-18cd7fc4ed3e9f1c61a19139
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-048
   title: MCP Level 3 Proposal and Intake Draft Tools
   status: accepted
   feature: mcp-level-3-proposal-and-intake-draft-tools
   source: .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools
+  authority: active_unmapped
+  head_event_id: PDE-dddd2373a3668d3c06a4c7ef
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-049
   title: MCP Level 4A Proposal Refinement Tools
   status: accepted
   feature: mcp-level-4a-proposal-refinement-tools
   source: .p2p/proposals/PROP-049-mcp-level-4a-proposal-refinement-tools
+  authority: active_unmapped
+  head_event_id: PDE-bb784b56b376730d51b2e650
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-050
   title: MCP Level 4B Choice Conflict Impact Advisory Tools
   status: accepted
   feature: mcp-level-4b-choice-conflict-impact-advisory-tools
   source: .p2p/proposals/PROP-050-mcp-level-4b-choice-conflict-impact-advisory-tools
+  authority: active_unmapped
+  head_event_id: PDE-fd7b075b133c3841860691c4
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-051
   title: Draft Proposal Next Action and Agent Explanation Guard
   status: accepted
   feature: draft-proposal-next-action-and-agent-explanation-guard
   source: .p2p/proposals/PROP-051-draft-proposal-next-action-and-agent-explanation-guard
+  authority: active_unmapped
+  head_event_id: PDE-d257c3981c624c6f8479aa9d
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-052
   title: MCP Proposal Contribution Tool
   status: accepted
   feature: mcp-proposal-contribution-tool
   source: .p2p/proposals/PROP-052-mcp-proposal-contribution-tool
+  authority: active_unmapped
+  head_event_id: PDE-80ae1c5125d02c0714c372b0
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-053
   title: Core Validation Layer MVP
   status: accepted
   feature: core-validation-layer-mvp
   source: .p2p/proposals/PROP-053-core-validation-layer-mvp
+  authority: active_unmapped
+  head_event_id: PDE-b3ff0dbff17a424fc4908a11
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-054
   title: Project Readiness and Maturity Assessment
   status: accepted
   feature: project-readiness-and-maturity-assessment
   source: .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment
-- proposal: PROP-055
-  title: Agent Token Budget and Context Discipline
-  status: accepted
-  feature: agent-token-budget-and-context-discipline
-  source: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline
+  authority: active_unmapped
+  head_event_id: PDE-1f058faadb452a7254749467
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-056
   title: Project Definition Maturity Rubrics
   status: accepted
   feature: project-definition-maturity-rubrics
   source: .p2p/proposals/PROP-056-project-definition-maturity-rubrics
+  authority: active_unmapped
+  head_event_id: PDE-0619ce664d038ebb0f909ce6
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-057
   title: Guided Rubric Selection During Init
   status: accepted
   feature: guided-rubric-selection-during-init
   source: .p2p/proposals/PROP-057-guided-rubric-selection-during-init
+  authority: active_unmapped
+  head_event_id: PDE-08db8f45bb1be38e2e48d6f6
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-058
   title: Project README and Installation Guide
   status: accepted
   feature: project-readme-and-installation-guide
   source: .p2p/proposals/PROP-058-project-readme-and-installation-guide
+  authority: active_unmapped
+  head_event_id: PDE-70b99ea933b3d37b3b6991d2
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-059
   title: P2PWorkspace Modular Refactoring Plan
   status: accepted
   feature: p2pworkspace-modular-refactoring-plan
   source: .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan
+  authority: active_unmapped
+  head_event_id: PDE-f6946a3894334b7cbd16107a
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-060
   title: Real Test Coverage Reporting
   status: accepted
   feature: real-test-coverage-reporting
   source: .p2p/proposals/PROP-060-real-test-coverage-reporting
+  authority: active_unmapped
+  head_event_id: PDE-a092a072fe5b20e723d91675
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-061
   title: Focused README and Documentation Map
   status: accepted
   feature: focused-readme-and-documentation-map
   source: .p2p/proposals/PROP-061-focused-readme-and-documentation-map
+  authority: active_unmapped
+  head_event_id: PDE-74ae67987198996d2ec1a38b
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-062
   title: README Product Landing Page Refinement
   status: accepted
   feature: readme-product-landing-page-refinement
   source: .p2p/proposals/PROP-062-readme-product-landing-page-refinement
+  authority: active_unmapped
+  head_event_id: PDE-d8749ca430a1bd6f81ee1e0e
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-064
   title: Spec Kit Three-Prompt Export Model
   status: accepted
   feature: spec-kit-three-prompt-export-model
   source: .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model
+  authority: active_unmapped
+  head_event_id: PDE-609d507c972355fea54acd3c
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-065
   title: MCP Agent-First Coverage Expansion
   status: accepted
   feature: mcp-agent-first-coverage-expansion
   source: .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion
+  authority: active_unmapped
+  head_event_id: PDE-f662a92ee466a07eafcb46b8
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-066
   title: Permission-Gated MCP Governance And Git Operations
   status: accepted
   feature: permission-gated-mcp-governance-and-git-operations
   source: .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations
+  authority: active_unmapped
+  head_event_id: PDE-41d214f07fc04f5872539575
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-067
   title: Agent-First Setup Documentation Split
   status: accepted
   feature: agent-first-setup-documentation-split
   source: .p2p/proposals/PROP-067-agent-first-setup-documentation-split
+  authority: active_unmapped
+  head_event_id: PDE-2b8cc77fdf4e41b467d96a32
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-068
   title: Document Agent MCP Client Setup Commands
   status: accepted
   feature: document-agent-mcp-client-setup-commands
   source: .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands
+  authority: active_unmapped
+  head_event_id: PDE-661c3c04dcda79edc6d5d97a
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-069
   title: Clarify MCP Stdio Integration Model
   status: accepted
   feature: clarify-mcp-stdio-integration-model
   source: .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model
+  authority: active_unmapped
+  head_event_id: PDE-1c74a1b02b4379e2915f4854
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-070
   title: Clarify README Agent Access Modes
   status: accepted
   feature: clarify-readme-agent-access-modes
   source: .p2p/proposals/PROP-070-clarify-readme-agent-access-modes
+  authority: active_unmapped
+  head_event_id: PDE-b67e941a7f11fb901bb90d11
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-071
   title: Custom Domain Definition Workflow
   status: accepted
   feature: custom-domain-definition-workflow
   source: .p2p/proposals/PROP-071-custom-domain-definition-workflow
+  authority: active_unmapped
+  head_event_id: PDE-db12e1eb148c58478bc49735
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-072
   title: Concurrent Managed Work and Merge Decision Model
   status: accepted
   feature: concurrent-managed-work-and-merge-decision-model
   source: .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model
+  authority: active_unmapped
+  head_event_id: PDE-a4ce1762234efae2fce2c253
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-073
   title: Ergonomic Remote Project Initialization
   status: accepted
   feature: ergonomic-remote-project-initialization
   source: .p2p/proposals/PROP-073-ergonomic-remote-project-initialization
+  authority: active_unmapped
+  head_event_id: PDE-360e17a4067a1365afbfde03
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-074
   title: Agent Runtime Bootstrap Robustness
   status: accepted
   feature: agent-runtime-bootstrap-robustness
   source: .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness
+  authority: active_unmapped
+  head_event_id: PDE-4e2cc6ff61af6eefc51307ba
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-075
   title: MCP End-To-End Proposal Collaboration Workflow
   status: accepted
   feature: mcp-end-to-end-proposal-collaboration-workflow
   source: .p2p/proposals/PROP-075-mcp-end-to-end-proposal-collaboration-workflow
+  authority: active_unmapped
+  head_event_id: PDE-2ceabb86e28cae9b1ef1c07f
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-076
   title: P2P Cloud Runner Boundary and Containerized Execution Model
   status: accepted
   feature: p2p-cloud-runner-boundary-and-containerized-execution-model
   source: .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model
+  authority: active_unmapped
+  head_event_id: PDE-3d548bebf715932a059ace7c
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-077
   title: Permission-Gated Draft Proposal Decisions via MCP
   status: accepted
   feature: permission-gated-draft-proposal-decisions-via-mcp
   source: .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp
+  authority: active_unmapped
+  head_event_id: PDE-5a6828b39348afde1ac4057c
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-078
   title: Project-Local Wheel Installation and Upgrade Model
   status: accepted
   feature: project-local-wheel-installation-and-upgrade-model
   source: .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model
+  authority: active_unmapped
+  head_event_id: PDE-17511e4112d3eb8d5006f03c
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-079
   title: Managed Next Action Lifecycle
   status: accepted
   feature: managed-next-action-lifecycle
   source: .p2p/proposals/PROP-079-managed-next-action-lifecycle
+  authority: active_unmapped
+  head_event_id: PDE-ca0b2e2e247f5cb8177812d3
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-080
   title: Automated GitHub Release Wheel Publishing
   status: accepted
   feature: automated-github-release-wheel-publishing
   source: .p2p/proposals/PROP-080-automated-github-release-wheel-publishing
+  authority: active_unmapped
+  head_event_id: PDE-c803ff7b0db4bc7e327d16f0
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-081
   title: MCP and Skill Support for Managed Next Actions
   status: accepted
   feature: mcp-and-skill-support-for-managed-next-actions
   source: .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions
+  authority: active_unmapped
+  head_event_id: PDE-4f801b7836715b90ed233095
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-082
   title: Readiness Assessment Refresh And Review Workflow
   status: accepted
   feature: readiness-assessment-refresh-and-review-workflow
   source: .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow
+  authority: active_unmapped
+  head_event_id: PDE-042338e7885e5d5de38e91a1
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-083
   title: Domain-Aware Visible Project Definition Export
   status: accepted
   feature: domain-aware-visible-project-definition-export
   source: .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export
-- proposal: PROP-084
-  title: Project-Local Runtime Bootstrap And Upgrade Flow
-  status: accepted_with_changes
-  feature: project-local-runtime-bootstrap-and-upgrade-flow
-  source: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow
-- proposal: PROP-085
-  title: Pluggable Project Verticals And Readiness Orchestration
-  status: accepted
-  feature: pluggable-project-verticals-and-readiness-orchestration
-  source: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration
+  authority: active_unmapped
+  head_event_id: PDE-bd33295c27d038f9908d06e3
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-086
   title: Artifact-aware Proposal Readiness And Agent Interview Orchestration
   status: accepted
   feature: artifact-aware-proposal-readiness-and-agent-interview-orchestration
   source: .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration
+  authority: active_unmapped
+  head_event_id: PDE-12499f915ac68a11df8f790f
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-087
   title: Agent Personality Model For Decision Mediation
   status: accepted
   feature: agent-personality-model-for-decision-mediation
   source: .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation
+  authority: active_unmapped
+  head_event_id: PDE-7974b74bc80506dd96bd98a8
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-088
   title: MCP Artifact Import Parity
   status: accepted
   feature: mcp-artifact-import-parity
   source: .p2p/proposals/PROP-088-mcp-artifact-import-parity
+  authority: active_unmapped
+  head_event_id: PDE-c0e6fb2a99fa8f913bf87c3e
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-089
   title: Readiness Question-State Convergence
   status: accepted
   feature: readiness-question-state-convergence
   source: .p2p/proposals/PROP-089-readiness-question-state-convergence
-- proposal: PROP-090
-  title: Project Vertical Pack Runtime Hardening And Definition State
-  status: accepted
-  feature: project-vertical-pack-runtime-hardening-and-definition-state
-  source: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state
-- proposal: PROP-091
-  title: Governance Policy Convergence
-  status: accepted
-  feature: governance-policy-convergence
-  source: .p2p/proposals/PROP-091-governance-policy-convergence
+  authority: active_unmapped
+  head_event_id: PDE-0a2498d3fcdd4b96e0dd9c08
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-092
   title: Local MCP Work Lifecycle Parity And Remote Gateway Boundary
   status: accepted
   feature: local-mcp-work-lifecycle-parity-and-remote-gateway-boundary
   source: .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary
+  authority: active_unmapped
+  head_event_id: PDE-43ee93f4bad029501144e656
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-093
   title: Agent Persistence Boundaries And Proposal Authoring Flow
   status: accepted
   feature: agent-persistence-boundaries-and-proposal-authoring-flow
   source: .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening
-- proposal: PROP-094
-  title: P2P-Governed Software Specification Lifecycle
-  status: accepted
-  feature: p2p-governed-software-specification-lifecycle
-  source: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle
-- proposal: PROP-095
-  title: Project Runtime Contract Update Lifecycle
-  status: accepted
-  feature: project-runtime-contract-update-lifecycle
-  source: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle
+  authority: active_unmapped
+  head_event_id: PDE-c12a5a5335a0654dc56448de
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-096
   title: Readiness Evidence Quality and Question State Normalization
   status: accepted
   feature: readiness-evidence-quality-and-question-state-normalization
   source: .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization
+  authority: active_unmapped
+  head_event_id: PDE-96cf784b12e1ef5801ed0303
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-097
   title: Runtime Contract Adoption For Legacy Projects
   status: accepted
   feature: runtime-contract-adoption-for-legacy-projects
   source: .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects
+  authority: active_unmapped
+  head_event_id: PDE-5a0f2b63295bd014ed1db83d
+  rationale: ''
+  constraints: []
+  sections: []
 - proposal: PROP-099
   title: Project Output Lifecycle and Retention Policy
   status: accepted
   feature: project-output-lifecycle-and-retention-policy
-  source: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy
+  source: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/proposal.md
+  authority: resolved
+  head_event_id: PDE-5ef0ae2e007f0b6e55b94013
+  rationale: Owner accepts the decision-ready human project publication pipeline as
+    the direction for readable, vertical-aware project outputs.
+  constraints: []
+  sections:
+  - acceptance_validation
+  - artifacts
+  - data_model
+  - mvp_scope
+  - risks_alternatives_decisions
+  - workflows_use_cases
+- proposal: PROP-094
+  title: P2P-Governed Software Specification Lifecycle
+  status: accepted
+  feature: p2p-governed-software-specification-lifecycle
+  source: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/proposal.md
+  authority: resolved
+  head_event_id: PDE-b948a4d0fffef8cca8d60c06
+  rationale: Owner accepted after review; readiness is decision_ready with no missing
+    gates or blocking questions.
+  constraints: []
+  sections:
+  - acceptance_validation
+  - artifacts
+  - data_model
+  - integrations_dependencies
+  - mvp_scope
+  - risks_alternatives_decisions
+  - system_objective
+  - workflows_use_cases
 - proposal: PROP-100
   title: Project Decision Context Index and Proposal Neighborhood
   status: accepted
   feature: project-decision-context-index-and-proposal-neighborhood
-  source: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology
-- proposal: PROP-101
-  title: Project Readiness Convergence Workflow
-  status: accepted
-  feature: project-readiness-convergence-workflow
-  source: .p2p/proposals/PROP-101-project-readiness-convergence-workflow
+  source: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/proposal.md
+  authority: resolved
+  head_event_id: PDE-dca2e0af8d9225336efbbf35
+  rationale: Accepted as the umbrella architecture direction for a derived, read-only
+    and source-linked decision context index delivered through independently gated
+    slices. Governed artifacts remain authoritative; public integration requires the
+    defined performance and compatibility gates, and any persistent cache remains
+    a separate measured feature.
+  constraints: []
+  sections:
+  - acceptance_validation
+  - assumptions
+  - constraints_nfrs
+  - data_model
+  - integrations_dependencies
+  - risks_alternatives_decisions
+  - workflows_use_cases
 - proposal: PROP-102
   title: Proposal Decision Revision and Revocation Lifecycle
   status: accepted
   feature: proposal-decision-revision-and-revocation-lifecycle
-  source: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle
+  source: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/proposal.md
+  authority: resolved
+  head_event_id: PDE-568a29c09673a60b82d5ae8a
+  rationale: La proposta definisce in modo completo e verificabile il lifecycle delle
+    decisioni, distinguendo rifiuto, revoca, sostituzione e reinstatement, con autorita
+    owner, migrazione legacy, impatto sui consumer e criteri di robustezza. La readiness
+    e decision_ready al 100%, con confidenza alta e senza gap o gate falliti.
+  constraints: []
+  sections:
+  - acceptance_validation
+  - artifacts
+  - constraints_nfrs
+  - data_model
+  - decisions
+  - risks_alternatives_decisions
+- proposal: PROP-101
+  title: Project Readiness Convergence Workflow
+  status: accepted
+  feature: project-readiness-convergence-workflow
+  source: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
+  authority: resolved
+  head_event_id: PDE-543016c164d3c4566c853c74
+  rationale: The refined proposal addresses the identified readiness-convergence,
+    schema migration, atomicity, authority, retry, vertical reconciliation, decision-context
+    and bounded-retrieval risks with explicit delivery gates and acceptance criteria.
+  constraints: []
+  sections:
+  - acceptance_validation
+  - artifacts
+  - constraints_nfrs
+  - data_model
+  - decisions
+  - definition_of_done
+  - risks_alternatives_decisions
+  - workflows_use_cases
+- proposal: PROP-091
+  title: Governance Policy Convergence
+  status: accepted
+  feature: governance-policy-convergence
+  source: .p2p/proposals/PROP-091-governance-policy-convergence/proposal.md
+  authority: resolved
+  head_event_id: PDE-c4807cff1d66a97d62e3c451
+  rationale: Accepted by owner after guided refinement. The proposal is decision-ready
+    with readiness score 100, high confidence, no failed gates, no missing artifacts,
+    no suggested next actions, and clean validation. It defines Governance Policy
+    Convergence with owner_decides as default, deterministic preflight, explicit precedent
+    lookup, warning/blocking semantics, actor-role migration, and read-only/low-risk
+    MCP phase 1.
+  constraints: []
+  sections:
+  - constraints_nfrs
+  - data_model
+  - decisions
+  - risks_alternatives_decisions
+  - users_and_actors
+  - workflows_use_cases
+- proposal: PROP-085
+  title: Pluggable Project Verticals And Readiness Orchestration
+  status: accepted
+  feature: pluggable-project-verticals-and-readiness-orchestration
+  source: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/proposal.md
+  authority: resolved
+  head_event_id: PDE-bfc14622b8e2748a30b2db0a
+  rationale: Accepted by owner after readiness reached decision_ready. The proposal
+    defines pluggable pure-data project verticals, base_project, custom vertical candidate
+    flow, project readiness review, and proposal-to-vertical traceability while preserving
+    backward compatibility.
+  constraints: []
+  sections:
+  - artifacts
+  - data_model
+  - definition_of_done
+  - mvp_scope
+  - system_objective
+  - workflows_use_cases
+- proposal: PROP-090
+  title: Project Vertical Pack Runtime Hardening And Definition State
+  status: accepted
+  feature: project-vertical-pack-runtime-hardening-and-definition-state
+  source: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/proposal.md
+  authority: resolved
+  head_event_id: PDE-677c1d9bff19a26b755298d7
+  rationale: Owner reviewed the refined production hardening proposal, confirmed no
+    further changes are needed, and accepts it as the follow-up to PROP-085 for project
+    vertical pack runtime hardening and definition-state production readiness.
+  constraints: []
+  sections:
+  - acceptance_validation
+  - constraints_nfrs
+  - data_model
+  - definition_of_done
+  - integrations_dependencies
+  - risks_alternatives_decisions
+  - workflows_use_cases
+- proposal: PROP-055
+  title: Agent Token Budget and Context Discipline
+  status: accepted
+  feature: agent-token-budget-and-context-discipline
+  source: .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/proposal.md
+  authority: resolved
+  head_event_id: PDE-722e8d72ceb428111005e047
+  rationale: 'Accepted as the C-light MVP: combine skill policy, CLI compact context,
+    and MCP compact context to reduce agent token consumption without adding advanced
+    token estimation yet.'
+  constraints: []
+  sections:
+  - constraints_nfrs
+  - mvp_scope
+  - workflows_use_cases
+- proposal: PROP-084
+  title: Project-Local Runtime Bootstrap And Upgrade Flow
+  status: accepted_with_changes
+  feature: project-local-runtime-bootstrap-and-upgrade-flow
+  source: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/proposal.md
+  authority: resolved
+  head_event_id: PDE-8dcc66c7d70a5b8ca9b18209
+  rationale: 'Accepted with changes after owner rescope: PROP-084 is limited to a
+    minimal project runtime contract, project-local P2P-SETUP.md guidance, runtime
+    status, validation, and a contract-aware governed-write gate. Mandatory setup
+    scripts, install/reconcile managers, release resolvers, wheel/digest/source metadata,
+    environment mutation, and automatic fallback are out of scope.'
+  constraints:
+  - "L\u2019autorit\xE0 di PROP-084 \xE8 limitata al contratto runtime minimo, P2P-SETUP.md,\
+    \ runtime status, validation e blocco delle scritture governate incompatibili.\
+    \ Restano esclusi setup obbligatori, install/reconcile manager, release resolver,\
+    \ metadata wheel/digest/source, mutazioni dell\u2019ambiente e fallback automatici."
+  sections:
+  - constraints_nfrs
+  - data_model
+  - integrations_dependencies
+  - mvp_scope
+  - workflows_use_cases
+- proposal: PROP-044
+  title: P2P MCP Server MVP
+  status: accepted
+  feature: p2p-mcp-server-mvp
+  source: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/proposal.md
+  authority: resolved
+  head_event_id: PDE-5ed6ca13b3639bbf10be8419
+  rationale: A local read-only MCP server is the safest first agent-facing interface
+    over the deterministic P2P Core.
+  constraints: []
+  sections:
+  - integrations_dependencies
+  - mvp_scope
+  - workflows_use_cases
+- proposal: PROP-001
+  title: "\u2014 CLI Foundation"
+  status: accepted
+  feature: cli-foundation
+  source: .p2p/proposals/PROP-001-cli-foundation/proposal.md
+  authority: resolved
+  head_event_id: PDE-61f7c7e703420d7d5c4ad807
+  rationale: Current owner confirms the historical acceptance of PROP-001 for the
+    first local, Git-native, file-based Python and Typer CLI. The initial MVP excluded
+    a web application and direct AI provider integration; the legacy source wording
+    divergence remains preserved in migration provenance.
+  constraints: []
+  sections:
+  - mvp_scope
+  - system_objective
+  - workflows_use_cases
+- proposal: PROP-006
+  title: Multi-Agent Integration Model
+  status: accepted
+  feature: multi-agent-integration-model
+  source: .p2p/proposals/PROP-006-multi-agent-integration-model/proposal.md
+  authority: resolved
+  head_event_id: PDE-cf71cf96ba2288769305e65d
+  rationale: Owner accepts PROP-006 after refinement. The proposal is considered ready
+    as-is because remaining low readiness score reflects the current conservative
+    readiness CLI, not unresolved product direction. A separate follow-up proposal
+    will address readiness assessment refresh and review workflow.
+  constraints: []
+  sections:
+  - constraints_nfrs
+  - data_model
+  - integrations_dependencies
+  - users_and_actors
+  - workflows_use_cases
+- proposal: PROP-095
+  title: Project Runtime Contract Update Lifecycle
+  status: accepted
+  feature: project-runtime-contract-update-lifecycle
+  source: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/proposal.md
+  authority: resolved
+  head_event_id: PDE-72b6ee4f2bee15dc3c351628
+  rationale: Owner accepts the runtime contract update lifecycle after readiness reached
+    decision_ready with all Q001-Q016 decisions applied and no missing evidence.
+  constraints: []
+  sections:
+  - acceptance_validation
+  - constraints_nfrs
+  - data_model
+  - integrations_dependencies
+  - risks_alternatives_decisions
+  - workflows_use_cases
+historical_decisions: []

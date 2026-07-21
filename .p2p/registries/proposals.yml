@@ -2790,7 +2790,7 @@ proposals:
     targets: []
 - id: PROP-063
   title: Public Documentation Gap Closure
-  status: undecided
+  status: draft
   path: .p2p/proposals/PROP-063-public-documentation-gap-closure
   summary: Add a tutorial, glossary, real CLI and MCP guide content, HTTPS-first install
     instructions, and minimal public repository hygiene files.
@@ -6047,7 +6047,7 @@ proposals:
     targets: []
 - id: PROP-098
   title: Test Impact and Validation Routing
-  status: undecided
+  status: draft
   path: .p2p/proposals/PROP-098-test-impact-and-validation-routing
   summary: 'Introduce a Test Impact and Validation Routing model for P2P Engine. The
     model should map repository areas such as services, CLI command modules, MCP catalogs

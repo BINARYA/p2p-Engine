@@ -20,6 +20,7 @@ from p2p_engine.foundation.files import (
 )
 from p2p_engine.foundation.markdown import read_frontmatter, read_markdown_section, read_title
 from p2p_engine.foundation.validators import validate_yaml_key
+from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 
 
@@ -143,7 +144,7 @@ def _proposal_title(proposal_id: str, text: str) -> str:
 def _mapping_from_bytes(content: bytes | None, *, default: dict[str, object]) -> dict[str, object]:
     if content is None:
         return dict(default)
-    value = yaml.safe_load(content.decode("utf-8"))
+    value = load_yaml(content)
     return value if isinstance(value, dict) else dict(default)
 
 
@@ -409,7 +410,7 @@ class SoftwareSpecService:
         validate_yaml_key(files["commands.yml"], "commands")
         validate_yaml_key(files["data-model.yml"], "entities")
         validate_yaml_key(files["provenance.yml"], "source")
-        provenance = yaml.safe_load(files["provenance.yml"])
+        provenance = load_yaml(files["provenance.yml"])
         if not isinstance(provenance, dict):
             raise ValueError("Invalid provenance.yml: expected a mapping.")
         if "p2p_generation" in provenance:
@@ -460,9 +461,7 @@ class SoftwareSpecService:
                 suggested_command=f"p2p spec refresh --change {change_id}",
             )
         try:
-            provenance = yaml.safe_load(
-                (spec_dir / "provenance.yml").read_text(encoding="utf-8")
-            )
+            provenance = load_yaml((spec_dir / "provenance.yml").read_bytes())
         except (OSError, UnicodeDecodeError, yaml.YAMLError):
             return self._unknown_status(
                 change_id,

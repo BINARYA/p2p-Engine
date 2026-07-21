@@ -46,7 +46,7 @@ def test_progress_is_read_only_and_axes_are_independent(tmp_path: Path) -> None:
     workspace, proposal_id = _software_workspace(tmp_path)
     before = _hash_tree(tmp_path)
 
-    progress = workspace.project_progress()
+    progress = workspace.project_progress(include_heuristics=True)
 
     assert _hash_tree(tmp_path) == before
     assert progress.definition.status == "measured"
@@ -56,6 +56,10 @@ def test_progress_is_read_only_and_axes_are_independent(tmp_path: Path) -> None:
     assert proposal_id in data_model.heuristic_proposals
     assert not data_model.declared_committed_proposals
     assert progress.question_counts["to_answer"] > 0
+
+    fast_progress = workspace.project_progress()
+    assert all(not section.heuristic_proposals for section in fast_progress.sections)
+    assert fast_progress.evidence.ratio.exclusions["heuristics_not_requested"] == 1
 
 
 def test_question_lifecycle_counts_do_not_change_progress_percentages(tmp_path: Path) -> None:

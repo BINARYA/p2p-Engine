@@ -21,6 +21,7 @@ from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionLineageKind,
     ProposalDecisionRequest,
 )
+from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.storage.filesystem import P2PWorkspace
 
 
@@ -587,7 +588,7 @@ def _conditions(
         )
     if path is not None:
         try:
-            payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+            payload = load_yaml(path.read_bytes())
         except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
             raise ValueError(f"Cannot read conditions file: {exc}") from exc
         if isinstance(payload, Mapping):

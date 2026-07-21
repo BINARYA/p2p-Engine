@@ -1,126 +1,53 @@
 ---
 name: p2p-project-curator
-description: Curate P2P Engine generated project exports into one canonical, human-readable, vertical-aware project publication. Use when Codex or another agent receives outputs/latest/curator-input.md or needs to transform outputs/latest/project.md into outputs/latest/project.curated.md for the human project publication pipeline.
+description: Build a vertical-aware, language-specific human project publication from a prepared P2P publication packet and complete evidence index.
 ---
 
 <!--
 Managed by P2P Engine.
 Adapter: codex
-Template: codex-legacy-p2p-project-curator-skill-v1
+Template: codex-legacy-p2p-project-curator-skill-v2
 Do not edit generated sections unless you accept drift.
 -->
 
 # P2P Project Curator
 
-## Role
+## Purpose
 
-Curate the generated P2P project export into one coherent human project document.
-Treat `outputs/latest/project.md` and `outputs/latest/curator-input.md` as input
-evidence. Treat `.p2p/` as the authoritative source of truth.
+Create one autonomous project document for a reader who has no knowledge of P2P.
+The document explains the project itself. It does not explain the proposal,
+decision, readiness, Change Set, Work, or governance process used to design it.
 
-Do not mutate `.p2p/`. Do not accept, reject, approve, or decide governance
-items. Do not create audience-specific variants.
+## Start
 
-## Required Input
+1. Use the exact edition packet emitted by `p2p project publish prepare`.
+2. Verify every packet-declared path and hash before drafting.
+3. Read these references directly:
+   - [Editorial workflow](references/editorial-workflow.md)
+   - [Publication contracts](references/publication-contracts.md)
+   - [Vertical interpretation](references/vertical-interpretation.md)
+   - [Editorial rubric](references/editorial-rubric.md)
+4. Inspect every evidence-index entry and the active vertical before choosing an
+   outline.
+5. Write only the packet-declared candidate Markdown, project model, and
+   evidence-accounting files, then stop.
 
-Use the publication packet first:
+## Hard Boundaries
 
-```text
-outputs/latest/curator-input.md
-```
+- Use only packet-declared evidence. Never use implicit knowledge from another
+  repository, product, brand, or earlier conversation.
+- Do not infer whether planned work is implemented, shipped, or abandoned.
+- Do not expose internal IDs, hashes, paths, readiness scores, or upstream
+  workflow status in reader prose.
+- Do not force software headings onto another vertical. Headings are localized
+  and derived from reader questions, not section IDs.
+- Use prepared contributor figures exactly; never recalculate or reinterpret
+  them as effort, merit, ownership, authorship, or intellectual property.
+- Do not edit `.p2p/`, canonical `outputs/latest` targets, or the visible source
+  export. Do not import, render, review, or approve.
+- Do not create audience-specific variants. Language editions preserve the same
+  project scope.
 
-The packet provides:
-
-- source export path and hash;
-- P2P source fingerprint;
-- publication profile path and hash;
-- active vertical summary when available;
-- source-of-truth boundary;
-- traceability inputs;
-- the complete generated export or the path to it.
-
-If the packet is missing or stale, ask the user or orchestrator to run:
-
-```bash
-p2p project publish prepare
-```
-
-## Output Contract
-
-Produce exactly one canonical Markdown document:
-
-```text
-outputs/latest/project.curated.md
-```
-
-The document represents the project itself: "project X in vertical Y is this".
-Do not produce commercial, technical, investor, executive, or audience-specific
-versions. Downstream users may derive those separately.
-
-## Editorial Rules
-
-Write a project-first narrative. Identify the central project thesis, then
-organize supporting evidence around product capabilities, operational concerns,
-vertical requirements, risks, assumptions, and open questions.
-
-Adapt headings, terminology, grouping, and explanatory order to the active
-vertical when there is vertical evidence. If no vertical is available, use a
-generic project-first structure and state that vertical evidence is unavailable.
-
-Distinguish these states explicitly where they matter:
-
-- current implemented capability;
-- accepted but not yet implemented work;
-- planned or partial work;
-- pending owner decision;
-- missing evidence;
-- legacy context;
-- risk;
-- assumption;
-- open question.
-
-Preserve traceability for material claims. Prefer compact references such as
-proposal IDs, decision IDs, Change Set IDs, Work IDs, or artifact paths. Avoid
-turning the main body into a chronological proposal dump.
-
-Remove placeholders, repeated boilerplate, empty sections, internal governance
-noise, and duplicated headings from the main publication body.
-
-## Required Structure
-
-Use exactly one H1. Include at least:
-
-- executive summary;
-- project identity and vertical framing;
-- current project shape;
-- planned and pending work;
-- relevant risks, assumptions, and open questions;
-- source-of-truth statement that `.p2p/` remains authoritative;
-- traceability notes for material claims.
-
-Keep Markdown renderer-friendly: simple headings, paragraphs, lists, tables, and
-code blocks are allowed. Avoid embedded scripts, external asset dependencies, and
-layout tricks that would make PDF rendering fragile.
-
-## Lifecycle And Drift
-
-The canonical source for these instructions is the P2P Engine release template.
-Adapter-specific files under `.agents/`, `.codex/`, `CLAUDE.md`, or other agent
-surfaces are generated outputs managed by the agent integration lifecycle.
-
-Refresh or update generated adapter files through `p2p agent install`,
-`p2p agent update`, or `p2p agent instructions refresh`. Do not treat generated
-adapter files as release-template source.
-
-## Forbidden Behaviors
-
-Do not:
-
-- edit `.p2p/`;
-- overwrite `outputs/latest/project.md`;
-- claim publication approval;
-- hide unresolved risks or open questions;
-- invent implementation status not supported by evidence;
-- split the canonical document into multiple audience variants;
-- remove source-of-truth warnings;
-- silently ignore hash or fingerprint mismatch warnings in the packet.
+If the packet is stale or evidence is insufficient, stop with the exact
+corrective command or record the limitation in the model. Never fill a gap with
+an unsupported claim.

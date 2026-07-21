@@ -9,6 +9,7 @@ import yaml
 from p2p_engine.cli_shared import console
 from p2p_engine.cli_shared import fail
 from p2p_engine.cli_shared import workspace as workspace_for
+from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.services.proposal_artifacts import load_impact_artifacts
 
 
@@ -187,7 +188,7 @@ def _yaml_mapping(path: Path) -> dict[str, object]:
     if not path.is_file():
         raise ValueError(f"Patch file not found: {path}")
     try:
-        payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+        payload = load_yaml(path.read_bytes())
     except yaml.YAMLError as exc:
         raise ValueError(f"Invalid YAML patch: {exc}") from exc
     if not isinstance(payload, dict):

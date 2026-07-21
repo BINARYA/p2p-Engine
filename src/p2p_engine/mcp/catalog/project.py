@@ -193,39 +193,68 @@ def tool_definitions() -> list[dict[str, object]]:
         _tool(
             'p2p_project_publish_prepare',
             (
-                'Write-safe deterministic tool: prepare canonical human project publication '
-                'inputs under outputs/latest. Does not mutate P2P governance state.'
+                'Write-safe deterministic tool: prepare one language edition and the shared '
+                'publication evidence index under outputs/latest. Does not mutate governance state.'
             ),
-            {'root': {'type': 'string'}},
+            {
+                'root': {'type': 'string'},
+                'language': {'type': 'string'},
+                'output_name': {'type': 'string'},
+                'contributions': {'type': 'string', 'enum': ['auto', 'include', 'omit']},
+            },
         ),
         _tool(
             'p2p_project_publish_import',
             (
-                'Write-safe deterministic tool: import a curated Markdown draft into the '
-                'canonical publication output. Source must be a safe project-root path.'
+                'Write-safe deterministic tool: atomically import a curated Markdown, project '
+                'model, and evidence-accounting candidate for one language edition.'
             ),
-            {'root': {'type': 'string'}, 'source': {'type': 'string'}},
+            {
+                'root': {'type': 'string'},
+                'source': {'type': 'string'},
+                'model': {'type': 'string'},
+                'evidence_accounting': {'type': 'string'},
+                'language': {'type': 'string'},
+                'output_name': {'type': 'string'},
+            },
             ['source'],
         ),
         _tool(
             'p2p_project_publish_validate',
             (
-                'Write-safe deterministic tool: validate canonical human project publication '
-                'Markdown and write outputs/latest/publication-validation.yml.'
+                'Write-safe deterministic tool: validate one publication edition and its '
+                'model/evidence bindings.'
             ),
-            {'root': {'type': 'string'}},
+            {
+                'root': {'type': 'string'},
+                'language': {'type': 'string'},
+                'output_name': {'type': 'string'},
+            },
         ),
         _tool(
             'p2p_project_publish_render',
             (
-                'Write-safe deterministic tool: render validated canonical publication Markdown '
-                'to outputs/latest/project.pdf when the optional PDF capability is installed.'
+                'Write-safe deterministic tool: render one validated publication edition when '
+                'the optional PDF capability is installed.'
             ),
-            {'root': {'type': 'string'}},
+            {
+                'root': {'type': 'string'},
+                'language': {'type': 'string'},
+                'output_name': {'type': 'string'},
+            },
         ),
         _tool(
             'p2p_project_publish_status',
-            'Read canonical human project publication pipeline status.',
+            'Read one human project publication edition status.',
+            {
+                'root': {'type': 'string'},
+                'language': {'type': 'string'},
+                'output_name': {'type': 'string'},
+            },
+        ),
+        _tool(
+            'p2p_project_publish_list',
+            'List committed publication editions without rebuilding or repairing publication state.',
             {'root': {'type': 'string'}},
         ),
         _tool(
@@ -379,6 +408,20 @@ def tool_definitions() -> list[dict[str, object]]:
             'Show a generated P2P registry.',
             {'root': {'type': 'string'}, 'name': {'type': 'string'}},
             ['name'],
+        ),
+        _tool(
+            'p2p_project_memory_status',
+            'Show read-only vertical project-memory state and freshness.',
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_memory_show',
+            'Show bounded aggregate or exact-section vertical project memory without refreshing it.',
+            {'root': {'type': 'string'},
+             'section': {'type': 'string'},
+             'include_history': {'type': 'boolean'},
+             'limit': {'type': 'integer', 'minimum': 1, 'maximum': 100},
+             'cursor': {'type': 'string'}},
         ),
         _tool(
             'p2p_project_show',

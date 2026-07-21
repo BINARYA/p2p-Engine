@@ -30,9 +30,84 @@ def register_project_ops_commands(
     project_publish_app = typer.Typer(help="Prepare and inspect canonical human project publication output")
     project_vertical_lock_app = typer.Typer(help="Inspect and repair project vertical lock state")
     project_metadata_app = typer.Typer(help="Inspect and update bounded project metadata")
+    project_memory_app = typer.Typer(help="Inspect vertical-aware derived project memory")
     project_app.add_typer(project_publish_app, name="publish")
     project_app.add_typer(project_metadata_app, name="metadata")
+    project_app.add_typer(project_memory_app, name="memory")
     project_vertical_app.add_typer(project_vertical_lock_app, name="lock")
+
+    @project_memory_app.command("status")
+    def project_memory_status(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Show vertical project-memory materialization and freshness."""
+        try:
+            status = workspace_for(root).vertical_project_memory_status()
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"project_memory_status": status})
+            return
+        console.print("Project memory")
+        console.print(f"  state: {status.state}")
+        console.print(f"  reason: {status.reason}")
+        console.print(f"  vertical: {status.vertical_id or 'unknown'}")
+        console.print(f"  sections: {status.section_count}")
+        console.print(f"  outputs: {status.output_count}")
+        if status.source_fingerprint_sha256:
+            console.print(f"  source fingerprint: {status.source_fingerprint_sha256}")
+        if status.changed_scopes:
+            console.print(f"  changed scopes: {', '.join(status.changed_scopes)}")
+        console.print(f"  refresh: {status.refresh_command}")
+
+    @project_memory_app.command("show")
+    def project_memory_show(
+        section: str | None = typer.Option(None, "--section", help="Exact vertical section ID"),
+        include_history: bool = typer.Option(False, "--include-history", help="Include historical contributions"),
+        limit: int = typer.Option(20, "--limit", min=1, max=100),
+        cursor: str = typer.Option("", "--cursor"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Show aggregate or exact-section vertical project memory."""
+        try:
+            result = workspace_for(root).show_vertical_project_memory(
+                section_id=section,
+                include_history=include_history,
+                limit=limit,
+                cursor=cursor,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"project_memory": result})
+            return
+        if section is None:
+            console.print("Project memory")
+            console.print(f"  vertical: {result.vertical_id} {result.vertical_version}")
+            console.print(f"  source: {result.source}")
+            console.print(f"  sections: {len(result.sections)}")
+            console.print(f"  unmapped active proposals: {result.total}")
+            for item in result.sections:
+                console.print(
+                    f"  {item.get('id')}: {item.get('active_contributions')} active, "
+                    f"{item.get('historical_contributions')} historical"
+                )
+            if result.next_cursor:
+                console.print(f"  next cursor: {result.next_cursor}")
+            return
+        console.print(f"Project memory section: {result.section_id}")
+        console.print(f"  total: {result.total}")
+        console.print(f"  returned: {result.returned}")
+        console.print(f"  truncated: {str(result.truncated).lower()}")
+        if result.next_cursor:
+            console.print(f"  next cursor: {result.next_cursor}")
+        for item in result.items:
+            console.print(
+                f"  {item.get('proposal_id', '-')}: {item.get('activation', 'unknown')} "
+                f"{item.get('title', '')}"
+            )
 
     @project_metadata_app.command("show")
     def project_metadata_show(
@@ -143,10 +218,17 @@ def register_project_ops_commands(
     def project_progress(
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
         output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+        include_heuristics: bool = typer.Option(
+            False,
+            "--include-heuristics",
+            help="Compute advisory legacy proposal-to-section suggestions.",
+        ),
     ) -> None:
         """Show independent project-definition and declared-evidence progress axes."""
         try:
-            progress = workspace_for(root).project_progress()
+            progress = workspace_for(root).project_progress(
+                include_heuristics=include_heuristics,
+            )
         except ValueError as exc:
             fail(str(exc))
         if _wants_json(output_format):
@@ -222,25 +304,42 @@ def register_project_ops_commands(
 
     @project_publish_app.command("prepare")
     def project_publish_prepare(
+        language: str = typer.Option("en", "--language", help="Publication language tag"),
+        output_name: str = typer.Option("project", "--output-name", help="Publication output slug"),
+        contributions: str = typer.Option(
+            "auto",
+            "--contributions",
+            help="Contribution chapter policy: auto, include, or omit",
+        ),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
         output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
     ) -> None:
         """Prepare canonical human project publication inputs."""
         try:
-            result = workspace_for(root).prepare_project_publication()
+            result = workspace_for(root).prepare_project_publication(
+                language=language,
+                output_name=output_name,
+                contributions=contributions,
+            )
         except ValueError as exc:
             fail(str(exc))
         if _wants_json(output_format):
             _print_json({"publication_prepare": result})
             return
         console.print("[green]Project publication prepared.[/green]")
+        console.print(f"  edition: {result.edition.edition_key}")
+        console.print(f"  language: {result.edition.language}")
         console.print(f"  latest: {result.latest_path}")
         console.print(f"  exported: {str(result.exported).lower()}")
         console.print(f"  reused_export: {str(result.reused_export).lower()}")
         console.print(f"  archived: {result.archived_path or 'none'}")
         console.print(f"  profile: {result.profile_path}")
+        console.print(f"  evidence: {result.evidence_path}")
         console.print(f"  curator_input: {result.curator_input_path}")
         console.print(f"  manifest: {result.manifest_path}")
+        console.print(f"  candidate_markdown: {result.candidate_markdown_path}")
+        console.print(f"  candidate_model: {result.candidate_model_path}")
+        console.print(f"  candidate_evidence: {result.candidate_evidence_path}")
         console.print(f"  source_fingerprint_sha256: {result.source_fingerprint_sha256}")
         console.print(f"  source_sha256: {result.source_sha256}")
         if result.stale_downstream:
@@ -253,20 +352,40 @@ def register_project_ops_commands(
     @project_publish_app.command("import")
     def project_publish_import(
         source: Path = typer.Argument(..., help="Curated Markdown draft to import"),
+        model: Path | None = typer.Option(None, "--model", help="Curated project-model YAML candidate"),
+        evidence_accounting: Path | None = typer.Option(
+            None,
+            "--evidence-accounting",
+            help="Curated evidence-accounting YAML candidate",
+        ),
+        language: str = typer.Option("en", "--language", help="Publication language tag"),
+        output_name: str = typer.Option("project", "--output-name", help="Publication output slug"),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
         output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
     ) -> None:
         """Import externally curated Markdown as the canonical publication draft."""
         try:
-            result = workspace_for(root).import_project_publication(source)
+            result = workspace_for(root).import_project_publication(
+                source,
+                model=model,
+                evidence_accounting=evidence_accounting,
+                language=language,
+                output_name=output_name,
+            )
         except ValueError as exc:
             fail(str(exc))
         if _wants_json(output_format):
             _print_json({"publication_import": result})
             return
         console.print("[green]Project publication imported.[/green]")
+        console.print(f"  edition: {result.edition.edition_key}")
+        console.print(f"  language: {result.edition.language}")
         console.print(f"  curated: {result.curated_path}")
+        console.print(f"  model: {result.model_path}")
+        console.print(f"  evidence_accounting: {result.evidence_accounting_path}")
         console.print(f"  imported_from: {result.imported_from}")
+        console.print(f"  model_imported_from: {result.model_imported_from}")
+        console.print(f"  evidence_imported_from: {result.evidence_imported_from}")
         console.print(f"  manifest: {result.manifest_path}")
         console.print(f"  curated_sha256: {result.curated_sha256}")
         console.print(f"  source_fingerprint_sha256: {result.source_fingerprint_sha256}")
@@ -275,12 +394,17 @@ def register_project_ops_commands(
 
     @project_publish_app.command("validate")
     def project_publish_validate(
+        language: str = typer.Option("en", "--language", help="Publication language tag"),
+        output_name: str = typer.Option("project", "--output-name", help="Publication output slug"),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
         output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
     ) -> None:
         """Validate canonical human project publication Markdown."""
         try:
-            result = workspace_for(root).validate_project_publication()
+            result = workspace_for(root).validate_project_publication(
+                language=language,
+                output_name=output_name,
+            )
         except ValueError as exc:
             fail(str(exc))
         if _wants_json(output_format):
@@ -289,6 +413,8 @@ def register_project_ops_commands(
                 raise typer.Exit(1)
             return
         console.print("Project publication validation")
+        console.print(f"  edition: {result.edition.edition_key}")
+        console.print(f"  language: {result.edition.language}")
         console.print(f"  status: {result.status}")
         console.print(f"  input: {result.input}")
         console.print(f"  curated_sha256: {result.curated_sha256 or 'none'}")
@@ -306,18 +432,25 @@ def register_project_ops_commands(
 
     @project_publish_app.command("render")
     def project_publish_render(
+        language: str = typer.Option("en", "--language", help="Publication language tag"),
+        output_name: str = typer.Option("project", "--output-name", help="Publication output slug"),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
         output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
     ) -> None:
         """Render validated canonical publication Markdown to draft PDF."""
         try:
-            result = workspace_for(root).render_project_publication()
+            result = workspace_for(root).render_project_publication(
+                language=language,
+                output_name=output_name,
+            )
         except ValueError as exc:
             fail(str(exc))
         if _wants_json(output_format):
             _print_json({"publication_render": result})
             return
         console.print("[green]Project publication PDF rendered.[/green]")
+        console.print(f"  edition: {result.edition_key}")
+        console.print(f"  language: {result.language}")
         console.print(f"  path: {result.path}")
         console.print(f"  sha256: {result.sha256}")
         console.print(f"  curated_sha256: {result.curated_sha256}")
@@ -330,6 +463,8 @@ def register_project_ops_commands(
         review_status: str = typer.Option(..., "--status", help="approved or changes_requested"),
         reviewer: str = typer.Option("owner", "--reviewer", help="Reviewer identity"),
         note: list[str] | None = typer.Option(None, "--note", help="Review note; may be repeated"),
+        language: str = typer.Option("en", "--language", help="Publication language tag"),
+        output_name: str = typer.Option("project", "--output-name", help="Publication output slug"),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
         output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
     ) -> None:
@@ -339,6 +474,8 @@ def register_project_ops_commands(
                 status=review_status,
                 reviewer=reviewer,
                 notes=note,
+                language=language,
+                output_name=output_name,
             )
         except ValueError as exc:
             fail(str(exc))
@@ -346,6 +483,8 @@ def register_project_ops_commands(
             _print_json({"publication_review": result})
             return
         console.print("[green]Project publication review recorded.[/green]")
+        console.print(f"  edition: {result.edition.edition_key}")
+        console.print(f"  language: {result.edition.language}")
         console.print(f"  status: {result.status}")
         console.print(f"  review: {result.review_path}")
         console.print(f"  reviewer: {result.reviewer}")
@@ -354,27 +493,68 @@ def register_project_ops_commands(
 
     @project_publish_app.command("status")
     def project_publish_status(
+        language: str = typer.Option("en", "--language", help="Publication language tag"),
+        output_name: str = typer.Option("project", "--output-name", help="Publication output slug"),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
         output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
     ) -> None:
         """Show canonical human project publication pipeline status."""
-        status = workspace_for(root).project_publication_status()
+        try:
+            status = workspace_for(root).project_publication_status(
+                language=language,
+                output_name=output_name,
+            )
+        except ValueError as exc:
+            fail(str(exc))
         if _wants_json(output_format):
             _print_json({"publication_status": status})
             return
         console.print("Project publication")
+        console.print(f"  edition: {status.edition.edition_key}")
+        console.print(f"  language: {status.edition.language}")
         console.print(f"  manifest: {status.manifest_path}")
         console.print(f"  source_fingerprint_sha256: {status.source_fingerprint_sha256}")
         console.print(f"  approved_for_publication: {str(status.approved_for_publication).lower()}")
         console.print(f"  validation_status: {status.validation_status}")
         console.print(f"  render_status: {status.render_status}")
         console.print(f"  review_status: {status.review_status}")
+        if status.diagnostics:
+            console.print("  diagnostics:")
+            for item in status.diagnostics:
+                console.print(f"    - {item.code}: {item.message} path={item.path}")
         console.print("  stages:")
         for stage in status.stages:
             reason = f" ({stage.reason})" if stage.reason else ""
             console.print(
                 f"    - {stage.name}: {stage.status}{reason} "
                 f"path={stage.path} exists={str(stage.exists).lower()}"
+            )
+
+    @project_publish_app.command("list")
+    def project_publish_list(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """List committed publication editions without rebuilding publication state."""
+        result = workspace_for(root).project_publication_editions()
+        if _wants_json(output_format):
+            _print_json({"publication_editions": result})
+            return
+        console.print("Project publication editions")
+        console.print(f"  catalog: {result.catalog_path}")
+        console.print(f"  legacy_status: {result.legacy_status}")
+        if result.diagnostics:
+            console.print("  diagnostics:")
+            for item in result.diagnostics:
+                console.print(f"    - {item.code}: {item.message} path={item.path}")
+        if not result.editions:
+            console.print("  editions: none")
+            return
+        console.print("  editions:")
+        for item in result.editions:
+            console.print(
+                f"    - {item.edition.edition_key}: validation={item.validation_status} "
+                f"render={item.render_status} review={item.review_status}"
             )
 
     @project_interaction_style_app.command("show")

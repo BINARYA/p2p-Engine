@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date
+import inspect
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, TypeVar
 
 from p2p_engine.core.decision_context import (
     Activation,
@@ -17,6 +18,7 @@ from p2p_engine.core.decision_context import (
 )
 from p2p_engine.core.mutation_preview import semantic_sha256
 from p2p_engine.core.project_readiness import ProjectReadinessGapKind, ProjectReadinessResult
+from p2p_engine.core.vertical_memory import VerticalProjectMemoryView
 from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionDependencyKind,
     ProposalDecisionDependencyStatus,
@@ -33,6 +35,30 @@ from p2p_engine.services.changes import (
     CHANGE_TERMINAL_STATUSES,
     change_next_action_status_rank,
 )
+from p2p_engine.services.workspace_reads import WorkspaceReadContext
+
+
+_T = TypeVar("_T")
+
+
+def _provide(
+    context: WorkspaceReadContext | None,
+    name: str,
+    arguments: Sequence[object],
+    factory: Callable[[], _T],
+) -> _T:
+    if context is None:
+        return factory()
+    return context.provide(name, arguments, factory)
+
+
+def _call_with_read_context(
+    provider: Callable[..., _T],
+    context: WorkspaceReadContext | None,
+) -> _T:
+    if context is not None and "read_context" in inspect.signature(provider).parameters:
+        return provider(read_context=context)
+    return provider()
 
 _REMEDIATION_EVENT_TYPES = frozenset(
     {
@@ -70,6 +96,38 @@ class NextAction:
     source: str
 
 
+@dataclass(frozen=True)
+class NextActionInputs:
+    schema_preflight: object | None
+    registry_status: object
+    vertical_memory_status: object | None
+    vertical_memory: VerticalProjectMemoryView | None
+    readiness: ProjectReadinessResult | None
+    proposal_lifecycles: Mapping[str, ProposalDecisionLifecycleView]
+    proposal_summaries: tuple[object, ...]
+    choice_statuses: tuple[object, ...]
+    change_statuses: tuple[object, ...]
+    intake_statuses: tuple[object, ...]
+    decision_context: DecisionContextIndex | None = None
+    fast_freshness: object | None = None
+
+    def to_snapshot(self) -> dict[str, object]:
+        return {
+            "workspace_schema_status": self.schema_preflight,
+            "registry_status": self.registry_status,
+            "vertical_memory_status": self.vertical_memory_status,
+            "vertical_memory": self.vertical_memory,
+            "project_readiness_result": self.readiness,
+            "proposal_decision_lifecycles": self.proposal_lifecycles,
+            "proposal_summaries": self.proposal_summaries,
+            "choice_statuses": self.choice_statuses,
+            "change_statuses": self.change_statuses,
+            "intake_statuses": self.intake_statuses,
+            "decision_context_index": self.decision_context,
+            "derived_freshness_status": self.fast_freshness,
+        }
+
+
 class NextActionService:
     def __init__(
         self,
@@ -83,11 +141,14 @@ class NextActionService:
         read_proposal_readiness: Callable[[str], Any],
         decision_context_index: Callable[[], DecisionContextIndex],
         show_choice: Callable[[str], Any],
+        choice_statuses: Callable[[], list[Any]] | None = None,
         workspace_schema_status: Callable[[], Any] | None = None,
+        workspace_schema_preflight: Callable[[], Any] | None = None,
         derived_freshness_status: Callable[..., Any] | None = None,
+        fast_freshness_status: Callable[..., Any] | None = None,
         project_readiness_result: Callable[[], ProjectReadinessResult] | None = None,
         proposal_decision_lifecycles: (
-            Callable[[], Mapping[str, ProposalDecisionLifecycleView]] | None
+            Callable[..., Mapping[str, ProposalDecisionLifecycleView]] | None
         ) = None,
         proposal_decision_impact: (
             Callable[
@@ -101,6 +162,12 @@ class NextActionService:
             ]
             | None
         ) = None,
+        vertical_memory_status: Callable[..., object] | None = None,
+        vertical_memory_view: Callable[..., VerticalProjectMemoryView] | None = None,
+        readiness_from_vertical_memory: (
+            Callable[..., ProjectReadinessResult]
+            | None
+        ) = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -111,31 +178,163 @@ class NextActionService:
         self.read_proposal_readiness = read_proposal_readiness
         self.decision_context_index = decision_context_index
         self.show_choice = show_choice
+        self.choice_statuses = choice_statuses
         self.workspace_schema_status = workspace_schema_status
+        self.workspace_schema_preflight = workspace_schema_preflight
         self.derived_freshness_status = derived_freshness_status
+        self.fast_freshness_status = fast_freshness_status
         self.project_readiness_result = project_readiness_result
         self.proposal_decision_lifecycles = proposal_decision_lifecycles
         self.proposal_decision_impact = proposal_decision_impact
+        self.vertical_memory_status = vertical_memory_status
+        self.vertical_memory_view = vertical_memory_view
+        self.readiness_from_vertical_memory = readiness_from_vertical_memory
 
     def list(
         self,
         limit: int | None = None,
         *,
         context_snapshot: Mapping[str, object] | None = None,
+        read_context: WorkspaceReadContext | None = None,
     ) -> list[NextAction]:
-        index = self._index(context_snapshot)
+        if context_snapshot is None:
+            context_snapshot = self._assemble_inputs(read_context).to_snapshot()
+        index = self._index(context_snapshot, allow_build=False)
         freshness = self._freshness(context_snapshot, index)
         actions = self._dedupe(
             self._workspace_alignment_actions(context_snapshot, freshness)
-            + self._active_choice_blocker_actions(index)
+            + self._active_choice_blocker_actions(index, context_snapshot)
             + self._active_curated_actions()
-            + self._decision_remediation_actions(freshness)
+            + self._decision_remediation_actions(freshness, context_snapshot)
             + self._project_readiness_actions(context_snapshot)
             + self._fallback_actions(context_snapshot, index)
         )
         if limit is not None:
             return actions[: max(limit, 0)]
         return actions
+
+    def _assemble_inputs(
+        self,
+        read_context: WorkspaceReadContext | None = None,
+    ) -> NextActionInputs:
+        schema = (
+            _provide(
+                read_context,
+                "schema_preflight",
+                (),
+                self.workspace_schema_preflight,
+            )
+            if self.workspace_schema_preflight is not None
+            else _provide(
+                read_context,
+                "schema_deep_status",
+                (),
+                self.workspace_schema_status,
+            )
+            if self.workspace_schema_status is not None
+            else None
+        )
+        registry = _provide(
+            read_context,
+            "registry_status",
+            (),
+            lambda: self.registry_status(read_context=read_context)
+            if read_context is not None
+            else self.registry_status(),
+        )
+        memory_status = (
+            _provide(
+                read_context,
+                "vertical_memory_status",
+                (),
+                lambda: self.vertical_memory_status(read_context=read_context),
+            )
+            if self.vertical_memory_status is not None
+            else None
+        )
+        memory: VerticalProjectMemoryView | None = None
+        if self.vertical_memory_view is not None:
+            try:
+                memory = _provide(
+                    read_context,
+                    "vertical_memory",
+                    (True, False),
+                    lambda: self.vertical_memory_view(read_context=read_context),
+                )
+            except ValueError:
+                memory = None
+        proposals = _provide(
+            read_context,
+            "proposal_summaries",
+            (),
+            lambda: tuple(
+                _call_with_read_context(self.proposal_summaries, read_context)
+            ),
+        )
+        readiness = (
+            _provide(
+                read_context,
+                "project_readiness",
+                (memory.source_fingerprint_sha256,),
+                lambda: self.readiness_from_vertical_memory(
+                    memory,
+                    proposals,
+                    read_context=read_context,
+                ),
+            )
+            if memory is not None and self.readiness_from_vertical_memory is not None
+            else _provide(
+                read_context,
+                "project_readiness",
+                (),
+                self.project_readiness_result,
+            )
+            if memory is not None and self.project_readiness_result is not None
+            else None
+        )
+        lifecycles = (
+            self.proposal_decision_lifecycles(read_context=read_context)
+            if self.proposal_decision_lifecycles is not None
+            else {}
+        )
+        fast_freshness = (
+            _provide(
+                read_context,
+                "fast_freshness",
+                (),
+                lambda: self.fast_freshness_status(read_context=read_context),
+            )
+            if self.fast_freshness_status is not None
+            else None
+        )
+        return NextActionInputs(
+            schema_preflight=schema,
+            registry_status=registry,
+            vertical_memory_status=memory_status,
+            vertical_memory=memory,
+            readiness=readiness,
+            proposal_lifecycles=lifecycles,
+            proposal_summaries=proposals,
+            choice_statuses=_provide(
+                read_context,
+                "choice_statuses",
+                (),
+                lambda: tuple(self.choice_statuses() if self.choice_statuses else ()),
+            ),
+            change_statuses=_provide(
+                read_context,
+                "change_statuses",
+                (),
+                lambda: tuple(self.change_registry_records()),
+            ),
+            intake_statuses=_provide(
+                read_context,
+                "intake_statuses",
+                (),
+                lambda: tuple(self.intake_statuses()),
+            ),
+            fast_freshness=fast_freshness,
+        )
 
     def add(
         self,
@@ -206,13 +405,13 @@ class NextActionService:
     def _generated_actions(
         self,
         context_snapshot: Mapping[str, object] | None,
-        index: DecisionContextIndex,
+        index: DecisionContextIndex | None,
     ) -> list[NextAction]:
         freshness = self._freshness(context_snapshot, index)
         return self._dedupe(
             self._workspace_alignment_actions(context_snapshot, freshness)
-            + self._active_choice_blocker_actions(index)
-            + self._decision_remediation_actions(freshness)
+            + self._active_choice_blocker_actions(index, context_snapshot)
+            + self._decision_remediation_actions(freshness, context_snapshot)
             + self._project_readiness_actions(context_snapshot)
             + self._fallback_actions(context_snapshot, index)
         )
@@ -342,6 +541,7 @@ class NextActionService:
     def _decision_remediation_actions(
         self,
         freshness_status_snapshot: object | None,
+        context_snapshot: Mapping[str, object] | None = None,
     ) -> list[NextAction]:
         if (
             self.proposal_decision_lifecycles is None
@@ -349,9 +549,22 @@ class NextActionService:
         ):
             return []
         ranked: list[tuple[int, int, str, NextAction]] = []
-        for proposal_id, lifecycle in sorted(
-            self.proposal_decision_lifecycles().items()
-        ):
+        lifecycle_snapshot = (
+            context_snapshot.get("proposal_decision_lifecycles")
+            if context_snapshot is not None
+            else None
+        )
+        lifecycles = (
+            lifecycle_snapshot
+            if isinstance(lifecycle_snapshot, Mapping)
+            else self.proposal_decision_lifecycles()
+        )
+        decision_freshness = (
+            freshness_status_snapshot
+            if hasattr(freshness_status_snapshot, "nodes")
+            else None
+        )
+        for proposal_id, lifecycle in sorted(lifecycles.items()):
             event_type = lifecycle.head_event_type
             head_event_id = lifecycle.head_event_id
             if event_type not in _REMEDIATION_EVENT_TYPES or not head_event_id:
@@ -360,7 +573,7 @@ class NextActionService:
                 proposal_id,
                 event_type,
                 lifecycle,
-                freshness_status_snapshot,
+                decision_freshness,
             )
             if not snapshot.complete:
                 continue
@@ -419,11 +632,16 @@ class NextActionService:
             if context_snapshot is not None
             else None
         )
-        if schema is None and self.workspace_schema_status is not None:
+        if schema is None and self.workspace_schema_preflight is not None:
+            schema = self.workspace_schema_preflight()
+        elif schema is None and self.workspace_schema_status is not None:
             schema = self.workspace_schema_status()
         if schema is not None:
             recovery = getattr(schema, "recovery", {})
-            if isinstance(recovery, Mapping) and bool(recovery.get("required", False)):
+            recovery_required = bool(getattr(schema, "recovery_required", False)) or (
+                isinstance(recovery, Mapping) and bool(recovery.get("required", False))
+            )
+            if recovery_required:
                 return [
                     NextAction(
                         action_id="NEXT-WORKSPACE-RECOVERY",
@@ -449,9 +667,72 @@ class NextActionService:
                     )
                 ]
 
+        memory_status = (
+            context_snapshot.get("vertical_memory_status")
+            if context_snapshot is not None
+            else None
+        )
+        memory_available = (
+            context_snapshot is not None
+            and isinstance(context_snapshot.get("vertical_memory"), VerticalProjectMemoryView)
+        )
+        if (
+            memory_status is not None
+            and str(getattr(memory_status, "state", "unknown")) != "current"
+            and not memory_available
+        ):
+            state = str(getattr(memory_status, "state", "unknown"))
+            return [
+                NextAction(
+                    action_id="NEXT-VERTICAL-PROJECT-MEMORY",
+                    priority="high" if state in {"stale", "invalid", "unsupported"} else "medium",
+                    kind="refresh_project_memory",
+                    target="vertical_project_memory",
+                    reason=(
+                        f"Vertical project memory is {state}; current consumers are using "
+                        "canonical fallback or cannot obtain structured project state."
+                    ),
+                    command="p2p project refresh",
+                    source="generated",
+                )
+            ]
+
         freshness = freshness_status_snapshot
         if freshness is None or str(getattr(freshness, "status", "")) == "current":
             return []
+        fast_attention = tuple(getattr(freshness, "attention", ()))
+        registry = (
+            context_snapshot.get("registry_status")
+            if context_snapshot is not None
+            else None
+        )
+        registry_current = str(getattr(registry, "state", "unknown")) == "current"
+        fast_next_node = ""
+        fast_next_command = ""
+        if registry_current and str(
+            getattr(freshness, "project_projection_state", "unknown")
+        ) != "current_basis":
+            fast_next_node = "project_projections"
+            fast_next_command = "p2p project refresh"
+        elif (
+            registry_current
+            and str(getattr(memory_status, "state", "unknown")) == "current"
+            and "assessment" in fast_attention
+        ):
+            fast_next_node = "assessment"
+            fast_next_command = "p2p assess refresh"
+        if fast_next_node:
+            return [
+                NextAction(
+                    action_id="NEXT-DERIVED-FRESHNESS",
+                    priority="high",
+                    kind="refresh_derived_state",
+                    target=fast_next_node,
+                    reason="Derived project state is stale or incomplete according to fast freshness checks.",
+                    command=fast_next_command,
+                    source="generated",
+                )
+            ]
         rebuild = tuple(getattr(freshness, "rebuild_plan", ()))
         actionable = next(
             (
@@ -483,7 +764,6 @@ class NextActionService:
         context_snapshot: Mapping[str, object] | None = None,
         index: DecisionContextIndex | None = None,
     ) -> list[NextAction]:
-        index = index or self._index(context_snapshot)
         actions: list[NextAction] = []
         registry_status = (
             context_snapshot.get("registry_status")
@@ -508,7 +788,7 @@ class NextActionService:
             if context_snapshot is not None
             else self.change_registry_records()
         )
-        included_proposals = _active_change_proposals(index)
+        included_proposals = _active_change_proposals(index) if index is not None else {}
         active_changes: list[tuple[int, str, str]] = []
         for change in changes:
             status = str(_field(change, "status") or "unknown").strip().lower()
@@ -522,6 +802,12 @@ class NextActionService:
                     status,
                 )
             )
+            if index is None:
+                included = _field(change, "included_proposals")
+                if isinstance(included, (tuple, list)):
+                    included_proposals[change_id] = tuple(
+                        sorted({str(item) for item in included if str(item)})
+                    )
         for _, change_id, status in sorted(
             active_changes,
             key=lambda item: (item[0], item[1]),
@@ -544,7 +830,12 @@ class NextActionService:
                 )
             )
 
-        for intake in self.intake_statuses():
+        intakes = (
+            _snapshot_sequence(context_snapshot, "intake_statuses")
+            if context_snapshot is not None
+            else self.intake_statuses()
+        )
+        for intake in intakes:
             if intake.status == "pending":
                 actions.append(
                     NextAction(
@@ -621,14 +912,34 @@ class NextActionService:
             )
             break
 
-        blocked_choices = {
-            relation.source_id
-            for relation in index.relations
-            if relation.source_type == NodeType.CHOICE
-            and relation.relation_type == RelationType.BLOCKS
-            and relation.activation == Activation.ACTIVE
-        }
-        for choice_id in _open_project_choice_ids(index):
+        if index is not None:
+            blocked_choices = {
+                relation.source_id
+                for relation in index.relations
+                if relation.source_type == NodeType.CHOICE
+                and relation.relation_type == RelationType.BLOCKS
+                and relation.activation == Activation.ACTIVE
+            }
+            open_choice_ids = _open_project_choice_ids(index)
+        else:
+            blocked_choices = set()
+            statuses = (
+                _snapshot_sequence(context_snapshot, "choice_statuses")
+                if context_snapshot is not None
+                else self.choice_statuses()
+                if self.choice_statuses is not None
+                else []
+            )
+            open_choice_ids = tuple(
+                sorted(
+                    str(_field(item, "choice_id") or "")
+                    for item in statuses
+                    if str(_field(item, "choice_id") or "")
+                    and not _field(item, "selected_option")
+                    and str(_field(item, "status") or "") in {"open", "draft", "pending"}
+                )
+            )
+        for choice_id in open_choice_ids:
             if choice_id in blocked_choices:
                 continue
             actions.append(
@@ -713,8 +1024,44 @@ class NextActionService:
 
     def _active_choice_blocker_actions(
         self,
-        index: DecisionContextIndex,
+        index: DecisionContextIndex | None,
+        context_snapshot: Mapping[str, object] | None = None,
     ) -> list[NextAction]:
+        if index is None:
+            statuses = (
+                _snapshot_sequence(context_snapshot, "choice_statuses")
+                if context_snapshot is not None
+                else self.choice_statuses()
+                if self.choice_statuses is not None
+                else []
+            )
+            actions: list[NextAction] = []
+            for status in sorted(statuses, key=lambda item: str(_field(item, "choice_id") or "")):
+                choice_id = str(_field(status, "choice_id") or "")
+                selected = _field(status, "selected_option")
+                if not choice_id or selected or str(_field(status, "status") or "") not in {"open", "draft", "pending"}:
+                    continue
+                detail = self.show_choice(choice_id)
+                for block in getattr(detail, "blocks", ()):
+                    if not isinstance(block, dict) or block.get("status", "active") != "active":
+                        continue
+                    target = str(block.get("target") or "")
+                    target_type = str(block.get("target_type") or "item")
+                    actions.append(
+                        NextAction(
+                            action_id=f"NEXT-BLOCKER-{len(actions) + 1:03d}",
+                            priority="high",
+                            kind="resolve_choice",
+                            target=choice_id,
+                            reason=(
+                                f"{choice_id} blocks {target_type} {target}: "
+                                f"{block.get('reason') or 'Decision required.'}"
+                            ),
+                            command=f"p2p choice show {choice_id}",
+                            source=str(getattr(detail, "path", "generated")),
+                        )
+                    )
+            return actions
         actions: list[NextAction] = []
         open_choices = set(_open_project_choice_ids(index))
         evidence_map = index.evidence_map()
@@ -767,23 +1114,30 @@ class NextActionService:
     def _index(
         self,
         context_snapshot: Mapping[str, object] | None,
-    ) -> DecisionContextIndex:
+        *,
+        allow_build: bool = True,
+    ) -> DecisionContextIndex | None:
         if context_snapshot is not None:
             value = context_snapshot.get("decision_context_index")
             if isinstance(value, DecisionContextIndex):
                 return value
-        return self.decision_context_index()
+        return self.decision_context_index() if allow_build else None
 
     def _freshness(
         self,
         context_snapshot: Mapping[str, object] | None,
-        index: DecisionContextIndex,
+        index: DecisionContextIndex | None,
     ) -> object | None:
         if context_snapshot is not None:
             freshness = context_snapshot.get("derived_freshness_status")
             if freshness is not None:
                 return freshness
-        if self.derived_freshness_status is None:
+        if (
+            self.derived_freshness_status is None
+            or (context_snapshot is not None and context_snapshot.get("derived_freshness_not_requested"))
+        ):
+            return None
+        if index is None:
             return None
         return self.derived_freshness_status(
             decision_context_index_snapshot=index,

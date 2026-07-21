@@ -3,7 +3,48 @@ source:
   included_proposals:
   - PROP-030
   accepted_decisions: []
+  decision_bindings:
+  - proposal: PROP-030
+    effective_state: accepted
+    head_event_id: PDE-9f668df61ac648126dcd94d0
+    decision_semantic_sha256: 1bbb8b33002973af929cc95d35764d4ec3bf13b9e65c66d59fae4f33660ce71e
+    proposal_binding_status: current
 generated_from:
 - .p2p/changes/CHANGE-016-managed-work-and-multi-branch-visibility-policy/change.md
 - .p2p/changes/CHANGE-016-managed-work-and-multi-branch-visibility-policy/tasks.yml
 - .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/proposal.md
+- .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/decision-events.yml
+p2p_generation:
+  schema_version: 1
+  origin: generated
+  generator: p2p_engine.software_spec
+  renderer_version: 1
+  source_fingerprint:
+    algorithm: sha256
+    value: 7501f032035e22b86492ffa4d070e0a582c14b0117238bb2b66ecf4ec1a0a89b
+  sources:
+  - path: .p2p/changes/CHANGE-016-managed-work-and-multi-branch-visibility-policy/change.md
+    exists: true
+    sha256: b1d5181b58b97a65284d1cc78d0d74c0d82dceba014c0d6042344f273fe2fecc
+  - path: .p2p/changes/CHANGE-016-managed-work-and-multi-branch-visibility-policy/tasks.yml
+    exists: true
+    sha256: b5e78bc97ba9273e97f3b72f712c49a7c749df848f07adae548b20db196035ea
+  - path: .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/decision-events.yml
+    exists: true
+    sha256: 3cec228d4e4e883dd8d495a37be53122e2ffb2f912f8b53faae18a502ca4db08
+  - path: .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/proposal.md
+    exists: true
+    sha256: 54ad0e29b7420fa9010b190f3eb7320e9aa0ab10c881a11bc767690554ce071a
+  outputs:
+  - path: index.md
+    sha256: 12ac4ccd93ff4bc605a93848f58c016e018c0bbee2680eab813bff43c7327b2b
+  - path: requirements.md
+    sha256: d72326c393230564d98281d88c3c5d9945b2cf292c9f46bd2013f0107b690144
+  - path: design.md
+    sha256: 58a493c041854a838654ceb0e0598ca9f2a42adcb14972829e9dcff583691b60
+  - path: commands.yml
+    sha256: 4e5883c3e4426195cc0ace7dcbe705721ae27f262b60011b6db5dcdfe2ee94a7
+  - path: data-model.yml
+    sha256: b8ef2fc1589310bfab9aa33a3b5e12987dda6f6443fe8396ef33e1c348fc43ea
+  - path: acceptance.md
+    sha256: 539d1a2c2066338ff941bafb0f85189e92bbe81cff1908193458d8c9fcb2a006

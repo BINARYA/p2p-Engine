@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+import inspect
+import json
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, TypeVar
 
 from p2p_engine.core.decision_context import (
     ContextBudget,
@@ -14,6 +16,31 @@ from p2p_engine.core.decision_context import (
 from p2p_engine.services.changes import CHANGE_TERMINAL_STATUSES
 from p2p_engine.services.decision_context_retrieval import DecisionContextRetrievalService
 from p2p_engine.services.lifecycle_authority import is_active_project_projection
+from p2p_engine.core.vertical_memory import VerticalProjectMemoryView
+from p2p_engine.services.workspace_reads import WorkspaceReadContext
+
+
+_T = TypeVar("_T")
+
+
+def _provide(
+    context: WorkspaceReadContext | None,
+    name: str,
+    arguments: Sequence[object],
+    factory: Callable[[], _T],
+) -> _T:
+    if context is None:
+        return factory()
+    return context.provide(name, arguments, factory)
+
+
+def _call_with_read_context(
+    provider: Callable[..., _T],
+    context: WorkspaceReadContext | None,
+) -> _T:
+    if context is not None and "read_context" in inspect.signature(provider).parameters:
+        return provider(read_context=context)
+    return provider()
 
 
 class _ValidationLike(Protocol):
@@ -119,6 +146,13 @@ class _ArtifactStateLike(Protocol):
     suggested_next: list[str]
 
 
+@dataclass(frozen=True)
+class _SkippedValidation:
+    ok: bool = True
+    errors: int = 0
+    warnings: int = 0
+
+
 class _InteractionStyleScaleLike(Protocol):
     value: int
     label: str
@@ -152,7 +186,7 @@ class ContextPacketService:
     def __init__(
         self,
         *,
-        project_name: Callable[[], str],
+        project_name: Callable[..., str],
         validate: Callable[..., _ValidationLike],
         registry_status: Callable[[], _RegistryStatusLike],
         project_state_status: Callable[..., _ProjectStateLike],
@@ -165,11 +199,18 @@ class ContextPacketService:
         work_summaries: Callable[[], list[_WorkSummaryLike]],
         show_work: Callable[[str], _WorkDetailLike],
         next_actions: Callable[..., list[_NextActionLike]],
-        decision_context_index: Callable[[], DecisionContextIndex] | None = None,
+        decision_context_index: Callable[..., DecisionContextIndex] | None = None,
         proposal_artifacts: Callable[[str], _ArtifactStateLike] | None = None,
         interaction_style: Callable[[], _InteractionStyleLike] | None = None,
         workspace_schema_status: Callable[[], object] | None = None,
+        workspace_schema_preflight: Callable[[], object] | None = None,
         derived_freshness_status: Callable[..., object] | None = None,
+        fast_freshness_status: Callable[..., object] | None = None,
+        vertical_memory_status: Callable[..., object] | None = None,
+        vertical_memory_view: Callable[..., VerticalProjectMemoryView] | None = None,
+        readiness_from_vertical_memory: (
+            Callable[..., object] | None
+        ) = None,
     ) -> None:
         self.project_name = project_name
         self.validate = validate
@@ -188,48 +229,224 @@ class ContextPacketService:
         self.proposal_artifacts = proposal_artifacts
         self.interaction_style = interaction_style
         self.workspace_schema_status = workspace_schema_status
+        self.workspace_schema_preflight = workspace_schema_preflight
         self.derived_freshness_status = derived_freshness_status
+        self.fast_freshness_status = fast_freshness_status
+        self.vertical_memory_status = vertical_memory_status
+        self.vertical_memory_view = vertical_memory_view
+        self.readiness_from_vertical_memory = readiness_from_vertical_memory
 
-    def context_packet(self, budget: str = "small", target: str | None = None) -> ContextPacket:
+    def context_packet(
+        self,
+        budget: str = "small",
+        target: str | None = None,
+        *,
+        read_context: WorkspaceReadContext | None = None,
+    ) -> ContextPacket:
         budget = budget.strip().lower()
         if budget not in {"small", "medium"}:
             raise ValueError("Context budget must be small or medium")
         normalized_target = target.strip().upper() if target else None
-        registry_status = self.registry_status()
-        validation = self.validate(registry_status_snapshot=registry_status)
-        proposals = self.proposal_summaries()
-        choices = self.choice_statuses()
-        changes = self.change_set_statuses()
-        works = self.work_summaries()
+        project_name = _provide(
+            read_context,
+            "project_name",
+            (),
+            lambda: _call_with_read_context(self.project_name, read_context),
+        )
+        registry_status = _provide(
+            read_context,
+            "registry_status",
+            (),
+            lambda: _call_with_read_context(self.registry_status, read_context),
+        )
+        validation = (
+            _SkippedValidation()
+            if budget == "small"
+            else _provide(
+                read_context,
+                "complete_validation",
+                (),
+                lambda: self.validate(registry_status_snapshot=registry_status),
+            )
+        )
+        proposals = _provide(
+            read_context,
+            "proposal_summaries",
+            (),
+            lambda: tuple(
+                _call_with_read_context(self.proposal_summaries, read_context)
+            ),
+        )
+        choices = _provide(
+            read_context,
+            "choice_statuses",
+            (),
+            lambda: tuple(self.choice_statuses()),
+        )
+        changes = _provide(
+            read_context,
+            "change_statuses",
+            (),
+            lambda: tuple(self.change_set_statuses()),
+        )
+        works = _provide(
+            read_context,
+            "work_summaries",
+            (),
+            lambda: tuple(self.work_summaries()),
+        )
+        memory_status = (
+            _provide(
+                read_context,
+                "vertical_memory_status",
+                (),
+                lambda: _call_with_read_context(
+                    self.vertical_memory_status,
+                    read_context,
+                ),
+            )
+            if self.vertical_memory_status
+            else None
+        )
+        memory: VerticalProjectMemoryView | None = None
+        memory_error = ""
+        if self.vertical_memory_view is not None:
+            try:
+                memory = _provide(
+                    read_context,
+                    "vertical_memory",
+                    (True, False),
+                    lambda: _call_with_read_context(
+                        self.vertical_memory_view,
+                        read_context,
+                    ),
+                )
+            except ValueError as exc:
+                memory_error = str(exc)
+        memory_context = _vertical_memory_context(memory, budget=budget)
         relevant_artifacts = (
             [self._context_artifact(normalized_target, budget)]
             if normalized_target
             else self._default_context_artifacts(proposals, choices, changes)
         )
+        if memory_context is not None:
+            if normalized_target:
+                if normalized_target.startswith("PROP-"):
+                    relevant_artifacts[0]["vertical_sections"] = _target_vertical_sections(
+                        memory,
+                        normalized_target,
+                    )
+            else:
+                relevant_artifacts.insert(
+                    0,
+                    {
+                        "type": "vertical_project_memory",
+                        "id": memory.vertical_id,
+                        "status": memory.source,
+                        "source_fingerprint_sha256": memory.source_fingerprint_sha256,
+                        "sections": memory_context["sections"],
+                        "pagination": memory_context["pagination"],
+                        "command": "p2p project memory show",
+                    },
+                )
+                relevant_artifacts = relevant_artifacts[:5]
         context_snapshot = {
             "registry_status": registry_status,
             "proposal_summaries": proposals,
             "choice_statuses": choices,
             "change_statuses": changes,
         }
-        decision_index = self.decision_context_index() if self.decision_context_index else None
+        if memory_status is not None:
+            context_snapshot["vertical_memory_status"] = memory_status
+        if memory is not None:
+            context_snapshot["vertical_memory"] = memory
+            if self.readiness_from_vertical_memory is not None:
+                context_snapshot["project_readiness_result"] = (
+                    _provide(
+                        read_context,
+                        "project_readiness",
+                        (memory.source_fingerprint_sha256,),
+                        lambda: self.readiness_from_vertical_memory(
+                            memory,
+                            proposals,
+                            read_context=read_context,
+                        ),
+                    )
+                )
+        decision_index = (
+            _provide(
+                read_context,
+                "decision_context",
+                (),
+                lambda: _call_with_read_context(
+                    self.decision_context_index,
+                    read_context,
+                ),
+            )
+            if normalized_target
+            and normalized_target.startswith("PROP-")
+            and self.decision_context_index
+            else None
+        )
         if decision_index is not None:
             context_snapshot["decision_context_index"] = decision_index
-        schema_status = self.workspace_schema_status() if self.workspace_schema_status else None
+        schema_status = (
+            _provide(
+                read_context,
+                "schema_preflight",
+                (),
+                self.workspace_schema_preflight,
+            )
+            if budget == "small" and self.workspace_schema_preflight
+            else _provide(
+                read_context,
+                "schema_deep_status",
+                (),
+                self.workspace_schema_status,
+            )
+            if self.workspace_schema_status
+            else None
+        )
         freshness_status = (
             self.derived_freshness_status(
                 registry_status_snapshot=registry_status,
                 decision_context_index_snapshot=decision_index,
                 proposal_summaries_snapshot=proposals,
             )
-            if self.derived_freshness_status
+            if budget != "small" and self.derived_freshness_status
+            else None
+        )
+        fast_freshness = (
+            _provide(
+                read_context,
+                "fast_freshness",
+                (),
+                lambda: _call_with_read_context(
+                    self.fast_freshness_status,
+                    read_context,
+                ),
+            )
+            if budget == "small" and self.fast_freshness_status
             else None
         )
         if schema_status is not None:
             context_snapshot["workspace_schema_status"] = schema_status
         if freshness_status is not None:
             context_snapshot["derived_freshness_status"] = freshness_status
-        next_actions = self.next_actions(limit=3, context_snapshot=context_snapshot)
+        elif budget == "small":
+            context_snapshot["derived_freshness_not_requested"] = True
+            if fast_freshness is not None:
+                context_snapshot["fast_freshness_status"] = fast_freshness
+        next_actions = _provide(
+            read_context,
+            "next_actions",
+            (3,),
+            lambda: self.next_actions(
+                limit=3,
+                context_snapshot=context_snapshot,
+                read_context=read_context,
+            ),
+        )
         project_status = self.project_state_status(
             accepted_proposals_count=len(
                 [proposal for proposal in proposals if is_active_project_projection(proposal.status)]
@@ -238,11 +455,42 @@ class ContextPacketService:
         )
 
         current_state = {
-            "project": self.project_name(),
+            "project": project_name,
             "validation": {
                 "ok": validation.ok,
                 "errors": validation.errors,
                 "warnings": validation.warnings,
+            },
+            "verification": {
+                "registry_sources": str(
+                    getattr(registry_status, "verification", {}).get(
+                        "sources",
+                        "unknown",
+                    )
+                    if isinstance(getattr(registry_status, "verification", {}), Mapping)
+                    else "unknown"
+                ),
+                "validation": "not_run" if budget == "small" else "complete",
+                "freshness": "not_run" if budget == "small" else "complete",
+                "decision_context": (
+                    "targeted" if decision_index is not None else "not_requested"
+                ),
+                "vertical_memory": (
+                    "unavailable"
+                    if memory is None
+                    else "current"
+                    if memory.source == "materialized"
+                    else "rebuilt_in_memory"
+                    if memory.source == "canonical_fallback"
+                    else memory.source
+                ),
+                "readiness": (
+                    "not_run"
+                    if "project_readiness_result" not in context_snapshot
+                    else "current"
+                    if memory is not None and memory.source == "materialized"
+                    else "rebuilt_in_memory"
+                ),
             },
             "registries_stale": registry_status.stale,
             "accepted_proposals": project_status.accepted_proposals,
@@ -267,6 +515,19 @@ class ContextPacketService:
             "work_items": len(works),
             "operational_brief_available": project_status.operational_brief_available,
         }
+        if memory_context is not None:
+            current_state["project_memory"] = memory_context
+            if normalized_target and normalized_target.startswith("PROP-"):
+                current_state["target_vertical_sections"] = _target_vertical_sections(
+                    memory,
+                    normalized_target,
+                )
+        elif self.vertical_memory_view is not None:
+            current_state["project_memory"] = {
+                "state": "unavailable",
+                "reason": memory_error,
+                "command": "p2p project refresh",
+            }
         if self.interaction_style is not None:
             current_state["interaction_style"] = _interaction_style_summary(self.interaction_style())
         if schema_status is not None:
@@ -279,7 +540,8 @@ class ContextPacketService:
                 "target_version": getattr(schema_status, "target_version", None),
                 "migration_required": bool(getattr(schema_status, "migration_required", False)),
                 "recovery_required": bool(
-                    recovery.get("required", False) if isinstance(recovery, dict) else False
+                    getattr(schema_status, "recovery_required", False)
+                    or (recovery.get("required", False) if isinstance(recovery, dict) else False)
                 ),
             }
         if freshness_status is not None:
@@ -292,6 +554,8 @@ class ContextPacketService:
                     if getattr(node, "status", "") not in {"current", "current_legacy_fallback"}
                 ),
             }
+        elif fast_freshness is not None:
+            current_state["derived_freshness"] = fast_freshness.to_dict()
 
         nearby_context = None
         if (
@@ -320,6 +584,8 @@ class ContextPacketService:
         ]
         if budget == "small":
             notes.append("Small budget omits full document bodies and favors IDs, statuses, paths, and commands.")
+        if memory_error:
+            notes.append(f"Vertical project memory is unavailable: {memory_error}")
 
         return ContextPacket(
             budget=budget,
@@ -352,9 +618,9 @@ class ContextPacketService:
 
     def _default_context_artifacts(
         self,
-        proposals: list[_ProposalSummaryLike],
-        choices: list[_ChoiceStatusLike],
-        changes: list[_ChangeStatusLike],
+        proposals: Sequence[_ProposalSummaryLike],
+        choices: Sequence[_ChoiceStatusLike],
+        changes: Sequence[_ChangeStatusLike],
     ) -> list[dict[str, object]]:
         artifacts: list[dict[str, object]] = []
         for proposal in [item for item in proposals if item.status == "draft"][:3]:
@@ -553,6 +819,115 @@ def _artifact_gap(record: _ArtifactRecordLike, *, status: str, expectation: str)
         "reason": getattr(record, "reason"),
         "confirmation": _enum_value(getattr(record, "confirmation")),
     }
+
+
+def _vertical_memory_context(
+    view: VerticalProjectMemoryView | None,
+    *,
+    budget: str,
+) -> dict[str, object] | None:
+    if view is None:
+        return None
+    max_sections = 8 if budget == "small" else 24
+    max_contributions = 3 if budget == "small" else 8
+    byte_budget = 12 * 1024 if budget == "small" else 32 * 1024
+    ordered = sorted(
+        view.sections,
+        key=lambda section: (
+            0 if section.required else 1,
+            0
+            if any(
+                str(item.get("kind") or "") == "conflict"
+                and str(item.get("status") or "") == "unresolved"
+                for item in section.conflicts
+            )
+            else 1,
+            0 if section.questions else 1,
+            section.priority,
+            section.section_id,
+        ),
+    )
+    summaries: list[dict[str, object]] = []
+    for section in ordered:
+        active = section.active_contributions[:max_contributions]
+        summary = {
+            "section_id": section.section_id,
+            "title": section.title,
+            "required": section.required,
+            "priority": section.priority,
+            "definition_status": str(section.definition.get("status") or "missing"),
+            "active_contribution_count": len(section.active_contributions),
+            "active_proposals": [item.proposal_id for item in active],
+            "active_contributions_truncated": len(section.active_contributions) > len(active),
+            "historical_contribution_count": len(section.historical_contributions),
+            "open_questions": [
+                str(item.get("id") or "")
+                for item in section.questions
+                if str(item.get("state") or "") in {"to_answer", "answered"}
+            ][:max_contributions],
+            "unresolved_conflicts": [
+                str(item.get("id") or "")
+                for item in section.conflicts
+                if str(item.get("kind") or "") == "conflict"
+                and str(item.get("status") or "") == "unresolved"
+            ][:max_contributions],
+            "source_references": sorted({item.source_path for item in active}),
+        }
+        candidate = [*summaries, summary]
+        if len(candidate) > max_sections:
+            break
+        if len(json.dumps(candidate, sort_keys=True, default=str).encode("utf-8")) > byte_budget:
+            break
+        summaries.append(summary)
+    total_contributions = sum(
+        len(section.active_contributions) + len(section.historical_contributions)
+        for section in view.sections
+    )
+    return {
+        "state": view.source,
+        "vertical_id": view.vertical_id,
+        "vertical_version": view.vertical_version,
+        "source_fingerprint_sha256": view.source_fingerprint_sha256,
+        "section_count": len(view.sections),
+        "contribution_count": total_contributions,
+        "unmapped_active_proposals": len(view.unmapped_active_proposals),
+        "sections": summaries,
+        "pagination": {
+            "total": len(view.sections),
+            "returned": len(summaries),
+            "truncated": len(summaries) < len(view.sections),
+        },
+        "command": "p2p project memory show",
+    }
+
+
+def _target_vertical_sections(
+    view: VerticalProjectMemoryView | None,
+    proposal_id: str,
+) -> list[dict[str, object]]:
+    if view is None:
+        return []
+    sections: list[dict[str, object]] = []
+    for section in view.sections:
+        active = [
+            item for item in section.active_contributions if item.proposal_id == proposal_id
+        ]
+        historical = [
+            item for item in section.historical_contributions if item.proposal_id == proposal_id
+        ]
+        if not active and not historical:
+            continue
+        contributions = [*active, *historical]
+        sections.append(
+            {
+                "section_id": section.section_id,
+                "title": section.title,
+                "activation": "active" if active else "historical",
+                "contribution_ids": [item.contribution_id for item in contributions],
+                "source_references": sorted({item.source_path for item in contributions}),
+            }
+        )
+    return sections
 
 
 def _enum_value(value: object) -> str:

@@ -115,7 +115,18 @@ def test_context_packet_reuses_one_request_snapshot_for_shared_summaries(
     packet = workspace._context_packet_service().context_packet()
 
     assert packet.current_state["proposals"] == 1
-    assert calls == {name: 1 for name in calls}
+    assert calls == {
+        **{name: 1 for name in calls},
+        "validate": 0,
+    }
+    assert packet.current_state["verification"] == {
+        "validation": "not_run",
+        "freshness": "not_run",
+        "decision_context": "not_requested",
+        "vertical_memory": "rebuilt_in_memory",
+        "readiness": "rebuilt_in_memory",
+        "registry_sources": "not_verified",
+    }
 
 
 def test_context_packet_service_builds_medium_proposal_target(tmp_path: Path) -> None:

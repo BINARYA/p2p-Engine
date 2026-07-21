@@ -91,9 +91,10 @@ class MutationResult:
     actor: str = ""
     message: str = ""
     recovery_required: bool = False
+    derived_updates: Mapping[str, object] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "status": self.status,
             "operation_id": self.operation_id,
             "changed_paths": list(self.changed_paths),
@@ -104,6 +105,9 @@ class MutationResult:
             "message": self.message,
             "recovery_required": self.recovery_required,
         }
+        if self.derived_updates:
+            payload["derived_updates"] = dict(self.derived_updates)
+        return payload
 
 
 class MutationPreviewService:

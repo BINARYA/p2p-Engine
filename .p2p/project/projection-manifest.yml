@@ -1,7 +1,9 @@
 project_projection:
   manifest_version: 1
   owner: ProjectStateService
-  source_fingerprint_sha256: 9ffc44b41d1434c254b5074227c363ff877210576c47c429301dae3908d89f7b
+  source_fingerprint_sha256: f7c3089585ef0c6abcc8ca609166691a8d6fcf5ff402a4d1cac0cdc36ce0aba3
+  vertical_memory_source_fingerprint_sha256: c4e21758eaf09a9deecbbfb248f97c93aeddfd7fffe99853eb16a1892b4a3631
+  vertical_memory_source: materialized
   lifecycle_authority_policy_version: 2
   accepted_projection_count: 97
   owned_paths:

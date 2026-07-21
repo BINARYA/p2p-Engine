@@ -37,7 +37,8 @@ def register_project_status_commands(
             freshness = summary.derived_freshness
             console.print(
                 "Derived freshness: "
-                f"{freshness['status']} attention_nodes={freshness['attention_nodes']}"
+                f"{freshness['status']} attention_nodes={freshness['attention_nodes']} "
+                f"verification={freshness.get('verification', 'unknown')}"
             )
         if not summary.proposals:
             console.print("Proposals: none")

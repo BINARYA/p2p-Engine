@@ -7,6 +7,8 @@ from typing import Callable
 
 import yaml
 
+from p2p_engine.foundation.yaml_loaders import load_yaml
+
 
 @dataclass(frozen=True)
 class GovernanceStatus:
@@ -32,7 +34,7 @@ def _yaml_dump(data: object) -> str:
 def _read_yaml_mapping(path: Path, default: dict[str, object]) -> dict[str, object]:
     if not path.exists():
         return default
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    data = load_yaml(path.read_bytes())
     return data if isinstance(data, dict) else default
 
 

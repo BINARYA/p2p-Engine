@@ -8,6 +8,8 @@ from pathlib import Path, PurePosixPath
 
 import yaml
 
+from p2p_engine.foundation.yaml_loaders import load_yaml
+
 from p2p_engine.core.mutation_preview import semantic_sha256
 from p2p_engine.core.proposal_decision_events import (
     PROPOSAL_DECISION_IMPACT_POLICY_VERSION,
@@ -58,30 +60,6 @@ _STATUS_RANK = {
     ProposalDecisionDependencyStatus.terminal: 6,
     ProposalDecisionDependencyStatus.unknown: 7,
 }
-
-
-class _UniqueKeyLoader(yaml.SafeLoader):
-    pass
-
-
-def _construct_unique_mapping(
-    loader: yaml.SafeLoader,
-    node: yaml.MappingNode,
-    deep: bool = False,
-) -> dict[object, object]:
-    mapping: dict[object, object] = {}
-    for key_node, value_node in node.value:
-        key = loader.construct_object(key_node, deep=deep)
-        if key in mapping:
-            raise ValueError(f"duplicate YAML key `{key}`")
-        mapping[key] = loader.construct_object(value_node, deep=deep)
-    return mapping
-
-
-_UniqueKeyLoader.add_constructor(
-    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-    _construct_unique_mapping,
-)
 
 
 class ProposalDecisionImpactService:
@@ -623,10 +601,13 @@ class ProposalDecisionImpactService:
         items: list[ProposalDecisionImpactItem],
     ) -> None:
         references = {proposal_id, *affected_changes}
-        paths = (
-            self.root / "outputs" / "latest" / "publication-manifest.yml",
-            self.root / "outputs" / "latest" / "project.md",
-            self.root / "outputs" / "latest" / "project.curated.md",
+        latest = self.root / "outputs" / "latest"
+        paths = [latest / "project.md", latest / "publication-evidence.yml"]
+        paths.extend(sorted((latest / "publications").glob("*/manifest.yml")))
+        paths.extend(
+            path
+            for path in sorted(latest.glob("*-*.md"))
+            if path.name != "project.md"
         )
         matched: list[str] = []
         for path in paths:
@@ -881,7 +862,7 @@ class _ImpactCapture:
             return None
         self.counters["yaml_parses"] += 1
         try:
-            payload = yaml.load(text, Loader=_UniqueKeyLoader)
+            payload = load_yaml(text, loader_contract="unique-v1")
         except (yaml.YAMLError, ValueError) as exc:
             if required:
                 diagnostics.append(

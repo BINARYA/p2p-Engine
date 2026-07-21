@@ -79,6 +79,27 @@ software spec. Current compatibility targets include generic, OpenSpec, and
 Spec Kit initialization outputs. This is distinct from the visible project
 definition produced by `p2p project export`.
 
+## Publication Edition
+
+One language-specific human rendering of the same project scope. Its immutable
+identity is `(output_name, canonical_language)`, expressed as an edition key
+such as `project-en`. Markdown, PDF, freshness, and owner review are isolated
+from other editions.
+
+## Publication Evidence Index
+
+A shared derived index of complete, vertical-aware project evidence used by all
+publication editions. It classifies current, cross-cutting, historical,
+contradictory, insufficient, contribution, and process-only material without
+turning the generated index into canonical project authority.
+
+## Publication Project Model
+
+The traceable editorial sidecar connecting reader questions, claims, evidence,
+adaptive outline, vertical coverage, and editorial self-assessment. Together
+with exact evidence accounting, it lets the final reader document remain free
+from internal workflow IDs and paths.
+
 ## Governance
 
 The project authority boundary around intent, decisions, and lifecycle state.
@@ -117,6 +138,26 @@ decisions.
 
 A generated index over P2P artifacts such as proposals, decisions, relations,
 changes, and other project state. Registries are refreshed from source artifacts.
+
+## Vertical Project Memory
+
+A deterministic, compact, section-oriented read model derived from the active
+project vertical, definition, questions, proposal decision authority, declared
+coverage, choices and conflicts. It accelerates readiness, context, next actions
+and project rendering. It is disposable and rebuildable; `.p2p` canonical
+sources remain authoritative. It does not represent implementation status.
+
+## Fast Freshness
+
+A bounded status check over schema preflight and derived bundle manifests. It
+reports what was checked without constructing complete validation, decision
+context, publication, software specs or the full freshness dependency graph.
+
+## Canonical Fallback
+
+A read-only in-memory reconstruction from canonical sources used when a derived
+read model is missing, stale, invalid or unsupported. It does not persist a
+cache or silently refresh the workspace.
 
 ## Software Spec Freshness
 

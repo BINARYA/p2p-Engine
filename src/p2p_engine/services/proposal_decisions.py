@@ -41,6 +41,7 @@ from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionReadinessBinding,
     ProposalDecisionRequest,
 )
+from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.services.lifecycle_authority import (
     ProposalLifecycleAuthorityService,
     effective_state_for_event,
@@ -561,7 +562,21 @@ class ProposalDecisionService:
             raise ValueError(
                 "P2P367_DECISION_CONCURRENT_HEAD: ledger head changed after preview"
             )
-        self._require_schema_v3()
+        try:
+            self._require_schema_v3()
+        except ValueError as exc:
+            if not str(exc).startswith("P2P307_WORKSPACE_MIGRATION_RECOVERY_REQUIRED"):
+                raise
+            retry = self._exact_retry(request, preview_token)
+            if retry is not None:
+                return retry
+            latest = self._read_ledger(request.proposal_id)
+            if latest.head_event_id != request.source_head_event_id:
+                raise ValueError(
+                    "P2P367_DECISION_CONCURRENT_HEAD: another decision event won "
+                    "while the schema gate observed its transaction cleanup"
+                ) from None
+            raise
         try:
             preview = self._preview(
                 request,
@@ -1819,7 +1834,7 @@ class ProposalDecisionService:
         path = self.p2p_dir / "project" / "workspace-schema.yml"
         version = None
         if path.exists():
-            payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+            payload = load_yaml(path.read_bytes())
             raw = payload.get("workspace_schema") if isinstance(payload, dict) else None
             version = raw.get("current_version") if isinstance(raw, dict) else None
         return type(
@@ -1859,7 +1874,7 @@ class ProposalDecisionService:
                 "P2P364_DECISION_OWNER_REQUIRED: project permissions are missing"
             )
         try:
-            payload = yaml.safe_load(content.decode("utf-8"))
+            payload = load_yaml(content)
         except (UnicodeDecodeError, yaml.YAMLError) as exc:
             raise ValueError(
                 "P2P364_DECISION_OWNER_REQUIRED: project permissions are invalid"

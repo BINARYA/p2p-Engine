@@ -380,6 +380,16 @@ class AtomicMutationWriter:
                 )
                 candidate_validator(view)
                 self._inject("after_candidate_validation", "")
+            self._inject("before_final_source_recheck", "")
+            for source in sorted(sources, key=lambda item: item.path):
+                path = self.filesystem.target_path(source.path)
+                current_exists = path.exists()
+                current_hash = physical_sha256(path) if current_exists else None
+                if current_exists != source.exists or current_hash != source.physical_sha256:
+                    raise ValueError(
+                        f"Mutation source changed before lock-protected commit: {source.path}"
+                    )
+            self._inject("after_final_source_recheck", "")
             self._inject("before_journal", "")
             self.filesystem.write_journal(transaction_dir, journal)
             self._inject("after_journal", "")

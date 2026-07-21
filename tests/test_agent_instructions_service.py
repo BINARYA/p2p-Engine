@@ -110,9 +110,38 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     ).read_text(encoding="utf-8")
     assert "name: p2p-project-curator" in curator_skill
     assert "P2P Project Curator" in curator_skill
-    assert "P2P Engine release template" in curator_skill
     assert "p2p project publish prepare" in curator_skill
-    assert "Do not produce commercial, technical, investor, executive" in curator_skill
+    assert "references/editorial-workflow.md" in curator_skill
+    assert "references/publication-contracts.md" in curator_skill
+    assert "Do not expose internal IDs" in curator_skill
+    contracts = (
+        tmp_path
+        / ".codex"
+        / "skills"
+        / "p2p-project-curator"
+        / "references"
+        / "publication-contracts.md"
+    ).read_text(encoding="utf-8")
+    assert "`curator_packet_sha256`" in contracts
+    assert "prepared packet file exactly as instructed" in contracts
+    assert "prepared evidence semantic hash" in contracts
+    assert "outline_ids: [OUT-001]" in contracts
+    assert "rubric_version: publication-editorial-rubric-v2" in contracts
+    assert "model_sha256: <physical hash of completed candidate model>" in contracts
+    assert "evidence:" in contracts
+    assert "every other outline heading exactly once as an H2 or H3" in contracts
+    assert "do not transliterate diacritics" in contracts
+    assert "translate generic descriptive terms consistently" in contracts
+    rubric = (
+        tmp_path
+        / ".codex"
+        / "skills"
+        / "p2p-project-curator"
+        / "references"
+        / "editorial-rubric.md"
+    ).read_text(encoding="utf-8")
+    assert "citation erasure" in rubric.lower()
+    assert "at least 4" in rubric
 
 
 def test_agent_instruction_service_registers_project_curator_codex_outputs(
@@ -129,8 +158,8 @@ def test_agent_instruction_service_registers_project_curator_codex_outputs(
 
     modern = codex_files[".agents/skills/p2p-project-curator/SKILL.md"]
     legacy = codex_files[".codex/skills/p2p-project-curator/SKILL.md"]
-    assert modern["template_id"] == "codex-p2p-project-curator-skill-v1"
-    assert legacy["template_id"] == "codex-legacy-p2p-project-curator-skill-v1"
+    assert modern["template_id"] == "codex-p2p-project-curator-skill-v2"
+    assert legacy["template_id"] == "codex-legacy-p2p-project-curator-skill-v2"
     assert modern["owner"] == "codex"
     assert legacy["owner"] == "codex"
     assert modern["shared"] is False
@@ -141,6 +170,13 @@ def test_agent_instruction_service_registers_project_curator_codex_outputs(
     assert legacy["drift"] == "clean"
     assert len(str(modern["sha256"])) == 64
     assert len(str(legacy["sha256"])) == 64
+    reference_paths = {
+        path
+        for path in codex_files
+        if "p2p-project-curator/references/" in path
+    }
+    assert len(reference_paths) == 8
+    assert all(codex_files[path]["managed"] is True for path in reference_paths)
 
 
 def test_agent_instruction_service_generates_persistence_policy_payload_and_markdown(
@@ -302,8 +338,8 @@ def test_agent_instruction_service_embeds_curator_guidance_for_claude_without_co
     claude = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
     assert "Project Publication Curator" in claude
     assert "p2p project publish prepare" in claude
-    assert "exactly one canonical Markdown document" in claude
-    assert "Do not create audience-specific variants." in claude
+    assert "autonomous project documents" in claude
+    assert "must not infer\nimplementation state" in claude
     assert not (tmp_path / ".agents" / "skills" / "p2p-project-curator" / "SKILL.md").exists()
     assert not (tmp_path / ".codex" / "skills" / "p2p-project-curator" / "SKILL.md").exists()
 
@@ -392,6 +428,21 @@ def test_agent_instruction_service_install_skips_drift_and_force_updates(tmp_pat
     assert skipped.skipped == [{"path": "GEMINI.md", "reason": "drifted"}]
     assert Path("GEMINI.md") in forced.updated
     assert "manual edit" not in gemini.read_text(encoding="utf-8")
+
+
+def test_agent_instruction_service_keeps_other_installed_adapters_clean_on_update(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="codex")
+    service = workspace._agent_instruction_service()
+    service.install_integrations("claude")
+
+    service.install_integrations("codex")
+    service.install_integrations("claude")
+
+    assert service.doctor("codex").health == "clean"
+    assert service.doctor("claude").health == "clean"
 
 
 def test_agent_instruction_service_force_update_is_scoped_to_target_adapter(tmp_path: Path) -> None:
@@ -554,3 +605,33 @@ def test_agent_instruction_service_doctor_reports_clean_and_missing_file_health(
     assert broken.health == "error"
     assert broken.findings[0].code == "P2P_AGENT_FILE_MISSING"
     assert broken.findings[0].path == Path("AGENTS.md")
+
+
+def test_curator_reference_set_is_repaired_and_uninstalled_as_one_resource_set(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="codex")
+    service = workspace._agent_instruction_service()
+    missing = (
+        tmp_path
+        / ".agents"
+        / "skills"
+        / "p2p-project-curator"
+        / "references"
+        / "vertical-interpretation.md"
+    )
+    missing.unlink()
+
+    broken = service.doctor("codex")
+    repaired = service.install_integrations("codex")
+    clean = service.doctor("codex")
+    removed = service.uninstall_integration("codex")
+
+    assert broken.health == "error"
+    assert any(finding.path == missing.relative_to(tmp_path) for finding in broken.findings)
+    assert missing.relative_to(tmp_path) in repaired.created
+    assert clean.health == "clean"
+    assert len([path for path in removed.removed if "p2p-project-curator" in path.as_posix()]) == 10
+    assert not (tmp_path / ".agents" / "skills" / "p2p-project-curator").exists()
+    assert not (tmp_path / ".codex" / "skills" / "p2p-project-curator").exists()

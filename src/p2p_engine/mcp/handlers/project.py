@@ -142,19 +142,60 @@ def handle_project_tool(
     if name == "p2p_project_export_status":
         return {"export_status": to_jsonable(workspace.visible_project_definition_export_status())}
     if name == "p2p_project_publish_prepare":
-        return {"publication_prepare": to_jsonable(workspace.prepare_project_publication())}
+        return {
+            "publication_prepare": to_jsonable(
+                workspace.prepare_project_publication(
+                    language=str(arguments.get("language") or "en"),
+                    output_name=str(arguments.get("output_name") or "project"),
+                    contributions=str(arguments.get("contributions") or "auto"),
+                )
+            )
+        }
     if name == "p2p_project_publish_import":
         return {
             "publication_import": to_jsonable(
-                workspace.import_project_publication(Path(required(arguments, "source")))
+                workspace.import_project_publication(
+                    Path(required(arguments, "source")),
+                    model=(Path(str(arguments["model"])) if arguments.get("model") else None),
+                    evidence_accounting=(
+                        Path(str(arguments["evidence_accounting"]))
+                        if arguments.get("evidence_accounting")
+                        else None
+                    ),
+                    language=str(arguments.get("language") or "en"),
+                    output_name=str(arguments.get("output_name") or "project"),
+                )
             )
         }
     if name == "p2p_project_publish_validate":
-        return {"publication_validation": to_jsonable(workspace.validate_project_publication())}
+        return {
+            "publication_validation": to_jsonable(
+                workspace.validate_project_publication(
+                    language=str(arguments.get("language") or "en"),
+                    output_name=str(arguments.get("output_name") or "project"),
+                )
+            )
+        }
     if name == "p2p_project_publish_render":
-        return {"publication_render": to_jsonable(workspace.render_project_publication())}
+        return {
+            "publication_render": to_jsonable(
+                workspace.render_project_publication(
+                    language=str(arguments.get("language") or "en"),
+                    output_name=str(arguments.get("output_name") or "project"),
+                )
+            )
+        }
     if name == "p2p_project_publish_status":
-        return {"publication_status": to_jsonable(workspace.project_publication_status())}
+        return {
+            "publication_status": to_jsonable(
+                workspace.project_publication_status(
+                    language=str(arguments.get("language") or "en"),
+                    output_name=str(arguments.get("output_name") or "project"),
+                )
+            )
+        }
+    if name == "p2p_project_publish_list":
+        return {"publication_editions": to_jsonable(workspace.project_publication_editions())}
     if name == "p2p_project_vertical_list":
         return {
             "verticals": to_jsonable(workspace.project_verticals()),
@@ -237,6 +278,23 @@ def handle_project_tool(
         return {"registry_status": to_jsonable(workspace.registry_status())}
     if name == "p2p_registry_show":
         return {"registry": to_jsonable(workspace.show_registry(required(arguments, "name")))}
+    if name == "p2p_project_memory_status":
+        return {
+            "project_memory_status": to_jsonable(workspace.vertical_project_memory_status()),
+            "mutation_performed": False,
+        }
+    if name == "p2p_project_memory_show":
+        return {
+            "project_memory": to_jsonable(
+                workspace.show_vertical_project_memory(
+                    section_id=optional_string(arguments, "section"),
+                    include_history=bool(arguments.get("include_history") or False),
+                    limit=int(arguments.get("limit", 20)),
+                    cursor=str(arguments.get("cursor") or ""),
+                )
+            ),
+            "mutation_performed": False,
+        }
     if name == "p2p_project_show":
         section = required(arguments, "section")
         return {"section": section, "content": workspace.show_project_state(section)}

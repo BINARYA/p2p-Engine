@@ -19,6 +19,7 @@ from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
     yaml_dump as _yaml_dump,
 )
+from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 
 
@@ -267,7 +268,7 @@ def _actor_role(path: Path, actor: str) -> str:
     if not actor or not path.exists():
         return ""
     try:
-        payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+        payload = load_yaml(path.read_bytes())
     except (OSError, UnicodeDecodeError, yaml.YAMLError):
         return ""
     identities = payload.get("identities") if isinstance(payload, dict) else None

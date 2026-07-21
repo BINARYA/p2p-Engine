@@ -73,12 +73,17 @@ Historical `PROP-007` is recorded as a split into `PROP-017` and `PROP-025`;
 historical `PROP-008` is recorded as superseded by `PROP-091`. Both remain
 ever-active but are excluded from the active projection basis.
 
-Assessment, maturity, project brief context, managed next actions and the
-`CHANGE-070` software spec have been rebuilt after migration and final Change
-Set completion. There are 17 generated next actions and none targets completed
-`CHANGE-070`. Twelve older generated software specs remain explicitly
-`unknown_origin`; they must not be overwritten merely to remove a legacy
-diagnostic.
+Assessment, maturity, project brief context and managed next actions have been
+rebuilt after migration and final `CHANGE-070` completion. There are 17
+generated next actions and none targets completed `CHANGE-070`.
+
+All 13 generated software specs are now semantically `current`. The 12 legacy
+specs were refreshed individually only after a read-only comparison proved
+that every non-provenance artifact was byte-identical to the current
+deterministic candidate, every decision binding was active and every lifecycle
+preflight was clear. The refreshes added schema-v3 decision bindings,
+fingerprints and output digests without changing specification content or
+Change Set state. The optional `CHANGE-012` refinement prompt was preserved.
 
 ## Delivery And Publication
 
@@ -98,17 +103,15 @@ repeatedly, and prevent append-only next-action audit history from making a
 fresh action set appear stale. Focused, public and full tests are clean.
 
 The visible project export and downstream technical publication stages have
-been rebuilt after final lifecycle alignment. Publication review remains
-owner-controlled and no publication approval may be inferred from preparation,
-curation, validation or rendering.
+been rebuilt after final lifecycle and software-spec provenance alignment.
+Publication review remains owner-controlled and no publication approval may be
+inferred from preparation, curation, validation or rendering.
 
 ## Risks And Residual Work
 
 - `PROP-063` and `PROP-098` remain drafts and require normal owner review.
 - `CHANGE-068` and `CHANGE-069` remain `implementation_ready`.
 - The unresolved project question and two assumptions remain owner input.
-- Twelve legacy software specs have `unknown_origin`; the completed
-  `CHANGE-070` spec is semantically current under the newer per-spec contract.
 - Derived freshness is computationally expensive on this repository. Snapshot
   reuse removes repeated scans within one request, but a full graph build still
   needs final performance evidence.

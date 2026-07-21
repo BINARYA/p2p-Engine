@@ -8,6 +8,8 @@ from pathlib import Path
 
 import yaml
 
+from p2p_engine.foundation.yaml_loaders import load_yaml
+
 
 def slugify(value: str, *, fallback: str = "project") -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
@@ -93,7 +95,7 @@ def write_yaml_atomic(path: Path, data: object) -> DurabilityReport:
 def read_yaml(path: Path, default: object) -> object:
     if not path.exists():
         return default
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    data = load_yaml(path.read_bytes())
     return data if data is not None else default
 
 
@@ -115,5 +117,5 @@ def read_yaml_mapping_or_default(
 ) -> dict[str, object]:
     if not path.exists():
         return default or {}
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    data = load_yaml(path.read_bytes())
     return data if isinstance(data, dict) else (default or {})

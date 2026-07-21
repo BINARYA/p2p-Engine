@@ -1,0 +1,25 @@
+schema_version: 2
+updated_at: '2026-07-21T16:33:14+00:00'
+legacy_status: partial
+editions:
+- edition:
+    output_name: project
+    language: en
+    path_language: en
+    key: project-en
+  manifest: outputs/latest/publications/project-en/manifest.yml
+  updated_at: '2026-07-21T16:33:11+00:00'
+  validation_status: passed
+  render_status: rendered
+  review_status: missing
+- edition:
+    output_name: project
+    language: it
+    path_language: it
+    key: project-it
+  manifest: outputs/latest/publications/project-it/manifest.yml
+  updated_at: '2026-07-21T16:33:14+00:00'
+  validation_status: passed
+  render_status: rendered
+  review_status: missing
+diagnostics: []

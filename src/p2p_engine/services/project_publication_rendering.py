@@ -5,6 +5,7 @@ import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from html import escape
 from pathlib import Path
 
 
@@ -24,12 +25,21 @@ class PublicationRenderResult:
     theme: str
     renderer: str
     rendered_at: str
+    language: str = "en"
+    edition_key: str = "project-en"
 
 
-PdfRenderer = Callable[[str, Path, Path], str]
+PdfRenderer = Callable[..., str]
 
 
-def render_pdf_with_weasyprint(markdown_text: str, output_path: Path, root: Path) -> str:
+def render_pdf_with_weasyprint(
+    markdown_text: str,
+    output_path: Path,
+    root: Path,
+    *,
+    language: str = "en",
+    title: str = "Project Publication",
+) -> str:
     try:
         from markdown_it import MarkdownIt
     except ImportError as exc:
@@ -40,13 +50,13 @@ def render_pdf_with_weasyprint(markdown_text: str, output_path: Path, root: Path
         raise ValueError(PDF_OPTIONAL_INSTALL_MESSAGE) from exc
 
     html_body = MarkdownIt("commonmark", {"html": False}).enable("table").render(markdown_text)
-    html = _html_document(html_body)
+    rendered_html = _html_document(html_body, language=language, title=title)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     temp_path: Path | None = None
     try:
         with tempfile.NamedTemporaryFile("wb", dir=output_path.parent, delete=False) as temp_file:
             temp_path = Path(temp_file.name)
-        HTML(string=html, base_url=str(root)).write_pdf(
+        HTML(string=rendered_html, base_url=str(root)).write_pdf(
             str(temp_path),
             stylesheets=[CSS(string=_neutral_css())],
         )
@@ -58,13 +68,18 @@ def render_pdf_with_weasyprint(markdown_text: str, output_path: Path, root: Path
     return "weasyprint-neutral-v1"
 
 
-def _html_document(body: str) -> str:
+def _html_document(
+    body: str,
+    *,
+    language: str = "en",
+    title: str = "Project Publication",
+) -> str:
     return (
         "<!doctype html>\n"
-        "<html lang=\"it\">\n"
+        f"<html lang=\"{escape(language, quote=True)}\">\n"
         "<head>\n"
         "  <meta charset=\"utf-8\">\n"
-        "  <title>P2P Project Publication</title>\n"
+        f"  <title>{escape(title)}</title>\n"
         "</head>\n"
         "<body>\n"
         f"{body}\n"

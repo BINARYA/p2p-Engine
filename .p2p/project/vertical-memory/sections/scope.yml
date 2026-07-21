@@ -1,0 +1,33 @@
+vertical_memory_section:
+  schema_version: 1
+  section:
+    id: scope
+    title: Scope And Non-Goals
+    purpose: Boundaries, included work, exclusions, and constraints.
+    required: true
+    priority: 40
+  definition:
+    status: complete
+    fields:
+      summary:
+        value: In scope are the local Git-native P2P Engine, canonical project memory
+          under .p2p, CLI/core/MCP interfaces, governed proposal-to-decision and implementation
+          lifecycles, validation, bounded context retrieval, project definition, specifications,
+          migration, and agent integration. Hosted multi-tenant operation, autonomous
+          owner decisions, arbitrary direct state editing, and unrestricted external-provider
+          actions are outside this repository.
+        source: README.md+docs/MCP.md
+    required_field_ids:
+    - summary
+    missing_required_fields: []
+    assumptions: []
+    open_questions: []
+    blockers: []
+  questions: []
+  declared_questions:
+  - What is explicitly in scope and out of scope?
+  heuristic_suggestions: []
+  active_contributions: []
+  historical_contributions: []
+  conflicts: []
+  diagnostics: []

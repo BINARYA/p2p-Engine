@@ -3,8 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
-import yaml
-
 from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionCondition,
     ProposalDecisionEventType,
@@ -14,6 +12,7 @@ from p2p_engine.core.proposal_decision_events import (
 )
 from p2p_engine.mcp.consent_audit import consume_consent_with_audit
 from p2p_engine.mcp.handlers.common import required, to_jsonable
+from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.storage.filesystem import P2PWorkspace
 
 
@@ -406,7 +405,7 @@ def _consent_result(
     workspace: P2PWorkspace,
     relative_path: Path,
 ) -> Mapping[str, object]:
-    payload = yaml.safe_load((workspace.root / relative_path).read_text(encoding="utf-8"))
+    payload = load_yaml((workspace.root / relative_path).read_bytes())
     if not isinstance(payload, Mapping):
         return {}
     result = payload.get("result")

@@ -3,7 +3,48 @@ source:
   included_proposals:
   - PROP-072
   accepted_decisions: []
+  decision_bindings:
+  - proposal: PROP-072
+    effective_state: accepted
+    head_event_id: PDE-a4ce1762234efae2fce2c253
+    decision_semantic_sha256: 501801c774ce9b98db0bf45d741279f173c9fefbdb4aa24d49660ab5ecdb0ac7
+    proposal_binding_status: current
 generated_from:
 - .p2p/changes/CHANGE-053-concurrent-managed-collaboration-cli/change.md
 - .p2p/changes/CHANGE-053-concurrent-managed-collaboration-cli/tasks.yml
 - .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/proposal.md
+- .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/decision-events.yml
+p2p_generation:
+  schema_version: 1
+  origin: generated
+  generator: p2p_engine.software_spec
+  renderer_version: 1
+  source_fingerprint:
+    algorithm: sha256
+    value: cb77cdc90ce693b7f0a4ab0942fadd44febe9c964f5ef8a9343922ade3896dcd
+  sources:
+  - path: .p2p/changes/CHANGE-053-concurrent-managed-collaboration-cli/change.md
+    exists: true
+    sha256: c7f806de54167c5866397adc497ba0404a291cea9832b78d0e3904f9eb98f075
+  - path: .p2p/changes/CHANGE-053-concurrent-managed-collaboration-cli/tasks.yml
+    exists: true
+    sha256: 5881da4e97000d866443ccbf3857424c58f4890a91213bdc387e1b1f582d3887
+  - path: .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/decision-events.yml
+    exists: true
+    sha256: 446340b389f83420044f5179fa5550a14fb5a5d8c5d50b6d80938ae0ce064435
+  - path: .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/proposal.md
+    exists: true
+    sha256: d72db12f20b1c8636b2834155db3ca1fbdaf2759ee4a3069888b6aff92c0effe
+  outputs:
+  - path: index.md
+    sha256: dee9c59d00d37730a3c2d0fbba1f89bc0a197d81da062cdc876c5e820129cbd3
+  - path: requirements.md
+    sha256: 6f36eba26904fe71e61b6450ece20199ee9020385fcb1618474bd5274f51a13a
+  - path: design.md
+    sha256: a864a8e882ee09fd68e950a8bb25a5fa710387043ba6fa946178de493c7967e4
+  - path: commands.yml
+    sha256: 287258b629a2b80224a65b8df92b834b28c9d3ae981f43ab2d9c72f6adeac010
+  - path: data-model.yml
+    sha256: aab1a07514d6e690bfd193d9be5808026845b9765f5600b6c44bce100a32f669
+  - path: acceptance.md
+    sha256: 22fb6a2370d0543a2717e6691b90f24959f04a7f2f4e8e3455aaf942f799c062

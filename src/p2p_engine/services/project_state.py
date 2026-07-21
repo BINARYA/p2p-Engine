@@ -7,12 +7,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-import yaml
-
 from p2p_engine.core.mutation_preview import MutationPreviewService, semantic_sha256, source_precondition
 from p2p_engine.foundation.files import read_yaml_mapping, yaml_dump as _yaml_dump
+from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.services.lifecycle_authority import PROPOSAL_LIFECYCLE_AUTHORITY_POLICY_VERSION
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
+from p2p_engine.core.vertical_memory import VerticalProjectMemoryView
 
 
 class RegistryStatusLike(Protocol):
@@ -55,6 +55,7 @@ class ProjectStateService:
         project_brief_context: Callable[[RegistryStatusLike], str],
         validate_yaml_key: Callable[[str, str], None],
         atomic_writer: AtomicMutationWriter | None = None,
+        vertical_memory: Callable[[], VerticalProjectMemoryView] | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -65,19 +66,35 @@ class ProjectStateService:
         self.project_brief_context = project_brief_context
         self.validate_yaml_key = validate_yaml_key
         self.atomic_writer = atomic_writer or AtomicMutationWriter(root=root, p2p_dir=p2p_dir)
+        self.vertical_memory = vertical_memory
 
     def refresh(self) -> list[Path]:
         project_dir = self.p2p_dir / "project"
         features_dir = project_dir / "features"
         accepted = self.accepted_proposals()
         project_name = self.project_name()
+        memory = self.vertical_memory() if self.vertical_memory is not None else None
         files: dict[Path, str] = {
-            project_dir / "overview.md": project_overview_markdown(project_name, accepted),
-            project_dir / "problem.md": project_problem_markdown(accepted),
-            project_dir / "scope.md": project_scope_markdown(accepted),
+            project_dir / "overview.md": (
+                vertical_project_overview_markdown(project_name, memory)
+                if memory is not None
+                else project_overview_markdown(project_name, accepted)
+            ),
+            project_dir / "problem.md": (
+                vertical_project_problem_markdown(memory)
+                if memory is not None
+                else project_problem_markdown(accepted)
+            ),
+            project_dir / "scope.md": (
+                vertical_project_scope_markdown(memory)
+                if memory is not None
+                else project_scope_markdown(accepted)
+            ),
             project_dir / "project-swot.md": project_swot_markdown(),
             project_dir / "decisions-map.yml": _yaml_dump(
-                {
+                vertical_decisions_map(memory, accepted)
+                if memory is not None
+                else {
                     "decisions": [
                         {
                             "proposal": item["proposal_id"],
@@ -108,7 +125,14 @@ class ProjectStateService:
             "project_projection": {
                 "manifest_version": 1,
                 "owner": "ProjectStateService",
-                "source_fingerprint_sha256": self.source_fingerprint(accepted),
+                "source_fingerprint_sha256": self.source_fingerprint(
+                    accepted,
+                    memory.source_fingerprint_sha256 if memory is not None else "",
+                ),
+                "vertical_memory_source_fingerprint_sha256": (
+                    memory.source_fingerprint_sha256 if memory is not None else ""
+                ),
+                "vertical_memory_source": memory.source if memory is not None else "not_available",
                 "lifecycle_authority_policy_version": PROPOSAL_LIFECYCLE_AUTHORITY_POLICY_VERSION,
                 "accepted_projection_count": len(accepted),
                 "owned_paths": owned_paths,
@@ -121,10 +145,6 @@ class ProjectStateService:
         }
         for relative in stale_paths:
             candidates[relative] = None
-        conflicts_path = project_dir / "conflicts.yml"
-        conflicts_relative = conflicts_path.relative_to(self.root).as_posix()
-        if not conflicts_path.exists():
-            candidates[conflicts_relative] = _yaml_dump({"conflicts": []}).encode("utf-8")
         sources = tuple(
             source_precondition(relative, (self.root / relative).read_bytes() if (self.root / relative).exists() else None)
             for relative in sorted(candidates)
@@ -144,7 +164,7 @@ class ProjectStateService:
                 relative: (
                     {"deleted": True}
                     if content is None
-                    else semantic_sha256(yaml.safe_load(content.decode("utf-8")))
+                    else semantic_sha256(load_yaml(content))
                     if relative.endswith((".yml", ".yaml"))
                     else hashlib.sha256(content).hexdigest()
                 )
@@ -166,12 +186,18 @@ class ProjectStateService:
             except OSError:
                 pass
         written = [Path(relative) for relative in owned_paths]
-        if conflicts_relative in candidates:
-            written.append(conflicts_path.relative_to(self.root))
         return written
 
-    def source_fingerprint(self, accepted: list[dict[str, object]] | None = None) -> str:
+    def source_fingerprint(
+        self,
+        accepted: list[dict[str, object]] | None = None,
+        vertical_memory_source_fingerprint: str = "",
+    ) -> str:
         records = accepted if accepted is not None else self.accepted_proposals()
+        if not vertical_memory_source_fingerprint and self.vertical_memory is not None:
+            vertical_memory_source_fingerprint = (
+                self.vertical_memory().source_fingerprint_sha256
+            )
         inputs: list[dict[str, object]] = []
         for item in records:
             proposal_dir = Path(item["path"])
@@ -201,7 +227,14 @@ class ProjectStateService:
                     "files": files,
                 }
             )
-        return semantic_sha256(inputs)
+        if not vertical_memory_source_fingerprint:
+            return semantic_sha256(inputs)
+        return semantic_sha256(
+            {
+                "accepted_proposals": inputs,
+                "vertical_memory_source_fingerprint_sha256": vertical_memory_source_fingerprint,
+            }
+        )
 
     def projection_manifest(self) -> dict[str, object]:
         path = self.p2p_dir / "project" / "projection-manifest.yml"
@@ -337,6 +370,268 @@ def project_overview_markdown(project_name: str, accepted: list[dict[str, object
         lines.append("- None.")
     lines.append("")
     return "\n".join(lines)
+
+
+def vertical_project_overview_markdown(
+    project_name: str,
+    memory: VerticalProjectMemoryView,
+) -> str:
+    lines = [
+        f"# Project State - {project_name}",
+        "",
+        "This derived view is generated from canonical P2P project sources. It does not establish governance, readiness, implementation, or publication approval.",
+        "",
+        "## Project Vertical",
+        "",
+        f"- Active vertical: `{memory.vertical_id}` v{memory.vertical_version}",
+        f"- Memory source: `{memory.source}`",
+        f"- Source fingerprint: `{memory.source_fingerprint_sha256}`",
+        "",
+        "## Current Direction By Vertical Section",
+        "",
+    ]
+    active_sections = [section for section in memory.sections if section.active_contributions]
+    if not active_sections:
+        lines.append("- No active proposal direction has declared vertical coverage.")
+    for section in active_sections:
+        lines.extend([f"### {section.title} (`{section.section_id}`)", ""])
+        for item in section.active_contributions:
+            lines.append(
+                f"- {item.proposal_id} - {item.title}; authority `{item.authority}`; source `{item.source_path}`"
+            )
+        lines.append("")
+    pending = [
+        (section, item)
+        for section in memory.sections
+        for item in section.conflicts
+        if str(item.get("kind") or "") == "conflict"
+        and str(item.get("status") or "") == "unresolved"
+    ]
+    questions = [
+        (section, item)
+        for section in memory.sections
+        for item in section.questions
+        if str(item.get("state") or "") in {"to_answer", "answered"}
+    ]
+    lines.extend(["## Pending Owner Decisions", ""])
+    if not pending and not questions:
+        lines.append("- None recorded.")
+    for section, item in pending:
+        lines.append(
+            f"- Conflict `{item.get('id')}` in `{section.section_id}`: {item.get('reason') or 'resolution required'}"
+        )
+    for section, item in questions:
+        lines.append(
+            f"- Question `{item.get('id')}` in `{section.section_id}` is `{item.get('state')}`."
+        )
+    lines.extend(["", "## Assumptions And Blockers", ""])
+    assumption_or_blocker = False
+    for section in memory.sections:
+        for item in section.definition.get("assumptions", ()):
+            assumption_or_blocker = True
+            lines.append(
+                f"- Assumption `{item.get('id')}` in `{section.section_id}` is `{item.get('status')}`: {item.get('text')}"
+            )
+        for item in section.definition.get("blockers", ()):
+            assumption_or_blocker = True
+            lines.append(
+                f"- Blocker `{item.get('id')}` in `{section.section_id}` is `{item.get('status')}`: {item.get('text')}"
+            )
+    if not assumption_or_blocker:
+        lines.append("- None recorded.")
+    missing = [
+        section
+        for section in memory.sections
+        if section.required
+        and not section.active_contributions
+        and str(section.definition.get("status") or "missing") != "not_applicable"
+    ]
+    lines.extend(["", "## Missing Declared Evidence", ""])
+    if missing:
+        lines.extend(
+            f"- `{section.section_id}` - {section.title}"
+            for section in missing
+        )
+    else:
+        lines.append("- None.")
+    lines.extend(["", "## Legacy Unmapped Active Proposals", ""])
+    if memory.unmapped_active_proposals:
+        for item in memory.unmapped_active_proposals:
+            lines.append(
+                f"- {item.get('proposal_id')} - {item.get('title')}; source `{item.get('source_path')}`"
+            )
+    else:
+        lines.append("- None.")
+    historical_count = sum(len(section.historical_contributions) for section in memory.sections)
+    lines.extend(
+        [
+            "",
+            "## Historical Context",
+            "",
+            f"- Historical section contributions: {historical_count}",
+            "- Inspect history with `p2p project memory show --section <SECTION-ID> --include-history`.",
+            "",
+            "`.p2p/` remains the authoritative project source of truth.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def vertical_project_problem_markdown(memory: VerticalProjectMemoryView) -> str:
+    lines = [
+        "# Project Problem",
+        "",
+        "Derived problem evidence grouped by active vertical section. `.p2p/` remains authoritative.",
+        "",
+    ]
+    rendered = False
+    for section in memory.sections:
+        records = [
+            (item, evidence)
+            for item in section.active_contributions
+            for evidence in item.evidence
+            if evidence.fragment_kind == "problem"
+        ]
+        if not records:
+            continue
+        rendered = True
+        lines.extend([f"## {section.title} (`{section.section_id}`)", ""])
+        for contribution, evidence in records:
+            lines.extend(
+                [
+                    f"### {contribution.proposal_id} - {contribution.title}",
+                    "",
+                    evidence.fragment,
+                    "",
+                    f"Source: `{evidence.source_path}` (`{evidence.evidence_id}`).",
+                    "",
+                ]
+            )
+    if not rendered:
+        lines.append("No active declared problem evidence is available.\n")
+    return "\n".join(lines)
+
+
+def vertical_project_scope_markdown(memory: VerticalProjectMemoryView) -> str:
+    lines = [
+        "# Project Scope",
+        "",
+        "Derived goals and non-goals grouped by active vertical section. `.p2p/` remains authoritative.",
+        "",
+    ]
+    rendered = False
+    for section in memory.sections:
+        records = [
+            (item, evidence)
+            for item in section.active_contributions
+            for evidence in item.evidence
+            if evidence.fragment_kind in {"goals", "non-goals"}
+        ]
+        if not records:
+            continue
+        rendered = True
+        lines.extend([f"## {section.title} (`{section.section_id}`)", ""])
+        for contribution, evidence in records:
+            label = "Goals" if evidence.fragment_kind == "goals" else "Non-Goals"
+            lines.extend(
+                [
+                    f"### {label} - {contribution.proposal_id}",
+                    "",
+                    evidence.fragment,
+                    "",
+                    f"Source: `{evidence.source_path}` (`{evidence.evidence_id}`).",
+                    "",
+                ]
+            )
+    if not rendered:
+        lines.append("No active declared scope evidence is available.\n")
+    return "\n".join(lines)
+
+
+def vertical_decisions_map(
+    memory: VerticalProjectMemoryView,
+    accepted: list[dict[str, object]],
+) -> dict[str, object]:
+    accepted_by_id = {str(item["proposal_id"]): item for item in accepted}
+    active: dict[str, dict[str, object]] = {}
+    historical: dict[str, dict[str, object]] = {}
+    for section in memory.sections:
+        for contribution in section.active_contributions:
+            item = accepted_by_id.get(contribution.proposal_id, {})
+            record = active.setdefault(
+                contribution.contribution_id,
+                {
+                    "proposal": contribution.proposal_id,
+                    "title": contribution.title,
+                    "status": contribution.effective_state,
+                    "feature": item.get("feature_id"),
+                    "source": contribution.source_path,
+                    "authority": contribution.authority,
+                    "head_event_id": contribution.head_event_id or None,
+                    "rationale": contribution.rationale,
+                    "constraints": list(contribution.constraints),
+                    "sections": [],
+                },
+            )
+            record["sections"].append(section.section_id)
+        for contribution in section.historical_contributions:
+            record = historical.setdefault(
+                contribution.contribution_id,
+                {
+                    "proposal": contribution.proposal_id,
+                    "title": contribution.title,
+                    "status": contribution.effective_state,
+                    "source": contribution.source_path,
+                    "authority": contribution.authority,
+                    "head_event_id": contribution.head_event_id or None,
+                    "sections": [],
+                },
+            )
+            record["sections"].append(section.section_id)
+    represented = {str(item["proposal"]) for item in active.values()}
+    for proposal_id, item in sorted(accepted_by_id.items()):
+        if proposal_id in represented:
+            continue
+        active[f"unmapped:{proposal_id}"] = {
+            "proposal": proposal_id,
+            "title": item["title"],
+            "status": item["status"],
+            "feature": item["feature_id"],
+            "source": item["source"],
+            "authority": "active_unmapped",
+            "head_event_id": item.get("head_event_id"),
+            "rationale": "",
+            "constraints": [],
+            "sections": [],
+        }
+    return {
+        "projection": {
+            "kind": "vertical_first_derived_project_memory",
+            "vertical_id": memory.vertical_id,
+            "source_fingerprint_sha256": memory.source_fingerprint_sha256,
+            "source": memory.source,
+            "canonical_source": ".p2p/",
+        },
+        "decisions": [
+            {**record, "sections": sorted(set(record["sections"]))}
+            for _, record in sorted(
+                active.items(),
+                key=lambda item: (
+                    tuple(item[1]["sections"]),
+                    str(item[1]["proposal"]),
+                    item[0],
+                ),
+            )
+        ],
+        "historical_decisions": [
+            {**record, "sections": sorted(set(record["sections"]))}
+            for _, record in sorted(
+                historical.items(),
+                key=lambda item: (str(item[1]["proposal"]), item[0]),
+            )
+        ],
+    }
 
 
 def project_problem_markdown(accepted: list[dict[str, object]]) -> str:

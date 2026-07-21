@@ -111,10 +111,7 @@ def test_software_spec_freshness_owns_only_required_refresh_outputs() -> None:
         definition for definition in NODE_CATALOG if definition.node_id == "software_specs"
     )
 
-    assert software_specs.dependencies == (
-        "canonical_sources",
-        "project_projections",
-    )
+    assert software_specs.dependencies == ("canonical_sources",)
     assert software_specs.output_patterns == tuple(
         f".p2p/outputs/software-spec/*/{filename}"
         for filename in SOFTWARE_SPEC_REQUIRED_FILES
@@ -341,9 +338,9 @@ def test_question_and_definition_impacts_are_explicit_and_topological(tmp_path: 
     definition_nodes = service.impact_node_ids((".p2p/project/definition.yml",))
 
     assert {"decision_context", "maturity_progress", "next_actions"} <= set(question_nodes)
-    assert "project_projections" not in question_nodes
+    assert {"vertical_project_memory", "project_projections"} <= set(question_nodes)
     assert "software_specs" not in question_nodes
-    assert {"decision_context", "assessment", "maturity_progress", "brief_context_prompt", "visible_export"} <= set(definition_nodes)
+    assert {"decision_context", "vertical_project_memory", "project_projections", "assessment", "maturity_progress", "brief_context_prompt", "visible_export"} <= set(definition_nodes)
     assert "software_specs" not in definition_nodes
 
 

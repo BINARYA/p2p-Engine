@@ -3,7 +3,48 @@ source:
   included_proposals:
   - PROP-066
   accepted_decisions: []
+  decision_bindings:
+  - proposal: PROP-066
+    effective_state: accepted
+    head_event_id: PDE-41d214f07fc04f5872539575
+    decision_semantic_sha256: 70cd014fc145bfa64fb696e3efe7eabf4633ee546207b0f4ef71661747431d90
+    proposal_binding_status: current
 generated_from:
 - .p2p/changes/CHANGE-054-permission-gated-mcp-roles-and-consent-receipts/change.md
 - .p2p/changes/CHANGE-054-permission-gated-mcp-roles-and-consent-receipts/tasks.yml
 - .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/proposal.md
+- .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/decision-events.yml
+p2p_generation:
+  schema_version: 1
+  origin: generated
+  generator: p2p_engine.software_spec
+  renderer_version: 1
+  source_fingerprint:
+    algorithm: sha256
+    value: cb8abf8cf944b7502716f76a79edd84baf454de43e598a3f26081cd0b3020e66
+  sources:
+  - path: .p2p/changes/CHANGE-054-permission-gated-mcp-roles-and-consent-receipts/change.md
+    exists: true
+    sha256: b4f95fa1dc16a12598232ecff81d38a373b0080d5ba9f73f5ba09f81544b0a73
+  - path: .p2p/changes/CHANGE-054-permission-gated-mcp-roles-and-consent-receipts/tasks.yml
+    exists: true
+    sha256: 5881da4e97000d866443ccbf3857424c58f4890a91213bdc387e1b1f582d3887
+  - path: .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/decision-events.yml
+    exists: true
+    sha256: d1c8aa79932d206e5641c9b4bf40b1b1a548b69b2a01174254b4178e49ad008b
+  - path: .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/proposal.md
+    exists: true
+    sha256: b6ac256104744fdf5d8c721fd36e8c649fcfafb92bd6f9358cc0416d07e1ab71
+  outputs:
+  - path: index.md
+    sha256: 91762c3b9f9e69e671844645f1ad84827751ca5ee2bd2476b9961d7895098c6c
+  - path: requirements.md
+    sha256: 034feed4f0ac72b5e31dd957f999aa89324c7ce9261b00355951478fe07ca216
+  - path: design.md
+    sha256: a864a8e882ee09fd68e950a8bb25a5fa710387043ba6fa946178de493c7967e4
+  - path: commands.yml
+    sha256: 287258b629a2b80224a65b8df92b834b28c9d3ae981f43ab2d9c72f6adeac010
+  - path: data-model.yml
+    sha256: 88b28d175bf0e40961aa375fd85cc8bf74a89d2d35b57266760e891d27b915dc
+  - path: acceptance.md
+    sha256: 22fb6a2370d0543a2717e6691b90f24959f04a7f2f4e8e3455aaf942f799c062

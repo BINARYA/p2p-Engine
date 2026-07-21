@@ -556,11 +556,12 @@ class AgentInstructionService:
                 current_path = self.root / path_key
                 if path_key in old_records:
                     preserved = {**old_records[path_key]}
-                    preserved["drift"] = (
-                        "drifted"
-                        if current_path.exists() and preserved.get("sha256") != _sha256_file(current_path)
-                        else "missing"
-                    )
+                    if not current_path.exists():
+                        preserved["drift"] = "missing"
+                    elif preserved.get("sha256") != _sha256_file(current_path):
+                        preserved["drift"] = "drifted"
+                    else:
+                        preserved["drift"] = "clean"
                     file_records[index] = preserved
                 else:
                     record["managed"] = False

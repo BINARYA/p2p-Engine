@@ -153,11 +153,46 @@ Selected project rubric maturity measures only enabled project criteria. Full
 vertical baseline coverage is reported separately through baseline/default
 counts where available.
 
+### Vertical-Aware Derived Memory
+
+P2P may materialize a compact per-section project view for repeated reads. It
+groups current authority, historical context, definition facts, questions,
+assumptions, blockers, choices and conflicts according to explicit vertical
+coverage. Heuristic similarity remains advisory and cannot satisfy declared
+evidence.
+
+This read model is an accelerator, not another source of truth. It can be
+deleted and rebuilt with `p2p project refresh`. Read commands never refresh it
+implicitly, and a successful governance mutation remains successful even when a
+separate derived update fails.
+
 ```bash
 p2p project rubrics show
 p2p assess maturity refresh
 p2p assess maturity show
 ```
+
+## Human Project Publication
+
+A publication edition is a language-specific, derived document for a reader who
+does not know P2P. It represents the project itself, not the chronological
+proposal or governance process.
+
+All editions use one shared, complete evidence index. A curator builds a strict
+project model, accounts for every evidence item, and writes localized reader
+prose using the active vertical as a completeness lens rather than a fixed table
+of contents. Model and accounting sidecars preserve traceability so internal IDs,
+hashes, paths, readiness scores, and `.p2p` authority boilerplate do not need to
+appear in the reader document.
+
+An optional Contributions chapter reports only the distribution of selected
+attributed project records. It is not an estimate of effort, merit, ownership,
+or intellectual-property shares. Prepared figures remain invariant across
+editions, while the accompanying limitation is localized for the reader.
+
+Language changes presentation, not project scope. Each edition has independent
+freshness, validation, PDF, and owner review. Publication approval is not a P2P
+proposal decision and never transfers between editions or from legacy output.
 
 ## Agent Boundary
 

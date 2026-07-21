@@ -1,0 +1,2454 @@
+vertical_memory_section:
+  schema_version: 1
+  section:
+    id: integrations_dependencies
+    title: Integrations And Dependencies
+    purpose: External systems, APIs, services, tools, and runtime dependencies.
+    required: true
+    priority: 160
+  definition:
+    status: complete
+    fields:
+      external_integrations:
+        value: P2P integrates with local Git repositories and configured remotes,
+          agent clients through a local stdio MCP JSON-RPC server, project-local Python
+          virtual environments and versioned GitHub Release wheels, and downstream
+          specification or publication targets. The runtime requires Python 3.11 or
+          newer with Typer, Rich, PyYAML and packaging; build and test tooling is
+          optional-development scope, while Markdown rendering and WeasyPrint are
+          optional PDF dependencies. External provider mutations remain permission-gated
+          and capability-limited.
+        source: pyproject.toml+docs/INSTALL.md+docs/MCP.md
+    required_field_ids:
+    - external_integrations
+    missing_required_fields: []
+    assumptions: []
+    open_questions: []
+    blockers: []
+  questions: []
+  declared_questions: []
+  heuristic_suggestions:
+  - proposal_id: PROP-001
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - api
+    - integration
+    source_paths:
+    - .p2p/proposals/PROP-001-cli-foundation/proposal.md
+    - .p2p/proposals/PROP-001-cli-foundation/decision.md
+  - proposal_id: PROP-002
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - api
+    - dependency
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-002-exploration-phase/proposal.md
+    - .p2p/proposals/PROP-002-exploration-phase/decision.md
+    - .p2p/proposals/PROP-002-exploration-phase/suggested-scope.md
+    - .p2p/proposals/PROP-002-exploration-phase/risks.md
+  - proposal_id: PROP-005
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - integration
+    source_paths:
+    - .p2p/proposals/PROP-005-codex-skill-integration/proposal.md
+    - .p2p/proposals/PROP-005-codex-skill-integration/decision.md
+    - .p2p/proposals/PROP-005-codex-skill-integration/suggested-scope.md
+    - .p2p/proposals/PROP-005-codex-skill-integration/risks.md
+  - proposal_id: PROP-006
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - external
+    - integration
+    - integrations
+    - runtime
+    - systems
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-006-multi-agent-integration-model/proposal.md
+    - .p2p/proposals/PROP-006-multi-agent-integration-model/decision.md
+    - .p2p/proposals/PROP-006-multi-agent-integration-model/suggested-scope.md
+    - .p2p/proposals/PROP-006-multi-agent-integration-model/risks.md
+  - proposal_id: PROP-010
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - external
+    - systems
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-010-p2p-software-specification-model/proposal.md
+    - .p2p/proposals/PROP-010-p2p-software-specification-model/decision.md
+    - .p2p/proposals/PROP-010-p2p-software-specification-model/suggested-scope.md
+    - .p2p/proposals/PROP-010-p2p-software-specification-model/risks.md
+  - proposal_id: PROP-012
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - dependencies
+    source_paths:
+    - .p2p/proposals/PROP-012-impact-map-and-conflict-memory/proposal.md
+    - .p2p/proposals/PROP-012-impact-map-and-conflict-memory/decision.md
+    - .p2p/proposals/PROP-012-impact-map-and-conflict-memory/suggested-scope.md
+    - .p2p/proposals/PROP-012-impact-map-and-conflict-memory/risks.md
+  - proposal_id: PROP-013
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - dependencies
+    - integration
+    source_paths:
+    - .p2p/proposals/PROP-013-change-set-and-git-branch-model/proposal.md
+    - .p2p/proposals/PROP-013-change-set-and-git-branch-model/decision.md
+    - .p2p/proposals/PROP-013-change-set-and-git-branch-model/suggested-scope.md
+    - .p2p/proposals/PROP-013-change-set-and-git-branch-model/risks.md
+  - proposal_id: PROP-017
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/proposal.md
+    - .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/decision.md
+    - .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/suggested-scope.md
+    - .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/risks.md
+  - proposal_id: PROP-021
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-021-agent-skill-real-commands-update/proposal.md
+    - .p2p/proposals/PROP-021-agent-skill-real-commands-update/decision.md
+    - .p2p/proposals/PROP-021-agent-skill-real-commands-update/suggested-scope.md
+    - .p2p/proposals/PROP-021-agent-skill-real-commands-update/risks.md
+  - proposal_id: PROP-041
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - external
+    source_paths:
+    - .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy/proposal.md
+    - .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy/decision.md
+    - .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy/suggested-scope.md
+    - .p2p/proposals/PROP-041-remote-project-profile-and-review-request-policy/risks.md
+  - proposal_id: PROP-042
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - integration
+    - integrations
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary/proposal.md
+    - .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary/decision.md
+    - .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary/suggested-scope.md
+    - .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary/risks.md
+  - proposal_id: PROP-044
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-044-p2p-mcp-server-mvp/proposal.md
+    - .p2p/proposals/PROP-044-p2p-mcp-server-mvp/decision.md
+    - .p2p/proposals/PROP-044-p2p-mcp-server-mvp/suggested-scope.md
+    - .p2p/proposals/PROP-044-p2p-mcp-server-mvp/risks.md
+  - proposal_id: PROP-045
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-045-agent-safe-project-bootstrap-mvp/proposal.md
+    - .p2p/proposals/PROP-045-agent-safe-project-bootstrap-mvp/decision.md
+    - .p2p/proposals/PROP-045-agent-safe-project-bootstrap-mvp/suggested-scope.md
+    - .p2p/proposals/PROP-045-agent-safe-project-bootstrap-mvp/risks.md
+  - proposal_id: PROP-046
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp/proposal.md
+    - .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp/decision.md
+    - .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp/suggested-scope.md
+    - .p2p/proposals/PROP-046-mcp-write-safe-bootstrap-tools-mvp/risks.md
+  - proposal_id: PROP-048
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools/proposal.md
+    - .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools/decision.md
+    - .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools/suggested-scope.md
+    - .p2p/proposals/PROP-048-mcp-level-3-proposal-and-intake-draft-tools/risks.md
+  - proposal_id: PROP-049
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-049-mcp-level-4a-proposal-refinement-tools/proposal.md
+    - .p2p/proposals/PROP-049-mcp-level-4a-proposal-refinement-tools/decision.md
+    - .p2p/proposals/PROP-049-mcp-level-4a-proposal-refinement-tools/suggested-scope.md
+    - .p2p/proposals/PROP-049-mcp-level-4a-proposal-refinement-tools/risks.md
+  - proposal_id: PROP-050
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-050-mcp-level-4b-choice-conflict-impact-advisory-tools/proposal.md
+    - .p2p/proposals/PROP-050-mcp-level-4b-choice-conflict-impact-advisory-tools/decision.md
+    - .p2p/proposals/PROP-050-mcp-level-4b-choice-conflict-impact-advisory-tools/suggested-scope.md
+    - .p2p/proposals/PROP-050-mcp-level-4b-choice-conflict-impact-advisory-tools/risks.md
+  - proposal_id: PROP-051
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-051-draft-proposal-next-action-and-agent-explanation-guard/proposal.md
+    - .p2p/proposals/PROP-051-draft-proposal-next-action-and-agent-explanation-guard/decision.md
+    - .p2p/proposals/PROP-051-draft-proposal-next-action-and-agent-explanation-guard/suggested-scope.md
+    - .p2p/proposals/PROP-051-draft-proposal-next-action-and-agent-explanation-guard/risks.md
+  - proposal_id: PROP-052
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-052-mcp-proposal-contribution-tool/proposal.md
+    - .p2p/proposals/PROP-052-mcp-proposal-contribution-tool/decision.md
+    - .p2p/proposals/PROP-052-mcp-proposal-contribution-tool/suggested-scope.md
+    - .p2p/proposals/PROP-052-mcp-proposal-contribution-tool/risks.md
+  - proposal_id: PROP-054
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - integration
+    - systems
+    source_paths:
+    - .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/proposal.md
+    - .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/decision.md
+    - .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/suggested-scope.md
+    - .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/risks.md
+  - proposal_id: PROP-055
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - runtime
+    source_paths:
+    - .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/proposal.md
+    - .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/decision.md
+    - .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/suggested-scope.md
+    - .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/risks.md
+  - proposal_id: PROP-056
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - integration
+    - services
+    source_paths:
+    - .p2p/proposals/PROP-056-project-definition-maturity-rubrics/proposal.md
+    - .p2p/proposals/PROP-056-project-definition-maturity-rubrics/decision.md
+    - .p2p/proposals/PROP-056-project-definition-maturity-rubrics/suggested-scope.md
+    - .p2p/proposals/PROP-056-project-definition-maturity-rubrics/risks.md
+  - proposal_id: PROP-059
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - api
+    - apis
+    - runtime
+    - services
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/proposal.md
+    - .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/decision.md
+    - .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/suggested-scope.md
+    - .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/risks.md
+  - proposal_id: PROP-060
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - dependencies
+    - dependency
+    - integration
+    - runtime
+    source_paths:
+    - .p2p/proposals/PROP-060-real-test-coverage-reporting/proposal.md
+    - .p2p/proposals/PROP-060-real-test-coverage-reporting/decision.md
+    - .p2p/proposals/PROP-060-real-test-coverage-reporting/suggested-scope.md
+    - .p2p/proposals/PROP-060-real-test-coverage-reporting/risks.md
+  - proposal_id: PROP-061
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - api
+    - integration
+    source_paths:
+    - .p2p/proposals/PROP-061-focused-readme-and-documentation-map/proposal.md
+    - .p2p/proposals/PROP-061-focused-readme-and-documentation-map/decision.md
+    - .p2p/proposals/PROP-061-focused-readme-and-documentation-map/suggested-scope.md
+    - .p2p/proposals/PROP-061-focused-readme-and-documentation-map/risks.md
+  - proposal_id: PROP-062
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - api
+    source_paths:
+    - .p2p/proposals/PROP-062-readme-product-landing-page-refinement/proposal.md
+    - .p2p/proposals/PROP-062-readme-product-landing-page-refinement/decision.md
+    - .p2p/proposals/PROP-062-readme-product-landing-page-refinement/suggested-scope.md
+    - .p2p/proposals/PROP-062-readme-product-landing-page-refinement/risks.md
+  - proposal_id: PROP-064
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - dependencies
+    - integration
+    - systems
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model/proposal.md
+    - .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model/decision.md
+    - .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model/suggested-scope.md
+    - .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model/risks.md
+  - proposal_id: PROP-065
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - external
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion/proposal.md
+    - .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion/decision.md
+    - .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion/suggested-scope.md
+    - .p2p/proposals/PROP-065-mcp-agent-first-coverage-expansion/risks.md
+  - proposal_id: PROP-066
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - api
+    - external
+    - integration
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/proposal.md
+    - .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/decision.md
+    - .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/suggested-scope.md
+    - .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/risks.md
+  - proposal_id: PROP-067
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - integration
+    - integrations
+    - runtime
+    source_paths:
+    - .p2p/proposals/PROP-067-agent-first-setup-documentation-split/proposal.md
+    - .p2p/proposals/PROP-067-agent-first-setup-documentation-split/decision.md
+    - .p2p/proposals/PROP-067-agent-first-setup-documentation-split/suggested-scope.md
+    - .p2p/proposals/PROP-067-agent-first-setup-documentation-split/risks.md
+  - proposal_id: PROP-068
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - integration
+    - integrations
+    source_paths:
+    - .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands/proposal.md
+    - .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands/decision.md
+    - .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands/suggested-scope.md
+    - .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands/risks.md
+  - proposal_id: PROP-069
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - integration
+    - runtime
+    - services
+    source_paths:
+    - .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/proposal.md
+    - .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/decision.md
+    - .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/suggested-scope.md
+    - .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/risks.md
+  - proposal_id: PROP-070
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-070-clarify-readme-agent-access-modes/proposal.md
+    - .p2p/proposals/PROP-070-clarify-readme-agent-access-modes/decision.md
+    - .p2p/proposals/PROP-070-clarify-readme-agent-access-modes/suggested-scope.md
+    - .p2p/proposals/PROP-070-clarify-readme-agent-access-modes/risks.md
+  - proposal_id: PROP-072
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - external
+    source_paths:
+    - .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/proposal.md
+    - .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/decision.md
+    - .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/suggested-scope.md
+    - .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/risks.md
+  - proposal_id: PROP-073
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - external
+    source_paths:
+    - .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/proposal.md
+    - .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/decision.md
+    - .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/suggested-scope.md
+    - .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/risks.md
+  - proposal_id: PROP-074
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - runtime
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness/proposal.md
+    - .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness/decision.md
+    - .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness/suggested-scope.md
+    - .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness/risks.md
+  - proposal_id: PROP-075
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-075-mcp-end-to-end-proposal-collaboration-workflow/proposal.md
+    - .p2p/proposals/PROP-075-mcp-end-to-end-proposal-collaboration-workflow/decision.md
+    - .p2p/proposals/PROP-075-mcp-end-to-end-proposal-collaboration-workflow/suggested-scope.md
+    - .p2p/proposals/PROP-075-mcp-end-to-end-proposal-collaboration-workflow/risks.md
+  - proposal_id: PROP-076
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - api
+    - apis
+    source_paths:
+    - .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model/proposal.md
+    - .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model/decision.md
+    - .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model/suggested-scope.md
+    - .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model/risks.md
+  - proposal_id: PROP-077
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/proposal.md
+    - .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/decision.md
+    - .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/suggested-scope.md
+    - .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/risks.md
+  - proposal_id: PROP-078
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - external
+    - runtime
+    source_paths:
+    - .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/proposal.md
+    - .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/decision.md
+    - .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/suggested-scope.md
+    - .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/risks.md
+  - proposal_id: PROP-079
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - runtime
+    source_paths:
+    - .p2p/proposals/PROP-079-managed-next-action-lifecycle/proposal.md
+    - .p2p/proposals/PROP-079-managed-next-action-lifecycle/decision.md
+    - .p2p/proposals/PROP-079-managed-next-action-lifecycle/suggested-scope.md
+    - .p2p/proposals/PROP-079-managed-next-action-lifecycle/risks.md
+  - proposal_id: PROP-080
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - dependencies
+    source_paths:
+    - .p2p/proposals/PROP-080-automated-github-release-wheel-publishing/proposal.md
+    - .p2p/proposals/PROP-080-automated-github-release-wheel-publishing/decision.md
+    - .p2p/proposals/PROP-080-automated-github-release-wheel-publishing/suggested-scope.md
+    - .p2p/proposals/PROP-080-automated-github-release-wheel-publishing/risks.md
+  - proposal_id: PROP-081
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions/proposal.md
+    - .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions/decision.md
+    - .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions/suggested-scope.md
+    - .p2p/proposals/PROP-081-mcp-and-skill-support-for-managed-next-actions/risks.md
+  - proposal_id: PROP-082
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - external
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/proposal.md
+    - .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/decision.md
+    - .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/suggested-scope.md
+    - .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/risks.md
+  - proposal_id: PROP-083
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - api
+    - dependencies
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/proposal.md
+    - .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/decision.md
+    - .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/suggested-scope.md
+    - .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/risks.md
+  - proposal_id: PROP-084
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - dependency
+    - runtime
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/proposal.md
+    - .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/decision.md
+    - .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/suggested-scope.md
+    - .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/risks.md
+  - proposal_id: PROP-085
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - api
+    - apis
+    - external
+    - integration
+    source_paths:
+    - .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/proposal.md
+    - .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/decision.md
+    - .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/suggested-scope.md
+    - .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/risks.md
+  - proposal_id: PROP-086
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - api
+    - dependency
+    - integration
+    - runtime
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/proposal.md
+    - .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/decision.md
+    - .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/suggested-scope.md
+    - .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/risks.md
+  - proposal_id: PROP-087
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - runtime
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/proposal.md
+    - .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/decision.md
+    - .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/suggested-scope.md
+    - .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/risks.md
+  - proposal_id: PROP-088
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - api
+    - services
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-088-mcp-artifact-import-parity/proposal.md
+    - .p2p/proposals/PROP-088-mcp-artifact-import-parity/decision.md
+    - .p2p/proposals/PROP-088-mcp-artifact-import-parity/suggested-scope.md
+    - .p2p/proposals/PROP-088-mcp-artifact-import-parity/risks.md
+  - proposal_id: PROP-090
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - api
+    - apis
+    - dependencies
+    - integration
+    - runtime
+    - services
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/proposal.md
+    - .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/decision.md
+    - .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/suggested-scope.md
+    - .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/risks.md
+  - proposal_id: PROP-091
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - external
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-091-governance-policy-convergence/proposal.md
+    - .p2p/proposals/PROP-091-governance-policy-convergence/decision.md
+    - .p2p/proposals/PROP-091-governance-policy-convergence/suggested-scope.md
+    - .p2p/proposals/PROP-091-governance-policy-convergence/risks.md
+  - proposal_id: PROP-092
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - external
+    - integration
+    - integrations
+    - services
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/proposal.md
+    - .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/decision.md
+    - .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/suggested-scope.md
+    - .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/risks.md
+  - proposal_id: PROP-093
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - api
+    - apis
+    - external
+    - integration
+    - integrations
+    - runtime
+    - services
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/proposal.md
+    - .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/decision.md
+    - .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/suggested-scope.md
+    - .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/risks.md
+  - proposal_id: PROP-094
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - dependencies
+    - external
+    - integration
+    - integrations
+    - services
+    source_paths:
+    - .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/proposal.md
+    - .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/decision.md
+    - .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/suggested-scope.md
+    - .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/risks.md
+  - proposal_id: PROP-095
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - dependency
+    - external
+    - runtime
+    - services
+    source_paths:
+    - .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/proposal.md
+    - .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/decision.md
+    - .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/suggested-scope.md
+    - .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/risks.md
+  - proposal_id: PROP-096
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - services
+    source_paths:
+    - .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/proposal.md
+    - .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/decision.md
+    - .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/suggested-scope.md
+    - .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/risks.md
+  - proposal_id: PROP-097
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - runtime
+    source_paths:
+    - .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/proposal.md
+    - .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/decision.md
+    - .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/suggested-scope.md
+    - .p2p/proposals/PROP-097-runtime-contract-adoption-for-legacy-projects/risks.md
+  - proposal_id: PROP-098
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - dependencies
+    - integration
+    - services
+    source_paths:
+    - .p2p/proposals/PROP-098-test-impact-and-validation-routing/proposal.md
+    - .p2p/proposals/PROP-098-test-impact-and-validation-routing/decision.md
+  - proposal_id: PROP-099
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - integration
+    source_paths:
+    - .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/proposal.md
+    - .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/decision.md
+    - .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/suggested-scope.md
+    - .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/risks.md
+  - proposal_id: PROP-100
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - integration
+    source_paths:
+    - .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/proposal.md
+    - .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/decision.md
+    - .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/suggested-scope.md
+    - .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/risks.md
+  - proposal_id: PROP-101
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - api
+    - apis
+    - dependency
+    - integration
+    - runtime
+    - services
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
+    - .p2p/proposals/PROP-101-project-readiness-convergence-workflow/decision.md
+    - .p2p/proposals/PROP-101-project-readiness-convergence-workflow/suggested-scope.md
+    - .p2p/proposals/PROP-101-project-readiness-convergence-workflow/risks.md
+  - proposal_id: PROP-102
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - dependencies
+    - external
+    - services
+    - tools
+    source_paths:
+    - .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/proposal.md
+    - .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/decision.md
+    - .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/suggested-scope.md
+    - .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/risks.md
+  active_contributions:
+  - id: VMC-086daddad18f5d5e44ed0ab8
+    proposal_id: PROP-006
+    title: Multi-Agent Integration Model
+    section_id: integrations_dependencies
+    authority: resolved
+    activation: active
+    effective_state: accepted
+    head_event_id: PDE-cf71cf96ba2288769305e65d
+    head_event_type: accepted
+    rationale: Owner accepts PROP-006 after refinement. The proposal is considered
+      ready as-is because remaining low readiness score reflects the current conservative
+      readiness CLI, not unresolved product direction. A separate follow-up proposal
+      will address readiness assessment refresh and review workflow.
+    constraints: []
+    applicability: integrations_dependencies
+    coverage_rationale: Defines project-local integration surfaces for supported agents
+      and structured CLI and MCP parity over the same core behavior.
+    source_path: .p2p/proposals/PROP-006-multi-agent-integration-model/proposal.md
+    proposal_semantic_sha256: 9b78fae0b86536e2ac908dec9120ad451ab1415af52065ca326a5575df03125f
+    decision_semantic_sha256: 5f88a0ce4a1fae2eef77a3150da61b0bf1c0860bc5179222b678631c0968752e
+    lineage:
+      kind: null
+      targets: []
+    evidence:
+    - id: VME-c1954dabe48c3eac3790d9f3
+      source_path: .p2p/proposals/PROP-006-multi-agent-integration-model/proposal.md
+      source_sha256: 314c7dec83d79cfdf633eb832ec12259733863a2c21243760f39f67b413978d1
+      fragment: 'P2P Engine can already generate basic agent-facing instructions for
+        generic, Codex, and Claude profiles, but it does not yet manage agent integrations
+        as governed, inspectable, updateable project state. Project initialization
+        should create the supported project-local agent file structures by default,
+        but today there is no explicit registry of installed integrations, generated-file
+        manifests, hashes, drift detection, safe update, safe uninstall, conflict
+        detection, or precise adapter matrix for Cursor, Copilot, Gemini, OpenCode,
+        Codex, Claude, and the generic baseline. A second gap is methodological: generated
+        instructions do not yet force agents to turn weak proposal readiness, failed
+        gates, and owner questions into concrete refinement actions, alternatives,
+        recommendations, candidate edits, and readiness re-checks.'
+      fragment_kind: problem
+      truncated: false
+    - id: VME-f979294a7ad323e9bc0ed276
+      source_path: .p2p/proposals/PROP-006-multi-agent-integration-model/proposal.md
+      source_sha256: 314c7dec83d79cfdf633eb832ec12259733863a2c21243760f39f67b413978d1
+      fragment: '- Create all supported project-local agent integrations by default
+        during project init, unless the owner explicitly narrows the install set.
+
+        - Keep generic as the mandatory, unremovable common baseline from which agent-specific
+        files are derived.
+
+        - Introduce a versioned project-local .p2p/agent-integrations.yml registry
+        with generated-file manifests, ownership metadata, shared-file flags, template
+        versions, SHA-256 hashes, and drift state.
+
+        - Use built-in package templates for the MVP and defer project-local template
+        overrides.
+
+        - Support safe install, install all, list, show, update, doctor, and uninstall
+        flows without active/default/preferred agent state.
+
+        - Define the initial adapter matrix for generic, Codex, Claude, Cursor, Copilot,
+        Gemini, and OpenCode, including shared files and excluded legacy/conflicting
+        targets.
+
+        - Define common method behavior for generated instructions so agents transform
+        readiness gaps into alternatives, recommendations, owner questions, candidate
+        edits, and readiness re-checks.
+
+        - Keep P2P CLI, MCP tools, .p2p state, validation, readiness, and owner decisions
+        aligned over the same core behavior.'
+      fragment_kind: goals
+      truncated: false
+    - id: VME-79606489855bd9fd44eec508
+      source_path: .p2p/proposals/PROP-006-multi-agent-integration-model/proposal.md
+      source_sha256: 314c7dec83d79cfdf633eb832ec12259733863a2c21243760f39f67b413978d1
+      fragment: '- Project-level preferred, default, current, switched, or active
+        agent selection.
+
+        - Direct invocation of AI providers or hosted agent runtimes.
+
+        - Destructive uninstall of files that have been manually modified or are shared
+        with other installed integrations.
+
+        - Automatic edits to user/global agent configuration outside the project without
+        explicit consent.
+
+        - Generation of deprecated .cursorrules files or default opencode.json configuration
+        in the MVP.
+
+        - Full implementation of dedicated readiness refinement commands unless covered
+        by this proposal''s implementation scope or a follow-up readiness proposal.'
+      fragment_kind: non-goals
+      truncated: false
+    - id: VME-574fc17224dd99acf9a6cf7b
+      source_path: .p2p/proposals/PROP-006-multi-agent-integration-model/proposal.md
+      source_sha256: 314c7dec83d79cfdf633eb832ec12259733863a2c21243760f39f67b413978d1
+      fragment: 'Introduce an Agent Integration Registry MVP. By default, p2p init
+        creates the generic baseline and all supported project-local adapter files
+        for generic, codex, claude, cursor, copilot, gemini, and opencode. The owner
+        may request a narrower init set with repeated --agent options, but generic
+        is always included and cannot be removed. P2P records installed integrations
+        in .p2p/agent-integrations.yml using schema_version 1, baseline_profile: generic,
+        adapter status, maturity, capabilities, template_version, generated file records,
+        shared ownership, managed flag, template_id, SHA-256 hash over exact file
+        bytes, and drift state. The registry must not contain active_agent, default_agent,
+        preferred_agent, current_agent, use, or switch state. Built-in adapter templates
+        live in package data under src/p2p_engine/templates/agents/<adapter>/ for
+        the MVP; project-local template overrides are deferred. Generated Markdown
+        files should include a short managed header as a human hint, while the registry
+        remains authoritative. The CLI exposes p2p agent list, show, install, update,
+        doctor, and uninstall; excluded commands are use, switch, current, and install
+        --no-use. doctor validates registry shape, file existence, hashes, shared
+        references, generic baseline, ownership conflicts, uninstall safety, and presence
+        of the generic method behavior block. install all may install every supported
+        project-local integration only when non-shared file targets do not conflict.
+        Migration is conservative: known generated files become managed, unknown or
+        changed files become unmanaged or drifted, and P2P never overwrites them silently.
+        Generated files derive from minimal generic P2P governance content and may
+        be adapted for host tools without weakening the rules. That generic content
+        must include readiness-driven refinement behavior: when a proposal is weak,
+        low-confidence, below target, or blocked by failed gates, the agent must explain
+        each gap, propose concrete alternatives, recommend one when justified, identify
+        owner decisions, draft candidate updates, and re-check readiness after refinement.
+        Initial files are AGENTS.md and .p2p/agent-policy.yml for generic; AGENTS.md
+        plus a shared agent-neutral .agents/skills/p2p-project/SKILL.md for Codex
+        when safe, with .codex/skills preserved as compatibility/migration; CLAUDE.md
+        for Claude; .cursor/rules/p2p.mdc for Cursor; .github/copilot-instructions.md
+        for Copilot; GEMINI.md for Gemini; and AGENTS.md only for OpenCode in the
+        MVP. opencode.json is not generated by default. CLI and MCP tools are implemented
+        over the same core behavior, with MCP exposing structured equivalents for
+        compatible agents. Future readiness refinement commands should live under
+        p2p proposal readiness, but they are not required for accepting this proposal.'
+      fragment_kind: proposal
+      truncated: false
+    - id: VME-b3393fcad5a08ff21454c7aa
+      source_path: .p2p/proposals/PROP-006-multi-agent-integration-model/proposal.md
+      source_sha256: 314c7dec83d79cfdf633eb832ec12259733863a2c21243760f39f67b413978d1
+      fragment: '- Default project init installs generic plus all supported project-local
+        adapters: codex, claude, cursor, copilot, gemini, and opencode.
+
+        - A narrowed init can install only requested specific adapters, but generic
+        is still created and remains unremovable.
+
+        - .p2p/agent-integrations.yml uses schema_version 1 with baseline_profile,
+        adapters, capabilities, template_version, generated file records, shared ownership,
+        managed flag, template_id, SHA-256 hash, and drift state.
+
+        - The registry records installed integrations and generated files without
+        active_agent, default_agent, preferred_agent, current, use, or switch state.
+
+        - Built-in adapter templates live in package data for the MVP; project-local
+        template overrides are deferred.
+
+        - The generic baseline defines the minimum P2P governance rules and all generated
+        agent-specific files preserve those rules.
+
+        - Generated instructions include a readiness gap handling block that requires
+        agents to explain failed gates, propose alternatives, recommend one option
+        when justified, identify owner decisions, draft candidate updates, and re-check
+        readiness.
+
+        - The adapter matrix documents exact generated files for each built-in adapter
+        and excludes deprecated .cursorrules and default opencode.json generation.
+
+        - install all detects non-shared file target conflicts and refuses conflicting
+        adapters instead of overwriting.
+
+        - Generated files are recorded with template version, ownership metadata,
+        shared-file flag, and SHA-256 hash over exact file bytes.
+
+        - Updating an adapter refreshes unchanged generated files and refuses to silently
+        overwrite drifted files.
+
+        - Uninstall removes only the target adapter''s managed, unchanged, non-shared
+        files and preserves generic, shared, modified, and unmanaged files.
+
+        - p2p agent doctor validates registry shape, file existence, hashes, shared
+        references, generic baseline, ownership conflicts, uninstall safety, and method
+        behavior presence.
+
+        - Existing projects migrate conservatively by marking known generated files
+        as managed and unknown or changed files as unmanaged or drifted without overwriting
+        them.
+
+        - The .agents/skills path is used only for agent-neutral P2P skill content
+        or otherwise deferred to avoid Codex/OpenCode interpretation conflicts.
+
+        - CLI and MCP expose equivalent agent integration lifecycle operations through
+        the same core behavior.
+
+        - Existing p2p agent instructions refresh behavior remains backward compatible.'
+      fragment_kind: acceptance_criteria
+      truncated: false
+  - id: VMC-e9fc0570edd3c9a4ca70692e
+    proposal_id: PROP-044
+    title: P2P MCP Server MVP
+    section_id: integrations_dependencies
+    authority: resolved
+    activation: active
+    effective_state: accepted
+    head_event_id: PDE-5ed6ca13b3639bbf10be8419
+    head_event_type: accepted
+    rationale: A local read-only MCP server is the safest first agent-facing interface
+      over the deterministic P2P Core.
+    constraints: []
+    applicability: integrations_dependencies
+    coverage_rationale: Defines the local MCP JSON-RPC interface over P2PWorkspace
+      for compatible agent clients.
+    source_path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/proposal.md
+    proposal_semantic_sha256: 222c73d5b7ac271d1d121df84f6a766e7f20948ab570b43f5500fba9cbe3757f
+    decision_semantic_sha256: ff01db1cd65d6613e860143644900b1c0955c10bd2844a9684fbc0cd9c6209fb
+    lineage:
+      kind: null
+      targets: []
+    evidence:
+    - id: VME-9b2fbda413f210f58998d716
+      source_path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/proposal.md
+      source_sha256: bd42cdcdcda2477c3f4b5ba242d0238dc240b8fbb3be8fbb2ba0cfbbff9f5ab5
+      fragment: Agents should access P2P project state through structured tools instead
+        of parsing CLI text or reading .p2p files directly.
+      fragment_kind: problem
+      truncated: false
+    - id: VME-9724e629de86a04e4c5d9e75
+      source_path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/proposal.md
+      source_sha256: bd42cdcdcda2477c3f4b5ba242d0238dc240b8fbb3be8fbb2ba0cfbbff9f5ab5
+      fragment: '- Add a local stdio MCP server inside this repository.
+
+        - Expose a minimal read-only tool surface over P2PWorkspace.
+
+        - Keep governance and Work mutation commands out of the MCP MVP.
+
+        - Avoid web server, cloud deployment, auth, container, direct AI invocation,
+        and mediator logic.'
+      fragment_kind: goals
+      truncated: false
+    - id: VME-cabf27fd1a8d149af423f1c8
+      source_path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/proposal.md
+      source_sha256: bd42cdcdcda2477c3f4b5ba242d0238dc240b8fbb3be8fbb2ba0cfbbff9f5ab5
+      fragment: '- Implement MCP over HTTP.
+
+        - Expose proposal accept, choice decide, work accept, Git branch, commit,
+        merge, cleanup, or provider actions.
+
+        - Implement P2P Mediator or Web.'
+      fragment_kind: non-goals
+      truncated: false
+    - id: VME-4f16808aa4910fa44c43c902
+      source_path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/proposal.md
+      source_sha256: bd42cdcdcda2477c3f4b5ba242d0238dc240b8fbb3be8fbb2ba0cfbbff9f5ab5
+      fragment: Add src/p2p_engine/mcp with a small JSON-RPC stdio MCP server and
+        a p2p-mcp-server entrypoint. The server exposes read-only tools for project
+        status, next actions, proposal list/show, choice list/show, change status,
+        work status, and registry show. Each tool returns structured JSON derived
+        from P2PWorkspace.
+      fragment_kind: proposal
+      truncated: false
+    - id: VME-f1f117769e61f24e5651f7f8
+      source_path: .p2p/proposals/PROP-044-p2p-mcp-server-mvp/proposal.md
+      source_sha256: bd42cdcdcda2477c3f4b5ba242d0238dc240b8fbb3be8fbb2ba0cfbbff9f5ab5
+      fragment: '- p2p-mcp-server can initialize over stdio and list tools.
+
+        - tools/call works for p2p_project_status, p2p_next, p2p_proposal_list, p2p_proposal_show,
+        p2p_choice_list, p2p_choice_show, p2p_change_status, p2p_work_status, and
+        p2p_registry_show.
+
+        - MCP tools are read-only in the MVP.
+
+        - Tests cover tool listing and representative tool calls without requiring
+        a web server or network.'
+      fragment_kind: acceptance_criteria
+      truncated: false
+  - id: VMC-7b89048f05690863388d6d76
+    proposal_id: PROP-084
+    title: Project-Local Runtime Bootstrap And Upgrade Flow
+    section_id: integrations_dependencies
+    authority: resolved
+    activation: active
+    effective_state: accepted_with_changes
+    head_event_id: PDE-8dcc66c7d70a5b8ca9b18209
+    head_event_type: accepted_with_changes
+    rationale: 'Accepted with changes after owner rescope: PROP-084 is limited to
+      a minimal project runtime contract, project-local P2P-SETUP.md guidance, runtime
+      status, validation, and a contract-aware governed-write gate. Mandatory setup
+      scripts, install/reconcile managers, release resolvers, wheel/digest/source
+      metadata, environment mutation, and automatic fallback are out of scope.'
+    constraints:
+    - "L\u2019autorit\xE0 di PROP-084 \xE8 limitata al contratto runtime minimo, P2P-SETUP.md,\
+      \ runtime status, validation e blocco delle scritture governate incompatibili.\
+      \ Restano esclusi setup obbligatori, install/reconcile manager, release resolver,\
+      \ metadata wheel/digest/source, mutazioni dell\u2019ambiente e fallback automatici."
+    applicability: integrations_dependencies
+    coverage_rationale: Defines the project-local contract between a governed workspace,
+      its expected P2P Engine runtime, and human setup guidance.
+    source_path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/proposal.md
+    proposal_semantic_sha256: a0529b144cc00f72750f69c0bbe89ccebfb20962bac1c9070014a43aab99f756
+    decision_semantic_sha256: e3d9f636f7a53d28d21216e1e75df4c1c441275b1633212c812ffc4c989ee66b
+    lineage:
+      kind: null
+      targets: []
+    evidence:
+    - id: VME-db5bd2205413ebebfde29a7d
+      source_path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/proposal.md
+      source_sha256: 500adb4cf5b627dcb6f8aaa2ddb65e3e5481680350924e28c41e244657f29277
+      fragment: 'A shared P2P-managed project must declare which P2P Engine runtime
+        version is expected after clone, copy, or archive extraction. The problem
+        is runtime version alignment: a human or agent must be able to determine the
+        compatible runtime range and the recommended runtime version from project-local
+        data, without relying on chat history, local machine state, Git history, or
+        a separate P2P Engine source checkout.'
+      fragment_kind: problem
+      truncated: false
+    - id: VME-f0fb08058638fdeb3c110cad
+      source_path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/proposal.md
+      source_sha256: 500adb4cf5b627dcb6f8aaa2ddb65e3e5481680350924e28c41e244657f29277
+      fragment: '- Define .p2p/project/runtime.yml as the authoritative project-local
+        declaration of P2P Engine runtime compatibility.
+
+        - Record a compatible runtime range and one recommended P2P Engine runtime
+        version, without release source descriptors, wheel filenames, or digests.
+
+        - Generate project-local setup guidance, such as P2P-SETUP.md, so a collaborator
+        who cloned or copied a project can find the required runtime information without
+        knowing P2P internals.
+
+        - Provide read-only runtime status diagnostics and validation findings that
+        tell humans and agents whether the installed runtime matches the project contract.
+
+        - Block governed writes only when a project declares or requires a runtime
+        contract and the contract is incompatible, invalid, unsupported, or missing
+        under that declared policy.
+
+        - Keep ownership boundaries clear: PROP-084 owns runtime contract, setup guidance,
+        diagnostics, validation, and write-gate policy; PROP-078 owns installation
+        mechanics; PROP-080 owns release artifact publication and integrity metadata.'
+      fragment_kind: goals
+      truncated: false
+    - id: VME-e74f4802c8b5a646d0b3eea5
+      source_path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/proposal.md
+      source_sha256: 500adb4cf5b627dcb6f8aaa2ddb65e3e5481680350924e28c41e244657f29277
+      fragment: '- Do not make a mandatory bootstrap script central to the proposal.
+
+        - Do not add an install, reconcile, upgrade, downgrade, replacement, source-switch,
+        virtualenv, package-resolution, or download manager in this scope.
+
+        - Do not put release tags, wheel filenames, SHA-256 digests, source descriptors,
+        arbitrary URLs, arbitrary repositories, PyPI resolution, mirrors, source checkout
+        installs, editable installs, or offline wheel behavior in the required runtime
+        contract.
+
+        - Do not block legacy projects solely because they lack runtime.yml; report
+        legacy_undeclared with guidance instead.
+
+        - Do not add broad command blocking across all commands; enforcement is limited
+        to governed writes when a declared or required contract cannot be trusted.
+
+        - Do not make Git required for P2P Core or introduce separate runtime-contract
+        formats for standalone, local Git, and remote Git contexts.'
+      fragment_kind: non-goals
+      truncated: false
+    - id: VME-be92ed1f22dd08ca00cdd4da
+      source_path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/proposal.md
+      source_sha256: 500adb4cf5b627dcb6f8aaa2ddb65e3e5481680350924e28c41e244657f29277
+      fragment: Refocus PROP-084 on a minimal Project Runtime Contract and Runtime
+        Version Alignment. Each P2P-managed project may declare .p2p/project/runtime.yml
+        with a schema version, a compatible P2P Engine range, and a recommended P2P
+        Engine runtime version. The contract tells a collaborator which runtime is
+        expected and gives an installed runtime enough information to verify compatibility.
+        New projects should receive both runtime.yml and a project-local P2P-SETUP.md
+        that renders the same facts for humans and agents. When P2P Engine is available,
+        runtime status reports compatible, incompatible, invalid_contract, unsupported_contract,
+        missing_contract, or legacy_undeclared states with actionable guidance. Projects
+        without any marker requiring runtime.yml are legacy_undeclared and warning-only.
+        Projects that declare or require a runtime contract but are incompatible,
+        invalid, unsupported, or missing the required contract must block governed
+        writes before mutation. The proposal does not require a bootstrap script,
+        does not add an install manager, does not perform runtime mutation, and does
+        not depend on release wheel metadata.
+      fragment_kind: proposal
+      truncated: false
+    - id: VME-6fc5b95027b76d12f8c223bc
+      source_path: .p2p/proposals/PROP-084-project-local-runtime-bootstrap-and-upgrade-flow/proposal.md
+      source_sha256: 500adb4cf5b627dcb6f8aaa2ddb65e3e5481680350924e28c41e244657f29277
+      fragment: '- A P2P project can declare .p2p/project/runtime.yml with schema
+        version, compatible runtime range, and recommended P2P Engine runtime version.
+
+        - New project initialization creates runtime.yml and project-local P2P-SETUP.md
+        using the active runtime version and configured compatibility policy, while
+        preserving existing files during idempotent initialization.
+
+        - Runtime status can report declared requirements, current runtime version,
+        compatibility verdict, and actionable guidance without mutating project state
+        or the runtime environment.
+
+        - Runtime contract validation rejects unsupported schema versions, missing
+        required fields, invalid version strings, and recommended-version/range mismatches.
+
+        - missing_contract and legacy_undeclared are distinct: legacy projects without
+        a marker requiring runtime.yml remain warning-only, while projects that require
+        runtime.yml but lack it report missing_contract.
+
+        - Governed writes are blocked before mutation when a declared or required
+        runtime contract is incompatible, invalid, unsupported, or missing; legacy_undeclared
+        projects are not blocked solely by absence of runtime.yml.
+
+        - Public and project-local documentation explain how a collaborator reads
+        the contract, installs the recommended P2P Engine version through existing
+        installation guidance, and verifies with runtime status.
+
+        - The implementation does not add a mandatory bootstrap script, install manager,
+        reconcile manager, automatic installation, automatic upgrade, automatic downgrade,
+        release resolver, digest verifier, source selector, or automatic offline fallback.
+
+        - PROP-084 records that release wheel publication and digest metadata remain
+        owned by PROP-080, and project-local installation mechanics remain owned by
+        PROP-078, but neither is a blocking dependency for creating the runtime contract.'
+      fragment_kind: acceptance_criteria
+      truncated: false
+  - id: VMC-32074e31a2591a37f561340a
+    proposal_id: PROP-090
+    title: Project Vertical Pack Runtime Hardening And Definition State
+    section_id: integrations_dependencies
+    authority: resolved
+    activation: active
+    effective_state: accepted
+    head_event_id: PDE-677c1d9bff19a26b755298d7
+    head_event_type: accepted
+    rationale: Owner reviewed the refined production hardening proposal, confirmed
+      no further changes are needed, and accepts it as the follow-up to PROP-085 for
+      project vertical pack runtime hardening and definition-state production readiness.
+    constraints: []
+    applicability: integrations_dependencies
+    coverage_rationale: Defines deterministic resolution across explicit, project-local,
+      installed-local, packaged, and future registry vertical sources.
+    source_path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/proposal.md
+    proposal_semantic_sha256: 16730f0964406e5f35ca175b6683b882e471a359d2b0f2fcaf99438426d52456
+    decision_semantic_sha256: 48632dd4c6beebbe284ffd2c8b3106a8c03b022b6e2e74b268a5d8517018007d
+    lineage:
+      kind: null
+      targets: []
+    evidence:
+    - id: VME-432042b763efb79ca58bc262
+      source_path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/proposal.md
+      source_sha256: 46fa39047d64947152c2d94c2d2e57854a603381be87a0263f2b6d6879788e36
+      fragment: 'PROP-085 introduced pluggable project verticals and the first local
+        implementation delivered an MVP: packaged vertical data, project-local override,
+        active vertical state, CLI/MCP operations, readiness review, proposal-to-vertical
+        coverage, and agent guidance. That MVP proves the direction, but it is not
+        yet a production-grade vertical runtime.
+
+
+        The current implementation still relies on a compact single-file vertical
+        model, does not persist an exact resolved vertical lockfile, does not persist
+        durable project definition state, does not expose a complete JSON contract
+        for agent-guided project construction, and does not yet formalize compatibility
+        between selected verticals, generated rubrics, enabled rubric criteria, section
+        completion, assumptions, and agent updates.
+
+
+        Without a stronger contract, verticals may remain useful templates rather
+        than a reliable operating layer for project definition. Agents can inspect
+        available vertical data, but they cannot durably record what the owner has
+        answered, what remains missing, what is assumed, which section is blocked,
+        or which question should be asked next. Pack updates or local overrides may
+        also change behavior unexpectedly if the project does not pin the resolved
+        pack version and checksum.
+
+
+        This proposal completes and hardens PROP-085 by defining the production-grade
+        contracts for project vertical pack shape, source resolution, lockfiles, project
+        definition state, CLI JSON access, agent-guided progressive interview behavior,
+        validation, security, rubric regeneration, and future Wavekit-compatible installation.'
+      fragment_kind: problem
+      truncated: false
+    - id: VME-61872580c197199b86b71508
+      source_path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/proposal.md
+      source_sha256: 46fa39047d64947152c2d94c2d2e57854a603381be87a0263f2b6d6879788e36
+      fragment: '- Define a production-grade multi-file project vertical pack contract
+        while preserving compatibility with existing single-file vertical.yml packs.
+
+        - Persist the exact resolved vertical package in .p2p/project/vertical.lock.yml
+        with version, source, schema, checksum, and compatibility metadata.
+
+        - Introduce .p2p/project/definition.yml as the durable project definition
+        state used by agents to record section data, assumptions, missing fields,
+        open questions, decisions, and next suggested work.
+
+        - Keep p2p project vertical ... as the stable CLI namespace and extend it
+        with JSON-ready project context operations instead of replacing it with a
+        new top-level namespace in the first slice.
+
+        - Integrate selected vertical defaults with .p2p/project/rubrics.yml while
+        preserving PROP-057 enabled/disabled rubric selection semantics.
+
+        - Define deterministic resolver behavior across explicit path/reference, project-local
+        packs, installed local packs, packaged seed packs, future Wavekit packs, and
+        base_project fallback.
+
+        - Define strict post-init lockfile behavior: after a vertical is locked, missing
+        or mismatched packs must not silently fall back to another vertical without
+        explicit repair, migration, or fallback command.
+
+        - Expose enough structured JSON context for a generic agent to guide project
+        definition without hardcoded domain knowledge.
+
+        - Define the generic vertical-aware agent guidance runtime: progressive interview,
+        one primary question per turn, examples, assisted answers, explicit assumptions,
+        section completion checks, and structured state updates.
+
+        - Keep vertical pack content as declarative domain data, never executable
+        code and never higher-priority agent instruction.
+
+        - Prepare local pack formats and lock metadata for future Wavekit remote installation
+        without requiring remote registry support in the first implementation.
+
+        - Define validation, upgrade, migration, orphaned rubric, and orphaned project-definition-field
+        behavior before broad catalog expansion.'
+      fragment_kind: goals
+      truncated: false
+    - id: VME-34bda5b6c0feb6d59e1a879f
+      source_path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/proposal.md
+      source_sha256: 46fa39047d64947152c2d94c2d2e57854a603381be87a0263f2b6d6879788e36
+      fragment: '- Do not replace PROP-085. This proposal hardens and completes the
+        accepted direction.
+
+        - Do not replace p2p project vertical ... with a new required p2p vertical
+        ... namespace in the first production slice.
+
+        - Do not move existing project-local packs out of .p2p/project/verticals/
+        as part of this proposal.
+
+        - Do not rename base_project as a breaking change. Any generic_project naming
+        can be handled as aliasing or a future compatibility decision.
+
+        - Do not implement Wavekit remote search, install, update, or publish in the
+        first implementation.
+
+        - Do not execute code from vertical packs or support executable plugin hooks.
+
+        - Do not allow vertical pack content to override system, developer, safety,
+        governance, repository, or tool-permission instructions.
+
+        - Do not make p2p init ask all vertical interview questions. Init configures
+        the project; agent guidance develops the project later.
+
+        - Do not replace .p2p/project/rubrics.yml or change the meaning of enabled:
+        false from PROP-057.
+
+        - Do not silently upgrade vertical packs or project definition state during
+        assessment, export, readiness review, or ordinary agent interaction.
+
+        - Do not require a domain-specific agent skill for every vertical.'
+      fragment_kind: non-goals
+      truncated: false
+    - id: VME-9d921dd5adae0f89d25dd420
+      source_path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/proposal.md
+      source_sha256: 46fa39047d64947152c2d94c2d2e57854a603381be87a0263f2b6d6879788e36
+      fragment: 'Introduce a production-grade project vertical runtime layer as a
+        follow-up to PROP-085.
+
+
+        This proposal is organized around four production contracts plus explicit
+        scope, alternative, risk, owner-question, acceptance, and overlap analysis.
+        The owner-review questions Q001-Q006 have been resolved and are incorporated
+        in the direction below.
+
+
+        Contract 1: Project Vertical Pack Contract
+
+        A project vertical pack is a declarative data package that describes a project
+        skeleton for a class of projects. The canonical production pack is multi-file
+        for maintainability:
+
+        - manifest.yml
+
+        - vertical.yml
+
+        - sections/
+
+        - profiles/
+
+        - modules/
+
+        - rubrics.yml
+
+        - artifacts/
+
+        - examples/
+
+
+        Minimum valid production pack:
+
+        - manifest.yml
+
+        - vertical.yml
+
+        - sections/
+
+        - rubrics.yml
+
+
+        The loader must continue accepting the current MVP single-file vertical.yml
+        shape as a compatibility input and normalize it into the same typed model.
+        The canonical pack can split section specs, rubrics, artifact metadata, examples,
+        and profiles into separate files. A section spec should define purpose, required
+        fields, interview questions, assisted answer behavior, examples or answer
+        templates, completion criteria, dependencies, common mistakes, suggested artifacts,
+        and maturity gates where available.
+
+
+        manifest.yml should contain stable identity and package metadata: id, name,
+        version, publisher/source, schema_version, description, categories/tags, compatibility
+        p2p_min_version, entrypoints, declared profiles, declared sections, artifact
+        ids, license/trust metadata, and optional checksum/signature fields for future
+        remote packs.
+
+
+        vertical.yml should define the project skeleton: id, name, version, goal,
+        extends/base, default_profile, maturity levels, section list with stable ids
+        and spec paths, interview policy, completion policy, enabled status defaults,
+        and supported statuses.
+
+
+        profiles allow one vertical to support different project intentions without
+        separate vertical ids. modules are optional vertical-local extensions. rubrics.yml
+        provides default criteria for .p2p/project/rubrics.yml. Artifact templates
+        are optional and partial artifact generation must mark missing or assumed
+        content.
+
+
+        Contract 2: Project Configuration And Resolution Contract
+
+        The selected project vertical remains project state. Keep .p2p/project/vertical.yml,
+        but evolve its schema from a minimal active-id record into richer selected-vertical
+        configuration while remaining backward-compatible with MVP files.
+
+
+        Keep the project-local pack path .p2p/project/verticals/<vertical-id>/ for
+        compatibility. Installed local packs are resolved from both P2P_HOME/verticals
+        and ~/.p2p/verticals. If P2P_HOME is configured, P2P_HOME/verticals has precedence
+        over ~/.p2p/verticals; otherwise ~/.p2p/verticals is the default installed-local
+        directory. If both installed-local locations contain the same pack id/version,
+        the P2P_HOME source wins. Packaged seed resources remain inside package resources.
+        Future Wavekit packs should be installed into an installed-local source and
+        resolved by the same resolver.
+
+
+        Resolution order is deterministic:
+
+        - explicit path or vertical reference passed by the owner;
+
+        - project-local packs under .p2p/project/verticals/;
+
+        - installed local packs under P2P_HOME/verticals, when configured;
+
+        - installed local packs under ~/.p2p/verticals;
+
+        - packaged seed vertical resources;
+
+        - future configured Wavekit/registry source;
+
+        - base_project fallback only during initial selection or explicitly allowed
+        repair.
+
+
+        base_project remains the canonical fallback vertical for this implementation.
+        Do not introduce generic_project in the first implementation. generic_project
+        was terminology from the revision source and may be reconsidered later as
+        a non-breaking alias only if there is a clear usability need after resolver,
+        lockfile, and pack identity rules are stable.
+
+
+        After initialization or explicit project vertical selection, resolve through
+        .p2p/project/vertical.lock.yml. The lockfile records id, name, version, source,
+        resolved_'
+      fragment_kind: proposal
+      truncated: true
+    - id: VME-b3e1b98414046f665648aa02
+      source_path: .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/proposal.md
+      source_sha256: 46fa39047d64947152c2d94c2d2e57854a603381be87a0263f2b6d6879788e36
+      fragment: '- A new local development feature can be derived from PROP-090 without
+        changing the accepted meaning of PROP-085.
+
+        - The existing p2p project vertical command namespace remains the primary
+        public CLI surface for this hardening work; a top-level p2p vertical namespace
+        is not required in the first implementation.
+
+        - Existing single-file vertical.yml packs remain loadable and are normalized
+        into the same typed model as canonical multi-file packs.
+
+        - A canonical multi-file pack shape is defined and validated, including manifest.yml,
+        vertical.yml, sections, rubrics.yml, and optional profiles, modules, artifacts,
+        and examples.
+
+        - The project-local vertical path .p2p/project/verticals/ remains supported
+        and documented.
+
+        - base_project remains the canonical fallback vertical id; generic_project
+        is not introduced in the first implementation.
+
+        - Installed local packs are resolved from both P2P_HOME/verticals and ~/.p2p/verticals,
+        with P2P_HOME/verticals taking precedence when P2P_HOME is configured.
+
+        - The resolver and vertical.lock.yml record the effective source type and
+        resolved source path or package coordinate.
+
+        - .p2p/project/vertical.lock.yml is generated deterministically for new init/select
+        flows.
+
+        - Existing projects with active vertical state but no lockfile are not modified
+        implicitly by validation, readiness, export, or ordinary reads.
+
+        - Existing active vertical state without a lockfile produces an actionable
+        validation diagnostic and a dedicated explicit repair/migration command can
+        generate the lockfile.
+
+        - If the active or locked vertical cannot be resolved, repair/select/review
+        commands fail without writing and do not silently fall back to base_project
+        after lock creation.
+
+        - .p2p/project/definition.yml is generated deterministically and validated
+        against the active vertical.
+
+        - Project definition state records section status, field data, missing fields,
+        assumptions, open questions, blockers, next_suggested_action when available,
+        and history/provenance.
+
+        - Definition-state writes are implemented in the first production slice through
+        a narrow structured patch/update contract; arbitrary YAML editing is not exposed.
+
+        - Definition-state update validation rejects unknown section ids, field ids,
+        invalid statuses, invalid assumption statuses, and inconsistent completion
+        states.
+
+        - Definition-state writes are atomic and go through supported service/CLI/MCP
+        paths, not manual .p2p edits.
+
+        - The first production slice exposes project context, sections, section detail,
+        rubrics, and definition state through JSON-ready CLI or MCP surfaces.
+
+        - The full p2p project next-action --json engine is not implemented in the
+        first slice; agents use exposed JSON and optional next_suggested_action for
+        best-effort guidance.
+
+        - p2p init remains lightweight and does not ask full section interview questions.
+
+        - Interactive init can select vertical, profile, optional sections/modules,
+        generate rubrics from vertical defaults, and then invoke PROP-057 guided rubric
+        selection.
+
+        - Rubric regeneration preserves existing enabled flags by stable criterion
+        id and handles removed criteria as orphaned or confirmation-required removals.
+
+        - Maturity output distinguishes selected project rubric maturity from full
+        default vertical baseline coverage.
+
+        - Vertical pack content is validated with severity-dependent rules: explicit
+        attempts to override higher-priority instructions, execute code, force tools,
+        change permissions, or escape paths are hard errors; ambiguous instruction-like
+        wording in examples/templates can be warnings.
+
+        - Internal seed packs validate cleanly; project-local packs may be allowed
+        with warnings; future remote/Wavekit packs can use stricter trust validation.
+
+        - Generated agent guidance treats vertical pack content as domain data, not
+        authoritative agent instruction.
+
+        - Tests cover loader normalization, resolver precedence, lockfile behavior,
+        explicit lock repair/migration, definition-state validation and updates, pack
+        safety validation, rubric regeneration preservation,'
+      fragment_kind: acceptance_criteria
+      truncated: true
+  - id: VMC-be41c271fcefc212ac38e2ca
+    proposal_id: PROP-094
+    title: P2P-Governed Software Specification Lifecycle
+    section_id: integrations_dependencies
+    authority: resolved
+    activation: active
+    effective_state: accepted
+    head_event_id: PDE-b948a4d0fffef8cca8d60c06
+    head_event_type: accepted
+    rationale: Owner accepted after review; readiness is decision_ready with no missing
+      gates or blocking questions.
+    constraints: []
+    applicability: integrations_dependencies
+    coverage_rationale: Defines the boundary between canonical P2P software specifications
+      and validated downstream targets such as Spec Kit.
+    source_path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/proposal.md
+    proposal_semantic_sha256: e2c4fd7e1f9f6d8efd9cd5ae8333c14c2972cc604d31e9fa72404f79343e6b73
+    decision_semantic_sha256: 79da00bcc5c503fc5cd4227084bc9b9aafd1428627284cbd7ee91ed027d7eaa5
+    lineage:
+      kind: null
+      targets: []
+    evidence:
+    - id: VME-2cb54e5ebdc1161ce91a6a03
+      source_path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/proposal.md
+      source_sha256: b941019a2bc0c682a31c8d03ff53f289f878bf6e19ac043f1cd26d6d259627e6
+      fragment: 'In software projects, an owner may legitimately ask an agent to produce
+        system specifications before the project is fully defined. If the agent responds
+        by creating a standalone spec file immediately, that file can become the effective
+        source of truth while the P2P project definition remains incomplete or bypassed.
+
+
+        This is a methodological failure, not a file-placement issue alone. The problem
+        is not that specs are unnecessary or always premature. The problem is that
+        the software vertical should guide the definition of the parts that make a
+        useful specification, and those parts should be captured through P2P proposals,
+        decisions, choices, readiness, and Change Sets before a durable spec file
+        is treated as authoritative.
+
+
+        Without that lifecycle, the owner receives a useful-looking document, but
+        future agents, readiness checks, Change Sets, exports, and project status
+        may not be able to explain which governed decisions the spec reflects, which
+        assumptions remain unresolved, or whether the file is only an exploratory
+        draft.'
+      fragment_kind: problem
+      truncated: false
+    - id: VME-9393a021a0bcda9c593f1498
+      source_path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/proposal.md
+      source_sha256: b941019a2bc0c682a31c8d03ff53f289f878bf6e19ac043f1cd26d6d259627e6
+      fragment: '- Treat the need for specs as a first-class part of the software
+        vertical.
+
+        - Make specification content emerge from P2P-governed project definition,
+        one or more proposals, decisions, and Change Sets.
+
+        - Teach generated agent instructions to route "make specs" requests through
+        the software vertical and P2P state instead of creating an independent durable
+        file by default.
+
+        - Clarify when a spec request should produce chat discussion, project-definition
+        questions, proposal work, choices, a Change Set, a P2P-native spec, a generated
+        export, or stable documentation.
+
+        - Allow early exploratory spec outlines, but prevent them from becoming primary
+        project memory unless they are captured or exported through P2P.
+
+        - Keep user intent respected: if the owner explicitly requests a concrete
+        file outside the P2P flow, the agent may create it after previewing the write
+        and explaining its relationship to P2P state.
+
+        - Reuse existing P2P primitives instead of inventing a parallel specification
+        workflow.'
+      fragment_kind: goals
+      truncated: false
+    - id: VME-3184616defad3869d5509e39
+      source_path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/proposal.md
+      source_sha256: b941019a2bc0c682a31c8d03ff53f289f878bf6e19ac043f1cd26d6d259627e6
+      fragment: '- Do not prohibit users from explicitly requesting a concrete spec
+        file.
+
+        - Do not replace existing P2P proposal, Change Set, spec refresh, or export
+        primitives.
+
+        - Do not implement external artifact registration unless explicitly accepted
+        in a separate proposal.
+
+        - Do not require all non-software projects to follow a software-spec lifecycle.
+
+        - Do not require agents to complete every possible project-definition question
+        before drafting any useful provisional outline.
+
+        - Do not make generated specs authoritative when they contain unresolved questions,
+        inferred details, or unaccepted alternatives.'
+      fragment_kind: non-goals
+      truncated: false
+    - id: VME-4db9c418f207a9419b562382
+      source_path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/proposal.md
+      source_sha256: b941019a2bc0c682a31c8d03ff53f289f878bf6e19ac043f1cd26d6d259627e6
+      fragment: 'Define a software-specific specification lifecycle policy and supporting
+        guidance.
+
+
+        ### Core rule
+
+
+        In software projects, a request for "specs" should normally activate the software
+        vertical and P2P proposal flow. The final spec file is a downstream artifact.
+        It is not the primary project definition and should not be created as independent
+        durable memory by default.
+
+
+        The software vertical should make specification readiness visible by tracking
+        the parts that a useful spec needs, including:
+
+
+        - product or system objective;
+
+        - intended users and actors;
+
+        - scope and MVP boundaries;
+
+        - core use cases and workflows;
+
+        - domain concepts and data model;
+
+        - integrations and external dependencies;
+
+        - constraints, non-functional requirements, and operating assumptions;
+
+        - acceptance criteria and validation strategy;
+
+        - unresolved risks, alternatives, and owner decisions.
+
+
+        These parts may be defined through one proposal or through multiple proposals.
+        For example, one proposal may define the MVP boundary, another may define
+        the data model, another may settle an integration strategy, and another may
+        define agent/MCP behavior. A software spec should be able to derive from that
+        set of accepted or explicitly provisional P2P artifacts.
+
+
+        ### Lifecycle
+
+
+        When the owner asks for specs, the agent should classify the request and route
+        it:
+
+
+        | Owner request | Agent routing | Persistent artifact |
+
+        | --- | --- | --- |
+
+        | "Let''s think through the specs" | Discuss in chat and identify missing
+        vertical fields | None, unless owner asks to persist |
+
+        | "Help me define the system" | Capture project-definition gaps and create/update
+        proposals | P2P proposal/exploration/question artifacts |
+
+        | "Compare possible architectures" | Create alternatives, choices, or competing
+        proposals | P2P proposal/choice artifacts |
+
+        | "Prepare implementation specs" | Identify accepted direction and create/update
+        a Change Set | Change Set, then P2P-native spec |
+
+        | "Export specs for a tool" | Generate/export from P2P-native spec | Generated
+        export |
+
+        | "Create this exact file" | Preview write and explain governance status |
+        Stable documentation or explicit external file |
+
+
+        For exploratory or requirements-level work, readiness is advisory. The agent
+        may draft a provisional outline in chat or P2P exploration material while
+        clearly marking unresolved decisions.
+
+
+        For implementation-oriented specs or downstream exports, readiness should
+        be stricter: there should be a sufficiently accepted direction, resolved blocking
+        choices, and a relevant Change Set before generating a P2P-native spec or
+        export bundle. If that state is missing, the agent should guide the owner
+        to define or accept the missing proposals first.
+
+
+        ### Agent behavior
+
+
+        Generated agent instructions should include a concrete routing rule:
+
+
+        - If the owner asks for "specs" but the software vertical is incomplete, use
+        the vertical to identify missing spec ingredients and ask focused questions
+        or create/update P2P proposals.
+
+        - If the required spec content spans multiple concerns, split it into multiple
+        proposals or choices instead of forcing everything into one monolithic file.
+
+        - If the owner asks for implementation specs, identify the accepted proposal
+        set and relevant Change Set before generating a P2P-native software spec.
+
+        - If the owner asks for a file export, explain whether the file is a generated
+        export, stable documentation, or temporary scratch.
+
+        - If the owner explicitly asks to operate outside P2P, respect that boundary
+        while making clear that the resulting file will not be P2P-governed unless
+        later registered or imported.
+
+
+        Persistent writes must follow PROP-093: preview the operation, target, artifact
+        kind, write class, and reason unless the owner explicitly requested the exact
+        artifact.'
+      fragment_kind: proposal
+      truncated: false
+    - id: VME-62dc6b26e00f744f29b49075
+      source_path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/proposal.md
+      source_sha256: b941019a2bc0c682a31c8d03ff53f289f878bf6e19ac043f1cd26d6d259627e6
+      fragment: '- WHEN a project is initialized or refreshed with the software domain,
+        THE SYSTEM SHALL generate agent guidance that treats specs as a downstream
+        capability of the software vertical, not as an immediate standalone file-writing
+        shortcut.
+
+        - WHEN an owner asks an agent for specs in a software project, THE GENERATED
+        GUIDANCE SHALL instruct the agent to classify the request as exploration,
+        project definition, proposal/choice work, Change Set preparation, P2P-native
+        spec generation, export, or explicit stable documentation.
+
+        - WHEN the software vertical is incomplete and the owner asks for specs, THE
+        GENERATED GUIDANCE SHALL instruct the agent to identify missing spec ingredients
+        and route them into P2P project-definition questions, proposal updates, new
+        proposals, or choices before creating durable implementation spec files.
+
+        - WHEN spec content spans multiple concerns, THE GENERATED GUIDANCE SHALL
+        allow and recommend multiple P2P proposals or choices rather than forcing
+        all specification content into one monolithic document.
+
+        - WHEN the owner asks for exploratory or requirements-level spec thinking,
+        THE GENERATED GUIDANCE SHALL allow chat or P2P exploration/proposal material
+        without requiring full readiness, while requiring unresolved assumptions and
+        decisions to be marked clearly.
+
+        - WHEN the owner asks for implementation-oriented specs or downstream exports,
+        THE GENERATED GUIDANCE SHALL require a sufficiently accepted direction, resolved
+        blocking choices, and a relevant Change Set before generating P2P-native specs
+        or export bundles.
+
+        - WHEN the owner explicitly asks for a concrete external spec file, THE GENERATED
+        GUIDANCE SHALL allow the write only with PROP-093 action preview and with
+        a clear statement whether the file is stable documentation, generated export,
+        temporary scratch, or outside P2P governance.
+
+        - Documentation SHALL explain the software-project flow from vertical definition
+        to one or more proposals, choices, accepted direction, Change Set, P2P-native
+        spec, and downstream export.
+
+        - Tests SHALL verify generated guidance and documentation for spec requests,
+        including the routing table, multi-proposal source model, readiness split,
+        and the rule that standalone spec files are not primary untracked project
+        memory.
+
+        - The first implementation slice SHALL reuse existing proposal, readiness,
+        choice, change, spec, and spec export primitives unless a later accepted proposal
+        adds external artifact registration or new spec lifecycle commands.'
+      fragment_kind: acceptance_criteria
+      truncated: false
+  - id: VMC-95b685c4832420b9978fb4c3
+    proposal_id: PROP-095
+    title: Project Runtime Contract Update Lifecycle
+    section_id: integrations_dependencies
+    authority: resolved
+    activation: active
+    effective_state: accepted
+    head_event_id: PDE-72b6ee4f2bee15dc3c351628
+    head_event_type: accepted
+    rationale: Owner accepts the runtime contract update lifecycle after readiness
+      reached decision_ready with all Q001-Q016 decisions applied and no missing evidence.
+    constraints: []
+    applicability: integrations_dependencies
+    coverage_rationale: Defines coordinated behavior between the runtime contract,
+      managed setup guide, active runtime, permission authority, and optional release
+      metadata.
+    source_path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/proposal.md
+    proposal_semantic_sha256: 17928b2e221350991f55e4b127a473627a45dc9da3b0f406dd09b3d762b98186
+    decision_semantic_sha256: d17f5f4ade0dd04f0fd3e15570e68332029d78029fbc6958a251dbc651f889fa
+    lineage:
+      kind: null
+      targets: []
+    evidence:
+    - id: VME-9f420787b6b3fe00db392821
+      source_path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/proposal.md
+      source_sha256: 7b9ba4c9cadd61561bfea91843818cde0e44bf6ac99b77c2ea1ec8debd1f6fc5
+      fragment: 'PROP-084 allows a P2P-managed project to declare the P2P Engine runtime
+        range it trusts, recommend a runtime version to collaborators, expose compatibility
+        diagnostics, and block governed writes when the declared runtime contract
+        cannot be trusted.
+
+
+        The project still lacks an explicit lifecycle for changing that contract after
+        initialization.
+
+
+        An owner may intentionally move a project to another P2P Engine version or
+        runtime line. Editing `.p2p/project/runtime.yml` manually is unsafe because
+        it bypasses validation, can leave generated setup guidance stale, provides
+        no deterministic preview of collaborator impact, and does not define how the
+        PROP-084 governed-write gate may be crossed when the active runtime is outside
+        the old compatible range.
+
+
+        The project-level decision to change the required runtime must remain distinct
+        from installing, upgrading, downgrading, or reconciling the runtime installed
+        on a collaborator''s machine.'
+      fragment_kind: problem
+      truncated: false
+    - id: VME-4fb25428255fdc76d8904c04
+      source_path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/proposal.md
+      source_sha256: 7b9ba4c9cadd61561bfea91843818cde0e44bf6ac99b77c2ea1ec8debd1f6fc5
+      fragment: '- Give the owner an explicit, preview-first operation for changing
+        the project runtime contract.
+
+        - Expose separate read-only and mutating command surfaces.
+
+        - Update `.p2p/project/runtime.yml` and managed `P2P-SETUP.md` as one coordinated
+        policy change.
+
+        - Classify upgrade, downgrade, range widening, range tightening, runtime-line
+        change, recommended-only change, no-op, and active-runtime exclusion.
+
+        - Preserve PROP-084 write-gate safety while allowing a narrow runtime-contract
+        update exception for valid incompatible old contracts.
+
+        - Allow agents and non-owner collaborators to produce read-only previews for
+        owner review.
+
+        - Require owner authority, explicit confirmation, stale-preview protection,
+        and structured reasons where the impact is material.
+
+        - Provide deterministic human-readable and JSON output for humans, agents,
+        CI, and scripts.
+
+        - Keep runtime installation, upgrade, downgrade, package resolution, remote
+        lookup, and release availability enforcement out of scope.'
+      fragment_kind: goals
+      truncated: false
+    - id: VME-063c6c0a732774a2e120d847
+      source_path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/proposal.md
+      source_sha256: 7b9ba4c9cadd61561bfea91843818cde0e44bf6ac99b77c2ea1ec8debd1f6fc5
+      fragment: '- Do not install, upgrade, downgrade, select, or reconcile a local
+        P2P Engine runtime.
+
+        - Do not query GitHub, download release metadata, resolve wheels, or verify
+        installability through the network.
+
+        - Do not make release metadata from PROP-080 a blocking dependency for runtime
+        contract updates.
+
+        - Do not overwrite, adopt, merge, rename, back up, or replace unmanaged `P2P-SETUP.md`
+        files.
+
+        - Do not implement contract repair, schema migration, contract recovery, or
+        legacy adoption workflows.
+
+        - Do not add MCP mutation in the first implementation.
+
+        - Do not create Git commits, branches, pushes, pull requests, merges, or provider
+        handoffs.
+
+        - Do not perform unrelated governed mutations after a new contract makes the
+        active runtime incompatible.'
+      fragment_kind: non-goals
+      truncated: false
+    - id: VME-ad9a8ceea8e0bf509ec82585
+      source_path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/proposal.md
+      source_sha256: 7b9ba4c9cadd61561bfea91843818cde0e44bf6ac99b77c2ea1ec8debd1f6fc5
+      fragment: 'Define an explicit runtime contract update lifecycle with two CLI
+        subcommands:
+
+
+        ```text
+
+        p2p runtime contract preview
+
+        p2p runtime contract apply
+
+        ```
+
+
+        `preview` is strictly read-only. It validates the proposed contract, evaluates
+        current contract state, evaluates authority for diagnostic purposes, classifies
+        impact when the current state can be trusted, reports planned file changes,
+        reports release availability diagnostics, and returns a deterministic `expected_state_token`
+        only when an applicable update can later be applied.
+
+
+        `apply` is the only mutating command. It requires the same proposed `requires`
+        and `recommended` values used during preview, the same structured reason and
+        optional linked decision, a valid `expected_state_token`, current owner or
+        permission authority, and explicit `--confirm`.
+
+
+        The first implementation shall not provide a single-command mode that previews
+        and applies in one invocation. A future interactive convenience wrapper may
+        be added only if it delegates to the same preview and apply services and preserves
+        the same security semantics.
+
+
+        ### Runtime Contract Values
+
+
+        The update operation supports changes to:
+
+
+        - `requires`, the compatible runtime range that may operate the project
+
+        - `recommended`, the runtime version recommended for setup guidance
+
+
+        Every proposed contract must satisfy:
+
+
+        ```text
+
+        recommended in requires
+
+        ```
+
+
+        The owner may update `recommended` without changing `requires`, provided the
+        proposed recommended version still satisfies the unchanged compatible range.
+
+
+        If `requires` and `recommended` are both unchanged, the operation returns
+        `no_change`, produces no applicable token, requires no apply operation, consumes
+        no consent, and modifies no file.
+
+
+        ### Supported Range Grammar
+
+
+        The first implementation of the update lifecycle supports this restricted
+        grammar:
+
+
+        ```text
+
+        ==VERSION
+
+        >=LOWER,<UPPER
+
+        ```
+
+
+        Versions and ranges use the PEP 440-compatible semantics selected for the
+        runtime contract.
+
+
+        Arbitrary compound expressions, exclusions, wildcards, environment markers,
+        and package-resolution expressions are outside the first implementation of
+        this update lifecycle. This restriction keeps impact classification deterministic.
+        It does not globally constrain all future runtime-contract parsing or schema
+        evolution.
+
+
+        ### Impact Classification
+
+
+        The stable initial labels are:
+
+
+        - `recommended_only`
+
+        - `range_widening`
+
+        - `range_tightening`
+
+        - `runtime_line_change`
+
+        - `current_runtime_excluded`
+
+
+        Multiple labels may apply.
+
+
+        `recommended_only` applies only when the compatible range is unchanged and
+        only the recommended version changes.
+
+
+        Range changes are classified by the set of accepted versions, not by textual
+        string differences:
+
+
+        - add `range_widening` when the proposed range accepts at least one version
+        not accepted by the current range
+
+        - add `range_tightening` when the current range accepts at least one version
+        not accepted by the proposed range
+
+
+        Partially overlapping ranges and disjoint ranges therefore receive both `range_widening`
+        and `range_tightening`. Preview output should separately report whether the
+        ranges overlap. No stable `range_shift` label is required in the first implementation.
+
+
+        `runtime_line_change` is based on the normalized `major.minor` line of the
+        recommended version.
+
+
+        `current_runtime_excluded` means the runtime executing the command will be
+        incompatible after the proposed update. It is independent from range labels
+        and may combine with `recommended_only`, `runtime_line_change`, `range_widening`,
+        or `range_tightening`.
+
+
+        Comparative labels require a valid and supported current contract. They are
+        omitted when the current contract state is untrusted.
+
+
+        ### Current State Behavior
+
+
+        The lifecycle distinguishes current runtime contract states:
+
+
+        | Current state | Preview behavior | Token | Apply |
+
+        | --- | --- | --- | --- |
+
+        | `compatible` | applicable preview | yes, unless no-op or structural blocker
+        | allowed with authority, token, confirm |
+
+        | `incompatible` caused only by active runtime outside '
+      fragment_kind: proposal
+      truncated: true
+    - id: VME-50e65bcd2aa205d0c5ad206a
+      source_path: .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/proposal.md
+      source_sha256: 7b9ba4c9cadd61561bfea91843818cde0e44bf6ac99b77c2ea1ec8debd1f6fc5
+      fragment: '### Command Surface
+
+
+        - WHEN a user runs `p2p runtime contract preview`, THE SYSTEM SHALL perform
+        a read-only preview and SHALL NOT modify project, governance, audit, consent,
+        token, or environment state.
+
+        - WHEN a user runs `p2p runtime contract apply`, THE SYSTEM SHALL treat it
+        as the only mutating runtime contract update command.
+
+        - THE FIRST IMPLEMENTATION SHALL NOT provide a single-command preview-and-apply
+        mode.
+
+        - WHEN preview output is requested as JSON, THE SYSTEM SHALL include the stable
+        machine-readable fields required by agents.
+
+        - WHEN apply output is requested as JSON, THE SYSTEM SHALL include status,
+        files changed, final compatibility, release availability, audit mode, and
+        blocker fields when applicable.
+
+
+        ### Proposed Contract Validation
+
+
+        - WHEN proposed `requires` is outside the supported grammar, THE SYSTEM SHALL
+        fail closed without producing an applicable token.
+
+        - WHEN proposed `recommended` does not satisfy proposed `requires`, THE SYSTEM
+        SHALL fail closed without producing an applicable token.
+
+        - WHEN proposed `requires` and `recommended` are unchanged, THE SYSTEM SHALL
+        return `no_change`, no applicable token, no apply operation, no reason requirement,
+        no consent consumption, and no file changes.
+
+        - WHEN only `recommended` changes and it satisfies unchanged `requires`, THE
+        SYSTEM SHALL classify the update as `recommended_only` unless other independent
+        labels also apply.
+
+
+        ### Impact Classification
+
+
+        - WHEN proposed range accepts versions not accepted by the current range,
+        THE SYSTEM SHALL add `range_widening`.
+
+        - WHEN current range accepts versions not accepted by the proposed range,
+        THE SYSTEM SHALL add `range_tightening`.
+
+        - WHEN ranges partially overlap but neither is a subset of the other, THE
+        SYSTEM SHALL add both `range_widening` and `range_tightening`.
+
+        - WHEN ranges are disjoint, THE SYSTEM SHALL add both `range_widening` and
+        `range_tightening` and report that ranges do not overlap.
+
+        - WHEN the normalized recommended `major.minor` line changes, THE SYSTEM SHALL
+        add `runtime_line_change`.
+
+        - WHEN the active runtime does not satisfy the proposed range during an applicable
+        transition, THE SYSTEM SHALL add `current_runtime_excluded`.
+
+        - WHEN `range_tightening`, `runtime_line_change`, or `current_runtime_excluded`
+        is present, THE SYSTEM SHALL require a structured reason for apply.
+
+
+        ### Current State Handling
+
+
+        - WHEN current runtime status is `compatible`, THE SYSTEM SHALL allow applicable
+        preview and apply subject to validation, structural blockers, token, authority,
+        reason, and confirmation.
+
+        - WHEN current runtime status is `incompatible` only because the active runtime
+        is outside a valid, supported old range, THE SYSTEM SHALL allow the limited
+        update exception subject to the same checks.
+
+        - WHEN current runtime status is `invalid_contract`, `unsupported_contract`,
+        `missing_contract`, or `legacy_undeclared`, THE SYSTEM SHALL return diagnostic-only
+        preview, no applicable token, no apply plan, and blocked apply.
+
+        - WHEN current state is untrusted, THE SYSTEM MAY validate proposed values
+        and MAY report whether the active runtime would satisfy the proposed range
+        as hypothetical diagnostics, but SHALL NOT emit transition impact labels.
+
+
+        ### Authority And Governance
+
+
+        - WHEN preview is run by a non-owner or unresolved actor, THE SYSTEM SHALL
+        still produce read-only diagnostics and report whether apply appears blocked
+        for authority reasons.
+
+        - WHEN apply is run, THE SYSTEM SHALL perform a fresh binding authority check
+        and SHALL NOT rely on preview''s authority assessment.
+
+        - WHEN apply lacks owner or permission authority, THE SYSTEM SHALL fail without
+        modifying files.
+
+        - WHEN apply lacks explicit `--confirm`, THE SYSTEM SHALL fail without modifying
+        files.
+
+        - WHEN a linked decision is omitted, THE SYSTEM SHALL NOT block solely for
+        that reason.
+
+        - WHEN a linked decision is provided, THE SYSTEM SHALL bind it into the expected-state
+        token and report it in output.
+
+
+        ### Expected-State Token
+
+
+        - WHEN preview is applicable, THE SYSTEM SHALL r'
+      fragment_kind: acceptance_criteria
+      truncated: true
+  - id: VMC-bac1b6552cf098b3c491f8cb
+    proposal_id: PROP-100
+    title: Project Decision Context Index and Proposal Neighborhood
+    section_id: integrations_dependencies
+    authority: resolved
+    activation: active
+    effective_state: accepted
+    head_event_id: PDE-dca2e0af8d9225336efbbf35
+    head_event_type: accepted
+    rationale: Accepted as the umbrella architecture direction for a derived, read-only
+      and source-linked decision context index delivered through independently gated
+      slices. Governed artifacts remain authoritative; public integration requires
+      the defined performance and compatibility gates, and any persistent cache remains
+      a separate measured feature.
+    constraints: []
+    applicability: integrations_dependencies
+    coverage_rationale: Defines semantic parity and shared core behavior across context,
+      intake, CLI, MCP, next-action, registry, and publication consumers.
+    source_path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/proposal.md
+    proposal_semantic_sha256: b8220a8d282b5a1d00db38264c2544c852cf938ae98f99524fa1739c7d8125c0
+    decision_semantic_sha256: a6030e7b98871a0da42af9f9cca9533e260adf0eefe951c28c7db33944c71a8a
+    lineage:
+      kind: null
+      targets: []
+    evidence:
+    - id: VME-6090667593464748c2106a3b
+      source_path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/proposal.md
+      source_sha256: 557c708739e4d5aea998c336ac00f98fe67744baa73811131b68d3af53bc823e
+      fragment: 'P2P conserva gia molte informazioni necessarie a ricostruire il ragionamento
+        del progetto: decisioni e motivazioni nei Markdown, stati e readiness negli
+        YAML, impact map, related proposals, conflict analysis, choice, Change Set,
+        registri, artifact state, vertical coverage, decision precedents e artifact
+        di pubblicazione. Il problema osservato non e prima di tutto il formato di
+        persistenza. Il problema e che i servizi che generano registri, contesti e
+        prompt ne usano solo una parte, perdendo motivazioni, vincoli, relazioni,
+        autorita, provenienza e stato di attivazione.
+
+
+        La revisione della codebase e della feature implementativa ha chiarito ulteriori
+        cause:
+
+
+        - `decisions-map.yml` e `relations.yml` sono projection lossy e non possono
+        essere usati come memoria semantica autorevole;
+
+        - intake e context rendering usano ancora selezioni first-N o letture globali
+        non ordinate per rilevanza;
+
+        - alcuni path ricostruiscono Change Set o summary ripetutamente e possono
+        moltiplicare scansioni e tempi di risposta;
+
+        - il parser Markdown corrente e stretto e non preserva span, sezioni duplicate
+        o diagnostica affidabile per frontmatter malformato;
+
+        - `P2PWorkspace` memoizza i service object, quindi un indice conservato nel
+        service potrebbe diventare stale dopo una scrittura nella stessa sessione;
+
+        - proposal status e decision outcome possono divergere e il lifecycle include
+        stati come `accepted_with_changes`, `split`, `merged_into_other` e `superseded`
+        che non possono essere ridotti a accepted/rejected;
+
+        - decision precedents, project definition, governance constraints e Work execution
+        state devono avere scope e authority espliciti;
+
+        - Change Set frontmatter e file di relazione companion possono duplicare o
+        contraddirsi;
+
+        - similarity, topologia e authority sono dimensioni differenti e non devono
+        essere fuse in uno score opaco;
+
+        - `generated_at` non puo far cambiare l''identita semantica di un output deterministico;
+
+        - CLI e MCP possono divergere se payload, serializer e target compatibility
+        non vengono aggiornati nella stessa slice.
+
+
+        L''effetto pratico resta invariato: P2P possiede memoria, ma non recupera
+        in modo affidabile cio che e gia stato deciso o analizzato quando deve supportare
+        una nuova proposta, un intake, una sintesi o il prossimo passo.'
+      fragment_kind: problem
+      truncated: false
+    - id: VME-05e43da4ac2c2c1ef5814c79
+      source_path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/proposal.md
+      source_sha256: 557c708739e4d5aea998c336ac00f98fe67744baa73811131b68d3af53bc823e
+      fragment: '- Approvare un decision context index derivato, non canonico, rebuildable,
+        read-only e spiegabile.
+
+        - Introdurre un Source Catalog versionato che classifichi fonti semantiche,
+        metadata di qualita, execution state, projection derivate e fonti escluse.
+
+        - Richiedere uno snapshot immutabile per richiesta che scopra le fonti una
+        volta e legga, hashi e parsifichi ogni fonte al massimo una volta usando gli
+        stessi byte.
+
+        - Mantenere `ProjectDecisionContextService` come facade stateless dietro `P2PWorkspace`,
+        senza snapshot stale tra richieste.
+
+        - Definire record, node, relation, evidence, diagnostic, retrieval hit, index
+        e manifest tipizzati e serializzabili con schema versionato.
+
+        - Separare canonicality, authority, activation, confidence e completeness.
+
+        - Coprire l''intero proposal decision lifecycle, inclusi acceptance qualificata,
+        split, merge, supersession, pending e legacy divergence.
+
+        - Indicizzare decision precedents e un sottoinsieme esplicitamente catalogato
+        di governance/project-definition constraints senza interpretazione libera
+        di ogni testo.
+
+        - Normalizzare progressivamente relazioni da proposal artifacts, Change Set,
+        choices, blockers, conflict memory, vertical coverage e Work lineage.
+
+        - Usare node namespace tipizzati, relation vocabulary versionata, evidence
+        merge deterministico e traversal cycle-safe.
+
+        - Distinguere edge di topologia da retrieval reasons quali lexical overlap,
+        same surface e heuristic vertical match.
+
+        - Fornire retrieval deterministico e spiegabile per proposal ID e idea text,
+        con policy versionata, applicabilita esplicita, score ricostruibile e protezione
+        dai falsi positivi.
+
+        - Rendere `small` e `medium` budget semantici misurabili applicati dopo ranking
+        e grouping.
+
+        - Bloccare l''integrazione pubblica finche profiling, scan/read count e fixture
+        di scala non dimostrano che il nuovo percorso non replica i timeout correnti.
+
+        - Introdurre freshness basata su presenza/hash reali delle fonti e versioni
+        delle policy, separando `generated_at` dall''identita semantica.
+
+        - Migrare context packet, intake, prompt, next actions, projection e MCP per
+        slice compatibili, mantenendo owner authority e controlled apply.'
+      fragment_kind: goals
+      truncated: false
+    - id: VME-5eebb52013173bf13cade72b
+      source_path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/proposal.md
+      source_sha256: 557c708739e4d5aea998c336ac00f98fe67744baa73811131b68d3af53bc823e
+      fragment: '- Non sostituire proposal, decision, choice, Change Set, Work, YAML
+        o Markdown canonici come source of truth.
+
+        - Non creare una memoria canonica parallela aggiornata da sintesi LLM libera.
+
+        - Non usare registri, decisions map, pubblicazioni, prompt o altri output
+        derivati come input semantico dell''indice.
+
+        - Non implementare PROP-100 come un unico Change Set senza gate intermedi.
+
+        - Non scegliere o implementare una cache persistente nella prima realizzazione;
+        una cache giustificata dalle misure richiede una feature separata.
+
+        - Non introdurre embeddings o ricerca non spiegabile nel primo retrieval.
+
+        - Non ridefinire proposal lifecycle, governance, owner authority, Git flow
+        o controlled apply.
+
+        - Non interpretare genericamente ogni documento di governance o project definition.
+
+        - Non applicare automaticamente relazioni, tag, supersessioni, decisioni o
+        vincoli.
+
+        - Non pubblicare una nuova registry topology stabile senza un consumer e uno
+        schema separatamente approvati.
+
+        - Non estendere nella prima integrazione il retrieval pubblico a Change Set,
+        Choice o Work target.
+
+        - Non incorporare nel dominio semantico la correzione funzionale del timeout
+        preesistente; profiling e remediation delle scansioni necessarie all''integrazione
+        restano tuttavia un gate obbligatorio di PROP-100.
+
+        - Non fissare nella proposta ombrello pesi numerici e layout dei moduli: tali
+        dettagli appartengono alla feature versionata.'
+      fragment_kind: non-goals
+      truncated: false
+    - id: VME-ff63a5a229a31a48317a2406
+      source_path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/proposal.md
+      source_sha256: 557c708739e4d5aea998c336ac00f98fe67744baa73811131b68d3af53bc823e
+      fragment: 'Introdurre un livello di accesso decisionale derivato sopra gli artifact
+        canonici P2P esistenti. Il livello estrae, normalizza, collega e recupera
+        decisioni, vincoli, relazioni e contesto rilevante con provenance, authority,
+        activation, confidence, completeness e freshness verificabili. Non sostituisce
+        gli artifact originali e non introduce una nuova fonte di verita.
+
+
+        Il programma e organizzato in slice dipendenti:
+
+
+        1. Domain, Source Catalog, request-scoped snapshot e proposal/decision extraction.
+
+        2. Authority policy e typed topology normalization.
+
+        3. Explainable retrieval e semantic budgets.
+
+        4. Performance profiling/remediation gate.
+
+        5. Context packet, CLI e MCP integration.
+
+        6. Intake e proposal prompt neighborhood.
+
+        7. Next actions e legacy projection migration.
+
+        8. Freshness e materialized manifest.
+
+        9. Cache decision basata su misure, senza cache implementation in PROP-100.
+
+
+        Una singola specifica repository puo coordinare queste slice, ma non elimina
+        i gate: ogni slice deve avere dipendenze, exit criteria, focused tests e compatibility
+        evidence. La prima slice non cambia CLI, MCP, intake, prompt, registri o storage.
+
+
+        Il Source Catalog dichiara cosa e semantic source e cosa e escluso. Proposal/decision,
+        project choices, conflict memory, Change Set relation sources, declared vertical
+        coverage e decision precedents possono produrre evidenza secondo policy. Readiness,
+        artifact state, questions, contributions e Work status descrivono qualita,
+        evento o execution state e non attivano decisioni. Registri e narrative generate
+        restano projection escluse.
+
+
+        L''extraction session cattura path root-relative, presence, bytes, hash, parsed
+        fragments e diagnostics. Hash e parse usano gli stessi byte. Stable identity
+        dipende da source path normalizzato, owner, record kind e semantic fragment
+        anchor; content hash e line span restano metadata separati.
+
+
+        La authority policy distingue canonicality, authority, activation, confidence
+        e completeness. `accepted_with_changes` attiva una decisione qualificata dal
+        reason; rejected/deferred/split/merged/superseded restano storia o lineage.
+        Una divergenza tra proposal status e decision outcome produce diagnostics
+        e non ripara automaticamente le fonti. Acceptance status da solo non rende
+        una decisione applicabile a ogni query.
+
+
+        La topologia usa node type distinti per proposal, decision, choice, Change
+        Set, Work, vertical section, capability, surface, feature, command e file.
+        Una relation canonica memorizza source, type e target; incoming/outgoing e
+        calcolato rispetto alla query e non crea edge inversi duplicati. Assertion
+        equivalenti fondono le evidence senza moltiplicare score. Change Set source
+        duplicati vengono riconciliati con precedence e divergence diagnostics. Traversal
+        e depth/fan-out bounded.
+
+
+        Il retrieval usa un indice in memoria e non legge file dopo il build. Candidate
+        selection, lexical normalization, applicability, score contributions, cap,
+        status penalties, historical threshold, tie-breaking, grouping, empty result
+        e budget sono policy versionate. Ogni score deve essere ricostruibile dalle
+        contribution esposte. `small` e `medium` sono assemblati dopo ranking; non
+        esiste fallback first-N.
+
+
+        Il percorso pubblico puo partire da `PROP-*`. Target `CHANGE-*`, `CHOICE-*`,
+        `WORK-*` e no-target mantengono il comportamento corrente finche non ricevono
+        slice dedicate. CLI text, structured output e MCP espongono semantica equivalente;
+        renderer e handler non devono rerankare.
+
+
+        Il source fingerprint include catalog version, path, presence e source hash.
+        Il semantic fingerprint include le versioni di extractor, authority e relation
+        policy; i packet includono retrieval e budget policy. `generated_at` e metadata
+        osservazionale con clock iniettabile e non cambia semantic equality.
+
+
+        Il bug corrente di `p2p context` puo essere corretto come lavoro tecnico separato,
+        ma PROP-100 non puo integrare altro lavoro nel path finche non sono rispettati:
+        un discovery pass, una read/hash/parse per fonte, zero source read dura'
+      fragment_kind: proposal
+      truncated: true
+    - id: VME-62dfb1ddf364f19748d2f498
+      source_path: .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/proposal.md
+      source_sha256: 557c708739e4d5aea998c336ac00f98fe67744baa73811131b68d3af53bc823e
+      fragment: '- L''owner puo approvare o respingere consapevolmente la direzione
+        di un decision context index derivato, non canonico e source-linked.
+
+        - La proposta distingue umbrella decision, specifica multi-slice e Change
+        Set indipendenti.
+
+        - Il Source Catalog classifica fonti incluse, metadata e fonti derivate escluse;
+        l''indice non legge registri o publication come semantic truth.
+
+        - Una extraction session scopre le fonti una volta e legge/hasha/parsa ogni
+        fonte al massimo una volta dagli stessi byte.
+
+        - Un service memoizzato non conserva snapshot stale tra richieste; una modifica
+        nella stessa workspace e visibile alla richiesta successiva.
+
+        - Stable IDs, content hashes, evidence span e completeness sono contratti
+        distinti e deterministici.
+
+        - Il lifecycle copre accepted, accepted-with-changes, rejected, deferred,
+        split, merged, superseded, pending e legacy divergence.
+
+        - Accepted-with-changes conserva il reason come qualifier; acceptance status
+        non trasmette automaticamente applicabilita globale.
+
+        - Decision precedents, project choices, readiness, artifact state, questions,
+        contributions, vertical signals e Work state ricevono authority/activation
+        coerenti con il loro ruolo.
+
+        - Node e relation type sono validati; query direction non duplica edge; evidence
+        duplicate non moltiplicano lo score; traversal termina su cicli e fan-out.
+
+        - Change Set relation sources discordanti producono divergence diagnostics
+        e precedence deterministica.
+
+        - Retrieval per proposal ID e idea text e deterministico, source-free dopo
+        il build, versionato e spiegabile tramite contribution che ricostruiscono
+        lo score.
+
+        - `small` e `medium` hanno limiti misurabili definiti nella feature e applicati
+        dopo ranking/grouping, senza fallback first-N.
+
+        - Empty, partial e unavailable context sono distinguibili e mantengono evidence
+        minima per i claim inclusi.
+
+        - Profiling e performance remediation soddisfano structural read/scan gates
+        prima della context integration.
+
+        - `generated_at` non modifica semantic fingerprint; source presence/hash e
+        policy version changes rendono stale le projection pertinenti.
+
+        - La prima implementazione non persiste cache; una cache eventualmente necessaria
+        richiede una feature separata.
+
+        - `PROP-*` puo ricevere `nearby_context` mantenendo i legacy fields; non-proposal
+        target restano compatibili nella prima integrazione.
+
+        - CLI text, structured output e MCP mantengono semantica e schema allineati
+        e read-only.
+
+        - Intake e prompt usano context rilevante ma non estendono controlled apply
+        o owner authority.
+
+        - Golden, adversarial, malformed-source, determinism, same-workspace, cycle,
+        scale e public-contract tests proteggono le slice.
+
+        - Nessuna build/query del decision context modifica fonti canoniche o crea
+        cache/projection implicite.'
+      fragment_kind: acceptance_criteria
+      truncated: false
+  historical_contributions: []
+  conflicts:
+  - kind: choice
+    id: CHOICE-001
+    title: Initial AI Integration Strategy
+    status: decided
+    selected_option: C - Prompt-only first, Codex adapter later
+    proposals:
+    - PROP-001
+    - PROP-004
+    - PROP-005
+    - PROP-006
+    source_path: .p2p/choices/CHOICE-001-initial-ai-integration-strategy/choice.md
+  diagnostics: []

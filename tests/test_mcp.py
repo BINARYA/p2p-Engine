@@ -20,6 +20,7 @@ from p2p_engine.mcp.tools import TOOL_NAMES, call_tool, tool_definitions
 from p2p_engine.storage.filesystem import P2PWorkspace
 from tests.proposal_decision_fixtures import record_decision
 from tests.filesystem_assertions import assert_no_workspace_mutation
+from tests.publication_fixtures import write_publication_candidates
 
 runner = CliRunner()
 
@@ -216,6 +217,7 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_project_publish_validate",
         "p2p_project_publish_render",
         "p2p_project_publish_status",
+        "p2p_project_publish_list",
         "p2p_project_vertical_list",
         "p2p_project_vertical_show",
         "p2p_project_vertical_validate",
@@ -505,23 +507,20 @@ def test_mcp_project_publish_prepare_import_and_status(tmp_path: Path) -> None:
     assert prepared_again["publication_prepare"]["exported"] is False
     assert not (tmp_path / "outputs" / "review-001").exists()
 
-    draft = tmp_path / "curated-draft.md"
-    draft.write_text(
-        "# MCP Project Publication\n\n"
-        "## Executive Summary\n\n"
-        "The project has one canonical human publication.\n\n"
-        "## Source Of Truth\n\n"
-        "The `.p2p/` directory remains authoritative.\n",
-        encoding="utf-8",
-    )
+    draft, model, accounting = write_publication_candidates(tmp_path)
     imported = call_tool(
         "p2p_project_publish_import",
-        {"root": str(tmp_path), "source": str(draft)},
+        {
+            "root": str(tmp_path),
+            "source": str(draft),
+            "model": str(model),
+            "evidence_accounting": str(accounting),
+        },
     )
     validation = call_tool("p2p_project_publish_validate", {"root": str(tmp_path)})
     status = call_tool("p2p_project_publish_status", {"root": str(tmp_path)})
 
-    assert imported["publication_import"]["curated_path"] == "outputs/latest/project.curated.md"
+    assert imported["publication_import"]["curated_path"] == "outputs/latest/project-en.md"
     assert validation["publication_validation"]["status"] == "passed"
     stages = {stage["name"]: stage for stage in status["publication_status"]["stages"]}
     assert stages["curated"]["status"] == "ready"
@@ -531,7 +530,8 @@ def test_mcp_project_publish_prepare_import_and_status(tmp_path: Path) -> None:
 
 
 def test_mcp_project_publish_render_with_fake_renderer(tmp_path: Path, monkeypatch) -> None:
-    def fake_renderer(markdown_text: str, output_path: Path, root: Path) -> str:
+    def fake_renderer(markdown_text: str, output_path: Path, root: Path, **metadata) -> str:
+        assert metadata["language"] == "it"
         output_path.write_bytes(b"%PDF-1.4\n% fake mcp publication pdf\n")
         return "fake-mcp-renderer"
 
@@ -562,27 +562,32 @@ def test_mcp_project_publish_render_with_fake_renderer(tmp_path: Path, monkeypat
         "Ready.",
         "owner",
     )
-    call_tool("p2p_project_publish_prepare", {"root": str(tmp_path)})
-    draft = tmp_path / "curated-draft.md"
-    draft.write_text(
-        "# MCP Project Publication\n\n"
-        "## Executive Summary\n\n"
-        "The project has one canonical human publication for the current project vertical.\n\n"
-        "## Current And Planned State\n\n"
-        "Current and planned work remains traceable to PROP-001.\n\n"
-        "## Source Of Truth\n\n"
-        "The `.p2p/` directory remains authoritative.\n",
-        encoding="utf-8",
+    edition = {"root": str(tmp_path), "language": "it", "output_name": "manual"}
+    call_tool("p2p_project_publish_prepare", edition)
+    draft, model, accounting = write_publication_candidates(
+        tmp_path,
+        language="it",
+        output_name="manual",
     )
-    call_tool("p2p_project_publish_import", {"root": str(tmp_path), "source": str(draft)})
-    call_tool("p2p_project_publish_validate", {"root": str(tmp_path)})
+    call_tool(
+        "p2p_project_publish_import",
+        {
+            **edition,
+            "source": str(draft),
+            "model": str(model),
+            "evidence_accounting": str(accounting),
+        },
+    )
+    call_tool("p2p_project_publish_validate", edition)
 
-    rendered = call_tool("p2p_project_publish_render", {"root": str(tmp_path)})
-    status = call_tool("p2p_project_publish_status", {"root": str(tmp_path)})
+    rendered = call_tool("p2p_project_publish_render", edition)
+    status = call_tool("p2p_project_publish_status", edition)
+    editions = call_tool("p2p_project_publish_list", {"root": str(tmp_path)})
 
     assert rendered["publication_render"]["status"] == "rendered"
     assert rendered["publication_render"]["renderer"] == "fake-mcp-renderer"
     assert status["publication_status"]["render_status"] == "rendered"
+    assert editions["publication_editions"]["editions"][0]["edition"]["edition_key"] == "manual-it"
     assert "p2p_project_publish_review" not in TOOL_NAMES
 
 

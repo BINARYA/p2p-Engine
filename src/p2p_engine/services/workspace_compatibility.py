@@ -161,7 +161,10 @@ class WorkspaceCompatibilityService:
             project,
             active_transaction_id=active_transaction_id,
         )
-        self._invoke_existing_inspectors(findings)
+        self._invoke_existing_inspectors(
+            findings,
+            active_transaction_id=active_transaction_id,
+        )
         return CompatibilitySnapshot(
             schema_status=schema_status,
             project_id=project_id,
@@ -659,7 +662,12 @@ class WorkspaceCompatibilityService:
                 )
         return findings
 
-    def _invoke_existing_inspectors(self, findings: list[CompatibilityFinding]) -> None:
+    def _invoke_existing_inspectors(
+        self,
+        findings: list[CompatibilityFinding],
+        *,
+        active_transaction_id: str | None = None,
+    ) -> None:
         for name, inspector in (
             ("runtime", self.runtime_status),
             ("vertical", self.vertical_context),
@@ -684,6 +692,12 @@ class WorkspaceCompatibilityService:
                             )
                         )
             except (OSError, ValueError) as exc:
+                # The lock-protected plan has already run these diagnostic
+                # inspectors before acquiring its own migration lock. Source
+                # hashes and operation fingerprints provide the authoritative
+                # lock-time consistency check.
+                if active_transaction_id:
+                    continue
                 findings.append(
                     CompatibilityFinding(
                         code=f"P2P328_{name.upper()}_INSPECTION_FAILED",

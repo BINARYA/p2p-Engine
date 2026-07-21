@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import replace
 from pathlib import Path
-from typing import Callable, Iterable, Sequence
+from typing import Callable, Iterable, Mapping, Sequence
 
 from p2p_engine.core.project_readiness import (
     PROJECT_READINESS_CURSOR_POLICY_VERSION,
@@ -20,10 +20,13 @@ from p2p_engine.core.project_readiness import (
     ProjectReadinessResult,
     ProjectReadinessSectionSnapshot,
     ProjectReadinessSnapshot,
+    ProjectReadinessAssumptionSnapshot,
+    ProjectReadinessQuestionSnapshot,
     readiness_class_rank,
     readiness_gap_identity,
     readiness_snapshot_identity,
 )
+from p2p_engine.core.vertical_memory import VerticalProjectMemoryView
 
 
 class ProjectReadinessSnapshotBuilder:
@@ -70,6 +73,166 @@ class ProjectReadinessSnapshotBuilder:
             owner_available=owner_available,
             diagnostics=tuple(diagnostics),
         )
+
+
+def readiness_snapshot_from_vertical_memory(
+    view: VerticalProjectMemoryView,
+    *,
+    workspace_schema_version: int,
+    workspace_schema_state: str,
+    owner_available: bool,
+    unmapped_proposals: Sequence[str] | None = None,
+) -> ProjectReadinessSnapshot:
+    sections: list[ProjectReadinessSectionSnapshot] = []
+    for section in view.sections:
+        definition = section.definition
+        assumptions = tuple(
+            ProjectReadinessAssumptionSnapshot(
+                assumption_id=str(item.get("id") or ""),
+                status=str(item.get("status") or "to_validate"),
+                field_id=str(item.get("field_id") or ""),
+            )
+            for item in definition.get("assumptions", ())
+            if isinstance(item, Mapping)
+        )
+        questions = tuple(
+            ProjectReadinessQuestionSnapshot(
+                question_id=str(item.get("id") or ""),
+                revision=int(item.get("revision") or 1),
+                state=str(item.get("state") or "to_answer"),
+                target_kind=str(
+                    (item.get("target") or {}).get("kind")
+                    if isinstance(item.get("target"), Mapping)
+                    else "section"
+                ),
+                target_id=str(
+                    (item.get("target") or {}).get("id")
+                    if isinstance(item.get("target"), Mapping)
+                    else section.section_id
+                ),
+                applicability=(
+                    "applicable"
+                    if str(item.get("applicability") or "active") == "active"
+                    else str(item.get("applicability") or "")
+                ),
+            )
+            for item in section.questions
+        )
+        declared = tuple(
+            sorted(
+                {
+                    item.proposal_id
+                    for item in (
+                        *section.active_contributions,
+                        *section.historical_contributions,
+                    )
+                }
+            )
+        )
+        active = tuple(
+            sorted({item.proposal_id for item in section.active_contributions})
+        )
+        sections.append(
+            ProjectReadinessSectionSnapshot(
+                section_id=section.section_id,
+                title=section.title,
+                required=section.required,
+                priority=section.priority,
+                definition_status=str(definition.get("status") or "not_initialized"),
+                missing_required_fields=tuple(
+                    str(item) for item in definition.get("missing_required_fields", ())
+                ),
+                assumptions=assumptions,
+                open_blocker_ids=tuple(
+                    sorted(
+                        {
+                            str(item.get("id") or "")
+                            for item in definition.get("blockers", ())
+                            if isinstance(item, Mapping)
+                            and str(item.get("status") or "open") == "open"
+                        }
+                        | {
+                            str(item.get("id") or "")
+                            for item in section.conflicts
+                            if str(item.get("kind") or "") == "conflict"
+                            and str(item.get("status") or "") == "unresolved"
+                        }
+                    )
+                ),
+                declared_proposals=declared,
+                active_declared_proposals=active,
+                heuristic_proposals=tuple(
+                    sorted(
+                        {
+                            str(item.get("proposal_id") or "")
+                            for item in section.heuristic_suggestions
+                            if str(item.get("proposal_id") or "")
+                        }
+                    )
+                ),
+                declared_questions=section.declared_questions,
+                question_states=questions,
+            )
+        )
+    diagnostics = tuple(
+        ProjectReadinessDiagnostic(
+            code=str(item.get("code") or "VERTICAL_MEMORY_DIAGNOSTIC"),
+            severity=str(item.get("severity") or "warning"),
+            message=str(item.get("message") or item),
+            suggested_command=str(item.get("suggested_command") or "p2p project memory status"),
+            section_id=str(item.get("section_id") or ""),
+        )
+        for item in view.diagnostics
+    )
+    definition_exists = view.definition_exists
+    definition_valid = view.definition_valid and not any(
+        item.severity == "error" for item in diagnostics
+    )
+    return ProjectReadinessSnapshotBuilder().build(
+        workspace_schema_version=workspace_schema_version,
+        workspace_schema_state=workspace_schema_state,
+        vertical_id=view.vertical_id,
+        vertical_version=view.vertical_version,
+        vertical_lock_checksum=view.vertical_lock_checksum,
+        profile=view.profile,
+        modules=view.modules,
+        source_hashes={"vertical_project_memory": view.source_fingerprint_sha256},
+        policy_versions={
+            "gap": PROJECT_READINESS_GAP_POLICY_VERSION,
+            "snapshot": 1,
+            "vertical_memory": 1,
+        },
+        definition_valid=definition_valid,
+        definition_exists=definition_exists,
+        fallback_used=view.fallback_used,
+        vertical_source=view.vertical_source,
+        sections=sections,
+        unmapped_proposals=(
+            tuple(unmapped_proposals)
+            if unmapped_proposals is not None
+            else tuple(
+                str(item.get("proposal_id") or "")
+                for item in view.unmapped_active_proposals
+            )
+        ),
+        owner_available=owner_available,
+        diagnostics=diagnostics,
+    )
+
+
+def unmapped_proposal_ids_from_vertical_memory(
+    view: VerticalProjectMemoryView,
+    proposal_ids: Iterable[str],
+) -> tuple[str, ...]:
+    declared = {
+        contribution.proposal_id
+        for section in view.sections
+        for contribution in (
+            *section.active_contributions,
+            *section.historical_contributions,
+        )
+    }
+    return tuple(sorted({str(item) for item in proposal_ids if str(item)} - declared))
 
 
 class ProjectReadinessSourceAccess:

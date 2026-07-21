@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from pathlib import Path
+from types import MappingProxyType
 
 from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionAuthorityInterval,
@@ -21,6 +22,7 @@ from p2p_engine.services.proposal_decision_ledger import (
     render_decision_projection,
     render_proposal_projection,
 )
+from p2p_engine.services.workspace_reads import WorkspaceReadContext
 
 
 PROPOSAL_LIFECYCLE_AUTHORITY_POLICY_VERSION = 2
@@ -279,12 +281,14 @@ class ProposalLifecycleAuthorityService:
         p2p_dir: Path,
         find_proposal_dir: Callable[[str], Path],
         workspace_schema_status: Callable[[], object],
+        workspace_schema_preflight: Callable[[], object] | None = None,
         codec: ProposalDecisionLedgerCodec | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
         self.find_proposal_dir = find_proposal_dir
         self.workspace_schema_status = workspace_schema_status
+        self.workspace_schema_preflight = workspace_schema_preflight
         self.codec = codec or ProposalDecisionLedgerCodec()
 
     def status(
@@ -292,8 +296,11 @@ class ProposalLifecycleAuthorityService:
         proposal_id: str,
         *,
         strict: bool = False,
+        schema_snapshot: object | None = None,
+        proposal_dir: Path | None = None,
+        read_context: WorkspaceReadContext | None = None,
     ) -> ProposalDecisionLifecycleView:
-        schema = self.workspace_schema_status()
+        schema = schema_snapshot or self._schema_snapshot(read_context=read_context)
         current_version = getattr(schema, "current_version", None)
         layout_status = str(getattr(schema, "layout_status", "invalid"))
         recovery = getattr(schema, "recovery", {})
@@ -311,36 +318,153 @@ class ProposalLifecycleAuthorityService:
                 "P2P376_DECISION_FUTURE_CONTRACT",
                 strict=strict,
             )
-        proposal_dir = self.find_proposal_dir(proposal_id)
+        proposal_dir = proposal_dir or self.find_proposal_dir(proposal_id)
         if current_version is not None and current_version >= 3:
-            return self._v3_status(proposal_id, proposal_dir, strict=strict)
+            return self._v3_status(
+                proposal_id,
+                proposal_dir,
+                strict=strict,
+                read_context=read_context,
+            )
         from p2p_engine.services.proposal_decision_legacy import (
             ProposalDecisionLegacyAdapter,
         )
 
         adapter = ProposalDecisionLegacyAdapter()
-        snapshot = adapter.capture(
-            proposal_id=proposal_id,
-            proposal_path=proposal_dir / "proposal.md",
-            decision_path=proposal_dir / "decision.md",
-            root=self.root,
-        )
+        proposal_path = proposal_dir / "proposal.md"
+        decision_path = proposal_dir / "decision.md"
+        if read_context is None:
+            snapshot = adapter.capture(
+                proposal_id=proposal_id,
+                proposal_path=proposal_path,
+                decision_path=decision_path,
+                root=self.root,
+            )
+        else:
+            snapshot = adapter.capture_bytes(
+                proposal_id=proposal_id,
+                proposal_path=proposal_path.relative_to(self.root).as_posix(),
+                decision_path=decision_path.relative_to(self.root).as_posix(),
+                proposal_bytes=_optional_captured_bytes(read_context, proposal_path),
+                decision_bytes=_optional_captured_bytes(read_context, decision_path),
+            )
         return adapter.lifecycle(snapshot)
 
-    def capture_all(self, *, strict: bool = False) -> dict[str, ProposalDecisionLifecycleView]:
-        proposals_dir = self.p2p_dir / "proposals"
+    def capture_all(
+        self,
+        *,
+        strict: bool = False,
+        read_context: WorkspaceReadContext | None = None,
+    ) -> dict[str, ProposalDecisionLifecycleView]:
+        return self.evaluate_many(None, strict=strict, read_context=read_context)
+
+    def evaluate_many(
+        self,
+        proposal_ids: Iterable[str] | None,
+        *,
+        strict: bool = False,
+        schema_snapshot: object | None = None,
+        read_context: WorkspaceReadContext | None = None,
+    ) -> dict[str, ProposalDecisionLifecycleView]:
+        selected_ids = (
+            None
+            if proposal_ids is None
+            else tuple(sorted(set(proposal_ids)))
+        )
+        if read_context is not None:
+            cached = read_context.provide(
+                "proposal_lifecycle_batch",
+                (selected_ids, strict),
+                lambda: MappingProxyType(
+                    self._evaluate_many(
+                        selected_ids,
+                        strict=strict,
+                        schema_snapshot=schema_snapshot,
+                        read_context=read_context,
+                    )
+                ),
+            )
+            return dict(cached)
+        return self._evaluate_many(
+            selected_ids,
+            strict=strict,
+            schema_snapshot=schema_snapshot,
+            read_context=None,
+        )
+
+    def _evaluate_many(
+        self,
+        proposal_ids: tuple[str, ...] | None,
+        *,
+        strict: bool,
+        schema_snapshot: object | None,
+        read_context: WorkspaceReadContext | None,
+    ) -> dict[str, ProposalDecisionLifecycleView]:
+        schema = schema_snapshot or self._schema_snapshot(read_context=read_context)
+        directories = self._proposal_directories(read_context=read_context)
+        selected = sorted(directories) if proposal_ids is None else list(proposal_ids)
         result: dict[str, ProposalDecisionLifecycleView] = {}
+        for proposal_id in selected:
+            proposal_dir = directories.get(proposal_id)
+            if proposal_dir is None:
+                result[proposal_id] = self._unresolved(
+                    proposal_id,
+                    "proposal_directory",
+                    f"Proposal not found: {proposal_id}",
+                    strict=strict,
+                )
+                continue
+            result[proposal_id] = self.status(
+                proposal_id,
+                strict=strict,
+                schema_snapshot=schema,
+                proposal_dir=proposal_dir,
+                read_context=read_context,
+            )
+        return result
+
+    def _proposal_directories(
+        self,
+        *,
+        read_context: WorkspaceReadContext | None = None,
+    ) -> dict[str, Path]:
+        proposals_dir = self.p2p_dir / "proposals"
+        result: dict[str, Path] = {}
         if not proposals_dir.exists():
             return result
-        for path in sorted(proposals_dir.iterdir(), key=lambda item: item.name):
+        paths = (
+            read_context.documents.discover(
+                proposals_dir,
+                policy="proposal-directories-v1",
+                predicate=lambda item: item.is_dir(),
+            )
+            if read_context is not None
+            else tuple(sorted(proposals_dir.iterdir(), key=lambda item: item.name))
+        )
+        for path in paths:
             if not path.is_dir():
                 continue
             parts = path.name.split("-", 2)
             if len(parts) < 2 or parts[0] != "PROP" or not parts[1].isdigit():
                 continue
             proposal_id = f"PROP-{parts[1]}"
-            result[proposal_id] = self.status(proposal_id, strict=strict)
+            if proposal_id in result:
+                raise ValueError(f"Ambiguous proposal ID: {proposal_id}")
+            result[proposal_id] = path
         return result
+
+    def _schema_snapshot(
+        self,
+        *,
+        read_context: WorkspaceReadContext | None = None,
+    ) -> object:
+        if read_context is not None:
+            read_context.record_schema_preflight()
+        return (
+            self.workspace_schema_preflight()
+            if self.workspace_schema_preflight is not None
+            else self.workspace_schema_status()
+        )
 
     def _v3_status(
         self,
@@ -348,6 +472,7 @@ class ProposalLifecycleAuthorityService:
         proposal_dir: Path,
         *,
         strict: bool,
+        read_context: WorkspaceReadContext | None = None,
     ) -> ProposalDecisionLifecycleView:
         ledger_path = proposal_dir / "decision-events.yml"
         if not ledger_path.exists():
@@ -358,11 +483,25 @@ class ProposalLifecycleAuthorityService:
                 strict=strict,
             )
         try:
+            ledger_bytes = (
+                read_context.documents.bytes(ledger_path)
+                if read_context is not None
+                else ledger_path.read_bytes()
+            )
+            if read_context is not None:
+                read_context.record_ledger_parse(
+                    ledger_path.relative_to(self.root).as_posix()
+                )
             ledger = self.codec.loads(
-                ledger_path.read_bytes(),
+                ledger_bytes,
                 expected_proposal_id=proposal_id,
             )
-            proposal_text = (proposal_dir / "proposal.md").read_text(encoding="utf-8")
+            proposal_path = proposal_dir / "proposal.md"
+            proposal_text = (
+                read_context.documents.text(proposal_path)
+                if read_context is not None
+                else proposal_path.read_text(encoding="utf-8")
+            )
             current_semantic = proposal_semantic_sha256(proposal_id, proposal_text)
             binding = projection_binding_status(
                 proposal_id,
@@ -378,7 +517,11 @@ class ProposalLifecycleAuthorityService:
                 diagnostics.append("P2P362_DECISION_PROJECTION_DIVERGENCE: proposal.md")
             decision_path = proposal_dir / "decision.md"
             decision_text = (
-                decision_path.read_text(encoding="utf-8")
+                (
+                    read_context.documents.text(decision_path)
+                    if read_context is not None
+                    else decision_path.read_text(encoding="utf-8")
+                )
                 if decision_path.exists()
                 else ""
             )
@@ -431,6 +574,14 @@ class ProposalLifecycleAuthorityService:
             proposal_binding_status=ProposalDecisionBindingStatus.unavailable,
             diagnostics=(diagnostic,),
         )
+
+
+def _optional_captured_bytes(
+    read_context: WorkspaceReadContext,
+    path: Path,
+) -> bytes | None:
+    document = read_context.documents.capture(path)
+    return read_context.documents.bytes(path) if document.exists else None
 
 
 def proposal_lifecycle_authority(status: str) -> ProposalLifecycleAuthority:

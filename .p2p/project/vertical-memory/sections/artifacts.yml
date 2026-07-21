@@ -1,0 +1,1328 @@
+vertical_memory_section:
+  schema_version: 1
+  section:
+    id: artifacts
+    title: Expected Artifacts
+    purpose: Documents, specs, prototypes, reports, or plans the project should produce.
+    required: true
+    priority: 100
+  definition:
+    status: complete
+    fields:
+      summary:
+        value: Required canonical artifacts are runtime and workspace-schema contracts,
+          project manifest, software vertical selection and lock, project definition,
+          domain, permissions and governed proposal/decision/change/work state. Required
+          migration artifacts are reviewed definition patches, complete impact/conflict
+          correction sets, approved vertical-coverage records with artifact-state
+          provenance, and implementation evidence. Derived deliverables are registries,
+          rationalized project projections, decision-context index, progress/assessment/maturity
+          views, operational brief and next actions, software specifications and exports,
+          and the staged project publication packet, curated document, validation,
+          render and owner-review record where applicable.
+        source: README.md+docs/WORKSPACE-MIGRATION.md+specs/features/workspace-schema-versioning-and-legacy-migration/tasks.md
+    required_field_ids:
+    - summary
+    missing_required_fields: []
+    assumptions: []
+    open_questions: []
+    blockers: []
+  questions: []
+  declared_questions:
+  - Which artifacts must exist before execution can start?
+  heuristic_suggestions: []
+  active_contributions:
+  - id: VMC-ad4429209bccc333c7dac666
+    proposal_id: PROP-085
+    title: Pluggable Project Verticals And Readiness Orchestration
+    section_id: artifacts
+    authority: resolved
+    activation: active
+    effective_state: accepted
+    head_event_id: PDE-bfc14622b8e2748a30b2db0a
+    head_event_type: accepted
+    rationale: Accepted by owner after readiness reached decision_ready. The proposal
+      defines pluggable pure-data project verticals, base_project, custom vertical
+      candidate flow, project readiness review, and proposal-to-vertical traceability
+      while preserving backward compatibility.
+    constraints: []
+    applicability: artifacts
+    coverage_rationale: Makes expected and suggested project artifacts a first-class
+      declarative part of each vertical package and project skeleton.
+    source_path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/proposal.md
+    proposal_semantic_sha256: b23b620d31b5e44535406ed884a38fcdce807cdbc8330f81e86277a692b336f2
+    decision_semantic_sha256: 78b95a7dae26ba6445d034fabc2e1a951ba1a11ddcc75259011edead14d4dae3
+    lineage:
+      kind: null
+      targets: []
+    evidence:
+    - id: VME-d88bb02fdcfb6db4dec516f2
+      source_path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/proposal.md
+      source_sha256: 36ab25a6d9c1a8f48b314d1ca65ac2ab4fafe3ffea72c0ec22b674fd5dc52036
+      fragment: 'Project initialization and project readiness currently rely on domain/rubric
+        defaults that are useful but too static: P2P can suggest rubric criteria,
+        but it does not yet model verticals as extensible project-specific packages
+        with sections, maturity rules, questions, artifacts, examples, and agent guidance.
+        This risks hardcoding a finite catalog of domains inside the engine, or leaving
+        agents without enough structure to proactively define what a project should
+        achieve in its chosen vertical.'
+      fragment_kind: problem
+      truncated: false
+    - id: VME-0890d33457c731f900fa1980
+      source_path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/proposal.md
+      source_sha256: 36ab25a6d9c1a8f48b314d1ca65ac2ab4fafe3ffea72c0ec22b674fd5dc52036
+      fragment: '- Define a generic vertical package model for project init and project
+        review, including sections, detail packs, rubric criteria, maturity levels,
+        questions, artifacts, examples, profiles, and optional modules.
+
+        - Teach agents, through generated/local skills, to propose project capisaldi
+        and focused refinement questions when the current project vertical or readiness
+        information is weak, missing, or too generic.
+
+        - Support core defaults, external/plugin registries, and project-local custom
+        verticals without requiring P2P Engine to hardcode every possible domain.
+
+        - Allow the same flow to run during interactive project init and later through
+        an explicit project readiness review command.'
+      fragment_kind: goals
+      truncated: false
+    - id: VME-b2faeb973b6bc606387ebda1
+      source_path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/proposal.md
+      source_sha256: 36ab25a6d9c1a8f48b314d1ca65ac2ab4fafe3ffea72c0ec22b674fd5dc52036
+      fragment: '- Do not ship a large catalog of superficial verticals in the engine.
+
+        - Do not require all verticals to be known at build time.
+
+        - Do not replace owner governance: the agent proposes verticals, capisaldi,
+        rubric extensions, and questions, but the owner decides.
+
+        - Do not make regulated verticals such as medical or legal authoritative without
+        explicit caution, provenance, and owner responsibility.'
+      fragment_kind: non-goals
+      truncated: false
+    - id: VME-4f2a7b73aa73f4e595a03602
+      source_path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/proposal.md
+      source_sha256: 36ab25a6d9c1a8f48b314d1ca65ac2ab4fafe3ffea72c0ec22b674fd5dc52036
+      fragment: 'Introduce pluggable project verticals. A vertical package defines
+        its id, name, version, base extension, sections, section detail packs, maturity
+        levels, rubric criteria, blocking/refinement questions, artifact templates,
+        examples, profiles, and optional compatible modules. P2P Engine provides a
+        generic loader/validator and a project orchestrator skill that reads these
+        definitions, evaluates project readiness, proposes capisaldi, creates initial
+        refinement questions, and guides a one-question-at-a-time interview. Vertical
+        packages are pure data packages made of text files, primarily .md and/or .yaml,
+        not executable code in the MVP. They contain the project skeleton for the
+        vertical: chapters, sections, topics to address, vertical-specific peculiarities,
+        rubrics, questions, and useful artifacts. The minimum MVP vertical pack requires
+        vertical.yml with id, name, version, description, and base/extends; project
+        sections/chapters; minimal completeness/readiness rubrics; initial blocking
+        questions; and expected or suggested artifacts. Examples, profiles, compatible
+        modules, and rich output templates are optional in the MVP. Default vertical
+        packs are distributed internally with the project/package as versioned, testable
+        data resources for the MVP. The design should stay registry-ready, but an
+        external registry is not part of the first slice; a later registry can expose
+        REST endpoints to list available packs and fetch pack details/versions. The
+        CLI remains deterministic: p2p init may ask deterministic setup questions
+        and persist project/init state, but it does not launch or embody the agent.
+        The proactive behavior belongs to the agent instructions. When the agent detects
+        an uninitialized project, an initialization state, or missing project capisaldi
+        and initial questions, it must treat that as priority context work because
+        it determines project readiness. The agent should know how to initialize the
+        project with the CLI, use owner answers to populate init/project objects,
+        propose the vertical-derived capisaldi, save initial questions when possible,
+        interview one question at a time, and return to deferred core-definition work
+        unless the owner explicitly silences it. When a requested vertical is missing,
+        resolution order is project-local vertical packs, core/default packs, configured
+        data registry/plugin packs, then base_project fallback. The fallback is not
+        passive: the agent proposes a default/base vertical, enters customization
+        mode, extracts the missing vertical information from the owner, creates or
+        updates a project-local custom vertical with sections/capisaldi, minimal rubrics,
+        blocking questions, and expected artifacts, and uses it only after owner confirmation.
+        This proposal extends and reuses the existing project rubrics and project
+        maturity/readiness artifacts rather than replacing them. Vertical packs provide
+        structured inputs that specialize the current system; they must not create
+        a parallel maturity engine. The explicit command for later review is p2p project
+        readiness review: the command goal is project readiness/context strengthening,
+        while verticals are the data source used by the review. It should reuse existing
+        project rubrics/maturity, read packaged and project-local verticals, identify
+        missing capisaldi, produce initial or follow-up project questions, and guide
+        the agent on readiness priorities. Core should start with base_project and
+        a small MVP set of high-quality verticals, while additional verticals live
+        in an external registry or project-local custom directory. Initial implementation
+        scope is base_project plus the vertical pack loader/validator, the project
+        orchestrator skill, one complete demonstration vertical, and project readiness
+        review integration. The five-vertical MVP set remains a follow-up target,
+        not part of the first implementation slice.'
+      fragment_kind: proposal
+      truncated: false
+    - id: VME-d33dd345cf00e9a7d5007e91
+      source_path: .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/proposal.md
+      source_sha256: 36ab25a6d9c1a8f48b314d1ca65ac2ab4fafe3ffea72c0ec22b674fd5dc52036
+      fragment: '- A pure-data vertical pack schema is defined and validated, with
+        required fields for vertical metadata, sections/capisaldi, minimal readiness
+        rubrics, blocking questions, and expected artifacts.
+
+        - base_project is available as the universal fallback and existing projects
+        without vertical packs continue to work with current project rubrics and maturity/readiness
+        behavior.
+
+        - Default MVP vertical packs are loaded from internal package/project resources,
+        while project-local custom packs can override or extend them.
+
+        - A project readiness review command, p2p project readiness review, reads
+        vertical packs, project-local custom packs, existing rubrics/maturity state,
+        and project context to identify missing capisaldi and generate prioritized
+        project questions.
+
+        - Project readiness review produces a vertical skeleton summary that maps
+        vertical sections/capisaldi to relevant proposals, accepted decisions, gaps,
+        risks, and unmapped proposals.
+
+        - Generated agent/project instructions explain that missing initialization,
+        capisaldi, or initial project questions are priority context work and guide
+        the agent to propose, confirm, and refine project-local custom verticals.
+
+        - The first implementation slice includes one complete demonstration vertical
+        and does not require the later five-vertical set, remote registry, or executable
+        plugin verticals.
+
+        - The design remains registry-ready by keeping pack identity/version metadata
+        and a loader boundary that can later support REST list/detail endpoints without
+        changing project-local pack semantics.'
+      fragment_kind: acceptance_criteria
+      truncated: false
+  - id: VMC-be41c271fcefc212ac38e2ca
+    proposal_id: PROP-094
+    title: P2P-Governed Software Specification Lifecycle
+    section_id: artifacts
+    authority: resolved
+    activation: active
+    effective_state: accepted
+    head_event_id: PDE-b948a4d0fffef8cca8d60c06
+    head_event_type: accepted
+    rationale: Owner accepted after review; readiness is decision_ready with no missing
+      gates or blocking questions.
+    constraints: []
+    applicability: artifacts
+    coverage_rationale: Defines implementation specifications and downstream handoff
+      files as explicit canonical or derived software-project artifacts.
+    source_path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/proposal.md
+    proposal_semantic_sha256: e2c4fd7e1f9f6d8efd9cd5ae8333c14c2972cc604d31e9fa72404f79343e6b73
+    decision_semantic_sha256: 79da00bcc5c503fc5cd4227084bc9b9aafd1428627284cbd7ee91ed027d7eaa5
+    lineage:
+      kind: null
+      targets: []
+    evidence:
+    - id: VME-2cb54e5ebdc1161ce91a6a03
+      source_path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/proposal.md
+      source_sha256: b941019a2bc0c682a31c8d03ff53f289f878bf6e19ac043f1cd26d6d259627e6
+      fragment: 'In software projects, an owner may legitimately ask an agent to produce
+        system specifications before the project is fully defined. If the agent responds
+        by creating a standalone spec file immediately, that file can become the effective
+        source of truth while the P2P project definition remains incomplete or bypassed.
+
+
+        This is a methodological failure, not a file-placement issue alone. The problem
+        is not that specs are unnecessary or always premature. The problem is that
+        the software vertical should guide the definition of the parts that make a
+        useful specification, and those parts should be captured through P2P proposals,
+        decisions, choices, readiness, and Change Sets before a durable spec file
+        is treated as authoritative.
+
+
+        Without that lifecycle, the owner receives a useful-looking document, but
+        future agents, readiness checks, Change Sets, exports, and project status
+        may not be able to explain which governed decisions the spec reflects, which
+        assumptions remain unresolved, or whether the file is only an exploratory
+        draft.'
+      fragment_kind: problem
+      truncated: false
+    - id: VME-9393a021a0bcda9c593f1498
+      source_path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/proposal.md
+      source_sha256: b941019a2bc0c682a31c8d03ff53f289f878bf6e19ac043f1cd26d6d259627e6
+      fragment: '- Treat the need for specs as a first-class part of the software
+        vertical.
+
+        - Make specification content emerge from P2P-governed project definition,
+        one or more proposals, decisions, and Change Sets.
+
+        - Teach generated agent instructions to route "make specs" requests through
+        the software vertical and P2P state instead of creating an independent durable
+        file by default.
+
+        - Clarify when a spec request should produce chat discussion, project-definition
+        questions, proposal work, choices, a Change Set, a P2P-native spec, a generated
+        export, or stable documentation.
+
+        - Allow early exploratory spec outlines, but prevent them from becoming primary
+        project memory unless they are captured or exported through P2P.
+
+        - Keep user intent respected: if the owner explicitly requests a concrete
+        file outside the P2P flow, the agent may create it after previewing the write
+        and explaining its relationship to P2P state.
+
+        - Reuse existing P2P primitives instead of inventing a parallel specification
+        workflow.'
+      fragment_kind: goals
+      truncated: false
+    - id: VME-3184616defad3869d5509e39
+      source_path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/proposal.md
+      source_sha256: b941019a2bc0c682a31c8d03ff53f289f878bf6e19ac043f1cd26d6d259627e6
+      fragment: '- Do not prohibit users from explicitly requesting a concrete spec
+        file.
+
+        - Do not replace existing P2P proposal, Change Set, spec refresh, or export
+        primitives.
+
+        - Do not implement external artifact registration unless explicitly accepted
+        in a separate proposal.
+
+        - Do not require all non-software projects to follow a software-spec lifecycle.
+
+        - Do not require agents to complete every possible project-definition question
+        before drafting any useful provisional outline.
+
+        - Do not make generated specs authoritative when they contain unresolved questions,
+        inferred details, or unaccepted alternatives.'
+      fragment_kind: non-goals
+      truncated: false
+    - id: VME-4db9c418f207a9419b562382
+      source_path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/proposal.md
+      source_sha256: b941019a2bc0c682a31c8d03ff53f289f878bf6e19ac043f1cd26d6d259627e6
+      fragment: 'Define a software-specific specification lifecycle policy and supporting
+        guidance.
+
+
+        ### Core rule
+
+
+        In software projects, a request for "specs" should normally activate the software
+        vertical and P2P proposal flow. The final spec file is a downstream artifact.
+        It is not the primary project definition and should not be created as independent
+        durable memory by default.
+
+
+        The software vertical should make specification readiness visible by tracking
+        the parts that a useful spec needs, including:
+
+
+        - product or system objective;
+
+        - intended users and actors;
+
+        - scope and MVP boundaries;
+
+        - core use cases and workflows;
+
+        - domain concepts and data model;
+
+        - integrations and external dependencies;
+
+        - constraints, non-functional requirements, and operating assumptions;
+
+        - acceptance criteria and validation strategy;
+
+        - unresolved risks, alternatives, and owner decisions.
+
+
+        These parts may be defined through one proposal or through multiple proposals.
+        For example, one proposal may define the MVP boundary, another may define
+        the data model, another may settle an integration strategy, and another may
+        define agent/MCP behavior. A software spec should be able to derive from that
+        set of accepted or explicitly provisional P2P artifacts.
+
+
+        ### Lifecycle
+
+
+        When the owner asks for specs, the agent should classify the request and route
+        it:
+
+
+        | Owner request | Agent routing | Persistent artifact |
+
+        | --- | --- | --- |
+
+        | "Let''s think through the specs" | Discuss in chat and identify missing
+        vertical fields | None, unless owner asks to persist |
+
+        | "Help me define the system" | Capture project-definition gaps and create/update
+        proposals | P2P proposal/exploration/question artifacts |
+
+        | "Compare possible architectures" | Create alternatives, choices, or competing
+        proposals | P2P proposal/choice artifacts |
+
+        | "Prepare implementation specs" | Identify accepted direction and create/update
+        a Change Set | Change Set, then P2P-native spec |
+
+        | "Export specs for a tool" | Generate/export from P2P-native spec | Generated
+        export |
+
+        | "Create this exact file" | Preview write and explain governance status |
+        Stable documentation or explicit external file |
+
+
+        For exploratory or requirements-level work, readiness is advisory. The agent
+        may draft a provisional outline in chat or P2P exploration material while
+        clearly marking unresolved decisions.
+
+
+        For implementation-oriented specs or downstream exports, readiness should
+        be stricter: there should be a sufficiently accepted direction, resolved blocking
+        choices, and a relevant Change Set before generating a P2P-native spec or
+        export bundle. If that state is missing, the agent should guide the owner
+        to define or accept the missing proposals first.
+
+
+        ### Agent behavior
+
+
+        Generated agent instructions should include a concrete routing rule:
+
+
+        - If the owner asks for "specs" but the software vertical is incomplete, use
+        the vertical to identify missing spec ingredients and ask focused questions
+        or create/update P2P proposals.
+
+        - If the required spec content spans multiple concerns, split it into multiple
+        proposals or choices instead of forcing everything into one monolithic file.
+
+        - If the owner asks for implementation specs, identify the accepted proposal
+        set and relevant Change Set before generating a P2P-native software spec.
+
+        - If the owner asks for a file export, explain whether the file is a generated
+        export, stable documentation, or temporary scratch.
+
+        - If the owner explicitly asks to operate outside P2P, respect that boundary
+        while making clear that the resulting file will not be P2P-governed unless
+        later registered or imported.
+
+
+        Persistent writes must follow PROP-093: preview the operation, target, artifact
+        kind, write class, and reason unless the owner explicitly requested the exact
+        artifact.'
+      fragment_kind: proposal
+      truncated: false
+    - id: VME-62dc6b26e00f744f29b49075
+      source_path: .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/proposal.md
+      source_sha256: b941019a2bc0c682a31c8d03ff53f289f878bf6e19ac043f1cd26d6d259627e6
+      fragment: '- WHEN a project is initialized or refreshed with the software domain,
+        THE SYSTEM SHALL generate agent guidance that treats specs as a downstream
+        capability of the software vertical, not as an immediate standalone file-writing
+        shortcut.
+
+        - WHEN an owner asks an agent for specs in a software project, THE GENERATED
+        GUIDANCE SHALL instruct the agent to classify the request as exploration,
+        project definition, proposal/choice work, Change Set preparation, P2P-native
+        spec generation, export, or explicit stable documentation.
+
+        - WHEN the software vertical is incomplete and the owner asks for specs, THE
+        GENERATED GUIDANCE SHALL instruct the agent to identify missing spec ingredients
+        and route them into P2P project-definition questions, proposal updates, new
+        proposals, or choices before creating durable implementation spec files.
+
+        - WHEN spec content spans multiple concerns, THE GENERATED GUIDANCE SHALL
+        allow and recommend multiple P2P proposals or choices rather than forcing
+        all specification content into one monolithic document.
+
+        - WHEN the owner asks for exploratory or requirements-level spec thinking,
+        THE GENERATED GUIDANCE SHALL allow chat or P2P exploration/proposal material
+        without requiring full readiness, while requiring unresolved assumptions and
+        decisions to be marked clearly.
+
+        - WHEN the owner asks for implementation-oriented specs or downstream exports,
+        THE GENERATED GUIDANCE SHALL require a sufficiently accepted direction, resolved
+        blocking choices, and a relevant Change Set before generating P2P-native specs
+        or export bundles.
+
+        - WHEN the owner explicitly asks for a concrete external spec file, THE GENERATED
+        GUIDANCE SHALL allow the write only with PROP-093 action preview and with
+        a clear statement whether the file is stable documentation, generated export,
+        temporary scratch, or outside P2P governance.
+
+        - Documentation SHALL explain the software-project flow from vertical definition
+        to one or more proposals, choices, accepted direction, Change Set, P2P-native
+        spec, and downstream export.
+
+        - Tests SHALL verify generated guidance and documentation for spec requests,
+        including the routing table, multi-proposal source model, readiness split,
+        and the rule that standalone spec files are not primary untracked project
+        memory.
+
+        - The first implementation slice SHALL reuse existing proposal, readiness,
+        choice, change, spec, and spec export primitives unless a later accepted proposal
+        adds external artifact registration or new spec lifecycle commands.'
+      fragment_kind: acceptance_criteria
+      truncated: false
+  - id: VMC-ba4af4d1a84807ae945131a6
+    proposal_id: PROP-099
+    title: Project Output Lifecycle and Retention Policy
+    section_id: artifacts
+    authority: resolved
+    activation: active
+    effective_state: accepted
+    head_event_id: PDE-5ef0ae2e007f0b6e55b94013
+    head_event_type: accepted
+    rationale: Owner accepts the decision-ready human project publication pipeline
+      as the direction for readable, vertical-aware project outputs.
+    constraints: []
+    applicability: artifacts
+    coverage_rationale: Defines complete export, curated Markdown, validation result,
+      owner-review outcome, PDF, and later publication manifests as explicit deliverables.
+    source_path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/proposal.md
+    proposal_semantic_sha256: 3aa087de6987ac5c32fb7d5b02fbb029285939caa588e67a70ac2bab33523541
+    decision_semantic_sha256: a7eef08e06ed144e46cadc58b7e14050adef348f31a97e99dacbc1d5c3a1616e
+    lineage:
+      kind: null
+      targets: []
+    evidence:
+    - id: VME-e59661e429785a0227a72c3a
+      source_path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/proposal.md
+      source_sha256: 8581dbc712f8378cb6f8b35c129a8a31c505eff83be25acea6d4ef0a22ebbdbc
+      fragment: 'P2P Engine can already transform governed project memory, including
+        ideas, contributions, proposals, decisions, readiness, verticals, Change Sets,
+        Work items, risks, assumptions, and requirements, into a visible project export.
+        That export is complete, traceable, useful as consolidated memory, and derived
+        from the managed .p2p state. The problem is that completeness and editorial
+        readability are different goals. The current export still reflects the internal
+        P2P memory structure: proposal-oriented organization, repeated sections, detailed
+        governance blocks, empty placeholders, long lists of requirements and risks,
+        and historical information mixed with current project state. An owner, stakeholder,
+        contributor, or implementer should not need to reconstruct the project by
+        reading many proposals and internal artifacts. The project needs a human publication
+        pipeline that transforms complete governed memory into a readable, project-first,
+        publishable document.'
+      fragment_kind: problem
+      truncated: false
+    - id: VME-7cd53531e3428369bf9c8bf5
+      source_path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/proposal.md
+      source_sha256: 8581dbc712f8378cb6f8b35c129a8a31c505eff83be25acea6d4ef0a22ebbdbc
+      fragment: '- Define a Human Project Publication Pipeline from governed P2P state
+        to complete export, curated Markdown, publication validation, and neutral
+        PDF.
+
+        - Keep deterministic export, semantic curation, owner review, publication
+        validation, and PDF rendering as independent and inspectable stages.
+
+        - Make the curated document project-first, vertical-aware, traceable, and
+        readable by humans who do not know P2P internals.
+
+        - Define an incremental implementation path with a minimal end-to-end slice
+        first and richer CLI orchestration, publication packages, profiles, and themes
+        later.'
+      fragment_kind: goals
+      truncated: false
+    - id: VME-555ec2cebc9475e511f15446
+      source_path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/proposal.md
+      source_sha256: 8581dbc712f8378cb6f8b35c129a8a31c505eff83be25acea6d4ef0a22ebbdbc
+      fragment: '- Do not make generated outputs a new source of truth; .p2p remains
+        governed project memory.
+
+        - Do not make the curator decide governance outcomes, readiness, implementation
+        status, or owner choices.
+
+        - Do not replace the P2P-native software specification lifecycle, OpenSpec,
+        Spec Kit, or downstream implementation exports.
+
+        - Do not require a fully deterministic curator in the first slice; semantic
+        curation may be agentic but must be bounded by contracts and validation.
+
+        - Do not introduce multiple themes, branding, visual editors, template marketplaces,
+        sophisticated appendices, automatic permanent replacement of project.md, or
+        full MCP parity in the first slice.'
+      fragment_kind: non-goals
+      truncated: false
+    - id: VME-970c56539363ae097e9f4302
+      source_path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/proposal.md
+      source_sha256: 8581dbc712f8378cb6f8b35c129a8a31c505eff83be25acea6d4ef0a22ebbdbc
+      fragment: 'Define PROP-099 as the Human Project Publication Pipeline. The target
+        pipeline is: .p2p managed state to p2p project export to complete project.md,
+        then p2p-project-curator skill to project.curated.md, then publication validation,
+        then owner review, then neutral PDF renderer to project.pdf. The pipeline
+        must remain explicitly separated into independently reviewable stages. The
+        complete export, curated Markdown, validation result, owner review outcome,
+        and rendered PDF should each have clear boundaries so a single stage can be
+        inspected, revised, replaced, or improved without collapsing the whole flow.
+        The existing deterministic export continues to be complete, traceable, regenerable,
+        and close to P2P state. The curator is an agentic semantic editor and is expected
+        to be the primary quality driver for a comprehensible project document: it
+        identifies the central project thesis, reads the active vertical and project
+        definition, adapts structure to the domain, builds a robust narrative thread
+        around the selected vertical and its peculiarities, groups proposals by capability,
+        separates current state from history, distinguishes accepted, implemented,
+        planned, partial, pending, missing, and legacy evidence, removes placeholders
+        and repetition, moves excessive detail to appendices where appropriate, preserves
+        risks and open questions, and maintains traceability. The first slice should
+        use a minimal publication profile to bound variability: audience mixed, depth
+        standard, language project_default, vertical_structure adaptive, include_appendix
+        false by default, and theme neutral-v1. Deterministic stages provide input
+        discipline, contracts, validation, archival behavior, and rendering; they
+        bound and review the curator output, but they must not replace the semantic
+        editorial work. The publication validator is mostly deterministic and checks
+        the document contract: one H1, coherent headings, executive summary, no known
+        placeholders in the main body, no wholesale proposal dumps in the main text,
+        explicit separation of project state and implementation state, accepted/planned/pending/missing
+        distinctions, source-of-truth warning, traceability, vertical-compatible structure,
+        and Markdown suitable for PDF rendering. The neutral PDF renderer consumes
+        only validated curated Markdown and handles presentation, not content. The
+        first implementation should be an end-to-end minimal slice: valid installable
+        p2p-project-curator skill, compact-surfaces-first input discipline, vertical-aware
+        structure, output project.curated.md, minimal publication validation, neutral
+        project.pdf, manual owner review, traceability, and no direct .p2p mutation.
+        Later slices may add CLI orchestration such as project publish prepare, validate,
+        render, and status; publication packages such as project.full.md, project.md,
+        project.appendix.md, project.pdf, publication-manifest.yml, and render-report.yml;
+        and richer publication profiles for audience, depth, language, vertical structure,
+        appendix inclusion, and theme.'
+      fragment_kind: proposal
+      truncated: false
+    - id: VME-7182ca48a5ce0a3957fcc8e2
+      source_path: .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/proposal.md
+      source_sha256: 8581dbc712f8378cb6f8b35c129a8a31c505eff83be25acea6d4ef0a22ebbdbc
+      fragment: '- The proposal defines the Human Project Publication Pipeline and
+        clearly separates governed content, deterministic complete export, agentic
+        editorial curation, publication validation, owner review, and PDF rendering.
+
+        - Each pipeline stage is independently reviewable: complete export, curated
+        Markdown, validation result, owner review outcome, and rendered PDF have explicit
+        boundaries and artifacts or reports.
+
+        - The proposal defines the first implementation slice: installable p2p-project-curator
+        skill, compact-surfaces-first input discipline, vertical-aware curation, project.curated.md,
+        minimal deterministic publication validation, neutral project.pdf, manual
+        owner review, traceability, and no direct .p2p mutation.
+
+        - The proposal defines the agentic curator as the primary quality driver for
+        human comprehensibility, vertical-specific narrative, capability grouping,
+        repetition removal, and robust project-first flow.
+
+        - The proposal defines deterministic stages as boundaries and controls around
+        curation: input discipline, contracts, validation, archival behavior, and
+        presentation-only rendering.
+
+        - The proposal defines a minimal publication profile for the first slice:
+        audience mixed, depth standard, language project_default, adaptive vertical
+        structure, appendix disabled by default, and neutral-v1 theme.
+
+        - The proposal defines status vocabulary for accepted, implemented, planned,
+        partial, pending owner decision, missing evidence, legacy or not assessed,
+        advisory, and blocked material.
+
+        - The proposal defines that project.md remains the complete export in the
+        first slice, while project.curated.md is the owner-review candidate and project.pdf
+        is rendered from the curated validated Markdown.
+
+        - The proposal defines a later migration path where project.full.md preserves
+        the complete export, project.md may become the curated human document, and
+        publication metadata or appendices may be added.
+
+        - The proposal defines publication validation quality gates for headings,
+        placeholders, executive summary, proposal dump avoidance, project versus implementation
+        status separation, traceability, source-of-truth warning, vertical fit, and
+        PDF-ready Markdown.
+
+        - The proposal defines that the PDF renderer is neutral and presentation-only:
+        it must not rewrite content, remove sections, alter evidence status, modify
+        decisions, or reinterpret readiness.
+
+        - The proposal defines alternatives, tradeoffs, risks, assumptions, impact
+        with PROP-083, and out-of-scope boundaries for software-spec and downstream
+        export workflows.'
+      fragment_kind: acceptance_criteria
+      truncated: false
+  - id: VMC-9e55d1d5fdcab77641428378
+    proposal_id: PROP-101
+    title: Project Readiness Convergence Workflow
+    section_id: artifacts
+    authority: resolved
+    activation: active
+    effective_state: accepted
+    head_event_id: PDE-543016c164d3c4566c853c74
+    head_event_type: accepted
+    rationale: The refined proposal addresses the identified readiness-convergence,
+      schema migration, atomicity, authority, retry, vertical reconciliation, decision-context
+      and bounded-retrieval risks with explicit delivery gates and acceptance criteria.
+    constraints: []
+    applicability: artifacts
+    coverage_rationale: Introduces a durable project-question lifecycle artifact or
+      an explicitly selected equivalent persistence contract.
+    source_path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
+    proposal_semantic_sha256: 47d92c16246ec2f341d456d5507ef39ff1152f815f2653f1899d04e152eea932
+    decision_semantic_sha256: 393fddc0e3d2ad7b0ecfbc6bc10051aa99ba14ebcda3164221b4241e6f60641e
+    lineage:
+      kind: null
+      targets: []
+    evidence:
+    - id: VME-8e1cd9c06d57e32d85fbe768
+      source_path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
+      source_sha256: 571e497d3cd674f63f015addcf90aa66bf0356e310f666d3bdc218bf5759da0e
+      fragment: 'P2P Engine can diagnose project readiness but cannot yet drive a
+        project from a diagnosed vertical gap to an auditable owner-reviewed update.
+        The current review identifies incomplete capisaldi, declared evidence and
+        unmapped proposals, but its convergence behavior is incomplete:
+
+
+        - it returns generic advice to complete the definition and rerun the review;
+
+        - some required incomplete sections have no applicable generated question;
+
+        - there is no persistent project-level question lifecycle equivalent to the
+        proposal-question workflow;
+
+        - owner answers are not connected to a governed candidate project-definition
+        patch;
+
+        - project-definition gaps are not coherently prioritized in managed next actions;
+
+        - large legacy proposal lists are emitted without bounded detail or prioritization;
+
+        - progress, readiness and freshness expose useful but separate states without
+        an orchestration contract that closes the loop.
+
+
+        The result is a system that knows what is incomplete but still depends on
+        an agent or owner to reconstruct the next workflow manually across multiple
+        commands and sessions.
+
+
+        The implementation risk is broader than question generation. A naive implementation
+        could create competing authority between project-question state, project definition,
+        decision context, managed next actions and workspace migration state. It could
+        also reuse the existing single-file definition apply in a way that leaves
+        question and definition state partially committed, or register a v1-to-v2
+        migration while still executing the current legacy-to-v1 bootstrap planner.'
+      fragment_kind: problem
+      truncated: false
+    - id: VME-4144a719c351590589d22d8d
+      source_path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
+      source_sha256: 571e497d3cd674f63f015addcf90aa66bf0356e310f666d3bdc218bf5759da0e
+      fragment: '- Model project-readiness gaps as typed, prioritized and explainable
+        records.
+
+        - Give each actionable required-section gap a declared question, a safe deterministic
+        fallback or an explicit no-question diagnostic.
+
+        - Persist project-question lifecycle state, revisions, authority and provenance
+        across sessions.
+
+        - Keep question answers distinct from applied project definition and owner
+        decisions.
+
+        - Render owner-reviewable candidate definition patches and commit definition
+        plus question state through one transaction.
+
+        - Integrate the highest-priority project gap into managed next actions.
+
+        - Preserve independent definition completeness and declared evidence coverage.
+
+        - Keep CLI and MCP contracts deterministic, bounded and semantically aligned.
+
+        - Preserve schema-v1 valid operations and provide a real transition-specific
+        v1-to-v2 migration.
+
+        - Reconcile project questions safely across vertical revisions without re-opening
+        or losing owner evidence.
+
+        - Preserve `PROP-100` authority by keeping unapplied question state non-semantic.
+
+        - Validate generic behavior against this repository without embedding repository-specific
+        policy.'
+      fragment_kind: goals
+      truncated: false
+    - id: VME-06bc3330b93fc264be61867c
+      source_path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
+      source_sha256: 571e497d3cd674f63f015addcf90aa66bf0356e310f666d3bdc218bf5759da0e
+      fragment: '- Agents do not make owner decisions, fabricate owner answers, validate
+        assumptions, complete sections, accept proposals or approve publication.
+
+        - This proposal does not replace proposal readiness or proposal questions.
+
+        - It does not create a second project definition, maturity, progress, next-action,
+        decision-context or freshness engine.
+
+        - It does not automatically declare vertical coverage for legacy proposals.
+
+        - Heuristic matches never become owner-declared evidence automatically.
+
+        - It does not introduce database-backed persistence, a remote registry or
+        hosted orchestration.
+
+        - It does not perform automatic agent curation, publication review or vertical
+        upgrades.
+
+        - It does not remove schema-v1 compatibility, migrate implicitly or bypass
+        the workspace migration lifecycle.
+
+        - It does not use clock-based preview expiry without an explicit durable preview-receipt
+        contract.
+
+        - It does not treat migration absence of a legacy question as evidence that
+        a question was answered or applied.'
+      fragment_kind: non-goals
+      truncated: false
+    - id: VME-07c4d9c35555fb592d73de1e
+      source_path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
+      source_sha256: 571e497d3cd674f63f015addcf90aa66bf0356e310f666d3bdc218bf5759da0e
+      fragment: 'Introduce a `Project Readiness Convergence` application service above
+        the project vertical, definition, question-state, permission, migration, next-action,
+        progress, freshness and decision-context services. It owns orchestration and
+        result composition, while existing services retain authority over their canonical
+        data.
+
+
+        The convergence service must be request-scoped or explicitly invalidated.
+        It must load one immutable source snapshot and must not retain stale definition,
+        lock, question, evidence or schema state through the memoized workspace service
+        facade.
+
+
+        ### Contract 1 - Typed Gap Inventory
+
+
+        A gap record must include at least:
+
+
+        - stable gap id and policy version;
+
+        - snapshot fingerprint;
+
+        - vertical id, version, lock checksum and section id;
+
+        - gap kind, severity, applicability and lifecycle condition;
+
+        - definition status and missing fields;
+
+        - declared evidence references and separately labelled heuristic suggestions;
+
+        - assumption, blocker or owner-decision state when applicable;
+
+        - required authority and whether owner input is needed;
+
+        - current question reference and revision, if any;
+
+        - deterministic next operation and explanation;
+
+        - source hashes needed for stale detection.
+
+
+        Initial gap classes must distinguish:
+
+
+        - blocked required section;
+
+        - unresolved owner decision;
+
+        - incomplete required project definition;
+
+        - assumption requiring validation;
+
+        - answered question not yet applied;
+
+        - stale or incompatible question/definition state;
+
+        - optional declared-evidence curation;
+
+        - informational legacy or heuristic state.
+
+
+        Priority is versioned, deterministic and explainable. The order confirmed
+        in Q004 is:
+
+
+        1. integrity, compatibility and authority blockers plus explicit owner-decision
+        blockers;
+
+        2. owner answers already received but not yet applied;
+
+        3. incomplete required definition sections;
+
+        4. assumptions to validate ordered by declared dependency impact;
+
+        5. optional declared-evidence curation;
+
+        6. informational legacy state.
+
+
+        Within one class, vertical section priority and stable gap or question id
+        provide tie-breaking. Results expose class, rationale and tie-break inputs
+        instead of an opaque aggregate score. Missing dependency metadata must use
+        a documented neutral fallback and must not be inferred from free text.
+
+
+        ### Contract 2 - Project-Question Persistence And Identity
+
+
+        Project questions are distinct from proposal questions. They are linked to
+        active vertical sections and project-definition gaps, not to proposal readiness
+        criteria.
+
+
+        Workspace schema v2 owns one registered project-question artifact contract
+        at a deterministic engine-managed location. The exact path, root key and artifact
+        schema version must be declared in feature specifications and owned by one
+        `ProjectQuestionStateService`; callers and adapters may not derive alternate
+        paths.
+
+
+        Each record preserves:
+
+
+        - stable question id and stable identity key;
+
+        - question revision and presentation-text hash;
+
+        - group and gap id;
+
+        - vertical section and target field, assumption, blocker or owner-decision
+        reference;
+
+        - priority and rationale;
+
+        - declared, deterministic-fallback or migrated-legacy source type;
+
+        - source vertical id/version/checksum and fallback policy version;
+
+        - current lifecycle state and applicability;
+
+        - answer revisions, provided-by authority, recorded-by actor and provenance;
+
+        - created, updated, answered, applied and terminal timestamps;
+
+        - apply operation, preview and definition references;
+
+        - transition history and supersession links.
+
+
+        Stable identity is based on semantic target, not wording or audit timestamps.
+        It includes vertical id, section id, gap kind, target field or domain object,
+        and declared question id or deterministic fallback key. Vertical checksum,
+        wording hash and policy version identify a revision but do not by themselves
+        create a new identity.
+
+
+        Wording-only changes preserve identity, answer and lifecycle state while appending
+        a revision. A changed semantic target creates a replacement and supersedes
+        the old question. Reassessment cannot reopen cl'
+      fragment_kind: proposal
+      truncated: true
+    - id: VME-f1697d3e0d10afbe5607fa81
+      source_path: .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
+      source_sha256: 571e497d3cd674f63f015addcf90aa66bf0356e310f666d3bdc218bf5759da0e
+      fragment: '1. Readiness returns deterministic typed gaps with explicit kind,
+        severity, authority, evidence basis, snapshot fingerprint and next operation.
+
+        2. Blockers, definition gaps, assumptions, answered-not-applied work, optional
+        evidence and informational legacy state remain distinguishable.
+
+        3. Every required incomplete section produces an applicable declared/fallback
+        question or `no_safe_question` diagnostic.
+
+        4. Project-question state persists lifecycle, revision, provenance, authority
+        and history without conflation with proposal questions.
+
+        5. Stable identity excludes wording and audit timestamps; wording-only reassessment
+        cannot reopen or duplicate work.
+
+        6. A documented transition matrix rejects invalid states before writes and
+        defines authority for every mutation.
+
+        7. Caller-controlled `source=owner` or actor strings cannot create owner-confirmed
+        answer authority by themselves.
+
+        8. Answers do not change definition, validate assumptions or resolve owner
+        decisions by themselves.
+
+        9. Candidate preview includes semantic diff, affected gaps, both candidate
+        hashes and all canonical source preconditions without writing state.
+
+        10. Apply requires owner authority and a token bound to actor, definition,
+        question state, vertical lock, both candidates and policy versions.
+
+        11. Definition and question state commit through one multi-target transaction;
+        sequential canonical commits are not used.
+
+        12. Failure injection proves no committed definition can reference an unapplied
+        question and no applied question can lack its definition commit.
+
+        13. Exact retry after a successful commit returns `already_applied`; divergent
+        token reuse, changed locks and changed sources are rejected.
+
+        14. Audit timestamps and generated observation times do not destabilize semantic
+        hashes or retries.
+
+        15. Vertical reconciliation preserves wording-only revisions, supersedes semantic
+        changes, retires removed targets and never copies answers automatically.
+
+        16. Managed next actions surface the highest-priority actionable project gap
+        with stable deduplication and no self-loop when a concrete operation exists.
+
+        17. Deferred and muted questions suppress re-ask according to policy without
+        hiding residual project gaps.
+
+        18. Definition completeness and declared evidence coverage remain independent;
+        question counts do not become an aggregate readiness percentage.
+
+        19. Freshness reports downstream impact and never auto-runs refresh, curation,
+        publication or owner review.
+
+        20. Project-question sources are cataloged as inactive metadata/evidence until
+        definition apply and cannot create active decisions or duplicate applied content.
+
+        21. Default CLI/MCP output is bounded; full legacy/history detail requires
+        explicit limit and snapshot-bound pagination.
+
+        22. A cursor used against a changed snapshot returns `stale_cursor` rather
+        than inconsistent continuation.
+
+        23. A v2 runtime distinguishes undeclared v0, upgradeable v1, current v2,
+        ahead, invalid and recovery-required workspaces.
+
+        24. Migration planning dispatches transition-specific handlers; v1-to-v2 never
+        executes legacy-to-v1 bootstrap ownership.
+
+        25. The v1-to-v2 transition is registered, forward-only, dry-run plannable,
+        transactional, idempotent and recoverable.
+
+        26. Every valid legacy open question is preserved once with section-scoped
+        identity; absence never fabricates an answered/applied state.
+
+        27. Ambiguous legacy ids, sections, fields, statuses or texts produce typed
+        blocking diagnostics without partial migration.
+
+        28. The v1-to-v2 transaction copies legacy questions and normalizes definition
+        `open_questions` to empty atomically; v2 validation rejects their reintroduction
+        and only the dedicated artifact remains authoritative.
+
+        29. Every v1-valid read/write remains available and each v2-dependent operation
+        is blocked centrally before writes with actionable migration diagnostics.
+
+        30. Fresh v2 workspace initialization and later vertical selection create/reconcile
+        valid question state without implicit owner content.
+
+        31. CLI and MCP read payloads a'
+      fragment_kind: acceptance_criteria
+      truncated: true
+  - id: VMC-79357c5b57d49b5d3b547c8d
+    proposal_id: PROP-102
+    title: Proposal Decision Revision and Revocation Lifecycle
+    section_id: artifacts
+    authority: resolved
+    activation: active
+    effective_state: accepted
+    head_event_id: PDE-568a29c09673a60b82d5ae8a
+    head_event_type: accepted
+    rationale: La proposta definisce in modo completo e verificabile il lifecycle
+      delle decisioni, distinguendo rifiuto, revoca, sostituzione e reinstatement,
+      con autorita owner, migrazione legacy, impatto sui consumer e criteri di robustezza.
+      La readiness e decision_ready al 100%, con confidenza alta e senza gap o gate
+      falliti.
+    constraints: []
+    applicability: artifacts
+    coverage_rationale: Introduces a versioned canonical decision-event ledger and
+      compatible current-status and human-readable decision projections.
+    source_path: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/proposal.md
+    proposal_semantic_sha256: 87c69d8a92dd62ac2ea47b6d020cee70dc8c2efaf159d68fc884322e9448131c
+    decision_semantic_sha256: 9515a8ba8394a52c529447f48a92829513ccce7127ce2a5378dc8f551374fc13
+    lineage:
+      kind: null
+      targets: []
+    evidence:
+    - id: VME-43062e3e83542d81e50ad6bf
+      source_path: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/proposal.md
+      source_sha256: 438da30da1aaf991adc2c4873260c253862f5c7292bdb64807e43030267eb16d
+      fragment: 'P2P currently represents a proposal decision primarily as one current
+        outcome.
+
+        The decision write path replaces `decision.md` and then replaces the status
+        in
+
+        `proposal.md`, without validating the previous lifecycle state or preserving
+        a
+
+        queryable sequence of owner decisions.
+
+
+        As a result, an accepted proposal can be rewritten as rejected. The current
+
+        workspace then appears to say that the proposal was never adopted, even though
+
+        it may already have influenced project definition, Change Sets, Work,
+
+        specifications, implementation, publication and later decisions. Git can
+
+        recover earlier bytes, but normal validation, retrieval and derived-state
+
+        consumers do not use Git history as the proposal decision model.
+
+
+        The model also lacks a precise distinction between rejection before adoption,
+
+        withdrawal before decision, revocation after acceptance, replacement,
+
+        reinstatement and downstream deprecation. Without that distinction, future
+
+        decision-memory consolidation cannot reliably determine which decisions are
+
+        active, historical, previously active, replaced or merely deferred.'
+      fragment_kind: problem
+      truncated: false
+    - id: VME-ea9c54a4d313f4621a7a4cfd
+      source_path: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/proposal.md
+      source_sha256: 438da30da1aaf991adc2c4873260c253862f5c7292bdb64807e43030267eb16d
+      fragment: "- Preserve an append-only, queryable history of proposal decision\
+        \ events,\n  including rationale, owner authority, date, predecessor and lineage.\n\
+        - Derive current proposal status and authority deterministically from the\
+        \ valid\n  event sequence.\n- Define an exhaustive transition matrix with\
+        \ exact retry, invalid transition\n  and reconsideration behavior.\n- Distinguish\
+        \ initial rejection from withdrawal, revocation, supersession,\n  reinstatement\
+        \ and downstream deprecation.\n- Make decision mutations owner-controlled,\
+        \ previewed, source-bound,\n  stale-safe, atomic, idempotent where appropriate\
+        \ and recoverable.\n- Keep current CLI and human-readable status views available\
+        \ as projections\n  during a forward compatibility transition.\n- Migrate\
+        \ current single-decision artifacts without inventing missing owner\n  evidence\
+        \ or erasing legacy values.\n- Propagate lifecycle authority consistently\
+        \ to validation, registries,\n  project projections, decision context, relations,\
+        \ vertical evidence, Change\n  Sets, Work, software specifications, next actions\
+        \ and publication.\n- Produce explicit impact and remediation guidance without\
+        \ automatically\n  changing dependent owner-controlled lifecycles.\n- Establish\
+        \ the stable authority and lineage contract required by future\n  thematic\
+        \ decision-memory consolidation."
+      fragment_kind: goals
+      truncated: false
+    - id: VME-689bd9fd5d8f1065457d75d1
+      source_path: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/proposal.md
+      source_sha256: 438da30da1aaf991adc2c4873260c253862f5c7292bdb64807e43030267eb16d
+      fragment: "- Physically delete accepted, rejected, revoked or superseded proposals.\n\
+        - Rewrite history so that a previously accepted decision appears never to\
+        \ have\n  been active.\n- Automatically roll back source code, deployments,\
+        \ completed Change Sets,\n  Work or external effects.\n- Automatically cancel,\
+        \ supersede, complete or reopen dependent lifecycle\n  objects.\n- Implement\
+        \ thematic proposal compaction, persistent decision-context caching\n  or\
+        \ publication curator refinement.\n- Treat `deprecated` as another proposal\
+        \ decision outcome.\n- Allow an agent-supplied actor string to establish owner\
+        \ authority.\n- Conflate proposal-decision rejection with managed proposal-branch\
+        \ rejection."
+      fragment_kind: non-goals
+      truncated: false
+    - id: VME-b129ff83eb9d0f84c5bc6e45
+      source_path: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/proposal.md
+      source_sha256: 438da30da1aaf991adc2c4873260c253862f5c7292bdb64807e43030267eb16d
+      fragment: '### Decision Event Model
+
+
+        Introduce one versioned canonical decision-event ledger per proposal. The
+
+        ledger is the semantic source for proposal decision history. `proposal.md`
+
+        status and the human-readable current decision remain compatible projections
+
+        of the ledger rather than independent authority sources.
+
+
+        Every event must include enough structured data to validate and reconstruct
+        the
+
+        lifecycle:
+
+
+        - schema and event identity;
+
+        - proposal identity;
+
+        - event type and resulting effective state;
+
+        - rationale;
+
+        - owner/approver identity and validated authority provenance;
+
+        - canonical decision date;
+
+        - predecessor event identity and integrity evidence;
+
+        - semantic fingerprint of the decision being affected;
+
+        - optional replacement, split or merge lineage;
+
+        - optional impact-preview binding;
+
+        - migration provenance when derived from a legacy artifact.
+
+
+        Audit timestamps, file mtimes and Git author metadata must not determine event
+
+        identity or manufacture owner evidence. The design will define the exact file
+
+        name, serialization, predecessor/hash protection and recovery format. Replacing
+
+        the single-ledger direction requires explicit technical evidence.
+
+
+        ### Effective State Projection
+
+
+        Current status, decision authority and active/historical classification are
+
+        derived from the validated event head and lineage. A stored projection that
+
+        does not match the ledger is stale or invalid; it cannot silently override
+        the
+
+        ledger.
+
+
+        The public vocabulary has distinct meanings:
+
+
+        | Event or state | Preconditions | Effective result |
+
+        | --- | --- | --- |
+
+        | `accepted` | Proposal has never been active, or exact retry | Active |
+
+        | `accepted_with_changes` | Proposal has never been active, or exact retry
+        | Active and qualified |
+
+        | `deferred` | Proposal is undecided, or exact retry | Unresolved |
+
+        | `withdrawn` | Proposal has never been active | Historical, never active
+        |
+
+        | `rejected` | Proposal has never been active | Historical, never active |
+
+        | `revoked` | Current authority is accepted or conditionally accepted | Historical,
+        previously active |
+
+        | `superseded` | Current authority is active and replacement lineage is valid
+        | Historical with explicit replacement |
+
+        | `split` | Valid explicit split targets exist | Historical with split lineage
+        |
+
+        | `merged_into_other` | Valid explicit merge target exists | Historical with
+        merge lineage |
+
+        | `reinstated` | Exact previously revoked decision is restored | Returns to
+        the referenced prior active authority |
+
+
+        `deprecated` belongs to downstream operational policy and cannot be used to
+
+        replace a proposal decision event.
+
+
+        Rejected or withdrawn proposals are reconsidered through a new linked proposal.
+
+        A revoked decision may be reinstated only when:
+
+
+        - its semantic fingerprint is identical to the referenced prior decision;
+
+        - the revocation event is referenced explicitly;
+
+        - a current impact preview is bound to the operation;
+
+        - owner authority is validated again;
+
+        - no dependent technical effect is assumed to be restored.
+
+
+        Any changed content, condition or constraint requires a new linked proposal.
+
+
+        ### Transition And Retry Rules
+
+
+        The implementation specification must provide a complete matrix for every
+
+        current state and requested event. Invalid transitions fail before writes.
+
+
+        Repeating the exact same operation with the same source head, semantic payload,
+
+        owner authority and idempotency identity returns the already-applied result.
+
+        Reusing an operation identity with different inputs, applying against a changed
+
+        head or attempting to reorder history fails with a stable diagnostic.
+
+
+        The model must also specify:
+
+
+        - whether an event is terminal or may have a later valid successor;
+
+        - required lineage fields;
+
+        - no-op and exact-retry behavior;
+
+        - stale preview behavior;
+
+        - concurrent-head conflict behavior;
+
+        - recovery after interruption;
+
+        - explicit repair behavior for corrupted or divergent projections.
+
+
+        ### Governed Mutation
+
+
+        All decision writes use one domain service shared by CLI and permission-gated
+
+        MCP. A write requires:
+
+
+        1. validated owner'
+      fragment_kind: proposal
+      truncated: true
+    - id: VME-dd21ed9fafc64cab882a65da
+      source_path: .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/proposal.md
+      source_sha256: 438da30da1aaf991adc2c4873260c253862f5c7292bdb64807e43030267eb16d
+      fragment: "- The public model defines mutually exclusive semantics for withdrawal,\n\
+        \  rejection, revocation, supersession, reinstatement and downstream\n  deprecation.\n\
+        - A versioned canonical ledger preserves every valid decision event; supported\n\
+        \  operations cannot overwrite, delete or reorder prior history.\n- Current\
+        \ proposal status and current-decision views are deterministic\n  projections\
+        \ and validation detects divergence.\n- The specification contains an exhaustive\
+        \ state/event transition matrix,\n  including prerequisites, lineage, exact\
+        \ retry, no-op and prohibited cases.\n- Initial rejection is allowed only\
+        \ before adoption; reversing an accepted\n  decision records revocation or\
+        \ supersession and preserves the acceptance.\n- Reinstatement is accepted\
+        \ only for an identical semantic fingerprint, a\n  referenced revocation,\
+        \ current impact preview and new owner authorization.\n- Changed content,\
+        \ conditions or constraints require a new linked proposal.\n- Authority-changing\
+        \ operations require owner authority, source-bound preview,\n  confirmation,\
+        \ unchanged preconditions, locking and atomic replacement.\n- Exact retries\
+        \ are idempotent; divergent token reuse, concurrent heads and\n  stale sources\
+        \ fail without partial writes.\n- CLI and permission-gated MCP call the same\
+        \ lifecycle service and expose\n  equivalent results and diagnostics.\n- Proposal-decision\
+        \ rejection and managed-branch rejection remain separate and\n  cannot trigger\
+        \ each other implicitly.\n- Revocation impact preview identifies active and\
+        \ completed dependencies,\n  affected authority, stale artifacts and explicit\
+        \ remediation options.\n- Revocation does not automatically mutate Change\
+        \ Set, Work, specification,\n  implementation, deployment or external lifecycle\
+        \ state.\n- Revoked, rejected, withdrawn, split, merged and superseded decisions\
+        \ remain\n  available as correctly labelled historical context.\n- Inactive\
+        \ decisions are excluded from active project projections and cannot be\n \
+        \ rendered as current constraints.\n- Existing single-decision workspaces\
+        \ remain readable and have a deterministic,\n  registered, forward-only migration\
+        \ to the next workspace schema.\n- Migration preserves valid legacy values,\
+        \ represents missing or malformed data\n  as `unknown_legacy`, retains provenance\
+        \ and never infers owner evidence from\n  Git metadata.\n- Ambiguous legacy\
+        \ authority blocks later revision but does not prevent\n  loss-aware preservation\
+        \ of the historical record.\n- Migration is dry-run plannable, atomic, idempotent,\
+        \ recoverable and covered by\n  aligned, divergent, malformed, interrupted\
+        \ and concurrent fixtures.\n- Every downstream consumer uses the centralized\
+        \ lifecycle-authority contract\n  or an explicitly versioned compatible projection.\n\
+        - Stable next actions distinguish decision remediation from technical rollback\n\
+        \  and do not duplicate on repeated refresh.\n- Future consolidated memory\
+        \ can bind to stable event identity, effective\n  authority, lineage and freshness\
+        \ without reading an overwrite-shaped\n  decision.\n- Documentation explains\
+        \ the lifecycle, migration, owner boundary, branch\n  distinction and non-automatic\
+        \ rollback behavior.\n- Focused, public, full and migrated-workspace validation\
+        \ complete without\n  unexplained errors, warnings or canonical history loss."
+      fragment_kind: acceptance_criteria
+      truncated: false
+  historical_contributions: []
+  conflicts: []
+  diagnostics: []

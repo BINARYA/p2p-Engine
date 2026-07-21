@@ -12,6 +12,7 @@ import yaml
 
 from p2p_engine.cli_shared import console, fail
 from p2p_engine.cli_shared import workspace as workspace_for
+from p2p_engine.foundation.yaml_loaders import load_yaml
 
 
 PROJECT_QUESTION_ANSWER_MAX_BYTES = 64 * 1024
@@ -356,7 +357,7 @@ def _load_answer_file(
             "P2P353_READINESS_PAYLOAD_LIMIT: answer input exceeds 64 KiB."
         )
     try:
-        payload = yaml.safe_load(resolved.read_text(encoding="utf-8"))
+        payload = load_yaml(resolved.read_bytes())
     except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
         raise ValueError(f"Invalid project question answer input: {exc}") from exc
     if not isinstance(payload, Mapping) or set(payload) != {"project_question_answer"}:

@@ -266,3 +266,22 @@ def test_schema_v2_global_validation_rejects_competing_definition_questions(tmp_
     result = workspace.validate()
 
     assert any(item.code == "P2P354_LEGACY_PROJECT_QUESTIONS_PRESENT" for item in result.findings)
+@pytest.mark.service
+def test_schema_preflight_does_not_validate_every_proposal_ledger(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Preflight", owner="owner")
+    proposal = workspace.create_proposal_with_details(
+        "Broken ledger",
+        problem="Exercise preflight separation.",
+        proposal="Keep preflight bounded.",
+    )
+    proposal_dir = workspace._proposal_document_service().find_dir(proposal.proposal_id)
+    (proposal_dir / "decision-events.yml").write_text("invalid: [\n", encoding="utf-8")
+
+    preflight = workspace.workspace_schema_preflight()
+    deep = workspace.workspace_schema_status()
+
+    assert preflight.layout_status == "current"
+    assert preflight.current_version == 3
+    assert not hasattr(preflight, "findings")
+    assert any(item.code == "P2P361_DECISION_LEDGER_INVALID" for item in deep.findings)

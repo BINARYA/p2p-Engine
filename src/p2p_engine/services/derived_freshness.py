@@ -15,6 +15,7 @@ from p2p_engine.core.derived_freshness import (
     FreshnessRebuildAction,
 )
 from p2p_engine.core.mutation_preview import semantic_sha256
+from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.services.lifecycle_authority import (
     PROPOSAL_LIFECYCLE_AUTHORITY_POLICY_VERSION,
     is_active_project_projection,
@@ -42,20 +43,21 @@ SOFTWARE_SPEC_OUTPUT_PATTERNS = tuple(
 NODE_CATALOG: tuple[FreshnessNodeDefinition, ...] = (
     FreshnessNodeDefinition("canonical_sources", (), "canonical", "none", "", ()),
     FreshnessNodeDefinition("registries", ("canonical_sources",), "RegistryService", "deterministic", "p2p registry refresh", REGISTRY_OUTPUT_PATTERNS),
-    FreshnessNodeDefinition("project_projections", ("canonical_sources", "registries"), "ProjectStateService", "deterministic", "p2p project refresh", (".p2p/project/overview.md", ".p2p/project/problem.md", ".p2p/project/scope.md", ".p2p/project/project-swot.md", ".p2p/project/decisions-map.yml", ".p2p/project/features/*/*", ".p2p/project/projection-manifest.yml"), source_classes=("accepted_proposals",), source_patterns=(".p2p/proposals/**/*",)),
+    FreshnessNodeDefinition("vertical_project_memory", ("canonical_sources",), "VerticalProjectMemoryService", "deterministic", "p2p project refresh", (".p2p/project/vertical-memory/**/*.yml",), source_classes=("project_definition", "project_questions", "accepted_proposals", "decision_sources", "declared_vertical_coverage"), source_patterns=(".p2p/project/vertical.yml", ".p2p/project/vertical.lock.yml", ".p2p/project/definition.yml", ".p2p/project/questions.yml", ".p2p/project/conflicts.yml", ".p2p/proposals/**/*", ".p2p/choices/**/*", ".p2p/verticals/**/*")),
+    FreshnessNodeDefinition("project_projections", ("vertical_project_memory", "registries"), "ProjectStateService", "deterministic", "p2p project refresh", (".p2p/project/overview.md", ".p2p/project/problem.md", ".p2p/project/scope.md", ".p2p/project/project-swot.md", ".p2p/project/decisions-map.yml", ".p2p/project/features/*/*", ".p2p/project/projection-manifest.yml")),
     FreshnessNodeDefinition("decision_context", ("canonical_sources",), "ProjectDecisionContextService", "deterministic", "p2p context --budget small", (), "durable_decision_context_snapshot_refresh", source_classes=("decision_sources", "project_definition", "project_questions"), source_patterns=(".p2p/proposals/**/*", ".p2p/choices/**/*", ".p2p/changes/**/*", ".p2p/work/**/*", ".p2p/project/definition.yml", ".p2p/project/questions.yml")),
-    FreshnessNodeDefinition("assessment", ("registries", "project_projections", "decision_context"), "ProjectAssessmentService", "deterministic", "p2p assess refresh", (".p2p/project/assessment.yml",), source_classes=("project_definition",), source_patterns=(".p2p/project/definition.yml",)),
-    FreshnessNodeDefinition("maturity_progress", ("project_projections", "decision_context"), "ProjectMaturityService+ProjectProgressService", "deterministic", "p2p assess maturity refresh", (".p2p/project/maturity-assessment.yml",), source_classes=("project_definition", "project_questions"), source_patterns=(".p2p/project/definition.yml", ".p2p/project/questions.yml")),
+    FreshnessNodeDefinition("assessment", ("registries", "project_projections", "decision_context", "vertical_project_memory"), "ProjectAssessmentService", "deterministic", "p2p assess refresh", (".p2p/project/assessment.yml",)),
+    FreshnessNodeDefinition("maturity_progress", ("project_projections", "decision_context", "vertical_project_memory"), "ProjectMaturityService+ProjectProgressService", "deterministic", "p2p assess maturity refresh", (".p2p/project/maturity-assessment.yml",)),
     FreshnessNodeDefinition("brief_context_prompt", ("registries", "project_projections"), "ProjectStateService", "deterministic", "p2p project brief prompt", (".p2p/project/brief-context.md", ".p2p/project/brief.prompt.md"), source_classes=("project_definition",), source_patterns=(".p2p/project/definition.yml",)),
     FreshnessNodeDefinition("operational_brief", ("brief_context_prompt",), "owner_or_agent", "agent_curated", "p2p project brief import <source>", (".p2p/project/operational-brief.md",)),
-    FreshnessNodeDefinition("next_actions", ("operational_brief", "decision_context"), "NextActionService", "owner_review", "p2p next refresh", (".p2p/project/next-actions.yml",), source_classes=("project_definition", "project_questions"), source_patterns=(".p2p/project/definition.yml", ".p2p/project/questions.yml")),
-    FreshnessNodeDefinition("software_specs", ("canonical_sources", "project_projections"), "SoftwareSpecService", "deterministic", "p2p spec refresh --change <CHANGE-ID>", SOFTWARE_SPEC_OUTPUT_PATTERNS, source_classes=("accepted_proposals", "change_sets"), source_patterns=(".p2p/proposals/**/*", ".p2p/changes/**/*")),
+    FreshnessNodeDefinition("next_actions", ("operational_brief", "decision_context", "vertical_project_memory"), "NextActionService", "owner_review", "p2p next refresh", (".p2p/project/next-actions.yml",)),
+    FreshnessNodeDefinition("software_specs", ("canonical_sources",), "SoftwareSpecService", "deterministic", "p2p spec refresh --change <CHANGE-ID>", SOFTWARE_SPEC_OUTPUT_PATTERNS, source_classes=("accepted_proposals", "change_sets"), source_patterns=(".p2p/proposals/**/*", ".p2p/changes/**/*")),
     FreshnessNodeDefinition("visible_export", ("project_projections", "maturity_progress", "software_specs"), "VisibleProjectExportService", "deterministic", "p2p project export", ("outputs/latest/project.md",), source_classes=("project_definition",), source_patterns=(".p2p/project/definition.yml",)),
-    FreshnessNodeDefinition("publication_packet", ("visible_export",), "ProjectPublicationService", "deterministic", "p2p project publish prepare", ("outputs/latest/publication-profile.yml", "outputs/latest/curator-input.md", "outputs/latest/publication-manifest.yml")),
-    FreshnessNodeDefinition("curated_publication", ("publication_packet",), "project_curator", "agent_curated", "p2p project publish import <source>", ("outputs/latest/project.curated.md",)),
-    FreshnessNodeDefinition("publication_validation", ("curated_publication",), "ProjectPublicationValidator", "deterministic", "p2p project publish validate", ("outputs/latest/publication-validation.yml",)),
-    FreshnessNodeDefinition("publication_render", ("publication_validation",), "ProjectPublicationService", "deterministic", "p2p project publish render", ("outputs/latest/project.pdf",)),
-    FreshnessNodeDefinition("publication_review", ("publication_render",), "owner", "owner_review", "p2p project publish review --status approved --reviewer <owner>", ("outputs/latest/publication-review.yml",)),
+    FreshnessNodeDefinition("publication_packet", ("visible_export",), "ProjectPublicationService", "deterministic", "p2p project publish prepare --language en --output-name project", ("outputs/latest/publication-evidence.yml", "outputs/latest/publications/project-en/profile.yml", "outputs/latest/publications/project-en/curator-input.md", "outputs/latest/publications/project-en/manifest.yml")),
+    FreshnessNodeDefinition("curated_publication", ("publication_packet",), "project_curator", "agent_curated", "p2p project publish import <markdown> --model <model> --evidence-accounting <accounting>", ("outputs/latest/project-en.md", "outputs/latest/publications/project-en/project-model.yml", "outputs/latest/publications/project-en/evidence-accounting.yml")),
+    FreshnessNodeDefinition("publication_validation", ("curated_publication",), "ProjectPublicationValidator", "deterministic", "p2p project publish validate --language en --output-name project", ("outputs/latest/publications/project-en/validation.yml",)),
+    FreshnessNodeDefinition("publication_render", ("publication_validation",), "ProjectPublicationService", "deterministic", "p2p project publish render --language en --output-name project", ("outputs/latest/project-en.pdf",)),
+    FreshnessNodeDefinition("publication_review", ("publication_render",), "owner", "owner_review", "p2p project publish review --language en --output-name project --status approved --reviewer <owner>", ("outputs/latest/publications/project-en/review.yml",)),
 )
 
 
@@ -72,6 +74,8 @@ class DerivedFreshnessService:
         software_spec_statuses: Callable[[], list[Any]],
         visible_export_status: Callable[[], Any],
         publication_status: Callable[[], Any],
+        vertical_memory_status: Callable[[], Any] | None = None,
+        vertical_memory_view: Callable[[], Any] | None = None,
     ) -> None:
         self.root = root.resolve()
         self.p2p_dir = p2p_dir.resolve()
@@ -82,6 +86,8 @@ class DerivedFreshnessService:
         self.software_spec_statuses = software_spec_statuses
         self.visible_export_status = visible_export_status
         self.publication_status = publication_status
+        self.vertical_memory_status = vertical_memory_status
+        self.vertical_memory_view = vertical_memory_view
         self._order = validate_freshness_graph(NODE_CATALOG)
 
     def status(
@@ -91,18 +97,37 @@ class DerivedFreshnessService:
         decision_context_index_snapshot: Any | None = None,
         proposal_summaries_snapshot: list[Any] | None = None,
     ) -> DerivedFreshnessStatus:
+        digest_cache: dict[Path, bytes] = {}
+        relative_cache: dict[Path, str] = {}
+        source_pattern_cache: dict[str, tuple[Path, ...]] = {}
+        output_pattern_cache: dict[str, tuple[Path, ...]] = {}
         canonical_paths = self._canonical_paths()
-        canonical_fingerprint = _paths_fingerprint(self.root, canonical_paths)
+        canonical_fingerprint = _paths_fingerprint(
+            self.root,
+            canonical_paths,
+            digest_cache=digest_cache,
+            relative_cache=relative_cache,
+        )
         node_by_id: dict[str, FreshnessNode] = {}
         registry = registry_status_snapshot if registry_status_snapshot is not None else self.registry_status()
+        memory_status = self.vertical_memory_status() if self.vertical_memory_status else None
+        memory_view = None
+        if (
+            str(getattr(memory_status, "state", "")) == "current"
+            and self.vertical_memory_view is not None
+        ):
+            try:
+                memory_view = self.vertical_memory_view()
+            except ValueError:
+                memory_view = None
         publication = self._publication_status()
         publication_stages = {
             str(getattr(stage, "name", "")): stage
             for stage in getattr(publication, "stages", ())
         } if publication is not None else {}
         for definition in self._order:
-            outputs = self._output_paths(definition)
-            direct_sources = self._source_paths(definition)
+            outputs = self._output_paths(definition, cache=output_pattern_cache)
+            direct_sources = self._source_paths(definition, cache=source_pattern_cache)
             dependency_nodes = [node_by_id[node_id] for node_id in definition.dependencies]
             source_fingerprint = semantic_sha256(
                 {
@@ -110,7 +135,12 @@ class DerivedFreshnessService:
                     "dependencies": {
                         node.node_id: node.current_fingerprint_sha256 for node in dependency_nodes
                     },
-                    "direct_sources": _paths_fingerprint(self.root, direct_sources),
+                    "direct_sources": _paths_fingerprint(
+                        self.root,
+                        direct_sources,
+                        digest_cache=digest_cache,
+                        relative_cache=relative_cache,
+                    ),
                     "source_classes": list(definition.source_classes),
                     "lifecycle_authority_policy_version": PROPOSAL_LIFECYCLE_AUTHORITY_POLICY_VERSION,
                     "decision_ledger_contract_version": LEDGER_CONTRACT_VERSION,
@@ -123,7 +153,12 @@ class DerivedFreshnessService:
                     ),
                 }
             )
-            output_fingerprint = _paths_fingerprint(self.root, outputs)
+            output_fingerprint = _paths_fingerprint(
+                self.root,
+                outputs,
+                digest_cache=digest_cache,
+                relative_cache=relative_cache,
+            )
             current_fingerprint = canonical_fingerprint if definition.node_id == "canonical_sources" else semantic_sha256(
                 {"source": source_fingerprint, "output": output_fingerprint}
             )
@@ -139,6 +174,12 @@ class DerivedFreshnessService:
                 elif not outputs:
                     status = "missing"
                     reasons.append("registry_outputs_missing")
+            elif definition.node_id == "vertical_project_memory":
+                memory = memory_status
+                memory_state = str(getattr(memory, "state", "missing"))
+                status = "current" if memory_state == "current" else memory_state
+                recorded = str(getattr(memory, "source_fingerprint_sha256", ""))
+                reasons.append(str(getattr(memory, "reason", "vertical_memory_not_available")))
             elif definition.node_id == "project_projections":
                 accepted_snapshot = (
                     _accepted_projection_records(self.p2p_dir, proposal_summaries_snapshot)
@@ -149,6 +190,9 @@ class DerivedFreshnessService:
                     source_fingerprint,
                     outputs,
                     accepted_snapshot=accepted_snapshot,
+                    vertical_memory_source_fingerprint=str(
+                        getattr(memory_status, "source_fingerprint_sha256", "")
+                    ),
                 )
             elif definition.node_id == "decision_context":
                 index = (
@@ -161,11 +205,18 @@ class DerivedFreshnessService:
                 if definition.missing_primitive:
                     reasons.append(f"missing_optional_primitive:{definition.missing_primitive}")
             elif definition.node_id == "maturity_progress":
-                if proposal_summaries_snapshot is None:
+                if proposal_summaries_snapshot is None and memory_view is None:
                     self.project_progress()
+                elif proposal_summaries_snapshot is None:
+                    self.project_progress(vertical_memory_snapshot=memory_view)
+                elif memory_view is None:
+                    self.project_progress(
+                        proposal_summaries_snapshot=proposal_summaries_snapshot,
+                    )
                 else:
                     self.project_progress(
                         proposal_summaries_snapshot=proposal_summaries_snapshot,
+                        vertical_memory_snapshot=memory_view,
                     )
                 status, reasons = self._legacy_output_state(definition, outputs, dependency_nodes)
                 reasons.append("progress_is_request_scoped")
@@ -277,6 +328,7 @@ class DerivedFreshnessService:
         outputs: list[Path],
         *,
         accepted_snapshot: list[dict[str, object]] | None = None,
+        vertical_memory_source_fingerprint: str = "",
     ) -> tuple[str, str, list[str]]:
         manifest = self.project_state_service.projection_manifest()
         data = manifest.get("project_projection") if isinstance(manifest, Mapping) else None
@@ -299,7 +351,10 @@ class DerivedFreshnessService:
                 "feature_projection_set_mismatch:"
                 f"generated={len(generated_feature_ids)},expected={len(expected_feature_ids)}"
             )
-        expected_source = self.project_state_service.source_fingerprint(expected)
+        expected_source = self.project_state_service.source_fingerprint(
+            expected,
+            vertical_memory_source_fingerprint=vertical_memory_source_fingerprint,
+        )
         if recorded and recorded != expected_source:
             reasons.append("projection_source_fingerprint_changed")
         if reasons:
@@ -397,16 +452,46 @@ class DerivedFreshnessService:
             )
         return sorted(set(paths), key=lambda path: path.relative_to(self.root).as_posix())
 
-    def _output_paths(self, definition: FreshnessNodeDefinition) -> list[Path]:
+    def _output_paths(
+        self,
+        definition: FreshnessNodeDefinition,
+        *,
+        cache: dict[str, tuple[Path, ...]] | None = None,
+    ) -> list[Path]:
         paths: set[Path] = set()
         for pattern in definition.output_patterns:
-            paths.update(path for path in self.root.glob(pattern) if path.is_file() and not path.is_symlink())
+            if cache is not None and pattern in cache:
+                paths.update(cache[pattern])
+                continue
+            selected = tuple(
+                path
+                for path in self.root.glob(pattern)
+                if path.is_file() and not path.is_symlink()
+            )
+            if cache is not None:
+                cache[pattern] = selected
+            paths.update(selected)
         return sorted(paths, key=lambda path: path.relative_to(self.root).as_posix())
 
-    def _source_paths(self, definition: FreshnessNodeDefinition) -> list[Path]:
+    def _source_paths(
+        self,
+        definition: FreshnessNodeDefinition,
+        *,
+        cache: dict[str, tuple[Path, ...]] | None = None,
+    ) -> list[Path]:
         paths: set[Path] = set()
         for pattern in definition.source_patterns:
-            paths.update(path for path in self.root.glob(pattern) if path.is_file() and not path.is_symlink())
+            if cache is not None and pattern in cache:
+                paths.update(cache[pattern])
+                continue
+            selected = tuple(
+                path
+                for path in self.root.glob(pattern)
+                if path.is_file() and not path.is_symlink()
+            )
+            if cache is not None:
+                cache[pattern] = selected
+            paths.update(selected)
         return sorted(paths, key=lambda path: path.relative_to(self.root).as_posix())
 
     def impact_node_ids(self, changed_paths: Iterable[str]) -> tuple[str, ...]:
@@ -478,12 +563,32 @@ def validate_freshness_graph(
     return tuple(ordered)
 
 
-def _paths_fingerprint(root: Path, paths: Iterable[Path]) -> str:
+def _paths_fingerprint(
+    root: Path,
+    paths: Iterable[Path],
+    *,
+    digest_cache: dict[Path, bytes] | None = None,
+    relative_cache: dict[Path, str] | None = None,
+) -> str:
     digest = hashlib.sha256()
-    for path in sorted(paths, key=lambda item: item.relative_to(root).as_posix()):
-        digest.update(path.relative_to(root).as_posix().encode("utf-8"))
+    digest_cache = digest_cache if digest_cache is not None else {}
+    relative_cache = relative_cache if relative_cache is not None else {}
+
+    def relative(path: Path) -> str:
+        value = relative_cache.get(path)
+        if value is None:
+            value = path.relative_to(root).as_posix()
+            relative_cache[path] = value
+        return value
+
+    for path in sorted(paths, key=relative):
+        digest.update(relative(path).encode("utf-8"))
         digest.update(b"\0")
-        digest.update(hashlib.sha256(path.read_bytes()).digest())
+        content_digest = digest_cache.get(path)
+        if content_digest is None:
+            content_digest = hashlib.sha256(path.read_bytes()).digest()
+            digest_cache[path] = content_digest
+        digest.update(content_digest)
     return digest.hexdigest()
 
 
@@ -493,7 +598,7 @@ def _yaml_sequence_count(path: Path, key: str) -> int:
     import yaml
 
     try:
-        payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+        payload = load_yaml(path.read_bytes())
     except (OSError, UnicodeDecodeError, yaml.YAMLError):
         return 0
     value = payload.get(key) if isinstance(payload, dict) else None

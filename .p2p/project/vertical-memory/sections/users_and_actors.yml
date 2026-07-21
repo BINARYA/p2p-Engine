@@ -1,0 +1,930 @@
+vertical_memory_section:
+  schema_version: 1
+  section:
+    id: users_and_actors
+    title: Users And Actors
+    purpose: Intended users, actors, operators, and stakeholders.
+    required: true
+    priority: 120
+  definition:
+    status: complete
+    fields:
+      operator_roles:
+        value: The owner decides governance actions; maintainers and contributors
+          operate repositories and releases; agents and MCP clients perform bounded
+          reads and authorized writes; CI, Git providers, and downstream specification
+          tools are external actors.
+        source: README.md+.p2p/project/permissions.yml
+      primary_users:
+        value: Humans supervising software-project decisions and AI coding or planning
+          agents that consume P2P through the CLI or MCP are the primary users; solo
+          developers, small teams, and maintainers use the same workflows.
+        source: README.md
+    required_field_ids:
+    - primary_users
+    missing_required_fields: []
+    assumptions: []
+    open_questions: []
+    blockers: []
+  questions: []
+  declared_questions: []
+  heuristic_suggestions:
+  - proposal_id: PROP-001
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-001-cli-foundation/proposal.md
+    - .p2p/proposals/PROP-001-cli-foundation/decision.md
+  - proposal_id: PROP-006
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-006-multi-agent-integration-model/proposal.md
+    - .p2p/proposals/PROP-006-multi-agent-integration-model/decision.md
+    - .p2p/proposals/PROP-006-multi-agent-integration-model/suggested-scope.md
+    - .p2p/proposals/PROP-006-multi-agent-integration-model/risks.md
+  - proposal_id: PROP-010
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-010-p2p-software-specification-model/proposal.md
+    - .p2p/proposals/PROP-010-p2p-software-specification-model/decision.md
+    - .p2p/proposals/PROP-010-p2p-software-specification-model/suggested-scope.md
+    - .p2p/proposals/PROP-010-p2p-software-specification-model/risks.md
+  - proposal_id: PROP-013
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    - intended
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-013-change-set-and-git-branch-model/proposal.md
+    - .p2p/proposals/PROP-013-change-set-and-git-branch-model/decision.md
+    - .p2p/proposals/PROP-013-change-set-and-git-branch-model/suggested-scope.md
+    - .p2p/proposals/PROP-013-change-set-and-git-branch-model/risks.md
+  - proposal_id: PROP-016
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-016-project-registries-mvp/proposal.md
+    - .p2p/proposals/PROP-016-project-registries-mvp/decision.md
+    - .p2p/proposals/PROP-016-project-registries-mvp/suggested-scope.md
+    - .p2p/proposals/PROP-016-project-registries-mvp/risks.md
+  - proposal_id: PROP-017
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/proposal.md
+    - .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/decision.md
+    - .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/suggested-scope.md
+    - .p2p/proposals/PROP-017-proposal-intake-and-context-analysis-mvp/risks.md
+  - proposal_id: PROP-018
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-018-choice-management-cli-mvp/proposal.md
+    - .p2p/proposals/PROP-018-choice-management-cli-mvp/decision.md
+    - .p2p/proposals/PROP-018-choice-management-cli-mvp/suggested-scope.md
+    - .p2p/proposals/PROP-018-choice-management-cli-mvp/risks.md
+  - proposal_id: PROP-019
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-019-proposal-decision-shortcut-commands/proposal.md
+    - .p2p/proposals/PROP-019-proposal-decision-shortcut-commands/decision.md
+    - .p2p/proposals/PROP-019-proposal-decision-shortcut-commands/suggested-scope.md
+    - .p2p/proposals/PROP-019-proposal-decision-shortcut-commands/risks.md
+  - proposal_id: PROP-020
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-020-proposal-inspection-cli-mvp/proposal.md
+    - .p2p/proposals/PROP-020-proposal-inspection-cli-mvp/decision.md
+    - .p2p/proposals/PROP-020-proposal-inspection-cli-mvp/suggested-scope.md
+    - .p2p/proposals/PROP-020-proposal-inspection-cli-mvp/risks.md
+  - proposal_id: PROP-030
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/proposal.md
+    - .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/decision.md
+    - .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/suggested-scope.md
+    - .p2p/proposals/PROP-030-managed-work-and-multi-branch-visibility-policy/risks.md
+  - proposal_id: PROP-032
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    source_paths:
+    - .p2p/proposals/PROP-032-managed-work-branch-creation-mvp/proposal.md
+    - .p2p/proposals/PROP-032-managed-work-branch-creation-mvp/decision.md
+    - .p2p/proposals/PROP-032-managed-work-branch-creation-mvp/suggested-scope.md
+    - .p2p/proposals/PROP-032-managed-work-branch-creation-mvp/risks.md
+  - proposal_id: PROP-037
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-037-managed-work-status-summary-mvp/proposal.md
+    - .p2p/proposals/PROP-037-managed-work-status-summary-mvp/decision.md
+    - .p2p/proposals/PROP-037-managed-work-status-summary-mvp/suggested-scope.md
+    - .p2p/proposals/PROP-037-managed-work-status-summary-mvp/risks.md
+  - proposal_id: PROP-038
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    source_paths:
+    - .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp/proposal.md
+    - .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp/decision.md
+    - .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp/suggested-scope.md
+    - .p2p/proposals/PROP-038-managed-work-merge-conflict-guidance-mvp/risks.md
+  - proposal_id: PROP-042
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary/proposal.md
+    - .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary/decision.md
+    - .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary/suggested-scope.md
+    - .p2p/proposals/PROP-042-p2p-core-cli-mcp-mediator-web-boundary/risks.md
+  - proposal_id: PROP-047
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-047-guided-init-wizard-mvp/proposal.md
+    - .p2p/proposals/PROP-047-guided-init-wizard-mvp/decision.md
+    - .p2p/proposals/PROP-047-guided-init-wizard-mvp/suggested-scope.md
+    - .p2p/proposals/PROP-047-guided-init-wizard-mvp/risks.md
+  - proposal_id: PROP-054
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    - actors
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/proposal.md
+    - .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/decision.md
+    - .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/suggested-scope.md
+    - .p2p/proposals/PROP-054-project-readiness-and-maturity-assessment/risks.md
+  - proposal_id: PROP-055
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    source_paths:
+    - .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/proposal.md
+    - .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/decision.md
+    - .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/suggested-scope.md
+    - .p2p/proposals/PROP-055-agent-token-budget-and-context-discipline/risks.md
+  - proposal_id: PROP-056
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    source_paths:
+    - .p2p/proposals/PROP-056-project-definition-maturity-rubrics/proposal.md
+    - .p2p/proposals/PROP-056-project-definition-maturity-rubrics/decision.md
+    - .p2p/proposals/PROP-056-project-definition-maturity-rubrics/suggested-scope.md
+    - .p2p/proposals/PROP-056-project-definition-maturity-rubrics/risks.md
+  - proposal_id: PROP-058
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-058-project-readme-and-installation-guide/proposal.md
+    - .p2p/proposals/PROP-058-project-readme-and-installation-guide/decision.md
+    - .p2p/proposals/PROP-058-project-readme-and-installation-guide/suggested-scope.md
+    - .p2p/proposals/PROP-058-project-readme-and-installation-guide/risks.md
+  - proposal_id: PROP-059
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    source_paths:
+    - .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/proposal.md
+    - .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/decision.md
+    - .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/suggested-scope.md
+    - .p2p/proposals/PROP-059-p2pworkspace-modular-refactoring-plan/risks.md
+  - proposal_id: PROP-060
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    - actors
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-060-real-test-coverage-reporting/proposal.md
+    - .p2p/proposals/PROP-060-real-test-coverage-reporting/decision.md
+    - .p2p/proposals/PROP-060-real-test-coverage-reporting/suggested-scope.md
+    - .p2p/proposals/PROP-060-real-test-coverage-reporting/risks.md
+  - proposal_id: PROP-063
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-063-public-documentation-gap-closure/proposal.md
+    - .p2p/proposals/PROP-063-public-documentation-gap-closure/decision.md
+    - .p2p/proposals/PROP-063-public-documentation-gap-closure/suggested-scope.md
+    - .p2p/proposals/PROP-063-public-documentation-gap-closure/risks.md
+  - proposal_id: PROP-064
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - intended
+    - stakeholder
+    - stakeholders
+    - user
+    source_paths:
+    - .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model/proposal.md
+    - .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model/decision.md
+    - .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model/suggested-scope.md
+    - .p2p/proposals/PROP-064-spec-kit-three-prompt-export-model/risks.md
+  - proposal_id: PROP-066
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/proposal.md
+    - .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/decision.md
+    - .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/suggested-scope.md
+    - .p2p/proposals/PROP-066-permission-gated-mcp-governance-and-git-operations/risks.md
+  - proposal_id: PROP-067
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-067-agent-first-setup-documentation-split/proposal.md
+    - .p2p/proposals/PROP-067-agent-first-setup-documentation-split/decision.md
+    - .p2p/proposals/PROP-067-agent-first-setup-documentation-split/suggested-scope.md
+    - .p2p/proposals/PROP-067-agent-first-setup-documentation-split/risks.md
+  - proposal_id: PROP-068
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands/proposal.md
+    - .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands/decision.md
+    - .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands/suggested-scope.md
+    - .p2p/proposals/PROP-068-document-agent-mcp-client-setup-commands/risks.md
+  - proposal_id: PROP-069
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/proposal.md
+    - .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/decision.md
+    - .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/suggested-scope.md
+    - .p2p/proposals/PROP-069-clarify-mcp-stdio-integration-model/risks.md
+  - proposal_id: PROP-071
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    - user
+    source_paths:
+    - .p2p/proposals/PROP-071-custom-domain-definition-workflow/proposal.md
+    - .p2p/proposals/PROP-071-custom-domain-definition-workflow/decision.md
+    - .p2p/proposals/PROP-071-custom-domain-definition-workflow/suggested-scope.md
+    - .p2p/proposals/PROP-071-custom-domain-definition-workflow/risks.md
+  - proposal_id: PROP-072
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/proposal.md
+    - .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/decision.md
+    - .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/suggested-scope.md
+    - .p2p/proposals/PROP-072-concurrent-managed-work-and-merge-decision-model/risks.md
+  - proposal_id: PROP-073
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/proposal.md
+    - .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/decision.md
+    - .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/suggested-scope.md
+    - .p2p/proposals/PROP-073-ergonomic-remote-project-initialization/risks.md
+  - proposal_id: PROP-076
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model/proposal.md
+    - .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model/decision.md
+    - .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model/suggested-scope.md
+    - .p2p/proposals/PROP-076-p2p-cloud-runner-boundary-and-containerized-execution-model/risks.md
+  - proposal_id: PROP-077
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    source_paths:
+    - .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/proposal.md
+    - .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/decision.md
+    - .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/suggested-scope.md
+    - .p2p/proposals/PROP-077-permission-gated-draft-proposal-decisions-via-mcp/risks.md
+  - proposal_id: PROP-078
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - operator
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/proposal.md
+    - .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/decision.md
+    - .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/suggested-scope.md
+    - .p2p/proposals/PROP-078-project-local-wheel-installation-and-upgrade-model/risks.md
+  - proposal_id: PROP-079
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-079-managed-next-action-lifecycle/proposal.md
+    - .p2p/proposals/PROP-079-managed-next-action-lifecycle/decision.md
+    - .p2p/proposals/PROP-079-managed-next-action-lifecycle/suggested-scope.md
+    - .p2p/proposals/PROP-079-managed-next-action-lifecycle/risks.md
+  - proposal_id: PROP-082
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    source_paths:
+    - .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/proposal.md
+    - .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/decision.md
+    - .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/suggested-scope.md
+    - .p2p/proposals/PROP-082-readiness-assessment-refresh-and-review-workflow/risks.md
+  - proposal_id: PROP-083
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/proposal.md
+    - .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/decision.md
+    - .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/suggested-scope.md
+    - .p2p/proposals/PROP-083-domain-aware-visible-project-definition-export/risks.md
+  - proposal_id: PROP-085
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - stakeholder
+    - stakeholders
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/proposal.md
+    - .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/decision.md
+    - .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/suggested-scope.md
+    - .p2p/proposals/PROP-085-pluggable-project-verticals-and-readiness-orchestration/risks.md
+  - proposal_id: PROP-086
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    - user
+    source_paths:
+    - .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/proposal.md
+    - .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/decision.md
+    - .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/suggested-scope.md
+    - .p2p/proposals/PROP-086-artifact-aware-proposal-readiness-and-agent-interview-orchestration/risks.md
+  - proposal_id: PROP-087
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/proposal.md
+    - .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/decision.md
+    - .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/suggested-scope.md
+    - .p2p/proposals/PROP-087-agent-personality-model-for-decision-mediation/risks.md
+  - proposal_id: PROP-088
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-088-mcp-artifact-import-parity/proposal.md
+    - .p2p/proposals/PROP-088-mcp-artifact-import-parity/decision.md
+    - .p2p/proposals/PROP-088-mcp-artifact-import-parity/suggested-scope.md
+    - .p2p/proposals/PROP-088-mcp-artifact-import-parity/risks.md
+  - proposal_id: PROP-090
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    source_paths:
+    - .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/proposal.md
+    - .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/decision.md
+    - .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/suggested-scope.md
+    - .p2p/proposals/PROP-090-project-vertical-pack-runtime-hardening-and-definition-state/risks.md
+  - proposal_id: PROP-091
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    - actors
+    source_paths:
+    - .p2p/proposals/PROP-091-governance-policy-convergence/proposal.md
+    - .p2p/proposals/PROP-091-governance-policy-convergence/decision.md
+    - .p2p/proposals/PROP-091-governance-policy-convergence/suggested-scope.md
+    - .p2p/proposals/PROP-091-governance-policy-convergence/risks.md
+  - proposal_id: PROP-092
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    - intended
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/proposal.md
+    - .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/decision.md
+    - .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/suggested-scope.md
+    - .p2p/proposals/PROP-092-local-mcp-work-lifecycle-parity-and-remote-gateway-boundary/risks.md
+  - proposal_id: PROP-093
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/proposal.md
+    - .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/decision.md
+    - .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/suggested-scope.md
+    - .p2p/proposals/PROP-093-new-project-bootstrap-ux-and-agent-write-consent-hardening/risks.md
+  - proposal_id: PROP-094
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    - actors
+    - intended
+    - user
+    - users
+    - users and actors
+    source_paths:
+    - .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/proposal.md
+    - .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/decision.md
+    - .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/suggested-scope.md
+    - .p2p/proposals/PROP-094-p2p-governed-software-specification-lifecycle/risks.md
+  - proposal_id: PROP-095
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    - actors
+    - user
+    source_paths:
+    - .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/proposal.md
+    - .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/decision.md
+    - .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/suggested-scope.md
+    - .p2p/proposals/PROP-095-project-runtime-contract-upgrade-lifecycle/risks.md
+  - proposal_id: PROP-096
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - user
+    source_paths:
+    - .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/proposal.md
+    - .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/decision.md
+    - .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/suggested-scope.md
+    - .p2p/proposals/PROP-096-readiness-evidence-quality-and-question-state-normalization/risks.md
+  - proposal_id: PROP-098
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    - actors
+    source_paths:
+    - .p2p/proposals/PROP-098-test-impact-and-validation-routing/proposal.md
+    - .p2p/proposals/PROP-098-test-impact-and-validation-routing/decision.md
+  - proposal_id: PROP-099
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - stakeholder
+    source_paths:
+    - .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/proposal.md
+    - .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/decision.md
+    - .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/suggested-scope.md
+    - .p2p/proposals/PROP-099-project-output-lifecycle-and-retention-policy/risks.md
+  - proposal_id: PROP-100
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    source_paths:
+    - .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/proposal.md
+    - .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/decision.md
+    - .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/suggested-scope.md
+    - .p2p/proposals/PROP-100-project-decision-memory-and-proposal-topology/risks.md
+  - proposal_id: PROP-101
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    - actors
+    source_paths:
+    - .p2p/proposals/PROP-101-project-readiness-convergence-workflow/proposal.md
+    - .p2p/proposals/PROP-101-project-readiness-convergence-workflow/decision.md
+    - .p2p/proposals/PROP-101-project-readiness-convergence-workflow/suggested-scope.md
+    - .p2p/proposals/PROP-101-project-readiness-convergence-workflow/risks.md
+  - proposal_id: PROP-102
+    policy: project-readiness-legacy-v1
+    matched_terms:
+    - actor
+    - user
+    - users
+    source_paths:
+    - .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/proposal.md
+    - .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/decision.md
+    - .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/suggested-scope.md
+    - .p2p/proposals/PROP-102-proposal-decision-revision-and-revocation-lifecycle/risks.md
+  active_contributions:
+  - id: VMC-086daddad18f5d5e44ed0ab8
+    proposal_id: PROP-006
+    title: Multi-Agent Integration Model
+    section_id: users_and_actors
+    authority: resolved
+    activation: active
+    effective_state: accepted
+    head_event_id: PDE-cf71cf96ba2288769305e65d
+    head_event_type: accepted
+    rationale: Owner accepts PROP-006 after refinement. The proposal is considered
+      ready as-is because remaining low readiness score reflects the current conservative
+      readiness CLI, not unresolved product direction. A separate follow-up proposal
+      will address readiness assessment refresh and review workflow.
+    constraints: []
+    applicability: users_and_actors
+    coverage_rationale: Defines supported agent actors, the generic baseline, owner-controlled
+      decisions, and adapter responsibilities.
+    source_path: .p2p/proposals/PROP-006-multi-agent-integration-model/proposal.md
+    proposal_semantic_sha256: 9b78fae0b86536e2ac908dec9120ad451ab1415af52065ca326a5575df03125f
+    decision_semantic_sha256: 5f88a0ce4a1fae2eef77a3150da61b0bf1c0860bc5179222b678631c0968752e
+    lineage:
+      kind: null
+      targets: []
+    evidence:
+    - id: VME-c1954dabe48c3eac3790d9f3
+      source_path: .p2p/proposals/PROP-006-multi-agent-integration-model/proposal.md
+      source_sha256: 314c7dec83d79cfdf633eb832ec12259733863a2c21243760f39f67b413978d1
+      fragment: 'P2P Engine can already generate basic agent-facing instructions for
+        generic, Codex, and Claude profiles, but it does not yet manage agent integrations
+        as governed, inspectable, updateable project state. Project initialization
+        should create the supported project-local agent file structures by default,
+        but today there is no explicit registry of installed integrations, generated-file
+        manifests, hashes, drift detection, safe update, safe uninstall, conflict
+        detection, or precise adapter matrix for Cursor, Copilot, Gemini, OpenCode,
+        Codex, Claude, and the generic baseline. A second gap is methodological: generated
+        instructions do not yet force agents to turn weak proposal readiness, failed
+        gates, and owner questions into concrete refinement actions, alternatives,
+        recommendations, candidate edits, and readiness re-checks.'
+      fragment_kind: problem
+      truncated: false
+    - id: VME-f979294a7ad323e9bc0ed276
+      source_path: .p2p/proposals/PROP-006-multi-agent-integration-model/proposal.md
+      source_sha256: 314c7dec83d79cfdf633eb832ec12259733863a2c21243760f39f67b413978d1
+      fragment: '- Create all supported project-local agent integrations by default
+        during project init, unless the owner explicitly narrows the install set.
+
+        - Keep generic as the mandatory, unremovable common baseline from which agent-specific
+        files are derived.
+
+        - Introduce a versioned project-local .p2p/agent-integrations.yml registry
+        with generated-file manifests, ownership metadata, shared-file flags, template
+        versions, SHA-256 hashes, and drift state.
+
+        - Use built-in package templates for the MVP and defer project-local template
+        overrides.
+
+        - Support safe install, install all, list, show, update, doctor, and uninstall
+        flows without active/default/preferred agent state.
+
+        - Define the initial adapter matrix for generic, Codex, Claude, Cursor, Copilot,
+        Gemini, and OpenCode, including shared files and excluded legacy/conflicting
+        targets.
+
+        - Define common method behavior for generated instructions so agents transform
+        readiness gaps into alternatives, recommendations, owner questions, candidate
+        edits, and readiness re-checks.
+
+        - Keep P2P CLI, MCP tools, .p2p state, validation, readiness, and owner decisions
+        aligned over the same core behavior.'
+      fragment_kind: goals
+      truncated: false
+    - id: VME-79606489855bd9fd44eec508
+      source_path: .p2p/proposals/PROP-006-multi-agent-integration-model/proposal.md
+      source_sha256: 314c7dec83d79cfdf633eb832ec12259733863a2c21243760f39f67b413978d1
+      fragment: '- Project-level preferred, default, current, switched, or active
+        agent selection.
+
+        - Direct invocation of AI providers or hosted agent runtimes.
+
+        - Destructive uninstall of files that have been manually modified or are shared
+        with other installed integrations.
+
+        - Automatic edits to user/global agent configuration outside the project without
+        explicit consent.
+
+        - Generation of deprecated .cursorrules files or default opencode.json configuration
+        in the MVP.
+
+        - Full implementation of dedicated readiness refinement commands unless covered
+        by this proposal''s implementation scope or a follow-up readiness proposal.'
+      fragment_kind: non-goals
+      truncated: false
+    - id: VME-574fc17224dd99acf9a6cf7b
+      source_path: .p2p/proposals/PROP-006-multi-agent-integration-model/proposal.md
+      source_sha256: 314c7dec83d79cfdf633eb832ec12259733863a2c21243760f39f67b413978d1
+      fragment: 'Introduce an Agent Integration Registry MVP. By default, p2p init
+        creates the generic baseline and all supported project-local adapter files
+        for generic, codex, claude, cursor, copilot, gemini, and opencode. The owner
+        may request a narrower init set with repeated --agent options, but generic
+        is always included and cannot be removed. P2P records installed integrations
+        in .p2p/agent-integrations.yml using schema_version 1, baseline_profile: generic,
+        adapter status, maturity, capabilities, template_version, generated file records,
+        shared ownership, managed flag, template_id, SHA-256 hash over exact file
+        bytes, and drift state. The registry must not contain active_agent, default_agent,
+        preferred_agent, current_agent, use, or switch state. Built-in adapter templates
+        live in package data under src/p2p_engine/templates/agents/<adapter>/ for
+        the MVP; project-local template overrides are deferred. Generated Markdown
+        files should include a short managed header as a human hint, while the registry
+        remains authoritative. The CLI exposes p2p agent list, show, install, update,
+        doctor, and uninstall; excluded commands are use, switch, current, and install
+        --no-use. doctor validates registry shape, file existence, hashes, shared
+        references, generic baseline, ownership conflicts, uninstall safety, and presence
+        of the generic method behavior block. install all may install every supported
+        project-local integration only when non-shared file targets do not conflict.
+        Migration is conservative: known generated files become managed, unknown or
+        changed files become unmanaged or drifted, and P2P never overwrites them silently.
+        Generated files derive from minimal generic P2P governance content and may
+        be adapted for host tools without weakening the rules. That generic content
+        must include readiness-driven refinement behavior: when a proposal is weak,
+        low-confidence, below target, or blocked by failed gates, the agent must explain
+        each gap, propose concrete alternatives, recommend one when justified, identify
+        owner decisions, draft candidate updates, and re-check readiness after refinement.
+        Initial files are AGENTS.md and .p2p/agent-policy.yml for generic; AGENTS.md
+        plus a shared agent-neutral .agents/skills/p2p-project/SKILL.md for Codex
+        when safe, with .codex/skills preserved as compatibility/migration; CLAUDE.md
+        for Claude; .cursor/rules/p2p.mdc for Cursor; .github/copilot-instructions.md
+        for Copilot; GEMINI.md for Gemini; and AGENTS.md only for OpenCode in the
+        MVP. opencode.json is not generated by default. CLI and MCP tools are implemented
+        over the same core behavior, with MCP exposing structured equivalents for
+        compatible agents. Future readiness refinement commands should live under
+        p2p proposal readiness, but they are not required for accepting this proposal.'
+      fragment_kind: proposal
+      truncated: false
+    - id: VME-b3393fcad5a08ff21454c7aa
+      source_path: .p2p/proposals/PROP-006-multi-agent-integration-model/proposal.md
+      source_sha256: 314c7dec83d79cfdf633eb832ec12259733863a2c21243760f39f67b413978d1
+      fragment: '- Default project init installs generic plus all supported project-local
+        adapters: codex, claude, cursor, copilot, gemini, and opencode.
+
+        - A narrowed init can install only requested specific adapters, but generic
+        is still created and remains unremovable.
+
+        - .p2p/agent-integrations.yml uses schema_version 1 with baseline_profile,
+        adapters, capabilities, template_version, generated file records, shared ownership,
+        managed flag, template_id, SHA-256 hash, and drift state.
+
+        - The registry records installed integrations and generated files without
+        active_agent, default_agent, preferred_agent, current, use, or switch state.
+
+        - Built-in adapter templates live in package data for the MVP; project-local
+        template overrides are deferred.
+
+        - The generic baseline defines the minimum P2P governance rules and all generated
+        agent-specific files preserve those rules.
+
+        - Generated instructions include a readiness gap handling block that requires
+        agents to explain failed gates, propose alternatives, recommend one option
+        when justified, identify owner decisions, draft candidate updates, and re-check
+        readiness.
+
+        - The adapter matrix documents exact generated files for each built-in adapter
+        and excludes deprecated .cursorrules and default opencode.json generation.
+
+        - install all detects non-shared file target conflicts and refuses conflicting
+        adapters instead of overwriting.
+
+        - Generated files are recorded with template version, ownership metadata,
+        shared-file flag, and SHA-256 hash over exact file bytes.
+
+        - Updating an adapter refreshes unchanged generated files and refuses to silently
+        overwrite drifted files.
+
+        - Uninstall removes only the target adapter''s managed, unchanged, non-shared
+        files and preserves generic, shared, modified, and unmanaged files.
+
+        - p2p agent doctor validates registry shape, file existence, hashes, shared
+        references, generic baseline, ownership conflicts, uninstall safety, and method
+        behavior presence.
+
+        - Existing projects migrate conservatively by marking known generated files
+        as managed and unknown or changed files as unmanaged or drifted without overwriting
+        them.
+
+        - The .agents/skills path is used only for agent-neutral P2P skill content
+        or otherwise deferred to avoid Codex/OpenCode interpretation conflicts.
+
+        - CLI and MCP expose equivalent agent integration lifecycle operations through
+        the same core behavior.
+
+        - Existing p2p agent instructions refresh behavior remains backward compatible.'
+      fragment_kind: acceptance_criteria
+      truncated: false
+  - id: VMC-284708a8b6fb93cc95d7e6f6
+    proposal_id: PROP-091
+    title: Governance Policy Convergence
+    section_id: users_and_actors
+    authority: resolved
+    activation: active
+    effective_state: accepted
+    head_event_id: PDE-c4807cff1d66a97d62e3c451
+    head_event_type: accepted
+    rationale: Accepted by owner after guided refinement. The proposal is decision-ready
+      with readiness score 100, high confidence, no failed gates, no missing artifacts,
+      no suggested next actions, and clean validation. It defines Governance Policy
+      Convergence with owner_decides as default, deterministic preflight, explicit
+      precedent lookup, warning/blocking semantics, actor-role migration, and read-only/low-risk
+      MCP phase 1.
+    constraints: []
+    applicability: users_and_actors
+    coverage_rationale: Defines owner, agent, contributor, tool, and external-provider
+      authority boundaries and identifies actions reserved to the owner.
+    source_path: .p2p/proposals/PROP-091-governance-policy-convergence/proposal.md
+    proposal_semantic_sha256: 88d3140970165380c1c76f18de584755528db6fe5e8e73e79a7a2833ce26161e
+    decision_semantic_sha256: b3573ac5b0e0be944dad52afc25b36a59b6259305c1997273d166f3f2f9b46e2
+    lineage:
+      kind: null
+      targets: []
+    evidence:
+    - id: VME-a595849db855e7d18119a70b
+      source_path: .p2p/proposals/PROP-091-governance-policy-convergence/proposal.md
+      source_sha256: ca516c3c2348bcb5a066133b0c68a9fbeb0b4db6bcd6769034defd3754844c93
+      fragment: "P2P Engine already has governance-aware artifacts and helper utilities,\
+        \ but they\ndo not yet form a coherent operational governance policy. The\
+        \ project can store\n`governance.yml`, `roles.yml`, `permissions.yml`, choices,\
+        \ votes, decision\nprecedents, explicit blockers, and owner-controlled decisions,\
+        \ but there is no\nsingle structured evaluation that answers these questions\
+        \ before a decision:\n\n- who is attempting to decide;\n- whether that actor\
+        \ is allowed to decide;\n- what target is being decided;\n- which governance\
+        \ mode applies;\n- whether the governance state is valid and readable;\n-\
+        \ how the proposed decision relates to votes, blockers, and precedents;\n\
+        - whether the decision can proceed normally, requires rationale, requires\
+        \ owner\n  override, or must be blocked.\n\nWithout this layer, governance\
+        \ artifacts remain useful as audit records but weak\nas decision support.\
+        \ Agents and external clients can see fragments of governance\nstate, yet\
+        \ they cannot consume a stable preflight contract that explains the\ndecision\
+        \ context in a deterministic way."
+      fragment_kind: problem
+      truncated: false
+    - id: VME-8d10157f85d22bc6b8681a6e
+      source_path: .p2p/proposals/PROP-091-governance-policy-convergence/proposal.md
+      source_sha256: ca516c3c2348bcb5a066133b0c68a9fbeb0b4db6bcd6769034defd3754844c93
+      fragment: "- Keep `owner_decides` as the current operational default.\n- Preserve\
+        \ owner authority as the final decision source for now.\n- Make votes, blockers,\
+        \ and precedents transparent decision context rather than\n  automatic decision\
+        \ makers.\n- Introduce a deterministic governance preflight contract for proposed\n\
+        \  selections and decision attempts.\n- Use `permissions.yml` as the primary\
+        \ actor and role source when available.\n- Keep `governance/roles.yml` as\
+        \ a legacy, display, or fallback artifact during\n  migration.\n- Make vote\
+        \ disagreement, ties, related precedents, reopened decisions, weak\n  consensus,\
+        \ and non-blocking concerns visible as warnings.\n- Treat structural invalidity,\
+        \ unauthorized actors, unknown targets, unsupported\n  governance modes, and\
+        \ corrupt governance artifacts as blocking errors.\n- Treat explicit unresolved\
+        \ blockers as normal-flow blockers that can be\n  overridden only by an authorized\
+        \ owner with recorded rationale.\n- Expose first-phase MCP parity through\
+        \ read-only or low-risk governance status,\n  validation, vote status, precedent\
+        \ lookup, and preflight tools."
+      fragment_kind: goals
+      truncated: false
+    - id: VME-56689f1b4972aec05787e5e9
+      source_path: .p2p/proposals/PROP-091-governance-policy-convergence/proposal.md
+      source_sha256: ca516c3c2348bcb5a066133b0c68a9fbeb0b4db6bcd6769034defd3754844c93
+      fragment: "- Do not implement a full democratic governance system.\n- Do not\
+        \ introduce quorum, weighted voting, delegation, complex voting\n  deadlines,\
+        \ or automatic vote enforcement.\n- Do not make votes automatically accept,\
+        \ reject, or decide proposals or\n  choices.\n- Do not allow agents or MCP\
+        \ tools to bypass owner-controlled governance.\n- Do not use fuzzy matching,\
+        \ semantic similarity, embeddings, title inference,\n  keyword guessing, or\
+        \ AI search in the core precedent lookup.\n- Do not expose MCP tools that\
+        \ mutate governance state or finalize decisions in\n  phase 1.\n- Do not remove\
+        \ compatibility for existing governance artifacts without a\n  migration path."
+      fragment_kind: non-goals
+      truncated: false
+    - id: VME-7ed165a1085d4c03698ed178
+      source_path: .p2p/proposals/PROP-091-governance-policy-convergence/proposal.md
+      source_sha256: ca516c3c2348bcb5a066133b0c68a9fbeb0b4db6bcd6769034defd3754844c93
+      fragment: "Introduce a Governance Policy Convergence layer.\n\nThe layer should\
+        \ evaluate governance state before finalization and return a\nstable, versioned,\
+        \ deterministic, machine-readable preflight structure. The\npreflight output\
+        \ is not a decision record. It represents a proposed selection\nand the governance\
+        \ evaluation before the final owner decision.\n\nThe initial preflight contract\
+        \ should include:\n\n- `schema_version`;\n- `target`;\n- `governance`;\n-\
+        \ `actor`;\n- `selection`;\n- `result`;\n- `blocking_errors`;\n- `warnings`;\n\
+        - `vote_summary`;\n- `blockers`;\n- `precedents`.\n\nThe `result.status` field\
+        \ should summarize one of:\n\n- `ready`;\n- `requires_rationale`;\n- `requires_owner_override`;\n\
+        - `blocked`.\n\nBlocking errors and warnings should be structured objects\
+        \ with stable\nmachine-readable codes, human-readable messages, override or\
+        \ rationale metadata\nwhen relevant, and optional references.\n\n### Authority\
+        \ And Votes\n\n`owner_decides` remains the operational default. The owner\
+        \ remains the final\ndecision maker. Votes are transparency and decision evidence.\
+        \ A proposed owner\ndecision that conflicts with the recorded vote winner\
+        \ should produce a strong\nwarning and make the contrast explicit, but it\
+        \ should not block finalization and\nshould not require a mandatory override\
+        \ reason in the current model.\n\n### Actor And Role Resolution\n\nUse a soft\
+        \ migration path:\n\n- `permissions.yml` is the primary actor and role source\
+        \ whenever present;\n- `governance/roles.yml` remains legacy/display/fallback;\n\
+        - vote and preflight flows move toward actor-based input;\n- when an actor\
+        \ exists in `permissions.yml`, the effective role is inferred from\n  that\
+        \ file;\n- legacy role fields may be tolerated during transition;\n- mismatches\
+        \ between a supplied legacy role and the inferred role produce\n  warnings.\n\
+        \n### Precedents\n\nCore precedent lookup is explicit and deterministic. The\
+        \ core considers\nprecedents related only when links are declared in versioned\
+        \ artifacts through\nstable identifiers or explicit tags, such as `related_precedents`,\n\
+        `applies_to.proposal_ids`, `applies_to.choice_ids`, or `governance_tags`.\n\
+        \nThe core must not infer precedent relationships from titles, keywords, fuzzy\n\
+        matching, semantic similarity, embeddings, or AI-based search. Intermediary\n\
+        tools may suggest links, but the core only considers those links after they\
+        \ are\nwritten back as explicit artifact relations.\n\n### Blocking And Warning\
+        \ Semantics\n\nWarnings are valid governance signals that may influence the\
+        \ owner decision but\ndo not prevent finalization by themselves.\n\nBlocking\
+        \ errors are conditions where the core cannot reliably establish the\ndecision\
+        \ actor, decision target, governance mode, or integrity of governance\nstate.\n\
+        \nInitial non-overrideable blocking errors include:\n\n- missing, unknown,\
+        \ or unauthorized decision actor;\n- invalid required permissions or governance\
+        \ context;\n- missing target proposal or choice;\n- structurally invalid target\
+        \ artifacts;\n- unsupported governance mode;\n- structurally invalid governance\
+        \ artifacts;\n- structurally invalid vote or precedent artifacts when present.\n\
+        \nAn explicit unresolved blocker attached to the target proposal or choice\
+        \ blocks\nnormal finalization. It may be overridden only by an authorized\
+        \ owner with\nexplicit rationale recorded in the final decision record.\n\n\
+        Vote disagreement, ties, related precedents, reopened decisions, open concerns\n\
+        not marked as blockers, weak consensus, no votes, and no related precedents\
+        \ are\nwarnings or neutral signals, not automatic blockers.\n\n### MCP Phase\
+        \ 1\n\nMCP phase 1 exposes governance visibility, validation, vote summaries,\n\
+        deterministic precedent lookup, and governance preflight evaluation. It does\
+        \ not\nexpose governance mutation or final decision execution.\n\nIncluded\
+        \ phase-1 tools:\n\n- `p2p_governance_status`;\n- `p2p_governance_validate`;\n\
+        - `p2p_choice_governance_preflight`;\n- `p2p_vote_status`;\n- `p2p_precedent_search`.\n\
+        \nDeferred tools:\n\n- `p2p_vote_record`;\n- `p2p_precedent_record`;\n- `p2p_choice_decide`.\n\
+        \n`p2p_choice_governance_pre"
+      fragment_kind: proposal
+      truncated: true
+    - id: VME-24c707312194e0cc548f5bb3
+      source_path: .p2p/proposals/PROP-091-governance-policy-convergence/proposal.md
+      source_sha256: ca516c3c2348bcb5a066133b0c68a9fbeb0b4db6bcd6769034defd3754844c93
+      fragment: "- Governance status reports configured mode, effective owner identities,\n\
+        \  artifact presence, warnings, and validation problems.\n- Governance preflight\
+        \ emits a stable `schema_version`.\n- Governance preflight output is deterministic\
+        \ for the same repository state\n  and command input.\n- Governance preflight\
+        \ distinguishes proposed `selection` from final decision\n  records.\n- Governance\
+        \ preflight includes actor resolution, resolved roles, capabilities,\n  and\
+        \ `can_decide`.\n- Governance preflight includes `result.status` with one\
+        \ of `ready`,\n  `requires_rationale`, `requires_owner_override`, or `blocked`.\n\
+        - Blocking errors and warnings use stable machine-readable codes.\n- Vote\
+        \ summaries are included when vote data exists or is relevant.\n- Vote disagreement\
+        \ with the selected option produces a warning, not a blocking\n  error.\n\
+        - Active explicit blockers are listed and block normal finalization.\n- Owner\
+        \ override of explicit blockers requires rationale recorded in the final\n\
+        \  decision record.\n- Explicit precedents and deterministic tag-declared\
+        \ matches are listed\n  separately.\n- Precedent lookup uses only explicit\
+        \ artifact relationships or declared tags.\n- Project validation includes\
+        \ structural checks for `governance.yml`,\n  `roles.yml`, `decision-precedents.yml`,\
+        \ and `votes.yml`.\n- MCP phase 1 tools do not modify project artifacts, votes,\
+        \ precedents, choices,\n  proposals, or decision records.\n- MCP phase 1 exposes\
+        \ governance status, validation, choice preflight, vote\n  status, and deterministic\
+        \ precedent lookup."
+      fragment_kind: acceptance_criteria
+      truncated: false
+  historical_contributions: []
+  conflicts:
+  - kind: choice
+    id: CHOICE-001
+    title: Initial AI Integration Strategy
+    status: decided
+    selected_option: C - Prompt-only first, Codex adapter later
+    proposals:
+    - PROP-001
+    - PROP-004
+    - PROP-005
+    - PROP-006
+    source_path: .p2p/choices/CHOICE-001-initial-ai-integration-strategy/choice.md
+  diagnostics: []

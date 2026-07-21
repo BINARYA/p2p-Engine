@@ -264,3 +264,37 @@ def test_coverage_import_adds_record_to_older_artifact_state(tmp_path: Path) -> 
     vertical = next(item for item in updated_records if item["id"] == "vertical_coverage")
     assert vertical["status"] == "satisfied"
     assert vertical["confirmation"] == "owner_confirmed"
+
+
+def test_vertical_batch_indexes_proposal_directories_once(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project(
+        "Coverage scale",
+        project_domain="software",
+        vertical_id="software_project",
+        owner="owner",
+    )
+    proposal_ids = tuple(f"PROP-{number:05d}" for number in range(1, 1001))
+    proposals_dir = tmp_path / ".p2p/proposals"
+    for proposal_id in reversed(proposal_ids):
+        (proposals_dir / f"{proposal_id}-scale").mkdir()
+    service = workspace._project_vertical_service()
+
+    def unexpected_single_lookup(_proposal_id: str) -> Path:
+        raise AssertionError("batch evaluation used per-proposal directory lookup")
+
+    service.find_proposal_dir = unexpected_single_lookup
+    state = service.vertical_read_state()
+
+    statuses = service.proposal_vertical_coverage_statuses(
+        proposal_ids,
+        state=state,
+    )
+    suggestions = service.suggest_proposal_vertical_coverages(
+        proposal_ids,
+        state=state,
+    )
+
+    assert len(statuses) == len(suggestions) == 1000
+    assert {item.state for item in statuses.values()} == {"absent_legacy"}
+    assert all(not item.candidates for item in suggestions.values())

@@ -74,6 +74,38 @@ p2p registry refresh
 p2p next
 ```
 
+### Fast Reads And Vertical Project Memory
+
+`p2p status`, proposal list, ordinary project progress, small context and
+`p2p next` are fast or bounded reads. Their structured output states which
+checks ran. They do not imply that `p2p validate` or the complete derived-state
+graph ran; use `p2p validate` and `p2p project freshness` explicitly for those
+deep checks.
+
+The engine can materialize a compact, vertical-aware read model from canonical
+proposal decisions, declared vertical coverage, project definition, questions,
+choices and conflicts. It is derived, never an authority source, and never
+claims that accepted work was implemented.
+
+```bash
+p2p project memory status --format json
+p2p project memory show --limit 20
+p2p project memory show --section data_model --limit 20
+p2p project memory show --section data_model --include-history --limit 20
+p2p project refresh
+```
+
+`status` and `show` are read-only. Section IDs are exact and list results are
+bounded with source-bound cursors. A missing, stale or invalid materialization
+is rebuilt in memory from canonical sources for authority-sensitive reads when
+possible, without writing files. `p2p project refresh` is the explicit atomic
+write that refreshes vertical memory and the existing project projections.
+
+Supported canonical mutations may attempt a proven incremental post-commit
+update. Its additive `derived_updates.vertical_project_memory` result is one of
+`updated`, `unchanged`, `stale`, `failed` or `not_applicable`. A derived failure
+does not roll back or reinterpret the successful canonical operation.
+
 ### Runtime Contract
 
 Project runtime compatibility is declared in `.p2p/project/runtime.yml`.
@@ -858,44 +890,62 @@ remains the managed source of truth. Re-running the export archives the previous
 `outputs/latest/` under the next `outputs/review-###/` directory before writing
 a new latest version.
 
-## 10. Publish The Canonical Human Project Output
+## 10. Publish Human Project Editions
 
-The publication pipeline keeps the complete export separate from the curated
-human publication:
+Publication turns governed evidence into an autonomous project document for a
+reader who does not need to know P2P. English is the default; language editions
+share the same project scope but have independent files, freshness, rendering,
+and owner review.
 
 ```bash
-p2p project publish prepare
-p2p project publish import curated-draft.md
-p2p project publish validate
-p2p project publish render
-p2p project publish review --status approved --reviewer owner
-p2p project publish status
+p2p project publish prepare --language en --output-name project --contributions auto
+p2p project publish import drafts/project-publication/project-en.md \
+  --model drafts/project-publication/project-en.model.yml \
+  --evidence-accounting drafts/project-publication/project-en.evidence.yml \
+  --language en --output-name project
+p2p project publish validate --language en --output-name project
+p2p project publish render --language en --output-name project
+p2p project publish review --language en --output-name project \
+  --status approved --reviewer owner
+p2p project publish status --language en --output-name project
+p2p project publish list
 ```
 
-`prepare` writes `outputs/latest/publication-profile.yml`,
-`outputs/latest/curator-input.md`, and `outputs/latest/publication-manifest.yml`.
-It reuses `outputs/latest/project.md` when its recorded P2P source fingerprint
-and hash are current, so it does not create duplicate `outputs/review-###/`
-snapshots when nothing changed.
+`--language` accepts normalized BCP 47 tags. Aliases `eng` and `ita` normalize to
+`en` and `it`. `--output-name` is a lowercase ASCII slug. Together they form the
+edition key, for example `project-en` or `manual-it`.
 
-The external curator edits a draft outside the canonical output path. `import`
-atomically copies that draft to `outputs/latest/project.curated.md` and records
-source, profile, packet, and curated hashes. The curated document and PDF are
-derived publication artifacts; `.p2p/` remains authoritative.
+`prepare` writes one shared complete evidence index at
+`outputs/latest/publication-evidence.yml` and edition metadata under
+`outputs/latest/publications/<edition-key>/`. The packet names the exact three
+candidate paths under `drafts/project-publication/`; it does not embed the full
+visible export. Contribution policy is `auto`, `include`, or `omit`.
+When included, contribution percentages are a deterministic distribution of
+selected attributed records, including an explicit unattributed denominator.
+They do not measure effort, merit, ownership, or intellectual-property shares.
+The curator must preserve the prepared figures and add the supplied limitation
+in the edition language.
 
-`validate` writes `outputs/latest/publication-validation.yml` and fails on
-deterministic contract errors such as missing curated Markdown, wrong H1 count,
-missing executive summary, missing `.p2p/` source-of-truth statement, stale
-hashes, or renderer-incompatible Markdown.
+The curator builds a project model, accounts for every evidence ID, and writes
+reader Markdown in the selected language. `import` validates and atomically
+commits that triplet. The final Markdown is
+`outputs/latest/<edition-key>.md`; model, accounting, validation, and review
+remain edition sidecars.
 
-`render` writes `outputs/latest/project.pdf` only after validation passes. PDF
-support is optional; install `p2p-engine[pdf]` plus WeasyPrint native
-dependencies to enable it. There is no handcrafted PDF fallback.
+Validation checks the complete hash chain and structural reader contract. It
+does not require an English `Executive Summary` heading or `.p2p` boilerplate in
+reader prose. Internal proposal, decision, Change Set, and Work IDs are rejected
+from normal prose; traceability remains in sidecars.
 
-`review` records owner review in `outputs/latest/publication-review.yml` for the
-current Markdown/PDF package. Approval means the publication package is approved
-for publication; it is not proposal acceptance, Work acceptance, or governance
-approval.
+`render` writes `outputs/latest/<edition-key>.pdf` only after validation passes.
+PDF support is optional through `p2p-engine[pdf]` and WeasyPrint. The HTML
+language and title come from the selected edition and model.
+
+Review is owner-controlled and edition-specific. Approval of one language never
+approves another. For compatibility, a successful default `project-en` import
+and render also update `project.curated.md` and `project.pdf` aliases. Those
+aliases are not v2 freshness inputs, and legacy v1 review approval is never
+copied into a v2 edition.
 
 ## 11. Generate And Export Software Specs
 

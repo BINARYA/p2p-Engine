@@ -14,6 +14,7 @@ from p2p_engine.cli import app
 from p2p_engine.foundation.markdown import read_frontmatter, replace_frontmatter
 from p2p_engine.storage.filesystem import P2PWorkspace
 from tests.filesystem_assertions import assert_no_workspace_mutation
+from tests.publication_fixtures import write_publication_candidates
 
 runner = CliRunner()
 
@@ -98,8 +99,16 @@ def _assert_codex_curator_skill(root: Path) -> None:
     assert legacy.exists()
     content = legacy.read_text(encoding="utf-8")
     assert "name: p2p-project-curator" in content
-    assert "P2P Engine release template" in content
     assert "p2p project publish prepare" in content
+    assert "reader who has no knowledge of P2P" in content
+    for name in (
+        "editorial-workflow.md",
+        "publication-contracts.md",
+        "vertical-interpretation.md",
+        "editorial-rubric.md",
+    ):
+        assert f"references/{name}" in content
+        assert (legacy.parent / "references" / name).is_file()
 
 
 def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
@@ -584,28 +593,34 @@ def test_cli_project_publish_prepare_import_and_status(tmp_path: Path) -> None:
     assert first.exit_code == 0
     assert "Project publication prepared" in first.output
     assert "exported: true" in first.output
-    assert "curator_input: outputs/latest/curator-input.md" in first.output
+    assert "edition: project-en" in first.output
+    assert "curator_input: outputs/latest/publications/project-en/curator-input.md" in first.output
+    assert "candidate_model: drafts/project-publication/project-en.model.yml" in first.output
     assert second.exit_code == 0
     assert "exported: false" in second.output
     assert "reused_export: true" in second.output
     assert not (tmp_path / "outputs" / "review-001").exists()
 
-    draft = tmp_path / "curated-draft.md"
-    draft.write_text(
-        "# Demo Project\n\n"
-        "## Executive Summary\n\n"
-        "Demo Project is described as one canonical human publication.\n\n"
-        "## Source Of Truth\n\n"
-        "The `.p2p/` directory remains authoritative.\n",
-        encoding="utf-8",
-    )
+    draft, model, accounting = write_publication_candidates(tmp_path)
     imported = runner.invoke(
         app,
-        ["project", "publish", "import", str(draft), "--root", str(tmp_path)],
+        [
+            "project",
+            "publish",
+            "import",
+            str(draft),
+            "--model",
+            str(model),
+            "--evidence-accounting",
+            str(accounting),
+            "--root",
+            str(tmp_path),
+        ],
     )
     assert imported.exit_code == 0
     assert "Project publication imported" in imported.output
-    assert "curated: outputs/latest/project.curated.md" in imported.output
+    assert "curated: outputs/latest/project-en.md" in imported.output
+    assert "model: outputs/latest/publications/project-en/project-model.yml" in imported.output
 
     before_validation = runner.invoke(app, ["project", "publish", "status", "--root", str(tmp_path)])
     assert before_validation.exit_code == 0
@@ -623,9 +638,31 @@ def test_cli_project_publish_prepare_import_and_status(tmp_path: Path) -> None:
     assert "validation_status: passed" in status.output
     assert "validation: ready" in status.output
 
+    italian = runner.invoke(
+        app,
+        [
+            "project",
+            "publish",
+            "prepare",
+            "--language",
+            "it",
+            "--output-name",
+            "manual",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    editions = runner.invoke(app, ["project", "publish", "list", "--root", str(tmp_path)])
+    assert italian.exit_code == 0
+    assert "edition: manual-it" in italian.output
+    assert editions.exit_code == 0
+    assert "manual-it" in editions.output
+    assert "project-en" in editions.output
+
 
 def test_cli_project_publish_render_and_review_with_fake_renderer(tmp_path: Path, monkeypatch) -> None:
-    def fake_renderer(markdown_text: str, output_path: Path, root: Path) -> str:
+    def fake_renderer(markdown_text: str, output_path: Path, root: Path, **metadata) -> str:
+        assert metadata["language"] == "en"
         output_path.write_bytes(b"%PDF-1.4\n% fake cli publication pdf\n")
         return "fake-cli-renderer"
 
@@ -651,18 +688,22 @@ def test_cli_project_publish_render_and_review_with_fake_renderer(tmp_path: Path
     )
     _apply_proposal_decision(tmp_path, "PROP-001")
     runner.invoke(app, ["project", "publish", "prepare", "--root", str(tmp_path)])
-    draft = tmp_path / "curated-draft.md"
-    draft.write_text(
-        "# Demo Project\n\n"
-        "## Executive Summary\n\n"
-        "Demo Project is the current canonical publication for this project vertical.\n\n"
-        "## Current And Planned State\n\n"
-        "Current and planned work remains traceable to PROP-001.\n\n"
-        "## Source Of Truth\n\n"
-        "The `.p2p/` directory remains authoritative.\n",
-        encoding="utf-8",
+    draft, model, accounting = write_publication_candidates(tmp_path)
+    runner.invoke(
+        app,
+        [
+            "project",
+            "publish",
+            "import",
+            str(draft),
+            "--model",
+            str(model),
+            "--evidence-accounting",
+            str(accounting),
+            "--root",
+            str(tmp_path),
+        ],
     )
-    runner.invoke(app, ["project", "publish", "import", str(draft), "--root", str(tmp_path)])
     runner.invoke(app, ["project", "publish", "validate", "--root", str(tmp_path)])
 
     rendered = runner.invoke(app, ["project", "publish", "render", "--root", str(tmp_path)])

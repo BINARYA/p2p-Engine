@@ -1129,7 +1129,7 @@ changes:
   task_count: 0
 - id: CHANGE-069
   title: Project Readiness Convergence Workflow
-  status: implementation_ready
+  status: completed
   path: .p2p/changes/CHANGE-069-project-readiness-convergence-workflow
   included_proposals:
   - PROP-101
@@ -1146,7 +1146,7 @@ changes:
   task_count: 29
 - id: CHANGE-070
   title: Proposal Decision Revision and Revocation Lifecycle
-  status: in_progress
+  status: completed
   path: .p2p/changes/CHANGE-070-proposal-decision-revision-and-revocation-lifecycle
   included_proposals:
   - PROP-102

@@ -12,6 +12,9 @@ from typing import Callable, Mapping, Protocol
 
 import yaml
 
+from p2p_engine.foundation.yaml_loaders import DuplicateYamlKeyError, load_yaml
+from p2p_engine.services.workspace_reads import WorkspaceReadContext
+
 from p2p_engine.core.decision_context import (
     Completeness,
     DecisionContextDiagnostic,
@@ -51,6 +54,21 @@ class FileSourceAccessor:
         return path.read_bytes()
 
 
+class ReadContextSourceAccessor:
+    def __init__(self, context: WorkspaceReadContext) -> None:
+        self.context = context
+
+    def proposal_directories(self, proposals_root: Path) -> list[Path]:
+        return self.context.documents.discover(
+            proposals_root,
+            policy="decision-context-proposals-v1",
+            predicate=lambda path: path.is_dir(),
+        )
+
+    def read_bytes(self, path: Path) -> bytes:
+        return self.context.documents.bytes(path)
+
+
 @dataclass(frozen=True)
 class SourceDescriptor:
     path: Path
@@ -66,30 +84,6 @@ class SourceCatalog:
     version: str
     descriptors: tuple[SourceDescriptor, ...]
     diagnostics: tuple[DecisionContextDiagnostic, ...]
-
-
-class _DuplicateYamlKeyError(ValueError):
-    pass
-
-
-class _UniqueKeyLoader(yaml.SafeLoader):
-    pass
-
-
-def _construct_unique_mapping(loader: _UniqueKeyLoader, node: yaml.MappingNode, deep: bool = False) -> dict[object, object]:
-    mapping: dict[object, object] = {}
-    for key_node, value_node in node.value:
-        key = loader.construct_object(key_node, deep=deep)
-        if key in mapping:
-            raise _DuplicateYamlKeyError(f"Duplicate YAML key: {key}")
-        mapping[key] = loader.construct_object(value_node, deep=deep)
-    return mapping
-
-
-_UniqueKeyLoader.add_constructor(
-    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-    _construct_unique_mapping,
-)
 
 
 class _AccessCounter:
@@ -302,7 +296,7 @@ class DecisionContextSourceService:
         if not path.is_file():
             return 2
         try:
-            payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+            payload = load_yaml(self.accessor.read_bytes(path))
         except (OSError, UnicodeDecodeError, yaml.YAMLError):
             return 2
         if not isinstance(payload, Mapping):
@@ -522,8 +516,8 @@ def parse_yaml_source(
         )
         return _invalid_structured_document(descriptor, relative_path, source_hash, content, diagnostic), (diagnostic,)
     try:
-        loaded = yaml.load(text, Loader=_UniqueKeyLoader)
-    except _DuplicateYamlKeyError as exc:
+        loaded = load_yaml(text, loader_contract="unique-v1")
+    except DuplicateYamlKeyError as exc:
         diagnostic = _diagnostic(
             code="DC-SOURCE-DUPLICATE-KEY",
             severity=DiagnosticSeverity.WARNING,
@@ -909,8 +903,8 @@ def _parse_frontmatter(
     if not raw_frontmatter.strip():
         return {}, body, closing_index + 2, []
     try:
-        loaded = yaml.load(raw_frontmatter, Loader=_UniqueKeyLoader)
-    except _DuplicateYamlKeyError as exc:
+        loaded = load_yaml(raw_frontmatter, loader_contract="unique-v1")
+    except DuplicateYamlKeyError as exc:
         diagnostic = _diagnostic(
             code="DC-SOURCE-DUPLICATE-KEY",
             severity=DiagnosticSeverity.WARNING,

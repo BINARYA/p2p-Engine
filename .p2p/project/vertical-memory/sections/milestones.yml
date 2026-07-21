@@ -1,0 +1,35 @@
+vertical_memory_section:
+  schema_version: 1
+  section:
+    id: milestones
+    title: Milestones And Next Actions
+    purpose: Staged path from definition to execution.
+    required: true
+    priority: 80
+  definition:
+    status: complete
+    fields:
+      summary:
+        value: F1-F9 delivered reusable schema, migration, correction, coverage, progress
+          and freshness primitives. M1 captured the repository baseline, aligned the
+          runtime contract and applied workspace schema v1. M2 established a truthful
+          software-project definition. M3 completed owner-reviewed historical relation
+          curation with no residual relation diagnostic. M4 imported a selective 12-proposal
+          owner-confirmed vertical-coverage batch covering 13 of 19 sections while
+          leaving 88 proposals intentionally legacy and unmapped. M5 rebuilds every
+          derived layer, runs focused and full verification, compares against the
+          baseline and records residual legacy or owner-controlled work.
+        source: specs/features/workspace-schema-versioning-and-legacy-migration/implementation.md
+    required_field_ids:
+    - summary
+    missing_required_fields: []
+    assumptions: []
+    open_questions: []
+    blockers: []
+  questions: []
+  declared_questions: []
+  heuristic_suggestions: []
+  active_contributions: []
+  historical_contributions: []
+  conflicts: []
+  diagnostics: []

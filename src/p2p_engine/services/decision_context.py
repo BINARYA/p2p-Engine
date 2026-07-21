@@ -17,12 +17,17 @@ from p2p_engine.core.decision_context import (
 )
 from p2p_engine.services.decision_context_extractors import DecisionContextExtractorService
 from p2p_engine.services.decision_context_freshness import semantic_fingerprint
-from p2p_engine.services.decision_context_sources import DecisionContextSourceService, SourceAccessor
+from p2p_engine.services.decision_context_sources import (
+    DecisionContextSourceService,
+    ReadContextSourceAccessor,
+    SourceAccessor,
+)
 from p2p_engine.services.decision_context_retrieval import build_retrieval_postings
 from p2p_engine.services.decision_context_topology import (
     DecisionContextTopologyService,
     build_adjacency,
 )
+from p2p_engine.services.workspace_reads import WorkspaceReadContext
 
 
 class ProjectDecisionContextService:
@@ -39,11 +44,21 @@ class ProjectDecisionContextService:
         self.p2p_dir = (p2p_dir or self.root / ".p2p").resolve()
         self.source_accessor = source_accessor
 
-    def build_index(self) -> DecisionContextIndex:
+    def build_index(
+        self,
+        *,
+        read_context: WorkspaceReadContext | None = None,
+    ) -> DecisionContextIndex:
         source_service = DecisionContextSourceService(
             root=self.root,
             p2p_dir=self.p2p_dir,
-            accessor=self.source_accessor,
+            accessor=(
+                self.source_accessor
+                if self.source_accessor is not None
+                else ReadContextSourceAccessor(read_context)
+                if read_context is not None
+                else None
+            ),
         )
         session = source_service.build_full_session()
         if session.completeness == Completeness.UNAVAILABLE and not session.sources:

@@ -34,6 +34,19 @@ p2p_context
 
 Agents should not scan all `.p2p/`, all registries, all proposals, source code, or Git history unless the task explicitly requires it or compact context is insufficient.
 
+For project-wide orientation, inspect vertical memory before opening many
+proposal artifacts:
+
+```bash
+p2p project memory status
+p2p project memory show --limit 20
+```
+
+Use an exact section and a bounded cursor when more detail is needed. Treat the
+result as a derived read model: canonical `.p2p` sources remain authoritative,
+and an accepted contribution must not be described as implemented merely
+because it appears in current project memory.
+
 ## Allowed Behavior
 
 Agents may:
@@ -205,6 +218,27 @@ MCP clients should call read-only `p2p_spec_lifecycle` before write-safe
 `p2p_spec_refresh` or `p2p_spec_export`. Lifecycle blockers stop writes and
 return diagnostics; advisories, including inactive `software_project` vertical
 coverage, should be surfaced without inventing alternate output paths.
+
+## Publication Curator Skill
+
+Codex integration installs `p2p-project-curator` under both supported skill
+roots. The managed resource set contains one concise `SKILL.md` and four direct
+references for editorial workflow, publication contracts, vertical
+interpretation, and the editorial rubric. Install, update, doctor, and uninstall
+own the complete set; do not repair generated files individually.
+
+The curator starts from the exact edition packet produced by:
+
+```bash
+p2p project publish prepare --language en --output-name project
+```
+
+It reads the complete shared evidence index, builds a project model, accounts
+for every evidence item, and writes only the packet-declared candidate triplet.
+It must not edit `.p2p/`, canonical publication outputs, import, render, review,
+approve, infer implementation state, or use implicit knowledge from adjacent
+projects. Reader prose remains autonomous and free from upstream workflow IDs;
+traceability stays in model and accounting sidecars.
 
 ## Runtime Bootstrap
 

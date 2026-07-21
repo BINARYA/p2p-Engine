@@ -2,7 +2,7 @@
 
 ## Generated Metadata
 
-- generated_at: 2026-07-20
+- generated_at: 2026-07-21
 - generator: p2p project export
 - source_of_truth: .p2p/
 - output_role: generated human-facing project definition

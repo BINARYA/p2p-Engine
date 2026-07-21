@@ -5,13 +5,13 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionBindingStatus,
     ProposalDecisionLifecycleView,
 )
 from p2p_engine.foundation.markdown import read_frontmatter, read_markdown_section, read_title
+from p2p_engine.foundation.yaml_loaders import load_yaml
+from p2p_engine.services.lifecycle_authority import proposal_display_status
 
 
 def _slugify(value: str) -> str:
@@ -28,7 +28,7 @@ def _read_optional(path: Path) -> str:
 def _read_yaml(path: Path, default: object) -> object:
     if not path.exists():
         return default
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    data = load_yaml(path.read_bytes())
     return data if data is not None else default
 
 
@@ -106,10 +106,14 @@ class RegistryRecordBuilderService:
             proposal_path = path / "proposal.md"
             proposal_id = "-".join(path.name.split("-", 2)[:2])
             lifecycle = lifecycles.get(proposal_id)
+            projected_status = _read_proposal_status(proposal_path)
             status = (
-                lifecycle.effective_state.value
+                proposal_display_status(
+                    lifecycle,
+                    undecided_fallback=projected_status,
+                )
                 if lifecycle is not None
-                else _read_proposal_status(proposal_path)
+                else projected_status
             )
             if (
                 lifecycle is not None
@@ -164,10 +168,14 @@ class RegistryRecordBuilderService:
             proposal_id = "-".join(path.name.split("-", 2)[:2])
             proposal_text = _read_optional(path / "proposal.md")
             lifecycle = lifecycles.get(proposal_id)
+            projected_status = _read_proposal_status(path / "proposal.md")
             status = (
-                lifecycle.effective_state.value
+                proposal_display_status(
+                    lifecycle,
+                    undecided_fallback=projected_status,
+                )
                 if lifecycle is not None
-                else _read_proposal_status(path / "proposal.md")
+                else projected_status
             )
             title = _clean_proposal_title(read_title(proposal_text) or path.name, proposal_id)
             records.append(

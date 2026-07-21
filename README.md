@@ -26,10 +26,13 @@ P2P Engine keeps the working memory of a project in `.p2p/`, backed by Git.
 - derives Change Sets from accepted proposals;
 - manages work metadata for branch-based implementation flows;
 - generates compact context packets for agents;
+- derives compact vertical-aware project memory for bounded retrieval;
 - validates P2P project state;
 - assesses project readiness and definition maturity;
 - converges owner-answered project questions into definition state through an
   atomic preview/apply workflow;
+- prepares complete vertical-aware evidence for autonomous, multilingual human
+  project publications;
 - generates and exports project specs for downstream tools.
 
 ## Who It Is For
@@ -157,6 +160,22 @@ for normal use.
 ```
 
 For full manual workflows, use [docs/CLI-GUIDE.md](docs/CLI-GUIDE.md).
+
+### Human Project Publication
+
+Publication is a derived reader output, not a governance report. English is the
+default and other normalized language editions can coexist without overwriting
+one another:
+
+```bash
+.venv/bin/p2p project publish prepare --language en --output-name project
+.venv/bin/p2p project publish list
+```
+
+Prepare emits a bounded curator packet plus exact Markdown, project-model, and
+evidence-accounting candidate paths. Import validates and atomically commits all
+three before validation, optional PDF rendering, and separate owner review. See
+[the publication workflow](docs/CLI-GUIDE.md#10-publish-human-project-editions).
 
 ## Install
 

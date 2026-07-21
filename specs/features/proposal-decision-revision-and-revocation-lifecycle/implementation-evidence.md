@@ -889,7 +889,7 @@ normalized manually.
 | Decision context | latest measured build: 1,486 sources, 3,249 evidence records, 2,495 semantic records, 716 nodes, 1,019 valid relations and zero diagnostics |
 | Progress | definition 40/43 (93.02%); declared evidence 13/19 (68.42%); axes remain separate |
 | Assessment and maturity | 76/100 `needs_review`, high confidence; 100/100 `well_defined` |
-| Software specs | `CHANGE-070` current; 12 legacy specs explicitly `unknown_origin` |
+| Software specs | Gate-closure snapshot: `CHANGE-070` current; 12 legacy specs explicitly `unknown_origin` (superseded by the post-handoff alignment below) |
 | Next actions | 17 stable generated actions, zero curated; the two active Change Sets are included and completed `CHANGE-070` is absent |
 | Visible export | `outputs/latest/project.md`, SHA-256 `cc5f0c70ef678245b96086ccf936a0707d8f80e054abe8a7e1c5337c37f162ad` |
 | Curated publication | SHA-256 `0b4a46693d2a47b0b3fb360807260564b614e5bb515603b139d8151f85f74805` |
@@ -897,21 +897,21 @@ normalized manually.
 | Publication PDF | SHA-256 `3dc7d22d6d62f6d526c4439d6dcfc96f74a1b733f901a3e01fb4f4d48a86ad89` |
 | Publication review | missing by design; `approved_for_publication=false` |
 
-The final publication manifest reports source export, profile, curator packet,
-curated Markdown, validation and render as ready. The general freshness graph
-still reports inherited attention because the 12 legacy software specs are
-partial. The downstream publication stages are current according to their
-own source-bound manifest; the general graph conservatively propagates the
-legacy uncertainty. This is an explicit review classification, not a request
-to overwrite those specs.
+At A gate closure, the publication manifest reported source export, profile,
+curator packet, curated Markdown, validation and render as ready. The general
+freshness graph still reported inherited attention because the 12 legacy
+software specs were partial. The downstream publication stages were current
+according to their own source-bound manifest; the general graph conservatively
+propagated the legacy uncertainty. This was an explicit review classification,
+not a request to overwrite those specs.
 
-The final post-brief freshness check uses canonical fingerprint
+The gate-closure post-brief freshness check used canonical fingerprint
 `6f4eb251acc8a1c4e814bef5faf22eed7530534cde07bdf291a3fc92296b032d`.
 Canonical sources, registries, project projections and request-scoped decision
 context are `current`; assessment, operational brief and the final 17 managed
 next actions are `current_legacy_fallback`. The remaining graph attention is
-fully explained by the 12 `unknown_origin` specs, their conservative downstream
-propagation and the missing owner publication review.
+explained by the then-current 12 `unknown_origin` specs, their conservative
+downstream propagation and the missing owner publication review.
 
 The final freshness audit exposed one false stale result in `next_actions`.
 The node previously treated the append-only `next-actions-log.yml` as a
@@ -1013,12 +1013,47 @@ supported, schema-v2 event writes are blocked pending migration, and schema-v3
 uses token-bound append-only decision events. This repository is migrated to
 schema v3 with 102 valid ledgers and no unknown authority.
 
+## Post-Handoff Legacy Spec Provenance Alignment
+
+On 2026-07-20 the 12 legacy software specs were refreshed one at a time through
+their owning `p2p spec refresh --change CHANGE-XXX` primitive. Before each
+write, the current artifact set was compared with the deterministic candidate:
+all six non-provenance outputs were byte-identical, each proposal decision
+binding was active and current, and every lifecycle preflight had zero blockers
+and advisories.
+
+The refresh covered `CHANGE-012` through `CHANGE-017`, `CHANGE-053`,
+`CHANGE-054`, `CHANGE-063`, `CHANGE-065`, `CHANGE-068` and `CHANGE-069`.
+Only their 12 `provenance.yml` files changed, with 41 metadata lines added per
+spec and no specification-content rewrite. The added records bind the schema-v3
+decision event, source fingerprint, source digests and output digests. The
+optional `CHANGE-012/spec-refine.prompt.md` remained unchanged at SHA-256
+`f0df7903c6760e2de8ad39337c7a789fdddeb515b72f9248a34f6a56f8aa0a34`.
+
+`p2p spec status` now reports all 13 software specs as `freshness=current`.
+Managed next actions remain at 17 with no legacy-origin remediation. The
+operational brief was imported through its supported primitive, and the visible
+project export retained SHA-256
+`cc5f0c70ef678245b96086ccf936a0707d8f80e054abe8a7e1c5337c37f162ad`,
+confirming that provenance alignment did not change published project content.
+
+The technical publication stages were rebuilt in order. The source fingerprint
+remained `f83544654dee8db3979aa11e95a5e3308a690db85fa63b5c641672612c404c5a`;
+the curated Markdown is
+`1d405ac51ea3e59342555394bb30f82042dcd317b650e517c4eccc959c532be6`,
+validation passed with zero findings, and the rendered PDF is
+`9677598047fdca693ccff38e26a5390167d9fa4eb802e0b937d49f3ebaa16a49`.
+The final freshness graph retains canonical fingerprint
+`6f4eb251acc8a1c4e814bef5faf22eed7530534cde07bdf291a3fc92296b032d`
+and its only rebuild-plan item is the owner-controlled publication review.
+
+This follow-up did not change Change Set state, proposal authority, source code
+or Git/release state.
+
 ## Residual Owner Or Manual Actions
 
 - `CHANGE-068` and `CHANGE-069` remain `implementation_ready` and are outside
   the lifecycle decision for this feature.
-- Twelve legacy software specs remain `unknown_origin`; each requires
-  provenance evidence or explicit review, not deterministic overwrite.
 - Publication review remains missing and approval remains false.
 - Project question `PRQ-7070e7a631b1df44` and assumptions `A001`/`A002`
   require separate owner input.

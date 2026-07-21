@@ -402,6 +402,56 @@ def test_conflicting_commit_during_preview_rebuild_becomes_head_conflict(
         )
 
 
+def test_schema_recovery_race_after_conflicting_commit_becomes_head_conflict(
+    tmp_path: Path,
+) -> None:
+    workspace, proposal_id, proposal_dir = _workspace(tmp_path)
+    accepted = _preview(workspace, proposal_id, reason="Accept.")
+    rejected = _preview(
+        workspace,
+        proposal_id,
+        ProposalDecisionEventType.rejected,
+        reason="Reject.",
+    )
+    service = workspace._proposal_decision_service()
+    original_schema_gate = service._require_schema_v3
+    committed = False
+
+    def schema_gate_after_competing_commit() -> None:
+        nonlocal committed
+        if not committed:
+            committed = True
+            competing = P2PWorkspace(tmp_path)._proposal_decision_service()
+            assert (
+                competing.apply(
+                    accepted.request,
+                    preview_token=accepted.mutation.preview_token,
+                    confirm=True,
+                ).status
+                == "applied"
+            )
+            raise ValueError(
+                "P2P307_WORKSPACE_MIGRATION_RECOVERY_REQUIRED: "
+                "simulated transaction cleanup race"
+            )
+        original_schema_gate()
+
+    service._require_schema_v3 = schema_gate_after_competing_commit  # type: ignore[method-assign]
+
+    with pytest.raises(ValueError, match="P2P367_DECISION_CONCURRENT_HEAD"):
+        service.apply(
+            rejected.request,
+            preview_token=rejected.mutation.preview_token,
+            confirm=True,
+        )
+
+    ledger = ProposalDecisionLedgerCodec().loads(
+        (proposal_dir / "decision-events.yml").read_bytes(),
+        expected_proposal_id=proposal_id,
+    )
+    assert len(ledger.events) == 1
+
+
 def test_schema_gate_distinguishes_live_decision_lock_from_stale_recovery(
     tmp_path: Path,
 ) -> None:
