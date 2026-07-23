@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from rich.text import Text
 from typer.testing import CliRunner
 
 from p2p_engine.cli import app
@@ -10,6 +11,10 @@ from p2p_engine.core.project_publication import PublicationEdition, resolve_publ
 
 runner = CliRunner()
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _plain_help(output: str) -> str:
+    return Text.from_ansi(output).plain
 
 
 def test_publication_docs_match_resolver_and_cli_help(tmp_path: Path) -> None:
@@ -22,15 +27,23 @@ def test_publication_docs_match_resolver_and_cli_help(tmp_path: Path) -> None:
 
     assert prepare_help.exit_code == 0
     assert import_help.exit_code == 0
-    assert "--language" in prepare_help.output
-    assert "--output-name" in prepare_help.output
-    assert "--contributions" in prepare_help.output
-    assert "--model" in import_help.output
-    assert "--evidence-accounting" in import_help.output
+    prepare_output = _plain_help(prepare_help.output)
+    import_output = _plain_help(import_help.output)
+    assert "--language" in prepare_output
+    assert "--output-name" in prepare_output
+    assert "--contributions" in prepare_output
+    assert "--model" in import_output
+    assert "--evidence-accounting" in import_output
     assert paths.markdown.relative_to(tmp_path).as_posix() == "outputs/latest/outputxyz-en.md"
     assert "outputs/latest/<edition-key>.md" in guide
     assert "drafts/project-publication/project-en.model.yml" in guide
     assert "`p2p_project_publish_list`" in mcp
+
+
+def test_publication_help_assertions_ignore_ansi_rendering() -> None:
+    rendered = "\x1b[1m-\x1b[0m\x1b[1m-language\x1b[0m"
+
+    assert "--language" in _plain_help(rendered)
 
 
 def test_publication_docs_do_not_present_v1_paths_as_v2_authority() -> None:

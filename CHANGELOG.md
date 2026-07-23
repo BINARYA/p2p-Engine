@@ -6,6 +6,11 @@ This project is early-stage and did not previously maintain a public changelog.
 Use this file for human-readable release notes as the repository moves toward
 tagged releases.
 
+## 0.4.3 - 2026-07-23
+
+- Made publication CLI documentation tests independent from ANSI styling in
+  GitHub Actions while preserving the same semantic option assertions.
+
 ## 0.4.2 - 2026-07-23
 
 - Completed the proposal decision revision, revocation, reinstatement and typed
