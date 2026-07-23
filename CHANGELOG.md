@@ -6,6 +6,23 @@ This project is early-stage and did not previously maintain a public changelog.
 Use this file for human-readable release notes as the repository moves toward
 tagged releases.
 
+## 0.4.2 - 2026-07-23
+
+- Completed the proposal decision revision, revocation, reinstatement and typed
+  lineage lifecycle, including schema-v3 historical decision alignment and
+  concurrent-decision diagnostics.
+- Added deterministic vertical project memory with full and incremental
+  refresh, source fingerprints, section-oriented retrieval and bounded fast
+  read paths.
+- Added evidence-driven multilingual project publication with language-specific
+  editions, editorial models, evidence accounting, validation and neutral PDF
+  rendering.
+- Added per-spec semantic provenance refresh and aligned generated project,
+  registry, assessment, context and publication artifacts with the current
+  source state.
+- Added a descriptive current-state codebase architecture snapshot under
+  `docs/development/`.
+
 ## 0.4.1 - 2026-07-19
 
 - Added a read-only, source-bound owner-attestation template for workspace
