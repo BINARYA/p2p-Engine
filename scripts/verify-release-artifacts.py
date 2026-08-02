@@ -103,6 +103,17 @@ ATTESTATION_SDIST_MEMBERS = {
     "tests/test_workspace_compatibility_service.py",
     "tests/test_workspace_v3_migration.py",
 }
+PORTABLE_VERTICAL_WHEEL_MEMBERS = {
+    "p2p_engine/core/portable_verticals.py",
+    "p2p_engine/core/project_verticals.py",
+    "p2p_engine/services/project_verticals.py",
+    "p2p_engine/services/vertical_lifecycle.py",
+    "p2p_engine/services/vertical_packages.py",
+}
+PORTABLE_VERTICAL_SDIST_MEMBERS = {
+    *(f"src/{member}" for member in PORTABLE_VERTICAL_WHEEL_MEMBERS),
+    "tests/test_portable_verticals.py",
+}
 
 
 def _parse_args() -> argparse.Namespace:
@@ -187,6 +198,7 @@ def verify_wheel(path: Path, *, version: str) -> int:
     }
     required.update(DECISION_LIFECYCLE_WHEEL_MEMBERS)
     required.update(ATTESTATION_WHEEL_MEMBERS)
+    required.update(PORTABLE_VERTICAL_WHEEL_MEMBERS)
     required.update(_vertical_pack_required_members("p2p_engine"))
     with zipfile.ZipFile(path) as archive:
         members = _normalized_members(archive.namelist(), archive_root=None)
@@ -213,6 +225,7 @@ def verify_sdist(path: Path, *, version: str) -> int:
     }
     required.update(DECISION_LIFECYCLE_SDIST_MEMBERS)
     required.update(ATTESTATION_SDIST_MEMBERS)
+    required.update(PORTABLE_VERTICAL_SDIST_MEMBERS)
     required.update(_vertical_pack_required_members("src/p2p_engine"))
     with tarfile.open(path, mode="r:gz") as archive:
         members = _normalized_members(archive.getnames(), archive_root=archive_root)

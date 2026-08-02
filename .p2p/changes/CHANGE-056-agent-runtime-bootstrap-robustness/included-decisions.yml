@@ -1,3 +1,0 @@
-included_decisions:
-- proposal: PROP-074
-  decision_file: .p2p/proposals/PROP-074-agent-runtime-bootstrap-robustness/decision.md

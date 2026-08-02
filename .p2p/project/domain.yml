@@ -1,8 +1,0 @@
-version: '1.0'
-status: template_selected
-type: template
-name: software
-template: software
-provenance:
-  source: .p2p/project.yml
-  migration: workspace-legacy-to-v1

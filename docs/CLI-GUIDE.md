@@ -412,6 +412,83 @@ section order. `vertical.yml` contains metadata only; split sections and
 rubrics must not also be embedded there. External single-file `vertical.yml`
 packs remain supported for compatibility.
 
+### Portable Versioned Packs
+
+Schema-version-2 packs add a publisher, exact semantic version, license,
+optional social lineage, and exact dependency checksums. Their identity is the
+coordinate `publisher/vertical-id@version`. Structural `extends` and social
+`lineage.forked_from` are separate declarations.
+
+P2P Engine does not contact a remote registry. A catalog service such as
+WaveKit downloads and authorizes an immutable artifact, then passes its local
+path and expected SHA-256 to P2P:
+
+```bash
+p2p project vertical schema --format json
+p2p project vertical scaffold ./my-vertical \
+  --publisher example --id my_vertical --version 1.0.0 --license MIT
+p2p project vertical inspect ./my-vertical --view declared --format json
+p2p project vertical package ./my-vertical --output ./my-vertical.p2pv
+p2p project vertical validate ./my-vertical.p2pv --format json
+
+p2p project vertical install preview ./my-vertical.p2pv \
+  --expected-checksum <sha256> --actor owner --format json
+p2p project vertical install apply ./my-vertical.p2pv \
+  --expected-checksum <sha256> --token <preview-token> \
+  --confirm --actor owner --format json
+```
+
+Portable versions are installed side by side under:
+
+```text
+.p2p/project/verticals/_portable/<publisher>/<vertical-id>/<version>/
+```
+
+Dependencies must already be locally available at their exact coordinates and
+must match their declared semantic checksums. P2P never resolves a floating
+version or silently upgrades a project.
+
+For a new project, installation and selection can be requested together. Pack,
+checksum, dependencies, profile and modules are checked before project files
+are created:
+
+```bash
+p2p init "My Project" \
+  --vertical-pack ./my-vertical.p2pv \
+  --expected-checksum <sha256> \
+  --owner owner
+```
+
+Existing projects use governed preview/apply. `adopt` is limited to definitions
+without meaningful evidence. `migrate` preserves same-ID fields, applies only
+exact mappings and records every remaining value as an explicit orphan:
+
+```bash
+p2p project vertical adopt preview example/my_vertical@1.0.0 --actor owner
+p2p project vertical adopt apply example/my_vertical@1.0.0 \
+  --token <preview-token> --confirm --actor owner
+
+p2p project vertical migrate preview example/my_vertical@2.0.0 \
+  --mapping vertical-mapping.yml --actor owner
+p2p project vertical migrate apply example/my_vertical@2.0.0 \
+  --mapping vertical-mapping.yml --token <preview-token> \
+  --confirm --actor owner
+```
+
+Example exact mapping:
+
+```yaml
+vertical_migration:
+  field_mapping:
+    old_section.old_field: new_section.new_field
+  rubric_mapping:
+    old_rubric: new_rubric
+```
+
+Every new machine-facing command returns an `ok`, `operation`, `data`,
+`warnings`, and `error` JSON envelope. Preview operations do not write state;
+apply requires the current token, explicit confirmation and actor.
+
 Selecting a vertical writes explicit project state:
 
 ```text

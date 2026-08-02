@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import replace
+import hashlib
 from pathlib import Path
 from typing import TypeVar
 
@@ -10,6 +11,12 @@ from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.core.decision_context import DecisionContextIndex
 from p2p_engine.core.derived_freshness import DerivedFreshnessStatus
 from p2p_engine.core.mutation_preview import MutationPreview, MutationResult
+from p2p_engine.core.portable_verticals import (
+    PortableVerticalInspection,
+    PortableVerticalPackageResult,
+    VerticalLifecyclePreview,
+    VerticalLifecycleResult,
+)
 from p2p_engine.core.project_metadata import ProjectMetadataView
 from p2p_engine.core.project_progress import ProjectProgress
 from p2p_engine.core.project_questions import (
@@ -164,6 +171,8 @@ from p2p_engine.services.project_readiness import (
 )
 from p2p_engine.services.project_readiness_convergence import ProjectReadinessConvergenceService
 from p2p_engine.services.project_verticals import ProjectVerticalService
+from p2p_engine.services.vertical_lifecycle import VerticalLifecycleService
+from p2p_engine.services.vertical_packages import PortableVerticalPackageService
 from p2p_engine.services.project_initialization import (
     ProjectInitializationResult,
     ProjectInitializationService,
@@ -315,6 +324,8 @@ class P2PWorkspace:
         ) = None
         self._project_publication_service_instance: ProjectPublicationService | None = None
         self._project_vertical_service_instance: ProjectVerticalService | None = None
+        self._portable_vertical_package_service_instance: PortableVerticalPackageService | None = None
+        self._vertical_lifecycle_service_instance: VerticalLifecycleService | None = None
         self._vertical_project_memory_service_instance: VerticalProjectMemoryService | None = None
         self._project_state_service_instance: ProjectStateService | None = None
         self._fast_freshness_service_instance: FastFreshnessService | None = None
@@ -766,6 +777,25 @@ class P2PWorkspace:
                 vertical_memory_view=lambda: self.vertical_project_memory(),
             )
         return self._project_vertical_service_instance
+
+    def _portable_vertical_package_service(self) -> PortableVerticalPackageService:
+        if self._portable_vertical_package_service_instance is None:
+            self._portable_vertical_package_service_instance = PortableVerticalPackageService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                vertical_service=self._project_vertical_service(),
+            )
+        return self._portable_vertical_package_service_instance
+
+    def _vertical_lifecycle_service(self) -> VerticalLifecycleService:
+        if self._vertical_lifecycle_service_instance is None:
+            self._vertical_lifecycle_service_instance = VerticalLifecycleService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                vertical_service=self._project_vertical_service(),
+                package_service=self._portable_vertical_package_service(),
+            )
+        return self._vertical_lifecycle_service_instance
 
     def _vertical_project_memory_service(self) -> VerticalProjectMemoryService:
         if self._vertical_project_memory_service_instance is None:
@@ -1291,6 +1321,8 @@ class P2PWorkspace:
         vertical_id: str | None = None,
         profile: str = "default",
         modules: list[str] | None = None,
+        vertical_pack: Path | None = None,
+        expected_checksum: str = "",
     ) -> list[Path]:
         return self.init_project_with_summary(
             name=name,
@@ -1305,6 +1337,8 @@ class P2PWorkspace:
             vertical_id=vertical_id,
             profile=profile,
             modules=modules,
+            vertical_pack=vertical_pack,
+            expected_checksum=expected_checksum,
         ).created
 
     def init_project_with_summary(
@@ -1321,9 +1355,43 @@ class P2PWorkspace:
         vertical_id: str | None = None,
         profile: str = "default",
         modules: list[str] | None = None,
+        vertical_pack: Path | None = None,
+        expected_checksum: str = "",
     ) -> ProjectInitializationResult:
         if (self.p2p_dir / "project.yml").exists():
             self._ensure_runtime_write_allowed("project_init_existing")
+        install_preview = None
+        if vertical_pack is not None:
+            if vertical_id:
+                raise ValueError("P2P_VERTICAL_INIT_CONFLICT: use either --vertical or --vertical-pack")
+            if not expected_checksum:
+                raise ValueError("P2P_VERTICAL_INVALID_CHECKSUM: --expected-checksum is required with --vertical-pack")
+            install_preview = self._vertical_lifecycle_service().install_preview(
+                vertical_pack,
+                expected_checksum=expected_checksum,
+                actor=owner or "owner",
+            )
+            if install_preview.blockers or install_preview.preview is None:
+                raise ValueError(
+                    "P2P_VERTICAL_OPERATION_BLOCKED: "
+                    + "; ".join(install_preview.blockers or ("install preview is not applicable",))
+                )
+            inspected = self._portable_vertical_package_service().inspect(vertical_pack, view="effective")
+            available_profiles = {
+                "default",
+                *inspected.pack.profiles,
+                *(item.profile_id for item in inspected.pack.profile_specs),
+            }
+            if profile not in available_profiles:
+                raise ValueError(f"Unknown vertical profile `{profile}` for `{inspected.pack.coordinate}`.")
+            available_modules = {
+                *inspected.pack.modules,
+                *(item.module_id for item in inspected.pack.module_specs),
+            }
+            unknown_modules = sorted(set(modules or []) - available_modules)
+            if unknown_modules:
+                raise ValueError(f"Unknown vertical module `{unknown_modules[0]}` for `{inspected.pack.coordinate}`.")
+            vertical_id = inspected.pack.coordinate
         result = self._project_initialization_service().init_project_with_summary(
             name=name,
             agent_profile=agent_profile,
@@ -1336,12 +1404,28 @@ class P2PWorkspace:
             remote_url_value=remote_url_value,
         )
         created = list(result.created)
+        if install_preview is not None and install_preview.preview is not None:
+            installed = self._vertical_lifecycle_service().install_apply(
+                vertical_pack,
+                expected_checksum=expected_checksum,
+                preview_token=install_preview.preview.preview_token,
+                confirmed=True,
+                actor=owner or "owner",
+            )
+            for path in installed.mutation.changed_paths:
+                candidate = Path(path)
+                if candidate not in created:
+                    created.append(candidate)
         if vertical_id:
+            artifact_checksum = ""
+            if install_preview is not None:
+                artifact_checksum = str(install_preview.impact.get("artifact_checksum") or "")
             active = self._project_vertical_service().select_vertical(
                 vertical_id,
                 actor=owner or "owner",
                 profile=profile,
                 modules=modules,
+                artifact_checksum=artifact_checksum,
             )
             for path in (
                 Path(".p2p/project/vertical.yml"),
@@ -2653,6 +2737,148 @@ class P2PWorkspace:
     def validate_project_vertical(self, target: str) -> VerticalValidationResult:
         return self._project_vertical_service().validate_vertical(target)
 
+    def portable_vertical_schema(self) -> dict[str, object]:
+        return self._portable_vertical_package_service().authoring_schema()
+
+    def scaffold_portable_vertical(
+        self,
+        target: Path,
+        *,
+        publisher: str,
+        vertical_id: str,
+        version: str,
+        name: str,
+        license_id: str,
+        extends: str = "",
+    ) -> PortableVerticalInspection:
+        return self._portable_vertical_package_service().scaffold(
+            target,
+            publisher=publisher,
+            vertical_id=vertical_id,
+            version=version,
+            name=name,
+            license_id=license_id,
+            extends=extends,
+        )
+
+    def inspect_portable_vertical(self, target: Path, *, view: str = "effective") -> PortableVerticalInspection:
+        return self._portable_vertical_package_service().inspect(target, view=view)
+
+    def validate_portable_vertical(self, target: Path) -> PortableVerticalInspection:
+        return self._portable_vertical_package_service().validate(target)
+
+    def package_portable_vertical(self, source: Path, *, output: Path) -> PortableVerticalPackageResult:
+        return self._portable_vertical_package_service().package(source, output=output)
+
+    def preview_portable_vertical_install(
+        self,
+        artifact: Path,
+        *,
+        expected_checksum: str,
+        actor: str = "local",
+    ) -> VerticalLifecyclePreview:
+        return self._vertical_lifecycle_service().install_preview(
+            artifact,
+            expected_checksum=expected_checksum,
+            actor=actor,
+        )
+
+    def apply_portable_vertical_install(
+        self,
+        artifact: Path,
+        *,
+        expected_checksum: str,
+        preview_token: str,
+        confirmed: bool,
+        actor: str,
+    ) -> VerticalLifecycleResult:
+        self._ensure_runtime_write_allowed("project_vertical_install")
+        return self._vertical_lifecycle_service().install_apply(
+            artifact,
+            expected_checksum=expected_checksum,
+            preview_token=preview_token,
+            confirmed=confirmed,
+            actor=actor,
+        )
+
+    def preview_project_vertical_adoption(
+        self,
+        reference: str,
+        *,
+        actor: str = "local",
+        profile: str = "default",
+        modules: list[str] | None = None,
+    ) -> VerticalLifecyclePreview:
+        return self._vertical_lifecycle_service().adopt_preview(
+            reference,
+            actor=actor,
+            profile=profile,
+            modules=modules,
+        )
+
+    def apply_project_vertical_adoption(
+        self,
+        reference: str,
+        *,
+        preview_token: str,
+        confirmed: bool,
+        actor: str,
+        profile: str = "default",
+        modules: list[str] | None = None,
+    ) -> VerticalLifecycleResult:
+        self._ensure_runtime_write_allowed("project_vertical_adopt")
+        result = self._vertical_lifecycle_service().adopt_apply(
+            reference,
+            preview_token=preview_token,
+            confirmed=confirmed,
+            actor=actor,
+            profile=profile,
+            modules=modules,
+        )
+        self._post_commit_vertical_memory(result.mutation.changed_paths)
+        return result
+
+    def preview_project_vertical_migration(
+        self,
+        reference: str,
+        *,
+        actor: str = "local",
+        mapping: Mapping[str, object] | None = None,
+        profile: str = "default",
+        modules: list[str] | None = None,
+    ) -> VerticalLifecyclePreview:
+        return self._vertical_lifecycle_service().migrate_preview(
+            reference,
+            actor=actor,
+            mapping=mapping,
+            profile=profile,
+            modules=modules,
+        )
+
+    def apply_project_vertical_migration(
+        self,
+        reference: str,
+        *,
+        preview_token: str,
+        confirmed: bool,
+        actor: str,
+        mapping: Mapping[str, object] | None = None,
+        profile: str = "default",
+        modules: list[str] | None = None,
+    ) -> VerticalLifecycleResult:
+        self._ensure_runtime_write_allowed("project_vertical_migrate")
+        result = self._vertical_lifecycle_service().migrate_apply(
+            reference,
+            preview_token=preview_token,
+            confirmed=confirmed,
+            actor=actor,
+            mapping=mapping,
+            profile=profile,
+            modules=modules,
+        )
+        self._post_commit_vertical_memory(result.mutation.changed_paths)
+        return result
+
     def propose_project_vertical(self, idea: str) -> CustomVerticalCandidate:
         return self._project_vertical_service().propose_vertical(idea)
 
@@ -2675,11 +2901,20 @@ class P2PWorkspace:
         modules: list[str] | None = None,
     ) -> ActiveProjectVertical:
         self._ensure_runtime_write_allowed("project_vertical_select")
+        artifact_checksum = ""
+        resolved = self._project_vertical_service().resolve_pack(vertical_id)
+        if resolved.pack.schema_version >= 2 and resolved.pack.path is not None:
+            pack_root = resolved.pack.path.parent
+            entries = self._portable_vertical_package_service().canonical_entries(pack_root)
+            artifact_checksum = hashlib.sha256(
+                self._portable_vertical_package_service().archive_bytes(entries)
+            ).hexdigest()
         result = self._project_vertical_service().select_vertical(
             vertical_id,
             actor=actor,
             profile=profile,
             modules=modules,
+            artifact_checksum=artifact_checksum,
         )
         derived = self._post_commit_vertical_memory(
             [

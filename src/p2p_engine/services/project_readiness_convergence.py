@@ -291,6 +291,15 @@ class ProjectReadinessConvergenceService:
             actor=bundle.snapshot.actor.actor_id,
             candidate_validator=validate_candidate,
         )
+        if mutation.status == "failed" and "Mutation source changed" in mutation.message:
+            mutation = replace(
+                mutation,
+                status="stale_preview",
+                message=(
+                    "P2P345_PROJECT_READINESS_STALE_PREVIEW: convergence sources "
+                    "changed before the lock-protected commit."
+                ),
+            )
         residual = ()
         if mutation.status == "applied":
             residual = tuple(

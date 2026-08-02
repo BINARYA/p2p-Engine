@@ -1,3 +1,0 @@
-included_decisions:
-- proposal: PROP-018
-  decision_file: .p2p/proposals/PROP-018-choice-management-cli-mvp/decision.md

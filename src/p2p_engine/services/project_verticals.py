@@ -20,6 +20,7 @@ from p2p_engine.core.project_verticals import (
     ProjectDefinitionCandidate,
     ProjectDefinitionFieldValue,
     ProjectDefinitionHistoryEntry,
+    ProjectDefinitionOrphan,
     ProjectDefinitionPatch,
     ProjectDefinitionPatchResult,
     ProjectDefinitionQuestion,
@@ -36,6 +37,7 @@ from p2p_engine.core.project_verticals import (
     ResolvedVerticalPack,
     VerticalArtifact,
     VerticalCompletionPolicy,
+    VerticalDependency,
     VerticalField,
     VerticalLock,
     VerticalLockStatus,
@@ -55,6 +57,7 @@ from p2p_engine.core.project_verticals import (
     VerticalMigrationCandidate,
     VerticalCoverageSuggestionSection,
 )
+from p2p_engine.core.portable_verticals import VerticalCoordinate, is_semantic_version
 from p2p_engine.core.mutation_preview import (
     MutationPreview,
     MutationPreviewService,
@@ -192,18 +195,25 @@ class ProjectVerticalService:
 
     def list_verticals(self) -> list[VerticalListItem]:
         active = self.active_vertical()
-        packs_by_id = self._available_packs_by_id()
+        packs_by_reference = self._available_packs_by_reference()
+        packs_by_identity: dict[str, VerticalPack] = {}
+        for pack in packs_by_reference.values():
+            packs_by_identity[pack.coordinate or pack.vertical_id] = pack
         items: list[VerticalListItem] = []
-        for vertical_id in sorted(packs_by_id):
-            pack = packs_by_id[vertical_id]
+        for identity in sorted(packs_by_identity):
+            pack = packs_by_identity[identity]
             items.append(
                 VerticalListItem(
                     vertical_id=pack.vertical_id,
                     name=pack.name,
                     version=pack.version,
                     source=pack.source,
-                    active=pack.vertical_id == active.vertical_id and not active.fallback_used,
+                    active=(
+                        (pack.coordinate or pack.vertical_id) == (active.coordinate or active.vertical_id)
+                        and not active.fallback_used
+                    ),
                     path=relative_to_root(pack.path, self.root) if pack.path else None,
+                    coordinate=pack.coordinate,
                 )
             )
         return items
@@ -340,12 +350,14 @@ class ProjectVerticalService:
         actor: str = "local",
         profile: str = "default",
         modules: list[str] | None = None,
+        artifact_checksum: str = "",
     ) -> ActiveProjectVertical:
         candidate = self.render_migration_candidate(
             vertical_id,
             actor=actor,
             profile=profile,
             modules=modules,
+            artifact_checksum=artifact_checksum,
         )
         self.validate_migration_candidate(candidate)
         sources = tuple(
@@ -355,8 +367,9 @@ class ProjectVerticalService:
             )
             for path in sorted(candidate.candidate_files)
         )
+        operation_reference = re.sub(r"[^A-Za-z0-9_-]", "-", vertical_id)
         token = MutationPreviewService.token(
-            operation_id=f"project-vertical-select:{vertical_id}",
+            operation_id=f"project-vertical-select:{operation_reference}",
             targets=tuple(candidate.candidate_files),
             sources=sources,
             candidate_semantics={
@@ -365,7 +378,7 @@ class ProjectVerticalService:
             },
         )
         result = self.atomic_writer.apply(
-            operation_id=f"project-vertical-select:{vertical_id}",
+            operation_id=f"project-vertical-select:{operation_reference}",
             candidates=candidate.candidate_files,
             sources=sources,
             preview_token=token,
@@ -384,6 +397,7 @@ class ProjectVerticalService:
         modules: list[str] | None = None,
         audit_date: str | None = None,
         rubric_mapping: dict[str, str] | None = None,
+        artifact_checksum: str = "",
     ) -> VerticalMigrationCandidate:
         resolved = self._resolve_available_pack(vertical_id)
         pack = resolved.pack
@@ -400,6 +414,7 @@ class ProjectVerticalService:
             "project_vertical": {
                 "schema_version": ACTIVE_VERTICAL_SCHEMA_VERSION,
                 "active_vertical_id": pack.vertical_id,
+                "active_vertical_coordinate": pack.coordinate,
                 "active_source": pack.source,
                 "selected_at": selected_at,
                 "selected_by": actor,
@@ -418,6 +433,9 @@ class ProjectVerticalService:
             selected_by=actor,
             trust={"signed": False},
             path=relative_to_root(self._vertical_lock_path(), self.root),
+            coordinate=pack.coordinate,
+            dependencies=list(pack.manifest.dependencies) if pack.manifest else [],
+            artifact_checksum=artifact_checksum,
         )
         definition = self._initial_definition_state(
             resolved,
@@ -468,6 +486,7 @@ class ProjectVerticalService:
             checksum=resolved.checksum,
             candidate_files=candidate_files,
             reconciliation_required=reconciliation_required,
+            reference=pack.coordinate or pack.vertical_id,
         )
 
     def validate_migration_candidate(self, candidate: VerticalMigrationCandidate) -> None:
@@ -497,7 +516,7 @@ class ProjectVerticalService:
         checksum = lock.get("checksum") if isinstance(lock, dict) else None
         if not isinstance(checksum, dict) or checksum.get("value") != candidate.checksum:
             raise ValueError("Vertical migration lock checksum is incoherent.")
-        pack = self._load_available_pack(candidate.vertical_id)
+        pack = self._load_available_pack(candidate.reference or candidate.vertical_id)
         issues = self._definition_state_issues(definition, pack)
         if any(issue.severity == "error" for issue in issues):
             first = next(issue for issue in issues if issue.severity == "error")
@@ -526,6 +545,7 @@ class ProjectVerticalService:
                     source=base.source,
                     path=relative_to_root(base.path, self.root) if base.path else None,
                     fallback_used=True,
+                    coordinate=base.coordinate,
                 ),
                 base,
             )
@@ -547,7 +567,8 @@ class ProjectVerticalService:
             if lock_status.resolved is not None:
                 pack = lock_status.resolved.pack
         if pack is None:
-            pack = self._load_available_pack(vertical_id)
+            reference = str(state.get("active_vertical_coordinate") or vertical_id)
+            pack = self._load_available_pack(reference)
         reconciliation_required = self._question_reconciliation_required()
         return (
             ActiveProjectVertical(
@@ -557,6 +578,7 @@ class ProjectVerticalService:
                 selected_at=str(state.get("selected_at") or ""),
                 selected_by=str(state.get("selected_by") or ""),
                 fallback_used=bool(state.get("fallback_used") or False),
+                coordinate=pack.coordinate,
                 reconciliation_required=reconciliation_required,
                 reconciliation_command=(
                     "p2p project readiness questions reconcile-preview --actor <ACTOR>"
@@ -604,7 +626,7 @@ class ProjectVerticalService:
                 suggested_command="p2p project vertical lock repair --actor owner",
             )
         try:
-            resolved = self._resolve_available_pack(locked.vertical_id)
+            resolved = self._resolve_available_pack(locked.coordinate or locked.vertical_id)
         except ValueError as exc:
             return VerticalLockStatus(
                 status="missing_source",
@@ -641,7 +663,8 @@ class ProjectVerticalService:
         vertical_id = str(state.get("active_vertical_id") or "").strip()
         if not vertical_id:
             raise ValueError(f"Invalid project vertical state: missing active_vertical_id in {state_path}")
-        resolved = self._resolve_available_pack(vertical_id)
+        reference = str(state.get("active_vertical_coordinate") or vertical_id).strip()
+        resolved = self._resolve_available_pack(reference)
         return self._write_vertical_lock(resolved, actor=actor)
 
     def project_context(self) -> ProjectVerticalContext:
@@ -1863,11 +1886,29 @@ class ProjectVerticalService:
             packs[pack.vertical_id] = pack
         return packs
 
+    def _available_packs_by_reference(self) -> dict[str, VerticalPack]:
+        packs: dict[str, VerticalPack] = {}
+        for source_packs in (
+            self._internal_packs(),
+            self._installed_user_packs(),
+            self._installed_p2p_home_packs(),
+            self._project_local_packs(),
+        ):
+            for pack in source_packs:
+                packs[pack.vertical_id] = pack
+                if pack.coordinate:
+                    packs[pack.coordinate] = pack
+        return packs
+
     def _load_available_pack(self, vertical_id: str) -> VerticalPack:
-        normalized = _normalize_vertical_id(vertical_id)
-        packs = self._available_packs_by_id()
-        if normalized in packs:
-            return _compose_pack(packs[normalized], packs)
+        reference = str(vertical_id).strip()
+        if "/" in reference or "@" in reference:
+            reference = str(VerticalCoordinate.parse(reference))
+        else:
+            reference = _normalize_vertical_id(reference)
+        packs = self._available_packs_by_reference()
+        if reference in packs:
+            return _compose_pack(packs[reference], packs)
         raise ValueError(f"Unknown project vertical `{vertical_id}`. Run `p2p project vertical list`.")
 
     def _resolve_available_pack(self, vertical_id: str) -> ResolvedVerticalPack:
@@ -1881,6 +1922,28 @@ class ProjectVerticalService:
         if path.exists():
             return self._load_pack_from_path(path, source=EXPLICIT_SOURCE)
         return self._load_available_pack(target)
+
+    def resolve_pack(self, reference: str) -> ResolvedVerticalPack:
+        return self._resolve_available_pack(reference)
+
+    def load_explicit_pack(self, source: Path) -> VerticalPack:
+        return self._load_pack_from_path(source, source=EXPLICIT_SOURCE)
+
+    def compose_explicit_pack(self, source: Path) -> VerticalPack:
+        pack = self.load_explicit_pack(source)
+        packs = self._available_packs_by_reference()
+        packs[pack.vertical_id] = pack
+        if pack.coordinate:
+            packs[pack.coordinate] = pack
+        return _compose_pack(pack, packs)
+
+    @staticmethod
+    def serialized_pack(pack: VerticalPack) -> dict[str, object]:
+        return _pack_payload(pack)
+
+    @staticmethod
+    def semantic_pack_checksum(pack: VerticalPack) -> str:
+        return _pack_checksum(pack)
 
     def _load_target_for_validation(self, target: str) -> tuple[VerticalPack, dict[str, object]]:
         path = Path(target)
@@ -1956,17 +2019,19 @@ class ProjectVerticalService:
     def _project_vertical_pack_paths(self, root: Path) -> list[Path]:
         if not root.exists():
             return []
-        paths: list[Path] = []
-        for child in sorted(root.iterdir(), key=lambda item: item.name):
-            if not child.is_dir():
-                continue
-            manifest = child / "manifest.yml"
-            vertical = child / "vertical.yml"
-            if manifest.exists():
-                paths.append(manifest)
-            elif vertical.exists():
-                paths.append(vertical)
-        return paths
+        manifests = {
+            path.parent.resolve(): path
+            for path in root.rglob("manifest.yml")
+            if path.is_file() and not path.is_symlink()
+        }
+        verticals = [
+            path
+            for path in root.rglob("vertical.yml")
+            if path.is_file()
+            and not path.is_symlink()
+            and path.parent.resolve() not in manifests
+        ]
+        return sorted([*manifests.values(), *verticals], key=lambda item: item.as_posix())
 
     def _internal_packs(self) -> list[VerticalPack]:
         packs: list[VerticalPack] = []
@@ -2042,6 +2107,7 @@ class ProjectVerticalService:
         vertical["id"] = vertical.get("id") or manifest.get("id")
         vertical["name"] = vertical.get("name") or manifest.get("name")
         vertical["version"] = vertical.get("version") or manifest.get("version")
+        vertical["extends"] = vertical.get("extends") or manifest.get("extends")
         vertical["sections"] = sections or _mapping_list(vertical.get("sections"))
         vertical["rubrics"] = rubrics or _mapping_list(vertical.get("rubrics"))
         vertical["artifacts"] = artifacts
@@ -2100,6 +2166,8 @@ class ProjectVerticalService:
             selected_by=actor,
             trust={"signed": False},
             path=relative_to_root(path, self.root),
+            coordinate=resolved.pack.coordinate,
+            dependencies=list(resolved.pack.manifest.dependencies) if resolved.pack.manifest else [],
         )
         write_yaml_atomic(path, _vertical_lock_payload(lock))
         return lock
@@ -2214,6 +2282,27 @@ class ProjectVerticalService:
                     "P2P255_PROJECT_DEFINITION_INVALID",
                 )
             )
+        orphan_ids: set[str] = set()
+        for orphan in state.orphans:
+            if not orphan.orphan_id or not orphan.source_section_id:
+                issues.append(
+                    VerticalValidationIssue(
+                        "error",
+                        "project_definition.orphans",
+                        "orphan id and source_section_id are required",
+                        "P2P255_PROJECT_DEFINITION_INVALID",
+                    )
+                )
+            elif orphan.orphan_id in orphan_ids:
+                issues.append(
+                    VerticalValidationIssue(
+                        "error",
+                        f"project_definition.orphans.{orphan.orphan_id}",
+                        "duplicate orphan id",
+                        "P2P255_PROJECT_DEFINITION_INVALID",
+                    )
+                )
+            orphan_ids.add(orphan.orphan_id)
         for section in state.sections:
             if section.section_id not in section_ids:
                 issues.append(
@@ -2444,6 +2533,7 @@ class ProjectVerticalService:
             sections=[sections[section.section_id] for section in state.sections],
             next_suggested_action=next_action,
             history=history,
+            orphans=state.orphans,
             path=state.path,
         )
         issues = self._definition_state_issues(updated, pack)
@@ -2669,6 +2759,7 @@ def _pack_from_payload(payload: dict[str, object], *, source: str, path: Path | 
         for item in _mapping_list(vertical.get("artifacts"))
     ]
     manifest_payload = vertical.get("manifest") if isinstance(vertical.get("manifest"), dict) else {}
+    dependency_payloads = _mapping_list(manifest_payload.get("dependencies"))
     profile_specs = [
         VerticalProfile(
             profile_id=str(item.get("id") or item.get("profile_id") or ""),
@@ -2720,6 +2811,17 @@ def _pack_from_payload(payload: dict[str, object], *, source: str, path: Path | 
             publisher=str(manifest_payload.get("publisher") or ""),
             source=str(manifest_payload.get("source") or ""),
             compatibility=compatibility,
+            license_id=str(manifest_payload.get("license") or ""),
+            lineage={str(key): str(value) for key, value in manifest_payload.get("lineage", {}).items()}
+            if isinstance(manifest_payload.get("lineage"), dict)
+            else {},
+            dependencies=[
+                VerticalDependency(
+                    coordinate=str(item.get("coordinate") or ""),
+                    checksum=str(item.get("checksum") or ""),
+                )
+                for item in dependency_payloads
+            ],
         )
         if isinstance(manifest_payload, dict) and manifest_payload
         else None,
@@ -2730,8 +2832,7 @@ def _pack_from_payload(payload: dict[str, object], *, source: str, path: Path | 
 
 
 def _pack_payload(pack: VerticalPack) -> dict[str, object]:
-    return {
-        "vertical": {
+    vertical_payload: dict[str, object] = {
             "schema_version": VERTICAL_SCHEMA_VERSION,
             "id": pack.vertical_id,
             "name": pack.name,
@@ -2812,6 +2913,25 @@ def _pack_payload(pack: VerticalPack) -> dict[str, object]:
                 for module in pack.module_specs
             ],
         }
+    if pack.schema_version >= 2 and pack.manifest is not None:
+        vertical_payload["manifest"] = {
+            "schema_version": pack.manifest.schema_version,
+            "publisher": pack.manifest.publisher,
+            "id": pack.manifest.vertical_id,
+            "name": pack.manifest.name,
+            "version": pack.manifest.version,
+            "license": pack.manifest.license_id,
+            "source": pack.manifest.source,
+            "extends": pack.extends,
+            "lineage": pack.manifest.lineage,
+            "dependencies": [
+                {"coordinate": item.coordinate, "checksum": item.checksum}
+                for item in pack.manifest.dependencies
+            ],
+            "compatibility": pack.manifest.compatibility,
+        }
+    return {
+        "vertical": vertical_payload
     }
 
 
@@ -2884,7 +3004,7 @@ def _pack_checksum(pack: VerticalPack) -> str:
 
 
 def _vertical_lock_payload(lock: VerticalLock) -> dict[str, object]:
-    return {
+    payload: dict[str, object] = {
         "project_vertical_lock": {
             "schema_version": VERTICAL_LOCK_SCHEMA_VERSION,
             "vertical_id": lock.vertical_id,
@@ -2903,6 +3023,21 @@ def _vertical_lock_payload(lock: VerticalLock) -> dict[str, object]:
             "trust": lock.trust,
         }
     }
+    lock_payload = payload["project_vertical_lock"]
+    assert isinstance(lock_payload, dict)
+    if lock.coordinate:
+        lock_payload["coordinate"] = lock.coordinate
+    if lock.artifact_checksum:
+        lock_payload["artifact_checksum"] = {
+            "algorithm": "sha256",
+            "value": lock.artifact_checksum,
+        }
+    if lock.dependencies:
+        lock_payload["dependencies"] = [
+            {"coordinate": item.coordinate, "checksum": item.checksum}
+            for item in lock.dependencies
+        ]
+    return payload
 
 
 def _vertical_lock_from_payload(path: Path, payload: dict[str, object], root: Path) -> VerticalLock:
@@ -2922,6 +3057,12 @@ def _vertical_lock_from_payload(path: Path, payload: dict[str, object], root: Pa
     if not checksum:
         raise ValueError(f"Invalid project vertical lock: missing checksum.value in {path}")
     selected = lock.get("selected") if isinstance(lock.get("selected"), dict) else {}
+    artifact_checksum = lock.get("artifact_checksum")
+    artifact_checksum_value = (
+        str(artifact_checksum.get("value") or "")
+        if isinstance(artifact_checksum, dict)
+        else ""
+    )
     return VerticalLock(
         vertical_id=vertical_id,
         name=str(lock.get("name") or vertical_id),
@@ -2939,6 +3080,15 @@ def _vertical_lock_from_payload(path: Path, payload: dict[str, object], root: Pa
         selected_by=str(selected.get("by") or ""),
         trust=lock.get("trust") if isinstance(lock.get("trust"), dict) else {},
         path=relative_to_root(path, root),
+        coordinate=str(lock.get("coordinate") or ""),
+        artifact_checksum=artifact_checksum_value,
+        dependencies=[
+            VerticalDependency(
+                coordinate=str(item.get("coordinate") or ""),
+                checksum=str(item.get("checksum") or ""),
+            )
+            for item in _mapping_list(lock.get("dependencies"))
+        ],
     )
 
 
@@ -3023,6 +3173,20 @@ def _definition_state_payload(state: ProjectDefinitionState) -> dict[str, object
                 }
                 for item in state.history
             ],
+            "orphans": [
+                {
+                    "id": item.orphan_id,
+                    "source_vertical": item.source_vertical,
+                    "source_section_id": item.source_section_id,
+                    "source_field_id": item.source_field_id,
+                    "value": item.value,
+                    "source": item.source,
+                    "updated_at": item.updated_at,
+                    "reason": item.reason,
+                    "target_vertical": item.target_vertical,
+                }
+                for item in state.orphans
+            ],
         }
     }
 
@@ -3048,6 +3212,11 @@ def _definition_semantic_payload(payload: dict[str, object]) -> dict[str, object
         for entry in history:
             if isinstance(entry, dict):
                 entry.pop("at", None)
+    orphans = data.get("orphans")
+    if isinstance(orphans, list):
+        for orphan in orphans:
+            if isinstance(orphan, dict):
+                orphan.pop("updated_at", None)
     return candidate
 
 
@@ -3117,6 +3286,20 @@ def _definition_state_from_payload(payload: dict[str, object], *, path: Path) ->
         )
         for item in _mapping_list(data.get("history"))
     ]
+    orphans = [
+        ProjectDefinitionOrphan(
+            orphan_id=str(item.get("id") or ""),
+            source_vertical=str(item.get("source_vertical") or ""),
+            source_section_id=str(item.get("source_section_id") or ""),
+            source_field_id=str(item.get("source_field_id") or ""),
+            value=item.get("value"),
+            source=str(item.get("source") or ""),
+            updated_at=str(item.get("updated_at") or ""),
+            reason=str(item.get("reason") or "unmapped"),
+            target_vertical=str(item.get("target_vertical") or ""),
+        )
+        for item in _mapping_list(data.get("orphans"))
+    ]
     lock_payload = data.get("lock") if isinstance(data.get("lock"), dict) else {}
     return ProjectDefinitionState(
         schema_version=int(data.get("schema_version") or PROJECT_DEFINITION_SCHEMA_VERSION),
@@ -3128,6 +3311,7 @@ def _definition_state_from_payload(payload: dict[str, object], *, path: Path) ->
         sections=sections,
         next_suggested_action=data.get("next_suggested_action") if isinstance(data.get("next_suggested_action"), dict) else {},
         history=history,
+        orphans=orphans,
         path=path,
     )
 
@@ -3259,6 +3443,104 @@ def _vertical_pack_issues(payload: dict[str, object]) -> list[VerticalValidation
     for field in ("id", "name", "version", "description"):
         if not str(vertical.get(field) or "").strip():
             error(f"vertical.{field}", "required")
+    schema_version = vertical.get("schema_version", VERTICAL_SCHEMA_VERSION)
+    if isinstance(schema_version, bool) or not isinstance(schema_version, int) or schema_version not in {1, 2}:
+        error("vertical.schema_version", "must be 1 or 2", "P2P_VERTICAL_UNSUPPORTED_SCHEMA")
+    if schema_version == 2:
+        manifest = vertical.get("manifest")
+        if not isinstance(manifest, dict):
+            error("vertical.manifest", "schema version 2 requires a manifest mapping")
+        else:
+            allowed_manifest_fields = {
+                "schema_version",
+                "publisher",
+                "id",
+                "name",
+                "version",
+                "license",
+                "source",
+                "extends",
+                "lineage",
+                "dependencies",
+                "compatibility",
+            }
+            unknown_fields = sorted(set(manifest) - allowed_manifest_fields)
+            if unknown_fields:
+                error(
+                    "vertical.manifest",
+                    f"unknown fields {unknown_fields}",
+                    "P2P_VERTICAL_UNKNOWN_MANIFEST_FIELD",
+                )
+            for field in ("publisher", "id", "version", "license"):
+                if not str(manifest.get(field) or "").strip():
+                    error(f"vertical.manifest.{field}", "required for schema version 2")
+            if manifest.get("schema_version") != 2:
+                error("vertical.manifest.schema_version", "must be 2")
+            if str(manifest.get("id") or "") != str(vertical.get("id") or ""):
+                error("vertical.manifest.id", "must match vertical.id")
+            if str(manifest.get("version") or "") != str(vertical.get("version") or ""):
+                error("vertical.manifest.version", "must match vertical.version")
+            publisher = str(manifest.get("publisher") or "")
+            version = str(manifest.get("version") or "")
+            if version and not is_semantic_version(version):
+                error(
+                    "vertical.manifest.version",
+                    "must be a semantic version",
+                    "P2P_VERTICAL_INVALID_SEMVER",
+                )
+            if publisher and vertical.get("id") and version:
+                try:
+                    VerticalCoordinate.parse(f"{publisher}/{vertical.get('id')}@{version}")
+                except ValueError as exc:
+                    error("vertical.manifest", str(exc), "P2P_VERTICAL_INVALID_COORDINATE")
+            lineage = manifest.get("lineage", {})
+            if not isinstance(lineage, dict):
+                error("vertical.manifest.lineage", "must be a mapping")
+            elif set(lineage) - {"forked_from"}:
+                error("vertical.manifest.lineage", "only forked_from is supported")
+            elif lineage.get("forked_from"):
+                try:
+                    VerticalCoordinate.parse(str(lineage["forked_from"]))
+                except ValueError as exc:
+                    error("vertical.manifest.lineage.forked_from", str(exc))
+            dependencies = manifest.get("dependencies", [])
+            if not isinstance(dependencies, list):
+                error("vertical.manifest.dependencies", "must be a list")
+                dependencies = []
+            seen_dependencies: set[str] = set()
+            for index, dependency in enumerate(dependencies):
+                if not isinstance(dependency, dict):
+                    error(f"vertical.manifest.dependencies[{index}]", "must be a mapping")
+                    continue
+                coordinate = str(dependency.get("coordinate") or "")
+                checksum = str(dependency.get("checksum") or "")
+                try:
+                    VerticalCoordinate.parse(coordinate)
+                except ValueError as exc:
+                    error(f"vertical.manifest.dependencies[{index}].coordinate", str(exc))
+                if coordinate in seen_dependencies:
+                    error(
+                        f"vertical.manifest.dependencies[{index}].coordinate",
+                        f"duplicate dependency `{coordinate}`",
+                    )
+                seen_dependencies.add(coordinate)
+                if not re.fullmatch(r"sha256:[0-9a-f]{64}", checksum):
+                    error(
+                        f"vertical.manifest.dependencies[{index}].checksum",
+                        "must be sha256 followed by 64 lowercase hexadecimal characters",
+                    )
+            extends = str(vertical.get("extends") or manifest.get("extends") or "")
+            if extends:
+                try:
+                    VerticalCoordinate.parse(extends)
+                except ValueError as exc:
+                    error("vertical.extends", str(exc))
+                if extends not in seen_dependencies:
+                    error(
+                        "vertical.extends",
+                        "portable structural base must appear in dependencies",
+                        "P2P_VERTICAL_MISSING_BASE_DEPENDENCY",
+                    )
     section_items = _mapping_list(vertical.get("sections"))
     if not section_items:
         error("vertical.sections", "at least one section is required")
@@ -3454,13 +3736,21 @@ def _vertical_pack_issues(payload: dict[str, object]) -> list[VerticalValidation
     return issues
 
 
-def _compose_pack(pack: VerticalPack, packs: dict[str, VerticalPack]) -> VerticalPack:
+def _compose_pack(
+    pack: VerticalPack,
+    packs: dict[str, VerticalPack],
+    stack: tuple[str, ...] = (),
+) -> VerticalPack:
+    reference = pack.coordinate or pack.vertical_id
+    if reference in stack:
+        cycle = " -> ".join([*stack, reference])
+        raise ValueError(f"P2P_VERTICAL_INHERITANCE_CYCLE: {cycle}")
     if not pack.extends:
         return pack
     base = packs.get(pack.extends)
     if base is None:
         raise ValueError(f"Unknown base vertical `{pack.extends}` for `{pack.vertical_id}`.")
-    composed_base = _compose_pack(base, packs)
+    composed_base = _compose_pack(base, packs, (*stack, reference))
     return VerticalPack(
         vertical_id=pack.vertical_id,
         name=pack.name,
@@ -3686,3 +3976,7 @@ def project_definition_state_from_payload(
     path: Path,
 ) -> ProjectDefinitionState:
     return _definition_state_from_payload(payload, path=path)
+
+
+def project_definition_state_payload(state: ProjectDefinitionState) -> dict[str, object]:
+    return _definition_state_payload(state)

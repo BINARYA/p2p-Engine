@@ -1,3 +1,0 @@
-included_decisions:
-- proposal: PROP-070
-  decision_file: .p2p/proposals/PROP-070-clarify-readme-agent-access-modes/decision.md

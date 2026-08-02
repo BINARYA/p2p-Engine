@@ -82,7 +82,7 @@ Sorgenti principali:
 | `p2p context [--budget] [--target]` | `R` | Costruisce il context packet compatto per un agente. |
 | `p2p check` | `R` | Controlla la struttura minima dello workspace. |
 | `p2p validate` | `R` | Esegue validazione strutturale e semantica completa. |
-| `p2p init NAME` | `C/G` | Inizializza workspace, profilo, owner, verticale e integrazioni richieste. |
+| `p2p init NAME` | `C/G` | Inizializza workspace, profilo, owner, verticale e integrazioni richieste; `--vertical-pack` usa un artifact locale con checksum atteso. |
 
 ### Runtime contract
 
@@ -163,6 +163,13 @@ e [`project_status.py`](../../src/p2p_engine/cli_commands/project_status.py).
 | `p2p project vertical list` | `R` | Elenca vertical pack integrati, utente e project-local. |
 | `p2p project vertical show VERTICAL` | `R` | Mostra manifest e contenuto del pack. |
 | `p2p project vertical validate TARGET` | `R` | Valida ID, `vertical.yml` o directory multi-file. |
+| `p2p project vertical schema` | `R` | Restituisce schema e limiti dei portable vertical pack v2. |
+| `p2p project vertical scaffold TARGET` | `C` | Crea una directory autore v2 locale; non muta `.p2p`. |
+| `p2p project vertical inspect TARGET` | `R` | Mostra vista dichiarata o effettiva di directory e archivi locali. |
+| `p2p project vertical package TARGET` | `C` | Produce un archivio v2 deterministico fuori dallo stato progettuale. |
+| `p2p project vertical install preview/apply` | `R/C` | Installa offline una coordinate esatta con checksum, token e conferma. |
+| `p2p project vertical adopt preview/apply` | `R/C/O` | Adotta una coordinate esatta quando non esiste evidenza significativa. |
+| `p2p project vertical migrate preview/apply` | `R/C/O` | Migra con mapping esatto e conservazione degli orfani. |
 | `p2p project vertical propose IDEA` | `R` | Stampa un candidato YAML importabile senza persisterlo. |
 | `p2p project vertical add PATH` | `C` | Copia un vertical pack nel progetto; `--activate` puo selezionarlo. |
 | `p2p project vertical select VERTICAL` | `C/O` | Seleziona il verticale attivo e ne registra il lock. |

@@ -78,6 +78,21 @@ class VerticalManifest:
     publisher: str = ""
     source: str = ""
     compatibility: dict[str, object] = field(default_factory=dict)
+    license_id: str = ""
+    lineage: dict[str, str] = field(default_factory=dict)
+    dependencies: list["VerticalDependency"] = field(default_factory=list)
+
+    @property
+    def coordinate(self) -> str:
+        if not self.publisher or not self.vertical_id or not self.version:
+            return ""
+        return f"{self.publisher}/{self.vertical_id}@{self.version}"
+
+
+@dataclass(frozen=True)
+class VerticalDependency:
+    coordinate: str
+    checksum: str
 
 
 @dataclass(frozen=True)
@@ -118,6 +133,10 @@ class VerticalPack:
     module_specs: list[VerticalModule] = field(default_factory=list)
     compatibility: dict[str, object] = field(default_factory=dict)
 
+    @property
+    def coordinate(self) -> str:
+        return self.manifest.coordinate if self.manifest else ""
+
 
 @dataclass(frozen=True)
 class VerticalListItem:
@@ -127,6 +146,7 @@ class VerticalListItem:
     source: str
     active: bool
     path: Path | None
+    coordinate: str = ""
 
 
 @dataclass(frozen=True)
@@ -137,6 +157,7 @@ class ActiveProjectVertical:
     selected_at: str = ""
     selected_by: str = ""
     fallback_used: bool = False
+    coordinate: str = ""
     reconciliation_required: bool = False
     reconciliation_command: str = ""
     derived_updates: Mapping[str, object] = field(default_factory=dict)
@@ -181,6 +202,9 @@ class VerticalLock:
     selected_by: str = ""
     trust: dict[str, object] = field(default_factory=dict)
     path: Path | None = None
+    coordinate: str = ""
+    artifact_checksum: str = ""
+    dependencies: list[VerticalDependency] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -234,6 +258,7 @@ class VerticalMigrationCandidate:
     checksum: str
     candidate_files: dict[str, bytes]
     reconciliation_required: bool = False
+    reference: str = ""
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -241,6 +266,7 @@ class VerticalMigrationCandidate:
             "profile": self.profile,
             "modules": list(self.modules),
             "checksum": self.checksum,
+            "reference": self.reference or self.vertical_id,
             "candidate_paths": sorted(self.candidate_files),
         }
 
@@ -296,6 +322,19 @@ class ProjectDefinitionHistoryEntry:
 
 
 @dataclass(frozen=True)
+class ProjectDefinitionOrphan:
+    orphan_id: str
+    source_vertical: str
+    source_section_id: str
+    source_field_id: str
+    value: object
+    source: str = ""
+    updated_at: str = ""
+    reason: str = "unmapped"
+    target_vertical: str = ""
+
+
+@dataclass(frozen=True)
 class ProjectDefinitionState:
     schema_version: int
     vertical_id: str
@@ -306,6 +345,7 @@ class ProjectDefinitionState:
     sections: list[ProjectDefinitionSectionState] = field(default_factory=list)
     next_suggested_action: dict[str, object] = field(default_factory=dict)
     history: list[ProjectDefinitionHistoryEntry] = field(default_factory=list)
+    orphans: list[ProjectDefinitionOrphan] = field(default_factory=list)
     path: Path | None = None
 
 

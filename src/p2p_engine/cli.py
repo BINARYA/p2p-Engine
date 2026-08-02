@@ -229,6 +229,16 @@ def init(
         "--vertical",
         help="Optional project vertical ID to select during initialization",
     ),
+    vertical_pack: Path | None = typer.Option(
+        None,
+        "--vertical-pack",
+        help="Local portable vertical archive installed and selected during initialization",
+    ),
+    expected_checksum: str = typer.Option(
+        "",
+        "--expected-checksum",
+        help="Expected SHA-256 for --vertical-pack",
+    ),
     profile: str = typer.Option(
         "default",
         "--profile",
@@ -291,6 +301,8 @@ def init(
             vertical_id=vertical,
             profile=profile,
             modules=module,
+            vertical_pack=vertical_pack,
+            expected_checksum=expected_checksum,
         )
     except ValueError as exc:
         _fail(str(exc))

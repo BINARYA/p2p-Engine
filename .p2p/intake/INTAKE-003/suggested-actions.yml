@@ -1,4 +1,0 @@
-suggested_actions:
-  - type: create_proposal
-    target: null
-    rationale: "Create a dedicated proposal for a persistence abstraction that separates P2P memory semantics from filesystem storage, preserves Git auditability, and defines when a structured DB backend is needed for remote concurrent collaboration."

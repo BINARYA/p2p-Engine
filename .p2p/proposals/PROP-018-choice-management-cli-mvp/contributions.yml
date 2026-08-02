@@ -1,7 +1,0 @@
-contributions:
-- id: C001
-  type: objective
-  author: local
-  relevance_hint: high
-  text: CHOICE-001 was created manually from INTAKE-001; the CLI should make this
-    workflow repeatable through p2p choice create/list/decide.

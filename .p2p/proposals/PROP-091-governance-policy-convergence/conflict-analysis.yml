@@ -1,6 +1,0 @@
-conflicts:
-  - type: scope_guard
-    proposals:
-      - PROP-091
-    reason: Full democratic enforcement would conflict with the selected owner_decides default and is intentionally out of scope.
-    suggested_resolution: keep_quorum_weighted_voting_and_automatic_enforcement_for_future_proposal

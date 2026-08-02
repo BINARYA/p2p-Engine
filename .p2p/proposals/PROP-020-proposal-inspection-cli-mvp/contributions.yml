@@ -1,7 +1,0 @@
-contributions:
-- id: C001
-  type: objective
-  author: local
-  relevance_hint: high
-  text: 'Proposal inspection commands should be optimized for agent skills: stable
-    output, no raw Python data structures, and clear proposal status before decisions.'

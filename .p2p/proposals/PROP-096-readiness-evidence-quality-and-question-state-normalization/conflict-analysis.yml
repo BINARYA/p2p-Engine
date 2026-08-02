@@ -1,8 +1,0 @@
-conflicts:
-  - type: none
-    proposals:
-      - PROP-096
-    reason: >
-      This is a narrow bug fix that preserves existing readiness profiles,
-      thresholds, commands, and governance semantics.
-    suggested_resolution: implement_with_regression_tests

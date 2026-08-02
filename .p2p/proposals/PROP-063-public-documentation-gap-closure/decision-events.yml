@@ -1,8 +1,0 @@
-proposal_decision_ledger:
-  contract_version: 1
-  proposal_id: PROP-063
-  authority_resolution: resolved
-  effective_state: undecided
-  head_event_id: null
-  events: []
-  legacy_evidence: []

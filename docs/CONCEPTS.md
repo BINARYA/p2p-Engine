@@ -143,6 +143,14 @@ by `.p2p/project/vertical.lock.yml`; after a lock exists, commands must fail
 closed on missing sources or checksum mismatch rather than silently falling back
 to `base_project`.
 
+Portable schema-version-2 verticals use exact
+`publisher/vertical-id@semantic-version` coordinates and immutable local
+artifacts. P2P Engine validates, installs and adopts those artifacts offline;
+catalog discovery, user policy, moderation, download and popularity counters
+belong to an external system such as WaveKit. Multiple exact versions may
+coexist. Migration preserves exact matching evidence and retains unmatched
+evidence as explicit project-definition orphans.
+
 `.p2p/project/definition.yml` stores durable owner answers, assumptions,
 missing required fields, blockers, open questions, section status, and
 provenance for project-definition work. Agents should inspect vertical context,

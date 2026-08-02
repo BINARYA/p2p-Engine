@@ -1,5 +1,0 @@
-governance:
-  mode: owner_decides
-  status: active
-  enforcement: audit_only
-  default_decision_type: owner_decides

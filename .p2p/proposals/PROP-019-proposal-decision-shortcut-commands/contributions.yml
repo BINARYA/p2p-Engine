@@ -1,7 +1,0 @@
-contributions:
-- id: C001
-  type: implementation_suggestion
-  author: local
-  relevance_hint: high
-  text: These commands should be thin wrappers over decision record so the existing
-    decision.md/status behavior remains the source of truth.

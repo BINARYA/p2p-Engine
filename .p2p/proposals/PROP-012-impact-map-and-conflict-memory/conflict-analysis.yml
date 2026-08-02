@@ -1,8 +1,0 @@
-conflicts:
-  - type: overlaps
-    proposals:
-      - PROP-010
-      - PROP-011
-      - PROP-012
-    reason: These proposals all define or modify .p2p/project semantics and refresh behavior.
-    suggested_resolution: keep_all_as_incremental_layers

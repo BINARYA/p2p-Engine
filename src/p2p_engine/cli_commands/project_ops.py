@@ -4,6 +4,7 @@ import json
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any
+import zipfile
 
 import typer
 
@@ -11,6 +12,7 @@ from p2p_engine.cli_shared import console
 from p2p_engine.cli_shared import fail
 from p2p_engine.cli_shared import workspace as workspace_for
 from p2p_engine.cli_shared import yaml_dump_for_cli
+from p2p_engine.foundation.yaml_loaders import load_yaml
 
 
 def register_project_ops_commands(
@@ -29,12 +31,18 @@ def register_project_ops_commands(
 ) -> None:
     project_publish_app = typer.Typer(help="Prepare and inspect canonical human project publication output")
     project_vertical_lock_app = typer.Typer(help="Inspect and repair project vertical lock state")
+    project_vertical_install_app = typer.Typer(help="Preview and apply portable vertical installation")
+    project_vertical_adopt_app = typer.Typer(help="Preview and apply vertical adoption for an empty definition")
+    project_vertical_migrate_app = typer.Typer(help="Preview and apply evidence-preserving vertical migration")
     project_metadata_app = typer.Typer(help="Inspect and update bounded project metadata")
     project_memory_app = typer.Typer(help="Inspect vertical-aware derived project memory")
     project_app.add_typer(project_publish_app, name="publish")
     project_app.add_typer(project_metadata_app, name="metadata")
     project_app.add_typer(project_memory_app, name="memory")
     project_vertical_app.add_typer(project_vertical_lock_app, name="lock")
+    project_vertical_app.add_typer(project_vertical_install_app, name="install")
+    project_vertical_app.add_typer(project_vertical_adopt_app, name="adopt")
+    project_vertical_app.add_typer(project_vertical_migrate_app, name="migrate")
 
     @project_memory_app.command("status")
     def project_memory_status(
@@ -685,6 +693,31 @@ def register_project_ops_commands(
         output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
     ) -> None:
         """Validate a project vertical pack or known vertical ID."""
+        source = Path(target)
+        source = source if source.is_absolute() else root / source
+        if source.is_file() and zipfile.is_zipfile(source):
+            result = workspace_for(root).validate_portable_vertical(source)
+            validation = {
+                "target": result.target,
+                "valid": result.valid,
+                "coordinate": result.pack.coordinate,
+                "artifact_checksum": result.artifact_checksum,
+                "semantic_checksum": result.semantic_checksum,
+                "issues": result.issues,
+            }
+            if _wants_json(output_format):
+                _print_json({"validation": validation})
+                if not result.valid:
+                    raise typer.Exit(1)
+                return
+            console.print("Project vertical valid" if result.valid else "Project vertical invalid")
+            console.print(f"  target: {result.target}")
+            console.print(f"  coordinate: {result.pack.coordinate or 'unknown'}")
+            for issue in result.issues:
+                console.print(f"  {issue.severity} {issue.code}: {issue.message}")
+            if not result.valid:
+                raise typer.Exit(1)
+            return
         result = workspace_for(root).validate_project_vertical(target)
         if _wants_json(output_format):
             _print_json({"validation": result})
@@ -703,6 +736,237 @@ def register_project_ops_commands(
                 console.print(f"    - {issue.severity} {issue.field}: {issue.message}")
         if not result.valid:
             raise typer.Exit(1)
+
+    @project_vertical_app.command("schema")
+    def project_vertical_schema(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("json", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Show the portable vertical-pack authoring schema and safety limits."""
+        schema = workspace_for(root).portable_vertical_schema()
+        if _wants_json(output_format):
+            _print_json(_operation_success("vertical_schema", schema))
+            return
+        console.print("Portable project vertical schema")
+        console.print(f"  schema_version: {schema['schema_version']}")
+        console.print(f"  coordinate: {schema['coordinate']}")
+        console.print(f"  network_access: {str(schema['network_access']).lower()}")
+        console.print(f"  max_entries: {schema['limits']['max_entries']}")
+
+    @project_vertical_app.command("scaffold")
+    def project_vertical_scaffold(
+        target: Path = typer.Argument(..., help="New canonical pack directory"),
+        publisher: str = typer.Option(..., "--publisher", help="Coordinate publisher"),
+        vertical_id: str = typer.Option(..., "--id", help="Vertical ID"),
+        version: str = typer.Option("0.1.0", "--version", help="Semantic version"),
+        name: str = typer.Option("", "--name", help="Display name"),
+        license_id: str = typer.Option(..., "--license", help="License identifier"),
+        extends: str = typer.Option("", "--extends", help="Exact installed base coordinate"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Create a local schema-version-2 vertical authoring scaffold."""
+        try:
+            result = workspace_for(root).scaffold_portable_vertical(
+                target,
+                publisher=publisher,
+                vertical_id=vertical_id,
+                version=version,
+                name=name,
+                license_id=license_id,
+                extends=extends,
+            )
+        except ValueError as exc:
+            _fail_operation("vertical_scaffold", exc, output_format)
+        data = _portable_inspection_payload(result, view="declared")
+        if _wants_json(output_format):
+            _print_json(_operation_success("vertical_scaffold", data))
+            return
+        console.print("[green]Portable vertical scaffold created.[/green]")
+        console.print(f"  coordinate: {result.pack.coordinate}")
+        console.print(f"  target: {target}")
+
+    @project_vertical_app.command("inspect")
+    def project_vertical_inspect(
+        target: Path = typer.Argument(..., help="Pack directory or portable archive"),
+        view: str = typer.Option("effective", "--view", help="View: declared or effective"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("json", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Inspect declared or inheritance-composed portable pack content."""
+        try:
+            result = workspace_for(root).inspect_portable_vertical(target, view=view)
+        except ValueError as exc:
+            _fail_operation("vertical_inspect", exc, output_format)
+        data = _portable_inspection_payload(result, view=view)
+        if _wants_json(output_format):
+            _print_json(_operation_success("vertical_inspect", data))
+            return
+        console.print("Portable vertical inspection")
+        console.print(f"  coordinate: {result.pack.coordinate}")
+        console.print(f"  view: {view}")
+        console.print(f"  semantic_checksum: {result.semantic_checksum}")
+        if result.artifact_checksum:
+            console.print(f"  artifact_checksum: {result.artifact_checksum}")
+
+    @project_vertical_app.command("package")
+    def project_vertical_package(
+        source: Path = typer.Argument(..., help="Canonical schema-version-2 pack directory"),
+        output: Path = typer.Option(..., "--output", help="Portable archive path"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("json", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Build a deterministic local portable vertical archive."""
+        try:
+            result = workspace_for(root).package_portable_vertical(source, output=output)
+        except ValueError as exc:
+            _fail_operation("vertical_package", exc, output_format)
+        if _wants_json(output_format):
+            _print_json(_operation_success("vertical_package", result))
+            return
+        console.print("[green]Portable vertical packaged.[/green]")
+        console.print(f"  coordinate: {result.coordinate}")
+        console.print(f"  output: {result.path}")
+        console.print(f"  artifact_checksum: {result.artifact_checksum}")
+        console.print(f"  semantic_checksum: {result.semantic_checksum}")
+
+    @project_vertical_install_app.command("preview")
+    def project_vertical_install_preview(
+        artifact: Path = typer.Argument(..., help="Portable vertical archive"),
+        expected_checksum: str = typer.Option(..., "--expected-checksum", help="Expected artifact SHA-256"),
+        actor: str = typer.Option("local", "--actor", help="Requesting actor"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("json", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Preview a state-bound, offline portable-pack installation."""
+        try:
+            result = workspace_for(root).preview_portable_vertical_install(
+                artifact,
+                expected_checksum=expected_checksum,
+                actor=actor,
+            )
+        except ValueError as exc:
+            _fail_operation("vertical_install_preview", exc, output_format)
+        _print_lifecycle_preview(result, operation="vertical_install_preview", output_format=output_format)
+
+    @project_vertical_install_app.command("apply")
+    def project_vertical_install_apply(
+        artifact: Path = typer.Argument(..., help="Portable vertical archive"),
+        expected_checksum: str = typer.Option(..., "--expected-checksum", help="Expected artifact SHA-256"),
+        token: str = typer.Option(..., "--token", help="Current preview token"),
+        confirm: bool = typer.Option(False, "--confirm", help="Confirm the governed mutation"),
+        actor: str = typer.Option(..., "--actor", help="Applying actor"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("json", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Apply a previously previewed portable-pack installation."""
+        try:
+            result = workspace_for(root).apply_portable_vertical_install(
+                artifact,
+                expected_checksum=expected_checksum,
+                preview_token=token,
+                confirmed=confirm,
+                actor=actor,
+            )
+        except ValueError as exc:
+            _fail_operation("vertical_install_apply", exc, output_format)
+        _print_lifecycle_result(result, operation="vertical_install_apply", output_format=output_format)
+
+    @project_vertical_adopt_app.command("preview")
+    def project_vertical_adopt_preview(
+        coordinate: str = typer.Argument(..., help="Exact installed vertical coordinate"),
+        actor: str = typer.Option("local", "--actor", help="Requesting actor"),
+        profile: str = typer.Option("default", "--profile", help="Definition profile"),
+        module: list[str] | None = typer.Option(None, "--module", help="Enabled module; repeat as needed"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("json", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Preview exact vertical adoption for a project without definition evidence."""
+        try:
+            result = workspace_for(root).preview_project_vertical_adoption(
+                coordinate,
+                actor=actor,
+                profile=profile,
+                modules=module,
+            )
+        except ValueError as exc:
+            _fail_operation("vertical_adopt_preview", exc, output_format)
+        _print_lifecycle_preview(result, operation="vertical_adopt_preview", output_format=output_format)
+
+    @project_vertical_adopt_app.command("apply")
+    def project_vertical_adopt_apply(
+        coordinate: str = typer.Argument(..., help="Exact installed vertical coordinate"),
+        token: str = typer.Option(..., "--token", help="Current preview token"),
+        confirm: bool = typer.Option(False, "--confirm", help="Confirm the governed mutation"),
+        actor: str = typer.Option(..., "--actor", help="Applying actor"),
+        profile: str = typer.Option("default", "--profile", help="Definition profile"),
+        module: list[str] | None = typer.Option(None, "--module", help="Enabled module; repeat as needed"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("json", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Apply a previously previewed exact vertical adoption."""
+        try:
+            result = workspace_for(root).apply_project_vertical_adoption(
+                coordinate,
+                preview_token=token,
+                confirmed=confirm,
+                actor=actor,
+                profile=profile,
+                modules=module,
+            )
+        except ValueError as exc:
+            _fail_operation("vertical_adopt_apply", exc, output_format)
+        _print_lifecycle_result(result, operation="vertical_adopt_apply", output_format=output_format)
+
+    @project_vertical_migrate_app.command("preview")
+    def project_vertical_migrate_preview(
+        coordinate: str = typer.Argument(..., help="Exact installed target vertical coordinate"),
+        mapping: Path | None = typer.Option(None, "--mapping", help="Exact field/rubric mapping YAML or JSON"),
+        actor: str = typer.Option("local", "--actor", help="Requesting actor"),
+        profile: str = typer.Option("default", "--profile", help="Definition profile"),
+        module: list[str] | None = typer.Option(None, "--module", help="Enabled module; repeat as needed"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("json", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Preview evidence-preserving migration to an exact vertical."""
+        try:
+            result = workspace_for(root).preview_project_vertical_migration(
+                coordinate,
+                actor=actor,
+                mapping=_load_vertical_mapping(mapping, root=root),
+                profile=profile,
+                modules=module,
+            )
+        except ValueError as exc:
+            _fail_operation("vertical_migrate_preview", exc, output_format)
+        _print_lifecycle_preview(result, operation="vertical_migrate_preview", output_format=output_format)
+
+    @project_vertical_migrate_app.command("apply")
+    def project_vertical_migrate_apply(
+        coordinate: str = typer.Argument(..., help="Exact installed target vertical coordinate"),
+        mapping: Path | None = typer.Option(None, "--mapping", help="Exact field/rubric mapping YAML or JSON"),
+        token: str = typer.Option(..., "--token", help="Current preview token"),
+        confirm: bool = typer.Option(False, "--confirm", help="Confirm the governed mutation"),
+        actor: str = typer.Option(..., "--actor", help="Applying actor"),
+        profile: str = typer.Option("default", "--profile", help="Definition profile"),
+        module: list[str] | None = typer.Option(None, "--module", help="Enabled module; repeat as needed"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("json", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Apply a previously previewed evidence-preserving vertical migration."""
+        try:
+            result = workspace_for(root).apply_project_vertical_migration(
+                coordinate,
+                preview_token=token,
+                confirmed=confirm,
+                actor=actor,
+                mapping=_load_vertical_mapping(mapping, root=root),
+                profile=profile,
+                modules=module,
+            )
+        except ValueError as exc:
+            _fail_operation("vertical_migrate_apply", exc, output_format)
+        _print_lifecycle_result(result, operation="vertical_migrate_apply", output_format=output_format)
 
     @project_vertical_app.command("propose")
     def project_vertical_propose(
@@ -1260,6 +1524,90 @@ def _print_vertical_pack(pack: object) -> None:
     for artifact in getattr(pack, "artifacts"):
         sections = ", ".join(artifact.section_ids) if artifact.section_ids else "none"
         console.print(f"  - {artifact.artifact_id}  sections={sections}  {artifact.title}")
+
+
+def _portable_inspection_payload(result: object, *, view: str) -> dict[str, object]:
+    return {
+        "target": getattr(result, "target"),
+        "view": view,
+        "coordinate": getattr(getattr(result, "pack"), "coordinate"),
+        "artifact_checksum": getattr(result, "artifact_checksum"),
+        "semantic_checksum": getattr(result, "semantic_checksum"),
+        "entries": list(getattr(result, "entries")),
+        "pack": (
+            getattr(result, "declared_payload")
+            if view == "declared"
+            else getattr(result, "effective_payload")
+        ),
+    }
+
+
+def _print_lifecycle_preview(result: object, *, operation: str, output_format: str) -> None:
+    data = result.to_dict()
+    if _wants_json(output_format):
+        _print_json(_operation_success(operation, data))
+        return
+    console.print("Project vertical mutation preview")
+    console.print(f"  operation: {getattr(result, 'operation')}")
+    console.print(f"  coordinate: {getattr(result, 'coordinate')}")
+    console.print(f"  apply_allowed: {str(getattr(result, 'apply_allowed')).lower()}")
+    preview = getattr(result, "preview")
+    if preview is not None:
+        console.print(f"  preview_token: {preview.preview_token}")
+    for blocker in getattr(result, "blockers"):
+        console.print(f"  blocker: {blocker}")
+
+
+def _print_lifecycle_result(result: object, *, operation: str, output_format: str) -> None:
+    data = result.to_dict()
+    if _wants_json(output_format):
+        _print_json(_operation_success(operation, data))
+        return
+    console.print("[green]Project vertical mutation applied.[/green]")
+    console.print(f"  operation: {getattr(result, 'operation')}")
+    console.print(f"  coordinate: {getattr(result, 'coordinate')}")
+    console.print(f"  changed_paths: {len(getattr(result, 'mutation').changed_paths)}")
+
+
+def _load_vertical_mapping(path: Path | None, *, root: Path) -> dict[str, object]:
+    if path is None:
+        return {}
+    source = path if path.is_absolute() else root / path
+    if not source.is_file() or source.is_symlink():
+        raise ValueError(f"P2P_VERTICAL_INVALID_MAPPING: mapping file not found: {source}")
+    payload = load_yaml(source.read_bytes())
+    if not isinstance(payload, dict):
+        raise ValueError("P2P_VERTICAL_INVALID_MAPPING: mapping document must be a mapping")
+    nested = payload.get("vertical_migration")
+    return nested if isinstance(nested, dict) else payload
+
+
+def _operation_success(operation: str, data: object) -> dict[str, object]:
+    return {
+        "ok": True,
+        "operation": operation,
+        "data": data,
+        "warnings": [],
+        "error": None,
+    }
+
+
+def _fail_operation(operation: str, exc: ValueError, output_format: str) -> None:
+    if _wants_json(output_format):
+        message = str(exc)
+        prefix = message.split(":", 1)[0]
+        code = prefix if prefix.startswith("P2P_") else "P2P_VERTICAL_OPERATION_FAILED"
+        _print_json(
+            {
+                "ok": False,
+                "operation": operation,
+                "data": None,
+                "warnings": [],
+                "error": {"code": code, "message": message},
+            }
+        )
+        raise typer.Exit(1)
+    fail(str(exc))
 
 
 def _wants_json(output_format: str) -> bool:

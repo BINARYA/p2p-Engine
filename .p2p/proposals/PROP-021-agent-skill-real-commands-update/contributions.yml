@@ -1,7 +1,0 @@
-contributions:
-- id: C001
-  type: objective
-  author: local
-  relevance_hint: high
-  text: Agents should first refresh registries and inspect proposals before creating
-    new P2P artifacts, then use intake when an idea may overlap existing work.

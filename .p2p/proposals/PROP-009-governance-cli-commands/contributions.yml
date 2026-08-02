@@ -1,7 +1,0 @@
-contributions:
-- id: C001
-  type: architectural_principle
-  author: local
-  relevance_hint: high
-  text: 'La governance CLI deve restare audit-only: inizializza e aggiorna file versionati,
-    ma non applica permessi reali nel MVP.'

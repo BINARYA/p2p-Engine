@@ -1,3 +1,0 @@
-# Alternatives - PROP-056
-
-None identified yet.

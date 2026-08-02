@@ -1,3 +1,0 @@
-included_decisions:
-- proposal: PROP-013
-  decision_file: .p2p/proposals/PROP-013-change-set-and-git-branch-model/decision.md
