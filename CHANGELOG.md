@@ -6,6 +6,22 @@ This project is early-stage and did not previously maintain a public changelog.
 Use this file for human-readable release notes as the repository moves toward
 tagged releases.
 
+## 0.4.4 - 2026-08-02
+
+- Added deterministic portable vertical-pack schema v2 artifacts with exact
+  publisher, version, license, lineage and dependency-checksum contracts.
+- Added governed install, adoption and evidence-preserving migration through
+  state-bound CLI preview/apply operations and stable JSON envelopes.
+- Added project initialization from a local vertical artifact with checksum
+  preflight, side-by-side exact versions and explicit migration orphans.
+- Kept registry discovery and artifact delivery outside P2P Engine so server
+  products such as WaveKit can enforce their own catalog and authorization
+  policies while P2P remains deterministic and offline.
+- Removed the canonical P2P project-design workspace from the implementation
+  repository and retained implementation specifications locally under `specs/`.
+- Corrected concurrent readiness convergence classification so changed
+  preconditions report `stale_preview` instead of a generic failure.
+
 ## 0.4.3 - 2026-07-23
 
 - Made publication CLI documentation tests independent from ANSI styling in
