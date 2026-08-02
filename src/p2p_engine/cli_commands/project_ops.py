@@ -7,6 +7,7 @@ from typing import Any
 import zipfile
 
 import typer
+import yaml
 
 from p2p_engine.cli_shared import console
 from p2p_engine.cli_shared import fail
@@ -680,6 +681,8 @@ def register_project_ops_commands(
         try:
             pack = workspace_for(root).show_project_vertical(vertical_id)
         except ValueError as exc:
+            if _wants_json(output_format):
+                _fail_operation("vertical_show", exc, output_format)
             fail(str(exc))
         if _wants_json(output_format):
             _print_json({"vertical": pack})
@@ -695,7 +698,7 @@ def register_project_ops_commands(
         """Validate a project vertical pack or known vertical ID."""
         source = Path(target)
         source = source if source.is_absolute() else root / source
-        if source.is_file() and zipfile.is_zipfile(source):
+        if _is_portable_vertical_target(source):
             result = workspace_for(root).validate_portable_vertical(source)
             validation = {
                 "target": result.target,
@@ -1580,6 +1583,20 @@ def _load_vertical_mapping(path: Path | None, *, root: Path) -> dict[str, object
         raise ValueError("P2P_VERTICAL_INVALID_MAPPING: mapping document must be a mapping")
     nested = payload.get("vertical_migration")
     return nested if isinstance(nested, dict) else payload
+
+
+def _is_portable_vertical_target(source: Path) -> bool:
+    if source.is_file():
+        return zipfile.is_zipfile(source)
+    manifest_path = source / "manifest.yml"
+    if not source.is_dir() or not manifest_path.is_file():
+        return False
+    try:
+        payload = load_yaml(manifest_path.read_bytes())
+    except (OSError, UnicodeDecodeError, ValueError, yaml.YAMLError):
+        return False
+    manifest = payload.get("manifest") if isinstance(payload, dict) else None
+    return isinstance(manifest, dict) and manifest.get("schema_version") == 2
 
 
 def _operation_success(operation: str, data: object) -> dict[str, object]:

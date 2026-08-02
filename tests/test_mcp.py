@@ -686,6 +686,42 @@ def test_mcp_project_vertical_and_readiness_tools(tmp_path: Path) -> None:
     assert updated["definition_update"]["operations_applied"] == 1
 
 
+@pytest.mark.mcp
+def test_mcp_reads_hyphenated_exact_portable_vertical_without_mutation(tmp_path: Path) -> None:
+    authoring = P2PWorkspace(tmp_path)
+    source = tmp_path / "mcp-portable-source"
+    inspection = authoring.scaffold_portable_vertical(
+        source,
+        publisher="test",
+        vertical_id="mcp-portable",
+        version="1.0.0",
+        name="MCP Portable",
+        license_id="MIT",
+    )
+    archive = tmp_path / "mcp-portable.p2pv"
+    packaged = authoring.package_portable_vertical(source, output=archive)
+    project_root = tmp_path / "project"
+    P2PWorkspace(project_root).init_project_with_summary(
+        "MCP exact portable",
+        vertical_pack=archive,
+        expected_checksum=packaged.artifact_checksum,
+        owner="owner",
+    )
+
+    with assert_no_workspace_mutation(project_root):
+        listed = call_tool("p2p_project_vertical_list", {"root": str(project_root)})
+        context = call_tool("p2p_project_context", {"root": str(project_root)})
+        sections = call_tool("p2p_project_sections", {"root": str(project_root)})
+        definition = call_tool("p2p_project_definition_show", {"root": str(project_root)})
+
+    assert listed["active"]["coordinate"] == inspection.pack.coordinate
+    assert context["project_context"]["active"]["vertical_id"] == "mcp-portable"
+    assert context["project_context"]["lock_status"]["status"] == "valid"
+    assert sections["sections"][0]["section_id"] == "custom_overview"
+    assert definition["definition"]["valid"] is True
+    assert definition["definition"]["state"]["vertical_version"] == "1.0.0"
+
+
 def test_mcp_managed_next_action_lifecycle(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
 

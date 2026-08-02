@@ -2,7 +2,11 @@
 
 ## Status
 
-Implemented on 2026-08-02 from accepted proposal `PROP-103`.
+Delivered in version `0.4.4` on 2026-08-02 from accepted proposal
+`PROP-103`. Post-release WaveKit integration verification identified an active
+resolution conformance gap. The corrective implementation and release gates
+are specified separately under
+`specs/features/portable-vertical-resolution-convergence-0-4-5/`.
 
 ## Delivered
 
@@ -22,6 +26,26 @@ Implemented on 2026-08-02 from accepted proposal `PROP-103`.
 - Additive exact coordinate, artifact checksum and dependency closure in the
   active lock while preserving version-1 lock parsing.
 - CLI guide, concepts and primitive inventory updates.
+
+## Known 0.4.4 Conformance Gap
+
+The `0.4.4` implementation writes the exact schema-v2 coordinate and a valid
+lock during direct init, adoption and migration. Some later consumers resolve
+the active pack again from the bare `active_vertical_id`.
+
+Two consequences were confirmed with the published wheel:
+
+- a valid hyphenated ID such as `test-vertical` can be normalized to
+  `test_vertical`, causing `p2p validate` and project-definition reads to reject
+  otherwise valid state;
+- side-by-side versions can become indeterminate in consumers that discard the
+  exact coordinate and resolve only the shared bare ID.
+
+The original requirements already require exact, non-floating resolution. This
+is an implementation and test-coverage defect, not a change to the accepted
+WaveKit/P2P ownership boundary. Version `0.4.5` must correct the resolver and
+active-state consumers without introducing network access or a storage
+migration.
 
 ## Integration Boundary
 
@@ -50,6 +74,12 @@ duplicating domain logic.
 - Release artifacts: wheel `244` files, sdist `496` files, both verified.
 - Installed-wheel smoke: `p2p project vertical schema --format json` succeeded
   outside the source checkout.
+
+This evidence remains the recorded `0.4.4` delivery evidence, but it did not
+exercise a hyphenated portable ID through immediate post-init/post-adoption
+definition and workspace validation, nor did it exercise active consumers
+after installing two versions of one ID. Those missing release regressions are
+mandatory in the `0.4.5` corrective feature.
 
 The full-suite run exposed an existing convergence race classification: a
 second process could correctly detect changed preconditions but report generic

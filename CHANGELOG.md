@@ -6,6 +6,19 @@ This project is early-stage and did not previously maintain a public changelog.
 Use this file for human-readable release notes as the repository moves toward
 tagged releases.
 
+## 0.4.5 - 2026-08-02
+
+- Corrected portable vertical resolution so valid hyphenated schema-v2 IDs
+  retain their exact spelling across init, adoption, migration and later reads.
+- Made the exact locked coordinate authoritative for active sections,
+  definition state, readiness, validation and existing MCP read tools.
+- Added fail-closed ambiguity and coordinate-conflict errors for side-by-side
+  portable versions while preserving schema-v1 and bundled source precedence.
+- Strengthened pre-commit active, lock and definition identity validation and
+  aligned schema-v2 directory validation with portable archive validation.
+- Added WaveKit-facing regressions for direct init, adopt, migrate, exact
+  inheritance, side-by-side versions and installed-wheel behavior.
+
 ## 0.4.4 - 2026-08-02
 
 - Added deterministic portable vertical-pack schema v2 artifacts with exact

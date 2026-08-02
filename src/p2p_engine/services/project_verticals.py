@@ -195,9 +195,8 @@ class ProjectVerticalService:
 
     def list_verticals(self) -> list[VerticalListItem]:
         active = self.active_vertical()
-        packs_by_reference = self._available_packs_by_reference()
         packs_by_identity: dict[str, VerticalPack] = {}
-        for pack in packs_by_reference.values():
+        for pack in self._available_pack_inventory():
             packs_by_identity[pack.coordinate or pack.vertical_id] = pack
         items: list[VerticalListItem] = []
         for identity in sorted(packs_by_identity):
@@ -513,10 +512,29 @@ class ProjectVerticalService:
         )
         if not isinstance(active, dict) or active.get("active_vertical_id") != candidate.vertical_id:
             raise ValueError("Vertical migration active-state candidate is incoherent.")
-        checksum = lock.get("checksum") if isinstance(lock, dict) else None
+        pack = self._load_available_pack(candidate.reference or candidate.vertical_id)
+        if pack.vertical_id != candidate.vertical_id:
+            raise ValueError("Vertical migration target pack identity is incoherent.")
+        active_coordinate = str(active.get("active_vertical_coordinate") or "")
+        if pack.coordinate and active_coordinate != pack.coordinate:
+            raise ValueError("Vertical migration active coordinate candidate is incoherent.")
+        if not isinstance(lock, dict):
+            raise ValueError("Vertical migration lock candidate is incoherent.")
+        checksum = lock.get("checksum")
         if not isinstance(checksum, dict) or checksum.get("value") != candidate.checksum:
             raise ValueError("Vertical migration lock checksum is incoherent.")
-        pack = self._load_available_pack(candidate.reference or candidate.vertical_id)
+        if str(lock.get("vertical_id") or "") != pack.vertical_id:
+            raise ValueError("Vertical migration lock vertical id is incoherent.")
+        if str(lock.get("version") or "") != pack.version:
+            raise ValueError("Vertical migration lock version is incoherent.")
+        if pack.coordinate and str(lock.get("coordinate") or "") != pack.coordinate:
+            raise ValueError("Vertical migration lock coordinate is incoherent.")
+        if definition.vertical_id != pack.vertical_id:
+            raise ValueError("Vertical migration definition vertical id is incoherent.")
+        if definition.vertical_version != pack.version:
+            raise ValueError("Vertical migration definition version is incoherent.")
+        if definition.lock_checksum != candidate.checksum:
+            raise ValueError("Vertical migration definition lock checksum is incoherent.")
         issues = self._definition_state_issues(definition, pack)
         if any(issue.severity == "error" for issue in issues):
             first = next(issue for issue in issues if issue.severity == "error")
@@ -569,6 +587,17 @@ class ProjectVerticalService:
         if pack is None:
             reference = str(state.get("active_vertical_coordinate") or vertical_id)
             pack = self._load_available_pack(reference)
+        active_coordinate = str(state.get("active_vertical_coordinate") or "").strip()
+        if vertical_id != pack.vertical_id:
+            raise ValueError(
+                "P2P_VERTICAL_ACTIVE_STATE_MISMATCH: active vertical id "
+                f"`{vertical_id}` does not match resolved `{pack.vertical_id}`"
+            )
+        if active_coordinate and active_coordinate != (pack.coordinate or ""):
+            raise ValueError(
+                "P2P_VERTICAL_ACTIVE_STATE_MISMATCH: active coordinate "
+                f"`{active_coordinate}` does not match resolved `{pack.coordinate or pack.vertical_id}`"
+            )
         reconciliation_required = self._question_reconciliation_required()
         return (
             ActiveProjectVertical(
@@ -635,6 +664,28 @@ class ProjectVerticalService:
                 message=str(exc),
                 suggested_command="p2p project vertical lock repair --actor owner",
             )
+        identity_mismatches: list[str] = []
+        if locked.vertical_id != resolved.pack.vertical_id:
+            identity_mismatches.append(
+                f"vertical id `{locked.vertical_id}` != `{resolved.pack.vertical_id}`"
+            )
+        if locked.version and locked.version != resolved.pack.version:
+            identity_mismatches.append(
+                f"version `{locked.version}` != `{resolved.pack.version}`"
+            )
+        if locked.coordinate and locked.coordinate != (resolved.pack.coordinate or ""):
+            identity_mismatches.append(
+                f"coordinate `{locked.coordinate}` != `{resolved.pack.coordinate or resolved.pack.vertical_id}`"
+            )
+        if identity_mismatches:
+            return VerticalLockStatus(
+                status="identity_mismatch",
+                path=display_path,
+                locked=locked,
+                resolved=resolved,
+                message="Project vertical lock identity mismatch: " + "; ".join(identity_mismatches) + ".",
+                suggested_command="p2p project vertical lock repair --actor owner",
+            )
         if resolved.checksum != locked.checksum:
             return VerticalLockStatus(
                 status="checksum_mismatch",
@@ -693,8 +744,11 @@ class ProjectVerticalService:
         )
 
     def list_sections(self, *, vertical_id: str | None = None) -> list[VerticalSection]:
-        active = self.active_vertical()
-        pack = self._load_available_pack(vertical_id or active.vertical_id)
+        pack = (
+            self._load_available_pack(vertical_id)
+            if vertical_id is not None
+            else self._active_vertical_and_pack()[1]
+        )
         return sorted(pack.sections, key=lambda section: section.priority)
 
     def show_section(self, section_id: str, *, vertical_id: str | None = None) -> VerticalSection:
@@ -723,8 +777,7 @@ class ProjectVerticalService:
             )
         try:
             state = self._read_definition_state(path)
-            active = self.active_vertical()
-            pack = self._load_available_pack(active.vertical_id)
+            _, pack = self._active_vertical_and_pack()
             issues = self._definition_state_issues(state, pack)
         except ValueError as exc:
             return ProjectDefinitionView(
@@ -770,12 +823,11 @@ class ProjectVerticalService:
         return _definition_state_from_payload(payload, path=path or self._definition_state_path())
 
     def pack_for_definition(self, state: ProjectDefinitionState) -> VerticalPack:
-        pack = self._load_available_pack(state.vertical_id)
-        if pack.version != state.vertical_version:
-            raise ValueError(
-                f"Project definition vertical version `{state.vertical_version}` does not match "
-                f"resolved `{pack.version}`."
-            )
+        _, pack = self._active_vertical_and_pack()
+        issues = [item for item in self._definition_state_issues(state, pack) if item.severity == "error"]
+        if issues:
+            first = issues[0]
+            raise ValueError(f"Project definition state is invalid: {first.field}: {first.message}")
         return pack
 
     def parse_vertical_lock_bytes(self, content: bytes, *, path: Path | None = None) -> VerticalLock:
@@ -954,8 +1006,7 @@ class ProjectVerticalService:
                 "Project definition state is invalid"
                 + (f": {first.field}: {first.message}" if first else ".")
             )
-        active = self.active_vertical()
-        pack = self._load_available_pack(active.vertical_id)
+        _, pack = self._active_vertical_and_pack()
         return view.state, pack
 
     def _definition_actor_authority(self, actor: str) -> str:
@@ -1110,12 +1161,14 @@ class ProjectVerticalService:
         if str(coverage.get("proposal_id") or "") != proposal_id:
             raise ValueError("Vertical coverage proposal_id does not match the target proposal.")
         vertical_id = str(coverage.get("vertical_id") or "")
-        active = active or self.active_vertical()
+        if active is None or pack is None:
+            resolved_active, resolved_pack = self._active_vertical_and_pack()
+            active = active or resolved_active
+            pack = pack or resolved_pack
         if vertical_id != active.vertical_id:
             raise ValueError(
                 f"Vertical coverage must target active vertical `{active.vertical_id}`, not `{vertical_id}`."
             )
-        pack = pack or self._load_available_pack(vertical_id)
         valid_sections = {section.section_id for section in pack.sections}
         seen: set[str] = set()
         for item in coverage.get("sections", []):
@@ -1381,8 +1434,28 @@ class ProjectVerticalService:
                 selected_at=str(active_state.get("selected_at") or ""),
                 selected_by=str(active_state.get("selected_by") or ""),
                 fallback_used=bool(active_state.get("fallback_used") or False),
+                coordinate=str(active_state.get("active_vertical_coordinate") or ""),
             )
-        pack = self._load_available_pack(vertical_id or active.vertical_id)
+        lock_path = self._vertical_lock_path()
+        lock_content = access.read_optional(lock_path)
+        parsed_lock: VerticalLock | None = None
+        lock_error = ""
+        if lock_content is not None:
+            try:
+                lock_payload = load_yaml(lock_content)
+                if not isinstance(lock_payload, dict):
+                    raise ValueError("expected a YAML mapping")
+                parsed_lock = _vertical_lock_from_payload(lock_path, lock_payload, self.root)
+            except (UnicodeDecodeError, yaml.YAMLError, ValueError) as exc:
+                lock_error = str(exc)
+        reference = vertical_id
+        if reference is None:
+            reference = (
+                parsed_lock.coordinate
+                if parsed_lock is not None and parsed_lock.coordinate
+                else active.coordinate or active.vertical_id
+            )
+        pack = self._load_available_pack(reference)
         fallback_used = active.fallback_used and vertical_id is None
         proposal_matches: dict[str, list[str]] = {section.section_id: [] for section in pack.sections}
         heuristic_matches: dict[str, list[str]] = {section.section_id: [] for section in pack.sections}
@@ -1395,34 +1468,45 @@ class ProjectVerticalService:
             source_hashes[relative_to_root(active_path, self.root).as_posix()] = hashlib.sha256(
                 active_content
             ).hexdigest()
-        lock_path = self._vertical_lock_path()
-        lock_content = access.read_optional(lock_path)
         lock_checksum = ""
         if lock_content is not None:
-            try:
-                lock_payload = load_yaml(lock_content)
-                if not isinstance(lock_payload, dict):
-                    raise ValueError("expected a YAML mapping")
-                lock = _vertical_lock_from_payload(lock_path, lock_payload, self.root)
-                lock_checksum = lock.checksum
-                if lock.vertical_id != pack.vertical_id or lock.checksum != _pack_checksum(pack):
-                    snapshot_diagnostics.append(
-                        ProjectReadinessDiagnostic(
-                            code="P2P254_PROJECT_VERTICAL_LOCK_INVALID",
-                            severity="error",
-                            message="Project vertical lock does not match the selected vertical pack.",
-                            suggested_command="p2p project vertical lock repair --actor owner",
-                        )
-                    )
-            except (UnicodeDecodeError, yaml.YAMLError, ValueError) as exc:
+            if lock_error:
                 snapshot_diagnostics.append(
                     ProjectReadinessDiagnostic(
                         code="P2P254_PROJECT_VERTICAL_LOCK_INVALID",
                         severity="error",
-                        message=str(exc),
+                        message=lock_error,
                         suggested_command="p2p project vertical lock repair --actor owner",
                     )
                 )
+            elif parsed_lock is not None:
+                lock_checksum = parsed_lock.checksum
+                lock_mismatch = (
+                    parsed_lock.vertical_id != pack.vertical_id
+                    or parsed_lock.version != pack.version
+                    or bool(parsed_lock.coordinate) != bool(pack.coordinate)
+                    or (
+                        bool(parsed_lock.coordinate)
+                        and parsed_lock.coordinate != pack.coordinate
+                    )
+                    or parsed_lock.checksum != _pack_checksum(pack)
+                )
+                active_mismatch = vertical_id is None and (
+                    active.vertical_id != pack.vertical_id
+                    or (
+                        bool(active.coordinate)
+                        and active.coordinate != (pack.coordinate or "")
+                    )
+                )
+                if lock_mismatch or active_mismatch:
+                    snapshot_diagnostics.append(
+                        ProjectReadinessDiagnostic(
+                            code="P2P254_PROJECT_VERTICAL_LOCK_INVALID",
+                            severity="error",
+                            message="Project vertical active state or lock does not match the selected vertical pack.",
+                            suggested_command="p2p project vertical lock repair --actor owner",
+                        )
+                    )
             source_hashes[relative_to_root(lock_path, self.root).as_posix()] = hashlib.sha256(
                 lock_content
             ).hexdigest()
@@ -1749,7 +1833,7 @@ class ProjectVerticalService:
                 vertical_id = str(state.get("active_vertical_id") or "").strip()
                 if not vertical_id:
                     raise ValueError(f"Invalid project vertical state: missing active_vertical_id in {state_path}")
-                self._load_available_pack(vertical_id)
+                self._active_vertical_and_pack()
             except ValueError as exc:
                 findings.append(
                     (
@@ -1815,7 +1899,8 @@ class ProjectVerticalService:
         if not isinstance(coverage, dict):
             return
         vertical_id = str(coverage.get("vertical_id") or "")
-        pack = self._load_available_pack(vertical_id)
+        active, active_pack = self._active_vertical_and_pack()
+        pack = active_pack if vertical_id == active.vertical_id else self._load_available_pack(vertical_id)
         section_ids = {section.section_id for section in pack.sections}
         for item in coverage.get("sections", []):
             if isinstance(item, dict):
@@ -1826,7 +1911,11 @@ class ProjectVerticalService:
     def _extension_issues(self, pack: VerticalPack) -> list[VerticalValidationIssue]:
         if not pack.extends:
             return []
-        if pack.extends in self._available_packs_by_id():
+        try:
+            self._load_available_pack(pack.extends)
+        except ValueError:
+            pass
+        else:
             return []
         return [
             VerticalValidationIssue(
@@ -1874,42 +1963,92 @@ class ProjectVerticalService:
                 mapped.append(section.section_id)
         return mapped
 
-    def _available_packs_by_id(self) -> dict[str, VerticalPack]:
-        packs: dict[str, VerticalPack] = {}
-        for pack in self._internal_packs():
-            packs[pack.vertical_id] = pack
-        for pack in self._installed_user_packs():
-            packs[pack.vertical_id] = pack
-        for pack in self._installed_p2p_home_packs():
-            packs[pack.vertical_id] = pack
-        for pack in self._project_local_packs():
-            packs[pack.vertical_id] = pack
-        return packs
-
-    def _available_packs_by_reference(self) -> dict[str, VerticalPack]:
-        packs: dict[str, VerticalPack] = {}
-        for source_packs in (
-            self._internal_packs(),
-            self._installed_user_packs(),
-            self._installed_p2p_home_packs(),
-            self._project_local_packs(),
-        ):
-            for pack in source_packs:
-                packs[pack.vertical_id] = pack
-                if pack.coordinate:
-                    packs[pack.coordinate] = pack
-        return packs
+    def _available_pack_inventory(self) -> list[VerticalPack]:
+        return [
+            *self._internal_packs(),
+            *self._installed_user_packs(),
+            *self._installed_p2p_home_packs(),
+            *self._project_local_packs(),
+        ]
 
     def _load_available_pack(self, vertical_id: str) -> VerticalPack:
-        reference = str(vertical_id).strip()
-        if "/" in reference or "@" in reference:
-            reference = str(VerticalCoordinate.parse(reference))
-        else:
-            reference = _normalize_vertical_id(reference)
-        packs = self._available_packs_by_reference()
-        if reference in packs:
-            return _compose_pack(packs[reference], packs)
-        raise ValueError(f"Unknown project vertical `{vertical_id}`. Run `p2p project vertical list`.")
+        pack = self._select_available_pack(vertical_id)
+        return self._compose_available_pack(pack)
+
+    def _select_available_pack(
+        self,
+        reference: str,
+        *,
+        stack: tuple[str, ...] = (),
+    ) -> VerticalPack:
+        requested = str(reference).strip()
+        inventory = self._available_pack_inventory()
+        if "/" in requested or "@" in requested:
+            coordinate = str(VerticalCoordinate.parse(requested))
+            candidates = [pack for pack in inventory if pack.coordinate == coordinate]
+            if not candidates:
+                raise ValueError(
+                    f"Unknown project vertical `{reference}`. Run `p2p project vertical list`."
+                )
+            if not any(pack.schema_version >= 2 for pack in candidates):
+                return candidates[-1]
+            semantic_checksums = {
+                _pack_checksum(self._compose_available_pack(pack, stack=stack))
+                for pack in candidates
+            }
+            if len(semantic_checksums) > 1:
+                raise ValueError(
+                    "P2P_VERTICAL_COORDINATE_CONFLICT: exact coordinate "
+                    f"`{coordinate}` resolves to different semantic checksums"
+                )
+            return candidates[-1]
+
+        exact_id = requested.lower()
+        if not exact_id:
+            raise ValueError("Vertical ID is required.")
+        candidates = [pack for pack in inventory if pack.vertical_id == exact_id]
+        if not candidates:
+            normalized = _normalize_vertical_id(requested)
+            candidates = [pack for pack in inventory if pack.vertical_id == normalized]
+        if not candidates:
+            raise ValueError(
+                f"Unknown project vertical `{reference}`. Run `p2p project vertical list`."
+            )
+        portable_coordinates = {
+            pack.coordinate
+            for pack in candidates
+            if pack.schema_version >= 2 and pack.coordinate
+        }
+        has_legacy = any(pack.schema_version < 2 for pack in candidates)
+        if len(portable_coordinates) > 1 or (portable_coordinates and has_legacy):
+            identities = sorted(
+                {pack.coordinate or f"legacy:{pack.vertical_id}" for pack in candidates}
+            )
+            raise ValueError(
+                "P2P_VERTICAL_AMBIGUOUS_REFERENCE: bare vertical reference "
+                f"`{reference}` matches {', '.join(identities)}; use an exact coordinate"
+            )
+        if portable_coordinates:
+            coordinate = next(iter(portable_coordinates))
+            return self._select_available_pack(coordinate, stack=stack)
+        return candidates[-1]
+
+    def _compose_available_pack(
+        self,
+        pack: VerticalPack,
+        *,
+        stack: tuple[str, ...] = (),
+    ) -> VerticalPack:
+        identity = pack.coordinate or pack.vertical_id
+        if identity in stack:
+            cycle = " -> ".join([*stack, identity])
+            raise ValueError(f"P2P_VERTICAL_INHERITANCE_CYCLE: {cycle}")
+        if not pack.extends:
+            return pack
+        next_stack = (*stack, identity)
+        base = self._select_available_pack(pack.extends, stack=next_stack)
+        composed_base = self._compose_available_pack(base, stack=next_stack)
+        return _overlay_pack(composed_base, pack)
 
     def _resolve_available_pack(self, vertical_id: str) -> ResolvedVerticalPack:
         pack = self._load_available_pack(vertical_id)
@@ -1931,11 +2070,10 @@ class ProjectVerticalService:
 
     def compose_explicit_pack(self, source: Path) -> VerticalPack:
         pack = self.load_explicit_pack(source)
-        packs = self._available_packs_by_reference()
-        packs[pack.vertical_id] = pack
-        if pack.coordinate:
-            packs[pack.coordinate] = pack
-        return _compose_pack(pack, packs)
+        if not pack.extends:
+            return pack
+        base = self._load_available_pack(pack.extends)
+        return _overlay_pack(base, pack)
 
     @staticmethod
     def serialized_pack(pack: VerticalPack) -> dict[str, object]:
@@ -2279,6 +2417,25 @@ class ProjectVerticalService:
                     "error",
                     "project_definition.vertical_id",
                     f"definition vertical `{state.vertical_id}` does not match active vertical `{pack.vertical_id}`",
+                    "P2P255_PROJECT_DEFINITION_INVALID",
+                )
+            )
+        if state.vertical_version != pack.version:
+            issues.append(
+                VerticalValidationIssue(
+                    "error",
+                    "project_definition.vertical_version",
+                    f"definition version `{state.vertical_version}` does not match active version `{pack.version}`",
+                    "P2P255_PROJECT_DEFINITION_INVALID",
+                )
+            )
+        pack_checksum = _pack_checksum(pack)
+        if state.lock_checksum and state.lock_checksum != pack_checksum:
+            issues.append(
+                VerticalValidationIssue(
+                    "error",
+                    "project_definition.lock.checksum",
+                    "definition lock checksum does not match the active vertical pack",
                     "P2P255_PROJECT_DEFINITION_INVALID",
                 )
             )
@@ -3736,21 +3893,7 @@ def _vertical_pack_issues(payload: dict[str, object]) -> list[VerticalValidation
     return issues
 
 
-def _compose_pack(
-    pack: VerticalPack,
-    packs: dict[str, VerticalPack],
-    stack: tuple[str, ...] = (),
-) -> VerticalPack:
-    reference = pack.coordinate or pack.vertical_id
-    if reference in stack:
-        cycle = " -> ".join([*stack, reference])
-        raise ValueError(f"P2P_VERTICAL_INHERITANCE_CYCLE: {cycle}")
-    if not pack.extends:
-        return pack
-    base = packs.get(pack.extends)
-    if base is None:
-        raise ValueError(f"Unknown base vertical `{pack.extends}` for `{pack.vertical_id}`.")
-    composed_base = _compose_pack(base, packs, (*stack, reference))
+def _overlay_pack(composed_base: VerticalPack, pack: VerticalPack) -> VerticalPack:
     return VerticalPack(
         vertical_id=pack.vertical_id,
         name=pack.name,

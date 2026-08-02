@@ -426,7 +426,7 @@ path and expected SHA-256 to P2P:
 ```bash
 p2p project vertical schema --format json
 p2p project vertical scaffold ./my-vertical \
-  --publisher example --id my_vertical --version 1.0.0 --license MIT
+  --publisher example --id my-vertical --version 1.0.0 --license MIT
 p2p project vertical inspect ./my-vertical --view declared --format json
 p2p project vertical package ./my-vertical --output ./my-vertical.p2pv
 p2p project vertical validate ./my-vertical.p2pv --format json
@@ -448,6 +448,14 @@ Dependencies must already be locally available at their exact coordinates and
 must match their declared semantic checksums. P2P never resolves a floating
 version or silently upgrades a project.
 
+Use exact coordinates for portable automation. A bare ID is accepted only when
+it identifies one unambiguous portable coordinate. If multiple versions share
+the ID, resolution fails with `P2P_VERTICAL_AMBIGUOUS_REFERENCE`; callers must
+use `publisher/id@version`. If one exact coordinate is discovered with
+different semantic checksums, resolution fails with
+`P2P_VERTICAL_COORDINATE_CONFLICT` instead of applying source precedence.
+Schema-v1 and bundled bare-ID precedence remains unchanged.
+
 For a new project, installation and selection can be requested together. Pack,
 checksum, dependencies, profile and modules are checked before project files
 are created:
@@ -464,13 +472,13 @@ without meaningful evidence. `migrate` preserves same-ID fields, applies only
 exact mappings and records every remaining value as an explicit orphan:
 
 ```bash
-p2p project vertical adopt preview example/my_vertical@1.0.0 --actor owner
-p2p project vertical adopt apply example/my_vertical@1.0.0 \
+p2p project vertical adopt preview example/my-vertical@1.0.0 --actor owner
+p2p project vertical adopt apply example/my-vertical@1.0.0 \
   --token <preview-token> --confirm --actor owner
 
-p2p project vertical migrate preview example/my_vertical@2.0.0 \
+p2p project vertical migrate preview example/my-vertical@2.0.0 \
   --mapping vertical-mapping.yml --actor owner
-p2p project vertical migrate apply example/my_vertical@2.0.0 \
+p2p project vertical migrate apply example/my-vertical@2.0.0 \
   --mapping vertical-mapping.yml --token <preview-token> \
   --confirm --actor owner
 ```

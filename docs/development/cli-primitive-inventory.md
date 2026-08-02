@@ -15,7 +15,7 @@ Snapshot:
 
 ```text
 commit: fbda301f293bfd0333f1ad9ccdf49d440400a048
-tag: v0.4.4
+tag: v0.4.5
 data: 2026-07-23
 comandi foglia: 241
 gruppi Typer complessivi: 55
