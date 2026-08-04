@@ -103,16 +103,15 @@ def test_artifact_state_set_and_confirm_preserve_owner_visible_state(tmp_path: P
     assert impact["history"]
 
 
-def test_missing_artifact_state_reads_as_absent_legacy(tmp_path: Path) -> None:
+def test_missing_artifact_state_is_rejected_without_repair(tmp_path: Path) -> None:
     proposals, artifacts = _services(tmp_path)
-    proposal = proposals.create("Legacy Proposal")
+    proposal = proposals.create("Unsupported Proposal")
+    before = sorted(path.relative_to(tmp_path) for path in tmp_path.rglob("*") if path.is_file())
 
-    view = artifacts.read(proposal.proposal_id)
+    with pytest.raises(ValueError, match="missing artifact-state.yml"):
+        artifacts.read(proposal.proposal_id)
 
-    assert view.status == "legacy_absent"
-    assert view.legacy_state == ProposalArtifactStatus.absent_legacy
-    assert view.artifacts == []
-    assert f"p2p proposal artifact init {proposal.proposal_id}" in view.suggested_next
+    assert sorted(path.relative_to(tmp_path) for path in tmp_path.rglob("*") if path.is_file()) == before
 
 
 def test_cli_proposal_artifact_commands(tmp_path: Path) -> None:
@@ -185,7 +184,7 @@ def test_cli_proposal_artifact_commands(tmp_path: Path) -> None:
     assert "owner_confirmed" in result.output
 
 
-def test_cli_mark_legacy_records_advisory_state(tmp_path: Path) -> None:
+def test_cli_mark_legacy_is_not_registered(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     proposal = workspace.create_proposal("Legacy Mark")
     (tmp_path / proposal.path / "artifact-state.yml").unlink()
@@ -197,13 +196,11 @@ def test_cli_mark_legacy_records_advisory_state(tmp_path: Path) -> None:
             "artifact",
             "mark-legacy",
             proposal.proposal_id,
-            "--reason",
-            "Created before artifact-aware state.",
             "--root",
             str(tmp_path),
         ],
     )
 
-    assert result.exit_code == 0
-    assert "legacy_state: absent_legacy" in result.output
-    assert "Created before artifact-aware state." in result.output
+    assert result.exit_code != 0
+    assert "No such command 'mark-legacy'" in result.output
+    assert not (tmp_path / proposal.path / "artifact-state.yml").exists()

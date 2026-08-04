@@ -59,64 +59,19 @@ def test_permissions_service_normalization_and_invalid_policy(tmp_path: Path) ->
 
     permissions.write_policy({"identities": []})
 
-    with pytest.raises(ValueError, match="Invalid permissions policy: identities must be a mapping"):
+    with pytest.raises(ValueError, match="Invalid permissions policy: identities must be a non-empty mapping"):
         permissions.actor_add("lorenzo")
 
 
-def test_permission_migration_candidate_has_exact_owner_and_provenance(tmp_path: Path) -> None:
+def test_permissions_require_current_authority_file(tmp_path: Path) -> None:
     permissions = PermissionsService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
 
-    payload = permissions.render_migration_candidate(
-        owner_id="Davide Rossi",
-        owner_name="Davide Rossi",
-        repository_mode="local",
-        legacy_roles={
-            "roles": [
-                {
-                    "actor_id": "build-agent",
-                    "role": "agent",
-                    "kind": "agent",
-                }
-            ]
-        },
-        migration_id="workspace-legacy-to-v1",
-    )
-
-    permissions.validate_policy_payload(payload, require_single_owner=True)
-    owners = [
-        actor_id
-        for actor_id, identity in payload["identities"].items()
-        if identity["role"] == "owner"
-    ]
-    assert owners == ["davide-rossi"]
-    assert payload["identities"]["build-agent"]["role"] == "agent"
-    assert payload["provenance"] == {
-        "migration": "workspace-legacy-to-v1",
-        "authority": "owner_input",
-        "legacy_roles_inspected": True,
-    }
+    with pytest.raises(ValueError, match="P2P355_PERMISSIONS_REQUIRED"):
+        permissions.show()
 
 
-def test_permission_migration_rejects_legacy_owner_conflicts(tmp_path: Path) -> None:
+def test_permission_policy_requires_exactly_one_owner_when_requested(tmp_path: Path) -> None:
     permissions = PermissionsService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
-
-    with pytest.raises(ValueError, match="additional owner"):
-        permissions.render_migration_candidate(
-            owner_id="davide",
-            owner_name="Davide",
-            repository_mode="local",
-            legacy_roles={"roles": [{"actor_id": "other", "role": "owner"}]},
-            migration_id="workspace-legacy-to-v1",
-        )
-
-    with pytest.raises(ValueError, match="conflicts with explicit owner"):
-        permissions.render_migration_candidate(
-            owner_id="davide",
-            owner_name="Davide",
-            repository_mode="local",
-            legacy_roles={"roles": [{"actor_id": "davide", "role": "contributor"}]},
-            migration_id="workspace-legacy-to-v1",
-        )
 
     duplicate = permissions.default_policy_payload(owner_name="Davide", repository_mode="local")
     duplicate["identities"]["other"] = {

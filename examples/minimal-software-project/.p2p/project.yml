@@ -1,9 +1,11 @@
 project:
-  id: minimal-software-project
-  name: Minimal Software Project
+  id: local-cli-task-tracker
+  name: Local CLI Task Tracker
   version: 0.1.0
   status: active
   domain: software
+runtime_contract:
+  required: true
 storage:
   mode: file_based
   documents_format: markdown
@@ -16,3 +18,11 @@ ai:
 repository:
   mode: local
   managed_by_p2p: false
+remote:
+  mode: local
+  provider: local
+  remote: null
+  url: null
+  review_request:
+    mode: advisory
+    opens_external_request: false

@@ -1,4 +1,4 @@
-# PROP-001 - Start With CLI Task Tracker
+# PROP-001 - Start with CLI task tracker
 
 ## Status
 
@@ -6,29 +6,27 @@
 
 ## Problem
 
-The project needs a first useful feature that can be built and reviewed quickly.
+The project needs one small useful feature with a bounded review surface.
 
 ## Context
 
-The team is experimenting with P2P Engine and wants a small software scope with explicit intent.
+Pending.
 
 ## Goals
 
-- Track tasks from a local command-line interface.
-- Keep project state inspectable in Git.
+- Provide a complete local task workflow
 
 ## Non-Goals
 
-- Build a hosted web application.
+- Pending.
 
 ## Proposal
 
-Implement a local CLI task tracker with add, list, complete, and export commands.
+Build a local CLI task tracker with add, list, complete, and export commands.
 
 ## Acceptance Criteria
 
-- A user can add and list tasks from the CLI.
-- Completed tasks remain visible in exported project state.
+- A user can add, list, complete, and export tasks locally
 
 ## Decision
 

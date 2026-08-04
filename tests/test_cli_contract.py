@@ -37,8 +37,6 @@ decision.history
 decision.impact
 decision.ledger-repair-apply
 decision.ledger-repair-preview
-decision.legacy-resolution-apply
-decision.legacy-resolution-preview
 decision.preview
 decision.projection-repair-apply
 decision.projection-repair-preview
@@ -108,7 +106,6 @@ proposal.vertical-coverage.import
 proposal.vertical-coverage.preview
 proposal.vertical-coverage.show
 proposal.vertical-coverage.suggest
-runtime.contract.adopt
 runtime.contract.apply
 runtime.contract.preview
 runtime.status
@@ -182,7 +179,7 @@ def test_cli_json_operation_inventory_is_reviewed_and_guarded() -> None:
     inventory = json_command_inventory(get_command(app))
 
     assert frozenset(inventory) == EXPECTED_JSON_OPERATIONS
-    assert len(inventory) == 109
+    assert len(inventory) == 106
     assert inventory["vertical.inspect"] == "json"
     assert inventory["workspace.schema.status"] == "text"
 

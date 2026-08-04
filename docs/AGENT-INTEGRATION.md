@@ -261,14 +261,10 @@ runtime.p2p.requires      compatible runtime range
 runtime.p2p.recommended   exact recommended runtime version
 ```
 
-`legacy_undeclared` means the project has no contract and no required-contract
-marker. Agents must not infer compatibility from the installed package, but
-governed writes are not blocked solely for this state.
-
 `missing_contract` means `.p2p/project.yml` requires the runtime contract but
 `.p2p/project/runtime.yml` is absent. Agents should ask the owner to restore the
-contract from project history or use an explicit future recovery operation.
-Ordinary `p2p init` is not a contract recovery shortcut.
+contract from project history or recreate the project with the current runtime.
+Ordinary `p2p init` is not a contract repair shortcut.
 
 Environment mutation remains owner-controlled. Agents must ask for explicit
 owner action before installing, upgrading, downgrading, or replacing P2P Engine.

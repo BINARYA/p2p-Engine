@@ -13,9 +13,15 @@ from p2p_engine.core.interaction_style import (
     scale_view,
 )
 from p2p_engine.core.software_spec_lifecycle import SPEC_LIFECYCLE_INTENTS
+from p2p_engine.services.agent_capabilities import (
+    AGENT_CAPABILITY_CATALOG_VERSION,
+    capability_catalog_payload,
+    standalone_vertical_guidance,
+)
 
 BUILT_IN_AGENT_ADAPTERS = ("generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode")
 AGENT_PROFILES = {*BUILT_IN_AGENT_ADAPTERS, "all"}
+AGENT_TEMPLATE_GENERATION_ID = f"agent-template-generation-v2:{AGENT_CAPABILITY_CATALOG_VERSION}"
 
 
 def normalize_agent_profile(profile: str) -> str:
@@ -60,9 +66,14 @@ def managed_markdown_header(adapter: str, template_id: str) -> str:
         "Managed by P2P Engine.\n"
         f"Adapter: {adapter}\n"
         f"Template: {template_id}\n"
+        f"Generation: {template_generation_id(template_id)}\n"
         "Do not edit generated sections unless you accept drift.\n"
         "-->\n\n"
     )
+
+
+def template_generation_id(template_id: str) -> str:
+    return f"{AGENT_TEMPLATE_GENERATION_ID}:{template_id}"
 
 
 READINESS_GAP_HANDLING_BLOCK = """When a proposal is weak, low-confidence, below target, or has failed readiness gates, do not stop at diagnosis.
@@ -80,11 +91,11 @@ For each failed gate or material gap:
 4. identify the owner decision required;
 5. inspect artifact coverage with `p2p proposal artifact status PROP-XXX`, not only `readiness.missing`;
 6. ask for confirmation only where owner authority is required;
-7. initialize or resume `p2p proposal questions` when owner input is needed;
+7. inspect `p2p proposal questions status PROP-XXX` and initialize structured questions with `p2p proposal questions init PROP-XXX` when owner input is needed;
 8. ask one focused question at a time and record answers with the CLI or MCP;
 9. respect `defer` and `muted` question states;
 10. apply answered questions and review the artifact update plan;
-11. update every useful affected artifact state through `p2p proposal artifact ...` or explicit MCP write tools;
+11. update every useful affected artifact state through `p2p proposal artifact set PROP-XXX ARTIFACT --status STATUS --reason REASON` or explicit MCP write tools;
 12. run `p2p proposal readiness assess PROP-XXX` after refinement.
 
 Never update P2P proposal memory by editing `.p2p` files directly, copying a
@@ -106,8 +117,8 @@ Before explaining or changing authority:
 All decision writes are two-phase. Preview is read-only. Apply must resubmit the
 exact date, operation key, source head, semantic inputs and preview token with
 explicit confirmation. `proposal accept`, `proposal reject`, `proposal defer`
-and `decision record` are compatibility commands with the same contract; a
-tokenless call must not be described as an applied decision.
+and `decision record` are convenience entries into the same current contract;
+a tokenless call must not be described as an applied decision.
 
 Reject only a proposal that was never active. Revoke a previously accepted
 proposal when its authority must end; do not rewrite it as rejected or delete
@@ -122,8 +133,8 @@ lifecycle operations and never create proposal decision events.
 With MCP, use `p2p_proposal_decision_preview` and token-bound
 `p2p_proposal_decision_apply`. Consent operation is
 `proposal_decision_apply`, targeted to `PROP-XXX@preview-token`; owner
-authority and executor identity must remain separate. Legacy MCP
-accept/reject/defer consent cannot write schema-v3 events.
+authority and executor identity must remain separate. MCP decision writes use
+the explicit preview/apply tools rather than CLI convenience entries.
 
 This runtime accepts workspace schema v3 only. If schema status is unsupported,
 stop and report that the workspace must be recreated or converted outside this
@@ -170,6 +181,9 @@ Behavior:
 14. keep `p2p init` deterministic: the agent may guide missing initialization after detecting it, but the CLI init flow itself is not an agent interview;
 15. use vertical project memory as a bounded derived read model before broad proposal scans, while keeping canonical `.p2p` sources authoritative;
 16. never infer implementation status from an accepted contribution in vertical project memory."""
+
+
+STANDALONE_VERTICAL_GUIDANCE_BLOCK = standalone_vertical_guidance()
 
 
 SOFTWARE_SPEC_LIFECYCLE_BLOCK = """When a request concerns software specification authoring, implementation specs, or downstream handoff files, route it through the governed software specification lifecycle before writing durable artifacts.
@@ -233,7 +247,7 @@ Behavior:
 5. inspect workspace schema separately from runtime compatibility;
 6. require workspace schema v3; unsupported versions have no conversion path in this runtime;
 7. inspect and explicitly recover interrupted atomic transactions before unrelated governed writes;
-8. do not infer compatibility for `legacy_undeclared` projects;
+8. require the explicit runtime contract and never infer it from the installed package;
 9. report `missing_contract`, `invalid_contract`, `unsupported_contract`, or `incompatible` before governed writes;
 10. ask the owner for explicit environment action before installing, upgrading, downgrading, or replacing P2P Engine;
 11. never edit runtime/schema state, transaction locks, journals or candidates by hand as a repair shortcut."""
@@ -561,27 +575,14 @@ def agent_instruction_files(
             repository_mode,
             interaction_style,
         )
-        files[Path(".codex/skills/p2p-project/SKILL.md")] = codex_project_skill(
-            project_name,
-            repository_mode,
-            interaction_style,
-        )
         files[Path(".agents/skills/p2p-project-curator/SKILL.md")] = project_curator_skill(
             "codex",
-            "codex-p2p-project-curator-skill-v2",
-        )
-        files[Path(".codex/skills/p2p-project-curator/SKILL.md")] = project_curator_skill(
-            "codex",
-            "codex-legacy-p2p-project-curator-skill-v2",
+            "codex-p2p-project-curator-skill-v3",
         )
         for relative, renderer in project_curator_reference_renderers().items():
             files[Path(".agents/skills/p2p-project-curator") / relative] = renderer(
                 "codex",
-                f"codex-p2p-project-curator-{relative.stem}-v2",
-            )
-            files[Path(".codex/skills/p2p-project-curator") / relative] = renderer(
-                "codex",
-                f"codex-legacy-p2p-project-curator-{relative.stem}-v2",
+                f"codex-p2p-project-curator-{relative.stem}-v3",
             )
     if "claude" in profiles:
         files[Path("CLAUDE.md")] = claude_markdown(project_name, repository_mode, interaction_style)
@@ -606,24 +607,15 @@ def agent_adapter_files(
 ) -> list[tuple[Path, str, bool, str]]:
     files: list[tuple[Path, str, bool, str]] = []
     if adapter_id == "generic":
-        files.append((Path("AGENTS.md"), "generic-agents-md-v1", True, "generic"))
-        files.append((Path(".p2p/agent-policy.yml"), "generic-agent-policy-v1", True, "generic"))
+        files.append((Path("AGENTS.md"), "generic-agents-md-v2", True, "generic"))
+        files.append((Path(".p2p/agent-policy.yml"), "generic-agent-policy-v2", True, "generic"))
     elif adapter_id == "codex":
-        files.append((Path("AGENTS.md"), "generic-agents-md-v1", True, "generic"))
-        files.append((Path(".agents/skills/p2p-project/SKILL.md"), "codex-p2p-skill-v1", False, "codex"))
-        files.append((Path(".codex/skills/p2p-project/SKILL.md"), "codex-legacy-p2p-skill-v1", False, "codex"))
+        files.append((Path("AGENTS.md"), "generic-agents-md-v2", True, "generic"))
+        files.append((Path(".agents/skills/p2p-project/SKILL.md"), "codex-p2p-skill-v2", False, "codex"))
         files.append(
             (
                 Path(".agents/skills/p2p-project-curator/SKILL.md"),
-                "codex-p2p-project-curator-skill-v2",
-                False,
-                "codex",
-            )
-        )
-        files.append(
-            (
-                Path(".codex/skills/p2p-project-curator/SKILL.md"),
-                "codex-legacy-p2p-project-curator-skill-v2",
+                "codex-p2p-project-curator-skill-v3",
                 False,
                 "codex",
             )
@@ -632,33 +624,25 @@ def agent_adapter_files(
             files.append(
                 (
                     Path(".agents/skills/p2p-project-curator") / relative,
-                    f"codex-p2p-project-curator-{relative.stem}-v2",
-                    False,
-                    "codex",
-                )
-            )
-            files.append(
-                (
-                    Path(".codex/skills/p2p-project-curator") / relative,
-                    f"codex-legacy-p2p-project-curator-{relative.stem}-v2",
+                    f"codex-p2p-project-curator-{relative.stem}-v3",
                     False,
                     "codex",
                 )
             )
     elif adapter_id == "claude":
-        files.append((Path("AGENTS.md"), "generic-agents-md-v1", True, "generic"))
-        files.append((Path("CLAUDE.md"), "claude-md-v1", False, "claude"))
+        files.append((Path("AGENTS.md"), "generic-agents-md-v2", True, "generic"))
+        files.append((Path("CLAUDE.md"), "claude-md-v2", False, "claude"))
     elif adapter_id == "cursor":
-        files.append((Path("AGENTS.md"), "generic-agents-md-v1", True, "generic"))
-        files.append((Path(".cursor/rules/p2p.mdc"), "cursor-p2p-rule-v1", False, "cursor"))
+        files.append((Path("AGENTS.md"), "generic-agents-md-v2", True, "generic"))
+        files.append((Path(".cursor/rules/p2p.mdc"), "cursor-p2p-rule-v2", False, "cursor"))
     elif adapter_id == "copilot":
-        files.append((Path("AGENTS.md"), "generic-agents-md-v1", True, "generic"))
-        files.append((Path(".github/copilot-instructions.md"), "copilot-instructions-v1", False, "copilot"))
+        files.append((Path("AGENTS.md"), "generic-agents-md-v2", True, "generic"))
+        files.append((Path(".github/copilot-instructions.md"), "copilot-instructions-v2", False, "copilot"))
     elif adapter_id == "gemini":
-        files.append((Path("AGENTS.md"), "generic-agents-md-v1", True, "generic"))
-        files.append((Path("GEMINI.md"), "gemini-md-v1", False, "gemini"))
+        files.append((Path("AGENTS.md"), "generic-agents-md-v2", True, "generic"))
+        files.append((Path("GEMINI.md"), "gemini-md-v2", False, "gemini"))
     elif adapter_id == "opencode":
-        files.append((Path("AGENTS.md"), "generic-agents-md-v1", True, "generic"))
+        files.append((Path("AGENTS.md"), "generic-agents-md-v2", True, "generic"))
     return files
 
 
@@ -682,6 +666,7 @@ def agent_policy(
             "cloud_is_advisory_until_configured": repository_mode == "cloud",
         },
         "agent_profiles": profiles,
+        "agent_capabilities": capability_catalog_payload(),
         "runtime_bootstrap": {
             "contract_path": ".p2p/project/runtime.yml",
             "setup_guide": "P2P-SETUP.md",
@@ -691,7 +676,6 @@ def agent_policy(
             "workspace_recovery_status_command": "p2p workspace transaction status",
             "workspace_recovery_apply_surface": "owner_confirmed_cli_only",
             "manual_workspace_schema_repair": "forbidden",
-            "legacy_undeclared": "warn_do_not_infer",
             "environment_mutation": "owner_explicit_action_required",
             "discovery_order": [
                 "p2p",
@@ -785,12 +769,10 @@ def agent_policy(
             "impact_command": (
                 "p2p decision impact PROP-XXX --event-type <event>"
             ),
-            "compatibility_commands_are_two_phase": True,
             "reject_means_never_active": True,
             "revoke_preserves_accepted_history": True,
             "dependent_lifecycle_mutation": "forbidden",
             "branch_decisions_are_separate": True,
-            "schema_v2_event_writes": "blocked_until_governed_migration",
             "manual_ledger_or_projection_repair": "forbidden",
             "mcp": {
                 "preview": "p2p_proposal_decision_preview",
@@ -798,7 +780,6 @@ def agent_policy(
                 "consent_operation": "proposal_decision_apply",
                 "consent_target": "PROP-XXX@preview-token",
                 "owner_executor_separation": True,
-                "legacy_unbound_consent_can_write": False,
             },
         },
         "project_vertical_orchestration": {
@@ -963,7 +944,7 @@ def _scale_value(interaction_style: Any, name: str, default: int) -> int:
 
 def agents_markdown(project_name: str, profiles: list[str], repository_mode: str, interaction_style: Any = None) -> str:
     profile_text = ", ".join(profiles)
-    return f"""{managed_markdown_header("generic", "generic-agents-md-v1")}# Agent Instructions - {project_name}
+    return f"""{managed_markdown_header("generic", "generic-agents-md-v2")}# Agent Instructions - {project_name}
 
 This project uses P2P Engine.
 
@@ -1050,6 +1031,10 @@ If readiness is missing, weak, below target, or blocked by failed gates, ask foc
 ## Project Vertical Orchestration
 
 {PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
+
+## Standalone Vertical Registry And Drafts
+
+{STANDALONE_VERTICAL_GUIDANCE_BLOCK}
 
 ## Software Specification Lifecycle
 
@@ -1151,7 +1136,7 @@ name: p2p-project
 description: Use when working in this P2P-managed project. Enforces P2P Engine boundaries for any compatible project skill loader.
 ---
 
-{managed_markdown_header("codex", "codex-p2p-skill-v1")}\
+{managed_markdown_header("codex", "codex-p2p-skill-v2")}\
 # P2P Project Skill - {project_name}
 
 Use P2P Engine as the source of truth for project governance and planning.
@@ -1190,6 +1175,10 @@ Use P2P Engine as the source of truth for project governance and planning.
 ## Project Vertical Orchestration
 
 {PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
+
+## Standalone Vertical Registry And Drafts
+
+{STANDALONE_VERTICAL_GUIDANCE_BLOCK}
 
 ## Software Specification Lifecycle
 
@@ -1470,105 +1459,8 @@ substance, boundaries, important uncertainties, and vertical-specific shape.
 """
 
 
-def codex_project_skill(project_name: str, repository_mode: str, interaction_style: Any = None) -> str:
-    return f"""---
-name: p2p-project
-description: Use when working in this P2P-managed project. Enforces P2P Engine boundaries for Codex.
----
-
-{managed_markdown_header("codex", "codex-legacy-p2p-skill-v1")}\
-# P2P Project Skill - {project_name}
-
-Use P2P Engine as the source of truth for project governance and planning.
-
-## Required Behavior
-
-- Read `AGENTS.md` and `.p2p/agent-policy.yml` before modifying project state.
-- Use `p2p` CLI commands for P2P mutations.
-- If `p2p` is not on `PATH`, try `.venv/bin/p2p`, then `python -m p2p_engine`, then available MCP tools. Use `p2p agent doctor` or equivalent diagnostics before stopping.
-- Use MCP only within the tool schema; read-only MCP tools do not authorize filesystem writes.
-- If no CLI command or MCP write tool exists for the requested operation, stop and report the missing primitive.
-- Do not edit `.p2p/` internals directly, invent IDs, or synthesize decision files.
-- Do not accept, reject, defer, decide, merge, finalize, or cleanup without explicit owner instruction.
-- Do not recommend proposal acceptance before checking readiness or explicitly stating that readiness is missing.
-- Do not run raw Git commands for managed branch, sync, publish, or merge work unless the owner explicitly authorizes an escape hatch.
-- Use `p2p sync status` before managed branch work, `p2p proposal branch` for proposal branches, and `p2p proposal publish --auto-renumber` only when publish reports a recoverable proposal ID collision.
-- Before explaining existing proposals, choices, Change Sets, or Work items, use the relevant `p2p ... show` command or equivalent MCP read tool.
-- Use `p2p context --budget small` or MCP `p2p_context` before broad file reads.
-- Do not scan all `.p2p/`, registries, source files, or Git history unless the task explicitly requires it.
-
-## Persistent Write Boundary
-
-{persistent_write_boundary_block()}
-
-## Agent Integration Lifecycle
-
-{agent_integration_lifecycle_block()}
-
-## Governed Root
-
-{governed_root_guidance_block()}
-
-## Readiness Gap Handling
-
-{READINESS_GAP_HANDLING_BLOCK}
-
-## Proposal Decision Lifecycle
-
-{PROPOSAL_DECISION_LIFECYCLE_BLOCK}
-
-## Project Vertical Orchestration
-
-{PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
-
-## Software Specification Lifecycle
-
-{SOFTWARE_SPEC_LIFECYCLE_BLOCK}
-
-## Project Interaction Style
-
-{interaction_style_block(interaction_style)}
-
-## Useful Commands
-
-```bash
-p2p status
-p2p context --budget small
-p2p registry refresh
-p2p next
-p2p project interaction-style show
-p2p project interaction-style set --technical-verbosity 2 --formality 2 --assertiveness 0
-p2p proposal list
-p2p proposal readiness show PROP-XXX
-p2p proposal readiness init PROP-XXX
-p2p proposal readiness refresh PROP-XXX
-p2p proposal readiness explain PROP-XXX
-p2p project vertical list
-p2p project context --format json
-p2p project definition show --format json
-p2p project vertical scaffold <directory> --publisher <publisher> --id <id> --version <version> --name <name> --license <spdx-id>
-p2p project readiness review
-p2p proposal branch PROP-XXX --actor "codex"
-p2p proposal status PROP-XXX
-p2p proposal publish PROP-XXX
-p2p proposal publish PROP-XXX --auto-renumber
-p2p proposal request-review PROP-XXX
-p2p proposal scan
-p2p sync status
-p2p sync fetch
-p2p sync pull
-p2p sync push
-p2p choice list
-p2p change status
-p2p work status
-```
-
-Repository mode: `{repository_mode}`.
-"""
-
-
 def claude_markdown(project_name: str, repository_mode: str, interaction_style: Any = None) -> str:
-    return f"""{managed_markdown_header("claude", "claude-md-v1")}# Claude Instructions - {project_name}
+    return f"""{managed_markdown_header("claude", "claude-md-v2")}# Claude Instructions - {project_name}
 
 This repository is managed with P2P Engine.
 
@@ -1584,7 +1476,7 @@ Key rules:
 - Do not run raw Git commands for managed branch, sync, publish, or merge work unless the owner explicitly authorizes an escape hatch.
 - Use `p2p sync status`, `p2p proposal branch`, `p2p proposal publish`, `p2p proposal request-review`, and `p2p proposal scan` for managed collaboration workflows.
 - Treat MCP as read-only unless a tool explicitly declares a write operation.
-- Before explaining existing proposals, choices, Change Sets, or Work items, read them with the relevant `p2p ... show` command or equivalent MCP read tool.
+- Before explaining existing proposals, choices, Change Sets, or Work items, read them with the relevant registered P2P show command or equivalent MCP read tool.
 - Use `p2p context --budget small` or MCP `p2p_context` before broad file reads.
 - Do not scan all `.p2p/`, registries, source files, or Git history unless the task explicitly requires it.
 
@@ -1611,6 +1503,10 @@ Key rules:
 ## Project Vertical Orchestration
 
 {PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
+
+## Standalone Vertical Registry And Drafts
+
+{STANDALONE_VERTICAL_GUIDANCE_BLOCK}
 
 ## Software Specification Lifecycle
 
@@ -1634,7 +1530,7 @@ description: P2P Engine project governance and agent workflow rules
 alwaysApply: true
 ---
 
-{managed_markdown_header("cursor", "cursor-p2p-rule-v1")}\
+{managed_markdown_header("cursor", "cursor-p2p-rule-v2")}\
 # Cursor P2P Rules - {project_name}
 
 - Use `p2p` CLI commands or explicit MCP write tools for P2P mutations.
@@ -1667,6 +1563,10 @@ alwaysApply: true
 
 {PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
 
+## Standalone Vertical Registry And Drafts
+
+{STANDALONE_VERTICAL_GUIDANCE_BLOCK}
+
 ## Software Specification Lifecycle
 
 {SOFTWARE_SPEC_LIFECYCLE_BLOCK}
@@ -1680,7 +1580,7 @@ Repository mode: `{repository_mode}`.
 
 
 def copilot_instructions(project_name: str, repository_mode: str, interaction_style: Any = None) -> str:
-    return f"""{managed_markdown_header("copilot", "copilot-instructions-v1")}# GitHub Copilot Instructions - {project_name}
+    return f"""{managed_markdown_header("copilot", "copilot-instructions-v2")}# GitHub Copilot Instructions - {project_name}
 
 This repository is managed with P2P Engine.
 
@@ -1716,6 +1616,10 @@ This repository is managed with P2P Engine.
 
 {PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
 
+## Standalone Vertical Registry And Drafts
+
+{STANDALONE_VERTICAL_GUIDANCE_BLOCK}
+
 ## Software Specification Lifecycle
 
 {SOFTWARE_SPEC_LIFECYCLE_BLOCK}
@@ -1729,7 +1633,7 @@ Repository mode: `{repository_mode}`.
 
 
 def gemini_markdown(project_name: str, repository_mode: str, interaction_style: Any = None) -> str:
-    return f"""{managed_markdown_header("gemini", "gemini-md-v1")}# Gemini Instructions - {project_name}
+    return f"""{managed_markdown_header("gemini", "gemini-md-v2")}# Gemini Instructions - {project_name}
 
 This repository is managed with P2P Engine.
 
@@ -1763,6 +1667,10 @@ This repository is managed with P2P Engine.
 ## Project Vertical Orchestration
 
 {PROJECT_VERTICAL_ORCHESTRATION_BLOCK}
+
+## Standalone Vertical Registry And Drafts
+
+{STANDALONE_VERTICAL_GUIDANCE_BLOCK}
 
 ## Software Specification Lifecycle
 

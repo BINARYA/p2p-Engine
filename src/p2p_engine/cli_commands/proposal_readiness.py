@@ -170,7 +170,6 @@ def _print_owner_question_state(owner_question_state: dict[str, object], *, inde
         return
     console.print(f"{indent}owner_question_state:")
     console.print(f"{indent}  source: {owner_question_state.get('source') or 'none'}")
-    console.print(f"{indent}  markdown_fallback_used: {bool(owner_question_state.get('markdown_fallback_used'))}")
     for key in (
         "blocking_owner_questions",
         "answered_not_applied",

@@ -66,7 +66,7 @@ def test_mcp_proposal_handler_creates_and_reads_proposal(tmp_path: Path) -> None
     assert set(full["proposal_view"]["questions"]) >= {
         "owner_questions",
         "analytical_open_questions",
-        "legacy_question_artifacts",
+        "narrative_question_artifacts",
     }
     assert full["proposal_view"]["next_actions"]
 

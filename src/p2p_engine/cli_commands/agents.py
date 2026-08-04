@@ -82,7 +82,8 @@ def register_agent_commands(agent_app: typer.Typer, agent_instructions_app: type
         for record in result.get("files", []):
             console.print(
                 f"    {record['path']} shared={str(record.get('shared')).lower()} "
-                f"owner={record.get('owner')} status={record.get('status')} drift={record.get('drift')}"
+                f"owner={record.get('owner')} status={record.get('status')} "
+                f"content={record.get('content_status')} generation={record.get('generation_status')}"
             )
 
     @agent_app.command("install")

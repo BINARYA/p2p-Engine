@@ -20,11 +20,7 @@ from p2p_engine.core.runtime_contract import (
     RUNTIME_CONTRACT_BLOCKER_REASON_REQUIRED,
     RUNTIME_CONTRACT_BLOCKER_STALE_PREVIEW,
     RUNTIME_CONTRACT_BLOCKER_UNMANAGED_SETUP_GUIDE,
-    RUNTIME_CONTRACT_BLOCKER_UNSUPPORTED_CURRENT_STATE,
     RUNTIME_CONTRACT_BLOCKER_UNTRUSTED_CURRENT_CONTRACT,
-    RUNTIME_CONTRACT_ADOPTION_STATUS_ADOPTED,
-    RUNTIME_CONTRACT_ADOPTION_STATUS_BLOCKED,
-    RUNTIME_CONTRACT_ADOPTION_STATUS_PARTIAL_FAILURE,
     RUNTIME_CONTRACT_UPDATE_STATUS_APPLICABLE,
     RUNTIME_CONTRACT_UPDATE_STATUS_BLOCKED,
     RUNTIME_CONTRACT_UPDATE_STATUS_NO_CHANGE,
@@ -39,7 +35,6 @@ from p2p_engine.core.runtime_contract import (
     RUNTIME_CONTRACT_INSTALLER_FIELD,
     RUNTIME_CONTRACT_INVALID,
     RUNTIME_CONTRACT_INVALID_VERSION,
-    RUNTIME_CONTRACT_LEGACY_UNDECLARED,
     RUNTIME_CONTRACT_MISSING,
     RUNTIME_CONTRACT_MISSING_FIELD,
     RUNTIME_CONTRACT_RECOMMENDED_OUT_OF_RANGE,
@@ -58,12 +53,10 @@ from p2p_engine.core.runtime_contract import (
     RUNTIME_STATUS_COMPATIBLE,
     RUNTIME_STATUS_INCOMPATIBLE,
     RUNTIME_STATUS_INVALID_CONTRACT,
-    RUNTIME_STATUS_LEGACY_UNDECLARED,
     RUNTIME_STATUS_MISSING_CONTRACT,
     RUNTIME_STATUS_UNSUPPORTED_CONTRACT,
     P2PRuntimeRequirement,
     RuntimeContract,
-    RuntimeContractAdoptionResult,
     RuntimeContractUpdateAuthority,
     RuntimeContractUpdatePreview,
     RuntimeContractUpdateResult,
@@ -292,7 +285,7 @@ class RuntimeContractService:
 
     def write_preflight(self, operation: str) -> RuntimeWritePreflight:
         status = self.status()
-        allowed = status.state in {RUNTIME_STATUS_COMPATIBLE, RUNTIME_STATUS_LEGACY_UNDECLARED}
+        allowed = status.state == RUNTIME_STATUS_COMPATIBLE
         if allowed:
             message = "Runtime contract preflight passed."
         else:
@@ -613,148 +606,6 @@ class RuntimeContractService:
             audit=preview.audit,
         )
 
-    def adopt_contract(
-        self,
-        *,
-        requires: str,
-        recommended: str,
-        confirm: bool = False,
-        actor: str = "owner",
-    ) -> RuntimeContractAdoptionResult:
-        requires = str(requires or "").strip()
-        recommended = str(recommended or "").strip()
-        status = self.status()
-        authority = self._authority_for(actor)
-        proposal = self._validate_update_proposal(requires, recommended)
-        setup_guide = self._planned_setup_guide(self._setup_guide_state(status))
-        active_satisfies = self._active_satisfies(proposal.range) if proposal.range else None
-
-        if not proposal.valid:
-            return self._adoption_blocked_result(
-                status=status,
-                proposed_requires=requires or None,
-                proposed_recommended=recommended or None,
-                blocked_reason=RUNTIME_CONTRACT_BLOCKER_INVALID_PROPOSED_CONTRACT,
-                setup_guide=setup_guide,
-                authority=authority,
-                validation_errors=proposal.errors,
-                active_runtime_compatible_after_adoption=active_satisfies,
-            )
-        if status.state != RUNTIME_STATUS_LEGACY_UNDECLARED:
-            return self._adoption_blocked_result(
-                status=status,
-                proposed_requires=proposal.requires,
-                proposed_recommended=proposal.recommended,
-                blocked_reason=RUNTIME_CONTRACT_BLOCKER_UNSUPPORTED_CURRENT_STATE,
-                setup_guide=setup_guide,
-                authority=authority,
-                active_runtime_compatible_after_adoption=active_satisfies,
-            )
-        if setup_guide["state"] == RUNTIME_SETUP_GUIDE_STATE_UNMANAGED:
-            return self._adoption_blocked_result(
-                status=status,
-                proposed_requires=proposal.requires,
-                proposed_recommended=proposal.recommended,
-                blocked_reason=RUNTIME_CONTRACT_BLOCKER_UNMANAGED_SETUP_GUIDE,
-                setup_guide=setup_guide,
-                authority=authority,
-                active_runtime_compatible_after_adoption=active_satisfies,
-            )
-        if not authority.apply_authorized:
-            return self._adoption_blocked_result(
-                status=status,
-                proposed_requires=proposal.requires,
-                proposed_recommended=proposal.recommended,
-                blocked_reason=RUNTIME_CONTRACT_BLOCKER_OWNER_AUTHORITY_REQUIRED,
-                setup_guide=setup_guide,
-                authority=authority,
-                active_runtime_compatible_after_adoption=active_satisfies,
-            )
-        if not confirm:
-            return self._adoption_blocked_result(
-                status=status,
-                proposed_requires=proposal.requires,
-                proposed_recommended=proposal.recommended,
-                blocked_reason=RUNTIME_CONTRACT_BLOCKER_CONFIRMATION_REQUIRED,
-                setup_guide=setup_guide,
-                authority=authority,
-                active_runtime_compatible_after_adoption=active_satisfies,
-            )
-
-        proposed_contract = RuntimeContract(
-            schema_version=RUNTIME_CONTRACT_SCHEMA_VERSION,
-            p2p=P2PRuntimeRequirement(requires=proposal.requires, recommended=proposal.recommended),
-        )
-        project_payload = read_yaml_mapping(self.project_manifest_path, default={})
-        project_payload["runtime_contract"] = {"required": True}
-        candidates = {
-            str(relative_to_root(self.contract_path, self.root)): yaml_dump(
-                self._contract_payload(proposal.requires, proposal.recommended)
-            ).encode("utf-8"),
-            str(relative_to_root(self.project_manifest_path, self.root)): yaml_dump(
-                project_payload
-            ).encode("utf-8"),
-        }
-        if setup_guide["planned_action"] in {
-            RUNTIME_SETUP_GUIDE_ACTION_GENERATE,
-            RUNTIME_SETUP_GUIDE_ACTION_REGENERATE,
-        }:
-            candidates[str(relative_to_root(self.setup_guide_path, self.root))] = self.render_setup_guide(
-                proposed_contract
-            ).encode("utf-8")
-        adoption_token = semantic_sha256(
-            {
-                "operation": "runtime-contract-adopt",
-                "actor": actor,
-                "candidates": {
-                    target: hashlib.sha256(content).hexdigest()
-                    for target, content in sorted(candidates.items())
-                },
-            }
-        )
-        result = self.atomic_writer.apply(
-            operation_id="runtime-contract-adopt",
-            candidates=candidates,
-            sources=tuple(
-                source_precondition(
-                    target,
-                    (self.root / target).read_bytes() if (self.root / target).exists() else None,
-                )
-                for target in sorted(candidates)
-            ),
-            preview_token=adoption_token,
-            actor=actor,
-        )
-        if result.status != "applied":
-            return RuntimeContractAdoptionResult(
-                status=RUNTIME_CONTRACT_ADOPTION_STATUS_PARTIAL_FAILURE,
-                current_state=status.state,
-                proposed_requires=proposal.requires,
-                proposed_recommended=proposal.recommended,
-                files_changed=[],
-                blocked_reason=RUNTIME_CONTRACT_ADOPTION_STATUS_PARTIAL_FAILURE,
-                message=f"Runtime contract adoption did not commit: {result.message}",
-                setup_guide=setup_guide,
-                authority=authority,
-                active_runtime_compatible_after_adoption=active_satisfies,
-            )
-
-        changed_order = [str(relative_to_root(self.contract_path, self.root))]
-        if str(relative_to_root(self.setup_guide_path, self.root)) in candidates:
-            changed_order.append(str(relative_to_root(self.setup_guide_path, self.root)))
-        changed_order.append(str(relative_to_root(self.project_manifest_path, self.root)))
-        return RuntimeContractAdoptionResult(
-            status=RUNTIME_CONTRACT_ADOPTION_STATUS_ADOPTED,
-            current_state=status.state,
-            proposed_requires=proposal.requires,
-            proposed_recommended=proposal.recommended,
-            files_changed=changed_order,
-            message="Runtime contract adopted.",
-            setup_guide=setup_guide,
-            authority=authority,
-            active_runtime_compatible_after_adoption=active_satisfies,
-        )
-
     def _blocked_result(self, preview: RuntimeContractUpdatePreview, blocked_reason: str) -> RuntimeContractUpdateResult:
         return RuntimeContractUpdateResult(
             status=RUNTIME_CONTRACT_UPDATE_STATUS_BLOCKED,
@@ -769,32 +620,6 @@ class RuntimeContractService:
             authority=preview.authority,
             active_runtime_compatible_after_update=preview.active_runtime_satisfies_proposed_range,
             audit=preview.audit,
-        )
-
-    def _adoption_blocked_result(
-        self,
-        *,
-        status: RuntimeStatus,
-        proposed_requires: str | None,
-        proposed_recommended: str | None,
-        blocked_reason: str,
-        setup_guide: dict[str, Any],
-        authority: RuntimeContractUpdateAuthority,
-        validation_errors: list[str] | None = None,
-        active_runtime_compatible_after_adoption: bool | None = None,
-    ) -> RuntimeContractAdoptionResult:
-        return RuntimeContractAdoptionResult(
-            status=RUNTIME_CONTRACT_ADOPTION_STATUS_BLOCKED,
-            current_state=status.state,
-            proposed_requires=proposed_requires,
-            proposed_recommended=proposed_recommended,
-            files_changed=[],
-            blocked_reason=blocked_reason,
-            message=f"Runtime contract adoption blocked: {blocked_reason}.",
-            setup_guide=setup_guide,
-            authority=authority,
-            validation_errors=validation_errors or [],
-            active_runtime_compatible_after_adoption=active_runtime_compatible_after_adoption,
         )
 
     def _validate_update_proposal(self, requires: str, recommended: str) -> "_ProposedRuntimeContract":
@@ -1074,39 +899,20 @@ class RuntimeContractService:
 
     def _missing_status(self) -> RuntimeStatus:
         path = relative_to_root(self.contract_path, self.root)
-        if self.project_requires_contract():
-            finding = RuntimeFinding(
-                code=RUNTIME_CONTRACT_MISSING,
-                severity="error",
-                path=path,
-                message=(
-                    "Runtime contract is required by .p2p/project.yml but "
-                    ".p2p/project/runtime.yml is missing."
-                ),
-                suggested_command="restore .p2p/project/runtime.yml from project history",
-            )
-            return RuntimeStatus(
-                contract_path=path,
-                state=RUNTIME_STATUS_MISSING_CONTRACT,
-                compatible=False,
-                current_version=self.current_version,
-                findings=[finding],
-                suggested_command="restore .p2p/project/runtime.yml from project history",
-            )
         finding = RuntimeFinding(
-            code=RUNTIME_CONTRACT_LEGACY_UNDECLARED,
-            severity="warning",
+            code=RUNTIME_CONTRACT_MISSING,
+            severity="error",
             path=path,
-            message="Project has no runtime contract; compatibility cannot be inferred.",
-            suggested_command="p2p runtime status",
+            message="Current projects require .p2p/project/runtime.yml.",
+            suggested_command="recreate the project with the current P2P Engine release",
         )
         return RuntimeStatus(
             contract_path=path,
-            state=RUNTIME_STATUS_LEGACY_UNDECLARED,
-            compatible=True,
+            state=RUNTIME_STATUS_MISSING_CONTRACT,
+            compatible=False,
             current_version=self.current_version,
             findings=[finding],
-            suggested_command="p2p runtime status",
+            suggested_command="recreate the project with the current P2P Engine release",
         )
 
     def _invalid_status(
@@ -1275,9 +1081,8 @@ def _runtime_line(version: str) -> str:
 def _required_workflow_for_state(state: str) -> str:
     return {
         RUNTIME_STATUS_INVALID_CONTRACT: "contract_repair",
-        RUNTIME_STATUS_UNSUPPORTED_CONTRACT: "contract_schema_migration",
+        RUNTIME_STATUS_UNSUPPORTED_CONTRACT: "restore_current_contract",
         RUNTIME_STATUS_MISSING_CONTRACT: "contract_recovery",
-        RUNTIME_STATUS_LEGACY_UNDECLARED: "contract_adoption",
     }.get(state, "")
 
 

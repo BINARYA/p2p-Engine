@@ -454,7 +454,7 @@ def vertical_project_overview_markdown(
         )
     else:
         lines.append("- None.")
-    lines.extend(["", "## Legacy Unmapped Active Proposals", ""])
+    lines.extend(["", "## Unmapped Active Proposals", ""])
     if memory.unmapped_active_proposals:
         for item in memory.unmapped_active_proposals:
             lines.append(

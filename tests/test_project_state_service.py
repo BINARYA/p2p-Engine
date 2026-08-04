@@ -235,7 +235,7 @@ def test_vertical_first_project_projection_separates_current_historical_and_unma
 
     assert "## Current Direction By Vertical Section" in overview
     assert "Data Model (`data_model`)" in overview
-    assert "## Legacy Unmapped Active Proposals" in overview
+    assert "## Unmapped Active Proposals" in overview
     assert unmapped.proposal_id in overview
     assert "## Historical Context" in overview
     assert "does not establish governance, readiness, implementation" in overview

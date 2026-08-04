@@ -178,7 +178,6 @@ def test_publication_catalog_requires_unique_stably_sorted_canonical_editions() 
     it = PublicationEdition.create(language="it")
     payload = {
         "schema_version": 2,
-        "legacy_status": "absent",
         "editions": [
             {"edition": en.to_dict(), "manifest": "outputs/latest/publications/project-en/manifest.yml"},
             {"edition": it.to_dict(), "manifest": "outputs/latest/publications/project-it/manifest.yml"},

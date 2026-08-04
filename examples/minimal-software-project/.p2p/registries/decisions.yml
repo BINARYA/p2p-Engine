@@ -1,10 +1,22 @@
 generated: true
-source: .p2p/proposals/*/decision.md
+source: .p2p/proposals/*/decision-events.yml
 decisions:
 - proposal: PROP-001
-  title: Start With CLI Task Tracker
+  title: Start with CLI task tracker
   outcome: accepted
   status: accepted
   path: .p2p/proposals/PROP-001-start-with-cli-task-tracker/decision.md
-  reason: A CLI task tracker is small enough to demonstrate proposal-to-change flow
-    without extra infrastructure.
+  reason: The example deliberately accepts the bounded CLI feature.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-ed8a33ec34f42017a317f039
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 20a2112ca5449319b840ad15b534d0e257213a91ac50f4145b2127ada3181bbc
+  proposal_semantic_sha256: 2c1e14f8c9ed44e75474b72637de75e200016af2b0ee1d823c29675da80f2ad7
+  lineage:
+    kind: null
+    targets: []

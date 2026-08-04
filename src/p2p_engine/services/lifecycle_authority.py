@@ -100,7 +100,6 @@ _ALLOWED_TRANSITIONS: dict[
     ProposalDecisionEffectiveState.superseded: frozenset(),
     ProposalDecisionEffectiveState.split: frozenset(),
     ProposalDecisionEffectiveState.merged_into_other: frozenset(),
-    ProposalDecisionEffectiveState.unknown_legacy: frozenset(),
 }
 
 
@@ -214,7 +213,6 @@ def lifecycle_from_ledger(
         ProposalDecisionEffectiveState.deferred,
         ProposalDecisionEffectiveState.withdrawn,
         ProposalDecisionEffectiveState.rejected,
-        ProposalDecisionEffectiveState.unknown_legacy,
     }
     controlling = active_event if active else current_event
     reconsideration_command = decision_reconsideration_command(
@@ -308,7 +306,7 @@ class ProposalLifecycleAuthorityService:
             return self._unresolved(
                 proposal_id,
                 "workspace_recovery",
-                "P2P307_WORKSPACE_MIGRATION_RECOVERY_REQUIRED",
+                "P2P307_WORKSPACE_TRANSACTION_RECOVERY_REQUIRED",
                 strict=strict,
             )
         if layout_status in {"ahead", "invalid", "unsupported", "incomplete"}:
@@ -319,36 +317,19 @@ class ProposalLifecycleAuthorityService:
                 strict=strict,
             )
         proposal_dir = proposal_dir or self.find_proposal_dir(proposal_id)
-        if current_version is not None and current_version >= 3:
+        if current_version == 3 and layout_status == "current":
             return self._v3_status(
                 proposal_id,
                 proposal_dir,
                 strict=strict,
                 read_context=read_context,
             )
-        from p2p_engine.services.proposal_decision_legacy import (
-            ProposalDecisionLegacyAdapter,
+        return self._unresolved(
+            proposal_id,
+            "unsupported_workspace",
+            "P2P375_DECISION_SCHEMA_V3_REQUIRED",
+            strict=strict,
         )
-
-        adapter = ProposalDecisionLegacyAdapter()
-        proposal_path = proposal_dir / "proposal.md"
-        decision_path = proposal_dir / "decision.md"
-        if read_context is None:
-            snapshot = adapter.capture(
-                proposal_id=proposal_id,
-                proposal_path=proposal_path,
-                decision_path=decision_path,
-                root=self.root,
-            )
-        else:
-            snapshot = adapter.capture_bytes(
-                proposal_id=proposal_id,
-                proposal_path=proposal_path.relative_to(self.root).as_posix(),
-                decision_path=decision_path.relative_to(self.root).as_posix(),
-                proposal_bytes=_optional_captured_bytes(read_context, proposal_path),
-                decision_bytes=_optional_captured_bytes(read_context, decision_path),
-            )
-        return adapter.lifecycle(snapshot)
 
     def capture_all(
         self,
@@ -562,7 +543,7 @@ class ProposalLifecycleAuthorityService:
             proposal_id=proposal_id,
             source_model=source_model,
             authority_resolution=ProposalDecisionAuthorityResolution.invalid,
-            effective_state=ProposalDecisionEffectiveState.unknown_legacy,
+            effective_state=ProposalDecisionEffectiveState.undecided,
             head_event_type=None,
             head_event_id=None,
             event_count=0,
@@ -574,14 +555,6 @@ class ProposalLifecycleAuthorityService:
             proposal_binding_status=ProposalDecisionBindingStatus.unavailable,
             diagnostics=(diagnostic,),
         )
-
-
-def _optional_captured_bytes(
-    read_context: WorkspaceReadContext,
-    path: Path,
-) -> bytes | None:
-    document = read_context.documents.capture(path)
-    return read_context.documents.bytes(path) if document.exists else None
 
 
 def proposal_lifecycle_authority(status: str) -> ProposalLifecycleAuthority:

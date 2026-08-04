@@ -8,7 +8,6 @@ from types import MappingProxyType
 from typing import Mapping, Sequence
 
 
-LEGACY_SOURCE_CATALOG_VERSION = "decision-context-sources-v2"
 SOURCE_CATALOG_VERSION = "decision-context-sources-v3"
 SCHEMA_VERSION = "decision-context-v1"
 EXTRACTOR_VERSION = "decision-context-extractors-v4"
@@ -66,7 +65,6 @@ class Canonicality(StrEnum):
     CANONICAL = "canonical"
     GOVERNED_IMPORT = "governed_import"
     DERIVED = "derived"
-    LEGACY_UNCLASSIFIED = "legacy_unclassified"
 
 
 class Authority(StrEnum):

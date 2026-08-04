@@ -26,35 +26,12 @@ DIAGNOSTIC_NAMESPACE = "P2P3"
 
 
 @dataclass(frozen=True)
-class AppliedWorkspaceMigration:
-    """Historical audit record retained in an already-current workspace."""
-
-    migration_id: str
-    source_version: int
-    target_version: int
-    applied_at: str
-    actor: str
-    plan_fingerprint_sha256: str
-
-    def to_dict(self) -> dict[str, object]:
-        return {
-            "id": self.migration_id,
-            "from": "legacy_undeclared" if self.source_version == 0 else self.source_version,
-            "to": self.target_version,
-            "applied_at": self.applied_at,
-            "actor": self.actor,
-            "plan_fingerprint_sha256": self.plan_fingerprint_sha256,
-        }
-
-
-@dataclass(frozen=True)
 class WorkspaceSchemaState:
     contract_version: int
     current_version: int
     baseline: str
     initialized_at: str
     initialized_by: str
-    applied_migrations: tuple[AppliedWorkspaceMigration, ...] = ()
 
     def to_payload(self) -> dict[str, object]:
         return {
@@ -64,7 +41,6 @@ class WorkspaceSchemaState:
                 "baseline": self.baseline,
                 "initialized_at": self.initialized_at,
                 "initialized_by": self.initialized_by,
-                "applied_migrations": [item.to_dict() for item in self.applied_migrations],
             }
         }
 
@@ -104,14 +80,6 @@ class WorkspaceSchemaStatus:
     def inspectable(self) -> bool:
         return self.layout_status == LAYOUT_CURRENT
 
-    @property
-    def migration_required(self) -> bool:
-        return False
-
-    @property
-    def upgrade_available(self) -> bool:
-        return False
-
     def to_dict(self) -> dict[str, object]:
         return {
             "schema_path": self.schema_path,
@@ -122,8 +90,6 @@ class WorkspaceSchemaStatus:
             "target_version": self.target_version,
             "contract_version": self.contract_version,
             "inspectable": self.inspectable,
-            "migration_required": self.migration_required,
-            "upgrade_available": self.upgrade_available,
             "schema": self.schema.to_payload()["workspace_schema"] if self.schema else None,
             "recovery": dict(self.recovery),
             "findings": [item.to_dict() for item in self.findings],
@@ -144,10 +110,6 @@ class WorkspaceSchemaPreflight:
     def inspectable(self) -> bool:
         return self.layout_status == LAYOUT_CURRENT
 
-    @property
-    def migration_required(self) -> bool:
-        return False
-
     def to_dict(self) -> dict[str, object]:
         return {
             "schema_path": self.schema_path,
@@ -157,7 +119,6 @@ class WorkspaceSchemaPreflight:
             "target_version": self.target_version,
             "contract_version": self.contract_version,
             "inspectable": self.inspectable,
-            "migration_required": self.migration_required,
             "recovery": dict(self.recovery),
         }
 

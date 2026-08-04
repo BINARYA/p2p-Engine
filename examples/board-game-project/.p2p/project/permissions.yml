@@ -1,0 +1,46 @@
+permissions:
+  version: 1
+  model: role_plus_consent_receipt
+  identity_strength: project_declared
+  repository_mode: local
+  cloud_enforcement:
+  - git_provider_permissions
+  - branch_protection
+  - required_approvals
+  - token_scopes
+identities:
+  owner:
+    role: owner
+    kind: person
+    display_name: owner
+  contributor:
+    role: contributor
+    kind: person
+    display_name: contributor
+roles:
+  owner:
+    can_grant_consent: true
+    can_manage_permissions: true
+  maintainer:
+    can_request_privileged_operations: true
+  contributor:
+    can_create_local_branches: true
+    can_request_review: true
+  agent:
+    can_use_safe_tools: true
+  readonly:
+    can_read: true
+tool_classes:
+  safe_read:
+    consent_required: false
+  write_safe_preparatory:
+    consent_required: false
+    audit_required: true
+  privileged_publish:
+    consent_required: true
+  owner_controlled_governance:
+    consent_required: true
+    owner_required: true
+  destructive_or_external:
+    consent_required: true
+    single_use_required: true

@@ -7,14 +7,11 @@ import yaml
 
 from p2p_engine import __version__ as P2P_ENGINE_VERSION
 from p2p_engine.core.runtime_contract import (
-    RUNTIME_CONTRACT_ADOPTION_STATUS_ADOPTED,
-    RUNTIME_CONTRACT_ADOPTION_STATUS_BLOCKED,
     RUNTIME_CONTRACT_BLOCKER_CONFIRMATION_REQUIRED,
     RUNTIME_CONTRACT_BLOCKER_INVALID_PROPOSED_CONTRACT,
     RUNTIME_CONTRACT_BLOCKER_OWNER_AUTHORITY_REQUIRED,
     RUNTIME_CONTRACT_BLOCKER_STALE_PREVIEW,
     RUNTIME_CONTRACT_BLOCKER_UNMANAGED_SETUP_GUIDE,
-    RUNTIME_CONTRACT_BLOCKER_UNSUPPORTED_CURRENT_STATE,
     RUNTIME_CONTRACT_BLOCKER_UNTRUSTED_CURRENT_CONTRACT,
     RUNTIME_CONTRACT_IMPACT_CURRENT_RUNTIME_EXCLUDED,
     RUNTIME_CONTRACT_IMPACT_RANGE_TIGHTENING,
@@ -27,14 +24,12 @@ from p2p_engine.core.runtime_contract import (
     RUNTIME_CONTRACT_UPDATE_STATUS_PREVIEW_BLOCKED,
     RUNTIME_CONTRACT_UPDATE_STATUS_UPDATED,
     RUNTIME_CONTRACT_INSTALLER_FIELD,
-    RUNTIME_CONTRACT_LEGACY_UNDECLARED,
     RUNTIME_CONTRACT_MISSING,
     RUNTIME_SETUP_GUIDE_DRIFT,
     RUNTIME_SETUP_GUIDE_MARKER,
     RUNTIME_SETUP_GUIDE_UNMANAGED,
     RUNTIME_STATUS_COMPATIBLE,
     RUNTIME_STATUS_INCOMPATIBLE,
-    RUNTIME_STATUS_LEGACY_UNDECLARED,
     RUNTIME_STATUS_MISSING_CONTRACT,
 )
 from p2p_engine.services.runtime_contract import RuntimeContractService
@@ -68,7 +63,7 @@ def test_runtime_contract_service_reports_compatible_contract(tmp_path: Path) ->
     assert status.findings == []
 
 
-def test_runtime_contract_service_distinguishes_missing_required_from_legacy(tmp_path: Path) -> None:
+def test_runtime_contract_service_requires_explicit_contract(tmp_path: Path) -> None:
     required = RuntimeContractService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
     _write_yaml(required.project_manifest_path, _project_manifest(required=True))
 
@@ -77,124 +72,15 @@ def test_runtime_contract_service_distinguishes_missing_required_from_legacy(tmp
     assert missing.state == RUNTIME_STATUS_MISSING_CONTRACT
     assert missing.findings[0].code == RUNTIME_CONTRACT_MISSING
 
-    legacy_root = tmp_path / "legacy"
-    legacy = RuntimeContractService(root=legacy_root, p2p_dir=legacy_root / ".p2p")
-    _write_yaml(legacy.project_manifest_path, _project_manifest(required=False))
+    unmarked_root = tmp_path / "unmarked"
+    unmarked = RuntimeContractService(root=unmarked_root, p2p_dir=unmarked_root / ".p2p")
+    _write_yaml(unmarked.project_manifest_path, _project_manifest(required=False))
 
-    status = legacy.status()
+    status = unmarked.status()
 
-    assert status.state == RUNTIME_STATUS_LEGACY_UNDECLARED
-    assert status.findings[0].code == RUNTIME_CONTRACT_LEGACY_UNDECLARED
-    assert status.findings[0].severity == "warning"
-
-
-def test_runtime_contract_adoption_writes_contract_marker_and_setup_guide(tmp_path: Path) -> None:
-    service = RuntimeContractService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
-    _write_yaml(service.project_manifest_path, _project_manifest(required=False))
-
-    result = service.adopt_contract(
-        requires=f"=={P2P_ENGINE_VERSION}",
-        recommended=P2P_ENGINE_VERSION,
-        confirm=True,
-    )
-
-    assert result.status == RUNTIME_CONTRACT_ADOPTION_STATUS_ADOPTED
-    assert result.current_state == RUNTIME_STATUS_LEGACY_UNDECLARED
-    assert result.files_changed == [".p2p/project/runtime.yml", "P2P-SETUP.md", ".p2p/project.yml"]
-    payload = yaml.safe_load(service.contract_path.read_text(encoding="utf-8"))
-    assert payload["runtime"]["p2p"] == {
-        "requires": f"=={P2P_ENGINE_VERSION}",
-        "recommended": P2P_ENGINE_VERSION,
-    }
-    project = yaml.safe_load(service.project_manifest_path.read_text(encoding="utf-8"))
-    assert project["project"]["name"] == "Demo"
-    assert project["runtime_contract"] == {"required": True}
-    assert RUNTIME_SETUP_GUIDE_MARKER in service.setup_guide_path.read_text(encoding="utf-8")
-    assert service.status().state == RUNTIME_STATUS_COMPATIBLE
-
-
-def test_runtime_contract_adoption_requires_confirmation(tmp_path: Path) -> None:
-    service = RuntimeContractService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
-    _write_yaml(service.project_manifest_path, _project_manifest(required=False))
-
-    result = service.adopt_contract(
-        requires=f"=={P2P_ENGINE_VERSION}",
-        recommended=P2P_ENGINE_VERSION,
-    )
-
-    assert result.status == RUNTIME_CONTRACT_ADOPTION_STATUS_BLOCKED
-    assert result.blocked_reason == RUNTIME_CONTRACT_BLOCKER_CONFIRMATION_REQUIRED
-    assert result.files_changed == []
-    assert not service.contract_path.exists()
-    assert not service.setup_guide_path.exists()
-    project = yaml.safe_load(service.project_manifest_path.read_text(encoding="utf-8"))
-    assert "runtime_contract" not in project
-
-
-def test_runtime_contract_adoption_requires_owner_authority(tmp_path: Path) -> None:
-    service = RuntimeContractService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
-    _write_yaml(service.project_manifest_path, _project_manifest(required=False))
-
-    result = service.adopt_contract(
-        requires=f"=={P2P_ENGINE_VERSION}",
-        recommended=P2P_ENGINE_VERSION,
-        confirm=True,
-        actor="contributor",
-    )
-
-    assert result.status == RUNTIME_CONTRACT_ADOPTION_STATUS_BLOCKED
-    assert result.blocked_reason == RUNTIME_CONTRACT_BLOCKER_OWNER_AUTHORITY_REQUIRED
-    assert result.files_changed == []
-    assert not service.contract_path.exists()
-
-
-def test_runtime_contract_adoption_blocks_unmanaged_setup_guide(tmp_path: Path) -> None:
-    service = RuntimeContractService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
-    _write_yaml(service.project_manifest_path, _project_manifest(required=False))
-    service.setup_guide_path.write_text("# Local setup\n", encoding="utf-8")
-
-    result = service.adopt_contract(
-        requires=f"=={P2P_ENGINE_VERSION}",
-        recommended=P2P_ENGINE_VERSION,
-        confirm=True,
-    )
-
-    assert result.status == RUNTIME_CONTRACT_ADOPTION_STATUS_BLOCKED
-    assert result.blocked_reason == RUNTIME_CONTRACT_BLOCKER_UNMANAGED_SETUP_GUIDE
-    assert result.files_changed == []
-    assert not service.contract_path.exists()
-
-
-def test_runtime_contract_adoption_blocks_non_legacy_state(tmp_path: Path) -> None:
-    service = RuntimeContractService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
-    _write_yaml(service.project_manifest_path, _project_manifest(required=True))
-    service.write_default_contract()
-
-    result = service.adopt_contract(
-        requires=f"=={P2P_ENGINE_VERSION}",
-        recommended=P2P_ENGINE_VERSION,
-        confirm=True,
-    )
-
-    assert result.status == RUNTIME_CONTRACT_ADOPTION_STATUS_BLOCKED
-    assert result.blocked_reason == RUNTIME_CONTRACT_BLOCKER_UNSUPPORTED_CURRENT_STATE
-    assert result.files_changed == []
-
-
-def test_runtime_contract_adoption_rejects_invalid_proposed_contract(tmp_path: Path) -> None:
-    service = RuntimeContractService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
-    _write_yaml(service.project_manifest_path, _project_manifest(required=False))
-
-    result = service.adopt_contract(
-        requires=">=0.2.0,<0.3",
-        recommended="0.3.0",
-        confirm=True,
-    )
-
-    assert result.status == RUNTIME_CONTRACT_ADOPTION_STATUS_BLOCKED
-    assert result.blocked_reason == RUNTIME_CONTRACT_BLOCKER_INVALID_PROPOSED_CONTRACT
-    assert result.validation_errors == ["runtime.p2p.recommended must satisfy runtime.p2p.requires."]
-    assert not service.contract_path.exists()
+    assert status.state == RUNTIME_STATUS_MISSING_CONTRACT
+    assert status.findings[0].code == RUNTIME_CONTRACT_MISSING
+    assert status.findings[0].severity == "error"
 
 
 def test_runtime_contract_service_rejects_installer_fields(tmp_path: Path) -> None:

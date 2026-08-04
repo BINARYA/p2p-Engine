@@ -32,44 +32,8 @@ from p2p_engine.services.decision_context_authority import AuthorityPolicy, Sour
 from p2p_engine.services.decision_context_sources import fragments_for_label
 
 
-_RELATION_ALIASES: Mapping[str, RelationType] = {
-    "includes": RelationType.INCLUDES,
-    "included": RelationType.INCLUDES,
-    "references": RelationType.REFERENCES,
-    "related": RelationType.REFERENCES,
-    "related_context": RelationType.REFERENCES,
-    "compatible_with": RelationType.REFERENCES,
-    "complements": RelationType.REFERENCES,
-    "reuses": RelationType.DEPENDS_ON,
-    "extends": RelationType.DEPENDS_ON,
-    "follows": RelationType.DEPENDS_ON,
-    "builds_on": RelationType.DEPENDS_ON,
-    "hardens": RelationType.DEPENDS_ON,
-    "consumes_context_from": RelationType.DEPENDS_ON,
-    "depends_on": RelationType.DEPENDS_ON,
-    "dependency": RelationType.DEPENDS_ON,
-    "blocks": RelationType.BLOCKS,
-    "conflicts": RelationType.CONFLICTS_WITH,
-    "conflicts_with": RelationType.CONFLICTS_WITH,
-    "mutually_exclusive": RelationType.CONFLICTS_WITH,
-    "overlaps": RelationType.REFERENCES,
-    "overlap": RelationType.REFERENCES,
-    "high_overlap": RelationType.REFERENCES,
-    "partial_overlap": RelationType.REFERENCES,
-    "supersedes": RelationType.SUPERSEDES,
-    "merged_into": RelationType.MERGED_INTO,
-    "split_into": RelationType.SPLIT_INTO,
-    "implements": RelationType.IMPLEMENTS,
-    "selected_by": RelationType.SELECTED_BY,
-    "derived_from": RelationType.DERIVED_FROM,
-    "discovered_by": RelationType.DERIVED_FROM,
-    "boundary_with": RelationType.REFERENCES,
-    "separates_from": RelationType.REFERENCES,
-    "later_validation_candidate": RelationType.REFERENCES,
-    "touches_scope": RelationType.REFERENCES,
-    "alternative_to": RelationType.REFERENCES,
-    "related_to": RelationType.REFERENCES,
-    "future_home": RelationType.REFERENCES,
+_RELATION_TYPES: Mapping[str, RelationType] = {
+    item.value: item for item in RelationType
 }
 _AMBIGUOUS_RELATION_TERMS = frozenset({"enables", "informs", "constrained_by"})
 _AMBIGUOUS_RELATION_MEANINGS: Mapping[str, tuple[str, ...]] = {
@@ -77,8 +41,6 @@ _AMBIGUOUS_RELATION_MEANINGS: Mapping[str, tuple[str, ...]] = {
     "informs": ("references", "depends_on"),
     "constrained_by": ("depends_on", "project constraint evidence"),
 }
-_CANONICAL_RELATION_TERMS = frozenset(item.value for item in RelationType)
-
 _SYMMETRIC_RELATIONS = frozenset({RelationType.CONFLICTS_WITH})
 _ACTIVATION_RANK: Mapping[Activation, int] = {
     Activation.ACTIVE: 5,
@@ -557,7 +519,7 @@ class DecisionContextTopologyService:
                 payload = payload.get("items") or ()
             for index, item in enumerate(_mapping_items(payload)):
                 target_id = _first_text(item, "proposal", "proposal_id", "id")
-                relation_name = _first_text(item, "relationship", "relation", "type") or "related"
+                relation_name = _first_text(item, "relationship", "relation", "type")
                 relation_slug = _slug(relation_name)
                 relation_policy = classify_relation_term(relation_name)
                 relation_type = relation_policy["relation_type"]
@@ -724,11 +686,11 @@ class DecisionContextTopologyService:
                     values.append(
                         (
                             _first_text(item, "proposal", "proposal_id", "id"),
-                            _first_text(item, "relationship", "relation", "type") or "related",
+                            _first_text(item, "relationship", "relation", "type"),
                         )
                     )
                 else:
-                    values.append((str(item).strip(), "related"))
+                    values.append((str(item).strip(), "references"))
             for index, (proposal_id, relation_name) in enumerate(values):
                 relation_slug = _slug(relation_name)
                 relation_policy = classify_relation_term(relation_name)
@@ -855,10 +817,6 @@ class DecisionContextTopologyService:
                 )
 
 
-def relation_aliases() -> Mapping[str, RelationType]:
-    return _RELATION_ALIASES
-
-
 def classify_relation_term(value: str) -> dict[str, object]:
     term = _slug(value)
     if term in _AMBIGUOUS_RELATION_TERMS:
@@ -868,7 +826,7 @@ def classify_relation_term(value: str) -> dict[str, object]:
             "relation_type": None,
             "candidate_meanings": _AMBIGUOUS_RELATION_MEANINGS[term],
         }
-    relation_type = _RELATION_ALIASES.get(term)
+    relation_type = _RELATION_TYPES.get(term)
     if relation_type is None:
         return {
             "term": term,
@@ -878,7 +836,7 @@ def classify_relation_term(value: str) -> dict[str, object]:
         }
     return {
         "term": term,
-        "category": "canonical" if term in _CANONICAL_RELATION_TERMS else "compatibility_alias",
+        "category": "canonical",
         "relation_type": relation_type,
         "candidate_meanings": (relation_type.value,),
     }

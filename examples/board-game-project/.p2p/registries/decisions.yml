@@ -1,10 +1,22 @@
 generated: true
-source: .p2p/proposals/*/decision.md
+source: .p2p/proposals/*/decision-events.yml
 decisions:
 - proposal: PROP-001
-  title: Prototype Cooperative Tile Game
+  title: Prototype cooperative tile game
   outcome: accepted
   status: accepted
   path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/decision.md
-  reason: A constrained tile-placement loop is the smallest useful board game prototype
-    to test with players.
+  reason: The example deliberately accepts the bounded prototype direction.
+  effective_state: accepted
+  head_event_type: accepted
+  head_event_id: PDE-7a7d2b993dbeb32bd424567c
+  event_count: 1
+  authority_resolution: resolved
+  active: true
+  ever_active: true
+  proposal_binding_status: current
+  decision_semantic_sha256: 90a337b00b5664dc0f54fa6b4251e583e906e86ebedb9f679569599f79ced02b
+  proposal_semantic_sha256: 016cdfc7df4abb824b4d72b36dd0a604806d9bc741488f7e7092bc507dd003e0
+  lineage:
+    kind: null
+    targets: []

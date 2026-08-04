@@ -16,12 +16,6 @@ class ProposalDecisionDiagnosticDefinition:
 
 _KNOWN = (
     (
-        "P2P360_DECISION_LEGACY_AUTHORITY_UNRESOLVED",
-        "Legacy authority unresolved",
-        "error",
-        "Run explicit legacy-resolution preview and owner-confirmed apply.",
-    ),
-    (
         "P2P361_DECISION_LEDGER_INVALID",
         "Decision ledger invalid",
         "error",
@@ -91,7 +85,7 @@ _KNOWN = (
         "P2P372_DECISION_REPAIR_UNSAFE",
         "Decision repair unsafe",
         "error",
-        "Use a reviewed candidate that preserves every valid event and legacy evidence.",
+        "Use a reviewed candidate that preserves every valid event.",
     ),
     (
         "P2P373_DECISION_SOURCE_CHANGED",

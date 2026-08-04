@@ -1,3 +1,4 @@
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -30,9 +31,8 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
 
     assert result.profile == "codex"
     assert (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").exists()
-    assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
     assert (tmp_path / ".agents" / "skills" / "p2p-project-curator" / "SKILL.md").exists()
-    assert (tmp_path / ".codex" / "skills" / "p2p-project-curator" / "SKILL.md").exists()
+    assert not (tmp_path / ".codex" / "skills").exists()
     assert sorted(policy["agent_profiles"]) == ["codex", "generic"]
     assert "inspect_artifact_coverage" in policy["proposal_readiness"]["gap_handling"]["steps"]
     assert "p2p proposal artifact status PROP-XXX" in policy["proposal_readiness"]["commands"]
@@ -62,7 +62,7 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     )
     assert policy["runtime_bootstrap"]["workspace_recovery_apply_surface"] == "owner_confirmed_cli_only"
     assert policy["runtime_bootstrap"]["manual_workspace_schema_repair"] == "forbidden"
-    assert policy["runtime_bootstrap"]["legacy_undeclared"] == "warn_do_not_infer"
+    assert "legacy_undeclared" not in policy["runtime_bootstrap"]
     assert policy["runtime_bootstrap"]["environment_mutation"] == "owner_explicit_action_required"
     decision_policy = policy["proposal_decision_lifecycle"]
     assert decision_policy["canonical_schema_v3_artifact"] == "decision-events.yml"
@@ -71,7 +71,7 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert decision_policy["revoke_preserves_accepted_history"] is True
     assert decision_policy["dependent_lifecycle_mutation"] == "forbidden"
     assert decision_policy["mcp"]["consent_target"] == "PROP-XXX@preview-token"
-    assert decision_policy["mcp"]["legacy_unbound_consent_can_write"] is False
+    assert "legacy_unbound_consent_can_write" not in decision_policy["mcp"]
     agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
     assert "p2p proposal artifact status PROP-XXX" in agents
     assert "copying a\nprepared temporary file into an artifact" in agents
@@ -89,20 +89,23 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert "p2p workspace schema status" in agents
     assert "p2p workspace transaction status" in agents
     assert "transaction locks, journals or candidates by hand" in agents
-    assert "do not infer compatibility for `legacy_undeclared` projects" in agents
+    assert "legacy_undeclared" not in agents
     assert "ask the owner for explicit environment action" in agents
     assert "Proposal Decision Lifecycle" in agents
     assert "Reject only a proposal that was never active" in agents
     assert "p2p_proposal_decision_apply" in agents
-    assert "Legacy MCP\naccept/reject/defer consent cannot write" in agents
-    codex_skill = (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").read_text(encoding="utf-8")
-    assert "p2p project interaction-style set --technical-verbosity 2 --formality 2 --assertiveness 0" in codex_skill
+    assert "Standalone Vertical Registry And Drafts" in agents
+    assert "p2p vertical login <name>" in agents
+    assert "p2p vertical draft create --empty" in agents
+    assert "p2p vertical draft update <draft-id> --document <draft.yml>" in agents
+    assert "--idempotency-key <operation-id>" in agents
+    codex_skill = (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").read_text(encoding="utf-8")
     assert "p2p project definition show --format json" in codex_skill
     assert "p2p spec lifecycle --intent downstream_export --change CHANGE-001 --target speckit" in codex_skill
     assert "Proposal Decision Lifecycle" in codex_skill
     assert "proposal_decision_apply" in codex_skill
     curator_skill = (
-        tmp_path / ".codex" / "skills" / "p2p-project-curator" / "SKILL.md"
+        tmp_path / ".agents" / "skills" / "p2p-project-curator" / "SKILL.md"
     ).read_text(encoding="utf-8")
     assert "name: p2p-project-curator" in curator_skill
     assert "P2P Project Curator" in curator_skill
@@ -112,7 +115,7 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert "Do not expose internal IDs" in curator_skill
     contracts = (
         tmp_path
-        / ".codex"
+        / ".agents"
         / "skills"
         / "p2p-project-curator"
         / "references"
@@ -130,7 +133,7 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert "translate generic descriptive terms consistently" in contracts
     rubric = (
         tmp_path
-        / ".codex"
+        / ".agents"
         / "skills"
         / "p2p-project-curator"
         / "references"
@@ -153,25 +156,19 @@ def test_agent_instruction_service_registers_project_curator_codex_outputs(
     }
 
     modern = codex_files[".agents/skills/p2p-project-curator/SKILL.md"]
-    legacy = codex_files[".codex/skills/p2p-project-curator/SKILL.md"]
-    assert modern["template_id"] == "codex-p2p-project-curator-skill-v2"
-    assert legacy["template_id"] == "codex-legacy-p2p-project-curator-skill-v2"
+    assert modern["template_id"] == "codex-p2p-project-curator-skill-v3"
     assert modern["owner"] == "codex"
-    assert legacy["owner"] == "codex"
     assert modern["shared"] is False
-    assert legacy["shared"] is False
     assert modern["managed"] is True
-    assert legacy["managed"] is True
     assert modern["drift"] == "clean"
-    assert legacy["drift"] == "clean"
+    assert modern["template_generation_id"].startswith("agent-template-generation-v2:")
     assert len(str(modern["sha256"])) == 64
-    assert len(str(legacy["sha256"])) == 64
     reference_paths = {
         path
         for path in codex_files
         if "p2p-project-curator/references/" in path
     }
-    assert len(reference_paths) == 8
+    assert len(reference_paths) == 4
     assert all(codex_files[path]["managed"] is True for path in reference_paths)
 
 
@@ -277,7 +274,6 @@ def test_agent_instruction_service_generates_persistence_boundary_for_supported_
 
     adapter_files = [
         tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md",
-        tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md",
         tmp_path / "CLAUDE.md",
         tmp_path / ".cursor" / "rules" / "p2p.mdc",
         tmp_path / ".github" / "copilot-instructions.md",
@@ -305,7 +301,7 @@ def test_agent_instruction_service_generates_lifecycle_guidance_with_persistence
     workspace.init_project("Agent Project", agent_profile="codex")
 
     agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
-    codex_skill = (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").read_text(
+    codex_skill = (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").read_text(
         encoding="utf-8"
     )
 
@@ -398,7 +394,7 @@ def test_agent_instruction_service_preserves_registry_file_statuses_in_health(tm
     registry = service.registry()
     files = registry["adapters"]["generic"]["files"]
     files[0]["drift"] = "conflicted"
-    files[1]["drift"] = "stale_template"
+    files[1]["template_generation_id"] = "agent-template-generation-v1"
     service.write_registry(registry)
 
     shown = service.show_integration("generic")
@@ -407,7 +403,60 @@ def test_agent_instruction_service_preserves_registry_file_statuses_in_health(tm
     assert shown["drift"] == "drifted"
     assert shown["health"] == "error"
     assert statuses["AGENTS.md"] == "conflicted"
-    assert statuses[".p2p/agent-policy.yml"] == "stale_template"
+    assert statuses[".p2p/agent-policy.yml"] == "template_obsolete"
+
+
+def test_agent_instruction_service_detects_obsolete_generation_with_matching_hash(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="generic")
+    service = workspace._agent_instruction_service()
+    registry = service.registry()
+    record = registry["adapters"]["generic"]["files"][0]
+    record["template_generation_id"] = "agent-template-generation-v1"
+    service.write_registry(registry)
+
+    shown = service.show_integration("generic")
+    doctor = service.doctor("generic")
+
+    agents = next(item for item in shown["files"] if item["path"] == "AGENTS.md")
+    assert agents["content_status"] == "clean"
+    assert agents["generation_status"] == "obsolete"
+    assert agents["status"] == "template_obsolete"
+    assert doctor.health == "warning"
+    assert any(finding.code == "P2P_AGENT_TEMPLATE_OBSOLETE" for finding in doctor.findings)
+
+
+def test_agent_update_removes_clean_superseded_codex_skill_paths(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Agent Project", agent_profile="codex")
+    service = workspace._agent_instruction_service()
+    obsolete = tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md"
+    obsolete.parent.mkdir(parents=True)
+    obsolete.write_text("old generated skill\n", encoding="utf-8")
+    registry = service.registry()
+    registry["adapters"]["codex"]["files"].append(
+        {
+            "path": ".codex/skills/p2p-project/SKILL.md",
+            "shared": False,
+            "owner": "codex",
+            "managed": True,
+            "template_id": "codex-legacy-p2p-skill-v1",
+            "sha256": hashlib.sha256(obsolete.read_bytes()).hexdigest(),
+            "drift": "clean",
+        }
+    )
+    service.write_registry(registry)
+
+    result = service.install_integrations("codex")
+
+    assert Path(".codex/skills/p2p-project/SKILL.md") in result.removed
+    assert not obsolete.exists()
+    assert all(
+        not str(item["path"]).startswith(".codex/skills/")
+        for item in service.show_integration("codex")["files"]
+    )
 
 
 def test_agent_instruction_service_install_skips_drift_and_force_updates(tmp_path: Path) -> None:
@@ -575,10 +624,13 @@ def test_agent_instruction_service_opencode_is_shared_only_and_uninstall_preserv
             "shared": True,
             "owner": "generic",
             "managed": True,
-            "template_id": "generic-agents-md-v1",
+            "template_id": "generic-agents-md-v2",
+            "template_generation_id": shown["files"][0]["template_generation_id"],
             "sha256": shown["files"][0]["sha256"],
             "drift": "clean",
             "status": "clean",
+            "content_status": "clean",
+            "generation_status": "current",
         }
     ]
     assert result.removed == []
@@ -628,6 +680,5 @@ def test_curator_reference_set_is_repaired_and_uninstalled_as_one_resource_set(
     assert any(finding.path == missing.relative_to(tmp_path) for finding in broken.findings)
     assert missing.relative_to(tmp_path) in repaired.created
     assert clean.health == "clean"
-    assert len([path for path in removed.removed if "p2p-project-curator" in path.as_posix()]) == 10
+    assert len([path for path in removed.removed if "p2p-project-curator" in path.as_posix()]) == 5
     assert not (tmp_path / ".agents" / "skills" / "p2p-project-curator").exists()
-    assert not (tmp_path / ".codex" / "skills" / "p2p-project-curator").exists()

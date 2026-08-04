@@ -93,7 +93,7 @@ class ProjectAssessmentService:
             suggested_actions=[str(item) for item in suggested_actions] if isinstance(suggested_actions, list) else [],
             maturity_status=str(maturity.get("status") or "not_assessed"),
             maturity_score=maturity.get("score") if isinstance(maturity.get("score"), int) else None,
-            basis=data.get("basis") if isinstance(data.get("basis"), dict) else {"completion": "legacy_deterministic_readiness", "maturity": "heuristic_keyword_rubric"},
+            basis=data.get("basis") if isinstance(data.get("basis"), dict) else {"completion": "deterministic_readiness", "maturity": "heuristic_keyword_rubric"},
             freshness=data.get("freshness") if isinstance(data.get("freshness"), dict) else None,
         )
 
@@ -277,7 +277,7 @@ class ProjectAssessmentService:
             maturity_status=maturity_status,
             maturity_score=maturity_score,
             basis={
-                "completion": "legacy_deterministic_readiness",
+                "completion": "deterministic_readiness",
                 "maturity": "heuristic_keyword_rubric",
                 "authoritative_project_definition": False,
             },

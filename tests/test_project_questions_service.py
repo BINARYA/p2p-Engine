@@ -16,7 +16,6 @@ from p2p_engine.core.project_questions import (
 from p2p_engine.core.project_verticals import (
     ProjectDefinitionAssumption,
     ProjectDefinitionBlocker,
-    ProjectDefinitionQuestion,
     ProjectDefinitionFieldValue,
     ProjectDefinitionSectionState,
     ProjectDefinitionState,
@@ -82,22 +81,11 @@ def _pack(*, field_count: int = 1, declared_target: bool = False) -> VerticalPac
     )
 
 
-def _definition(*, field_count: int = 1, legacy: bool = False, status: str = "partial") -> ProjectDefinitionState:
+def _definition(*, field_count: int = 1, status: str = "partial") -> ProjectDefinitionState:
     section = ProjectDefinitionSectionState(
         section_id="decisions",
         status=status,
         missing_required_fields=[f"field_{index}" for index in range(1, field_count + 1)],
-        open_questions=(
-            [
-                ProjectDefinitionQuestion(
-                    question_id="Q001",
-                    question="Which policy should be used?",
-                    field_id="field_1" if field_count == 1 else "",
-                )
-            ]
-            if legacy
-            else []
-        ),
     )
     return ProjectDefinitionState(
         schema_version=1,
@@ -151,90 +139,6 @@ def test_empty_artifact_round_trip_and_semantic_hash_ignore_audit(tmp_path: Path
 
     assert parsed == first
     assert first.semantic_sha256 == second.semantic_sha256
-
-
-def test_legacy_question_migrates_once_without_owner_state(tmp_path: Path) -> None:
-    service = ProjectQuestionStateService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
-
-    result = service.seed_from_definition(
-        project_id="demo",
-        definition=_definition(legacy=True),
-        pack=_pack(),
-        lock_checksum="lock",
-        actor="system",
-        audit_at="__P2P_APPLY_AT__",
-    )
-
-    assert result.migrated_count == 1
-    assert result.generated_count == 0
-    assert len(result.artifact.questions) == 1
-    question = result.artifact.questions[0]
-    assert question.state == ProjectQuestionState.TO_ANSWER
-    assert question.source_kind == ProjectQuestionSourceType.MIGRATED_LEGACY
-    assert question.source_question_id == "Q001"
-    assert question.answers == ()
-    assert question.applications == ()
-
-
-def test_ambiguous_legacy_question_blocks_lossy_migration(tmp_path: Path) -> None:
-    service = ProjectQuestionStateService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
-
-    with pytest.raises(ValueError, match="P2P350_AMBIGUOUS_LEGACY_QUESTION"):
-        service.seed_from_definition(
-            project_id="demo",
-            definition=_definition(field_count=2, legacy=True),
-            pack=_pack(field_count=2),
-            lock_checksum="lock",
-            actor="system",
-            audit_at="__P2P_APPLY_AT__",
-        )
-
-
-def test_owner_binding_resolves_only_legacy_target_without_creating_answer(tmp_path: Path) -> None:
-    service = ProjectQuestionStateService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
-
-    result = service.seed_from_definition(
-        project_id="demo",
-        definition=_definition(field_count=2, legacy=True),
-        pack=_pack(field_count=2),
-        lock_checksum="lock",
-        actor="system",
-        audit_at="now",
-        legacy_bindings={
-            "decisions/Q001": {
-                "target_kind": "field",
-                "target_id": "field_2",
-                "answer_contract": "field_value",
-            }
-        },
-    )
-
-    question = next(item for item in result.artifact.questions if item.source_question_id == "Q001")
-    assert question.target.target_id == "field_2"
-    assert question.state == ProjectQuestionState.TO_ANSWER
-    assert question.answers == ()
-    assert question.transitions == ()
-
-
-def test_owner_binding_rejects_answer_or_lifecycle_fields(tmp_path: Path) -> None:
-    service = ProjectQuestionStateService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
-
-    with pytest.raises(ValueError, match="forbidden fields"):
-        service.seed_from_definition(
-            project_id="demo",
-            definition=_definition(field_count=2, legacy=True),
-            pack=_pack(field_count=2),
-            lock_checksum="lock",
-            actor="system",
-            audit_at="now",
-            legacy_bindings={
-                "decisions/Q001": {
-                    "target_kind": "field",
-                    "target_id": "field_2",
-                    "answer": "invented",
-                }
-            },
-        )
 
 
 def test_incomplete_section_uses_declared_or_deterministic_fallback(tmp_path: Path) -> None:

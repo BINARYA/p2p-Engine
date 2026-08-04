@@ -48,6 +48,39 @@ def test_release_verifier_requires_decision_lifecycle_runtime_members() -> None:
         "src/p2p_engine/services/proposal_decision_ledger.py",
         "tests/test_proposal_decision_service.py",
     } <= MODULE.DECISION_LIFECYCLE_SDIST_MEMBERS
+    assert "p2p_engine/services/proposal_decision_legacy.py" not in (
+        MODULE.DECISION_LIFECYCLE_WHEEL_MEMBERS
+    )
+
+
+def test_release_verifier_requires_current_agent_surface_members() -> None:
+    assert {
+        "p2p_engine/services/agent_capabilities.py",
+        "p2p_engine/services/agent_templates.py",
+        "p2p_engine/services/public_surface_inventory.py",
+    } <= MODULE.CURRENT_SURFACE_WHEEL_MEMBERS
+    assert {
+        "tests/test_current_only_surface.py",
+        "tests/test_public_surface_inventory.py",
+        "tests/test_version_consistency.py",
+    } <= MODULE.CURRENT_SURFACE_SDIST_MEMBERS
+
+
+def test_release_verifier_requires_external_canonical_archive_tooling() -> None:
+    source = Path(__file__).resolve().parents[1] / "scripts" / "verify-release-artifacts.py"
+    text = source.read_text(encoding="utf-8")
+
+    assert '"scripts/archive-project-state.py"' in text
+    assert '"tests/test_archive_project_state_script.py"' in text
+
+
+def test_release_verifier_rejects_discarded_runtime_surface_content() -> None:
+    with pytest.raises(ValueError, match="proposal_decision_legacy"):
+        MODULE._reject_discarded_surface(
+            b"from p2p_engine.services.proposal_decision_legacy import Adapter\n",
+            member="p2p_engine/example.py",
+            target="wheel",
+        )
 
 
 def test_release_verifier_requires_current_schema_runtime_and_regression_members() -> None:

@@ -152,10 +152,6 @@ class ProjectProgressService:
                     {"section_id": section.section_id, "id": item.blocker_id, "text": item.text}
                     for item in state.blockers
                 )
-                questions.extend(
-                    {"section_id": section.section_id, "id": item.question_id, "text": item.question}
-                    for item in state.open_questions
-                )
                 assumptions.extend(
                     {
                         "section_id": section.section_id,
@@ -324,15 +320,6 @@ class ProjectProgressService:
                 for item in section.conflicts
                 if str(item.get("kind") or "") == "conflict"
                 and str(item.get("status") or "") == "unresolved"
-            )
-            questions.extend(
-                {
-                    "section_id": section.section_id,
-                    "id": str(item.get("id") or ""),
-                    "text": str(item.get("question") or ""),
-                }
-                for item in definition.get("open_questions", ())
-                if isinstance(item, dict)
             )
             assumptions.extend(
                 {

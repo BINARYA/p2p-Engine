@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from p2p_engine.core.proposal_decision_events import (
+    ProposalDecisionAuthorityResolution,
     ProposalDecisionBindingStatus,
     ProposalDecisionEffectiveState,
     ProposalDecisionEventType,
@@ -67,7 +68,6 @@ _ALLOWED = {
     ProposalDecisionEffectiveState.superseded: set(),
     ProposalDecisionEffectiveState.split: set(),
     ProposalDecisionEffectiveState.merged_into_other: set(),
-    ProposalDecisionEffectiveState.unknown_legacy: set(),
 }
 
 
@@ -177,7 +177,7 @@ def test_rejected_or_withdrawn_reconsideration_requires_new_proposal(
     )
 
 
-def test_workspace_aware_service_reads_v2_through_legacy_adapter(tmp_path) -> None:
+def test_workspace_aware_service_rejects_non_current_schema(tmp_path) -> None:
     proposals = ProposalDocumentService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
     proposal = proposals.create("Legacy View")
     service = ProposalLifecycleAuthorityService(
@@ -193,7 +193,8 @@ def test_workspace_aware_service_reads_v2_through_legacy_adapter(tmp_path) -> No
 
     view = service.status(proposal.proposal_id)
 
-    assert view.source_model == "legacy_projection_v2"
+    assert view.source_model == "unsupported_workspace"
+    assert view.authority_resolution == ProposalDecisionAuthorityResolution.invalid
     assert view.effective_state == ProposalDecisionEffectiveState.undecided
 
 

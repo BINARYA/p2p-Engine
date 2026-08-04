@@ -601,7 +601,6 @@ class VerticalLifecycleService:
             target_section = target_sections.get(source_section.section_id)
             if target_section is not None:
                 target_section.assumptions = list(source_section.assumptions)
-                target_section.open_questions = list(source_section.open_questions)
                 target_section.blockers = list(source_section.blockers)
                 if source_section.status == "blocked" and source_section.blockers:
                     target_section.status = "blocked"
@@ -612,7 +611,6 @@ class VerticalLifecycleService:
                 continue
             for kind, values in (
                 ("assumptions", source_section.assumptions),
-                ("open_questions", source_section.open_questions),
                 ("blockers", source_section.blockers),
             ):
                 if values:
@@ -705,8 +703,6 @@ def _has_meaningful_evidence(state: ProjectDefinitionState) -> bool:
         return True
     for section in state.sections:
         if section.assumptions or section.blockers:
-            return True
-        if section.open_questions and any(question.status != "open" for question in section.open_questions):
             return True
         for field in section.fields.values():
             if field.value not in (None, "", [], {}):

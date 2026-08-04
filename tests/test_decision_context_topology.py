@@ -18,11 +18,9 @@ from p2p_engine.services.decision_context import ProjectDecisionContextService
 from p2p_engine.services.decision_context_authority import (
     AuthorityPolicy,
     SourceAuthority,
-    lifecycle_rules,
 )
 from p2p_engine.services.decision_context_topology import (
     build_adjacency,
-    relation_aliases,
     traverse_relations,
 )
 from tests.decision_context_fixtures import write_markdown, write_proposal, write_yaml
@@ -37,16 +35,9 @@ def _accepted_pair(root: Path) -> None:
     write_proposal(root, "PROP-002", status="accepted", decision_outcome="accepted")
 
 
-def test_authority_rank_and_lifecycle_policy_are_complete() -> None:
+def test_authority_rank_and_source_policy_are_complete() -> None:
     assert list(AUTHORITY_RANK.values()) == sorted(AUTHORITY_RANK.values(), reverse=True)
     assert set(AUTHORITY_RANK) == set(Authority)
-    rules = lifecycle_rules()
-    assert rules["accepted"].decision_activation == Activation.ACTIVE
-    assert rules["accepted_with_changes"].decision_authority == Authority.CONDITIONALLY_ACCEPTED_DECISION
-    assert rules["deferred"].decision_activation == Activation.UNRESOLVED
-    for outcome in ("rejected", "split", "merged_into_other", "superseded"):
-        assert rules[outcome].proposal_activation == Activation.HISTORICAL
-    assert rules["draft"].proposal_activation == Activation.EXPLORATORY
 
 
 def test_authority_policy_rejects_unsupported_combinations() -> None:
@@ -88,7 +79,7 @@ def test_artifact_metadata_does_not_invent_owner_confirmation(tmp_path: Path) ->
     write_yaml(
         tmp_path,
         str((proposal_dir / "related-proposals.yml").relative_to(tmp_path)),
-        {"related_proposals": [{"proposal": "PROP-002", "relationship": "related"}]},
+        {"related_proposals": [{"proposal": "PROP-002", "relationship": "references"}]},
     )
     relation = next(item for item in _build(tmp_path).relations if item.scope == "proposal_relation")
     assert relation.authority == Authority.AGENT_PROPOSED_EVIDENCE
@@ -145,17 +136,8 @@ def test_change_relations_merge_duplicate_evidence_and_report_divergence(tmp_pat
     assert any(item.code == "DC-SOURCE-DIVERGENT-CHANGE-LINKS" for item in divergent.diagnostics)
 
 
-@pytest.mark.parametrize(
-    ("relationship", "expected"),
-    [
-        ("extends", RelationType.DEPENDS_ON),
-        ("builds_on", RelationType.DEPENDS_ON),
-        ("compatible_with", RelationType.REFERENCES),
-        ("overlaps", RelationType.REFERENCES),
-        ("supersedes", RelationType.SUPERSEDES),
-    ],
-)
-def test_related_proposal_aliases(relationship: str, expected: RelationType, tmp_path: Path) -> None:
+@pytest.mark.parametrize("relationship", ["extends", "builds_on", "compatible_with", "overlaps"])
+def test_related_proposal_aliases_are_rejected(relationship: str, tmp_path: Path) -> None:
     _accepted_pair(tmp_path)
     write_yaml(
         tmp_path,
@@ -167,9 +149,10 @@ def test_related_proposal_aliases(relationship: str, expected: RelationType, tmp
             }
         },
     )
-    relation = next(item for item in _build(tmp_path).relations if item.scope == "proposal_relation")
-    assert relation.relation_type == expected
-    assert relationship in relation_aliases()
+    index = _build(tmp_path)
+
+    assert not any(item.scope == "proposal_relation" for item in index.relations)
+    assert any(item.code == "DC-RELATION-UNSUPPORTED-TYPE" for item in index.diagnostics)
 
 
 def test_unsupported_self_and_missing_relations_are_quarantined(tmp_path: Path) -> None:
@@ -179,8 +162,8 @@ def test_unsupported_self_and_missing_relations_are_quarantined(tmp_path: Path) 
         ".p2p/proposals/prop-001-example/related-proposals.yml",
         {
             "related_proposals": [
-                {"proposal": "PROP-001", "relationship": "related"},
-                {"proposal": "PROP-999", "relationship": "related"},
+                {"proposal": "PROP-001", "relationship": "references"},
+                {"proposal": "PROP-999", "relationship": "references"},
                 {"proposal": "PROP-002", "relationship": "teleports_to"},
             ]
         },
@@ -445,13 +428,14 @@ def test_incompatible_active_lineage_assertions_emit_diagnostic(tmp_path: Path) 
     assert any(item.code == "DC-RELATION-INCOMPATIBLE-ASSERTIONS" for item in index.diagnostics)
 
 
-def test_dependency_alias_is_supported_but_ambiguous_terms_require_curation(tmp_path: Path) -> None:
+def test_noncanonical_and_ambiguous_relation_terms_require_curation(tmp_path: Path) -> None:
     _accepted_pair(tmp_path)
     write_yaml(
         tmp_path,
         ".p2p/proposals/prop-001-example/related-proposals.yml",
         {
             "related_proposals": [
+                {"proposal": "PROP-002", "relationship": "depends_on"},
                 {"proposal": "PROP-002", "relationship": "dependency"},
                 {"proposal": "PROP-002", "relationship": "enables"},
                 {"proposal": "PROP-002", "relationship": "informs"},
@@ -466,6 +450,7 @@ def test_dependency_alias_is_supported_but_ambiguous_terms_require_curation(tmp_
     assert len(dependencies) == 1
     ambiguous = [item for item in index.diagnostics if item.code == "DC-RELATION-AMBIGUOUS-TYPE"]
     assert len(ambiguous) == 3
+    assert any(item.code == "DC-RELATION-UNSUPPORTED-TYPE" for item in index.diagnostics)
 
 
 def test_conflict_collection_emits_one_supersession_per_rejected_proposal(tmp_path: Path) -> None:
@@ -589,7 +574,7 @@ def test_relation_ids_and_evidence_are_deterministic(tmp_path: Path) -> None:
     write_yaml(
         tmp_path,
         ".p2p/proposals/prop-001-example/related-proposals.yml",
-        {"related_proposals": [{"proposal": "PROP-002", "relationship": "related"}]},
+        {"related_proposals": [{"proposal": "PROP-002", "relationship": "references"}]},
     )
     first = _build(tmp_path)
     second = _build(tmp_path)

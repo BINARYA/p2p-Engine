@@ -10,12 +10,9 @@ import yaml
 
 from p2p_engine.core.mutation_preview import semantic_sha256
 from p2p_engine.core.proposal_decision_events import (
-    ProposalDecisionAuthorityResolution,
     ProposalDecisionCondition,
     ProposalDecisionEffectiveState,
     ProposalDecisionEventType,
-    ProposalDecisionLedger,
-    ProposalDecisionLegacyEvidence,
     ProposalDecisionRequest,
 )
 from p2p_engine.services.proposal_decision_ledger import (
@@ -82,48 +79,6 @@ def _complete_impact(*args):
         "source_fingerprint_sha256": semantic_sha256([]),
         "source_bytes": {},
     }
-
-
-def _seed_unknown_legacy(
-    proposal_id: str,
-    proposal_dir: Path,
-) -> ProposalDecisionLedger:
-    ledger = ProposalDecisionLedger(
-        contract_version=1,
-        proposal_id=proposal_id,
-        authority_resolution=ProposalDecisionAuthorityResolution.unknown_legacy,
-        effective_state=ProposalDecisionEffectiveState.unknown_legacy,
-        head_event_id=None,
-        legacy_evidence=(
-            ProposalDecisionLegacyEvidence(
-                migration_id="workspace-v2-to-v3",
-                source_paths=("proposal.md", "decision.md"),
-                source_sha256={"proposal.md": "a" * 64, "decision.md": "b" * 64},
-                values={
-                    "proposal_status": "accepted",
-                    "approver": "unknown_legacy",
-                },
-                diagnostics=("P2P360_DECISION_LEGACY_AUTHORITY_UNRESOLVED",),
-            ),
-        ),
-    )
-    (proposal_dir / "decision-events.yml").write_bytes(
-        ProposalDecisionLedgerCodec().dumps(ledger)
-    )
-    proposal_text = (proposal_dir / "proposal.md").read_text(encoding="utf-8")
-    (proposal_dir / "proposal.md").write_text(
-        render_proposal_projection(proposal_text, ledger.effective_state),
-        encoding="utf-8",
-    )
-    (proposal_dir / "decision.md").write_text(
-        render_decision_projection(
-            proposal_id,
-            None,
-            empty_state=ledger.effective_state,
-        ),
-        encoding="utf-8",
-    )
-    return ledger
 
 
 def _apply_in_process(
@@ -431,7 +386,7 @@ def test_schema_recovery_race_after_conflicting_commit_becomes_head_conflict(
                 == "applied"
             )
             raise ValueError(
-                "P2P307_WORKSPACE_MIGRATION_RECOVERY_REQUIRED: "
+                "P2P307_WORKSPACE_TRANSACTION_RECOVERY_REQUIRED: "
                 "simulated transaction cleanup race"
             )
         original_schema_gate()
@@ -777,91 +732,19 @@ def test_projection_repair_changes_only_divergent_projection(
     assert current.apply_allowed is False
 
 
-@pytest.mark.parametrize(
-    ("event_type", "conditions", "expected_state", "expected_active"),
-    (
-        (
-            ProposalDecisionEventType.accepted,
-            (),
-            ProposalDecisionEffectiveState.accepted,
-            True,
-        ),
-        (
-            ProposalDecisionEventType.accepted_with_changes,
-            (
-                ProposalDecisionCondition(
-                    condition_id="COND-001",
-                    text="Complete the owner-confirmed condition.",
-                ),
-            ),
-            ProposalDecisionEffectiveState.accepted_with_changes,
-            True,
-        ),
-        (
-            ProposalDecisionEventType.deferred,
-            (),
-            ProposalDecisionEffectiveState.deferred,
-            False,
-        ),
-        (
-            ProposalDecisionEventType.withdrawn,
-            (),
-            ProposalDecisionEffectiveState.withdrawn,
-            False,
-        ),
-        (
-            ProposalDecisionEventType.rejected,
-            (),
-            ProposalDecisionEffectiveState.rejected,
-            False,
-        ),
-    ),
-)
-def test_legacy_resolution_preserves_evidence_for_each_owner_outcome(
-    tmp_path: Path,
-    event_type: ProposalDecisionEventType,
-    conditions: tuple[ProposalDecisionCondition, ...],
-    expected_state: ProposalDecisionEffectiveState,
-    expected_active: bool,
-) -> None:
+def test_ledger_rejects_obsolete_legacy_evidence_without_writing(tmp_path: Path) -> None:
     workspace, proposal_id, proposal_dir = _workspace(tmp_path)
     codec = ProposalDecisionLedgerCodec()
-    ledger = _seed_unknown_legacy(proposal_id, proposal_dir)
-    service = workspace._proposal_decision_service()
-    request = service.request(
-        proposal_id=proposal_id,
-        event_type=event_type,
-        reason="Current owner establishes authority now.",
-        actor_id="owner",
-        decided_on="2026-07-17",
-        conditions=conditions,
-    )
+    path = proposal_dir / "decision-events.yml"
+    payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+    payload["proposal_decision_ledger"]["legacy_evidence"] = []
+    content = yaml.safe_dump(payload, sort_keys=False).encode("utf-8")
+    before = path.read_bytes()
 
-    with pytest.raises(ValueError, match="P2P360_DECISION_LEGACY"):
-        service.preview(request)
-    preview = service.legacy_resolution_preview(request)
-    result = service.legacy_resolution_apply(
-        preview.request,
-        preview_token=preview.mutation.preview_token,
-        confirm=True,
-    )
+    with pytest.raises(ValueError, match="unknown fields: legacy_evidence"):
+        codec.loads(content, expected_proposal_id=proposal_id)
 
-    assert result.status == "applied"
-    repaired = codec.loads(
-        (proposal_dir / "decision-events.yml").read_bytes(),
-        expected_proposal_id=proposal_id,
-    )
-    assert repaired.legacy_evidence == ledger.legacy_evidence
-    assert repaired.events[0].migration is not None
-    assert repaired.events[0].migration.migration_id == "legacy-owner-resolution"
-    assert repaired.events[0].decided_on == "2026-07-17"
-    assert repaired.authority_resolution == ProposalDecisionAuthorityResolution.resolved
-    assert result.lifecycle.effective_state == expected_state
-    assert result.lifecycle.active is expected_active
-    if expected_active:
-        assert result.lifecycle.intervals[0].opened_on == "2026-07-17"
-    else:
-        assert result.lifecycle.intervals == ()
+    assert path.read_bytes() == before
 
 
 def test_ledger_repair_rejects_removed_valid_history_and_restores_exact_candidate(

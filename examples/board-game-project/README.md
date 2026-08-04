@@ -8,7 +8,11 @@ It demonstrates:
 - one accepted proposal;
 - one Change Set derived from that accepted proposal;
 - generated registries and readiness assessment;
-- Codex-oriented agent boundary files.
+- current workspace schema 3 and runtime declarations;
+- current shared Codex skill files under `.agents/skills/`.
+
+The example uses `binarya/base_project@2.0.0` as its structural vertical while
+the project domain records the board-game context.
 
 ## Scenario
 
@@ -35,13 +39,19 @@ p2p validate --root examples/board-game-project
 .p2p/
   project.yml
   project/
-    assessment.yml
+    workspace-schema.yml
+    runtime.yml
+    vertical.yml
+    vertical.lock.yml
+    definition.yml
     rubrics.yml
   proposals/
     PROP-001-prototype-cooperative-tile-game/
   changes/
     CHANGE-001-prototype-cooperative-tile-game/
   registries/
+.agents/
+  skills/
 ```
 
 ## Why This Example Exists

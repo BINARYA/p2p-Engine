@@ -36,7 +36,6 @@ from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionLifecycleView,
     ProposalDecisionLineage,
     ProposalDecisionLineageKind,
-    ProposalDecisionMigrationProvenance,
     ProposalDecisionPreview,
     ProposalDecisionReadinessBinding,
     ProposalDecisionRequest,
@@ -59,7 +58,6 @@ from p2p_engine.services.proposal_decision_ledger import (
     proposal_semantic_sha256,
     render_decision_projection,
     render_proposal_projection,
-    strict_yaml_load,
     validate_conditions,
     validate_lineage,
 )
@@ -105,7 +103,6 @@ _TERMINAL_LINEAGE_STATES = frozenset(
         ProposalDecisionEffectiveState.superseded,
         ProposalDecisionEffectiveState.split,
         ProposalDecisionEffectiveState.merged_into_other,
-        ProposalDecisionEffectiveState.unknown_legacy,
     }
 )
 
@@ -113,30 +110,6 @@ ImpactProvider = Callable[
     [str, ProposalDecisionEventType, ProposalDecisionLifecycleView],
     Mapping[str, object],
 ]
-
-
-def decision_markdown(
-    *,
-    proposal_id: str,
-    outcome: DecisionOutcome,
-    reason: str,
-    approver: str,
-    decided_on: date,
-) -> str:
-    """Render the schema-v2 decision projection for compatibility fixtures."""
-    return (
-        f"# Decision - {proposal_id}\n\n"
-        "## Status\n\n"
-        f"`{outcome.value}`\n\n"
-        "## Outcome\n\n"
-        f"{outcome.value}\n\n"
-        "## Reason\n\n"
-        f"{reason}\n\n"
-        "## Date\n\n"
-        f"{decided_on.isoformat()}\n\n"
-        "## Approver\n\n"
-        f"{approver}\n"
-    )
 
 
 class ProposalDecisionService:
@@ -267,13 +240,11 @@ class ProposalDecisionService:
         )
 
     def preview(self, request: ProposalDecisionRequest) -> ProposalDecisionPreview:
-        return self._preview(request, allow_unknown_legacy=False)
+        return self._preview(request)
 
     def _preview(
         self,
         request: ProposalDecisionRequest,
-        *,
-        allow_unknown_legacy: bool,
     ) -> ProposalDecisionPreview:
         self._require_schema_v3()
         snapshot = self._capture(request.proposal_id)
@@ -286,18 +257,9 @@ class ProposalDecisionService:
             proposal_text,
             snapshot["decision_bytes"],
         )
-        if (
-            lifecycle.authority_resolution
-            != ProposalDecisionAuthorityResolution.resolved
-            and not (
-                allow_unknown_legacy
-                and lifecycle.authority_resolution
-                == ProposalDecisionAuthorityResolution.unknown_legacy
-            )
-        ):
+        if lifecycle.authority_resolution != ProposalDecisionAuthorityResolution.resolved:
             raise ValueError(
-                "P2P360_DECISION_LEGACY_AUTHORITY_UNRESOLVED: run the explicit "
-                "legacy-resolution preview/apply workflow first"
+                "P2P361_DECISION_LEDGER_INVALID: decision authority is unresolved"
             )
         permission_payload = self._permission_payload(snapshot["permissions_bytes"])
         owner, executor = self._resolve_authority(request, permission_payload)
@@ -306,27 +268,7 @@ class ProposalDecisionService:
             request,
             source_head_event_id=ledger.head_event_id,
         )
-        if allow_unknown_legacy:
-            if (
-                lifecycle.authority_resolution
-                != ProposalDecisionAuthorityResolution.unknown_legacy
-                or ledger.events
-                or normalized.event_type
-                not in {
-                    ProposalDecisionEventType.accepted,
-                    ProposalDecisionEventType.accepted_with_changes,
-                    ProposalDecisionEventType.deferred,
-                    ProposalDecisionEventType.withdrawn,
-                    ProposalDecisionEventType.rejected,
-                }
-            ):
-                raise ValueError(
-                    "P2P360_DECISION_LEGACY_AUTHORITY_UNRESOLVED: legacy "
-                    "resolution applies only to an unresolved empty ledger and "
-                    "a supported current outcome"
-                )
-        else:
-            require_transition(lifecycle.effective_state, normalized.event_type)
+        require_transition(lifecycle.effective_state, normalized.event_type)
         self._validate_binding(lifecycle, normalized)
         self._validate_lineage(normalized)
         affected = self._affected_decision(
@@ -371,11 +313,6 @@ class ProposalDecisionService:
             consent_id=normalized.consent_id,
             consent_sha256=normalized.consent_sha256,
         )
-        migration = (
-            self._legacy_resolution_provenance(ledger)
-            if allow_unknown_legacy
-            else None
-        )
         placeholder_event = self.codec.build_event(
             proposal_id=normalized.proposal_id,
             event_type=normalized.event_type,
@@ -394,7 +331,6 @@ class ProposalDecisionService:
             preview_token="0" * 64,
             request_fingerprint_sha256=request_sha,
             operation_key=normalized.operation_key,
-            migration=migration,
         )
         sources = self._source_preconditions(
             snapshot,
@@ -475,7 +411,6 @@ class ProposalDecisionService:
             preview_token=mutation.preview_token,
             request_fingerprint_sha256=request_sha,
             operation_key=normalized.operation_key,
-            migration=migration,
         )
         candidate_ledger = self.codec.append(ledger, event)
         proposal_candidate = render_proposal_projection(
@@ -524,7 +459,6 @@ class ProposalDecisionService:
             request,
             preview_token=preview_token,
             confirm=confirm,
-            allow_unknown_legacy=False,
         )
 
     def _apply(
@@ -533,15 +467,11 @@ class ProposalDecisionService:
         *,
         preview_token: str,
         confirm: bool,
-        allow_unknown_legacy: bool,
     ) -> ProposalDecisionApplyResult:
         self._wait_for_competing_decision_mutation()
         if not confirm:
             self._require_schema_v3()
-            preview = self._preview(
-                request,
-                allow_unknown_legacy=allow_unknown_legacy,
-            )
+            preview = self._preview(request)
             return ProposalDecisionApplyResult(
                 status="blocked",
                 event=preview.event,
@@ -565,7 +495,7 @@ class ProposalDecisionService:
         try:
             self._require_schema_v3()
         except ValueError as exc:
-            if not str(exc).startswith("P2P307_WORKSPACE_MIGRATION_RECOVERY_REQUIRED"):
+            if not str(exc).startswith("P2P307_WORKSPACE_TRANSACTION_RECOVERY_REQUIRED"):
                 raise
             retry = self._exact_retry(request, preview_token)
             if retry is not None:
@@ -578,10 +508,7 @@ class ProposalDecisionService:
                 ) from None
             raise
         try:
-            preview = self._preview(
-                request,
-                allow_unknown_legacy=allow_unknown_legacy,
-            )
+            preview = self._preview(request)
         except ValueError:
             retry = self._exact_retry(request, preview_token)
             if retry is not None:
@@ -682,26 +609,6 @@ class ProposalDecisionService:
             request,
             preview_token=preview_token,
             confirm=confirm,
-        )
-
-    def legacy_resolution_preview(
-        self,
-        request: ProposalDecisionRequest,
-    ) -> ProposalDecisionPreview:
-        return self._preview(request, allow_unknown_legacy=True)
-
-    def legacy_resolution_apply(
-        self,
-        request: ProposalDecisionRequest,
-        *,
-        preview_token: str,
-        confirm: bool,
-    ) -> ProposalDecisionApplyResult:
-        return self._apply(
-            request,
-            preview_token=preview_token,
-            confirm=confirm,
-            allow_unknown_legacy=True,
         )
 
     def projection_repair_preview(
@@ -904,7 +811,6 @@ class ProposalDecisionService:
                 "P2P372_DECISION_REPAIR_UNSAFE: candidate changes, "
                 "reorders or removes the maximal valid event prefix"
             )
-        self._validate_legacy_evidence_preserved(live_bytes, candidate)
         permission_bytes = self.permissions.path().read_bytes()
         permission_payload = self._permission_payload(permission_bytes)
         executor_id = executor_actor_id or actor_id
@@ -1072,33 +978,6 @@ class ProposalDecisionService:
             ),
         }
 
-    @staticmethod
-    def _legacy_resolution_provenance(
-        ledger: ProposalDecisionLedger,
-    ) -> ProposalDecisionMigrationProvenance:
-        evidence = [item.to_dict() for item in ledger.legacy_evidence]
-        source_paths = tuple(
-            dict.fromkeys(
-                path
-                for item in ledger.legacy_evidence
-                for path in item.source_paths
-            )
-        )
-        source_sha256 = {
-            f"legacy_evidence_{index:03d}": semantic_sha256(item)
-            for index, item in enumerate(evidence, start=1)
-        }
-        return ProposalDecisionMigrationProvenance(
-            migration_id="legacy-owner-resolution",
-            source_paths=source_paths,
-            source_sha256=source_sha256,
-            preserved_values={
-                "legacy_evidence_count": len(evidence),
-                "legacy_evidence_sha256": semantic_sha256(evidence),
-                "historical_interval_precision": "unknown_legacy",
-            },
-        )
-
     def _validate_projection_repair_view(self, proposal_id: str, view) -> None:
         ledger_path, proposal_path, decision_path = self._target_paths(
             proposal_id,
@@ -1112,29 +991,6 @@ class ProposalDecisionService:
                 decision_path: view.read_bytes(decision_path),
             },
         )
-
-    @staticmethod
-    def _validate_legacy_evidence_preserved(
-        live_bytes: bytes,
-        candidate: ProposalDecisionLedger,
-    ) -> None:
-        try:
-            payload = strict_yaml_load(live_bytes)
-        except ValueError:
-            return
-        raw = (
-            payload.get("proposal_decision_ledger")
-            if isinstance(payload, dict)
-            else None
-        )
-        evidence = raw.get("legacy_evidence") if isinstance(raw, dict) else None
-        if isinstance(evidence, list) and evidence != [
-            item.to_dict() for item in candidate.legacy_evidence
-        ]:
-            raise ValueError(
-                "P2P372_DECISION_REPAIR_UNSAFE: candidate changes "
-                "preserved legacy evidence"
-            )
 
     @staticmethod
     def _mutation_blocked(
@@ -1814,7 +1670,7 @@ class ProposalDecisionService:
             raise ValueError(
                 "P2P375_DECISION_SCHEMA_V3_REQUIRED: proposal decision "
                 "event writes require workspace schema v3; this runtime provides no "
-                "legacy conversion. Run `p2p workspace schema status --format json`."
+                "in-runtime conversion. Run `p2p workspace schema status --format json`."
             )
 
     def _wait_for_competing_decision_mutation(self) -> None:
@@ -1842,7 +1698,7 @@ class ProposalDecisionService:
             (),
             {
                 "current_version": version,
-                "layout_status": "current" if version == 3 else "upgradeable",
+                "layout_status": "current" if version == 3 else "unsupported",
                 "recovery": {},
             },
         )()

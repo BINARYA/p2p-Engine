@@ -109,8 +109,8 @@ def tool_definitions() -> list[dict[str, object]]:
         _tool(
             'p2p_proposal_accept',
             (
-                'Deprecated compatibility tool: return a token-bound acceptance preview. '
-                'Legacy proposal_accept consent cannot write a schema-v3 event; apply through '
+                'Convenience tool for an acceptance decision: return the same token-bound '
+                'preview used by the current decision-event workflow. Apply through '
                 'p2p_proposal_decision_apply with preview-bound consent.'
             ),
             {'root': {'type': 'string'},
@@ -124,8 +124,8 @@ def tool_definitions() -> list[dict[str, object]]:
         _tool(
             'p2p_proposal_reject',
             (
-                'Deprecated compatibility tool: return a token-bound rejection preview. '
-                'Legacy proposal_reject consent cannot write a schema-v3 event; apply through '
+                'Convenience tool for a rejection decision: return the same token-bound '
+                'preview used by the current decision-event workflow. Apply through '
                 'p2p_proposal_decision_apply with preview-bound consent.'
             ),
             {'root': {'type': 'string'},
@@ -139,8 +139,8 @@ def tool_definitions() -> list[dict[str, object]]:
         _tool(
             'p2p_proposal_defer',
             (
-                'Deprecated compatibility tool: return a token-bound deferral preview. '
-                'Legacy proposal_defer consent cannot write a schema-v3 event; apply through '
+                'Convenience tool for a deferral decision: return the same token-bound '
+                'preview used by the current decision-event workflow. Apply through '
                 'p2p_proposal_decision_apply with preview-bound consent.'
             ),
             {'root': {'type': 'string'},

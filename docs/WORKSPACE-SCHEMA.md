@@ -1,6 +1,6 @@
 # Current Workspace Schema Contract
 
-P2P Engine 0.4.6 supports workspace schema 3 only. Fresh `p2p init` operations
+P2P Engine 0.4.7 supports workspace schema 3 only. Fresh `p2p init` operations
 create that schema and its complete canonical layout.
 
 Inspect the contract without writing:
@@ -13,11 +13,11 @@ p2p workspace schema status --format json
 The status is writable only when `layout_status` is `current` and
 `current_version` is `3`. A missing declaration, schema 1 or 2, an unknown
 contract, or a future schema returns `P2P_WORKSPACE_UNSUPPORTED_SCHEMA`.
-P2P Engine 0.4.6 does not plan or apply legacy workspace conversions.
+P2P Engine 0.4.7 does not plan or apply workspace conversions.
 
-`workspace_schema.applied_migrations` may remain in an already-current
-workspace as historical audit data. The runtime validates that the history is
-well formed and contiguous, but it does not load retired migration handlers.
+The current workspace declaration contains only the current contract,
+initialization baseline, date and actor. Obsolete migration-history fields are
+invalid and are never interpreted by the runtime.
 
 ## Atomic Transaction Recovery
 

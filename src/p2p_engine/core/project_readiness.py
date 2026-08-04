@@ -28,7 +28,7 @@ class ProjectReadinessGapKind(StrEnum):
     INCOMPLETE_REQUIRED_DEFINITION = "incomplete_required_definition"
     ASSUMPTION_TO_VALIDATE = "assumption_to_validate"
     OPTIONAL_DECLARED_EVIDENCE = "optional_declared_evidence"
-    INFORMATIONAL_LEGACY = "informational_legacy"
+    UNMAPPED_PROPOSAL_COVERAGE = "unmapped_proposal_coverage"
 
 
 class ProjectReadinessGapSeverity(StrEnum):
@@ -48,7 +48,7 @@ _CLASS_RANKS = {
     ProjectReadinessGapKind.INCOMPLETE_REQUIRED_DEFINITION: 3,
     ProjectReadinessGapKind.ASSUMPTION_TO_VALIDATE: 4,
     ProjectReadinessGapKind.OPTIONAL_DECLARED_EVIDENCE: 5,
-    ProjectReadinessGapKind.INFORMATIONAL_LEGACY: 6,
+    ProjectReadinessGapKind.UNMAPPED_PROPOSAL_COVERAGE: 6,
 }
 
 

@@ -7,6 +7,7 @@ from typing import Any
 
 import yaml
 
+from p2p_engine import __version__
 from p2p_engine.core.workspace_schema import (
     ALIGNMENT_ALIGNED,
     ALIGNMENT_DEGRADED,
@@ -16,7 +17,6 @@ from p2p_engine.core.workspace_schema import (
     LAYOUT_INVALID,
     LAYOUT_UNSUPPORTED,
     WORKSPACE_SCHEMA_CONTRACT_VERSION,
-    AppliedWorkspaceMigration,
     WorkspaceDiagnostic,
     WorkspaceSchemaState,
     WorkspaceSchemaPreflight,
@@ -36,10 +36,8 @@ _SCHEMA_KEYS = frozenset(
         "baseline",
         "initialized_at",
         "initialized_by",
-        "applied_migrations",
     }
 )
-_MIGRATION_KEYS = frozenset({"id", "from", "to", "applied_at", "actor", "plan_fingerprint_sha256"})
 
 
 class WorkspaceSchemaService:
@@ -185,25 +183,18 @@ class WorkspaceSchemaService:
             initialized_by = _required_text(raw, "initialized_by")
         except (TypeError, ValueError) as exc:
             raise ValueError(str(exc)) from exc
-        raw_history = raw.get("applied_migrations", [])
-        if not isinstance(raw_history, list):
-            raise ValueError("workspace_schema.applied_migrations must be a sequence")
-        history: list[AppliedWorkspaceMigration] = []
-        for index, item in enumerate(raw_history):
-            history.append(self._parse_history_item(item, index))
         state = WorkspaceSchemaState(
             contract_version=contract_version,
             current_version=current_version,
             baseline=baseline,
             initialized_at=initialized_at,
             initialized_by=initialized_by,
-            applied_migrations=tuple(history),
         )
-        self._validate_history(state)
+        self._validate_state(state)
         return state
 
     def write_state(self, state: WorkspaceSchemaState) -> None:
-        self._validate_history(state)
+        self._validate_state(state)
         write_yaml_atomic(self.path, state.to_payload())
 
     def initialized_current_payload(self, *, initialized_at: str, actor: str) -> dict[str, object]:
@@ -213,12 +204,11 @@ class WorkspaceSchemaService:
             baseline="initialized_current",
             initialized_at=initialized_at,
             initialized_by=actor,
-            applied_migrations=(),
         ).to_payload()
 
     def layout_requirements(self, version: int) -> dict[str, tuple[str, ...]]:
         if version != CURRENT_WORKSPACE_SCHEMA_VERSION:
-            return {"canonical": (), "optional": (), "compatibility": (), "derived": (), "transient": ()}
+            return {"canonical": (), "optional": (), "derived": (), "transient": ()}
         canonical = [
             ".p2p/project.yml",
             ".p2p/project/runtime.yml",
@@ -250,7 +240,6 @@ class WorkspaceSchemaService:
                 ".p2p/project/rubrics.yml",
                 ".p2p/agent-integrations.yml",
             ),
-            "compatibility": (".p2p/domain/",),
             "derived": (".p2p/registries/", ".p2p/project/features/", "outputs/"),
             "transient": (".p2p/.internal/workspace-transactions/",),
         }
@@ -293,7 +282,7 @@ class WorkspaceSchemaService:
                 embedded_questions = [
                     str(item.get("id") or "")
                     for item in sections
-                    if isinstance(item, dict) and item.get("open_questions")
+                    if isinstance(item, dict) and "open_questions" in item
                 ]
                 if embedded_questions:
                     findings.append(
@@ -302,8 +291,8 @@ class WorkspaceSchemaService:
                             severity="error",
                             path=".p2p/project/definition.yml",
                             message=(
-                                "Current workspace schema requires definition open_questions "
-                                "to be empty: " + ", ".join(sorted(embedded_questions))
+                                "Current workspace schema forbids definition open_questions: "
+                                + ", ".join(sorted(embedded_questions))
                             ),
                             suggested_command="p2p project definition show --format json",
                         )
@@ -377,51 +366,11 @@ class WorkspaceSchemaService:
             )
         return findings
 
-    def _parse_history_item(self, item: object, index: int) -> AppliedWorkspaceMigration:
-        if not isinstance(item, dict):
-            raise ValueError(f"applied_migrations[{index}] must be a mapping")
-        unknown = set(item) - _MIGRATION_KEYS
-        if unknown:
-            raise ValueError(
-                f"Unknown fields in applied_migrations[{index}]: {', '.join(sorted(unknown))}"
-            )
-        source_raw = item.get("from")
-        source = 0 if source_raw == "legacy_undeclared" else _coerce_int(source_raw, f"applied_migrations[{index}].from")
-        return AppliedWorkspaceMigration(
-            migration_id=_required_text(item, "id"),
-            source_version=source,
-            target_version=_coerce_int(item.get("to"), f"applied_migrations[{index}].to"),
-            applied_at=_required_text(item, "applied_at"),
-            actor=_required_text(item, "actor"),
-            plan_fingerprint_sha256=_required_text(item, "plan_fingerprint_sha256"),
-        )
-
-    def _validate_history(self, state: WorkspaceSchemaState) -> None:
+    def _validate_state(self, state: WorkspaceSchemaState) -> None:
         if state.contract_version < 1 or state.current_version < 1:
             raise ValueError("Workspace schema contract and current versions must be positive integers")
-        seen: set[str] = set()
-        expected_source = (
-            0
-            if state.baseline == "migrated_legacy"
-            else (state.applied_migrations[0].source_version if state.applied_migrations else state.current_version)
-        )
-        for item in state.applied_migrations:
-            if item.migration_id in seen:
-                raise ValueError(f"Duplicate applied workspace migration id: {item.migration_id}")
-            seen.add(item.migration_id)
-            if item.source_version != expected_source:
-                raise ValueError("Applied workspace migration history is not contiguous")
-            if item.target_version <= item.source_version:
-                raise ValueError("Applied workspace migration history must be forward-only")
-            expected_source = item.target_version
-        if state.applied_migrations and expected_source != state.current_version:
-            raise ValueError("Applied migration history does not end at current_version")
-        if state.baseline == "migrated_legacy" and not state.applied_migrations:
-            raise ValueError("migrated_legacy baseline requires applied migration history")
-        if state.baseline == "initialized_current" and state.applied_migrations:
-            raise ValueError("initialized_current baseline cannot contain applied migration history")
-        if state.baseline == "migrated_declared" and not state.applied_migrations:
-            raise ValueError("migrated_declared baseline requires applied migration history")
+        if state.baseline != "initialized_current":
+            raise ValueError("Workspace schema baseline must be initialized_current")
 
     def _unsupported(
         self,
@@ -450,8 +399,8 @@ class WorkspaceSchemaService:
                     severity="error",
                     path=str(WORKSPACE_SCHEMA_PATH),
                     message=(
-                        f"{message} P2P Engine 0.4.6 supports workspace schema "
-                        f"{CURRENT_WORKSPACE_SCHEMA_VERSION} only and provides no runtime legacy "
+                        f"{message} P2P Engine {__version__} supports workspace schema "
+                        f"{CURRENT_WORKSPACE_SCHEMA_VERSION} only and provides no in-runtime "
                         "conversion. Recreate or convert the workspace outside this runtime."
                     ),
                     suggested_command="p2p workspace schema status --format json",

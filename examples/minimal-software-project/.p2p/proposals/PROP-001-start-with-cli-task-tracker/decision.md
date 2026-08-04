@@ -8,14 +8,42 @@
 
 accepted
 
+## Event Type
+
+accepted
+
+## Effective State
+
+accepted
+
 ## Reason
 
-A CLI task tracker is small enough to demonstrate proposal-to-change flow without extra infrastructure.
+The example deliberately accepts the bounded CLI feature.
 
 ## Date
 
-2026-05-29
+2026-08-04
 
 ## Approver
 
-local
+owner
+
+## Owner
+
+owner
+
+## Ledger Head
+
+PDE-ed8a33ec34f42017a317f039
+
+## Decision Fingerprint
+
+20a2112ca5449319b840ad15b534d0e257213a91ac50f4145b2127ada3181bbc
+
+## Lineage
+
+None.
+
+## Canonical Source
+
+decision-events.yml

@@ -4,10 +4,44 @@ from pathlib import Path
 
 import yaml
 
+from p2p_engine.core.mutation_preview import semantic_sha256
+from p2p_engine.core.proposal_decision_events import (
+    ProposalDecisionAffectedDecision,
+    ProposalDecisionAuthorityEvidence,
+    ProposalDecisionCondition,
+    ProposalDecisionEventType,
+    ProposalDecisionImpactBinding,
+    ProposalDecisionLineage,
+    ProposalDecisionLineageKind,
+    ProposalDecisionReadinessBinding,
+)
+from p2p_engine.services.lifecycle_authority import effective_state_for_event
+from p2p_engine.services.proposal_decision_ledger import (
+    ProposalDecisionLedgerCodec,
+    decision_semantic_sha256,
+    operation_key,
+    proposal_semantic_sha256,
+    render_decision_projection,
+)
+from p2p_engine.services.project_questions import ProjectQuestionStateService
+
 
 def initialize_project(root: Path) -> Path:
     proposals = root / ".p2p" / "proposals"
     proposals.mkdir(parents=True, exist_ok=True)
+    questions_path = root / ".p2p" / "project" / "questions.yml"
+    if not questions_path.exists():
+        service = ProjectQuestionStateService(root=root, p2p_dir=root / ".p2p")
+        artifact = service.empty_artifact(
+            project_id="decision-context-fixture",
+            vertical_id="binarya/base_project",
+            vertical_version="2.0.0",
+            lock_checksum="a" * 64,
+            actor="owner",
+            audit_at="2026-01-01T00:00:00Z",
+        )
+        questions_path.parent.mkdir(parents=True, exist_ok=True)
+        questions_path.write_bytes(service.candidate_bytes(artifact))
     return proposals
 
 
@@ -67,34 +101,71 @@ def write_proposal(
         )
     )
     (proposal_dir / "proposal.md").write_text(proposal_text, encoding="utf-8", newline="")
+    codec = ProposalDecisionLedgerCodec()
+    ledger = codec.empty(proposal_id)
     if decision_outcome is not None:
-        decision_text = newline.join(
-            (
-                f"# Decision - {proposal_id}",
-                "",
-                "## Status",
-                "",
-                f"`{decision_outcome}`",
-                "",
-                "## Outcome",
-                "",
-                decision_outcome,
-                "",
-                "## Reason",
-                "",
-                decision_reason,
-                "",
-                "## Date",
-                "",
-                decision_date,
-                "",
-                "## Approver",
-                "",
-                approver,
-                "",
+        event = None
+        if decision_outcome not in {"pending", "draft"}:
+            event_type = ProposalDecisionEventType(decision_outcome)
+            state = effective_state_for_event(event_type)
+            conditions = (
+                (ProposalDecisionCondition("COND-001", decision_reason),)
+                if event_type == ProposalDecisionEventType.accepted_with_changes
+                else ()
             )
-        )
+            lineage = {
+                ProposalDecisionEventType.superseded: ProposalDecisionLineage(
+                    ProposalDecisionLineageKind.supersedes, ("PROP-999",)
+                ),
+                ProposalDecisionEventType.split: ProposalDecisionLineage(
+                    ProposalDecisionLineageKind.split, ("PROP-998", "PROP-999")
+                ),
+                ProposalDecisionEventType.merged_into_other: ProposalDecisionLineage(
+                    ProposalDecisionLineageKind.merged_into, ("PROP-999",)
+                ),
+            }.get(event_type, ProposalDecisionLineage())
+            proposal_sha = proposal_semantic_sha256(proposal_id, proposal_text)
+            decision_sha = decision_semantic_sha256(
+                proposal_sha256=proposal_sha,
+                outcome=state,
+                rationale=decision_reason,
+                conditions=conditions,
+            )
+            event = codec.build_event(
+                proposal_id=proposal_id,
+                event_type=event_type,
+                effective_state=state,
+                rationale=decision_reason,
+                conditions=conditions,
+                decided_on=decision_date,
+                authority=ProposalDecisionAuthorityEvidence(
+                    owner_id=approver,
+                    owner_role="owner",
+                    executor_actor_id=approver,
+                    executor_kind="person",
+                    channel="test_fixture",
+                    permission_policy_sha256="a" * 64,
+                ),
+                predecessor=None,
+                proposal_semantic_sha256=proposal_sha,
+                decision_semantic_sha256=decision_sha,
+                affected_decision=ProposalDecisionAffectedDecision(),
+                lineage=lineage,
+                impact=ProposalDecisionImpactBinding(),
+                readiness=ProposalDecisionReadinessBinding(),
+                preview_token=semantic_sha256({"fixture": proposal_id, "preview": decision_outcome}),
+                request_fingerprint_sha256=semantic_sha256(
+                    {"fixture": proposal_id, "request": decision_outcome}
+                ),
+                operation_key=operation_key(
+                    {"fixture": proposal_id, "outcome": decision_outcome},
+                    None,
+                ),
+            )
+            ledger = codec.append(ledger, event)
+        decision_text = render_decision_projection(proposal_id, event)
         (proposal_dir / "decision.md").write_text(decision_text, encoding="utf-8", newline="")
+    (proposal_dir / "decision-events.yml").write_bytes(codec.dumps(ledger))
     return proposal_dir
 
 

@@ -75,7 +75,6 @@ DECISION_LIFECYCLE_WHEEL_MEMBERS = {
     "p2p_engine/services/decision_context_ledger.py",
     "p2p_engine/services/proposal_decision_impact.py",
     "p2p_engine/services/proposal_decision_ledger.py",
-    "p2p_engine/services/proposal_decision_legacy.py",
     "p2p_engine/services/proposal_decisions.py",
 }
 DECISION_LIFECYCLE_SDIST_MEMBERS = {
@@ -160,6 +159,34 @@ VERTICAL_DRAFT_SDIST_MEMBERS = {
     "tests/fixtures/vertical_drafts/validation-v1.json",
     "tests/test_vertical_drafts.py",
 }
+CURRENT_SURFACE_WHEEL_MEMBERS = {
+    "p2p_engine/services/agent_capabilities.py",
+    "p2p_engine/services/agent_instructions.py",
+    "p2p_engine/services/agent_templates.py",
+    "p2p_engine/services/public_surface_inventory.py",
+}
+CURRENT_SURFACE_SDIST_MEMBERS = {
+    *(f"src/{member}" for member in CURRENT_SURFACE_WHEEL_MEMBERS),
+    "tests/test_current_only_surface.py",
+    "tests/test_public_surface_inventory.py",
+    "tests/test_version_consistency.py",
+}
+DISCARDED_SURFACE_TOKENS = (
+    "legacy_undeclared",
+    "absent_legacy",
+    "legacy_absent",
+    "legacy_unverifiable",
+    "current_legacy",
+    "unknown_legacy",
+    "unknown_origin",
+    "legacy_mtime_fallback",
+    "current_legacy_fallback",
+    "workspace migrate",
+    "legacy-resolution",
+    "mark-legacy",
+    "proposal_decision_legacy",
+    "codex-legacy",
+)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -210,6 +237,15 @@ def _require(members: set[str], required: set[str], *, target: str) -> None:
         raise ValueError(f"missing required {target} members: {', '.join(missing)}")
 
 
+def _reject_discarded_surface(content: bytes, *, member: str, target: str) -> None:
+    text = content.decode("utf-8", errors="ignore")
+    hits = sorted(token for token in DISCARDED_SURFACE_TOKENS if token in text)
+    if hits:
+        raise ValueError(
+            f"discarded compatibility surface in {target} member {member}: {', '.join(hits)}"
+        )
+
+
 def _vertical_pack_required_members(package_prefix: str) -> set[str]:
     required: set[str] = set()
     for vertical_id, sections in BUNDLED_VERTICAL_PACK_SECTIONS.items():
@@ -247,10 +283,14 @@ def verify_wheel(path: Path, *, version: str) -> int:
     required.update(PORTABLE_VERTICAL_WHEEL_MEMBERS)
     required.update(VERTICAL_REGISTRY_WHEEL_MEMBERS)
     required.update(VERTICAL_DRAFT_WHEEL_MEMBERS)
+    required.update(CURRENT_SURFACE_WHEEL_MEMBERS)
     required.update(_vertical_pack_required_members("p2p_engine"))
     with zipfile.ZipFile(path) as archive:
         members = _normalized_members(archive.namelist(), archive_root=None)
         _require(members, required, target="wheel")
+        for member in sorted(members):
+            if member.startswith("p2p_engine/") and member.endswith((".py", ".md", ".yml", ".yaml")):
+                _reject_discarded_surface(archive.read(member), member=member, target="wheel")
         actual_version = _metadata_version(archive.read(metadata), target=metadata)
     if actual_version != version:
         raise ValueError(f"wheel version {actual_version} does not match {version}")
@@ -267,8 +307,10 @@ def verify_sdist(path: Path, *, version: str) -> int:
         "PKG-INFO",
         "pyproject.toml",
         "scripts/verify-release-artifacts.py",
+        "scripts/archive-project-state.py",
         "src/p2p_engine/core/project_questions.py",
         "src/p2p_engine/services/project_readiness_convergence.py",
+        "tests/test_archive_project_state_script.py",
     }
     required.update(DECISION_LIFECYCLE_SDIST_MEMBERS)
     required.update(CURRENT_SCHEMA_SDIST_MEMBERS)
@@ -276,10 +318,18 @@ def verify_sdist(path: Path, *, version: str) -> int:
     required.update(PORTABLE_VERTICAL_SDIST_MEMBERS)
     required.update(VERTICAL_REGISTRY_SDIST_MEMBERS)
     required.update(VERTICAL_DRAFT_SDIST_MEMBERS)
+    required.update(CURRENT_SURFACE_SDIST_MEMBERS)
     required.update(_vertical_pack_required_members("src/p2p_engine"))
     with tarfile.open(path, mode="r:gz") as archive:
         members = _normalized_members(archive.getnames(), archive_root=archive_root)
         _require(members, required, target="sdist")
+        for member in sorted(members):
+            if member.startswith("src/p2p_engine/") and member.endswith((".py", ".md", ".yml", ".yaml")):
+                _reject_discarded_surface(
+                    archive.extractfile(f"{archive_root}/{member}").read(),
+                    member=member,
+                    target="sdist",
+                )
         metadata_member = archive.getmember(f"{archive_root}/PKG-INFO")
         extracted = archive.extractfile(metadata_member)
         if extracted is None:

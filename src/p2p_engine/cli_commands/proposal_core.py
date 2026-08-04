@@ -234,9 +234,9 @@ def _print_grouped_questions(questions: object) -> None:
     else:
         console.print("    none")
 
-    console.print("  Legacy narrative question artifacts:")
-    if questions.legacy_question_artifacts:
-        for item in questions.legacy_question_artifacts:
+    console.print("  Narrative question evidence:")
+    if questions.narrative_question_artifacts:
+        for item in questions.narrative_question_artifacts:
             console.print(f"    {item.path or item.source_hint} (evidence)")
             if item.summary:
                 console.print(f"      {_clip_cli(item.summary)}")

@@ -735,9 +735,9 @@ class ProposalArtifactService:
                 if not re.fullmatch(r"PROP-[0-9]+", target):
                     raise ValueError(f"related_proposals[{index}] target must be a proposal id")
                 self.find_proposal_dir(target)
-                relation = str(item.get("relationship") or item.get("relation") or item.get("type") or "related")
+                relation = str(item.get("relationship") or item.get("relation") or item.get("type") or "")
                 policy = classify_relation_term(relation)
-                if policy["category"] in {"ambiguous", "invalid"}:
+                if policy["category"] != "canonical":
                     raise ValueError(
                         f"related_proposals[{index}] relation {relation!r} is {policy['category']} and requires curation"
                     )
@@ -891,9 +891,7 @@ def _actor_role(path: Path, actor: str) -> str:
     if not actor:
         return ""
     if not path.exists():
-        # Match PermissionsService.show() for legacy workspaces whose explicit
-        # policy has not yet been materialized by schema migration.
-        return "owner" if actor == "owner" else ""
+        return ""
     try:
         payload = load_yaml(path.read_bytes())
     except (OSError, UnicodeDecodeError, yaml.YAMLError):

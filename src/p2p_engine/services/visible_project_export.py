@@ -198,9 +198,8 @@ class VisibleProjectExportService:
             (
                 "The default visible export is this chaptered Markdown document. "
                 "Specialized vertical or tool-specific exports belong under "
-                "`outputs/latest/exports/<profile-or-vertical>/`. Existing "
-                "`.p2p/outputs` spec exports remain compatibility artifacts unless "
-                "a separate migration changes them."
+                "`outputs/latest/exports/<profile-or-vertical>/`. Runtime readers "
+                "recognize only these current output paths."
             ),
             "",
             "## Source Traceability",

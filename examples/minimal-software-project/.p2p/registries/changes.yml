@@ -2,7 +2,7 @@ generated: true
 source: .p2p/changes
 changes:
 - id: CHANGE-001
-  title: Start With CLI Task Tracker
+  title: Start with CLI task tracker
   status: proposed
   path: .p2p/changes/CHANGE-001-start-with-cli-task-tracker
   included_proposals:

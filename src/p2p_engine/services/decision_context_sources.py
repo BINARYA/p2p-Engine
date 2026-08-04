@@ -20,7 +20,6 @@ from p2p_engine.core.decision_context import (
     DecisionContextDiagnostic,
     DiagnosticSeverity,
     ExtractionSession,
-    LEGACY_SOURCE_CATALOG_VERSION,
     ParsedFragment,
     SOURCE_CATALOG_VERSION,
     SourceAccessStats,
@@ -176,8 +175,7 @@ class DecisionContextSourceService:
         )
 
     def _proposal_decision_catalog(self, counter: _AccessCounter) -> SourceCatalog:
-        workspace_schema_version = self._workspace_schema_version()
-        catalog_version = _catalog_version(workspace_schema_version)
+        catalog_version = SOURCE_CATALOG_VERSION
         proposals_root = self.p2p_dir / "proposals"
         counter.discovery_passes += 1
         if not proposals_root.is_dir():
@@ -218,7 +216,6 @@ class DecisionContextSourceService:
                 _proposal_decision_source_descriptors(
                     proposal_dir,
                     owner_id,
-                    workspace_schema_version=workspace_schema_version,
                 )
             )
         descriptors.sort(key=lambda item: (_relative_path(self.root, item.path), item.source_kind.value))
@@ -226,8 +223,7 @@ class DecisionContextSourceService:
         return SourceCatalog(catalog_version, tuple(descriptors), tuple(diagnostics))
 
     def _full_catalog(self, counter: _AccessCounter) -> SourceCatalog:
-        workspace_schema_version = self._workspace_schema_version()
-        catalog_version = _catalog_version(workspace_schema_version)
+        catalog_version = SOURCE_CATALOG_VERSION
         proposals_root = self.p2p_dir / "proposals"
         counter.discovery_passes += 1
         if not proposals_root.is_dir():
@@ -267,7 +263,6 @@ class DecisionContextSourceService:
                 _proposal_source_descriptors(
                     proposal_dir,
                     owner_id,
-                    workspace_schema_version=workspace_schema_version,
                 )
             )
 
@@ -290,22 +285,6 @@ class DecisionContextSourceService:
         descriptors.sort(key=lambda item: (_relative_path(self.root, item.path), item.source_kind.value))
         diagnostics.sort(key=_diagnostic_sort_key)
         return SourceCatalog(catalog_version, tuple(descriptors), tuple(diagnostics))
-
-    def _workspace_schema_version(self) -> int:
-        path = self.p2p_dir / "project" / "workspace-schema.yml"
-        if not path.is_file():
-            return 2
-        try:
-            payload = load_yaml(self.accessor.read_bytes(path))
-        except (OSError, UnicodeDecodeError, yaml.YAMLError):
-            return 2
-        if not isinstance(payload, Mapping):
-            return 2
-        raw = payload.get("workspace_schema")
-        if not isinstance(raw, Mapping):
-            return 2
-        version = raw.get("current_version")
-        return version if isinstance(version, int) and version > 0 else 2
 
     def _directory_source_descriptors(
         self,
@@ -593,10 +572,8 @@ def _invalid_structured_document(
 def _proposal_decision_source_descriptors(
     proposal_dir: Path,
     owner_id: str,
-    *,
-    workspace_schema_version: int,
 ) -> tuple[SourceDescriptor, ...]:
-    descriptors = [
+    return (
         SourceDescriptor(
             proposal_dir / "proposal.md",
             owner_id,
@@ -608,39 +585,28 @@ def _proposal_decision_source_descriptors(
             proposal_dir / "decision.md",
             owner_id,
             SourceKind.PROPOSAL_DECISION,
-            (
-                SourceClassification.DERIVED_PROJECTION
-                if workspace_schema_version >= 3
-                else SourceClassification.CANONICAL_SEMANTIC
-            ),
+            SourceClassification.DERIVED_PROJECTION,
             False,
         ),
-    ]
-    if workspace_schema_version >= 3:
-        descriptors.append(
-            SourceDescriptor(
-                proposal_dir / "decision-events.yml",
-                owner_id,
-                SourceKind.PROPOSAL_DECISION_LEDGER,
-                SourceClassification.CANONICAL_SEMANTIC,
-                True,
-                "yaml",
-            )
-        )
-    return tuple(descriptors)
+        SourceDescriptor(
+            proposal_dir / "decision-events.yml",
+            owner_id,
+            SourceKind.PROPOSAL_DECISION_LEDGER,
+            SourceClassification.CANONICAL_SEMANTIC,
+            True,
+            "yaml",
+        ),
+    )
 
 
 def _proposal_source_descriptors(
     proposal_dir: Path,
     owner_id: str,
-    *,
-    workspace_schema_version: int,
 ) -> tuple[SourceDescriptor, ...]:
     return (
         *_proposal_decision_source_descriptors(
             proposal_dir,
             owner_id,
-            workspace_schema_version=workspace_schema_version,
         ),
         SourceDescriptor(
             proposal_dir / "related-proposals.yml",
@@ -706,14 +672,6 @@ def _proposal_source_descriptors(
             False,
             "yaml",
         ),
-    )
-
-
-def _catalog_version(workspace_schema_version: int) -> str:
-    return (
-        SOURCE_CATALOG_VERSION
-        if workspace_schema_version >= 3
-        else LEGACY_SOURCE_CATALOG_VERSION
     )
 
 
@@ -849,18 +807,16 @@ def _project_source_descriptors(p2p_dir: Path) -> tuple[SourceDescriptor, ...]:
             "yaml",
         ),
     ]
-    questions = p2p_dir / "project" / "questions.yml"
-    if questions.exists():
-        descriptors.append(
-            SourceDescriptor(
-                questions,
-                "PROJECT",
-                SourceKind.PROJECT_QUESTIONS,
-                SourceClassification.QUALITY_METADATA,
-                False,
-                "yaml",
-            )
+    descriptors.append(
+        SourceDescriptor(
+            p2p_dir / "project" / "questions.yml",
+            "PROJECT",
+            SourceKind.PROJECT_QUESTIONS,
+            SourceClassification.QUALITY_METADATA,
+            True,
+            "yaml",
         )
+    )
     return tuple(descriptors)
 
 

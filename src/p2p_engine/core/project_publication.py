@@ -137,13 +137,6 @@ class PublicationEditionPaths:
     candidate_markdown: Path
     candidate_model: Path
     candidate_evidence: Path
-    legacy_profile: Path
-    legacy_curator_input: Path
-    legacy_manifest: Path
-    legacy_markdown: Path
-    legacy_validation: Path
-    legacy_pdf: Path
-    legacy_review: Path
 
     def canonical_targets(self) -> tuple[Path, ...]:
         return (
@@ -354,13 +347,6 @@ def resolve_publication_paths(root: Path, edition: PublicationEdition) -> Public
         candidate_markdown=drafts / f"{edition.edition_key}.md",
         candidate_model=drafts / f"{edition.edition_key}.model.yml",
         candidate_evidence=drafts / f"{edition.edition_key}.evidence.yml",
-        legacy_profile=latest / "publication-profile.yml",
-        legacy_curator_input=latest / "curator-input.md",
-        legacy_manifest=latest / "publication-manifest.yml",
-        legacy_markdown=latest / "project.curated.md",
-        legacy_validation=latest / "publication-validation.yml",
-        legacy_pdf=latest / "project.pdf",
-        legacy_review=latest / "publication-review.yml",
     )
     _require_under(root / "outputs", root, "Publication output directory")
     _require_under(paths.latest_dir, root / "outputs", "Publication output root")

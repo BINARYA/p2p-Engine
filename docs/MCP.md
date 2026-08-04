@@ -225,9 +225,10 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_proposal_decision_impact` | read-only | no | no | Inspect complete dependency impact with bounded rendering. |
 | `p2p_proposal_decision_preview` | read-only | no | no | Create a source-bound decision preview without recording an event. |
 | `p2p_proposal_decision_apply` | consent-gated | yes | yes | Apply the exact preview using `proposal_decision_apply` consent bound to `PROP-XXX@preview-token`. |
-| `p2p_proposal_decision_projection_repair_preview/apply` | read/consent-gated | apply only | yes | Restore projections from a valid ledger. |
-| `p2p_proposal_decision_ledger_repair_preview/apply` | read/consent-gated | apply only | yes | Apply a reviewed ledger candidate that preserves the valid prefix. |
-| `p2p_proposal_decision_legacy_resolution_preview/apply` | read/consent-gated | apply only | yes | Resolve preserved unknown-legacy authority through an explicit owner event. |
+| `p2p_proposal_decision_projection_repair_preview` | read-only | no | yes | Preview restoring projections from a valid ledger. |
+| `p2p_proposal_decision_projection_repair_apply` | consent-gated | yes | yes | Restore projections from a valid ledger and matching preview. |
+| `p2p_proposal_decision_ledger_repair_preview` | read-only | no | yes | Preview a reviewed ledger candidate that preserves the valid prefix. |
+| `p2p_proposal_decision_ledger_repair_apply` | consent-gated | yes | yes | Apply the reviewed ledger candidate and matching preview. |
 | `p2p_choice_list` | read-only | no | no | List project choices. |
 | `p2p_choice_show` | read-only | no | no | Inspect one choice. |
 | `p2p_governance_status` | read-only | no | no | Read governance mode and audit artifact counts. |
@@ -300,7 +301,6 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_proposal_artifact_init` | write-safe | yes | no | Initialize or refresh artifact-aware proposal state without deciding governance. |
 | `p2p_proposal_artifact_set` | write-safe | yes | no | Set one artifact expectation/status/rationale without changing proposal decisions. |
 | `p2p_proposal_artifact_confirm` | write-safe | yes | no | Record owner confirmation for one artifact state without accepting/rejecting the proposal. |
-| `p2p_proposal_artifact_mark_legacy` | write-safe | yes | no | Mark artifact state as advisory `absent_legacy` for older proposals. |
 | `p2p_explore_import` | write-safe | yes | no | Import exploration artifact content from a source path, direct content, or allowlisted artifact payloads. |
 | `p2p_impact_import` | write-safe | yes | no | Import impact artifacts from a source path, direct content, or allowlisted YAML artifact payloads with validation. |
 | `p2p_clarify_import` | write-safe | yes | no | Import clarification content into `clarifications.md`. |
@@ -316,7 +316,7 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_project_publish_validate` | write-safe | yes | no | Validate one edition's complete evidence/model/Markdown hash chain. |
 | `p2p_project_publish_render` | write-safe | yes | no | Render one validated edition to `<edition-key>.pdf` when `p2p-engine[pdf]` is installed. |
 | `p2p_project_publish_status` | read-only | no | no | Read stage-level status and approval for one selected edition. |
-| `p2p_project_publish_list` | read-only | no | no | List committed editions and legacy classification without rebuilding publication state. |
+| `p2p_project_publish_list` | read-only | no | no | List committed current editions without rebuilding publication state. |
 | `p2p_project_vertical_list` | read-only | no | no | List internal and project-local vertical packs plus active/fallback state. |
 | `p2p_project_vertical_show` | read-only | no | no | Read one vertical pack, including inherited `base_project` sections. |
 | `p2p_project_vertical_validate` | read-only | no | no | Validate an installed vertical coordinate or schema-2 pack directory. |

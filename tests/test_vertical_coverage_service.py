@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+import pytest
 import yaml
 from typer.testing import CliRunner
 
@@ -73,7 +74,7 @@ def test_coverage_status_and_suggestion_are_read_only(tmp_path: Path) -> None:
     status = workspace.proposal_vertical_coverage_status(proposal_id)
     suggestion = workspace.suggest_proposal_vertical_coverage(proposal_id)
 
-    assert status.state == "absent_legacy"
+    assert status.state == "missing"
     assert suggestion.candidates
     assert suggestion.candidates[0].section_id == "data_model"
     assert all("heuristic_only_requires_review" in item.reasons for item in suggestion.candidates)
@@ -232,38 +233,30 @@ def test_vertical_coverage_cli_json_suggestion_preserves_long_paths(tmp_path: Pa
     )
 
 
-def test_coverage_import_adds_record_to_older_artifact_state(tmp_path: Path) -> None:
+def test_coverage_import_rejects_incomplete_artifact_state_without_writes(
+    tmp_path: Path,
+) -> None:
     workspace, proposal_id = _workspace(tmp_path)
     proposal_dir = workspace._proposal_document_service().find_dir(proposal_id)
     state_path = proposal_dir / "artifact-state.yml"
-    workspace._proposal_artifact_state_service().initialize(proposal_id, actor="legacy-owner")
+    workspace._proposal_artifact_state_service().initialize(proposal_id, actor="owner")
     state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
     records = state["proposal_artifacts"]["artifacts"]
     state["proposal_artifacts"]["artifacts"] = [
         item for item in records if item["id"] != "vertical_coverage"
     ]
     state_path.write_text(yaml.safe_dump(state, sort_keys=False), encoding="utf-8")
-    proposal_record_before = next(
-        item for item in state["proposal_artifacts"]["artifacts"] if item["id"] == "proposal"
-    )
+    before = _tree_hash(tmp_path)
 
     payload = _payload(proposal_id)
-    preview = workspace.preview_proposal_vertical_coverage(proposal_id, payload, actor="owner")
-    result = workspace.apply_proposal_vertical_coverage(
-        proposal_id,
-        payload,
-        preview_token=preview.preview_token,
-        actor="owner",
-        confirm=True,
-    )
+    with pytest.raises(ValueError, match="must contain every catalog record"):
+        workspace.preview_proposal_vertical_coverage(
+            proposal_id,
+            payload,
+            actor="owner",
+        )
 
-    assert result.status == "applied"
-    updated = yaml.safe_load(state_path.read_text(encoding="utf-8"))
-    updated_records = updated["proposal_artifacts"]["artifacts"]
-    assert next(item for item in updated_records if item["id"] == "proposal") == proposal_record_before
-    vertical = next(item for item in updated_records if item["id"] == "vertical_coverage")
-    assert vertical["status"] == "satisfied"
-    assert vertical["confirmation"] == "owner_confirmed"
+    assert _tree_hash(tmp_path) == before
 
 
 def test_vertical_batch_indexes_proposal_directories_once(tmp_path: Path) -> None:
@@ -296,5 +289,5 @@ def test_vertical_batch_indexes_proposal_directories_once(tmp_path: Path) -> Non
     )
 
     assert len(statuses) == len(suggestions) == 1000
-    assert {item.state for item in statuses.values()} == {"absent_legacy"}
+    assert {item.state for item in statuses.values()} == {"missing"}
     assert all(not item.candidates for item in suggestions.values())

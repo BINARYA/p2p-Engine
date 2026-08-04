@@ -1,3 +1,7 @@
 included_decisions:
 - proposal: PROP-001
   decision_file: .p2p/proposals/PROP-001-start-with-cli-task-tracker/decision.md
+  ledger_file: .p2p/proposals/PROP-001-start-with-cli-task-tracker/decision-events.yml
+  head_event_id: PDE-ed8a33ec34f42017a317f039
+  decision_semantic_sha256: 20a2112ca5449319b840ad15b534d0e257213a91ac50f4145b2127ada3181bbc
+  effective_state: accepted

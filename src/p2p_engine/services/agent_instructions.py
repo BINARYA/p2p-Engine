@@ -52,14 +52,15 @@ class AgentDoctorResult:
 
 
 _ERROR_FILE_STATUSES = {"missing", "modified", "conflicted"}
-_WARNING_FILE_STATUSES = {"unmanaged", "stale_template"}
+_WARNING_FILE_STATUSES = {"unmanaged", "template_obsolete", "unknown_template"}
 _REGISTRY_FILE_STATUSES = _ERROR_FILE_STATUSES | _WARNING_FILE_STATUSES | {"clean"}
 _FILE_STATUS_FINDING_CODES = {
     "missing": "P2P_AGENT_FILE_MISSING",
     "modified": "P2P_AGENT_FILE_MODIFIED",
     "unmanaged": "P2P_AGENT_FILE_UNMANAGED",
     "conflicted": "P2P_AGENT_FILE_CONFLICTED",
-    "stale_template": "P2P_AGENT_TEMPLATE_STALE",
+    "template_obsolete": "P2P_AGENT_TEMPLATE_OBSOLETE",
+    "unknown_template": "P2P_AGENT_TEMPLATE_UNKNOWN",
 }
 
 
@@ -78,6 +79,7 @@ class AgentInstructionService:
         instruction_files: Callable[[str, list[str], str, Any], dict[Path, str]],
         adapter_files: Callable[[str, str, list[str], str], list[tuple[Path, str, bool, str]]],
         adapter_capabilities: Callable[[str], dict[str, object]],
+        template_generation: Callable[[str], str],
         agent_policy: Callable[[str, list[str], str, Any], dict[str, object]],
         built_in_adapters: tuple[str, ...],
         interaction_style: Callable[[], Any] | None = None,
@@ -93,6 +95,7 @@ class AgentInstructionService:
         self.instruction_files = instruction_files
         self.adapter_files = adapter_files
         self.adapter_capabilities = adapter_capabilities
+        self.template_generation = template_generation
         self.agent_policy = agent_policy
         self.built_in_adapters = built_in_adapters
         self.interaction_style = interaction_style
@@ -302,6 +305,13 @@ class AgentInstructionService:
         )
 
         new_registry = self.build_registry(profiles, repository_mode)
+        removed, obsolete_skipped = self._remove_obsolete_managed_files(
+            old_registry,
+            new_registry,
+            target=target,
+            force=force,
+        )
+        skipped.extend(obsolete_skipped)
         preserved_paths = {str(path) for path in all_files if path not in writable_paths}
         registry = self._with_preserved_file_records(old_registry, new_registry, preserved_paths)
         registry = self._with_skipped_file_records(old_registry, registry, skipped)
@@ -311,7 +321,7 @@ class AgentInstructionService:
             target=target,
             created=created,
             updated=updated,
-            removed=[],
+            removed=removed,
             skipped=skipped,
             registry_path=self.path().relative_to(self.root),
         )
@@ -385,7 +395,7 @@ class AgentInstructionService:
         path = self.path()
         if not path.exists():
             return {
-                "schema_version": 1,
+                "schema_version": 2,
                 "baseline_profile": "generic",
                 "adapters": {},
             }
@@ -427,6 +437,7 @@ class AgentInstructionService:
                         "owner": owner,
                         "managed": path.exists(),
                         "template_id": template_id,
+                        "template_generation_id": self.template_generation(template_id),
                         "sha256": _sha256_file(path) if path.exists() else "",
                         "drift": "clean" if path.exists() else "missing",
                     }
@@ -434,12 +445,12 @@ class AgentInstructionService:
             adapters[adapter_id] = {
                 "status": "installed",
                 "maturity": "stable",
-                "template_version": "agent-template-v1",
+                "template_version": "agent-template-v2",
                 "capabilities": self.adapter_capabilities(adapter_id),
                 "files": file_records,
             }
         return {
-            "schema_version": 1,
+            "schema_version": 2,
             "baseline_profile": "generic",
             "generated_at": date.today().isoformat(),
             "adapters": adapters,
@@ -569,6 +580,51 @@ class AgentInstructionService:
                     record["drift"] = "unmanaged" if current_path.exists() else "missing"
         return new_registry
 
+    def _expected_templates(self, adapter_id: str) -> dict[str, str]:
+        project_name = self.project_name()
+        repository_mode = self.repository_mode("local")
+        return {
+            str(self._safe_relative_path(path, label="Agent adapter path")): template_id
+            for path, template_id, _shared, _owner in self.adapter_files(
+                project_name,
+                adapter_id,
+                list(self.built_in_adapters),
+                repository_mode,
+            )
+        }
+
+    def _remove_obsolete_managed_files(
+        self,
+        old_registry: dict[str, object],
+        new_registry: dict[str, object],
+        *,
+        target: str,
+        force: bool,
+    ) -> tuple[list[Path], list[dict[str, object]]]:
+        old_records = self.registry_file_map(old_registry)
+        current_paths = set(self.registry_file_map(new_registry))
+        target_owners = (
+            set(self.built_in_adapters)
+            if target == "all"
+            else set(self.expanded_profiles(target))
+        )
+        removed: list[Path] = []
+        skipped: list[dict[str, object]] = []
+        for path_key, record in sorted(old_records.items()):
+            if path_key in current_paths or str(record.get("owner") or "") not in target_owners:
+                continue
+            relative = self._safe_relative_path(path_key, label="Agent registry path")
+            path = self.root / relative
+            if not path.exists():
+                continue
+            if not force and record.get("sha256") != _sha256_file(path):
+                skipped.append({"path": str(relative), "reason": "obsolete_drifted"})
+                continue
+            path.unlink()
+            removed.append(relative)
+            _remove_empty_parents(path.parent, stop_at=self.root)
+        return removed, skipped
+
     def integration_status(
         self,
         adapter_id: str,
@@ -578,15 +634,23 @@ class AgentInstructionService:
     ) -> dict[str, object]:
         installed = isinstance(record, dict) and record.get("status") == "installed"
         files = record.get("files", []) if isinstance(record, dict) else []
+        expected_templates = self._expected_templates(adapter_id)
         file_statuses: list[dict[str, object]] = []
         if isinstance(files, list):
             for file_record in files:
                 if not isinstance(file_record, dict):
                     continue
-                status_value = self.file_status(file_record)
+                path_key = str(file_record.get("path") or "")
+                expected_template = expected_templates.get(path_key)
+                content_status, generation_status, status_value = self.file_status(
+                    file_record,
+                    expected_template_id=expected_template,
+                )
                 file_status = {
                     **file_record,
                     "status": status_value,
+                    "content_status": content_status,
+                    "generation_status": generation_status,
                     "drift": "clean" if status_value == "clean" else "drifted",
                 }
                 file_statuses.append(file_status)
@@ -604,16 +668,43 @@ class AgentInstructionService:
             status["capabilities"] = self.adapter_capabilities(adapter_id)
         return status
 
-    def file_status(self, file_record: dict[str, object]) -> str:
+    def file_status(
+        self,
+        file_record: dict[str, object],
+        *,
+        expected_template_id: str | None,
+    ) -> tuple[str, str, str]:
         path = self.root / str(file_record.get("path", ""))
         registry_status = str(file_record.get("drift") or "clean")
         if not path.exists():
-            return "missing"
-        if file_record.get("managed") is False:
-            return "unmanaged"
-        if registry_status in _REGISTRY_FILE_STATUSES and registry_status != "clean":
-            return registry_status
-        return "clean" if file_record.get("sha256") == _sha256_file(path) else "modified"
+            content_status = "missing"
+        elif file_record.get("managed") is False:
+            content_status = "unmanaged"
+        elif registry_status in _ERROR_FILE_STATUSES | {"unmanaged"}:
+            content_status = registry_status
+        else:
+            content_status = "clean" if file_record.get("sha256") == _sha256_file(path) else "modified"
+
+        recorded_template = str(file_record.get("template_id") or "")
+        recorded_generation = str(file_record.get("template_generation_id") or "")
+        if expected_template_id is None or (recorded_template and recorded_template != expected_template_id):
+            generation_status = "obsolete"
+        elif not recorded_template or not recorded_generation:
+            generation_status = "unknown"
+        elif recorded_generation != self.template_generation(expected_template_id):
+            generation_status = "obsolete"
+        else:
+            generation_status = "current"
+
+        if content_status != "clean":
+            aggregate = content_status
+        elif generation_status == "obsolete":
+            aggregate = "template_obsolete"
+        elif generation_status == "unknown":
+            aggregate = "unknown_template"
+        else:
+            aggregate = "clean"
+        return content_status, generation_status, aggregate
 
     def adapter_health(self, file_statuses: list[dict[str, object]]) -> str:
         statuses = {str(item.get("status") or "clean") for item in file_statuses}
@@ -644,25 +735,39 @@ class AgentInstructionService:
         adapter_id: str,
         file_status: dict[str, object],
     ) -> None:
-        status = str(file_status.get("status") or "clean")
-        if status == "clean":
-            return
         relative = Path(str(file_status.get("path") or ""))
-        severity = "error" if status in _ERROR_FILE_STATUSES else "warning"
-        code = _FILE_STATUS_FINDING_CODES.get(status, "P2P_AGENT_FILE_INVALID")
-        suggested = "p2p agent update {adapter}".format(adapter=adapter_id)
-        if status in {"modified", "unmanaged"}:
-            suggested = f"review {relative}, then run p2p agent update {adapter_id} --force if appropriate"
-        findings.append(
-            AgentDoctorFinding(
-                code=code,
-                severity=severity,
-                adapter=adapter_id,
-                path=relative,
-                message=f"Agent file {relative} is {status}.",
-                suggested_command=suggested,
+        content_status = str(file_status.get("content_status") or "clean")
+        generation_status = str(file_status.get("generation_status") or "current")
+        if content_status != "clean":
+            severity = "error" if content_status in _ERROR_FILE_STATUSES else "warning"
+            code = _FILE_STATUS_FINDING_CODES.get(content_status, "P2P_AGENT_FILE_INVALID")
+            suggested = f"p2p agent update {adapter_id}"
+            if content_status in {"modified", "unmanaged"}:
+                suggested = (
+                    f"review {relative}, then run p2p agent update {adapter_id} --force if appropriate"
+                )
+            findings.append(
+                AgentDoctorFinding(
+                    code=code,
+                    severity=severity,
+                    adapter=adapter_id,
+                    path=relative,
+                    message=f"Agent file {relative} content is {content_status}.",
+                    suggested_command=suggested,
+                )
             )
-        )
+        if generation_status in {"obsolete", "unknown"}:
+            status = "template_obsolete" if generation_status == "obsolete" else "unknown_template"
+            findings.append(
+                AgentDoctorFinding(
+                    code=_FILE_STATUS_FINDING_CODES[status],
+                    severity="warning",
+                    adapter=adapter_id,
+                    path=relative,
+                    message=f"Agent file {relative} template generation is {generation_status}.",
+                    suggested_command=f"p2p agent update {adapter_id}",
+                )
+            )
 
     def _append_shared_file_doctor_finding(
         self,

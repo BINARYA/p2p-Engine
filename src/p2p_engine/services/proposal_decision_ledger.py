@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import re
 from datetime import date
 from pathlib import Path
@@ -22,10 +21,8 @@ from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionEventType,
     ProposalDecisionImpactBinding,
     ProposalDecisionLedger,
-    ProposalDecisionLegacyEvidence,
     ProposalDecisionLineage,
     ProposalDecisionLineageKind,
-    ProposalDecisionMigrationProvenance,
     ProposalDecisionMutationBinding,
     ProposalDecisionPredecessor,
     ProposalDecisionReadinessBinding,
@@ -47,7 +44,6 @@ MAX_CONDITION_BYTES = 8 * 1024
 MAX_CONDITIONS_BYTES = 64 * 1024
 MAX_CONDITIONS = 64
 MAX_LINEAGE_TARGETS = 100
-MAX_LEGACY_SCALAR_BYTES = 4 * 1024
 
 _ROOT_KEYS = frozenset({"proposal_decision_ledger"})
 _LEDGER_KEYS = frozenset(
@@ -58,7 +54,6 @@ _LEDGER_KEYS = frozenset(
         "effective_state",
         "head_event_id",
         "events",
-        "legacy_evidence",
     }
 )
 _EVENT_KEYS = frozenset(
@@ -81,7 +76,6 @@ _EVENT_KEYS = frozenset(
         "impact",
         "readiness",
         "mutation",
-        "migration",
         "event_sha256",
     }
 )
@@ -107,19 +101,6 @@ _IMPACT_KEYS = frozenset(
 )
 _READINESS_KEYS = frozenset({"source_fingerprint_sha256", "owner_override"})
 _MUTATION_KEYS = frozenset({"preview_token", "request_fingerprint_sha256"})
-_MIGRATION_KEYS = frozenset(
-    {"migration_id", "source_paths", "source_sha256", "preserved_values"}
-)
-_LEGACY_KEYS = frozenset(
-    {
-        "migration_id",
-        "source_paths",
-        "source_sha256",
-        "values",
-        "diagnostics",
-        "truncated_fields",
-    }
-)
 _CONDITION_KEYS = frozenset({"id", "text"})
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _EVENT_ID = re.compile(r"^PDE-[0-9a-f]{24}$")
@@ -200,7 +181,6 @@ class ProposalDecisionLedgerCodec:
                 f"ledger proposal `{proposal_id}` does not match `{expected_proposal_id}`"
             )
         events_raw = _required_list(raw, "events")
-        legacy_raw = _required_list(raw, "legacy_evidence")
         ledger = ProposalDecisionLedger(
             contract_version=contract_version,
             proposal_id=proposal_id,
@@ -216,7 +196,6 @@ class ProposalDecisionLedgerCodec:
             ),
             head_event_id=_optional_text(raw.get("head_event_id"), "head_event_id"),
             events=tuple(self._parse_event(item, proposal_id) for item in events_raw),
-            legacy_evidence=tuple(self._parse_legacy(item) for item in legacy_raw),
         )
         self.validate(ledger)
         return ledger
@@ -288,21 +267,12 @@ class ProposalDecisionLedgerCodec:
         expected_state = (
             ledger.events[-1].effective_state
             if ledger.events
-            else (
-                ProposalDecisionEffectiveState.unknown_legacy
-                if ledger.authority_resolution
-                == ProposalDecisionAuthorityResolution.unknown_legacy
-                else ProposalDecisionEffectiveState.undecided
-            )
+            else ProposalDecisionEffectiveState.undecided
         )
         if ledger.effective_state != expected_state:
             raise _invalid("effective_state does not match the event head")
-        if (
-            ledger.authority_resolution
-            == ProposalDecisionAuthorityResolution.unknown_legacy
-            and ledger.events
-        ):
-            raise _invalid("unknown legacy authority cannot contain resolved events")
+        if ledger.authority_resolution != ProposalDecisionAuthorityResolution.resolved:
+            raise _invalid("persisted decision ledger authority must be resolved")
 
     @staticmethod
     def _validate_chain_semantics(
@@ -401,7 +371,6 @@ class ProposalDecisionLedgerCodec:
             effective_state=event.effective_state,
             head_event_id=event.event_id,
             events=(*ledger.events, event),
-            legacy_evidence=ledger.legacy_evidence,
         )
         self.validate(candidate)
         return candidate
@@ -426,7 +395,6 @@ class ProposalDecisionLedgerCodec:
         preview_token: str,
         request_fingerprint_sha256: str,
         operation_key: str,
-        migration: ProposalDecisionMigrationProvenance | None = None,
     ) -> ProposalDecisionEvent:
         rationale = normalize_scalar(rationale, "rationale", MAX_RATIONALE_BYTES)
         _validate_date(decided_on)
@@ -464,7 +432,6 @@ class ProposalDecisionLedgerCodec:
                 "preview_token": preview_token,
                 "request_fingerprint_sha256": request_fingerprint_sha256,
             },
-            "migration": migration.to_dict() if migration else None,
         }
         event_id = EVENT_ID_PREFIX + semantic_sha256(identity_payload)[:24]
         provisional = ProposalDecisionEvent(
@@ -489,7 +456,6 @@ class ProposalDecisionLedgerCodec:
                 preview_token=preview_token,
                 request_fingerprint_sha256=request_fingerprint_sha256,
             ),
-            migration=migration,
             event_sha256="",
         )
         return ProposalDecisionEvent(
@@ -518,24 +484,6 @@ class ProposalDecisionLedgerCodec:
         _closed_keys(readiness_raw, _READINESS_KEYS, "readiness")
         _closed_keys(mutation_raw, _MUTATION_KEYS, "mutation")
         conditions = tuple(self._parse_condition(item) for item in _required_list(raw, "conditions"))
-        migration_raw = raw.get("migration")
-        migration = None
-        if migration_raw is not None:
-            if not isinstance(migration_raw, dict):
-                raise _invalid("migration must be a mapping or null")
-            _closed_keys(migration_raw, _MIGRATION_KEYS, "migration")
-            migration = ProposalDecisionMigrationProvenance(
-                migration_id=_required_text(migration_raw, "migration_id"),
-                source_paths=_text_tuple(migration_raw.get("source_paths"), "migration.source_paths"),
-                source_sha256=_string_mapping(
-                    migration_raw.get("source_sha256"),
-                    "migration.source_sha256",
-                ),
-                preserved_values=_mapping(
-                    migration_raw.get("preserved_values"),
-                    "migration.preserved_values",
-                ),
-            )
         lineage_kind_raw = lineage_raw.get("kind")
         lineage_kind = (
             None
@@ -619,7 +567,6 @@ class ProposalDecisionLedgerCodec:
                     "request_fingerprint_sha256",
                 ),
             ),
-            migration=migration,
             event_sha256=_required_text(raw, "event_sha256"),
         )
 
@@ -632,21 +579,6 @@ class ProposalDecisionLedgerCodec:
             text=_required_text(raw, "text"),
         )
 
-    def _parse_legacy(self, raw: object) -> ProposalDecisionLegacyEvidence:
-        if not isinstance(raw, dict):
-            raise _invalid("legacy evidence must be a mapping")
-        _closed_keys(raw, _LEGACY_KEYS, "legacy evidence")
-        return ProposalDecisionLegacyEvidence(
-            migration_id=_required_text(raw, "migration_id"),
-            source_paths=_text_tuple(raw.get("source_paths"), "legacy.source_paths"),
-            source_sha256=_string_mapping(raw.get("source_sha256"), "legacy.source_sha256"),
-            values=_mapping(raw.get("values"), "legacy.values"),
-            diagnostics=_text_tuple(raw.get("diagnostics"), "legacy.diagnostics"),
-            truncated_fields=_text_tuple(
-                raw.get("truncated_fields"),
-                "legacy.truncated_fields",
-            ),
-        )
 
     def _validate_event(
         self,
@@ -860,21 +792,9 @@ def render_decision_projection(
     empty_state: ProposalDecisionEffectiveState = ProposalDecisionEffectiveState.undecided,
 ) -> str:
     if event is None:
-        if empty_state == ProposalDecisionEffectiveState.undecided:
-            return f"# Decision - {proposal_id}\n\n## Status\n\n`pending`\n"
-        return (
-            f"# Decision - {proposal_id}\n\n"
-            "## Status\n\n"
-            f"`{empty_state.value}`\n\n"
-            "## Outcome\n\n"
-            f"{empty_state.value}\n\n"
-            "## Effective State\n\n"
-            f"{empty_state.value}\n\n"
-            "## Reason\n\n"
-            "Legacy authority requires owner resolution.\n\n"
-            "## Canonical Source\n\n"
-            f"{ledger_filename}\n"
-        )
+        if empty_state != ProposalDecisionEffectiveState.undecided:
+            raise _invalid("an empty decision ledger must have undecided effective state")
+        return f"# Decision - {proposal_id}\n\n## Status\n\n`pending`\n"
     lineage = (
         "None."
         if event.lineage.kind is None
@@ -927,21 +847,6 @@ def projection_binding_status(
     )
 
 
-def legacy_scalar(value: object) -> tuple[object, bool]:
-    if not isinstance(value, str):
-        return value, False
-    encoded = value.encode("utf-8", errors="replace")
-    if len(encoded) <= MAX_LEGACY_SCALAR_BYTES:
-        return value, False
-    prefix = encoded[:MAX_LEGACY_SCALAR_BYTES].decode("utf-8", errors="ignore")
-    return {
-        "inline_prefix": prefix,
-        "original_size": len(encoded),
-        "sha256": hashlib.sha256(encoded).hexdigest(),
-        "truncated": True,
-    }, True
-
-
 def _normalize_markdown_value(value: str) -> object:
     normalized = "\n".join(line.rstrip() for line in value.strip().splitlines())
     lines = [line.strip() for line in normalized.splitlines()]
@@ -973,22 +878,6 @@ def _required_mapping(value: Mapping[str, object], key: str) -> dict[str, object
     if not isinstance(raw, dict):
         raise _invalid(f"{key} must be a mapping")
     return raw
-
-
-def _mapping(value: object, field: str) -> dict[str, object]:
-    if not isinstance(value, dict):
-        raise _invalid(f"{field} must be a mapping")
-    return {str(key): item for key, item in value.items()}
-
-
-def _string_mapping(value: object, field: str) -> dict[str, str]:
-    raw = _mapping(value, field)
-    result: dict[str, str] = {}
-    for key, item in raw.items():
-        text = str(item or "").strip()
-        _validate_sha256(text, f"{field}.{key}")
-        result[key] = text
-    return result
 
 
 def _required_list(value: Mapping[str, object], key: str) -> list[object]:

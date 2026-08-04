@@ -1,0 +1,16 @@
+generated: true
+source: .p2p/proposals/*/readiness.yml
+readiness:
+- proposal: PROP-001
+  title: Prototype cooperative tile game
+  proposal_status: accepted
+  status: not_assessed
+  profile_id: ''
+  profile_version: ''
+  computed_score: null
+  computed_label: ''
+  confidence: ''
+  failed_gates: []
+  missing: []
+  suggested_next: []
+  path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/readiness.yml

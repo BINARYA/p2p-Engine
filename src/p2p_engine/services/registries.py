@@ -51,10 +51,7 @@ REGISTRY_DEFINITIONS: dict[str, dict[str, str]] = {
     "proposals": {"filename": "proposals.yml", "source": ".p2p/proposals"},
     "decisions": {
         "filename": "decisions.yml",
-        "source": (
-            ".p2p/proposals/*/decision-events.yml "
-            "and schema-v2 decision.md compatibility projections"
-        ),
+        "source": ".p2p/proposals/*/decision-events.yml",
     },
     "changes": {"filename": "changes.yml", "source": ".p2p/changes"},
     "choices": {"filename": "choices.yml", "source": ".p2p/choices and proposal votes"},
@@ -232,11 +229,7 @@ class RegistryService:
         except ValueError as exc:
             return self._status_without_manifest("invalid", reason=str(exc))
         if not manifest_exists:
-            state = "legacy_unverifiable" if any(
-                (registries_dir / item["filename"]).exists()
-                for item in REGISTRY_DEFINITIONS.values()
-            ) else "missing"
-            return self._status_without_manifest(state)
+            return self._status_without_manifest("missing")
         try:
             payload = (
                 read_context.documents.yaml(manifest_path)
@@ -324,11 +317,7 @@ class RegistryService:
         except ValueError as exc:
             return self._status_without_manifest("invalid", reason=str(exc))
         if not exists:
-            state = "legacy_unverifiable" if any(
-                (registries_dir / item["filename"]).exists()
-                for item in REGISTRY_DEFINITIONS.values()
-            ) else "missing"
-            return self._status_without_manifest(state)
+            return self._status_without_manifest("missing")
         try:
             payload = (
                 read_context.documents.yaml(manifest_path)
@@ -404,12 +393,9 @@ class RegistryService:
         path = self.p2p_dir / "registries" / definition["filename"]
         status = self.status(read_context=read_context)
         if status.state != "current":
-            records = self._render_records()[name]
-            return RegistryView(
-                name=name,
-                path=path.relative_to(self.root),
-                records=records,
-                source="canonical_fallback",
+            raise ValueError(
+                "P2P356_REGISTRY_NOT_CURRENT: registry reads require a current verifiable "
+                f"bundle manifest; observed state `{status.state}`. Run `p2p registry refresh`."
             )
         data = (
             read_context.documents.yaml(path)
@@ -514,11 +500,7 @@ class RegistryService:
             changes_count=_child_directory_count(self.p2p_dir / "changes"),
             stale=True,
             state=state,
-            reason=reason or (
-                "Legacy registry files have no verifiable bundle manifest."
-                if state == "legacy_unverifiable"
-                else "Registry bundle manifest is missing."
-            ),
+            reason=reason or "Registry bundle manifest is missing; unverified outputs are ignored.",
             verification={"sources": "not_verified", "outputs": "not_verified"},
         )
 

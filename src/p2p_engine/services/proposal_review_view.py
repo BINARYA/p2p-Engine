@@ -21,7 +21,6 @@ MATERIALIZATION_CANONICAL = "canonical_state"
 MATERIALIZATION_PROJECTION = "derived_projection"
 MATERIALIZATION_GENERATED = "generated_file"
 MATERIALIZATION_IMPORTED = "imported_file"
-MATERIALIZATION_LEGACY = "legacy_file"
 MATERIALIZATION_NOT_MATERIALIZED = "not_materialized"
 MATERIALIZATION_UNKNOWN = "unknown"
 
@@ -54,7 +53,7 @@ class ProposalQuestionGroupsView:
     path: Path
     owner_questions: list[ProposalQuestion]
     analytical_open_questions: list[Contribution]
-    legacy_question_artifacts: list[ProposalArtifactCatalogItem]
+    narrative_question_artifacts: list[ProposalArtifactCatalogItem]
 
 
 @dataclass(frozen=True)
@@ -100,7 +99,7 @@ ARTIFACT_SLOTS: tuple[_ArtifactSlot, ...] = (
     _ArtifactSlot("readiness", "Readiness Snapshot", "readiness.yml", ProposalArtifactExpectation.required, MATERIALIZATION_CANONICAL),
     _ArtifactSlot("contributions", "Structured Contributions", "contributions.yml", ProposalArtifactExpectation.optional_memory, MATERIALIZATION_CANONICAL, empty_file_satisfied=True),
     _ArtifactSlot("questions", "Structured Owner Questions", "questions.yml", ProposalArtifactExpectation.required_when_applicable, MATERIALIZATION_CANONICAL, empty_file_satisfied=True),
-    _ArtifactSlot("open_questions", "Legacy Open Questions", "open-questions.md", ProposalArtifactExpectation.required_when_applicable, MATERIALIZATION_IMPORTED, narrative=True),
+    _ArtifactSlot("open_questions", "Narrative Open Questions", "open-questions.md", ProposalArtifactExpectation.required_when_applicable, MATERIALIZATION_IMPORTED, narrative=True),
     _ArtifactSlot("clarifications", "Clarifications", "clarifications.md", ProposalArtifactExpectation.required_when_applicable, MATERIALIZATION_GENERATED, narrative=True),
     _ArtifactSlot("findings", "Findings", "findings.md", ProposalArtifactExpectation.required_when_applicable, MATERIALIZATION_IMPORTED, narrative=True),
     _ArtifactSlot("exploration", "Exploration", "exploration.md", ProposalArtifactExpectation.required_when_applicable, MATERIALIZATION_IMPORTED, narrative=True),
@@ -252,7 +251,7 @@ class ProposalReviewViewService:
             for item in contributions.contributions
             if item.contribution_type == ContributionType.open_question
         ]
-        legacy_question_artifacts = [
+        narrative_question_artifacts = [
             item
             for item in artifact_status
             if item.key == "open_questions" and item.path is not None
@@ -263,7 +262,7 @@ class ProposalReviewViewService:
             path=question_state.path,
             owner_questions=question_state.questions,
             analytical_open_questions=analytical_open_questions,
-            legacy_question_artifacts=legacy_question_artifacts,
+            narrative_question_artifacts=narrative_question_artifacts,
         )
 
     def _question_next_actions(self, proposal_id: str, questions: ProposalQuestionGroupsView) -> list[str]:
@@ -325,7 +324,6 @@ def _combined_status(
         ProposalArtifactStatus.unknown,
         ProposalArtifactStatus.missing,
         ProposalArtifactStatus.weak,
-        ProposalArtifactStatus.absent_legacy,
     }:
         return inferred_status
     return record.status
@@ -364,8 +362,6 @@ def _materialization_kind(
 ) -> str:
     if not path_exists:
         return MATERIALIZATION_NOT_MATERIALIZED
-    if artifact_state.legacy_state == ProposalArtifactStatus.absent_legacy and slot.materialization_kind == MATERIALIZATION_IMPORTED:
-        return MATERIALIZATION_LEGACY
     return slot.materialization_kind or MATERIALIZATION_UNKNOWN
 
 

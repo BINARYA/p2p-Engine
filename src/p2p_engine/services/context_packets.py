@@ -140,8 +140,6 @@ class _ArtifactRecordLike(Protocol):
 
 class _ArtifactStateLike(Protocol):
     status: str
-    legacy_state: object | None
-    legacy_reason: str
     artifacts: list[_ArtifactRecordLike]
     suggested_next: list[str]
 
@@ -538,7 +536,6 @@ class ContextPacketService:
                 "alignment_status": getattr(schema_status, "alignment_status", "unknown"),
                 "current_version": getattr(schema_status, "current_version", None),
                 "target_version": getattr(schema_status, "target_version", None),
-                "migration_required": bool(getattr(schema_status, "migration_required", False)),
                 "recovery_required": bool(
                     getattr(schema_status, "recovery_required", False)
                     or (recovery.get("required", False) if isinstance(recovery, dict) else False)
@@ -551,7 +548,7 @@ class ContextPacketService:
                 "attention_nodes": sum(
                     1
                     for node in nodes
-                    if getattr(node, "status", "") not in {"current", "current_legacy_fallback"}
+                    if getattr(node, "status", "") != "current"
                 ),
             }
         elif fast_freshness is not None:
@@ -786,15 +783,6 @@ def _short_text(value: str, limit: int = 360) -> str | None:
 
 
 def _artifact_coverage_summary(view: _ArtifactStateLike) -> dict[str, object]:
-    legacy_state = _enum_value(getattr(view, "legacy_state", None))
-    if legacy_state:
-        return {
-            "status": getattr(view, "status"),
-            "legacy_state": legacy_state,
-            "legacy_reason": getattr(view, "legacy_reason"),
-            "gaps": [],
-            "suggested_next": list(getattr(view, "suggested_next")),
-        }
     gaps: list[dict[str, object]] = []
     for record in getattr(view, "artifacts"):
         status = _enum_value(getattr(record, "status"))

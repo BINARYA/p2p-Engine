@@ -36,12 +36,10 @@ class ProposalDecisionEffectiveState(StrEnum):
     superseded = "superseded"
     split = "split"
     merged_into_other = "merged_into_other"
-    unknown_legacy = "unknown_legacy"
 
 
 class ProposalDecisionAuthorityResolution(StrEnum):
     resolved = "resolved"
-    unknown_legacy = "unknown_legacy"
     invalid = "invalid"
 
 
@@ -314,42 +312,6 @@ class ProposalDecisionMutationBinding:
 
 
 @dataclass(frozen=True)
-class ProposalDecisionMigrationProvenance:
-    migration_id: str
-    source_paths: tuple[str, ...]
-    source_sha256: Mapping[str, str]
-    preserved_values: Mapping[str, object] = field(default_factory=dict)
-
-    def to_dict(self) -> dict[str, object]:
-        return {
-            "migration_id": self.migration_id,
-            "source_paths": list(self.source_paths),
-            "source_sha256": dict(self.source_sha256),
-            "preserved_values": dict(self.preserved_values),
-        }
-
-
-@dataclass(frozen=True)
-class ProposalDecisionLegacyEvidence:
-    migration_id: str
-    source_paths: tuple[str, ...]
-    source_sha256: Mapping[str, str]
-    values: Mapping[str, object]
-    diagnostics: tuple[str, ...]
-    truncated_fields: tuple[str, ...] = ()
-
-    def to_dict(self) -> dict[str, object]:
-        return {
-            "migration_id": self.migration_id,
-            "source_paths": list(self.source_paths),
-            "source_sha256": dict(self.source_sha256),
-            "values": dict(self.values),
-            "diagnostics": list(self.diagnostics),
-            "truncated_fields": list(self.truncated_fields),
-        }
-
-
-@dataclass(frozen=True)
 class ProposalDecisionEvent:
     event_schema_version: int
     event_id: str
@@ -369,7 +331,6 @@ class ProposalDecisionEvent:
     impact: ProposalDecisionImpactBinding
     readiness: ProposalDecisionReadinessBinding
     mutation: ProposalDecisionMutationBinding
-    migration: ProposalDecisionMigrationProvenance | None
     event_sha256: str
 
     def to_dict(self, *, include_hash: bool = True) -> dict[str, object]:
@@ -392,7 +353,6 @@ class ProposalDecisionEvent:
             "impact": self.impact.to_dict(),
             "readiness": self.readiness.to_dict(),
             "mutation": self.mutation.to_dict(),
-            "migration": self.migration.to_dict() if self.migration is not None else None,
         }
         if include_hash:
             payload["event_sha256"] = self.event_sha256
@@ -407,7 +367,6 @@ class ProposalDecisionLedger:
     effective_state: ProposalDecisionEffectiveState
     head_event_id: str | None
     events: tuple[ProposalDecisionEvent, ...] = ()
-    legacy_evidence: tuple[ProposalDecisionLegacyEvidence, ...] = ()
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -418,7 +377,6 @@ class ProposalDecisionLedger:
                 "effective_state": self.effective_state.value,
                 "head_event_id": self.head_event_id,
                 "events": [event.to_dict() for event in self.events],
-                "legacy_evidence": [item.to_dict() for item in self.legacy_evidence],
             }
         }
 

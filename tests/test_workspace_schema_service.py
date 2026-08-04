@@ -45,8 +45,8 @@ def test_missing_schema_is_unsupported_and_inspection_is_read_only(tmp_path: Pat
     assert status.layout_status == LAYOUT_UNSUPPORTED
     assert status.alignment_status == ALIGNMENT_DEGRADED
     assert status.inspectable is False
-    assert status.migration_required is False
-    assert status.upgrade_available is False
+    assert "migration_required" not in status.to_dict()
+    assert "upgrade_available" not in status.to_dict()
     assert status.findings[0].code == "P2P_WORKSPACE_UNSUPPORTED_SCHEMA"
     assert _tree_bytes(tmp_path) == before
 
@@ -63,7 +63,6 @@ def test_fresh_initialization_writes_current_schema(tmp_path: Path) -> None:
     assert status.schema is not None
     assert status.schema.baseline == "initialized_current"
     assert status.schema.initialized_by == "Davide"
-    assert status.schema.applied_migrations == ()
     assert status.schema.current_version == CURRENT_WORKSPACE_SCHEMA_VERSION
     assert (tmp_path / ".p2p" / "project" / "questions.yml").exists()
 
@@ -81,11 +80,11 @@ def test_reinitializing_workspace_does_not_silently_recreate_missing_schema(tmp_
     assert workspace.workspace_schema_status().layout_status == LAYOUT_UNSUPPORTED
 
 
-def test_schema_parser_rejects_unknown_fields_and_non_contiguous_history(tmp_path: Path) -> None:
+def test_schema_parser_rejects_obsolete_history_and_unknown_fields(tmp_path: Path) -> None:
     base: dict[str, object] = {
         "contract_version": 1,
         "current_version": 3,
-        "baseline": "migrated_declared",
+        "baseline": "initialized_current",
         "initialized_at": "2026-07-15",
         "initialized_by": "owner",
         "applied_migrations": [
@@ -104,6 +103,7 @@ def test_schema_parser_rejects_unknown_fields_and_non_contiguous_history(tmp_pat
 
     assert service.status().layout_status == LAYOUT_INVALID
 
+    base.pop("applied_migrations")
     base["unknown"] = True
     _write_schema(tmp_path, base)
     assert service.status().layout_status == LAYOUT_INVALID
@@ -126,7 +126,6 @@ def test_every_non_current_contract_is_unsupported(
             "baseline": "initialized_current",
             "initialized_at": "2026-07-15",
             "initialized_by": "owner",
-            "applied_migrations": [],
         },
     )
 
@@ -134,7 +133,7 @@ def test_every_non_current_contract_is_unsupported(
 
     assert status.layout_status == LAYOUT_UNSUPPORTED
     assert status.findings[0].code == "P2P_WORKSPACE_UNSUPPORTED_SCHEMA"
-    assert "no runtime legacy conversion" in status.findings[0].message
+    assert "no in-runtime conversion" in status.findings[0].message
 
 
 def test_unsupported_schema_blocks_governed_writes_without_mutation(tmp_path: Path) -> None:
@@ -156,29 +155,19 @@ def test_unsupported_schema_blocks_governed_writes_without_mutation(tmp_path: Pa
     assert _tree_bytes(tmp_path) == before
 
 
-def test_current_runtime_accepts_structurally_valid_historical_audit_entries(tmp_path: Path) -> None:
+def test_current_runtime_rejects_historical_audit_entries(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Historical audit")
     schema_path = tmp_path / ".p2p" / "project" / "workspace-schema.yml"
     payload = yaml.safe_load(schema_path.read_text(encoding="utf-8"))
-    payload["workspace_schema"]["baseline"] = "migrated_declared"
-    payload["workspace_schema"]["applied_migrations"] = [
-        {
-            "id": "retired-runtime-transition",
-            "from": 2,
-            "to": 3,
-            "applied_at": "2026-07-15",
-            "actor": "owner",
-            "plan_fingerprint_sha256": "abc",
-        }
-    ]
+    payload["workspace_schema"]["applied_migrations"] = []
     schema_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    before = _tree_bytes(tmp_path)
 
     status = workspace.workspace_schema_status()
 
-    assert status.layout_status == LAYOUT_CURRENT
-    assert status.schema is not None
-    assert status.schema.applied_migrations[0].migration_id == "retired-runtime-transition"
+    assert status.layout_status == LAYOUT_INVALID
+    assert _tree_bytes(tmp_path) == before
 
 
 def test_global_validation_reports_unsupported_schema_as_error(tmp_path: Path) -> None:

@@ -130,31 +130,10 @@ def handle_proposal_decision_tool(
             ),
             wrapper="proposal_decision_ledger_repair",
         )
-    if name == f"{_PREFIX}legacy_resolution_preview":
-        return {
-            "proposal_decision_legacy_resolution_preview": (
-                workspace.preview_proposal_decision_legacy_resolution(
-                    _request(arguments)
-                ).to_dict()
-            )
-        }
-    if name == f"{_PREFIX}legacy_resolution_apply":
-        request = _request(arguments)
-        return _apply_with_consent(
-            workspace,
-            arguments,
-            proposal_id=proposal_id,
-            apply=lambda: workspace.apply_proposal_decision_legacy_resolution(
-                request,
-                preview_token=required(arguments, "preview_token"),
-                confirm=_required_true(arguments, "confirm"),
-            ),
-            wrapper="proposal_decision_legacy_resolution",
-        )
     return None
 
 
-def compatibility_preview(
+def convenience_preview(
     workspace: P2PWorkspace,
     arguments: dict[str, Any],
     *,
@@ -166,10 +145,6 @@ def compatibility_preview(
     preview = workspace.preview_proposal_decision(_request(values))
     return {
         "status": "preview_required",
-        "deprecated_consent": (
-            "Legacy proposal_accept/proposal_reject/proposal_defer consent "
-            "cannot authorize a schema-v3 event."
-        ),
         "required_consent": {
             "operation": "proposal_decision_apply",
             "target": (
@@ -200,7 +175,7 @@ def _project_owner_id(workspace: P2PWorkspace) -> str:
     )
     if len(owners) != 1:
         raise ValueError(
-            "P2P364_DECISION_OWNER_REQUIRED: compatibility decision preview "
+            "P2P364_DECISION_OWNER_REQUIRED: decision convenience preview "
             "requires exactly one declared project owner."
         )
     return owners[0]
@@ -245,10 +220,7 @@ def _apply_with_consent(
     consent_id = required(arguments, "consent_id")
     target = f"{proposal_id}@{preview_token}"
     receipt = workspace.consent_show(consent_id)
-    event_binding_required = wrapper in {
-        "proposal_decision",
-        "proposal_decision_legacy_resolution",
-    }
+    event_binding_required = wrapper == "proposal_decision"
     operation_key = (
         required(arguments, "operation_key")
         if event_binding_required

@@ -7,6 +7,7 @@ from p2p_engine.services.proposal_questions import ProposalQuestionService
 from p2p_engine.services.proposals import ProposalDocumentService
 from p2p_engine.services.readiness import ReadinessService
 from p2p_engine.core.proposal_artifact_state import ProposalArtifactStatus
+from p2p_engine.services.proposal_artifact_state import ProposalArtifactStateService
 from p2p_engine.storage.filesystem import P2PWorkspace
 
 
@@ -21,6 +22,22 @@ def _services_with_questions(tmp_path):
     readiness = ReadinessService(root=tmp_path, p2p_dir=tmp_path / ".p2p", find_proposal_dir=proposals.find_dir)
     questions = ProposalQuestionService(root=tmp_path, find_proposal_dir=proposals.find_dir)
     return proposals, readiness, questions
+
+
+def _initialize_complete_artifact_state(tmp_path, proposals, proposal_id: str) -> None:
+    artifacts = ProposalArtifactStateService(
+        root=tmp_path,
+        find_proposal_dir=proposals.find_dir,
+    )
+    view = artifacts.initialize(proposal_id)
+    for record in view.artifacts:
+        artifacts.set_artifact(
+            proposal_id,
+            record.artifact_id,
+            status=ProposalArtifactStatus.satisfied,
+            reason="Current test evidence satisfies this artifact slot.",
+            source="system",
+        )
 
 
 def _complete_readiness_proposal(tmp_path, proposals, *, title: str = "Structured Question Readiness"):
@@ -68,6 +85,7 @@ def _complete_readiness_proposal(tmp_path, proposals, *, title: str = "Structure
         "# Execution Plan\n\nAdd focused readiness service tests, preserve public CLI and MCP contracts, and validate legacy fallback.\n",
         encoding="utf-8",
     )
+    _initialize_complete_artifact_state(tmp_path, proposals, proposal.proposal_id)
     return proposal, proposal_dir
 
 
@@ -152,7 +170,7 @@ def test_readiness_service_refresh_and_initialize_scoring(tmp_path) -> None:
 
 
 def test_readiness_service_assess_promotes_complete_artifact_evidence(tmp_path) -> None:
-    proposals, readiness = _services(tmp_path)
+    proposals, readiness, questions = _services_with_questions(tmp_path)
     proposal = proposals.create_with_details(
         title="Complete Readiness",
         problem=(
@@ -201,6 +219,9 @@ def test_readiness_service_assess_promotes_complete_artifact_evidence(tmp_path) 
         "# Execution Plan\n\nVerify evidence-aware readiness assessment, preserve owner governance boundaries, and keep refresh conservative.\n",
         encoding="utf-8",
     )
+
+    _initialize_complete_artifact_state(tmp_path, proposals, proposal.proposal_id)
+    questions.initialize(proposal.proposal_id)
 
     initialized = readiness.initialize(proposal.proposal_id)
     assessed = readiness.assess(proposal.proposal_id)
@@ -326,7 +347,6 @@ def test_readiness_assess_uses_structured_questions_over_stale_markdown(tmp_path
     assert assessed.computed_score == 100
     assert assessed.failed_gates == []
     assert assessed.owner_question_state["source"] == "structured"
-    assert assessed.owner_question_state["markdown_fallback_used"] is False
     assert assessed.owner_question_state["blocking_owner_questions"] == []
     assert _question_ids(assessed.owner_question_state, "closed_questions") == ["Q001"]
 
@@ -512,7 +532,9 @@ def test_readiness_assess_treats_muted_deferred_and_lower_priority_questions_as_
     assert assessed.confidence == "medium"
 
 
-def test_readiness_assess_preserves_markdown_fallback_without_structured_questions(tmp_path) -> None:
+def test_readiness_assess_requires_structured_questions_and_ignores_narrative_questions(
+    tmp_path,
+) -> None:
     proposals, readiness = _services(tmp_path)
     proposal, proposal_dir = _complete_readiness_proposal(tmp_path, proposals)
     (proposal_dir / "open-questions.md").write_text(
@@ -522,10 +544,9 @@ def test_readiness_assess_preserves_markdown_fallback_without_structured_questio
 
     assessed = readiness.assess(proposal.proposal_id)
 
-    assert "owner_questions_resolution:needs_owner_input" in assessed.failed_gates
-    assert assessed.owner_question_state["source"] == "markdown_fallback"
-    assert assessed.owner_question_state["markdown_fallback_used"] is True
-    assert assessed.owner_question_state["blocking_owner_questions"]
+    assert "owner_questions_resolution" in assessed.missing
+    assert assessed.owner_question_state["source"] == "missing"
+    assert assessed.owner_question_state["blocking_owner_questions"] == []
 
 
 def test_readiness_assess_rejects_invalid_structured_question_state(tmp_path) -> None:

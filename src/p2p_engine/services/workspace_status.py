@@ -464,7 +464,6 @@ class WorkspaceStatusService:
             ),
             "current_version": getattr(status, "current_version", None),
             "target_version": getattr(status, "target_version", None),
-            "migration_required": bool(getattr(status, "migration_required", False)),
             "recovery_required": bool(
                 recovery.get("required", False) if isinstance(recovery, Mapping) else False
             ),
@@ -502,7 +501,7 @@ class WorkspaceStatusService:
             "attention_nodes": sum(
                 1
                 for node in nodes
-                if str(getattr(node, "status", "")) not in {"current", "current_legacy_fallback"}
+                if str(getattr(node, "status", "")) != "current"
             ),
             "next_node": str(getattr(rebuild_plan[0], "node_id", "")) if rebuild_plan else "",
             "next_command": str(getattr(rebuild_plan[0], "command", "")) if rebuild_plan else "",

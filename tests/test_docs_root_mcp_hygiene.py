@@ -54,7 +54,7 @@ def test_docs_capture_canonical_pack_freshness_and_next_action_contracts() -> No
     development = _read_doc("DEVELOPMENT-GUIDELINES.md")
 
     assert "`vertical.yml` contains metadata only" in cli_guide
-    assert "`current_legacy`" in cli_guide
+    assert "`current_imported`" in cli_guide
     assert "`NEXT-CHANGE-<CHANGE-ID>`" in cli_guide
     assert "truncates only the final composed and" in mcp_guide
     assert "exact source and candidate bytes, not mtimes" in mcp_guide
@@ -84,11 +84,11 @@ def test_docs_and_templates_describe_two_phase_decision_lifecycle() -> None:
     assert "old unbound consent cannot write" in mcp_guide
     assert "## Decision Event Ledger" in glossary
     assert "supports workspace schema 3 only" in workspace_schema
-    assert "does not plan or apply legacy workspace conversions" in workspace_schema
+    assert "does not plan or apply workspace conversions" in workspace_schema
     assert "p2p decision preview PROP-001" in tutorial
     assert "p2p decision preview PROP-001" in install
     assert "PROPOSAL_DECISION_LIFECYCLE_BLOCK" in template_source
-    assert "Legacy MCP" in template_source
+    assert "MCP decision writes use" in template_source
     assert "p2p proposal accept PROP-001 --reason" not in tutorial
     assert "p2p proposal accept PROP-001 --reason" not in install
     assert "deprecated" not in glossary.lower()

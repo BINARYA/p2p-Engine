@@ -53,7 +53,7 @@ def test_validation_service_accepts_valid_refreshed_project(tmp_path: Path) -> N
     assert result.warnings == 0
 
 
-def test_validation_service_reports_legacy_undeclared_runtime_warning(tmp_path: Path) -> None:
+def test_validation_service_rejects_missing_runtime_without_marker(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Legacy Project")
     (tmp_path / ".p2p" / "project" / "runtime.yml").unlink()
@@ -63,10 +63,10 @@ def test_validation_service_reports_legacy_undeclared_runtime_warning(tmp_path: 
     project_path.write_text(yaml.safe_dump(project, sort_keys=False), encoding="utf-8")
 
     result = _validation_service(workspace).validate()
-    finding = next(finding for finding in result.findings if finding.code == "P2P267_RUNTIME_CONTRACT_LEGACY_UNDECLARED")
+    finding = next(finding for finding in result.findings if finding.code == "P2P266_RUNTIME_CONTRACT_MISSING")
 
-    assert result.ok is True
-    assert finding.severity == "warning"
+    assert result.ok is False
+    assert finding.severity == "error"
 
 
 def test_validation_service_reports_missing_required_runtime_contract(tmp_path: Path) -> None:

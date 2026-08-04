@@ -1,9 +1,11 @@
 project:
-  id: board-game-project
-  name: Board Game Project
+  id: cooperative-shrine-game
+  name: Cooperative Shrine Game
   version: 0.1.0
   status: active
   domain: board_game
+runtime_contract:
+  required: true
 storage:
   mode: file_based
   documents_format: markdown
@@ -16,3 +18,11 @@ ai:
 repository:
   mode: local
   managed_by_p2p: false
+remote:
+  mode: local
+  provider: local
+  remote: null
+  url: null
+  review_request:
+    mode: advisory
+    opens_external_request: false

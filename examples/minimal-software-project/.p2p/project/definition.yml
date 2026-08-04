@@ -1,0 +1,160 @@
+project_definition:
+  schema_version: 1
+  vertical_id: software_project
+  vertical_version: 2.0.0
+  profile: default
+  modules:
+  - roadmap
+  - risk_management
+  - stakeholder_alignment
+  - software_spec_lifecycle
+  - implementation_planning
+  - validation_strategy
+  lock:
+    checksum: 15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13
+  sections:
+  - id: vision
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: objective
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: stakeholders
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: scope
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: assumptions
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: risks
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: decisions
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: milestones
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: definition_of_done
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: artifacts
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: system_objective
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - objective
+    - success_signal
+    assumptions: []
+    blockers: []
+  - id: users_and_actors
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - primary_users
+    assumptions: []
+    blockers: []
+  - id: mvp_scope
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - in_scope
+    - out_of_scope
+    assumptions: []
+    blockers: []
+  - id: workflows_use_cases
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - core_workflows
+    assumptions: []
+    blockers: []
+  - id: data_model
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - domain_entities
+    assumptions: []
+    blockers: []
+  - id: integrations_dependencies
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - external_integrations
+    assumptions: []
+    blockers: []
+  - id: constraints_nfrs
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - constraints
+    - non_functional_requirements
+    assumptions: []
+    blockers: []
+  - id: acceptance_validation
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - acceptance_criteria
+    - validation_strategy
+    assumptions: []
+    blockers: []
+  - id: risks_alternatives_decisions
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - risks
+    - owner_decisions
+    assumptions: []
+    blockers: []
+  next_suggested_action: {}
+  history:
+  - at: '2026-08-04'
+    actor: owner
+    operation: initialize_definition_state
+    section_id: ''
+  orphans: []

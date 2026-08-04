@@ -22,7 +22,6 @@ from p2p_engine.core.project_verticals import (
     ProjectDefinitionOrphan,
     ProjectDefinitionPatch,
     ProjectDefinitionPatchResult,
-    ProjectDefinitionQuestion,
     ProjectDefinitionSectionState,
     ProjectDefinitionState,
     ProjectDefinitionView,
@@ -89,7 +88,7 @@ from p2p_engine.services.lifecycle_authority import is_active_project_projection
 
 VERTICAL_SCHEMA_VERSION = 2
 ACTIVE_VERTICAL_SCHEMA_VERSION = 1
-PROPOSAL_COVERAGE_SCHEMA_VERSION = 1
+PROPOSAL_COVERAGE_SCHEMA_VERSION = 2
 VERTICAL_LOCK_SCHEMA_VERSION = 1
 PROJECT_DEFINITION_SCHEMA_VERSION = 1
 BASE_PROJECT_VERTICAL_ID = "base_project"
@@ -136,19 +135,21 @@ def validate_vertical_coverage_payload(payload: dict[str, object], *, target: st
         raise ValueError(f"Invalid {target}: missing vertical_id.")
     if not isinstance(sections, list):
         raise ValueError(f"Invalid {target}: sections must be a list.")
-    schema_version = coverage.get("schema_version", 1)
-    if schema_version not in {1, 2}:
-        raise ValueError(f"Invalid {target}: unsupported schema_version `{schema_version}`.")
-    if schema_version == 2:
-        unknown = set(coverage) - {"schema_version", "proposal_id", "vertical_id", "sections", "provenance"}
-        if unknown:
-            raise ValueError(f"Invalid {target}: unknown fields: {', '.join(sorted(unknown))}.")
-        provenance = coverage.get("provenance")
-        if not isinstance(provenance, dict):
-            raise ValueError(f"Invalid {target}: schema v2 requires provenance mapping.")
-        for field in ("actor", "authority", "source", "operation_id"):
-            if not str(provenance.get(field) or "").strip():
-                raise ValueError(f"Invalid {target}: provenance.{field} is required.")
+    schema_version = coverage.get("schema_version")
+    if schema_version != PROPOSAL_COVERAGE_SCHEMA_VERSION:
+        raise ValueError(
+            f"P2P_VERTICAL_COVERAGE_UNSUPPORTED_SCHEMA: {target} requires "
+            f"schema_version {PROPOSAL_COVERAGE_SCHEMA_VERSION}; observed `{schema_version}`."
+        )
+    unknown = set(coverage) - {"schema_version", "proposal_id", "vertical_id", "sections", "provenance"}
+    if unknown:
+        raise ValueError(f"Invalid {target}: unknown fields: {', '.join(sorted(unknown))}.")
+    provenance = coverage.get("provenance")
+    if not isinstance(provenance, dict):
+        raise ValueError(f"Invalid {target}: schema v2 requires provenance mapping.")
+    for field in ("actor", "authority", "source", "operation_id"):
+        if not str(provenance.get(field) or "").strip():
+            raise ValueError(f"Invalid {target}: provenance.{field} is required.")
     for index, item in enumerate(sections):
         if not isinstance(item, dict):
             raise ValueError(f"Invalid {target}: sections[{index}] must be a mapping.")
@@ -158,16 +159,15 @@ def validate_vertical_coverage_payload(payload: dict[str, object], *, target: st
             raise ValueError(f"Invalid {target}: sections[{index}].id is required.")
         if relevance not in RELEVANCE_VALUES:
             raise ValueError(f"Invalid {target}: sections[{index}].relevance must be one of {sorted(RELEVANCE_VALUES)}.")
-        if schema_version == 2:
-            unknown = set(item) - {"id", "relevance", "rationale", "source", "provenance"}
-            if unknown:
-                raise ValueError(f"Invalid {target}: sections[{index}] has unknown fields: {', '.join(sorted(unknown))}.")
-            if not str(item.get("rationale") or "").strip():
-                raise ValueError(f"Invalid {target}: sections[{index}].rationale is required.")
-            if not str(item.get("source") or "").strip():
-                raise ValueError(f"Invalid {target}: sections[{index}].source is required.")
-            if not isinstance(item.get("provenance"), dict):
-                raise ValueError(f"Invalid {target}: sections[{index}].provenance must be a mapping.")
+        unknown = set(item) - {"id", "relevance", "rationale", "source", "provenance"}
+        if unknown:
+            raise ValueError(f"Invalid {target}: sections[{index}] has unknown fields: {', '.join(sorted(unknown))}.")
+        if not str(item.get("rationale") or "").strip():
+            raise ValueError(f"Invalid {target}: sections[{index}].rationale is required.")
+        if not str(item.get("source") or "").strip():
+            raise ValueError(f"Invalid {target}: sections[{index}].source is required.")
+        if not isinstance(item.get("provenance"), dict):
+            raise ValueError(f"Invalid {target}: sections[{index}].provenance must be a mapping.")
 
 
 class ProjectVerticalService:
@@ -343,7 +343,6 @@ class ProjectVerticalService:
             modules=selected_modules,
             actor=actor,
             audit_date=selected_at,
-            external_questions=self._workspace_schema_version() >= 2,
         )
         candidate_files = {
             self._active_vertical_path().relative_to(self.root).as_posix(): yaml_dump(active_payload).encode("utf-8"),
@@ -353,32 +352,29 @@ class ProjectVerticalService:
                 self._vertical_rubrics_payload(pack, rubric_mapping=rubric_mapping)
             ).encode("utf-8"),
         }
-        if self._workspace_schema_version() >= 2:
-            project_payload = _read_yaml_mapping(self.p2p_dir / "project.yml")
-            project = project_payload.get("project")
-            project_id = str(project.get("id") or "project") if isinstance(project, dict) else "project"
-            question_service = ProjectQuestionStateService(root=self.root, p2p_dir=self.p2p_dir)
-            current_questions = question_service.read_optional()
-            if current_questions is not None and question_service.has_owner_evidence(current_questions):
-                question_candidate = question_service.mark_reconciliation_required(
-                    current_questions,
-                    actor=actor,
-                    audit_at=selected_at,
-                )
-                reconciliation_required = True
-            else:
-                question_candidate = question_service.seed_from_definition(
-                    project_id=project_id,
-                    definition=definition,
-                    pack=pack,
-                    lock_checksum=resolved.checksum,
-                    actor=actor,
-                    audit_at=selected_at,
-                ).artifact
-                reconciliation_required = False
-            candidate_files[".p2p/project/questions.yml"] = question_service.candidate_bytes(question_candidate)
+        project_payload = _read_yaml_mapping(self.p2p_dir / "project.yml")
+        project = project_payload.get("project")
+        project_id = str(project.get("id") or "project") if isinstance(project, dict) else "project"
+        question_service = ProjectQuestionStateService(root=self.root, p2p_dir=self.p2p_dir)
+        current_questions = question_service.read_optional()
+        if current_questions is not None and question_service.has_owner_evidence(current_questions):
+            question_candidate = question_service.mark_reconciliation_required(
+                current_questions,
+                actor=actor,
+                audit_at=selected_at,
+            )
+            reconciliation_required = True
         else:
+            question_candidate = question_service.seed_from_definition(
+                project_id=project_id,
+                definition=definition,
+                pack=pack,
+                lock_checksum=resolved.checksum,
+                actor=actor,
+                audit_at=selected_at,
+            ).artifact
             reconciliation_required = False
+        candidate_files[".p2p/project/questions.yml"] = question_service.candidate_bytes(question_candidate)
         return VerticalMigrationCandidate(
             vertical_id=pack.vertical_id,
             profile=profile,
@@ -441,8 +437,6 @@ class ProjectVerticalService:
             first = next(issue for issue in issues if issue.severity == "error")
             raise ValueError(f"Invalid vertical migration definition: {first.field}: {first.message}")
         if ".p2p/project/questions.yml" in payloads:
-            if any(section.open_questions for section in definition.sections):
-                raise ValueError("Schema-v2 vertical candidate cannot retain definition open questions.")
             ProjectQuestionStateService(root=self.root, p2p_dir=self.p2p_dir).parse_payload(
                 payloads[".p2p/project/questions.yml"],
                 target=".p2p/project/questions.yml",
@@ -472,6 +466,13 @@ class ProjectVerticalService:
         state = payload.get("project_vertical")
         if not isinstance(state, dict):
             raise ValueError(f"Invalid project vertical state: {path}")
+        schema_version = state.get("schema_version")
+        if schema_version != ACTIVE_VERTICAL_SCHEMA_VERSION:
+            raise ValueError(
+                "P2P_VERTICAL_ACTIVE_STATE_UNSUPPORTED_SCHEMA: active vertical state "
+                f"requires schema_version {ACTIVE_VERTICAL_SCHEMA_VERSION}; observed "
+                f"`{schema_version}`."
+            )
         vertical_id = str(state.get("active_vertical_id") or "").strip()
         if not vertical_id:
             raise ValueError(f"Invalid project vertical state: missing active_vertical_id in {path}")
@@ -520,8 +521,6 @@ class ProjectVerticalService:
         )
 
     def _question_reconciliation_required(self) -> bool:
-        if self._workspace_schema_version() < 2:
-            return False
         artifact = ProjectQuestionStateService(root=self.root, p2p_dir=self.p2p_dir).read_optional()
         return bool(
             artifact
@@ -885,14 +884,14 @@ class ProjectVerticalService:
         source = patch_path if patch_path.is_absolute() else self.root / patch_path
         payload = _read_yaml_mapping(source)
         patch = _definition_patch_from_payload(payload, target=str(source))
-        legacy_question_operations = {
+        obsolete_question_operations = {
             str(item.get("op") or "")
             for item in patch.operations
             if str(item.get("op") or "") in {"add_open_question", "close_open_question"}
         }
-        if self._workspace_schema_version() == 3 and legacy_question_operations:
+        if obsolete_question_operations:
             raise ValueError(
-                "P2P352_LEGACY_DEFINITION_QUESTION_OPERATION: the current workspace uses project-question "
+                "P2P352_OBSOLETE_DEFINITION_QUESTION_OPERATION: the current workspace uses project-question "
                 "commands; run `p2p project readiness questions status` instead."
             )
         return patch
@@ -1005,7 +1004,7 @@ class ProjectVerticalService:
         if not path.exists():
             return ProposalVerticalCoverageStatus(
                 proposal_id=proposal_id,
-                state="absent_legacy",
+                state="missing",
                 path=relative,
                 message="Proposal has no declared vertical coverage.",
             )
@@ -1221,14 +1220,14 @@ class ProjectVerticalService:
                 status = "not_applicable"
             else:
                 status = "missing"
-            legacy_gaps: list[str] = []
+            gaps: list[str] = []
             if not proposals and section.required and section.definition_status != "not_applicable":
-                legacy_gaps.append("missing_proposal_coverage")
+                gaps.append("missing_proposal_coverage")
             if status == "partial":
-                legacy_gaps.append("proposal_coverage_not_accepted")
+                gaps.append("proposal_coverage_not_accepted")
             questions: list[str] = []
             if section.required and section.definition_status not in {"complete", "not_applicable"}:
-                legacy_gaps.append("project_definition_incomplete")
+                gaps.append("project_definition_incomplete")
                 missing_capisaldi.append(section.section_id)
                 questions = list(section.declared_questions[:3])
                 generated_questions.extend(questions)
@@ -1238,7 +1237,7 @@ class ProjectVerticalService:
                     title=section.title,
                     status=status,
                     proposals=proposals,
-                    gaps=legacy_gaps,
+                    gaps=gaps,
                     risks=[],
                     questions=questions,
                     declared_proposals=proposals,
@@ -1683,7 +1682,7 @@ class ProjectVerticalService:
 
     def _readiness_workspace_schema_identity(self, content: bytes | None) -> tuple[int, str]:
         if content is None:
-            return 0, "legacy_undeclared"
+            return 0, "missing"
         try:
             payload = load_yaml(content)
             if not isinstance(payload, dict):
@@ -2208,40 +2207,18 @@ class ProjectVerticalService:
         modules: list[str],
         actor: str,
         audit_date: str | None = None,
-        external_questions: bool = False,
     ) -> ProjectDefinitionState:
         sections: list[ProjectDefinitionSectionState] = []
         for section in sorted(resolved.pack.sections, key=lambda item: item.priority):
             fields = _section_fields(section, resolved.pack)
             missing = [field.field_id for field in fields if field.required]
-            questions = [
-                ProjectDefinitionQuestion(
-                    question_id=question.question_id,
-                    field_id=_field_id_for_question(section, question),
-                    question=question.question,
-                )
-                for question in resolved.pack.questions
-                if question.section_id == section.section_id
-            ]
             sections.append(
                 ProjectDefinitionSectionState(
                     section_id=section.section_id,
                     status="missing" if section.required else "not_applicable",
                     missing_required_fields=missing,
-                    open_questions=[] if external_questions else questions,
                 )
             )
-        next_action: dict[str, object] = {}
-        for section in sections:
-            if section.open_questions:
-                question = section.open_questions[0]
-                next_action = {
-                    "kind": "ask_question",
-                    "section_id": section.section_id,
-                    "question_id": question.question_id,
-                    "question": question.question,
-                }
-                break
         return ProjectDefinitionState(
             schema_version=PROJECT_DEFINITION_SCHEMA_VERSION,
             vertical_id=resolved.pack.vertical_id,
@@ -2250,7 +2227,7 @@ class ProjectVerticalService:
             modules=list(dict.fromkeys(modules)),
             lock_checksum=resolved.checksum,
             sections=sections,
-            next_suggested_action=next_action,
+            next_suggested_action={},
             history=[
                 ProjectDefinitionHistoryEntry(
                     at=audit_date or date.today().isoformat(),
@@ -2260,17 +2237,6 @@ class ProjectVerticalService:
             ],
             path=relative_to_root(self._definition_state_path(), self.root),
         )
-
-    def _workspace_schema_version(self) -> int:
-        path = self.p2p_dir / "project" / "workspace-schema.yml"
-        if not path.exists():
-            return 0
-        try:
-            payload = _read_yaml_mapping(path)
-            raw = payload.get("workspace_schema")
-            return int(raw.get("current_version") or 0) if isinstance(raw, dict) else 0
-        except (TypeError, ValueError):
-            return 0
 
     def _read_definition_state(self, path: Path) -> ProjectDefinitionState:
         payload = _read_yaml_mapping(path)
@@ -2284,6 +2250,15 @@ class ProjectVerticalService:
         issues: list[VerticalValidationIssue] = []
         section_ids = {section.section_id for section in pack.sections}
         field_ids_by_section = {section.section_id: {field.field_id for field in _section_fields(section, pack)} for section in pack.sections}
+        if state.schema_version != PROJECT_DEFINITION_SCHEMA_VERSION:
+            issues.append(
+                VerticalValidationIssue(
+                    "error",
+                    "project_definition.schema_version",
+                    f"definition requires schema version {PROJECT_DEFINITION_SCHEMA_VERSION}",
+                    "P2P_PROJECT_DEFINITION_UNSUPPORTED_SCHEMA",
+                )
+            )
         if state.vertical_id != pack.vertical_id:
             issues.append(
                 VerticalValidationIssue(
@@ -2411,8 +2386,6 @@ class ProjectVerticalService:
                 "set_missing_required_fields",
                 "add_assumption",
                 "update_assumption_status",
-                "add_open_question",
-                "close_open_question",
                 "add_blocker",
                 "clear_blocker",
                 "set_next_suggested_action",
@@ -2499,26 +2472,6 @@ class ProjectVerticalService:
                         break
                 if not updated:
                     raise ValueError(f"Unknown assumption `{assumption_id}` in section `{section_id}`.")
-            elif op == "add_open_question":
-                question = str(operation.get("question") or "").strip()
-                if not question:
-                    raise ValueError("add_open_question requires question.")
-                field_id = str(operation.get("field_id") or "").strip()
-                if field_id and field_id not in known_fields:
-                    raise ValueError(f"Unknown field `{field_id}` for section `{section_id}`.")
-                section.open_questions.append(
-                    ProjectDefinitionQuestion(
-                        question_id=f"Q{len(section.open_questions) + 1:03d}",
-                        field_id=field_id,
-                        question=question,
-                    )
-                )
-            elif op == "close_open_question":
-                question_id = str(operation.get("question_id") or "").strip()
-                before = len(section.open_questions)
-                section.open_questions = [item for item in section.open_questions if item.question_id != question_id]
-                if len(section.open_questions) == before:
-                    raise ValueError(f"Unknown open question `{question_id}` in section `{section_id}`.")
             elif op == "add_blocker":
                 text = str(operation.get("text") or "").strip()
                 if not text:
@@ -2652,7 +2605,7 @@ class ProjectVerticalService:
             if criterion_id and mapped_id not in new_ids:
                 orphan = dict(item)
                 orphan["orphaned"] = True
-                orphan["legacy_unmapped"] = True
+                orphan["unmapped_from_previous_vertical"] = True
                 orphan["counts_toward_active_baseline"] = False
                 orphan["enabled"] = item.get("enabled") is not False
                 criteria_payload.append(orphan)
@@ -3062,6 +3015,12 @@ def _vertical_lock_from_payload(path: Path, payload: dict[str, object], root: Pa
     lock = payload.get("project_vertical_lock")
     if not isinstance(lock, dict):
         raise ValueError(f"Invalid project vertical lock: expected project_vertical_lock mapping in {path}")
+    schema_version = lock.get("schema_version")
+    if schema_version != VERTICAL_LOCK_SCHEMA_VERSION:
+        raise ValueError(
+            "P2P_VERTICAL_LOCK_UNSUPPORTED_SCHEMA: project vertical lock requires "
+            f"schema_version {VERTICAL_LOCK_SCHEMA_VERSION}; observed `{schema_version}`."
+        )
     source_payload = lock.get("source")
     if not isinstance(source_payload, dict):
         raise ValueError(f"Invalid project vertical lock: missing source mapping in {path}")
@@ -3080,7 +3039,7 @@ def _vertical_lock_from_payload(path: Path, payload: dict[str, object], root: Pa
         raise ValueError(
             "P2P_VERTICAL_UNSUPPORTED_SCHEMA: project lock references pack schema "
             f"{display}; this runtime supports schema {VERTICAL_SCHEMA_VERSION} only "
-            "and provides no legacy conversion"
+            "and provides no in-runtime conversion"
         )
     coordinate = str(lock.get("coordinate") or "").strip()
     if not coordinate:
@@ -3175,15 +3134,6 @@ def _definition_state_payload(state: ProjectDefinitionState) -> dict[str, object
                         }
                         for assumption in section.assumptions
                     ],
-                    "open_questions": [
-                        {
-                            "id": question.question_id,
-                            "field_id": question.field_id,
-                            "status": question.status,
-                            "question": question.question,
-                        }
-                        for question in section.open_questions
-                    ],
                     "blockers": [
                         {
                             "id": blocker.blocker_id,
@@ -3256,10 +3206,21 @@ def _definition_state_from_payload(payload: dict[str, object], *, path: Path) ->
     data = payload.get("project_definition")
     if not isinstance(data, dict):
         raise ValueError("Invalid project definition state: expected project_definition mapping.")
+    schema_version = data.get("schema_version")
+    if schema_version != PROJECT_DEFINITION_SCHEMA_VERSION:
+        raise ValueError(
+            "P2P_PROJECT_DEFINITION_UNSUPPORTED_SCHEMA: project definition requires "
+            f"schema_version {PROJECT_DEFINITION_SCHEMA_VERSION}; observed `{schema_version}`."
+        )
     sections: list[ProjectDefinitionSectionState] = []
     for item in data.get("sections", []) if isinstance(data.get("sections"), list) else []:
         if not isinstance(item, dict):
             continue
+        if "open_questions" in item:
+            raise ValueError(
+                "P2P354_OBSOLETE_DEFINITION_QUESTIONS: project definition sections must not contain "
+                "open_questions; use .p2p/project/questions.yml."
+            )
         fields_payload = item.get("fields")
         fields: dict[str, ProjectDefinitionFieldValue] = {}
         if isinstance(fields_payload, dict):
@@ -3280,15 +3241,6 @@ def _definition_state_from_payload(payload: dict[str, object], *, path: Path) ->
             )
             for assumption in _mapping_list(item.get("assumptions"))
         ]
-        questions = [
-            ProjectDefinitionQuestion(
-                question_id=str(question.get("id") or ""),
-                field_id=str(question.get("field_id") or ""),
-                status=str(question.get("status") or "open"),
-                question=str(question.get("question") or ""),
-            )
-            for question in _mapping_list(item.get("open_questions"))
-        ]
         blockers = [
             ProjectDefinitionBlocker(
                 blocker_id=str(blocker.get("id") or ""),
@@ -3305,7 +3257,6 @@ def _definition_state_from_payload(payload: dict[str, object], *, path: Path) ->
                 fields=fields,
                 missing_required_fields=[str(value) for value in missing if str(value).strip()] if isinstance(missing, list) else [],
                 assumptions=assumptions,
-                open_questions=questions,
                 blockers=blockers,
             )
         )
@@ -3334,7 +3285,7 @@ def _definition_state_from_payload(payload: dict[str, object], *, path: Path) ->
     ]
     lock_payload = data.get("lock") if isinstance(data.get("lock"), dict) else {}
     return ProjectDefinitionState(
-        schema_version=int(data.get("schema_version") or PROJECT_DEFINITION_SCHEMA_VERSION),
+        schema_version=int(schema_version),
         vertical_id=str(data.get("vertical_id") or ""),
         vertical_version=str(data.get("vertical_version") or ""),
         profile=str(data.get("profile") or "default"),
@@ -3352,6 +3303,12 @@ def _definition_patch_from_payload(payload: dict[str, object], *, target: str) -
     data = payload.get("project_definition_patch")
     if not isinstance(data, dict):
         raise ValueError(f"Invalid project definition patch {target}: expected project_definition_patch mapping.")
+    schema_version = data.get("schema_version")
+    if schema_version != PROJECT_DEFINITION_SCHEMA_VERSION:
+        raise ValueError(
+            f"Invalid project definition patch {target}: schema_version must be "
+            f"{PROJECT_DEFINITION_SCHEMA_VERSION}."
+        )
     operations = data.get("operations")
     if not isinstance(operations, list):
         raise ValueError(f"Invalid project definition patch {target}: operations must be a list.")
@@ -3363,7 +3320,7 @@ def _definition_patch_from_payload(payload: dict[str, object], *, target: str) -
     return ProjectDefinitionPatch(
         actor=actor,
         operations=[item for item in operations if isinstance(item, dict)],
-        schema_version=int(data.get("schema_version") or PROJECT_DEFINITION_SCHEMA_VERSION),
+        schema_version=int(schema_version),
     )
 
 
@@ -3374,7 +3331,6 @@ def _copy_section_state(section: ProjectDefinitionSectionState) -> ProjectDefini
         fields=dict(section.fields),
         missing_required_fields=list(section.missing_required_fields),
         assumptions=list(section.assumptions),
-        open_questions=list(section.open_questions),
         blockers=list(section.blockers),
     )
 
@@ -3481,7 +3437,7 @@ def _vertical_pack_issues(payload: dict[str, object]) -> list[VerticalValidation
         error(
             "vertical.schema_version",
             f"pack schema {display} is unsupported; this runtime supports schema "
-            f"{VERTICAL_SCHEMA_VERSION} only and provides no legacy conversion",
+            f"{VERTICAL_SCHEMA_VERSION} only and provides no in-runtime conversion",
             "P2P_VERTICAL_UNSUPPORTED_SCHEMA",
         )
     manifest = vertical.get("manifest")
@@ -3907,7 +3863,7 @@ def _proposal_vertical_coverage_from_payload(
     validate_vertical_coverage_payload(payload, target=str(path))
     coverage = payload["vertical_coverage"]
     assert isinstance(coverage, dict)
-    schema_version = int(coverage.get("schema_version") or 1)
+    schema_version = int(coverage["schema_version"])
     provenance = coverage.get("provenance") if isinstance(coverage.get("provenance"), dict) else {}
     sections = [
         ProposalVerticalCoverageSection(
@@ -3927,7 +3883,7 @@ def _proposal_vertical_coverage_from_payload(
         path=relative_to_root(path, root),
         schema_version=schema_version,
         provenance=provenance,
-        authority=str(provenance.get("authority") or "legacy_declared"),
+        authority=str(provenance["authority"]),
     )
 
 

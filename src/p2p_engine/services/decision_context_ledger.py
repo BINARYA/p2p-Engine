@@ -254,8 +254,6 @@ def proposal_authority(
         return Authority.DRAFT_PROPOSAL, Activation.EXPLORATORY
     if lifecycle.effective_state == ProposalDecisionEffectiveState.deferred:
         return Authority.HISTORICAL_PROPOSAL, Activation.UNRESOLVED
-    if lifecycle.effective_state == ProposalDecisionEffectiveState.unknown_legacy:
-        return Authority.UNKNOWN, Activation.UNRESOLVED
     return Authority.HISTORICAL_PROPOSAL, Activation.HISTORICAL
 
 

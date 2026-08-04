@@ -36,7 +36,7 @@ def render_impact_prompt(context: dict[str, str]) -> str:
         "```yaml\n"
         "related_proposals:\n"
         "  - proposal: PROP-000\n"
-        "    relationship: overlaps\n"
+        "    relationship: references\n"
         "    reason: Example reason\n"
         "```\n\n"
         "## conflict-analysis.yml Shape\n\n"

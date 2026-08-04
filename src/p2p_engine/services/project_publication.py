@@ -103,7 +103,6 @@ class ProjectPublicationStatus:
     render_status: str
     review_status: str
     approved_for_publication: bool
-    legacy_status: str = "absent"
     diagnostics: tuple[PublicationEditionDiagnostic, ...] = ()
 
 
@@ -128,7 +127,6 @@ class PublicationEditionDiagnostic:
 class PublicationCatalogResult:
     catalog_path: Path
     editions: tuple[PublicationCatalogEntry, ...]
-    legacy_status: str
     diagnostics: tuple[PublicationEditionDiagnostic, ...] = ()
 
 
@@ -678,8 +676,6 @@ class ProjectPublicationService:
             paths.evidence_accounting: candidates.accounting_path.read_bytes(),
             paths.markdown: candidates.markdown_bytes,
         }
-        if paths.edition.is_default_english:
-            targets[paths.legacy_markdown] = candidates.markdown_bytes
         previous = _capture_targets(targets)
         previous[paths.manifest] = paths.manifest.read_bytes()
         written_paths: list[Path] = []
@@ -729,13 +725,6 @@ class ProjectPublicationService:
                     },
                 }
             )
-            if paths.edition.is_default_english:
-                stages["compatibility_markdown_alias"] = {
-                    "path": _rel(paths.legacy_markdown, self.root),
-                    "source_sha256": markdown_hash,
-                    "sha256": _sha256_file(paths.legacy_markdown),
-                    "input": False,
-                }
             self._transaction_event("before_manifest_commit", paths.manifest)
             self._write_manifest(
                 paths,
@@ -863,8 +852,6 @@ class ProjectPublicationService:
             title=title,
         )
         pdf_hash = _sha256_file(paths.pdf)
-        if paths.edition.is_default_english:
-            _write_bytes_atomic(paths.legacy_pdf, paths.pdf.read_bytes())
         stages = _manifest_stages(manifest)
         stages["render"] = {
             "path": _rel(paths.pdf, self.root),
@@ -878,13 +865,6 @@ class ProjectPublicationService:
             "status": "rendered",
             "sha256": pdf_hash,
         }
-        if paths.edition.is_default_english:
-            stages["compatibility_pdf_alias"] = {
-                "path": _rel(paths.legacy_pdf, self.root),
-                "source_sha256": pdf_hash,
-                "sha256": _sha256_file(paths.legacy_pdf),
-                "input": False,
-            }
         self._write_manifest(
             paths,
             self._manifest_payload(
@@ -1001,7 +981,6 @@ class ProjectPublicationService:
                 render_status="invalid",
                 review_status="invalid",
                 approved_for_publication=False,
-                legacy_status=self._legacy_status(paths),
                 diagnostics=(diagnostic,),
             )
         stages = self._stage_statuses(paths, manifest, source_fingerprint)
@@ -1020,7 +999,6 @@ class ProjectPublicationService:
                 review.status == "ready"
                 and str(_manifest_stage(manifest, "review").get("status") or "") == "approved"
             ),
-            legacy_status=self._legacy_status(paths),
         )
 
     def list_editions(self) -> PublicationCatalogResult:
@@ -1119,7 +1097,6 @@ class ProjectPublicationService:
         return PublicationCatalogResult(
             catalog_path=_relative(default_paths.catalog, self.root),
             editions=tuple(entries),
-            legacy_status=self._legacy_status(default_paths),
             diagnostics=tuple(diagnostics),
         )
 
@@ -1503,7 +1480,6 @@ class ProjectPublicationService:
         payload = {
             "schema_version": PUBLICATION_CATALOG_VERSION,
             "updated_at": _now_iso(),
-            "legacy_status": result.legacy_status,
             "editions": [
                 {
                     "edition": item.edition.to_dict(),
@@ -1536,57 +1512,6 @@ class ProjectPublicationService:
             return
         validate_publication_catalog(payload)
         _write_yaml_atomic(catalog_path, payload)
-
-    def _legacy_status(self, paths: PublicationEditionPaths) -> str:
-        definitive = (
-            paths.legacy_profile,
-            paths.legacy_curator_input,
-            paths.legacy_manifest,
-            paths.legacy_validation,
-            paths.legacy_review,
-        )
-        aliases = (paths.legacy_markdown, paths.legacy_pdf)
-        if not any(path.exists() for path in (*definitive, *aliases)):
-            return "absent"
-        if not paths.legacy_manifest.exists():
-            return "partial"
-        try:
-            manifest = read_publication_yaml(paths.legacy_manifest, label="legacy publication manifest")
-        except ValueError:
-            return "invalid"
-        if int(manifest.get("schema_version") or 0) != 1:
-            return "invalid"
-        stages = _manifest_stages(manifest)
-        for stage in stages.values():
-            if not isinstance(stage, Mapping):
-                continue
-            relative = str(stage.get("path") or "")
-            recorded = str(stage.get("sha256") or "")
-            if not relative or not recorded:
-                continue
-            target = (self.root / relative).resolve()
-            if (
-                not _is_relative_to(target, self.root)
-                or not target.is_file()
-                or target.is_symlink()
-                or _sha256_file(target) != recorded
-            ):
-                return "stale"
-        if paths.legacy_review.exists():
-            try:
-                review = read_publication_yaml(paths.legacy_review, label="legacy publication review")
-            except ValueError:
-                return "invalid"
-            if str(review.get("status") or "") == "approved":
-                return "approved"
-        required = (
-            paths.legacy_profile,
-            paths.legacy_curator_input,
-            paths.legacy_markdown,
-            paths.legacy_validation,
-        )
-        return "complete" if all(path.is_file() for path in required) else "partial"
-
 
 def _manifest_stages(manifest: Mapping[str, object]) -> dict[str, object]:
     return _as_mapping(manifest.get("stages"))

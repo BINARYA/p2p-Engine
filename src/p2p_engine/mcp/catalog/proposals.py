@@ -219,34 +219,6 @@ def _decision_tool_definitions() -> list[dict[str, object]]:
                 'consent_id',
             ],
         ),
-        _tool(
-            'p2p_proposal_decision_legacy_resolution_preview',
-            'Read-only explicit owner resolution preview for unknown legacy authority.',
-            request,
-            ['proposal_id', 'event_type', 'reason', 'owner_id', 'actor_id'],
-        ),
-        _tool(
-            'p2p_proposal_decision_legacy_resolution_apply',
-            'Permission-gated apply for an exact unknown-legacy resolution preview.',
-            {
-                **request,
-                'preview_token': {'type': 'string'},
-                'confirm': {'type': 'boolean'},
-                'consent_id': {'type': 'string'},
-            },
-            [
-                'proposal_id',
-                'event_type',
-                'reason',
-                'owner_id',
-                'actor_id',
-                'decided_on',
-                'operation_key',
-                'preview_token',
-                'confirm',
-                'consent_id',
-            ],
-        ),
     ]
 
 
@@ -460,8 +432,8 @@ def tool_definitions() -> list[dict[str, object]]:
         _tool(
             'p2p_proposal_artifact_status',
             (
-                'Read-only proposal artifact tool: show artifact-aware coverage state or '
-                'legacy absence. Does not mutate proposal state.'
+                'Read-only proposal artifact tool: show current artifact-aware coverage '
+                'state. Does not mutate proposal state.'
             ),
             {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},
             ['proposal_id'],
@@ -487,7 +459,7 @@ def tool_definitions() -> list[dict[str, object]]:
              'expectation': {'type': 'string',
                              'enum': ['required', 'required_when_applicable', 'optional_memory', 'not_expected']},
              'status': {'type': 'string',
-                        'enum': ['unknown', 'missing', 'weak', 'satisfied', 'deferred', 'not_applicable', 'absent_legacy']},
+                        'enum': ['unknown', 'missing', 'weak', 'satisfied', 'deferred', 'not_applicable']},
              'reason': {'type': 'string'},
              'actor': {'type': 'string'},
              'source': {'type': 'string'},
@@ -502,15 +474,6 @@ def tool_definitions() -> list[dict[str, object]]:
             ),
             {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}, 'artifact_id': {'type': 'string'}, 'actor': {'type': 'string'}},
             ['proposal_id', 'artifact_id'],
-        ),
-        _tool(
-            'p2p_proposal_artifact_mark_legacy',
-            (
-                'Write-safe proposal artifact tool: mark artifact-aware state as advisory '
-                'absent_legacy for an older proposal. Does not block or decide.'
-            ),
-            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}, 'reason': {'type': 'string'}, 'actor': {'type': 'string'}},
-            ['proposal_id'],
         ),
         _tool(
             'p2p_choice_list',

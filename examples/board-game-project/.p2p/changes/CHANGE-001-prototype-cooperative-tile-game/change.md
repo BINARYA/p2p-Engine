@@ -1,8 +1,8 @@
 ---
 change_id: CHANGE-001
-title: Prototype Cooperative Tile Game
+title: Prototype cooperative tile game
 status: proposed
-created_at: '2026-05-29'
+created_at: '2026-08-04'
 created_by: local
 execution_domains:
 - software
@@ -21,15 +21,15 @@ plan_ref: execution-plan.md
 tasks_ref: tasks.yml
 ---
 
-# CHANGE-001 - Prototype Cooperative Tile Game
+# CHANGE-001 - Prototype cooperative tile game
 
 ## Summary
 
-Prototype a cooperative tile game where players place path tiles to connect three shrines before the storm deck runs out.
+Prototype a cooperative tile-placement loop where players connect three shrines before the storm deck runs out.
 
 ## Rationale
 
-The project is a board game design example for non-software P2P usage.
+Not provided.
 
 ## Scope
 

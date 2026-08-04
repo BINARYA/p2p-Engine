@@ -1,3 +1,7 @@
 included_decisions:
 - proposal: PROP-001
   decision_file: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/decision.md
+  ledger_file: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/decision-events.yml
+  head_event_id: PDE-7a7d2b993dbeb32bd424567c
+  decision_semantic_sha256: 90a337b00b5664dc0f54fa6b4251e583e906e86ebedb9f679569599f79ced02b
+  effective_state: accepted

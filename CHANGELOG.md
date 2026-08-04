@@ -6,7 +6,27 @@ This project is early-stage and did not previously maintain a public changelog.
 Use this file for human-readable release notes as the repository moves toward
 tagged releases.
 
-## 0.4.6 - Unreleased
+## 0.4.7 - 2026-08-04
+
+- Converged the registered CLI, MCP catalog, maintained documentation and
+  generated generic, Codex and Claude guidance on one validated public-surface
+  and agent-capability catalog.
+- Added deterministic template-generation identities and independent content
+  drift/template-obsolescence diagnostics for managed agent files.
+- Added complete standalone vertical guidance for local catalogs, remote
+  registries, device authentication, immutable pull, draft authoring,
+  publication and owner-governed project adoption.
+- Removed runtime migration/adoption paths and compatibility-only aliases for
+  workspace, runtime, proposal artifact, proposal decision, question,
+  permission, relation, registry, software-spec, publication, readiness and
+  derived-state memory families.
+- Made workspace schema 3 and each family-specific current contract the only
+  accepted runtime forms. Unsupported state is identified for rejection and is
+  never interpreted, normalized or rewritten.
+- Removed superseded `.codex/skills/` adapter copies. Fresh Codex integration
+  uses the shared current `.agents/skills/` templates.
+
+## 0.4.6 - 2026-08-04
 
 - Converted all four bundled verticals to schema 2 with exact
   `binarya/...@2.0.0` coordinates, licenses and checksum-bound structural

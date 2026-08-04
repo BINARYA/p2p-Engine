@@ -272,14 +272,6 @@ class ProjectDefinitionAssumption:
 
 
 @dataclass(frozen=True)
-class ProjectDefinitionQuestion:
-    question_id: str
-    question: str
-    field_id: str = ""
-    status: str = "open"
-
-
-@dataclass(frozen=True)
 class ProjectDefinitionBlocker:
     blocker_id: str
     text: str
@@ -293,7 +285,6 @@ class ProjectDefinitionSectionState:
     fields: dict[str, ProjectDefinitionFieldValue] = field(default_factory=dict)
     missing_required_fields: list[str] = field(default_factory=list)
     assumptions: list[ProjectDefinitionAssumption] = field(default_factory=list)
-    open_questions: list[ProjectDefinitionQuestion] = field(default_factory=list)
     blockers: list[ProjectDefinitionBlocker] = field(default_factory=list)
 
 
@@ -395,9 +386,9 @@ class ProposalVerticalCoverage:
     vertical_id: str
     sections: list[ProposalVerticalCoverageSection]
     path: Path | None = None
-    schema_version: int = 1
+    schema_version: int = 2
     provenance: dict[str, object] = field(default_factory=dict)
-    authority: str = "legacy_declared"
+    authority: str = "unverified"
 
 
 @dataclass(frozen=True)

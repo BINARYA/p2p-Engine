@@ -37,7 +37,7 @@ class WorkspaceOperationCompatibilityResult:
             raise ValueError(
                 f"{self.diagnostic_code}: workspace schema {self.current_version!r} is unsupported; "
                 f"this runtime supports schema {CURRENT_WORKSPACE_SCHEMA_VERSION} only and provides "
-                "no runtime legacy conversion. Recreate or convert the workspace outside this runtime."
+                "no in-runtime conversion. Recreate or convert the workspace outside this runtime."
             )
         maximum = f", maximum {self.required_maximum}" if self.required_maximum is not None else ""
         raise ValueError(
@@ -166,7 +166,6 @@ _CURRENT_SCHEMA_OPERATIONS = frozenset(
         "proposal_artifact_import_content",
         "proposal_artifacts_confirm",
         "proposal_artifacts_init",
-        "proposal_artifacts_mark_legacy",
         "proposal_artifacts_set",
         "proposal_branch",
         "proposal_cleanup",
@@ -205,7 +204,6 @@ _CURRENT_SCHEMA_OPERATIONS = frozenset(
         "registry_refresh",
         "remote_profile_configure",
         "repository_mode_set",
-        "runtime_contract_adopt",
         "runtime_contract_update",
         "software_spec_export",
         "software_spec_import",
@@ -246,7 +244,6 @@ _CURRENT_DECISION_LEDGER_OPERATIONS = frozenset(
     {
         "proposal_decision_apply",
         "proposal_decision_ledger_repair",
-        "proposal_decision_legacy_resolution",
         "proposal_decision_projection_repair",
         "proposal_decision_record",
     }

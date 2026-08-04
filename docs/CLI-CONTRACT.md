@@ -1,6 +1,6 @@
 # CLI JSON Contract
 
-P2P Engine 0.4.6 exposes one machine-facing CLI transport contract:
+P2P Engine 0.4.7 exposes one machine-facing CLI transport contract:
 `p2p-cli/v1`. Every command that accepts `--format json`, including commands
 whose format defaults to JSON, emits exactly one JSON document to stdout.
 
@@ -63,15 +63,16 @@ When JSON is requested, missing arguments, unknown options and conversion
 errors use the same envelope with `P2P_CLI_INVALID_REQUEST`. Text mode retains
 Typer/Rich help and error rendering.
 
-## Consumer Migration
+## Consumer Integration
 
-Pre-0.4.6 JSON consumers often read domain fields directly:
+Consumers that bypass the current envelope and read domain fields directly are
+unsupported:
 
 ```python
 payload["project_readiness"]
 ```
 
-The 0.4.6 form is:
+The current form is:
 
 ```python
 envelope = json.loads(stdout)

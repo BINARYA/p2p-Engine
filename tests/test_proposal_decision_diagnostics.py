@@ -7,12 +7,12 @@ from p2p_engine.core.proposal_decision_diagnostics import (
 
 
 def test_proposal_decision_diagnostic_range_is_complete_and_collision_free() -> None:
-    assert len(PROPOSAL_DECISION_DIAGNOSTICS) == 30
+    assert len(PROPOSAL_DECISION_DIAGNOSTICS) == 29
     assert {
         int(code[3:6])
         for code in PROPOSAL_DECISION_DIAGNOSTICS
-    } == set(range(360, 390))
-    assert len(set(PROPOSAL_DECISION_DIAGNOSTICS)) == 30
+    } == set(range(361, 390))
+    assert len(set(PROPOSAL_DECISION_DIAGNOSTICS)) == 29
 
     for code, definition in PROPOSAL_DECISION_DIAGNOSTICS.items():
         assert definition.code == code

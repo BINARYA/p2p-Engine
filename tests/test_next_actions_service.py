@@ -211,7 +211,7 @@ def test_decided_choice_with_missing_target_has_no_active_edge_or_action(tmp_pat
     (choice_dir / "links.yml").write_text(
         "related_proposals:\n"
         "  - proposal: PROP-999\n"
-        "    relationship: related_to\n",
+        "    relationship: references\n",
         encoding="utf-8",
     )
 

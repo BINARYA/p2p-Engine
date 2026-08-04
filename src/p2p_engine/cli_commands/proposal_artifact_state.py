@@ -87,32 +87,12 @@ def register_proposal_artifact_commands(proposal_artifact_app: typer.Typer) -> N
         if operation.artifact is not None:
             print_artifact_record(operation.artifact)
 
-    @proposal_artifact_app.command("mark-legacy")
-    def proposal_artifact_mark_legacy(
-        proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
-        reason: str = typer.Option("Proposal predates artifact-aware state.", "--reason", help="Legacy rationale"),
-        actor: str = typer.Option("local", "--actor", help="Actor recording the operation"),
-        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
-    ) -> None:
-        """Record advisory legacy absence for proposal artifact state."""
-        try:
-            view = workspace_for(root).mark_proposal_artifacts_legacy(proposal_id, reason=reason, actor=actor)
-        except ValueError as exc:
-            fail(str(exc))
-        console.print("[green]Proposal artifact state marked legacy.[/green]")
-        print_artifact_state(view)
-
-
 def print_artifact_state(view: object) -> None:
     console.print(f"Proposal artifact state for [bold]{getattr(view, 'proposal_id')}[/bold]")
     console.print(f"  status: {getattr(view, 'status')}")
     console.print(f"  path: {getattr(view, 'path')}")
     schema_version = getattr(view, "schema_version")
     console.print(f"  schema_version: {schema_version if schema_version is not None else 'none'}")
-    legacy_state = getattr(view, "legacy_state")
-    if legacy_state:
-        console.print(f"  legacy_state: {legacy_state.value}")
-        console.print(f"  legacy_reason: {getattr(view, 'legacy_reason')}")
     console.print("  artifacts:")
     artifacts = getattr(view, "artifacts")
     if not artifacts:

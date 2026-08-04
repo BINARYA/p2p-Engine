@@ -255,7 +255,7 @@ def _project_definition_markdown(definition: dict[str, object]) -> str:
         "- Removing folder-shaped exports may surprise users of the previous MVP export layout.\n"
         "- Agent-first documents require clear traceability to avoid over-synthesis.\n\n"
         "## Open Questions\n\n"
-        "- Which legacy bundle outputs, if any, should remain available behind an explicit compatibility flag?\n\n"
+        "- Which target-specific constraints still require owner clarification?\n\n"
         "## Pending Proposals\n\n"
         f"{_pending_proposals(definition)}\n\n"
         f"{_domain_sections(definition)}\n\n"

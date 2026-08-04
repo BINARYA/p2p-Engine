@@ -25,7 +25,6 @@ from p2p_engine.core.decision_context import (
     SourcePresence,
 )
 from p2p_engine.services.decision_context_sources import fragments_for_label
-from p2p_engine.services.decision_context_authority import AuthorityPolicy, LifecycleAuthority
 from p2p_engine.services.decision_context_ledger import (
     DecisionContextLedgerExtractor,
     proposal_authority,
@@ -33,23 +32,6 @@ from p2p_engine.services.decision_context_ledger import (
 
 
 _LIST_ITEM_RE = re.compile(r"^(?:[-*+] |[0-9]+[.)] )(.*)$")
-_KNOWN_OUTCOMES = {
-    "accepted",
-    "accepted_with_changes",
-    "rejected",
-    "deferred",
-    "withdrawn",
-    "revoked",
-    "reinstated",
-    "split",
-    "merged_into_other",
-    "superseded",
-    "pending",
-    "draft",
-    "unknown_legacy",
-}
-
-
 @dataclass(frozen=True)
 class ExtractedDecisionContext:
     completeness: Completeness
@@ -83,10 +65,6 @@ class DecisionContextExtractorService:
             title = _document_title(proposal_document) or owner_id
             nodes.append(DecisionContextNode(node_id=owner_id, node_type=NodeType.PROPOSAL, label=title))
 
-            proposal_status = _section_value(proposal_document, "Status") or _mapping_text(
-                proposal_document.frontmatter, "status"
-            )
-            decision_outcome = _decision_outcome(decision_document)
             ledger_context = None
             if (
                 ledger_document is not None
@@ -98,23 +76,28 @@ class DecisionContextExtractorService:
                     related_record_ids=(),
                 )
                 diagnostics.extend(ledger_context.diagnostics)
-                records.extend(ledger_context.records)
-                evidence.extend(ledger_context.evidence)
-                nodes.extend(ledger_context.nodes)
-                relations.extend(ledger_context.relations)
 
             if ledger_context is not None and ledger_context.lifecycle is not None:
                 proposal_authority_value, proposal_activation = proposal_authority(
                     ledger_context.lifecycle
                 )
-                lifecycle = None
             else:
-                lifecycle = AuthorityPolicy().lifecycle(
-                    proposal_status,
-                    decision_outcome,
+                proposal_authority_value = Authority.DRAFT_PROPOSAL
+                proposal_activation = Activation.EXPLORATORY
+                diagnostics.append(
+                    _diagnostic(
+                        code="DC-AUTHORITY-CURRENT-DECISION-LEDGER-REQUIRED",
+                        severity=DiagnosticSeverity.ERROR,
+                        message="Current proposal authority requires a valid decision-events.yml ledger.",
+                        source_path=(
+                            ledger_document.path
+                            if ledger_document is not None
+                            else f".p2p/proposals/{owner_id}/decision-events.yml"
+                        ),
+                        target_id=owner_id,
+                        recovery="Recreate or repair the proposal through current decision commands.",
+                    )
                 )
-                proposal_authority_value = lifecycle.proposal_authority
-                proposal_activation = lifecycle.proposal_activation
 
             proposal_records, proposal_evidence, proposal_diagnostics = self._extract_proposal(
                 proposal_document,
@@ -124,32 +107,20 @@ class DecisionContextExtractorService:
             records.extend(proposal_records)
             evidence.extend(proposal_evidence)
             diagnostics.extend(proposal_diagnostics)
-
-            if (
-                ledger_context is None
-                and decision_document is not None
-                and decision_document.presence == SourcePresence.PRESENT
-                and lifecycle is not None
-            ):
-                nodes.append(
-                    DecisionContextNode(
-                        node_id=f"decision:{owner_id}",
-                        node_type=NodeType.DECISION,
-                        label=f"Decision for {owner_id}",
-                    )
+            if ledger_context is not None and ledger_context.lifecycle is not None:
+                ledger_context = DecisionContextLedgerExtractor().extract(
+                    ledger_document,
+                    decision_projection=decision_document,
+                    related_record_ids=tuple(
+                        record.record_id
+                        for record in proposal_records
+                        if record.kind != RecordKind.PROPOSAL_STATE
+                    ),
                 )
-                decision_records, decision_evidence, decision_diagnostics = self._extract_decision(
-                    decision_document,
-                    outcome=decision_outcome,
-                    lifecycle=lifecycle,
-                    related_record_ids=tuple(record.record_id for record in proposal_records if record.kind != RecordKind.PROPOSAL_STATE),
-                )
-                records.extend(decision_records)
-                evidence.extend(decision_evidence)
-                diagnostics.extend(decision_diagnostics)
-                divergence = _status_divergence(owner_id, proposal_status, decision_outcome, decision_document.path)
-                if divergence is not None:
-                    diagnostics.append(divergence)
+                records.extend(ledger_context.records)
+                evidence.extend(ledger_context.evidence)
+                nodes.extend(ledger_context.nodes)
+                relations.extend(ledger_context.relations)
 
         records.sort(key=lambda item: (item.owner_type.value, item.owner_id, item.kind.value, item.record_id))
         evidence.sort(key=lambda item: (item.source_path, item.fragment_id, item.evidence_id))
@@ -264,117 +235,6 @@ class DecisionContextExtractorService:
                 )
         return records, evidence, diagnostics
 
-    def _extract_decision(
-        self,
-        document: SourceDocument,
-        *,
-        outcome: str,
-        lifecycle: LifecycleAuthority,
-        related_record_ids: tuple[str, ...],
-    ) -> tuple[list[DecisionContextRecord], list[DecisionContextEvidence], list[DecisionContextDiagnostic]]:
-        records: list[DecisionContextRecord] = []
-        evidence: list[DecisionContextEvidence] = []
-        diagnostics: list[DecisionContextDiagnostic] = []
-        outcome_fragment = _decision_state_fragment(document)
-        canonical_date = _section_value(document, "Date")
-        if outcome_fragment is not None and outcome:
-            outcome_evidence = _evidence(
-                document,
-                fragment_id=outcome_fragment.fragment_id,
-                fragment_label=outcome_fragment.label,
-                authority=lifecycle.decision_authority,
-                activation=lifecycle.decision_activation,
-                completeness=outcome_fragment.completeness,
-                span=outcome_fragment.span,
-            )
-            evidence.append(outcome_evidence)
-            records.append(
-                _record(
-                    owner_id=document.owner_id,
-                    source_kind=document.source_kind,
-                    kind=RecordKind.DECISION_STATE,
-                    fragment_id=outcome_fragment.fragment_id,
-                    activation=lifecycle.decision_activation,
-                    authority=lifecycle.decision_authority,
-                    text=outcome,
-                    evidence_ids=(outcome_evidence.evidence_id,),
-                    related_record_ids=related_record_ids,
-                    canonical_date=canonical_date,
-                )
-            )
-        reason_fragments = fragments_for_label(document, "Reason")
-        if reason_fragments:
-            reason_fragment = reason_fragments[0]
-            reason_text = reason_fragment.text.strip()
-            if not _is_placeholder(reason_text):
-                reason_evidence = _evidence(
-                    document,
-                    fragment_id=reason_fragment.fragment_id,
-                    fragment_label=reason_fragment.label,
-                    authority=lifecycle.decision_authority,
-                    activation=lifecycle.decision_activation,
-                    completeness=reason_fragment.completeness,
-                    span=reason_fragment.span,
-                )
-                evidence.append(reason_evidence)
-                records.append(
-                    _record(
-                        owner_id=document.owner_id,
-                        source_kind=document.source_kind,
-                        kind=(
-                            RecordKind.DECISION_QUALIFIER
-                            if outcome == "accepted_with_changes"
-                            else RecordKind.DECISION_REASON
-                        ),
-                        fragment_id=reason_fragment.fragment_id,
-                        activation=lifecycle.decision_activation,
-                        authority=lifecycle.decision_authority,
-                        text=reason_text,
-                        evidence_ids=(reason_evidence.evidence_id,),
-                        related_record_ids=related_record_ids,
-                        canonical_date=canonical_date,
-                    )
-                )
-        if outcome and outcome not in _KNOWN_OUTCOMES:
-            diagnostics.append(
-                _diagnostic(
-                    code="DC-AUTHORITY-UNKNOWN-DECISION-OUTCOME",
-                    severity=DiagnosticSeverity.WARNING,
-                    message=f"Decision outcome {outcome!r} is not supported by authority policy v1.",
-                    source_path=document.path,
-                    target_id=document.owner_id,
-                    recovery="Review the decision outcome and extend the versioned policy if intentional.",
-                )
-            )
-        statement_fragment = next(iter(fragments_for_label(document, "Outcome")), None)
-        if statement_fragment is not None:
-            statement_text = statement_fragment.text.strip()
-            if statement_text and _recognized_outcome(statement_text) is None:
-                statement_evidence = _evidence(
-                    document,
-                    fragment_id=statement_fragment.fragment_id,
-                    fragment_label=statement_fragment.label,
-                    authority=lifecycle.decision_authority,
-                    activation=lifecycle.decision_activation,
-                    completeness=statement_fragment.completeness,
-                    span=statement_fragment.span,
-                )
-                evidence.append(statement_evidence)
-                records.append(
-                    _record(
-                        owner_id=document.owner_id,
-                        source_kind=document.source_kind,
-                        kind=RecordKind.DECISION_STATEMENT,
-                        fragment_id=statement_fragment.fragment_id,
-                        activation=lifecycle.decision_activation,
-                        authority=lifecycle.decision_authority,
-                        text=statement_text,
-                        evidence_ids=(statement_evidence.evidence_id,),
-                        related_record_ids=related_record_ids,
-                        canonical_date=canonical_date,
-                    )
-                )
-        return records, evidence, diagnostics
 
 
 def _evidence(
@@ -432,55 +292,6 @@ def _record(
     )
 
 
-def _decision_outcome(document: SourceDocument | None) -> str:
-    if document is None or document.presence != SourcePresence.PRESENT:
-        return ""
-    status = _recognized_outcome(_section_value(document, "Status"))
-    if status is not None:
-        return status
-    outcome_text = _section_value(document, "Outcome")
-    outcome = _recognized_outcome(outcome_text)
-    if outcome is not None:
-        return outcome
-    return _normalize_status(_section_value(document, "Status") or outcome_text)
-
-
-def _decision_state_fragment(document: SourceDocument):
-    status_fragment = next(iter(fragments_for_label(document, "Status")), None)
-    if status_fragment is not None and _recognized_outcome(status_fragment.text) is not None:
-        return status_fragment
-    outcome_fragment = next(iter(fragments_for_label(document, "Outcome")), None)
-    if outcome_fragment is not None and _recognized_outcome(outcome_fragment.text) is not None:
-        return outcome_fragment
-    return status_fragment or outcome_fragment
-
-
-def _recognized_outcome(value: str) -> str | None:
-    normalized = _normalize_status(value)
-    return normalized if normalized in _KNOWN_OUTCOMES else None
-
-
-def _status_divergence(
-    owner_id: str,
-    proposal_status: str,
-    decision_outcome: str,
-    source_path: str,
-) -> DecisionContextDiagnostic | None:
-    proposal_status = _normalize_status(proposal_status)
-    decision_outcome = _normalize_status(decision_outcome)
-    if not proposal_status or not decision_outcome or proposal_status == decision_outcome:
-        return None
-    return _diagnostic(
-        code="DC-AUTHORITY-STATUS-DIVERGENCE",
-        severity=DiagnosticSeverity.WARNING,
-        message=(
-            f"Proposal status {proposal_status!r} differs from decision outcome "
-            f"{decision_outcome!r}; decision evidence controls derived decision authority."
-        ),
-        source_path=source_path,
-        target_id=owner_id,
-        recovery="Review proposal and decision state through supported governance commands.",
-    )
 
 
 def _section_value(document: SourceDocument, label: str) -> str:

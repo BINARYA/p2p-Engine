@@ -55,7 +55,7 @@ def _representative_workspace(root: Path) -> None:
         {
             "related_proposals": [
                 {"proposal": "PROP-099", "relationship": "depends_on"},
-                {"proposal": "PROP-096", "relationship": "related"},
+                {"proposal": "PROP-096", "relationship": "references"},
             ]
         },
     )

@@ -504,7 +504,7 @@ def test_same_edition_import_lock_blocks_competing_revision(tmp_path: Path) -> N
     assert result.status == "imported"
 
 
-def test_import_writes_bound_triplet_and_default_english_alias(tmp_path: Path) -> None:
+def test_import_writes_only_current_bound_edition_triplet(tmp_path: Path) -> None:
     proposal = _write_project_state(tmp_path)
     service = _service(tmp_path, proposal)
     service.prepare()
@@ -517,7 +517,6 @@ def test_import_writes_bound_triplet_and_default_english_alias(tmp_path: Path) -
     assert result.evidence_accounting_path == Path(
         "outputs/latest/publications/project-en/evidence-accounting.yml"
     )
-    assert service.paths().legacy_markdown.read_bytes() == service.paths().markdown.read_bytes()
     stages = {item.name: item for item in service.status().stages}
     assert stages["model"].status == "ready"
     assert stages["evidence_accounting"].status == "ready"
@@ -536,7 +535,6 @@ def test_byte_equivalent_import_reuses_targets_and_preserves_later_stages(tmp_pa
         service.paths().model,
         service.paths().evidence_accounting,
         service.paths().markdown,
-        service.paths().legacy_markdown,
     )
     target_mtimes = {path: path.stat().st_mtime_ns for path in targets}
 
@@ -547,7 +545,6 @@ def test_byte_equivalent_import_reuses_targets_and_preserves_later_stages(tmp_pa
         Path("outputs/latest/publications/project-en/project-model.yml"),
         Path("outputs/latest/publications/project-en/evidence-accounting.yml"),
         Path("outputs/latest/project-en.md"),
-        Path("outputs/latest/project.curated.md"),
     }
     assert {path: path.stat().st_mtime_ns for path in targets} == target_mtimes
     stages = {item.name: item.status for item in service.status().stages}
@@ -555,7 +552,7 @@ def test_byte_equivalent_import_reuses_targets_and_preserves_later_stages(tmp_pa
     assert stages["render"] == "ready"
 
 
-def test_non_default_edition_does_not_write_legacy_alias(tmp_path: Path) -> None:
+def test_non_default_edition_writes_selected_current_path(tmp_path: Path) -> None:
     proposal = _write_project_state(tmp_path)
     service = _service(tmp_path, proposal)
     service.prepare(language="it")
@@ -569,7 +566,6 @@ def test_non_default_edition_does_not_write_legacy_alias(tmp_path: Path) -> None
     )
 
     assert service.paths(language="it").markdown.exists()
-    assert not service.paths(language="it").legacy_markdown.exists()
 
 
 def test_validate_accepts_localized_structure_without_p2p_boilerplate(tmp_path: Path) -> None:
@@ -718,18 +714,6 @@ def test_shared_source_drift_stales_all_editions_but_local_drift_is_isolated(tmp
     proposal.joinpath("proposal.md").write_text("# Changed shared evidence\n", encoding="utf-8")
     assert {item.name: item.status for item in service.status(language="en").stages}["source_export"] == "stale"
     assert {item.name: item.status for item in service.status(language="it").stages}["source_export"] == "stale"
-
-
-def test_alias_manual_change_is_not_an_edition_freshness_input(tmp_path: Path) -> None:
-    proposal = _write_project_state(tmp_path)
-    service = _service(tmp_path, proposal, pdf_renderer=_fake_pdf_renderer)
-    _prepare_import_validate(service)
-    service.render()
-    service.review(status="approved")
-
-    service.paths().legacy_markdown.write_text("legacy alias changed\n", encoding="utf-8")
-
-    assert service.status().approved_for_publication is True
 
 
 def test_import_rejects_stale_packet_and_unsafe_sources(tmp_path: Path) -> None:
@@ -899,93 +883,6 @@ def test_catalog_rejects_noncanonical_manifests_without_repair(
     assert result.editions == ()
     assert result.diagnostics[0].code == diagnostic
     assert service.paths().manifest.read_bytes() == before
-
-
-@pytest.mark.parametrize(
-    ("legacy_case", "expected"),
-    [
-        ("absent", "absent"),
-        ("partial", "partial"),
-        ("invalid", "invalid"),
-        ("stale", "stale"),
-        ("complete", "complete"),
-        ("approved", "approved"),
-    ],
-)
-def test_legacy_publication_state_is_classified_read_only(
-    tmp_path: Path,
-    legacy_case: str,
-    expected: str,
-) -> None:
-    proposal = _write_project_state(tmp_path)
-    service = _service(tmp_path, proposal)
-    paths = service.paths()
-    if legacy_case != "absent":
-        paths.legacy_markdown.parent.mkdir(parents=True, exist_ok=True)
-        paths.legacy_markdown.write_text("# Legacy\n", encoding="utf-8")
-    if legacy_case in {"invalid", "stale", "complete", "approved"}:
-        for path in (paths.legacy_profile, paths.legacy_curator_input, paths.legacy_validation):
-            path.write_text("legacy: true\n", encoding="utf-8")
-        manifest = {
-            "schema_version": 2 if legacy_case == "invalid" else 1,
-            "stages": {
-                "curated": {
-                    "path": "outputs/latest/project.curated.md",
-                    "sha256": (
-                        "0" * 64
-                        if legacy_case == "stale"
-                        else physical_sha256(paths.legacy_markdown)
-                    ),
-                }
-            },
-        }
-        write_yaml_atomic(paths.legacy_manifest, manifest)
-    if legacy_case == "approved":
-        write_yaml_atomic(paths.legacy_review, {"schema_version": 1, "status": "approved"})
-
-    before = {
-        path.relative_to(tmp_path): path.read_bytes()
-        for path in tmp_path.rglob("*")
-        if path.is_file()
-    }
-    result = service.list_editions()
-    after = {
-        path.relative_to(tmp_path): path.read_bytes()
-        for path in tmp_path.rglob("*")
-        if path.is_file()
-    }
-
-    assert result.legacy_status == expected
-    assert after == before
-
-
-def test_legacy_approval_never_approves_new_default_edition(tmp_path: Path) -> None:
-    proposal = _write_project_state(tmp_path)
-    service = _service(tmp_path, proposal)
-    paths = service.paths()
-    paths.legacy_markdown.parent.mkdir(parents=True, exist_ok=True)
-    paths.legacy_markdown.write_text("# Legacy\n", encoding="utf-8")
-    for path in (paths.legacy_profile, paths.legacy_curator_input, paths.legacy_validation):
-        path.write_text("legacy: true\n", encoding="utf-8")
-    write_yaml_atomic(
-        paths.legacy_manifest,
-        {
-            "schema_version": 1,
-            "stages": {
-                "curated": {
-                    "path": "outputs/latest/project.curated.md",
-                    "sha256": physical_sha256(paths.legacy_markdown),
-                }
-            },
-        },
-    )
-    write_yaml_atomic(paths.legacy_review, {"schema_version": 1, "status": "approved"})
-
-    service.prepare()
-    status = service.status()
-
-    assert status.legacy_status == "approved"
-    assert status.approved_for_publication is False
 
 
 def test_renderer_html_uses_selected_language_and_escaped_title() -> None:

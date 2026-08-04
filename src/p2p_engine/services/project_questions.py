@@ -166,7 +166,6 @@ ProjectQuestionSelection = tuple[
 class ProjectQuestionSeedResult:
     artifact: ProjectQuestionArtifact
     diagnostics: tuple[ProjectReadinessDiagnostic, ...]
-    migrated_count: int
     generated_count: int
 
 
@@ -904,66 +903,14 @@ class ProjectQuestionStateService:
         lock_checksum: str,
         actor: str,
         audit_at: str,
-        legacy_bindings: Mapping[str, Mapping[str, object]] | None = None,
     ) -> ProjectQuestionSeedResult:
         questions: list[ProjectQuestion] = []
         diagnostics: list[ProjectReadinessDiagnostic] = []
-        migrated_count = 0
         generated_count = 0
-        pack_sections = {section.section_id: section for section in pack.sections}
         definition_sections = {section.section_id: section for section in definition.sections}
-        bindings = dict(legacy_bindings or {})
-        consumed_bindings: set[str] = set()
         for section in sorted(pack.sections, key=lambda item: (item.priority, item.section_id)):
             state = definition_sections.get(section.section_id)
             if state is None or state.status in {"complete", "not_applicable"} or not section.required:
-                continue
-            seen_legacy: dict[str, str] = {}
-            for legacy in state.open_questions:
-                previous = seen_legacy.setdefault(legacy.question_id, legacy.question)
-                if previous != legacy.question:
-                    raise ValueError(
-                        f"P2P350_AMBIGUOUS_LEGACY_QUESTION: section `{section.section_id}` "
-                        f"contains conflicting `{legacy.question_id}` records"
-                    )
-                binding_key = f"{section.section_id}/{legacy.question_id}"
-                explicit_binding = bindings.get(binding_key)
-                if explicit_binding is not None:
-                    binding = self._owner_legacy_binding(
-                        explicit_binding,
-                        state=state,
-                        section=section,
-                        pack=pack,
-                        binding_key=binding_key,
-                    )
-                    consumed_bindings.add(binding_key)
-                else:
-                    binding = self._bind_legacy_question(legacy.field_id, state, section, pack)
-                if binding is None:
-                    raise ValueError(
-                        f"P2P350_AMBIGUOUS_LEGACY_QUESTION: cannot bind `{legacy.question_id}` "
-                        f"in section `{section.section_id}` without owner target input"
-                    )
-                target, contract = binding
-                questions.append(
-                    self._new_question(
-                        project_id=project_id,
-                        pack=pack,
-                        lock_checksum=lock_checksum,
-                        section=section,
-                        state=state,
-                        wording=legacy.question,
-                        target=target,
-                        contract=contract,
-                        source_kind=ProjectQuestionSourceType.MIGRATED_LEGACY,
-                        source_question_id=legacy.question_id,
-                        source_key=f"legacy:{section.section_id}:{legacy.question_id}:{target.kind}:{target.target_id}",
-                        actor=actor,
-                        audit_at=audit_at,
-                    )
-                )
-                migrated_count += 1
-            if state.open_questions:
                 continue
             selected_questions = self._declared_or_fallbacks(pack, section, state)
             if not selected_questions:
@@ -1006,11 +953,6 @@ class ProjectQuestionStateService:
                 )
                 generated_count += 1
 
-        unused_bindings = sorted(set(bindings) - consumed_bindings)
-        if unused_bindings:
-            raise ValueError(
-                f"P2P350_AMBIGUOUS_LEGACY_QUESTION: unknown legacy binding `{unused_bindings[0]}`"
-            )
         self._validate_question_id_collisions(questions)
         groups = self._groups_for_questions(pack.vertical_id, questions)
         artifact = ProjectQuestionArtifact(
@@ -1029,7 +971,6 @@ class ProjectQuestionStateService:
         return ProjectQuestionSeedResult(
             artifact=artifact,
             diagnostics=tuple(diagnostics),
-            migrated_count=migrated_count,
             generated_count=generated_count,
         )
 
@@ -1540,66 +1481,6 @@ class ProjectQuestionStateService:
         raise ValueError(
             f"P2P340_PROJECT_QUESTIONS_INVALID: unsupported declared target kind `{target.kind}`"
         )
-
-    def _bind_legacy_question(
-        self,
-        field_id: str,
-        state: ProjectDefinitionSectionState,
-        section: VerticalSection,
-        pack: VerticalPack,
-    ) -> tuple[ProjectQuestionTarget, ProjectQuestionAnswerContract] | None:
-        if field_id:
-            if field_id not in {item.field_id for item in _section_fields(section, pack)}:
-                raise ValueError(
-                    f"P2P350_AMBIGUOUS_LEGACY_QUESTION: unknown field `{field_id}` in `{section.section_id}`"
-                )
-            return ProjectQuestionTarget("field", field_id), _field_value_contract()
-        return self._safe_binding(state, section, pack)
-
-    def _owner_legacy_binding(
-        self,
-        raw: Mapping[str, object],
-        *,
-        state: ProjectDefinitionSectionState,
-        section: VerticalSection,
-        pack: VerticalPack,
-        binding_key: str,
-    ) -> tuple[ProjectQuestionTarget, ProjectQuestionAnswerContract]:
-        allowed = {"target_kind", "target_id", "answer_contract"}
-        unknown = set(raw) - allowed
-        if unknown:
-            raise ValueError(
-                f"P2P350_AMBIGUOUS_LEGACY_QUESTION: binding `{binding_key}` contains forbidden "
-                f"fields {sorted(unknown)}"
-            )
-        target_kind = str(raw.get("target_kind") or "").strip()
-        target_id = str(raw.get("target_id") or "").strip()
-        if not target_kind or not target_id:
-            raise ValueError(
-                f"P2P350_AMBIGUOUS_LEGACY_QUESTION: binding `{binding_key}` requires target_kind and target_id"
-            )
-        if target_kind == "field":
-            if target_id not in {item.field_id for item in _section_fields(section, pack)}:
-                raise ValueError(f"P2P350_AMBIGUOUS_LEGACY_QUESTION: unknown field `{target_id}`")
-        elif target_kind == "assumption":
-            if target_id not in {item.assumption_id for item in state.assumptions}:
-                raise ValueError(f"P2P350_AMBIGUOUS_LEGACY_QUESTION: unknown assumption `{target_id}`")
-        elif target_kind == "blocker":
-            if target_id not in {item.blocker_id for item in state.blockers}:
-                raise ValueError(f"P2P350_AMBIGUOUS_LEGACY_QUESTION: unknown blocker `{target_id}`")
-        elif target_kind == "section":
-            if target_id != section.section_id:
-                raise ValueError(f"P2P350_AMBIGUOUS_LEGACY_QUESTION: unknown section `{target_id}`")
-        else:
-            raise ValueError(f"P2P350_AMBIGUOUS_LEGACY_QUESTION: unsupported target kind `{target_kind}`")
-        contract = _default_contract_for_target(target_kind)
-        requested_contract = str(raw.get("answer_contract") or contract.kind.value).strip()
-        if requested_contract != contract.kind.value:
-            raise ValueError(
-                f"P2P350_AMBIGUOUS_LEGACY_QUESTION: contract `{requested_contract}` does not match "
-                f"target kind `{target_kind}`"
-            )
-        return ProjectQuestionTarget(target_kind, target_id), contract
 
     def _safe_binding(
         self,

@@ -96,7 +96,7 @@ def _intake_prompt_markdown(intake_id: str, idea: str, context: str) -> str:
         "```yaml\n"
         "related_proposals:\n"
         "  - proposal: PROP-000\n"
-        "    relationship: related_to\n"
+        "    relationship: references\n"
         "    rationale: Short reason.\n"
         "```\n\n"
         "### suggested-actions.yml\n\n"

@@ -31,7 +31,7 @@ def _retrieve(root: Path, *, target: str = "", idea: str = "", budget: ContextBu
     )
 
 
-def _related(root: Path, source: str, target: str, relationship: str = "related") -> None:
+def _related(root: Path, source: str, target: str, relationship: str = "references") -> None:
     write_yaml(
         root,
         f".p2p/proposals/{source.lower()}-example/related-proposals.yml",
@@ -282,7 +282,7 @@ def test_historical_lexical_overlap_needs_threshold_or_explicit_relation(tmp_pat
     lexical_only = _retrieve(tmp_path, target="PROP-001")
     assert "PROP-002" not in {hit.owner_id for hit in lexical_only.hits}
 
-    _related(tmp_path, "PROP-001", "PROP-002", "alternative_to")
+    _related(tmp_path, "PROP-001", "PROP-002", "references")
     explicit = _retrieve(tmp_path, target="PROP-001")
     historical = next(hit for hit in explicit.hits if hit.owner_id == "PROP-002")
     assert historical.activation == Activation.HISTORICAL
@@ -306,18 +306,18 @@ def test_small_is_direct_only_and_medium_allows_one_bounded_extra_hop(tmp_path: 
     assert len(transitive.selected_relation_ids) == 2
 
 
-def test_tie_breaking_uses_dates_only_when_both_exist(tmp_path: Path) -> None:
+def test_tie_breaking_uses_canonical_ledger_dates_not_projection_text(tmp_path: Path) -> None:
     _distinct_proposal(tmp_path, "PROP-001", "target")
     _distinct_proposal(tmp_path, "PROP-002", "older", status="accepted", outcome="accepted", date="2026-01-01")
     _distinct_proposal(tmp_path, "PROP-003", "newer", status="accepted", outcome="accepted", date="2026-06-01")
-    _related(tmp_path, "PROP-001", "PROP-002", "related")
+    _related(tmp_path, "PROP-001", "PROP-002", "references")
     write_yaml(
         tmp_path,
         ".p2p/proposals/prop-001-example/related-proposals.yml",
         {
             "related_proposals": [
-                {"proposal": "PROP-002", "relationship": "related"},
-                {"proposal": "PROP-003", "relationship": "related"},
+                {"proposal": "PROP-002", "relationship": "references"},
+                {"proposal": "PROP-003", "relationship": "references"},
             ]
         },
     )
@@ -330,8 +330,8 @@ def test_tie_breaking_uses_dates_only_when_both_exist(tmp_path: Path) -> None:
         decision_path.read_text(encoding="utf-8").replace("2026-01-01", ""),
         encoding="utf-8",
     )
-    neutral = _retrieve(tmp_path, target="PROP-001")
-    assert [hit.owner_id for hit in neutral.hits[:2]] == ["PROP-002", "PROP-003"]
+    after_projection_edit = _retrieve(tmp_path, target="PROP-001")
+    assert [hit.owner_id for hit in after_projection_edit.hits[:2]] == ["PROP-003", "PROP-002"]
 
 
 def test_budget_limits_bytes_and_reports_deterministic_truncation(tmp_path: Path) -> None:
@@ -346,7 +346,7 @@ def test_budget_limits_bytes_and_reports_deterministic_truncation(tmp_path: Path
             status="accepted",
             outcome="accepted",
         )
-        related.append({"proposal": proposal_id, "relationship": "related"})
+        related.append({"proposal": proposal_id, "relationship": "references"})
     write_yaml(
         tmp_path,
         ".p2p/proposals/prop-001-example/related-proposals.yml",

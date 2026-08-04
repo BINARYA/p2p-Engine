@@ -464,7 +464,7 @@ def test_impact_preview_apply_requires_owner_and_matching_stateless_token(tmp_pa
         "related-proposals.yml": (
             "related_proposals:\n"
             f"  - proposal: {related.proposal_id}\n"
-            "    relationship: dependency\n"
+            "    relationship: depends_on\n"
         ),
     }
 
@@ -530,7 +530,7 @@ def test_impact_apply_rejects_changed_canonical_source_without_overwriting_it(tm
     assert related_path.read_text(encoding="utf-8") == "related_proposals: []\n"
 
 
-def test_impact_preview_uses_legacy_owner_fallback_without_permissions(tmp_path: Path) -> None:
+def test_impact_preview_requires_explicit_permissions_state(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Legacy Impact Authority")
     target = workspace.create_proposal("Committed impact")
@@ -556,8 +556,8 @@ def test_impact_preview_uses_legacy_owner_fallback_without_permissions(tmp_path:
         actor="contributor",
     )
 
-    assert owner.authority == "owner_confirmed"
-    assert owner.apply_allowed is True
+    assert owner.authority == "owner_required"
+    assert owner.apply_allowed is False
     assert contributor.authority == "owner_required"
     assert contributor.apply_allowed is False
 
@@ -692,7 +692,7 @@ def test_impact_multi_file_failure_rolls_back_every_target(tmp_path: Path) -> No
         "related-proposals.yml": (
             "related_proposals:\n"
             f"  - proposal: {related.proposal_id}\n"
-            "    relationship: related\n"
+            "    relationship: references\n"
         ),
     }
     preview = service.preview_impact(proposal.proposal_id, artifacts, actor="owner")

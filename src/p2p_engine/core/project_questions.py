@@ -35,7 +35,6 @@ class ProjectQuestionApplicability(StrEnum):
 class ProjectQuestionSourceType(StrEnum):
     VERTICAL_DECLARED = "vertical_declared"
     DETERMINISTIC_FALLBACK = "deterministic_fallback"
-    MIGRATED_LEGACY = "migrated_legacy"
 
 
 class ProjectQuestionAnswerKind(StrEnum):

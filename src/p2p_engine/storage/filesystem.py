@@ -61,7 +61,6 @@ from p2p_engine.core.project_verticals import (
     VerticalValidationResult,
 )
 from p2p_engine.core.runtime_contract import (
-    RuntimeContractAdoptionResult,
     RuntimeContractUpdatePreview,
     RuntimeContractUpdateResult,
     RuntimeStatus,
@@ -104,6 +103,7 @@ from p2p_engine.services.agent_templates import (
     agent_policy as _agent_policy,
     expanded_agent_profiles as _expanded_agent_profiles,
     normalize_agent_profile as _normalize_agent_profile,
+    template_generation_id as _template_generation_id,
 )
 from p2p_engine.services.changes import (
     ChangeSetDetail,
@@ -378,6 +378,7 @@ class P2PWorkspace:
                 instruction_files=_agent_instruction_files,
                 adapter_files=_agent_adapter_files,
                 adapter_capabilities=_agent_adapter_capabilities,
+                template_generation=_template_generation_id,
                 agent_policy=_agent_policy,
                 built_in_adapters=BUILT_IN_AGENT_ADAPTERS,
                 interaction_style=self.project_interaction_style,
@@ -2021,28 +2022,6 @@ class P2PWorkspace:
             actor=actor,
         )
 
-    def runtime_contract_adopt(
-        self,
-        *,
-        requires: str,
-        recommended: str,
-        confirm: bool = False,
-        actor: str = "owner",
-    ) -> RuntimeContractAdoptionResult:
-        self._workspace_transaction_lock_service().require_write_available(
-            "runtime_contract_adopt"
-        )
-        self._workspace_operation_compatibility_service().check(
-            "runtime_contract_adopt",
-            self.workspace_schema_status(),
-        ).require_allowed()
-        return self._runtime_contract_service().adopt_contract(
-            requires=requires,
-            recommended=recommended,
-            confirm=confirm,
-            actor=actor,
-        )
-
     def _ensure_runtime_write_allowed(self, operation: str) -> RuntimeWritePreflight:
         self._workspace_transaction_lock_service().require_write_available(operation)
         if not self.p2p_dir.exists() or not (self.p2p_dir / "project.yml").exists():
@@ -2203,10 +2182,6 @@ class P2PWorkspace:
     def confirm_proposal_artifact_state(self, proposal_id: str, artifact_id: str, actor: str = "owner"):
         self._ensure_runtime_write_allowed("proposal_artifacts_confirm")
         return self._proposal_artifact_state_service().confirm(proposal_id, artifact_id, actor=actor)
-
-    def mark_proposal_artifacts_legacy(self, proposal_id: str, reason: str = "Proposal predates artifact-aware state.", actor: str = "local"):
-        self._ensure_runtime_write_allowed("proposal_artifacts_mark_legacy")
-        return self._proposal_artifact_state_service().mark_legacy(proposal_id, reason=reason, actor=actor)
 
     def create_proposal(self, title: str) -> Proposal:
         self._ensure_runtime_write_allowed("proposal_create")
@@ -2487,26 +2462,6 @@ class P2PWorkspace:
             candidate_path=candidate_path,
             actor_id=actor_id,
             executor_actor_id=executor_actor_id,
-            preview_token=preview_token,
-            confirm=confirm,
-        )
-
-    def preview_proposal_decision_legacy_resolution(
-        self,
-        request: ProposalDecisionRequest,
-    ) -> ProposalDecisionPreview:
-        return self._proposal_decision_service().legacy_resolution_preview(request)
-
-    def apply_proposal_decision_legacy_resolution(
-        self,
-        request: ProposalDecisionRequest,
-        *,
-        preview_token: str,
-        confirm: bool,
-    ) -> ProposalDecisionApplyResult:
-        self._ensure_runtime_write_allowed("proposal_decision_legacy_resolution")
-        return self._proposal_decision_service().legacy_resolution_apply(
-            request,
             preview_token=preview_token,
             confirm=confirm,
         )

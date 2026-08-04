@@ -354,7 +354,7 @@ class ValidationService:
                             f"p2p decision status {proposal_id}",
                         )
                     elif diagnostic.startswith(
-                        "P2P307_WORKSPACE_MIGRATION_RECOVERY_REQUIRED"
+                        "P2P307_WORKSPACE_TRANSACTION_RECOVERY_REQUIRED"
                     ):
                         # Workspace-schema validation owns this diagnostic.
                         continue
@@ -372,11 +372,7 @@ class ValidationService:
                         )
                         target = proposal_dir / "decision-events.yml"
                         suggested_command = f"p2p decision status {proposal_id}"
-                        if code == "P2P360_DECISION_LEGACY_AUTHORITY_UNRESOLVED":
-                            if lifecycle.source_model == "legacy_projection_v2":
-                                target = decision_path
-                                suggested_command = "p2p workspace schema status --format json"
-                        elif code == (
+                        if code == (
                             "P2P378_DECISION_RECONSIDERATION_REQUIRES_NEW_PROPOSAL"
                         ):
                             target = proposal_path
@@ -512,8 +508,8 @@ def _read_proposal_status(path: Path) -> str:
 
 
 def _validate_agent_integrations_payload(data: dict[str, object], *, root: Path | None = None) -> None:
-    if data.get("schema_version") != 1:
-        raise ValueError("Agent integrations registry must use schema_version: 1.")
+    if data.get("schema_version") != 2:
+        raise ValueError("Agent integrations registry must use schema_version: 2.")
     if data.get("baseline_profile") != "generic":
         raise ValueError("Agent integrations registry baseline_profile must be generic.")
     forbidden = {
@@ -563,7 +559,16 @@ def _validate_agent_integrations_payload(data: dict[str, object], *, root: Path 
         for record in files:
             if not isinstance(record, dict):
                 raise ValueError(f"Agent adapter file record must be a mapping: {adapter_id}")
-            for required in ("path", "shared", "owner", "managed", "template_id", "sha256", "drift"):
+            for required in (
+                "path",
+                "shared",
+                "owner",
+                "managed",
+                "template_id",
+                "template_generation_id",
+                "sha256",
+                "drift",
+            ):
                 if required not in record:
                     raise ValueError(f"Agent adapter file record missing {required}: {adapter_id}")
             relative_path = _validate_agent_file_path(record.get("path"), root=root)
@@ -575,6 +580,10 @@ def _validate_agent_integrations_payload(data: dict[str, object], *, root: Path 
                 raise ValueError(f"Invalid agent adapter file owner: {record['owner']}")
             if not str(record.get("template_id") or "").strip():
                 raise ValueError(f"Agent adapter file template_id is required: {relative_path}")
+            if not str(record.get("template_generation_id") or "").strip():
+                raise ValueError(
+                    f"Agent adapter file template_generation_id is required: {relative_path}"
+                )
             sha256 = str(record.get("sha256") or "")
             if sha256 and not re.fullmatch(r"[0-9a-f]{64}", sha256):
                 raise ValueError(f"Invalid SHA-256 for agent adapter file: {record.get('path')}")

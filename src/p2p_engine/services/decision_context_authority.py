@@ -16,14 +16,6 @@ from p2p_engine.core.decision_context import (
 
 
 @dataclass(frozen=True)
-class LifecycleAuthority:
-    proposal_authority: Authority
-    proposal_activation: Activation
-    decision_authority: Authority
-    decision_activation: Activation
-
-
-@dataclass(frozen=True)
 class SourceAuthority:
     canonicality: Canonicality
     authority: Authority
@@ -31,86 +23,6 @@ class SourceAuthority:
     confidence: Confidence
 
 
-_LIFECYCLE_RULES: Mapping[str, LifecycleAuthority] = {
-    "accepted": LifecycleAuthority(
-        Authority.ACCEPTED_PROPOSAL_CONTEXT,
-        Activation.ACTIVE,
-        Authority.ACCEPTED_DECISION,
-        Activation.ACTIVE,
-    ),
-    "accepted_with_changes": LifecycleAuthority(
-        Authority.ACCEPTED_PROPOSAL_CONTEXT,
-        Activation.ACTIVE,
-        Authority.CONDITIONALLY_ACCEPTED_DECISION,
-        Activation.ACTIVE,
-    ),
-    "deferred": LifecycleAuthority(
-        Authority.HISTORICAL_PROPOSAL,
-        Activation.HISTORICAL,
-        Authority.HISTORICAL_PROPOSAL,
-        Activation.UNRESOLVED,
-    ),
-    "rejected": LifecycleAuthority(
-        Authority.HISTORICAL_PROPOSAL,
-        Activation.HISTORICAL,
-        Authority.HISTORICAL_PROPOSAL,
-        Activation.HISTORICAL,
-    ),
-    "withdrawn": LifecycleAuthority(
-        Authority.HISTORICAL_PROPOSAL,
-        Activation.HISTORICAL,
-        Authority.HISTORICAL_PROPOSAL,
-        Activation.HISTORICAL,
-    ),
-    "revoked": LifecycleAuthority(
-        Authority.HISTORICAL_PROPOSAL,
-        Activation.HISTORICAL,
-        Authority.HISTORICAL_PROPOSAL,
-        Activation.HISTORICAL,
-    ),
-    "reinstated": LifecycleAuthority(
-        Authority.ACCEPTED_PROPOSAL_CONTEXT,
-        Activation.ACTIVE,
-        Authority.ACCEPTED_DECISION,
-        Activation.ACTIVE,
-    ),
-    "unknown_legacy": LifecycleAuthority(
-        Authority.HISTORICAL_PROPOSAL,
-        Activation.UNRESOLVED,
-        Authority.UNKNOWN,
-        Activation.UNRESOLVED,
-    ),
-    "split": LifecycleAuthority(
-        Authority.HISTORICAL_PROPOSAL,
-        Activation.HISTORICAL,
-        Authority.HISTORICAL_PROPOSAL,
-        Activation.HISTORICAL,
-    ),
-    "merged_into_other": LifecycleAuthority(
-        Authority.HISTORICAL_PROPOSAL,
-        Activation.HISTORICAL,
-        Authority.HISTORICAL_PROPOSAL,
-        Activation.HISTORICAL,
-    ),
-    "superseded": LifecycleAuthority(
-        Authority.HISTORICAL_PROPOSAL,
-        Activation.HISTORICAL,
-        Authority.HISTORICAL_PROPOSAL,
-        Activation.HISTORICAL,
-    ),
-    "pending": LifecycleAuthority(
-        Authority.DRAFT_PROPOSAL,
-        Activation.EXPLORATORY,
-        Authority.UNKNOWN,
-        Activation.UNRESOLVED,
-    ),
-    "draft": LifecycleAuthority(
-        Authority.DRAFT_PROPOSAL,
-        Activation.EXPLORATORY,
-        Authority.UNKNOWN,
-        Activation.UNRESOLVED,
-    ),
-}
 
 
 class AuthorityPolicy:
@@ -139,17 +51,6 @@ class AuthorityPolicy:
         Authority.UNKNOWN: frozenset({Activation.UNRESOLVED, Activation.INACTIVE}),
     }
 
-    def lifecycle(self, proposal_status: str, decision_outcome: str) -> LifecycleAuthority:
-        outcome = decision_outcome or proposal_status
-        return _LIFECYCLE_RULES.get(
-            outcome,
-            LifecycleAuthority(
-                Authority.HISTORICAL_PROPOSAL,
-                Activation.UNRESOLVED,
-                Authority.UNKNOWN,
-                Activation.UNRESOLVED,
-            ),
-        )
 
     def source_default(self, document: SourceDocument) -> SourceAuthority:
         if document.source_kind == SourceKind.DECISION_PRECEDENTS:
@@ -264,11 +165,3 @@ class SourceMetadataResolver:
                 Confidence.EXPLICIT,
             )
         return default
-
-
-def lifecycle_rules() -> Mapping[str, LifecycleAuthority]:
-    return _LIFECYCLE_RULES
-
-
-def lifecycle_state_tokens() -> tuple[str, ...]:
-    return tuple(sorted(_LIFECYCLE_RULES))

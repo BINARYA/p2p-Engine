@@ -127,7 +127,7 @@ def test_software_spec_service_refresh_status_show_prompt_and_import(tmp_path: P
     assert imported_provenance["p2p_generation"]["origin"] == "imported"
     imported_status = service.statuses()[0]
     assert imported_status.status == "generated"
-    assert imported_status.freshness == SoftwareSpecFreshness.UNKNOWN_ORIGIN
+    assert imported_status.freshness == SoftwareSpecFreshness.CURRENT_IMPORTED
     assert imported_status.origin == SoftwareSpecOrigin.IMPORTED
 
 
@@ -253,7 +253,7 @@ def test_software_spec_unrelated_change_does_not_change_fingerprint(
     )
 
 
-def test_software_spec_missing_authoritative_source_is_unknown(
+def test_software_spec_missing_authoritative_source_is_invalid(
     tmp_path: Path,
 ) -> None:
     workspace = _workspace_with_change(tmp_path)
@@ -267,13 +267,13 @@ def test_software_spec_missing_authoritative_source_is_unknown(
     status = service.statuses()[0]
 
     assert status.status == "generated"
-    assert status.freshness == SoftwareSpecFreshness.UNKNOWN_ORIGIN
+    assert status.freshness == SoftwareSpecFreshness.INVALID
     assert status.origin == SoftwareSpecOrigin.GENERATED
     assert status.reasons == ("authoritative_source_unavailable",)
     assert not any(str(tmp_path) in reason for reason in status.reasons)
 
 
-def test_software_spec_legacy_and_malformed_provenance_are_conservative(
+def test_software_spec_missing_and_malformed_provenance_are_invalid(
     tmp_path: Path,
 ) -> None:
     workspace = _workspace_with_change(tmp_path)
@@ -294,16 +294,18 @@ def test_software_spec_legacy_and_malformed_provenance_are_conservative(
         encoding="utf-8",
     )
 
-    legacy = service.statuses()[0]
+    missing_generation = service.statuses()[0]
 
-    assert legacy.freshness == SoftwareSpecFreshness.CURRENT_LEGACY
-    assert legacy.origin == SoftwareSpecOrigin.LEGACY_GENERATED
+    assert missing_generation.freshness == SoftwareSpecFreshness.INVALID
+    assert missing_generation.origin == SoftwareSpecOrigin.INVALID
+    assert missing_generation.reasons == ("missing_generation_provenance",)
 
     provenance_path.write_text("source: [broken]\n", encoding="utf-8")
-    unknown = service.statuses()[0]
+    malformed = service.statuses()[0]
 
-    assert unknown.freshness == SoftwareSpecFreshness.UNKNOWN_ORIGIN
-    assert unknown.reasons == ("legacy_origin_ambiguous",)
+    assert malformed.freshness == SoftwareSpecFreshness.INVALID
+    assert malformed.origin == SoftwareSpecOrigin.INVALID
+    assert malformed.reasons == ("missing_generation_provenance",)
 
 
 def test_software_spec_rejects_reserved_import_provenance(tmp_path: Path) -> None:
@@ -482,5 +484,5 @@ def test_software_spec_incomplete_and_unsupported_provenance_are_explicit(
 
     unsupported = service.statuses()[0]
 
-    assert unsupported.freshness == SoftwareSpecFreshness.UNKNOWN_ORIGIN
+    assert unsupported.freshness == SoftwareSpecFreshness.INVALID
     assert unsupported.reasons == ("invalid_source_fingerprint",)

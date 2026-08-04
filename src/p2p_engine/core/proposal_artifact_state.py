@@ -19,7 +19,6 @@ class ProposalArtifactStatus(StrEnum):
     satisfied = "satisfied"
     deferred = "deferred"
     not_applicable = "not_applicable"
-    absent_legacy = "absent_legacy"
 
 
 class ProposalArtifactConfirmation(StrEnum):
@@ -67,8 +66,6 @@ class ProposalArtifactStateView:
     status: str
     path: Path
     schema_version: int | None
-    legacy_state: ProposalArtifactStatus | None
-    legacy_reason: str
     artifacts: list[ProposalArtifactRecord]
     suggested_next: list[str]
 

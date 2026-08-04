@@ -19,18 +19,6 @@ from tests.publication_fixtures import write_publication_candidates
 runner = CliRunner()
 
 
-def _make_runtime_undeclared_workspace(root: Path) -> Path:
-    workspace = P2PWorkspace(root)
-    workspace.init_project("Runtime undeclared", owner="owner")
-    project_path = root / ".p2p" / "project.yml"
-    payload = yaml.safe_load(project_path.read_text(encoding="utf-8"))
-    payload.pop("runtime_contract", None)
-    project_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
-    (root / ".p2p" / "project" / "runtime.yml").unlink()
-    (root / "P2P-SETUP.md").unlink()
-    return root / ".p2p"
-
-
 def test_cli_spec_export_help_classifies_software_spec_handoff() -> None:
     group = runner.invoke(app, ["spec", "--help"])
     command = runner.invoke(app, ["spec", "export", "--help"])
@@ -104,12 +92,10 @@ def _apply_proposal_decision(
 
 
 def _assert_codex_curator_skill(root: Path) -> None:
-    modern = root / ".agents" / "skills" / "p2p-project-curator" / "SKILL.md"
-    legacy = root / ".codex" / "skills" / "p2p-project-curator" / "SKILL.md"
+    skill = root / ".agents" / "skills" / "p2p-project-curator" / "SKILL.md"
 
-    assert modern.exists()
-    assert legacy.exists()
-    content = legacy.read_text(encoding="utf-8")
+    assert skill.exists()
+    content = skill.read_text(encoding="utf-8")
     assert "name: p2p-project-curator" in content
     assert "p2p project publish prepare" in content
     assert "reader who has no knowledge of P2P" in content
@@ -120,7 +106,7 @@ def _assert_codex_curator_skill(root: Path) -> None:
         "editorial-rubric.md",
     ):
         assert f"references/{name}" in content
-        assert (legacy.parent / "references" / name).is_file()
+        assert (skill.parent / "references" / name).is_file()
 
 
 def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
@@ -361,91 +347,12 @@ def test_cli_runtime_contract_preview_text_output(tmp_path: Path) -> None:
     assert "impact_labels: none" in result.output
 
 
-def test_cli_runtime_contract_adopt_json(tmp_path: Path) -> None:
-    p2p_dir = _make_runtime_undeclared_workspace(tmp_path)
+def test_cli_runtime_contract_adopt_is_not_registered(tmp_path: Path) -> None:
+    with assert_no_workspace_mutation(tmp_path):
+        result = runner.invoke(app, ["runtime", "contract", "adopt", "--root", str(tmp_path)])
 
-    result = runner.invoke(
-        app,
-        [
-            "runtime",
-            "contract",
-            "adopt",
-            "--requires",
-            f"=={P2P_ENGINE_VERSION}",
-            "--recommended",
-            P2P_ENGINE_VERSION,
-            "--confirm",
-            "--format",
-            "json",
-            "--root",
-            str(tmp_path),
-        ],
-    )
-
-    assert result.exit_code == 0
-    payload = cli_data(result)
-    assert payload["status"] == "adopted"
-    assert payload["current_state"] == "legacy_undeclared"
-    assert payload["files_changed"] == [".p2p/project/runtime.yml", "P2P-SETUP.md", ".p2p/project.yml"]
-    project = yaml.safe_load((p2p_dir / "project.yml").read_text(encoding="utf-8"))
-    assert project["runtime_contract"] == {"required": True}
-    runtime = yaml.safe_load((p2p_dir / "project" / "runtime.yml").read_text(encoding="utf-8"))
-    assert runtime["runtime"]["p2p"]["recommended"] == P2P_ENGINE_VERSION
-
-
-def test_cli_runtime_contract_adopt_text_requires_confirmation(tmp_path: Path) -> None:
-    p2p_dir = _make_runtime_undeclared_workspace(tmp_path)
-
-    result = runner.invoke(
-        app,
-        [
-            "runtime",
-            "contract",
-            "adopt",
-            "--requires",
-            f"=={P2P_ENGINE_VERSION}",
-            "--recommended",
-            P2P_ENGINE_VERSION,
-            "--root",
-            str(tmp_path),
-        ],
-    )
-
-    assert result.exit_code == 0
-    assert "Runtime contract adopt" in result.output
-    assert "status: blocked" in result.output
-    assert "blocked_reason: confirmation_required" in result.output
-    assert not (p2p_dir / "project" / "runtime.yml").exists()
-
-
-def test_cli_runtime_contract_adopt_blocks_unmanaged_setup_guide(tmp_path: Path) -> None:
-    p2p_dir = _make_runtime_undeclared_workspace(tmp_path)
-    (tmp_path / "P2P-SETUP.md").write_text("# Human setup\n", encoding="utf-8")
-
-    result = runner.invoke(
-        app,
-        [
-            "runtime",
-            "contract",
-            "adopt",
-            "--requires",
-            f"=={P2P_ENGINE_VERSION}",
-            "--recommended",
-            P2P_ENGINE_VERSION,
-            "--confirm",
-            "--format",
-            "json",
-            "--root",
-            str(tmp_path),
-        ],
-    )
-
-    assert result.exit_code == 0
-    payload = cli_data(result)
-    assert payload["status"] == "blocked"
-    assert payload["blocked_reason"] == "unmanaged_setup_guide"
-    assert payload["files_changed"] == []
-    assert not (p2p_dir / "project" / "runtime.yml").exists()
+    assert result.exit_code != 0
+    assert "No such command 'adopt'" in result.output
 
 
 def test_cli_project_interaction_style_show_and_set(tmp_path: Path) -> None:
@@ -1674,7 +1581,7 @@ def test_cli_init_without_name_runs_guided_wizard(tmp_path: Path) -> None:
     assert "Domain template" in result.output
     assert "Customize rubric criteria" in result.output
     assert (tmp_path / "AGENTS.md").exists()
-    assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    assert (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").exists()
     _assert_codex_curator_skill(tmp_path)
 
 
@@ -1691,7 +1598,7 @@ def test_cli_init_guided_wizard_uses_detected_agent_as_default(
     assert result.exit_code == 0
     assert "Detected current client: codex" in result.output
     assert "Installed adapters: generic, codex" in result.output
-    assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    assert (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").exists()
     _assert_codex_curator_skill(tmp_path)
     assert not (tmp_path / "CLAUDE.md").exists()
 
@@ -1787,7 +1694,7 @@ def test_cli_init_can_generate_agent_specific_instructions(tmp_path: Path) -> No
     )
     assert result.exit_code == 0
     assert (tmp_path / "AGENTS.md").exists()
-    assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    assert (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").exists()
     _assert_codex_curator_skill(tmp_path)
 
     policy = (tmp_path / ".p2p" / "agent-policy.yml").read_text(encoding="utf-8")
@@ -1808,7 +1715,6 @@ def test_cli_init_without_detection_falls_back_to_all_agent_integrations(tmp_pat
     assert "p2p agent uninstall <adapter>" in result.output
     assert (tmp_path / "AGENTS.md").exists()
     assert (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").exists()
-    assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
     _assert_codex_curator_skill(tmp_path)
     assert (tmp_path / "CLAUDE.md").exists()
     assert (tmp_path / ".cursor" / "rules" / "p2p.mdc").exists()
@@ -1824,7 +1730,7 @@ def test_cli_init_without_detection_falls_back_to_all_agent_integrations(tmp_pat
     )
 
     registry = yaml.safe_load((tmp_path / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
-    assert registry["schema_version"] == 1
+    assert registry["schema_version"] == 2
     assert registry["baseline_profile"] == "generic"
     assert set(registry["adapters"]) == {
         "generic",
@@ -1851,7 +1757,7 @@ def test_cli_init_with_detected_agent_installs_generic_plus_detected_adapter(tmp
     assert "Installed adapters: generic, codex" in result.output
     assert "This does not make codex the project identity" in result.output
     assert (tmp_path / "AGENTS.md").exists()
-    assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    assert (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").exists()
     _assert_codex_curator_skill(tmp_path)
     assert not (tmp_path / "CLAUDE.md").exists()
     registry = yaml.safe_load((tmp_path / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
@@ -1969,7 +1875,9 @@ def test_cli_agent_show_and_list_report_adapter_health(tmp_path: Path) -> None:
     assert shown.exit_code == 0
     assert listed.exit_code == 0
     assert "health: error" in shown.output
-    assert "AGENTS.md shared=true owner=generic status=missing drift=drifted" in shown.output
+    assert "AGENTS.md shared=true owner=generic status=missing" in shown.output
+    assert "content=missing" in shown.output
+    assert "generation=current" in shown.output
     assert "generic: installed=true health=error drift=drifted" in listed.output
 
 
@@ -2088,7 +1996,7 @@ def test_cli_agent_instructions_refresh_adds_profiles_without_removing_existing(
 
     assert result.exit_code == 0
     assert "Agent instructions refreshed" in result.output
-    assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    assert (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").exists()
     _assert_codex_curator_skill(tmp_path)
     assert (tmp_path / "CLAUDE.md").exists()
 
@@ -2898,7 +2806,7 @@ def test_cli_impact_import_and_conflict_memory(tmp_path: Path) -> None:
     (source_dir / "related-proposals.yml").write_text(
         "related_proposals:\n"
         "  - proposal: PROP-001\n"
-        "    relationship: mutually_exclusive\n",
+        "    relationship: conflicts_with\n",
         encoding="utf-8",
     )
     (source_dir / "conflict-analysis.yml").write_text(
@@ -2913,7 +2821,7 @@ def test_cli_impact_import_and_conflict_memory(tmp_path: Path) -> None:
         app,
         ["impact", "import", "PROP-002", str(source_dir), "--root", str(tmp_path)],
     )
-    assert result.exit_code == 0
+    assert result.exit_code == 0, result.output
     assert "impact-map.yml" in result.output
     proposal_dir = tmp_path / ".p2p" / "proposals" / "PROP-002-alternative-state"
     assert (proposal_dir / "impact-map.yml").exists()
@@ -4771,7 +4679,7 @@ def test_cli_intake_prompt_import_and_status(tmp_path: Path) -> None:
     (output_dir / "related-proposals.yml").write_text(
         "related_proposals:\n"
         "  - proposal: PROP-001\n"
-        "    relationship: alternative_to\n"
+        "    relationship: references\n"
         "    rationale: Changes initial AI strategy.\n",
         encoding="utf-8",
     )

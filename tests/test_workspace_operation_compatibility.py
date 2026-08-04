@@ -99,7 +99,7 @@ def test_current_schema_rejects_definition_embedded_question_operations(tmp_path
     with pytest.raises(
         ValueError,
         match=(
-            "P2P352_LEGACY_DEFINITION_QUESTION_OPERATION.*"
+            "P2P352_OBSOLETE_DEFINITION_QUESTION_OPERATION.*"
             "p2p project readiness questions status"
         ),
     ):

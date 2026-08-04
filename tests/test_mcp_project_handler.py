@@ -117,7 +117,7 @@ def test_mcp_progress_freshness_and_coverage_reads_are_mutation_free(tmp_path: P
     assert progress["mutation_performed"] is False
     assert freshness["project_freshness"]["graph_version"] == 1
     assert freshness["mutation_performed"] is False
-    assert coverage["vertical_coverage"]["state"] == "absent_legacy"
+    assert coverage["vertical_coverage"]["state"] == "missing"
     assert coverage["mutation_performed"] is False
     assert suggestion["vertical_coverage_suggestion"]["candidates"]
     assert suggestion["mutation_performed"] is False

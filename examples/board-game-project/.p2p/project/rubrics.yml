@@ -1,11 +1,86 @@
 version: '1.0'
-domain: board_game
+domain: project_vertical:base_project
+status: vertical_selected
+template: base_project
 assessment_type: project_definition_maturity
 scoring:
   covered: 100
   partial: 50
   missing: 0
+selected_scope:
+  enabled: 6
+  disabled: 0
+  total_default: 6
 criteria:
+- id: vision_clarity
+  title: Vision Clarity
+  enabled: true
+  required: true
+  section_id: vision
+  keywords:
+  - vision
+  - purpose
+  - change
+  source: project_vertical
+  vertical_id: base_project
+- id: objective_clarity
+  title: Objective Clarity
+  enabled: true
+  required: true
+  section_id: objective
+  keywords:
+  - objective
+  - outcome
+  - goal
+  - result
+  source: project_vertical
+  vertical_id: base_project
+- id: stakeholder_alignment
+  title: Stakeholder Alignment
+  enabled: true
+  required: true
+  section_id: stakeholders
+  keywords:
+  - owner
+  - stakeholder
+  - beneficiary
+  - user
+  source: project_vertical
+  vertical_id: base_project
+- id: scope_boundaries
+  title: Scope Boundaries
+  enabled: true
+  required: true
+  section_id: scope
+  keywords:
+  - scope
+  - non-goal
+  - boundary
+  - constraint
+  source: project_vertical
+  vertical_id: base_project
+- id: risk_coverage
+  title: Risk Coverage
+  enabled: true
+  required: true
+  section_id: risks
+  keywords:
+  - risk
+  - mitigation
+  - tradeoff
+  source: project_vertical
+  vertical_id: base_project
+- id: readiness_criteria
+  title: Readiness Criteria
+  enabled: true
+  required: true
+  section_id: definition_of_done
+  keywords:
+  - readiness
+  - definition of done
+  - acceptance
+  source: project_vertical
+  vertical_id: base_project
 - id: core_loop
   title: Core Gameplay Loop
   enabled: true
@@ -15,6 +90,9 @@ criteria:
   - round
   - loop
   - gameplay
+  orphaned: true
+  unmapped_from_previous_vertical: true
+  counts_toward_active_baseline: false
 - id: components
   title: Components
   enabled: true
@@ -25,6 +103,9 @@ criteria:
   - board
   - token
   - piece
+  orphaned: true
+  unmapped_from_previous_vertical: true
+  counts_toward_active_baseline: false
 - id: rules
   title: Rules
   enabled: true
@@ -34,6 +115,9 @@ criteria:
   - action
   - phase
   - win
+  orphaned: true
+  unmapped_from_previous_vertical: true
+  counts_toward_active_baseline: false
 - id: playtesting
   title: Playtesting
   enabled: true
@@ -43,3 +127,6 @@ criteria:
   - balance
   - test
   - feedback
+  orphaned: true
+  unmapped_from_previous_vertical: true
+  counts_toward_active_baseline: false

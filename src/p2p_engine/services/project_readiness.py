@@ -345,13 +345,13 @@ class ProjectReadinessGapService:
                 self._gap(
                     snapshot,
                     section=None,
-                    kind=ProjectReadinessGapKind.INFORMATIONAL_LEGACY,
+                    kind=ProjectReadinessGapKind.UNMAPPED_PROPOSAL_COVERAGE,
                     severity=ProjectReadinessGapSeverity.INFO,
                     target_kind="proposal_collection",
                     target_id="unmapped_proposals",
                     definition_status="not_applicable",
                     heuristic_suggestions=snapshot.unmapped_proposals,
-                    next_operation="p2p project readiness gaps --kind informational_legacy",
+                    next_operation="p2p project readiness gaps --kind unmapped_proposal_coverage",
                     rationale=(
                         f"{len(snapshot.unmapped_proposals)} proposals have no declared coverage "
                         "for the selected vertical."
@@ -547,8 +547,8 @@ class ProjectReadinessGapService:
                 if heuristic_suggestions is not None
                 else (section.heuristic_proposals if section else ())
             ),
-            required_authority="owner" if kind not in {ProjectReadinessGapKind.OPTIONAL_DECLARED_EVIDENCE, ProjectReadinessGapKind.INFORMATIONAL_LEGACY} else "reviewer",
-            owner_input_required=kind not in {ProjectReadinessGapKind.OPTIONAL_DECLARED_EVIDENCE, ProjectReadinessGapKind.INFORMATIONAL_LEGACY},
+            required_authority="owner" if kind not in {ProjectReadinessGapKind.OPTIONAL_DECLARED_EVIDENCE, ProjectReadinessGapKind.UNMAPPED_PROPOSAL_COVERAGE} else "reviewer",
+            owner_input_required=kind not in {ProjectReadinessGapKind.OPTIONAL_DECLARED_EVIDENCE, ProjectReadinessGapKind.UNMAPPED_PROPOSAL_COVERAGE},
             question_id=question_id,
             question_revision=question_revision,
             next_operation=next_operation,
@@ -582,7 +582,7 @@ class ProjectReadinessGapService:
             3: "Incomplete required definition sections precede assumptions and optional evidence.",
             4: "Assumptions are ordered by declared dependency impact with a neutral fallback.",
             5: "Optional declared evidence follows required definition work.",
-            6: "Informational legacy state is lowest priority.",
+            6: "Unmapped proposal coverage is informational and lowest priority.",
         }
         return labels[readiness_class_rank(kind)]
 

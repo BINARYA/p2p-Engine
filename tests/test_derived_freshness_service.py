@@ -125,7 +125,7 @@ def test_software_spec_freshness_owns_only_required_refresh_outputs() -> None:
     assert all("spec-refine.prompt.md" not in pattern for pattern in software_specs.output_patterns)
 
 
-def test_semantically_current_legacy_software_spec_is_not_stale_by_mtime(
+def test_software_spec_without_current_provenance_is_partial_regardless_of_mtime(
     tmp_path: Path,
 ) -> None:
     workspace = P2PWorkspace(tmp_path)
@@ -148,7 +148,8 @@ def test_semantically_current_legacy_software_spec_is_not_stale_by_mtime(
         item for item in workspace.project_freshness().nodes if item.node_id == "software_specs"
     )
 
-    assert node.status == "current_legacy_fallback"
+    assert node.status == "partial"
+    assert node.reasons == ("software_specs_invalid:1",)
 
 
 def test_software_spec_aggregate_uses_per_spec_semantic_states(
@@ -229,8 +230,8 @@ def test_imported_and_empty_software_spec_aggregate_policies_are_explicit(
         for item in workspace.project_freshness().nodes
         if item.node_id == "software_specs"
     )
-    assert imported.status == "partial"
-    assert imported.reasons == ("software_specs_unknown_origin:1",)
+    assert imported.status == "current"
+    assert imported.reasons == ("software_specs_current_imported:1",)
 
 
 def test_unrelated_project_projection_drift_does_not_stale_current_spec(
@@ -284,18 +285,15 @@ def test_semantic_software_spec_state_propagates_to_export_and_publication(
     workspace.export_visible_project_definition()
     workspace.prepare_project_publication()
 
-    legacy_nodes = {
+    invalid_nodes = {
         item.node_id: item for item in workspace.project_freshness().nodes
     }
 
-    assert legacy_nodes["software_specs"].status == "current_legacy_fallback"
-    assert legacy_nodes["visible_export"].status in {
-        "current",
-        "current_legacy_fallback",
-    }
-    assert "upstream_not_current" not in legacy_nodes["visible_export"].reasons
-    assert legacy_nodes["publication_packet"].status == "current"
-    assert "upstream_not_current" not in legacy_nodes["publication_packet"].reasons
+    assert invalid_nodes["software_specs"].status == "partial"
+    assert invalid_nodes["visible_export"].status == "stale"
+    assert "upstream_not_current" in invalid_nodes["visible_export"].reasons
+    assert invalid_nodes["publication_packet"].status == "stale"
+    assert "upstream_not_current" in invalid_nodes["publication_packet"].reasons
 
     index_path = spec_dir / "index.md"
     index_path.write_text(
@@ -306,7 +304,7 @@ def test_semantic_software_spec_state_propagates_to_export_and_publication(
         item.node_id: item for item in workspace.project_freshness().nodes
     }
 
-    assert stale_nodes["software_specs"].status == "stale"
+    assert stale_nodes["software_specs"].status == "partial"
     assert stale_nodes["visible_export"].status == "stale"
     assert "upstream_not_current" in stale_nodes["visible_export"].reasons
     assert stale_nodes["publication_packet"].status == "stale"
@@ -365,8 +363,8 @@ def test_supported_brief_and_next_action_writes_satisfy_manual_freshness_until_i
 
     current = {node.node_id: node for node in workspace.project_freshness().nodes}
 
-    assert current["operational_brief"].status == "current_legacy_fallback"
-    assert current["next_actions"].status == "current_legacy_fallback"
+    assert current["operational_brief"].status == "current"
+    assert current["next_actions"].status == "current"
     assert "supported_manual_output_newer_than_dependencies" in current["operational_brief"].reasons
     assert not any(
         action.node_id in {"operational_brief", "next_actions"}
@@ -402,7 +400,7 @@ def test_next_action_audit_log_age_does_not_stale_refreshed_active_actions(
         if item.node_id == "next_actions"
     )
 
-    assert node.status == "current_legacy_fallback"
+    assert node.status == "current"
     assert node.output_paths == (".p2p/project/next-actions.yml",)
     assert "output_older_than_dependency" not in node.reasons
 

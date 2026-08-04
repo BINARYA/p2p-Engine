@@ -1,0 +1,89 @@
+project_definition:
+  schema_version: 1
+  vertical_id: base_project
+  vertical_version: 2.0.0
+  profile: default
+  modules:
+  - roadmap
+  - risk_management
+  - stakeholder_alignment
+  lock:
+    checksum: d53a537905b980ec40ae3df3be1c6e7a79a7ff6d98a6f09e91d79b2a582b5c88
+  sections:
+  - id: vision
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: objective
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: stakeholders
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: scope
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: assumptions
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: risks
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: decisions
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: milestones
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: definition_of_done
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  - id: artifacts
+    status: missing
+    fields: {}
+    missing_required_fields:
+    - summary
+    assumptions: []
+    blockers: []
+  next_suggested_action: {}
+  history:
+  - at: '2026-08-04'
+    actor: owner
+    operation: initialize_definition_state
+    section_id: ''
+  orphans: []

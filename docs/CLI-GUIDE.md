@@ -128,13 +128,10 @@ Status meanings:
 - `invalid_contract` or `unsupported_contract`: fix or restore the contract
   before mutating governed P2P state.
 - `missing_contract`: `.p2p/project.yml` requires a contract but
-  `.p2p/project/runtime.yml` is missing; restore it from project history.
-- `legacy_undeclared`: the project has no runtime contract and no marker
-  requiring one; validation reports a non-blocking warning and compatibility is
-  not inferred.
+  `.p2p/project/runtime.yml` is missing; restore it from project history or
+  recreate the project with the current runtime.
 
 `p2p validate` reports deterministic runtime findings, including
-`P2P267_RUNTIME_CONTRACT_LEGACY_UNDECLARED` for legacy projects and
 `P2P268_RUNTIME_SETUP_GUIDE_DRIFT` when managed `P2P-SETUP.md` no longer
 matches the contract-rendered setup guide.
 
@@ -171,7 +168,7 @@ effect of a contract update.
 ### Current Workspace Schema
 
 Workspace layout versioning is independent from the runtime contract. P2P
-Engine 0.4.6 accepts schema 3 only. Inspect schema alignment and interrupted
+Engine 0.4.7 accepts schema 3 only. Inspect schema alignment and interrupted
 transaction state without writing:
 
 ```bash
@@ -333,7 +330,7 @@ coordinate `publisher/vertical-id@version`. Structural `extends`, social
 `lineage.forked_from` and release-history `lineage.previous_release` are
 separate declarations.
 
-P2P Engine 0.4.6 provides a local catalog and a provider-neutral remote
+P2P Engine 0.4.7 provides a local catalog and a provider-neutral remote
 registry client. These commands perform no remote request unless `--refresh`
 is passed to `registry list`:
 
@@ -479,7 +476,7 @@ vertical_migration:
     old_rubric: new_rubric
 ```
 
-The 0.4.6 JSON transport contract is `p2p-cli/v1`. Every command supporting
+The 0.4.7 JSON transport contract is `p2p-cli/v1`. Every command supporting
 `--format json` returns exactly `contract_version`, `ok`, `operation`, `data`,
 `warnings`, and `error`. Domain payloads remain operation-specific under
 `data`. Parser errors use the same envelope. See
@@ -800,21 +797,21 @@ or question updates when you want evidence-aware recalculation from current
 artifacts. `questions apply` returns an artifact update plan; update the useful
 affected artifacts before relying on the new readiness score.
 
-When `questions.yml` exists, proposal readiness uses that structured question
-lifecycle as the source of truth for owner-question resolution. Stale
-`open-questions.md` bullets remain human-readable evidence and legacy fallback,
-but they do not reopen applied, retired, superseded, muted, or deferred
-structured questions. `readiness assess`, `readiness explain`, and
+Proposal readiness requires `questions.yml` as the structured source of truth
+for owner-question resolution. `open-questions.md` remains human-readable
+narrative evidence and never substitutes for missing structured state. It does
+not reopen applied, retired, superseded, muted, or deferred structured
+questions. `readiness assess`, `readiness explain`, and
 `readiness review` can show `owner_question_state` categories such as blocking
 owner questions, answered-not-applied questions, residual follow-up, and closed
 questions.
 
 Artifact state is the structured coverage surface for proposal artifacts. New
-proposals initialize it by default. Older proposals without artifact state are
-reported as advisory `absent_legacy`, not as validation errors. Agents should
-use `p2p proposal artifact ...` commands or explicit MCP write tools to update
-artifact coverage; they should not edit `.p2p` files directly or copy temporary
-files into managed proposal artifacts.
+proposals initialize its complete current catalog by default. Missing or
+incomplete `artifact-state.yml` is rejected and is not synthesized during a
+read. Agents should use `p2p proposal artifact ...` commands or explicit MCP
+write tools to update artifact coverage; they should not edit `.p2p` files
+directly or copy temporary files into managed proposal artifacts.
 
 `p2p proposal show PROP-001 --full` renders the owner-facing full review view.
 It keeps readiness separate from artifact status, includes structured
@@ -860,7 +857,7 @@ p2p decision apply PROP-001 \
 ```
 
 `proposal accept`, `proposal reject`, `proposal defer`, and `decision record`
-remain compatibility commands. Without a token they only return
+are deliberate convenience entries into the same current decision service. Without a token they only return
 `preview_required`; they write only when rerun with the returned date,
 operation key, source head when present, token, and `--confirm`.
 
@@ -885,15 +882,11 @@ references. Use typed lineage for `superseded`, `split`, and
 `merged_into_other`. Managed branch accept/reject commands remain branch
 operations and never append proposal decision events.
 
-Projection, ledger, and unknown-legacy repair have separate preview/apply
-commands:
+Projection and ledger repair have separate preview/apply commands:
 
 ```bash
 p2p decision projection-repair-preview PROP-001
 p2p decision ledger-repair-preview PROP-001 --candidate reviewed-ledger.yml
-p2p decision legacy-resolution-preview PROP-001 \
-  --event-type rejected \
-  --reason "Owner reviewed preserved legacy evidence."
 ```
 
 After an applied decision:
@@ -1066,11 +1059,12 @@ checkout paths and mtimes are not fingerprint inputs. The seven required files
 are committed atomically, and refreshing an unchanged current spec does not
 rewrite bytes or mtimes.
 
-`p2p spec status` preserves the existing completeness value (`generated` or
+`p2p spec status` preserves the completeness value (`generated` or
 `incomplete`) and adds semantic freshness. Freshness can be `current`,
-`current_legacy`, `stale`, `modified`, `unknown_origin`, or `incomplete`.
-Legacy generated specs are compared with the deterministic non-provenance
-candidate; imported or ambiguous specs are not guessed from age. CLI and MCP
+`current_imported`, `stale`, `modified`, `invalid`, or `incomplete`.
+Generated specs are verified against deterministic provenance and output
+digests; imported specs use explicit imported provenance. Missing or
+unsupported provenance is invalid and is never guessed from age. CLI and MCP
 status reads never refresh or overwrite a spec.
 
 After reviewing refined spec output:

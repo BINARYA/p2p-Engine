@@ -47,7 +47,6 @@ class ResolvedGovernanceActor:
     kind: str
     display_name: str
     source: str
-    fallback: bool = False
 
 
 @dataclass(frozen=True)
@@ -372,7 +371,6 @@ class GovernancePolicyService:
     ) -> ResolvedGovernanceActor:
         actor_id = identity_slug(actor)
         permissions_path = self.permissions.path()
-        legacy_role = self._legacy_role_for_actor(actor_id)
         if permissions_path.exists():
             try:
                 payload = self.permissions.show()
@@ -419,18 +417,6 @@ class GovernancePolicyService:
                         source=str(relative_to_root(permissions_path, self.root)),
                     )
                 )
-            if legacy_role and legacy_role != role:
-                warnings.append(
-                    GovernanceDiagnostic(
-                        code="P2P_GOV_ROLE_MISMATCH",
-                        severity="warning",
-                        message=(
-                            f"Legacy governance role for {actor_id} is {legacy_role}, "
-                            f"but permissions.yml says {role}."
-                        ),
-                        source=str(relative_to_root(self.p2p_dir / "governance" / "roles.yml", self.root)),
-                    )
-                )
             return ResolvedGovernanceActor(
                 id=actor_id,
                 role=role,
@@ -439,30 +425,16 @@ class GovernancePolicyService:
                 source=str(relative_to_root(permissions_path, self.root)),
             )
 
-        if legacy_role:
-            warnings.append(
-                GovernanceDiagnostic(
-                    code="P2P_GOV_LEGACY_ROLE_FALLBACK",
-                    severity="warning",
-                    message="Actor role resolved from legacy governance roles because permissions.yml is absent.",
-                    source=str(relative_to_root(self.p2p_dir / "governance" / "roles.yml", self.root)),
-                )
-            )
-            return ResolvedGovernanceActor(
-                id=actor_id,
-                role=legacy_role,
-                kind="person",
-                display_name=actor_id,
-                source=str(relative_to_root(self.p2p_dir / "governance" / "roles.yml", self.root)),
-                fallback=True,
-            )
         diagnostics.append(
             GovernanceDiagnostic(
-                code="P2P_GOV_UNKNOWN_ACTOR",
+                code="P2P_GOV_PERMISSIONS_REQUIRED",
                 severity="error",
-                message=f"Actor cannot be resolved: {actor_id}",
+                message=(
+                    "Current actor authority requires .p2p/project/permissions.yml; "
+                    f"actor cannot be resolved: {actor_id}"
+                ),
                 source=str(relative_to_root(permissions_path, self.root)),
-                suggested_command=f"p2p permissions actor add {actor_id}",
+                suggested_command="p2p init --help",
             )
         )
         return self._unknown_actor(actor_id, str(relative_to_root(permissions_path, self.root)))
@@ -475,27 +447,6 @@ class GovernancePolicyService:
             display_name=actor_id,
             source=source,
         )
-
-    def _legacy_role_for_actor(self, actor_id: str) -> str | None:
-        path = self.p2p_dir / "governance" / "roles.yml"
-        if not path.exists():
-            return None
-        try:
-            payload = read_yaml_mapping(path, default={"roles": []})
-        except (ValueError, yaml.YAMLError):
-            return None
-        roles = payload.get("roles", [])
-        if not isinstance(roles, list):
-            return None
-        for role in roles:
-            if not isinstance(role, dict):
-                continue
-            role_id = str(role.get("id") or "").strip()
-            if not role_id:
-                continue
-            if identity_slug(role_id) == actor_id:
-                return str(role.get("role") or role.get("id") or "")
-        return None
 
     def _resolve_selection(
         self,

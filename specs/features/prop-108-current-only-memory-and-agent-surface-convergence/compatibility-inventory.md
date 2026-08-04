@@ -1,11 +1,12 @@
-# Compatibility Inventory - PROP-108 Baseline
+# Compatibility Inventory - PROP-108 Final Review
 
 ## Purpose
 
-This is the implementation baseline discovered before `PROP-108` acceptance.
-It is not proof that cleanup is complete. Task T002 must expand every row to the
-exact reader, writer, validator, facade, CLI, MCP, test, documentation and
-package paths before deletion begins.
+This inventory records the baseline discovered before `PROP-108` and the final
+current-only disposition. Runtime reachability is checked by
+`tests/test_current_only_surface.py`, public registration by
+`tests/test_public_surface_inventory.py`, and archive contents by
+`scripts/verify-release-artifacts.py`.
 
 Disposition values:
 
@@ -90,3 +91,66 @@ The inventory is complete only when:
 3. every `retain_current` row records a non-compatibility rationale;
 4. every current family has happy-path and obsolete zero-write rejection tests;
 5. source-tree and wheel scans produce the same classifications.
+
+## Final Current-Contract Matrix
+
+| Family | Sole current authority and contract | Runtime readers/writers and validation | Public surfaces | Rejected obsolete form |
+| --- | --- | --- | --- | --- |
+| Workspace | `.p2p/project/workspace-schema.yml`; contract 1, workspace 3 | `core/workspace_schema.py`, `services/workspace_schema.py`, `services/validation.py`, `storage/filesystem.py`; init is the only declaration writer | `workspace schema status`; read-only MCP schema status; current transaction recovery only | Missing, schema 1/2/future, unknown fields and migration history are unsupported with zero writes |
+| Vertical pack/package | Canonical pack schema 2; `.p2pv` package format 1 | `core/portable_verticals.py`, `services/project_verticals.py`, `services/vertical_packages.py`, `services/vertical_catalog.py` | Top-level local/remote catalog, draft lifecycle and project install/adopt/migrate | Schema 1, implicit defaults, flat candidates and mismatched exact coordinates |
+| Runtime | `.p2p/project/runtime.yml`; runtime contract schema 1 | `core/runtime_contract.py`, `services/runtime_contract.py`, validation and workspace write gate | `runtime status`, current contract preview/apply | Missing, unsupported or invalid contract; no adoption command or absent-file inference |
+| Proposal artifacts | Proposal `artifact-state.yml`; schema 1 and complete catalog | `core/proposal_artifact_state.py`, `services/proposal_artifact_state.py`, artifact service, validation | Proposal artifact status/init/set/confirm in CLI and MCP | Missing/incomplete state, obsolete statuses and mark-legacy operations |
+| Proposal decisions | Proposal `decision-events.yml`; ledger contract 1/event schema 1 | `core/proposal_decision_events.py`, ledger/decision/lifecycle services and validation | Decision status/history/impact/preview/apply and current repair; MCP governed subset | Projection-only authority, unknown authority and legacy-resolution adapters/tools |
+| Project/proposal questions | Structured `questions.yml`; schema 1 | `core/project_questions.py`, `services/project_questions.py`, readiness services | Project/proposal question commands; current MCP reads and proposal operations | Definition-field migration and narrative Markdown as fallback authority |
+| Permissions | `.p2p/project/permissions.yml`; version 1 role-plus-consent policy | `services/permissions.py`, consent/governance services and write gates | Permissions/governance/consent inspection and governed MCP writes | Governance-role fallback when permissions are absent |
+| Decision context | Canonical `RelationType` values and current source policy | Decision-context source, topology, ledger, authority and retrieval services | Context/decision-context read surfaces | Relation aliases, old source catalogs and unclassified fallback authority |
+| Registries | `.p2p/registries/manifest.yml`; manifest 1, generator `registry-bundle-v1` | `core/registries.py`, `services/registries.py`, validation | Registry refresh/status plus MCP refresh | Manifest-less bundles and unverifiable operation states |
+| Software specs | Complete spec set plus `provenance.yml`; provenance schema 1 | `services/software_spec.py`, software lifecycle, derived freshness and validation | Spec lifecycle/status/show/refresh/import/export in CLI and governed MCP subset | Missing provenance, ambiguous origin and quasi-current freshness states |
+| Publications | Edition contract/model/manifest/catalog version 2 under current publication paths | Publication core, prepare/import/validate/review/render/status/list services | Current project publication CLI/MCP lifecycle | Old latest aliases, fallback readers and legacy status fields |
+| Readiness and derived state | Structured readiness/questions plus exact source-bound provenance | Readiness, project-readiness, derived-freshness, context-packet, project-state and workspace-status services | Current readiness/context/status CLI and MCP reads/writes | Narrative fallback authority and informational/quasi-current legacy states |
+| Agent adapters | `.p2p/agent-integrations.yml` with template ID, generation ID and SHA-256 | `agent_templates.py`, `agent_instructions.py`, validation | Agent list/show/status/doctor/install/update/uninstall and MCP counterparts | `.codex/skills/` duplicates, v1 template IDs and hash-only freshness |
+
+Narrative files remain evidence only where the current contract explicitly
+retains them. Derived files never become authority merely because they exist.
+
+## Final Entry-Point Disposition
+
+| Baseline group | Final disposition |
+| --- | --- |
+| E001 workspace migration | Removed from core models, services, facade, CLI, MCP, docs and release verifier |
+| E002 runtime adoption | Removed; missing runtime state is blocked |
+| E003 artifact legacy | Removed together with obsolete state values |
+| E004 decision legacy | Removed together with adapter module, diagnostics and tests |
+| E005 decision shortcuts | Retained as deliberate current convenience entries into the same token-bound preview/apply service; they create no alternate authority |
+| E006 removed vertical commands | Removed from current templates/docs; only the historical CLI snapshot is allowlisted |
+| E007 relation aliases | Removed; current producers persist canonical `RelationType` values |
+
+## Reviewed Historical Allowlist
+
+Only these maintained-repository documents may contain discarded command
+tokens:
+
+- `docs/development/cli-primitive-inventory.md`, an explicitly versioned CLI
+  snapshot;
+- `docs/development/codebase-architecture-review.md`, an explicitly historical
+  architecture snapshot;
+- completed feature specifications under `specs/features/`, excluded from
+  wheel runtime data and retained as design/audit evidence.
+
+`CHANGELOG.md` may describe removed behavior in dated release sections, but it
+is not parsed as a current command catalog. Current README/guides, generated
+adapters, `src/p2p_engine`, wheel members and current example workspaces have no
+historical exemption.
+
+## Retained Current Terminology
+
+These names were reviewed and are not obsolete-format adapters:
+
+- project vertical `migrate` is the current evidence-preserving operation for
+  changing an active project from one exact vertical release to another;
+- vertical-pack `compatibility` is current declarative pack metadata;
+- `WorkspaceOperationCompatibilityService` is the current schema-3 operation
+  requirement matrix and has no old-schema reader or converter;
+- `compatibility_migration` is a current proposal risk classification;
+- publication and decision `historical` records describe lifecycle evidence,
+  not an old storage schema.

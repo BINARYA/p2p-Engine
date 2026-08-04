@@ -163,7 +163,7 @@ class ChoiceLifecycleService:
                 {
                     "source": {"intake": source} if source else {},
                     "related_proposals": [
-                        {"proposal": proposal_id, "relationship": "related_to", "rationale": ""}
+                        {"proposal": proposal_id, "relationship": "references", "rationale": ""}
                         for proposal_id in related
                     ],
                     "related_changes": [],

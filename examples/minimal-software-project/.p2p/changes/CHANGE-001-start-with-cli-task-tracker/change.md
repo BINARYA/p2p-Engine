@@ -1,8 +1,8 @@
 ---
 change_id: CHANGE-001
-title: Start With CLI Task Tracker
+title: Start with CLI task tracker
 status: proposed
-created_at: '2026-05-29'
+created_at: '2026-08-04'
 created_by: local
 execution_domains:
 - software
@@ -21,15 +21,15 @@ plan_ref: execution-plan.md
 tasks_ref: tasks.yml
 ---
 
-# CHANGE-001 - Start With CLI Task Tracker
+# CHANGE-001 - Start with CLI task tracker
 
 ## Summary
 
-Implement a local CLI task tracker with add, list, complete, and export commands.
+Build a local CLI task tracker with add, list, complete, and export commands.
 
 ## Rationale
 
-The team is experimenting with P2P Engine and wants a small software scope with explicit intent.
+Not provided.
 
 ## Scope
 

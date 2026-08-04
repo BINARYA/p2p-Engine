@@ -63,7 +63,7 @@ def test_artifact_catalog_lists_logical_slots_for_reduced_footprint(tmp_path: Pa
     assert alternatives.status == ProposalArtifactStatus.missing
 
 
-def test_artifact_catalog_derives_legacy_narrative_files_without_migration(tmp_path: Path) -> None:
+def test_artifact_catalog_rejects_narrative_files_without_current_state(tmp_path: Path) -> None:
     documents = ProposalDocumentService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
     proposal = documents.create_with_details(
         title="Legacy Narrative",
@@ -78,17 +78,15 @@ def test_artifact_catalog_derives_legacy_narrative_files_without_migration(tmp_p
     before = _snapshot_files(tmp_path)
     workspace = P2PWorkspace(tmp_path)
 
-    catalog = workspace.proposal_artifact_catalog(proposal.proposal_id)
+    try:
+        workspace.proposal_artifact_catalog(proposal.proposal_id)
+    except ValueError as exc:
+        assert "missing artifact-state.yml" in str(exc)
+    else:
+        raise AssertionError("Missing current artifact state must be rejected")
 
     assert _snapshot_files(tmp_path) == before
     assert not (proposal_dir / "artifact-state.yml").exists()
-    findings = _by_key(catalog, "findings")
-    questions = _by_key(catalog, "open_questions")
-    assert findings.status == ProposalArtifactStatus.satisfied
-    assert findings.materialization_kind == "legacy_file"
-    assert findings.provenance_confidence == "inferred"
-    assert questions.materialization_kind == "legacy_file"
-    assert "owner constraint" in questions.summary
 
 
 def test_artifact_catalog_reports_imported_artifacts_from_current_files(tmp_path: Path) -> None:
@@ -156,10 +154,10 @@ def test_full_view_separates_question_sources_and_preserves_files(tmp_path: Path
     assert view.core_sections["problem"] == "Question-like data comes from multiple sources."
     assert len(view.questions.owner_questions) == 1
     assert len(view.questions.analytical_open_questions) == 1
-    assert len(view.questions.legacy_question_artifacts) == 1
+    assert len(view.questions.narrative_question_artifacts) == 1
     assert view.questions.owner_questions[0].question_id == "Q001"
     assert view.questions.analytical_open_questions[0].contribution_id == "C001"
-    assert view.questions.legacy_question_artifacts[0].key == "open_questions"
+    assert view.questions.narrative_question_artifacts[0].key == "open_questions"
 
 
 def test_readiness_and_artifact_status_remain_separate_when_they_diverge(tmp_path: Path) -> None:

@@ -1,0 +1,49 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-001
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-ed8a33ec34f42017a317f039
+  events:
+  - event_schema_version: 1
+    event_id: PDE-ed8a33ec34f42017a317f039
+    operation_key: P2POP-6961b12c4bc95dca432668d2
+    proposal_id: PROP-001
+    event_type: accepted
+    effective_state: accepted
+    rationale: The example deliberately accepts the bounded CLI feature.
+    conditions: []
+    decided_on: '2026-08-04'
+    authority:
+      owner_id: owner
+      owner_role: owner
+      executor_actor_id: owner
+      executor_kind: person
+      channel: cli
+      permission_policy_sha256: ba5abcbe4702b7e94108b01ae84e5faf8aa01c66c518876e10df887bf3079e11
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 2c1e14f8c9ed44e75474b72637de75e200016af2b0ee1d823c29675da80f2ad7
+    decision_semantic_sha256: 20a2112ca5449319b840ad15b534d0e257213a91ac50f4145b2127ada3181bbc
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: 85b16bbb5e47932a714ee830d4c29b4c040cfc118c08666d64a3f8ae641f4c00
+      owner_override: true
+    mutation:
+      preview_token: 8410ba9604fa76208b14ba095cdb39213940c656459d8a17da57d23da859c3a1
+      request_fingerprint_sha256: 32d33234f00e6907b52e759b65ce6cdd20baf4af0607ac178dda03e23529dbe9
+    event_sha256: b7a4f98f3cc71fc15176645947681af350547fac489e76dbf9957fef116c5576

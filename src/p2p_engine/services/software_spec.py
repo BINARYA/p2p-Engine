@@ -43,18 +43,17 @@ SOFTWARE_SPEC_NON_PROVENANCE_FILES = tuple(
 
 class SoftwareSpecFreshness(StrEnum):
     CURRENT = "current"
-    CURRENT_LEGACY = "current_legacy"
+    CURRENT_IMPORTED = "current_imported"
     STALE = "stale"
     MODIFIED = "modified"
-    UNKNOWN_ORIGIN = "unknown_origin"
+    INVALID = "invalid"
     INCOMPLETE = "incomplete"
 
 
 class SoftwareSpecOrigin(StrEnum):
     GENERATED = "generated"
     IMPORTED = "imported"
-    LEGACY_GENERATED = "legacy_generated"
-    LEGACY_UNKNOWN = "legacy_unknown"
+    INVALID = "invalid"
 
 
 @dataclass(frozen=True)
@@ -105,8 +104,8 @@ class SoftwareSpecStatus:
     status: str
     path: Path
     lifecycle: Any | None = None
-    freshness: SoftwareSpecFreshness = SoftwareSpecFreshness.UNKNOWN_ORIGIN
-    origin: SoftwareSpecOrigin = SoftwareSpecOrigin.LEGACY_UNKNOWN
+    freshness: SoftwareSpecFreshness = SoftwareSpecFreshness.INVALID
+    origin: SoftwareSpecOrigin = SoftwareSpecOrigin.INVALID
     current_source_fingerprint_sha256: str = ""
     recorded_source_fingerprint_sha256: str = ""
     changed_sources: tuple[str, ...] = ()
@@ -463,32 +462,32 @@ class SoftwareSpecService:
         try:
             provenance = load_yaml((spec_dir / "provenance.yml").read_bytes())
         except (OSError, UnicodeDecodeError, yaml.YAMLError):
-            return self._unknown_status(
+            return self._invalid_status(
                 change_id,
                 title,
                 relative,
                 "invalid_provenance",
             )
         if not isinstance(provenance, dict):
-            return self._unknown_status(
+            return self._invalid_status(
                 change_id,
                 title,
                 relative,
                 "invalid_provenance",
             )
         generation = provenance.get("p2p_generation")
-        if generation is not None:
-            return self._current_provenance_status(
-                spec_dir,
-                change_id=change_id,
-                title=title,
-                provenance=generation,
-            )
-        return self._legacy_status(
+        if generation is None:
+            return self._invalid_status(
+            change_id=change_id,
+            title=title,
+            relative=relative,
+            reason="missing_generation_provenance",
+        )
+        return self._current_provenance_status(
             spec_dir,
             change_id=change_id,
             title=title,
-            provenance=provenance,
+            provenance=generation,
         )
 
     def _current_provenance_status(
@@ -501,7 +500,7 @@ class SoftwareSpecService:
     ) -> SoftwareSpecStatus:
         relative = spec_dir.relative_to(self.root)
         if not isinstance(provenance, Mapping):
-            return self._unknown_status(
+            return self._invalid_status(
                 change_id,
                 title,
                 relative,
@@ -509,7 +508,7 @@ class SoftwareSpecService:
             )
         schema_version = _safe_int(provenance.get("schema_version"))
         if schema_version != SOFTWARE_SPEC_PROVENANCE_SCHEMA_VERSION:
-            return self._unknown_status(
+            return self._invalid_status(
                 change_id,
                 title,
                 relative,
@@ -522,13 +521,12 @@ class SoftwareSpecService:
                 title=title,
                 status="generated",
                 path=relative,
-                freshness=SoftwareSpecFreshness.UNKNOWN_ORIGIN,
+                freshness=SoftwareSpecFreshness.CURRENT_IMPORTED,
                 origin=SoftwareSpecOrigin.IMPORTED,
-                reasons=("imported_source_contract_unverifiable",),
-                suggested_command=f"p2p spec refresh --change {change_id}",
+                reasons=("current_imported_provenance",),
             )
         if origin != SoftwareSpecOrigin.GENERATED.value:
-            return self._unknown_status(
+            return self._invalid_status(
                 change_id,
                 title,
                 relative,
@@ -537,7 +535,7 @@ class SoftwareSpecService:
         try:
             candidate = self.build_candidate(change_id)
         except (OSError, UnicodeDecodeError, ValueError, yaml.YAMLError):
-            return self._unknown_status(
+            return self._invalid_status(
                 change_id,
                 title,
                 relative,
@@ -550,7 +548,7 @@ class SoftwareSpecService:
             or str(fingerprint.get("algorithm") or "") != "sha256"
             or not str(fingerprint.get("value") or "")
         ):
-            return self._unknown_status(
+            return self._invalid_status(
                 change_id,
                 title,
                 relative,
@@ -609,78 +607,14 @@ class SoftwareSpecService:
             ),
         )
 
-    def _legacy_status(
-        self,
-        spec_dir: Path,
-        *,
-        change_id: str,
-        title: str,
-        provenance: Mapping[str, object],
-    ) -> SoftwareSpecStatus:
-        relative = spec_dir.relative_to(self.root)
-        try:
-            candidate = self.build_candidate(change_id)
-        except (OSError, UnicodeDecodeError, ValueError, yaml.YAMLError):
-            return self._unknown_status(
-                change_id,
-                title,
-                relative,
-                "authoritative_source_unavailable",
-            )
-        if not self._legacy_provenance_is_coherent(
-            provenance,
-            change_id=change_id,
-            sources=candidate.sources,
-        ):
-            return self._unknown_status(
-                change_id,
-                title,
-                relative,
-                "legacy_origin_ambiguous",
-                current_fingerprint=candidate.source_fingerprint_sha256,
-            )
-        candidate_files = candidate.file_map()
-        changed = tuple(
-            filename
-            for filename in SOFTWARE_SPEC_NON_PROVENANCE_FILES
-            if (spec_dir / filename).read_bytes()
-            != candidate_files[filename].encode("utf-8")
-        )
-        if changed:
-            return SoftwareSpecStatus(
-                change_id=change_id,
-                title=title,
-                status="generated",
-                path=relative,
-                freshness=SoftwareSpecFreshness.STALE,
-                origin=SoftwareSpecOrigin.LEGACY_GENERATED,
-                current_source_fingerprint_sha256=(
-                    candidate.source_fingerprint_sha256
-                ),
-                changed_outputs=changed,
-                reasons=("legacy_generated_candidate_changed",),
-                suggested_command=f"p2p spec refresh --change {change_id}",
-            )
-        return SoftwareSpecStatus(
-            change_id=change_id,
-            title=title,
-            status="generated",
-            path=relative,
-            freshness=SoftwareSpecFreshness.CURRENT_LEGACY,
-            origin=SoftwareSpecOrigin.LEGACY_GENERATED,
-            current_source_fingerprint_sha256=candidate.source_fingerprint_sha256,
-            reasons=("legacy_generated_candidate_matches",),
-            suggested_command=f"p2p spec refresh --change {change_id}",
-        )
-
-    def _unknown_status(
+    def _invalid_status(
         self,
         change_id: str,
         title: str,
         relative: Path,
         reason: str,
         *,
-        origin: SoftwareSpecOrigin = SoftwareSpecOrigin.LEGACY_UNKNOWN,
+        origin: SoftwareSpecOrigin = SoftwareSpecOrigin.INVALID,
         current_fingerprint: str = "",
     ) -> SoftwareSpecStatus:
         return SoftwareSpecStatus(
@@ -688,7 +622,7 @@ class SoftwareSpecService:
             title=title,
             status="generated",
             path=relative,
-            freshness=SoftwareSpecFreshness.UNKNOWN_ORIGIN,
+            freshness=SoftwareSpecFreshness.INVALID,
             origin=origin,
             current_source_fingerprint_sha256=current_fingerprint,
             reasons=(reason,),
@@ -839,22 +773,6 @@ class SoftwareSpecService:
             if (spec_dir / filename).read_bytes()
             != candidate[filename].encode("utf-8")
         )
-
-    def _legacy_provenance_is_coherent(
-        self,
-        provenance: Mapping[str, object],
-        *,
-        change_id: str,
-        sources: tuple[SoftwareSpecSourceRecord, ...],
-    ) -> bool:
-        source = provenance.get("source")
-        generated_from = provenance.get("generated_from")
-        if not isinstance(source, Mapping) or not isinstance(generated_from, list):
-            return False
-        if str(source.get("change") or "") != change_id:
-            return False
-        generated_paths = {str(item) for item in generated_from if str(item)}
-        return {item.path for item in sources} <= generated_paths
 
     def _index_markdown(
         self,

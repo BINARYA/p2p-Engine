@@ -2,7 +2,7 @@ generated: true
 source: .p2p/changes
 changes:
 - id: CHANGE-001
-  title: Prototype Cooperative Tile Game
+  title: Prototype cooperative tile game
   status: proposed
   path: .p2p/changes/CHANGE-001-prototype-cooperative-tile-game
   included_proposals:

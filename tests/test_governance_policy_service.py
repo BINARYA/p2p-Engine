@@ -202,7 +202,7 @@ def test_governance_only_validation_reports_invalid_artifacts(tmp_path: Path) ->
     ]
 
 
-def test_choice_governance_preflight_uses_permissions_before_legacy_roles(tmp_path: Path) -> None:
+def test_choice_governance_preflight_uses_permissions_as_sole_actor_authority(tmp_path: Path) -> None:
     workspace = _workspace(tmp_path)
     workspace.create_choice("Deployment Strategy", ["Blue", "Green"])
     _write_yaml(
@@ -214,10 +214,10 @@ def test_choice_governance_preflight_uses_permissions_before_legacy_roles(tmp_pa
 
     assert result.actor.source == ".p2p/project/permissions.yml"
     assert result.actor.role == "owner"
-    assert "P2P_GOV_ROLE_MISMATCH" in [warning.code for warning in result.warnings]
+    assert "P2P_GOV_ROLE_MISMATCH" not in [warning.code for warning in result.warnings]
 
 
-def test_choice_governance_preflight_ignores_malformed_legacy_role_without_crashing(tmp_path: Path) -> None:
+def test_choice_governance_preflight_does_not_consult_governance_roles(tmp_path: Path) -> None:
     workspace = _workspace(tmp_path)
     workspace.create_choice("Deployment Strategy", ["Blue", "Green"])
     _write_yaml(
@@ -229,3 +229,22 @@ def test_choice_governance_preflight_ignores_malformed_legacy_role_without_crash
 
     assert result.actor.role == "owner"
     assert "P2P_GOV_UNKNOWN_ACTOR" not in [error.code for error in result.blocking_errors]
+
+
+def test_choice_governance_preflight_rejects_missing_permissions_without_role_fallback(
+    tmp_path: Path,
+) -> None:
+    workspace = _workspace(tmp_path)
+    workspace.create_choice("Deployment Strategy", ["Blue", "Green"])
+    (tmp_path / ".p2p" / "project" / "permissions.yml").unlink()
+    _write_yaml(
+        tmp_path / ".p2p" / "governance" / "roles.yml",
+        {"roles": [{"id": "owner", "role": "owner"}]},
+    )
+
+    before = _snapshot_files(tmp_path)
+    result = workspace.choice_governance_preflight("CHOICE-001", option="A", actor="owner")
+
+    assert "P2P_GOV_PERMISSIONS_REQUIRED" in [error.code for error in result.blocking_errors]
+    assert result.actor.role == "unknown"
+    assert _snapshot_files(tmp_path) == before

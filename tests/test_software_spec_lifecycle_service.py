@@ -138,6 +138,7 @@ def test_project_definition_patch_can_fill_required_software_fields(tmp_path: Pa
         yaml.safe_dump(
             {
                 "project_definition_patch": {
+                    "schema_version": 1,
                     "actor": "owner",
                     "operations": [
                         {

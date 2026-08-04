@@ -13,7 +13,7 @@ from p2p_engine.core.proposal_artifact_state import (
 from p2p_engine.core.proposal_questions import ProposalQuestionPriority
 from p2p_engine.mcp.handlers.common import optional_string, optional_string_list, required, to_jsonable
 from p2p_engine.mcp.handlers.proposal_decisions import (
-    compatibility_preview,
+    convenience_preview,
     handle_proposal_decision_tool,
 )
 from p2p_engine.storage.filesystem import P2PWorkspace
@@ -262,31 +262,20 @@ def handle_proposal_tool(
             ),
             "governance": {"owner_decision_required": False, "decision_made": False},
         }
-    if name == "p2p_proposal_artifact_mark_legacy":
-        return {
-            "artifact_state": to_jsonable(
-                workspace.mark_proposal_artifacts_legacy(
-                    required(arguments, "proposal_id"),
-                    reason=optional_string(arguments, "reason") or "Proposal predates artifact-aware state.",
-                    actor=str(arguments.get("actor") or "mcp"),
-                )
-            ),
-            "governance": {"owner_decision_required": False, "decision_made": False},
-        }
     if name == "p2p_proposal_accept":
-        return compatibility_preview(
+        return convenience_preview(
             workspace,
             arguments,
             event_type=ProposalDecisionEventType.accepted,
         )
     if name == "p2p_proposal_reject":
-        return compatibility_preview(
+        return convenience_preview(
             workspace,
             arguments,
             event_type=ProposalDecisionEventType.rejected,
         )
     if name == "p2p_proposal_defer":
-        return compatibility_preview(
+        return convenience_preview(
             workspace,
             arguments,
             event_type=ProposalDecisionEventType.deferred,

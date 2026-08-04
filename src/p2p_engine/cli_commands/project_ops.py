@@ -228,7 +228,7 @@ def register_project_ops_commands(
         include_heuristics: bool = typer.Option(
             False,
             "--include-heuristics",
-            help="Compute advisory legacy proposal-to-section suggestions.",
+            help="Compute advisory proposal-to-section suggestions.",
         ),
     ) -> None:
         """Show independent project-definition and declared-evidence progress axes."""
@@ -549,7 +549,6 @@ def register_project_ops_commands(
             return
         console.print("Project publication editions")
         console.print(f"  catalog: {result.catalog_path}")
-        console.print(f"  legacy_status: {result.legacy_status}")
         if result.diagnostics:
             console.print("  diagnostics:")
             for item in result.diagnostics:

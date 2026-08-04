@@ -1,4 +1,4 @@
-# PROP-001 - Prototype Cooperative Tile Game
+# PROP-001 - Prototype cooperative tile game
 
 ## Status
 
@@ -6,29 +6,27 @@
 
 ## Problem
 
-The game concept needs a clear first playable loop before adding more systems.
+The game needs a testable first playable loop before expanding rules and components.
 
 ## Context
 
-The project is a board game design example for non-software P2P usage.
+Pending.
 
 ## Goals
 
-- Define a small cooperative tile-placement prototype.
-- Make win and loss conditions explicit.
+- Produce a playable core loop
 
 ## Non-Goals
 
-- Balance final production rules.
+- Pending.
 
 ## Proposal
 
-Prototype a cooperative tile game where players place path tiles to connect three shrines before the storm deck runs out.
+Prototype a cooperative tile-placement loop where players connect three shrines before the storm deck runs out.
 
 ## Acceptance Criteria
 
-- The prototype has setup, turn sequence, legal placement rules, and win/loss conditions.
-- A playtester can complete a 20-minute session with printed components.
+- Players can complete one full game and determine win or loss
 
 ## Decision
 

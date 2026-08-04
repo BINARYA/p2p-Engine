@@ -29,7 +29,7 @@ def test_project_initialization_service_creates_default_workspace(tmp_path: Path
     assert Path(".p2p/proposals") in created
     assert Path(".p2p/prompts") in created
     assert Path("AGENTS.md") in created
-    assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    assert (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").exists()
 
     project = _load_yaml(tmp_path / ".p2p" / "project.yml")
     project_data = project["project"]
@@ -85,7 +85,7 @@ def test_project_initialization_compat_facade_still_returns_created_paths(
 
     assert isinstance(created, list)
     assert Path("AGENTS.md") in created
-    assert Path(".codex/skills/p2p-project/SKILL.md") in created
+    assert Path(".agents/skills/p2p-project/SKILL.md") in created
 
 
 def test_project_initialization_summary_includes_mcp_hint_and_gitignore_hygiene(tmp_path: Path) -> None:

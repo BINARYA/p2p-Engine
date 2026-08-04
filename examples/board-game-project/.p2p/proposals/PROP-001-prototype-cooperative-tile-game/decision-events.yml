@@ -1,0 +1,49 @@
+proposal_decision_ledger:
+  contract_version: 1
+  proposal_id: PROP-001
+  authority_resolution: resolved
+  effective_state: accepted
+  head_event_id: PDE-7a7d2b993dbeb32bd424567c
+  events:
+  - event_schema_version: 1
+    event_id: PDE-7a7d2b993dbeb32bd424567c
+    operation_key: P2POP-fae812f6be5c4f3c1528256d
+    proposal_id: PROP-001
+    event_type: accepted
+    effective_state: accepted
+    rationale: The example deliberately accepts the bounded prototype direction.
+    conditions: []
+    decided_on: '2026-08-04'
+    authority:
+      owner_id: owner
+      owner_role: owner
+      executor_actor_id: owner
+      executor_kind: person
+      channel: cli
+      permission_policy_sha256: ba5abcbe4702b7e94108b01ae84e5faf8aa01c66c518876e10df887bf3079e11
+      consent_id: null
+      consent_sha256: null
+    predecessor:
+      event_id: null
+      event_sha256: null
+    proposal_semantic_sha256: 016cdfc7df4abb824b4d72b36dd0a604806d9bc741488f7e7092bc507dd003e0
+    decision_semantic_sha256: 90a337b00b5664dc0f54fa6b4251e583e906e86ebedb9f679569599f79ced02b
+    affected_decision:
+      event_id: null
+      decision_semantic_sha256: null
+      revocation_event_id: null
+    lineage:
+      kind: null
+      targets: []
+    impact:
+      required: false
+      preview_token: null
+      source_fingerprint_sha256: null
+      total_count: 0
+    readiness:
+      source_fingerprint_sha256: 8dd0aa5938b85de5463b3c058a90ad09fc17bf06ddc7ea3ede93e67b7e0281c8
+      owner_override: true
+    mutation:
+      preview_token: 342da3ec75d490154d4b9a1eb140420a4ba8e6ea4697ea1150f40b043cd908a2
+      request_fingerprint_sha256: 07828f07d227cc3cf811e14321ac4599c179542562e9c063f2ccfddc9125cf18
+    event_sha256: 23838efbd10bfd0e0443c309f04892a62cd638f7aec4314dadb4c245a5d7fb7a

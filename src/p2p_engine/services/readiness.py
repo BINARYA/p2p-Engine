@@ -352,20 +352,16 @@ class ReadinessService:
         )
         add_criterion("risk_coverage", "risks.md", None, _read_optional(proposal_dir / "risks.md"))
         add_criterion("assumptions_clarity", "assumptions.md", None, _read_optional(proposal_dir / "assumptions.md"))
-        questions_text = _read_optional(proposal_dir / "open-questions.md")
         owner_question_state = _owner_question_state(proposal_dir)
-        question_artifact = "questions.yml" if owner_question_state.get("source") == "structured" else "open-questions.md"
         if owner_question_state.get("source") == "structured":
             question_quality = "needs_owner_input" if _owner_question_blockers(owner_question_state) else "meaningful"
             question_evidence_text = _owner_question_state_text(owner_question_state)
         else:
-            question_quality = readiness_text_quality(questions_text)
-            if question_quality in {"meaningful", "ready"} and count_open_questions(questions_text) > 0:
-                question_quality = "needs_owner_input"
-            question_evidence_text = questions_text
+            question_quality = "missing"
+            question_evidence_text = ""
         add_criterion(
             "owner_questions_resolution",
-            question_artifact,
+            "questions.yml",
             None,
             question_evidence_text,
             quality_override=question_quality,
@@ -782,14 +778,6 @@ def initial_readiness_points(max_points: int, quality: str) -> int:
     return 0
 
 
-def count_open_questions(text: str) -> int:
-    count = 0
-    for line in text.splitlines():
-        if re.match(r"^(\d+\.|-|\*)\s+.+\?", line.strip()):
-            count += 1
-    return count
-
-
 def _readiness_owner_question_state(readiness: dict[str, object]) -> dict[str, object]:
     state = readiness.get("owner_question_state")
     if isinstance(state, dict):
@@ -797,10 +785,9 @@ def _readiness_owner_question_state(readiness: dict[str, object]) -> dict[str, o
     return _empty_owner_question_state()
 
 
-def _empty_owner_question_state(*, source: str = "none", markdown_fallback_used: bool = False) -> dict[str, object]:
+def _empty_owner_question_state(*, source: str = "none") -> dict[str, object]:
     return {
         "source": source,
-        "markdown_fallback_used": markdown_fallback_used,
         "blocking_owner_questions": [],
         "answered_not_applied": [],
         "residual_follow_up": [],
@@ -811,10 +798,7 @@ def _empty_owner_question_state(*, source: str = "none", markdown_fallback_used:
 
 
 def _normalized_owner_question_state(state: dict[str, object]) -> dict[str, object]:
-    normalized = _empty_owner_question_state(
-        source=str(state.get("source") or "none"),
-        markdown_fallback_used=bool(state.get("markdown_fallback_used") or False),
-    )
+    normalized = _empty_owner_question_state(source=str(state.get("source") or "none"))
     for key in (
         "blocking_owner_questions",
         "answered_not_applied",
@@ -830,9 +814,8 @@ def _normalized_owner_question_state(state: dict[str, object]) -> dict[str, obje
 
 def _owner_question_state(proposal_dir: Path) -> dict[str, object]:
     questions_path = proposal_dir / QUESTION_STATE_FILENAME
-    open_questions_text = _read_optional(proposal_dir / "open-questions.md")
     if not questions_path.exists():
-        return _markdown_owner_question_state(open_questions_text)
+        return _empty_owner_question_state(source="missing")
 
     data = _read_yaml_mapping(questions_path, default={})
     validate_proposal_questions_payload(data)
@@ -851,38 +834,6 @@ def _owner_question_state(proposal_dir: Path) -> dict[str, object]:
             continue
         group = groups_by_id.get(str(question.get("group_id") or ""), {})
         _classify_structured_question(summary, question, group if isinstance(group, dict) else {})
-    return summary
-
-
-def _markdown_owner_question_state(text: str) -> dict[str, object]:
-    summary = _empty_owner_question_state(
-        source="markdown_fallback" if text.strip() else "none",
-        markdown_fallback_used=bool(text.strip()),
-    )
-    question_lines = [
-        line.strip()
-        for line in text.splitlines()
-        if re.match(r"^(\d+\.|-|\*)\s+.+\?", line.strip())
-    ]
-    for index, line in enumerate(question_lines, start=1):
-        summary["blocking_owner_questions"].append(
-            {
-                "id": f"open-questions.md:{index}",
-                "group_id": "",
-                "priority": "unknown",
-                "state": "markdown_open",
-                "group_state": "",
-                "criterion": "owner_questions_resolution",
-                "gap": "owner_questions_resolution",
-                "question": re.sub(r"^(\d+\.|-|\*)\s+", "", line),
-                "reason": "Markdown fallback question counted because questions.yml is absent.",
-            }
-        )
-    if question_lines:
-        summary["confidence_notes"].append(
-            f"Markdown fallback found {len(question_lines)} open owner question(s)."
-        )
-        summary["suggested_next"].append("resolve_owner_questions_resolution")
     return summary
 
 
@@ -979,7 +930,6 @@ def _owner_question_suggested_next(owner_question_state: dict[str, object], prop
 def _owner_question_state_text(owner_question_state: dict[str, object]) -> str:
     lines = [
         f"source: {owner_question_state.get('source')}",
-        f"markdown_fallback_used: {owner_question_state.get('markdown_fallback_used')}",
     ]
     for key in (
         "blocking_owner_questions",
@@ -1035,8 +985,8 @@ def _artifact_state_readiness_gaps(proposal_dir: Path) -> tuple[list[str], list[
     proposal_id = _proposal_id_from_path(proposal_dir)
     if not path.exists():
         return (
+            ["Current proposal artifact state is missing."],
             [],
-            ["Artifact-aware state is absent for this legacy proposal; treat this as advisory unless the owner requests migration."],
             [f"p2p proposal artifact init {proposal_id}"],
         )
     data = _read_yaml_mapping(path, default={})
@@ -1044,10 +994,6 @@ def _artifact_state_readiness_gaps(proposal_dir: Path) -> tuple[list[str], list[
     state = data.get("proposal_artifacts", {})
     if not isinstance(state, dict):
         return [], [], []
-    legacy = state.get("legacy") or {}
-    if isinstance(legacy, dict) and legacy.get("state") == ProposalArtifactStatus.absent_legacy.value:
-        reason = str(legacy.get("reason") or "Proposal predates artifact-aware state.")
-        return [], [f"Artifact-aware state is absent_legacy: {reason}"], [f"p2p proposal artifact init {proposal_id}"]
     gaps: list[str] = []
     warnings: list[str] = []
     suggested: list[str] = []

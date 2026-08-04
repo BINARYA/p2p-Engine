@@ -137,7 +137,7 @@ class VerticalProjectMemoryBuilder:
                     readiness_heuristics_by_section.setdefault(section.section_id, []).append(
                         {
                             "proposal_id": proposal_id,
-                            "policy": "project-readiness-legacy-v1",
+                            "policy": "project-readiness-heuristic-v1",
                             "matched_terms": list(matched),
                             "source_paths": [
                                 path.relative_to(self.root).as_posix() for path in selected_paths
@@ -630,7 +630,7 @@ class VerticalProjectMemoryBuilder:
                 heuristics_by_section[section.section_id].append(
                     {
                         "proposal_id": proposal_id,
-                        "policy": "project-readiness-legacy-v1",
+                        "policy": "project-readiness-heuristic-v1",
                         "matched_terms": list(matched),
                         "source_paths": [
                             path.relative_to(self.root).as_posix() for path in selected_paths
@@ -1842,7 +1842,6 @@ def _definition_payload(
             "required_field_ids": list(required_field_ids),
             "missing_required_fields": [],
             "assumptions": [],
-            "open_questions": [],
             "blockers": [],
         }
     return {
@@ -1864,15 +1863,6 @@ def _definition_payload(
                 "field_id": item.field_id,
             }
             for item in sorted(getattr(value, "assumptions", ()), key=lambda item: item.assumption_id)
-        ],
-        "open_questions": [
-            {
-                "id": item.question_id,
-                "question": item.question,
-                "status": item.status,
-                "field_id": item.field_id,
-            }
-            for item in sorted(getattr(value, "open_questions", ()), key=lambda item: item.question_id)
         ],
         "blockers": [
             {"id": item.blocker_id, "text": item.text, "status": item.status}

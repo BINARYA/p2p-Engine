@@ -1,0 +1,459 @@
+project_questions:
+  schema_version: 1
+  project_id: cooperative-shrine-game
+  vertical:
+    id: base_project
+    version: 2.0.0
+    lock_checksum: d53a537905b980ec40ae3df3be1c6e7a79a7ff6d98a6f09e91d79b2a582b5c88
+  policy_versions:
+    identity: 1
+    fallback: 1
+    lifecycle: 1
+    answer_binding: 1
+  groups:
+  - id: PRG-77df769f7e108fdf
+    identity_sha256: 77df769f7e108fdf1f10d2b92ccad852e150054084c0c2b48c83a9686bb1ccec
+    gap_id: PGAP-051e37f0e13793b5
+    section_id: vision
+    question_ids:
+    - PRQ-0c1910eb9f7ee6ec
+  - id: PRG-32b7c126c75250f2
+    identity_sha256: 32b7c126c75250f2e3a2825b168d5dd97a32fbd6e09dc54f32da7f7a201021bc
+    gap_id: PGAP-09d20dd6247b0139
+    section_id: definition_of_done
+    question_ids:
+    - PRQ-1e1d9621f81c5c91
+  - id: PRG-b4890246d0d52765
+    identity_sha256: b4890246d0d52765a025fffaca6343dc743b6610e3e750b29d5935a671dc1992
+    gap_id: PGAP-348e95fc9d4010b2
+    section_id: objective
+    question_ids:
+    - PRQ-f1b025a39e6b5b1d
+  - id: PRG-3215ed6b3a07b25c
+    identity_sha256: 3215ed6b3a07b25c213daf1bb9af105b1a4c718895ed5c7a6923452f0235a27f
+    gap_id: PGAP-3f873710c621a5d8
+    section_id: artifacts
+    question_ids:
+    - PRQ-91526e517dc65dc8
+  - id: PRG-eac939f3ea30f16d
+    identity_sha256: eac939f3ea30f16d10c9dc3440f9687e8254346e34397655d4cd3d5d01a68da0
+    gap_id: PGAP-599ce23527fe222f
+    section_id: stakeholders
+    question_ids:
+    - PRQ-04ea9c8c23471e2f
+  - id: PRG-5996424ea15e8d13
+    identity_sha256: 5996424ea15e8d1351e19d5a6089f25a29499e53d29cadbbd68ae73aad0d8bd4
+    gap_id: PGAP-782e958cea3aad2d
+    section_id: assumptions
+    question_ids:
+    - PRQ-6b7fcd9cb0557e10
+  - id: PRG-4c3898d873274e58
+    identity_sha256: 4c3898d873274e58446f8554ca0da8beff813a2b4751f9d414f32ecf71205673
+    gap_id: PGAP-9c5dccd2f8f0da95
+    section_id: decisions
+    question_ids:
+    - PRQ-6872fa1b42316c93
+  - id: PRG-c2ab64b5708e2069
+    identity_sha256: c2ab64b5708e206927e7b3964a3e25dc95caffee3ca62ebae865cbcc59f85a79
+    gap_id: PGAP-b95c739a8e4903a3
+    section_id: scope
+    question_ids:
+    - PRQ-6008ce01f1d198b6
+  - id: PRG-e936fb6812e373b5
+    identity_sha256: e936fb6812e373b55b44a1c7cfc4fe5c4dc9b7eb052b2e25cd3aff887c92c950
+    gap_id: PGAP-dde8662fe70301f0
+    section_id: milestones
+    question_ids:
+    - PRQ-0458f018bb4e35aa
+  - id: PRG-f2cd574c46b41181
+    identity_sha256: f2cd574c46b4118130399176517e909d9fecf0ea548c506427f3a37811f28713
+    gap_id: PGAP-e2bc181864d5f621
+    section_id: risks
+    question_ids:
+    - PRQ-ed28bea3b239ee86
+  questions:
+  - id: PRQ-0458f018bb4e35aa
+    identity_sha256: 0458f018bb4e35aad235337e4e4a9b406bf79352024e87b707bad09ebd18f97b
+    revision: 1
+    wording_sha256: 1a286f355d88b72fb79725f1a57fd02d9a0d5ca1767d5dcd4cd3179e1e8e0912
+    question: What value should `Milestones And Next Actions` have?
+    state: to_answer
+    applicability: active
+    section_id: milestones
+    gap_id: PGAP-dde8662fe70301f0
+    target:
+      kind: field
+      id: summary
+    priority: high
+    rationale: Required input for project definition section `milestones`.
+    source:
+      kind: deterministic_fallback
+      question_id: ''
+      key: fallback:single_missing_field
+      vertical_id: base_project
+      vertical_version: 2.0.0
+      lock_checksum: d53a537905b980ec40ae3df3be1c6e7a79a7ff6d98a6f09e91d79b2a582b5c88
+      fallback_policy_version: 1
+    answer_contract:
+      kind: field_value
+      required_fields:
+      - value
+      allowed_definition_operations:
+      - set_field
+    deferred_trigger: {}
+    revisions: []
+    answers: []
+    applications: []
+    transitions: []
+    superseded_by: ''
+    created_at: '2026-08-04'
+    created_by: owner
+    updated_at: '2026-08-04'
+    updated_by: owner
+  - id: PRQ-04ea9c8c23471e2f
+    identity_sha256: 04ea9c8c23471e2f0dd35aa279250fbfdb3baef535f30c87e10408ce1c7271f9
+    revision: 1
+    wording_sha256: c111772de2ef5cc607eccfde80066cbc53ba0051cd10c5bb2803794109305a6d
+    question: What value should `Owner And Stakeholders` have?
+    state: to_answer
+    applicability: active
+    section_id: stakeholders
+    gap_id: PGAP-599ce23527fe222f
+    target:
+      kind: field
+      id: summary
+    priority: high
+    rationale: Required input for project definition section `stakeholders`.
+    source:
+      kind: deterministic_fallback
+      question_id: ''
+      key: fallback:single_missing_field
+      vertical_id: base_project
+      vertical_version: 2.0.0
+      lock_checksum: d53a537905b980ec40ae3df3be1c6e7a79a7ff6d98a6f09e91d79b2a582b5c88
+      fallback_policy_version: 1
+    answer_contract:
+      kind: field_value
+      required_fields:
+      - value
+      allowed_definition_operations:
+      - set_field
+    deferred_trigger: {}
+    revisions: []
+    answers: []
+    applications: []
+    transitions: []
+    superseded_by: ''
+    created_at: '2026-08-04'
+    created_by: owner
+    updated_at: '2026-08-04'
+    updated_by: owner
+  - id: PRQ-0c1910eb9f7ee6ec
+    identity_sha256: 0c1910eb9f7ee6ec9da80d960e4bfa4f0ff7cd3e06aa99670816c4e92e961f98
+    revision: 1
+    wording_sha256: 61bca81c6dd0df6afa824bf07d0711339207587b9becce85f4d6689bf553763d
+    question: What change should this project create?
+    state: to_answer
+    applicability: active
+    section_id: vision
+    gap_id: PGAP-051e37f0e13793b5
+    target:
+      kind: field
+      id: summary
+    priority: high
+    rationale: Required input for project definition section `vision`.
+    source:
+      kind: vertical_declared
+      question_id: vision_main
+      key: declared:vision_main
+      vertical_id: base_project
+      vertical_version: 2.0.0
+      lock_checksum: d53a537905b980ec40ae3df3be1c6e7a79a7ff6d98a6f09e91d79b2a582b5c88
+      fallback_policy_version: 1
+    answer_contract:
+      kind: field_value
+      required_fields:
+      - value
+      allowed_definition_operations:
+      - set_field
+    deferred_trigger: {}
+    revisions: []
+    answers: []
+    applications: []
+    transitions: []
+    superseded_by: ''
+    created_at: '2026-08-04'
+    created_by: owner
+    updated_at: '2026-08-04'
+    updated_by: owner
+  - id: PRQ-1e1d9621f81c5c91
+    identity_sha256: 1e1d9621f81c5c918327d25a6013756f2fec4e93510d72e58786ee85f1291007
+    revision: 1
+    wording_sha256: d67c9a8430a52ec927e9e724c02d2effd2982d40ed54f5fdc0efa5ff9782733b
+    question: What value should `Definition Of Done And Readiness` have?
+    state: to_answer
+    applicability: active
+    section_id: definition_of_done
+    gap_id: PGAP-09d20dd6247b0139
+    target:
+      kind: field
+      id: summary
+    priority: high
+    rationale: Required input for project definition section `definition_of_done`.
+    source:
+      kind: deterministic_fallback
+      question_id: ''
+      key: fallback:single_missing_field
+      vertical_id: base_project
+      vertical_version: 2.0.0
+      lock_checksum: d53a537905b980ec40ae3df3be1c6e7a79a7ff6d98a6f09e91d79b2a582b5c88
+      fallback_policy_version: 1
+    answer_contract:
+      kind: field_value
+      required_fields:
+      - value
+      allowed_definition_operations:
+      - set_field
+    deferred_trigger: {}
+    revisions: []
+    answers: []
+    applications: []
+    transitions: []
+    superseded_by: ''
+    created_at: '2026-08-04'
+    created_by: owner
+    updated_at: '2026-08-04'
+    updated_by: owner
+  - id: PRQ-6008ce01f1d198b6
+    identity_sha256: 6008ce01f1d198b616431ac0df96e93f7ba958bf077063370aee4a1fa13afaa5
+    revision: 1
+    wording_sha256: 77e019d5c224ebc706654f0a9376c80827f1691586efe1dfc54bb13a164e8b2a
+    question: What is explicitly in scope and out of scope?
+    state: to_answer
+    applicability: active
+    section_id: scope
+    gap_id: PGAP-b95c739a8e4903a3
+    target:
+      kind: field
+      id: summary
+    priority: high
+    rationale: Required input for project definition section `scope`.
+    source:
+      kind: vertical_declared
+      question_id: scope_main
+      key: declared:scope_main
+      vertical_id: base_project
+      vertical_version: 2.0.0
+      lock_checksum: d53a537905b980ec40ae3df3be1c6e7a79a7ff6d98a6f09e91d79b2a582b5c88
+      fallback_policy_version: 1
+    answer_contract:
+      kind: field_value
+      required_fields:
+      - value
+      allowed_definition_operations:
+      - set_field
+    deferred_trigger: {}
+    revisions: []
+    answers: []
+    applications: []
+    transitions: []
+    superseded_by: ''
+    created_at: '2026-08-04'
+    created_by: owner
+    updated_at: '2026-08-04'
+    updated_by: owner
+  - id: PRQ-6872fa1b42316c93
+    identity_sha256: 6872fa1b42316c930a44cecfeadbf916288f268a84e9b2b3c6261fd9e2205d73
+    revision: 1
+    wording_sha256: 9bf52aad94856423e5541075381a6bd69e554a3657591fd0b037b34732d2afc1
+    question: What value should `Decisions And Open Questions` have?
+    state: to_answer
+    applicability: active
+    section_id: decisions
+    gap_id: PGAP-9c5dccd2f8f0da95
+    target:
+      kind: field
+      id: summary
+    priority: high
+    rationale: Required input for project definition section `decisions`.
+    source:
+      kind: deterministic_fallback
+      question_id: ''
+      key: fallback:single_missing_field
+      vertical_id: base_project
+      vertical_version: 2.0.0
+      lock_checksum: d53a537905b980ec40ae3df3be1c6e7a79a7ff6d98a6f09e91d79b2a582b5c88
+      fallback_policy_version: 1
+    answer_contract:
+      kind: field_value
+      required_fields:
+      - value
+      allowed_definition_operations:
+      - set_field
+    deferred_trigger: {}
+    revisions: []
+    answers: []
+    applications: []
+    transitions: []
+    superseded_by: ''
+    created_at: '2026-08-04'
+    created_by: owner
+    updated_at: '2026-08-04'
+    updated_by: owner
+  - id: PRQ-6b7fcd9cb0557e10
+    identity_sha256: 6b7fcd9cb0557e1062bb0616bd7286ad25bf7ec2c15c95b04f5a4c2941864741
+    revision: 1
+    wording_sha256: 35fbdb90a4647738de3b4e758b10cef608aed95a967835284eb6170b398fe820
+    question: What value should `Assumptions` have?
+    state: to_answer
+    applicability: active
+    section_id: assumptions
+    gap_id: PGAP-782e958cea3aad2d
+    target:
+      kind: field
+      id: summary
+    priority: high
+    rationale: Required input for project definition section `assumptions`.
+    source:
+      kind: deterministic_fallback
+      question_id: ''
+      key: fallback:single_missing_field
+      vertical_id: base_project
+      vertical_version: 2.0.0
+      lock_checksum: d53a537905b980ec40ae3df3be1c6e7a79a7ff6d98a6f09e91d79b2a582b5c88
+      fallback_policy_version: 1
+    answer_contract:
+      kind: field_value
+      required_fields:
+      - value
+      allowed_definition_operations:
+      - set_field
+    deferred_trigger: {}
+    revisions: []
+    answers: []
+    applications: []
+    transitions: []
+    superseded_by: ''
+    created_at: '2026-08-04'
+    created_by: owner
+    updated_at: '2026-08-04'
+    updated_by: owner
+  - id: PRQ-91526e517dc65dc8
+    identity_sha256: 91526e517dc65dc83295c0a0f96405ca330ac7ef378f74285daff3c6257db8dd
+    revision: 1
+    wording_sha256: 3b0ab043b5058110c42ff0017582752abc045cd6d12cbc0dd1cd80f71fc27c99
+    question: Which artifacts must exist before execution can start?
+    state: to_answer
+    applicability: active
+    section_id: artifacts
+    gap_id: PGAP-3f873710c621a5d8
+    target:
+      kind: field
+      id: summary
+    priority: high
+    rationale: Required input for project definition section `artifacts`.
+    source:
+      kind: vertical_declared
+      question_id: artifact_main
+      key: declared:artifact_main
+      vertical_id: base_project
+      vertical_version: 2.0.0
+      lock_checksum: d53a537905b980ec40ae3df3be1c6e7a79a7ff6d98a6f09e91d79b2a582b5c88
+      fallback_policy_version: 1
+    answer_contract:
+      kind: field_value
+      required_fields:
+      - value
+      allowed_definition_operations:
+      - set_field
+    deferred_trigger: {}
+    revisions: []
+    answers: []
+    applications: []
+    transitions: []
+    superseded_by: ''
+    created_at: '2026-08-04'
+    created_by: owner
+    updated_at: '2026-08-04'
+    updated_by: owner
+  - id: PRQ-ed28bea3b239ee86
+    identity_sha256: ed28bea3b239ee862c3c505c0e5b044866e74e7b36227cb6e5738220d400a214
+    revision: 1
+    wording_sha256: 2e53ba2be708b391ce85b89dbbaa364582cafba83332ca0228c9d5360b5a6a62
+    question: What value should `Risks` have?
+    state: to_answer
+    applicability: active
+    section_id: risks
+    gap_id: PGAP-e2bc181864d5f621
+    target:
+      kind: field
+      id: summary
+    priority: high
+    rationale: Required input for project definition section `risks`.
+    source:
+      kind: deterministic_fallback
+      question_id: ''
+      key: fallback:single_missing_field
+      vertical_id: base_project
+      vertical_version: 2.0.0
+      lock_checksum: d53a537905b980ec40ae3df3be1c6e7a79a7ff6d98a6f09e91d79b2a582b5c88
+      fallback_policy_version: 1
+    answer_contract:
+      kind: field_value
+      required_fields:
+      - value
+      allowed_definition_operations:
+      - set_field
+    deferred_trigger: {}
+    revisions: []
+    answers: []
+    applications: []
+    transitions: []
+    superseded_by: ''
+    created_at: '2026-08-04'
+    created_by: owner
+    updated_at: '2026-08-04'
+    updated_by: owner
+  - id: PRQ-f1b025a39e6b5b1d
+    identity_sha256: f1b025a39e6b5b1df3b56178df60a1f3aee6c812eccb6d557e1d4705586f72be
+    revision: 1
+    wording_sha256: d791de578a5c0ef7620920f23dc11e514e64cfcca044dd691d2c9f69f18ad304
+    question: What concrete outcome proves the project worked?
+    state: to_answer
+    applicability: active
+    section_id: objective
+    gap_id: PGAP-348e95fc9d4010b2
+    target:
+      kind: field
+      id: summary
+    priority: high
+    rationale: Required input for project definition section `objective`.
+    source:
+      kind: vertical_declared
+      question_id: objective_main
+      key: declared:objective_main
+      vertical_id: base_project
+      vertical_version: 2.0.0
+      lock_checksum: d53a537905b980ec40ae3df3be1c6e7a79a7ff6d98a6f09e91d79b2a582b5c88
+      fallback_policy_version: 1
+    answer_contract:
+      kind: field_value
+      required_fields:
+      - value
+      allowed_definition_operations:
+      - set_field
+    deferred_trigger: {}
+    revisions: []
+    answers: []
+    applications: []
+    transitions: []
+    superseded_by: ''
+    created_at: '2026-08-04'
+    created_by: owner
+    updated_at: '2026-08-04'
+    updated_by: owner
+  audit:
+    created_at: '2026-08-04'
+    created_by: owner
+    updated_at: '2026-08-04'
+    updated_by: owner

@@ -665,6 +665,7 @@ def test_mcp_project_vertical_and_readiness_tools(tmp_path: Path) -> None:
     patch = tmp_path / "definition-patch.yml"
     patch.write_text(
         "project_definition_patch:\n"
+        "  schema_version: 1\n"
         "  actor: owner\n"
         "  operations:\n"
         "    - op: set_field\n"
@@ -1656,7 +1657,7 @@ def test_mcp_write_safe_bootstrap_tools(tmp_path: Path) -> None:
     assert (tmp_path / "AGENTS.md").exists()
     assert (tmp_path / ".p2p" / "agent-policy.yml").exists()
     assert (tmp_path / ".p2p" / "project" / "rubrics.yml").exists()
-    assert (tmp_path / ".codex" / "skills" / "p2p-project" / "SKILL.md").exists()
+    assert (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").exists()
 
     refreshed = call_tool(
         "p2p_agent_instructions_refresh",

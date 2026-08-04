@@ -75,7 +75,10 @@ class ProposalArtifactStateService:
         proposal_dir = self.find_proposal_dir(proposal_id)
         path = proposal_dir / ARTIFACT_STATE_FILENAME
         if not path.exists():
-            return _legacy_view(proposal_id, path, self.root)
+            raise ValueError(
+                f"Current proposal {proposal_id} is missing {ARTIFACT_STATE_FILENAME}. "
+                "Recreate the proposal with the current P2P Engine release."
+            )
         data = _read_yaml_mapping(path, default={})
         validate_proposal_artifact_state_payload(data)
         return _view_from_payload(proposal_id, path, data, self.root)
@@ -84,6 +87,8 @@ class ProposalArtifactStateService:
         proposal_dir = self.find_proposal_dir(proposal_id)
         path = proposal_dir / ARTIFACT_STATE_FILENAME
         existing = _read_yaml_mapping(path, default={}) if path.exists() else {}
+        if existing:
+            validate_proposal_artifact_state_payload(existing)
         text = _proposal_text(proposal_dir)
         risk_flags = detect_risk_flags(text)
         records = _initial_records(
@@ -100,7 +105,6 @@ class ProposalArtifactStateService:
                 "initialized_at": _existing_initialized_at(existing) or now,
                 "updated_at": now,
                 "status": "active",
-                "legacy": {"state": "", "reason": ""},
                 "artifacts": records,
             }
         }
@@ -191,35 +195,6 @@ class ProposalArtifactStateService:
             message=f"Artifact state owner-confirmed: {record.artifact_id}",
         )
 
-    def mark_legacy(
-        self,
-        proposal_id: str,
-        *,
-        reason: str = "Proposal predates artifact-aware state.",
-        actor: str = "local",
-    ) -> ProposalArtifactStateView:
-        proposal_dir = self.find_proposal_dir(proposal_id)
-        path = proposal_dir / ARTIFACT_STATE_FILENAME
-        now = _now()
-        payload = {
-            "proposal_artifacts": {
-                "schema_version": ARTIFACT_STATE_SCHEMA_VERSION,
-                "proposal_id": proposal_id,
-                "initialized_at": now,
-                "updated_at": now,
-                "status": "legacy",
-                "legacy": {
-                    "state": ProposalArtifactStatus.absent_legacy.value,
-                    "reason": reason.strip() or "Proposal predates artifact-aware state.",
-                    "actor": actor,
-                },
-                "artifacts": [],
-            }
-        }
-        validate_proposal_artifact_state_payload(payload)
-        _atomic_write(path, _yaml_dump(payload))
-        return self.read(proposal_id)
-
     def render_satisfied_artifact_candidate(
         self,
         proposal_id: str,
@@ -244,7 +219,6 @@ class ProposalArtifactStateService:
                     "initialized_at": updated_at,
                     "updated_at": updated_at,
                     "status": "active",
-                    "legacy": {"state": "", "reason": ""},
                     "artifacts": _initial_records(
                         proposal_dir=proposal_dir,
                         existing={},
@@ -256,28 +230,7 @@ class ProposalArtifactStateService:
             }
         artifact_key = _normalize_artifact_id(artifact_id)
         artifacts = _artifact_payloads(data)
-        try:
-            item = _find_artifact_payload(artifacts, artifact_key)
-        except ValueError:
-            if artifact_key not in ARTIFACTS_BY_ID:
-                raise
-            generated = {
-                str(candidate.get("id") or ""): candidate
-                for candidate in _initial_records(
-                    proposal_dir=proposal_dir,
-                    existing=data,
-                    risk_flags=detect_risk_flags(_proposal_text(proposal_dir)),
-                    actor=actor,
-                    now=updated_at,
-                )
-            }
-            item = generated[artifact_key]
-            state = data.get("proposal_artifacts")
-            assert isinstance(state, dict)
-            current = state.get("artifacts")
-            if not isinstance(current, list):
-                raise ValueError("Proposal artifact state artifacts must be a list.")
-            current.append(item)
+        item = _find_artifact_payload(artifacts, artifact_key)
         old_item = dict(item)
         item.update(
             {
@@ -310,7 +263,7 @@ class ProposalArtifactStateService:
         if not path.exists():
             raise ValueError(
                 f"No artifact state exists for proposal {proposal_id}. "
-                f"Run `p2p proposal artifact init {proposal_id}` or `p2p proposal artifact mark-legacy {proposal_id}`."
+                f"Run `p2p proposal artifact init {proposal_id}`."
             )
         data = _read_yaml_mapping(path, default={})
         validate_proposal_artifact_state_payload(data)
@@ -336,15 +289,22 @@ def validate_proposal_artifact_state_payload(data: dict[str, object]) -> None:
     proposal_id = str(state.get("proposal_id") or "").strip()
     if not proposal_id:
         raise ValueError("Artifact state missing proposal_id.")
+    allowed_fields = {
+        "schema_version",
+        "proposal_id",
+        "initialized_at",
+        "updated_at",
+        "status",
+        "artifacts",
+    }
+    unknown_fields = sorted(set(state) - allowed_fields)
+    if unknown_fields:
+        raise ValueError(
+            "Unknown proposal artifact state fields: " + ", ".join(unknown_fields)
+        )
     status = str(state.get("status") or "active")
-    if status not in {"active", "legacy"}:
+    if status != "active":
         raise ValueError(f"Invalid artifact state status: {status}")
-    legacy = state.get("legacy") or {}
-    if legacy and not isinstance(legacy, dict):
-        raise ValueError("Artifact state legacy field must be a mapping.")
-    legacy_state = str(dict(legacy).get("state") or "")
-    if legacy_state and legacy_state != ProposalArtifactStatus.absent_legacy.value:
-        raise ValueError(f"Invalid artifact legacy state: {legacy_state}")
     artifacts = state.get("artifacts") or []
     if not isinstance(artifacts, list):
         raise ValueError("Artifact state artifacts field must be a list.")
@@ -376,6 +336,13 @@ def validate_proposal_artifact_state_payload(data: dict[str, object]) -> None:
         history = item.get("history") or []
         if not isinstance(history, list):
             raise ValueError(f"Artifact {artifact_id} history must be a list.")
+    expected = set(ARTIFACTS_BY_ID)
+    if seen != expected:
+        missing = ", ".join(sorted(expected - seen))
+        raise ValueError(
+            "Current proposal artifact state must contain every catalog record; "
+            f"missing: {missing or 'none'}."
+        )
 
 
 def _initial_records(
@@ -424,7 +391,7 @@ def _initial_records(
 
 def _initial_status(path: Path, *, expectation: ProposalArtifactExpectation, previous: dict[str, object]) -> ProposalArtifactStatus:
     previous_status = str(previous.get("status") or "")
-    if previous_status in {item.value for item in ProposalArtifactStatus} and previous_status != ProposalArtifactStatus.absent_legacy.value:
+    if previous_status in {item.value for item in ProposalArtifactStatus}:
         return ProposalArtifactStatus(previous_status)
     if expectation == ProposalArtifactExpectation.optional_memory:
         return ProposalArtifactStatus.unknown
@@ -517,36 +484,14 @@ def _view_from_payload(
 ) -> ProposalArtifactStateView:
     state = data["proposal_artifacts"]
     assert isinstance(state, dict)
-    legacy = state.get("legacy") or {}
-    legacy_state = None
-    legacy_reason = ""
-    if isinstance(legacy, dict):
-        raw_state = str(legacy.get("state") or "")
-        legacy_state = ProposalArtifactStatus(raw_state) if raw_state else None
-        legacy_reason = str(legacy.get("reason") or "")
     records = [_record_from_payload(item) for item in _artifact_payloads(data)]
     return ProposalArtifactStateView(
         proposal_id=proposal_id,
         status=str(state.get("status") or "active"),
         path=_relative_to_root(path, root),
         schema_version=int(state.get("schema_version") or ARTIFACT_STATE_SCHEMA_VERSION),
-        legacy_state=legacy_state,
-        legacy_reason=legacy_reason,
         artifacts=records,
-        suggested_next=_suggested_next(proposal_id, records, legacy_state),
-    )
-
-
-def _legacy_view(proposal_id: str, path: Path, root: Path) -> ProposalArtifactStateView:
-    return ProposalArtifactStateView(
-        proposal_id=proposal_id,
-        status="legacy_absent",
-        path=_relative_to_root(path, root),
-        schema_version=None,
-        legacy_state=ProposalArtifactStatus.absent_legacy,
-        legacy_reason="Artifact-aware state is absent for this proposal.",
-        artifacts=[],
-        suggested_next=[f"p2p proposal artifact init {proposal_id}", f"p2p proposal artifact mark-legacy {proposal_id}"],
+        suggested_next=_suggested_next(proposal_id, records),
     )
 
 
@@ -596,10 +541,7 @@ def _artifact_payloads(data: dict[str, object]) -> list[dict[str, object]]:
 def _suggested_next(
     proposal_id: str,
     records: list[ProposalArtifactRecord],
-    legacy_state: ProposalArtifactStatus | None,
 ) -> list[str]:
-    if legacy_state == ProposalArtifactStatus.absent_legacy:
-        return [f"p2p proposal artifact init {proposal_id}"]
     suggested: list[str] = []
     for record in records:
         if record.status in {

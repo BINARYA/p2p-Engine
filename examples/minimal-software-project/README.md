@@ -8,7 +8,9 @@ It demonstrates:
 - one accepted proposal;
 - one Change Set derived from that accepted proposal;
 - generated registries and readiness assessment;
-- Codex-oriented agent boundary files.
+- current workspace schema 3 and runtime declarations;
+- the exact `binarya/software_project@2.0.0` vertical;
+- current shared Codex skill files under `.agents/skills/`.
 
 ## Scenario
 
@@ -34,13 +36,19 @@ p2p validate --root examples/minimal-software-project
 .p2p/
   project.yml
   project/
-    assessment.yml
+    workspace-schema.yml
+    runtime.yml
+    vertical.yml
+    vertical.lock.yml
+    definition.yml
     rubrics.yml
   proposals/
     PROP-001-start-with-cli-task-tracker/
   changes/
     CHANGE-001-start-with-cli-task-tracker/
   registries/
+.agents/
+  skills/
 ```
 
 ## Why This Example Exists

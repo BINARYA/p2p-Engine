@@ -62,7 +62,7 @@ def test_registry_service_refresh_writes_existing_registry_shape(tmp_path) -> No
     assert proposals["source"] == ".p2p/proposals"
     assert proposals["proposals"][0]["id"] == "PROP-001"
     assert "decision-events.yml" in decisions["source"]
-    assert "schema-v2 decision.md" in decisions["source"]
+    assert decisions["source"] == ".p2p/proposals/*/decision-events.yml"
     assert readiness["source"] == ".p2p/proposals/*/readiness.yml"
     assert readiness["readiness"][0]["status"] == "not_assessed"
 
@@ -94,8 +94,8 @@ def test_registry_service_show_validates_name_file_and_shape(tmp_path) -> None:
 
     with pytest.raises(ValueError, match="Unsupported registry: unknown"):
         service.show("unknown")
-    fallback = service.show("proposals")
-    assert fallback.source == "canonical_fallback"
+    with pytest.raises(ValueError, match="P2P356_REGISTRY_NOT_CURRENT"):
+        service.show("proposals")
 
     service.refresh()
     view = service.show("proposals")
@@ -103,8 +103,8 @@ def test_registry_service_show_validates_name_file_and_shape(tmp_path) -> None:
 
     assert view.name == "proposals"
     assert view.records[0]["id"] == "PROP-001"
-    fallback = service.show("choices")
-    assert fallback.source == "canonical_fallback"
+    with pytest.raises(ValueError, match="P2P356_REGISTRY_NOT_CURRENT"):
+        service.show("choices")
 
 
 def test_workspace_registry_facade_delegates(tmp_path) -> None:

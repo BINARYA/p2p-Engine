@@ -218,12 +218,12 @@ class DerivedFreshnessService:
                         proposal_summaries_snapshot=proposal_summaries_snapshot,
                         vertical_memory_snapshot=memory_view,
                     )
-                status, reasons = self._legacy_output_state(definition, outputs, dependency_nodes)
+                status, reasons = self._output_state(definition, outputs, dependency_nodes)
                 reasons.append("progress_is_request_scoped")
             elif definition.node_id == "software_specs":
                 specs = self.software_spec_statuses()
                 if not specs:
-                    status, reasons = self._legacy_output_state(
+                    status, reasons = self._output_state(
                         definition,
                         outputs,
                         dependency_nodes,
@@ -231,7 +231,7 @@ class DerivedFreshnessService:
                     )
                 else:
                     states = [
-                        str(getattr(item, "freshness", "unknown_origin"))
+                        str(getattr(item, "freshness", "invalid"))
                         for item in specs
                     ]
                     counts = {
@@ -244,18 +244,13 @@ class DerivedFreshnessService:
                     ]
                     if any(state in {"stale", "modified"} for state in states):
                         status = "stale"
-                    elif any(
-                        state in {"unknown_origin", "incomplete"}
-                        for state in states
-                    ):
+                    elif any(state in {"invalid", "incomplete"} for state in states):
                         status = "partial"
-                    elif "current_legacy" in states:
-                        status = "current_legacy_fallback"
                     else:
                         status = "current"
             elif definition.node_id == "visible_export":
                 visible = self.visible_export_status()
-                status, reasons = self._legacy_output_state(definition, outputs, dependency_nodes)
+                status, reasons = self._output_state(definition, outputs, dependency_nodes)
                 if not bool(getattr(visible, "latest_exists", False)):
                     status = "missing"
                     reasons.append("visible_export_missing")
@@ -274,7 +269,7 @@ class DerivedFreshnessService:
                 recorded = str(getattr(publication, "source_fingerprint_sha256", "")) if publication else ""
             else:
                 optional = definition.node_id in {"operational_brief", "next_actions"}
-                status, reasons = self._legacy_output_state(
+                status, reasons = self._output_state(
                     definition,
                     outputs,
                     dependency_nodes,
@@ -283,7 +278,7 @@ class DerivedFreshnessService:
                 )
 
             if definition.node_id not in {"canonical_sources", "software_specs"} and any(
-                node.status not in {"current", "current_legacy_fallback"}
+                node.status != "current"
                 for node in dependency_nodes
             ):
                 if definition.action_class in {"agent_curated", "owner_review"}:
@@ -313,7 +308,7 @@ class DerivedFreshnessService:
             )
         nodes = tuple(node_by_id[item.node_id] for item in self._order)
         rebuild = self._rebuild_plan(nodes)
-        overall = "current" if all(node.status in {"current", "current_legacy_fallback"} for node in nodes) else "attention_required"
+        overall = "current" if all(node.status == "current" for node in nodes) else "attention_required"
         return DerivedFreshnessStatus(
             graph_version=DERIVED_FRESHNESS_GRAPH_VERSION,
             status=overall,
@@ -366,7 +361,7 @@ class DerivedFreshnessService:
             return "partial", recorded, ["projection_owned_paths_missing"]
         return "current", recorded, ["projection_manifest_matches_current_sources"]
 
-    def _legacy_output_state(
+    def _output_state(
         self,
         definition: FreshnessNodeDefinition,
         outputs: list[Path],
@@ -383,16 +378,16 @@ class DerivedFreshnessService:
         latest_source = max((path.stat().st_mtime_ns for path in dependency_paths if path.exists()), default=0)
         oldest_output = min(path.stat().st_mtime_ns for path in outputs)
         if latest_source and oldest_output < latest_source:
-            return "stale", ["output_older_than_dependency", "legacy_mtime_fallback"]
+            return "stale", ["output_older_than_dependency"]
         if (
             definition.action_class in {"agent_curated", "owner_review"}
             and not manual_action_satisfied_by_fresh_output
         ):
             return "owner_action_required", ["owner_or_agent_review_required"]
-        reasons = ["content_hash_collected", "legacy_mtime_fallback"]
+        reasons = ["content_hash_collected", "output_not_older_than_dependencies"]
         if manual_action_satisfied_by_fresh_output:
             reasons.insert(0, "supported_manual_output_newer_than_dependencies")
-        return "current_legacy_fallback", reasons
+        return "current", reasons
 
     def _publication_node_state(
         self,
@@ -409,10 +404,10 @@ class DerivedFreshnessService:
                 return "stale", [reason or f"publication_stage_{stage_status}"]
             if stage_status in {"current", "ready", "valid", "rendered", "approved", "prepared", "imported"}:
                 return "current", [f"publication_manifest_stage:{stage_status}"]
-        return self._legacy_output_state(definition, outputs, dependencies)
+        return self._output_state(definition, outputs, dependencies)
 
     def _rebuild_plan(self, nodes: tuple[FreshnessNode, ...]) -> tuple[FreshnessRebuildAction, ...]:
-        stale_ids = {node.node_id for node in nodes if node.status not in {"current", "current_legacy_fallback"}}
+        stale_ids = {node.node_id for node in nodes if node.status != "current"}
         actions: list[FreshnessRebuildAction] = []
         for node in nodes:
             if node.node_id not in stale_ids or node.action_class == "none":

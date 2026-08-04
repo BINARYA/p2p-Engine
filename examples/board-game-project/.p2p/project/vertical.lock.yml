@@ -1,0 +1,21 @@
+project_vertical_lock:
+  schema_version: 1
+  vertical_id: base_project
+  name: Base Project
+  version: 2.0.0
+  pack_schema_version: 2
+  source:
+    type: internal
+    resolved_from: p2p_engine.resources.verticals/base_project
+    path: /home/davide/dati/60_lavoro/064_wavek/wavekit_20260719/p2p-engine/src/p2p_engine/resources/verticals/base_project/manifest.yml
+    package: p2p_engine
+  checksum:
+    algorithm: sha256
+    value: d53a537905b980ec40ae3df3be1c6e7a79a7ff6d98a6f09e91d79b2a582b5c88
+  compatibility: {}
+  selected:
+    at: '2026-08-04'
+    by: owner
+  trust:
+    signed: false
+  coordinate: binarya/base_project@2.0.0

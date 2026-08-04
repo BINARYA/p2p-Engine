@@ -3,8 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-import yaml
-
 from p2p_engine.core.decision_context import Completeness, SourceKind, SourcePresence
 from p2p_engine.services.decision_context import ProjectDecisionContextService
 from p2p_engine.services.decision_context_sources import (
@@ -34,7 +32,7 @@ def test_source_session_reads_hashes_and_parses_each_source_once(tmp_path: Path)
     assert set(session.access_stats.reads.values()) == {1}
     assert set(session.access_stats.hashes.values()) == {1}
     assert set(session.access_stats.parses.values()) == {1}
-    assert len(session.sources) == 4
+    assert len(session.sources) == 6
     assert sum(source.presence == SourcePresence.MISSING for source in session.sources) == 1
 
 
@@ -81,19 +79,19 @@ def test_project_questions_are_conditional_inactive_quality_sources_without_rela
     assert not any(set(item.evidence_ids) & evidence_ids for item in index.relations)
 
 
-def test_schema_v1_without_project_questions_has_no_missing_source_diagnostic(tmp_path: Path) -> None:
+def test_missing_current_project_questions_is_reported_without_schema_fallback(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
-    workspace.init_project("Legacy Context", owner="owner")
+    workspace.init_project("Current Context", owner="owner")
     (tmp_path / ".p2p" / "project" / "questions.yml").unlink()
-    schema_path = tmp_path / ".p2p" / "project" / "workspace-schema.yml"
-    schema = yaml.safe_load(schema_path.read_text(encoding="utf-8"))
-    schema["workspace_schema"]["current_version"] = 1
-    schema_path.write_text(yaml.safe_dump(schema, sort_keys=False), encoding="utf-8")
 
     index = workspace.decision_context_index()
 
-    assert not any(item.source_kind == SourceKind.PROJECT_QUESTIONS for item in index.sources)
-    assert not any("question" in item.message.casefold() for item in index.diagnostics)
+    source = next(item for item in index.sources if item.source_kind == SourceKind.PROJECT_QUESTIONS)
+    assert source.presence == SourcePresence.MISSING
+    assert any(
+        item.code == "DC-SOURCE-MISSING-REQUIRED" and "question" in item.message.casefold()
+        for item in index.diagnostics
+    )
 
 
 def test_applied_project_question_is_inactive_traceability_without_definition_double_count(

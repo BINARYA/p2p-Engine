@@ -6,76 +6,67 @@ artifacts:
   owner_type: proposal
   owner: PROP-001
   generated: false
-- path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/alternatives.md
-  artifact_type: alternatives.md
+  authority_role: supporting_artifact
+- path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/artifact-state.yml
+  artifact_type: artifact-state.yml
   owner_type: proposal
   owner: PROP-001
   generated: false
-- path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/assumptions.md
-  artifact_type: assumptions.md
-  owner_type: proposal
-  owner: PROP-001
-  generated: false
+  authority_role: supporting_artifact
 - path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/clarifications.md
   artifact_type: clarifications.md
   owner_type: proposal
   owner: PROP-001
   generated: false
+  authority_role: supporting_artifact
 - path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/comments.yml
   artifact_type: comments.yml
   owner_type: proposal
   owner: PROP-001
   generated: false
+  authority_role: supporting_artifact
 - path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/contributions.yml
   artifact_type: contributions.yml
   owner_type: proposal
   owner: PROP-001
   generated: false
+  authority_role: supporting_artifact
+- path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/decision-events.yml
+  artifact_type: decision-events.yml
+  owner_type: proposal
+  owner: PROP-001
+  generated: false
+  authority_role: canonical_decision_ledger
 - path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/decision.md
   artifact_type: decision.md
   owner_type: proposal
   owner: PROP-001
   generated: false
+  authority_role: decision_projection
 - path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/execution-plan.md
   artifact_type: execution-plan.md
   owner_type: proposal
   owner: PROP-001
   generated: false
-- path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/exploration.md
-  artifact_type: exploration.md
-  owner_type: proposal
-  owner: PROP-001
-  generated: false
-- path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/findings.md
-  artifact_type: findings.md
-  owner_type: proposal
-  owner: PROP-001
-  generated: false
-- path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/open-questions.md
-  artifact_type: open-questions.md
-  owner_type: proposal
-  owner: PROP-001
-  generated: false
+  authority_role: supporting_artifact
 - path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/proposal.md
   artifact_type: proposal.md
   owner_type: proposal
   owner: PROP-001
   generated: false
-- path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/risks.md
-  artifact_type: risks.md
+  authority_role: canonical_proposal_body
+- path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/readiness.yml
+  artifact_type: readiness.yml
   owner_type: proposal
   owner: PROP-001
   generated: false
-- path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/suggested-scope.md
-  artifact_type: suggested-scope.md
-  owner_type: proposal
-  owner: PROP-001
-  generated: false
+  authority_role: supporting_artifact
 - path: .p2p/proposals/PROP-001-prototype-cooperative-tile-game/tasks.yml
   artifact_type: tasks.yml
   owner_type: proposal
   owner: PROP-001
   generated: false
+  authority_role: supporting_artifact
 - path: .p2p/changes/CHANGE-001-prototype-cooperative-tile-game/actions.yml
   artifact_type: actions.yml
   owner_type: change

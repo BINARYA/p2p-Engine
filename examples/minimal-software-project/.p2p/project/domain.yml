@@ -1,0 +1,5 @@
+version: '1.0'
+status: template_selected
+type: template
+name: software
+template: software

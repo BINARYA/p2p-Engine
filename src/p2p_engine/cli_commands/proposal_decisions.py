@@ -55,7 +55,7 @@ def register_proposal_decision_commands(
                 proposal_id,
                 output_format=output_format,
             )
-        _compatibility_decision(
+        _convenience_decision(
             workspace,
             proposal_id=proposal_id,
             outcome=DecisionOutcome.accepted,
@@ -84,7 +84,7 @@ def register_proposal_decision_commands(
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
     ) -> None:
         """Preview or apply initial proposal rejection."""
-        _compatibility_decision(
+        _convenience_decision(
             workspace_for(root),
             proposal_id=proposal_id,
             outcome=DecisionOutcome.rejected,
@@ -112,7 +112,7 @@ def register_proposal_decision_commands(
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
     ) -> None:
         """Preview or apply proposal deferral."""
-        _compatibility_decision(
+        _convenience_decision(
             workspace_for(root),
             proposal_id=proposal_id,
             outcome=DecisionOutcome.deferred,
@@ -318,8 +318,8 @@ def register_proposal_decision_commands(
         output_format: str = typer.Option("text", "--format", help="text or json"),
         root: Path = typer.Option(Path.cwd(), "--root"),
     ) -> None:
-        """Compatibility command using the same two-phase decision service."""
-        _compatibility_decision(
+        """Convenience command using the current two-phase decision service."""
+        _convenience_decision(
             workspace_for(root),
             proposal_id=proposal_id,
             outcome=outcome,
@@ -424,67 +424,7 @@ def register_proposal_decision_commands(
             output_format=output_format,
         )
 
-    @decision_app.command("legacy-resolution-preview")
-    def legacy_resolution_preview(
-        proposal_id: str = typer.Argument(...),
-        event_type: ProposalDecisionEventType = typer.Option(..., "--event-type"),
-        reason: str = typer.Option(..., "--reason"),
-        actor: str = typer.Option("owner", "--actor"),
-        decided_on: str = typer.Option("", "--decided-on"),
-        output_format: str = typer.Option("text", "--format", help="text or json"),
-        root: Path = typer.Option(Path.cwd(), "--root"),
-    ) -> None:
-        workspace = workspace_for(root)
-        request = _decision_request(
-            proposal_id=proposal_id,
-            event_type=event_type,
-            reason=reason,
-            actor=actor,
-            decided_on=decided_on,
-        )
-        _mutation_operation(
-            lambda: workspace.preview_proposal_decision_legacy_resolution(request),
-            title="Legacy resolution preview",
-            output_format=output_format,
-            preview=True,
-        )
-
-    @decision_app.command("legacy-resolution-apply")
-    def legacy_resolution_apply(
-        proposal_id: str = typer.Argument(...),
-        event_type: ProposalDecisionEventType = typer.Option(..., "--event-type"),
-        reason: str = typer.Option(..., "--reason"),
-        actor: str = typer.Option("owner", "--actor"),
-        decided_on: str = typer.Option(..., "--decided-on"),
-        operation_key: str = typer.Option(..., "--operation-key"),
-        source_head_event_id: str = typer.Option("", "--source-head-event-id"),
-        preview_token: str = typer.Option(..., "--preview-token"),
-        confirm: bool = typer.Option(False, "--confirm"),
-        output_format: str = typer.Option("text", "--format", help="text or json"),
-        root: Path = typer.Option(Path.cwd(), "--root"),
-    ) -> None:
-        workspace = workspace_for(root)
-        request = _decision_request(
-            proposal_id=proposal_id,
-            event_type=event_type,
-            reason=reason,
-            actor=actor,
-            decided_on=decided_on,
-            operation_key=operation_key,
-            source_head_event_id=source_head_event_id,
-        )
-        _mutation_operation(
-            lambda: workspace.apply_proposal_decision_legacy_resolution(
-                request,
-                preview_token=preview_token,
-                confirm=confirm,
-            ),
-            title="Legacy resolution apply",
-            output_format=output_format,
-        )
-
-
-def _compatibility_decision(
+def _convenience_decision(
     workspace: P2PWorkspace,
     *,
     proposal_id: str,

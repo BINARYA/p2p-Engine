@@ -21,11 +21,9 @@ from tests.decision_context_fixtures import write_proposal
             Activation.ACTIVE,
         ),
         ("rejected", Authority.HISTORICAL_PROPOSAL, Activation.HISTORICAL, Activation.HISTORICAL),
-        ("deferred", Authority.HISTORICAL_PROPOSAL, Activation.UNRESOLVED, Activation.HISTORICAL),
+        ("deferred", Authority.HISTORICAL_PROPOSAL, Activation.UNRESOLVED, Activation.UNRESOLVED),
         ("split", Authority.HISTORICAL_PROPOSAL, Activation.HISTORICAL, Activation.HISTORICAL),
         ("merged_into_other", Authority.HISTORICAL_PROPOSAL, Activation.HISTORICAL, Activation.HISTORICAL),
-        ("superseded", Authority.HISTORICAL_PROPOSAL, Activation.HISTORICAL, Activation.HISTORICAL),
-        ("pending", Authority.UNKNOWN, Activation.UNRESOLVED, Activation.EXPLORATORY),
     ],
 )
 def test_decision_lifecycle_mapping(
@@ -46,6 +44,17 @@ def test_decision_lifecycle_mapping(
     assert proposal.activation == proposal_activation
 
 
+def test_empty_current_ledger_keeps_proposal_exploratory_without_decision_record(tmp_path: Path) -> None:
+    write_proposal(tmp_path, "PROP-001", status="draft")
+
+    index = ProjectDecisionContextService(root=tmp_path).build_index()
+
+    proposal = next(record for record in index.records if record.kind == RecordKind.PROPOSAL_CLAIM)
+    assert proposal.authority == Authority.DRAFT_PROPOSAL
+    assert proposal.activation == Activation.EXPLORATORY
+    assert not any(record.kind == RecordKind.DECISION_STATE for record in index.records)
+
+
 def test_conditional_acceptance_emits_qualifier_linked_to_proposal_claims(tmp_path: Path) -> None:
     write_proposal(
         tmp_path,
@@ -63,17 +72,19 @@ def test_conditional_acceptance_emits_qualifier_linked_to_proposal_claims(tmp_pa
     assert proposal_claims.issubset(set(qualifier.related_record_ids))
 
 
-def test_status_divergence_is_reported_without_source_repair(tmp_path: Path) -> None:
+def test_proposal_status_text_does_not_override_ledger_authority(tmp_path: Path) -> None:
     proposal_dir = write_proposal(tmp_path, "PROP-001", status="draft", decision_outcome="accepted")
     original = (proposal_dir / "proposal.md").read_text(encoding="utf-8")
 
     index = ProjectDecisionContextService(root=tmp_path).build_index()
 
-    assert any(item.code == "DC-AUTHORITY-STATUS-DIVERGENCE" for item in index.diagnostics)
+    proposal = next(record for record in index.records if record.kind == RecordKind.PROPOSAL_CLAIM)
+    assert proposal.authority == Authority.ACCEPTED_PROPOSAL_CONTEXT
+    assert not any(item.code == "DC-AUTHORITY-STATUS-DIVERGENCE" for item in index.diagnostics)
     assert (proposal_dir / "proposal.md").read_text(encoding="utf-8") == original
 
 
-def test_decision_status_controls_state_and_free_form_outcome_is_preserved(tmp_path: Path) -> None:
+def test_modified_decision_projection_cannot_override_ledger_state(tmp_path: Path) -> None:
     proposal_dir = write_proposal(
         tmp_path,
         "PROP-001",
@@ -92,13 +103,12 @@ def test_decision_status_controls_state_and_free_form_outcome_is_preserved(tmp_p
     index = ProjectDecisionContextService(root=tmp_path).build_index()
 
     state = next(record for record in index.records if record.kind == RecordKind.DECISION_STATE)
-    statement = next(record for record in index.records if record.kind == RecordKind.DECISION_STATEMENT)
     assert state.text == "accepted"
-    assert statement.text == "Adopt the compatibility-first architecture."
-    assert not any(item.code == "DC-AUTHORITY-UNKNOWN-DECISION-OUTCOME" for item in index.diagnostics)
+    assert not any(record.kind == RecordKind.DECISION_STATEMENT for record in index.records)
+    assert any(item.code == "DC-AUTHORITY-PROJECTION-DIVERGENCE" for item in index.diagnostics)
 
 
-def test_legacy_outcome_token_controls_state_when_status_is_unrecognized(tmp_path: Path) -> None:
+def test_unrecognized_projection_status_cannot_replace_current_ledger_state(tmp_path: Path) -> None:
     proposal_dir = write_proposal(
         tmp_path,
         "PROP-001",
@@ -115,6 +125,7 @@ def test_legacy_outcome_token_controls_state_when_status_is_unrecognized(tmp_pat
 
     state = next(record for record in index.records if record.kind == RecordKind.DECISION_STATE)
     assert state.text == "accepted"
+    assert any(item.code == "DC-AUTHORITY-PROJECTION-DIVERGENCE" for item in index.diagnostics)
 
 
 def test_proposal_list_sections_become_independent_records(tmp_path: Path) -> None:

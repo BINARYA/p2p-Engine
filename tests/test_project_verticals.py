@@ -487,20 +487,42 @@ def test_project_readiness_review_uses_declared_coverage_and_reports_missing_sec
             str(tmp_path),
         ],
     )
-    proposal_dir = tmp_path / ".p2p" / "proposals" / "PROP-001-impact-measurement"
-    (proposal_dir / "vertical-coverage.yml").write_text(
-        "vertical_coverage:\n"
-        "  schema_version: 1\n"
-        "  proposal_id: PROP-001\n"
-        "  vertical_id: social_impact_program_design\n"
-        "  sections:\n"
-        "    - id: measurement_reporting\n"
-        "      relevance: direct\n"
-        "      rationale: The proposal defines metrics and reporting cadence.\n",
-        encoding="utf-8",
-    )
     workspace = P2PWorkspace(tmp_path)
     workspace.select_project_vertical("social_impact_program_design", actor="owner")
+    coverage = {
+        "vertical_coverage": {
+            "schema_version": 2,
+            "proposal_id": "PROP-001",
+            "vertical_id": "social_impact_program_design",
+            "sections": [
+                {
+                    "id": "measurement_reporting",
+                    "relevance": "direct",
+                    "rationale": "The proposal defines metrics and reporting cadence.",
+                    "source": "owner_review",
+                    "provenance": {},
+                }
+            ],
+            "provenance": {
+                "operation_id": "proposal-vertical-coverage:PROP-001",
+                "actor": "owner",
+                "authority": "owner_confirmed",
+                "source": "owner_review",
+            },
+        }
+    }
+    preview = workspace.preview_proposal_vertical_coverage(
+        "PROP-001",
+        coverage,
+        actor="owner",
+    )
+    workspace.apply_proposal_vertical_coverage(
+        "PROP-001",
+        coverage,
+        preview_token=preview.preview_token,
+        actor="owner",
+        confirm=True,
+    )
 
     review = workspace.review_project_readiness()
     sections = {section.section_id: section for section in review.sections}
@@ -806,6 +828,7 @@ def test_project_definition_patch_rejects_unknown_field_without_writing(tmp_path
     patch = tmp_path / "bad-definition-patch.yml"
     patch.write_text(
         "project_definition_patch:\n"
+        "  schema_version: 1\n"
         "  actor: owner\n"
         "  operations:\n"
         "    - op: set_field\n"
@@ -869,7 +892,7 @@ def test_vertical_migration_requires_explicit_rubric_collision_mapping_and_prese
     criteria = {item["id"]: item for item in payload["criteria"]}
 
     assert criteria["intent_quality"]["enabled"] is False
-    assert criteria["legacy_metric"]["legacy_unmapped"] is True
+    assert criteria["legacy_metric"]["unmapped_from_previous_vertical"] is True
     assert criteria["legacy_metric"]["orphaned"] is True
     assert criteria["legacy_metric"]["counts_toward_active_baseline"] is False
 

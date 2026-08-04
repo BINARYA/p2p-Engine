@@ -22,13 +22,6 @@ def _write_contract(root: Path, requires: str, recommended: str) -> None:
     )
 
 
-def _remove_runtime_marker(root: Path) -> None:
-    project_path = root / ".p2p" / "project.yml"
-    project = yaml.safe_load(project_path.read_text(encoding="utf-8"))
-    project.pop("runtime_contract")
-    project_path.write_text(yaml.safe_dump(project, sort_keys=False), encoding="utf-8")
-
-
 def test_runtime_write_gate_allows_compatible_contract(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Compatible Project")
@@ -61,16 +54,21 @@ def test_runtime_write_gate_blocks_incompatible_contract_before_mutation(tmp_pat
     assert not changes_dir.exists() or list(changes_dir.iterdir()) == []
 
 
-def test_runtime_write_gate_allows_legacy_undeclared_without_inference(tmp_path: Path) -> None:
+def test_runtime_write_gate_blocks_missing_contract_even_without_marker(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Legacy Runtime Project")
     (tmp_path / ".p2p" / "project" / "runtime.yml").unlink()
-    _remove_runtime_marker(tmp_path)
+    project_path = tmp_path / ".p2p" / "project.yml"
+    project = yaml.safe_load(project_path.read_text(encoding="utf-8"))
+    project.pop("runtime_contract")
+    project_path.write_text(yaml.safe_dump(project, sort_keys=False), encoding="utf-8")
+    before = list((tmp_path / ".p2p" / "proposals").iterdir())
 
-    proposal = workspace.create_proposal("Legacy Allowed")
+    with pytest.raises(ValueError, match="missing_contract"):
+        workspace.create_proposal("Blocked Write")
 
-    assert proposal.proposal_id == "PROP-001"
-    assert workspace.runtime_status().state == "legacy_undeclared"
+    assert list((tmp_path / ".p2p" / "proposals").iterdir()) == before
+    assert workspace.runtime_status().state == "missing_contract"
 
 
 def test_runtime_preflight_classifies_read_only_and_guarded_paths(tmp_path: Path) -> None:

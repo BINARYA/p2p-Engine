@@ -988,11 +988,11 @@ class NextActionService:
             return []
         actions: list[NextAction] = []
         for gap in result.gaps:
-            if gap.kind == ProjectReadinessGapKind.INFORMATIONAL_LEGACY:
+            if gap.kind == ProjectReadinessGapKind.UNMAPPED_PROPOSAL_COVERAGE:
                 continue
             if gap.kind == ProjectReadinessGapKind.COMPATIBILITY_BLOCKER:
                 kind = (
-                    "project_schema_migration"
+                    "project_schema_recreation"
                     if gap.target_kind == "workspace_schema"
                     else "project_question_reconcile"
                 )
