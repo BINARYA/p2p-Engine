@@ -5,9 +5,17 @@ from pathlib import Path
 import typer
 from rich.markup import escape
 
+from p2p_engine import __version__
+from p2p_engine.cli_contract import (
+    CLI_CONTRACT_VERSION,
+    VersionedJSONTyperGroup,
+    print_json,
+    success_envelope,
+)
 from p2p_engine.cli_commands.agents import register_agent_commands
 from p2p_engine.cli_commands.collaboration import register_collaboration_commands
 from p2p_engine.cli_commands.doctor import register_doctor_commands
+from p2p_engine.cli_commands.mutations import register_mutation_commands
 from p2p_engine.cli_commands.next_actions import register_next_commands
 from p2p_engine.cli_commands.project_ops import register_project_ops_commands
 from p2p_engine.cli_commands.project_readiness import register_project_readiness_commands
@@ -16,7 +24,9 @@ from p2p_engine.cli_commands.prompts import register_prompt_commands
 from p2p_engine.cli_commands.proposals import register_proposal_commands
 from p2p_engine.cli_commands.runtime import register_runtime_commands
 from p2p_engine.cli_commands.work_specs import register_work_spec_commands
-from p2p_engine.cli_commands.workspace_migrations import register_workspace_migration_commands
+from p2p_engine.cli_commands.workspace_schema import register_workspace_schema_commands
+from p2p_engine.cli_commands.workspace_transactions import register_workspace_transaction_commands
+from p2p_engine.cli_commands.verticals import register_vertical_commands
 from p2p_engine.cli_shared import console
 from p2p_engine.cli_shared import fail as _fail
 from p2p_engine.cli_shared import workspace as _workspace
@@ -24,8 +34,14 @@ from p2p_engine.services.agent_selection import AgentProfileSelection, select_ag
 from p2p_engine.services.gitignore_hygiene import GitignoreHygieneResult
 from p2p_engine.services.mcp_hints import McpHint, render_shell_command
 from p2p_engine.storage.filesystem import P2PWorkspace
+from p2p_engine.core.portable_verticals import (
+    PORTABLE_VERTICAL_PACKAGE_VERSION,
+    PORTABLE_VERTICAL_SCHEMA_VERSION,
+    VerticalCoordinate,
+)
+from p2p_engine.core.workspace_schema import CURRENT_WORKSPACE_SCHEMA_VERSION
 
-app = typer.Typer(help="P2P Engine CLI")
+app = typer.Typer(help="P2P Engine CLI", cls=VersionedJSONTyperGroup)
 proposal_app = typer.Typer(help="Manage proposals")
 proposal_readiness_app = typer.Typer(help="Inspect proposal readiness")
 proposal_questions_app = typer.Typer(help="Manage proposal readiness questions")
@@ -71,10 +87,11 @@ assess_app = typer.Typer(help="Assess project readiness and maturity")
 assess_maturity_app = typer.Typer(help="Assess project definition maturity")
 next_app = typer.Typer(help="Manage advisory next actions", invoke_without_command=True)
 runtime_app = typer.Typer(help="Inspect project runtime compatibility")
-workspace_app = typer.Typer(help="Inspect and migrate workspace compatibility")
+workspace_app = typer.Typer(help="Inspect the current workspace contract and transactions")
 workspace_schema_app = typer.Typer(help="Inspect workspace schema state")
-workspace_migrate_app = typer.Typer(help="Plan and apply workspace migrations")
-workspace_migration_recovery_app = typer.Typer(help="Inspect and recover interrupted migrations")
+workspace_transaction_app = typer.Typer(help="Inspect and recover atomic workspace transactions")
+vertical_app = typer.Typer(help="Discover, obtain and author exact vertical releases")
+mutation_app = typer.Typer(help="Inspect durable idempotent mutation outcomes")
 
 proposal_app.add_typer(proposal_readiness_app, name="readiness")
 proposal_app.add_typer(proposal_questions_app, name="questions")
@@ -110,9 +127,10 @@ app.add_typer(assess_app, name="assess")
 app.add_typer(next_app, name="next")
 app.add_typer(runtime_app, name="runtime")
 app.add_typer(workspace_app, name="workspace")
+app.add_typer(vertical_app, name="vertical")
+app.add_typer(mutation_app, name="mutation")
 workspace_app.add_typer(workspace_schema_app, name="schema")
-workspace_app.add_typer(workspace_migrate_app, name="migrate")
-workspace_migrate_app.add_typer(workspace_migration_recovery_app, name="recovery")
+workspace_app.add_typer(workspace_transaction_app, name="transaction")
 project_app.add_typer(project_brief_app, name="brief")
 project_app.add_typer(project_remote_app, name="remote")
 project_app.add_typer(project_rubrics_app, name="rubrics")
@@ -127,14 +145,13 @@ agent_app.add_typer(agent_instructions_app, name="instructions")
 permissions_app.add_typer(permissions_actor_app, name="actor")
 
 register_doctor_commands(app, agent_app)
+register_vertical_commands(vertical_app)
 register_agent_commands(agent_app, agent_instructions_app)
 register_next_commands(next_app)
 register_runtime_commands(runtime_app)
-register_workspace_migration_commands(
-    workspace_schema_app,
-    workspace_migrate_app,
-    workspace_migration_recovery_app,
-)
+register_workspace_schema_commands(workspace_schema_app)
+register_workspace_transaction_commands(workspace_transaction_app)
+register_mutation_commands(mutation_app)
 register_project_status_commands(app, assess_app, assess_maturity_app)
 register_proposal_commands(
     proposal_app,
@@ -184,6 +201,31 @@ register_collaboration_commands(
     intake_apply_app,
     choice_app,
 )
+
+
+@app.command()
+def version(
+    output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+) -> None:
+    """Show the installed engine and public contract versions."""
+    normalized = output_format.strip().lower()
+    if normalized not in {"text", "json"}:
+        raise typer.BadParameter("Output format must be text or json.")
+    data = {
+        "engine_version": __version__,
+        "cli_contract_version": CLI_CONTRACT_VERSION,
+        "workspace_schema_version": CURRENT_WORKSPACE_SCHEMA_VERSION,
+        "vertical_pack_schema_version": PORTABLE_VERTICAL_SCHEMA_VERSION,
+        "portable_package_format_version": PORTABLE_VERTICAL_PACKAGE_VERSION,
+    }
+    if normalized == "json":
+        print_json(success_envelope("version", data))
+        return
+    console.print(f"P2P Engine {__version__}")
+    console.print(f"  cli contract: {CLI_CONTRACT_VERSION}")
+    console.print(f"  workspace schema: {CURRENT_WORKSPACE_SCHEMA_VERSION}")
+    console.print(f"  vertical pack schema: {PORTABLE_VERTICAL_SCHEMA_VERSION}")
+    console.print(f"  portable package format: {PORTABLE_VERTICAL_PACKAGE_VERSION}")
 
 
 @app.command()
@@ -239,6 +281,16 @@ def init(
         "--expected-checksum",
         help="Expected SHA-256 for --vertical-pack",
     ),
+    pull: bool = typer.Option(
+        False,
+        "--pull",
+        help="Explicitly allow retrieval of a missing exact --vertical release",
+    ),
+    vertical_registry: str = typer.Option(
+        "",
+        "--registry",
+        help="Configured registry used only together with --vertical and --pull",
+    ),
     profile: str = typer.Option(
         "default",
         "--profile",
@@ -285,6 +337,57 @@ def init(
     else:
         mcp_hint = bool(mcp_hint)
 
+    if vertical_pack is not None and (pull or vertical_registry):
+        _fail(
+            "P2P_VERTICAL_INIT_CONFLICT: --vertical-pack is mutually exclusive with --pull and --registry"
+        )
+    if pull and not vertical:
+        _fail("P2P_VERTICAL_INIT_CONFLICT: --pull requires --vertical")
+    if vertical_registry and not pull:
+        _fail("P2P_VERTICAL_INIT_CONFLICT: --registry requires --pull during init")
+    if expected_checksum and vertical_pack is None:
+        _fail("P2P_VERTICAL_INIT_CONFLICT: --expected-checksum requires --vertical-pack")
+
+    vertical_pack_closure: list[tuple[Path, str]] | None = None
+    if vertical:
+        try:
+            exact_coordinate = str(VerticalCoordinate.parse(vertical))
+        except ValueError as exc:
+            if pull:
+                _fail(str(exc))
+        else:
+            from p2p_engine.services.vertical_catalog import (
+                VerticalCatalogService,
+                VerticalPullService,
+            )
+
+            try:
+                catalog = VerticalCatalogService(root)
+                try:
+                    selected = catalog.resolve(exact_coordinate)
+                except ValueError as exc:
+                    if not str(exc).startswith("P2P_VERTICAL_NOT_FOUND:") or not pull:
+                        raise
+                    pulled = VerticalPullService().pull(
+                        exact_coordinate,
+                        registry=vertical_registry,
+                    )
+                    selected_release = next(
+                        item
+                        for item in pulled.releases
+                        if item.release.coordinate == exact_coordinate
+                    )
+                    selected = catalog.resolve(selected_release.release.coordinate)
+                if selected.artifact_path is not None:
+                    closure = catalog.installation_closure(selected)
+                    vertical_pack_closure = [
+                        (item.artifact_path, item.release.artifact.sha256)
+                        for item in closure
+                    ]
+                    vertical = None
+            except ValueError as exc:
+                _fail(str(exc))
+
     workspace = _workspace(root)
     agent_profile = None if not agent else ("all" if "all" in agent else ",".join(agent))
     try:
@@ -303,6 +406,7 @@ def init(
             modules=module,
             vertical_pack=vertical_pack,
             expected_checksum=expected_checksum,
+            vertical_pack_closure=vertical_pack_closure,
         )
     except ValueError as exc:
         _fail(str(exc))

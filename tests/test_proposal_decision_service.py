@@ -481,7 +481,7 @@ def test_schema_gate_distinguishes_live_decision_lock_from_stale_recovery(
     service.workspace_schema_status = lambda: status_for(2**31 - 1)
     with pytest.raises(
         ValueError,
-        match="P2P307_WORKSPACE_MIGRATION_RECOVERY_REQUIRED",
+        match="P2P307_WORKSPACE_TRANSACTION_RECOVERY_REQUIRED",
     ):
         service._require_schema_v3()
 

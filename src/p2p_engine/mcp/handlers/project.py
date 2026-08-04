@@ -93,17 +93,6 @@ def handle_project_tool(
             "workspace_schema": workspace.workspace_schema_status().to_dict(),
             "mutation_performed": False,
         }
-    if name == "p2p_workspace_migration_plan":
-        owner_inputs = arguments.get("owner_inputs")
-        if owner_inputs is not None and not isinstance(owner_inputs, dict):
-            raise ValueError("Expected object argument: owner_inputs")
-        return {
-            "migration_plan": workspace.workspace_migration_plan(
-                int(arguments.get("target_version") or 1),
-                owner_inputs if isinstance(owner_inputs, dict) else {},
-            ).to_dict(),
-            "mutation_performed": False,
-        }
     if name == "p2p_proposal_vertical_coverage_show":
         return {
             "vertical_coverage": to_jsonable(
@@ -205,18 +194,6 @@ def handle_project_tool(
         return {"vertical": to_jsonable(workspace.show_project_vertical(required(arguments, "vertical_id")))}
     if name == "p2p_project_vertical_validate":
         return {"validation": to_jsonable(workspace.validate_project_vertical(required(arguments, "target")))}
-    if name == "p2p_project_vertical_propose":
-        return {"candidate": to_jsonable(workspace.propose_project_vertical(required(arguments, "idea")))}
-    if name == "p2p_project_vertical_add":
-        return {
-            "vertical_add": to_jsonable(
-                workspace.add_project_vertical(
-                    Path(required(arguments, "source")),
-                    activate=bool(arguments.get("activate") or False),
-                    actor=str(arguments.get("actor") or "local"),
-                )
-            )
-        }
     if name == "p2p_project_vertical_select":
         modules = arguments.get("modules")
         if modules is not None and not isinstance(modules, list):

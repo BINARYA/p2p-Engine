@@ -14,7 +14,6 @@ import yaml
 
 from p2p_engine.core.project_verticals import (
     ActiveProjectVertical,
-    CustomVerticalCandidate,
     ProjectDefinitionAssumption,
     ProjectDefinitionBlocker,
     ProjectDefinitionCandidate,
@@ -28,7 +27,6 @@ from p2p_engine.core.project_verticals import (
     ProjectDefinitionState,
     ProjectDefinitionView,
     ProjectReadinessReview,
-    ProjectVerticalAddResult,
     ProjectVerticalContext,
     ProposalVerticalCoverage,
     ProposalVerticalCoverageSection,
@@ -89,7 +87,7 @@ from p2p_engine.services.project_questions import ProjectQuestionStateService
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 from p2p_engine.services.lifecycle_authority import is_active_project_projection
 
-VERTICAL_SCHEMA_VERSION = 1
+VERTICAL_SCHEMA_VERSION = 2
 ACTIVE_VERTICAL_SCHEMA_VERSION = 1
 PROPOSAL_COVERAGE_SCHEMA_VERSION = 1
 VERTICAL_LOCK_SCHEMA_VERSION = 1
@@ -116,11 +114,12 @@ class _ProposalSummaryLike(Protocol):
 
 
 def validate_vertical_pack_payload(payload: dict[str, object], *, target: str = "vertical") -> None:
-    payload = _normalise_pack_payload(payload)
     issues = _vertical_pack_issues(payload)
     errors = [issue for issue in issues if issue.severity == "error"]
     if errors:
         first = errors[0]
+        if first.code == "P2P_VERTICAL_UNSUPPORTED_SCHEMA":
+            raise ValueError(f"{first.code}: {first.message}")
         raise ValueError(f"Invalid vertical pack {target}: {first.field}: {first.message}")
 
 
@@ -240,108 +239,6 @@ class ProjectVerticalService:
             issues=issues,
         )
 
-    def propose_vertical(self, idea: str) -> CustomVerticalCandidate:
-        text = idea.strip()
-        if not text:
-            raise ValueError("Project idea is required.")
-        lower = text.lower()
-        if any(token in lower for token in ("scatola", "box", "packaging", "confezione")):
-            pack = _candidate_pack(
-                vertical_id="packaging_or_physical_product_design",
-                name="Packaging Or Physical Product Design",
-                description="Design a box or packaging solution from concept to manufacturable specification.",
-                sections=[
-                    ("contained_product", "Contained Product And Use Case", "Define what the box contains and how it will be used."),
-                    ("success_definition", "Meaning Of Perfect", "Clarify which tradeoffs define a perfect box."),
-                    ("structure_materials", "Structure And Materials", "Define dimensions, materials, sustainability, and physical structure."),
-                    ("prototype_testing", "Prototype And Tests", "Define prototype plan and validation checks."),
-                ],
-                questions=[
-                    ("contained_product_main", "contained_product", "What must the box contain?"),
-                    ("perfect_tradeoff_main", "success_definition", "Does perfect mean beautiful, resistant, cheap, sustainable, memorable, or a weighted combination?"),
-                ],
-                artifacts=[
-                    ("packaging_brief", "Packaging Brief", ["contained_product", "success_definition"]),
-                    ("prototype_test_checklist", "Prototype Test Checklist", ["prototype_testing"]),
-                ],
-            )
-        elif any(token in lower for token in ("banca", "bank", "sociale", "impact", "impatto")):
-            pack = _candidate_pack(
-                vertical_id="social_impact_program_design",
-                name="Social Impact Program Design",
-                description="Design social impact initiatives that are measurable, governed, credible, and connected to stakeholder needs.",
-                sections=[
-                    ("social_impact_vision", "Social Impact Vision", "Define the social change the program should create."),
-                    ("theory_of_change", "Theory Of Change", "Explain how activities create outcomes for beneficiaries."),
-                    ("beneficiary_communities", "Beneficiary Communities", "Identify who benefits and why they are prioritized."),
-                    ("measurement_reporting", "Measurement And Reporting", "Define outcome metrics, evidence, and reporting cadence."),
-                ],
-                questions=[
-                    ("beneficiary_main", "beneficiary_communities", "Which community or population should benefit?"),
-                    ("measurement_main", "measurement_reporting", "How will real impact be measured and how will social-washing be avoided?"),
-                ],
-                artifacts=[
-                    ("social_impact_strategy_brief", "Social Impact Strategy Brief", ["social_impact_vision"]),
-                    ("outcome_metric_framework", "Outcome Metric Framework", ["measurement_reporting"]),
-                ],
-            )
-        else:
-            base_slug = slugify(text, fallback="custom_project")
-            vertical_id = f"{base_slug}_design"
-            pack = _candidate_pack(
-                vertical_id=vertical_id,
-                name=_title_from_slug(vertical_id),
-                description=f"Project-local custom vertical candidate for: {text}",
-                sections=[
-                    ("domain_context", "Domain Context", "Define the specific domain and why base_project is not enough."),
-                    ("specific_capisaldi", "Specific Capisaldi", "Identify the domain-specific pillars to address."),
-                    ("specific_artifacts", "Specific Artifacts", "Define artifacts expected from this kind of project."),
-                ],
-                questions=[
-                    ("domain_context_main", "domain_context", "What makes this project different from a generic project?"),
-                    ("capisaldi_main", "specific_capisaldi", "Which domain-specific pillars must be addressed first?"),
-                ],
-                artifacts=[
-                    ("custom_vertical_brief", "Custom Vertical Brief", ["domain_context", "specific_capisaldi"]),
-                ],
-            )
-
-        payload = {
-            "vertical_candidate": {
-                "schema_version": VERTICAL_SCHEMA_VERSION,
-                "source_idea": text,
-                "candidate": _pack_payload(pack)["vertical"],
-                "rationale": {
-                    "base_project_sections_reused": ["vision", "objective", "stakeholders", "scope", "risks", "definition_of_done"],
-                    "vertical_specific_additions": [section.section_id for section in pack.sections],
-                },
-            }
-        }
-        return CustomVerticalCandidate(
-            source_idea=text,
-            pack=pack,
-            base_project_sections_reused=["vision", "objective", "stakeholders", "scope", "risks", "definition_of_done"],
-            vertical_specific_additions=[section.section_id for section in pack.sections],
-            yaml_text=yaml_dump(payload),
-        )
-
-    def add_vertical(self, source: Path, *, activate: bool = False, actor: str = "local") -> ProjectVerticalAddResult:
-        pack = self._load_pack_from_path(source)
-        validate_vertical_pack_payload(_pack_payload(pack), target=str(source))
-        target_dir = self._project_verticals_dir() / pack.vertical_id
-        target_dir.mkdir(parents=True, exist_ok=True)
-        target_path = target_dir / "vertical.yml"
-        self._atomic_write(target_path, yaml_dump(_pack_payload(pack)))
-        activated = False
-        if activate:
-            self.select_vertical(pack.vertical_id, actor=actor)
-            activated = True
-        return ProjectVerticalAddResult(
-            vertical_id=pack.vertical_id,
-            path=relative_to_root(target_path, self.root),
-            activated=activated,
-        )
-
     def select_vertical(
         self,
         vertical_id: str,
@@ -400,6 +297,10 @@ class ProjectVerticalService:
     ) -> VerticalMigrationCandidate:
         resolved = self._resolve_available_pack(vertical_id)
         pack = resolved.pack
+        if not pack.sections:
+            raise ValueError(
+                "P2P_VERTICAL_NO_SECTIONS: a vertical needs at least one governed section before selection"
+            )
         selected_at = audit_date or date.today().isoformat()
         selected_modules = list(dict.fromkeys(modules if modules is not None else pack.modules))
         available_profiles = {"default", *pack.profiles, *(item.profile_id for item in pack.profile_specs)}
@@ -989,9 +890,9 @@ class ProjectVerticalService:
             for item in patch.operations
             if str(item.get("op") or "") in {"add_open_question", "close_open_question"}
         }
-        if self._workspace_schema_version() >= 2 and legacy_question_operations:
+        if self._workspace_schema_version() == 3 and legacy_question_operations:
             raise ValueError(
-                "P2P352_LEGACY_DEFINITION_QUESTION_OPERATION: schema v2 uses project-question "
+                "P2P352_LEGACY_DEFINITION_QUESTION_OPERATION: the current workspace uses project-question "
                 "commands; run `p2p project readiness questions status` instead."
             )
         return patch
@@ -1349,7 +1250,7 @@ class ProjectVerticalService:
         generated_questions = list(dict.fromkeys(generated_questions))
         suggested: list[str] = []
         if snapshot.fallback_used:
-            suggested.append('p2p project vertical propose "<project idea>"')
+            suggested.append("p2p project vertical list")
         if readiness.gaps:
             suggested.append(readiness.gaps[0].next_operation)
         if any(section.status == "defined" for section in section_reviews):
@@ -1990,8 +1891,6 @@ class ProjectVerticalService:
                 raise ValueError(
                     f"Unknown project vertical `{reference}`. Run `p2p project vertical list`."
                 )
-            if not any(pack.schema_version >= 2 for pack in candidates):
-                return candidates[-1]
             semantic_checksums = {
                 _pack_checksum(self._compose_available_pack(pack, stack=stack))
                 for pack in candidates
@@ -2014,24 +1913,13 @@ class ProjectVerticalService:
             raise ValueError(
                 f"Unknown project vertical `{reference}`. Run `p2p project vertical list`."
             )
-        portable_coordinates = {
-            pack.coordinate
-            for pack in candidates
-            if pack.schema_version >= 2 and pack.coordinate
-        }
-        has_legacy = any(pack.schema_version < 2 for pack in candidates)
-        if len(portable_coordinates) > 1 or (portable_coordinates and has_legacy):
-            identities = sorted(
-                {pack.coordinate or f"legacy:{pack.vertical_id}" for pack in candidates}
-            )
+        coordinates = {pack.coordinate for pack in candidates}
+        if len(coordinates) > 1:
             raise ValueError(
                 "P2P_VERTICAL_AMBIGUOUS_REFERENCE: bare vertical reference "
-                f"`{reference}` matches {', '.join(identities)}; use an exact coordinate"
+                f"`{reference}` matches {', '.join(sorted(coordinates))}; use an exact coordinate"
             )
-        if portable_coordinates:
-            coordinate = next(iter(portable_coordinates))
-            return self._select_available_pack(coordinate, stack=stack)
-        return candidates[-1]
+        return self._select_available_pack(next(iter(coordinates)), stack=stack)
 
     def _compose_available_pack(
         self,
@@ -2087,22 +1975,17 @@ class ProjectVerticalService:
         path = Path(target)
         if path.exists():
             source = path if path.is_absolute() else self.root / path
-            if (
-                source.is_dir()
-                and _looks_like_canonical_pack_dir(source)
-                and not (source / "manifest.yml").exists()
-            ):
+            if not source.is_dir() or source.is_symlink():
+                raise ValueError(
+                    "P2P_VERTICAL_CANONICAL_LAYOUT_REQUIRED: vertical packs must be "
+                    "schema-2 directories"
+                )
+            if not (source / "manifest.yml").exists():
                 raise ValueError(
                     "Canonical vertical pack is missing required paths: manifest.yml"
                 )
-            if source.is_dir() and (source / "manifest.yml").exists():
-                payload = self._canonical_pack_payload(source)
-                pack_path = source / "manifest.yml"
-            else:
-                pack_path = source / "vertical.yml" if source.is_dir() else source
-                if not pack_path.exists():
-                    raise ValueError(f"Vertical pack not found: {source}. Expected a vertical.yml file or pack directory.")
-                payload = _read_yaml_mapping(pack_path)
+            payload = self._canonical_pack_payload(source)
+            pack_path = source / "manifest.yml"
             return _pack_from_payload(payload, source=EXPLICIT_SOURCE, path=pack_path), payload
         pack = self._load_available_pack(target)
         return pack, _pack_payload(pack)
@@ -2110,23 +1993,12 @@ class ProjectVerticalService:
     def _load_pack_from_path(self, pack_source: Path, *, source: str = PROJECT_LOCAL_SOURCE) -> VerticalPack:
         if not pack_source.is_absolute():
             pack_source = self.root / pack_source
-        if (
-            pack_source.is_dir()
-            and _looks_like_canonical_pack_dir(pack_source)
-            and not (pack_source / "manifest.yml").exists()
-        ):
+        if not pack_source.is_dir() or pack_source.is_symlink():
             raise ValueError(
-                "Canonical vertical pack is missing required paths: manifest.yml"
+                "P2P_VERTICAL_CANONICAL_LAYOUT_REQUIRED: vertical packs must be schema-2 directories"
             )
-        if pack_source.is_dir() and (pack_source / "manifest.yml").exists():
-            payload = self._canonical_pack_payload(pack_source)
-            path = pack_source / "manifest.yml"
-        else:
-            vertical_path = pack_source / "vertical.yml" if pack_source.is_dir() else pack_source
-            if not vertical_path.exists():
-                raise ValueError(f"Vertical pack not found: {pack_source}. Expected a vertical.yml file or pack directory.")
-            payload = _read_yaml_mapping(vertical_path)
-            path = vertical_path
+        payload = self._canonical_pack_payload(pack_source)
+        path = pack_source / "manifest.yml"
         validate_vertical_pack_payload(payload, target=str(path))
         return _pack_from_payload(payload, source=source, path=path)
 
@@ -2148,8 +2020,7 @@ class ProjectVerticalService:
             return packs
         for pack_path in self._project_vertical_pack_paths(root):
             try:
-                load_path = pack_path.parent if pack_path.name == "manifest.yml" else pack_path
-                packs.append(self._load_pack_from_path(load_path, source=source))
+                packs.append(self._load_pack_from_path(pack_path.parent, source=source))
             except ValueError:
                 continue
         return packs
@@ -2157,19 +2028,15 @@ class ProjectVerticalService:
     def _project_vertical_pack_paths(self, root: Path) -> list[Path]:
         if not root.exists():
             return []
-        manifests = {
-            path.parent.resolve(): path
-            for path in root.rglob("manifest.yml")
-            if path.is_file() and not path.is_symlink()
-        }
-        verticals = [
+        return sorted(
+            [
             path
-            for path in root.rglob("vertical.yml")
+            for path in root.rglob("manifest.yml")
             if path.is_file()
             and not path.is_symlink()
-            and path.parent.resolve() not in manifests
-        ]
-        return sorted([*manifests.values(), *verticals], key=lambda item: item.as_posix())
+            ],
+            key=lambda item: item.as_posix(),
+        )
 
     def _internal_packs(self) -> list[VerticalPack]:
         packs: list[VerticalPack] = []
@@ -2178,15 +2045,10 @@ class ProjectVerticalService:
             if not child.is_dir():
                 continue
             manifest = child / "manifest.yml"
-            vertical = child / "vertical.yml"
-            if manifest.is_file():
-                payload = self._canonical_pack_payload(Path(str(child)))
-                path = Path(str(manifest))
-            elif vertical.is_file():
-                payload = load_yaml(vertical.read_bytes())
-                path = Path(str(vertical))
-            else:
+            if not manifest.is_file():
                 continue
+            payload = self._canonical_pack_payload(Path(str(child)))
+            path = Path(str(manifest))
             if not isinstance(payload, dict):
                 continue
             validate_vertical_pack_payload(payload, target=child.name)
@@ -2210,6 +2072,22 @@ class ProjectVerticalService:
             raise ValueError("Canonical vertical pack `sections` must be a directory.")
         manifest = _unwrap_mapping(_read_yaml_mapping(pack_root / "manifest.yml"), "manifest")
         vertical = _unwrap_mapping(_read_yaml_mapping(pack_root / "vertical.yml"), "vertical")
+        for field in ("schema_version", "id", "name", "version"):
+            if field not in manifest or field not in vertical:
+                raise ValueError(
+                    f"P2P_VERTICAL_CANONICAL_LAYOUT_REQUIRED: `{field}` must be declared "
+                    "in both manifest.yml and vertical.yml"
+                )
+            if manifest[field] != vertical[field]:
+                raise ValueError(
+                    f"P2P_VERTICAL_IDENTITY_MISMATCH: `{field}` differs between "
+                    "manifest.yml and vertical.yml"
+                )
+        if manifest.get("extends") != vertical.get("extends"):
+            raise ValueError(
+                "P2P_VERTICAL_IDENTITY_MISMATCH: `extends` differs between "
+                "manifest.yml and vertical.yml"
+            )
         section_paths = sorted((pack_root / "sections").glob("*.yml"))
         if not section_paths:
             raise ValueError("Canonical vertical pack must define at least one split section.")
@@ -2241,11 +2119,6 @@ class ProjectVerticalService:
             module_specs = [_unwrap_mapping(_read_yaml_mapping(path), "module") for path in sorted(modules_dir.glob("*.yml"))]
         examples = [path.name for path in sorted((pack_root / "examples").glob("*")) if path.is_file()]
         vertical = dict(vertical)
-        vertical["schema_version"] = vertical.get("schema_version") or manifest.get("schema_version") or VERTICAL_SCHEMA_VERSION
-        vertical["id"] = vertical.get("id") or manifest.get("id")
-        vertical["name"] = vertical.get("name") or manifest.get("name")
-        vertical["version"] = vertical.get("version") or manifest.get("version")
-        vertical["extends"] = vertical.get("extends") or manifest.get("extends")
         vertical["sections"] = sections or _mapping_list(vertical.get("sections"))
         vertical["rubrics"] = rubrics or _mapping_list(vertical.get("rubrics"))
         vertical["artifacts"] = artifacts
@@ -2825,7 +2698,6 @@ class ProjectVerticalService:
 
 
 def _pack_from_payload(payload: dict[str, object], *, source: str, path: Path | None) -> VerticalPack:
-    payload = _normalise_pack_payload(payload)
     vertical = payload.get("vertical")
     if not isinstance(vertical, dict):
         raise ValueError("Vertical pack must define top-level `vertical` mapping.")
@@ -2959,12 +2831,12 @@ def _pack_from_payload(payload: dict[str, object], *, source: str, path: Path | 
         profiles=[str(item) for item in vertical.get("profiles", []) if str(item).strip()] if isinstance(vertical.get("profiles"), list) else [],
         modules=[str(item) for item in vertical.get("modules", []) if str(item).strip()] if isinstance(vertical.get("modules"), list) else [],
         examples=[str(item) for item in vertical.get("examples", []) if str(item).strip()] if isinstance(vertical.get("examples"), list) else [],
-        schema_version=int(vertical.get("schema_version") or VERTICAL_SCHEMA_VERSION),
+        schema_version=int(vertical.get("schema_version", 0)),
         manifest=VerticalManifest(
             vertical_id=str(manifest_payload.get("id") or vertical.get("id") or ""),
             name=str(manifest_payload.get("name") or vertical.get("name") or vertical.get("id") or ""),
             version=str(manifest_payload.get("version") or vertical.get("version") or ""),
-            schema_version=int(manifest_payload.get("schema_version") or VERTICAL_SCHEMA_VERSION),
+            schema_version=int(manifest_payload.get("schema_version", 0)),
             publisher=str(manifest_payload.get("publisher") or ""),
             source=str(manifest_payload.get("source") or ""),
             compatibility=compatibility,
@@ -2990,7 +2862,7 @@ def _pack_from_payload(payload: dict[str, object], *, source: str, path: Path | 
 
 def _pack_payload(pack: VerticalPack) -> dict[str, object]:
     vertical_payload: dict[str, object] = {
-            "schema_version": VERTICAL_SCHEMA_VERSION,
+            "schema_version": pack.schema_version,
             "id": pack.vertical_id,
             "name": pack.name,
             "version": pack.version,
@@ -3070,8 +2942,9 @@ def _pack_payload(pack: VerticalPack) -> dict[str, object]:
                 for module in pack.module_specs
             ],
         }
-    if pack.schema_version >= 2 and pack.manifest is not None:
-        vertical_payload["manifest"] = {
+    if pack.manifest is None:
+        raise ValueError("P2P_VERTICAL_CANONICAL_LAYOUT_REQUIRED: schema-2 pack manifest is required")
+    vertical_payload["manifest"] = {
             "schema_version": pack.manifest.schema_version,
             "publisher": pack.manifest.publisher,
             "id": pack.manifest.vertical_id,
@@ -3086,7 +2959,7 @@ def _pack_payload(pack: VerticalPack) -> dict[str, object]:
                 for item in pack.manifest.dependencies
             ],
             "compatibility": pack.manifest.compatibility,
-        }
+    }
     return {
         "vertical": vertical_payload
     }
@@ -3110,18 +2983,6 @@ def _vertical_question_payload(question: VerticalQuestion) -> dict[str, object]:
         payload["aliases"] = list(question.aliases)
     if question.deferred_trigger:
         payload["deferred_trigger"] = question.deferred_trigger
-    return payload
-
-
-def _normalise_pack_payload(payload: dict[str, object]) -> dict[str, object]:
-    if "vertical" in payload:
-        return payload
-    candidate = payload.get("vertical_candidate")
-    if not isinstance(candidate, dict):
-        return payload
-    candidate_payload = candidate.get("candidate")
-    if isinstance(candidate_payload, dict):
-        return {"vertical": candidate_payload}
     return payload
 
 
@@ -3213,6 +3074,20 @@ def _vertical_lock_from_payload(path: Path, payload: dict[str, object], root: Pa
         raise ValueError(f"Invalid project vertical lock: missing vertical_id in {path}")
     if not checksum:
         raise ValueError(f"Invalid project vertical lock: missing checksum.value in {path}")
+    pack_schema_version = lock.get("pack_schema_version")
+    if pack_schema_version != VERTICAL_SCHEMA_VERSION:
+        display = "missing" if pack_schema_version is None else repr(pack_schema_version)
+        raise ValueError(
+            "P2P_VERTICAL_UNSUPPORTED_SCHEMA: project lock references pack schema "
+            f"{display}; this runtime supports schema {VERTICAL_SCHEMA_VERSION} only "
+            "and provides no legacy conversion"
+        )
+    coordinate = str(lock.get("coordinate") or "").strip()
+    if not coordinate:
+        raise ValueError(
+            "P2P_VERTICAL_CANONICAL_LAYOUT_REQUIRED: project lock requires an exact coordinate"
+        )
+    VerticalCoordinate.parse(coordinate)
     selected = lock.get("selected") if isinstance(lock.get("selected"), dict) else {}
     artifact_checksum = lock.get("artifact_checksum")
     artifact_checksum_value = (
@@ -3224,7 +3099,7 @@ def _vertical_lock_from_payload(path: Path, payload: dict[str, object], root: Pa
         vertical_id=vertical_id,
         name=str(lock.get("name") or vertical_id),
         version=str(lock.get("version") or ""),
-        pack_schema_version=int(lock.get("pack_schema_version") or VERTICAL_SCHEMA_VERSION),
+        pack_schema_version=pack_schema_version,
         source=VerticalPackSource(
             source_type=str(source_payload.get("type") or "unknown"),
             resolved_from=str(source_payload.get("resolved_from") or ""),
@@ -3237,7 +3112,7 @@ def _vertical_lock_from_payload(path: Path, payload: dict[str, object], root: Pa
         selected_by=str(selected.get("by") or ""),
         trust=lock.get("trust") if isinstance(lock.get("trust"), dict) else {},
         path=relative_to_root(path, root),
-        coordinate=str(lock.get("coordinate") or ""),
+        coordinate=coordinate,
         artifact_checksum=artifact_checksum_value,
         dependencies=[
             VerticalDependency(
@@ -3600,14 +3475,19 @@ def _vertical_pack_issues(payload: dict[str, object]) -> list[VerticalValidation
     for field in ("id", "name", "version", "description"):
         if not str(vertical.get(field) or "").strip():
             error(f"vertical.{field}", "required")
-    schema_version = vertical.get("schema_version", VERTICAL_SCHEMA_VERSION)
-    if isinstance(schema_version, bool) or not isinstance(schema_version, int) or schema_version not in {1, 2}:
-        error("vertical.schema_version", "must be 1 or 2", "P2P_VERTICAL_UNSUPPORTED_SCHEMA")
-    if schema_version == 2:
-        manifest = vertical.get("manifest")
-        if not isinstance(manifest, dict):
-            error("vertical.manifest", "schema version 2 requires a manifest mapping")
-        else:
+    schema_version = vertical.get("schema_version")
+    if isinstance(schema_version, bool) or schema_version != VERTICAL_SCHEMA_VERSION:
+        display = "missing" if schema_version is None else repr(schema_version)
+        error(
+            "vertical.schema_version",
+            f"pack schema {display} is unsupported; this runtime supports schema "
+            f"{VERTICAL_SCHEMA_VERSION} only and provides no legacy conversion",
+            "P2P_VERTICAL_UNSUPPORTED_SCHEMA",
+        )
+    manifest = vertical.get("manifest")
+    if not isinstance(manifest, dict):
+        error("vertical.manifest", "schema version 2 requires a manifest mapping")
+    else:
             allowed_manifest_fields = {
                 "schema_version",
                 "publisher",
@@ -3653,13 +3533,19 @@ def _vertical_pack_issues(payload: dict[str, object]) -> list[VerticalValidation
             lineage = manifest.get("lineage", {})
             if not isinstance(lineage, dict):
                 error("vertical.manifest.lineage", "must be a mapping")
-            elif set(lineage) - {"forked_from"}:
-                error("vertical.manifest.lineage", "only forked_from is supported")
-            elif lineage.get("forked_from"):
-                try:
-                    VerticalCoordinate.parse(str(lineage["forked_from"]))
-                except ValueError as exc:
-                    error("vertical.manifest.lineage.forked_from", str(exc))
+            elif set(lineage) - {"forked_from", "previous_release"}:
+                error(
+                    "vertical.manifest.lineage",
+                    "only forked_from and previous_release are supported",
+                )
+            else:
+                for lineage_field in ("forked_from", "previous_release"):
+                    if not lineage.get(lineage_field):
+                        continue
+                    try:
+                        VerticalCoordinate.parse(str(lineage[lineage_field]))
+                    except ValueError as exc:
+                        error(f"vertical.manifest.lineage.{lineage_field}", str(exc))
             dependencies = manifest.get("dependencies", [])
             if not isinstance(dependencies, list):
                 error("vertical.manifest.dependencies", "must be a list")
@@ -3700,7 +3586,11 @@ def _vertical_pack_issues(payload: dict[str, object]) -> list[VerticalValidation
                     )
     section_items = _mapping_list(vertical.get("sections"))
     if not section_items:
-        error("vertical.sections", "at least one section is required")
+        error(
+            "vertical.sections",
+            "at least one section is required",
+            "P2P_VERTICAL_NO_SECTIONS",
+        )
     section_ids = _ids(section_items, "vertical.sections", error)
     field_ids_by_section: dict[str, set[str]] = {}
     for index, item in enumerate(section_items):
@@ -3948,67 +3838,11 @@ def _ids(items: list[dict[str, object]], field: str, error: Callable[[str, str],
     return ids
 
 
-def _candidate_pack(
-    *,
-    vertical_id: str,
-    name: str,
-    description: str,
-    sections: list[tuple[str, str, str]],
-    questions: list[tuple[str, str, str]],
-    artifacts: list[tuple[str, str, list[str]]],
-) -> VerticalPack:
-    vertical_sections = [
-        VerticalSection(section_id=section_id, title=title, purpose=purpose, required=True, priority=(index + 1) * 10)
-        for index, (section_id, title, purpose) in enumerate(sections)
-    ]
-    rubrics = [
-        VerticalRubric(
-            rubric_id=f"{section_id}_coverage",
-            title=f"{title} Coverage",
-            section_id=section_id,
-            required=True,
-            keywords=_important_words(title + " " + purpose),
-        )
-        for section_id, title, purpose in sections
-    ]
-    vertical_questions = [
-        VerticalQuestion(
-            question_id=question_id,
-            section_id=section_id,
-            question=question,
-            priority="high",
-            rationale="Needed to define the custom vertical candidate.",
-        )
-        for question_id, section_id, question in questions
-    ]
-    vertical_artifacts = [
-        VerticalArtifact(artifact_id=artifact_id, title=title, section_ids=section_ids, required=True)
-        for artifact_id, title, section_ids in artifacts
-    ]
-    return VerticalPack(
-        vertical_id=vertical_id,
-        name=name,
-        version="0.1.0",
-        description=description,
-        extends=BASE_PROJECT_VERTICAL_ID,
-        source="candidate",
-        path=None,
-        sections=vertical_sections,
-        rubrics=rubrics,
-        questions=vertical_questions,
-        artifacts=vertical_artifacts,
-    )
-
-
 def _normalize_vertical_id(value: str) -> str:
     normalized = value.strip().lower().replace("-", "_").replace(" ", "_")
     if not normalized:
         raise ValueError("Vertical ID is required.")
     return normalized
-
-
-def _title_from_slug(value: str) -> str:
-    return " ".join(part.capitalize() for part in value.replace("-", "_").split("_") if part)
 
 
 def _important_words(text: str) -> list[str]:

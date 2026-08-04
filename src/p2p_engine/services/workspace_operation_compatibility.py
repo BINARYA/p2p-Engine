@@ -4,9 +4,8 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from p2p_engine.core.workspace_schema import (
+    CURRENT_WORKSPACE_SCHEMA_VERSION,
     LAYOUT_CURRENT,
-    LAYOUT_LEGACY,
-    LAYOUT_UPGRADEABLE,
     WorkspaceSchemaStatus,
 )
 
@@ -29,10 +28,17 @@ class WorkspaceOperationCompatibilityResult:
     reason: str
     suggested_command: str
     recoverable: bool
+    diagnostic_code: str = "P2P348_WORKSPACE_OPERATION_SCHEMA_REQUIRED"
 
     def require_allowed(self) -> None:
         if self.allowed:
             return
+        if self.diagnostic_code == "P2P_WORKSPACE_UNSUPPORTED_SCHEMA":
+            raise ValueError(
+                f"{self.diagnostic_code}: workspace schema {self.current_version!r} is unsupported; "
+                f"this runtime supports schema {CURRENT_WORKSPACE_SCHEMA_VERSION} only and provides "
+                "no runtime legacy conversion. Recreate or convert the workspace outside this runtime."
+            )
         maximum = f", maximum {self.required_maximum}" if self.required_maximum is not None else ""
         raise ValueError(
             f"P2P348_WORKSPACE_OPERATION_SCHEMA_REQUIRED: operation `{self.operation_id}` "
@@ -63,38 +69,27 @@ class WorkspaceOperationCompatibilityService:
                 operation_id=operation_id,
                 allowed=False,
                 current_version=status.current_version,
-                required_minimum=1,
+                required_minimum=CURRENT_WORKSPACE_SCHEMA_VERSION,
                 required_maximum=None,
                 reason="Unknown governed-write operation ids fail closed until classified.",
                 suggested_command="Classify the operation in WorkspaceOperationCompatibilityService.",
                 recoverable=False,
             )
         current = status.current_version
-        writable_layout = status.layout_status in {LAYOUT_CURRENT, LAYOUT_UPGRADEABLE} or (
-            status.layout_status == LAYOUT_LEGACY and requirement.minimum_schema_version == 0
+        writable_layout = (
+            status.layout_status == LAYOUT_CURRENT
+            and current == CURRENT_WORKSPACE_SCHEMA_VERSION
         )
-        allowed = writable_layout and current is not None and current >= requirement.minimum_schema_version
-        if allowed and requirement.maximum_schema_version is not None and current is not None:
-            allowed = current <= requirement.maximum_schema_version
+        allowed = writable_layout
         if allowed:
             reason = requirement.reason or "Operation is compatible with the current workspace schema."
             command = ""
             recoverable = True
-        elif not writable_layout:
+        else:
             reason = (
                 f"Workspace layout `{status.layout_status}` is not writable by this runtime; "
-                "only current or explicitly upgradeable layouts permit governed writes."
+                f"workspace schema {CURRENT_WORKSPACE_SCHEMA_VERSION} is required."
             )
-            command = "p2p workspace schema status --format json"
-            recoverable = False
-        elif current is not None and current < requirement.minimum_schema_version:
-            reason = requirement.reason or "Workspace migration is required before this operation."
-            command = (
-                f"p2p workspace migrate plan --to {requirement.minimum_schema_version} --format json"
-            )
-            recoverable = True
-        else:
-            reason = requirement.reason or "Operation is not supported by this workspace schema."
             command = "p2p workspace schema status --format json"
             recoverable = False
         return WorkspaceOperationCompatibilityResult(
@@ -106,10 +101,15 @@ class WorkspaceOperationCompatibilityService:
             reason=reason,
             suggested_command=command,
             recoverable=recoverable,
+            diagnostic_code=(
+                "P2P348_WORKSPACE_OPERATION_SCHEMA_REQUIRED"
+                if allowed
+                else "P2P_WORKSPACE_UNSUPPORTED_SCHEMA"
+            ),
         )
 
 
-_V1_SAFE_OPERATIONS = frozenset(
+_CURRENT_SCHEMA_OPERATIONS = frozenset(
     {
         "agent_install",
         "agent_instructions_refresh",
@@ -156,7 +156,6 @@ _V1_SAFE_OPERATIONS = frozenset(
         "project_publication_validate",
         "project_rubrics_init",
         "project_state_refresh",
-        "project_vertical_add",
         "project_vertical_adopt",
         "project_vertical_install",
         "project_vertical_lock_repair",
@@ -206,6 +205,8 @@ _V1_SAFE_OPERATIONS = frozenset(
         "registry_refresh",
         "remote_profile_configure",
         "repository_mode_set",
+        "runtime_contract_adopt",
+        "runtime_contract_update",
         "software_spec_export",
         "software_spec_import",
         "software_spec_prompt",
@@ -228,7 +229,7 @@ _V1_SAFE_OPERATIONS = frozenset(
     }
 )
 
-_V2_ONLY_OPERATIONS = frozenset(
+_CURRENT_PROJECT_QUESTION_OPERATIONS = frozenset(
     {
         "project_questions_initialize",
         "project_questions_answer",
@@ -241,7 +242,7 @@ _V2_ONLY_OPERATIONS = frozenset(
     }
 )
 
-_V3_ONLY_OPERATIONS = frozenset(
+_CURRENT_DECISION_LEDGER_OPERATIONS = frozenset(
     {
         "proposal_decision_apply",
         "proposal_decision_ledger_repair",
@@ -253,48 +254,17 @@ _V3_ONLY_OPERATIONS = frozenset(
 
 
 def default_workspace_operation_requirements() -> tuple[WorkspaceOperationRequirement, ...]:
-    schema_independent_operations = {
-        "agent_instructions_refresh",
-        "project_init_existing",
-        "repository_mode_set",
-    }
-    values = [
+    operation_ids = (
+        _CURRENT_SCHEMA_OPERATIONS
+        | _CURRENT_PROJECT_QUESTION_OPERATIONS
+        | _CURRENT_DECISION_LEDGER_OPERATIONS
+    )
+    return tuple(
         WorkspaceOperationRequirement(
             operation_id=item,
-            minimum_schema_version=0 if item in schema_independent_operations else 1,
-            reason=(
-                "This operation is schema-independent and remains available for legacy repair."
-                if item in schema_independent_operations
-                else ""
-            ),
+            minimum_schema_version=CURRENT_WORKSPACE_SCHEMA_VERSION,
+            maximum_schema_version=CURRENT_WORKSPACE_SCHEMA_VERSION,
+            reason="All governed writes require the current workspace schema.",
         )
-        for item in sorted(_V1_SAFE_OPERATIONS)
-    ]
-    values.extend(
-        WorkspaceOperationRequirement(
-            operation_id=item,
-            minimum_schema_version=2,
-            reason="Project-question and convergence writes require workspace schema v2.",
-        )
-        for item in sorted(_V2_ONLY_OPERATIONS)
+        for item in sorted(operation_ids)
     )
-    values.extend(
-        WorkspaceOperationRequirement(
-            operation_id=item,
-            minimum_schema_version=3,
-            reason=(
-                "Proposal decision event writes require workspace schema v3. "
-                "Preview remains read-only; migrate before apply."
-            ),
-        )
-        for item in sorted(_V3_ONLY_OPERATIONS)
-    )
-    values.append(
-        WorkspaceOperationRequirement(
-            operation_id="project_definition_legacy_questions",
-            minimum_schema_version=1,
-            maximum_schema_version=1,
-            reason="Definition-embedded project questions are writable only in schema v1.",
-        )
-    )
-    return tuple(values)

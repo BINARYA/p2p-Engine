@@ -318,7 +318,9 @@ class PortableVerticalPackageService:
         if missing:
             raise ValueError(f"P2P_VERTICAL_INVALID_PACK: missing required entries {missing}")
         if not any(name.startswith("sections/") and name.endswith(".yml") for name in entries):
-            raise ValueError("P2P_VERTICAL_INVALID_PACK: at least one sections/*.yml entry is required")
+            raise ValueError(
+                "P2P_VERTICAL_NO_SECTIONS: at least one sections/*.yml entry is required"
+            )
         if len(entries) > PORTABLE_VERTICAL_MAX_ENTRIES:
             raise ValueError("P2P_VERTICAL_PACKAGE_LIMIT: too many entries")
         total = sum(len(content) for content in entries.values())

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from pathlib import Path
 
 import yaml
@@ -11,6 +10,7 @@ from p2p_engine.cli import app
 from p2p_engine.services.proposal_artifacts import ProposalArtifactService
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.cli_assertions import cli_data
 
 
 runner = CliRunner()
@@ -184,14 +184,14 @@ def test_vertical_coverage_cli_json_preview_and_import(tmp_path: Path) -> None:
         ["proposal", "vertical-coverage", "preview", proposal_id, str(source), "--actor", "owner", "--format", "json", "--root", str(tmp_path)],
     )
     assert preview_call.exit_code == 0, preview_call.output
-    token = json.loads(preview_call.output)["preview_token"]
+    token = cli_data(preview_call)["preview_token"]
 
     apply_call = runner.invoke(
         app,
         ["proposal", "vertical-coverage", "import", proposal_id, str(source), "--actor", "owner", "--preview-token", token, "--confirm", "--format", "json", "--root", str(tmp_path)],
     )
     assert apply_call.exit_code == 0, apply_call.output
-    assert json.loads(apply_call.output)["status"] == "applied"
+    assert cli_data(apply_call)["status"] == "applied"
 
 
 def test_vertical_coverage_cli_json_suggestion_preserves_long_paths(tmp_path: Path) -> None:
@@ -223,7 +223,7 @@ def test_vertical_coverage_cli_json_suggestion_preserves_long_paths(tmp_path: Pa
     )
 
     assert result.exit_code == 0, result.output
-    payload = json.loads(result.output)
+    payload = cli_data(result)
     assert payload["proposal_id"] == proposal.proposal_id
     assert payload["candidates"]
     assert any(

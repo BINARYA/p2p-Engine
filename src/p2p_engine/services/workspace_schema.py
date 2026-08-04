@@ -7,20 +7,14 @@ from typing import Any
 
 import yaml
 
-from p2p_engine import __version__
 from p2p_engine.core.workspace_schema import (
     ALIGNMENT_ALIGNED,
     ALIGNMENT_DEGRADED,
-    ALIGNMENT_OWNER_INPUT_REQUIRED,
     ALIGNMENT_RECOVERY_REQUIRED,
     CURRENT_WORKSPACE_SCHEMA_VERSION,
-    LAYOUT_AHEAD,
     LAYOUT_CURRENT,
-    LAYOUT_INCOMPLETE,
     LAYOUT_INVALID,
-    LAYOUT_LEGACY,
     LAYOUT_UNSUPPORTED,
-    LAYOUT_UPGRADEABLE,
     WORKSPACE_SCHEMA_CONTRACT_VERSION,
     AppliedWorkspaceMigration,
     WorkspaceDiagnostic,
@@ -29,7 +23,6 @@ from p2p_engine.core.workspace_schema import (
     WorkspaceSchemaStatus,
 )
 from p2p_engine.foundation.files import read_yaml_mapping, write_yaml_atomic
-from p2p_engine.services.workspace_migration_registry import WorkspaceMigrationRegistry
 from p2p_engine.services.project_questions import ProjectQuestionStateService
 
 
@@ -55,15 +48,11 @@ class WorkspaceSchemaService:
         *,
         root: Path,
         p2p_dir: Path,
-        registry: WorkspaceMigrationRegistry | None = None,
-        engine_version: str = __version__,
         recovery_status: Callable[[], Any] | None = None,
     ) -> None:
         self.root = root.resolve()
         self.p2p_dir = p2p_dir
         self.path = self.root / WORKSPACE_SCHEMA_PATH
-        self.registry = registry or WorkspaceMigrationRegistry()
-        self.engine_version = engine_version
         self.recovery_status = recovery_status
 
     def preflight(self) -> WorkspaceSchemaPreflight:
@@ -71,9 +60,9 @@ class WorkspaceSchemaService:
         if not self.path.exists():
             return WorkspaceSchemaPreflight(
                 schema_path=str(WORKSPACE_SCHEMA_PATH),
-                state="legacy_undeclared",
-                layout_status=LAYOUT_LEGACY,
-                current_version=0,
+                state="unsupported_missing",
+                layout_status=LAYOUT_UNSUPPORTED,
+                current_version=None,
                 target_version=CURRENT_WORKSPACE_SCHEMA_VERSION,
                 recovery=recovery,
             )
@@ -88,22 +77,14 @@ class WorkspaceSchemaService:
                 target_version=CURRENT_WORKSPACE_SCHEMA_VERSION,
                 recovery=recovery,
             )
-        if state.contract_version > WORKSPACE_SCHEMA_CONTRACT_VERSION:
-            layout_status = LAYOUT_UNSUPPORTED
-            state_name = "unsupported_contract"
-        elif state.current_version > CURRENT_WORKSPACE_SCHEMA_VERSION:
-            layout_status = LAYOUT_AHEAD
-            state_name = "ahead_of_runtime"
-        elif state.current_version == CURRENT_WORKSPACE_SCHEMA_VERSION:
-            layout_status = LAYOUT_CURRENT
-            state_name = "current"
-        else:
-            layout_status = LAYOUT_UPGRADEABLE
-            state_name = "upgrade_available"
+        supported = (
+            state.contract_version == WORKSPACE_SCHEMA_CONTRACT_VERSION
+            and state.current_version == CURRENT_WORKSPACE_SCHEMA_VERSION
+        )
         return WorkspaceSchemaPreflight(
             schema_path=str(WORKSPACE_SCHEMA_PATH),
-            state=state_name,
-            layout_status=layout_status,
+            state="current" if supported else "unsupported_schema",
+            layout_status=LAYOUT_CURRENT if supported else LAYOUT_UNSUPPORTED,
             current_version=state.current_version,
             target_version=CURRENT_WORKSPACE_SCHEMA_VERSION,
             contract_version=state.contract_version,
@@ -113,39 +94,11 @@ class WorkspaceSchemaService:
     def status(self) -> WorkspaceSchemaStatus:
         recovery = self._recovery_summary()
         if not self.path.exists():
-            support = self.registry.resolve_path(0, 1)[0].runtime_support(self.engine_version)
-            alignment = ALIGNMENT_RECOVERY_REQUIRED if recovery.get("required") else self._legacy_alignment()
-            findings = [
-                WorkspaceDiagnostic(
-                    code="P2P300_WORKSPACE_SCHEMA_LEGACY_UNDECLARED",
-                    severity="info",
-                    path=str(WORKSPACE_SCHEMA_PATH),
-                    message="Workspace schema is undeclared and remains available for read-only inspection and planning.",
-                    suggested_command="p2p workspace migrate plan --to 1",
-                )
-            ]
-            if not support.plan:
-                findings.append(
-                    WorkspaceDiagnostic(
-                        code="P2P301_WORKSPACE_SCHEMA_RUNTIME_PREREQUISITE",
-                        severity="warning",
-                        path=str(WORKSPACE_SCHEMA_PATH),
-                        message=(
-                            "The active P2P Engine runtime can inspect this workspace but does not satisfy "
-                            f"the migration planner requirement {support.plan_requires}."
-                        ),
-                    )
-                )
-            return WorkspaceSchemaStatus(
-                schema_path=str(WORKSPACE_SCHEMA_PATH),
-                state="legacy_undeclared",
-                layout_status=LAYOUT_LEGACY,
-                alignment_status=alignment,
-                current_version=0,
-                target_version=CURRENT_WORKSPACE_SCHEMA_VERSION,
-                findings=tuple(findings),
-                transition_support=support,
+            return self._unsupported(
+                state=None,
                 recovery=recovery,
+                state_name="unsupported_missing",
+                message="Workspace schema declaration is missing.",
             )
 
         try:
@@ -170,38 +123,22 @@ class WorkspaceSchemaService:
                 recovery=recovery,
             )
 
-        if state.contract_version > WORKSPACE_SCHEMA_CONTRACT_VERSION:
-            return self._unsupported(state, recovery)
-        if state.current_version > CURRENT_WORKSPACE_SCHEMA_VERSION:
-            return WorkspaceSchemaStatus(
-                schema_path=str(WORKSPACE_SCHEMA_PATH),
-                state="ahead_of_runtime",
-                layout_status=LAYOUT_AHEAD,
-                alignment_status=ALIGNMENT_DEGRADED,
-                current_version=state.current_version,
-                target_version=CURRENT_WORKSPACE_SCHEMA_VERSION,
-                contract_version=state.contract_version,
-                schema=state,
-                findings=(
-                    WorkspaceDiagnostic(
-                        code="P2P304_WORKSPACE_SCHEMA_AHEAD",
-                        severity="error",
-                        path=str(WORKSPACE_SCHEMA_PATH),
-                        message=(
-                            f"Workspace schema {state.current_version} is ahead of runtime support "
-                            f"{CURRENT_WORKSPACE_SCHEMA_VERSION}."
-                        ),
-                    ),
-                ),
+        if (
+            state.contract_version != WORKSPACE_SCHEMA_CONTRACT_VERSION
+            or state.current_version != CURRENT_WORKSPACE_SCHEMA_VERSION
+        ):
+            return self._unsupported(
+                state=state,
                 recovery=recovery,
+                state_name="unsupported_schema",
+                message=(
+                    f"Workspace contract {state.contract_version}, schema {state.current_version} "
+                    "does not match the only supported contract "
+                    f"{WORKSPACE_SCHEMA_CONTRACT_VERSION}, schema {CURRENT_WORKSPACE_SCHEMA_VERSION}."
+                ),
             )
 
         layout_findings = self.layout_findings(state.current_version)
-        layout_status = (
-            LAYOUT_CURRENT
-            if state.current_version == CURRENT_WORKSPACE_SCHEMA_VERSION
-            else LAYOUT_UPGRADEABLE
-        )
         alignment = ALIGNMENT_ALIGNED
         if recovery.get("required"):
             alignment = ALIGNMENT_RECOVERY_REQUIRED
@@ -209,36 +146,16 @@ class WorkspaceSchemaService:
             alignment = ALIGNMENT_DEGRADED
         findings = list(layout_findings)
         findings.extend(self._alignment_advisories())
-        transition_support = None
-        if layout_status == LAYOUT_UPGRADEABLE:
-            path = self.registry.resolve_path(state.current_version, CURRENT_WORKSPACE_SCHEMA_VERSION)
-            if path:
-                transition_support = path[0].runtime_support(self.engine_version)
-            findings.append(
-                WorkspaceDiagnostic(
-                    code="P2P308_WORKSPACE_SCHEMA_UPGRADE_AVAILABLE",
-                    severity="info",
-                    path=str(WORKSPACE_SCHEMA_PATH),
-                    message=(
-                        f"Workspace schema {state.current_version} remains operable and can be upgraded "
-                        f"to {CURRENT_WORKSPACE_SCHEMA_VERSION}."
-                    ),
-                    suggested_command=(
-                        f"p2p workspace migrate plan --to {CURRENT_WORKSPACE_SCHEMA_VERSION} --format json"
-                    ),
-                )
-            )
         return WorkspaceSchemaStatus(
             schema_path=str(WORKSPACE_SCHEMA_PATH),
-            state="current" if layout_status == LAYOUT_CURRENT else "upgrade_available",
-            layout_status=layout_status,
+            state="current",
+            layout_status=LAYOUT_CURRENT,
             alignment_status=alignment,
             current_version=state.current_version,
             target_version=CURRENT_WORKSPACE_SCHEMA_VERSION,
             contract_version=state.contract_version,
             schema=state,
             findings=tuple(findings),
-            transition_support=transition_support,
             recovery=recovery,
         )
 
@@ -300,7 +217,7 @@ class WorkspaceSchemaService:
         ).to_payload()
 
     def layout_requirements(self, version: int) -> dict[str, tuple[str, ...]]:
-        if version not in {1, 2, 3}:
+        if version != CURRENT_WORKSPACE_SCHEMA_VERSION:
             return {"canonical": (), "optional": (), "compatibility": (), "derived": (), "transient": ()}
         canonical = [
             ".p2p/project.yml",
@@ -325,8 +242,7 @@ class WorkspaceSchemaService:
                     ".p2p/project/definition.yml",
                 ]
             )
-        if version >= 2:
-            canonical.append(".p2p/project/questions.yml")
+        canonical.append(".p2p/project/questions.yml")
         return {
             "canonical": tuple(canonical),
             "optional": (
@@ -336,7 +252,7 @@ class WorkspaceSchemaService:
             ),
             "compatibility": (".p2p/domain/",),
             "derived": (".p2p/registries/", ".p2p/project/features/", "outputs/"),
-            "transient": (".p2p/.internal/workspace-migrations/",),
+            "transient": (".p2p/.internal/workspace-transactions/",),
         }
 
     def layout_findings(self, version: int) -> list[WorkspaceDiagnostic]:
@@ -349,105 +265,101 @@ class WorkspaceSchemaService:
                         severity="error",
                         path=relative,
                         message=f"Current workspace schema requires {relative}.",
-                        suggested_command="p2p workspace migrate recovery status",
+                        suggested_command="p2p workspace schema status --format json",
                     )
                 )
-        if version >= 2:
-            questions_path = self.root / ".p2p/project/questions.yml"
-            if questions_path.exists():
-                try:
-                    ProjectQuestionStateService(root=self.root, p2p_dir=self.p2p_dir).read()
-                except ValueError as exc:
-                    findings.append(
-                        WorkspaceDiagnostic(
-                            code="P2P340_PROJECT_QUESTIONS_INVALID",
-                            severity="error",
-                            path=".p2p/project/questions.yml",
-                            message=str(exc),
-                            suggested_command="p2p project readiness questions status --format json",
-                        )
+        questions_path = self.root / ".p2p/project/questions.yml"
+        if questions_path.exists():
+            try:
+                ProjectQuestionStateService(root=self.root, p2p_dir=self.p2p_dir).read()
+            except ValueError as exc:
+                findings.append(
+                    WorkspaceDiagnostic(
+                        code="P2P340_PROJECT_QUESTIONS_INVALID",
+                        severity="error",
+                        path=".p2p/project/questions.yml",
+                        message=str(exc),
+                        suggested_command="p2p project readiness questions status --format json",
                     )
-            definition_path = self.root / ".p2p/project/definition.yml"
-            if definition_path.exists():
-                try:
-                    definition = read_yaml_mapping(definition_path, default={})
-                    raw = definition.get("project_definition")
-                    sections = raw.get("sections") if isinstance(raw, dict) else None
-                    if not isinstance(sections, list):
-                        raise ValueError("project_definition.sections must be a sequence")
-                    legacy_sections = [
-                        str(item.get("id") or "")
-                        for item in sections
-                        if isinstance(item, dict) and item.get("open_questions")
-                    ]
-                    if legacy_sections:
-                        findings.append(
-                            WorkspaceDiagnostic(
-                                code="P2P354_LEGACY_PROJECT_QUESTIONS_PRESENT",
-                                severity="error",
-                                path=".p2p/project/definition.yml",
-                                message=(
-                                    "Workspace schema v2 requires definition open_questions to be empty: "
-                                    + ", ".join(sorted(legacy_sections))
-                                ),
-                                suggested_command="p2p workspace migrate plan --to 2 --format json",
-                            )
-                        )
-                except (OSError, ValueError, yaml.YAMLError) as exc:
+                )
+        definition_path = self.root / ".p2p/project/definition.yml"
+        if definition_path.exists():
+            try:
+                definition = read_yaml_mapping(definition_path, default={})
+                raw = definition.get("project_definition")
+                sections = raw.get("sections") if isinstance(raw, dict) else None
+                if not isinstance(sections, list):
+                    raise ValueError("project_definition.sections must be a sequence")
+                embedded_questions = [
+                    str(item.get("id") or "")
+                    for item in sections
+                    if isinstance(item, dict) and item.get("open_questions")
+                ]
+                if embedded_questions:
                     findings.append(
                         WorkspaceDiagnostic(
-                            code="P2P255_PROJECT_DEFINITION_INVALID",
+                            code="P2P354_EMBEDDED_PROJECT_QUESTIONS_PRESENT",
                             severity="error",
                             path=".p2p/project/definition.yml",
-                            message=str(exc),
+                            message=(
+                                "Current workspace schema requires definition open_questions "
+                                "to be empty: " + ", ".join(sorted(embedded_questions))
+                            ),
                             suggested_command="p2p project definition show --format json",
                         )
                     )
-        if version >= 3:
-            proposals_dir = self.p2p_dir / "proposals"
-            for proposal_dir in (
-                sorted(proposals_dir.iterdir(), key=lambda item: item.name)
-                if proposals_dir.exists()
-                else ()
-            ):
-                if not proposal_dir.is_dir() or not proposal_dir.name.startswith("PROP-"):
-                    continue
-                ledger_path = proposal_dir / "decision-events.yml"
-                relative = ledger_path.relative_to(self.root).as_posix()
-                if not ledger_path.exists():
-                    findings.append(
-                        WorkspaceDiagnostic(
-                            code="P2P361_DECISION_LEDGER_INVALID",
-                            severity="error",
-                            path=relative,
-                            message="Workspace schema v3 requires one decision ledger per proposal.",
-                            suggested_command="p2p decision status "
-                            + "-".join(proposal_dir.name.split("-", 2)[:2]),
-                        )
+            except (OSError, ValueError, yaml.YAMLError) as exc:
+                findings.append(
+                    WorkspaceDiagnostic(
+                        code="P2P255_PROJECT_DEFINITION_INVALID",
+                        severity="error",
+                        path=".p2p/project/definition.yml",
+                        message=str(exc),
+                        suggested_command="p2p project definition show --format json",
                     )
-                    continue
-                try:
-                    from p2p_engine.services.proposal_decision_ledger import (
-                        ProposalDecisionLedgerCodec,
+                )
+        proposals_dir = self.p2p_dir / "proposals"
+        for proposal_dir in (
+            sorted(proposals_dir.iterdir(), key=lambda item: item.name)
+            if proposals_dir.exists()
+            else ()
+        ):
+            if not proposal_dir.is_dir() or not proposal_dir.name.startswith("PROP-"):
+                continue
+            ledger_path = proposal_dir / "decision-events.yml"
+            relative = ledger_path.relative_to(self.root).as_posix()
+            if not ledger_path.exists():
+                findings.append(
+                    WorkspaceDiagnostic(
+                        code="P2P361_DECISION_LEDGER_INVALID",
+                        severity="error",
+                        path=relative,
+                        message="Workspace schema v3 requires one decision ledger per proposal.",
+                        suggested_command="p2p decision status "
+                        + "-".join(proposal_dir.name.split("-", 2)[:2]),
                     )
+                )
+                continue
+            try:
+                from p2p_engine.services.proposal_decision_ledger import (
+                    ProposalDecisionLedgerCodec,
+                )
 
-                    ProposalDecisionLedgerCodec().loads(
-                        ledger_path.read_bytes(),
-                        expected_proposal_id="-".join(
-                            proposal_dir.name.split("-", 2)[:2]
-                        ),
+                ProposalDecisionLedgerCodec().loads(
+                    ledger_path.read_bytes(),
+                    expected_proposal_id="-".join(proposal_dir.name.split("-", 2)[:2]),
+                )
+            except (OSError, ValueError) as exc:
+                findings.append(
+                    WorkspaceDiagnostic(
+                        code="P2P361_DECISION_LEDGER_INVALID",
+                        severity="error",
+                        path=relative,
+                        message=str(exc),
+                        suggested_command="p2p decision repair ledger preview "
+                        + "-".join(proposal_dir.name.split("-", 2)[:2]),
                     )
-                except (OSError, ValueError) as exc:
-                    findings.append(
-                        WorkspaceDiagnostic(
-                            code="P2P361_DECISION_LEDGER_INVALID",
-                            severity="error",
-                            path=relative,
-                            message=str(exc),
-                            suggested_command="p2p decision repair ledger preview "
-                            + "-".join(proposal_dir.name.split("-", 2)[:2]),
-                        )
-                    )
+                )
         return findings
 
     def validation_findings(self) -> list[WorkspaceDiagnostic]:
@@ -456,11 +368,11 @@ class WorkspaceSchemaService:
         if bool(status.recovery.get("required", False)):
             findings.append(
                 WorkspaceDiagnostic(
-                    code="P2P307_WORKSPACE_MIGRATION_RECOVERY_REQUIRED",
+                    code="P2P307_WORKSPACE_TRANSACTION_RECOVERY_REQUIRED",
                     severity="error",
                     path=str(status.recovery.get("journal_path") or status.schema_path),
-                    message="An interrupted workspace migration must be recovered before governed writes.",
-                    suggested_command="p2p workspace migrate recovery status",
+                    message="An interrupted workspace transaction must be recovered before governed writes.",
+                    suggested_command="p2p workspace schema status --format json",
                 )
             )
         return findings
@@ -497,14 +409,10 @@ class WorkspaceSchemaService:
             if item.migration_id in seen:
                 raise ValueError(f"Duplicate applied workspace migration id: {item.migration_id}")
             seen.add(item.migration_id)
-            transition = self.registry.transition_by_id(item.migration_id)
             if item.source_version != expected_source:
                 raise ValueError("Applied workspace migration history is not contiguous")
-            if (item.source_version, item.target_version) != (
-                transition.source_version,
-                transition.target_version,
-            ):
-                raise ValueError(f"Applied migration versions do not match registry: {item.migration_id}")
+            if item.target_version <= item.source_version:
+                raise ValueError("Applied workspace migration history must be forward-only")
             expected_source = item.target_version
         if state.applied_migrations and expected_source != state.current_version:
             raise ValueError("Applied migration history does not end at current_version")
@@ -515,37 +423,42 @@ class WorkspaceSchemaService:
         if state.baseline == "migrated_declared" and not state.applied_migrations:
             raise ValueError("migrated_declared baseline requires applied migration history")
 
-    def _unsupported(self, state: WorkspaceSchemaState, recovery: dict[str, object]) -> WorkspaceSchemaStatus:
+    def _unsupported(
+        self,
+        state: WorkspaceSchemaState | None,
+        recovery: dict[str, object],
+        *,
+        state_name: str,
+        message: str,
+    ) -> WorkspaceSchemaStatus:
         return WorkspaceSchemaStatus(
             schema_path=str(WORKSPACE_SCHEMA_PATH),
-            state="unsupported_contract",
+            state=state_name,
             layout_status=LAYOUT_UNSUPPORTED,
-            alignment_status=ALIGNMENT_DEGRADED,
-            current_version=state.current_version,
+            alignment_status=(
+                ALIGNMENT_RECOVERY_REQUIRED
+                if recovery.get("required")
+                else ALIGNMENT_DEGRADED
+            ),
+            current_version=state.current_version if state else None,
             target_version=CURRENT_WORKSPACE_SCHEMA_VERSION,
-            contract_version=state.contract_version,
+            contract_version=state.contract_version if state else None,
             schema=state,
             findings=(
                 WorkspaceDiagnostic(
-                    code="P2P303_WORKSPACE_SCHEMA_UNSUPPORTED_CONTRACT",
+                    code="P2P_WORKSPACE_UNSUPPORTED_SCHEMA",
                     severity="error",
                     path=str(WORKSPACE_SCHEMA_PATH),
                     message=(
-                        f"Workspace schema contract {state.contract_version} is newer than supported "
-                        f"contract {WORKSPACE_SCHEMA_CONTRACT_VERSION}."
+                        f"{message} P2P Engine 0.4.6 supports workspace schema "
+                        f"{CURRENT_WORKSPACE_SCHEMA_VERSION} only and provides no runtime legacy "
+                        "conversion. Recreate or convert the workspace outside this runtime."
                     ),
+                    suggested_command="p2p workspace schema status --format json",
                 ),
             ),
             recovery=recovery,
         )
-
-    def _legacy_alignment(self) -> str:
-        project = self._project_payload()
-        project_data = project.get("project") if isinstance(project, dict) else None
-        domain = str(project_data.get("domain") or "") if isinstance(project_data, dict) else ""
-        if domain == "software" and not (self.p2p_dir / "project" / "vertical.yml").exists():
-            return ALIGNMENT_OWNER_INPUT_REQUIRED
-        return ALIGNMENT_DEGRADED
 
     def _alignment_advisories(self) -> list[WorkspaceDiagnostic]:
         project = self._project_payload()

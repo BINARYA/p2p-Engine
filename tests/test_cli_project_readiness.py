@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import yaml
@@ -8,6 +7,7 @@ from typer.testing import CliRunner
 
 from p2p_engine.cli import app
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.cli_assertions import cli_data, cli_failure_result
 
 
 runner = CliRunner()
@@ -51,9 +51,9 @@ def test_cli_readiness_review_gaps_and_questions_are_bounded_json_reads(tmp_path
     )
 
     assert review.exit_code == gaps.exit_code == questions.exit_code == 0
-    assert json.loads(review.output)["project_readiness"]["gaps"]["limit"] == 2
-    assert json.loads(gaps.output)["project_readiness_page"]["limit"] == 2
-    question_payload = json.loads(questions.output)["project_questions"]
+    assert cli_data(review)["project_readiness"]["gaps"]["limit"] == 2
+    assert cli_data(gaps)["project_readiness_page"]["limit"] == 2
+    question_payload = cli_data(questions)["project_questions"]
     assert question_payload["limit"] == 2
     assert any(item["id"] == question_id for item in question_payload["items"])
     assert questions_path.read_bytes() == before
@@ -83,7 +83,7 @@ def test_cli_answer_preview_apply_and_exact_retry(tmp_path: Path) -> None:
         ],
     )
     assert answered.exit_code == 0
-    assert json.loads(answered.output)["project_question"]["status"] == "applied"
+    assert cli_data(answered)["project_question"]["status"] == "applied"
 
     preview = runner.invoke(
         app,
@@ -102,7 +102,7 @@ def test_cli_answer_preview_apply_and_exact_retry(tmp_path: Path) -> None:
         ],
     )
     assert preview.exit_code == 0
-    token = json.loads(preview.output)["project_readiness_preview"]["preview"]["preview_token"]
+    token = cli_data(preview)["project_readiness_preview"]["preview"]["preview_token"]
 
     blocked = runner.invoke(
         app,
@@ -123,7 +123,7 @@ def test_cli_answer_preview_apply_and_exact_retry(tmp_path: Path) -> None:
         ],
     )
     assert blocked.exit_code == 1
-    assert json.loads(blocked.output)["project_readiness_apply"]["status"] == "blocked"
+    assert cli_failure_result(blocked)["project_readiness_apply"]["status"] == "blocked"
 
     applied = runner.invoke(
         app,
@@ -164,8 +164,8 @@ def test_cli_answer_preview_apply_and_exact_retry(tmp_path: Path) -> None:
         ],
     )
     assert applied.exit_code == replay.exit_code == 0
-    assert json.loads(applied.output)["project_readiness_apply"]["status"] == "applied"
-    assert json.loads(replay.output)["project_readiness_apply"]["status"] == "already_applied"
+    assert cli_data(applied)["project_readiness_apply"]["status"] == "applied"
+    assert cli_data(replay)["project_readiness_apply"]["status"] == "already_applied"
 
 
 def test_cli_structured_answer_is_root_bounded_and_derives_owner_identity(tmp_path: Path) -> None:
@@ -245,7 +245,7 @@ def test_cli_answer_file_rejects_symlink_and_oversized_payload_with_structured_e
         ],
     )
     assert symlink.exit_code == 1
-    assert json.loads(symlink.output)["error"]["mutation_performed"] is False
+    assert cli_failure_result(symlink)["error"]["mutation_performed"] is False
 
     oversized = tmp_path / "oversized-answer.yml"
     oversized.write_bytes(b"x" * (64 * 1024 + 1))
@@ -269,7 +269,7 @@ def test_cli_answer_file_rejects_symlink_and_oversized_payload_with_structured_e
             str(tmp_path),
         ],
     )
-    error = json.loads(too_large.output)["error"]
+    error = cli_failure_result(too_large)["error"]
     assert too_large.exit_code == 1
     assert error["code"] == "P2P353_READINESS_PAYLOAD_LIMIT"
     assert error["mutation_performed"] is False
@@ -300,7 +300,7 @@ def test_cli_question_lifecycle_commands_preserve_expected_revision_contract(tmp
         ],
     )
     assert deferred.exit_code == 0
-    deferred_payload = json.loads(deferred.output)["project_question"]
+    deferred_payload = cli_data(deferred)["project_question"]
     assert deferred_payload["question"]["state"] == "deferred"
 
     stale = runner.invoke(
@@ -323,8 +323,8 @@ def test_cli_question_lifecycle_commands_preserve_expected_revision_contract(tmp
             str(tmp_path),
         ],
     )
-    assert stale.exit_code == 1
-    assert json.loads(stale.output)["error"]["code"] == "P2P345_PROJECT_READINESS_STALE_PREVIEW"
+    assert stale.exit_code == 3
+    assert cli_failure_result(stale)["error"]["code"] == "P2P345_PROJECT_READINESS_STALE_PREVIEW"
 
     reopened = runner.invoke(
         app,
@@ -347,7 +347,7 @@ def test_cli_question_lifecycle_commands_preserve_expected_revision_contract(tmp
         ],
     )
     assert reopened.exit_code == 0
-    assert json.loads(reopened.output)["project_question"]["question"]["state"] == "to_answer"
+    assert cli_data(reopened)["project_question"]["question"]["state"] == "to_answer"
 
 
 def test_cli_question_reconciliation_preview_and_apply_use_owner_token(tmp_path: Path) -> None:
@@ -377,7 +377,7 @@ def test_cli_question_reconciliation_preview_and_apply_use_owner_token(tmp_path:
         ],
     )
     assert preview.exit_code == 0
-    preview_payload = json.loads(preview.output)["project_question_reconciliation"]
+    preview_payload = cli_data(preview)["project_question_reconciliation"]
     token = preview_payload["preview"]["preview_token"]
 
     applied = runner.invoke(
@@ -400,6 +400,6 @@ def test_cli_question_reconciliation_preview_and_apply_use_owner_token(tmp_path:
     )
 
     assert applied.exit_code == 0
-    payload = json.loads(applied.output)["project_question_reconciliation"]
+    payload = cli_data(applied)["project_question_reconciliation"]
     assert payload["status"] == "applied"
     assert payload["mutation_performed"] is True

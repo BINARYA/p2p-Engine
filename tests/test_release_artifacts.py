@@ -42,29 +42,28 @@ def test_release_verifier_requires_decision_lifecycle_runtime_members() -> None:
     assert {
         "p2p_engine/core/proposal_decision_events.py",
         "p2p_engine/services/proposal_decision_ledger.py",
-        "p2p_engine/services/workspace_migration_registry.py",
     } <= MODULE.DECISION_LIFECYCLE_WHEEL_MEMBERS
     assert {
         "src/p2p_engine/core/proposal_decision_events.py",
         "src/p2p_engine/services/proposal_decision_ledger.py",
         "tests/test_proposal_decision_service.py",
-        "tests/test_workspace_v3_migration.py",
     } <= MODULE.DECISION_LIFECYCLE_SDIST_MEMBERS
 
 
-def test_release_verifier_requires_attestation_runtime_and_regression_members() -> None:
+def test_release_verifier_requires_current_schema_runtime_and_regression_members() -> None:
     assert {
-        "p2p_engine/cli_commands/workspace_migrations.py",
+        "p2p_engine/cli_commands/workspace_schema.py",
+        "p2p_engine/cli_commands/workspace_transactions.py",
         "p2p_engine/core/workspace_schema.py",
-        "p2p_engine/services/workspace_compatibility.py",
+        "p2p_engine/services/workspace_transactions.py",
         "p2p_engine/storage/filesystem.py",
-    } <= MODULE.ATTESTATION_WHEEL_MEMBERS
+    } <= MODULE.CURRENT_SCHEMA_WHEEL_MEMBERS
     assert {
-        "src/p2p_engine/services/workspace_compatibility.py",
-        "tests/test_cli_workspace_migration.py",
-        "tests/test_workspace_compatibility_service.py",
-        "tests/test_workspace_v3_migration.py",
-    } <= MODULE.ATTESTATION_SDIST_MEMBERS
+        "src/p2p_engine/services/workspace_schema.py",
+        "tests/test_cli_workspace_transactions.py",
+        "tests/test_mutation_preview_and_writer.py",
+        "tests/test_workspace_schema_service.py",
+    } <= MODULE.CURRENT_SCHEMA_SDIST_MEMBERS
 
 
 @pytest.mark.parametrize(
@@ -92,7 +91,6 @@ def test_release_verifier_reports_missing_canonical_vertical_member(
     [
         "p2p_engine/core/proposal_decision_events.py",
         "p2p_engine/services/proposal_decision_ledger.py",
-        "p2p_engine/services/workspace_migration_registry.py",
     ],
 )
 def test_release_verifier_reports_missing_decision_lifecycle_member(

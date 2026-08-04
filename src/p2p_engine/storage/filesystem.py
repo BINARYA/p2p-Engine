@@ -4,6 +4,8 @@ from collections.abc import Callable, Mapping
 from dataclasses import replace
 import hashlib
 from pathlib import Path
+import shutil
+import tempfile
 from typing import TypeVar
 
 from p2p_engine.core.contribution import Contribution, ContributionType
@@ -11,6 +13,7 @@ from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.core.decision_context import DecisionContextIndex
 from p2p_engine.core.derived_freshness import DerivedFreshnessStatus
 from p2p_engine.core.mutation_preview import MutationPreview, MutationResult
+from p2p_engine.core.mutation_receipts import MutationReceiptStatus
 from p2p_engine.core.portable_verticals import (
     PortableVerticalInspection,
     PortableVerticalPackageResult,
@@ -44,13 +47,11 @@ from p2p_engine.core.proposal_decision_events import (
 from p2p_engine.core.proposal import Proposal
 from p2p_engine.core.project_verticals import (
     ActiveProjectVertical,
-    CustomVerticalCandidate,
     ProjectDefinitionPatchResult,
     ProjectDefinitionView,
     ProposalVerticalCoverageStatus,
     ProposalVerticalCoverageSuggestion,
     ProjectReadinessReview,
-    ProjectVerticalAddResult,
     ProjectVerticalContext,
     VerticalListItem,
     VerticalLock,
@@ -67,14 +68,10 @@ from p2p_engine.core.runtime_contract import (
     RuntimeWritePreflight,
 )
 from p2p_engine.core.workspace_schema import (
-    CompatibilitySnapshot,
-    MigrationAttestationTemplate,
-    MigrationApplyResult,
-    MigrationPlan,
-    MigrationRecoveryResult,
-    MigrationRecoveryStatus,
     WorkspaceSchemaStatus,
     WorkspaceSchemaPreflight,
+    WorkspaceTransactionRecoveryResult,
+    WorkspaceTransactionRecoveryStatus,
 )
 from p2p_engine.core.vertical_memory import (
     DerivedUpdateResult,
@@ -127,6 +124,7 @@ from p2p_engine.services.governance_policy import (
 )
 from p2p_engine.services.intake import IntakeAppliedAction, IntakeApplyPlan, IntakeLifecycleService, IntakePrompt, IntakeStatus
 from p2p_engine.services.lifecycle_authority import ProposalLifecycleAuthorityService
+from p2p_engine.services.mutation_receipts import MutationReceiptService
 from p2p_engine.services.next_actions import NextAction, NextActionService
 from p2p_engine.services.permissions import PermissionActor, PermissionsService
 from p2p_engine.services.context_packets import ContextPacket, ContextPacketService
@@ -216,9 +214,10 @@ from p2p_engine.services.vertical_memory import (
     VerticalProjectMemoryBuilder,
     VerticalProjectMemoryService,
 )
-from p2p_engine.services.workspace_compatibility import WorkspaceCompatibilityService
-from p2p_engine.services.workspace_migrations import WorkspaceMigrationService
-from p2p_engine.services.workspace_transactions import MigrationLockService
+from p2p_engine.services.workspace_transactions import (
+    WorkspaceTransactionLockService,
+    WorkspaceTransactionRecoveryService,
+)
 from p2p_engine.services.visible_project_export import (
     VisibleProjectExportResult,
     VisibleProjectExportService,
@@ -326,6 +325,7 @@ class P2PWorkspace:
         self._project_vertical_service_instance: ProjectVerticalService | None = None
         self._portable_vertical_package_service_instance: PortableVerticalPackageService | None = None
         self._vertical_lifecycle_service_instance: VerticalLifecycleService | None = None
+        self._mutation_receipt_service_instance: MutationReceiptService | None = None
         self._vertical_project_memory_service_instance: VerticalProjectMemoryService | None = None
         self._project_state_service_instance: ProjectStateService | None = None
         self._fast_freshness_service_instance: FastFreshnessService | None = None
@@ -349,12 +349,15 @@ class P2PWorkspace:
         self._work_planning_service_instance: WorkPlanningService | None = None
         self._workspace_status_service_instance: WorkspaceStatusService | None = None
         self._workspace_schema_service_instance: WorkspaceSchemaService | None = None
-        self._workspace_compatibility_service_instance: WorkspaceCompatibilityService | None = None
-        self._workspace_migration_service_instance: WorkspaceMigrationService | None = None
         self._workspace_operation_compatibility_service_instance: (
             WorkspaceOperationCompatibilityService | None
         ) = None
-        self._migration_lock_service_instance: MigrationLockService | None = None
+        self._workspace_transaction_lock_service_instance: (
+            WorkspaceTransactionLockService | None
+        ) = None
+        self._workspace_transaction_recovery_service_instance: (
+            WorkspaceTransactionRecoveryService | None
+        ) = None
 
     def _permissions_service(self) -> PermissionsService:
         if self._permissions_service_instance is None:
@@ -794,8 +797,17 @@ class P2PWorkspace:
                 p2p_dir=self.p2p_dir,
                 vertical_service=self._project_vertical_service(),
                 package_service=self._portable_vertical_package_service(),
+                receipt_service=self._mutation_receipt_service(),
             )
         return self._vertical_lifecycle_service_instance
+
+    def _mutation_receipt_service(self) -> MutationReceiptService:
+        if self._mutation_receipt_service_instance is None:
+            self._mutation_receipt_service_instance = MutationReceiptService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+            )
+        return self._mutation_receipt_service_instance
 
     def _vertical_project_memory_service(self) -> VerticalProjectMemoryService:
         if self._vertical_project_memory_service_instance is None:
@@ -1251,7 +1263,7 @@ class P2PWorkspace:
             self._workspace_schema_service_instance = WorkspaceSchemaService(
                 root=self.root,
                 p2p_dir=self.p2p_dir,
-                recovery_status=lambda: self._workspace_migration_service().recovery_status(),
+                recovery_status=self._workspace_transaction_recovery_summary,
             )
         return self._workspace_schema_service_instance
 
@@ -1262,38 +1274,27 @@ class P2PWorkspace:
             )
         return self._workspace_operation_compatibility_service_instance
 
-    def _migration_lock_service(self) -> MigrationLockService:
-        if self._migration_lock_service_instance is None:
-            self._migration_lock_service_instance = MigrationLockService(
+    def _workspace_transaction_lock_service(self) -> WorkspaceTransactionLockService:
+        if self._workspace_transaction_lock_service_instance is None:
+            self._workspace_transaction_lock_service_instance = WorkspaceTransactionLockService(
                 root=self.root,
                 p2p_dir=self.p2p_dir,
             )
-        return self._migration_lock_service_instance
+        return self._workspace_transaction_lock_service_instance
 
-    def _workspace_compatibility_service(self) -> WorkspaceCompatibilityService:
-        if self._workspace_compatibility_service_instance is None:
-            self._workspace_compatibility_service_instance = WorkspaceCompatibilityService(
-                root=self.root,
-                p2p_dir=self.p2p_dir,
-                schema_service=self._workspace_schema_service(),
-                runtime_status=self.runtime_status,
-                vertical_context=self.project_vertical_context,
-                decision_context_index=self.decision_context_index,
-                freshness_status=self.project_freshness,
-                vertical_candidate_renderer=self._project_vertical_service().render_migration_candidate,
+    def _workspace_transaction_recovery_service(self) -> WorkspaceTransactionRecoveryService:
+        if self._workspace_transaction_recovery_service_instance is None:
+            self._workspace_transaction_recovery_service_instance = (
+                WorkspaceTransactionRecoveryService(
+                    root=self.root,
+                    p2p_dir=self.p2p_dir,
+                    lock_service=self._workspace_transaction_lock_service(),
+                )
             )
-        return self._workspace_compatibility_service_instance
+        return self._workspace_transaction_recovery_service_instance
 
-    def _workspace_migration_service(self) -> WorkspaceMigrationService:
-        if self._workspace_migration_service_instance is None:
-            self._workspace_migration_service_instance = WorkspaceMigrationService(
-                root=self.root,
-                p2p_dir=self.p2p_dir,
-                compatibility=self._workspace_compatibility_service(),
-                schema_service=self._workspace_schema_service(),
-                lock_service=self._migration_lock_service(),
-            )
-        return self._workspace_migration_service_instance
+    def _workspace_transaction_recovery_summary(self) -> dict[str, object]:
+        return self._workspace_transaction_recovery_service().status().to_dict()
 
     def _project_initialization_service(self) -> ProjectInitializationService:
         if self._project_initialization_service_instance is None:
@@ -1357,10 +1358,24 @@ class P2PWorkspace:
         modules: list[str] | None = None,
         vertical_pack: Path | None = None,
         expected_checksum: str = "",
+        vertical_pack_closure: list[tuple[Path, str]] | None = None,
     ) -> ProjectInitializationResult:
+        workspace_existed = self.p2p_dir.exists()
         if (self.p2p_dir / "project.yml").exists():
             self._ensure_runtime_write_allowed("project_init_existing")
         install_preview = None
+        closure = list(vertical_pack_closure or [])
+        if closure:
+            if vertical_id or vertical_pack is not None:
+                raise ValueError(
+                    "P2P_VERTICAL_INIT_CONFLICT: a vertical artifact closure is exclusive"
+                )
+            inspected = self._preflight_vertical_pack_closure(
+                closure,
+                actor=owner or "owner",
+            )
+            self._validate_initial_vertical_options(inspected, profile=profile, modules=modules)
+            vertical_id = inspected.pack.coordinate
         if vertical_pack is not None:
             if vertical_id:
                 raise ValueError("P2P_VERTICAL_INIT_CONFLICT: use either --vertical or --vertical-pack")
@@ -1377,20 +1392,7 @@ class P2PWorkspace:
                     + "; ".join(install_preview.blockers or ("install preview is not applicable",))
                 )
             inspected = self._portable_vertical_package_service().inspect(vertical_pack, view="effective")
-            available_profiles = {
-                "default",
-                *inspected.pack.profiles,
-                *(item.profile_id for item in inspected.pack.profile_specs),
-            }
-            if profile not in available_profiles:
-                raise ValueError(f"Unknown vertical profile `{profile}` for `{inspected.pack.coordinate}`.")
-            available_modules = {
-                *inspected.pack.modules,
-                *(item.module_id for item in inspected.pack.module_specs),
-            }
-            unknown_modules = sorted(set(modules or []) - available_modules)
-            if unknown_modules:
-                raise ValueError(f"Unknown vertical module `{unknown_modules[0]}` for `{inspected.pack.coordinate}`.")
+            self._validate_initial_vertical_options(inspected, profile=profile, modules=modules)
             vertical_id = inspected.pack.coordinate
         result = self._project_initialization_service().init_project_with_summary(
             name=name,
@@ -1404,36 +1406,62 @@ class P2PWorkspace:
             remote_url_value=remote_url_value,
         )
         created = list(result.created)
-        if install_preview is not None and install_preview.preview is not None:
-            installed = self._vertical_lifecycle_service().install_apply(
-                vertical_pack,
-                expected_checksum=expected_checksum,
-                preview_token=install_preview.preview.preview_token,
-                confirmed=True,
-                actor=owner or "owner",
-            )
-            for path in installed.mutation.changed_paths:
-                candidate = Path(path)
-                if candidate not in created:
-                    created.append(candidate)
-        if vertical_id:
+        try:
             artifact_checksum = ""
-            if install_preview is not None:
+            if closure:
+                for artifact, checksum in closure:
+                    preview = self._vertical_lifecycle_service().install_preview(
+                        artifact,
+                        expected_checksum=checksum,
+                        actor=owner or "owner",
+                    )
+                    if preview.blockers or preview.preview is None:
+                        raise ValueError(
+                            "P2P_VERTICAL_OPERATION_BLOCKED: "
+                            + "; ".join(
+                                preview.blockers or ("install preview is not applicable",)
+                            )
+                        )
+                    installed = self._vertical_lifecycle_service().install_apply(
+                        artifact,
+                        expected_checksum=checksum,
+                        preview_token=preview.preview.preview_token,
+                        confirmed=True,
+                        actor=owner or "owner",
+                        idempotency_key=f"project-init-vertical-pack:{checksum}",
+                    )
+                    artifact_checksum = checksum
+                    _extend_created_paths(created, installed.mutation.changed_paths)
+            elif install_preview is not None and install_preview.preview is not None:
+                installed = self._vertical_lifecycle_service().install_apply(
+                    vertical_pack,
+                    expected_checksum=expected_checksum,
+                    preview_token=install_preview.preview.preview_token,
+                    confirmed=True,
+                    actor=owner or "owner",
+                    idempotency_key=f"project-init-vertical-pack:{expected_checksum}",
+                )
                 artifact_checksum = str(install_preview.impact.get("artifact_checksum") or "")
-            active = self._project_vertical_service().select_vertical(
-                vertical_id,
-                actor=owner or "owner",
-                profile=profile,
-                modules=modules,
-                artifact_checksum=artifact_checksum,
-            )
-            for path in (
-                Path(".p2p/project/vertical.yml"),
-                Path(".p2p/project/vertical.lock.yml"),
-                Path(".p2p/project/definition.yml"),
-            ):
-                if path is not None and path not in created:
-                    created.append(path)
+                _extend_created_paths(created, installed.mutation.changed_paths)
+            if vertical_id:
+                self._project_vertical_service().select_vertical(
+                    vertical_id,
+                    actor=owner or "owner",
+                    profile=profile,
+                    modules=modules,
+                    artifact_checksum=artifact_checksum,
+                )
+                for path in (
+                    Path(".p2p/project/vertical.yml"),
+                    Path(".p2p/project/vertical.lock.yml"),
+                    Path(".p2p/project/definition.yml"),
+                ):
+                    if path not in created:
+                        created.append(path)
+        except Exception:
+            if closure and not workspace_existed:
+                shutil.rmtree(self.p2p_dir, ignore_errors=True)
+            raise
         return ProjectInitializationResult(
             created=created,
             agent_selection=result.agent_selection,
@@ -1442,6 +1470,75 @@ class P2PWorkspace:
             gitignore_hygiene=result.gitignore_hygiene,
             warnings=list(result.warnings),
         )
+
+    def _preflight_vertical_pack_closure(
+        self,
+        closure: list[tuple[Path, str]],
+        *,
+        actor: str,
+    ) -> PortableVerticalInspection:
+        with tempfile.TemporaryDirectory(prefix="p2p-init-vertical-") as temporary:
+            verifier = P2PWorkspace(Path(temporary))
+            verifier._project_initialization_service().init_project_with_summary(
+                name="Vertical initialization preflight"
+            )
+            inspected: PortableVerticalInspection | None = None
+            for artifact, checksum in closure:
+                if not checksum:
+                    raise ValueError(
+                        "P2P_VERTICAL_INVALID_CHECKSUM: every closure artifact requires a checksum"
+                    )
+                preview = verifier._vertical_lifecycle_service().install_preview(
+                    artifact,
+                    expected_checksum=checksum,
+                    actor=actor,
+                )
+                if preview.blockers or preview.preview is None:
+                    raise ValueError(
+                        "P2P_VERTICAL_OPERATION_BLOCKED: "
+                        + "; ".join(preview.blockers or ("install preview is not applicable",))
+                    )
+                verifier._vertical_lifecycle_service().install_apply(
+                    artifact,
+                    expected_checksum=checksum,
+                    preview_token=preview.preview.preview_token,
+                    confirmed=True,
+                    actor=actor,
+                    idempotency_key=f"project-init-preflight:{checksum}",
+                )
+                inspected = verifier._portable_vertical_package_service().inspect(
+                    artifact,
+                    view="effective",
+                )
+            if inspected is None:
+                raise ValueError("P2P_VERTICAL_INIT_CONFLICT: artifact closure cannot be empty")
+            return inspected
+
+    @staticmethod
+    def _validate_initial_vertical_options(
+        inspected: PortableVerticalInspection,
+        *,
+        profile: str,
+        modules: list[str] | None,
+    ) -> None:
+        available_profiles = {
+            "default",
+            *inspected.pack.profiles,
+            *(item.profile_id for item in inspected.pack.profile_specs),
+        }
+        if profile not in available_profiles:
+            raise ValueError(
+                f"Unknown vertical profile `{profile}` for `{inspected.pack.coordinate}`."
+            )
+        available_modules = {
+            *inspected.pack.modules,
+            *(item.module_id for item in inspected.pack.module_specs),
+        }
+        unknown_modules = sorted(set(modules or []) - available_modules)
+        if unknown_modules:
+            raise ValueError(
+                f"Unknown vertical module `{unknown_modules[0]}` for `{inspected.pack.coordinate}`."
+            )
 
     def refresh_agent_instructions(
         self,
@@ -1631,7 +1728,7 @@ class P2PWorkspace:
                 lambda context: self._workspace_status_service().status(
                     read_context=context
                 ),
-                allow_existing_migration_lock=True,
+                allow_existing_transaction_lock=True,
             )
         return self._workspace_status_service().status(read_context=read_context)
 
@@ -1805,26 +1902,58 @@ class P2PWorkspace:
     def workspace_schema_preflight(self) -> WorkspaceSchemaPreflight:
         return self._workspace_schema_service().preflight()
 
+    def workspace_transaction_recovery_status(self) -> WorkspaceTransactionRecoveryStatus:
+        return self._workspace_transaction_recovery_service().status()
+
+    def mutation_status(self, *, idempotency_key: str) -> MutationReceiptStatus:
+        return self._mutation_receipt_service().status(idempotency_key)
+
+    def rollback_workspace_transaction(
+        self,
+        *,
+        transaction_id: str,
+        actor: str,
+        confirm: bool,
+    ) -> WorkspaceTransactionRecoveryResult:
+        return self._workspace_transaction_recovery_service().rollback(
+            transaction_id=transaction_id,
+            actor=actor,
+            confirm=confirm,
+        )
+
+    def resume_workspace_transaction(
+        self,
+        *,
+        transaction_id: str,
+        actor: str,
+        confirm: bool,
+    ) -> WorkspaceTransactionRecoveryResult:
+        return self._workspace_transaction_recovery_service().resume(
+            transaction_id=transaction_id,
+            actor=actor,
+            confirm=confirm,
+        )
+
     def read_context(
         self,
         *,
-        allow_existing_migration_lock: bool = False,
+        allow_existing_transaction_lock: bool = False,
     ) -> WorkspaceReadContext:
         return WorkspaceReadContext(
             self.root,
-            allow_existing_migration_lock=allow_existing_migration_lock,
+            allow_existing_transaction_lock=allow_existing_transaction_lock,
         )
 
     def read_consistently(
         self,
         operation: Callable[[WorkspaceReadContext], ReadResultT],
         *,
-        allow_existing_migration_lock: bool = False,
+        allow_existing_transaction_lock: bool = False,
     ) -> ReadResultT:
         last_changed: tuple[str, ...] = ()
         for _attempt in range(2):
             context = self.read_context(
-                allow_existing_migration_lock=allow_existing_migration_lock,
+                allow_existing_transaction_lock=allow_existing_transaction_lock,
             )
             value = operation(context)
             consistency = context.finalize()
@@ -1840,76 +1969,6 @@ class P2PWorkspace:
         raise ValueError(
             "P2P_READ_CONCURRENT_CHANGE: workspace changed during two consecutive "
             f"read attempts: {detail}"
-        )
-
-    def workspace_compatibility_snapshot(self) -> CompatibilitySnapshot:
-        return self._workspace_compatibility_service().snapshot()
-
-    def workspace_migration_plan(
-        self,
-        target_version: int = 1,
-        owner_inputs: dict[str, object] | None = None,
-    ) -> MigrationPlan:
-        return self._workspace_compatibility_service().plan(target_version, owner_inputs)
-
-    def workspace_migration_attestation_template(
-        self,
-        *,
-        target_version: int,
-        owner_id: str,
-    ) -> MigrationAttestationTemplate:
-        return (
-            self._workspace_compatibility_service()
-            .proposal_decision_attestation_template(
-                target_version=target_version,
-                owner_id=owner_id,
-            )
-        )
-
-    def workspace_migration_apply(
-        self,
-        *,
-        target_version: int,
-        owner_inputs: dict[str, object] | None,
-        plan_fingerprint: str,
-        actor: str,
-        confirm: bool,
-    ) -> MigrationApplyResult:
-        return self._workspace_migration_service().apply(
-            target_version=target_version,
-            owner_inputs=owner_inputs,
-            plan_fingerprint=plan_fingerprint,
-            actor=actor,
-            confirm=confirm,
-        )
-
-    def workspace_migration_recovery_status(self) -> MigrationRecoveryStatus:
-        return self._workspace_migration_service().recovery_status()
-
-    def workspace_migration_rollback(
-        self,
-        *,
-        transaction_id: str,
-        actor: str,
-        confirm: bool,
-    ) -> MigrationRecoveryResult:
-        return self._workspace_migration_service().rollback(
-            transaction_id=transaction_id,
-            actor=actor,
-            confirm=confirm,
-        )
-
-    def workspace_migration_resume(
-        self,
-        *,
-        transaction_id: str,
-        actor: str,
-        confirm: bool,
-    ) -> MigrationRecoveryResult:
-        return self._workspace_migration_service().resume(
-            transaction_id=transaction_id,
-            actor=actor,
-            confirm=confirm,
         )
 
     def runtime_write_preflight(self, operation: str) -> RuntimeWritePreflight:
@@ -1944,8 +2003,14 @@ class P2PWorkspace:
         actor: str = "owner",
     ) -> RuntimeContractUpdateResult:
         # Updating an incompatible contract is the recovery path, so the current
-        # contract cannot gate this operation. The migration lock still must.
-        self._migration_lock_service().require_write_available("runtime_contract_update")
+        # contract cannot gate this operation. Workspace schema and lock still must.
+        self._workspace_transaction_lock_service().require_write_available(
+            "runtime_contract_update"
+        )
+        self._workspace_operation_compatibility_service().check(
+            "runtime_contract_update",
+            self.workspace_schema_status(),
+        ).require_allowed()
         return self._runtime_contract_service().apply_update(
             requires=requires,
             recommended=recommended,
@@ -1964,7 +2029,13 @@ class P2PWorkspace:
         confirm: bool = False,
         actor: str = "owner",
     ) -> RuntimeContractAdoptionResult:
-        self._migration_lock_service().require_write_available("runtime_contract_adopt")
+        self._workspace_transaction_lock_service().require_write_available(
+            "runtime_contract_adopt"
+        )
+        self._workspace_operation_compatibility_service().check(
+            "runtime_contract_adopt",
+            self.workspace_schema_status(),
+        ).require_allowed()
         return self._runtime_contract_service().adopt_contract(
             requires=requires,
             recommended=recommended,
@@ -1973,7 +2044,7 @@ class P2PWorkspace:
         )
 
     def _ensure_runtime_write_allowed(self, operation: str) -> RuntimeWritePreflight:
-        self._migration_lock_service().require_write_available(operation)
+        self._workspace_transaction_lock_service().require_write_available(operation)
         if not self.p2p_dir.exists() or not (self.p2p_dir / "project.yml").exists():
             return self._runtime_contract_service().write_preflight(operation)
         preflight = self._runtime_contract_service().write_preflight(operation)
@@ -2139,6 +2210,7 @@ class P2PWorkspace:
 
     def create_proposal(self, title: str) -> Proposal:
         self._ensure_runtime_write_allowed("proposal_create")
+        self._ensure_proposal_target_section()
         proposal = self._proposal_document_service().create(title)
         self._proposal_artifact_state_service().initialize(proposal.proposal_id)
         return proposal
@@ -2154,6 +2226,7 @@ class P2PWorkspace:
         acceptance_criteria: list[str] | None = None,
     ) -> Proposal:
         self._ensure_runtime_write_allowed("proposal_create")
+        self._ensure_proposal_target_section()
         proposal = self._proposal_document_service().create_with_details(
             title=title,
             problem=problem,
@@ -2165,6 +2238,19 @@ class P2PWorkspace:
         )
         self._proposal_artifact_state_service().initialize(proposal.proposal_id)
         return proposal
+
+    def _ensure_proposal_target_section(self) -> None:
+        try:
+            sections = self._project_vertical_service().list_sections()
+        except ValueError as exc:
+            if "P2P_VERTICAL_NO_SECTIONS" not in str(exc):
+                raise
+            sections = []
+        if not sections:
+            raise ValueError(
+                "P2P_VERTICAL_NO_TARGET_SECTION: complete and adopt a valid vertical release "
+                "with at least one governed section before creating a proposal"
+            )
 
     def update_proposal(
         self,
@@ -2791,6 +2877,7 @@ class P2PWorkspace:
         preview_token: str,
         confirmed: bool,
         actor: str,
+        idempotency_key: str,
     ) -> VerticalLifecycleResult:
         self._ensure_runtime_write_allowed("project_vertical_install")
         return self._vertical_lifecycle_service().install_apply(
@@ -2799,6 +2886,7 @@ class P2PWorkspace:
             preview_token=preview_token,
             confirmed=confirmed,
             actor=actor,
+            idempotency_key=idempotency_key,
         )
 
     def preview_project_vertical_adoption(
@@ -2823,6 +2911,7 @@ class P2PWorkspace:
         preview_token: str,
         confirmed: bool,
         actor: str,
+        idempotency_key: str,
         profile: str = "default",
         modules: list[str] | None = None,
     ) -> VerticalLifecycleResult:
@@ -2832,10 +2921,12 @@ class P2PWorkspace:
             preview_token=preview_token,
             confirmed=confirmed,
             actor=actor,
+            idempotency_key=idempotency_key,
             profile=profile,
             modules=modules,
         )
-        self._post_commit_vertical_memory(result.mutation.changed_paths)
+        if result.mutation.status == "applied":
+            self._post_commit_vertical_memory(result.mutation.changed_paths)
         return result
 
     def preview_project_vertical_migration(
@@ -2862,6 +2953,7 @@ class P2PWorkspace:
         preview_token: str,
         confirmed: bool,
         actor: str,
+        idempotency_key: str,
         mapping: Mapping[str, object] | None = None,
         profile: str = "default",
         modules: list[str] | None = None,
@@ -2872,25 +2964,14 @@ class P2PWorkspace:
             preview_token=preview_token,
             confirmed=confirmed,
             actor=actor,
+            idempotency_key=idempotency_key,
             mapping=mapping,
             profile=profile,
             modules=modules,
         )
-        self._post_commit_vertical_memory(result.mutation.changed_paths)
+        if result.mutation.status == "applied":
+            self._post_commit_vertical_memory(result.mutation.changed_paths)
         return result
-
-    def propose_project_vertical(self, idea: str) -> CustomVerticalCandidate:
-        return self._project_vertical_service().propose_vertical(idea)
-
-    def add_project_vertical(
-        self,
-        source: Path,
-        *,
-        activate: bool = False,
-        actor: str = "local",
-    ) -> ProjectVerticalAddResult:
-        self._ensure_runtime_write_allowed("project_vertical_add")
-        return self._project_vertical_service().add_vertical(source, activate=activate, actor=actor)
 
     def select_project_vertical(
         self,
@@ -3394,7 +3475,7 @@ class P2PWorkspace:
                     target,
                     read_context=context,
                 ),
-                allow_existing_migration_lock=True,
+                allow_existing_transaction_lock=True,
             )
         return self._context_packet_service().context_packet(
             budget,
@@ -3551,7 +3632,7 @@ class P2PWorkspace:
                     limit=limit,
                     read_context=context,
                 ),
-                allow_existing_migration_lock=True,
+                allow_existing_transaction_lock=True,
             )
         return self._next_action_service().list(
             limit=limit,
@@ -3766,6 +3847,14 @@ class P2PWorkspace:
     ) -> ChoiceStatus:
         self._ensure_runtime_write_allowed("choice_decide")
         return self._choice_lifecycle_service().decide(choice_id, option, reason, decider)
+
+
+def _extend_created_paths(created: list[Path], changed_paths: tuple[str, ...] | list[str]) -> None:
+    for path in changed_paths:
+        candidate = Path(path)
+        if candidate not in created:
+            created.append(candidate)
+
 
 def _duplicate_proposal_ids_message(duplicates: dict[str, list[Path]], root: Path) -> str:
     parts = []

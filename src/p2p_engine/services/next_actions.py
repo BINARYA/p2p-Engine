@@ -646,23 +646,25 @@ class NextActionService:
                     NextAction(
                         action_id="NEXT-WORKSPACE-RECOVERY",
                         priority="critical",
-                        kind="recover_workspace_migration",
+                        kind="recover_workspace_transaction",
                         target=str(recovery.get("transaction_id") or "workspace"),
-                        reason="An interrupted workspace migration requires recovery before governed writes.",
-                        command="p2p workspace migrate recovery status",
+                        reason="An interrupted workspace transaction requires recovery before governed writes.",
+                        command="p2p workspace transaction status",
                         source="generated",
                     )
                 ]
-            if bool(getattr(schema, "migration_required", False)):
-                target = getattr(schema, "target_version", 1)
+            if getattr(schema, "layout_status", "unsupported") != "current":
                 return [
                     NextAction(
-                        action_id="NEXT-WORKSPACE-MIGRATION",
+                        action_id="NEXT-WORKSPACE-SCHEMA-UNSUPPORTED",
                         priority="critical",
-                        kind="plan_workspace_migration",
-                        target=f"schema-v{target}",
-                        reason="Workspace schema is legacy undeclared and requires an owner-reviewed migration plan.",
-                        command=f"p2p workspace migrate plan --to {target}",
+                        kind="inspect_unsupported_workspace_schema",
+                        target="workspace",
+                        reason=(
+                            "This runtime supports workspace schema v3 only and cannot convert "
+                            "the detected workspace."
+                        ),
+                        command="p2p workspace schema status --format json",
                         source="generated",
                     )
                 ]

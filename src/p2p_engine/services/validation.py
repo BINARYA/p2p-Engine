@@ -375,10 +375,7 @@ class ValidationService:
                         if code == "P2P360_DECISION_LEGACY_AUTHORITY_UNRESOLVED":
                             if lifecycle.source_model == "legacy_projection_v2":
                                 target = decision_path
-                                suggested_command = (
-                                    "p2p workspace migrate plan --to 3 "
-                                    "--format json"
-                                )
+                                suggested_command = "p2p workspace schema status --format json"
                         elif code == (
                             "P2P378_DECISION_RECONSIDERATION_REQUIRES_NEW_PROPOSAL"
                         ):

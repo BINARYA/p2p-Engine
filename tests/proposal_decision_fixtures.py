@@ -20,6 +20,7 @@ from p2p_engine.services.proposal_decision_ledger import (
     decision_semantic_sha256,
     operation_key,
     proposal_semantic_sha256,
+    render_proposal_projection,
 )
 from p2p_engine.storage.filesystem import P2PWorkspace
 
@@ -74,12 +75,11 @@ def append_event(
     lineage: ProposalDecisionLineage = ProposalDecisionLineage(),
     affected: ProposalDecisionEvent | None = None,
     impact_required: bool = False,
+    proposal_text_override: str = "",
 ) -> tuple[ProposalDecisionLedger, ProposalDecisionEvent]:
     codec = ProposalDecisionLedgerCodec()
-    proposal_sha = proposal_semantic_sha256(
-        ledger.proposal_id,
-        proposal_markdown(ledger.proposal_id),
-    )
+    proposal_text = proposal_text_override or proposal_markdown(ledger.proposal_id)
+    proposal_sha = proposal_semantic_sha256(ledger.proposal_id, proposal_text)
     state = effective_state or ProposalDecisionEffectiveState(event_type.value)
     decision_sha = (
         affected.decision_semantic_sha256
@@ -149,11 +149,14 @@ def ledger_with_acceptance(
 def write_v3_proposal(
     proposal_dir: Path,
     ledger: ProposalDecisionLedger,
+    *,
+    proposal_text_override: str = "",
 ) -> None:
     codec = ProposalDecisionLedgerCodec()
     proposal_dir.mkdir(parents=True, exist_ok=True)
+    proposal_text = proposal_text_override or proposal_markdown(ledger.proposal_id)
     (proposal_dir / "proposal.md").write_text(
-        proposal_markdown(ledger.proposal_id, status=ledger.effective_state.value),
+        render_proposal_projection(proposal_text, ledger.effective_state),
         encoding="utf-8",
     )
     (proposal_dir / "decision-events.yml").write_bytes(codec.dumps(ledger))

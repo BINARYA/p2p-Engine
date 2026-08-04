@@ -1807,14 +1807,14 @@ class ProposalDecisionService:
             and not active_decision_mutation
         ):
             raise ValueError(
-                "P2P307_WORKSPACE_MIGRATION_RECOVERY_REQUIRED: recover the active "
+                "P2P307_WORKSPACE_TRANSACTION_RECOVERY_REQUIRED: recover the active "
                 "workspace transaction before decision mutation"
             )
         if version != 3 or layout != "current":
             raise ValueError(
                 "P2P375_DECISION_SCHEMA_V3_REQUIRED: proposal decision "
-                "event writes require workspace schema v3; run "
-                "`p2p workspace migrate plan --to 3 --format json`"
+                "event writes require workspace schema v3; this runtime provides no "
+                "legacy conversion. Run `p2p workspace schema status --format json`."
             )
 
     def _wait_for_competing_decision_mutation(self) -> None:

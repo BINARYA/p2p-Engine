@@ -92,8 +92,8 @@ def _print_doctor(root: Path, *, agent_mode: bool) -> None:
             console.print(f"  workspace_layout_status: {schema.layout_status}")
             console.print(f"  workspace_alignment_status: {schema.alignment_status}")
             console.print(
-                "  workspace_migration_required: "
-                f"{str(schema.migration_required).lower()}"
+                "  workspace_schema_supported: "
+                f"{str(schema.layout_status == 'current').lower()}"
             )
             console.print(
                 "  workspace_recovery_required: "

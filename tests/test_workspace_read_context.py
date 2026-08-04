@@ -169,7 +169,7 @@ def test_workspace_consistent_read_reports_second_concurrent_change(tmp_path: Pa
 
 @pytest.mark.adapter
 def test_read_context_rejects_active_mutation_lock(tmp_path: Path) -> None:
-    lock = tmp_path / ".p2p" / ".internal" / "workspace-migrations" / "apply.lock"
+    lock = tmp_path / ".p2p" / ".internal" / "workspace-transactions" / "apply.lock"
     lock.parent.mkdir(parents=True)
     lock.write_text("transaction_id: active\n", encoding="utf-8")
     context = WorkspaceReadContext(tmp_path)
@@ -178,19 +178,19 @@ def test_read_context_rejects_active_mutation_lock(tmp_path: Path) -> None:
     result = context.finalize()
 
     assert result.status == "concurrent_change"
-    assert result.changed_paths == (".p2p/.internal/workspace-migrations/apply.lock",)
+    assert result.changed_paths == (".p2p/.internal/workspace-transactions/apply.lock",)
 
 
 @pytest.mark.adapter
 def test_read_context_can_observe_stable_lock_for_recovery_diagnostics(
     tmp_path: Path,
 ) -> None:
-    lock = tmp_path / ".p2p" / ".internal" / "workspace-migrations" / "apply.lock"
+    lock = tmp_path / ".p2p" / ".internal" / "workspace-transactions" / "apply.lock"
     lock.parent.mkdir(parents=True)
     lock.write_text("transaction_id: active\n", encoding="utf-8")
     context = WorkspaceReadContext(
         tmp_path,
-        allow_existing_migration_lock=True,
+        allow_existing_transaction_lock=True,
     )
 
     context.provide("value", (), lambda: "value")

@@ -127,13 +127,6 @@ def tool_definitions() -> list[dict[str, object]]:
             {'root': {'type': 'string'}},
         ),
         _tool(
-            'p2p_workspace_migration_plan',
-            'Build a deterministic forward-only workspace migration plan without mutation.',
-            {'root': {'type': 'string'},
-             'target_version': {'type': 'integer', 'minimum': 0},
-             'owner_inputs': {'type': 'object', 'additionalProperties': True}},
-        ),
-        _tool(
             'p2p_proposal_vertical_coverage_show',
             'Read declared proposal vertical coverage and compatibility status without mutation.',
             {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},
@@ -273,24 +266,6 @@ def tool_definitions() -> list[dict[str, object]]:
             'Read-only validation tool: validate a project vertical ID, vertical.yml path, or pack directory.',
             {'root': {'type': 'string'}, 'target': {'type': 'string'}},
             ['target'],
-        ),
-        _tool(
-            'p2p_project_vertical_propose',
-            (
-                'Advisory tool: generate an importable custom vertical candidate from a project idea. '
-                'Does not persist or activate project state.'
-            ),
-            {'root': {'type': 'string'}, 'idea': {'type': 'string'}},
-            ['idea'],
-        ),
-        _tool(
-            'p2p_project_vertical_add',
-            (
-                'Write-safe project setup tool: add a project-local vertical pack. '
-                'Does not make governance decisions.'
-            ),
-            {'root': {'type': 'string'}, 'source': {'type': 'string'}, 'activate': {'type': 'boolean'}, 'actor': {'type': 'string'}},
-            ['source'],
         ),
         _tool(
             'p2p_project_vertical_select',

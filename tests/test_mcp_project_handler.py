@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from p2p_engine.cli import app
@@ -10,6 +10,7 @@ from p2p_engine.mcp.handlers.project import handle_project_tool
 from p2p_engine.mcp.registry import tool_definitions
 from p2p_engine.mcp.tools import call_tool
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.cli_assertions import cli_data
 from tests.filesystem_assertions import assert_no_workspace_mutation
 
 
@@ -50,32 +51,41 @@ def test_mcp_call_tool_uses_project_handler(tmp_path: Path) -> None:
     assert "project_status" in result
 
 
-def test_mcp_workspace_schema_and_plan_are_read_only(tmp_path: Path) -> None:
+def test_mcp_workspace_schema_status_is_read_only_and_migrations_are_absent(tmp_path: Path) -> None:
     workspace = _workspace(tmp_path)
     schema_path = tmp_path / ".p2p" / "project" / "workspace-schema.yml"
     schema_path.unlink()
     before = sorted(path.relative_to(tmp_path) for path in tmp_path.rglob("*"))
 
     schema = call_tool("p2p_workspace_schema_status", {"root": str(tmp_path)})
-    plan = call_tool(
-        "p2p_workspace_migration_plan",
-        {"root": str(tmp_path), "target_version": 1, "owner_inputs": {}},
-    )
 
     after = sorted(path.relative_to(tmp_path) for path in tmp_path.rglob("*"))
     assert schema["workspace_schema"] == workspace.workspace_schema_status().to_dict()
-    assert plan["migration_plan"] == workspace.workspace_migration_plan(1, {}).to_dict()
     assert schema["mutation_performed"] is False
-    assert plan["mutation_performed"] is False
     assert before == after
-    assert "p2p_workspace_migration_apply" not in {
-        definition["name"] for definition in tool_definitions()
-    }
     assert {
+        "p2p_workspace_migration_plan",
         "p2p_workspace_migration_apply",
         "p2p_workspace_migration_rollback",
         "p2p_workspace_migration_resume",
     }.isdisjoint({definition["name"] for definition in tool_definitions()})
+
+
+def test_mcp_write_rejects_unsupported_workspace_without_mutation(tmp_path: Path) -> None:
+    _workspace(tmp_path)
+    (tmp_path / ".p2p" / "project" / "workspace-schema.yml").unlink()
+
+    with assert_no_workspace_mutation(tmp_path):
+        with pytest.raises(ValueError, match="P2P_WORKSPACE_UNSUPPORTED_SCHEMA"):
+            call_tool(
+                "p2p_proposal_create",
+                {
+                    "root": str(tmp_path),
+                    "title": "Blocked MCP mutation",
+                    "problem": "The schema is unsupported.",
+                    "proposal": "Reject without writes.",
+                },
+            )
 
 
 def test_mcp_progress_freshness_and_coverage_reads_are_mutation_free(tmp_path: Path) -> None:
@@ -160,8 +170,8 @@ def test_project_memory_cli_and_mcp_reads_are_bounded_and_mutation_free(
 
     assert cli_status.exit_code == 0
     assert cli_show.exit_code == 0
-    assert json.loads(cli_status.stdout)["project_memory_status"]["state"] == "current"
-    aggregate = json.loads(cli_show.stdout)["project_memory"]
+    assert cli_data(cli_status)["project_memory_status"]["state"] == "current"
+    aggregate = cli_data(cli_show)["project_memory"]
     assert aggregate["returned"] <= 1
     assert mcp_status["project_memory_status"]["state"] == "current"
     assert mcp_status["mutation_performed"] is False
@@ -273,7 +283,7 @@ def test_cli_and_mcp_project_readiness_share_stable_semantic_fields(tmp_path: Pa
     )
 
     assert cli.exit_code == 0
-    cli_page = json.loads(cli.output)["project_readiness_page"]
+    cli_page = cli_data(cli)["project_readiness_page"]
     mcp_page = mcp["project_readiness_page"]
     assert cli_page["total"] == mcp_page["total"]
     assert cli_page["snapshot_fingerprint"] == mcp_page["snapshot_fingerprint"]

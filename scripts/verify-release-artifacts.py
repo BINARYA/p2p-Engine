@@ -77,9 +77,6 @@ DECISION_LIFECYCLE_WHEEL_MEMBERS = {
     "p2p_engine/services/proposal_decision_ledger.py",
     "p2p_engine/services/proposal_decision_legacy.py",
     "p2p_engine/services/proposal_decisions.py",
-    "p2p_engine/services/workspace_migration_handlers.py",
-    "p2p_engine/services/workspace_migration_registry.py",
-    "p2p_engine/services/workspace_migrations.py",
 }
 DECISION_LIFECYCLE_SDIST_MEMBERS = {
     *(f"src/{member}" for member in DECISION_LIFECYCLE_WHEEL_MEMBERS),
@@ -87,32 +84,81 @@ DECISION_LIFECYCLE_SDIST_MEMBERS = {
     "tests/test_proposal_decision_cli.py",
     "tests/test_proposal_decision_ledger.py",
     "tests/test_proposal_decision_service.py",
-    "tests/test_workspace_v3_migration.py",
 }
-ATTESTATION_WHEEL_MEMBERS = {
-    "p2p_engine/cli_commands/workspace_migrations.py",
+CURRENT_SCHEMA_WHEEL_MEMBERS = {
+    "p2p_engine/cli_commands/workspace_schema.py",
+    "p2p_engine/cli_commands/workspace_transactions.py",
     "p2p_engine/core/workspace_schema.py",
-    "p2p_engine/services/workspace_compatibility.py",
-    "p2p_engine/services/workspace_migration_handlers.py",
-    "p2p_engine/services/workspace_migrations.py",
+    "p2p_engine/services/workspace_operation_compatibility.py",
+    "p2p_engine/services/workspace_schema.py",
+    "p2p_engine/services/workspace_transactions.py",
     "p2p_engine/storage/filesystem.py",
 }
-ATTESTATION_SDIST_MEMBERS = {
-    *(f"src/{member}" for member in ATTESTATION_WHEEL_MEMBERS),
-    "tests/test_cli_workspace_migration.py",
-    "tests/test_workspace_compatibility_service.py",
-    "tests/test_workspace_v3_migration.py",
+CURRENT_SCHEMA_SDIST_MEMBERS = {
+    *(f"src/{member}" for member in CURRENT_SCHEMA_WHEEL_MEMBERS),
+    "tests/test_cli_workspace_transactions.py",
+    "tests/test_mutation_preview_and_writer.py",
+    "tests/test_workspace_operation_compatibility.py",
+    "tests/test_workspace_read_context.py",
+    "tests/test_workspace_schema_service.py",
+}
+CLI_CONTRACT_WHEEL_MEMBERS = {
+    "p2p_engine/cli.py",
+    "p2p_engine/cli_contract.py",
+    "p2p_engine/cli_shared.py",
+    "p2p_engine/cli_commands/mutations.py",
+}
+CLI_CONTRACT_SDIST_MEMBERS = {
+    *(f"src/{member}" for member in CLI_CONTRACT_WHEEL_MEMBERS),
+    "docs/CLI-CONTRACT.md",
+    "tests/cli_assertions.py",
+    "tests/fixtures/cli_contract/error-v1.json",
+    "tests/fixtures/cli_contract/success-v1.json",
+    "tests/test_cli_contract.py",
 }
 PORTABLE_VERTICAL_WHEEL_MEMBERS = {
+    "p2p_engine/core/mutation_receipts.py",
     "p2p_engine/core/portable_verticals.py",
     "p2p_engine/core/project_verticals.py",
+    "p2p_engine/services/mutation_receipts.py",
     "p2p_engine/services/project_verticals.py",
     "p2p_engine/services/vertical_lifecycle.py",
     "p2p_engine/services/vertical_packages.py",
 }
 PORTABLE_VERTICAL_SDIST_MEMBERS = {
     *(f"src/{member}" for member in PORTABLE_VERTICAL_WHEEL_MEMBERS),
+    "tests/test_mutation_receipts.py",
     "tests/test_portable_verticals.py",
+}
+VERTICAL_REGISTRY_WHEEL_MEMBERS = {
+    "p2p_engine/adapters/credential_store.py",
+    "p2p_engine/adapters/vertical_registry_http.py",
+    "p2p_engine/cli_commands/verticals.py",
+    "p2p_engine/core/vertical_registry.py",
+    "p2p_engine/services/vertical_catalog.py",
+    "p2p_engine/services/vertical_registry.py",
+}
+VERTICAL_REGISTRY_SDIST_MEMBERS = {
+    *(f"src/{member}" for member in VERTICAL_REGISTRY_WHEEL_MEMBERS),
+    "docs/VERTICAL-REGISTRY.md",
+    "tests/test_vertical_registry.py",
+    "tests/test_vertical_registry_remote.py",
+}
+VERTICAL_DRAFT_WHEEL_MEMBERS = {
+    "p2p_engine/core/vertical_drafts.py",
+    "p2p_engine/services/vertical_draft_lifecycle.py",
+    "p2p_engine/services/vertical_draft_materializer.py",
+    "p2p_engine/services/vertical_drafts.py",
+}
+VERTICAL_DRAFT_SDIST_MEMBERS = {
+    *(f"src/{member}" for member in VERTICAL_DRAFT_WHEEL_MEMBERS),
+    "docs/VERTICAL-DRAFTS.md",
+    "tests/fixtures/vertical_drafts/create-v1.json",
+    "tests/fixtures/vertical_drafts/inspect-v1.json",
+    "tests/fixtures/vertical_drafts/publication-v1.json",
+    "tests/fixtures/vertical_drafts/update-v1.json",
+    "tests/fixtures/vertical_drafts/validation-v1.json",
+    "tests/test_vertical_drafts.py",
 }
 
 
@@ -192,13 +238,15 @@ def verify_wheel(path: Path, *, version: str) -> int:
         "p2p_engine/services/project_questions.py",
         "p2p_engine/services/project_readiness.py",
         "p2p_engine/services/project_readiness_convergence.py",
-        "p2p_engine/services/workspace_migration_handlers.py",
         "p2p_engine/services/workspace_operation_compatibility.py",
         metadata,
     }
     required.update(DECISION_LIFECYCLE_WHEEL_MEMBERS)
-    required.update(ATTESTATION_WHEEL_MEMBERS)
+    required.update(CURRENT_SCHEMA_WHEEL_MEMBERS)
+    required.update(CLI_CONTRACT_WHEEL_MEMBERS)
     required.update(PORTABLE_VERTICAL_WHEEL_MEMBERS)
+    required.update(VERTICAL_REGISTRY_WHEEL_MEMBERS)
+    required.update(VERTICAL_DRAFT_WHEEL_MEMBERS)
     required.update(_vertical_pack_required_members("p2p_engine"))
     with zipfile.ZipFile(path) as archive:
         members = _normalized_members(archive.namelist(), archive_root=None)
@@ -215,17 +263,19 @@ def verify_sdist(path: Path, *, version: str) -> int:
         ".github/workflows/release.yml",
         "CHANGELOG.md",
         "README.md",
-        "docs/WORKSPACE-MIGRATION.md",
+        "docs/WORKSPACE-SCHEMA.md",
         "PKG-INFO",
         "pyproject.toml",
         "scripts/verify-release-artifacts.py",
         "src/p2p_engine/core/project_questions.py",
         "src/p2p_engine/services/project_readiness_convergence.py",
-        "src/p2p_engine/services/workspace_migration_handlers.py",
     }
     required.update(DECISION_LIFECYCLE_SDIST_MEMBERS)
-    required.update(ATTESTATION_SDIST_MEMBERS)
+    required.update(CURRENT_SCHEMA_SDIST_MEMBERS)
+    required.update(CLI_CONTRACT_SDIST_MEMBERS)
     required.update(PORTABLE_VERTICAL_SDIST_MEMBERS)
+    required.update(VERTICAL_REGISTRY_SDIST_MEMBERS)
+    required.update(VERTICAL_DRAFT_SDIST_MEMBERS)
     required.update(_vertical_pack_required_members("src/p2p_engine"))
     with tarfile.open(path, mode="r:gz") as archive:
         members = _normalized_members(archive.getnames(), archive_root=archive_root)

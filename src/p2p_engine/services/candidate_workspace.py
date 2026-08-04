@@ -20,7 +20,9 @@ class CandidateWorkspaceView:
         self._owned_paths = {_normalize(path) for path in (owned_paths or set(candidates))}
         undeclared = set(self._candidates) - self._owned_paths
         if undeclared:
-            raise ValueError(f"Candidate contains undeclared migration targets: {sorted(undeclared)}")
+            raise ValueError(
+                f"Candidate contains undeclared workspace transaction targets: {sorted(undeclared)}"
+            )
         self.reads: list[tuple[str, str]] = []
 
     def exists(self, path: str | Path) -> bool:

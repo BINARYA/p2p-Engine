@@ -23,6 +23,12 @@ gruppi di primo livello: 30
 comandi diretti sulla root: 6
 ```
 
+> Nota 0.4.6: questo inventario resta la fotografia storica del tag v0.4.5.
+> La 0.4.6 rimuove `workspace migrate`, `project vertical propose` e
+> `project vertical add`; accetta solo workspace schema 3 e vertical-pack
+> schema 2. Le superfici correnti sono documentate in
+> [`CLI-GUIDE.md`](../CLI-GUIDE.md) e sono sempre verificabili con `p2p --help`.
+
 L'inventario e' stato estratto dal registro Typer costruito da
 [`cli.py`](../../src/p2p_engine/cli.py) e dai moduli in
 [`cli_commands/`](../../src/p2p_engine/cli_commands/). Il comando
@@ -71,7 +77,7 @@ Sorgenti principali:
 [`doctor.py`](../../src/p2p_engine/cli_commands/doctor.py),
 [`project_status.py`](../../src/p2p_engine/cli_commands/project_status.py),
 [`runtime.py`](../../src/p2p_engine/cli_commands/runtime.py) e
-[`workspace_migrations.py`](../../src/p2p_engine/cli_commands/workspace_migrations.py).
+[`workspace_schema.py`](../../src/p2p_engine/cli_commands/workspace_schema.py).
 
 ### Comandi root
 
@@ -82,7 +88,7 @@ Sorgenti principali:
 | `p2p context [--budget] [--target]` | `R` | Costruisce il context packet compatto per un agente. |
 | `p2p check` | `R` | Controlla la struttura minima dello workspace. |
 | `p2p validate` | `R` | Esegue validazione strutturale e semantica completa. |
-| `p2p init NAME` | `C/G` | Inizializza workspace, profilo, owner, verticale e integrazioni richieste; `--vertical-pack` usa un artifact locale con checksum atteso. |
+| `p2p init NAME` | `C/G/N` | Inizializza workspace, profilo, owner, verticale e integrazioni richieste; una coordinate locale resta offline, `--pull` autorizza esplicitamente il registry remoto e `--vertical-pack` usa un artifact locale con checksum atteso. |
 
 ### Runtime contract
 
@@ -160,6 +166,20 @@ e [`project_status.py`](../../src/p2p_engine/cli_commands/project_status.py).
 
 | Comando | Effetto | Utilita |
 | --- | --- | --- |
+| `p2p vertical registry add/list/remove` | `R/C/N` | Configura registry utente esterni a `.p2p`; solo `list --refresh` negozia capability remote. |
+| `p2p vertical login/logout` | `C/N` | Esegue OAuth device flow e conserva/rimuove credenziali nel keyring di sistema. |
+| `p2p vertical search QUERY` | `R/N` | Combina metadati locali e remoti indicando sorgente, visibilita e coordinate esatta. |
+| `p2p vertical list --source local\|remote\|all` | `R/N` | Elenca release locali o remote; il default locale non accede alla rete. |
+| `p2p vertical pull COORDINATE` | `C/N` | Verifica e salva atomicamente in cache una release esatta e la sua chiusura di dipendenze. |
+| `p2p vertical inspect TARGET` | `R` | Ispeziona coordinate bundled/cache o artifact locale senza scritture persistenti. |
+| `p2p vertical draft create --empty\|--from COORDINATE` | `C` | Crea un draft normalizzato esterno a `.p2p`, vuoto o derivato da una release esatta. |
+| `p2p vertical draft inspect DRAFT-ID` | `R` | Restituisce documento completo, revisione, hash, diagnostica ed evidenze. |
+| `p2p vertical draft update DRAFT-ID` | `C` | Sostituisce il documento completo con precondizione ottimistica e invalida le evidenze. |
+| `p2p vertical draft materialize DRAFT-ID TARGET` | `C` | Compila atomicamente il documento in una nuova directory canonica schema 2. |
+| `p2p vertical draft validate DRAFT-ID` | `C` | Valida draft e materializzazione e registra evidenza legata a revisione e hash. |
+| `p2p vertical draft package DRAFT-ID OUTPUT` | `C` | Produce l'artefatto deterministico dalla materializzazione corrente validata. |
+| `p2p vertical draft add-local DRAFT-ID` | `C` | Aggiunge la release esatta e immutabile alla cache/catalogo utente. |
+| `p2p vertical draft publish DRAFT-ID` | `C/N` | Pubblica l'artefatto esatto tramite registry autenticato e registra la receipt. |
 | `p2p project vertical list` | `R` | Elenca vertical pack integrati, utente e project-local. |
 | `p2p project vertical show VERTICAL` | `R` | Mostra manifest e contenuto del pack. |
 | `p2p project vertical validate TARGET` | `R` | Valida ID, `vertical.yml` o directory multi-file. |

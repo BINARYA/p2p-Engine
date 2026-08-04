@@ -1,0 +1,14 @@
+{
+  "contract_version": "p2p-cli/v1",
+  "ok": false,
+  "operation": "example.write",
+  "data": null,
+  "warnings": [],
+  "error": {
+    "code": "P2P_EXAMPLE_CONFLICT",
+    "message": "Example conflict.",
+    "details": {
+      "state": "stale"
+    }
+  }
+}

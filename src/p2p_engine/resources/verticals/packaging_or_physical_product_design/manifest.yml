@@ -1,7 +1,14 @@
 manifest:
-  schema_version: 1
+  schema_version: 2
+  publisher: binarya
   id: packaging_or_physical_product_design
   name: Packaging Or Physical Product Design
-  version: 1.0.0
-  publisher: p2p_engine
+  version: 2.0.0
+  license: Apache-2.0
   source: packaged
+  extends: binarya/base_project@2.0.0
+  lineage: {}
+  dependencies:
+  - coordinate: binarya/base_project@2.0.0
+    checksum: sha256:d53a537905b980ec40ae3df3be1c6e7a79a7ff6d98a6f09e91d79b2a582b5c88
+  compatibility: {}

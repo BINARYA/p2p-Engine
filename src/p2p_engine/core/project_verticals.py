@@ -74,7 +74,7 @@ class VerticalManifest:
     vertical_id: str
     name: str
     version: str
-    schema_version: int = 1
+    schema_version: int = 2
     publisher: str = ""
     source: str = ""
     compatibility: dict[str, object] = field(default_factory=dict)
@@ -127,7 +127,7 @@ class VerticalPack:
     profiles: list[str] = field(default_factory=list)
     modules: list[str] = field(default_factory=list)
     examples: list[str] = field(default_factory=list)
-    schema_version: int = 1
+    schema_version: int = 2
     manifest: VerticalManifest | None = None
     profile_specs: list[VerticalProfile] = field(default_factory=list)
     module_specs: list[VerticalModule] = field(default_factory=list)
@@ -232,22 +232,6 @@ class VerticalValidationResult:
     vertical_id: str
     source: str
     issues: list[VerticalValidationIssue]
-
-
-@dataclass(frozen=True)
-class CustomVerticalCandidate:
-    source_idea: str
-    pack: VerticalPack
-    base_project_sections_reused: list[str]
-    vertical_specific_additions: list[str]
-    yaml_text: str
-
-
-@dataclass(frozen=True)
-class ProjectVerticalAddResult:
-    vertical_id: str
-    path: Path
-    activated: bool
 
 
 @dataclass(frozen=True)

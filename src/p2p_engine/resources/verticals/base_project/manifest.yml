@@ -1,7 +1,12 @@
 manifest:
-  schema_version: 1
+  schema_version: 2
+  publisher: binarya
   id: base_project
   name: Base Project
-  version: 1.0.0
-  publisher: p2p_engine
+  version: 2.0.0
+  license: Apache-2.0
   source: packaged
+  extends: null
+  lineage: {}
+  dependencies: []
+  compatibility: {}

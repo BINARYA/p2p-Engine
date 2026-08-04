@@ -1,0 +1,10 @@
+{
+  "draft_contract": "p2p-vertical-draft-state/v1",
+  "document_contract": "p2p-vertical-draft/v1",
+  "evidence_contract": "p2p-vertical-draft-evidence/v1",
+  "diagnostic_codes": [
+    "P2P_VERTICAL_DRAFT_REQUIRED",
+    "P2P_VERTICAL_NO_SECTIONS"
+  ],
+  "publishable": false
+}

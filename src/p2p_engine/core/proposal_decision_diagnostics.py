@@ -109,7 +109,7 @@ _KNOWN = (
         "P2P375_DECISION_SCHEMA_V3_REQUIRED",
         "Workspace schema v3 required",
         "error",
-        "Plan and apply the governed workspace migration to schema v3.",
+        "Inspect workspace schema status; this runtime supports schema v3 only.",
     ),
     (
         "P2P376_DECISION_FUTURE_CONTRACT",

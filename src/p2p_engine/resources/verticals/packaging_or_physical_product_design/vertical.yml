@@ -1,10 +1,10 @@
 vertical:
-  schema_version: 1
+  schema_version: 2
   id: packaging_or_physical_product_design
   name: Packaging Or Physical Product Design
-  version: 1.0.0
+  version: 2.0.0
   description: Design a box or packaging solution from concept to manufacturable specification.
-  extends: base_project
+  extends: binarya/base_project@2.0.0
   questions:
   - id: contained_product_main
     section_id: contained_product

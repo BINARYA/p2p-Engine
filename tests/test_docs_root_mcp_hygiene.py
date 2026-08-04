@@ -65,7 +65,7 @@ def test_docs_and_templates_describe_two_phase_decision_lifecycle() -> None:
     cli_guide = _read_doc("CLI-GUIDE.md")
     mcp_guide = _read_doc("MCP.md")
     glossary = _read_doc("GLOSSARY.md")
-    migration = _read_doc("WORKSPACE-MIGRATION.md")
+    workspace_schema = _read_doc("WORKSPACE-SCHEMA.md")
     tutorial = _read_doc("TUTORIAL.md")
     install = _read_doc("INSTALL.md")
     template_source = (
@@ -83,7 +83,8 @@ def test_docs_and_templates_describe_two_phase_decision_lifecycle() -> None:
     assert "`PROP-XXX@preview-token`" in mcp_guide
     assert "old unbound consent cannot write" in mcp_guide
     assert "## Decision Event Ledger" in glossary
-    assert "`workspace-v2-to-v3`" in migration
+    assert "supports workspace schema 3 only" in workspace_schema
+    assert "does not plan or apply legacy workspace conversions" in workspace_schema
     assert "p2p decision preview PROP-001" in tutorial
     assert "p2p decision preview PROP-001" in install
     assert "PROPOSAL_DECISION_LIFECYCLE_BLOCK" in template_source

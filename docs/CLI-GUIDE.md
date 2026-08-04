@@ -168,57 +168,33 @@ exclude the active runtime require `--reason`. An unmanaged `P2P-SETUP.md`
 blocks apply; P2P does not overwrite human-owned setup documentation as a side
 effect of a contract update.
 
-### Workspace Schema And Migration
+### Current Workspace Schema
 
-Workspace layout versioning is independent from the runtime contract. Inspect
-layout, semantic alignment and interrupted transaction state without writing:
+Workspace layout versioning is independent from the runtime contract. P2P
+Engine 0.4.6 accepts schema 3 only. Inspect schema alignment and interrupted
+transaction state without writing:
 
 ```bash
 p2p workspace schema status
 p2p workspace schema status --format json
-p2p workspace migrate recovery status --format json
+p2p workspace transaction status --format json
 ```
 
-Build a deterministic forward-only plan. Supply a reviewed owner-input patch
-when the findings require vertical, owner or bounded metadata values:
-
-```bash
-p2p workspace migrate attestation-template --to 3 --owner owner --format json
-p2p workspace migrate plan --to 3 --format json
-p2p workspace migrate plan --to 3 --input migration-input.yml --format json
-```
-
-The attestation template is read-only. For schema-v2 decision migration it
-emits source-bound owner input for aligned simple outcomes and lists
-accepted-with-changes or lineage-dependent cases that still require explicit
-review. It never creates a patch or changes permissions.
-
-Apply only the exact reviewed plan. The target, input patch and semantic
-fingerprint are resupplied; P2P recomputes and validates the plan before and
-after acquiring its process-safe lock:
-
-```bash
-p2p workspace migrate apply \
-  --to 3 \
-  --input migration-input.yml \
-  --plan-fingerprint '<reviewed-fingerprint>' \
-  --actor owner \
-  --confirm
-```
+Missing, older, unknown, or future schemas fail with
+`P2P_WORKSPACE_UNSUPPORTED_SCHEMA`. This runtime has no workspace conversion
+commands; recreate or convert such a workspace outside the runtime.
 
 An interrupted transaction blocks unrelated governed writes. Resume or roll it
 back only through the supported recovery commands:
 
 ```bash
-p2p workspace migrate recovery resume \
-  --transaction-id migration-... --actor owner --confirm
-p2p workspace migrate recovery rollback \
-  --transaction-id migration-... --actor owner --confirm
+p2p workspace transaction resume mutation-... --actor owner --confirm
+p2p workspace transaction rollback mutation-... --actor owner --confirm
 ```
 
 Do not edit schema state, locks, journals or candidates by hand. See
-[WORKSPACE-MIGRATION.md](WORKSPACE-MIGRATION.md) for owner-input shape,
-recovery preconditions and post-migration freshness handling.
+[WORKSPACE-SCHEMA.md](WORKSPACE-SCHEMA.md) for the current-only contract and
+recovery preconditions.
 
 ### Project Interaction Style
 
@@ -326,72 +302,7 @@ If no active vertical has been selected, project reads use `base_project` as a
 normal fallback. This is not an init failure; it is a signal that an agent or
 owner should define the project skeleton before relying on readiness.
 
-Generate a candidate for a custom or detected vertical:
-
-```bash
-p2p project vertical propose "progettare la scatola perfetta"
-```
-
-The command prints an importable candidate YAML. Save or review that candidate,
-then add/select it explicitly:
-
-```bash
-p2p project vertical validate candidate.yml
-p2p project vertical add candidate.yml --activate --actor owner
-p2p project vertical select packaging_or_physical_product_design --actor owner
-p2p project vertical lock show
-```
-
-Source precedence is deterministic:
-
-```text
-explicit path/reference
-.p2p/project/verticals/<vertical-id>/
-P2P_HOME/verticals/<vertical-id>/
-~/.p2p/verticals/<vertical-id>/
-internal package resources
-future remote registry sources (deferred)
-base_project fallback only when no active lock exists or repair explicitly asks for it
-```
-
-Project-local packs override installed and internal packs with the same ID.
-`P2P_HOME/verticals` wins over `~/.p2p/verticals` when `P2P_HOME` is configured.
-
-The compatibility single-file shape remains supported:
-
-```yaml
-vertical:
-  schema_version: 1
-  id: social_impact_program_design
-  name: Social Impact Program Design
-  version: 1.0.0
-  description: Domain-specific project skeleton.
-  extends: base_project
-  sections:
-    - id: measurement_reporting
-      title: Measurement And Reporting
-      purpose: Define outcome metrics and reporting cadence.
-      required: true
-      priority: 60
-  rubrics:
-    - id: measurement_quality
-      title: Measurement Quality
-      section_id: measurement_reporting
-      required: true
-      keywords: [metric, outcome, report, evidence]
-  questions:
-    - id: measurement_main
-      section_id: measurement_reporting
-      priority: high
-      question: How will real impact be measured?
-  artifacts:
-    - id: outcome_metric_framework
-      title: Outcome Metric Framework
-      section_ids: [measurement_reporting]
-      required: true
-```
-
-Production packs may use the canonical multi-file layout:
+P2P Engine accepts schema-2 canonical multi-file packs only:
 
 ```text
 <pack-root>/
@@ -405,23 +316,82 @@ Production packs may use the canonical multi-file layout:
   examples/<example-id>.md
 ```
 
-The four bundled seed packs use this canonical layout. Their section filenames
-carry a stable priority prefix, such as
-`sections/010-project-identity.yml`, so filesystem ordering preserves semantic
-section order. `vertical.yml` contains metadata only; split sections and
-rubrics must not also be embedded there. External single-file `vertical.yml`
-packs remain supported for compatibility.
+`vertical.yml` contains metadata only. Sections, rubrics and optional profile,
+module, artifact and example content live in their canonical split paths.
+
+The four bundled seeds use exact `binarya/<vertical-id>@2.0.0` coordinates.
+Bare IDs work only when they resolve to one coordinate. Multiple releases make
+a bare ID ambiguous, while semantically different packs claiming the same
+coordinate fail with `P2P_VERTICAL_COORDINATE_CONFLICT`; no source precedence
+silently chooses one. Schema-1 and single-file packs are unsupported.
 
 ### Portable Versioned Packs
 
 Schema-version-2 packs add a publisher, exact semantic version, license,
 optional social lineage, and exact dependency checksums. Their identity is the
-coordinate `publisher/vertical-id@version`. Structural `extends` and social
-`lineage.forked_from` are separate declarations.
+coordinate `publisher/vertical-id@version`. Structural `extends`, social
+`lineage.forked_from` and release-history `lineage.previous_release` are
+separate declarations.
 
-P2P Engine does not contact a remote registry. A catalog service such as
-WaveKit downloads and authorizes an immutable artifact, then passes its local
-path and expected SHA-256 to P2P:
+P2P Engine 0.4.6 provides a local catalog and a provider-neutral remote
+registry client. These commands perform no remote request unless `--refresh`
+is passed to `registry list`:
+
+```bash
+p2p version --format json
+p2p vertical list --format json
+p2p vertical inspect binarya/software_project@2.0.0 --format json
+p2p vertical registry add wavekit https://registry.example.test --default
+p2p vertical registry list --format json
+p2p vertical registry remove wavekit
+```
+
+Registry configuration is stored under `P2P_HOME` when set, otherwise under
+the platform user-data directory. HTTPS is required except for explicit
+loopback development URLs. Configuration files never contain credentials.
+
+Remote discovery and retrieval are explicit:
+
+```bash
+p2p vertical registry list --refresh
+p2p vertical search software --registry wavekit
+p2p vertical list --source remote --registry wavekit
+p2p vertical login wavekit
+p2p vertical list --source remote --registry wavekit --include-private
+p2p vertical pull example/software-blue@1.0.0 --registry wavekit
+p2p vertical logout wavekit
+```
+
+Login uses the registry-advertised OAuth device flow and stores credentials in
+the operating-system keyring. Pull verifies the exact dependency closure,
+artifact SHA-256, size, schema and semantic checksums before committing the
+immutable user cache. See [VERTICAL-REGISTRY.md](VERTICAL-REGISTRY.md) for the
+protocol and cache contract.
+
+Normalized draft authoring is available without writing canonical YAML by
+hand:
+
+```bash
+p2p vertical draft create --empty --format json
+p2p vertical draft create --from binarya/software_project@2.0.0 \
+  --version 2.0.1 --previous-release binarya/software_project@2.0.0 \
+  --format json
+p2p vertical draft inspect VDRAFT-... --format json
+p2p vertical draft update VDRAFT-... --document ./vertical.json \
+  --expected-revision 1 --format json
+p2p vertical draft materialize VDRAFT-... ./build/vertical --format json
+p2p vertical draft validate VDRAFT-... --format json
+p2p vertical draft package VDRAFT-... ./build/vertical.p2pv --format json
+p2p vertical draft add-local VDRAFT-... --format json
+p2p vertical draft publish VDRAFT-... --registry wavekit \
+  --idempotency-key <operation-id> --format json
+```
+
+Draft state lives outside `.p2p`; edits invalidate all materialization and
+publication evidence. See [VERTICAL-DRAFTS.md](VERTICAL-DRAFTS.md).
+
+Local authoring and the existing WaveKit local-artifact handoff remain
+available:
 
 ```bash
 p2p project vertical schema --format json
@@ -435,6 +405,7 @@ p2p project vertical install preview ./my-vertical.p2pv \
   --expected-checksum <sha256> --actor owner --format json
 p2p project vertical install apply ./my-vertical.p2pv \
   --expected-checksum <sha256> --token <preview-token> \
+  --idempotency-key <operation-uuid> \
   --confirm --actor owner --format json
 ```
 
@@ -454,7 +425,7 @@ the ID, resolution fails with `P2P_VERTICAL_AMBIGUOUS_REFERENCE`; callers must
 use `publisher/id@version`. If one exact coordinate is discovered with
 different semantic checksums, resolution fails with
 `P2P_VERTICAL_COORDINATE_CONFLICT` instead of applying source precedence.
-Schema-v1 and bundled bare-ID precedence remains unchanged.
+Schema-1 packs are rejected with `P2P_VERTICAL_UNSUPPORTED_SCHEMA`.
 
 For a new project, installation and selection can be requested together. Pack,
 checksum, dependencies, profile and modules are checked before project files
@@ -467,6 +438,19 @@ p2p init "My Project" \
   --owner owner
 ```
 
+An exact bundled or cached coordinate initializes without network access:
+
+```bash
+p2p init "My Project" --vertical example/my-vertical@1.0.0
+```
+
+Network retrieval during init requires explicit consent:
+
+```bash
+p2p init "My Project" --vertical example/my-vertical@1.0.0 \
+  --pull --registry wavekit
+```
+
 Existing projects use governed preview/apply. `adopt` is limited to definitions
 without meaningful evidence. `migrate` preserves same-ID fields, applies only
 exact mappings and records every remaining value as an explicit orphan:
@@ -474,12 +458,14 @@ exact mappings and records every remaining value as an explicit orphan:
 ```bash
 p2p project vertical adopt preview example/my-vertical@1.0.0 --actor owner
 p2p project vertical adopt apply example/my-vertical@1.0.0 \
-  --token <preview-token> --confirm --actor owner
+  --token <preview-token> --idempotency-key <operation-uuid> \
+  --confirm --actor owner
 
 p2p project vertical migrate preview example/my-vertical@2.0.0 \
   --mapping vertical-mapping.yml --actor owner
 p2p project vertical migrate apply example/my-vertical@2.0.0 \
   --mapping vertical-mapping.yml --token <preview-token> \
+  --idempotency-key <operation-uuid> \
   --confirm --actor owner
 ```
 
@@ -493,9 +479,24 @@ vertical_migration:
     old_rubric: new_rubric
 ```
 
-Every new machine-facing command returns an `ok`, `operation`, `data`,
-`warnings`, and `error` JSON envelope. Preview operations do not write state;
-apply requires the current token, explicit confirmation and actor.
+The 0.4.6 JSON transport contract is `p2p-cli/v1`. Every command supporting
+`--format json` returns exactly `contract_version`, `ok`, `operation`, `data`,
+`warnings`, and `error`. Domain payloads remain operation-specific under
+`data`. Parser errors use the same envelope. See
+[CLI JSON Contract](CLI-CONTRACT.md) for operation IDs, exit classes and
+consumer migration. Preview operations do not write state; apply requires the
+current token, explicit confirmation, actor and a caller-supplied idempotency
+key. Use the same key only to retry the exact same request. After an uncertain
+response, inspect the durable result without writing:
+
+```bash
+p2p mutation status --idempotency-key <operation-uuid> --format json
+```
+
+`applied` confirms matching committed postconditions, `not_found` permits an
+exact apply retry, `postcondition_drift` requires investigation and
+`incomplete` routes to `p2p workspace transaction status` and explicit
+recovery.
 
 Selecting a vertical writes explicit project state:
 
@@ -536,7 +537,7 @@ p2p project readiness questions next --format json
 ```
 
 The review reports prioritized typed gaps, counts, bounded legacy evidence and
-concrete next operations. On workspace schema v2, project questions live in
+concrete next operations. On workspace schema v3, project questions live in
 `.p2p/project/questions.yml`; definition `open_questions` remain empty.
 
 Only the declared project owner can answer, replace, defer, mute, reopen or

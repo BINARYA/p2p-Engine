@@ -1,0 +1,10 @@
+{
+  "contract_version": "p2p-cli/v1",
+  "ok": true,
+  "operation": "example.read",
+  "data": {
+    "value": 1
+  },
+  "warnings": [],
+  "error": null
+}

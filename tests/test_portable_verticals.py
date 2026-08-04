@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 import shutil
 import zipfile
@@ -13,6 +12,7 @@ from p2p_engine.cli import app
 from p2p_engine.services.vertical_lifecycle import VerticalLifecycleService
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.cli_assertions import cli_data, cli_envelope, cli_error
 
 
 runner = CliRunner()
@@ -43,6 +43,14 @@ def _portable_pack(
     archive = root / f"{vertical_id}-{version}.p2pv"
     packaged = workspace.package_portable_vertical(source, output=archive)
     return archive, packaged.artifact_checksum, inspection.pack.coordinate
+
+
+def _workspace_file_snapshot(root: Path) -> dict[str, bytes]:
+    return {
+        path.relative_to(root).as_posix(): path.read_bytes()
+        for path in root.rglob("*")
+        if path.is_file()
+    }
 
 
 @pytest.mark.service
@@ -80,6 +88,7 @@ def test_portable_package_is_deterministic_and_installs_side_by_side(tmp_path: P
         preview_token=preview.preview.preview_token,
         confirmed=True,
         actor="owner",
+        idempotency_key=f"install:{checksum}",
     )
 
     assert applied.mutation.status == "applied"
@@ -102,12 +111,298 @@ def test_portable_package_is_deterministic_and_installs_side_by_side(tmp_path: P
         preview_token=preview_v2.preview.preview_token,
         confirmed=True,
         actor="owner",
+        idempotency_key=f"install:{checksum_v2}",
     )
 
     assert project.show_project_vertical(coordinate).version == "1.0.0"
     assert project.show_project_vertical(coordinate_v2).version == "2.0.0"
     listed = {item.coordinate for item in project.project_verticals()}
     assert {coordinate, coordinate_v2} <= listed
+
+
+@pytest.mark.service
+@pytest.mark.cli
+def test_install_receipt_supports_exact_replay_status_redaction_and_drift_detection(
+    tmp_path: Path,
+) -> None:
+    authoring = P2PWorkspace(tmp_path)
+    archive, checksum, _coordinate = _portable_pack(
+        authoring,
+        tmp_path,
+        vertical_id="receipt-install",
+        version="1.0.0",
+    )
+    project_root = tmp_path / "project"
+    project = P2PWorkspace(project_root)
+    project.init_project("Receipt install", owner="owner")
+    preview = project.preview_portable_vertical_install(
+        archive,
+        expected_checksum=checksum,
+        actor="owner",
+    )
+    key = "wavekit-operation-3f8cb243-f831-47d4-a61e-20b35da3b526"
+
+    applied = project.apply_portable_vertical_install(
+        archive,
+        expected_checksum=checksum,
+        preview_token=preview.preview.preview_token,
+        confirmed=True,
+        actor="owner",
+        idempotency_key=key,
+    )
+    after_apply = _workspace_file_snapshot(project_root)
+
+    replayed = project.apply_portable_vertical_install(
+        archive,
+        expected_checksum=checksum,
+        preview_token=preview.preview.preview_token,
+        confirmed=True,
+        actor="owner",
+        idempotency_key=key,
+    )
+    repeated = project.apply_portable_vertical_install(
+        archive,
+        expected_checksum=checksum,
+        preview_token=preview.preview.preview_token,
+        confirmed=True,
+        actor="owner",
+        idempotency_key=key,
+    )
+
+    assert applied.mutation.status == "applied"
+    assert replayed.mutation.status == repeated.mutation.status == "already_applied"
+    assert replayed.mutation.changed_paths == ()
+    assert _workspace_file_snapshot(project_root) == after_apply
+
+    receipts = list(
+        (project_root / ".p2p" / ".internal" / "mutation-receipts").glob("*.yml")
+    )
+    assert len(receipts) == 1
+    assert key not in receipts[0].as_posix()
+    assert key.encode("utf-8") not in receipts[0].read_bytes()
+
+    status = project.mutation_status(idempotency_key=key)
+    assert status.state == "applied"
+    assert status.operation == "install"
+    assert status.postconditions_match is True
+    assert key not in str(status.to_dict())
+
+    cli_status = runner.invoke(
+        app,
+        [
+            "mutation",
+            "status",
+            "--idempotency-key",
+            key,
+            "--root",
+            str(project_root),
+            "--format",
+            "json",
+        ],
+    )
+    assert cli_status.exit_code == 0
+    assert cli_data(cli_status)["state"] == "applied"
+    assert key not in cli_status.stdout
+
+    with pytest.raises(ValueError, match="P2P_IDEMPOTENCY_CONFLICT"):
+        project.apply_portable_vertical_install(
+            archive,
+            expected_checksum=checksum,
+            preview_token=preview.preview.preview_token,
+            confirmed=True,
+            actor="other-owner",
+            idempotency_key=key,
+        )
+    with pytest.raises(ValueError, match="P2P_IDEMPOTENCY_CONFLICT"):
+        project.apply_portable_vertical_install(
+            archive,
+            expected_checksum=checksum,
+            preview_token="different-preview-token",
+            confirmed=True,
+            actor="owner",
+            idempotency_key=key,
+        )
+
+    drift_path = project_root / str(status.result["changed_paths"][0])
+    drift_path.write_bytes(drift_path.read_bytes() + b"\n")
+    assert project.mutation_status(idempotency_key=key).state == "postcondition_drift"
+    with pytest.raises(ValueError, match="P2P_IDEMPOTENCY_POSTCONDITION_DRIFT"):
+        project.apply_portable_vertical_install(
+            archive,
+            expected_checksum=checksum,
+            preview_token=preview.preview.preview_token,
+            confirmed=True,
+            actor="owner",
+            idempotency_key=key,
+        )
+
+
+@pytest.mark.service
+def test_adopt_receipt_replays_before_current_state_is_recomputed(tmp_path: Path) -> None:
+    authoring = P2PWorkspace(tmp_path)
+    archive, checksum, coordinate = _portable_pack(
+        authoring,
+        tmp_path,
+        vertical_id="receipt-adopt",
+        version="1.0.0",
+    )
+    project = P2PWorkspace(tmp_path / "project")
+    project.init_project("Receipt adoption", owner="owner")
+    install = project.preview_portable_vertical_install(
+        archive,
+        expected_checksum=checksum,
+        actor="owner",
+    )
+    project.apply_portable_vertical_install(
+        archive,
+        expected_checksum=checksum,
+        preview_token=install.preview.preview_token,
+        confirmed=True,
+        actor="owner",
+        idempotency_key=f"install:{checksum}",
+    )
+    preview = project.preview_project_vertical_adoption(coordinate, actor="owner")
+    key = "wavekit-adopt-operation"
+    applied = project.apply_project_vertical_adoption(
+        coordinate,
+        preview_token=preview.preview.preview_token,
+        confirmed=True,
+        actor="owner",
+        idempotency_key=key,
+    )
+    after_apply = _workspace_file_snapshot(project.root)
+
+    replayed = project.apply_project_vertical_adoption(
+        coordinate,
+        preview_token=preview.preview.preview_token,
+        confirmed=True,
+        actor="owner",
+        idempotency_key=key,
+    )
+
+    assert applied.mutation.status == "applied"
+    assert replayed.mutation.status == "already_applied"
+    assert _workspace_file_snapshot(project.root) == after_apply
+    with pytest.raises(ValueError, match="P2P_IDEMPOTENCY_CONFLICT"):
+        project.apply_project_vertical_adoption(
+            coordinate,
+            preview_token=preview.preview.preview_token,
+            confirmed=True,
+            actor="owner",
+            idempotency_key=key,
+            profile="different-profile",
+        )
+    with pytest.raises(ValueError, match="P2P_IDEMPOTENCY_CONFLICT"):
+        project.apply_project_vertical_adoption(
+            "test/different-coordinate@1.0.0",
+            preview_token=preview.preview.preview_token,
+            confirmed=True,
+            actor="owner",
+            idempotency_key=key,
+        )
+
+
+@pytest.mark.service
+def test_migrate_receipt_replays_exact_mapping_and_rejects_changed_mapping(
+    tmp_path: Path,
+) -> None:
+    authoring = P2PWorkspace(tmp_path)
+    source_archive, source_checksum, source_coordinate = _portable_pack(
+        authoring,
+        tmp_path,
+        vertical_id="receipt-migrate-source",
+        version="1.0.0",
+    )
+    target_archive, target_checksum, target_coordinate = _portable_pack(
+        authoring,
+        tmp_path,
+        vertical_id="receipt-migrate-target",
+        version="2.0.0",
+        field_id="renamed_summary",
+    )
+    project = P2PWorkspace(tmp_path / "project")
+    project.init_project("Receipt migration", owner="owner")
+    for archive, checksum in (
+        (source_archive, source_checksum),
+        (target_archive, target_checksum),
+    ):
+        install = project.preview_portable_vertical_install(
+            archive,
+            expected_checksum=checksum,
+            actor="owner",
+        )
+        project.apply_portable_vertical_install(
+            archive,
+            expected_checksum=checksum,
+            preview_token=install.preview.preview_token,
+            confirmed=True,
+            actor="owner",
+            idempotency_key=f"install:{checksum}",
+        )
+    adoption = project.preview_project_vertical_adoption(source_coordinate, actor="owner")
+    project.apply_project_vertical_adoption(
+        source_coordinate,
+        preview_token=adoption.preview.preview_token,
+        confirmed=True,
+        actor="owner",
+        idempotency_key=f"adopt:{source_coordinate}",
+    )
+    patch = tmp_path / "receipt-migration-patch.yml"
+    patch.write_text(
+        "project_definition_patch:\n"
+        "  schema_version: 1\n"
+        "  actor: owner\n"
+        "  operations:\n"
+        "    - op: set_field\n"
+        "      section_id: custom_overview\n"
+        "      field_id: summary\n"
+        "      value: durable evidence\n"
+        "      source: owner\n",
+        encoding="utf-8",
+    )
+    project.update_project_definition(patch)
+    mapping = {
+        "field_mapping": {
+            "custom_overview.summary": "custom_overview.renamed_summary",
+        }
+    }
+    preview = project.preview_project_vertical_migration(
+        target_coordinate,
+        actor="owner",
+        mapping=mapping,
+    )
+    key = "wavekit-migrate-operation"
+    applied = project.apply_project_vertical_migration(
+        target_coordinate,
+        preview_token=preview.preview.preview_token,
+        confirmed=True,
+        actor="owner",
+        idempotency_key=key,
+        mapping=mapping,
+    )
+    after_apply = _workspace_file_snapshot(project.root)
+
+    replayed = project.apply_project_vertical_migration(
+        target_coordinate,
+        preview_token=preview.preview.preview_token,
+        confirmed=True,
+        actor="owner",
+        idempotency_key=key,
+        mapping=mapping,
+    )
+
+    assert applied.mutation.status == "applied"
+    assert replayed.mutation.status == "already_applied"
+    assert _workspace_file_snapshot(project.root) == after_apply
+    with pytest.raises(ValueError, match="P2P_IDEMPOTENCY_CONFLICT"):
+        project.apply_project_vertical_migration(
+            target_coordinate,
+            preview_token=preview.preview.preview_token,
+            confirmed=True,
+            actor="owner",
+            idempotency_key=key,
+            mapping={},
+        )
 
 
 @pytest.mark.service
@@ -163,10 +458,132 @@ def test_portable_install_rolls_back_a_partial_write(tmp_path: Path) -> None:
             preview_token=preview.preview.preview_token,
             confirmed=True,
             actor="owner",
+            idempotency_key=f"failure-install:{checksum}",
         )
 
     install_root = project_root / preview.impact["install_prefix"]
     assert not install_root.exists() or not any(path.is_file() for path in install_root.rglob("*"))
+    assert project.mutation_status(idempotency_key=f"failure-install:{checksum}").state == "not_found"
+
+
+@pytest.mark.service
+def test_adopt_and_migrate_receipts_roll_back_with_domain_state_on_write_failure(
+    tmp_path: Path,
+) -> None:
+    authoring = P2PWorkspace(tmp_path)
+    source_archive, source_checksum, source_coordinate = _portable_pack(
+        authoring,
+        tmp_path,
+        vertical_id="failure-source",
+        version="1.0.0",
+    )
+    target_archive, target_checksum, target_coordinate = _portable_pack(
+        authoring,
+        tmp_path,
+        vertical_id="failure-target",
+        version="2.0.0",
+        field_id="renamed_summary",
+    )
+    project_root = tmp_path / "project"
+    project = P2PWorkspace(project_root)
+    project.init_project("Receipt failure rollback", owner="owner")
+    for archive, checksum in (
+        (source_archive, source_checksum),
+        (target_archive, target_checksum),
+    ):
+        install = project.preview_portable_vertical_install(
+            archive,
+            expected_checksum=checksum,
+            actor="owner",
+        )
+        project.apply_portable_vertical_install(
+            archive,
+            expected_checksum=checksum,
+            preview_token=install.preview.preview_token,
+            confirmed=True,
+            actor="owner",
+            idempotency_key=f"install:{checksum}",
+        )
+
+    def failing_writer() -> AtomicMutationWriter:
+        replacements = 0
+
+        def fail_after_domain_write(stage: str, _target: str) -> None:
+            nonlocal replacements
+            if stage == "after_replace":
+                replacements += 1
+                if replacements == 2:
+                    raise RuntimeError("injected lifecycle failure")
+
+        return AtomicMutationWriter(
+            root=project_root,
+            p2p_dir=project_root / ".p2p",
+            failure_injector=fail_after_domain_write,
+        )
+
+    lifecycle = project._vertical_lifecycle_service()
+    adoption = project.preview_project_vertical_adoption(source_coordinate, actor="owner")
+    before_adopt = _workspace_file_snapshot(project_root)
+    lifecycle.atomic_writer = failing_writer()
+    with pytest.raises(ValueError, match="P2P_VERTICAL_APPLY_FAILED"):
+        project.apply_project_vertical_adoption(
+            source_coordinate,
+            preview_token=adoption.preview.preview_token,
+            confirmed=True,
+            actor="owner",
+            idempotency_key="failed-adopt",
+        )
+    assert _workspace_file_snapshot(project_root) == before_adopt
+    assert project.mutation_status(idempotency_key="failed-adopt").state == "not_found"
+
+    lifecycle.atomic_writer = AtomicMutationWriter(
+        root=project_root,
+        p2p_dir=project_root / ".p2p",
+    )
+    project.apply_project_vertical_adoption(
+        source_coordinate,
+        preview_token=adoption.preview.preview_token,
+        confirmed=True,
+        actor="owner",
+        idempotency_key="successful-adopt",
+    )
+    patch = tmp_path / "failure-migration-patch.yml"
+    patch.write_text(
+        "project_definition_patch:\n"
+        "  schema_version: 1\n"
+        "  actor: owner\n"
+        "  operations:\n"
+        "    - op: set_field\n"
+        "      section_id: custom_overview\n"
+        "      field_id: summary\n"
+        "      value: evidence\n"
+        "      source: owner\n",
+        encoding="utf-8",
+    )
+    project.update_project_definition(patch)
+    mapping = {
+        "field_mapping": {
+            "custom_overview.summary": "custom_overview.renamed_summary",
+        }
+    }
+    migration = project.preview_project_vertical_migration(
+        target_coordinate,
+        actor="owner",
+        mapping=mapping,
+    )
+    before_migrate = _workspace_file_snapshot(project_root)
+    lifecycle.atomic_writer = failing_writer()
+    with pytest.raises(ValueError, match="P2P_VERTICAL_APPLY_FAILED"):
+        project.apply_project_vertical_migration(
+            target_coordinate,
+            preview_token=migration.preview.preview_token,
+            confirmed=True,
+            actor="owner",
+            idempotency_key="failed-migrate",
+            mapping=mapping,
+        )
+    assert _workspace_file_snapshot(project_root) == before_migrate
+    assert project.mutation_status(idempotency_key="failed-migrate").state == "not_found"
 
 
 @pytest.mark.service
@@ -188,6 +605,7 @@ def test_adoption_rejects_stale_preview_and_requires_confirmation(tmp_path: Path
         preview_token=install.preview.preview_token,
         confirmed=True,
         actor="owner",
+        idempotency_key=f"install:{checksum}",
     )
     adoption = project.preview_project_vertical_adoption(coordinate, actor="owner")
 
@@ -197,6 +615,7 @@ def test_adoption_rejects_stale_preview_and_requires_confirmation(tmp_path: Path
             preview_token=adoption.preview.preview_token,
             confirmed=False,
             actor="owner",
+            idempotency_key=f"adopt:{coordinate}",
         )
 
     active_path = project_root / ".p2p" / "project" / "vertical.yml"
@@ -213,6 +632,7 @@ def test_adoption_rejects_stale_preview_and_requires_confirmation(tmp_path: Path
             preview_token=adoption.preview.preview_token,
             confirmed=True,
             actor="owner",
+            idempotency_key=f"adopt:{coordinate}",
         )
 
 
@@ -246,6 +666,7 @@ def test_migration_preserves_exact_mapping_and_materializes_unmapped_orphan(tmp_
             preview_token=install.preview.preview_token,
             confirmed=True,
             actor="owner",
+            idempotency_key=f"install:{checksum}",
         )
     adoption = project.preview_project_vertical_adoption(source_coordinate, actor="owner")
     project.apply_project_vertical_adoption(
@@ -253,6 +674,7 @@ def test_migration_preserves_exact_mapping_and_materializes_unmapped_orphan(tmp_
         preview_token=adoption.preview.preview_token,
         confirmed=True,
         actor="owner",
+        idempotency_key=f"adopt:{source_coordinate}",
     )
     patch = tmp_path / "definition-patch.yml"
     patch.write_text(
@@ -293,6 +715,7 @@ def test_migration_preserves_exact_mapping_and_materializes_unmapped_orphan(tmp_
         preview_token=orphaned.preview.preview_token,
         confirmed=True,
         actor="owner",
+        idempotency_key=f"migrate:{target_coordinate}",
     )
     state = project.project_definition_view().state
 
@@ -442,6 +865,7 @@ def test_portable_bare_id_is_ambiguous_and_exact_versions_remain_operable(tmp_pa
             preview_token=preview.preview.preview_token,
             confirmed=True,
             actor="owner",
+            idempotency_key=f"install:{checksum}",
         )
 
     with pytest.raises(ValueError, match="P2P_VERTICAL_AMBIGUOUS_REFERENCE"):
@@ -456,6 +880,7 @@ def test_portable_bare_id_is_ambiguous_and_exact_versions_remain_operable(tmp_pa
         preview_token=adoption.preview.preview_token,
         confirmed=True,
         actor="owner",
+        idempotency_key=f"adopt:{coordinate_v1}",
     )
     patch = tmp_path / "versioned-definition-patch.yml"
     patch.write_text(
@@ -478,6 +903,7 @@ def test_portable_bare_id_is_ambiguous_and_exact_versions_remain_operable(tmp_pa
         preview_token=migration.preview.preview_token,
         confirmed=True,
         actor="owner",
+        idempotency_key=f"migrate:{coordinate_v2}",
     )
 
     definition = project.project_definition_view()
@@ -518,6 +944,7 @@ def test_exact_coordinate_equivalence_preserves_precedence_and_conflict_fails_cl
         preview_token=install.preview.preview_token,
         confirmed=True,
         actor="owner",
+        idempotency_key=f"install:{checksum}",
     )
     project_pack = (
         project_root
@@ -558,9 +985,8 @@ def test_exact_coordinate_equivalence_preserves_precedence_and_conflict_fails_cl
             "json",
         ],
     )
-    assert result.exit_code == 1
-    payload = json.loads(result.stdout)
-    assert payload["error"]["code"] == "P2P_VERTICAL_COORDINATE_CONFLICT"
+    assert result.exit_code == 3
+    assert cli_error(result)["code"] == "P2P_VERTICAL_COORDINATE_CONFLICT"
 
 
 @pytest.mark.service
@@ -685,6 +1111,7 @@ def test_vertical_candidate_rejects_exact_identity_drift_before_writing(tmp_path
         preview_token=install.preview.preview_token,
         confirmed=True,
         actor="owner",
+        idempotency_key=f"install:{checksum}",
     )
     service = project._project_vertical_service()
     candidate = service.render_migration_candidate(coordinate, actor="owner")
@@ -734,6 +1161,7 @@ def test_cli_validates_schema_v2_directory_with_exact_extends(tmp_path: Path) ->
         preview_token=install.preview.preview_token,
         confirmed=True,
         actor="owner",
+        idempotency_key=f"install:{base_checksum}",
     )
     derived = tmp_path / "portable-derived"
     project.scaffold_portable_vertical(
@@ -763,7 +1191,7 @@ def test_cli_validates_schema_v2_directory_with_exact_extends(tmp_path: Path) ->
     )
 
     assert result.exit_code == 0
-    validation = json.loads(result.stdout)["validation"]
+    validation = cli_data(result)["validation"]
     assert validation["valid"] is True
     assert validation["coordinate"] == "test/portable-derived@1.0.0"
 
@@ -781,7 +1209,7 @@ def test_cli_validates_schema_v2_directory_with_exact_extends(tmp_path: Path) ->
         ],
     )
     assert archive_result.exit_code == 0
-    archive_validation = json.loads(archive_result.stdout)["validation"]
+    archive_validation = cli_data(archive_result)["validation"]
     assert archive_validation["valid"] is True
     assert archive_validation["coordinate"] == "test/portable-derived@1.0.0"
 
@@ -794,9 +1222,9 @@ def test_portable_cli_uses_stable_json_envelope(tmp_path: Path) -> None:
     )
 
     assert result.exit_code == 0
-    payload = json.loads(result.stdout)
+    payload = cli_envelope(result)
     assert payload["ok"] is True
-    assert payload["operation"] == "vertical_schema"
+    assert payload["operation"] == "project.vertical.schema"
     assert payload["error"] is None
     assert payload["data"]["schema_version"] == 2
 
@@ -828,6 +1256,7 @@ def test_portable_cli_reports_ambiguous_bare_reference_as_json_error(tmp_path: P
             preview_token=preview.preview.preview_token,
             confirmed=True,
             actor="owner",
+            idempotency_key=f"install:{checksum}",
         )
 
     result = runner.invoke(
@@ -845,9 +1274,9 @@ def test_portable_cli_reports_ambiguous_bare_reference_as_json_error(tmp_path: P
     )
 
     assert result.exit_code == 1
-    payload = json.loads(result.stdout)
+    payload = cli_envelope(result)
     assert payload["ok"] is False
-    assert payload["operation"] == "vertical_show"
+    assert payload["operation"] == "project.vertical.show"
     assert payload["error"]["code"] == "P2P_VERTICAL_AMBIGUOUS_REFERENCE"
 
 
@@ -879,8 +1308,8 @@ def test_portable_cli_install_and_adopt_preview_apply_contract(tmp_path: Path) -
             "json",
         ],
     )
-    assert bad.exit_code == 1
-    assert json.loads(bad.stdout)["error"]["code"] == "P2P_VERTICAL_CHECKSUM_MISMATCH"
+    assert bad.exit_code == 3
+    assert cli_error(bad)["code"] == "P2P_VERTICAL_CHECKSUM_MISMATCH"
 
     install_preview = runner.invoke(
         app,
@@ -900,8 +1329,8 @@ def test_portable_cli_install_and_adopt_preview_apply_contract(tmp_path: Path) -
             "json",
         ],
     )
-    install_payload = json.loads(install_preview.stdout)
-    install_token = install_payload["data"]["preview"]["preview_token"]
+    install_payload = cli_data(install_preview)
+    install_token = install_payload["preview"]["preview_token"]
     installed = runner.invoke(
         app,
         [
@@ -914,6 +1343,8 @@ def test_portable_cli_install_and_adopt_preview_apply_contract(tmp_path: Path) -
             checksum,
             "--token",
             install_token,
+            "--idempotency-key",
+            "cli-install-operation",
             "--confirm",
             "--actor",
             "owner",
@@ -924,7 +1355,7 @@ def test_portable_cli_install_and_adopt_preview_apply_contract(tmp_path: Path) -
         ],
     )
     assert installed.exit_code == 0
-    assert json.loads(installed.stdout)["data"]["mutation"]["status"] == "applied"
+    assert cli_data(installed)["mutation"]["status"] == "applied"
 
     adopt_preview = runner.invoke(
         app,
@@ -942,8 +1373,8 @@ def test_portable_cli_install_and_adopt_preview_apply_contract(tmp_path: Path) -
             "json",
         ],
     )
-    adopt_payload = json.loads(adopt_preview.stdout)
-    adopt_token = adopt_payload["data"]["preview"]["preview_token"]
+    adopt_payload = cli_data(adopt_preview)
+    adopt_token = adopt_payload["preview"]["preview_token"]
     adopted = runner.invoke(
         app,
         [
@@ -954,6 +1385,8 @@ def test_portable_cli_install_and_adopt_preview_apply_contract(tmp_path: Path) -
             coordinate,
             "--token",
             adopt_token,
+            "--idempotency-key",
+            "cli-adopt-operation",
             "--confirm",
             "--actor",
             "owner",
@@ -965,9 +1398,9 @@ def test_portable_cli_install_and_adopt_preview_apply_contract(tmp_path: Path) -
     )
 
     assert adopted.exit_code == 0
-    adopted_payload = json.loads(adopted.stdout)
+    adopted_payload = cli_envelope(adopted)
     assert adopted_payload["ok"] is True
-    assert adopted_payload["operation"] == "vertical_adopt_apply"
+    assert adopted_payload["operation"] == "project.vertical.adopt.apply"
 
     patch = tmp_path / "cli-definition-patch.yml"
     patch.write_text(
@@ -1002,6 +1435,7 @@ def test_portable_cli_install_and_adopt_preview_apply_contract(tmp_path: Path) -
         preview_token=target_install.preview.preview_token,
         confirmed=True,
         actor="owner",
+        idempotency_key=f"install:{target_checksum}",
     )
     mapping = tmp_path / "cli-mapping.yml"
     mapping.write_text(
@@ -1028,8 +1462,8 @@ def test_portable_cli_install_and_adopt_preview_apply_contract(tmp_path: Path) -
             "json",
         ],
     )
-    migrate_payload = json.loads(migrate_preview.stdout)
-    migrate_token = migrate_payload["data"]["preview"]["preview_token"]
+    migrate_payload = cli_data(migrate_preview)
+    migrate_token = migrate_payload["preview"]["preview_token"]
     migrated = runner.invoke(
         app,
         [
@@ -1042,6 +1476,8 @@ def test_portable_cli_install_and_adopt_preview_apply_contract(tmp_path: Path) -
             str(mapping),
             "--token",
             migrate_token,
+            "--idempotency-key",
+            "cli-migrate-operation",
             "--confirm",
             "--actor",
             "owner",
@@ -1053,6 +1489,6 @@ def test_portable_cli_install_and_adopt_preview_apply_contract(tmp_path: Path) -
     )
 
     assert migrated.exit_code == 0
-    migrated_payload = json.loads(migrated.stdout)
+    migrated_payload = cli_envelope(migrated)
     assert migrated_payload["ok"] is True
-    assert migrated_payload["operation"] == "vertical_migrate_apply"
+    assert migrated_payload["operation"] == "project.vertical.migrate.apply"

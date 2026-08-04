@@ -1,10 +1,10 @@
 vertical:
-  schema_version: 1
+  schema_version: 2
   id: software_project
   name: Software Project
-  version: 1.0.0
+  version: 2.0.0
   description: Software project vertical for governed software specification lifecycle.
-  extends: base_project
+  extends: binarya/base_project@2.0.0
   questions:
   - id: software_objective_main
     section_id: system_objective

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from dataclasses import replace
 from pathlib import Path
 
@@ -11,6 +10,7 @@ from typer.testing import CliRunner
 from p2p_engine.cli import app
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.cli_assertions import cli_data
 from tests.proposal_decision_fixtures import record_decision
 
 
@@ -184,7 +184,7 @@ def test_project_progress_cli_json_matches_service(tmp_path: Path) -> None:
     result = runner.invoke(app, ["project", "progress", "--format", "json", "--root", str(tmp_path)])
 
     assert result.exit_code == 0, result.output
-    payload = json.loads(result.output)["project_progress"]
+    payload = cli_data(result)["project_progress"]
     progress = workspace.project_progress()
     assert payload["definition"]["ratio"]["numerator"] == progress.definition.ratio.numerator
     assert payload["evidence"]["basis"] == progress.evidence.basis

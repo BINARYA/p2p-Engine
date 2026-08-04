@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 from pathlib import Path
 
@@ -12,6 +11,8 @@ from typer.testing import CliRunner
 from p2p_engine.cli import app
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.core.proposal_decision_events import (
+    ProposalDecisionCondition,
+    ProposalDecisionEventType,
     ProposalDecisionLineage,
     ProposalDecisionLineageKind,
 )
@@ -19,13 +20,18 @@ from p2p_engine.core.derived_freshness import FreshnessNodeDefinition
 from p2p_engine.services.derived_freshness import NODE_CATALOG, validate_freshness_graph
 from p2p_engine.services.project_state import ProjectStateService
 from p2p_engine.services.registries import REGISTRY_DEFINITIONS
-from tests.proposal_decision_fixtures import record_decision
+from p2p_engine.services.proposal_decision_ledger import (
+    ProposalDecisionLedgerCodec,
+    render_decision_projection,
+)
+from tests.proposal_decision_fixtures import append_event, record_decision, write_v3_proposal
 from p2p_engine.services.software_spec import (
     SOFTWARE_SPEC_REQUIRED_FILES,
     SoftwareSpecFreshness,
 )
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.cli_assertions import cli_data
 
 
 runner = CliRunner()
@@ -480,37 +486,45 @@ def test_freshness_detects_82_projections_for_93_accepted_plus_one_conditional(
 ) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Ninety four projections", owner="owner")
-    schema_path = tmp_path / ".p2p" / "project" / "workspace-schema.yml"
-    schema = yaml.safe_load(schema_path.read_text(encoding="utf-8"))
-    schema["workspace_schema"]["current_version"] = 2
-    schema_path.write_text(
-        yaml.safe_dump(schema, sort_keys=False),
-        encoding="utf-8",
-    )
     proposals = tmp_path / ".p2p" / "proposals"
+    codec = ProposalDecisionLedgerCodec()
     for number in range(1, 95):
         proposal_id = f"PROP-{number:03d}"
         title = f"Projection {number:03d}"
         status = "accepted_with_changes" if number == 94 else "accepted"
         proposal_dir = proposals / f"{proposal_id}-{title.lower().replace(' ', '-')}"
-        proposal_dir.mkdir()
-        (proposal_dir / "proposal.md").write_text(
+        proposal_text = (
             f"# {proposal_id} - {title}\n\n"
-            f"## Status\n\n`{status}`\n\n"
+            "## Status\n\n`draft`\n\n"
             "## Problem\n\nProjection evidence is missing.\n\n"
             "## Goals\n\n- Preserve committed authority.\n\n"
             "## Non-Goals\n\n- None.\n\n"
             "## Proposal\n\nGenerate the exact project projection.\n\n"
-            "## Decision\n\nCommitted.\n",
-            encoding="utf-8",
+            "## Decision\n\nPending.\n"
+        )
+        event_type = ProposalDecisionEventType(status)
+        ledger, event = append_event(
+            codec.empty(proposal_id),
+            event_type=event_type,
+            conditions=(
+                (
+                    ProposalDecisionCondition(
+                        condition_id="COND-PROP-094-001",
+                        text="Complete the retained condition.",
+                    ),
+                )
+                if status == "accepted_with_changes"
+                else ()
+            ),
+            proposal_text_override=proposal_text,
+        )
+        write_v3_proposal(
+            proposal_dir,
+            ledger,
+            proposal_text_override=proposal_text,
         )
         (proposal_dir / "decision.md").write_text(
-            f"# Decision - {proposal_id}\n\n"
-            f"## Status\n\n`{status}`\n\n"
-            f"## Outcome\n\n{status}\n\n"
-            "## Reason\n\nLegacy projection fixture.\n\n"
-            "## Date\n\n2026-07-17\n\n"
-            "## Approver\n\nowner\n",
+            render_decision_projection(proposal_id, event),
             encoding="utf-8",
         )
         (proposal_dir / "tasks.yml").write_text("tasks: []\n", encoding="utf-8")
@@ -592,7 +606,7 @@ def test_project_freshness_cli_json_is_read_only(tmp_path: Path) -> None:
     result = runner.invoke(app, ["project", "freshness", "--format", "json", "--root", str(tmp_path)])
 
     assert result.exit_code == 0, result.output
-    payload = json.loads(result.output)["project_freshness"]
+    payload = cli_data(result)["project_freshness"]
     assert payload["graph_version"] == 1
     assert any(node["node_id"] == "publication_review" for node in payload["nodes"])
     assert _tree_hash(tmp_path) == before

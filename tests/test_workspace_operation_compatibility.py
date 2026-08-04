@@ -6,34 +6,27 @@ from pathlib import Path
 import pytest
 import yaml
 
-from p2p_engine.core.workspace_schema import (
-    ALIGNMENT_DEGRADED,
-    LAYOUT_AHEAD,
-    WorkspaceSchemaStatus,
-)
 from p2p_engine.services.workspace_operation_compatibility import (
     WorkspaceOperationCompatibilityService,
 )
 from p2p_engine.storage.filesystem import P2PWorkspace
 
 
-def _v1_status(tmp_path: Path):
+def _unsupported_status(tmp_path: Path):
     workspace = P2PWorkspace(tmp_path)
-    workspace.init_project("V1 Operation", owner="owner")
+    workspace.init_project("Unsupported operation", owner="owner")
     schema_path = tmp_path / ".p2p" / "project" / "workspace-schema.yml"
     payload = yaml.safe_load(schema_path.read_text(encoding="utf-8"))
-    payload["workspace_schema"]["current_version"] = 1
-    schema_path.write_text(
-        yaml.safe_dump(payload, sort_keys=False),
-        encoding="utf-8",
-    )
-    (tmp_path / ".p2p" / "project" / "questions.yml").unlink()
+    payload["workspace_schema"]["current_version"] = 2
+    schema_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
     return workspace.workspace_schema_status()
 
 
 def test_every_literal_facade_write_operation_is_classified() -> None:
     root = Path(__file__).resolve().parents[1]
-    source = (root / "src" / "p2p_engine" / "storage" / "filesystem.py").read_text(encoding="utf-8")
+    source = (root / "src" / "p2p_engine" / "storage" / "filesystem.py").read_text(
+        encoding="utf-8"
+    )
     used = set(re.findall(r'_ensure_runtime_write_allowed\("([^"]+)"\)', source))
     classified = WorkspaceOperationCompatibilityService().operation_ids
 
@@ -41,22 +34,42 @@ def test_every_literal_facade_write_operation_is_classified() -> None:
     assert used <= classified
 
 
-def test_v1_safe_operation_remains_allowed_and_v2_operation_is_actionable(tmp_path: Path) -> None:
+def test_current_schema_allows_every_classified_operation(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Current operation", owner="owner")
+    status = workspace.workspace_schema_status()
     service = WorkspaceOperationCompatibilityService()
-    status = _v1_status(tmp_path)
 
-    assert service.check("proposal_create", status).allowed is True
-    blocked = service.check("project_questions_answer", status)
+    results = [service.check(operation_id, status) for operation_id in service.operation_ids]
 
-    assert blocked.allowed is False
-    assert blocked.required_minimum == 2
-    assert "migrate plan --to 2" in blocked.suggested_command
-    with pytest.raises(ValueError, match="P2P348_WORKSPACE_OPERATION_SCHEMA_REQUIRED"):
-        blocked.require_allowed()
+    assert results
+    assert all(result.allowed for result in results)
+    assert all(result.required_minimum == 3 for result in results)
+    assert all(result.required_maximum == 3 for result in results)
+
+
+def test_non_current_schema_blocks_every_classified_write(tmp_path: Path) -> None:
+    service = WorkspaceOperationCompatibilityService()
+    status = _unsupported_status(tmp_path)
+
+    results = [service.check(operation_id, status) for operation_id in service.operation_ids]
+
+    assert results
+    assert all(not result.allowed for result in results)
+    assert all(not result.recoverable for result in results)
+    assert all(result.diagnostic_code == "P2P_WORKSPACE_UNSUPPORTED_SCHEMA" for result in results)
+    with pytest.raises(ValueError, match="P2P_WORKSPACE_UNSUPPORTED_SCHEMA"):
+        results[0].require_allowed()
 
 
 def test_unknown_write_operation_fails_closed(tmp_path: Path) -> None:
-    result = WorkspaceOperationCompatibilityService().check("future_unclassified_write", _v1_status(tmp_path))
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Unknown operation", owner="owner")
+
+    result = WorkspaceOperationCompatibilityService().check(
+        "future_unclassified_write",
+        workspace.workspace_schema_status(),
+    )
 
     assert result.allowed is False
     assert result.recoverable is False
@@ -64,29 +77,13 @@ def test_unknown_write_operation_fails_closed(tmp_path: Path) -> None:
         result.require_allowed()
 
 
-def test_v1_only_runtime_fixture_blocks_every_write_to_schema_v2_ahead() -> None:
-    status = WorkspaceSchemaStatus(
-        schema_path=".p2p/project/workspace-schema.yml",
-        state="ahead_of_runtime",
-        layout_status=LAYOUT_AHEAD,
-        alignment_status=ALIGNMENT_DEGRADED,
-        current_version=2,
-        target_version=1,
-    )
-
-    blocked = WorkspaceOperationCompatibilityService().check("proposal_create", status)
-
-    assert blocked.allowed is False
-    assert blocked.recoverable is False
-    assert "ahead" in blocked.reason
-    assert blocked.suggested_command == "p2p workspace schema status --format json"
-    with pytest.raises(ValueError, match="only current or explicitly upgradeable"):
-        blocked.require_allowed()
-
-
-def test_schema_v2_rejects_definition_embedded_question_operations(tmp_path: Path) -> None:
+def test_current_schema_rejects_definition_embedded_question_operations(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
-    workspace.init_project("V2 Definition", owner="owner", vertical_id="base_project")
+    workspace.init_project(
+        "Current Definition",
+        owner="owner",
+        vertical_id="binarya/base_project@2.0.0",
+    )
     patch = tmp_path / "legacy-question-patch.yml"
     patch.write_text(
         "project_definition_patch:\n"

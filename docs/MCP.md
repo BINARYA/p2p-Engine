@@ -205,7 +205,6 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_validate` | read-only | no | no | Check structural and semantic consistency. |
 | `p2p_project_status` | read-only | no | no | Inspect deterministic project status. |
 | `p2p_workspace_schema_status` | read-only | no | no | Inspect workspace layout, semantic alignment and recovery state. |
-| `p2p_workspace_migration_plan` | read-only | no | no | Build a deterministic forward-only migration plan; apply and recovery remain CLI-only. |
 | `p2p_project_progress` | read-only | no | no | Inspect independent definition-completeness and declared-evidence axes. |
 | `p2p_project_freshness` | read-only | no | no | Inspect the full derived-state graph and ordered rebuild actions. |
 | `p2p_project_memory_status` | read-only | no | no | Inspect vertical-memory contract, source fingerprint and freshness without rebuilding it. |
@@ -320,9 +319,7 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_project_publish_list` | read-only | no | no | List committed editions and legacy classification without rebuilding publication state. |
 | `p2p_project_vertical_list` | read-only | no | no | List internal and project-local vertical packs plus active/fallback state. |
 | `p2p_project_vertical_show` | read-only | no | no | Read one vertical pack, including inherited `base_project` sections. |
-| `p2p_project_vertical_validate` | read-only | no | no | Validate a vertical ID, `vertical.yml`, or pack directory. |
-| `p2p_project_vertical_propose` | advisory | no | no | Generate an importable custom vertical candidate from a project idea. |
-| `p2p_project_vertical_add` | write-safe | yes | no | Add a project-local vertical pack without making governance decisions. |
+| `p2p_project_vertical_validate` | read-only | no | no | Validate an installed vertical coordinate or schema-2 pack directory. |
 | `p2p_project_vertical_select` | write-safe | yes | no | Select the active project vertical without accepting or changing proposals. |
 | `p2p_project_vertical_lock_show` | read-only | no | no | Read vertical lock status without repair or fallback mutation. |
 | `p2p_project_vertical_lock_repair` | write-safe | yes | no | Explicitly create or repair `vertical.lock.yml` from active vertical state. |
@@ -575,18 +572,6 @@ Project-question and convergence mutations are intentionally absent from MCP in
 this release. Use the owner-authorized CLI commands. Write parity requires a
 separate consent-gated proposal after the CLI payloads have usage evidence and
 stable semantics.
-
-Generate a custom vertical candidate without selecting it:
-
-```json
-{
-  "tool": "p2p_project_vertical_propose",
-  "arguments": {
-    "root": "/path/to/project",
-    "idea": "progettare attivita volte a migliorare l'impatto sociale di una banca"
-  }
-}
-```
 
 Use a permission-gated proposal operation:
 

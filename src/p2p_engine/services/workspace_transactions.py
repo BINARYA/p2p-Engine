@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import shutil
 import time
 from datetime import datetime, timezone
@@ -16,9 +17,12 @@ from p2p_engine.core.workspace_schema import (
     LOCK_INVALID,
     LOCK_RECOVERY_OWNED,
     LOCK_STALE,
-    MigrationLock,
+    WorkspaceTransactionLock,
+    WorkspaceTransactionRecoveryResult,
+    WorkspaceTransactionRecoveryStatus,
 )
 from p2p_engine.core.mutation_preview import MutationResult, SourcePrecondition
+from p2p_engine.core.mutation_receipts import MUTATION_RECEIPT_ROOT
 from p2p_engine.services.candidate_workspace import CandidateWorkspaceView
 from p2p_engine.foundation.files import sync_directory, write_bytes_atomic, write_yaml_atomic
 
@@ -27,18 +31,18 @@ def utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-class MigrationLockService:
+class WorkspaceTransactionLockService:
     def __init__(self, *, root: Path, p2p_dir: Path) -> None:
         self.root = root.resolve()
         self.p2p_dir = p2p_dir.resolve()
-        self.migration_root = self.p2p_dir / ".internal" / "workspace-migrations"
-        self.transactions_root = self.migration_root / "transactions"
-        self.lock_path = self.migration_root / "apply.lock"
+        self.transaction_root = self.p2p_dir / ".internal" / "workspace-transactions"
+        self.transactions_root = self.transaction_root / "transactions"
+        self.lock_path = self.transaction_root / "apply.lock"
 
-    def acquire(self, transaction_id: str, *, owner: str) -> MigrationLock:
+    def acquire(self, transaction_id: str, *, owner: str) -> WorkspaceTransactionLock:
         _safe_identifier(transaction_id)
-        self.migration_root.mkdir(parents=True, exist_ok=True, mode=0o700)
-        self.migration_root.chmod(0o700)
+        self.transaction_root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self.transaction_root.chmod(0o700)
         payload = {
             "transaction_id": transaction_id,
             "pid": os.getpid(),
@@ -51,7 +55,7 @@ class MigrationLockService:
         except FileExistsError as exc:
             status = self.status()
             raise ValueError(
-                f"P2P330_MIGRATION_LOCKED: workspace migration lock is {status.state} "
+                f"P2P_WORKSPACE_TRANSACTION_LOCKED: workspace transaction lock is {status.state} "
                 f"for transaction {status.transaction_id or 'unknown'}"
             ) from exc
         try:
@@ -61,12 +65,12 @@ class MigrationLockService:
         except Exception:
             os.close(descriptor)
             self.lock_path.unlink(missing_ok=True)
-            sync_directory(self.migration_root)
+            sync_directory(self.transaction_root)
             raise
         else:
             os.close(descriptor)
-            sync_directory(self.migration_root)
-        return MigrationLock(
+            sync_directory(self.transaction_root)
+        return WorkspaceTransactionLock(
             state=LOCK_ACTIVE,
             path=self._relative(self.lock_path),
             transaction_id=transaction_id,
@@ -75,37 +79,37 @@ class MigrationLockService:
             owner=owner,
         )
 
-    def status(self) -> MigrationLock:
+    def status(self) -> WorkspaceTransactionLock:
         if not self.lock_path.exists():
-            return MigrationLock(state=LOCK_ABSENT, path=self._relative(self.lock_path))
+            return WorkspaceTransactionLock(state=LOCK_ABSENT, path=self._relative(self.lock_path))
         try:
             payload = yaml.safe_load(self.lock_path.read_text(encoding="utf-8"))
         except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
-            return MigrationLock(
+            return WorkspaceTransactionLock(
                 state=LOCK_INVALID,
                 path=self._relative(self.lock_path),
-                message=f"Cannot parse migration lock: {exc}",
+                message=f"Cannot parse workspace transaction lock: {exc}",
             )
         if not isinstance(payload, dict):
-            return MigrationLock(
+            return WorkspaceTransactionLock(
                 state=LOCK_INVALID,
                 path=self._relative(self.lock_path),
-                message="Migration lock payload must be a mapping.",
+                message="Workspace transaction lock payload must be a mapping.",
             )
         transaction_id = str(payload.get("transaction_id") or "")
         pid = payload.get("pid")
         if not transaction_id or isinstance(pid, bool) or not isinstance(pid, int):
-            return MigrationLock(
+            return WorkspaceTransactionLock(
                 state=LOCK_INVALID,
                 path=self._relative(self.lock_path),
                 transaction_id=transaction_id,
-                message="Migration lock is missing transaction_id or pid.",
+                message="Workspace transaction lock is missing transaction_id or pid.",
             )
         transaction_dir = self.transactions_root / transaction_id
         state = LOCK_RECOVERY_OWNED if (transaction_dir / "journal.yml").exists() else (
             LOCK_ACTIVE if _pid_is_running(pid) else LOCK_STALE
         )
-        return MigrationLock(
+        return WorkspaceTransactionLock(
             state=state,
             path=self._relative(self.lock_path),
             transaction_id=transaction_id,
@@ -120,10 +124,11 @@ class MigrationLockService:
             return
         if status.transaction_id != transaction_id:
             raise ValueError(
-                f"Cannot release migration lock owned by transaction {status.transaction_id or 'unknown'}"
+                "Cannot release workspace transaction lock owned by transaction "
+                f"{status.transaction_id or 'unknown'}"
             )
         self.lock_path.unlink(missing_ok=False)
-        sync_directory(self.migration_root)
+        sync_directory(self.transaction_root)
 
     def require_write_available(self, operation: str, *, transaction_id: str = "") -> None:
         status = self.status()
@@ -132,8 +137,8 @@ class MigrationLockService:
         if transaction_id and status.transaction_id == transaction_id:
             return
         raise ValueError(
-            f"P2P331_GOVERNED_WRITE_BLOCKED_BY_MIGRATION: {operation} is blocked while "
-            f"workspace migration {status.transaction_id or 'unknown'} owns the write lock"
+            f"P2P_GOVERNED_WRITE_BLOCKED_BY_TRANSACTION: {operation} is blocked while "
+            f"workspace transaction {status.transaction_id or 'unknown'} owns the write lock"
         )
 
     def _relative(self, path: Path) -> str:
@@ -146,7 +151,7 @@ class DurableTransactionFilesystem:
         *,
         root: Path,
         p2p_dir: Path,
-        lock_service: MigrationLockService,
+        lock_service: WorkspaceTransactionLockService,
         allowed_repository_targets: tuple[str, ...] = (),
     ) -> None:
         self.root = root.resolve()
@@ -174,14 +179,14 @@ class DurableTransactionFilesystem:
         normalized = _normalize_target(relative, self.allowed_repository_targets)
         live = self.root / normalized
         if live.is_symlink():
-            raise ValueError(f"Migration target cannot be a symlink: {relative}")
+            raise ValueError(f"Workspace transaction target cannot be a symlink: {relative}")
         target = (self.root / normalized).resolve(strict=False)
         if normalized not in self.allowed_repository_targets and not target.is_relative_to(self.p2p_dir):
-            raise ValueError(f"Migration target escapes .p2p: {relative}")
+            raise ValueError(f"Workspace transaction target escapes .p2p: {relative}")
         current = live.parent
         while current != self.root and current != self.p2p_dir.parent:
             if current.is_symlink():
-                raise ValueError(f"Migration target parent cannot be a symlink: {relative}")
+                raise ValueError(f"Workspace transaction target parent cannot be a symlink: {relative}")
             if current == self.p2p_dir:
                 break
             current = current.parent
@@ -192,7 +197,7 @@ class DurableTransactionFilesystem:
         if not target.exists():
             return {"exists": False, "physical_sha256": None, "mode": None}
         if not target.is_file():
-            raise ValueError(f"Migration target must be a regular file: {relative}")
+            raise ValueError(f"Workspace transaction target must be a regular file: {relative}")
         content = target.read_bytes()
         original = transaction_dir / "originals" / relative
         write_bytes_atomic(original, content, mode=0o600)
@@ -251,14 +256,14 @@ class DurableTransactionFilesystem:
         try:
             value = yaml.safe_load(path.read_text(encoding="utf-8"))
         except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
-            raise ValueError(f"Cannot read migration transaction journal: {exc}") from exc
+            raise ValueError(f"Cannot read workspace transaction journal: {exc}") from exc
         if not isinstance(value, dict):
-            raise ValueError("Migration transaction journal must be a mapping")
+            raise ValueError("Workspace transaction journal must be a mapping")
         return value
 
     def cleanup(self, transaction_dir: Path) -> None:
         if not transaction_dir.resolve().is_relative_to(self.lock_service.transactions_root.resolve()):
-            raise ValueError("Refusing to clean a path outside migration transaction storage")
+            raise ValueError("Refusing to clean a path outside workspace transaction storage")
         shutil.rmtree(transaction_dir)
         sync_directory(transaction_dir.parent)
         try:
@@ -273,13 +278,16 @@ class AtomicMutationWriter:
         *,
         root: Path,
         p2p_dir: Path,
-        lock_service: MigrationLockService | None = None,
+        lock_service: WorkspaceTransactionLockService | None = None,
         failure_injector=None,
         allowed_repository_targets: tuple[str, ...] = (),
     ) -> None:
         self.root = root.resolve()
         self.p2p_dir = p2p_dir.resolve()
-        self.lock_service = lock_service or MigrationLockService(root=self.root, p2p_dir=self.p2p_dir)
+        self.lock_service = lock_service or WorkspaceTransactionLockService(
+            root=self.root,
+            p2p_dir=self.p2p_dir,
+        )
         self.filesystem = DurableTransactionFilesystem(
             root=self.root,
             p2p_dir=self.p2p_dir,
@@ -502,6 +510,310 @@ class AtomicMutationWriter:
             self.failure_injector(stage, target)
 
 
+class WorkspaceTransactionRecoveryService:
+    """Explicit recovery for interrupted current-schema atomic mutations."""
+
+    def __init__(
+        self,
+        *,
+        root: Path,
+        p2p_dir: Path,
+        lock_service: WorkspaceTransactionLockService | None = None,
+    ) -> None:
+        self.root = root.resolve()
+        self.p2p_dir = p2p_dir.resolve()
+        self.lock_service = lock_service or WorkspaceTransactionLockService(
+            root=self.root,
+            p2p_dir=self.p2p_dir,
+        )
+        self.filesystem = DurableTransactionFilesystem(
+            root=self.root,
+            p2p_dir=self.p2p_dir,
+            lock_service=self.lock_service,
+        )
+
+    def status(self) -> WorkspaceTransactionRecoveryStatus:
+        lock = self.lock_service.status()
+        transaction_ids = self._journal_transaction_ids()
+        if lock.state == LOCK_ABSENT and not transaction_ids:
+            return WorkspaceTransactionRecoveryStatus(
+                required=False,
+                lock=lock,
+                message="No workspace transaction recovery is required.",
+            )
+        if len(transaction_ids) > 1:
+            return WorkspaceTransactionRecoveryStatus(
+                required=True,
+                lock=lock,
+                journal_state="ambiguous",
+                message=(
+                    "Multiple interrupted workspace transactions were found: "
+                    + ", ".join(transaction_ids)
+                ),
+            )
+        transaction_id = lock.transaction_id or (transaction_ids[0] if transaction_ids else "")
+        journal_state = "unknown"
+        if transaction_id:
+            transaction_dir = self.lock_service.transactions_root / transaction_id
+            if (transaction_dir / "journal.yml").exists():
+                try:
+                    journal_state = str(self.filesystem.read_journal(transaction_dir).get("state") or "unknown")
+                except ValueError:
+                    journal_state = "invalid"
+        actions = ()
+        if transaction_id and journal_state not in {"invalid", "unknown"}:
+            actions = ("rollback", "resume")
+        elif transaction_id and lock.state == LOCK_STALE:
+            actions = ("rollback",)
+        return WorkspaceTransactionRecoveryStatus(
+            required=True,
+            lock=lock,
+            transaction_id=transaction_id,
+            journal_state=journal_state,
+            available_actions=actions,
+            message="An interrupted workspace transaction requires explicit recovery.",
+        )
+
+    def rollback(
+        self,
+        *,
+        transaction_id: str,
+        actor: str,
+        confirm: bool,
+    ) -> WorkspaceTransactionRecoveryResult:
+        blocked = self._validate_recovery_request(
+            transaction_id=transaction_id,
+            actor=actor,
+            confirm=confirm,
+        )
+        if blocked is not None:
+            return blocked
+        transaction_dir = self.lock_service.transactions_root / transaction_id
+        journal_path = transaction_dir / "journal.yml"
+        if not journal_path.exists():
+            lock = self.lock_service.status()
+            if lock.state == LOCK_STALE and lock.transaction_id == transaction_id:
+                self.lock_service.release(transaction_id)
+                if transaction_dir.exists():
+                    self.filesystem.cleanup(transaction_dir)
+                return WorkspaceTransactionRecoveryResult(
+                    status="rolled_back",
+                    transaction_id=transaction_id,
+                    message="Stale workspace transaction lock without a journal was removed.",
+                )
+            return WorkspaceTransactionRecoveryResult(
+                status="recovery_required",
+                transaction_id=transaction_id,
+                message="The workspace transaction journal is missing.",
+                recovery_required=True,
+            )
+        try:
+            journal = self.filesystem.read_journal(transaction_dir)
+            return self._rollback_journal(transaction_dir, journal)
+        except (OSError, ValueError) as exc:
+            return WorkspaceTransactionRecoveryResult(
+                status="recovery_required",
+                transaction_id=transaction_id,
+                message=str(exc),
+                recovery_required=True,
+            )
+
+    def resume(
+        self,
+        *,
+        transaction_id: str,
+        actor: str,
+        confirm: bool,
+    ) -> WorkspaceTransactionRecoveryResult:
+        blocked = self._validate_recovery_request(
+            transaction_id=transaction_id,
+            actor=actor,
+            confirm=confirm,
+        )
+        if blocked is not None:
+            return blocked
+        transaction_dir = self.lock_service.transactions_root / transaction_id
+        try:
+            journal = self.filesystem.read_journal(transaction_dir)
+            target_order = _journal_string_list(journal.get("target_order"), "target_order")
+            replaced = _journal_string_list(journal.get("replaced"), "replaced")
+            originals = _journal_mapping(journal.get("originals"), "originals")
+            candidates = _journal_mapping(journal.get("candidates"), "candidates")
+            for target in replaced:
+                candidate = _journal_mapping(candidates.get(target), f"candidates.{target}")
+                if physical_sha256(self.filesystem.target_path(target)) != candidate.get("physical_sha256"):
+                    raise ValueError(f"Already replaced target changed externally: {target}")
+            for target in target_order:
+                if target in replaced:
+                    continue
+                original = _journal_mapping(originals.get(target), f"originals.{target}")
+                expected = original.get("physical_sha256") if original.get("exists") else None
+                if physical_sha256(self.filesystem.target_path(target)) != expected:
+                    raise ValueError(f"Target preimage changed before replacement: {target}")
+                candidate = _journal_mapping(candidates.get(target), f"candidates.{target}")
+                if not candidate.get("delete"):
+                    content = self.filesystem.read_candidate(transaction_dir, target)
+                    if hashlib.sha256(content).hexdigest() != candidate.get("physical_sha256"):
+                        raise ValueError(f"Staged candidate hash changed: {target}")
+            changed: list[str] = []
+            for target in target_order:
+                if target in replaced:
+                    continue
+                original = _journal_mapping(originals.get(target), f"originals.{target}")
+                candidate = _journal_mapping(candidates.get(target), f"candidates.{target}")
+                if candidate.get("delete"):
+                    self.filesystem.remove_target(target)
+                else:
+                    mode = original.get("mode")
+                    self.filesystem.replace_target(
+                        target,
+                        self.filesystem.read_candidate(transaction_dir, target),
+                        mode=mode if isinstance(mode, int) else None,
+                    )
+                replaced.append(target)
+                changed.append(target)
+                journal["replaced"] = replaced
+                journal["state"] = "committing"
+                self.filesystem.write_journal(transaction_dir, journal)
+            journal["state"] = "committed"
+            self.filesystem.write_journal(transaction_dir, journal)
+            self.filesystem.cleanup(transaction_dir)
+            self.lock_service.release(transaction_id)
+            return WorkspaceTransactionRecoveryResult(
+                status="applied",
+                transaction_id=transaction_id,
+                changed_paths=tuple(changed),
+                message="Interrupted workspace transaction resumed and completed.",
+            )
+        except (OSError, ValueError) as exc:
+            return WorkspaceTransactionRecoveryResult(
+                status="recovery_required",
+                transaction_id=transaction_id,
+                message=str(exc),
+                recovery_required=True,
+            )
+
+    def _rollback_journal(
+        self,
+        transaction_dir: Path,
+        journal: dict[str, object],
+    ) -> WorkspaceTransactionRecoveryResult:
+        transaction_id = str(journal.get("transaction_id") or transaction_dir.name)
+        replaced = _journal_string_list(journal.get("replaced"), "replaced")
+        originals = _journal_mapping(journal.get("originals"), "originals")
+        candidates = _journal_mapping(journal.get("candidates"), "candidates")
+        restored: list[str] = []
+        blocked: list[str] = []
+        for target in reversed(replaced):
+            candidate = _journal_mapping(candidates.get(target), f"candidates.{target}")
+            if physical_sha256(self.filesystem.target_path(target)) != candidate.get("physical_sha256"):
+                blocked.append(target)
+                continue
+            original = _journal_mapping(originals.get(target), f"originals.{target}")
+            if original.get("exists"):
+                mode = original.get("mode")
+                self.filesystem.replace_target(
+                    target,
+                    self.filesystem.read_original(transaction_dir, target),
+                    mode=mode if isinstance(mode, int) else None,
+                )
+            else:
+                self.filesystem.remove_target(target)
+            restored.append(target)
+        if blocked:
+            journal["state"] = "recovery_required"
+            journal["rollback_blocked_targets"] = blocked
+            journal["restored"] = restored
+            self.filesystem.write_journal(transaction_dir, journal)
+            return WorkspaceTransactionRecoveryResult(
+                status="recovery_required",
+                transaction_id=transaction_id,
+                restored_paths=tuple(restored),
+                message="Rollback preserved externally changed targets: " + ", ".join(blocked),
+                recovery_required=True,
+            )
+        self.filesystem.cleanup(transaction_dir)
+        try:
+            self.lock_service.release(transaction_id)
+        except ValueError as exc:
+            return WorkspaceTransactionRecoveryResult(
+                status="recovery_required",
+                transaction_id=transaction_id,
+                restored_paths=tuple(restored),
+                message=f"Targets restored but lock cleanup requires recovery: {exc}",
+                recovery_required=True,
+            )
+        return WorkspaceTransactionRecoveryResult(
+            status="rolled_back",
+            transaction_id=transaction_id,
+            restored_paths=tuple(restored),
+            message="Workspace transaction replacements were rolled back completely.",
+        )
+
+    def _validate_recovery_request(
+        self,
+        *,
+        transaction_id: str,
+        actor: str,
+        confirm: bool,
+    ) -> WorkspaceTransactionRecoveryResult | None:
+        if not confirm or not transaction_id.strip() or not actor.strip():
+            return WorkspaceTransactionRecoveryResult(
+                status="blocked",
+                transaction_id=transaction_id,
+                message="Transaction id, actor and explicit confirmation are required.",
+                recovery_required=True,
+            )
+        recovery = self.status()
+        known = set(self._journal_transaction_ids())
+        if recovery.lock.transaction_id:
+            known.add(recovery.lock.transaction_id)
+        if transaction_id not in known:
+            return WorkspaceTransactionRecoveryResult(
+                status="blocked",
+                transaction_id=transaction_id,
+                message="Requested workspace recovery transaction is not active.",
+                recovery_required=recovery.required,
+            )
+        if not self._actor_authorized(actor, transaction_id):
+            return WorkspaceTransactionRecoveryResult(
+                status="blocked",
+                transaction_id=transaction_id,
+                message=f"Actor {actor} is not authorized to recover workspace transactions.",
+                recovery_required=True,
+            )
+        return None
+
+    def _actor_authorized(self, actor: str, transaction_id: str) -> bool:
+        permissions_path = self.p2p_dir / "project" / "permissions.yml"
+        if permissions_path.exists():
+            try:
+                from p2p_engine.services.permissions import PermissionsService
+
+                resolved = PermissionsService(
+                    root=self.root,
+                    p2p_dir=self.p2p_dir,
+                ).resolve_actor(actor)
+            except (OSError, UnicodeDecodeError, ValueError, yaml.YAMLError):
+                return False
+            return resolved.role == "owner"
+        transaction_dir = self.lock_service.transactions_root / transaction_id
+        try:
+            journal = self.filesystem.read_journal(transaction_dir)
+        except ValueError:
+            return self.lock_service.status().owner == actor
+        return str(journal.get("actor") or "") == actor
+
+    def _journal_transaction_ids(self) -> list[str]:
+        if not self.lock_service.transactions_root.exists():
+            return []
+        return sorted(
+            path.name
+            for path in self.lock_service.transactions_root.iterdir()
+            if path.is_dir() and (path / "journal.yml").exists()
+        )
+
+
 def physical_sha256(path: Path) -> str | None:
     if not path.exists():
         return None
@@ -516,15 +828,26 @@ def _normalize_target(
 ) -> str:
     pure = PurePosixPath(str(relative).replace("\\", "/"))
     if pure.is_absolute() or ".." in pure.parts or not pure.parts:
-        raise ValueError(f"Unsafe migration target: {relative}")
+        raise ValueError(f"Unsafe workspace transaction target: {relative}")
     normalized = pure.as_posix()
     if normalized.startswith("./"):
         normalized = normalized[2:]
     if normalized in allowed_repository_targets:
         return normalized
+    if _is_mutation_receipt_target(normalized):
+        return normalized
     if not normalized.startswith(".p2p/") or normalized.startswith(".p2p/.internal/"):
-        raise ValueError(f"Migration target is outside allowed canonical paths: {relative}")
+        raise ValueError(f"Workspace transaction target is outside allowed canonical paths: {relative}")
     return normalized
+
+
+_MUTATION_RECEIPT_TARGET = re.compile(
+    rf"^{re.escape(MUTATION_RECEIPT_ROOT)}/[0-9a-f]{{64}}\.yml$"
+)
+
+
+def _is_mutation_receipt_target(relative: str) -> bool:
+    return _MUTATION_RECEIPT_TARGET.fullmatch(relative) is not None
 
 
 def _normalize_repository_target(relative: str) -> str:
@@ -539,7 +862,19 @@ def _normalize_repository_target(relative: str) -> str:
 
 def _safe_identifier(value: str) -> None:
     if not value or any(character not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_" for character in value):
-        raise ValueError("Migration transaction id contains unsafe characters")
+        raise ValueError("Workspace transaction id contains unsafe characters")
+
+
+def _journal_mapping(value: object, field: str) -> dict[str, object]:
+    if not isinstance(value, dict):
+        raise ValueError(f"Workspace transaction journal field {field} must be a mapping")
+    return value
+
+
+def _journal_string_list(value: object, field: str) -> list[str]:
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        raise ValueError(f"Workspace transaction journal field {field} must be a string sequence")
+    return value
 
 
 def _pid_is_running(pid: int) -> bool:

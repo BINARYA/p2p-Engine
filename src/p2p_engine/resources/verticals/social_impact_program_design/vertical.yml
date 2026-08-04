@@ -1,11 +1,11 @@
 vertical:
-  schema_version: 1
+  schema_version: 2
   id: social_impact_program_design
   name: Social Impact Program Design
-  version: 1.0.0
+  version: 2.0.0
   description: Design social impact initiatives that are measurable, governed, credible,
     and connected to stakeholder needs.
-  extends: base_project
+  extends: binarya/base_project@2.0.0
   questions:
   - id: beneficiary_main
     section_id: beneficiary_communities

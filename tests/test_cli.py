@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import shutil
 import subprocess
 import sys
@@ -13,10 +12,23 @@ from p2p_engine import __version__ as P2P_ENGINE_VERSION
 from p2p_engine.cli import app
 from p2p_engine.foundation.markdown import read_frontmatter, replace_frontmatter
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.cli_assertions import cli_data
 from tests.filesystem_assertions import assert_no_workspace_mutation
 from tests.publication_fixtures import write_publication_candidates
 
 runner = CliRunner()
+
+
+def _make_runtime_undeclared_workspace(root: Path) -> Path:
+    workspace = P2PWorkspace(root)
+    workspace.init_project("Runtime undeclared", owner="owner")
+    project_path = root / ".p2p" / "project.yml"
+    payload = yaml.safe_load(project_path.read_text(encoding="utf-8"))
+    payload.pop("runtime_contract", None)
+    project_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    (root / ".p2p" / "project" / "runtime.yml").unlink()
+    (root / "P2P-SETUP.md").unlink()
+    return root / ".p2p"
 
 
 def test_cli_spec_export_help_classifies_software_spec_handoff() -> None:
@@ -65,7 +77,7 @@ def _apply_proposal_decision(
         [*base, "--format", "json", "--root", str(root)],
     )
     assert preview.exit_code == 0, preview.output
-    payload = json.loads(preview.output)
+    payload = cli_data(preview)
     request = payload["request"]
     mutation = payload["preview"]
     apply_arguments = [
@@ -143,7 +155,7 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert "p2p proposal questions next PROP-XXX" in agents
     assert "Project Vertical Orchestration" in agents
     assert "p2p project readiness review" in agents
-    assert "p2p project vertical propose" in agents
+    assert "p2p project vertical scaffold" in agents
     assert "Managed Git Collaboration" in agents
     assert "p2p sync status" in agents
     assert "p2p proposal publish PROP-XXX --auto-renumber" in agents
@@ -242,7 +254,7 @@ def test_cli_runtime_status_text_and_json(tmp_path: Path) -> None:
     json_result = runner.invoke(app, ["runtime", "status", "--format", "json", "--root", str(tmp_path)])
 
     assert json_result.exit_code == 0
-    payload = json.loads(json_result.output)
+    payload = cli_data(json_result)
     assert payload["state"] == "compatible"
     assert payload["contract_path"] == ".p2p/project/runtime.yml"
 
@@ -290,7 +302,7 @@ def test_cli_runtime_contract_preview_and_apply_json(tmp_path: Path) -> None:
     )
 
     assert preview.exit_code == 0
-    preview_payload = json.loads(preview.output)
+    preview_payload = cli_data(preview)
     assert preview_payload["status"] == "applicable"
     assert preview_payload["expected_state_token"]
 
@@ -315,7 +327,7 @@ def test_cli_runtime_contract_preview_and_apply_json(tmp_path: Path) -> None:
     )
 
     assert applied.exit_code == 0
-    apply_payload = json.loads(applied.output)
+    apply_payload = cli_data(applied)
     assert apply_payload["status"] == "updated"
     assert apply_payload["files_changed"] == ["P2P-SETUP.md", ".p2p/project/runtime.yml"]
     payload = yaml.safe_load(runtime_path.read_text(encoding="utf-8"))
@@ -350,12 +362,7 @@ def test_cli_runtime_contract_preview_text_output(tmp_path: Path) -> None:
 
 
 def test_cli_runtime_contract_adopt_json(tmp_path: Path) -> None:
-    p2p_dir = tmp_path / ".p2p"
-    p2p_dir.mkdir()
-    (p2p_dir / "project.yml").write_text(
-        yaml.safe_dump({"project": {"name": "Legacy Project"}}, sort_keys=False),
-        encoding="utf-8",
-    )
+    p2p_dir = _make_runtime_undeclared_workspace(tmp_path)
 
     result = runner.invoke(
         app,
@@ -376,7 +383,7 @@ def test_cli_runtime_contract_adopt_json(tmp_path: Path) -> None:
     )
 
     assert result.exit_code == 0
-    payload = json.loads(result.output)
+    payload = cli_data(result)
     assert payload["status"] == "adopted"
     assert payload["current_state"] == "legacy_undeclared"
     assert payload["files_changed"] == [".p2p/project/runtime.yml", "P2P-SETUP.md", ".p2p/project.yml"]
@@ -387,12 +394,7 @@ def test_cli_runtime_contract_adopt_json(tmp_path: Path) -> None:
 
 
 def test_cli_runtime_contract_adopt_text_requires_confirmation(tmp_path: Path) -> None:
-    p2p_dir = tmp_path / ".p2p"
-    p2p_dir.mkdir()
-    (p2p_dir / "project.yml").write_text(
-        yaml.safe_dump({"project": {"name": "Legacy Project"}}, sort_keys=False),
-        encoding="utf-8",
-    )
+    p2p_dir = _make_runtime_undeclared_workspace(tmp_path)
 
     result = runner.invoke(
         app,
@@ -417,12 +419,7 @@ def test_cli_runtime_contract_adopt_text_requires_confirmation(tmp_path: Path) -
 
 
 def test_cli_runtime_contract_adopt_blocks_unmanaged_setup_guide(tmp_path: Path) -> None:
-    p2p_dir = tmp_path / ".p2p"
-    p2p_dir.mkdir()
-    (p2p_dir / "project.yml").write_text(
-        yaml.safe_dump({"project": {"name": "Legacy Project"}}, sort_keys=False),
-        encoding="utf-8",
-    )
+    p2p_dir = _make_runtime_undeclared_workspace(tmp_path)
     (tmp_path / "P2P-SETUP.md").write_text("# Human setup\n", encoding="utf-8")
 
     result = runner.invoke(
@@ -444,7 +441,7 @@ def test_cli_runtime_contract_adopt_blocks_unmanaged_setup_guide(tmp_path: Path)
     )
 
     assert result.exit_code == 0
-    payload = json.loads(result.output)
+    payload = cli_data(result)
     assert payload["status"] == "blocked"
     assert payload["blocked_reason"] == "unmanaged_setup_guide"
     assert payload["files_changed"] == []
@@ -886,7 +883,7 @@ def test_cli_validate_valid_project_and_json_output(tmp_path: Path) -> None:
     result = runner.invoke(app, ["validate", "--format", "json", "--root", str(tmp_path)])
 
     assert result.exit_code == 0
-    payload = json.loads(result.output)
+    payload = cli_data(result)
     assert payload["ok"] is True
     assert payload["errors"] == 0
 
@@ -961,7 +958,7 @@ def test_cli_governance_policy_read_only_surfaces(tmp_path: Path) -> None:
     governance_validate = runner.invoke(app, ["governance", "validate", "--format", "json", "--root", str(tmp_path)])
 
     assert preflight.exit_code == 0
-    payload = json.loads(preflight.output)
+    payload = cli_data(preflight)
     assert payload["schema_version"] == "governance-preflight/v1"
     assert payload["vote_summary"]["alignment"] == "conflicts"
     assert "P2P_GOV_VOTE_CONFLICT" in [warning["code"] for warning in payload["warnings"]]
@@ -969,9 +966,9 @@ def test_cli_governance_policy_read_only_surfaces(tmp_path: Path) -> None:
     decision = tmp_path / ".p2p" / "choices" / "CHOICE-001-deployment-strategy" / "decision.md"
     assert "Pending." in decision.read_text(encoding="utf-8")
     assert vote_status.exit_code == 0
-    assert json.loads(vote_status.output)["winner"] == "A"
+    assert cli_data(vote_status)["winner"] == "A"
     assert governance_validate.exit_code == 0
-    assert json.loads(governance_validate.output)["ok"] is True
+    assert cli_data(governance_validate)["ok"] is True
     after = {
         path.relative_to(tmp_path): path.read_text(encoding="utf-8")
         for path in sorted((tmp_path / ".p2p").rglob("*"))
@@ -1016,11 +1013,11 @@ def test_cli_precedent_search_matches_explicit_fields_only(tmp_path: Path) -> No
     )
 
     assert explicit.exit_code == 0
-    assert [(item["precedent_id"], item["match_reason"]) for item in json.loads(explicit.output)["precedents"]] == [
+    assert [(item["precedent_id"], item["match_reason"]) for item in cli_data(explicit)["precedents"]] == [
         ("DP001", "related_choice")
     ]
     assert fuzzy.exit_code == 0
-    assert json.loads(fuzzy.output)["precedents"] == []
+    assert cli_data(fuzzy)["precedents"] == []
 
 
 def test_cli_validate_reports_invalid_yaml_as_error(tmp_path: Path) -> None:
@@ -1657,7 +1654,7 @@ def test_cli_context_target_limits_artifact_details(tmp_path: Path) -> None:
         ],
     )
     assert result.exit_code == 0
-    json_payload = json.loads(result.output)
+    json_payload = cli_data(result)
     assert json_payload["nearby_context"]["budget"] == "small"
     assert json_payload["nearby_context"]["schema_version"] == "decision-context-v1"
 
@@ -2135,7 +2132,7 @@ def test_cli_import_exploration_file_and_record_decision(tmp_path: Path) -> None
         ],
     )
     assert preview_result.exit_code == 0
-    preview = json.loads(preview_result.output)
+    preview = cli_data(preview_result)
     assert preview["status"] == "preview_required"
 
     request = preview["request"]
@@ -2163,7 +2160,7 @@ def test_cli_import_exploration_file_and_record_decision(tmp_path: Path) -> None
         ],
     )
     assert result.exit_code == 0
-    assert json.loads(result.output)["status"] == "applied"
+    assert cli_data(result)["status"] == "applied"
 
     decision = (
         tmp_path / ".p2p" / "proposals" / "PROP-001-decision-flow" / "decision.md"
@@ -2501,7 +2498,7 @@ def test_cli_proposal_accept_can_record_readiness_override(tmp_path: Path) -> No
         ],
     )
     assert preview.exit_code == 0, preview.output
-    assert json.loads(preview.output)["status"] == "preview_required"
+    assert cli_data(preview)["status"] == "preview_required"
     assert not readiness_path.exists()
 
     result = _apply_proposal_decision(
@@ -2512,7 +2509,7 @@ def test_cli_proposal_accept_can_record_readiness_override(tmp_path: Path) -> No
     )
     readiness = yaml.safe_load(readiness_path.read_text(encoding="utf-8"))["readiness"]
 
-    assert json.loads(result.output)["status"] == "applied"
+    assert cli_data(result)["status"] == "applied"
     assert readiness["status"] == "not_assessed"
     assert readiness["owner_override"] is True
     assert readiness["effective_status"] == "forced_ready"
@@ -2553,7 +2550,7 @@ def test_cli_proposal_decision_shortcuts(tmp_path: Path) -> None:
             ],
         )
         assert preview.exit_code == 0, preview.output
-        assert json.loads(preview.output)["status"] == "preview_required"
+        assert cli_data(preview)["status"] == "preview_required"
 
         applied = _apply_proposal_decision(
             tmp_path,
@@ -2561,7 +2558,7 @@ def test_cli_proposal_decision_shortcuts(tmp_path: Path) -> None:
             outcome=outcome,
             reason=reason,
         )
-        payload = json.loads(applied.output)
+        payload = cli_data(applied)
         assert payload["status"] == "applied"
         assert payload["lifecycle"]["effective_state"] == outcome
 

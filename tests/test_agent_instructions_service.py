@@ -55,15 +55,12 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
         policy["runtime_bootstrap"]["workspace_schema_status_command"]
         == "p2p workspace schema status"
     )
-    assert (
-        policy["runtime_bootstrap"]["workspace_migration_plan_command"]
-        == "p2p workspace migrate plan --to <version>"
-    )
+    assert policy["runtime_bootstrap"]["workspace_schema_policy"] == "current_only_v3"
     assert (
         policy["runtime_bootstrap"]["workspace_recovery_status_command"]
-        == "p2p workspace migrate recovery status"
+        == "p2p workspace transaction status"
     )
-    assert policy["runtime_bootstrap"]["workspace_migration_apply_surface"] == "owner_confirmed_cli_only"
+    assert policy["runtime_bootstrap"]["workspace_recovery_apply_surface"] == "owner_confirmed_cli_only"
     assert policy["runtime_bootstrap"]["manual_workspace_schema_repair"] == "forbidden"
     assert policy["runtime_bootstrap"]["legacy_undeclared"] == "warn_do_not_infer"
     assert policy["runtime_bootstrap"]["environment_mutation"] == "owner_explicit_action_required"
@@ -90,9 +87,8 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert "Project runtime compatibility is declared by `.p2p/project/runtime.yml`" in agents
     assert "p2p runtime status --format json" in agents
     assert "p2p workspace schema status" in agents
-    assert "p2p workspace migrate plan --to <version>" in agents
-    assert "p2p workspace migrate recovery status" in agents
-    assert "migration locks, journals or candidates by hand" in agents
+    assert "p2p workspace transaction status" in agents
+    assert "transaction locks, journals or candidates by hand" in agents
     assert "do not infer compatibility for `legacy_undeclared` projects" in agents
     assert "ask the owner for explicit environment action" in agents
     assert "Proposal Decision Lifecycle" in agents

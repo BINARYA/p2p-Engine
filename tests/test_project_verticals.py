@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import shutil
 from dataclasses import replace
 from importlib import resources
@@ -19,6 +18,7 @@ from p2p_engine.services.project_verticals import (
 )
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.cli_assertions import cli_data
 from tests.proposal_decision_fixtures import record_decision
 
 runner = CliRunner()
@@ -29,17 +29,22 @@ def _write_canonical_pack(root: Path, *, vertical_id: str = "custom_vertical", n
     (pack / "sections").mkdir(parents=True)
     pack.joinpath("manifest.yml").write_text(
         "manifest:\n"
-        "  schema_version: 1\n"
+        "  schema_version: 2\n"
+        "  publisher: test\n"
         f"  id: {vertical_id}\n"
         f"  name: {name}\n"
         "  version: 1.0.0\n"
-        "  publisher: test\n"
-        "  compatibility:\n"
-        "    p2p_min_version: 0.0.0\n",
+        "  license: MIT\n"
+        "  source: test\n"
+        "  extends: null\n"
+        "  lineage: {}\n"
+        "  dependencies: []\n"
+        "  compatibility: {}\n",
         encoding="utf-8",
     )
     pack.joinpath("vertical.yml").write_text(
         "vertical:\n"
+        "  schema_version: 2\n"
         f"  id: {vertical_id}\n"
         f"  name: {name}\n"
         "  version: 1.0.0\n"
@@ -88,6 +93,38 @@ def _write_canonical_pack(root: Path, *, vertical_id: str = "custom_vertical", n
     return pack
 
 
+def _install_pack(workspace: P2PWorkspace, pack: Path, *, actor: str = "owner") -> str:
+    artifact = pack.parent / f"{pack.name}.p2pv"
+    packaged = workspace.package_portable_vertical(pack, output=artifact)
+    preview = workspace.preview_portable_vertical_install(
+        artifact,
+        expected_checksum=packaged.artifact_checksum,
+        actor=actor,
+    )
+    result = workspace.apply_portable_vertical_install(
+        artifact,
+        expected_checksum=packaged.artifact_checksum,
+        preview_token=preview.preview.preview_token,
+        confirmed=True,
+        actor=actor,
+        idempotency_key=f"install:{packaged.artifact_checksum}",
+    )
+    assert result.mutation.status == "applied"
+    return packaged.coordinate
+
+
+def _adopt_pack(workspace: P2PWorkspace, coordinate: str, *, actor: str = "owner") -> None:
+    preview = workspace.preview_project_vertical_adoption(coordinate, actor=actor)
+    result = workspace.apply_project_vertical_adoption(
+        coordinate,
+        preview_token=preview.preview.preview_token,
+        confirmed=True,
+        actor=actor,
+        idempotency_key=f"adopt:{coordinate}",
+    )
+    assert result.mutation.status == "applied"
+
+
 def _active_vertical_payload(vertical_id: str) -> str:
     return (
         "project_vertical:\n"
@@ -113,29 +150,29 @@ def test_project_verticals_list_internal_packs_and_fallback_base(tmp_path: Path)
     assert {"base_project", "packaging_or_physical_product_design", "social_impact_program_design", "software_project"} <= ids
 
 
-def test_bundled_vertical_seed_semantics_match_preconversion_baseline(
+def test_bundled_vertical_seed_semantics_match_schema_v2_baseline(
     tmp_path: Path,
 ) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Bundled vertical baseline")
     expected = {
         "base_project": (
-            "c49eb35d4205ee3b4f3f265568d7e82cf475d4c8d8393e6366d443e0ce07b0e3",
+            "d53a537905b980ec40ae3df3be1c6e7a79a7ff6d98a6f09e91d79b2a582b5c88",
             10,
             6,
         ),
         "software_project": (
-            "aa9fd9691890053c2abf390853b920c43b1b29160169f39539ac9f0fc7ad6d67",
+            "15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13",
             19,
             15,
         ),
         "social_impact_program_design": (
-            "9728a54a9a01fdaaf16743c58f3f04cc621ebdee5dd73fc71a237011e9e5c26b",
+            "9552f2c980a62566800a2423d79027ed69f285b2d3063b9f3517f7c4132f7c7b",
             17,
             10,
         ),
         "packaging_or_physical_product_design": (
-            "bd8819f923781bde2cbd879b47dcc5b1fcf9d1ae2787e714cec55614182fc864",
+            "088c4d9cedcce08a3c8855732a454cb71197e02e286a9a506bd93f66a0b92831",
             17,
             10,
         ),
@@ -161,7 +198,12 @@ def test_bundled_vertical_seeds_use_clean_canonical_layout(
     ):
         pack = workspace.show_project_vertical(vertical_id)
         validation = workspace.validate_project_vertical(vertical_id)
+        coordinate = f"binarya/{vertical_id}@2.0.0"
         assert pack.path is not None and pack.path.name == "manifest.yml"
+        assert pack.schema_version == 2
+        assert pack.coordinate == coordinate
+        assert pack.manifest is not None
+        assert pack.manifest.license_id == "Apache-2.0"
         assert validation.valid is True
         assert validation.issues == []
 
@@ -171,6 +213,19 @@ def test_bundled_vertical_seeds_use_clean_canonical_layout(
         assert "rubrics" not in payload["vertical"]
         assert (pack.path.parent / "rubrics.yml").is_file()
         assert any((pack.path.parent / "sections").glob("*.yml"))
+
+        first = workspace.package_portable_vertical(
+            pack.path.parent,
+            output=tmp_path / f"{vertical_id}-first.p2pv",
+        )
+        second = workspace.package_portable_vertical(
+            pack.path.parent,
+            output=tmp_path / f"{vertical_id}-second.p2pv",
+        )
+        assert first.coordinate == coordinate
+        assert first.artifact_checksum == second.artifact_checksum
+        assert first.semantic_checksum == second.semantic_checksum
+        assert first.path.read_bytes() == second.path.read_bytes()
 
 
 @pytest.mark.parametrize("vertical_id", ["base_project", "software_project"])
@@ -274,66 +329,92 @@ def test_project_vertical_show_composes_base_project_sections(tmp_path: Path) ->
     pack = workspace.show_project_vertical("social_impact_program_design")
     section_ids = [section.section_id for section in pack.sections]
 
-    assert pack.extends == "base_project"
+    assert pack.extends == "binarya/base_project@2.0.0"
     assert "vision" in section_ids
     assert "theory_of_change" in section_ids
 
 
-def test_project_vertical_candidate_can_be_added_and_selected(tmp_path: Path) -> None:
+def test_schema_one_vertical_candidate_is_rejected_without_project_mutation(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Vertical Demo")
-    candidate = workspace.propose_project_vertical("progettare la scatola perfetta")
     candidate_path = tmp_path / "candidate.yml"
-    candidate_path.write_text(candidate.yaml_text, encoding="utf-8")
+    candidate_path.write_text(
+        "vertical_candidate:\n"
+        "  schema_version: 1\n"
+        "  candidate:\n"
+        "    id: retired_candidate\n"
+        "    name: Retired Candidate\n",
+        encoding="utf-8",
+    )
+    project_before = {
+        path.relative_to(tmp_path).as_posix(): path.read_bytes()
+        for path in tmp_path.joinpath(".p2p").rglob("*")
+        if path.is_file()
+    }
 
-    added = workspace.add_project_vertical(candidate_path, activate=True, actor="owner")
-    active = workspace.active_project_vertical()
+    validation = workspace.validate_project_vertical(str(candidate_path))
 
-    assert added.vertical_id == "packaging_or_physical_product_design"
-    assert added.activated is True
-    assert active.vertical_id == "packaging_or_physical_product_design"
-    assert active.source == "project_local"
-    assert active.fallback_used is False
+    assert validation.valid is False
+    assert "P2P_VERTICAL_CANONICAL_LAYOUT_REQUIRED" in validation.issues[0].message
+    project_after = {
+        path.relative_to(tmp_path).as_posix(): path.read_bytes()
+        for path in tmp_path.joinpath(".p2p").rglob("*")
+        if path.is_file()
+    }
+    assert project_after == project_before
 
 
-def test_project_vertical_project_local_pack_overrides_internal(tmp_path: Path) -> None:
-    workspace = P2PWorkspace(tmp_path)
+def test_schema_one_canonical_pack_reports_stable_unsupported_schema_code(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path / "project")
+    workspace.init_project("Current vertical runtime")
+    pack = _write_canonical_pack(tmp_path / "packs", vertical_id="retired_schema")
+    for name, root_key in (("manifest.yml", "manifest"), ("vertical.yml", "vertical")):
+        path = pack / name
+        payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+        payload[root_key]["schema_version"] = 1
+        path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+
+    result = workspace.validate_project_vertical(str(pack))
+
+    assert result.valid is False
+    assert result.issues[0].code == "P2P_VERTICAL_UNSUPPORTED_SCHEMA"
+
+
+def test_project_vertical_requires_exact_coordinate_when_releases_are_ambiguous(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path / "project")
     workspace.init_project("Vertical Demo")
-    candidate = workspace.propose_project_vertical("progettare la scatola perfetta")
-    payload = yaml.safe_load(candidate.yaml_text)
-    payload["vertical_candidate"]["candidate"]["name"] = "Local Packaging Override"
-    candidate_path = tmp_path / "candidate.yml"
-    candidate_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    first = _write_canonical_pack(tmp_path / "packs-v1", vertical_id="shared_demo")
+    second = _write_canonical_pack(tmp_path / "packs-v2", vertical_id="shared_demo")
+    second_manifest = yaml.safe_load((second / "manifest.yml").read_text(encoding="utf-8"))
+    second_vertical = yaml.safe_load((second / "vertical.yml").read_text(encoding="utf-8"))
+    second_manifest["manifest"]["version"] = "2.0.0"
+    second_vertical["vertical"]["version"] = "2.0.0"
+    (second / "manifest.yml").write_text(yaml.safe_dump(second_manifest, sort_keys=False), encoding="utf-8")
+    (second / "vertical.yml").write_text(yaml.safe_dump(second_vertical, sort_keys=False), encoding="utf-8")
+    first_coordinate = _install_pack(workspace, first)
+    second_coordinate = _install_pack(workspace, second)
 
-    workspace.add_project_vertical(candidate_path)
-    pack = workspace.show_project_vertical("packaging_or_physical_product_design")
+    with pytest.raises(ValueError, match="P2P_VERTICAL_AMBIGUOUS_REFERENCE"):
+        workspace.show_project_vertical("shared_demo")
 
-    assert pack.name == "Local Packaging Override"
-    assert pack.source == "project_local"
+    assert workspace.show_project_vertical(first_coordinate).version == "1.0.0"
+    assert workspace.show_project_vertical(second_coordinate).version == "2.0.0"
 
 
 def test_project_vertical_validation_reports_duplicate_ids(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Vertical Demo")
-    invalid_path = tmp_path / "invalid.yml"
-    invalid_path.write_text(
-        "vertical:\n"
-        "  schema_version: 1\n"
-        "  id: duplicate_demo\n"
-        "  name: Duplicate Demo\n"
-        "  version: 1.0.0\n"
-        "  description: Invalid duplicate section demo.\n"
-        "  sections:\n"
-        "    - {id: same, title: Same, purpose: First}\n"
-        "    - {id: same, title: Same Again, purpose: Second}\n"
-        "  rubrics:\n"
-        "    - {id: coverage, title: Coverage, section_id: same}\n"
-        "  questions:\n"
-        "    - {id: question, section_id: same, question: 'What is needed?'}\n"
-        "  artifacts:\n"
-        "    - {id: brief, title: Brief, section_ids: [same]}\n",
-        encoding="utf-8",
+    invalid_path = _write_canonical_pack(
+        tmp_path / "packs",
+        vertical_id="duplicate_demo",
+        name="Duplicate Demo",
     )
+    duplicate = invalid_path / "sections" / "intent-copy.yml"
+    duplicate.write_bytes((invalid_path / "sections" / "intent.yml").read_bytes())
 
     result = workspace.validate_project_vertical(str(invalid_path))
 
@@ -346,35 +427,21 @@ def test_project_vertical_validation_rejects_invalid_question_binding_metadata(
 ) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Vertical Question Contract")
-    invalid_path = tmp_path / "invalid-question-contract.yml"
-    invalid_path.write_text(
-        "vertical:\n"
-        "  schema_version: 1\n"
-        "  id: invalid_question_contract\n"
-        "  name: Invalid Question Contract\n"
-        "  version: 1.0.0\n"
-        "  description: Invalid question metadata fixture.\n"
-        "  sections:\n"
-        "    - id: intent\n"
-        "      title: Intent\n"
-        "      purpose: Define intent.\n"
-        "      fields:\n"
-        "        - {id: summary, label: Summary}\n"
-        "  rubrics:\n"
-        "    - {id: coverage, title: Coverage, section_id: intent}\n"
-        "  questions:\n"
-        "    - id: question\n"
-        "      section_id: intent\n"
-        "      question: What is needed?\n"
-        "      target: {kind: field, id: missing}\n"
-        "      answer_contract:\n"
-        "        kind: field_value\n"
-        "        required_fields: [value]\n"
-        "        allowed_definition_operations: [unsafe_operation]\n"
-        "  artifacts:\n"
-        "    - {id: brief, title: Brief, section_ids: [intent]}\n",
-        encoding="utf-8",
+    invalid_path = _write_canonical_pack(
+        tmp_path / "packs",
+        vertical_id="invalid_question_contract",
+        name="Invalid Question Contract",
     )
+    vertical_path = invalid_path / "vertical.yml"
+    payload = yaml.safe_load(vertical_path.read_text(encoding="utf-8"))
+    question = payload["vertical"]["questions"][0]
+    question["target"] = {"kind": "field", "id": "missing"}
+    question["answer_contract"] = {
+        "kind": "field_value",
+        "required_fields": ["value"],
+        "allowed_definition_operations": ["unsafe_operation"],
+    }
+    vertical_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
 
     result = workspace.validate_project_vertical(str(invalid_path))
 
@@ -500,13 +567,12 @@ def test_project_vertical_cli_and_validation_flow(tmp_path: Path) -> None:
     assert validated.exit_code == 0
     assert "Project vertical valid" in validated.output
 
-    proposed = runner.invoke(
+    retired = runner.invoke(
         app,
         ["project", "vertical", "propose", "progettare la scatola perfetta", "--root", str(tmp_path)],
     )
-    assert proposed.exit_code == 0
-    assert "Custom vertical candidate" in proposed.output
-    assert "packaging_or_physical_product_design" in proposed.output
+    assert retired.exit_code == 2
+    assert "No such command 'propose'" in retired.output
 
     review = runner.invoke(app, ["project", "readiness", "review", "--root", str(tmp_path)])
     assert review.exit_code == 0
@@ -567,14 +633,15 @@ def test_project_vertical_multifile_pack_normalizes_and_can_be_selected(tmp_path
     pack = _write_canonical_pack(tmp_path / "packs", vertical_id="canonical_demo", name="Canonical Demo")
 
     validation = workspace.validate_project_vertical(str(pack))
-    added = workspace.add_project_vertical(pack, activate=True, actor="owner")
-    shown = workspace.show_project_vertical("canonical_demo")
+    coordinate = _install_pack(workspace, pack)
+    _adopt_pack(workspace, coordinate)
+    shown = workspace.show_project_vertical(coordinate)
     lock = workspace.project_vertical_lock_status()
     definition = workspace.project_definition_view()
 
     assert validation.valid is True
-    assert added.vertical_id == "canonical_demo"
     assert shown.sections[0].fields[0].field_id == "summary"
+    assert workspace.active_project_vertical().coordinate == coordinate
     assert lock.status == "valid"
     assert definition.exists is True
     assert definition.state is not None
@@ -644,7 +711,7 @@ def test_canonical_vertical_pack_rejects_duplicate_split_section_ids(
     assert any("duplicate id" in issue.message for issue in validation.issues)
 
 
-def test_project_vertical_resolver_precedence_for_installed_and_project_local(
+def test_project_vertical_resolver_rejects_semantic_conflicts_without_precedence(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -665,10 +732,14 @@ def test_project_vertical_resolver_precedence_for_installed_and_project_local(
     assert user_pack.exists()
     assert p2p_home_pack.exists()
     assert project_pack.exists()
-    assert workspace.show_project_vertical("shared_demo").name == "Project Pack"
+    with pytest.raises(ValueError, match="P2P_VERTICAL_COORDINATE_CONFLICT"):
+        workspace.show_project_vertical("shared_demo")
+    with pytest.raises(ValueError, match="P2P_VERTICAL_COORDINATE_CONFLICT"):
+        workspace.show_project_vertical("test/shared_demo@1.0.0")
 
     shutil.rmtree(project_pack)
-    assert workspace.show_project_vertical("shared_demo").name == "P2P Home Pack"
+    with pytest.raises(ValueError, match="P2P_VERTICAL_COORDINATE_CONFLICT"):
+        workspace.show_project_vertical("shared_demo")
 
     monkeypatch.delenv("P2P_HOME")
     assert workspace.show_project_vertical("shared_demo").name == "User Pack"
@@ -760,7 +831,7 @@ def test_vertical_migration_requires_explicit_rubric_collision_mapping_and_prese
         vertical_id="rubric_migration",
         name="Rubric Migration",
     )
-    workspace.add_project_vertical(pack)
+    coordinate = _install_pack(workspace, pack)
     rubrics_path = tmp_path / ".p2p" / "project" / "rubrics.yml"
     rubrics_path.write_text(
         yaml.safe_dump(
@@ -786,10 +857,10 @@ def test_vertical_migration_requires_explicit_rubric_collision_mapping_and_prese
     service = workspace._project_vertical_service()
 
     with pytest.raises(ValueError, match="collides semantically"):
-        service.render_migration_candidate("rubric_migration", actor="owner")
+        service.render_migration_candidate(coordinate, actor="owner")
 
     candidate = service.render_migration_candidate(
-        "rubric_migration",
+        coordinate,
         actor="owner",
         rubric_mapping={"intent_quality": "intent_quality"},
     )
@@ -887,11 +958,11 @@ def test_project_vertical_cli_json_lock_context_sections_and_definition(tmp_path
     lock = runner.invoke(app, ["project", "vertical", "lock", "show", "--format", "json", "--root", str(tmp_path)])
 
     assert listed.exit_code == 0
-    assert json.loads(listed.output)["active"]["vertical_id"] == "base_project"
-    assert json.loads(context.output)["project_context"]["lock_status"]["status"] == "valid"
-    assert json.loads(sections.output)["sections"][0]["section_id"] == "vision"
-    assert json.loads(definition.output)["definition"]["exists"] is True
-    assert json.loads(lock.output)["lock_status"]["status"] == "valid"
+    assert cli_data(listed)["active"]["vertical_id"] == "base_project"
+    assert cli_data(context)["project_context"]["lock_status"]["status"] == "valid"
+    assert cli_data(sections)["sections"][0]["section_id"] == "vision"
+    assert cli_data(definition)["definition"]["exists"] is True
+    assert cli_data(lock)["lock_status"]["status"] == "valid"
 
 
 def test_visible_export_includes_vertical_lock_and_definition_summary(tmp_path: Path) -> None:

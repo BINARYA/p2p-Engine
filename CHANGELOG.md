@@ -6,6 +6,47 @@ This project is early-stage and did not previously maintain a public changelog.
 Use this file for human-readable release notes as the repository moves toward
 tagged releases.
 
+## 0.4.6 - Unreleased
+
+- Converted all four bundled verticals to schema 2 with exact
+  `binarya/...@2.0.0` coordinates, licenses and checksum-bound structural
+  dependencies.
+- Added `p2p version` with distinct engine, CLI, workspace, vertical-pack and
+  portable-package contract versions.
+- Added the initial top-level `p2p vertical` local catalog and registry
+  configuration commands using project-external `P2P_HOME`/platform storage,
+  HTTPS validation and no implicit network access.
+- Applied the shared `p2p-cli/v1` success/error envelope to all 109 commands
+  supporting JSON, with command-path operation IDs, JSON parser failures and
+  stable exit classes for invalid requests, conflicts, authorization and
+  unavailable dependencies.
+- Added caller-keyed idempotency for vertical install, adopt and migrate apply,
+  with hashed durable receipts committed in the same atomic transaction, exact
+  replay, conflict/drift detection and redacted `p2p mutation status` recovery
+  lookup.
+- Made vertical-pack schema 2 and workspace schema 3 the only runtime-supported
+  contracts. Removed schema-1 pack loading, flat candidate add/propose flows,
+  workspace conversion services, migration CLI commands, and migration MCP
+  planning.
+- Added stable `P2P_VERTICAL_UNSUPPORTED_SCHEMA` and
+  `P2P_WORKSPACE_UNSUPPORTED_SCHEMA` failures with no-write behavior for
+  unsupported contracts.
+- Retained atomic governed-write safety as schema-independent workspace
+  transaction infrastructure under `.p2p/.internal/workspace-transactions/`,
+  with explicit owner-confirmed CLI status, rollback, and resume commands.
+- Converted the canonical P2P Engine project to
+  `binarya/software_project@2.0.0` and workspace schema 3 while preserving its
+  project-definition evidence and historical schema audit records.
+- WaveKit must rebuild its P2P worker image for 0.4.6 and recreate disposable
+  development/test workspaces that use an older workspace or pack schema.
+- Added provider-neutral remote search, pull, OAuth device authentication,
+  immutable user caching and authenticated exact-artifact publication.
+- Added normalized vertical drafts with optimistic updates, explicit fork,
+  previous-release and structural lineage, atomic materialization, bound
+  validation/package evidence, immutable local add and WaveKit JSON fixtures.
+- Added stable no-section installation and proposal-target guards shared by
+  CLI and MCP, plus deterministic bundled-pack and 0.4.6 wheel/sdist checks.
+
 ## 0.4.5 - 2026-08-02
 
 - Corrected portable vertical resolution so valid hyphenated schema-v2 IDs

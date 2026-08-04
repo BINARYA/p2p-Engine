@@ -172,7 +172,6 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_plan_import",
         "p2p_tasks_import",
         "p2p_workspace_schema_status",
-        "p2p_workspace_migration_plan",
         "p2p_project_status",
         "p2p_project_interaction_style_show",
         "p2p_project_interaction_style_set",
@@ -221,8 +220,6 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_project_vertical_list",
         "p2p_project_vertical_show",
         "p2p_project_vertical_validate",
-        "p2p_project_vertical_propose",
-        "p2p_project_vertical_add",
         "p2p_project_vertical_select",
         "p2p_project_vertical_lock_show",
         "p2p_project_vertical_lock_repair",
@@ -635,12 +632,6 @@ def test_mcp_project_vertical_and_readiness_tools(tmp_path: Path) -> None:
 
     validation = call_tool("p2p_project_vertical_validate", {"root": str(tmp_path), "target": "base_project"})
     assert validation["validation"]["valid"] is True
-
-    candidate = call_tool(
-        "p2p_project_vertical_propose",
-        {"root": str(tmp_path), "idea": "progettare la scatola perfetta"},
-    )
-    assert candidate["candidate"]["pack"]["vertical_id"] == "packaging_or_physical_product_design"
 
     selected = call_tool(
         "p2p_project_vertical_select",

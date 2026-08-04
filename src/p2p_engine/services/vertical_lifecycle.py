@@ -7,7 +7,13 @@ from pathlib import Path
 import re
 from typing import Mapping
 
-from p2p_engine.core.mutation_preview import MutationPreviewService, semantic_sha256, source_precondition
+from p2p_engine.core.mutation_preview import (
+    MutationPreviewService,
+    MutationResult,
+    semantic_sha256,
+    source_precondition,
+)
+from p2p_engine.core.mutation_receipts import MutationReceipt
 from p2p_engine.core.portable_verticals import (
     VerticalLifecyclePreview,
     VerticalLifecycleResult,
@@ -28,6 +34,7 @@ from p2p_engine.services.project_verticals import (
     project_definition_state_from_payload,
     project_definition_state_payload,
 )
+from p2p_engine.services.mutation_receipts import MutationReceiptService
 from p2p_engine.services.vertical_packages import (
     PortableVerticalPackageService,
     normalize_expected_checksum,
@@ -44,12 +51,17 @@ class VerticalLifecycleService:
         vertical_service: ProjectVerticalService,
         package_service: PortableVerticalPackageService,
         atomic_writer: AtomicMutationWriter | None = None,
+        receipt_service: MutationReceiptService | None = None,
     ) -> None:
         self.root = root.resolve()
         self.p2p_dir = p2p_dir.resolve()
         self.vertical_service = vertical_service
         self.package_service = package_service
         self.atomic_writer = atomic_writer or AtomicMutationWriter(root=self.root, p2p_dir=self.p2p_dir)
+        self.receipt_service = receipt_service or MutationReceiptService(
+            root=self.root,
+            p2p_dir=self.p2p_dir,
+        )
 
     def install_preview(
         self,
@@ -136,14 +148,38 @@ class VerticalLifecycleService:
         preview_token: str,
         confirmed: bool,
         actor: str,
+        idempotency_key: str,
     ) -> VerticalLifecycleResult:
         self._require_confirmation(confirmed)
+        expected = normalize_expected_checksum(expected_checksum)
+        artifact_path = artifact if artifact.is_absolute() else self.root / artifact
+        fingerprint = self.receipt_service.fingerprint(
+            operation="install",
+            actor=actor,
+            preview_token=preview_token,
+            semantic_inputs={
+                "artifact": artifact_path.resolve(strict=False).as_posix(),
+                "expected_checksum": expected,
+            },
+        )
+        replay = self.receipt_service.replay(
+            idempotency_key=idempotency_key,
+            request_fingerprint_sha256=fingerprint,
+        )
+        if replay is not None:
+            return self._replayed_result(replay, preview_token=preview_token)
         preview = self.install_preview(
             artifact,
-            expected_checksum=expected_checksum,
+            expected_checksum=expected,
             actor=actor,
         )
-        return self._apply_preview(preview, preview_token=preview_token, actor=actor)
+        return self._apply_preview(
+            preview,
+            preview_token=preview_token,
+            actor=actor,
+            idempotency_key=idempotency_key,
+            request_fingerprint_sha256=fingerprint,
+        )
 
     def adopt_preview(
         self,
@@ -189,17 +225,42 @@ class VerticalLifecycleService:
         preview_token: str,
         confirmed: bool,
         actor: str,
+        idempotency_key: str,
         profile: str = "default",
         modules: list[str] | None = None,
     ) -> VerticalLifecycleResult:
         self._require_confirmation(confirmed)
+        coordinate = str(VerticalCoordinate.parse(reference))
+        normalized_modules = sorted(str(item) for item in (modules or []))
+        fingerprint = self.receipt_service.fingerprint(
+            operation="adopt",
+            actor=actor,
+            preview_token=preview_token,
+            semantic_inputs={
+                "coordinate": coordinate,
+                "profile": str(profile),
+                "modules": normalized_modules,
+            },
+        )
+        replay = self.receipt_service.replay(
+            idempotency_key=idempotency_key,
+            request_fingerprint_sha256=fingerprint,
+        )
+        if replay is not None:
+            return self._replayed_result(replay, preview_token=preview_token)
         preview = self.adopt_preview(
-            reference,
+            coordinate,
             actor=actor,
             profile=profile,
             modules=modules,
         )
-        return self._apply_preview(preview, preview_token=preview_token, actor=actor)
+        return self._apply_preview(
+            preview,
+            preview_token=preview_token,
+            actor=actor,
+            idempotency_key=idempotency_key,
+            request_fingerprint_sha256=fingerprint,
+        )
 
     def migrate_preview(
         self,
@@ -258,19 +319,50 @@ class VerticalLifecycleService:
         preview_token: str,
         confirmed: bool,
         actor: str,
+        idempotency_key: str,
         mapping: Mapping[str, object] | None = None,
         profile: str = "default",
         modules: list[str] | None = None,
     ) -> VerticalLifecycleResult:
         self._require_confirmation(confirmed)
-        preview = self.migrate_preview(
-            reference,
+        coordinate = str(VerticalCoordinate.parse(reference))
+        field_mapping, rubric_mapping = _parse_mapping(mapping or {})
+        normalized_modules = sorted(str(item) for item in (modules or []))
+        fingerprint = self.receipt_service.fingerprint(
+            operation="migrate",
             actor=actor,
-            mapping=mapping,
+            preview_token=preview_token,
+            semantic_inputs={
+                "coordinate": coordinate,
+                "field_mapping": field_mapping,
+                "rubric_mapping": rubric_mapping,
+                "profile": str(profile),
+                "modules": normalized_modules,
+            },
+        )
+        replay = self.receipt_service.replay(
+            idempotency_key=idempotency_key,
+            request_fingerprint_sha256=fingerprint,
+        )
+        if replay is not None:
+            return self._replayed_result(replay, preview_token=preview_token)
+        preview = self.migrate_preview(
+            coordinate,
+            actor=actor,
+            mapping={
+                "field_mapping": field_mapping,
+                "rubric_mapping": rubric_mapping,
+            },
             profile=profile,
             modules=modules,
         )
-        return self._apply_preview(preview, preview_token=preview_token, actor=actor)
+        return self._apply_preview(
+            preview,
+            preview_token=preview_token,
+            actor=actor,
+            idempotency_key=idempotency_key,
+            request_fingerprint_sha256=fingerprint,
+        )
 
     def _governed_preview(
         self,
@@ -310,6 +402,8 @@ class VerticalLifecycleService:
         *,
         preview_token: str,
         actor: str,
+        idempotency_key: str,
+        request_fingerprint_sha256: str,
     ) -> VerticalLifecycleResult:
         if preview.blockers or preview.preview is None:
             raise ValueError(
@@ -317,20 +411,81 @@ class VerticalLifecycleService:
             )
         if preview.preview.preview_token != preview_token:
             raise ValueError("P2P_VERTICAL_STALE_PREVIEW: preview token does not match current state")
+        result_summary = {
+            "operation": preview.operation,
+            "operation_id": preview.preview.operation_id,
+            "coordinate": preview.coordinate,
+            "changed_paths": sorted(preview.candidate_files),
+        }
+        receipt_path, receipt_content, _receipt = self.receipt_service.prepare(
+            idempotency_key=idempotency_key,
+            operation=preview.operation,
+            actor=actor,
+            request_fingerprint_sha256=request_fingerprint_sha256,
+            preview_token=preview_token,
+            result=result_summary,
+            candidates=preview.candidate_files,
+        )
+        candidates: dict[str, bytes | None] = {
+            **preview.candidate_files,
+            receipt_path: receipt_content,
+        }
+        sources = (
+            *preview.preview.source_preconditions,
+            source_precondition(receipt_path, None),
+        )
         mutation = self.atomic_writer.apply(
             operation_id=preview.preview.operation_id,
-            candidates=preview.candidate_files,
-            sources=preview.preview.source_preconditions,
+            candidates=candidates,
+            sources=sources,
             preview_token=preview_token,
             actor=actor,
         )
         if mutation.status != "applied":
+            replay = self.receipt_service.replay(
+                idempotency_key=idempotency_key,
+                request_fingerprint_sha256=request_fingerprint_sha256,
+            )
+            if replay is not None:
+                return self._replayed_result(replay, preview_token=preview_token)
             code = "P2P_VERTICAL_PROJECT_BUSY" if mutation.status == "blocked" else "P2P_VERTICAL_APPLY_FAILED"
             raise ValueError(f"{code}: {mutation.message or mutation.status}")
+        mutation = replace(
+            mutation,
+            changed_paths=tuple(path for path in mutation.changed_paths if path != receipt_path),
+            final_physical_hashes={
+                path: digest
+                for path, digest in mutation.final_physical_hashes.items()
+                if path != receipt_path
+            },
+        )
         return VerticalLifecycleResult(
             operation=preview.operation,
             coordinate=preview.coordinate,
             mutation=mutation,
+        )
+
+    @staticmethod
+    def _replayed_result(
+        receipt: MutationReceipt,
+        *,
+        preview_token: str,
+    ) -> VerticalLifecycleResult:
+        operation_id = str(receipt.result.get("operation_id") or "")
+        coordinate = str(receipt.result.get("coordinate") or "")
+        return VerticalLifecycleResult(
+            operation=receipt.operation,
+            coordinate=coordinate,
+            mutation=MutationResult(
+                status="already_applied",
+                operation_id=operation_id,
+                final_physical_hashes={
+                    item.path: item.physical_sha256 for item in receipt.postconditions
+                },
+                preview_token=preview_token,
+                actor=receipt.actor,
+                message="Mutation was already applied with this idempotency key.",
+            ),
         )
 
     def _dependency_closure(self, pack: VerticalPack) -> list[dict[str, str]]:

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from pathlib import Path
 
 import yaml
@@ -11,6 +10,7 @@ from p2p_engine.cli import app
 from p2p_engine.services.project_metadata import ProjectMetadataService
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.cli_assertions import cli_data
 
 
 runner = CliRunner()
@@ -207,7 +207,7 @@ def test_metadata_cli_json_preview_and_apply(tmp_path: Path) -> None:
         ],
     )
     assert preview_result.exit_code == 0
-    token = json.loads(preview_result.output)["project_metadata_preview"]["preview_token"]
+    token = cli_data(preview_result)["project_metadata_preview"]["preview_token"]
 
     apply_result = runner.invoke(
         app,
@@ -229,4 +229,4 @@ def test_metadata_cli_json_preview_and_apply(tmp_path: Path) -> None:
     )
 
     assert apply_result.exit_code == 0
-    assert json.loads(apply_result.output)["project_metadata_apply"]["status"] == "applied"
+    assert cli_data(apply_result)["project_metadata_apply"]["status"] == "applied"

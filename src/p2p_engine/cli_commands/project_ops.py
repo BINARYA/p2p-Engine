@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import json
-from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Any
 import zipfile
 
 import typer
@@ -13,6 +10,7 @@ from p2p_engine.cli_shared import console
 from p2p_engine.cli_shared import fail
 from p2p_engine.cli_shared import workspace as workspace_for
 from p2p_engine.cli_shared import yaml_dump_for_cli
+from p2p_engine.cli_contract import error_envelope, print_json, success_envelope
 from p2p_engine.foundation.yaml_loaders import load_yaml
 
 
@@ -857,6 +855,11 @@ def register_project_ops_commands(
         artifact: Path = typer.Argument(..., help="Portable vertical archive"),
         expected_checksum: str = typer.Option(..., "--expected-checksum", help="Expected artifact SHA-256"),
         token: str = typer.Option(..., "--token", help="Current preview token"),
+        idempotency_key: str = typer.Option(
+            ...,
+            "--idempotency-key",
+            help="Opaque caller-supplied operation key",
+        ),
         confirm: bool = typer.Option(False, "--confirm", help="Confirm the governed mutation"),
         actor: str = typer.Option(..., "--actor", help="Applying actor"),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
@@ -870,6 +873,7 @@ def register_project_ops_commands(
                 preview_token=token,
                 confirmed=confirm,
                 actor=actor,
+                idempotency_key=idempotency_key,
             )
         except ValueError as exc:
             _fail_operation("vertical_install_apply", exc, output_format)
@@ -900,6 +904,11 @@ def register_project_ops_commands(
     def project_vertical_adopt_apply(
         coordinate: str = typer.Argument(..., help="Exact installed vertical coordinate"),
         token: str = typer.Option(..., "--token", help="Current preview token"),
+        idempotency_key: str = typer.Option(
+            ...,
+            "--idempotency-key",
+            help="Opaque caller-supplied operation key",
+        ),
         confirm: bool = typer.Option(False, "--confirm", help="Confirm the governed mutation"),
         actor: str = typer.Option(..., "--actor", help="Applying actor"),
         profile: str = typer.Option("default", "--profile", help="Definition profile"),
@@ -914,6 +923,7 @@ def register_project_ops_commands(
                 preview_token=token,
                 confirmed=confirm,
                 actor=actor,
+                idempotency_key=idempotency_key,
                 profile=profile,
                 modules=module,
             )
@@ -949,6 +959,11 @@ def register_project_ops_commands(
         coordinate: str = typer.Argument(..., help="Exact installed target vertical coordinate"),
         mapping: Path | None = typer.Option(None, "--mapping", help="Exact field/rubric mapping YAML or JSON"),
         token: str = typer.Option(..., "--token", help="Current preview token"),
+        idempotency_key: str = typer.Option(
+            ...,
+            "--idempotency-key",
+            help="Opaque caller-supplied operation key",
+        ),
         confirm: bool = typer.Option(False, "--confirm", help="Confirm the governed mutation"),
         actor: str = typer.Option(..., "--actor", help="Applying actor"),
         profile: str = typer.Option("default", "--profile", help="Definition profile"),
@@ -963,6 +978,7 @@ def register_project_ops_commands(
                 preview_token=token,
                 confirmed=confirm,
                 actor=actor,
+                idempotency_key=idempotency_key,
                 mapping=_load_vertical_mapping(mapping, root=root),
                 profile=profile,
                 modules=module,
@@ -970,45 +986,6 @@ def register_project_ops_commands(
         except ValueError as exc:
             _fail_operation("vertical_migrate_apply", exc, output_format)
         _print_lifecycle_result(result, operation="vertical_migrate_apply", output_format=output_format)
-
-    @project_vertical_app.command("propose")
-    def project_vertical_propose(
-        idea: str = typer.Argument(..., help="Project idea used to generate a candidate vertical"),
-        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
-    ) -> None:
-        """Generate an importable custom vertical candidate without persisting it."""
-        try:
-            candidate = workspace_for(root).propose_project_vertical(idea)
-        except ValueError as exc:
-            fail(str(exc))
-        console.print("Custom vertical candidate")
-        console.print(f"  source_idea: {candidate.source_idea}")
-        console.print(f"  id: {candidate.pack.vertical_id}")
-        console.print(f"  name: {candidate.pack.name}")
-        console.print("  import: save the YAML under a review path, then run p2p project vertical add <path>")
-        console.print("")
-        console.print(candidate.yaml_text.rstrip())
-
-    @project_vertical_app.command("add")
-    def project_vertical_add(
-        source: Path = typer.Argument(..., help="vertical.yml path or pack directory"),
-        activate: bool = typer.Option(False, "--activate", help="Select this vertical after adding it"),
-        actor: str = typer.Option("local", "--actor", help="Actor recorded if --activate is used"),
-        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
-        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
-    ) -> None:
-        """Add a project-local vertical pack."""
-        try:
-            result = workspace_for(root).add_project_vertical(source, activate=activate, actor=actor)
-        except ValueError as exc:
-            fail(str(exc))
-        if _wants_json(output_format):
-            _print_json({"vertical_add": result})
-            return
-        console.print("[green]Project vertical added.[/green]")
-        console.print(f"  id: {result.vertical_id}")
-        console.print(f"  path: {result.path}")
-        console.print(f"  activated: {str(result.activated).lower()}")
 
     @project_vertical_app.command("select")
     def project_vertical_select(
@@ -1566,7 +1543,8 @@ def _print_lifecycle_result(result: object, *, operation: str, output_format: st
     if _wants_json(output_format):
         _print_json(_operation_success(operation, data))
         return
-    console.print("[green]Project vertical mutation applied.[/green]")
+    status = getattr(result, "mutation").status
+    console.print(f"[green]Project vertical mutation {status}.[/green]")
     console.print(f"  operation: {getattr(result, 'operation')}")
     console.print(f"  coordinate: {getattr(result, 'coordinate')}")
     console.print(f"  changed_paths: {len(getattr(result, 'mutation').changed_paths)}")
@@ -1600,13 +1578,7 @@ def _is_portable_vertical_target(source: Path) -> bool:
 
 
 def _operation_success(operation: str, data: object) -> dict[str, object]:
-    return {
-        "ok": True,
-        "operation": operation,
-        "data": data,
-        "warnings": [],
-        "error": None,
-    }
+    return success_envelope(operation, data)
 
 
 def _fail_operation(operation: str, exc: ValueError, output_format: str) -> None:
@@ -1614,15 +1586,7 @@ def _fail_operation(operation: str, exc: ValueError, output_format: str) -> None
         message = str(exc)
         prefix = message.split(":", 1)[0]
         code = prefix if prefix.startswith("P2P_") else "P2P_VERTICAL_OPERATION_FAILED"
-        _print_json(
-            {
-                "ok": False,
-                "operation": operation,
-                "data": None,
-                "warnings": [],
-                "error": {"code": code, "message": message},
-            }
-        )
+        _print_json(error_envelope(operation, code=code, message=message))
         raise typer.Exit(1)
     fail(str(exc))
 
@@ -1635,16 +1599,4 @@ def _wants_json(output_format: str) -> bool:
 
 
 def _print_json(payload: object) -> None:
-    print(json.dumps(_to_jsonable(payload), sort_keys=True))
-
-
-def _to_jsonable(value: Any) -> Any:
-    if is_dataclass(value):
-        return _to_jsonable(asdict(value))
-    if isinstance(value, Path):
-        return value.as_posix()
-    if isinstance(value, dict):
-        return {str(key): _to_jsonable(item) for key, item in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_to_jsonable(item) for item in value]
-    return value
+    print_json(payload)

@@ -305,8 +305,17 @@ Stable:
 - [docs/CLI-GUIDE.md](docs/CLI-GUIDE.md)  
   Practical CLI workflows, expected output shapes, and recovery patterns.
 
-- [docs/WORKSPACE-MIGRATION.md](docs/WORKSPACE-MIGRATION.md)
-  Workspace schema status, legacy migration planning, transactional apply, recovery, and freshness.
+- [docs/CLI-CONTRACT.md](docs/CLI-CONTRACT.md)
+  Versioned JSON envelope, operation identifiers, exit classes, and consumer migration.
+
+- [docs/WORKSPACE-SCHEMA.md](docs/WORKSPACE-SCHEMA.md)
+  Current workspace schema contract, unsupported-schema behavior, and atomic transaction recovery.
+
+- [docs/VERTICAL-REGISTRY.md](docs/VERTICAL-REGISTRY.md)
+  Provider-neutral registry protocol, secure login, immutable cache, pull, and offline init behavior.
+
+- [docs/VERTICAL-DRAFTS.md](docs/VERTICAL-DRAFTS.md)
+  Normalized draft contract, materialization, validation, local add, publication, and WaveKit boundary.
 
 - [docs/MCP.md](docs/MCP.md)  
   Local MCP server setup, tool matrix, safety boundaries, and example calls.

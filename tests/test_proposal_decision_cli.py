@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import yaml
@@ -8,6 +7,7 @@ from typer.testing import CliRunner
 
 from p2p_engine.cli import app
 from p2p_engine.services.proposal_decision_ledger import ProposalDecisionLedgerCodec
+from tests.cli_assertions import cli_data, cli_failure_result
 
 
 runner = CliRunner()
@@ -50,7 +50,7 @@ def _record_preview(root: Path, *, override: bool = False) -> dict[str, object]:
         arguments.insert(-4, "--override-readiness")
     result = runner.invoke(app, arguments)
     assert result.exit_code == 0, result.output
-    return json.loads(result.output)
+    return cli_data(result)
 
 
 def _record_apply(
@@ -109,7 +109,7 @@ def test_compatibility_record_is_two_phase_and_json_is_retry_complete(
 
     applied = _record_apply(tmp_path, preview)
     assert applied.exit_code == 0, applied.output
-    payload = json.loads(applied.output)
+    payload = cli_data(applied)
     ledger = ProposalDecisionLedgerCodec().loads(
         ledger_path.read_bytes(),
         expected_proposal_id="PROP-001",
@@ -152,7 +152,7 @@ def test_status_history_and_stale_apply_have_stable_exit_semantics(
     stale = runner.invoke(app, stale_arguments)
 
     assert stale.exit_code == 1
-    assert json.loads(stale.output)["status"] == "stale_preview"
+    assert cli_failure_result(stale)["status"] == "stale_preview"
     assert (proposal_dir / "decision-events.yml").read_bytes() == before
     assert _record_apply(tmp_path, preview).exit_code == 0
 
@@ -182,8 +182,8 @@ def test_status_history_and_stale_apply_have_stable_exit_semantics(
             str(tmp_path),
         ],
     )
-    assert json.loads(status.output)["effective_state"] == "accepted"
-    assert json.loads(history.output)["returned_count"] == 1
+    assert cli_data(status)["effective_state"] == "accepted"
+    assert cli_data(history)["returned_count"] == 1
 
 
 def test_readiness_override_is_not_written_before_matching_apply(
@@ -228,7 +228,7 @@ def test_generic_cli_apply_and_projection_repair_use_public_two_phase_contract(
         ],
     )
     assert preview_result.exit_code == 0, preview_result.output
-    preview = json.loads(preview_result.output)
+    preview = cli_data(preview_result)
     request = preview["request"]
     token = preview["preview"]["preview_token"]
 
@@ -260,7 +260,7 @@ def test_generic_cli_apply_and_projection_repair_use_public_two_phase_contract(
         ],
     )
     assert applied.exit_code == 0, applied.output
-    assert json.loads(applied.output)["status"] == "applied"
+    assert cli_data(applied)["status"] == "applied"
 
     impact = runner.invoke(
         app,
@@ -279,7 +279,7 @@ def test_generic_cli_apply_and_projection_repair_use_public_two_phase_contract(
         ],
     )
     assert impact.exit_code == 0, impact.output
-    impact_payload = json.loads(impact.output)
+    impact_payload = cli_data(impact)
     assert impact_payload["completeness"] == "complete"
     assert "source_fingerprint_sha256" in impact_payload
 
@@ -300,7 +300,7 @@ def test_generic_cli_apply_and_projection_repair_use_public_two_phase_contract(
         ],
     )
     assert repair_preview_result.exit_code == 0, repair_preview_result.output
-    repair_preview = json.loads(repair_preview_result.output)
+    repair_preview = cli_data(repair_preview_result)
 
     repaired = runner.invoke(
         app,
@@ -320,7 +320,7 @@ def test_generic_cli_apply_and_projection_repair_use_public_two_phase_contract(
         ],
     )
     assert repaired.exit_code == 0, repaired.output
-    assert json.loads(repaired.output)["status"] == "applied"
+    assert cli_data(repaired)["status"] == "applied"
     assert "## Canonical Source\n\ndecision-events.yml" in (
         decision_path.read_text(encoding="utf-8")
     )

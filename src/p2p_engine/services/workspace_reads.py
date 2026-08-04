@@ -239,10 +239,10 @@ class WorkspaceReadContext:
         self,
         root: Path,
         *,
-        allow_existing_migration_lock: bool = False,
+        allow_existing_transaction_lock: bool = False,
     ) -> None:
         self.root = root.resolve()
-        self.allow_existing_migration_lock = allow_existing_migration_lock
+        self.allow_existing_transaction_lock = allow_existing_transaction_lock
         self._counters = _Counters()
         self.documents = WorkspaceDocumentStore(self.root, counters=self._counters)
         self._providers: dict[tuple[str, tuple[object, ...]], object] = {}
@@ -281,9 +281,9 @@ class WorkspaceReadContext:
     def finalize(self) -> ReadConsistencyResult:
         result = self.documents.finalize()
         lock = self.documents.capture(
-            ".p2p/.internal/workspace-migrations/apply.lock"
+            ".p2p/.internal/workspace-transactions/apply.lock"
         )
-        if lock.exists and not self.allow_existing_migration_lock:
+        if lock.exists and not self.allow_existing_transaction_lock:
             return ReadConsistencyResult(
                 status="concurrent_change",
                 changed_paths=(lock.relative_path,),
@@ -294,5 +294,5 @@ class WorkspaceReadContext:
     def _observe_transaction_lock(self) -> None:
         if self._transaction_lock_observed:
             return
-        self.documents.capture(".p2p/.internal/workspace-migrations/apply.lock")
+        self.documents.capture(".p2p/.internal/workspace-transactions/apply.lock")
         self._transaction_lock_observed = True
