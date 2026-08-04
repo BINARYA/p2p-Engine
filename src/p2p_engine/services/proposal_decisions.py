@@ -497,6 +497,7 @@ class ProposalDecisionService:
         except ValueError as exc:
             if not str(exc).startswith("P2P307_WORKSPACE_TRANSACTION_RECOVERY_REQUIRED"):
                 raise
+            self._wait_for_competing_decision_mutation()
             retry = self._exact_retry(request, preview_token)
             if retry is not None:
                 return retry

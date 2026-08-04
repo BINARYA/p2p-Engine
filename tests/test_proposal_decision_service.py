@@ -407,6 +407,54 @@ def test_schema_recovery_race_after_conflicting_commit_becomes_head_conflict(
     assert len(ledger.events) == 1
 
 
+def test_schema_recovery_race_waits_for_competing_decision_before_classifying(
+    tmp_path: Path,
+) -> None:
+    workspace, proposal_id, _ = _workspace(tmp_path)
+    accepted = _preview(workspace, proposal_id, reason="Accept.")
+    rejected = _preview(
+        workspace,
+        proposal_id,
+        ProposalDecisionEventType.rejected,
+        reason="Reject.",
+    )
+    service = workspace._proposal_decision_service()
+    wait_calls = 0
+
+    def wait_for_competing_decision() -> None:
+        nonlocal wait_calls
+        wait_calls += 1
+        if wait_calls == 2:
+            competing = P2PWorkspace(tmp_path)._proposal_decision_service()
+            assert (
+                competing.apply(
+                    accepted.request,
+                    preview_token=accepted.mutation.preview_token,
+                    confirm=True,
+                ).status
+                == "applied"
+            )
+
+    def transient_schema_recovery() -> None:
+        raise ValueError(
+            "P2P307_WORKSPACE_TRANSACTION_RECOVERY_REQUIRED: "
+            "simulated live decision transaction"
+        )
+
+    service._wait_for_competing_decision_mutation = (  # type: ignore[method-assign]
+        wait_for_competing_decision
+    )
+    service._require_schema_v3 = transient_schema_recovery  # type: ignore[method-assign]
+
+    with pytest.raises(ValueError, match="P2P367_DECISION_CONCURRENT_HEAD"):
+        service.apply(
+            rejected.request,
+            preview_token=rejected.mutation.preview_token,
+            confirm=True,
+        )
+    assert wait_calls == 2
+
+
 def test_schema_gate_distinguishes_live_decision_lock_from_stale_recovery(
     tmp_path: Path,
 ) -> None:
