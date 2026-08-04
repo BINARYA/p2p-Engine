@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import tomllib
 from pathlib import Path
 
@@ -35,6 +36,10 @@ def test_current_release_documentation_uses_package_version() -> None:
 
     assert release_url in readme
     assert release_url in install
-    assert f"## {__version__} - Unreleased" in changelog
+    release_heading = re.compile(
+        rf"^## {re.escape(__version__)} - (?:Unreleased|\d{{4}}-\d{{2}}-\d{{2}})$",
+        re.MULTILINE,
+    )
+    assert release_heading.search(changelog)
     assert f"P2P Engine {__version__} exposes" in cli_contract
     assert f"P2P Engine {__version__} supports workspace schema 3 only" in workspace_contract
