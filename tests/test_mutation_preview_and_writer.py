@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 
 import pytest
 
+import p2p_engine.services.workspace_transactions as workspace_transactions
 from p2p_engine.core.mutation_preview import MutationPreviewService, semantic_sha256, source_precondition
 from p2p_engine.services.workspace_transactions import (
     AtomicMutationWriter,
+    WorkspaceTransactionLockService,
     WorkspaceTransactionRecoveryService,
 )
 
@@ -40,6 +43,117 @@ def test_preview_token_context_is_opt_in_and_preserves_existing_token_contract()
 
     assert legacy == expected
     assert contextual != legacy
+
+
+def test_workspace_lock_is_invisible_until_its_payload_is_complete(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = WorkspaceTransactionLockService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
+    publication_ready = threading.Event()
+    allow_publication = threading.Event()
+    original_link = workspace_transactions.os.link
+    failures: list[BaseException] = []
+
+    def delayed_link(source, target, *args, **kwargs):
+        publication_ready.set()
+        if not allow_publication.wait(timeout=5):
+            raise RuntimeError("lock publication test timed out")
+        return original_link(source, target, *args, **kwargs)
+
+    def acquire() -> None:
+        try:
+            service.acquire("mutation-test-atomic-publication", owner="owner")
+        except BaseException as exc:  # noqa: BLE001 - thread boundary captures diagnostics
+            failures.append(exc)
+
+    monkeypatch.setattr(workspace_transactions.os, "link", delayed_link)
+    thread = threading.Thread(target=acquire)
+    thread.start()
+    assert publication_ready.wait(timeout=5)
+    try:
+        observed = service.status()
+        assert observed.state == "absent"
+        assert not service.lock_path.exists()
+    finally:
+        allow_publication.set()
+        thread.join(timeout=5)
+
+    assert not thread.is_alive()
+    assert failures == []
+    published = service.status()
+    assert published.state == "active"
+    assert published.transaction_id == "mutation-test-atomic-publication"
+    service.release(published.transaction_id)
+
+
+def test_workspace_lock_writer_retries_partial_os_writes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = WorkspaceTransactionLockService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
+    original_write = workspace_transactions.os.write
+    write_calls = 0
+
+    def partial_write(descriptor: int, content) -> int:
+        nonlocal write_calls
+        write_calls += 1
+        return original_write(descriptor, content[:3])
+
+    monkeypatch.setattr(workspace_transactions.os, "write", partial_write)
+    acquired = service.acquire("mutation-test-partial-write", owner="owner")
+    observed = service.status()
+
+    assert write_calls > 1
+    assert observed.state == "active"
+    assert observed.transaction_id == acquired.transaction_id
+    assert observed.owner == "owner"
+    service.release(acquired.transaction_id)
+
+
+def test_workspace_lock_disappearing_during_read_is_absent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = WorkspaceTransactionLockService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
+    service.acquire("mutation-test-disappearing-lock", owner="owner")
+    original_read_text = Path.read_text
+
+    def disappearing_read(path: Path, *args, **kwargs):
+        if path == service.lock_path:
+            path.unlink()
+        return original_read_text(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", disappearing_read)
+
+    assert service.status().state == "absent"
+
+
+def test_workspace_lock_contention_preserves_winner_and_leaves_no_temporary_file(
+    tmp_path: Path,
+) -> None:
+    service = WorkspaceTransactionLockService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
+    acquired = service.acquire("mutation-test-winner", owner="winner")
+
+    with pytest.raises(ValueError, match="P2P_WORKSPACE_TRANSACTION_LOCKED"):
+        service.acquire("mutation-test-loser", owner="loser")
+
+    observed = service.status()
+    assert observed.state == "active"
+    assert observed.transaction_id == acquired.transaction_id
+    assert list(service.transaction_root.glob(".apply.lock.*.tmp")) == []
+    service.release(acquired.transaction_id)
+
+
+def test_workspace_lock_malformed_payload_remains_invalid(tmp_path: Path) -> None:
+    service = WorkspaceTransactionLockService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
+    service.transaction_root.mkdir(parents=True)
+    service.lock_path.write_text("not: [valid", encoding="utf-8")
+
+    observed = service.status()
+
+    assert observed.state == "invalid"
+    assert "Cannot parse workspace transaction lock" in observed.message
 
 
 def test_atomic_writer_rechecks_non_target_sources_under_lock(tmp_path: Path) -> None:

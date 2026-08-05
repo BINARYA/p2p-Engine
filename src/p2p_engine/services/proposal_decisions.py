@@ -507,7 +507,10 @@ class ProposalDecisionService:
                     "P2P367_DECISION_CONCURRENT_HEAD: another decision event won "
                     "while the schema gate observed its transaction cleanup"
                 ) from None
-            raise
+            # The recovery snapshot may have observed another writer while its
+            # lock or journal was being removed. Re-evaluate current state
+            # before classifying the condition as interrupted recovery.
+            self._require_schema_v3()
         try:
             preview = self._preview(request)
         except ValueError:

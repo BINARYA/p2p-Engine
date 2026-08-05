@@ -16,7 +16,7 @@ def test_source_package_and_mcp_versions_are_consistent(tmp_path: Path) -> None:
 
     assert package["project"]["version"] == __version__
     assert server.__version__ == __version__
-    assert __version__ == "0.4.8"
+    assert __version__ == "0.4.9"
     assert runtime.default_contract_payload()["runtime"]["p2p"] == {
         "requires": f"=={__version__}",
         "recommended": __version__,

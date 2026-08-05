@@ -168,7 +168,7 @@ effect of a contract update.
 ### Current Workspace Schema
 
 Workspace layout versioning is independent from the runtime contract. P2P
-Engine 0.4.8 accepts schema 3 only. Inspect schema alignment and interrupted
+Engine 0.4.9 accepts schema 3 only. Inspect schema alignment and interrupted
 transaction state without writing:
 
 ```bash
@@ -330,7 +330,7 @@ coordinate `publisher/vertical-id@version`. Structural `extends`, social
 `lineage.forked_from` and release-history `lineage.previous_release` are
 separate declarations.
 
-P2P Engine 0.4.8 provides a local catalog and a provider-neutral remote
+P2P Engine 0.4.9 provides a local catalog and a provider-neutral remote
 registry client. These commands perform no remote request unless `--refresh`
 is passed to `registry list`:
 
@@ -487,7 +487,7 @@ vertical_transition_plan:
         ref: definition_field:new_section.new_field
 ```
 
-The 0.4.8 JSON transport contract is `p2p-cli/v1`. Every command supporting
+The 0.4.9 JSON transport contract is `p2p-cli/v1`. Every command supporting
 `--format json` returns exactly `contract_version`, `ok`, `operation`, `data`,
 `warnings`, and `error`. Domain payloads remain operation-specific under
 `data`. Parser errors use the same envelope. See

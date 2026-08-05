@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import secrets
 import shutil
 import time
 from datetime import datetime, timezone
@@ -31,6 +32,15 @@ def utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def _write_all(descriptor: int, content: bytes) -> None:
+    remaining = memoryview(content)
+    while remaining:
+        written = os.write(descriptor, remaining)
+        if written <= 0:
+            raise OSError("workspace transaction lock write made no progress")
+        remaining = remaining[written:]
+
+
 class WorkspaceTransactionLockService:
     def __init__(self, *, root: Path, p2p_dir: Path) -> None:
         self.root = root.resolve()
@@ -49,26 +59,32 @@ class WorkspaceTransactionLockService:
             "acquired_at": utc_now_iso(),
             "owner": owner,
         }
+        content = yaml.safe_dump(payload, sort_keys=False, allow_unicode=False).encode("utf-8")
+        temporary_path = self.transaction_root / (
+            f".apply.lock.{os.getpid()}.{secrets.token_hex(8)}.tmp"
+        )
         flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        descriptor: int | None = None
         try:
-            descriptor = os.open(self.lock_path, flags, 0o600)
-        except FileExistsError as exc:
-            status = self.status()
-            raise ValueError(
-                f"P2P_WORKSPACE_TRANSACTION_LOCKED: workspace transaction lock is {status.state} "
-                f"for transaction {status.transaction_id or 'unknown'}"
-            ) from exc
-        try:
-            content = yaml.safe_dump(payload, sort_keys=False, allow_unicode=False).encode("utf-8")
-            os.write(descriptor, content)
+            descriptor = os.open(temporary_path, flags, 0o600)
+            _write_all(descriptor, content)
             os.fsync(descriptor)
-        except Exception:
             os.close(descriptor)
-            self.lock_path.unlink(missing_ok=True)
+            descriptor = None
+            try:
+                os.link(temporary_path, self.lock_path)
+            except FileExistsError as exc:
+                status = self.status()
+                raise ValueError(
+                    "P2P_WORKSPACE_TRANSACTION_LOCKED: workspace transaction lock "
+                    f"is {status.state} for transaction "
+                    f"{status.transaction_id or 'unknown'}"
+                ) from exc
             sync_directory(self.transaction_root)
-            raise
-        else:
-            os.close(descriptor)
+        finally:
+            if descriptor is not None:
+                os.close(descriptor)
+            temporary_path.unlink(missing_ok=True)
             sync_directory(self.transaction_root)
         return WorkspaceTransactionLock(
             state=LOCK_ACTIVE,
@@ -80,10 +96,13 @@ class WorkspaceTransactionLockService:
         )
 
     def status(self) -> WorkspaceTransactionLock:
-        if not self.lock_path.exists():
-            return WorkspaceTransactionLock(state=LOCK_ABSENT, path=self._relative(self.lock_path))
         try:
             payload = yaml.safe_load(self.lock_path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return WorkspaceTransactionLock(
+                state=LOCK_ABSENT,
+                path=self._relative(self.lock_path),
+            )
         except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
             return WorkspaceTransactionLock(
                 state=LOCK_INVALID,

@@ -85,7 +85,7 @@ mkdir /tmp/my-project
 cd /tmp/my-project
 python3 -m venv .venv
 .venv/bin/python -m pip install \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.4.8/p2p_engine-0.4.8-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.4.9/p2p_engine-0.4.9-py3-none-any.whl
 ```
 
 Initialize P2P inside the target project:

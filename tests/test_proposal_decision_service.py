@@ -407,6 +407,41 @@ def test_schema_recovery_race_after_conflicting_commit_becomes_head_conflict(
     assert len(ledger.events) == 1
 
 
+def test_transient_schema_recovery_is_rechecked_before_failing_apply(
+    tmp_path: Path,
+) -> None:
+    workspace, proposal_id, proposal_dir = _workspace(tmp_path)
+    preview = _preview(workspace, proposal_id)
+    service = workspace._proposal_decision_service()
+    original_schema_gate = service._require_schema_v3
+    gate_calls = 0
+
+    def transient_schema_gate() -> None:
+        nonlocal gate_calls
+        gate_calls += 1
+        if gate_calls == 1:
+            raise ValueError(
+                "P2P307_WORKSPACE_TRANSACTION_RECOVERY_REQUIRED: "
+                "simulated lock cleanup snapshot"
+            )
+        original_schema_gate()
+
+    service._require_schema_v3 = transient_schema_gate  # type: ignore[method-assign]
+    result = service.apply(
+        preview.request,
+        preview_token=preview.mutation.preview_token,
+        confirm=True,
+    )
+
+    assert result.status == "applied"
+    assert gate_calls >= 3
+    ledger = ProposalDecisionLedgerCodec().loads(
+        (proposal_dir / "decision-events.yml").read_bytes(),
+        expected_proposal_id=proposal_id,
+    )
+    assert len(ledger.events) == 1
+
+
 def test_schema_recovery_race_waits_for_competing_decision_before_classifying(
     tmp_path: Path,
 ) -> None:

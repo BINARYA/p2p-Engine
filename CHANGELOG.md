@@ -6,6 +6,15 @@ This project is early-stage and did not previously maintain a public changelog.
 Use this file for human-readable release notes as the repository moves toward
 tagged releases.
 
+## 0.4.9 - 2026-08-05
+
+- Made workspace transaction lock publication atomic so competing processes
+  can observe only an absent or complete lock payload.
+- Hardened lock writes against partial operating-system writes and removed the
+  lock status check-before-read race during concurrent cleanup.
+- Rechecked transient recovery snapshots before classifying proposal decision
+  retries as interrupted transactions.
+
 ## 0.4.8 - 2026-08-05
 
 - Added `p2p-vertical-transition-impact/v1`, with operation-specific install,
