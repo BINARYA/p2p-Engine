@@ -168,7 +168,7 @@ effect of a contract update.
 ### Current Workspace Schema
 
 Workspace layout versioning is independent from the runtime contract. P2P
-Engine 0.4.7 accepts schema 3 only. Inspect schema alignment and interrupted
+Engine 0.4.8 accepts schema 3 only. Inspect schema alignment and interrupted
 transaction state without writing:
 
 ```bash
@@ -330,7 +330,7 @@ coordinate `publisher/vertical-id@version`. Structural `extends`, social
 `lineage.forked_from` and release-history `lineage.previous_release` are
 separate declarations.
 
-P2P Engine 0.4.7 provides a local catalog and a provider-neutral remote
+P2P Engine 0.4.8 provides a local catalog and a provider-neutral remote
 registry client. These commands perform no remote request unless `--refresh`
 is passed to `registry list`:
 
@@ -448,9 +448,10 @@ p2p init "My Project" --vertical example/my-vertical@1.0.0 \
   --pull --registry wavekit
 ```
 
-Existing projects use governed preview/apply. `adopt` is limited to definitions
-without meaningful evidence. `migrate` preserves same-ID fields, applies only
-exact mappings and records every remaining value as an explicit orphan:
+Existing projects use governed preview/apply. `adopt` is limited to the typed
+`empty` source classification. `migrate` first analyzes every definition,
+question and rubric effect, then requires explicit decisions for anything that
+cannot be preserved by exact compatible identity:
 
 ```bash
 p2p project vertical adopt preview example/my-vertical@1.0.0 --actor owner
@@ -459,24 +460,34 @@ p2p project vertical adopt apply example/my-vertical@1.0.0 \
   --confirm --actor owner
 
 p2p project vertical migrate preview example/my-vertical@2.0.0 \
-  --mapping vertical-mapping.yml --actor owner
+  --actor owner --format json
+p2p project vertical migrate preview example/my-vertical@2.0.0 \
+  --mapping vertical-transition-plan.yml --actor owner --format json
 p2p project vertical migrate apply example/my-vertical@2.0.0 \
-  --mapping vertical-mapping.yml --token <preview-token> \
+  --mapping vertical-transition-plan.yml --token <replacement-preview-token> \
   --idempotency-key <operation-uuid> \
   --confirm --actor owner
 ```
 
-Example exact mapping:
+Example exact transition plan:
 
 ```yaml
-vertical_migration:
-  field_mapping:
-    old_section.old_field: new_section.new_field
-  rubric_mapping:
-    old_rubric: new_rubric
+vertical_transition_plan:
+  schema_version: 1
+  contract_version: p2p-vertical-transition-plan/v1
+  analysis_fingerprint_sha256: <analysis-fingerprint>
+  decisions:
+    - id: <decision-id-from-preview>
+      action: map
+      source:
+        kind: definition_field
+        ref: definition_field:old_section.old_field
+      target:
+        kind: definition_field
+        ref: definition_field:new_section.new_field
 ```
 
-The 0.4.7 JSON transport contract is `p2p-cli/v1`. Every command supporting
+The 0.4.8 JSON transport contract is `p2p-cli/v1`. Every command supporting
 `--format json` returns exactly `contract_version`, `ok`, `operation`, `data`,
 `warnings`, and `error`. Domain payloads remain operation-specific under
 `data`. Parser errors use the same envelope. See
@@ -494,6 +505,12 @@ p2p mutation status --idempotency-key <operation-uuid> --format json
 exact apply retry, `postcondition_drift` requires investigation and
 `incomplete` routes to `p2p workspace transaction status` and explicit
 recovery.
+
+Vertical impact uses `p2p-vertical-transition-impact/v1`. Public output omits
+project evidence values, question answers, free-form assumption/blocker text,
+filesystem paths, physical hashes and generic preview internals. Collections
+are bounded to 128 items and a transition to 512 material items; a truncated
+material impact blocks apply.
 
 Selecting a vertical writes explicit project state:
 

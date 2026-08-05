@@ -6,6 +6,26 @@ This project is early-stage and did not previously maintain a public changelog.
 Use this file for human-readable release notes as the repository moves toward
 tagged releases.
 
+## 0.4.8 - 2026-08-05
+
+- Added `p2p-vertical-transition-impact/v1`, with operation-specific install,
+  adoption and migration impact, authoritative empty/populated evidence
+  classification, bounded collections and path-free public projections.
+- Replaced loose migration mappings with the strict
+  `p2p-vertical-transition-plan/v1` workflow: analyze, resolve every exact
+  decision, re-preview, then apply with the replacement token.
+- Preserved definition, rubric and project-question evidence in their owning
+  memory families, with exact mapping or explicit orphan dispositions and no
+  fuzzy matching.
+- Advanced vertical mutation receipts to schema 2 with semantic
+  postconditions, normalized decision summaries and redacted apply/status
+  output while retaining internal physical drift detection.
+- Made install postconditions describe the installed pack without claiming it
+  is active; adoption and migration retain the distinct active-state
+  postconditions.
+- Updated generated agent guidance, capability inventory and CLI/MCP
+  documentation; vertical lifecycle mutation remains owner-governed CLI-only.
+
 ## 0.4.7 - 2026-08-04
 
 - Converged the registered CLI, MCP catalog, maintained documentation and

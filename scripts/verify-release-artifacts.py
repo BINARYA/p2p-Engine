@@ -129,6 +129,28 @@ PORTABLE_VERTICAL_SDIST_MEMBERS = {
     "tests/test_mutation_receipts.py",
     "tests/test_portable_verticals.py",
 }
+TYPED_VERTICAL_TRANSITION_WHEEL_MEMBERS = {
+    "p2p_engine/core/vertical_transition_impact.py",
+    "p2p_engine/core/vertical_transition_plan.py",
+    "p2p_engine/services/vertical_evidence_classifier.py",
+    "p2p_engine/services/vertical_transition_analysis.py",
+    "p2p_engine/services/vertical_transition_materialization.py",
+}
+TYPED_VERTICAL_TRANSITION_SDIST_MEMBERS = {
+    *(f"src/{member}" for member in TYPED_VERTICAL_TRANSITION_WHEEL_MEMBERS),
+    "docs/development/wavekit-vertical-transition-handoff.md",
+    "tests/fixtures/vertical_transition/adoption-apply-v1.json",
+    "tests/fixtures/vertical_transition/adoption-empty-v1.json",
+    "tests/fixtures/vertical_transition/adoption-populated-v1.json",
+    "tests/fixtures/vertical_transition/install-apply-v1.json",
+    "tests/fixtures/vertical_transition/install-preview-v1.json",
+    "tests/fixtures/vertical_transition/legacy-0.4.7-characterization.json",
+    "tests/fixtures/vertical_transition/manifest-v1.json",
+    "tests/fixtures/vertical_transition/migration-apply-v1.json",
+    "tests/fixtures/vertical_transition/migration-complete-plan-v1.json",
+    "tests/fixtures/vertical_transition/migration-decision-required-v1.json",
+    "tests/test_vertical_transition_impact.py",
+}
 VERTICAL_REGISTRY_WHEEL_MEMBERS = {
     "p2p_engine/adapters/credential_store.py",
     "p2p_engine/adapters/vertical_registry_http.py",
@@ -281,6 +303,7 @@ def verify_wheel(path: Path, *, version: str) -> int:
     required.update(CURRENT_SCHEMA_WHEEL_MEMBERS)
     required.update(CLI_CONTRACT_WHEEL_MEMBERS)
     required.update(PORTABLE_VERTICAL_WHEEL_MEMBERS)
+    required.update(TYPED_VERTICAL_TRANSITION_WHEEL_MEMBERS)
     required.update(VERTICAL_REGISTRY_WHEEL_MEMBERS)
     required.update(VERTICAL_DRAFT_WHEEL_MEMBERS)
     required.update(CURRENT_SURFACE_WHEEL_MEMBERS)
@@ -316,6 +339,7 @@ def verify_sdist(path: Path, *, version: str) -> int:
     required.update(CURRENT_SCHEMA_SDIST_MEMBERS)
     required.update(CLI_CONTRACT_SDIST_MEMBERS)
     required.update(PORTABLE_VERTICAL_SDIST_MEMBERS)
+    required.update(TYPED_VERTICAL_TRANSITION_SDIST_MEMBERS)
     required.update(VERTICAL_REGISTRY_SDIST_MEMBERS)
     required.update(VERTICAL_DRAFT_SDIST_MEMBERS)
     required.update(CURRENT_SURFACE_SDIST_MEMBERS)

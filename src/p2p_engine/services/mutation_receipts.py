@@ -21,6 +21,7 @@ from p2p_engine.core.mutation_receipts import (
 from p2p_engine.foundation.files import yaml_dump
 from p2p_engine.foundation.yaml_loaders import UNIQUE_LOADER_CONTRACT, load_yaml
 from p2p_engine.services.workspace_transactions import physical_sha256
+from p2p_engine.core.vertical_transition_impact import VERTICAL_TRANSITION_IMPACT_CONTRACT
 
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -122,9 +123,15 @@ class MutationReceiptService:
             result=dict(result),
             postconditions=postconditions,
         )
+        content = yaml_dump(receipt.to_payload()).encode("utf-8")
+        if len(content) > MUTATION_RECEIPT_MAX_FILE_BYTES:
+            raise ValueError(
+                "P2P_VERTICAL_IMPACT_LIMIT_EXCEEDED: mutation receipt exceeds "
+                f"{MUTATION_RECEIPT_MAX_FILE_BYTES} bytes"
+            )
         return (
             f"{MUTATION_RECEIPT_ROOT}/{key_hash}.yml",
-            yaml_dump(receipt.to_payload()).encode("utf-8"),
+            content,
             receipt,
         )
 
@@ -175,7 +182,7 @@ class MutationReceiptService:
             operation=receipt.operation,
             actor=receipt.actor,
             completion_status=receipt.completion_status,
-            result=receipt.result,
+            result=_public_result(receipt.result),
             postconditions_match=postconditions_match,
             message=(
                 "Mutation receipt is complete and its postconditions match."
@@ -307,20 +314,108 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
 
 
 def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
-    allowed = {"operation", "operation_id", "coordinate", "changed_paths"}
+    allowed = {
+        "impact_contract",
+        "operation",
+        "operation_id",
+        "coordinate",
+        "analysis_fingerprint_sha256",
+        "plan_fingerprint_sha256",
+        "semantic_postconditions",
+        "decision_summary",
+        "changed_paths",
+    }
     unknown = sorted(str(key) for key in result if key not in allowed)
     if unknown:
         raise ValueError(f"receipt result contains unsupported fields: {', '.join(unknown)}")
     if result.get("operation") != operation:
         raise ValueError("receipt result operation does not match receipt operation")
+    if result.get("impact_contract") != VERTICAL_TRANSITION_IMPACT_CONTRACT:
+        raise ValueError("receipt result impact_contract is unsupported")
     _required_text(result, "operation_id")
     _required_text(result, "coordinate")
+    _required_sha256(result, "analysis_fingerprint_sha256")
+    plan_fingerprint = result.get("plan_fingerprint_sha256")
+    if plan_fingerprint is not None:
+        if not isinstance(plan_fingerprint, str):
+            raise ValueError("receipt result plan_fingerprint_sha256 must be text or null")
+        _require_sha256(plan_fingerprint, "plan_fingerprint_sha256")
+    semantic_postconditions = result.get("semantic_postconditions")
+    if operation == "install":
+        expected_postconditions = {
+            "installed_coordinate",
+            "installed_semantic_checksum",
+            "installed_artifact_checksum",
+        }
+        identity_field = "installed_coordinate"
+    else:
+        expected_postconditions = {
+            "active_coordinate",
+            "lock_semantic_checksum",
+            "lock_artifact_checksum",
+            "definition_semantic_sha256",
+            "questions_semantic_sha256",
+            "rubrics_semantic_sha256",
+        }
+        identity_field = "active_coordinate"
+    if not isinstance(semantic_postconditions, dict) or set(semantic_postconditions) != expected_postconditions:
+        raise ValueError("receipt result semantic_postconditions has invalid fields")
+    if semantic_postconditions.get(identity_field) != result.get("coordinate"):
+        raise ValueError(f"receipt {identity_field} does not match coordinate")
+    for field in expected_postconditions - {identity_field}:
+        value = semantic_postconditions.get(field)
+        if value is not None:
+            if not isinstance(value, str):
+                raise ValueError(f"receipt semantic postcondition {field} must be text or null")
+            _require_sha256(value, field)
+    decision_summary = result.get("decision_summary")
+    if not isinstance(decision_summary, list) or len(decision_summary) > 128:
+        raise ValueError("receipt result decision_summary must be a bounded sequence")
+    seen_decisions: set[str] = set()
+    for item in decision_summary:
+        if not isinstance(item, dict) or not {"id", "action", "source"} <= set(item):
+            raise ValueError("receipt result decision summary entry is invalid")
+        if set(item) - {"id", "action", "source", "target"}:
+            raise ValueError("receipt result decision summary entry has unknown fields")
+        decision_id = str(item.get("id") or "")
+        if not decision_id.startswith("VTD-") or decision_id in seen_decisions:
+            raise ValueError("receipt result decision summary id is invalid or duplicate")
+        source = item.get("source")
+        if not isinstance(source, dict) or set(source) != {"kind", "ref"}:
+            raise ValueError("receipt result decision summary source is invalid")
+        action = item.get("action")
+        if action not in {"map", "preserve_as_orphan"}:
+            raise ValueError("receipt result decision summary action is invalid")
+        target = item.get("target")
+        if action == "map":
+            if not isinstance(target, dict) or set(target) != {"kind", "ref"}:
+                raise ValueError("receipt result mapped decision target is invalid")
+        elif target is not None:
+            raise ValueError("receipt result orphan decision forbids target")
+        seen_decisions.add(decision_id)
     changed_paths = result.get("changed_paths")
     if not isinstance(changed_paths, list) or not changed_paths:
         raise ValueError("receipt result changed_paths must be a non-empty sequence")
     normalized = [_validated_postcondition_path(str(path)) for path in changed_paths]
     if normalized != sorted(set(normalized)):
         raise ValueError("receipt result changed_paths must be unique and sorted")
+
+
+def _public_result(result: Mapping[str, object]) -> dict[str, object]:
+    return {
+        "impact_contract": result.get("impact_contract"),
+        "operation": result.get("operation"),
+        "operation_id": result.get("operation_id"),
+        "coordinate": result.get("coordinate"),
+        "analysis_fingerprint_sha256": result.get("analysis_fingerprint_sha256"),
+        "plan_fingerprint_sha256": result.get("plan_fingerprint_sha256"),
+        "semantic_postconditions": dict(result.get("semantic_postconditions", {}))
+        if isinstance(result.get("semantic_postconditions"), Mapping)
+        else {},
+        "decision_summary": list(result.get("decision_summary", []))
+        if isinstance(result.get("decision_summary"), list)
+        else [],
+    }
 
 
 def _validated_postcondition_path(value: str) -> str:

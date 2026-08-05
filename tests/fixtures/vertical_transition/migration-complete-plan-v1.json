@@ -1,0 +1,19 @@
+{
+  "vertical_transition_plan": {
+    "schema_version": 1,
+    "contract_version": "p2p-vertical-transition-plan/v1",
+    "analysis_fingerprint_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "decisions": [{
+      "id": "VTD-0123456789abcdef",
+      "action": "map",
+      "source": {
+        "kind": "definition_field",
+        "ref": "definition_field:legacy.constraints"
+      },
+      "target": {
+        "kind": "definition_field",
+        "ref": "definition_field:constraints.summary"
+      }
+    }]
+  }
+}

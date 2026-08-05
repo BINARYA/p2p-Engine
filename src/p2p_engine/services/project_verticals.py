@@ -294,6 +294,8 @@ class ProjectVerticalService:
         audit_date: str | None = None,
         rubric_mapping: dict[str, str] | None = None,
         artifact_checksum: str = "",
+        preserve_existing_rubrics: bool = True,
+        reconcile_existing_questions: bool = True,
     ) -> VerticalMigrationCandidate:
         resolved = self._resolve_available_pack(vertical_id)
         pack = resolved.pack
@@ -349,7 +351,11 @@ class ProjectVerticalService:
             self._vertical_lock_path().relative_to(self.root).as_posix(): yaml_dump(_vertical_lock_payload(lock)).encode("utf-8"),
             self._definition_state_path().relative_to(self.root).as_posix(): yaml_dump(_definition_state_payload(definition)).encode("utf-8"),
             (self.p2p_dir / "project" / "rubrics.yml").relative_to(self.root).as_posix(): yaml_dump(
-                self._vertical_rubrics_payload(pack, rubric_mapping=rubric_mapping)
+                self._vertical_rubrics_payload(
+                    pack,
+                    rubric_mapping=rubric_mapping,
+                    include_existing=preserve_existing_rubrics,
+                )
             ).encode("utf-8"),
         }
         project_payload = _read_yaml_mapping(self.p2p_dir / "project.yml")
@@ -357,7 +363,11 @@ class ProjectVerticalService:
         project_id = str(project.get("id") or "project") if isinstance(project, dict) else "project"
         question_service = ProjectQuestionStateService(root=self.root, p2p_dir=self.p2p_dir)
         current_questions = question_service.read_optional()
-        if current_questions is not None and question_service.has_owner_evidence(current_questions):
+        if (
+            reconcile_existing_questions
+            and current_questions is not None
+            and question_service.has_owner_evidence(current_questions)
+        ):
             question_candidate = question_service.mark_reconciliation_required(
                 current_questions,
                 actor=actor,
@@ -2550,6 +2560,7 @@ class ProjectVerticalService:
         pack: VerticalPack,
         *,
         rubric_mapping: dict[str, str] | None = None,
+        include_existing: bool = True,
     ) -> dict[str, object]:
         path = self.p2p_dir / "project" / "rubrics.yml"
         mapping = rubric_mapping or {}
@@ -2561,7 +2572,7 @@ class ProjectVerticalService:
             )
         existing_enabled: dict[str, bool] = {}
         existing_criteria: list[dict[str, object]] = []
-        if path.exists():
+        if include_existing and path.exists():
             payload = _read_yaml_mapping(path)
             criteria = payload.get("criteria")
             if isinstance(criteria, list):

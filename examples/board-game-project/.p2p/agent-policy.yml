@@ -9,10 +9,13 @@ repository:
   mode: local
   cloud_is_advisory_until_configured: false
 agent_profiles:
+- claude
 - codex
+- cursor
 - generic
+- opencode
 agent_capabilities:
-  version: agent-capabilities-v2
+  version: agent-capabilities-v3
   capabilities:
   - capability_id: project.inspect
     cli_paths:
@@ -154,8 +157,8 @@ agent_capabilities:
     mcp_tools: []
     exposure: owner_governed
     authority: owner_confirmation_for_apply
-    reason: Project pack mutation remains preview/apply CLI-only and idempotency-key
-      bound.
+    reason: Project pack mutation is a typed preview/decision-plan/apply CLI lifecycle;
+      apply remains owner-confirmed and idempotency-key bound.
     adapters:
     - generic
     - codex

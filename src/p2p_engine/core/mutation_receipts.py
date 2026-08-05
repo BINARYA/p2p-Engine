@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from typing import Mapping
 
 
-MUTATION_RECEIPT_SCHEMA_VERSION = 1
+MUTATION_RECEIPT_SCHEMA_VERSION = 2
 MUTATION_RECEIPT_ROOT = ".p2p/.internal/mutation-receipts"
 MUTATION_RECEIPT_MAX_KEY_BYTES = 256
 MUTATION_RECEIPT_MAX_FILE_BYTES = 65_536

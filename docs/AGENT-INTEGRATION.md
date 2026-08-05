@@ -461,6 +461,19 @@ readiness scores, validation truth, permissions, consent, or facts. Missing
 configuration falls back to defaults and is not an error. Direct edits to
 `.p2p/project/interaction-style.yml` are not an accepted workflow.
 
+## Typed Vertical Transitions
+
+Project install, adopt and migrate are CLI-only owner-governed capabilities.
+Use JSON and inspect `impact.contract_version` before acting. For migration,
+run preview without `--mapping`, account for every returned decision, write a
+strict `p2p-vertical-transition-plan/v1`, re-preview and retain the replacement
+token. Apply only with explicit owner confirmation and one stable idempotency
+key. Never infer a mapping from wording similarity and never copy question or
+rubric evidence into the definition family.
+
+The stdio MCP surface exposes inspection but no lifecycle mutation tool. An
+agent must report this boundary instead of inventing a tool or editing `.p2p`.
+
 ## Codex
 
 For a P2P-managed project, use the generated agent instructions:

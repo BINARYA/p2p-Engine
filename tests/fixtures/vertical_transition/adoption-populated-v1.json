@@ -1,0 +1,79 @@
+{
+  "contract_version": "p2p-cli/v1",
+  "ok": true,
+  "operation": "project.vertical.adopt.preview",
+  "data": {
+    "operation": "adopt",
+    "coordinate": "example/software@2.0.0",
+    "apply_allowed": false,
+    "impact": {
+      "contract_version": "p2p-vertical-transition-impact/v1",
+      "operation": "adopt",
+      "analysis_fingerprint_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_state": {
+        "classification": "populated",
+        "adoption_eligible": false,
+        "migration_required": true,
+        "evidence": {
+          "definition_fields": 1,
+          "assumptions": 1,
+          "blockers": 0,
+          "definition_orphans": 0,
+          "owner_question_evidence": 1,
+          "rubric_customizations": 1,
+          "total": 4
+        }
+      },
+      "source": {
+        "coordinate": "example/software@1.0.0",
+        "semantic_checksum": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "artifact_checksum": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "profile": "default",
+        "modules": []
+      },
+      "target": {
+        "coordinate": "example/software@2.0.0",
+        "semantic_checksum": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "artifact_checksum": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "profile": "default",
+        "modules": []
+      },
+      "lock": {
+        "before": {
+          "coordinate": "example/software@1.0.0",
+          "semantic_checksum": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "artifact_checksum": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "profile": "default",
+          "modules": []
+        },
+        "after": {
+          "coordinate": "example/software@2.0.0",
+          "semantic_checksum": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "artifact_checksum": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "profile": "default",
+          "modules": []
+        },
+        "dependency_additions": {"total": 0, "returned": 0, "truncated": false, "items": []},
+        "dependency_removals": {"total": 0, "returned": 0, "truncated": false, "items": []}
+      },
+      "artifacts": {"total": 0, "returned": 0, "truncated": false, "items": []},
+      "blockers": {
+        "total": 1,
+        "returned": 1,
+        "truncated": false,
+        "items": [{
+          "code": "P2P_VERTICAL_ADOPTION_REQUIRES_MIGRATION",
+          "severity": "blocker",
+          "category": "source_state",
+          "reference": "example/software@1.0.0",
+          "recovery_action": "Run project vertical migrate preview for the target coordinate."
+        }]
+      },
+      "warnings": {"total": 0, "returned": 0, "truncated": false, "items": []}
+    },
+    "blockers": ["P2P_VERTICAL_ADOPTION_REQUIRES_MIGRATION"],
+    "preview": null
+  },
+  "warnings": [],
+  "error": null
+}

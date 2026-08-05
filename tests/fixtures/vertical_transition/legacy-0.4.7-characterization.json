@@ -1,0 +1,45 @@
+{
+  "release_tag": "v0.4.7",
+  "source_commit": "6bc23d2cac2af9f9a249bc2504e7e87331659226",
+  "status": "replaced_by_current_only_0.4.8_contract",
+  "cases": {
+    "install_preview": {
+      "impact_fields": ["artifact_checksum", "semantic_checksum", "install_prefix", "entries", "dependency_closure", "idempotent"],
+      "exposed_physical_layout": true
+    },
+    "empty_adoption": {
+      "impact_fields": ["from_vertical", "to_vertical", "definition_reset", "reconciliation_required"],
+      "mode": "adopt"
+    },
+    "populated_adoption_rejection": {
+      "classifier": "definition_fields_assumptions_blockers_or_definition_orphans_only",
+      "ignored_evidence": ["owner_question_evidence", "rubric_customizations"]
+    },
+    "migration_with_mapping": {
+      "accepted_roots": ["field_mapping", "mappings", "rubric_mapping"],
+      "accepted_field_forms": ["mapping", "from_to_list"],
+      "analysis_fingerprint_required": false
+    },
+    "implicit_orphaning": {
+      "unmapped_definition_field": "automatically_copied_to_definition_orphans",
+      "owner_decision_required": false
+    },
+    "rubric_collision": {
+      "shape": "free_form_validation_failure_or_boolean_reconciliation_required",
+      "typed_decision": false
+    },
+    "question_reconciliation": {
+      "public_shape": "reconciliation_required_boolean",
+      "owner_evidence_dispositions": false
+    },
+    "apply": {
+      "public_changed_paths": true,
+      "public_physical_hashes": true,
+      "typed_semantic_postconditions": false
+    },
+    "replay": {
+      "typed_impact_contract": false,
+      "normalized_decision_summary": false
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "contract_version": "p2p-cli/v1",
+  "ok": true,
+  "operation": "project.vertical.install.preview",
+  "data": {
+    "operation": "install",
+    "coordinate": "example/software@2.0.0",
+    "apply_allowed": true,
+    "impact": {
+      "contract_version": "p2p-vertical-transition-impact/v1",
+      "operation": "install",
+      "analysis_fingerprint_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "target": {
+        "coordinate": "example/software@2.0.0",
+        "semantic_checksum": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "artifact_checksum": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "profile": "default",
+        "modules": []
+      },
+      "artifact_kinds": {
+        "total": 4,
+        "returned": 4,
+        "truncated": false,
+        "items": ["manifest", "rubrics", "sections", "vertical"]
+      },
+      "dependency_closure": {"total": 0, "returned": 0, "truncated": false, "items": []},
+      "disposition": "install",
+      "conflict": false,
+      "blockers": {"total": 0, "returned": 0, "truncated": false, "items": []},
+      "warnings": {"total": 0, "returned": 0, "truncated": false, "items": []}
+    },
+    "blockers": [],
+    "preview": {
+      "operation_id": "project-vertical-install:example-software-2-0-0",
+      "actor": "owner",
+      "authority": "project_vertical_install",
+      "confirmation_required": true,
+      "policy_version": 1,
+      "apply_allowed": true,
+      "preview_token": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  },
+  "warnings": [],
+  "error": null
+}

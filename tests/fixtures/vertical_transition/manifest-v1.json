@@ -1,0 +1,42 @@
+{
+  "engine_version": "0.4.8",
+  "cli_contract_version": "p2p-cli/v1",
+  "impact_contract_version": "p2p-vertical-transition-impact/v1",
+  "plan_contract_version": "p2p-vertical-transition-plan/v1",
+  "receipt_schema_version": 2,
+  "limits": {
+    "collection_items": 128,
+    "transition_material_items": 512,
+    "plan_decisions": 128,
+    "receipt_bytes": 65536
+  },
+  "fixtures": {
+    "adoption-apply-v1.json": "8365add9069c348bbc613b71a8fd566f529a2c1293d423d55489341b943a5424",
+    "adoption-empty-v1.json": "4b42ed9b3a5ab77dcc4949d6caeef63796cdf438c0e474ee72aca1af471f1f1d",
+    "adoption-populated-v1.json": "a2b460f993864caec4e50408b04cb2c474bbcb14b0d9be118b640759e75dc155",
+    "install-apply-v1.json": "1942f9677d380a50047235911441c1281c6aef692a8629918686966aa20ae405",
+    "install-preview-v1.json": "bb4936e847cfb5ae57adbf71b0cce27f9e24ba5060375d404e53798e757bc0f2",
+    "migration-apply-v1.json": "199c00562dc575f779ed896dc28fa2fa363e7f60b79695ba1e65f95155e04d96",
+    "migration-complete-plan-v1.json": "8b744d55919597fa1e71c41a72129752a3d3e3b1e4e01aa29cb2e22ffe2f023a",
+    "migration-decision-required-v1.json": "65fe00ec4ff084ea16252f198f44b2aee5dd4dcb26973ff3e09044460fd49730"
+  },
+  "wavekit_7_8_assertions": {
+    "classification": [
+      "data.impact.source_state.classification",
+      "data.impact.source_state.evidence"
+    ],
+    "preservation_and_mapping": [
+      "data.impact.evidence_transitions",
+      "data.impact.required_decisions",
+      "data.impact.plan_fingerprint_sha256",
+      "data.postconditions"
+    ]
+  },
+  "wavekit_owned": [
+    "authorization",
+    "preview_expiry",
+    "queue_concurrency",
+    "crash_recovery_orchestration",
+    "post_apply_validation"
+  ]
+}

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import date
 import hashlib
 from pathlib import Path
 import re
@@ -20,21 +19,36 @@ from p2p_engine.core.portable_verticals import (
     VerticalCoordinate,
 )
 from p2p_engine.core.project_verticals import (
-    ProjectDefinitionHistoryEntry,
-    ProjectDefinitionOrphan,
-    ProjectDefinitionState,
     VerticalDependency,
     VerticalMigrationCandidate,
     VerticalPack,
 )
-from p2p_engine.foundation.files import yaml_dump
 from p2p_engine.foundation.yaml_loaders import load_yaml
-from p2p_engine.services.project_verticals import (
-    ProjectVerticalService,
-    project_definition_state_from_payload,
-    project_definition_state_payload,
+from p2p_engine.core.vertical_transition_impact import (
+    BoundedCollection,
+    InstallDisposition,
+    InstallImpact,
+    IssueSeverity,
+    TransitionIssue,
+    VERTICAL_TRANSITION_COLLECTION_LIMIT,
+    VERTICAL_TRANSITION_IMPACT_CONTRACT,
+    VERTICAL_TRANSITION_TOTAL_ITEM_LIMIT,
+    VerticalIdentity,
+    VerticalTransitionImpact,
+    impact_fingerprint,
 )
+from p2p_engine.core.vertical_transition_plan import (
+    VerticalTransitionPlan,
+    parse_transition_plan,
+)
+from p2p_engine.foundation.files import yaml_dump
+from p2p_engine.services.project_verticals import ProjectVerticalService
 from p2p_engine.services.mutation_receipts import MutationReceiptService
+from p2p_engine.services.vertical_evidence_classifier import VerticalEvidenceClassifier
+from p2p_engine.services.vertical_transition_analysis import VerticalTransitionAnalysisService
+from p2p_engine.services.vertical_transition_materialization import (
+    VerticalTransitionMaterializationService,
+)
 from p2p_engine.services.vertical_packages import (
     PortableVerticalPackageService,
     normalize_expected_checksum,
@@ -85,14 +99,20 @@ class VerticalLifecycleService:
         entries = self.package_service.read_archive(artifact)
         prefix = self._install_prefix(VerticalCoordinate.parse(coordinate))
         candidates = {f"{prefix}/{name}": content for name, content in entries.items()}
-        blockers: list[str] = []
+        blockers: list[TransitionIssue] = []
         try:
             existing_resolution = self.vertical_service.resolve_pack(coordinate)
         except ValueError:
             existing_resolution = None
         if existing_resolution is not None and existing_resolution.checksum != inspection.semantic_checksum:
             blockers.append(
-                f"P2P_VERTICAL_INSTALL_CONFLICT: {coordinate} already resolves to a different semantic checksum"
+                TransitionIssue(
+                    code="P2P_VERTICAL_INSTALL_CONFLICT",
+                    severity=IssueSeverity.BLOCKER,
+                    category="install_conflict",
+                    reference=coordinate,
+                    recovery_action="Choose a different coordinate or remove the conflicting local pack.",
+                )
             )
         target_root = self.root / prefix
         existing = self._installed_files(target_root)
@@ -105,17 +125,64 @@ class VerticalLifecycleService:
             or any(existing[path] != expected_existing[path] for path in existing if path in expected_existing)
         ):
             blockers.append(
-                f"P2P_VERTICAL_INSTALL_CONFLICT: {coordinate} is already installed with different content"
+                TransitionIssue(
+                    code="P2P_VERTICAL_INSTALL_CONFLICT",
+                    severity=IssueSeverity.BLOCKER,
+                    category="install_conflict",
+                    reference=coordinate,
+                    recovery_action="Choose a different coordinate or remove the conflicting local pack.",
+                )
             )
         sources = self._source_preconditions(candidates)
-        impact = {
+        artifact_kinds = sorted({_portable_artifact_kind(name) for name in entries})
+        if (
+            len(artifact_kinds) > VERTICAL_TRANSITION_COLLECTION_LIMIT
+            or len(closure) > VERTICAL_TRANSITION_COLLECTION_LIMIT
+            or len(artifact_kinds) + len(closure) > VERTICAL_TRANSITION_TOTAL_ITEM_LIMIT
+        ):
+            blockers.append(
+                TransitionIssue(
+                    code="P2P_VERTICAL_IMPACT_LIMIT_EXCEEDED",
+                    severity=IssueSeverity.BLOCKER,
+                    category="impact_limit",
+                    reference=coordinate,
+                    recovery_action="Reduce the portable vertical dependency or artifact scope.",
+                )
+            )
+        seed = {
+            "contract_version": VERTICAL_TRANSITION_IMPACT_CONTRACT,
+            "operation": "install",
+            "target": coordinate,
             "artifact_checksum": actual,
             "semantic_checksum": inspection.semantic_checksum,
-            "install_prefix": prefix,
-            "entries": sorted(entries),
             "dependency_closure": closure,
-            "idempotent": bool(existing) and not blockers,
+            "artifact_kinds": artifact_kinds,
+            "disposition": (
+                "conflict" if blockers else "already_installed" if existing else "install"
+            ),
         }
+        impact = InstallImpact(
+            analysis_fingerprint_sha256=impact_fingerprint(seed),
+            target=VerticalIdentity(
+                coordinate=coordinate,
+                semantic_checksum=inspection.semantic_checksum,
+                artifact_checksum=actual,
+            ),
+            artifact_kinds=BoundedCollection.build(artifact_kinds, key=lambda item: item),
+            dependency_closure=BoundedCollection.build(
+                closure, key=lambda item: item["coordinate"]
+            ),
+            disposition=(
+                InstallDisposition.CONFLICT
+                if blockers
+                else InstallDisposition.ALREADY_INSTALLED
+                if existing
+                else InstallDisposition.INSTALL
+            ),
+            conflict=bool(blockers),
+            blockers=BoundedCollection.build(blockers, key=lambda item: (item.code, item.reference)),
+            warnings=BoundedCollection.build((), key=lambda item: item.code),
+        )
         preview = MutationPreviewService.build(
             operation_id=f"project-vertical-install:{_operation_slug(coordinate)}",
             targets=tuple(candidates),
@@ -123,20 +190,21 @@ class VerticalLifecycleService:
             authority="project_vertical_install",
             sources=sources,
             candidate_semantics=_candidate_semantics(candidates),
-            semantic_diff=impact,
+            semantic_diff=impact.to_dict(),
             token_context={
                 "coordinate": coordinate,
+                "actor": actor,
                 "artifact_checksum": actual,
                 "dependency_closure_sha256": semantic_sha256(closure),
             },
-            blockers=blockers,
+            blockers=[item.code for item in blockers],
         )
         return VerticalLifecyclePreview(
             operation="install",
             coordinate=coordinate,
             preview=preview,
             impact=impact,
-            blockers=tuple(blockers),
+            blockers=tuple(item.code for item in blockers),
             candidate_files=candidates,
         )
 
@@ -190,24 +258,23 @@ class VerticalLifecycleService:
         modules: list[str] | None = None,
     ) -> VerticalLifecyclePreview:
         coordinate = str(VerticalCoordinate.parse(reference))
-        current = self.vertical_service.project_definition_view()
-        blockers: list[str] = []
-        if current.state is not None and _has_meaningful_evidence(current.state):
-            blockers.append("P2P_VERTICAL_ADOPTION_REQUIRES_MIGRATION: project definition contains evidence")
+        snapshot = self._classifier().capture()
         candidate = self.vertical_service.render_migration_candidate(
             coordinate,
             actor=actor,
             profile=profile,
             modules=modules,
+            preserve_existing_rubrics=False,
+            reconcile_existing_questions=False,
         )
         candidate = self._with_portable_lock(candidate)
         self.vertical_service.validate_migration_candidate(candidate)
-        impact = {
-            "from_vertical": current.state.vertical_id if current.state else "",
-            "to_vertical": coordinate,
-            "definition_reset": True,
-            "reconciliation_required": candidate.reconciliation_required,
-        }
+        impact = self._analysis_service().adoption_impact(
+            snapshot=snapshot,
+            coordinate=coordinate,
+            baseline=candidate,
+        )
+        blockers = [item.code for item in impact.blockers.items]
         return self._governed_preview(
             operation="adopt",
             coordinate=coordinate,
@@ -272,44 +339,66 @@ class VerticalLifecycleService:
         modules: list[str] | None = None,
     ) -> VerticalLifecyclePreview:
         coordinate = str(VerticalCoordinate.parse(reference))
-        current_view = self.vertical_service.project_definition_view()
-        if current_view.state is None:
-            raise ValueError("P2P_VERTICAL_MIGRATION_REQUIRES_DEFINITION: use adopt for an empty project")
-        if not _has_meaningful_evidence(current_view.state):
-            raise ValueError("P2P_VERTICAL_MIGRATION_REQUIRES_EVIDENCE: use adopt for an empty definition")
-        normalized_mapping, rubric_mapping = _parse_mapping(mapping or {})
-        candidate = self.vertical_service.render_migration_candidate(
+        snapshot = self._classifier().capture()
+        plan = _parse_plan(mapping)
+        baseline = self.vertical_service.render_migration_candidate(
             coordinate,
             actor=actor,
             profile=profile,
             modules=modules,
-            rubric_mapping=rubric_mapping,
+            preserve_existing_rubrics=False,
+            reconcile_existing_questions=False,
         )
-        candidate = self._with_portable_lock(candidate)
-        migrated, impact, blockers = self._migrated_definition(
-            current_view.state,
-            candidate,
-            normalized_mapping,
+        baseline = self._with_portable_lock(baseline)
+        self.vertical_service.validate_migration_candidate(baseline)
+        analysis = self._analysis_service().migration_analysis(
+            snapshot=snapshot,
+            coordinate=coordinate,
+            baseline=baseline,
+            actor=actor,
+            plan=plan,
+        )
+        if not analysis.required_decisions and plan is None:
+            plan = VerticalTransitionPlan(
+                analysis_fingerprint_sha256=analysis.impact.analysis_fingerprint_sha256,
+                decisions=(),
+            )
+            analysis = self._analysis_service().migration_analysis(
+                snapshot=snapshot,
+                coordinate=coordinate,
+                baseline=baseline,
+                actor=actor,
+                plan=plan,
+            )
+        blockers = [item.code for item in analysis.impact.blockers.items]
+        if blockers or plan is None:
+            return VerticalLifecyclePreview(
+                operation="migrate",
+                coordinate=coordinate,
+                preview=None,
+                impact=analysis.impact,
+                blockers=tuple(blockers),
+            )
+        candidate = self._materialization_service().materialize(
+            analysis,
+            plan=plan,
             actor=actor,
         )
-        candidate.candidate_files[".p2p/project/definition.yml"] = yaml_dump(
-            project_definition_state_payload(migrated)
-        ).encode("utf-8")
-        self.vertical_service.validate_migration_candidate(candidate)
-        impact["reconciliation_required"] = candidate.reconciliation_required
         return self._governed_preview(
             operation="migrate",
             coordinate=coordinate,
             candidate=candidate,
             actor=actor,
-            impact=impact,
+            impact=analysis.impact,
             blockers=blockers,
             token_context={
-                "field_mapping_sha256": semantic_sha256(normalized_mapping),
-                "rubric_mapping_sha256": semantic_sha256(rubric_mapping),
+                "impact_contract": VERTICAL_TRANSITION_IMPACT_CONTRACT,
+                "analysis_fingerprint_sha256": analysis.impact.analysis_fingerprint_sha256,
+                "plan_fingerprint_sha256": analysis.impact.plan_fingerprint_sha256,
                 "profile": profile,
                 "modules": sorted(modules or []),
             },
+            decision_summary=tuple(item.to_dict() for item in plan.decisions),
         )
 
     def migrate_apply(
@@ -326,7 +415,7 @@ class VerticalLifecycleService:
     ) -> VerticalLifecycleResult:
         self._require_confirmation(confirmed)
         coordinate = str(VerticalCoordinate.parse(reference))
-        field_mapping, rubric_mapping = _parse_mapping(mapping or {})
+        plan = _parse_plan(mapping)
         normalized_modules = sorted(str(item) for item in (modules or []))
         fingerprint = self.receipt_service.fingerprint(
             operation="migrate",
@@ -334,8 +423,7 @@ class VerticalLifecycleService:
             preview_token=preview_token,
             semantic_inputs={
                 "coordinate": coordinate,
-                "field_mapping": field_mapping,
-                "rubric_mapping": rubric_mapping,
+                "transition_plan": plan.to_dict() if plan is not None else None,
                 "profile": str(profile),
                 "modules": normalized_modules,
             },
@@ -350,9 +438,8 @@ class VerticalLifecycleService:
             coordinate,
             actor=actor,
             mapping={
-                "field_mapping": field_mapping,
-                "rubric_mapping": rubric_mapping,
-            },
+                **(plan.to_dict() if plan is not None else {}),
+            } if plan is not None else None,
             profile=profile,
             modules=modules,
         )
@@ -371,9 +458,10 @@ class VerticalLifecycleService:
         coordinate: str,
         candidate: VerticalMigrationCandidate,
         actor: str,
-        impact: dict[str, object],
+        impact: VerticalTransitionImpact,
         blockers: list[str],
         token_context: dict[str, object],
+        decision_summary: tuple[dict[str, object], ...] = (),
     ) -> VerticalLifecyclePreview:
         sources = self._source_preconditions(candidate.candidate_files)
         preview = MutationPreviewService.build(
@@ -383,8 +471,8 @@ class VerticalLifecycleService:
             authority=f"project_vertical_{operation}",
             sources=sources,
             candidate_semantics=_candidate_semantics(candidate.candidate_files),
-            semantic_diff=impact,
-            token_context={"coordinate": coordinate, **token_context},
+            semantic_diff=impact.to_dict(),
+            token_context={"coordinate": coordinate, "actor": actor, **token_context},
             blockers=blockers,
         )
         return VerticalLifecyclePreview(
@@ -394,6 +482,7 @@ class VerticalLifecycleService:
             impact=impact,
             blockers=tuple(blockers),
             candidate_files=candidate.candidate_files,
+            decision_summary=decision_summary,
         )
 
     def _apply_preview(
@@ -411,10 +500,23 @@ class VerticalLifecycleService:
             )
         if preview.preview.preview_token != preview_token:
             raise ValueError("P2P_VERTICAL_STALE_PREVIEW: preview token does not match current state")
+        semantic_postconditions = _semantic_postconditions(
+            preview.candidate_files,
+            coordinate=preview.coordinate,
+            operation=preview.operation,
+            impact=preview.impact,
+        )
         result_summary = {
+            "impact_contract": VERTICAL_TRANSITION_IMPACT_CONTRACT,
             "operation": preview.operation,
             "operation_id": preview.preview.operation_id,
             "coordinate": preview.coordinate,
+            "analysis_fingerprint_sha256": preview.impact.analysis_fingerprint_sha256,
+            "plan_fingerprint_sha256": getattr(
+                preview.impact, "plan_fingerprint_sha256", None
+            ),
+            "semantic_postconditions": semantic_postconditions,
+            "decision_summary": list(preview.decision_summary),
             "changed_paths": sorted(preview.candidate_files),
         }
         receipt_path, receipt_content, _receipt = self.receipt_service.prepare(
@@ -463,6 +565,11 @@ class VerticalLifecycleService:
             operation=preview.operation,
             coordinate=preview.coordinate,
             mutation=mutation,
+            analysis_fingerprint_sha256=preview.impact.analysis_fingerprint_sha256,
+            plan_fingerprint_sha256=getattr(
+                preview.impact, "plan_fingerprint_sha256", None
+            ),
+            postconditions=semantic_postconditions,
         )
 
     @staticmethod
@@ -473,6 +580,9 @@ class VerticalLifecycleService:
     ) -> VerticalLifecycleResult:
         operation_id = str(receipt.result.get("operation_id") or "")
         coordinate = str(receipt.result.get("coordinate") or "")
+        semantic_postconditions = receipt.result.get("semantic_postconditions")
+        if not isinstance(semantic_postconditions, dict):
+            semantic_postconditions = {}
         return VerticalLifecycleResult(
             operation=receipt.operation,
             coordinate=coordinate,
@@ -486,6 +596,18 @@ class VerticalLifecycleService:
                 actor=receipt.actor,
                 message="Mutation was already applied with this idempotency key.",
             ),
+            analysis_fingerprint_sha256=str(
+                receipt.result.get("analysis_fingerprint_sha256") or ""
+            ),
+            plan_fingerprint_sha256=(
+                str(receipt.result["plan_fingerprint_sha256"])
+                if receipt.result.get("plan_fingerprint_sha256") is not None
+                else None
+            ),
+            postconditions={
+                str(key): str(value) if value is not None else None
+                for key, value in semantic_postconditions.items()
+            },
         )
 
     def _dependency_closure(self, pack: VerticalPack) -> list[dict[str, str]]:
@@ -535,119 +657,26 @@ class VerticalLifecycleService:
         candidate.candidate_files[lock_path] = yaml_dump(payload).encode("utf-8")
         return candidate
 
-    def _migrated_definition(
-        self,
-        current: ProjectDefinitionState,
-        candidate: VerticalMigrationCandidate,
-        mapping: dict[str, str],
-        *,
-        actor: str,
-    ) -> tuple[ProjectDefinitionState, dict[str, object], list[str]]:
-        payload = load_yaml(candidate.candidate_files[".p2p/project/definition.yml"])
-        if not isinstance(payload, dict):
-            raise ValueError("P2P_VERTICAL_INVALID_DEFINITION_CANDIDATE: expected mapping")
-        target = project_definition_state_from_payload(payload, path=Path(".p2p/project/definition.yml"))
-        target_sections = {section.section_id: section for section in target.sections}
-        target_pack = self.vertical_service.resolve_pack(candidate.reference or candidate.vertical_id).pack
-        target_fields = {
-            f"{section.section_id}.{field.field_id}"
-            for section in target_pack.sections
-            for field in section.fields
-        }
-        target_fields.update(
-            f"{section.section_id}.summary"
-            for section in target_pack.sections
-            if not section.fields
+    def _classifier(self) -> VerticalEvidenceClassifier:
+        return VerticalEvidenceClassifier(
+            root=self.root,
+            p2p_dir=self.p2p_dir,
+            vertical_service=self.vertical_service,
         )
-        source_fields = {
-            f"{section.section_id}.{field_id}": (section, field)
-            for section in current.sections
-            for field_id, field in section.fields.items()
-        }
-        blockers: list[str] = []
-        used_targets: set[str] = set()
-        for source_path, target_path in mapping.items():
-            if source_path not in source_fields:
-                blockers.append(f"P2P_VERTICAL_INVALID_MAPPING: unknown source field `{source_path}`")
-            if target_path not in target_fields:
-                blockers.append(f"P2P_VERTICAL_INVALID_MAPPING: unknown target field `{target_path}`")
-            if target_path in used_targets:
-                blockers.append(f"P2P_VERTICAL_INVALID_MAPPING: duplicate target field `{target_path}`")
-            used_targets.add(target_path)
-        preserved: list[dict[str, str]] = []
-        orphans = list(current.orphans)
-        for source_path, (source_section, field) in source_fields.items():
-            target_path = mapping.get(source_path, source_path if source_path in target_fields else "")
-            if target_path and target_path in target_fields:
-                section_id, field_id = target_path.split(".", 1)
-                target_section = target_sections[section_id]
-                target_section.fields[field_id] = replace(field, field_id=field_id)
-                target_section.missing_required_fields = [
-                    item for item in target_section.missing_required_fields if item != field_id
-                ]
-                preserved.append({"from": source_path, "to": target_path})
-                continue
-            orphans.append(
-                _field_orphan(
-                    current=current,
-                    source_path=source_path,
-                    value=field.value,
-                    source=field.source,
-                    updated_at=field.updated_at,
-                    target_vertical=candidate.reference or candidate.vertical_id,
-                )
-            )
-        for source_section in current.sections:
-            target_section = target_sections.get(source_section.section_id)
-            if target_section is not None:
-                target_section.assumptions = list(source_section.assumptions)
-                target_section.blockers = list(source_section.blockers)
-                if source_section.status == "blocked" and source_section.blockers:
-                    target_section.status = "blocked"
-                elif not target_section.missing_required_fields and source_section.status in {"complete", "assumed"}:
-                    target_section.status = source_section.status
-                elif target_section.fields:
-                    target_section.status = "partial"
-                continue
-            for kind, values in (
-                ("assumptions", source_section.assumptions),
-                ("blockers", source_section.blockers),
-            ):
-                if values:
-                    orphans.append(
-                        _field_orphan(
-                            current=current,
-                            source_path=f"{source_section.section_id}.{kind}",
-                            value=[item.__dict__ for item in values],
-                            source="project_definition",
-                            updated_at="",
-                            target_vertical=candidate.reference or candidate.vertical_id,
-                        )
-                    )
-        migrated = replace(
-            target,
-            sections=list(target_sections.values()),
-            orphans=orphans,
-            history=[
-                *current.history,
-                ProjectDefinitionHistoryEntry(
-                    at=date.today().isoformat(),
-                    actor=actor,
-                    operation="migrate_project_vertical",
-                ),
-            ],
+
+    def _analysis_service(self) -> VerticalTransitionAnalysisService:
+        return VerticalTransitionAnalysisService(
+            root=self.root,
+            p2p_dir=self.p2p_dir,
+            vertical_service=self.vertical_service,
         )
-        impact = {
-            "from_vertical": current.vertical_id,
-            "to_vertical": candidate.reference or candidate.vertical_id,
-            "preserved_fields": preserved,
-            "orphaned_values": len(orphans) - len(current.orphans),
-            "existing_orphans": len(current.orphans),
-            "field_mapping": mapping,
-            "added_sections": sorted(set(target_sections) - {item.section_id for item in current.sections}),
-            "removed_sections": sorted({item.section_id for item in current.sections} - set(target_sections)),
-        }
-        return migrated, impact, blockers
+
+    def _materialization_service(self) -> VerticalTransitionMaterializationService:
+        return VerticalTransitionMaterializationService(
+            root=self.root,
+            p2p_dir=self.p2p_dir,
+            vertical_service=self.vertical_service,
+        )
 
     def _source_preconditions(self, candidates: dict[str, bytes]) -> tuple:
         return tuple(
@@ -698,67 +727,57 @@ def _operation_slug(coordinate: str) -> str:
     return re.sub(r"[^A-Za-z0-9_-]", "-", coordinate)
 
 
-def _has_meaningful_evidence(state: ProjectDefinitionState) -> bool:
-    if state.orphans:
-        return True
-    for section in state.sections:
-        if section.assumptions or section.blockers:
-            return True
-        for field in section.fields.values():
-            if field.value not in (None, "", [], {}):
-                return True
-    return False
+def _parse_plan(payload: Mapping[str, object] | None) -> VerticalTransitionPlan | None:
+    if payload is None or not payload:
+        return None
+    return parse_transition_plan(payload)
 
 
-def _parse_mapping(payload: Mapping[str, object]) -> tuple[dict[str, str], dict[str, str]]:
-    raw_fields = payload.get("field_mapping", payload.get("mappings", {}))
-    field_mapping: dict[str, str] = {}
-    if isinstance(raw_fields, dict):
-        field_mapping = {str(source): str(target) for source, target in raw_fields.items()}
-    elif isinstance(raw_fields, list):
-        for index, item in enumerate(raw_fields):
-            if not isinstance(item, dict):
-                raise ValueError(f"P2P_VERTICAL_INVALID_MAPPING: mappings[{index}] must be a mapping")
-            source = str(item.get("from") or "")
-            target = str(item.get("to") or "")
-            if not source or not target:
-                raise ValueError(f"P2P_VERTICAL_INVALID_MAPPING: mappings[{index}] requires from and to")
-            field_mapping[source] = target
-    elif raw_fields not in ({}, None):
-        raise ValueError("P2P_VERTICAL_INVALID_MAPPING: field_mapping must be a mapping or list")
-    raw_rubrics = payload.get("rubric_mapping", {})
-    if not isinstance(raw_rubrics, dict):
-        raise ValueError("P2P_VERTICAL_INVALID_MAPPING: rubric_mapping must be a mapping")
-    rubric_mapping = {str(source): str(target) for source, target in raw_rubrics.items()}
-    return field_mapping, rubric_mapping
+def _portable_artifact_kind(name: str) -> str:
+    normalized = name.replace("\\", "/")
+    if normalized == "manifest.yml":
+        return "manifest"
+    return normalized.split("/", 1)[0].removesuffix(".yml") or "pack"
 
 
-def _field_orphan(
+def _semantic_postconditions(
+    candidates: Mapping[str, bytes],
     *,
-    current: ProjectDefinitionState,
-    source_path: str,
-    value: object,
-    source: str,
-    updated_at: str,
-    target_vertical: str,
-) -> ProjectDefinitionOrphan:
-    section_id, field_id = source_path.split(".", 1)
-    orphan_id = "ORPH-" + semantic_sha256(
-        {
-            "source_vertical": current.vertical_id,
-            "source_path": source_path,
-            "value": value,
-            "target_vertical": target_vertical,
+    coordinate: str,
+    operation: str,
+    impact: VerticalTransitionImpact,
+) -> dict[str, str | None]:
+    if operation == "install":
+        if not isinstance(impact, InstallImpact):
+            raise ValueError("P2P_VERTICAL_INVALID_INSTALL_IMPACT: typed install impact required")
+        return {
+            "installed_coordinate": coordinate,
+            "installed_semantic_checksum": impact.target.semantic_checksum,
+            "installed_artifact_checksum": impact.target.artifact_checksum or None,
         }
-    )[:12]
-    return ProjectDefinitionOrphan(
-        orphan_id=orphan_id,
-        source_vertical=current.vertical_id,
-        source_section_id=section_id,
-        source_field_id=field_id,
-        value=value,
-        source=source,
-        updated_at=updated_at,
-        reason="unmapped_during_vertical_migration",
-        target_vertical=target_vertical,
-    )
+    artifact_paths = {
+        "definition_semantic_sha256": ".p2p/project/definition.yml",
+        "questions_semantic_sha256": ".p2p/project/questions.yml",
+        "rubrics_semantic_sha256": ".p2p/project/rubrics.yml",
+    }
+    result: dict[str, str | None] = {"active_coordinate": coordinate}
+    for field, path in artifact_paths.items():
+        content = candidates.get(path)
+        result[field] = semantic_sha256(load_yaml(content)) if content is not None else None
+    lock_content = candidates.get(".p2p/project/vertical.lock.yml")
+    lock_semantic = None
+    lock_artifact = None
+    if lock_content is not None:
+        payload = load_yaml(lock_content)
+        if isinstance(payload, Mapping):
+            lock = payload.get("project_vertical_lock")
+            if isinstance(lock, Mapping):
+                checksum = lock.get("checksum")
+                artifact = lock.get("artifact_checksum")
+                if isinstance(checksum, Mapping):
+                    lock_semantic = str(checksum.get("value") or "") or None
+                if isinstance(artifact, Mapping):
+                    lock_artifact = str(artifact.get("value") or "") or None
+    result["lock_semantic_checksum"] = lock_semantic
+    result["lock_artifact_checksum"] = lock_artifact
+    return result

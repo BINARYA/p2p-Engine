@@ -1,0 +1,75 @@
+{
+  "contract_version": "p2p-cli/v1",
+  "ok": true,
+  "operation": "project.vertical.adopt.preview",
+  "data": {
+    "operation": "adopt",
+    "coordinate": "example/software@2.0.0",
+    "apply_allowed": true,
+    "impact": {
+      "contract_version": "p2p-vertical-transition-impact/v1",
+      "operation": "adopt",
+      "analysis_fingerprint_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_state": {
+        "classification": "empty",
+        "adoption_eligible": true,
+        "migration_required": false,
+        "evidence": {
+          "definition_fields": 0,
+          "assumptions": 0,
+          "blockers": 0,
+          "definition_orphans": 0,
+          "owner_question_evidence": 0,
+          "rubric_customizations": 0,
+          "total": 0
+        }
+      },
+      "source": null,
+      "target": {
+        "coordinate": "example/software@2.0.0",
+        "semantic_checksum": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "artifact_checksum": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "profile": "default",
+        "modules": []
+      },
+      "lock": {
+        "before": null,
+        "after": {
+          "coordinate": "example/software@2.0.0",
+          "semantic_checksum": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "artifact_checksum": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "profile": "default",
+          "modules": []
+        },
+        "dependency_additions": {"total": 0, "returned": 0, "truncated": false, "items": []},
+        "dependency_removals": {"total": 0, "returned": 0, "truncated": false, "items": []}
+      },
+      "artifacts": {
+        "total": 5,
+        "returned": 5,
+        "truncated": false,
+        "items": [
+          {"kind": "definition", "disposition": "create", "before_semantic_sha256": null, "candidate_semantic_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"},
+          {"kind": "lock", "disposition": "create", "before_semantic_sha256": null, "candidate_semantic_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"},
+          {"kind": "questions", "disposition": "update", "before_semantic_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "candidate_semantic_sha256": "1111111111111111111111111111111111111111111111111111111111111111"},
+          {"kind": "rubrics", "disposition": "update", "before_semantic_sha256": "2222222222222222222222222222222222222222222222222222222222222222", "candidate_semantic_sha256": "3333333333333333333333333333333333333333333333333333333333333333"},
+          {"kind": "vertical", "disposition": "create", "before_semantic_sha256": null, "candidate_semantic_sha256": "4444444444444444444444444444444444444444444444444444444444444444"}
+        ]
+      },
+      "blockers": {"total": 0, "returned": 0, "truncated": false, "items": []},
+      "warnings": {"total": 0, "returned": 0, "truncated": false, "items": []}
+    },
+    "blockers": [],
+    "preview": {
+      "operation_id": "project-vertical-adopt:example-software-2-0-0",
+      "actor": "owner",
+      "authority": "project_vertical_adopt",
+      "confirmation_required": true,
+      "policy_version": 1,
+      "apply_allowed": true,
+      "preview_token": "5555555555555555555555555555555555555555555555555555555555555555"
+    }
+  },
+  "warnings": [],
+  "error": null
+}

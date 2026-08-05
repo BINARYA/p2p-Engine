@@ -66,6 +66,21 @@ def test_release_verifier_requires_current_agent_surface_members() -> None:
     } <= MODULE.CURRENT_SURFACE_SDIST_MEMBERS
 
 
+def test_release_verifier_requires_typed_vertical_transition_contract() -> None:
+    assert {
+        "p2p_engine/core/vertical_transition_impact.py",
+        "p2p_engine/core/vertical_transition_plan.py",
+        "p2p_engine/services/vertical_evidence_classifier.py",
+        "p2p_engine/services/vertical_transition_analysis.py",
+        "p2p_engine/services/vertical_transition_materialization.py",
+    } <= MODULE.TYPED_VERTICAL_TRANSITION_WHEEL_MEMBERS
+    assert {
+        "docs/development/wavekit-vertical-transition-handoff.md",
+        "tests/fixtures/vertical_transition/manifest-v1.json",
+        "tests/test_vertical_transition_impact.py",
+    } <= MODULE.TYPED_VERTICAL_TRANSITION_SDIST_MEMBERS
+
+
 def test_release_verifier_requires_external_canonical_archive_tooling() -> None:
     source = Path(__file__).resolve().parents[1] / "scripts" / "verify-release-artifacts.py"
     text = source.read_text(encoding="utf-8")

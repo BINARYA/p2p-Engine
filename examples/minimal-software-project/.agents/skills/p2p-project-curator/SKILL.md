@@ -7,7 +7,7 @@ description: Build a vertical-aware, language-specific human project publication
 Managed by P2P Engine.
 Adapter: codex
 Template: codex-p2p-project-curator-skill-v3
-Generation: agent-template-generation-v2:agent-capabilities-v2:codex-p2p-project-curator-skill-v3
+Generation: agent-template-generation-v2:agent-capabilities-v3:codex-p2p-project-curator-skill-v3
 Do not edit generated sections unless you accept drift.
 -->
 

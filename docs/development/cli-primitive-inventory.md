@@ -188,8 +188,8 @@ e [`project_status.py`](../../src/p2p_engine/cli_commands/project_status.py).
 | `p2p project vertical inspect TARGET` | `R` | Mostra vista dichiarata o effettiva di directory e archivi locali. |
 | `p2p project vertical package TARGET` | `C` | Produce un archivio v2 deterministico fuori dallo stato progettuale. |
 | `p2p project vertical install preview/apply` | `R/C` | Installa offline una coordinate esatta con checksum, token e conferma. |
-| `p2p project vertical adopt preview/apply` | `R/C/O` | Adotta una coordinate esatta quando non esiste evidenza significativa. |
-| `p2p project vertical migrate preview/apply` | `R/C/O` | Migra con mapping esatto e conservazione degli orfani. |
+| `p2p project vertical adopt preview/apply` | `R/C/O` | Adotta una coordinate esatta solo con classificazione tipizzata `empty`. |
+| `p2p project vertical migrate preview/apply` | `R/C/O` | Analizza l'impatto tipizzato, richiede un piano decisionale esatto e preserva evidenze/orfani per famiglia. |
 | `p2p project vertical propose IDEA` | `R` | Stampa un candidato YAML importabile senza persisterlo. |
 | `p2p project vertical add PATH` | `C` | Copia un vertical pack nel progetto; `--activate` puo selezionarlo. |
 | `p2p project vertical select VERTICAL` | `C/O` | Seleziona il verticale attivo e ne registra il lock. |

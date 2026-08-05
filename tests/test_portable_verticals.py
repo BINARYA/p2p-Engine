@@ -25,6 +25,9 @@ def _portable_pack(
     vertical_id: str,
     version: str,
     field_id: str = "summary",
+    section_id: str = "custom_overview",
+    question_id: str = "custom_overview_question",
+    rubric_id: str = "custom_overview_coverage",
 ) -> tuple[Path, str, str]:
     source = root / f"{vertical_id}-{version}"
     inspection = workspace.scaffold_portable_vertical(
@@ -35,11 +38,28 @@ def _portable_pack(
         name=vertical_id.replace("_", " ").title(),
         license_id="MIT",
     )
-    if field_id != "summary":
-        section_path = source / "sections" / "custom_overview.yml"
-        payload = yaml.safe_load(section_path.read_text(encoding="utf-8"))
-        payload["section"]["fields"][0]["id"] = field_id
-        section_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    section_path = source / "sections" / "custom_overview.yml"
+    section_payload = yaml.safe_load(section_path.read_text(encoding="utf-8"))
+    section_payload["section"]["id"] = section_id
+    section_payload["section"]["fields"][0]["id"] = field_id
+    target_section_path = source / "sections" / f"{section_id}.yml"
+    if target_section_path != section_path:
+        section_path.rename(target_section_path)
+    target_section_path.write_text(
+        yaml.safe_dump(section_payload, sort_keys=False),
+        encoding="utf-8",
+    )
+    vertical_path = source / "vertical.yml"
+    vertical_payload = yaml.safe_load(vertical_path.read_text(encoding="utf-8"))
+    vertical_payload["vertical"]["questions"][0]["id"] = question_id
+    vertical_payload["vertical"]["questions"][0]["section_id"] = section_id
+    vertical_payload["vertical"]["artifacts"][0]["section_ids"] = [section_id]
+    vertical_path.write_text(yaml.safe_dump(vertical_payload, sort_keys=False), encoding="utf-8")
+    rubrics_path = source / "rubrics.yml"
+    rubrics_payload = yaml.safe_load(rubrics_path.read_text(encoding="utf-8"))
+    rubrics_payload["rubrics"][0]["id"] = rubric_id
+    rubrics_payload["rubrics"][0]["section_id"] = section_id
+    rubrics_path.write_text(yaml.safe_dump(rubrics_payload, sort_keys=False), encoding="utf-8")
     archive = root / f"{vertical_id}-{version}.p2pv"
     packaged = workspace.package_portable_vertical(source, output=archive)
     return archive, packaged.artifact_checksum, inspection.pack.coordinate
@@ -50,6 +70,36 @@ def _workspace_file_snapshot(root: Path) -> dict[str, bytes]:
         path.relative_to(root).as_posix(): path.read_bytes()
         for path in root.rglob("*")
         if path.is_file()
+    }
+
+
+def _transition_plan(
+    preview,
+    *,
+    targets: dict[str, str] | None = None,
+) -> dict[str, object]:
+    target_refs = targets or {}
+    decisions: list[dict[str, object]] = []
+    for required in preview.impact.required_decisions.items:
+        target_ref = target_refs.get(required.source.ref)
+        decision: dict[str, object] = {
+            "id": required.decision_id,
+            "action": "map" if target_ref else "preserve_as_orphan",
+            "source": required.source.to_dict(),
+        }
+        if target_ref:
+            decision["target"] = {
+                "kind": required.source.kind.value,
+                "ref": target_ref,
+            }
+        decisions.append(decision)
+    return {
+        "vertical_transition_plan": {
+            "schema_version": 1,
+            "contract_version": "p2p-vertical-transition-plan/v1",
+            "analysis_fingerprint_sha256": preview.impact.analysis_fingerprint_sha256,
+            "decisions": decisions,
+        }
     }
 
 
@@ -81,7 +131,9 @@ def test_portable_package_is_deterministic_and_installs_side_by_side(tmp_path: P
     )
 
     assert preview.apply_allowed is True
-    assert not (project_root / preview.impact["install_prefix"]).exists()
+    assert not (
+        project_root / ".p2p/project/verticals/_portable/test/portable_demo/1.0.0"
+    ).exists()
     applied = project.apply_portable_vertical_install(
         first,
         expected_checksum=checksum,
@@ -170,7 +222,13 @@ def test_install_receipt_supports_exact_replay_status_redaction_and_drift_detect
     )
 
     assert applied.mutation.status == "applied"
+    assert applied.postconditions == {
+        "installed_coordinate": preview.coordinate,
+        "installed_semantic_checksum": preview.impact.target.semantic_checksum,
+        "installed_artifact_checksum": preview.impact.target.artifact_checksum,
+    }
     assert replayed.mutation.status == repeated.mutation.status == "already_applied"
+    assert replayed.postconditions == applied.postconditions
     assert replayed.mutation.changed_paths == ()
     assert _workspace_file_snapshot(project_root) == after_apply
 
@@ -185,6 +243,7 @@ def test_install_receipt_supports_exact_replay_status_redaction_and_drift_detect
     assert status.state == "applied"
     assert status.operation == "install"
     assert status.postconditions_match is True
+    assert status.result["semantic_postconditions"] == applied.postconditions
     assert key not in str(status.to_dict())
 
     cli_status = runner.invoke(
@@ -223,7 +282,11 @@ def test_install_receipt_supports_exact_replay_status_redaction_and_drift_detect
             idempotency_key=key,
         )
 
-    drift_path = project_root / str(status.result["changed_paths"][0])
+    assert "changed_paths" not in status.result
+    drift_path = (
+        project_root
+        / ".p2p/project/verticals/_portable/test/receipt-install/1.0.0/manifest.yml"
+    )
     drift_path.write_bytes(drift_path.read_bytes() + b"\n")
     assert project.mutation_status(idempotency_key=key).state == "postcondition_drift"
     with pytest.raises(ValueError, match="P2P_IDEMPOTENCY_POSTCONDITION_DRIFT"):
@@ -361,11 +424,18 @@ def test_migrate_receipt_replays_exact_mapping_and_rejects_changed_mapping(
         encoding="utf-8",
     )
     project.update_project_definition(patch)
-    mapping = {
-        "field_mapping": {
-            "custom_overview.summary": "custom_overview.renamed_summary",
-        }
-    }
+    analysis = project.preview_project_vertical_migration(
+        target_coordinate,
+        actor="owner",
+    )
+    mapping = _transition_plan(
+        analysis,
+        targets={
+            "definition_field:custom_overview.summary": (
+                "definition_field:custom_overview.renamed_summary"
+            ),
+        },
+    )
     preview = project.preview_project_vertical_migration(
         target_coordinate,
         actor="owner",
@@ -461,7 +531,7 @@ def test_portable_install_rolls_back_a_partial_write(tmp_path: Path) -> None:
             idempotency_key=f"failure-install:{checksum}",
         )
 
-    install_root = project_root / preview.impact["install_prefix"]
+    install_root = project_root / ".p2p/project/verticals/_portable/test/rollback_demo/1.0.0"
     assert not install_root.exists() or not any(path.is_file() for path in install_root.rglob("*"))
     assert project.mutation_status(idempotency_key=f"failure-install:{checksum}").state == "not_found"
 
@@ -561,11 +631,18 @@ def test_adopt_and_migrate_receipts_roll_back_with_domain_state_on_write_failure
         encoding="utf-8",
     )
     project.update_project_definition(patch)
-    mapping = {
-        "field_mapping": {
-            "custom_overview.summary": "custom_overview.renamed_summary",
-        }
-    }
+    analysis = project.preview_project_vertical_migration(
+        target_coordinate,
+        actor="owner",
+    )
+    mapping = _transition_plan(
+        analysis,
+        targets={
+            "definition_field:custom_overview.summary": (
+                "definition_field:custom_overview.renamed_summary"
+            ),
+        },
+    )
     migration = project.preview_project_vertical_migration(
         target_coordinate,
         actor="owner",
@@ -691,31 +768,45 @@ def test_migration_preserves_exact_mapping_and_materializes_unmapped_orphan(tmp_
     )
     project.update_project_definition(patch)
 
+    analysis = project.preview_project_vertical_migration(
+        target_coordinate,
+        actor="owner",
+    )
+    assert analysis.apply_allowed is False
+    assert analysis.preview is None
+    assert analysis.impact.required_decisions.total == 1
+    mapped_plan = _transition_plan(
+        analysis,
+        targets={
+            "definition_field:custom_overview.summary": (
+                "definition_field:custom_overview.renamed_summary"
+            ),
+        },
+    )
     mapped = project.preview_project_vertical_migration(
         target_coordinate,
         actor="owner",
-        mapping={
-            "field_mapping": {
-                "custom_overview.summary": "custom_overview.renamed_summary",
-            }
-        },
+        mapping=mapped_plan,
     )
-    assert mapped.impact["orphaned_values"] == 0
-    assert mapped.impact["preserved_fields"] == [
-        {
-            "from": "custom_overview.summary",
-            "to": "custom_overview.renamed_summary",
-        }
-    ]
+    transition = mapped.impact.evidence_transitions.items[0]
+    assert transition.disposition.value == "mapped"
+    assert transition.target is not None
+    assert transition.target.ref == "definition_field:custom_overview.renamed_summary"
 
-    orphaned = project.preview_project_vertical_migration(target_coordinate, actor="owner")
-    assert orphaned.impact["orphaned_values"] == 1
+    orphan_plan = _transition_plan(analysis)
+    orphaned = project.preview_project_vertical_migration(
+        target_coordinate,
+        actor="owner",
+        mapping=orphan_plan,
+    )
+    assert orphaned.impact.evidence_transitions.items[0].disposition.value == "preserve_as_orphan"
     project.apply_project_vertical_migration(
         target_coordinate,
         preview_token=orphaned.preview.preview_token,
         confirmed=True,
         actor="owner",
         idempotency_key=f"migrate:{target_coordinate}",
+        mapping=orphan_plan,
     )
     state = project.project_definition_view().state
 
@@ -724,6 +815,166 @@ def test_migration_preserves_exact_mapping_and_materializes_unmapped_orphan(tmp_
     assert len(state.orphans) == 1
     assert state.orphans[0].value == "preserved evidence"
     assert state.orphans[0].source_field_id == "summary"
+
+
+@pytest.mark.service
+def test_migration_materializes_mixed_evidence_in_its_own_memory_family(
+    tmp_path: Path,
+) -> None:
+    authoring = P2PWorkspace(tmp_path)
+    source_archive, source_checksum, source_coordinate = _portable_pack(
+        authoring,
+        tmp_path,
+        vertical_id="mixed-source",
+        version="1.0.0",
+    )
+    target_archive, target_checksum, target_coordinate = _portable_pack(
+        authoring,
+        tmp_path,
+        vertical_id="mixed-target",
+        version="2.0.0",
+        section_id="target_overview",
+        question_id="target_overview_question",
+        rubric_id="target_overview_coverage",
+    )
+    project = P2PWorkspace(tmp_path / "mixed-project")
+    project.init_project("Mixed migration", owner="owner")
+    for archive, checksum in (
+        (source_archive, source_checksum),
+        (target_archive, target_checksum),
+    ):
+        install = project.preview_portable_vertical_install(
+            archive,
+            expected_checksum=checksum,
+            actor="owner",
+        )
+        project.apply_portable_vertical_install(
+            archive,
+            expected_checksum=checksum,
+            preview_token=install.preview.preview_token,
+            confirmed=True,
+            actor="owner",
+            idempotency_key=f"install:{checksum}",
+        )
+    adoption = project.preview_project_vertical_adoption(source_coordinate, actor="owner")
+    project.apply_project_vertical_adoption(
+        source_coordinate,
+        preview_token=adoption.preview.preview_token,
+        confirmed=True,
+        actor="owner",
+        idempotency_key="mixed-adopt",
+    )
+
+    private_value = "MIXED-PRIVATE-DEFINITION-VALUE"
+    patch = tmp_path / "mixed-patch.yml"
+    patch.write_text(
+        yaml.safe_dump(
+            {
+                "project_definition_patch": {
+                    "schema_version": 1,
+                    "actor": "owner",
+                    "operations": [
+                        {
+                            "op": "set_field",
+                            "section_id": "custom_overview",
+                            "field_id": "summary",
+                            "value": private_value,
+                            "source": "owner",
+                        },
+                        {
+                            "op": "add_assumption",
+                            "section_id": "custom_overview",
+                            "text": "Mixed assumption",
+                        },
+                        {
+                            "op": "add_blocker",
+                            "section_id": "custom_overview",
+                            "text": "Mixed blocker",
+                        },
+                    ],
+                }
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    project.update_project_definition(patch)
+    rubrics_path = project.p2p_dir / "project" / "rubrics.yml"
+    rubrics_payload = yaml.safe_load(rubrics_path.read_text(encoding="utf-8"))
+    rubrics_payload["criteria"][0]["enabled"] = False
+    rubrics_path.write_text(yaml.safe_dump(rubrics_payload, sort_keys=False), encoding="utf-8")
+    question = project.next_project_question()
+    assert question is not None
+    source_question_id = question.question_id
+    project.defer_project_question(
+        question.question_id,
+        actor="owner",
+        expected_revision=question.revision,
+        reason="Mixed owner evidence",
+    )
+
+    analysis = project.preview_project_vertical_migration(target_coordinate, actor="owner")
+    assert analysis.impact.questions.created.total == 1
+    target_question_ref = analysis.impact.questions.created.items[0]
+    target_question_id = target_question_ref.split(":", 1)[1]
+    target_refs: dict[str, str] = {}
+    for required in analysis.impact.required_decisions.items:
+        source_ref = required.source.ref
+        if source_ref.startswith("definition_field:"):
+            target_refs[source_ref] = "definition_field:target_overview.summary"
+        elif source_ref.startswith("definition_assumption:"):
+            target_refs[source_ref] = (
+                "definition_assumption:target_overview/" + source_ref.rsplit("/", 1)[1]
+            )
+        elif source_ref.startswith("definition_blocker:"):
+            target_refs[source_ref] = (
+                "definition_blocker:target_overview/" + source_ref.rsplit("/", 1)[1]
+            )
+        elif source_ref.startswith("rubric:"):
+            target_refs[source_ref] = "rubric:target_overview_coverage"
+        elif source_ref.startswith("question:"):
+            target_refs[source_ref] = target_question_ref
+    assert {item.source.kind.value for item in analysis.impact.required_decisions.items} == {
+        "definition_field",
+        "definition_assumption",
+        "definition_blocker",
+        "rubric",
+        "question",
+    }
+    plan = _transition_plan(analysis, targets=target_refs)
+    preview = project.preview_project_vertical_migration(
+        target_coordinate,
+        actor="owner",
+        mapping=plan,
+    )
+    assert preview.apply_allowed is True
+    project.apply_project_vertical_migration(
+        target_coordinate,
+        preview_token=preview.preview.preview_token,
+        confirmed=True,
+        actor="owner",
+        idempotency_key="mixed-migrate",
+        mapping=plan,
+    )
+
+    state = project.project_definition_view().state
+    assert state is not None
+    section = next(item for item in state.sections if item.section_id == "target_overview")
+    assert section.fields["summary"].value == private_value
+    assert [item.text for item in section.assumptions] == ["Mixed assumption"]
+    assert [item.text for item in section.blockers] == ["Mixed blocker"]
+    assert state.orphans == []
+    final_rubrics = yaml.safe_load(rubrics_path.read_text(encoding="utf-8"))["criteria"]
+    target_rubric = next(item for item in final_rubrics if item["id"] == "target_overview_coverage")
+    assert target_rubric["enabled"] is False
+    final_questions = project.project_questions()
+    questions_by_id = {item.question_id: item for item in final_questions.questions}
+    assert questions_by_id[target_question_id].state.value == "deferred"
+    assert questions_by_id[source_question_id].state.value == "superseded"
+    assert private_value not in rubrics_path.read_text(encoding="utf-8")
+    assert private_value not in (
+        project.p2p_dir / "project" / "questions.yml"
+    ).read_text(encoding="utf-8")
 
 
 @pytest.mark.service
@@ -1437,13 +1688,65 @@ def test_portable_cli_install_and_adopt_preview_apply_contract(tmp_path: Path) -
         actor="owner",
         idempotency_key=f"install:{target_checksum}",
     )
-    mapping = tmp_path / "cli-mapping.yml"
-    mapping.write_text(
-        "vertical_migration:\n"
-        "  field_mapping:\n"
-        "    custom_overview.summary: custom_overview.renamed_summary\n",
-        encoding="utf-8",
+    analysis_result = runner.invoke(
+        app,
+        [
+            "project",
+            "vertical",
+            "migrate",
+            "preview",
+            target_coordinate,
+            "--actor",
+            "owner",
+            "--root",
+            str(project_root),
+            "--format",
+            "json",
+        ],
     )
+    analysis_payload = cli_data(analysis_result)
+    assert "CLI evidence" not in analysis_result.stdout
+    text_analysis_result = runner.invoke(
+        app,
+        [
+            "project",
+            "vertical",
+            "migrate",
+            "preview",
+            target_coordinate,
+            "--actor",
+            "owner",
+            "--root",
+            str(project_root),
+        ],
+    )
+    assert text_analysis_result.exit_code == 0
+    assert "CLI evidence" not in text_analysis_result.stdout
+    assert ".p2p/" not in text_analysis_result.stdout
+    required = analysis_payload["impact"]["required_decisions"]["items"]
+    assert len(required) == 1
+    mapping_payload = {
+        "vertical_transition_plan": {
+            "schema_version": 1,
+            "contract_version": "p2p-vertical-transition-plan/v1",
+            "analysis_fingerprint_sha256": analysis_payload["impact"][
+                "analysis_fingerprint_sha256"
+            ],
+            "decisions": [
+                {
+                    "id": required[0]["id"],
+                    "action": "map",
+                    "source": required[0]["source"],
+                    "target": {
+                        "kind": "definition_field",
+                        "ref": "definition_field:custom_overview.renamed_summary",
+                    },
+                }
+            ],
+        }
+    }
+    mapping = tmp_path / "cli-mapping.yml"
+    mapping.write_text(yaml.safe_dump(mapping_payload, sort_keys=False), encoding="utf-8")
     migrate_preview = runner.invoke(
         app,
         [

@@ -1442,7 +1442,7 @@ class P2PWorkspace:
                     actor=owner or "owner",
                     idempotency_key=f"project-init-vertical-pack:{expected_checksum}",
                 )
-                artifact_checksum = str(install_preview.impact.get("artifact_checksum") or "")
+                artifact_checksum = install_preview.impact.target.artifact_checksum
                 _extend_created_paths(created, installed.mutation.changed_paths)
             if vertical_id:
                 self._project_vertical_service().select_vertical(

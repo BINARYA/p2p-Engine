@@ -370,6 +370,20 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_impact_prompt` | advisory/write-safe | yes | no | Generate an impact-analysis prompt for a proposal. |
 | `p2p_spec_prompt` | advisory/write-safe | yes | no | Generate a software-spec refinement prompt for a Change Set. |
 
+## Project Vertical Transition Boundary
+
+The MCP catalog intentionally has no install, adopt or migrate preview/apply
+tool. Those owner-governed mutations remain CLI-only because they require the
+typed `p2p-vertical-transition-impact/v1` review, an optional exact
+`p2p-vertical-transition-plan/v1`, a replacement state-bound preview token,
+explicit confirmation and a stable idempotency key.
+
+MCP clients may inspect the active vertical, lock, context, definition and
+readiness with registered read tools. They must not translate those reads into
+direct `.p2p` writes or call an unregistered lifecycle mutation. WaveKit may
+offer its own authenticated HTTP MCP workflow, but it remains responsible for
+authorization, queues and serialized invocation of the same CLI contract.
+
 ## Proposal Artifact Content Imports
 
 Proposal artifact import tools are write-safe content tools. They write only

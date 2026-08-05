@@ -1,0 +1,28 @@
+{
+  "contract_version": "p2p-cli/v1",
+  "ok": true,
+  "operation": "project.vertical.adopt.apply",
+  "data": {
+    "impact_contract": "p2p-vertical-transition-impact/v1",
+    "operation": "adopt",
+    "coordinate": "example/software@2.0.0",
+    "analysis_fingerprint_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "plan_fingerprint_sha256": null,
+    "postconditions": {
+      "active_coordinate": "example/software@2.0.0",
+      "definition_semantic_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "questions_semantic_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "rubrics_semantic_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "lock_semantic_checksum": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "lock_artifact_checksum": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    "mutation": {
+      "status": "applied",
+      "operation_id": "project-vertical-adopt:example-software-2-0-0",
+      "actor": "owner",
+      "recovery_required": false
+    }
+  },
+  "warnings": [],
+  "error": null
+}

@@ -2,5 +2,5 @@ runtime_contract:
   schema_version: 1
 runtime:
   p2p:
-    requires: ==0.4.7
-    recommended: 0.4.7
+    requires: ==0.4.8
+    recommended: 0.4.8

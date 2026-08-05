@@ -5,7 +5,7 @@ import json
 from dataclasses import asdict, dataclass
 
 
-AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v2"
+AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v3"
 
 
 @dataclass(frozen=True)
@@ -154,7 +154,10 @@ AGENT_CAPABILITIES = (
         mcp_tools=(),
         exposure="owner_governed",
         authority="owner_confirmation_for_apply",
-        reason="Project pack mutation remains preview/apply CLI-only and idempotency-key bound.",
+        reason=(
+            "Project pack mutation is a typed preview/decision-plan/apply CLI lifecycle; "
+            "apply remains owner-confirmed and idempotency-key bound."
+        ),
     ),
 )
 
@@ -219,4 +222,13 @@ Remote registry configuration, authentication, search/pull, draft authoring,
 publication, and project install/adopt/migrate are CLI-only in this release.
 MCP exposes project-visible vertical inspection and validation, but it does not
 silently acquire credentials, write the user cache, publish drafts, or perform
-owner-governed project adoption."""
+owner-governed project adoption.
+
+For a project transition, request JSON and inspect
+`impact.contract_version == p2p-vertical-transition-impact/v1`. Adoption is
+allowed only when `source_state.classification` is `empty`. Migration starts
+without `--mapping`; when `required_decisions.total` is non-zero, create an
+exact `p2p-vertical-transition-plan/v1` document from those decision IDs and
+domain references, re-run preview with `--mapping`, retain the replacement
+preview token, then apply with owner confirmation and one stable idempotency
+key. Never infer a destination from similar labels or edit `.p2p` directly."""

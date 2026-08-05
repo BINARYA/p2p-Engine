@@ -933,7 +933,11 @@ def register_project_ops_commands(
     @project_vertical_migrate_app.command("preview")
     def project_vertical_migrate_preview(
         coordinate: str = typer.Argument(..., help="Exact installed target vertical coordinate"),
-        mapping: Path | None = typer.Option(None, "--mapping", help="Exact field/rubric mapping YAML or JSON"),
+        mapping: Path | None = typer.Option(
+            None,
+            "--mapping",
+            help="Canonical p2p-vertical-transition-plan/v1 YAML or JSON",
+        ),
         actor: str = typer.Option("local", "--actor", help="Requesting actor"),
         profile: str = typer.Option("default", "--profile", help="Definition profile"),
         module: list[str] | None = typer.Option(None, "--module", help="Enabled module; repeat as needed"),
@@ -956,7 +960,11 @@ def register_project_ops_commands(
     @project_vertical_migrate_app.command("apply")
     def project_vertical_migrate_apply(
         coordinate: str = typer.Argument(..., help="Exact installed target vertical coordinate"),
-        mapping: Path | None = typer.Option(None, "--mapping", help="Exact field/rubric mapping YAML or JSON"),
+        mapping: Path | None = typer.Option(
+            None,
+            "--mapping",
+            help="Canonical p2p-vertical-transition-plan/v1 YAML or JSON",
+        ),
         token: str = typer.Option(..., "--token", help="Current preview token"),
         idempotency_key: str = typer.Option(
             ...,
@@ -1530,6 +1538,14 @@ def _print_lifecycle_preview(result: object, *, operation: str, output_format: s
     console.print(f"  operation: {getattr(result, 'operation')}")
     console.print(f"  coordinate: {getattr(result, 'coordinate')}")
     console.print(f"  apply_allowed: {str(getattr(result, 'apply_allowed')).lower()}")
+    impact = getattr(result, "impact")
+    source_state = getattr(impact, "source_state", None)
+    if source_state is not None:
+        console.print(f"  classification: {source_state.classification}")
+        console.print(f"  evidence_total: {source_state.evidence.total}")
+    decisions = getattr(impact, "required_decisions", None)
+    if decisions is not None:
+        console.print(f"  required_decisions: {decisions.total}")
     preview = getattr(result, "preview")
     if preview is not None:
         console.print(f"  preview_token: {preview.preview_token}")
@@ -1546,7 +1562,7 @@ def _print_lifecycle_result(result: object, *, operation: str, output_format: st
     console.print(f"[green]Project vertical mutation {status}.[/green]")
     console.print(f"  operation: {getattr(result, 'operation')}")
     console.print(f"  coordinate: {getattr(result, 'coordinate')}")
-    console.print(f"  changed_paths: {len(getattr(result, 'mutation').changed_paths)}")
+    console.print(f"  recovery_required: {str(getattr(result, 'mutation').recovery_required).lower()}")
 
 
 def _load_vertical_mapping(path: Path | None, *, root: Path) -> dict[str, object]:
@@ -1554,12 +1570,11 @@ def _load_vertical_mapping(path: Path | None, *, root: Path) -> dict[str, object
         return {}
     source = path if path.is_absolute() else root / path
     if not source.is_file() or source.is_symlink():
-        raise ValueError(f"P2P_VERTICAL_INVALID_MAPPING: mapping file not found: {source}")
-    payload = load_yaml(source.read_bytes())
+        raise ValueError(f"P2P_VERTICAL_TRANSITION_PLAN_INVALID: plan file not found: {source}")
+    payload = load_yaml(source.read_bytes(), loader_contract="unique-v1")
     if not isinstance(payload, dict):
-        raise ValueError("P2P_VERTICAL_INVALID_MAPPING: mapping document must be a mapping")
-    nested = payload.get("vertical_migration")
-    return nested if isinstance(nested, dict) else payload
+        raise ValueError("P2P_VERTICAL_TRANSITION_PLAN_INVALID: plan document must be a mapping")
+    return payload
 
 
 def _is_portable_vertical_target(source: Path) -> bool:

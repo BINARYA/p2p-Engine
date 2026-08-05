@@ -40,9 +40,21 @@ def _prepared_receipt(
         request_fingerprint_sha256=fingerprint,
         preview_token="preview-token",
         result={
+            "impact_contract": "p2p-vertical-transition-impact/v1",
             "operation": "adopt",
             "operation_id": "project-vertical-adopt:test-example-1-0-0",
             "coordinate": "test/example@1.0.0",
+            "analysis_fingerprint_sha256": "a" * 64,
+            "plan_fingerprint_sha256": None,
+            "semantic_postconditions": {
+                "active_coordinate": "test/example@1.0.0",
+                "lock_semantic_checksum": None,
+                "lock_artifact_checksum": None,
+                "definition_semantic_sha256": "b" * 64,
+                "questions_semantic_sha256": None,
+                "rubrics_semantic_sha256": None,
+            },
+            "decision_summary": [],
             "changed_paths": [TARGET],
         },
         candidates={TARGET: candidate},
@@ -70,6 +82,44 @@ def test_receipt_keys_are_required_bounded_and_status_not_found_is_redacted(
 
 
 @pytest.mark.unit
+def test_receipt_size_limit_rejects_oversized_typed_result(tmp_path: Path) -> None:
+    service = MutationReceiptService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
+    fingerprint = service.fingerprint(
+        operation="adopt",
+        actor="owner",
+        preview_token="preview-token",
+        semantic_inputs={"coordinate": "test/example@1.0.0"},
+    )
+    with pytest.raises(ValueError, match="P2P_VERTICAL_IMPACT_LIMIT_EXCEEDED"):
+        service.prepare(
+            idempotency_key="oversized-result",
+            operation="adopt",
+            actor="owner-" + ("x" * 70_000),
+            request_fingerprint_sha256=fingerprint,
+            preview_token="preview-token",
+            result={
+                "impact_contract": "p2p-vertical-transition-impact/v1",
+                "operation": "adopt",
+                "operation_id": "project-vertical-adopt:test-example-1-0-0",
+                "coordinate": "test/example@1.0.0",
+                "analysis_fingerprint_sha256": "a" * 64,
+                "plan_fingerprint_sha256": None,
+                "semantic_postconditions": {
+                    "active_coordinate": "test/example@1.0.0",
+                    "lock_semantic_checksum": None,
+                    "lock_artifact_checksum": None,
+                    "definition_semantic_sha256": "b" * 64,
+                    "questions_semantic_sha256": None,
+                    "rubrics_semantic_sha256": None,
+                },
+                "decision_summary": [],
+                "changed_paths": [TARGET],
+            },
+            candidates={TARGET: b"candidate"},
+        )
+
+
+@pytest.mark.unit
 def test_corrupt_or_duplicate_key_receipt_fails_closed(tmp_path: Path) -> None:
     service = MutationReceiptService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
     key = "corrupt-operation"
@@ -77,8 +127,8 @@ def test_corrupt_or_duplicate_key_receipt_fails_closed(tmp_path: Path) -> None:
     path.parent.mkdir(parents=True)
     path.write_text(
         "mutation_receipt:\n"
-        "  schema_version: 1\n"
-        "  schema_version: 1\n",
+        "  schema_version: 2\n"
+        "  schema_version: 2\n",
         encoding="utf-8",
     )
 

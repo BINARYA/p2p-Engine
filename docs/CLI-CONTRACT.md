@@ -1,6 +1,6 @@
 # CLI JSON Contract
 
-P2P Engine 0.4.7 exposes one machine-facing CLI transport contract:
+P2P Engine 0.4.8 exposes one machine-facing CLI transport contract:
 `p2p-cli/v1`. Every command that accepts `--format json`, including commands
 whose format defaults to JSON, emits exactly one JSON document to stdout.
 
@@ -101,7 +101,8 @@ WaveKit should use its persisted operation UUID. P2P stores only its SHA-256
 hash and commits the success receipt in the same atomic workspace transaction
 as the vertical mutation. An exact retry returns `already_applied` without
 writing again. Reusing the key with a changed actor, token, coordinate,
-checksum, profile, modules or mapping fails with `P2P_IDEMPOTENCY_CONFLICT`.
+checksum, profile, modules or transition plan fails with
+`P2P_IDEMPOTENCY_CONFLICT`.
 Changed committed files fail with `P2P_IDEMPOTENCY_POSTCONDITION_DRIFT`.
 
 After a lost or uncertain response, inspect the redacted result with:
@@ -118,4 +119,69 @@ The successful lookup states are `not_found`, `applied`,
 existing `p2p workspace transaction status|resume|rollback` workflow. A
 malformed or inconsistent receipt is a typed
 `P2P_IDEMPOTENCY_RECEIPT_CORRUPT` failure. Status output never includes the raw
-key, request payload or preview token.
+key, request payload, preview token, physical project paths or per-file hashes.
+
+## Typed Vertical Transition Impact
+
+Vertical install, adopt and migrate previews expose distinct typed payloads at
+`data.impact`. All use:
+
+```text
+impact.contract_version = p2p-vertical-transition-impact/v1
+```
+
+Every collection has exactly `total`, `returned`, `truncated` and `items`.
+The per-collection limit is 128 items and the material transition limit is 512
+items. Truncation is fail-closed with
+`P2P_VERTICAL_IMPACT_LIMIT_EXCEEDED`; it never hides an apply effect.
+
+Adoption and migration share `source_state`, whose classification is `empty`
+only when definition fields, assumptions, blockers, definition orphans, owner
+question evidence and rubric customizations all have count zero. Untouched
+generated questions and unchanged default rubrics do not populate a project.
+
+Migration is a two-preview workflow. First run without `--mapping`. When
+`required_decisions.total` is non-zero, the preview is successful but blocked:
+`apply_allowed` is false, `preview` is null and every decision is returned with
+a stable ID and exact domain source reference. Supply a complete plan:
+
+```yaml
+vertical_transition_plan:
+  schema_version: 1
+  contract_version: p2p-vertical-transition-plan/v1
+  analysis_fingerprint_sha256: <preview analysis fingerprint>
+  decisions:
+    - id: VTD-0123456789abcdef
+      action: map
+      source:
+        kind: definition_field
+        ref: definition_field:legacy.constraints
+      target:
+        kind: definition_field
+        ref: definition_field:constraints.summary
+    - id: VTD-fedcba9876543210
+      action: preserve_as_orphan
+      source:
+        kind: rubric
+        ref: rubric:legacy_delivery
+```
+
+The plan must contain every required decision and no extras. `map` requires one
+exact compatible target; `preserve_as_orphan` forbids a target. Duplicate YAML
+keys, old `field_mapping`/`rubric_mapping` forms, stale analysis fingerprints,
+unknown fields, fuzzy targets and duplicate target ownership are rejected.
+Re-preview with the plan and use only the new token for apply.
+
+The public preview summary contains only operation identity, actor, authority,
+confirmation policy, apply eligibility and the opaque token. Generic mutation
+targets, source preconditions, candidate hashes, token context and internal
+paths stay private. Apply and mutation status return typed semantic
+postconditions; physical postconditions remain internal to receipt drift
+detection.
+
+Install postconditions contain `installed_coordinate`,
+`installed_semantic_checksum` and `installed_artifact_checksum`; installation
+does not claim to activate the pack. Adoption and migration postconditions
+contain `active_coordinate` plus lock, definition, question and rubric semantic
+hashes. Receipt replay and mutation status preserve the same operation-specific
+field set.

@@ -6,6 +6,10 @@ import re
 
 from p2p_engine.core.mutation_preview import MutationPreview, MutationResult
 from p2p_engine.core.project_verticals import VerticalPack, VerticalValidationIssue
+from p2p_engine.core.vertical_transition_impact import (
+    VERTICAL_TRANSITION_IMPACT_CONTRACT,
+    VerticalTransitionImpact,
+)
 
 
 PORTABLE_VERTICAL_SCHEMA_VERSION = 2
@@ -88,22 +92,34 @@ class VerticalLifecyclePreview:
     operation: str
     coordinate: str
     preview: MutationPreview | None
-    impact: dict[str, object]
+    impact: VerticalTransitionImpact
     blockers: tuple[str, ...] = ()
     candidate_files: dict[str, bytes] = field(default_factory=dict, repr=False)
+    decision_summary: tuple[dict[str, object], ...] = field(default_factory=tuple, repr=False)
 
     @property
     def apply_allowed(self) -> bool:
         return self.preview is not None and not self.blockers
 
     def to_dict(self) -> dict[str, object]:
+        public_preview = None
+        if self.preview is not None:
+            public_preview = {
+                "operation_id": self.preview.operation_id,
+                "actor": self.preview.actor,
+                "authority": self.preview.authority,
+                "confirmation_required": self.preview.confirmation_required,
+                "policy_version": self.preview.policy_version,
+                "apply_allowed": self.preview.apply_allowed,
+                "preview_token": self.preview.preview_token,
+            }
         return {
             "operation": self.operation,
             "coordinate": self.coordinate,
             "apply_allowed": self.apply_allowed,
-            "impact": self.impact,
+            "impact": self.impact.to_dict(),
             "blockers": list(self.blockers),
-            "preview": self.preview.to_dict() if self.preview else None,
+            "preview": public_preview,
         }
 
 
@@ -112,10 +128,23 @@ class VerticalLifecycleResult:
     operation: str
     coordinate: str
     mutation: MutationResult
+    analysis_fingerprint_sha256: str
+    plan_fingerprint_sha256: str | None = None
+    postconditions: dict[str, str | None] = field(default_factory=dict)
+    impact_contract: str = VERTICAL_TRANSITION_IMPACT_CONTRACT
 
     def to_dict(self) -> dict[str, object]:
         return {
+            "impact_contract": self.impact_contract,
             "operation": self.operation,
             "coordinate": self.coordinate,
-            "mutation": self.mutation.to_dict(),
+            "analysis_fingerprint_sha256": self.analysis_fingerprint_sha256,
+            "plan_fingerprint_sha256": self.plan_fingerprint_sha256,
+            "postconditions": dict(self.postconditions),
+            "mutation": {
+                "status": self.mutation.status,
+                "operation_id": self.mutation.operation_id,
+                "actor": self.mutation.actor,
+                "recovery_required": self.mutation.recovery_required,
+            },
         }
