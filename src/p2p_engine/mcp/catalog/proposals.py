@@ -229,7 +229,9 @@ def tool_definitions() -> list[dict[str, object]]:
             'p2p_proposal_create',
             (
                 'Write-safe draft tool: create a draft P2P proposal using the core proposal '
-                'scaffold. Does not accept, reject, defer, or decide.'
+                'scaffold. MCP returns protocol-native payloads, not the p2p-cli/v1 envelope; '
+                'WaveKit worker retry/receipt semantics use the CLI --operation-key contract. '
+                'Does not accept, reject, defer, or decide.'
             ),
             {'root': {'type': 'string'},
              'title': {'type': 'string'},
@@ -245,7 +247,8 @@ def tool_definitions() -> list[dict[str, object]]:
             'p2p_proposal_update',
             (
                 'Write-safe refinement tool: update structured sections of an existing P2P '
-                'proposal. Does not accept, reject, defer, or decide.'
+                'proposal. MCP is protocol-native and does not provide WaveKit CLI receipts. '
+                'Does not accept, reject, defer, or decide.'
             ),
             {'root': {'type': 'string'},
              'proposal_id': {'type': 'string'},
@@ -261,7 +264,9 @@ def tool_definitions() -> list[dict[str, object]]:
             'p2p_proposal_contribution_add',
             (
                 'Write-safe contribution tool: append a typed contribution to an existing '
-                'proposal. Does not accept, reject, defer, merge, or decide.'
+                'proposal. MCP writes project memory directly as an agent tool, but WaveKit '
+                'server-worker retries use CLI JSON with --operation-key. Does not accept, '
+                'reject, defer, merge, or decide.'
             ),
             {'root': {'type': 'string'},
              'proposal_id': {'type': 'string'},
@@ -275,10 +280,17 @@ def tool_definitions() -> list[dict[str, object]]:
         _tool(
             'p2p_proposal_contribution_list',
             (
-                'Read-only proposal contribution tool: list contributions recorded for an '
-                'existing proposal.'
+                'Read-only proposal contribution tool: list typed contributions recorded for '
+                'an existing proposal. Returns protocol-native data semantically aligned with '
+                'the CLI contribution list payload, without p2p-cli/v1 wrapping.'
             ),
-            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},
+            {
+                'root': {'type': 'string'},
+                'proposal_id': {'type': 'string'},
+                'type': {'type': 'string', 'enum': [item.value for item in ContributionType]},
+                'limit': {'type': 'integer', 'minimum': 1, 'maximum': 100},
+                'offset': {'type': 'integer', 'minimum': 0},
+            },
             ['proposal_id'],
         ),
         _tool(
@@ -296,13 +308,31 @@ def tool_definitions() -> list[dict[str, object]]:
         ],
         _tool(
             'p2p_proposal_list',
-            'List P2P proposals, optionally filtered by status.',
-            {'root': {'type': 'string'}, 'status': {'type': 'string'}},
+            (
+                'Read-only proposal list tool: list P2P proposals with protocol-native '
+                'summary data semantically aligned with the CLI proposal list contract.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'status': {'type': 'string'},
+                'decision_state': {'type': 'string'},
+                'limit': {'type': 'integer', 'minimum': 1, 'maximum': 100},
+                'offset': {'type': 'integer', 'minimum': 0},
+            },
         ),
         _tool(
             'p2p_proposal_show',
-            'Show one P2P proposal summary. Set full=true for the read-only owner review view.',
-            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}, 'full': {'type': 'boolean'}},
+            (
+                'Read-only proposal detail tool: show one P2P proposal and include a bounded '
+                'proposal_detail read model aligned with CLI JSON. Set full=true for the '
+                'legacy owner review view. MCP responses are not wrapped in p2p-cli/v1.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'proposal_id': {'type': 'string'},
+                'full': {'type': 'boolean'},
+                'contribution_limit': {'type': 'integer', 'minimum': 1, 'maximum': 100},
+            },
             ['proposal_id'],
         ),
         _tool(

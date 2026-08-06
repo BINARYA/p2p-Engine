@@ -187,6 +187,34 @@ def test_software_spec_mcp_descriptions_preserve_native_and_export_boundary() ->
     assert "project definition" not in export_description
 
 
+def test_mcp_proposal_descriptions_preserve_wavekit_cli_boundary() -> None:
+    definitions = {item["name"]: item for item in tool_definitions()}
+
+    create_description = definitions["p2p_proposal_create"]["description"]
+    show_description = definitions["p2p_proposal_show"]["description"]
+    contribution_description = definitions["p2p_proposal_contribution_add"]["description"]
+    contribution_list = definitions["p2p_proposal_contribution_list"]
+
+    assert "protocol-native" in create_description
+    assert "p2p-cli/v1" in create_description
+    assert "WaveKit worker retry/receipt semantics use the CLI --operation-key contract" in (
+        create_description
+    )
+    assert "proposal_detail read model aligned with CLI JSON" in show_description
+    assert "MCP responses are not wrapped in p2p-cli/v1" in show_description
+    assert "WaveKit server-worker retries use CLI JSON with --operation-key" in (
+        contribution_description
+    )
+    assert "without p2p-cli/v1 wrapping" in contribution_list["description"]
+    assert set(contribution_list["inputSchema"]["properties"]) == {
+        "root",
+        "proposal_id",
+        "type",
+        "limit",
+        "offset",
+    }
+
+
 def test_mcp_registry_definitions_match_declared_tool_names() -> None:
     definitions = tool_definitions()
     names = [definition["name"] for definition in definitions]

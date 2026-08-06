@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from typer.testing import CliRunner
@@ -317,3 +318,58 @@ def test_mutation_status_cli_returns_not_found_and_typed_corruption(tmp_path: Pa
     assert corrupt.exit_code == 1
     assert cli_error(corrupt)["code"] == "P2P_IDEMPOTENCY_RECEIPT_CORRUPT"
     assert key not in corrupt.stdout
+
+
+@pytest.mark.cli
+def test_mutation_status_cli_accepts_wavekit_operation_key_alias(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Mutation status alias", owner="owner")
+    proposal = workspace.create_proposal_with_details(
+        title="Classified status",
+        problem="WaveKit needs to inspect retries by operation key.",
+        proposal="Expose mutation status through a WaveKit-facing alias.",
+    )
+    operation_key = f"wavekit:{uuid4()}"
+    added = runner.invoke(
+        app,
+        [
+            "proposal",
+            "contribution",
+            "add",
+            proposal.proposal_id,
+            "Check status through the operation key.",
+            "--type",
+            "suggestion",
+            "--author",
+            "supporter",
+            "--operation-key",
+            operation_key,
+            "--format",
+            "json",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert added.exit_code == 0, added.output
+
+    status = runner.invoke(
+        app,
+        [
+            "mutation",
+            "status",
+            "--operation-key",
+            operation_key,
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    assert status.exit_code == 0, status.output
+    data = cli_data(status, operation="mutation.status")
+    assert data["state"] == "applied"
+    assert data["operation"] == "proposal_contribution_add"
+    assert data["operation_key"] == {
+        "classification": "wavekit_uuid",
+        "raw_value_returned": False,
+    }
+    assert operation_key not in status.stdout

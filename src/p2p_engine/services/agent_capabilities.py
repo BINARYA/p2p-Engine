@@ -5,7 +5,7 @@ import json
 from dataclasses import asdict, dataclass
 
 
-AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v3"
+AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v4"
 
 
 @dataclass(frozen=True)
@@ -57,6 +57,50 @@ AGENT_CAPABILITIES = (
         exposure="owner_governed",
         authority="owner_confirmation_for_apply",
         reason="Decision writes remain token-bound and owner controlled on both surfaces.",
+    ),
+    AgentCapability(
+        capability_id="proposal.structured_contributions",
+        cli_paths=(
+            "p2p proposal contribution add",
+            "p2p proposal contribution list",
+            "p2p contribution add",
+            "p2p contribution list",
+        ),
+        mcp_tools=(
+            "p2p_proposal_contribution_add",
+            "p2p_proposal_contribution_list",
+        ),
+        exposure="cli_and_mcp",
+        authority="proposal_memory_write_without_decision",
+        reason=(
+            "Suggestions, objections, findings, open questions and alternatives "
+            "are proposal-bound project memory, not generic chat."
+        ),
+    ),
+    AgentCapability(
+        capability_id="wavekit.cli.worker_contract",
+        cli_paths=(
+            "p2p version",
+            "p2p runtime status",
+            "p2p workspace schema status",
+            "p2p workspace transaction status",
+            "p2p init",
+            "p2p project snapshot",
+            "p2p proposal list",
+            "p2p proposal show",
+            "p2p proposal create",
+            "p2p proposal update",
+            "p2p proposal contribution add",
+            "p2p proposal contribution list",
+            "p2p mutation status",
+        ),
+        mcp_tools=(),
+        exposure="cli_only_worker_contract",
+        authority="serialized_server_worker",
+        reason=(
+            "WaveKit worker retries, receipts and recovery use allowlisted CLI "
+            "JSON operations with --operation-key, not local MCP stdio."
+        ),
     ),
     AgentCapability(
         capability_id="vertical.local.catalog",
@@ -232,3 +276,37 @@ exact `p2p-vertical-transition-plan/v1` document from those decision IDs and
 domain references, re-run preview with `--mapping`, retain the replacement
 preview token, then apply with owner confirmation and one stable idempotency
 key. Never infer a destination from similar labels or edit `.p2p` directly."""
+
+
+def wavekit_cli_worker_guidance() -> str:
+    return """WaveKit-style server workers use the CLI JSON contract, not local MCP stdio.
+
+Use the same boundary when a deterministic process needs stable machine output,
+retry receipts, or recovery after a lost response:
+
+```bash
+p2p version --format json
+p2p runtime status --format json
+p2p workspace schema status --format json
+p2p workspace transaction status --format json
+p2p project snapshot --format json
+p2p proposal list --format json
+p2p proposal show PROP-XXX --format json
+p2p proposal create "Title" --format json --operation-key wavekit:<uuid>
+p2p proposal update PROP-XXX --proposal "..." --format json --operation-key wavekit:<uuid>
+p2p proposal contribution add PROP-XXX "Text" --type suggestion --format json --operation-key wavekit:<uuid>
+p2p proposal contribution list PROP-XXX --type suggestion --format json
+p2p mutation status --operation-key wavekit:<uuid> --format json
+```
+
+Every CLI JSON response uses the `p2p-cli/v1` envelope. Inspect `ok`,
+`operation`, `data`, `warnings`, and `error`; do not parse human text. Exact
+retries reuse the same `--operation-key` only for the same semantic request.
+After an uncertain write, inspect `p2p mutation status --operation-key ...`
+before retrying.
+
+Local MCP stdio remains an agent tool surface. MCP responses are protocol-native
+and are not wrapped in `p2p-cli/v1`; MCP write tools also do not provide the
+WaveKit worker receipt boundary. A standalone agent may use MCP when it has an
+explicit tool, but a serialized server worker should use the allowlisted CLI
+JSON commands above."""

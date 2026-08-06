@@ -201,7 +201,7 @@ class ReadinessService:
                 confidence=None,
                 failed_gates=[],
                 missing=[],
-                suggested_next=[],
+                suggested_next=[f"p2p proposal readiness init {proposal_id}"],
             )
         data = _read_yaml_mapping(path, default={})
         validate_readiness_assessment_payload(data)

@@ -98,13 +98,43 @@ def handle_proposal_tool(
             },
         }
     if name == "p2p_proposal_contribution_list":
-        return {"contributions": to_jsonable(workspace.list_contributions(required(arguments, "proposal_id")))}
+        proposal_id = required(arguments, "proposal_id")
+        return {
+            "contributions": to_jsonable(workspace.list_contributions(proposal_id)),
+            "contribution_list": to_jsonable(
+                workspace.proposal_contribution_list_contract(
+                    proposal_id,
+                    contribution_type=_optional_contribution_type(arguments),
+                    limit=_optional_int(arguments, "limit", default=50),
+                    offset=_optional_int(arguments, "offset", default=0),
+                )
+            ),
+        }
     if name == "p2p_proposal_list":
         status = arguments.get("status")
-        return {"proposals": to_jsonable(workspace.proposal_summaries(str(status) if status else None))}
+        decision_state = arguments.get("decision_state")
+        return {
+            "proposals": to_jsonable(workspace.proposal_summaries(str(status) if status else None)),
+            "proposal_list": to_jsonable(
+                workspace.proposal_list_contract(
+                    status=str(status) if status else None,
+                    decision_state=str(decision_state) if decision_state else None,
+                    limit=_optional_int(arguments, "limit", default=50),
+                    offset=_optional_int(arguments, "offset", default=0),
+                )
+            ),
+        }
     if name == "p2p_proposal_show":
         proposal_id = required(arguments, "proposal_id")
-        result: dict[str, object] = {"proposal": to_jsonable(workspace.show_proposal(proposal_id))}
+        result: dict[str, object] = {
+            "proposal": to_jsonable(workspace.show_proposal(proposal_id)),
+            "proposal_detail": to_jsonable(
+                workspace.proposal_detail_contract(
+                    proposal_id,
+                    contribution_limit=_optional_int(arguments, "contribution_limit", default=50),
+                )
+            ),
+        }
         if _optional_bool(arguments, "full"):
             result["proposal_view"] = to_jsonable(workspace.proposal_full_view(proposal_id))
         return result
@@ -328,6 +358,13 @@ def _contribution_type(arguments: dict[str, Any]) -> ContributionType:
     return parse_contribution_type(arguments.get("type"))
 
 
+def _optional_contribution_type(arguments: dict[str, Any]) -> ContributionType | None:
+    value = optional_string(arguments, "type")
+    if value is None:
+        return None
+    return parse_contribution_type(value)
+
+
 def _optional_bool(arguments: dict[str, Any], name: str) -> bool:
     value = arguments.get(name)
     if value is None:
@@ -335,6 +372,18 @@ def _optional_bool(arguments: dict[str, Any], name: str) -> bool:
     if isinstance(value, bool):
         return value
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _optional_int(arguments: dict[str, Any], name: str, *, default: int) -> int:
+    value = arguments.get(name)
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        raise ValueError(f"Expected integer argument: {name}")
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Expected integer argument: {name}") from exc
 
 
 def _artifact_expectation(arguments: dict[str, Any]) -> ProposalArtifactExpectation | None:

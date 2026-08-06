@@ -269,7 +269,15 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
     request_fingerprint = _required_sha256(data, "request_fingerprint_sha256")
     token_hash = _required_sha256(data, "preview_token_sha256")
     operation = _required_text(data, "operation")
-    if operation not in {"install", "adopt", "migrate"}:
+    if operation not in {
+        "init",
+        "install",
+        "adopt",
+        "migrate",
+        "proposal_create",
+        "proposal_contribution_add",
+        "proposal_update",
+    }:
         raise ValueError(f"unsupported receipt operation: {operation}")
     actor = _required_text(data, "actor")
     completion_status = _required_text(data, "completion_status")
@@ -288,7 +296,10 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
     for raw in raw_postconditions:
         if not isinstance(raw, dict):
             raise ValueError("receipt postcondition must be a mapping")
-        path = _validated_postcondition_path(_required_text(raw, "path"))
+        path = _validated_postcondition_path(
+            _required_text(raw, "path"),
+            operation=operation,
+        )
         if path in seen:
             raise ValueError(f"duplicate receipt postcondition path: {path}")
         seen.add(path)
@@ -314,6 +325,12 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
 
 
 def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
+    if operation == "init":
+        _validate_init_result(result)
+        return
+    if operation in {"proposal_create", "proposal_update", "proposal_contribution_add"}:
+        _validate_proposal_result(result, operation=operation)
+        return
     allowed = {
         "impact_contract",
         "operation",
@@ -327,7 +344,9 @@ def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
     }
     unknown = sorted(str(key) for key in result if key not in allowed)
     if unknown:
-        raise ValueError(f"receipt result contains unsupported fields: {', '.join(unknown)}")
+        raise ValueError(
+            f"receipt result contains unsupported fields: {', '.join(unknown)}"
+        )
     if result.get("operation") != operation:
         raise ValueError("receipt result operation does not match receipt operation")
     if result.get("impact_contract") != VERTICAL_TRANSITION_IMPACT_CONTRACT:
@@ -396,12 +415,259 @@ def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
     changed_paths = result.get("changed_paths")
     if not isinstance(changed_paths, list) or not changed_paths:
         raise ValueError("receipt result changed_paths must be a non-empty sequence")
-    normalized = [_validated_postcondition_path(str(path)) for path in changed_paths]
+    normalized = [
+        _validated_postcondition_path(str(path), operation=operation)
+        for path in changed_paths
+    ]
     if normalized != sorted(set(normalized)):
         raise ValueError("receipt result changed_paths must be unique and sorted")
 
 
+def _validate_init_result(result: Mapping[str, object]) -> None:
+    allowed = {
+        "operation",
+        "operation_id",
+        "project",
+        "created_paths",
+        "created_file_paths",
+        "agent_selection",
+        "agent_instructions",
+        "repository",
+        "remote",
+        "vertical",
+        "warnings",
+        "mcp_hint",
+        "next_steps",
+        "changed_paths",
+    }
+    unknown = sorted(str(key) for key in result if key not in allowed)
+    if unknown:
+        raise ValueError(f"receipt result contains unsupported fields: {', '.join(unknown)}")
+    if result.get("operation") != "init":
+        raise ValueError("receipt result operation does not match receipt operation")
+    if result.get("operation_id") != "project.init":
+        raise ValueError("receipt result operation_id is unsupported")
+    for field in (
+        "project",
+        "agent_selection",
+        "agent_instructions",
+        "repository",
+        "remote",
+        "vertical",
+        "mcp_hint",
+    ):
+        if not isinstance(result.get(field), Mapping):
+            raise ValueError(f"receipt result {field} must be a mapping")
+    for field in (
+        "created_paths",
+        "created_file_paths",
+        "warnings",
+        "next_steps",
+        "changed_paths",
+    ):
+        if not isinstance(result.get(field), list):
+            raise ValueError(f"receipt result {field} must be a list")
+    changed_paths = result.get("changed_paths")
+    assert isinstance(changed_paths, list)
+    if not changed_paths:
+        raise ValueError("receipt result changed_paths must be a non-empty sequence")
+    normalized = [
+        _validated_postcondition_path(str(path), operation="init")
+        for path in changed_paths
+    ]
+    if normalized != sorted(set(normalized)):
+        raise ValueError("receipt result changed_paths must be unique and sorted")
+
+
+def _validate_proposal_result(result: Mapping[str, object], *, operation: str) -> None:
+    if operation == "proposal_create":
+        allowed = {
+            "operation",
+            "operation_id",
+            "proposal",
+            "created_paths",
+            "changed_paths",
+            "next_steps",
+        }
+        expected_operation_id = "proposal.create"
+    elif operation == "proposal_update":
+        allowed = {
+            "operation",
+            "operation_id",
+            "proposal_id",
+            "path",
+            "updated_sections",
+            "changed_paths",
+        }
+        expected_operation_id = "proposal.update"
+    else:
+        allowed = {
+            "operation",
+            "operation_id",
+            "proposal_id",
+            "path",
+            "contribution",
+            "changed_paths",
+            "review_capability",
+        }
+        expected_operation_id = "proposal.contribution.add"
+    unknown = sorted(str(key) for key in result if key not in allowed)
+    if unknown:
+        raise ValueError(f"receipt result contains unsupported fields: {', '.join(unknown)}")
+    if result.get("operation") != operation:
+        raise ValueError("receipt result operation does not match receipt operation")
+    if result.get("operation_id") != expected_operation_id:
+        raise ValueError("receipt result operation_id is unsupported")
+    changed_paths = result.get("changed_paths")
+    if not isinstance(changed_paths, list) or not changed_paths:
+        raise ValueError("receipt result changed_paths must be a non-empty sequence")
+    normalized = [
+        _validated_postcondition_path(str(path), operation=operation)
+        for path in changed_paths
+    ]
+    if normalized != sorted(set(normalized)):
+        raise ValueError("receipt result changed_paths must be unique and sorted")
+    if operation == "proposal_create":
+        proposal = result.get("proposal")
+        if not isinstance(proposal, Mapping):
+            raise ValueError("receipt result proposal must be a mapping")
+        if set(proposal) != {"proposal_id", "title", "slug", "status", "path"}:
+            raise ValueError("receipt result proposal has invalid fields")
+        proposal_id = _required_text(proposal, "proposal_id")
+        proposal_path = _required_text(proposal, "path")
+        if not proposal_id.startswith("PROP-"):
+            raise ValueError("receipt result proposal_id is invalid")
+        if not proposal_path.startswith(f".p2p/proposals/{proposal_id}-"):
+            raise ValueError("receipt result proposal path is invalid")
+        created_paths = result.get("created_paths")
+        if not isinstance(created_paths, list) or created_paths != changed_paths:
+            raise ValueError("receipt result created_paths must match changed_paths")
+        next_steps = result.get("next_steps")
+        if not isinstance(next_steps, list):
+            raise ValueError("receipt result next_steps must be a list")
+        return
+    if operation == "proposal_contribution_add":
+        proposal_id = _required_text(result, "proposal_id")
+        path = _required_text(result, "path")
+        if not proposal_id.startswith("PROP-"):
+            raise ValueError("receipt result proposal_id is invalid")
+        if not path.startswith(f".p2p/proposals/{proposal_id}-") or not path.endswith("/contributions.yml"):
+            raise ValueError("receipt result contribution path is invalid")
+        if changed_paths != [path]:
+            raise ValueError("receipt result contribution changed_paths must contain contributions.yml")
+        contribution = result.get("contribution")
+        if not isinstance(contribution, Mapping):
+            raise ValueError("receipt result contribution must be a mapping")
+        if set(contribution) != {"contribution_id", "type", "author", "relevance_hint", "text"}:
+            raise ValueError("receipt result contribution has invalid fields")
+        contribution_id = _required_text(contribution, "contribution_id")
+        if not contribution_id.startswith("C"):
+            raise ValueError("receipt result contribution_id is invalid")
+        _required_text(contribution, "type")
+        _required_text(contribution, "text")
+        review = result.get("review_capability")
+        if not isinstance(review, Mapping) or review.get("supported") is not False:
+            raise ValueError("receipt result review_capability must declare unsupported review")
+        return
+    proposal_id = _required_text(result, "proposal_id")
+    proposal_path = _required_text(result, "path")
+    if not proposal_id.startswith("PROP-"):
+        raise ValueError("receipt result proposal_id is invalid")
+    if not proposal_path.startswith(f".p2p/proposals/{proposal_id}-"):
+        raise ValueError("receipt result path is invalid")
+    if changed_paths != [proposal_path]:
+        raise ValueError("receipt result update changed_paths must contain the proposal path")
+    updated_sections = result.get("updated_sections")
+    if not isinstance(updated_sections, list) or not updated_sections:
+        raise ValueError("receipt result updated_sections must be a non-empty list")
+    allowed_sections = {
+        "problem",
+        "context",
+        "goals",
+        "non_goals",
+        "proposal",
+        "acceptance_criteria",
+    }
+    if any(str(section) not in allowed_sections for section in updated_sections):
+        raise ValueError("receipt result updated_sections contains an invalid section")
+
+
 def _public_result(result: Mapping[str, object]) -> dict[str, object]:
+    if result.get("operation") == "init":
+        return {
+            "operation": result.get("operation"),
+            "operation_id": result.get("operation_id"),
+            "project": dict(result.get("project", {}))
+            if isinstance(result.get("project"), Mapping)
+            else {},
+            "created_paths": list(result.get("created_paths", []))
+            if isinstance(result.get("created_paths"), list)
+            else [],
+            "created_file_paths": list(result.get("created_file_paths", []))
+            if isinstance(result.get("created_file_paths"), list)
+            else [],
+            "agent_selection": dict(result.get("agent_selection", {}))
+            if isinstance(result.get("agent_selection"), Mapping)
+            else {},
+            "agent_instructions": dict(result.get("agent_instructions", {}))
+            if isinstance(result.get("agent_instructions"), Mapping)
+            else {},
+            "repository": dict(result.get("repository", {}))
+            if isinstance(result.get("repository"), Mapping)
+            else {},
+            "remote": dict(result.get("remote", {}))
+            if isinstance(result.get("remote"), Mapping)
+            else {},
+            "vertical": dict(result.get("vertical", {}))
+            if isinstance(result.get("vertical"), Mapping)
+            else {},
+            "warnings": list(result.get("warnings", []))
+            if isinstance(result.get("warnings"), list)
+            else [],
+            "mcp_hint": dict(result.get("mcp_hint", {}))
+            if isinstance(result.get("mcp_hint"), Mapping)
+            else {},
+            "next_steps": list(result.get("next_steps", []))
+            if isinstance(result.get("next_steps"), list)
+            else [],
+        }
+    if result.get("operation") == "proposal_create":
+        return {
+            "operation": result.get("operation"),
+            "operation_id": result.get("operation_id"),
+            "proposal": dict(result.get("proposal", {}))
+            if isinstance(result.get("proposal"), Mapping)
+            else {},
+            "created_paths": list(result.get("created_paths", []))
+            if isinstance(result.get("created_paths"), list)
+            else [],
+            "next_steps": list(result.get("next_steps", []))
+            if isinstance(result.get("next_steps"), list)
+            else [],
+        }
+    if result.get("operation") == "proposal_contribution_add":
+        return {
+            "operation": result.get("operation"),
+            "operation_id": result.get("operation_id"),
+            "proposal_id": result.get("proposal_id"),
+            "path": result.get("path"),
+            "contribution": dict(result.get("contribution", {}))
+            if isinstance(result.get("contribution"), Mapping)
+            else {},
+            "review_capability": dict(result.get("review_capability", {}))
+            if isinstance(result.get("review_capability"), Mapping)
+            else {},
+        }
+    if result.get("operation") == "proposal_update":
+        return {
+            "operation": result.get("operation"),
+            "operation_id": result.get("operation_id"),
+            "proposal_id": result.get("proposal_id"),
+            "path": result.get("path"),
+            "updated_sections": list(result.get("updated_sections", []))
+            if isinstance(result.get("updated_sections"), list)
+            else [],
+        }
     return {
         "impact_contract": result.get("impact_contract"),
         "operation": result.get("operation"),
@@ -418,14 +684,33 @@ def _public_result(result: Mapping[str, object]) -> dict[str, object]:
     }
 
 
-def _validated_postcondition_path(value: str) -> str:
+def _validated_postcondition_path(value: str, *, operation: str) -> str:
     pure = PurePosixPath(value.replace("\\", "/"))
     if pure.is_absolute() or ".." in pure.parts:
         raise ValueError(f"unsafe receipt postcondition path: {value}")
     normalized = pure.as_posix()
+    if operation == "init" and _is_init_postcondition_path(normalized):
+        return normalized
     if not normalized.startswith(".p2p/") or normalized.startswith(".p2p/.internal/"):
         raise ValueError(f"receipt postcondition path is not canonical project state: {value}")
     return normalized
+
+
+def _is_init_postcondition_path(value: str) -> bool:
+    return (
+        (value.startswith(".p2p/") and not value.startswith(".p2p/.internal/"))
+        or value.startswith(".agents/")
+        or value
+        in {
+            ".cursor/rules/p2p.mdc",
+            ".github/copilot-instructions.md",
+            ".gitignore",
+            "AGENTS.md",
+            "CLAUDE.md",
+            "GEMINI.md",
+            "P2P-SETUP.md",
+        }
+    )
 
 
 def _required_text(payload: Mapping[str, object], field: str) -> str:

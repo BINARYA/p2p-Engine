@@ -168,7 +168,7 @@ effect of a contract update.
 ### Current Workspace Schema
 
 Workspace layout versioning is independent from the runtime contract. P2P
-Engine 0.4.9 accepts schema 3 only. Inspect schema alignment and interrupted
+Engine 0.4.10 accepts schema 3 only. Inspect schema alignment and interrupted
 transaction state without writing:
 
 ```bash
@@ -330,7 +330,7 @@ coordinate `publisher/vertical-id@version`. Structural `extends`, social
 `lineage.forked_from` and release-history `lineage.previous_release` are
 separate declarations.
 
-P2P Engine 0.4.9 provides a local catalog and a provider-neutral remote
+P2P Engine 0.4.10 provides a local catalog and a provider-neutral remote
 registry client. These commands perform no remote request unless `--refresh`
 is passed to `registry list`:
 
@@ -487,7 +487,7 @@ vertical_transition_plan:
         ref: definition_field:new_section.new_field
 ```
 
-The 0.4.9 JSON transport contract is `p2p-cli/v1`. Every command supporting
+The 0.4.10 JSON transport contract is `p2p-cli/v1`. Every command supporting
 `--format json` returns exactly `contract_version`, `ok`, `operation`, `data`,
 `warnings`, and `error`. Domain payloads remain operation-specific under
 `data`. Parser errors use the same envelope. See
@@ -498,13 +498,31 @@ key. Use the same key only to retry the exact same request. After an uncertain
 response, inspect the durable result without writing:
 
 ```bash
-p2p mutation status --idempotency-key <operation-uuid> --format json
+p2p mutation status --operation-key <operation-uuid> --format json
 ```
 
 `applied` confirms matching committed postconditions, `not_found` permits an
 exact apply retry, `postcondition_drift` requires investigation and
 `incomplete` routes to `p2p workspace transaction status` and explicit
 recovery.
+
+WaveKit-style server workers should use the allowlisted CLI JSON contract for
+deterministic reads, writes and recovery:
+
+```bash
+p2p project snapshot --format json
+p2p proposal list --format json
+p2p proposal show PROP-001 --format json
+p2p proposal create "Title" --format json --operation-key wavekit:<uuid>
+p2p proposal update PROP-001 --proposal "..." --format json --operation-key wavekit:<uuid>
+p2p proposal contribution add PROP-001 "Text" --type suggestion --format json --operation-key wavekit:<uuid>
+p2p proposal contribution list PROP-001 --type suggestion --format json
+p2p mutation status --operation-key wavekit:<uuid> --format json
+```
+
+Local MCP stdio remains an agent tool surface with protocol-native payloads. It
+is not wrapped in `p2p-cli/v1` and does not replace the worker
+`--operation-key` retry boundary.
 
 Vertical impact uses `p2p-vertical-transition-impact/v1`. Public output omits
 project evidence values, question answers, free-form assumption/blocker text,
@@ -829,6 +847,11 @@ incomplete `artifact-state.yml` is rejected and is not synthesized during a
 read. Agents should use `p2p proposal artifact ...` commands or explicit MCP
 write tools to update artifact coverage; they should not edit `.p2p` files
 directly or copy temporary files into managed proposal artifacts.
+
+`p2p proposal show PROP-001 --format json` returns the bounded
+`proposal_detail` read model used by machine consumers. It keeps readiness
+separate from artifact status, includes structured contributions, grouped
+question sources, narrative/imported artifact summaries and next actions.
 
 `p2p proposal show PROP-001 --full` renders the owner-facing full review view.
 It keeps readiness separate from artifact status, includes structured

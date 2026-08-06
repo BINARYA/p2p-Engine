@@ -961,9 +961,10 @@ class ProjectPublicationService:
         *,
         language: str = DEFAULT_PUBLICATION_LANGUAGE,
         output_name: str = DEFAULT_PUBLICATION_OUTPUT_NAME,
+        read_context: WorkspaceReadContext | None = None,
     ) -> ProjectPublicationStatus:
         paths = self.paths(language=language, output_name=output_name)
-        source_fingerprint = self.source_fingerprint()
+        source_fingerprint = self.source_fingerprint(read_context=read_context)
         try:
             manifest = self._read_manifest(paths)
         except ValueError as exc:
@@ -1113,8 +1114,15 @@ class ProjectPublicationService:
             return "stale"
         return str(stage.get("status") or "ready")
 
-    def source_fingerprint(self) -> SourceFingerprint:
-        sha256, inputs = self.evidence_service.source_fingerprint()
+    def source_fingerprint(
+        self,
+        *,
+        read_context: WorkspaceReadContext | None = None,
+    ) -> SourceFingerprint:
+        sha256, inputs = self.evidence_service.source_fingerprint(
+            read_context=read_context,
+            finalize=read_context is None,
+        )
         return SourceFingerprint(sha256=sha256, inputs=list(inputs))
 
     def _profile_payload(

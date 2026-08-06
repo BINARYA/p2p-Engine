@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
+from uuid import UUID
 
 import typer
 
 from p2p_engine.cli_shared import console, fail
 from p2p_engine.cli_shared import workspace as workspace_for
+
+
+_P2P_OPERATION_KEY = re.compile(r"^P2POP-[0-9a-f]{24}$")
 
 
 def register_mutation_commands(mutation_app: typer.Typer) -> None:
@@ -15,6 +20,7 @@ def register_mutation_commands(mutation_app: typer.Typer) -> None:
         idempotency_key: str = typer.Option(
             ...,
             "--idempotency-key",
+            "--operation-key",
             help="Opaque caller-supplied mutation idempotency key",
         ),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
@@ -26,6 +32,10 @@ def register_mutation_commands(mutation_app: typer.Typer) -> None:
         except ValueError as exc:
             fail(str(exc))
         payload = result.to_dict()
+        payload["operation_key"] = {
+            "classification": _operation_key_classification(idempotency_key),
+            "raw_value_returned": False,
+        }
         if output_format == "json":
             console.out(json.dumps(payload, indent=2), highlight=False)
             return
@@ -38,3 +48,15 @@ def register_mutation_commands(mutation_app: typer.Typer) -> None:
             console.print("result:")
             for key, value in payload["result"].items():
                 console.print(f"  {key}: {value}")
+
+
+def _operation_key_classification(value: str) -> str:
+    if value.startswith("wavekit:"):
+        try:
+            UUID(value.partition(":")[2])
+        except ValueError:
+            return "wavekit_opaque"
+        return "wavekit_uuid"
+    if _P2P_OPERATION_KEY.fullmatch(value):
+        return "p2p_operation"
+    return "opaque"

@@ -85,7 +85,7 @@ mkdir /tmp/my-project
 cd /tmp/my-project
 python3 -m venv .venv
 .venv/bin/python -m pip install \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.4.9/p2p_engine-0.4.9-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.4.10/p2p_engine-0.4.10-py3-none-any.whl
 ```
 
 Initialize P2P inside the target project:
@@ -306,7 +306,7 @@ Stable:
   Practical CLI workflows, expected output shapes, and recovery patterns.
 
 - [docs/CLI-CONTRACT.md](docs/CLI-CONTRACT.md)
-  Versioned JSON envelope, operation identifiers, exit classes, and consumer migration.
+  Versioned JSON envelope, operation identifiers, exit classes, WaveKit worker commands, and consumer migration.
 
 - [docs/WORKSPACE-SCHEMA.md](docs/WORKSPACE-SCHEMA.md)
   Current workspace schema contract, unsupported-schema behavior, and atomic transaction recovery.

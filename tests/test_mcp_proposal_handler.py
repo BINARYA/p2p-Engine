@@ -53,6 +53,15 @@ def test_mcp_proposal_handler_creates_and_reads_proposal(tmp_path: Path) -> None
     assert shown["proposal"]["proposal_id"] == "PROP-001"
     assert full is not None
     assert full["proposal"]["proposal_id"] == "PROP-001"
+    assert full["proposal_detail"]["contract_version"] == "p2p-proposal-detail/v1"
+    assert full["proposal_detail"]["proposal_id"] == "PROP-001"
+    assert set(full["proposal_detail"]["questions"]) >= {
+        "owner_questions",
+        "analytical_open_questions",
+        "narrative_question_artifacts",
+    }
+    assert "contract_version" not in full
+    assert "ok" not in full
     assert full["proposal_view"]["proposal_id"] == "PROP-001"
     assert full["proposal_view"]["artifact_status"]
     assert full["proposal_view"]["artifact_status"][0]["materialization_kind"] in {
@@ -97,7 +106,7 @@ def test_mcp_proposal_handler_serves_readiness_and_contributions(tmp_path: Path)
     contributions = handle_proposal_tool(
         workspace,
         "p2p_proposal_contribution_list",
-        {"proposal_id": "PROP-001"},
+        {"proposal_id": "PROP-001", "type": "suggestion", "limit": 10},
     )
 
     assert readiness is not None
@@ -106,6 +115,11 @@ def test_mcp_proposal_handler_serves_readiness_and_contributions(tmp_path: Path)
     assert contribution["governance"]["decision_made"] is False
     assert contributions is not None
     assert len(contributions["contributions"]["contributions"]) == 1
+    assert contributions["contribution_list"]["contract_version"] == (
+        "p2p-proposal-contribution-list/v1"
+    )
+    assert contributions["contribution_list"]["filters"] == {"type": "suggestion"}
+    assert contributions["contribution_list"]["items"][0]["type"] == "suggestion"
 
 
 def test_mcp_proposal_handler_accepts_canonical_contribution_types(tmp_path: Path) -> None:

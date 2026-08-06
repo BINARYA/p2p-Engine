@@ -31,6 +31,8 @@ choice.governance-preflight
 conflict.preview-update
 conflict.show
 conflict.update
+contribution.add
+contribution.list
 context
 decision.apply
 decision.history
@@ -46,6 +48,7 @@ governance.status
 governance.validate
 impact.apply
 impact.preview
+init
 mutation.status
 precedent.search
 project.context
@@ -83,6 +86,7 @@ project.readiness.review
 project.rubrics.show
 project.section
 project.sections
+project.snapshot
 project.vertical.adopt.apply
 project.vertical.adopt.preview
 project.vertical.inspect
@@ -100,8 +104,15 @@ project.vertical.select
 project.vertical.show
 project.vertical.validate
 proposal.accept
+proposal.contribution.add
+proposal.contribution.list
+proposal.contributions
+proposal.create
 proposal.defer
+proposal.list
 proposal.reject
+proposal.show
+proposal.update
 proposal.vertical-coverage.import
 proposal.vertical-coverage.preview
 proposal.vertical-coverage.show
@@ -179,7 +190,7 @@ def test_cli_json_operation_inventory_is_reviewed_and_guarded() -> None:
     inventory = json_command_inventory(get_command(app))
 
     assert frozenset(inventory) == EXPECTED_JSON_OPERATIONS
-    assert len(inventory) == 106
+    assert len(inventory) == 117
     assert inventory["vertical.inspect"] == "json"
     assert inventory["workspace.schema.status"] == "text"
 
@@ -214,6 +225,15 @@ def test_cli_parser_errors_use_envelope_for_default_json_command() -> None:
     assert payload["operation"] == "vertical.inspect"
     assert payload["error"]["code"] == "P2P_CLI_INVALID_REQUEST"
     assert "Missing argument" in payload["error"]["message"]
+
+
+@pytest.mark.cli
+def test_default_json_command_help_remains_human_click_help() -> None:
+    result = runner.invoke(app, ["mutation", "status", "--help"])
+
+    assert result.exit_code == 0
+    assert "Usage:" in result.stdout
+    assert not result.stdout.strip().startswith("{")
 
 
 @pytest.mark.cli

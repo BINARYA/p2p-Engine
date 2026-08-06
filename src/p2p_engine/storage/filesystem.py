@@ -12,7 +12,12 @@ from p2p_engine.core.contribution import Contribution, ContributionType
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.core.decision_context import DecisionContextIndex
 from p2p_engine.core.derived_freshness import DerivedFreshnessStatus
-from p2p_engine.core.mutation_preview import MutationPreview, MutationResult
+from p2p_engine.core.mutation_preview import (
+    MutationPreview,
+    MutationResult,
+    semantic_sha256,
+    source_precondition,
+)
 from p2p_engine.core.mutation_receipts import MutationReceiptStatus
 from p2p_engine.core.portable_verticals import (
     PortableVerticalInspection,
@@ -143,13 +148,31 @@ from p2p_engine.services.proposal_artifact_state import ProposalArtifactStateSer
 from p2p_engine.services.proposal_decisions import ProposalDecisionService
 from p2p_engine.services.proposal_decision_impact import ProposalDecisionImpactService
 from p2p_engine.services.proposal_drafts import ProposalDraftCommit, ProposalDraftCommitService
+from p2p_engine.services.proposal_contribution_contract import (
+    CONTRIBUTION_REVIEW_CAPABILITY,
+    ProposalContributionContractService,
+    ProposalContributionListPayload,
+    contribution_payload,
+)
 from p2p_engine.services.proposal_questions import ProposalQuestionService
+from p2p_engine.services.proposal_read_contract import (
+    ProposalDetailPayload,
+    ProposalListPayload,
+    ProposalReadContractService,
+)
 from p2p_engine.services.proposal_review_view import (
     ProposalArtifactCatalogItem,
     ProposalFullView,
     ProposalReviewViewService,
 )
-from p2p_engine.services.proposals import ProposalContributionList, ProposalDetail, ProposalDocumentService
+from p2p_engine.services.proposals import (
+    ContributionAddPlan,
+    ProposalContributionList,
+    ProposalCreatePlan,
+    ProposalDetail,
+    ProposalDocumentService,
+    ProposalUpdatePlan,
+)
 from p2p_engine.services.project_assessment import ProjectAssessment, ProjectAssessmentService
 from p2p_engine.services.project_contexts import ProjectContextRendererService
 from p2p_engine.services.project_maturity import (
@@ -160,6 +183,7 @@ from p2p_engine.services.project_maturity import (
 from p2p_engine.services.project_interaction_style import ProjectInteractionStyleService
 from p2p_engine.services.project_metadata import ProjectMetadataService
 from p2p_engine.services.project_progress import ProjectProgressService
+from p2p_engine.services.project_snapshot import ProjectSnapshotPayload, ProjectSnapshotService
 from p2p_engine.services.project_questions import ProjectQuestionStateService
 from p2p_engine.services.project_readiness import (
     ProjectReadinessGapService,
@@ -215,6 +239,7 @@ from p2p_engine.services.vertical_memory import (
     VerticalProjectMemoryService,
 )
 from p2p_engine.services.workspace_transactions import (
+    AtomicMutationWriter,
     WorkspaceTransactionLockService,
     WorkspaceTransactionRecoveryService,
 )
@@ -309,7 +334,13 @@ class P2PWorkspace:
         ) = None
         self._proposal_draft_commit_service_instance: ProposalDraftCommitService | None = None
         self._proposal_document_service_instance: ProposalDocumentService | None = None
+        self._proposal_contribution_contract_service_instance: (
+            ProposalContributionContractService | None
+        ) = None
         self._proposal_question_service_instance: ProposalQuestionService | None = None
+        self._proposal_read_contract_service_instance: (
+            ProposalReadContractService | None
+        ) = None
         self._project_assessment_service_instance: ProjectAssessmentService | None = None
         self._project_context_renderer_service_instance: ProjectContextRendererService | None = None
         self._project_interaction_style_service_instance: ProjectInteractionStyleService | None = None
@@ -317,6 +348,7 @@ class P2PWorkspace:
         self._project_maturity_service_instance: ProjectMaturityService | None = None
         self._project_metadata_service_instance: ProjectMetadataService | None = None
         self._project_progress_service_instance: ProjectProgressService | None = None
+        self._project_snapshot_service_instance: ProjectSnapshotService | None = None
         self._project_question_state_service_instance: ProjectQuestionStateService | None = None
         self._project_readiness_convergence_service_instance: (
             ProjectReadinessConvergenceService | None
@@ -573,6 +605,23 @@ class P2PWorkspace:
             )
         return self._proposal_review_view_service_instance
 
+    def _proposal_read_contract_service(self) -> ProposalReadContractService:
+        if self._proposal_read_contract_service_instance is None:
+            self._proposal_read_contract_service_instance = ProposalReadContractService(
+                proposal_summaries=self.proposal_summaries,
+                proposal_full_view=self.proposal_full_view,
+            )
+        return self._proposal_read_contract_service_instance
+
+    def _proposal_contribution_contract_service(self) -> ProposalContributionContractService:
+        if self._proposal_contribution_contract_service_instance is None:
+            self._proposal_contribution_contract_service_instance = (
+                ProposalContributionContractService(
+                    list_contributions=self.list_contributions,
+                )
+            )
+        return self._proposal_contribution_contract_service_instance
+
     def _proposal_draft_commit_service(self) -> ProposalDraftCommitService:
         if self._proposal_draft_commit_service_instance is None:
             self._proposal_draft_commit_service_instance = ProposalDraftCommitService(
@@ -750,6 +799,25 @@ class P2PWorkspace:
                 vertical_memory_view=lambda: self.vertical_project_memory(),
             )
         return self._project_progress_service_instance
+
+    def _project_snapshot_service(self) -> ProjectSnapshotService:
+        if self._project_snapshot_service_instance is None:
+            self._project_snapshot_service_instance = ProjectSnapshotService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                workspace_status=self.status,
+                runtime_status=self.runtime_status,
+                transaction_recovery_status=self.workspace_transaction_recovery_status,
+                active_vertical=self.active_project_vertical,
+                vertical_lock_status=self.project_vertical_lock_status,
+                vertical_sections=self.project_vertical_sections,
+                project_progress=lambda proposals, read_context: self.project_progress(
+                    proposal_summaries_snapshot=proposals,
+                    read_context=read_context,
+                ),
+                publication_status=self.project_publication_status,
+            )
+        return self._project_snapshot_service_instance
 
     def _project_question_state_service(self) -> ProjectQuestionStateService:
         if self._project_question_state_service_instance is None:
@@ -1472,6 +1540,321 @@ class P2PWorkspace:
             warnings=list(result.warnings),
         )
 
+    def init_project_with_operation_key(
+        self,
+        name: str,
+        *,
+        operation_key: str,
+        agent_profile: str | None = None,
+        repository_mode: str = "local",
+        project_domain: str = "none",
+        rubric_enabled: dict[str, bool] | None = None,
+        owner: str | None = None,
+        remote_provider: str | None = None,
+        remote_name: str = "origin",
+        remote_url_value: str | None = None,
+        vertical_id: str | None = None,
+        profile: str = "default",
+        modules: list[str] | None = None,
+        vertical_pack: Path | None = None,
+        expected_checksum: str = "",
+        vertical_pack_closure: list[tuple[Path, str]] | None = None,
+    ) -> dict[str, object]:
+        actor = owner or "owner"
+        semantic_inputs = _project_init_semantic_inputs(
+            name=name,
+            agent_profile=agent_profile,
+            repository_mode=repository_mode,
+            project_domain=project_domain,
+            rubric_enabled=rubric_enabled,
+            owner=owner,
+            remote_provider=remote_provider,
+            remote_name=remote_name,
+            remote_url_value=remote_url_value,
+            vertical_id=vertical_id,
+            profile=profile,
+            modules=modules,
+            vertical_pack=vertical_pack,
+            expected_checksum=expected_checksum,
+            vertical_pack_closure=vertical_pack_closure,
+        )
+        preview_token = semantic_sha256(
+            {
+                "operation": "project.init",
+                "semantic_inputs": semantic_inputs,
+            }
+        )
+        request_fingerprint = self._mutation_receipt_service().fingerprint(
+            operation="init",
+            actor=actor,
+            preview_token=preview_token,
+            semantic_inputs=semantic_inputs,
+        )
+        replay = self._mutation_receipt_service().replay(
+            idempotency_key=operation_key,
+            request_fingerprint_sha256=request_fingerprint,
+        )
+        if replay is not None:
+            return _project_init_operation_payload(
+                dict(replay.result),
+                status="already_applied",
+                actor=replay.actor,
+                message="Project initialization was already applied with this operation key.",
+            )
+
+        self._ensure_project_init_operation_can_apply(semantic_inputs)
+        result = self.init_project_with_summary(
+            name=name,
+            agent_profile=agent_profile,
+            repository_mode=repository_mode,
+            project_domain=project_domain,
+            rubric_enabled=rubric_enabled,
+            owner=owner,
+            remote_provider=remote_provider,
+            remote_name=remote_name,
+            remote_url_value=remote_url_value,
+            vertical_id=vertical_id,
+            profile=profile,
+            modules=modules,
+            vertical_pack=vertical_pack,
+            expected_checksum=expected_checksum,
+            vertical_pack_closure=vertical_pack_closure,
+        )
+        summary = self._project_init_result_summary(
+            result,
+            requested_vertical=vertical_id,
+        )
+        candidates = self._project_init_receipt_candidates(
+            summary.get("changed_paths", [])
+        )
+        receipt_path, receipt_content, _receipt = self._mutation_receipt_service().prepare(
+            idempotency_key=operation_key,
+            operation="init",
+            actor=actor,
+            request_fingerprint_sha256=request_fingerprint,
+            preview_token=preview_token,
+            result=summary,
+            candidates=candidates,
+        )
+        mutation = AtomicMutationWriter(root=self.root, p2p_dir=self.p2p_dir).apply(
+            operation_id="project-init-receipt",
+            candidates={receipt_path: receipt_content},
+            sources=(source_precondition(receipt_path, None),),
+            preview_token=preview_token,
+            actor=actor,
+        )
+        if mutation.status != "applied":
+            replay = self._mutation_receipt_service().replay(
+                idempotency_key=operation_key,
+                request_fingerprint_sha256=request_fingerprint,
+            )
+            if replay is not None:
+                return _project_init_operation_payload(
+                    dict(replay.result),
+                    status="already_applied",
+                    actor=replay.actor,
+                    message=(
+                        "Project initialization receipt was completed by a "
+                        "concurrent retry."
+                    ),
+                )
+            code = (
+                "P2P_INIT_PROJECT_BUSY"
+                if mutation.status == "blocked"
+                else "P2P_INIT_RECEIPT_WRITE_FAILED"
+            )
+            raise ValueError(f"{code}: {mutation.message or mutation.status}")
+        return _project_init_operation_payload(
+            summary,
+            status="applied",
+            actor=actor,
+            message="Project initialization completed.",
+        )
+
+    def _ensure_project_init_operation_can_apply(
+        self,
+        semantic_inputs: Mapping[str, object],
+    ) -> None:
+        recovery = self.workspace_transaction_recovery_status()
+        if recovery.required:
+            raise ValueError(
+                "P2P_INIT_RECOVERY_REQUIRED: workspace transaction recovery "
+                f"is required for {recovery.transaction_id or 'unknown'}"
+            )
+        project_path = self.p2p_dir / "project.yml"
+        if not project_path.exists():
+            return
+        self._ensure_runtime_write_allowed("project_init_existing")
+        payload = _read_yaml_mapping(project_path, default={})
+        project = payload.get("project")
+        repository = payload.get("repository")
+        remote = payload.get("remote")
+        if not isinstance(project, Mapping):
+            raise ValueError("P2P_INIT_EXISTING_WORKSPACE_CONFLICT: project.yml is invalid")
+        if not isinstance(repository, Mapping):
+            repository = {}
+        if not isinstance(remote, Mapping):
+            remote = {}
+        expected_name = str(semantic_inputs.get("name") or "")
+        expected_domain = str(semantic_inputs.get("project_domain") or "none")
+        expected_repository = str(semantic_inputs.get("repository_mode") or "local")
+        if str(project.get("name") or "") != expected_name:
+            raise ValueError(
+                "P2P_INIT_EXISTING_WORKSPACE_CONFLICT: existing project name "
+                "differs from the requested initialization"
+            )
+        if str(project.get("domain") or "") != expected_domain:
+            raise ValueError(
+                "P2P_INIT_EXISTING_WORKSPACE_CONFLICT: existing project domain "
+                "differs from the requested initialization"
+            )
+        if str(repository.get("mode") or "") != expected_repository:
+            raise ValueError(
+                "P2P_INIT_EXISTING_WORKSPACE_CONFLICT: existing repository mode "
+                "differs from the requested initialization"
+            )
+        if expected_repository == "cloud":
+            expected_remote = {
+                "provider": str(semantic_inputs.get("remote_provider") or ""),
+                "remote": str(semantic_inputs.get("remote_name") or "origin"),
+                "url": str(semantic_inputs.get("remote_url_value") or ""),
+            }
+            for field, expected in expected_remote.items():
+                if str(remote.get(field) or "") != expected:
+                    raise ValueError(
+                        "P2P_INIT_EXISTING_WORKSPACE_CONFLICT: existing remote "
+                        f"{field} differs from the requested initialization"
+                    )
+        requested_vertical = str(semantic_inputs.get("vertical_id") or "")
+        if requested_vertical:
+            active = self.active_project_vertical()
+            active_values = {active.vertical_id, active.coordinate}
+            if requested_vertical not in active_values:
+                raise ValueError(
+                    "P2P_INIT_EXISTING_WORKSPACE_CONFLICT: existing active "
+                    "vertical differs from the requested initialization"
+                )
+
+    def _project_init_result_summary(
+        self,
+        result: ProjectInitializationResult,
+        *,
+        requested_vertical: str | None,
+    ) -> dict[str, object]:
+        project_payload = _read_yaml_mapping(
+            self.p2p_dir / "project.yml",
+            default={},
+        )
+        project = project_payload.get("project")
+        repository = project_payload.get("repository")
+        remote = project_payload.get("remote")
+        active = self.active_project_vertical()
+        created_paths = _sorted_posix_paths(result.created)
+        created_file_paths = [
+            path
+            for path in created_paths
+            if (self.root / path).is_file() and not (self.root / path).is_symlink()
+        ]
+        changed_paths = self._project_init_postcondition_paths(created_file_paths)
+        return {
+            "operation": "init",
+            "operation_id": "project.init",
+            "project": dict(project) if isinstance(project, Mapping) else {},
+            "created_paths": created_paths,
+            "created_file_paths": created_file_paths,
+            "agent_selection": {
+                "requested_profile": result.agent_selection.requested_profile,
+                "effective_profile": result.agent_selection.effective_profile,
+                "effective_adapters": list(result.agent_selection.effective_adapters),
+                "detected_adapter": result.agent_selection.detected_adapter,
+                "selection_source": result.agent_selection.selection_source,
+                "fallback_used": result.agent_selection.fallback_used,
+                "warning": result.agent_selection.warning,
+            },
+            "agent_instructions": {
+                "profile": result.agent_instructions.profile,
+                "created": _sorted_posix_paths(result.agent_instructions.created),
+                "updated": _sorted_posix_paths(result.agent_instructions.updated),
+                "policy_path": result.agent_instructions.policy_path.as_posix(),
+                "skipped": list(result.agent_instructions.skipped),
+            },
+            "repository": dict(repository) if isinstance(repository, Mapping) else {},
+            "remote": dict(remote) if isinstance(remote, Mapping) else {},
+            "vertical": {
+                "requested": requested_vertical or "",
+                "active": {
+                    "vertical_id": active.vertical_id,
+                    "coordinate": active.coordinate,
+                    "source": active.source,
+                    "fallback_used": active.fallback_used,
+                    "selected_at": active.selected_at,
+                    "selected_by": active.selected_by,
+                },
+            },
+            "warnings": list(result.warnings),
+            "mcp_hint": {
+                "server_name": result.mcp_hint.server_name,
+                "root": result.mcp_hint.root.as_posix(),
+                "project_python": result.mcp_hint.project_python.as_posix(),
+                "project_python_exists": result.mcp_hint.project_python_exists,
+                "server_command": list(result.mcp_hint.server_command),
+                "codex_command": list(result.mcp_hint.codex_command),
+                "fallback_command": list(result.mcp_hint.fallback_command),
+                "notes": list(result.mcp_hint.notes),
+            },
+            "next_steps": [
+                "p2p status",
+                "p2p project snapshot --format json",
+                "p2p proposal create <title>",
+            ],
+            "changed_paths": changed_paths,
+        }
+
+    def _project_init_postcondition_paths(
+        self,
+        created_file_paths: list[str],
+    ) -> list[str]:
+        paths = set(created_file_paths)
+        for relative in (
+            ".p2p/project.yml",
+            ".p2p/project/workspace-schema.yml",
+            ".p2p/project/runtime.yml",
+            ".p2p/project/domain.yml",
+            ".p2p/project/rubrics.yml",
+            ".p2p/project/permissions.yml",
+            ".p2p/project/questions.yml",
+            ".p2p/project/vertical.yml",
+            ".p2p/project/vertical.lock.yml",
+            ".p2p/project/definition.yml",
+            ".p2p/agent-policy.yml",
+            ".p2p/agent-integrations.yml",
+            "AGENTS.md",
+            "P2P-SETUP.md",
+            ".gitignore",
+        ):
+            path = self.root / relative
+            if path.is_file() and not path.is_symlink():
+                paths.add(relative)
+        return sorted(paths)
+
+    def _project_init_receipt_candidates(
+        self,
+        changed_paths: object,
+    ) -> dict[str, bytes]:
+        if not isinstance(changed_paths, list):
+            raise ValueError("P2P_INIT_RECEIPT_INVALID: changed paths must be a list")
+        candidates: dict[str, bytes] = {}
+        for relative in changed_paths:
+            path = self.root / str(relative)
+            if path.is_file() and not path.is_symlink():
+                candidates[str(relative)] = path.read_bytes()
+        if not candidates:
+            raise ValueError(
+                "P2P_INIT_RECEIPT_INVALID: initialization produced no receipt "
+                "postconditions"
+            )
+        return candidates
+
     def _preflight_vertical_pack_closure(
         self,
         closure: list[tuple[Path, str]],
@@ -1797,6 +2180,32 @@ class P2PWorkspace:
     def proposal_full_view(self, proposal_id: str) -> ProposalFullView:
         return self._proposal_review_view_service().full_view(proposal_id)
 
+    def proposal_list_contract(
+        self,
+        *,
+        status: str | None = None,
+        decision_state: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> ProposalListPayload:
+        return self._proposal_read_contract_service().list_proposals(
+            status=status,
+            decision_state=decision_state,
+            limit=limit,
+            offset=offset,
+        )
+
+    def proposal_detail_contract(
+        self,
+        proposal_id: str,
+        *,
+        contribution_limit: int = 50,
+    ) -> ProposalDetailPayload:
+        return self._proposal_read_contract_service().proposal_detail(
+            proposal_id,
+            contribution_limit=contribution_limit,
+        )
+
     def commit_proposal_draft(self, proposal_id: str, actor: str = "local") -> ProposalDraftCommit:
         self._ensure_runtime_write_allowed("proposal_draft_commit")
         return self._proposal_draft_commit_service().commit(proposal_id, actor)
@@ -1905,6 +2314,25 @@ class P2PWorkspace:
 
     def workspace_transaction_recovery_status(self) -> WorkspaceTransactionRecoveryStatus:
         return self._workspace_transaction_recovery_service().status()
+
+    def project_snapshot(
+        self,
+        *,
+        limit: int = 20,
+        read_context: WorkspaceReadContext | None = None,
+    ) -> ProjectSnapshotPayload:
+        if read_context is None:
+            return self.read_consistently(
+                lambda context: self._project_snapshot_service().snapshot(
+                    limit=limit,
+                    read_context=context,
+                ),
+                allow_existing_transaction_lock=True,
+            )
+        return self._project_snapshot_service().snapshot(
+            limit=limit,
+            read_context=read_context,
+        )
 
     def mutation_status(self, *, idempotency_key: str) -> MutationReceiptStatus:
         return self._mutation_receipt_service().status(idempotency_key)
@@ -2214,6 +2642,136 @@ class P2PWorkspace:
         self._proposal_artifact_state_service().initialize(proposal.proposal_id)
         return proposal
 
+    def create_proposal_with_operation_key(
+        self,
+        *,
+        title: str,
+        operation_key: str,
+        actor: str = "local",
+        problem: str | None = None,
+        context: str | None = None,
+        goals: list[str] | None = None,
+        non_goals: list[str] | None = None,
+        proposal: str | None = None,
+        acceptance_criteria: list[str] | None = None,
+    ) -> dict[str, object]:
+        semantic_inputs = _proposal_create_semantic_inputs(
+            title=title,
+            problem=problem,
+            context=context,
+            goals=goals,
+            non_goals=non_goals,
+            proposal=proposal,
+            acceptance_criteria=acceptance_criteria,
+        )
+        preview_token = semantic_sha256(
+            {
+                "operation": "proposal.create",
+                "semantic_inputs": semantic_inputs,
+            }
+        )
+        request_fingerprint = self._mutation_receipt_service().fingerprint(
+            operation="proposal_create",
+            actor=actor,
+            preview_token=preview_token,
+            semantic_inputs=semantic_inputs,
+        )
+        replay = self._mutation_receipt_service().replay(
+            idempotency_key=operation_key,
+            request_fingerprint_sha256=request_fingerprint,
+        )
+        if replay is not None:
+            return _proposal_operation_payload(
+                dict(replay.result),
+                status="already_applied",
+                actor=replay.actor,
+                message="Proposal creation was already applied with this operation key.",
+            )
+
+        self._ensure_runtime_write_allowed("proposal_create")
+        self._ensure_proposal_target_section()
+        plan = self._proposal_document_service().create_plan_with_details(
+            title=title,
+            problem=problem,
+            context=context,
+            goals=goals,
+            non_goals=non_goals,
+            proposal=proposal,
+            acceptance_criteria=acceptance_criteria,
+        )
+        candidates = self._proposal_create_candidates(plan, actor=actor)
+        summary = _proposal_create_result_summary(
+            plan,
+            changed_paths=sorted(candidates),
+        )
+        receipt_path, receipt_content, _receipt = self._mutation_receipt_service().prepare(
+            idempotency_key=operation_key,
+            operation="proposal_create",
+            actor=actor,
+            request_fingerprint_sha256=request_fingerprint,
+            preview_token=preview_token,
+            result=summary,
+            candidates=candidates,
+        )
+        mutation = AtomicMutationWriter(root=self.root, p2p_dir=self.p2p_dir).apply(
+            operation_id="proposal-create",
+            candidates={**candidates, receipt_path: receipt_content},
+            sources=tuple(
+                source_precondition(path, None)
+                for path in sorted((*candidates, receipt_path))
+            ),
+            preview_token=preview_token,
+            actor=actor,
+        )
+        if mutation.status != "applied":
+            replay = self._mutation_receipt_service().replay(
+                idempotency_key=operation_key,
+                request_fingerprint_sha256=request_fingerprint,
+            )
+            if replay is not None:
+                return _proposal_operation_payload(
+                    dict(replay.result),
+                    status="already_applied",
+                    actor=replay.actor,
+                    message=(
+                        "Proposal creation receipt was completed by a "
+                        "concurrent retry."
+                    ),
+                )
+            code = (
+                "P2P_PROPOSAL_CREATE_BUSY"
+                if mutation.status == "blocked"
+                else "P2P_PROPOSAL_CREATE_FAILED"
+            )
+            raise ValueError(f"{code}: {mutation.message or mutation.status}")
+        return _proposal_operation_payload(
+            summary,
+            status="applied",
+            actor=actor,
+            message="Proposal creation completed.",
+        )
+
+    def _proposal_create_candidates(
+        self,
+        plan: ProposalCreatePlan,
+        *,
+        actor: str,
+    ) -> dict[str, bytes]:
+        proposal_dir = self.root / plan.proposal.path
+        files = dict(plan.files)
+        files["artifact-state.yml"] = (
+            self._proposal_artifact_state_service().render_initial_candidate(
+                proposal_id=plan.proposal.proposal_id,
+                proposal_dir=proposal_dir,
+                candidate_texts=files,
+                actor=actor,
+            )
+        )
+        return {
+            f"{plan.proposal.path.as_posix()}/{filename}": content.encode("utf-8")
+            for filename, content in sorted(files.items())
+        }
+
     def _ensure_proposal_target_section(self) -> None:
         try:
             sections = self._project_vertical_service().list_sections()
@@ -2248,6 +2806,116 @@ class P2PWorkspace:
             acceptance_criteria=acceptance_criteria,
         )
 
+    def update_proposal_with_operation_key(
+        self,
+        *,
+        proposal_id: str,
+        operation_key: str,
+        actor: str = "local",
+        problem: str | None = None,
+        context: str | None = None,
+        goals: list[str] | None = None,
+        non_goals: list[str] | None = None,
+        proposal: str | None = None,
+        acceptance_criteria: list[str] | None = None,
+    ) -> dict[str, object]:
+        semantic_inputs = _proposal_update_semantic_inputs(
+            proposal_id=proposal_id,
+            problem=problem,
+            context=context,
+            goals=goals,
+            non_goals=non_goals,
+            proposal=proposal,
+            acceptance_criteria=acceptance_criteria,
+        )
+        preview_token = semantic_sha256(
+            {
+                "operation": "proposal.update",
+                "semantic_inputs": semantic_inputs,
+            }
+        )
+        request_fingerprint = self._mutation_receipt_service().fingerprint(
+            operation="proposal_update",
+            actor=actor,
+            preview_token=preview_token,
+            semantic_inputs=semantic_inputs,
+        )
+        replay = self._mutation_receipt_service().replay(
+            idempotency_key=operation_key,
+            request_fingerprint_sha256=request_fingerprint,
+        )
+        if replay is not None:
+            return _proposal_operation_payload(
+                dict(replay.result),
+                status="already_applied",
+                actor=replay.actor,
+                message="Proposal update was already applied with this operation key.",
+            )
+
+        self._ensure_runtime_write_allowed("proposal_update")
+        plan = self._proposal_document_service().update_plan(
+            proposal_id,
+            problem=problem,
+            context=context,
+            goals=goals,
+            non_goals=non_goals,
+            proposal=proposal,
+            acceptance_criteria=acceptance_criteria,
+            require_changes=True,
+        )
+        path = plan.path.as_posix()
+        candidates = {path: plan.after}
+        summary = _proposal_update_result_summary(
+            plan,
+            changed_paths=sorted(candidates),
+        )
+        receipt_path, receipt_content, _receipt = self._mutation_receipt_service().prepare(
+            idempotency_key=operation_key,
+            operation="proposal_update",
+            actor=actor,
+            request_fingerprint_sha256=request_fingerprint,
+            preview_token=preview_token,
+            result=summary,
+            candidates=candidates,
+        )
+        mutation = AtomicMutationWriter(root=self.root, p2p_dir=self.p2p_dir).apply(
+            operation_id="proposal-update",
+            candidates={**candidates, receipt_path: receipt_content},
+            sources=(
+                source_precondition(path, plan.before),
+                source_precondition(receipt_path, None),
+            ),
+            preview_token=preview_token,
+            actor=actor,
+        )
+        if mutation.status != "applied":
+            replay = self._mutation_receipt_service().replay(
+                idempotency_key=operation_key,
+                request_fingerprint_sha256=request_fingerprint,
+            )
+            if replay is not None:
+                return _proposal_operation_payload(
+                    dict(replay.result),
+                    status="already_applied",
+                    actor=replay.actor,
+                    message=(
+                        "Proposal update receipt was completed by a "
+                        "concurrent retry."
+                    ),
+                )
+            code = (
+                "P2P_PROPOSAL_UPDATE_BUSY"
+                if mutation.status == "blocked"
+                else "P2P_PROPOSAL_UPDATE_FAILED"
+            )
+            raise ValueError(f"{code}: {mutation.message or mutation.status}")
+        return _proposal_operation_payload(
+            summary,
+            status="applied",
+            actor=actor,
+            message="Proposal update completed.",
+        )
+
     def add_contribution(
         self,
         proposal_id: str,
@@ -2265,8 +2933,127 @@ class P2PWorkspace:
             author=author,
         )
 
+    def add_contribution_with_operation_key(
+        self,
+        *,
+        proposal_id: str,
+        contribution_type: ContributionType,
+        text: str,
+        relevance_hint: str,
+        author: str,
+        operation_key: str,
+        actor: str = "",
+    ) -> dict[str, object]:
+        resolved_actor = actor or author or "local"
+        semantic_inputs = _proposal_contribution_add_semantic_inputs(
+            proposal_id=proposal_id,
+            contribution_type=contribution_type,
+            text=text,
+            relevance_hint=relevance_hint,
+            author=author,
+        )
+        preview_token = semantic_sha256(
+            {
+                "operation": "proposal.contribution.add",
+                "semantic_inputs": semantic_inputs,
+            }
+        )
+        request_fingerprint = self._mutation_receipt_service().fingerprint(
+            operation="proposal_contribution_add",
+            actor=resolved_actor,
+            preview_token=preview_token,
+            semantic_inputs=semantic_inputs,
+        )
+        replay = self._mutation_receipt_service().replay(
+            idempotency_key=operation_key,
+            request_fingerprint_sha256=request_fingerprint,
+        )
+        if replay is not None:
+            return _proposal_contribution_operation_payload(
+                dict(replay.result),
+                status="already_applied",
+                actor=replay.actor,
+                message="Contribution creation was already applied with this operation key.",
+            )
+
+        self._ensure_runtime_write_allowed("proposal_contribution_add")
+        plan = self._proposal_document_service().add_contribution_plan(
+            proposal_id,
+            contribution_type,
+            text=text,
+            relevance_hint=relevance_hint,
+            author=author,
+        )
+        path = plan.path.as_posix()
+        candidates = {path: plan.after}
+        summary = _proposal_contribution_add_result_summary(
+            plan,
+            changed_paths=sorted(candidates),
+        )
+        receipt_path, receipt_content, _receipt = self._mutation_receipt_service().prepare(
+            idempotency_key=operation_key,
+            operation="proposal_contribution_add",
+            actor=resolved_actor,
+            request_fingerprint_sha256=request_fingerprint,
+            preview_token=preview_token,
+            result=summary,
+            candidates=candidates,
+        )
+        mutation = AtomicMutationWriter(root=self.root, p2p_dir=self.p2p_dir).apply(
+            operation_id="proposal-contribution-add",
+            candidates={**candidates, receipt_path: receipt_content},
+            sources=(
+                source_precondition(path, plan.before),
+                source_precondition(receipt_path, None),
+            ),
+            preview_token=preview_token,
+            actor=resolved_actor,
+        )
+        if mutation.status != "applied":
+            replay = self._mutation_receipt_service().replay(
+                idempotency_key=operation_key,
+                request_fingerprint_sha256=request_fingerprint,
+            )
+            if replay is not None:
+                return _proposal_contribution_operation_payload(
+                    dict(replay.result),
+                    status="already_applied",
+                    actor=replay.actor,
+                    message=(
+                        "Contribution creation receipt was completed by a "
+                        "concurrent retry."
+                    ),
+                )
+            code = (
+                "P2P_PROPOSAL_CONTRIBUTION_ADD_BUSY"
+                if mutation.status == "blocked"
+                else "P2P_PROPOSAL_CONTRIBUTION_ADD_FAILED"
+            )
+            raise ValueError(f"{code}: {mutation.message or mutation.status}")
+        return _proposal_contribution_operation_payload(
+            summary,
+            status="applied",
+            actor=resolved_actor,
+            message="Contribution creation completed.",
+        )
+
     def list_contributions(self, proposal_id: str) -> ProposalContributionList:
         return self._proposal_document_service().list_contributions(proposal_id)
+
+    def proposal_contribution_list_contract(
+        self,
+        proposal_id: str,
+        *,
+        contribution_type: ContributionType | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> ProposalContributionListPayload:
+        return self._proposal_contribution_contract_service().list_payload(
+            proposal_id,
+            contribution_type=contribution_type,
+            limit=limit,
+            offset=offset,
+        )
 
     def record_decision(
         self,
@@ -2760,10 +3547,12 @@ class P2PWorkspace:
         *,
         language: str = "en",
         output_name: str = "project",
+        read_context: WorkspaceReadContext | None = None,
     ) -> ProjectPublicationStatus:
         return self._project_publication_service().status(
             language=language,
             output_name=output_name,
+            read_context=read_context,
         )
 
     def project_publication_editions(self) -> PublicationCatalogResult:
@@ -3809,6 +4598,339 @@ def _extend_created_paths(created: list[Path], changed_paths: tuple[str, ...] | 
         candidate = Path(path)
         if candidate not in created:
             created.append(candidate)
+
+
+def _project_init_semantic_inputs(
+    *,
+    name: str,
+    agent_profile: str | None,
+    repository_mode: str,
+    project_domain: str,
+    rubric_enabled: dict[str, bool] | None,
+    owner: str | None,
+    remote_provider: str | None,
+    remote_name: str,
+    remote_url_value: str | None,
+    vertical_id: str | None,
+    profile: str,
+    modules: list[str] | None,
+    vertical_pack: Path | None,
+    expected_checksum: str,
+    vertical_pack_closure: list[tuple[Path, str]] | None,
+) -> dict[str, object]:
+    return {
+        "name": name,
+        "agent_profile": agent_profile or "",
+        "repository_mode": repository_mode,
+        "project_domain": project_domain,
+        "rubric_enabled": {
+            str(key): bool(value)
+            for key, value in sorted((rubric_enabled or {}).items())
+        },
+        "owner": owner or "",
+        "remote_provider": remote_provider or "",
+        "remote_name": remote_name,
+        "remote_url_value": remote_url_value or "",
+        "vertical_id": vertical_id or "",
+        "profile": profile,
+        "modules": sorted(str(item) for item in (modules or [])),
+        "vertical_pack": vertical_pack.as_posix() if vertical_pack is not None else "",
+        "expected_checksum": expected_checksum,
+        "vertical_pack_closure": [
+            {"path": artifact.as_posix(), "checksum": checksum}
+            for artifact, checksum in sorted(
+                vertical_pack_closure or [],
+                key=lambda item: (item[0].as_posix(), item[1]),
+            )
+        ],
+    }
+
+
+def _project_init_operation_payload(
+    result: dict[str, object],
+    *,
+    status: str,
+    actor: str,
+    message: str,
+) -> dict[str, object]:
+    return {
+        "project_init": _public_project_init_result(result),
+        "mutation": {
+            "status": status,
+            "operation_id": "project.init",
+            "actor": actor,
+            "changed_paths": list(result.get("changed_paths", []))
+            if isinstance(result.get("changed_paths"), list)
+            else [],
+            "recovery_required": False,
+            "message": message,
+        },
+    }
+
+
+def _public_project_init_result(result: dict[str, object]) -> dict[str, object]:
+    return {
+        "operation": result.get("operation"),
+        "operation_id": result.get("operation_id"),
+        "project": dict(result.get("project", {}))
+        if isinstance(result.get("project"), Mapping)
+        else {},
+        "created_paths": list(result.get("created_paths", []))
+        if isinstance(result.get("created_paths"), list)
+        else [],
+        "created_file_paths": list(result.get("created_file_paths", []))
+        if isinstance(result.get("created_file_paths"), list)
+        else [],
+        "agent_selection": dict(result.get("agent_selection", {}))
+        if isinstance(result.get("agent_selection"), Mapping)
+        else {},
+        "agent_instructions": dict(result.get("agent_instructions", {}))
+        if isinstance(result.get("agent_instructions"), Mapping)
+        else {},
+        "repository": dict(result.get("repository", {}))
+        if isinstance(result.get("repository"), Mapping)
+        else {},
+        "remote": dict(result.get("remote", {}))
+        if isinstance(result.get("remote"), Mapping)
+        else {},
+        "vertical": dict(result.get("vertical", {}))
+        if isinstance(result.get("vertical"), Mapping)
+        else {},
+        "warnings": list(result.get("warnings", []))
+        if isinstance(result.get("warnings"), list)
+        else [],
+        "mcp_hint": dict(result.get("mcp_hint", {}))
+        if isinstance(result.get("mcp_hint"), Mapping)
+        else {},
+        "next_steps": list(result.get("next_steps", []))
+        if isinstance(result.get("next_steps"), list)
+        else [],
+    }
+
+
+def _proposal_create_semantic_inputs(
+    *,
+    title: str,
+    problem: str | None,
+    context: str | None,
+    goals: list[str] | None,
+    non_goals: list[str] | None,
+    proposal: str | None,
+    acceptance_criteria: list[str] | None,
+) -> dict[str, object]:
+    return {
+        "title": title,
+        "problem": problem or "",
+        "context": context or "",
+        "goals": [str(item) for item in (goals or [])],
+        "non_goals": [str(item) for item in (non_goals or [])],
+        "proposal": proposal or "",
+        "acceptance_criteria": [str(item) for item in (acceptance_criteria or [])],
+    }
+
+
+def _proposal_update_semantic_inputs(
+    *,
+    proposal_id: str,
+    problem: str | None,
+    context: str | None,
+    goals: list[str] | None,
+    non_goals: list[str] | None,
+    proposal: str | None,
+    acceptance_criteria: list[str] | None,
+) -> dict[str, object]:
+    return {
+        "proposal_id": proposal_id,
+        "problem": problem or "",
+        "context": context or "",
+        "goals": [str(item) for item in (goals or [])],
+        "non_goals": [str(item) for item in (non_goals or [])],
+        "proposal": proposal or "",
+        "acceptance_criteria": [str(item) for item in (acceptance_criteria or [])],
+    }
+
+
+def _proposal_create_result_summary(
+    plan: ProposalCreatePlan,
+    *,
+    changed_paths: list[str],
+) -> dict[str, object]:
+    proposal = plan.proposal
+    return {
+        "operation": "proposal_create",
+        "operation_id": "proposal.create",
+        "proposal": {
+            "proposal_id": proposal.proposal_id,
+            "title": proposal.title,
+            "slug": proposal.slug,
+            "status": proposal.status,
+            "path": proposal.path.as_posix(),
+        },
+        "created_paths": changed_paths,
+        "changed_paths": changed_paths,
+        "next_steps": [
+            f"p2p proposal show {proposal.proposal_id}",
+            f"p2p contribution add {proposal.proposal_id} \"...\" --type finding",
+            f"p2p explore prompt {proposal.proposal_id}",
+            f"p2p proposal readiness init {proposal.proposal_id}",
+            f"p2p proposal questions init {proposal.proposal_id}",
+        ],
+    }
+
+
+def _proposal_update_result_summary(
+    plan: ProposalUpdatePlan,
+    *,
+    changed_paths: list[str],
+) -> dict[str, object]:
+    return {
+        "operation": "proposal_update",
+        "operation_id": "proposal.update",
+        "proposal_id": plan.proposal_id,
+        "path": plan.path.as_posix(),
+        "updated_sections": list(plan.updated_sections),
+        "changed_paths": changed_paths,
+    }
+
+
+def _proposal_operation_payload(
+    result: dict[str, object],
+    *,
+    status: str,
+    actor: str,
+    message: str,
+) -> dict[str, object]:
+    operation = str(result.get("operation") or "")
+    if operation == "proposal_create":
+        wrapper = "proposal_create"
+        public_result = _public_proposal_create_result(result)
+    elif operation == "proposal_update":
+        wrapper = "proposal_update"
+        public_result = _public_proposal_update_result(result)
+    else:
+        raise ValueError(f"P2P_PROPOSAL_RECEIPT_UNSUPPORTED_OPERATION: {operation}")
+    return {
+        wrapper: public_result,
+        "mutation": {
+            "status": status,
+            "operation_id": result.get("operation_id"),
+            "actor": actor,
+            "changed_paths": list(result.get("changed_paths", []))
+            if isinstance(result.get("changed_paths"), list)
+            else [],
+            "recovery_required": False,
+            "message": message,
+        },
+    }
+
+
+def _public_proposal_create_result(result: Mapping[str, object]) -> dict[str, object]:
+    return {
+        "operation": result.get("operation"),
+        "operation_id": result.get("operation_id"),
+        "proposal": dict(result.get("proposal", {}))
+        if isinstance(result.get("proposal"), Mapping)
+        else {},
+        "created_paths": list(result.get("created_paths", []))
+        if isinstance(result.get("created_paths"), list)
+        else [],
+        "next_steps": list(result.get("next_steps", []))
+        if isinstance(result.get("next_steps"), list)
+        else [],
+    }
+
+
+def _public_proposal_update_result(result: Mapping[str, object]) -> dict[str, object]:
+    return {
+        "operation": result.get("operation"),
+        "operation_id": result.get("operation_id"),
+        "proposal_id": result.get("proposal_id"),
+        "path": result.get("path"),
+        "updated_sections": list(result.get("updated_sections", []))
+        if isinstance(result.get("updated_sections"), list)
+        else [],
+    }
+
+
+def _proposal_contribution_add_semantic_inputs(
+    *,
+    proposal_id: str,
+    contribution_type: ContributionType,
+    text: str,
+    relevance_hint: str,
+    author: str,
+) -> dict[str, object]:
+    return {
+        "proposal_id": proposal_id,
+        "type": contribution_type.value,
+        "text": text,
+        "relevance_hint": relevance_hint,
+        "author": author,
+    }
+
+
+def _proposal_contribution_add_result_summary(
+    plan: ContributionAddPlan,
+    *,
+    changed_paths: list[str],
+) -> dict[str, object]:
+    return {
+        "operation": "proposal_contribution_add",
+        "operation_id": "proposal.contribution.add",
+        "proposal_id": plan.proposal_id,
+        "path": plan.path.as_posix(),
+        "contribution": contribution_payload(plan.contribution),
+        "changed_paths": changed_paths,
+        "review_capability": dict(CONTRIBUTION_REVIEW_CAPABILITY),
+    }
+
+
+def _proposal_contribution_operation_payload(
+    result: dict[str, object],
+    *,
+    status: str,
+    actor: str,
+    message: str,
+) -> dict[str, object]:
+    if result.get("operation") != "proposal_contribution_add":
+        raise ValueError(
+            "P2P_PROPOSAL_CONTRIBUTION_RECEIPT_UNSUPPORTED_OPERATION: "
+            f"{result.get('operation')}"
+        )
+    return {
+        "proposal_contribution_add": _public_proposal_contribution_add_result(result),
+        "mutation": {
+            "status": status,
+            "operation_id": result.get("operation_id"),
+            "actor": actor,
+            "changed_paths": list(result.get("changed_paths", []))
+            if isinstance(result.get("changed_paths"), list)
+            else [],
+            "recovery_required": False,
+            "message": message,
+        },
+    }
+
+
+def _public_proposal_contribution_add_result(
+    result: Mapping[str, object],
+) -> dict[str, object]:
+    return {
+        "operation": result.get("operation"),
+        "operation_id": result.get("operation_id"),
+        "proposal_id": result.get("proposal_id"),
+        "path": result.get("path"),
+        "contribution": dict(result.get("contribution", {}))
+        if isinstance(result.get("contribution"), Mapping)
+        else {},
+        "review_capability": dict(result.get("review_capability", {}))
+        if isinstance(result.get("review_capability"), Mapping)
+        else dict(CONTRIBUTION_REVIEW_CAPABILITY),
+    }
+
+
+def _sorted_posix_paths(paths: list[Path] | tuple[Path, ...]) -> list[str]:
+    return sorted(path.as_posix() for path in paths)
 
 
 def _duplicate_proposal_ids_message(duplicates: dict[str, list[Path]], root: Path) -> str:

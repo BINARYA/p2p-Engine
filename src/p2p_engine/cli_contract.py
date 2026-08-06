@@ -243,7 +243,7 @@ def exit_code_for_error(code: str) -> int:
         )
     ):
         return EXIT_CONFLICT
-    if any(marker in normalized for marker in ("INVALID", "MISSING", "REQUIRED")):
+    if any(marker in normalized for marker in ("EMPTY", "INVALID", "MISSING", "NOT_FOUND", "REQUIRED")):
         return EXIT_INVALID_REQUEST
     return EXIT_INTERNAL
 
@@ -269,6 +269,8 @@ def resolve_command(root: object, args: list[str]) -> tuple[tuple[str, ...], obj
 
 
 def json_requested(args: list[str], command: object) -> bool:
+    if any(value in {"--help", "-h"} for value in args):
+        return False
     for index, value in enumerate(args):
         if value == "--format" and index + 1 < len(args):
             return args[index + 1].strip().lower() == "json"

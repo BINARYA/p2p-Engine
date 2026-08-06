@@ -47,6 +47,29 @@ result as a derived read model: canonical `.p2p` sources remain authoritative,
 and an accepted contribution must not be described as implemented merely
 because it appears in current project memory.
 
+## WaveKit CLI Worker Boundary
+
+Standalone agents may use either CLI commands or registered MCP tools, depending
+on the client surface available to them. Deterministic server workers such as
+WaveKit are different: they should call the allowlisted CLI JSON contract and
+use `--operation-key wavekit:<uuid>` for retryable writes.
+
+Use CLI JSON for worker reads and writes such as:
+
+```bash
+p2p project snapshot --format json
+p2p proposal list --format json
+p2p proposal show PROP-XXX --format json
+p2p proposal create "Title" --format json --operation-key wavekit:<uuid>
+p2p proposal update PROP-XXX --proposal "..." --format json --operation-key wavekit:<uuid>
+p2p proposal contribution add PROP-XXX "Text" --type suggestion --format json --operation-key wavekit:<uuid>
+p2p proposal contribution list PROP-XXX --type suggestion --format json
+p2p mutation status --operation-key wavekit:<uuid> --format json
+```
+
+MCP stdio responses are protocol-native and are not wrapped in `p2p-cli/v1`.
+MCP is an agent tool surface, not the WaveKit worker receipt/retry boundary.
+
 ## Allowed Behavior
 
 Agents may:

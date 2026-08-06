@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -111,6 +112,36 @@ class ProposalArtifactStateService:
         validate_proposal_artifact_state_payload(payload)
         _atomic_write(path, _yaml_dump(payload))
         return self.read(proposal_id)
+
+    def render_initial_candidate(
+        self,
+        *,
+        proposal_id: str,
+        proposal_dir: Path,
+        candidate_texts: Mapping[str, str],
+        actor: str = "local",
+    ) -> str:
+        proposal_text = candidate_texts.get("proposal.md", "")
+        now = _now()
+        payload = {
+            "proposal_artifacts": {
+                "schema_version": ARTIFACT_STATE_SCHEMA_VERSION,
+                "proposal_id": proposal_id,
+                "initialized_at": now,
+                "updated_at": now,
+                "status": "active",
+                "artifacts": _initial_records(
+                    proposal_dir=proposal_dir,
+                    existing={},
+                    risk_flags=detect_risk_flags(proposal_text),
+                    actor=actor,
+                    now=now,
+                    candidate_texts=candidate_texts,
+                ),
+            }
+        }
+        validate_proposal_artifact_state_payload(payload)
+        return _yaml_dump(payload)
 
     def set_artifact(
         self,
@@ -352,6 +383,7 @@ def _initial_records(
     risk_flags: list[ProposalArtifactRiskFlag],
     actor: str,
     now: str | None = None,
+    candidate_texts: Mapping[str, str] | None = None,
 ) -> list[dict[str, object]]:
     existing_items = {
         _normalize_artifact_id(str(item.get("id") or "")): item
@@ -367,6 +399,11 @@ def _initial_records(
             proposal_dir / definition.filename,
             expectation=expectation,
             previous=previous,
+            candidate_text=(
+                candidate_texts.get(definition.filename)
+                if candidate_texts is not None
+                else None
+            ),
         )
         flags = _risk_flags_for_artifact(definition.artifact_id, risk_flags)
         records.append(
@@ -389,12 +426,25 @@ def _initial_records(
     return records
 
 
-def _initial_status(path: Path, *, expectation: ProposalArtifactExpectation, previous: dict[str, object]) -> ProposalArtifactStatus:
+def _initial_status(
+    path: Path,
+    *,
+    expectation: ProposalArtifactExpectation,
+    previous: dict[str, object],
+    candidate_text: str | None = None,
+) -> ProposalArtifactStatus:
     previous_status = str(previous.get("status") or "")
     if previous_status in {item.value for item in ProposalArtifactStatus}:
         return ProposalArtifactStatus(previous_status)
     if expectation == ProposalArtifactExpectation.optional_memory:
         return ProposalArtifactStatus.unknown
+    if candidate_text is not None:
+        quality = _artifact_quality(candidate_text)
+        if quality == "missing":
+            return ProposalArtifactStatus.missing
+        if quality == "weak":
+            return ProposalArtifactStatus.weak
+        return ProposalArtifactStatus.satisfied
     if not path.exists():
         return ProposalArtifactStatus.missing
     text = path.read_text(encoding="utf-8")

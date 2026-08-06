@@ -76,6 +76,12 @@ _NO_DEEP = (
 PUBLIC_READ_COST_POLICIES: tuple[PublicReadCostPolicy, ...] = (
     PublicReadCostPolicy("status", ReadCostClass.FAST, ("schema_preflight", "lifecycle_batch", "fast_freshness"), _NO_DEEP),
     PublicReadCostPolicy("proposal_list", ReadCostClass.FAST, ("registry", "lifecycle_batch"), _NO_DEEP),
+    PublicReadCostPolicy(
+        "project_snapshot",
+        ReadCostClass.FAST,
+        ("schema_preflight", "vertical_memory", "readiness", "lifecycle_batch"),
+        _NO_DEEP,
+    ),
     PublicReadCostPolicy("project_progress", ReadCostClass.FAST, ("vertical_memory", "readiness"), _NO_DEEP),
     PublicReadCostPolicy("context_small", ReadCostClass.FAST, ("registry", "vertical_memory", "readiness", "next"), _NO_DEEP),
     PublicReadCostPolicy("context_targeted", ReadCostClass.TARGETED, ("registry", "vertical_memory", "decision_context", "next"), ("publication_build", "software_spec_build")),

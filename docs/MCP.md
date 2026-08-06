@@ -378,11 +378,12 @@ typed `p2p-vertical-transition-impact/v1` review, an optional exact
 `p2p-vertical-transition-plan/v1`, a replacement state-bound preview token,
 explicit confirmation and a stable idempotency key.
 
-MCP clients may inspect the active vertical, lock, context, definition and
-readiness with registered read tools. They must not translate those reads into
-direct `.p2p` writes or call an unregistered lifecycle mutation. WaveKit may
-offer its own authenticated HTTP MCP workflow, but it remains responsible for
-authorization, queues and serialized invocation of the same CLI contract.
+MCP clients may inspect the active vertical, lock, context, definition,
+readiness, proposals and structured contributions with registered read tools.
+They must not translate those reads into direct `.p2p` writes or call an
+unregistered lifecycle mutation. WaveKit may offer its own authenticated HTTP
+MCP workflow, but its serialized P2P worker still uses the CLI JSON
+`--operation-key` contract for retryable writes and status recovery.
 
 ## Proposal Artifact Content Imports
 
@@ -475,10 +476,16 @@ logical catalog with expectation, status, materialization kind, source hint,
 provenance confidence, evidence path when present, summary, and next action.
 
 `p2p_proposal_show` accepts `full: true` for the owner-facing review payload.
-The response keeps the compact `proposal` field and adds `proposal_view` with
-core sections, decision, readiness, contributions, grouped question sources,
-narrative/imported artifact summaries, artifact status, and next actions.
-Returned paths are backing evidence or source hints, not direct edit targets.
+The response keeps the compact `proposal` field, always adds protocol-native
+`proposal_detail` aligned with `p2p proposal show --format json`, and adds
+`proposal_view` when `full` is true. These include core sections, decision,
+readiness, contributions, grouped question sources, narrative/imported artifact
+summaries, artifact status, and next actions. Returned paths are backing
+evidence or source hints, not direct edit targets.
+
+`p2p_proposal_contribution_list` returns legacy `contributions` plus
+`contribution_list`, a bounded protocol-native payload aligned with the CLI
+contribution-list contract. MCP does not wrap these payloads in `p2p-cli/v1`.
 
 Unsupported generic artifact writes remain unsupported. Agents should report the
 missing primitive instead of writing arbitrary files under `.p2p/`.

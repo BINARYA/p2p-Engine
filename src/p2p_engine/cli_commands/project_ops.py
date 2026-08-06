@@ -221,6 +221,63 @@ def register_project_ops_commands(
             )
             console.print(f"    command: {status.first_next_action.command or 'none'}")
 
+    @project_app.command("snapshot")
+    def project_snapshot(
+        limit: int = typer.Option(
+            20,
+            "--limit",
+            min=1,
+            max=100,
+            help="Maximum summaries returned per bounded collection.",
+        ),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option(
+            "text",
+            "--format",
+            help="Output format: text or json",
+        ),
+    ) -> None:
+        """Show bounded project overview snapshot for machine consumers."""
+        try:
+            snapshot = workspace_for(root).project_snapshot(limit=limit)
+        except ValueError as exc:
+            fail(str(exc))
+        if _wants_json(output_format):
+            _print_json({"project_snapshot": snapshot})
+            return
+        project = snapshot.get("project", {})
+        runtime = snapshot.get("runtime", {})
+        vertical = snapshot.get("vertical", {})
+        active_vertical = (
+            vertical.get("active", {}) if isinstance(vertical, dict) else {}
+        )
+        proposals = snapshot.get("proposals", {})
+        decisions = snapshot.get("decisions", {})
+        readiness = snapshot.get("readiness", {})
+        definition = (
+            readiness.get("definition", {}) if isinstance(readiness, dict) else {}
+        )
+        ratio = definition.get("ratio", {}) if isinstance(definition, dict) else {}
+        console.print("Project snapshot")
+        if isinstance(project, dict):
+            console.print(f"  name: {project.get('name') or 'Unknown'}")
+        if isinstance(runtime, dict):
+            console.print(f"  runtime: {runtime.get('state') or 'unknown'}")
+        if isinstance(active_vertical, dict):
+            console.print(f"  vertical: {active_vertical.get('vertical_id') or 'unknown'}")
+        if isinstance(ratio, dict):
+            percentage = ratio.get("percentage")
+            formatted = (
+                "not available"
+                if percentage is None
+                else f"{float(percentage):.2f}%"
+            )
+            console.print(f"  definition readiness: {formatted}")
+        if isinstance(proposals, dict):
+            console.print(f"  proposals: {proposals.get('total', 0)}")
+        if isinstance(decisions, dict):
+            console.print(f"  decisions: {decisions.get('total', 0)}")
+
     @project_app.command("progress")
     def project_progress(
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),

@@ -17,6 +17,7 @@ from p2p_engine.services.agent_capabilities import (
     AGENT_CAPABILITY_CATALOG_VERSION,
     capability_catalog_payload,
     standalone_vertical_guidance,
+    wavekit_cli_worker_guidance,
 )
 
 BUILT_IN_AGENT_ADAPTERS = ("generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode")
@@ -187,6 +188,9 @@ Behavior:
 
 
 STANDALONE_VERTICAL_GUIDANCE_BLOCK = standalone_vertical_guidance()
+
+
+WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK = wavekit_cli_worker_guidance()
 
 
 SOFTWARE_SPEC_LIFECYCLE_BLOCK = """When a request concerns software specification authoring, implementation specs, or downstream handoff files, route it through the governed software specification lifecycle before writing durable artifacts.
@@ -698,6 +702,37 @@ def agent_policy(
             "default_mode": "read_only",
             "write_tools_require_explicit_tool_schema": True,
             "missing_write_tool_behavior": "stop_and_report",
+            "protocol_native_payloads": True,
+            "uses_p2p_cli_v1_envelope": False,
+            "wavekit_worker_retry_boundary": "cli_json_operation_key",
+        },
+        "wavekit_cli_worker_contract": {
+            "transport": "cli_json",
+            "contract_version": "p2p-cli/v1",
+            "mcp_stdio_transport": "agent_tool_surface_not_worker_retry_boundary",
+            "operation_key_format": "wavekit:<uuid>",
+            "raw_operation_key_in_status_output": False,
+            "preflight_commands": [
+                "p2p version --format json",
+                "p2p runtime status --format json",
+                "p2p workspace schema status --format json",
+                "p2p workspace transaction status --format json",
+            ],
+            "read_commands": [
+                "p2p project snapshot --format json",
+                "p2p proposal list --format json",
+                "p2p proposal show PROP-XXX --format json",
+                "p2p proposal contribution list PROP-XXX --format json",
+            ],
+            "write_commands": [
+                "p2p init NAME --format json --operation-key wavekit:<uuid>",
+                "p2p proposal create TITLE --format json --operation-key wavekit:<uuid>",
+                "p2p proposal update PROP-XXX --proposal TEXT --format json --operation-key wavekit:<uuid>",
+                "p2p proposal contribution add PROP-XXX TEXT --type suggestion --format json --operation-key wavekit:<uuid>",
+            ],
+            "status_command": "p2p mutation status --operation-key wavekit:<uuid> --format json",
+            "parse_human_text": False,
+            "direct_p2p_file_reads": False,
         },
         "owner_controlled_actions": [
             "proposal_accept",
@@ -991,6 +1026,10 @@ python -m p2p_engine.mcp.server --root /path/to/project
 
 Use the first available P2P command as the write interface. If no CLI command or explicit MCP write tool is available, report the diagnostics and ask the owner to install P2P Engine or provide a runner/container with P2P installed. Do not edit `.p2p/` manually as a fallback.
 
+## WaveKit CLI Worker Contract
+
+{WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK}
+
 ## Governance Boundary
 
 The owner controls governance decisions. Agents may draft, analyze, compare, and suggest actions, but must not decide on behalf of the owner.
@@ -1166,6 +1205,10 @@ Use P2P Engine as the source of truth for project governance and planning.
 ## Governed Root
 
 {governed_root_guidance_block()}
+
+## WaveKit CLI Worker Contract
+
+{WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK}
 
 ## Readiness Gap Handling
 
@@ -1495,6 +1538,10 @@ Key rules:
 
 {governed_root_guidance_block()}
 
+## WaveKit CLI Worker Contract
+
+{WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK}
+
 ## Readiness Gap Handling
 
 {READINESS_GAP_HANDLING_BLOCK}
@@ -1554,6 +1601,10 @@ alwaysApply: true
 
 {governed_root_guidance_block()}
 
+## WaveKit CLI Worker Contract
+
+{WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK}
+
 ## Readiness Gap Handling
 
 {READINESS_GAP_HANDLING_BLOCK}
@@ -1607,6 +1658,10 @@ This repository is managed with P2P Engine.
 
 {governed_root_guidance_block()}
 
+## WaveKit CLI Worker Contract
+
+{WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK}
+
 ## Readiness Gap Handling
 
 {READINESS_GAP_HANDLING_BLOCK}
@@ -1658,6 +1713,10 @@ This repository is managed with P2P Engine.
 ## Governed Root
 
 {governed_root_guidance_block()}
+
+## WaveKit CLI Worker Contract
+
+{WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK}
 
 ## Readiness Gap Handling
 

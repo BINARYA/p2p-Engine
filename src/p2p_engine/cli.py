@@ -306,9 +306,29 @@ def init(
         "--mcp-hint/--no-mcp-hint",
         help="Show an MCP setup command after initialization",
     ),
+    operation_key: str = typer.Option(
+        "",
+        "--operation-key",
+        help="Opaque caller-supplied operation key for JSON initialization retries",
+    ),
+    output_format: str = typer.Option(
+        "text",
+        "--format",
+        help="Output format: text or json",
+    ),
     root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
 ) -> None:
     """Initialize a P2P workspace."""
+    normalized_output = output_format.strip().lower()
+    if normalized_output not in {"text", "json"}:
+        raise typer.BadParameter("Output format must be text or json.")
+    json_output = normalized_output == "json"
+    if json_output and name is None:
+        _fail("P2P_INIT_NON_INTERACTIVE_REQUIRED: JSON init requires a project name")
+    if json_output and not operation_key.strip():
+        _fail("P2P_IDEMPOTENCY_KEY_REQUIRED: JSON init requires --operation-key")
+    if operation_key.strip() and not json_output:
+        _fail("P2P_INIT_OPERATION_KEY_REQUIRES_JSON: --operation-key requires --format json")
     rubric_enabled: dict[str, bool] | None = None
     if name is None:
         console.print("[bold]P2P project initialization[/bold]")
@@ -391,6 +411,28 @@ def init(
     workspace = _workspace(root)
     agent_profile = None if not agent else ("all" if "all" in agent else ",".join(agent))
     try:
+        if json_output:
+            assert name is not None
+            payload = workspace.init_project_with_operation_key(
+                name=name,
+                operation_key=operation_key,
+                agent_profile=agent_profile,
+                repository_mode=repository,
+                project_domain=domain,
+                rubric_enabled=rubric_enabled,
+                owner=owner,
+                remote_provider=provider,
+                remote_name=remote,
+                remote_url_value=remote_url,
+                vertical_id=vertical,
+                profile=profile,
+                modules=module,
+                vertical_pack=vertical_pack,
+                expected_checksum=expected_checksum,
+                vertical_pack_closure=vertical_pack_closure,
+            )
+            print_json(payload)
+            return
         result = workspace.init_project_with_summary(
             name=name,
             agent_profile=agent_profile,

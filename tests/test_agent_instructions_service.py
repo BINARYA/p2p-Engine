@@ -64,6 +64,18 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert policy["runtime_bootstrap"]["manual_workspace_schema_repair"] == "forbidden"
     assert "legacy_undeclared" not in policy["runtime_bootstrap"]
     assert policy["runtime_bootstrap"]["environment_mutation"] == "owner_explicit_action_required"
+    assert policy["mcp"]["protocol_native_payloads"] is True
+    assert policy["mcp"]["uses_p2p_cli_v1_envelope"] is False
+    worker_contract = policy["wavekit_cli_worker_contract"]
+    assert worker_contract["transport"] == "cli_json"
+    assert worker_contract["contract_version"] == "p2p-cli/v1"
+    assert worker_contract["operation_key_format"] == "wavekit:<uuid>"
+    assert worker_contract["status_command"] == (
+        "p2p mutation status --operation-key wavekit:<uuid> --format json"
+    )
+    assert worker_contract["mcp_stdio_transport"] == (
+        "agent_tool_surface_not_worker_retry_boundary"
+    )
     decision_policy = policy["proposal_decision_lifecycle"]
     assert decision_policy["canonical_schema_v3_artifact"] == "decision-events.yml"
     assert decision_policy["write_protocol"] == "preview_then_exact_apply"
@@ -91,6 +103,11 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert "transaction locks, journals or candidates by hand" in agents
     assert "legacy_undeclared" not in agents
     assert "ask the owner for explicit environment action" in agents
+    assert "WaveKit CLI Worker Contract" in agents
+    assert "p2p project snapshot --format json" in agents
+    assert "p2p proposal create \"Title\" --format json --operation-key wavekit:<uuid>" in agents
+    assert "p2p mutation status --operation-key wavekit:<uuid> --format json" in agents
+    assert "MCP responses are protocol-native" in agents
     assert "Proposal Decision Lifecycle" in agents
     assert "Reject only a proposal that was never active" in agents
     assert "p2p_proposal_decision_apply" in agents
@@ -101,6 +118,8 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert "--idempotency-key <operation-id>" in agents
     codex_skill = (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").read_text(encoding="utf-8")
     assert "p2p project definition show --format json" in codex_skill
+    assert "WaveKit CLI Worker Contract" in codex_skill
+    assert "p2p proposal contribution list PROP-XXX --type suggestion --format json" in codex_skill
     assert "p2p spec lifecycle --intent downstream_export --change CHANGE-001 --target speckit" in codex_skill
     assert "Proposal Decision Lifecycle" in codex_skill
     assert "proposal_decision_apply" in codex_skill

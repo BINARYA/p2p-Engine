@@ -1,6 +1,6 @@
 # CLI JSON Contract
 
-P2P Engine 0.4.9 exposes one machine-facing CLI transport contract:
+P2P Engine 0.4.10 exposes one machine-facing CLI transport contract:
 `p2p-cli/v1`. Every command that accepts `--format json`, including commands
 whose format defaults to JSON, emits exactly one JSON document to stdout.
 
@@ -88,6 +88,60 @@ Parser failures are JSON and therefore do not require a separate stderr parser.
 
 MCP responses are protocol-native and are not wrapped in `p2p-cli/v1`.
 
+## WaveKit Worker Contract
+
+WaveKit's serialized P2P worker consumes an allowlisted subset of CLI JSON
+commands. It must not parse human output, inspect `.p2p` files, import
+`p2p_engine` internals, or use local MCP stdio as its deterministic retry
+transport.
+
+Startup and recovery probes:
+
+```bash
+p2p version --format json
+p2p runtime status --format json
+p2p workspace schema status --format json
+p2p workspace transaction status --format json
+```
+
+Project and proposal reads:
+
+```bash
+p2p project snapshot --format json
+p2p proposal list --format json
+p2p proposal show PROP-001 --format json
+p2p proposal contribution list PROP-001 --type suggestion --format json
+```
+
+WaveKit-facing writes use its persisted operation identity:
+
+```bash
+p2p init "Project name" --format json --operation-key wavekit:<uuid>
+p2p proposal create "Title" --proposal "..." --format json --operation-key wavekit:<uuid>
+p2p proposal update PROP-001 --proposal "..." --format json --operation-key wavekit:<uuid>
+p2p proposal contribution add PROP-001 "Text" --type finding --format json --operation-key wavekit:<uuid>
+```
+
+An exact retry with the same operation key and the same semantic request returns
+`already_applied`. Reusing the same key for different semantic inputs fails with
+`P2P_IDEMPOTENCY_CONFLICT`.
+
+After a lost or uncertain response:
+
+```bash
+p2p mutation status --operation-key wavekit:<uuid> --format json
+```
+
+The status payload classifies the supplied key as `wavekit_uuid`,
+`p2p_operation`, `wavekit_opaque`, or `opaque`, and sets
+`raw_value_returned: false`. It never echoes the raw key.
+
+Proposal readiness, artifact state and proposal-question summaries needed by
+WaveKit are available through `data.proposal_detail` from
+`p2p proposal show PROP --format json`. The dedicated human proposal readiness
+and question commands remain useful for agents, but WaveKit should prefer the
+bounded proposal-detail read model for UI detail pages.
+
 ## Idempotent Vertical Mutations
 
 The three vertical apply commands require an opaque caller key in addition to
@@ -109,7 +163,7 @@ After a lost or uncertain response, inspect the redacted result with:
 
 ```bash
 p2p mutation status \
-  --idempotency-key <operation-uuid> \
+  --operation-key <operation-uuid> \
   --root <project-root> \
   --format json
 ```

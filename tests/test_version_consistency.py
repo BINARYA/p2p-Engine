@@ -16,7 +16,7 @@ def test_source_package_and_mcp_versions_are_consistent(tmp_path: Path) -> None:
 
     assert package["project"]["version"] == __version__
     assert server.__version__ == __version__
-    assert __version__ == "0.4.9"
+    assert __version__ == "0.4.10"
     assert runtime.default_contract_payload()["runtime"]["p2p"] == {
         "requires": f"=={__version__}",
         "recommended": __version__,
@@ -36,6 +36,12 @@ def test_current_release_documentation_uses_package_version() -> None:
 
     assert release_url in readme
     assert release_url in install
+    release_urls = re.findall(
+        r"/releases/download/v([^/]+)/p2p_engine-([0-9.]+)-py3-none-any\.whl",
+        "\n".join([readme, install]),
+    )
+    assert release_urls
+    assert set(release_urls) == {(__version__, __version__)}
     release_heading = re.compile(
         rf"^## {re.escape(__version__)} - (?:Unreleased|\d{{4}}-\d{{2}}-\d{{2}})$",
         re.MULTILINE,

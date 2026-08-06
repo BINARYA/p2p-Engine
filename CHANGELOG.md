@@ -6,6 +6,16 @@ This project is early-stage and did not previously maintain a public changelog.
 Use this file for human-readable release notes as the repository moves toward
 tagged releases.
 
+## 0.4.10 - Unreleased
+
+- Added the WaveKit-facing CLI JSON contract for project snapshot, project
+  initialization, proposal list/show/create/update, proposal contribution
+  list/add and redacted mutation status lookup with `--operation-key`.
+- Kept MCP stdio protocol-native while aligning proposal and contribution read
+  payloads with the CLI read models for standalone agent use.
+- Updated generated agent capability guidance to distinguish local MCP agent
+  tools from WaveKit's serialized CLI worker retry boundary.
+
 ## 0.4.9 - 2026-08-05
 
 - Made workspace transaction lock publication atomic so competing processes

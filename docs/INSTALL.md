@@ -39,10 +39,10 @@ Install a versioned wheel from GitHub Releases:
 
 ```bash
 .venv/bin/python -m pip install \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.4.9/p2p_engine-0.4.9-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.4.10/p2p_engine-0.4.10-py3-none-any.whl
 ```
 
-Replace `v0.4.9` and `p2p_engine-0.4.9-py3-none-any.whl` with the release you
+Replace `v0.4.10` and `p2p_engine-0.4.10-py3-none-any.whl` with the release you
 intend to use. The wheel filename is expected to follow:
 
 ```text
@@ -56,6 +56,27 @@ Verify the CLI:
 .venv/bin/python -m p2p_engine.mcp.server --help
 .venv/bin/p2p doctor
 ```
+
+For a server worker integration such as WaveKit, verify the machine contract
+before enabling writes:
+
+```bash
+.venv/bin/p2p version --format json
+.venv/bin/p2p runtime status --format json
+.venv/bin/p2p workspace schema status --format json
+.venv/bin/p2p workspace transaction status --format json
+.venv/bin/p2p project snapshot --format json
+```
+
+Retryable WaveKit writes should pass the persisted server operation id as
+`--operation-key wavekit:<uuid>` and recover uncertain responses with:
+
+```bash
+.venv/bin/p2p mutation status --operation-key wavekit:<uuid> --format json
+```
+
+Local MCP stdio remains an agent-facing protocol-native surface. It is not the
+WaveKit worker retry transport and is not wrapped in `p2p-cli/v1`.
 
 If the target project already contains `.p2p/project/runtime.yml`, read it
 before choosing the wheel version. That contract declares:
@@ -218,7 +239,7 @@ From the target project:
 
 ```bash
 .venv/bin/python -m pip install --upgrade \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.4.9/p2p_engine-0.4.9-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.4.10/p2p_engine-0.4.10-py3-none-any.whl
 
 .venv/bin/p2p doctor
 .venv/bin/p2p runtime status
@@ -245,20 +266,20 @@ version, commit and push `main`, then push a matching version tag:
 ```bash
 # pyproject.toml
 # [project]
-# version = "0.4.9"
+# version = "0.4.10"
 
 git add pyproject.toml
-git commit -m "Bump version to 0.4.9"
+git commit -m "Bump version to 0.4.10"
 git push origin main
 
-git tag -a v0.4.9 -m "P2P Engine v0.4.9"
-git push origin v0.4.9
+git tag -a v0.4.10 -m "P2P Engine v0.4.10"
+git push origin v0.4.10
 ```
 
 The release workflow runs tests, runs `p2p validate`, builds the source
 distribution and wheel, and uploads both files to the matching GitHub Release.
-The tag must match `pyproject.toml`: tag `v0.4.9` requires
-`version = "0.4.9"`. Do not reuse an existing version or tag for different
+The tag must match `pyproject.toml`: tag `v0.4.10` requires
+`version = "0.4.10"`. Do not reuse an existing version or tag for different
 contents.
 
 Expected release assets:
@@ -292,7 +313,7 @@ Attach that `.whl` and the matching `.tar.gz` to the GitHub Release only if the
 automated workflow is unavailable. For example:
 
 ```text
-v0.4.9 -> p2p_engine-0.4.9-py3-none-any.whl, p2p_engine-0.4.9.tar.gz
+v0.4.10 -> p2p_engine-0.4.10-py3-none-any.whl, p2p_engine-0.4.10.tar.gz
 ```
 
 ## Connect An Agent

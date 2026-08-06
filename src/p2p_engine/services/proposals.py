@@ -54,6 +54,30 @@ class ProposalContributionList:
     contributions: list[Contribution]
 
 
+@dataclass(frozen=True)
+class ProposalCreatePlan:
+    proposal: Proposal
+    files: dict[str, str]
+
+
+@dataclass(frozen=True)
+class ProposalUpdatePlan:
+    proposal_id: str
+    path: Path
+    before: bytes
+    after: bytes
+    updated_sections: list[str]
+
+
+@dataclass(frozen=True)
+class ContributionAddPlan:
+    proposal_id: str
+    path: Path
+    before: bytes | None
+    after: bytes
+    contribution: Contribution
+
+
 def _read_optional(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else ""
 
@@ -151,12 +175,37 @@ class ProposalDocumentService:
         proposal: str | None = None,
         acceptance_criteria: list[str] | None = None,
     ) -> Proposal:
+        plan = self.create_plan_with_details(
+            title=title,
+            problem=problem,
+            context=context,
+            goals=goals,
+            non_goals=non_goals,
+            proposal=proposal,
+            acceptance_criteria=acceptance_criteria,
+        )
+        proposal_dir = self.root / plan.proposal.path
+        proposal_dir.mkdir(parents=True, exist_ok=False)
+        for filename, content in plan.files.items():
+            (proposal_dir / filename).write_text(content, encoding="utf-8")
+
+        return plan.proposal
+
+    def create_plan_with_details(
+        self,
+        *,
+        title: str,
+        problem: str | None = None,
+        context: str | None = None,
+        goals: list[str] | None = None,
+        non_goals: list[str] | None = None,
+        proposal: str | None = None,
+        acceptance_criteria: list[str] | None = None,
+    ) -> ProposalCreatePlan:
         proposals_dir = self.p2p_dir / "proposals"
-        proposals_dir.mkdir(parents=True, exist_ok=True)
         proposal_id = self.next_id()
         slug = _slugify(title)
         proposal_dir = proposals_dir / f"{proposal_id}-{slug}"
-        proposal_dir.mkdir()
 
         files = {
             "proposal.md": _proposal_markdown(
@@ -181,15 +230,17 @@ class ProposalDocumentService:
             files["decision-events.yml"] = ProposalDecisionLedgerCodec().dumps(
                 ProposalDecisionLedgerCodec().empty(proposal_id)
             ).decode("ascii")
-        for filename, content in files.items():
-            (proposal_dir / filename).write_text(content, encoding="utf-8")
 
-        return Proposal(
+        proposal_record = Proposal(
             proposal_id=proposal_id,
             title=title,
             slug=slug,
             status="draft",
             path=proposal_dir.relative_to(self.root),
+        )
+        return ProposalCreatePlan(
+            proposal=proposal_record,
+            files=files,
         )
 
     def _workspace_schema_version(self) -> int:
@@ -281,26 +332,62 @@ class ProposalDocumentService:
         proposal: str | None = None,
         acceptance_criteria: list[str] | None = None,
     ) -> Path:
+        plan = self.update_plan(
+            proposal_id,
+            problem=problem,
+            context=context,
+            goals=goals,
+            non_goals=non_goals,
+            proposal=proposal,
+            acceptance_criteria=acceptance_criteria,
+            require_changes=False,
+        )
+        proposal_path = self.root / plan.path
+        proposal_path.write_bytes(plan.after)
+        return plan.path
+
+    def update_plan(
+        self,
+        proposal_id: str,
+        problem: str | None = None,
+        context: str | None = None,
+        goals: list[str] | None = None,
+        non_goals: list[str] | None = None,
+        proposal: str | None = None,
+        acceptance_criteria: list[str] | None = None,
+        *,
+        require_changes: bool = False,
+    ) -> ProposalUpdatePlan:
         proposal_dir = self.find_dir(proposal_id)
         proposal_path = proposal_dir / "proposal.md"
-        text = proposal_path.read_text(encoding="utf-8")
+        before = proposal_path.read_bytes()
+        text = before.decode("utf-8")
         replacements = {
-            "Problem": _paragraph(problem),
-            "Context": _paragraph(context),
-            "Goals": _bullets(goals),
-            "Non-Goals": _bullets(non_goals),
-            "Proposal": _paragraph(proposal),
-            "Acceptance Criteria": _bullets(acceptance_criteria),
+            "problem": ("Problem", _paragraph(problem)),
+            "context": ("Context", _paragraph(context)),
+            "goals": ("Goals", _bullets(goals)),
+            "non_goals": ("Non-Goals", _bullets(non_goals)),
+            "proposal": ("Proposal", _paragraph(proposal)),
+            "acceptance_criteria": (
+                "Acceptance Criteria",
+                _bullets(acceptance_criteria),
+            ),
         }
-        for section, replacement in replacements.items():
+        updated_sections: list[str] = []
+        for key, (section, replacement) in replacements.items():
             if replacement is not None:
                 text = replace_section(text, section, replacement)
+                updated_sections.append(key)
+        if require_changes and not updated_sections:
+            raise ValueError(
+                "P2P_PROPOSAL_EMPTY_UPDATE: provide at least one proposal section to update"
+            )
         if self.lifecycle_status is not None:
             lifecycle = self.lifecycle_status(proposal_id)
             if lifecycle.effective_state.value not in {"undecided", "deferred"}:
                 before_sha = proposal_semantic_sha256(
                     proposal_id,
-                    proposal_path.read_text(encoding="utf-8"),
+                    before.decode("utf-8"),
                 )
                 after_sha = proposal_semantic_sha256(proposal_id, text)
                 if before_sha != after_sha:
@@ -309,8 +396,13 @@ class ProposalDocumentService:
                         "proposal cannot be changed in place; create a linked "
                         "proposal for revised semantics"
                     )
-        proposal_path.write_text(text, encoding="utf-8")
-        return proposal_path.relative_to(self.root)
+        return ProposalUpdatePlan(
+            proposal_id=proposal_id,
+            path=proposal_path.relative_to(self.root),
+            before=before,
+            after=text.encode("utf-8"),
+            updated_sections=updated_sections,
+        )
 
     def add_contribution(
         self,
@@ -320,26 +412,53 @@ class ProposalDocumentService:
         relevance_hint: str,
         author: str,
     ) -> Contribution:
+        plan = self.add_contribution_plan(
+            proposal_id,
+            contribution_type,
+            text=text,
+            relevance_hint=relevance_hint,
+            author=author,
+        )
+        (self.root / plan.path).write_bytes(plan.after)
+        return plan.contribution
+
+    def add_contribution_plan(
+        self,
+        proposal_id: str,
+        contribution_type: ContributionType,
+        text: str,
+        relevance_hint: str,
+        author: str,
+    ) -> ContributionAddPlan:
         proposal_dir = self.find_dir(proposal_id)
         path = proposal_dir / "contributions.yml"
+        before = path.read_bytes() if path.exists() else None
         data = _read_yaml_mapping(path, default={"contributions": []})
         contributions = data.setdefault("contributions", [])
+        if not isinstance(contributions, list):
+            raise ValueError("Invalid contributions.yml: expected top-level contributions list.")
         contribution_id = f"C{len(contributions) + 1:03d}"
-        contribution = {
+        payload = {
             "id": contribution_id,
             "type": contribution_type.value,
             "author": author,
             "relevance_hint": relevance_hint,
             "text": text,
         }
-        contributions.append(contribution)
-        path.write_text(_yaml_dump(data), encoding="utf-8")
-        return Contribution(
+        contributions.append(payload)
+        contribution = Contribution(
             contribution_id=contribution_id,
             contribution_type=contribution_type,
             text=text,
             author=author,
             relevance_hint=relevance_hint,
+        )
+        return ContributionAddPlan(
+            proposal_id=proposal_id,
+            path=path.relative_to(self.root),
+            before=before,
+            after=_yaml_dump(data).encode("utf-8"),
+            contribution=contribution,
         )
 
     def list_contributions(self, proposal_id: str) -> ProposalContributionList:
