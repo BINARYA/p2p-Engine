@@ -6,7 +6,7 @@ This project is early-stage and did not previously maintain a public changelog.
 Use this file for human-readable release notes as the repository moves toward
 tagged releases.
 
-## 0.4.11 - Unreleased
+## 0.4.11 - 2026-08-19
 
 - Added receipt-backed JSON proposal readiness assessment for WaveKit workers,
   with exact replay, redacted mutation status, atomic readiness/receipt commit,
