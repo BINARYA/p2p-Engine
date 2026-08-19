@@ -161,7 +161,10 @@ def handle_proposal_tool(
             },
         }
     if name == "p2p_proposal_readiness_assess":
-        readiness = workspace.assess_proposal_readiness(required(arguments, "proposal_id"))
+        readiness = workspace.assess_proposal_readiness(
+            required(arguments, "proposal_id"),
+            actor=str(arguments.get("actor") or "mcp"),
+        )
         return {
             "readiness": to_jsonable(readiness),
             "governance": {

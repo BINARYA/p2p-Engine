@@ -168,7 +168,7 @@ effect of a contract update.
 ### Current Workspace Schema
 
 Workspace layout versioning is independent from the runtime contract. P2P
-Engine 0.4.10 accepts schema 3 only. Inspect schema alignment and interrupted
+Engine 0.4.11 accepts schema 3 only. Inspect schema alignment and interrupted
 transaction state without writing:
 
 ```bash
@@ -330,7 +330,7 @@ coordinate `publisher/vertical-id@version`. Structural `extends`, social
 `lineage.forked_from` and release-history `lineage.previous_release` are
 separate declarations.
 
-P2P Engine 0.4.10 provides a local catalog and a provider-neutral remote
+P2P Engine 0.4.11 provides a local catalog and a provider-neutral remote
 registry client. These commands perform no remote request unless `--refresh`
 is passed to `registry list`:
 
@@ -487,7 +487,7 @@ vertical_transition_plan:
         ref: definition_field:new_section.new_field
 ```
 
-The 0.4.10 JSON transport contract is `p2p-cli/v1`. Every command supporting
+The 0.4.11 JSON transport contract is `p2p-cli/v1`. Every command supporting
 `--format json` returns exactly `contract_version`, `ok`, `operation`, `data`,
 `warnings`, and `error`. Domain payloads remain operation-specific under
 `data`. Parser errors use the same envelope. See
@@ -832,6 +832,21 @@ or question updates when you want evidence-aware recalculation from current
 artifacts. `questions apply` returns an artifact update plan; update the useful
 affected artifacts before relying on the new readiness score.
 
+Server workers request the same recalculation with a durable retry identity:
+
+```bash
+p2p proposal readiness assess PROP-001 \
+  --actor wavekit-user \
+  --operation-key wavekit:<uuid> \
+  --format json
+```
+
+The command returns `proposal.readiness.assess` in the `p2p-cli/v1` envelope.
+Use `p2p mutation status --operation-key wavekit:<uuid> --format json` after an
+uncertain response. Use `p2p proposal show PROP-001 --format json` for ordinary
+reads: `proposal_detail.readiness.freshness` reports `not_assessed`, `current`
+or `stale` without recalculating or writing.
+
 Proposal readiness requires `questions.yml` as the structured source of truth
 for owner-question resolution. `open-questions.md` remains human-readable
 narrative evidence and never substitutes for missing structured state. It does
@@ -1170,6 +1185,12 @@ Readiness assessment:
 p2p assess refresh
 p2p assess show
 ```
+
+This operational project assessment artifact is distinct from both
+`p2p proposal readiness assess PROP-ID` and vertical-based project definition
+completeness. For current project completeness, use read-only `p2p project
+snapshot`, `p2p project progress`, or `p2p project readiness review`; do not run
+`p2p assess refresh` merely to update a client view.
 
 Project definition maturity:
 

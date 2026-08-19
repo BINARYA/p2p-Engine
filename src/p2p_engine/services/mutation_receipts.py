@@ -276,6 +276,7 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "migrate",
         "proposal_create",
         "proposal_contribution_add",
+        "proposal_readiness_assess",
         "proposal_update",
     }:
         raise ValueError(f"unsupported receipt operation: {operation}")
@@ -330,6 +331,9 @@ def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
         return
     if operation in {"proposal_create", "proposal_update", "proposal_contribution_add"}:
         _validate_proposal_result(result, operation=operation)
+        return
+    if operation == "proposal_readiness_assess":
+        _validate_proposal_readiness_result(result)
         return
     allowed = {
         "impact_contract",
@@ -592,6 +596,139 @@ def _validate_proposal_result(result: Mapping[str, object], *, operation: str) -
         raise ValueError("receipt result updated_sections contains an invalid section")
 
 
+def _validate_proposal_readiness_result(result: Mapping[str, object]) -> None:
+    allowed = {
+        "operation",
+        "operation_id",
+        "proposal_id",
+        "path",
+        "readiness",
+        "changed_paths",
+    }
+    unknown = sorted(str(key) for key in result if key not in allowed)
+    if unknown:
+        raise ValueError(
+            "receipt readiness result contains unsupported fields: "
+            + ", ".join(unknown)
+        )
+    if result.get("operation") != "proposal_readiness_assess":
+        raise ValueError("receipt readiness result operation is unsupported")
+    if result.get("operation_id") != "proposal.readiness.assess":
+        raise ValueError("receipt readiness result operation_id is unsupported")
+    proposal_id = _required_text(result, "proposal_id")
+    if not re.fullmatch(r"PROP-\d{3,}", proposal_id):
+        raise ValueError("receipt readiness result proposal_id is invalid")
+    path = _required_text(result, "path")
+    if not path.startswith(f".p2p/proposals/{proposal_id}-") or not path.endswith(
+        "/readiness.yml"
+    ):
+        raise ValueError("receipt readiness result path is invalid")
+    changed_paths = result.get("changed_paths")
+    if changed_paths != [path]:
+        raise ValueError(
+            "receipt readiness changed_paths must contain only readiness.yml"
+        )
+    readiness = result.get("readiness")
+    if not isinstance(readiness, Mapping):
+        raise ValueError("receipt readiness result must contain readiness mapping")
+    expected_fields = {
+        "status",
+        "profile_id",
+        "profile_version",
+        "computed_score",
+        "computed_label",
+        "confidence",
+        "failed_gates",
+        "missing",
+        "suggested_next",
+        "owner_question_state",
+        "freshness",
+        "assessment_policy_version",
+        "source_fingerprint_sha256",
+    }
+    if set(readiness) != expected_fields:
+        raise ValueError("receipt readiness summary has invalid fields")
+    if readiness.get("status") != "assessed":
+        raise ValueError("receipt readiness status must be assessed")
+    _required_text(readiness, "profile_id")
+    _required_text(readiness, "profile_version")
+    score = readiness.get("computed_score")
+    if isinstance(score, bool) or not isinstance(score, int) or not 0 <= score <= 100:
+        raise ValueError("receipt readiness computed_score must be 0..100")
+    if readiness.get("computed_label") not in {
+        "weak",
+        "partial",
+        "strong",
+        "decision_ready",
+    }:
+        raise ValueError("receipt readiness computed_label is invalid")
+    if readiness.get("confidence") not in {"low", "medium", "high"}:
+        raise ValueError("receipt readiness confidence is invalid")
+    if readiness.get("freshness") != "current":
+        raise ValueError("receipt readiness freshness must be current")
+    policy_version = readiness.get("assessment_policy_version")
+    if isinstance(policy_version, bool) or not isinstance(policy_version, int) or policy_version < 1:
+        raise ValueError("receipt readiness assessment policy is invalid")
+    _required_sha256(readiness, "source_fingerprint_sha256")
+    for field in ("failed_gates", "missing", "suggested_next"):
+        _validate_bounded_receipt_sequence(readiness.get(field), field=field)
+    owner_question_state = readiness.get("owner_question_state")
+    if not isinstance(owner_question_state, Mapping):
+        raise ValueError("receipt readiness owner_question_state must be a mapping")
+    _validate_bounded_receipt_value(
+        owner_question_state,
+        field="owner_question_state",
+        depth=0,
+    )
+
+
+def _validate_bounded_receipt_sequence(value: object, *, field: str) -> None:
+    if not isinstance(value, list) or len(value) > 128:
+        raise ValueError(f"receipt readiness {field} must be a bounded sequence")
+    for item in value:
+        if not isinstance(item, str) or len(item.encode("utf-8")) > 2048:
+            raise ValueError(f"receipt readiness {field} contains an invalid item")
+
+
+def _validate_bounded_receipt_value(
+    value: object,
+    *,
+    field: str,
+    depth: int,
+) -> None:
+    if depth > 4:
+        raise ValueError(f"receipt readiness {field} exceeds nesting limit")
+    if isinstance(value, Mapping):
+        if len(value) > 32:
+            raise ValueError(f"receipt readiness {field} exceeds mapping limit")
+        for key, item in value.items():
+            if not isinstance(key, str) or len(key.encode("utf-8")) > 128:
+                raise ValueError(f"receipt readiness {field} contains an invalid key")
+            _validate_bounded_receipt_value(
+                item,
+                field=field,
+                depth=depth + 1,
+            )
+        return
+    if isinstance(value, list):
+        if len(value) > 128:
+            raise ValueError(f"receipt readiness {field} exceeds sequence limit")
+        for item in value:
+            _validate_bounded_receipt_value(
+                item,
+                field=field,
+                depth=depth + 1,
+            )
+        return
+    if isinstance(value, str):
+        if len(value.encode("utf-8")) > 2048:
+            raise ValueError(f"receipt readiness {field} contains oversized text")
+        return
+    if value is None or isinstance(value, (bool, int, float)):
+        return
+    raise ValueError(f"receipt readiness {field} contains unsupported data")
+
+
 def _public_result(result: Mapping[str, object]) -> dict[str, object]:
     if result.get("operation") == "init":
         return {
@@ -667,6 +804,16 @@ def _public_result(result: Mapping[str, object]) -> dict[str, object]:
             "updated_sections": list(result.get("updated_sections", []))
             if isinstance(result.get("updated_sections"), list)
             else [],
+        }
+    if result.get("operation") == "proposal_readiness_assess":
+        return {
+            "operation": result.get("operation"),
+            "operation_id": result.get("operation_id"),
+            "proposal_id": result.get("proposal_id"),
+            "path": result.get("path"),
+            "readiness": dict(result.get("readiness", {}))
+            if isinstance(result.get("readiness"), Mapping)
+            else {},
         }
     return {
         "impact_contract": result.get("impact_contract"),

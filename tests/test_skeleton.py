@@ -1,9 +1,12 @@
+import json
 from pathlib import Path
 import tomllib
 
 import yaml
+from typer.testing import CliRunner
 
 from p2p_engine import __version__
+from p2p_engine.cli import app
 from p2p_engine.core.contribution import ContributionType
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.storage.filesystem import P2PWorkspace
@@ -261,3 +264,82 @@ def test_validate_rejects_invalid_readiness_assessment(tmp_path) -> None:
 
     assert result.errors == 1
     assert result.findings[0].code == "P2P231_INVALID_READINESS_ASSESSMENT"
+
+
+def test_receipt_backed_readiness_public_contract_smoke(tmp_path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Readiness smoke", owner="owner", vertical_id="base_project")
+    proposal = workspace.create_proposal_with_details(
+        title="Assess readiness through the public contract",
+        problem="WaveKit needs retry-safe readiness assessment.",
+        proposal="Expose assessment through the CLI JSON contract.",
+        acceptance_criteria=["An exact retry returns the original result."],
+    )
+    operation_key = "wavekit:readiness:installed-wheel-smoke"
+    runner = CliRunner()
+    command = [
+        "proposal",
+        "readiness",
+        "assess",
+        proposal.proposal_id,
+        "--actor",
+        "wavekit-smoke",
+        "--operation-key",
+        operation_key,
+        "--format",
+        "json",
+        "--root",
+        str(tmp_path),
+    ]
+
+    applied = runner.invoke(app, command)
+    assert applied.exit_code == 0, applied.output
+    applied_payload = json.loads(applied.stdout)
+    assert applied_payload["operation"] == "proposal.readiness.assess"
+    assert applied_payload["data"]["mutation"]["status"] == "applied"
+    assert (
+        applied_payload["data"]["proposal_readiness_assess"]["readiness"]["freshness"]
+        == "current"
+    )
+
+    replay = runner.invoke(app, command)
+    assert replay.exit_code == 0, replay.output
+    replay_payload = json.loads(replay.stdout)
+    assert replay_payload["data"]["mutation"]["status"] == "already_applied"
+    assert (
+        replay_payload["data"]["proposal_readiness_assess"]
+        == applied_payload["data"]["proposal_readiness_assess"]
+    )
+
+    status = runner.invoke(
+        app,
+        [
+            "mutation",
+            "status",
+            "--operation-key",
+            operation_key,
+            "--format",
+            "json",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert status.exit_code == 0, status.output
+    assert json.loads(status.stdout)["data"]["state"] == "applied"
+
+    detail = runner.invoke(
+        app,
+        [
+            "proposal",
+            "show",
+            proposal.proposal_id,
+            "--format",
+            "json",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert detail.exit_code == 0, detail.output
+    readiness = json.loads(detail.stdout)["data"]["proposal_detail"]["readiness"]
+    assert readiness["freshness"] == "current"
+    assert readiness["source_fingerprint_sha256"]

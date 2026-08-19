@@ -292,7 +292,7 @@ Questi comandi usano lo stesso servizio preview/apply del gruppo `decision`.
 | `p2p proposal readiness show PROP-ID` | `R` | Mostra score, gate e snapshot esistente. |
 | `p2p proposal readiness refresh PROP-ID` | `D` | Aggiorna lo snapshot dai dati correnti. |
 | `p2p proposal readiness init PROP-ID` | `D` | Inizializza readiness e catalogo minimo. |
-| `p2p proposal readiness assess PROP-ID` | `D` | Ricalcola readiness da artefatti e domande. |
+| `p2p proposal readiness assess PROP-ID [--actor ACTOR] [--format json --operation-key KEY]` | `D` | Ricalcola readiness da artefatti e domande con commit atomico; il JSON keyed aggiunge receipt e replay per WaveKit. |
 | `p2p proposal readiness explain PROP-ID` | `R` | Spiega gap e prossime azioni. |
 | `p2p proposal readiness review PROP-ID` | `R` | Produce guida proattiva per la revisione. |
 

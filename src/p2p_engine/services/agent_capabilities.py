@@ -296,6 +296,7 @@ p2p proposal create "Title" --format json --operation-key wavekit:<uuid>
 p2p proposal update PROP-XXX --proposal "..." --format json --operation-key wavekit:<uuid>
 p2p proposal contribution add PROP-XXX "Text" --type suggestion --format json --operation-key wavekit:<uuid>
 p2p proposal contribution list PROP-XXX --type suggestion --format json
+p2p proposal readiness assess PROP-XXX --actor ACTOR --format json --operation-key wavekit:<uuid>
 p2p mutation status --operation-key wavekit:<uuid> --format json
 ```
 
@@ -304,6 +305,13 @@ Every CLI JSON response uses the `p2p-cli/v1` envelope. Inspect `ok`,
 retries reuse the same `--operation-key` only for the same semantic request.
 After an uncertain write, inspect `p2p mutation status --operation-key ...`
 before retrying.
+
+Read `proposal_detail.readiness.freshness` through `p2p proposal show` before
+requesting a recalculation. `current` means the stored result matches current
+assessment inputs, `stale` means evidence changed or the result predates the
+current assessment policy, and `not_assessed` means no snapshot exists. A
+WaveKit worker uses the keyed readiness command above only for an explicit
+recalculation request; ordinary UI refresh remains read-only.
 
 Local MCP stdio remains an agent tool surface. MCP responses are protocol-native
 and are not wrapped in `p2p-cli/v1`; MCP write tools also do not provide the

@@ -85,7 +85,7 @@ mkdir /tmp/my-project
 cd /tmp/my-project
 python3 -m venv .venv
 .venv/bin/python -m pip install \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.4.10/p2p_engine-0.4.10-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.4.11/p2p_engine-0.4.11-py3-none-any.whl
 ```
 
 Initialize P2P inside the target project:
@@ -157,7 +157,14 @@ for normal use.
   --goal "Define the initial scope." \
   --proposal "Start with a small owner-reviewed proposal." \
   --acceptance "The owner can review and decide it."
+.venv/bin/p2p proposal readiness assess PROP-001
+.venv/bin/p2p proposal show PROP-001 --format json
 ```
+
+Proposal detail reports whether stored readiness is `current`, `stale`, or
+`not_assessed`. Deterministic server workers can request an atomic,
+receipt-backed recalculation with `--format json --operation-key <key>` and
+recover uncertain responses through `p2p mutation status`.
 
 For full manual workflows, use [docs/CLI-GUIDE.md](docs/CLI-GUIDE.md).
 

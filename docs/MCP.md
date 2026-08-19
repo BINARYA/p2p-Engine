@@ -284,10 +284,10 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_proposal_update` | write-safe | yes | no | Update structured draft/proposal sections. |
 | `p2p_proposal_contribution_add` | write-safe | yes | no | Add a typed contribution to a proposal. |
 | `p2p_proposal_contribution_list` | read-only | no | no | List contributions recorded for a proposal. |
-| `p2p_proposal_readiness_get` | read-only | no | no | Read stored proposal readiness or `not_assessed`. |
+| `p2p_proposal_readiness_get` | read-only | no | no | Read stored proposal readiness and its current/stale/not-assessed freshness without writing. |
 | `p2p_proposal_readiness_init` | write-safe | yes | no | Bootstrap a conservative readiness assessment from proposal artifacts. |
 | `p2p_proposal_readiness_refresh` | write-safe | yes | no | Recompute readiness score from stored criterion evidence. |
-| `p2p_proposal_readiness_assess` | write-safe | yes | no | Evidence-aware readiness recalculation from current artifacts and structured question state when available. |
+| `p2p_proposal_readiness_assess` | write-safe | yes | no | Atomically recalculate evidence-aware readiness from current artifacts and structured question state. It remains advisory and does not decide or override. |
 | `p2p_proposal_readiness_explain` | read-only | no | no | Explain readiness score, failed gates, gaps, next actions, and owner-question state evidence. |
 | `p2p_proposal_readiness_list_gaps` | read-only | no | no | List readiness failed gates, missing criteria, next actions, and owner-question state evidence. |
 | `p2p_proposal_readiness_review` | read-only | no | no | Review readiness gaps, owner questions, structured question categories, challenge points, and acceptance cautions. |

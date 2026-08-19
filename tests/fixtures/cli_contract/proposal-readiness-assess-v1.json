@@ -1,0 +1,73 @@
+{
+  "contract_version": "p2p-cli/v1",
+  "data": {
+    "mutation": {
+      "actor": "wavekit",
+      "changed_paths": [
+        ".p2p/proposals/PROP-001-receipt-backed-readiness/readiness.yml"
+      ],
+      "message": "Proposal readiness assessment completed.",
+      "operation_id": "proposal.readiness.assess",
+      "recovery_required": false,
+      "status": "applied"
+    },
+    "proposal_readiness_assess": {
+      "path": ".p2p/proposals/PROP-001-receipt-backed-readiness/readiness.yml",
+      "proposal_id": "PROP-001",
+      "readiness": {
+        "assessment_policy_version": 1,
+        "computed_label": "weak",
+        "computed_score": 20,
+        "confidence": "low",
+        "failed_gates": [],
+        "freshness": "current",
+        "missing": [
+          "alternatives_quality",
+          "tradeoff_analysis",
+          "risk_coverage",
+          "assumptions_clarity",
+          "owner_questions_resolution",
+          "impact_overlap_analysis",
+          "artifact:proposal:weak",
+          "artifact:readiness:missing",
+          "artifact:open_questions:missing",
+          "artifact:clarifications:weak",
+          "artifact:findings:missing",
+          "artifact:exploration:missing",
+          "artifact:impact_map:missing",
+          "artifact:vertical_coverage:missing"
+        ],
+        "owner_question_state": {
+          "answered_not_applied": [],
+          "blocking_owner_questions": [],
+          "closed_questions": [],
+          "confidence_notes": [],
+          "residual_follow_up": [],
+          "source": "missing",
+          "suggested_next": []
+        },
+        "profile_id": "default-readiness-v0.1",
+        "profile_version": "0.1",
+        "source_fingerprint_sha256": "<sha256>",
+        "status": "assessed",
+        "suggested_next": [
+          "strengthen_problem_clarity",
+          "strengthen_goal_clarity",
+          "strengthen_scope_boundaries",
+          "add_alternatives_quality",
+          "add_tradeoff_analysis",
+          "add_risk_coverage",
+          "add_assumptions_clarity",
+          "add_owner_questions_resolution",
+          "strengthen_acceptance_criteria_quality",
+          "add_impact_overlap_analysis",
+          "p2p proposal artifact status PROP-001"
+        ]
+      }
+    }
+  },
+  "error": null,
+  "ok": true,
+  "operation": "proposal.readiness.assess",
+  "warnings": []
+}

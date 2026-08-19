@@ -76,6 +76,16 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert worker_contract["mcp_stdio_transport"] == (
         "agent_tool_surface_not_worker_retry_boundary"
     )
+    assert (
+        "p2p proposal readiness assess PROP-XXX --actor ACTOR --format json "
+        "--operation-key wavekit:<uuid>"
+        in worker_contract["write_commands"]
+    )
+    assert policy["proposal_readiness"]["freshness_states"] == [
+        "not_assessed",
+        "current",
+        "stale",
+    ]
     decision_policy = policy["proposal_decision_lifecycle"]
     assert decision_policy["canonical_schema_v3_artifact"] == "decision-events.yml"
     assert decision_policy["write_protocol"] == "preview_then_exact_apply"
@@ -107,6 +117,12 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert "p2p project snapshot --format json" in agents
     assert "p2p proposal create \"Title\" --format json --operation-key wavekit:<uuid>" in agents
     assert "p2p mutation status --operation-key wavekit:<uuid> --format json" in agents
+    assert "proposal_detail.readiness.freshness" in agents
+    assert (
+        "p2p proposal readiness assess PROP-XXX --actor ACTOR --format json "
+        "--operation-key wavekit:<uuid>"
+        in agents
+    )
     assert "MCP responses are protocol-native" in agents
     assert "Proposal Decision Lifecycle" in agents
     assert "Reject only a proposal that was never active" in agents

@@ -220,6 +220,22 @@ def _readiness_payload(readiness: object) -> dict[str, object]:
         "owner_question_state": _payload(
             getattr(readiness, "owner_question_state", {}) or {}
         ),
+        "freshness": str(getattr(readiness, "freshness", "not_assessed")),
+        "assessment_policy_version": getattr(
+            readiness,
+            "assessment_policy_version",
+            None,
+        ),
+        "source_fingerprint_sha256": getattr(
+            readiness,
+            "source_fingerprint_sha256",
+            None,
+        ),
+        "current_source_fingerprint_sha256": getattr(
+            readiness,
+            "current_source_fingerprint_sha256",
+            None,
+        ),
     }
 
 

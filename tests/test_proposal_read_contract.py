@@ -221,6 +221,9 @@ def test_proposal_show_json_returns_full_detail_readiness_artifacts_and_contribu
     assert detail["core_sections"]["problem"] == "WaveKit needs a proposal detail contract."
     assert detail["readiness"]["status"] == "assessed"
     assert detail["readiness"]["computed_score"] == 68
+    assert detail["readiness"]["freshness"] == "stale"
+    assert detail["readiness"]["source_fingerprint_sha256"] is None
+    assert len(detail["readiness"]["current_source_fingerprint_sha256"]) == 64
     assert detail["artifact_state"]["counts_by_status"]["not_applicable"] == 1
     assert detail["contributions"]["total"] == 3
     assert detail["contributions"]["returned"] == 2
@@ -274,6 +277,12 @@ def test_proposal_show_json_stabilizes_uninitialized_readiness_and_question_shap
         "missing": [],
         "suggested_next": [f"p2p proposal readiness init {proposal.proposal_id}"],
         "owner_question_state": {},
+        "freshness": "not_assessed",
+        "assessment_policy_version": None,
+        "source_fingerprint_sha256": None,
+        "current_source_fingerprint_sha256": readiness[
+            "current_source_fingerprint_sha256"
+        ],
     }
     questions = dict(detail["questions"])
     assert str(questions.pop("path")).endswith("/questions.yml")

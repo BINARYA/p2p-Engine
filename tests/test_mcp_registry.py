@@ -194,6 +194,7 @@ def test_mcp_proposal_descriptions_preserve_wavekit_cli_boundary() -> None:
     show_description = definitions["p2p_proposal_show"]["description"]
     contribution_description = definitions["p2p_proposal_contribution_add"]["description"]
     contribution_list = definitions["p2p_proposal_contribution_list"]
+    readiness_assess = definitions["p2p_proposal_readiness_assess"]
 
     assert "protocol-native" in create_description
     assert "p2p-cli/v1" in create_description
@@ -206,6 +207,13 @@ def test_mcp_proposal_descriptions_preserve_wavekit_cli_boundary() -> None:
         contribution_description
     )
     assert "without p2p-cli/v1 wrapping" in contribution_list["description"]
+    assert "committed atomically" in readiness_assess["description"]
+    assert "Freshness" in readiness_assess["description"]
+    assert set(readiness_assess["inputSchema"]["properties"]) == {
+        "root",
+        "proposal_id",
+        "actor",
+    }
     assert set(contribution_list["inputSchema"]["properties"]) == {
         "root",
         "proposal_id",

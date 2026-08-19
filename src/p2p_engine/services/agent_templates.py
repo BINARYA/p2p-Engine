@@ -729,6 +729,7 @@ def agent_policy(
                 "p2p proposal create TITLE --format json --operation-key wavekit:<uuid>",
                 "p2p proposal update PROP-XXX --proposal TEXT --format json --operation-key wavekit:<uuid>",
                 "p2p proposal contribution add PROP-XXX TEXT --type suggestion --format json --operation-key wavekit:<uuid>",
+                "p2p proposal readiness assess PROP-XXX --actor ACTOR --format json --operation-key wavekit:<uuid>",
             ],
             "status_command": "p2p mutation status --operation-key wavekit:<uuid> --format json",
             "parse_human_text": False,
@@ -797,6 +798,12 @@ def agent_policy(
             ],
             "computed_score_is_advisory": True,
             "owner_override_must_not_falsify_computed_score": True,
+            "freshness_states": ["not_assessed", "current", "stale"],
+            "freshness_read_command": "p2p proposal show PROP-XXX --format json",
+            "wavekit_assess_command": (
+                "p2p proposal readiness assess PROP-XXX --actor ACTOR "
+                "--format json --operation-key wavekit:<uuid>"
+            ),
         },
         "proposal_decision_lifecycle": {
             "canonical_schema_v3_artifact": "decision-events.yml",

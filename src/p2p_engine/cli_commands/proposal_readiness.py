@@ -4,6 +4,7 @@ from pathlib import Path
 
 import typer
 
+from p2p_engine.cli_contract import contract_failure, print_json
 from p2p_engine.cli_shared import console
 from p2p_engine.cli_shared import fail
 from p2p_engine.cli_shared import workspace as workspace_for
@@ -58,12 +59,41 @@ def register_proposal_readiness_commands(proposal_readiness_app: typer.Typer) ->
     @proposal_readiness_app.command("assess")
     def proposal_readiness_assess(
         proposal_id: str = typer.Argument(..., help="Proposal ID, e.g. PROP-001"),
+        operation_key: str = typer.Option("", "--operation-key"),
+        actor: str = typer.Option("local", "--actor", help="Actor recording the operation"),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
     ) -> None:
         """Recalculate proposal readiness from current artifacts and question state."""
+        json_output = _wants_json(output_format)
+        if json_output and not operation_key.strip():
+            contract_failure(
+                "P2P_IDEMPOTENCY_KEY_REQUIRED: JSON readiness assessment requires --operation-key",
+                code="P2P_IDEMPOTENCY_KEY_REQUIRED",
+            )
+        if operation_key.strip() and not json_output:
+            fail(
+                "P2P_PROPOSAL_READINESS_ASSESS_OPERATION_KEY_REQUIRES_JSON: "
+                "--operation-key requires --format json"
+            )
         try:
-            readiness = workspace_for(root).assess_proposal_readiness(proposal_id)
+            if json_output:
+                print_json(
+                    workspace_for(root).assess_proposal_readiness_with_operation_key(
+                        proposal_id=proposal_id,
+                        operation_key=operation_key,
+                        actor=actor,
+                    )
+                )
+                return
+            readiness = workspace_for(root).assess_proposal_readiness(
+                proposal_id,
+                actor=actor,
+            )
         except ValueError as exc:
+            if json_output:
+                message = str(exc)
+                contract_failure(message, code=_readiness_error_code(message))
             fail(str(exc))
         console.print("[green]Proposal readiness assessed.[/green]")
         print_proposal_readiness(readiness, explain=True)
@@ -102,6 +132,7 @@ def print_proposal_readiness(readiness: object, *, explain: bool = False) -> Non
     console.print(f"  computed_score: {getattr(readiness, 'computed_score') if getattr(readiness, 'computed_score') is not None else 'none'}")
     console.print(f"  computed_label: {getattr(readiness, 'computed_label') or 'none'}")
     console.print(f"  confidence: {getattr(readiness, 'confidence') or 'none'}")
+    console.print(f"  freshness: {getattr(readiness, 'freshness', 'not_assessed')}")
     if explain:
         failed_gates = getattr(readiness, "failed_gates")
         missing = getattr(readiness, "missing")
@@ -139,6 +170,26 @@ def _needs_review_guidance(readiness: object) -> bool:
         or bool(missing)
         or confidence == "low"
     )
+
+
+def _wants_json(output_format: str) -> bool:
+    normalized = output_format.strip().lower()
+    if normalized not in {"text", "json"}:
+        raise typer.BadParameter("Output format must be text or json.")
+    return normalized == "json"
+
+
+def _readiness_error_code(message: str) -> str:
+    prefix = message.split(":", 1)[0]
+    if prefix.startswith("P2P_"):
+        return prefix
+    if message.startswith("Proposal not found:") or message == "No .p2p/proposals directory found.":
+        return "P2P_PROPOSAL_NOT_FOUND"
+    if message.startswith("Ambiguous proposal ID:"):
+        return "P2P_PROPOSAL_AMBIGUOUS_ID"
+    if message.startswith("Readiness profile not found:"):
+        return "P2P_READINESS_PROFILE_NOT_FOUND"
+    return "P2P_PROPOSAL_READINESS_ASSESS_FAILED"
 
 
 def print_readiness_review(review: object) -> None:

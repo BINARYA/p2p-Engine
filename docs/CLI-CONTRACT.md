@@ -1,6 +1,6 @@
 # CLI JSON Contract
 
-P2P Engine 0.4.10 exposes one machine-facing CLI transport contract:
+P2P Engine 0.4.11 exposes one machine-facing CLI transport contract:
 `p2p-cli/v1`. Every command that accepts `--format json`, including commands
 whose format defaults to JSON, emits exactly one JSON document to stdout.
 
@@ -120,6 +120,7 @@ p2p init "Project name" --format json --operation-key wavekit:<uuid>
 p2p proposal create "Title" --proposal "..." --format json --operation-key wavekit:<uuid>
 p2p proposal update PROP-001 --proposal "..." --format json --operation-key wavekit:<uuid>
 p2p proposal contribution add PROP-001 "Text" --type finding --format json --operation-key wavekit:<uuid>
+p2p proposal readiness assess PROP-001 --actor ACTOR --format json --operation-key wavekit:<uuid>
 ```
 
 An exact retry with the same operation key and the same semantic request returns
@@ -138,9 +139,35 @@ The status payload classifies the supplied key as `wavekit_uuid`,
 
 Proposal readiness, artifact state and proposal-question summaries needed by
 WaveKit are available through `data.proposal_detail` from
-`p2p proposal show PROP --format json`. The dedicated human proposal readiness
-and question commands remain useful for agents, but WaveKit should prefer the
-bounded proposal-detail read model for UI detail pages.
+`p2p proposal show PROP --format json`. Its readiness object includes
+`freshness` (`not_assessed`, `current` or `stale`), the assessment policy
+version, the stored source fingerprint and the current source fingerprint.
+Reading freshness never writes project state. WaveKit should use this bounded
+read model for UI detail pages and enqueue a recalculation only when explicitly
+requested.
+
+The keyed readiness command commits `readiness.yml` and its receipt in one
+workspace transaction. Its operation is `proposal.readiness.assess`; success
+data contains `proposal_readiness_assess` and `mutation`. Exact retry returns
+`already_applied`, while later proposal-evidence changes make the read model
+`stale` without invalidating the historical receipt. The assessment is
+advisory: it does not accept, reject, defer, override or otherwise decide the
+proposal.
+
+Human/local use remains valid without an operation key:
+
+```bash
+p2p proposal readiness assess PROP-001
+```
+
+Local MCP exposes the same atomic assessment semantics through
+`p2p_proposal_readiness_assess`, but its response remains protocol-native and
+does not implement the WaveKit CLI receipt envelope.
+
+Overall project definition completeness is a separate derived, read-only
+surface. Use `project snapshot`, `project progress` or `project readiness`
+reads; do not confuse them with proposal readiness or the operational
+`p2p assess refresh` artifact.
 
 ## Idempotent Vertical Mutations
 

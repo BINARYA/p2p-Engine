@@ -220,7 +220,14 @@ from p2p_engine.services.proposal_branches import (
     ProposalMerge,
     ProposalMergeConflict,
 )
-from p2p_engine.services.readiness import ProposalReadiness, ReadinessProfile, ReadinessService
+from p2p_engine.services.readiness import (
+    PROPOSAL_READINESS_ASSESSMENT_POLICY_VERSION,
+    ProposalReadiness,
+    ProposalReadinessAssessmentPlan,
+    ReadinessProfile,
+    ReadinessService,
+    validate_readiness_assessment_payload,
+)
 from p2p_engine.services.registries import RegistryService, RegistryStatus, RegistryView
 from p2p_engine.services.registry_records import RegistryRecordBuilderService
 from p2p_engine.services.remote_profile import RemoteProfileService, RemoteProjectProfile
@@ -2489,9 +2496,137 @@ class P2PWorkspace:
         self._ensure_runtime_write_allowed("proposal_readiness_init")
         return self._readiness_service().initialize(proposal_id)
 
-    def assess_proposal_readiness(self, proposal_id: str) -> ProposalReadiness:
-        self._ensure_runtime_write_allowed("proposal_readiness_assess")
-        return self._readiness_service().assess(proposal_id)
+    def assess_proposal_readiness(
+        self,
+        proposal_id: str,
+        *,
+        actor: str = "local",
+    ) -> ProposalReadiness:
+        self._ensure_proposal_readiness_assess_write_allowed()
+        self._readiness_service().profile()
+        plan = self._readiness_service().plan_assessment(proposal_id)
+        mutation = AtomicMutationWriter(root=self.root, p2p_dir=self.p2p_dir).apply(
+            operation_id="proposal-readiness-assess",
+            candidates={plan.candidate_path: plan.candidate_bytes},
+            sources=plan.source_preconditions,
+            preview_token=semantic_sha256(
+                {
+                    "operation": "proposal.readiness.assess.local",
+                    "proposal_id": proposal_id,
+                    "source_fingerprint_sha256": plan.source_fingerprint_sha256,
+                }
+            ),
+            actor=actor,
+            candidate_validator=lambda view: validate_readiness_assessment_payload(
+                view.read_yaml_mapping(plan.candidate_path)
+            ),
+        )
+        if mutation.status != "applied":
+            code = _proposal_readiness_assess_failure_code(mutation)
+            raise ValueError(f"{code}: {mutation.message or mutation.status}")
+        return self.read_proposal_readiness(proposal_id)
+
+    def assess_proposal_readiness_with_operation_key(
+        self,
+        *,
+        proposal_id: str,
+        operation_key: str,
+        actor: str,
+    ) -> dict[str, object]:
+        if not actor.strip():
+            raise ValueError(
+                "P2P_PROPOSAL_READINESS_ASSESS_ACTOR_REQUIRED: actor must be non-empty"
+            )
+        semantic_inputs = {
+            "proposal_id": proposal_id,
+            "assessment_policy_version": PROPOSAL_READINESS_ASSESSMENT_POLICY_VERSION,
+        }
+        preview_token = semantic_sha256(
+            {
+                "operation": "proposal.readiness.assess",
+                "semantic_inputs": semantic_inputs,
+            }
+        )
+        request_fingerprint = self._mutation_receipt_service().fingerprint(
+            operation="proposal_readiness_assess",
+            actor=actor,
+            preview_token=preview_token,
+            semantic_inputs=semantic_inputs,
+        )
+        replay = self._mutation_receipt_service().replay(
+            idempotency_key=operation_key,
+            request_fingerprint_sha256=request_fingerprint,
+        )
+        if replay is not None:
+            return _proposal_readiness_assess_operation_payload(
+                dict(replay.result),
+                status="already_applied",
+                actor=replay.actor,
+                message=(
+                    "Proposal readiness assessment was already applied with this "
+                    "operation key."
+                ),
+            )
+
+        self._ensure_proposal_readiness_assess_write_allowed()
+        plan = self._readiness_service().plan_assessment(proposal_id)
+        candidates = {plan.candidate_path: plan.candidate_bytes}
+        summary = _proposal_readiness_assess_result_summary(plan)
+        receipt_path, receipt_content, _receipt = self._mutation_receipt_service().prepare(
+            idempotency_key=operation_key,
+            operation="proposal_readiness_assess",
+            actor=actor,
+            request_fingerprint_sha256=request_fingerprint,
+            preview_token=preview_token,
+            result=summary,
+            candidates=candidates,
+        )
+        mutation = AtomicMutationWriter(root=self.root, p2p_dir=self.p2p_dir).apply(
+            operation_id="proposal-readiness-assess",
+            candidates={**candidates, receipt_path: receipt_content},
+            sources=(
+                *plan.source_preconditions,
+                source_precondition(receipt_path, None),
+            ),
+            preview_token=preview_token,
+            actor=actor,
+        )
+        if mutation.status != "applied":
+            if not mutation.recovery_required:
+                replay = self._mutation_receipt_service().replay(
+                    idempotency_key=operation_key,
+                    request_fingerprint_sha256=request_fingerprint,
+                )
+                if replay is not None:
+                    return _proposal_readiness_assess_operation_payload(
+                        dict(replay.result),
+                        status="already_applied",
+                        actor=replay.actor,
+                        message=(
+                            "Proposal readiness assessment receipt was completed by a "
+                            "concurrent retry."
+                        ),
+                    )
+            code = _proposal_readiness_assess_failure_code(mutation)
+            raise ValueError(f"{code}: {mutation.message or mutation.status}")
+        return _proposal_readiness_assess_operation_payload(
+            summary,
+            status="applied",
+            actor=actor,
+            message="Proposal readiness assessment completed.",
+        )
+
+    def _ensure_proposal_readiness_assess_write_allowed(self) -> None:
+        try:
+            self._ensure_runtime_write_allowed("proposal_readiness_assess")
+        except ValueError as exc:
+            message = str(exc)
+            if message.startswith("P2P_GOVERNED_WRITE_BLOCKED_BY_TRANSACTION:"):
+                raise ValueError(
+                    "P2P_PROPOSAL_READINESS_ASSESS_BUSY_LOCKED: "
+                    + message.split(":", 1)[1].strip()
+                ) from exc
+            raise
 
     def review_proposal_readiness(self, proposal_id: str):
         return self._readiness_service().review(proposal_id)
@@ -4927,6 +5062,77 @@ def _public_proposal_contribution_add_result(
         if isinstance(result.get("review_capability"), Mapping)
         else dict(CONTRIBUTION_REVIEW_CAPABILITY),
     }
+
+
+def _proposal_readiness_assess_result_summary(
+    plan: ProposalReadinessAssessmentPlan,
+) -> dict[str, object]:
+    readiness = plan.readiness
+    return {
+        "operation": "proposal_readiness_assess",
+        "operation_id": "proposal.readiness.assess",
+        "proposal_id": plan.proposal_id,
+        "path": plan.candidate_path,
+        "readiness": {
+            "status": str(readiness.get("status") or "assessed"),
+            "profile_id": str(readiness.get("profile_id") or ""),
+            "profile_version": str(readiness.get("profile_version") or ""),
+            "computed_score": readiness.get("computed_score"),
+            "computed_label": str(readiness.get("computed_label") or ""),
+            "confidence": str(readiness.get("confidence") or ""),
+            "failed_gates": [str(item) for item in readiness.get("failed_gates") or []],
+            "missing": [str(item) for item in readiness.get("missing") or []],
+            "suggested_next": [str(item) for item in readiness.get("suggested_next") or []],
+            "owner_question_state": dict(readiness.get("owner_question_state") or {}),
+            "freshness": "current",
+            "assessment_policy_version": plan.assessment_policy_version,
+            "source_fingerprint_sha256": plan.source_fingerprint_sha256,
+        },
+        "changed_paths": [plan.candidate_path],
+    }
+
+
+def _proposal_readiness_assess_operation_payload(
+    result: dict[str, object],
+    *,
+    status: str,
+    actor: str,
+    message: str,
+) -> dict[str, object]:
+    if result.get("operation") != "proposal_readiness_assess":
+        raise ValueError(
+            "P2P_PROPOSAL_READINESS_RECEIPT_UNSUPPORTED_OPERATION: "
+            f"{result.get('operation')}"
+        )
+    return {
+        "proposal_readiness_assess": {
+            "proposal_id": result.get("proposal_id"),
+            "path": result.get("path"),
+            "readiness": dict(result.get("readiness", {}))
+            if isinstance(result.get("readiness"), Mapping)
+            else {},
+        },
+        "mutation": {
+            "status": status,
+            "operation_id": result.get("operation_id"),
+            "actor": actor,
+            "changed_paths": list(result.get("changed_paths", []))
+            if isinstance(result.get("changed_paths"), list)
+            else [],
+            "recovery_required": False,
+            "message": message,
+        },
+    }
+
+
+def _proposal_readiness_assess_failure_code(mutation: MutationResult) -> str:
+    if mutation.status == "blocked":
+        return "P2P_PROPOSAL_READINESS_ASSESS_BUSY_LOCKED"
+    if mutation.recovery_required:
+        return "P2P_PROPOSAL_READINESS_ASSESS_RECOVERY_REQUIRED"
+    if "source changed" in mutation.message.lower():
+        return "P2P_PROPOSAL_READINESS_ASSESS_SOURCE_PRECONDITION_CHANGED"
+    return "P2P_PROPOSAL_READINESS_ASSESS_FAILED"
 
 
 def _sorted_posix_paths(paths: list[Path] | tuple[Path, ...]) -> list[str]:

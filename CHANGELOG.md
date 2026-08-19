@@ -6,7 +6,19 @@ This project is early-stage and did not previously maintain a public changelog.
 Use this file for human-readable release notes as the repository moves toward
 tagged releases.
 
-## 0.4.10 - Unreleased
+## 0.4.11 - Unreleased
+
+- Added receipt-backed JSON proposal readiness assessment for WaveKit workers,
+  with exact replay, redacted mutation status, atomic readiness/receipt commit,
+  rollback and recovery classification.
+- Added deterministic readiness source fingerprints and read-only
+  `not_assessed`, `current`, and `stale` freshness to proposal detail.
+- Routed human CLI and local MCP readiness assessment through the shared atomic
+  implementation while preserving advisory governance and owner overrides.
+- Updated generated agent guidance and CLI/MCP documentation to distinguish
+  proposal assessment, project completeness, UI reads, and worker mutations.
+
+## 0.4.10 - 2026-08-19
 
 - Added the WaveKit-facing CLI JSON contract for project snapshot, project
   initialization, proposal list/show/create/update, proposal contribution

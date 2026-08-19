@@ -367,10 +367,15 @@ def tool_definitions() -> list[dict[str, object]]:
             'p2p_proposal_readiness_assess',
             (
                 'Write-safe analysis tool: evidence-aware proposal readiness recalculation '
-                'from current artifacts and question state. Does not accept, reject, defer, '
-                'override, or decide.'
+                'from current artifacts and question state, committed atomically. Does not '
+                'accept, reject, defer, override, or decide. Freshness is returned with the '
+                'readiness result.'
             ),
-            {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},
+            {
+                'root': {'type': 'string'},
+                'proposal_id': {'type': 'string'},
+                'actor': {'type': 'string'},
+            },
             ['proposal_id'],
         ),
         _tool(

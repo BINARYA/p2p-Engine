@@ -6,10 +6,14 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
+import yaml
+
+from p2p_engine.core.mutation_preview import SourcePrecondition, semantic_sha256, source_precondition
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
     yaml_dump as _yaml_dump,
 )
+from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.foundation.markdown import read_markdown_section, read_title
 from p2p_engine.core.proposal_artifact_state import (
     ProposalArtifactConfirmation,
@@ -35,6 +39,21 @@ READINESS_ARTIFACT_QUALITY_STATES = {
 READINESS_CONFIDENCE_LEVELS = {"low", "medium", "high"}
 READINESS_TIERS = {"small", "medium", "architectural", "governance-critical"}
 READINESS_LABELS = {"weak", "partial", "strong", "decision_ready"}
+READINESS_FRESHNESS_STATES = {"not_assessed", "current", "stale"}
+PROPOSAL_READINESS_ASSESSMENT_POLICY_VERSION = 1
+
+_ASSESSMENT_SOURCE_FILES = (
+    ("proposal", "proposal.md"),
+    ("suggested_scope", "suggested-scope.md"),
+    ("alternatives", "alternatives.md"),
+    ("findings", "findings.md"),
+    ("risks", "risks.md"),
+    ("assumptions", "assumptions.md"),
+    ("execution_plan", "execution-plan.md"),
+    ("impact_map", "impact-map.yml"),
+    ("proposal_questions", QUESTION_STATE_FILENAME),
+    ("artifact_state", ARTIFACT_STATE_FILENAME),
+)
 
 
 @dataclass(frozen=True)
@@ -64,6 +83,23 @@ class ProposalReadiness:
     missing: list[str]
     suggested_next: list[str]
     owner_question_state: dict[str, object] = field(default_factory=dict)
+    freshness: str = "not_assessed"
+    assessment_policy_version: int | None = None
+    source_fingerprint_sha256: str | None = None
+    current_source_fingerprint_sha256: str | None = None
+
+
+@dataclass(frozen=True)
+class ProposalReadinessAssessmentPlan:
+    proposal_id: str
+    readiness: dict[str, object]
+    candidate_path: str
+    candidate_bytes: bytes
+    source_preconditions: tuple[SourcePrecondition, ...]
+    source_fingerprint_sha256: str
+    assessment_policy_version: int
+    profile_id: str
+    profile_version: str
 
 
 @dataclass(frozen=True)
@@ -166,30 +202,31 @@ class ReadinessService:
     def default_profile_payload(self) -> dict[str, object]:
         return default_readiness_profile_payload()
 
-    def profile(self, profile_id: str = DEFAULT_READINESS_PROFILE_ID) -> ReadinessProfile:
+    def profile(
+        self,
+        profile_id: str = DEFAULT_READINESS_PROFILE_ID,
+        *,
+        create_default: bool = True,
+    ) -> ReadinessProfile:
         path = self.p2p_dir / "config" / "readiness-profiles" / f"{profile_id}.yml"
-        if profile_id == DEFAULT_READINESS_PROFILE_ID and not path.exists():
+        if create_default and profile_id == DEFAULT_READINESS_PROFILE_ID and not path.exists():
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(_yaml_dump(self.default_profile_payload()), encoding="utf-8")
-        data = _read_yaml_mapping(path, default={})
-        validate_readiness_profile_payload(data)
-        profile = data["readiness_profile"]
-        return ReadinessProfile(
-            path=path.relative_to(self.root),
-            profile_id=str(profile["id"]),
-            version=str(profile["version"]),
-            criteria={str(key): int(value) for key, value in dict(profile["criteria"]).items()},
-            thresholds={str(key): int(value) for key, value in dict(profile["thresholds"]).items()},
-            tier_requirements=dict(profile.get("tier_requirements") or {}),
-            artifact_quality_caps=dict(profile.get("artifact_quality_caps") or {}),
-            gates=dict(profile.get("gates") or {}),
-            override_policy=dict(profile.get("override_policy") or {}),
+        if not path.exists():
+            raise ValueError(f"Readiness profile not found: {profile_id}")
+        return _readiness_profile_from_bytes(
+            path.relative_to(self.root),
+            path.read_bytes(),
         )
 
     def read(self, proposal_id: str) -> ProposalReadiness:
         proposal_dir = self.find_proposal_dir(proposal_id)
         path = proposal_dir / "readiness.yml"
         if not path.exists():
+            current_fingerprint = self.current_source_fingerprint(
+                proposal_id,
+                allow_virtual_default=True,
+            )
             return ProposalReadiness(
                 proposal_id=proposal_id,
                 status="not_assessed",
@@ -202,10 +239,25 @@ class ReadinessService:
                 failed_gates=[],
                 missing=[],
                 suggested_next=[f"p2p proposal readiness init {proposal_id}"],
+                freshness="not_assessed",
+                current_source_fingerprint_sha256=current_fingerprint,
             )
         data = _read_yaml_mapping(path, default={})
         validate_readiness_assessment_payload(data)
         readiness = data["readiness"]
+        profile_id = str(readiness.get("profile_id") or "")
+        current_fingerprint = self.current_source_fingerprint(
+            proposal_id,
+            profile_id=profile_id or DEFAULT_READINESS_PROFILE_ID,
+        )
+        stored_policy = readiness.get("assessment_policy_version")
+        stored_fingerprint = readiness.get("source_fingerprint_sha256")
+        freshness = (
+            "current"
+            if stored_policy == PROPOSAL_READINESS_ASSESSMENT_POLICY_VERSION
+            and stored_fingerprint == current_fingerprint
+            else "stale"
+        )
         return ProposalReadiness(
             proposal_id=proposal_id,
             status=str(readiness.get("status") or "assessed"),
@@ -219,6 +271,48 @@ class ReadinessService:
             missing=[str(item) for item in readiness.get("missing") or []],
             suggested_next=[str(item) for item in readiness.get("suggested_next") or []],
             owner_question_state=_readiness_owner_question_state(readiness),
+            freshness=freshness,
+            assessment_policy_version=(
+                int(stored_policy) if isinstance(stored_policy, int) else None
+            ),
+            source_fingerprint_sha256=(
+                str(stored_fingerprint) if isinstance(stored_fingerprint, str) else None
+            ),
+            current_source_fingerprint_sha256=current_fingerprint,
+        )
+
+    def current_source_fingerprint(
+        self,
+        proposal_id: str,
+        *,
+        profile_id: str = DEFAULT_READINESS_PROFILE_ID,
+        allow_virtual_default: bool = False,
+    ) -> str:
+        proposal_dir = self.find_proposal_dir(proposal_id)
+        profile_path = self.p2p_dir / "config" / "readiness-profiles" / f"{profile_id}.yml"
+        if profile_path.exists():
+            profile_content = profile_path.read_bytes()
+        elif allow_virtual_default and profile_id == DEFAULT_READINESS_PROFILE_ID:
+            profile_content = _yaml_dump(self.default_profile_payload()).encode("utf-8")
+        else:
+            raise ValueError(f"Readiness profile not found: {profile_id}")
+        profile = _readiness_profile_from_bytes(
+            profile_path.relative_to(self.root),
+            profile_content,
+        )
+        source_entries, source_contents, _source_preconditions = self._capture_assessment_sources(
+            proposal_dir,
+            profile_path=profile_path,
+            profile_content=profile_content,
+        )
+        _validate_assessment_source_contents(
+            source_contents,
+            proposal_id=proposal_id,
+        )
+        return _assessment_source_fingerprint(
+            proposal_id=proposal_id,
+            profile=profile,
+            source_entries=source_entries,
         )
 
     def write(self, proposal_id: str, readiness: dict[str, object]) -> Path:
@@ -401,21 +495,86 @@ class ReadinessService:
         self.write(proposal_id, refresh_readiness_payload(readiness, profile))
         return self.read(proposal_id)
 
-    def assess(self, proposal_id: str) -> ProposalReadiness:
-        existing_override = self._owner_override_fields(proposal_id)
-        initialized = self.initialize(proposal_id)
+    def _capture_assessment_sources(
+        self,
+        proposal_dir: Path,
+        *,
+        profile_path: Path,
+        profile_content: bytes,
+    ) -> tuple[list[dict[str, object]], dict[str, bytes | None], tuple[SourcePrecondition, ...]]:
+        entries: list[dict[str, object]] = []
+        contents: dict[str, bytes | None] = {}
+        preconditions: list[SourcePrecondition] = []
+        sources = (("readiness_profile", profile_path, profile_content),)
+        for logical_id, path, content in sources:
+            relative = path.relative_to(self.root).as_posix()
+            entries.append(_assessment_source_entry(logical_id, relative, content))
+            contents[logical_id] = content
+            preconditions.append(source_precondition(relative, content))
+        for logical_id, filename in _ASSESSMENT_SOURCE_FILES:
+            path = proposal_dir / filename
+            content = _read_regular_source(path, required=logical_id == "proposal")
+            relative = path.relative_to(self.root).as_posix()
+            entries.append(_assessment_source_entry(logical_id, relative, content))
+            contents[logical_id] = content
+            preconditions.append(source_precondition(relative, content))
+        return entries, contents, tuple(preconditions)
+
+    def plan_assessment(self, proposal_id: str) -> ProposalReadinessAssessmentPlan:
         proposal_dir = self.find_proposal_dir(proposal_id)
-        path = proposal_dir / "readiness.yml"
-        data = _read_yaml_mapping(path, default={})
-        validate_readiness_assessment_payload(data)
-        readiness = dict(data["readiness"])
+        readiness_path = proposal_dir / "readiness.yml"
+        existing_readiness = _read_regular_source(readiness_path, required=False)
+        profile_id = _readiness_profile_id_from_content(existing_readiness)
+        profile_path = (
+            self.p2p_dir
+            / "config"
+            / "readiness-profiles"
+            / f"{profile_id}.yml"
+        )
+        profile_content = _read_regular_source(profile_path, required=True)
+        assert profile_content is not None
+        profile = _readiness_profile_from_bytes(
+            profile_path.relative_to(self.root),
+            profile_content,
+        )
+        source_entries, source_contents, source_preconditions = self._capture_assessment_sources(
+            proposal_dir,
+            profile_path=profile_path,
+            profile_content=profile_content,
+        )
+        source_fingerprint = _assessment_source_fingerprint(
+            proposal_id=proposal_id,
+            profile=profile,
+            source_entries=source_entries,
+        )
+        readiness = refresh_readiness_payload(
+            _initial_readiness_payload_from_sources(source_contents, profile),
+            profile,
+        )
         criteria = dict(readiness.get("criteria") or {})
-        owner_question_state = _owner_question_state(proposal_dir)
+        owner_question_state = _owner_question_state_from_content(
+            source_contents["proposal_questions"]
+        )
         blocking_owner_questions = _owner_question_blockers(owner_question_state)
         soft_owner_question_notes = _owner_question_soft_notes(owner_question_state)
-        owner_question_suggested = _owner_question_suggested_next(owner_question_state, proposal_id)
-        artifact_gaps, artifact_warnings, artifact_suggested = _artifact_state_readiness_gaps(proposal_dir)
-        has_blockers = bool(initialized.missing or initialized.failed_gates or blocking_owner_questions or artifact_gaps)
+        owner_question_suggested = _owner_question_suggested_next(
+            owner_question_state,
+            proposal_id,
+        )
+        artifact_gaps, artifact_warnings, artifact_suggested = (
+            _artifact_state_readiness_gaps_from_content(
+                source_contents["artifact_state"],
+                proposal_id=proposal_id,
+            )
+        )
+        initialized_missing = list(readiness.get("missing") or [])
+        initialized_failed_gates = list(readiness.get("failed_gates") or [])
+        has_blockers = bool(
+            initialized_missing
+            or initialized_failed_gates
+            or blocking_owner_questions
+            or artifact_gaps
+        )
 
         if not has_blockers:
             for criterion, assessment_value in criteria.items():
@@ -424,7 +583,15 @@ class ReadinessService:
                     assessment["artifact_quality"] = "ready"
                     assessment["awarded_points"] = int(assessment.get("max_points") or 0)
                     evidence = list(assessment.get("evidence") or [])
-                    evidence.append({"artifact": "questions.yml", "reason": "artifact evidence assessed with no unresolved blocking questions"})
+                    evidence.append(
+                        {
+                            "artifact": "questions.yml",
+                            "reason": (
+                                "artifact evidence assessed with no unresolved "
+                                "blocking questions"
+                            ),
+                        }
+                    )
                     assessment["evidence"] = evidence
                 criteria[criterion] = assessment
             readiness["confidence"] = "medium" if soft_owner_question_notes else "high"
@@ -436,33 +603,76 @@ class ReadinessService:
                 ]
             )
         else:
-            readiness["confidence"] = "medium" if not initialized.missing and not initialized.failed_gates else "low"
+            readiness["confidence"] = (
+                "medium"
+                if not initialized_missing and not initialized_failed_gates
+                else "low"
+            )
             reasons = ["Evidence-aware assessment recalculated current artifacts."]
             if blocking_owner_questions:
                 failed_gates = list(readiness.get("failed_gates") or [])
                 failed_gates.append("owner_questions_resolution:needs_owner_input")
-                readiness["failed_gates"] = unique_strings([str(item) for item in failed_gates])
+                readiness["failed_gates"] = unique_strings(
+                    [str(item) for item in failed_gates]
+                )
                 reasons.append(
                     "Blocking owner questions remain: "
-                    + ", ".join(str(item.get("id") or "") for item in blocking_owner_questions)
+                    + ", ".join(
+                        str(item.get("id") or "")
+                        for item in blocking_owner_questions
+                    )
                     + "."
                 )
             reasons.extend(soft_owner_question_notes)
             if artifact_gaps:
-                reasons.append("Artifact-aware coverage has unresolved required or applicable gaps.")
+                reasons.append(
+                    "Artifact-aware coverage has unresolved required or applicable gaps."
+                )
             readiness["confidence_reasons"] = unique_strings(reasons)
 
         readiness["assessment_source"] = "evidence_aware"
         readiness["assessed_at"] = date.today().isoformat()
+        readiness["assessment_policy_version"] = (
+            PROPOSAL_READINESS_ASSESSMENT_POLICY_VERSION
+        )
+        readiness["source_fingerprint_sha256"] = source_fingerprint
         readiness["criteria"] = criteria
-        readiness["missing"] = unique_strings([*list(readiness.get("missing") or []), *artifact_gaps])
+        readiness["missing"] = unique_strings(
+            [*list(readiness.get("missing") or []), *artifact_gaps]
+        )
         readiness["suggested_next"] = unique_strings(
-            [*list(readiness.get("suggested_next") or []), *owner_question_suggested, *artifact_suggested]
+            [
+                *list(readiness.get("suggested_next") or []),
+                *owner_question_suggested,
+                *artifact_suggested,
+            ]
         )
         readiness["artifact_coverage_warnings"] = unique_strings(artifact_warnings)
         readiness["owner_question_state"] = owner_question_state
-        readiness.update(existing_override)
-        self.write(proposal_id, refresh_readiness_payload(readiness, self.profile(str(readiness.get("profile_id") or DEFAULT_READINESS_PROFILE_ID))))
+        readiness.update(_owner_override_fields_from_content(existing_readiness))
+        readiness = refresh_readiness_payload(readiness, profile)
+        payload = {"readiness": readiness}
+        validate_readiness_assessment_payload(payload)
+        candidate_path = readiness_path.relative_to(self.root).as_posix()
+        return ProposalReadinessAssessmentPlan(
+            proposal_id=proposal_id,
+            readiness=readiness,
+            candidate_path=candidate_path,
+            candidate_bytes=_yaml_dump(payload).encode("utf-8"),
+            source_preconditions=(
+                *source_preconditions,
+                source_precondition(candidate_path, existing_readiness),
+            ),
+            source_fingerprint_sha256=source_fingerprint,
+            assessment_policy_version=PROPOSAL_READINESS_ASSESSMENT_POLICY_VERSION,
+            profile_id=profile.profile_id,
+            profile_version=profile.version,
+        )
+
+    def assess(self, proposal_id: str) -> ProposalReadiness:
+        self.profile()
+        plan = self.plan_assessment(proposal_id)
+        (self.root / plan.candidate_path).write_bytes(plan.candidate_bytes)
         return self.read(proposal_id)
 
     def review(self, proposal_id: str) -> ProposalReadinessReview:
@@ -563,6 +773,262 @@ class ReadinessService:
         return {key: readiness[key] for key in keys if key in readiness}
 
 
+def _read_regular_source(path: Path, *, required: bool) -> bytes | None:
+    if not path.exists():
+        if required:
+            raise ValueError(f"P2P_READINESS_SOURCE_MISSING: {path}")
+        return None
+    if path.is_symlink() or not path.is_file():
+        raise ValueError(f"P2P_READINESS_SOURCE_INVALID: {path}")
+    try:
+        return path.read_bytes()
+    except OSError as exc:
+        raise ValueError(f"P2P_READINESS_SOURCE_INVALID: {path}: {exc}") from exc
+
+
+def _readiness_profile_from_bytes(path: Path, content: bytes) -> ReadinessProfile:
+    data = _yaml_mapping_from_content(content, label=str(path))
+    validate_readiness_profile_payload(data)
+    profile = data["readiness_profile"]
+    assert isinstance(profile, dict)
+    return ReadinessProfile(
+        path=path,
+        profile_id=str(profile["id"]),
+        version=str(profile["version"]),
+        criteria={str(key): int(value) for key, value in dict(profile["criteria"]).items()},
+        thresholds={str(key): int(value) for key, value in dict(profile["thresholds"]).items()},
+        tier_requirements=dict(profile.get("tier_requirements") or {}),
+        artifact_quality_caps=dict(profile.get("artifact_quality_caps") or {}),
+        gates=dict(profile.get("gates") or {}),
+        override_policy=dict(profile.get("override_policy") or {}),
+    )
+
+
+def _yaml_mapping_from_content(content: bytes, *, label: str) -> dict[str, object]:
+    try:
+        data = load_yaml(content)
+    except (UnicodeDecodeError, ValueError, yaml.YAMLError) as exc:
+        raise ValueError(f"P2P_READINESS_SOURCE_INVALID: {label}: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ValueError(f"P2P_READINESS_SOURCE_INVALID: {label} must be a YAML mapping")
+    return data
+
+
+def _source_text(contents: dict[str, bytes | None], logical_id: str) -> str:
+    content = contents.get(logical_id)
+    if content is None:
+        return ""
+    try:
+        return content.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError(
+            f"P2P_READINESS_SOURCE_INVALID: {logical_id} must be UTF-8"
+        ) from exc
+
+
+def _validate_assessment_source_contents(
+    contents: dict[str, bytes | None],
+    *,
+    proposal_id: str,
+) -> None:
+    for logical_id, _filename in _ASSESSMENT_SOURCE_FILES:
+        if logical_id not in {"proposal_questions", "artifact_state"}:
+            _source_text(contents, logical_id)
+    _owner_question_state_from_content(contents.get("proposal_questions"))
+    _artifact_state_readiness_gaps_from_content(
+        contents.get("artifact_state"),
+        proposal_id=proposal_id,
+    )
+
+
+def _assessment_source_entry(
+    logical_id: str,
+    relative_path: str,
+    content: bytes | None,
+) -> dict[str, object]:
+    precondition = source_precondition(relative_path, content)
+    return {
+        "logical_id": logical_id,
+        "relative_path": relative_path,
+        "exists": precondition.exists,
+        "physical_sha256": precondition.physical_sha256,
+    }
+
+
+def _assessment_source_fingerprint(
+    *,
+    proposal_id: str,
+    profile: ReadinessProfile,
+    source_entries: list[dict[str, object]],
+) -> str:
+    return semantic_sha256(
+        {
+            "assessment_policy_version": PROPOSAL_READINESS_ASSESSMENT_POLICY_VERSION,
+            "proposal_id": proposal_id,
+            "profile_id": profile.profile_id,
+            "profile_version": profile.version,
+            "sources": sorted(source_entries, key=lambda item: str(item["logical_id"])),
+        }
+    )
+
+
+def _initial_readiness_payload_from_sources(
+    contents: dict[str, bytes | None],
+    profile: ReadinessProfile,
+) -> dict[str, object]:
+    proposal_text = _source_text(contents, "proposal")
+    criteria: dict[str, object] = {}
+    missing: list[str] = []
+    suggested_next: list[str] = []
+    failed_gates: list[str] = []
+
+    def add_criterion(
+        criterion: str,
+        artifact: str,
+        section: str | None,
+        text: str | None,
+        *,
+        quality_override: str | None = None,
+    ) -> None:
+        max_points = profile.criteria[criterion]
+        quality = quality_override or readiness_text_quality(text)
+        assessment: dict[str, object] = {
+            "max_points": max_points,
+            "awarded_points": initial_readiness_points(max_points, quality),
+            "artifact_quality": quality,
+            "evidence": [{"artifact": artifact}],
+        }
+        if section:
+            assessment["evidence"] = [{"artifact": artifact, "section": section}]
+        if quality in {"missing", "placeholder"}:
+            missing.append(criterion)
+            suggested_next.append(f"add_{criterion}")
+        elif quality == "thin":
+            suggested_next.append(f"strengthen_{criterion}")
+        elif quality == "needs_owner_input":
+            failed_gates.append(f"{criterion}:needs_owner_input")
+            suggested_next.append(f"resolve_{criterion}")
+        criteria[criterion] = assessment
+
+    add_criterion(
+        "problem_clarity",
+        "proposal.md",
+        "Problem",
+        read_markdown_section(proposal_text, "Problem"),
+    )
+    add_criterion(
+        "goal_clarity",
+        "proposal.md",
+        "Goals",
+        read_markdown_section(proposal_text, "Goals"),
+    )
+    non_goals = read_markdown_section(proposal_text, "Non-Goals")
+    suggested_scope = _source_text(contents, "suggested_scope")
+    add_criterion(
+        "scope_boundaries",
+        "proposal.md",
+        "Non-Goals",
+        "\n".join(item for item in (non_goals, suggested_scope) if item),
+        quality_override=readiness_evidence_quality(non_goals, suggested_scope),
+    )
+    alternatives = _source_text(contents, "alternatives")
+    findings = _source_text(contents, "findings")
+    add_criterion("alternatives_quality", "alternatives.md", None, alternatives)
+    add_criterion(
+        "tradeoff_analysis",
+        "alternatives.md",
+        None,
+        alternatives + "\n" + findings,
+        quality_override=readiness_evidence_quality(alternatives, findings),
+    )
+    add_criterion("risk_coverage", "risks.md", None, _source_text(contents, "risks"))
+    add_criterion(
+        "assumptions_clarity",
+        "assumptions.md",
+        None,
+        _source_text(contents, "assumptions"),
+    )
+    owner_question_state = _owner_question_state_from_content(
+        contents.get("proposal_questions")
+    )
+    if owner_question_state.get("source") == "structured":
+        question_quality = (
+            "needs_owner_input"
+            if _owner_question_blockers(owner_question_state)
+            else "meaningful"
+        )
+    else:
+        question_quality = "missing"
+    add_criterion(
+        "owner_questions_resolution",
+        "questions.yml",
+        None,
+        _owner_question_state_text(owner_question_state),
+        quality_override=question_quality,
+    )
+    acceptance_primary = read_markdown_section(proposal_text, "Acceptance Criteria")
+    execution_plan = _source_text(contents, "execution_plan")
+    add_criterion(
+        "acceptance_criteria_quality",
+        "proposal.md",
+        "Acceptance Criteria",
+        "\n".join(item for item in (acceptance_primary, execution_plan) if item),
+        quality_override=readiness_evidence_quality(acceptance_primary, execution_plan),
+    )
+    add_criterion(
+        "impact_overlap_analysis",
+        "impact-map.yml",
+        None,
+        _source_text(contents, "impact_map"),
+    )
+    return {
+        "status": "assessed",
+        "profile_id": profile.profile_id,
+        "profile_version": profile.version,
+        "tier": "medium",
+        "confidence": "low",
+        "confidence_reasons": [
+            "Initial readiness was bootstrapped from proposal artifacts.",
+            "Review criterion evidence before using it for acceptance.",
+        ],
+        "missing": unique_strings(missing),
+        "suggested_next": unique_strings(suggested_next),
+        "failed_gates": unique_strings(failed_gates),
+        "criteria": criteria,
+        "owner_question_state": owner_question_state,
+    }
+
+
+def _owner_override_fields_from_content(content: bytes | None) -> dict[str, object]:
+    if content is None:
+        return {}
+    data = _yaml_mapping_from_content(content, label="readiness.yml")
+    validate_readiness_assessment_payload(data)
+    readiness = data.get("readiness", {})
+    if not isinstance(readiness, dict) or not readiness.get("owner_override"):
+        return {}
+    keys = (
+        "owner_override",
+        "effective_status",
+        "effective_score",
+        "override_reason",
+        "override_approver",
+        "override_recorded_at",
+    )
+    return {key: readiness[key] for key in keys if key in readiness}
+
+
+def _readiness_profile_id_from_content(content: bytes | None) -> str:
+    if content is None:
+        return DEFAULT_READINESS_PROFILE_ID
+    data = _yaml_mapping_from_content(content, label="readiness.yml")
+    validate_readiness_assessment_payload(data)
+    readiness = data.get("readiness", {})
+    if not isinstance(readiness, dict) or readiness.get("status") == "not_assessed":
+        return DEFAULT_READINESS_PROFILE_ID
+    return str(readiness.get("profile_id") or DEFAULT_READINESS_PROFILE_ID)
+
+
 def validate_readiness_profile_payload(data: dict[str, object]) -> None:
     profile = data.get("readiness_profile")
     if not isinstance(profile, dict):
@@ -618,6 +1084,19 @@ def validate_readiness_assessment_payload(data: dict[str, object]) -> None:
         raise ValueError("Readiness assessment missing profile_id.")
     if not str(readiness.get("profile_version") or "").strip():
         raise ValueError("Readiness assessment missing profile_version.")
+    policy_version = readiness.get("assessment_policy_version")
+    if policy_version is not None and (
+        isinstance(policy_version, bool)
+        or not isinstance(policy_version, int)
+        or policy_version < 1
+    ):
+        raise ValueError("Readiness assessment_policy_version must be a positive integer.")
+    source_fingerprint = readiness.get("source_fingerprint_sha256")
+    if source_fingerprint is not None and not re.fullmatch(
+        r"[0-9a-f]{64}",
+        str(source_fingerprint),
+    ):
+        raise ValueError("Readiness source_fingerprint_sha256 must be a lowercase SHA-256 digest.")
     if "computed_score" in readiness:
         score = readiness["computed_score"]
         if not isinstance(score, int) or score < 0 or score > 100:
@@ -814,10 +1293,15 @@ def _normalized_owner_question_state(state: dict[str, object]) -> dict[str, obje
 
 def _owner_question_state(proposal_dir: Path) -> dict[str, object]:
     questions_path = proposal_dir / QUESTION_STATE_FILENAME
-    if not questions_path.exists():
+    content = _read_regular_source(questions_path, required=False)
+    return _owner_question_state_from_content(content)
+
+
+def _owner_question_state_from_content(content: bytes | None) -> dict[str, object]:
+    if content is None:
         return _empty_owner_question_state(source="missing")
 
-    data = _read_yaml_mapping(questions_path, default={})
+    data = _yaml_mapping_from_content(content, label=QUESTION_STATE_FILENAME)
     validate_proposal_questions_payload(data)
     state = data.get("proposal_questions", {})
     if not isinstance(state, dict):
@@ -983,13 +1467,25 @@ def stepped_assertiveness_guidance(readiness: ProposalReadiness, question_state_
 def _artifact_state_readiness_gaps(proposal_dir: Path) -> tuple[list[str], list[str], list[str]]:
     path = proposal_dir / ARTIFACT_STATE_FILENAME
     proposal_id = _proposal_id_from_path(proposal_dir)
-    if not path.exists():
+    content = _read_regular_source(path, required=False)
+    return _artifact_state_readiness_gaps_from_content(
+        content,
+        proposal_id=proposal_id,
+    )
+
+
+def _artifact_state_readiness_gaps_from_content(
+    content: bytes | None,
+    *,
+    proposal_id: str,
+) -> tuple[list[str], list[str], list[str]]:
+    if content is None:
         return (
             ["Current proposal artifact state is missing."],
             [],
             [f"p2p proposal artifact init {proposal_id}"],
         )
-    data = _read_yaml_mapping(path, default={})
+    data = _yaml_mapping_from_content(content, label=ARTIFACT_STATE_FILENAME)
     validate_proposal_artifact_state_payload(data)
     state = data.get("proposal_artifacts", {})
     if not isinstance(state, dict):
