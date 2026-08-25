@@ -95,14 +95,14 @@ def test_mcp_decision_apply_binds_consent_owner_executor_and_retry(
     )
 
     assert first["proposal_decision"]["status"] == "applied"
-    assert first["proposal_decision"]["event"]["authority"]["owner_id"] == "owner"
+    assert first["proposal_decision"]["event"]["authority"]["subject"]["id"] == "owner"
     assert (
-        first["proposal_decision"]["event"]["authority"]["executor_actor_id"]
+        first["proposal_decision"]["event"]["authority"]["executor"]["id"]
         == "decision-agent"
     )
     assert first["consent"]["status"] == "consumed"
-    assert first["governance"]["owner_id"] == "owner"
-    assert first["governance"]["executor_actor_id"] == "decision-agent"
+    assert first["governance"]["subject_id"] == "owner"
+    assert first["governance"]["executor_id"] == "decision-agent"
 
     retry = call_tool(
         "p2p_proposal_decision_apply",

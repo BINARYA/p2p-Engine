@@ -191,7 +191,7 @@ def test_second_edition_reuses_shared_evidence_without_provider_rebuild(tmp_path
     assert service.paths(language="it").manifest.stat().st_size < 8_000
 
 
-def test_publication_v2_does_not_change_workspace_schema_v3_or_p2p_bytes(tmp_path: Path) -> None:
+def test_publication_v2_does_not_change_workspace_schema_v4_or_p2p_bytes(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project(
         "Publication Schema Boundary",
@@ -216,5 +216,5 @@ def test_publication_v2_does_not_change_workspace_schema_v3_or_p2p_bytes(tmp_pat
     }
     assert before_status.state == after_status.state == "current"
     assert before_status.schema is not None and after_status.schema is not None
-    assert before_status.schema.current_version == after_status.schema.current_version == 3
+    assert before_status.schema.current_version == after_status.schema.current_version == 4
     assert after == before

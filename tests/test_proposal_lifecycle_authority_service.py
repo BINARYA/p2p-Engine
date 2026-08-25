@@ -16,7 +16,7 @@ from p2p_engine.services.lifecycle_authority import (
     transition_allowed,
 )
 from tests.proposal_decision_fixtures import append_event, ledger_with_acceptance
-from tests.proposal_decision_fixtures import write_v3_proposal
+from tests.proposal_decision_fixtures import write_current_proposal
 from p2p_engine.services.lifecycle_authority import ProposalLifecycleAuthorityService
 from p2p_engine.services.proposal_decision_ledger import (
     ProposalDecisionLedgerCodec,
@@ -225,7 +225,7 @@ def test_workspace_aware_v3_service_uses_ledger_over_corrupt_projection(tmp_path
         workspace_schema_status=lambda: type(
             "Schema",
             (),
-            {"current_version": 3, "layout_status": "current", "recovery": {}},
+            {"current_version": 4, "layout_status": "current", "recovery": {}},
         )(),
     )
 
@@ -246,7 +246,7 @@ def test_workspace_aware_v3_service_fails_closed_when_ledger_missing(tmp_path) -
         workspace_schema_status=lambda: type(
             "Schema",
             (),
-            {"current_version": 3, "layout_status": "current", "recovery": {}},
+            {"current_version": 4, "layout_status": "current", "recovery": {}},
         )(),
     )
 
@@ -262,7 +262,7 @@ def test_lifecycle_map_is_stable_for_one_hundred_proposals(tmp_path) -> None:
     schema_path = tmp_path / ".p2p" / "project" / "workspace-schema.yml"
     schema_path.parent.mkdir(parents=True)
     schema_path.write_text(
-        "workspace_schema:\n  current_version: 3\n",
+        "workspace_schema:\n  current_version: 4\n",
         encoding="utf-8",
     )
     proposals = ProposalDocumentService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
@@ -280,7 +280,7 @@ def test_lifecycle_map_is_stable_for_one_hundred_proposals(tmp_path) -> None:
             / "proposals"
             / f"{proposal_id}-lifecycle-scale"
         )
-        write_v3_proposal(proposal_dir, ledger)
+        write_current_proposal(proposal_dir, ledger)
         (proposal_dir / "decision.md").write_text(
             render_decision_projection(
                 proposal_id,
@@ -296,7 +296,7 @@ def test_lifecycle_map_is_stable_for_one_hundred_proposals(tmp_path) -> None:
         workspace_schema_status=lambda: type(
             "Schema",
             (),
-            {"current_version": 3, "layout_status": "current", "recovery": {}},
+            {"current_version": 4, "layout_status": "current", "recovery": {}},
         )(),
     )
 
@@ -311,12 +311,12 @@ def test_lifecycle_map_is_stable_for_one_hundred_proposals(tmp_path) -> None:
 def test_lifecycle_batch_resolves_schema_and_directories_once(tmp_path: Path) -> None:
     schema_path = tmp_path / ".p2p/project/workspace-schema.yml"
     schema_path.parent.mkdir(parents=True)
-    schema_path.write_text("workspace_schema:\n  current_version: 3\n", encoding="utf-8")
+    schema_path.write_text("workspace_schema:\n  current_version: 4\n", encoding="utf-8")
     proposals = ProposalDocumentService(root=tmp_path, p2p_dir=tmp_path / ".p2p")
     codec = ProposalDecisionLedgerCodec()
     for number in range(1, 11):
         proposal_id = f"PROP-{number:03d}"
-        write_v3_proposal(
+        write_current_proposal(
             tmp_path / ".p2p/proposals" / f"{proposal_id}-batch",
             codec.empty(proposal_id),
         )
@@ -328,7 +328,7 @@ def test_lifecycle_batch_resolves_schema_and_directories_once(tmp_path: Path) ->
         return type(
             "Schema",
             (),
-            {"current_version": 3, "layout_status": "current", "recovery": {}},
+            {"current_version": 4, "layout_status": "current", "recovery": {}},
         )()
 
     service = ProposalLifecycleAuthorityService(
@@ -353,7 +353,7 @@ def test_lifecycle_batch_reuses_captured_ledgers_within_read_context(
         proposal_id = f"PROP-{number:03d}"
         ledger = codec.empty(proposal_id)
         proposal_dir = tmp_path / ".p2p/proposals" / f"{proposal_id}-batch"
-        write_v3_proposal(proposal_dir, ledger)
+        write_current_proposal(proposal_dir, ledger)
         (proposal_dir / "decision.md").write_text(
             render_decision_projection(
                 proposal_id,
@@ -369,7 +369,7 @@ def test_lifecycle_batch_reuses_captured_ledgers_within_read_context(
         workspace_schema_status=lambda: type(
             "Schema",
             (),
-            {"current_version": 3, "layout_status": "current", "recovery": {}},
+            {"current_version": 4, "layout_status": "current", "recovery": {}},
         )(),
     )
     context = WorkspaceReadContext(tmp_path)

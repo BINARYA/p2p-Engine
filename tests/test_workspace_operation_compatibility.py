@@ -44,8 +44,8 @@ def test_current_schema_allows_every_classified_operation(tmp_path: Path) -> Non
 
     assert results
     assert all(result.allowed for result in results)
-    assert all(result.required_minimum == 3 for result in results)
-    assert all(result.required_maximum == 3 for result in results)
+    assert all(result.required_minimum == 4 for result in results)
+    assert all(result.required_maximum == 4 for result in results)
 
 
 def test_non_current_schema_blocks_every_classified_write(tmp_path: Path) -> None:

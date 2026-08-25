@@ -14,6 +14,73 @@ ARTIFACT_IMPORT_TOOLS = {
 }
 
 
+def _authority_context_schema() -> dict[str, object]:
+    identity = {
+        'type': 'object',
+        'properties': {
+            'id': {'type': 'string', 'maxLength': 256},
+            'kind': {
+                'type': 'string',
+                'enum': ['person', 'user', 'agent', 'mcp_client', 'client', 'service'],
+            },
+        },
+        'required': ['id', 'kind'],
+        'additionalProperties': False,
+    }
+    claim = {
+        'type': 'object',
+        'properties': {
+            'capability': {'type': 'string', 'maxLength': 256},
+            'basis': {
+                'type': 'string',
+                'enum': ['root_authority', 'local_policy', 'capability_grant'],
+            },
+            'authority_generation': {'type': ['integer', 'null'], 'minimum': 1},
+            'grant_ref': {'type': ['string', 'null'], 'maxLength': 256},
+            'grant_generation': {'type': ['integer', 'null'], 'minimum': 1},
+        },
+        'required': ['capability', 'basis'],
+        'additionalProperties': False,
+    }
+    return {
+        'type': ['object', 'null'],
+        'properties': {
+            'schema': {'type': 'string', 'const': 'p2p-authority-context/v1'},
+            'mode': {
+                'type': 'string',
+                'enum': ['local_policy', 'external_attestation'],
+            },
+            'project_authority': {
+                'type': 'object',
+                'properties': {
+                    'id': {'type': 'string', 'maxLength': 256},
+                    'generation': {'type': 'integer', 'minimum': 1},
+                    'local_policy_version': {'type': ['string', 'null'], 'maxLength': 256},
+                    'provider_id': {'type': ['string', 'null'], 'maxLength': 256},
+                    'provider_policy_version': {'type': ['string', 'null'], 'maxLength': 256},
+                },
+                'required': ['id', 'generation'],
+                'additionalProperties': False,
+            },
+            'subject': identity,
+            'executor': identity,
+            'authorization_decision_id': {'type': 'string', 'maxLength': 256},
+            'authorized_at': {'type': ['string', 'null'], 'maxLength': 64},
+            'claims': {'type': 'array', 'items': claim, 'minItems': 1, 'maxItems': 16},
+        },
+        'required': [
+            'schema',
+            'mode',
+            'project_authority',
+            'subject',
+            'executor',
+            'authorization_decision_id',
+            'claims',
+        ],
+        'additionalProperties': False,
+    }
+
+
 def _artifact_import_tool(name: str, label: str) -> dict[str, object]:
     return _tool(
         name,
@@ -85,6 +152,7 @@ def _decision_request_properties() -> dict[str, object]:
         'impact_preview_token': {'type': ['string', 'null']},
         'drift_acknowledged': {'type': 'boolean'},
         'readiness_override': {'type': 'boolean'},
+        'authority_context': _authority_context_schema(),
     }
 
 

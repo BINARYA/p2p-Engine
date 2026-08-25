@@ -661,7 +661,7 @@ class NextActionService:
                         kind="inspect_unsupported_workspace_schema",
                         target="workspace",
                         reason=(
-                            "This runtime supports workspace schema v3 only and cannot convert "
+                            "This runtime supports workspace schema v4 only and cannot convert "
                             "the detected workspace."
                         ),
                         command="p2p workspace schema status --format json",

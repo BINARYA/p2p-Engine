@@ -33,7 +33,7 @@ from p2p_engine.storage.filesystem import P2PWorkspace
 from tests.proposal_decision_fixtures import (
     append_event,
     ledger_with_acceptance,
-    write_v3_proposal,
+    write_current_proposal,
 )
 
 
@@ -230,7 +230,7 @@ def test_v3_multi_event_scale_is_deterministic_and_bounded(tmp_path: Path) -> No
     schema_path.parent.mkdir(parents=True)
     schema_path.write_text(
         yaml.safe_dump(
-            {"workspace_schema": {"current_version": 3}},
+            {"workspace_schema": {"current_version": 4}},
             sort_keys=False,
         ),
         encoding="utf-8",
@@ -252,7 +252,7 @@ def test_v3_multi_event_scale_is_deterministic_and_bounded(tmp_path: Path) -> No
             / "proposals"
             / f"{proposal_id.lower()}-scale"
         )
-        write_v3_proposal(proposal_dir, ledger)
+        write_current_proposal(proposal_dir, ledger)
         (proposal_dir / "decision.md").write_text(
             render_decision_projection(
                 proposal_id,

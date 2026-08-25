@@ -11,6 +11,12 @@ from pathlib import Path
 
 import yaml
 
+from p2p_engine.core.authority import (
+    AuthorityContext,
+    AuthorityEvidence,
+    AuthorityMode,
+    authority_context_from_evidence,
+)
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.core.mutation_preview import (
     MutationPreview,
@@ -23,7 +29,6 @@ from p2p_engine.core.mutation_preview import (
 from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionAffectedDecision,
     ProposalDecisionApplyResult,
-    ProposalDecisionAuthorityEvidence,
     ProposalDecisionAuthorityResolution,
     ProposalDecisionBindingStatus,
     ProposalDecisionCondition,
@@ -47,6 +52,8 @@ from p2p_engine.services.lifecycle_authority import (
     lifecycle_from_ledger,
     require_transition,
 )
+from p2p_engine.services.authority import ProjectAuthorityService
+from p2p_engine.services.mutation_receipts import MutationReceiptService
 from p2p_engine.services.permissions import PermissionsService
 from p2p_engine.services.proposal_decision_ledger import (
     OPERATION_KEY_PREFIX,
@@ -121,6 +128,8 @@ class ProposalDecisionService:
         find_proposal_dir: Callable[[str], Path],
         workspace_schema_status: Callable[[], object] | None = None,
         permissions: PermissionsService | None = None,
+        authority: ProjectAuthorityService | None = None,
+        receipts: MutationReceiptService | None = None,
         lifecycle: ProposalLifecycleAuthorityService | None = None,
         atomic_writer: AtomicMutationWriter | None = None,
         readiness: ReadinessService | None = None,
@@ -135,6 +144,15 @@ class ProposalDecisionService:
         )
         self.codec = ProposalDecisionLedgerCodec()
         self.permissions = permissions or PermissionsService(
+            root=self.root,
+            p2p_dir=self.p2p_dir,
+        )
+        self.authority = authority or ProjectAuthorityService(
+            root=self.root,
+            p2p_dir=self.p2p_dir,
+            permissions=self.permissions,
+        )
+        self.receipts = receipts or MutationReceiptService(
             root=self.root,
             p2p_dir=self.p2p_dir,
         )
@@ -216,6 +234,7 @@ class ProposalDecisionService:
         readiness_override: bool = False,
         consent_id: str | None = None,
         consent_sha256: str | None = None,
+        authority_context: AuthorityContext | None = None,
     ) -> ProposalDecisionRequest:
         return ProposalDecisionRequest(
             proposal_id=proposal_id,
@@ -237,6 +256,7 @@ class ProposalDecisionService:
             readiness_override=readiness_override,
             consent_id=consent_id,
             consent_sha256=consent_sha256,
+            authority_context=authority_context,
         )
 
     def preview(self, request: ProposalDecisionRequest) -> ProposalDecisionPreview:
@@ -246,7 +266,7 @@ class ProposalDecisionService:
         self,
         request: ProposalDecisionRequest,
     ) -> ProposalDecisionPreview:
-        self._require_schema_v3()
+        self._require_schema_v4()
         snapshot = self._capture(request.proposal_id)
         ledger = snapshot["ledger"]
         proposal_text = snapshot["proposal_bytes"].decode("utf-8")
@@ -261,9 +281,44 @@ class ProposalDecisionService:
             raise ValueError(
                 "P2P361_DECISION_LEDGER_INVALID: decision authority is unresolved"
             )
-        permission_payload = self._permission_payload(snapshot["permissions_bytes"])
-        owner, executor = self._resolve_authority(request, permission_payload)
-        permission_sha = semantic_sha256(permission_payload)
+        descriptor = self.authority.codec.descriptor_from_bytes(
+            snapshot["authority_bytes"]
+        )
+        permission_payload = (
+            self._permission_payload(snapshot["permissions_bytes"])
+            if descriptor.mode == AuthorityMode.local_policy
+            else None
+        )
+        required_capabilities = ["proposal.decide"]
+        if request.readiness_override:
+            required_capabilities.append("proposal.readiness.override")
+        authority_context, authority = self.authority.resolve(
+            supplied_context=request.authority_context,
+            subject_id=request.actor_id,
+            executor_id=request.executor_actor_id,
+            executor_kind=request.executor_kind,
+            required_capabilities=required_capabilities,
+            channel=request.channel,
+            permission_payload=permission_payload,
+            consent_id=request.consent_id,
+            consent_sha256=request.consent_sha256,
+        )
+        if request.readiness_override:
+            override_claim = authority_context.claim_for(
+                "proposal.readiness.override"
+            )
+            if override_claim is None or override_claim.basis.value != "root_authority":
+                raise ValueError(
+                    "P2P_AUTHORIZATION_DENIED: readiness override requires "
+                    "root proposal.readiness.override authority"
+                )
+        request = replace(
+            request,
+            actor_id=authority_context.subject.identity_id,
+            executor_actor_id=authority_context.executor.identity_id,
+            executor_kind=authority_context.executor.kind.value,
+            authority_context=authority_context,
+        )
         normalized = self._normalize_request(
             request,
             source_head_event_id=ledger.head_event_id,
@@ -297,22 +352,12 @@ class ProposalDecisionService:
         )
         request_semantics = self._request_semantics(
             normalized,
-            permission_sha256=permission_sha,
+            authority=authority,
             impact=impact,
             readiness_candidate=readiness_candidate,
             readiness_binding=readiness_binding,
         )
         request_sha = semantic_sha256(request_semantics)
-        authority = ProposalDecisionAuthorityEvidence(
-            owner_id=owner.actor_id,
-            owner_role=owner.role,
-            executor_actor_id=executor.actor_id,
-            executor_kind=executor.kind,
-            channel=normalized.channel,
-            permission_policy_sha256=permission_sha,
-            consent_id=normalized.consent_id,
-            consent_sha256=normalized.consent_sha256,
-        )
         placeholder_event = self.codec.build_event(
             proposal_id=normalized.proposal_id,
             event_type=normalized.event_type,
@@ -336,10 +381,15 @@ class ProposalDecisionService:
             snapshot,
             impact_sources,
             include_readiness=readiness_candidate is not None,
+            receipt_path=self.receipts.relative_path(normalized.operation_key),
         )
-        targets = self._target_paths(
+        canonical_targets = self._target_paths(
             normalized.proposal_id,
             include_readiness=readiness_candidate is not None,
+        )
+        targets = (
+            *canonical_targets,
+            self.receipts.relative_path(normalized.operation_key),
         )
         token_context = {
             "proposal_id": normalized.proposal_id,
@@ -347,9 +397,11 @@ class ProposalDecisionService:
             "event_type": normalized.event_type.value,
             "source_head_event_id": ledger.head_event_id,
             "proposal_semantic_sha256": proposal_sha,
-            "permission_policy_sha256": permission_sha,
-            "owner_id": owner.actor_id,
-            "executor_actor_id": executor.actor_id,
+            "authority_context_sha256": authority.authority_context_sha256,
+            "authority_id": authority.authority_id,
+            "authority_generation": authority.authority_generation,
+            "subject_id": authority.subject.identity_id,
+            "executor_id": authority.executor.identity_id,
             "lineage_sha256": semantic_sha256(normalized.lineage.to_dict()),
             "impact_source_fingerprint_sha256": (
                 impact_binding.source_fingerprint_sha256
@@ -360,8 +412,8 @@ class ProposalDecisionService:
         mutation = MutationPreviewService.build(
             operation_id=DECISION_MUTATION_OPERATION,
             targets=targets,
-            actor=executor.actor_id,
-            authority="owner_confirmed",
+            actor=authority.executor.identity_id,
+            authority="typed_authority_context",
             sources=sources,
             candidate_semantics={
                 "event": self._event_token_semantics(placeholder_event),
@@ -422,12 +474,12 @@ class ProposalDecisionService:
             event,
         ).encode("utf-8")
         candidate_bytes = {
-            targets[0]: self.codec.dumps(candidate_ledger),
-            targets[1]: proposal_candidate,
-            targets[2]: decision_candidate,
+            canonical_targets[0]: self.codec.dumps(candidate_ledger),
+            canonical_targets[1]: proposal_candidate,
+            canonical_targets[2]: decision_candidate,
         }
         if readiness_candidate is not None:
-            candidate_bytes[targets[3]] = readiness_candidate
+            candidate_bytes[canonical_targets[3]] = readiness_candidate
         candidate_lifecycle = lifecycle_from_ledger(
             candidate_ledger,
             binding_status=ProposalDecisionBindingStatus.current,
@@ -470,7 +522,7 @@ class ProposalDecisionService:
     ) -> ProposalDecisionApplyResult:
         self._wait_for_competing_decision_mutation()
         if not confirm:
-            self._require_schema_v3()
+            self._require_schema_v4()
             preview = self._preview(request)
             return ProposalDecisionApplyResult(
                 status="blocked",
@@ -493,7 +545,7 @@ class ProposalDecisionService:
                 "P2P367_DECISION_CONCURRENT_HEAD: ledger head changed after preview"
             )
         try:
-            self._require_schema_v3()
+            self._require_schema_v4()
         except ValueError as exc:
             if not str(exc).startswith("P2P307_WORKSPACE_TRANSACTION_RECOVERY_REQUIRED"):
                 raise
@@ -510,7 +562,7 @@ class ProposalDecisionService:
             # The recovery snapshot may have observed another writer while its
             # lock or journal was being removed. Re-evaluate current state
             # before classifying the condition as interrupted recovery.
-            self._require_schema_v3()
+            self._require_schema_v4()
         try:
             preview = self._preview(request)
         except ValueError:
@@ -540,9 +592,31 @@ class ProposalDecisionService:
                     ),
                 ),
             )
+        receipt_path, receipt_content, _receipt = self.receipts.prepare(
+            idempotency_key=preview.request.operation_key,
+            operation="proposal_decision_apply",
+            actor=preview.event.authority.executor.identity_id,
+            request_fingerprint_sha256=(
+                preview.event.mutation.request_fingerprint_sha256
+            ),
+            preview_token=preview.mutation.preview_token,
+            result={
+                "operation": "proposal_decision_apply",
+                "status": "applied",
+                "proposal_id": preview.request.proposal_id,
+                "event": preview.event.to_dict(),
+                "lifecycle": preview.lifecycle.to_dict(),
+                "changed_paths": sorted(preview.candidate_bytes),
+            },
+            candidates=preview.candidate_bytes,
+            authority=preview.event.authority,
+        )
         result = self.atomic_writer.apply(
             operation_id=DECISION_MUTATION_OPERATION,
-            candidates=dict(preview.candidate_bytes),
+            candidates={
+                **preview.candidate_bytes,
+                receipt_path: receipt_content,
+            },
             sources=preview.mutation.source_preconditions,
             preview_token=preview.mutation.preview_token,
             actor=preview.request.executor_actor_id,
@@ -622,7 +696,7 @@ class ProposalDecisionService:
         actor_id: str,
         executor_actor_id: str | None = None,
     ) -> MutationPreview:
-        self._require_schema_v3()
+        self._require_schema_v4()
         snapshot = self._capture(proposal_id)
         ledger = snapshot["ledger"]
         assert isinstance(ledger, ProposalDecisionLedger)
@@ -781,7 +855,7 @@ class ProposalDecisionService:
         actor_id: str,
         executor_actor_id: str | None = None,
     ) -> MutationPreview:
-        self._require_schema_v3()
+        self._require_schema_v4()
         candidate_path = candidate_path.resolve()
         if (
             not candidate_path.exists()
@@ -952,6 +1026,7 @@ class ProposalDecisionService:
         proposal_path = proposal_dir / "proposal.md"
         decision_path = proposal_dir / "decision.md"
         permission_path = self.permissions.path()
+        authority_path = self.authority.path
         if not ledger_path.exists():
             raise ValueError(
                 "P2P361_DECISION_LEDGER_INVALID: missing decision-events.yml"
@@ -962,7 +1037,13 @@ class ProposalDecisionService:
         permission_bytes = (
             permission_path.read_bytes() if permission_path.exists() else None
         )
-        if permission_bytes is None:
+        if not authority_path.is_file() or authority_path.is_symlink():
+            raise ValueError(
+                "P2P_AUTHORITY_CONTEXT_INVALID: project authority descriptor is missing"
+            )
+        authority_bytes = authority_path.read_bytes()
+        descriptor = self.authority.codec.descriptor_from_bytes(authority_bytes)
+        if descriptor.mode == AuthorityMode.local_policy and permission_bytes is None:
             raise ValueError(
                 "P2P364_DECISION_OWNER_REQUIRED: project permissions are missing"
             )
@@ -977,6 +1058,8 @@ class ProposalDecisionService:
             "proposal_bytes": proposal_bytes,
             "decision_bytes": decision_bytes,
             "permissions_bytes": permission_bytes,
+            "authority_bytes": authority_bytes,
+            "authority_mode": descriptor.mode.value,
             "readiness_bytes": (
                 readiness_path.read_bytes() if readiness_path.exists() else None
             ),
@@ -1349,6 +1432,7 @@ class ProposalDecisionService:
         impact_sources: Mapping[str, bytes | None],
         *,
         include_readiness: bool,
+        receipt_path: str,
     ) -> tuple[SourcePrecondition, ...]:
         proposal_dir = snapshot["proposal_dir"]
         assert isinstance(proposal_dir, Path)
@@ -1358,8 +1442,13 @@ class ProposalDecisionService:
             ],
             self._relative(proposal_dir / "proposal.md"): snapshot["proposal_bytes"],
             self._relative(proposal_dir / "decision.md"): snapshot["decision_bytes"],
-            self._relative(self.permissions.path()): snapshot["permissions_bytes"],
+            self._relative(self.authority.path): snapshot["authority_bytes"],
+            receipt_path: None,
         }
+        if snapshot.get("authority_mode") == AuthorityMode.local_policy.value:
+            values[self._relative(self.permissions.path())] = snapshot[
+                "permissions_bytes"
+            ]
         if include_readiness or snapshot.get("readiness_bytes") is not None:
             values[self._relative(proposal_dir / "readiness.yml")] = snapshot[
                 "readiness_bytes"
@@ -1460,7 +1549,12 @@ class ProposalDecisionService:
             ),
             None,
         )
+        receipt = self.receipts.read(idempotency_key=request.operation_key)
         if matching is None:
+            if receipt is not None:
+                raise ValueError(
+                    "P2P_IDEMPOTENCY_CONFLICT: operation key belongs to another mutation"
+                )
             token_owner = next(
                 (
                     event
@@ -1475,9 +1569,48 @@ class ProposalDecisionService:
                     "another operation"
                 )
             return None
-        permission_bytes = self.permissions.path().read_bytes()
-        permission_payload = self._permission_payload(permission_bytes)
+        if receipt is None or receipt.operation != "proposal_decision_apply":
+            raise ValueError(
+                "P2P_IDEMPOTENCY_RECEIPT_CORRUPT: committed decision receipt is missing"
+            )
+        receipt_event = receipt.result.get("event")
+        if (
+            not isinstance(receipt_event, Mapping)
+            or receipt_event.get("event_id") != matching.event_id
+            or receipt.authority != matching.authority.to_dict()
+        ):
+            raise ValueError(
+                "P2P_IDEMPOTENCY_RECEIPT_CORRUPT: decision event and receipt diverge"
+            )
         normalized = self._normalize_retry_request(request)
+        evidence = matching.authority
+        if request.authority_context is not None:
+            if (
+                request.authority_context.digest_sha256
+                != evidence.authority_context_sha256
+            ):
+                raise ValueError(
+                    "P2P_IDEMPOTENCY_CONFLICT: operation key is already bound "
+                    "to different authority evidence"
+                )
+            retry_context = request.authority_context
+        else:
+            if evidence.mode != AuthorityMode.local_policy:
+                raise ValueError(
+                    "P2P366_DECISION_REPLAY_MISMATCH: external decision replay "
+                    "requires the original authority context"
+                )
+            retry_context = authority_context_from_evidence(evidence)
+        if (
+            request.actor_id != evidence.subject.identity_id
+            or request.executor_actor_id != evidence.executor.identity_id
+            or request.executor_kind != evidence.executor.kind.value
+        ):
+            raise ValueError(
+                "P2P_IDEMPOTENCY_CONFLICT: operation key is already bound to "
+                "a different subject or executor"
+            )
+        normalized = replace(normalized, authority_context=retry_context)
         impact = {
             "source_fingerprint_sha256": matching.impact.source_fingerprint_sha256,
             "preview_token": matching.impact.preview_token,
@@ -1486,7 +1619,7 @@ class ProposalDecisionService:
         }
         request_semantics = self._request_semantics(
             normalized,
-            permission_sha256=semantic_sha256(permission_payload),
+            authority=evidence,
             impact=impact if matching.impact.required else {},
             readiness_candidate=None,
             readiness_binding=matching.readiness,
@@ -1497,7 +1630,7 @@ class ProposalDecisionService:
             or matching.mutation.preview_token != preview_token
         ):
             raise ValueError(
-                "P2P366_DECISION_REPLAY_MISMATCH: operation key is already bound "
+                "P2P_IDEMPOTENCY_CONFLICT: operation key is already bound "
                 "to different decision semantics"
             )
         lifecycle = lifecycle_from_ledger(ledger)
@@ -1550,13 +1683,18 @@ class ProposalDecisionService:
             "readiness_override": request.readiness_override,
             "consent_id": request.consent_id,
             "consent_sha256": request.consent_sha256,
+            "authority_context_sha256": (
+                request.authority_context.digest_sha256
+                if request.authority_context is not None
+                else None
+            ),
         }
 
     def _request_semantics(
         self,
         request: ProposalDecisionRequest,
         *,
-        permission_sha256: str,
+        authority: AuthorityEvidence,
         impact: Mapping[str, object],
         readiness_candidate: bytes | None,
         readiness_binding: ProposalDecisionReadinessBinding | None = None,
@@ -1572,7 +1710,7 @@ class ProposalDecisionService:
         return {
             **self._operation_semantics(request),
             "operation_key": request.operation_key,
-            "permission_policy_sha256": permission_sha256,
+            "authority": authority.to_dict(),
             "impact": {
                 key: impact.get(key)
                 for key in (
@@ -1652,7 +1790,7 @@ class ProposalDecisionService:
             expected_proposal_id=proposal_id,
         )
 
-    def _require_schema_v3(self) -> None:
+    def _require_schema_v4(self) -> None:
         status = self.workspace_schema_status()
         version = getattr(status, "current_version", None)
         layout = str(getattr(status, "layout_status", "invalid"))
@@ -1670,10 +1808,10 @@ class ProposalDecisionService:
                 "P2P307_WORKSPACE_TRANSACTION_RECOVERY_REQUIRED: recover the active "
                 "workspace transaction before decision mutation"
             )
-        if version != 3 or layout != "current":
+        if version != 4 or layout != "current":
             raise ValueError(
-                "P2P375_DECISION_SCHEMA_V3_REQUIRED: proposal decision "
-                "event writes require workspace schema v3; this runtime provides no "
+                "P2P375_DECISION_SCHEMA_V4_REQUIRED: proposal decision "
+                "event writes require workspace schema v4; this runtime provides no "
                 "in-runtime conversion. Run `p2p workspace schema status --format json`."
             )
 
@@ -1702,7 +1840,7 @@ class ProposalDecisionService:
             (),
             {
                 "current_version": version,
-                "layout_status": "current" if version == 3 else "unsupported",
+                "layout_status": "current" if version == 4 else "unsupported",
                 "recovery": {},
             },
         )()

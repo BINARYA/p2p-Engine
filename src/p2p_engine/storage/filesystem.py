@@ -8,6 +8,14 @@ import shutil
 import tempfile
 from typing import TypeVar
 
+from p2p_engine.core.authority import (
+    AuthorityContext,
+    AuthorityEvidence,
+    AuthorityRotationPreview,
+    AuthorityRotationResult,
+    ProjectAuthorityDescriptor,
+    authority_evidence_from_context,
+)
 from p2p_engine.core.contribution import Contribution, ContributionType
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.core.decision_context import DecisionContextIndex
@@ -100,6 +108,8 @@ from p2p_engine.services.agent_instructions import (
     AgentDoctorResult,
     AgentIntegrationResult,
 )
+from p2p_engine.services.authority import ProjectAuthorityService
+from p2p_engine.services.authority_rotation import ProjectAuthorityRotationService
 from p2p_engine.services.agent_templates import (
     BUILT_IN_AGENT_ADAPTERS,
     agent_adapter_capabilities as _agent_adapter_capabilities,
@@ -129,6 +139,7 @@ from p2p_engine.services.governance_policy import (
 )
 from p2p_engine.services.intake import IntakeAppliedAction, IntakeApplyPlan, IntakeLifecycleService, IntakePrompt, IntakeStatus
 from p2p_engine.services.lifecycle_authority import ProposalLifecycleAuthorityService
+from p2p_engine.services.mcp_hints import McpHint, build_mcp_hint
 from p2p_engine.services.mutation_receipts import MutationReceiptService
 from p2p_engine.services.next_actions import NextAction, NextActionService
 from p2p_engine.services.permissions import PermissionActor, PermissionsService
@@ -352,6 +363,10 @@ class P2PWorkspace:
         self._project_context_renderer_service_instance: ProjectContextRendererService | None = None
         self._project_interaction_style_service_instance: ProjectInteractionStyleService | None = None
         self._project_initialization_service_instance: ProjectInitializationService | None = None
+        self._project_authority_service_instance: ProjectAuthorityService | None = None
+        self._project_authority_rotation_service_instance: (
+            ProjectAuthorityRotationService | None
+        ) = None
         self._project_maturity_service_instance: ProjectMaturityService | None = None
         self._project_metadata_service_instance: ProjectMetadataService | None = None
         self._project_progress_service_instance: ProjectProgressService | None = None
@@ -402,6 +417,27 @@ class P2PWorkspace:
         if self._permissions_service_instance is None:
             self._permissions_service_instance = PermissionsService(root=self.root, p2p_dir=self.p2p_dir)
         return self._permissions_service_instance
+
+    def _project_authority_service(self) -> ProjectAuthorityService:
+        if self._project_authority_service_instance is None:
+            self._project_authority_service_instance = ProjectAuthorityService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                permissions=self._permissions_service(),
+            )
+        return self._project_authority_service_instance
+
+    def _project_authority_rotation_service(self) -> ProjectAuthorityRotationService:
+        if self._project_authority_rotation_service_instance is None:
+            self._project_authority_rotation_service_instance = (
+                ProjectAuthorityRotationService(
+                    root=self.root,
+                    p2p_dir=self.p2p_dir,
+                    authority=self._project_authority_service(),
+                    receipts=self._mutation_receipt_service(),
+                )
+            )
+        return self._project_authority_rotation_service_instance
 
     def _agent_instruction_service(self) -> AgentInstructionService:
         if self._agent_instruction_service_instance is None:
@@ -682,6 +718,8 @@ class P2PWorkspace:
                 find_proposal_dir=self._proposal_document_service().find_dir,
                 workspace_schema_status=self.workspace_schema_status,
                 permissions=self._permissions_service(),
+                authority=self._project_authority_service(),
+                receipts=self._mutation_receipt_service(),
                 readiness=self._readiness_service(),
                 impact_provider=self._proposal_decision_impact_service().provider,
                 lifecycle=self._proposal_lifecycle_authority_service(),
@@ -1400,6 +1438,7 @@ class P2PWorkspace:
         modules: list[str] | None = None,
         vertical_pack: Path | None = None,
         expected_checksum: str = "",
+        authority_context: AuthorityContext | None = None,
     ) -> list[Path]:
         return self.init_project_with_summary(
             name=name,
@@ -1416,6 +1455,7 @@ class P2PWorkspace:
             modules=modules,
             vertical_pack=vertical_pack,
             expected_checksum=expected_checksum,
+            authority_context=authority_context,
         ).created
 
     def init_project_with_summary(
@@ -1435,6 +1475,7 @@ class P2PWorkspace:
         vertical_pack: Path | None = None,
         expected_checksum: str = "",
         vertical_pack_closure: list[tuple[Path, str]] | None = None,
+        authority_context: AuthorityContext | None = None,
     ) -> ProjectInitializationResult:
         workspace_existed = self.p2p_dir.exists()
         if (self.p2p_dir / "project.yml").exists():
@@ -1480,6 +1521,7 @@ class P2PWorkspace:
             remote_provider=remote_provider,
             remote_name=remote_name,
             remote_url_value=remote_url_value,
+            authority_context=authority_context,
         )
         created = list(result.created)
         try:
@@ -1566,8 +1608,17 @@ class P2PWorkspace:
         vertical_pack: Path | None = None,
         expected_checksum: str = "",
         vertical_pack_closure: list[tuple[Path, str]] | None = None,
+        authority_context: AuthorityContext | None = None,
     ) -> dict[str, object]:
-        actor = owner or "owner"
+        resolved_authority_context, authority_evidence = (
+            self._project_init_authority_context(
+                operation_key=operation_key,
+                owner=owner,
+                repository_mode=repository_mode,
+                supplied_context=authority_context,
+            )
+        )
+        actor = resolved_authority_context.executor.identity_id
         semantic_inputs = _project_init_semantic_inputs(
             name=name,
             agent_profile=agent_profile,
@@ -1584,6 +1635,7 @@ class P2PWorkspace:
             vertical_pack=vertical_pack,
             expected_checksum=expected_checksum,
             vertical_pack_closure=vertical_pack_closure,
+            authority_context=resolved_authority_context,
         )
         preview_token = semantic_sha256(
             {
@@ -1610,6 +1662,30 @@ class P2PWorkspace:
             )
 
         self._ensure_project_init_operation_can_apply(semantic_inputs)
+        if not (self.p2p_dir / "project.yml").exists():
+            return self._apply_new_project_initialization_atomically(
+                name=name,
+                operation_key=operation_key,
+                actor=actor,
+                request_fingerprint=request_fingerprint,
+                preview_token=preview_token,
+                authority_context=resolved_authority_context,
+                authority_evidence=authority_evidence,
+                agent_profile=agent_profile,
+                repository_mode=repository_mode,
+                project_domain=project_domain,
+                rubric_enabled=rubric_enabled,
+                owner=owner,
+                remote_provider=remote_provider,
+                remote_name=remote_name,
+                remote_url_value=remote_url_value,
+                vertical_id=vertical_id,
+                profile=profile,
+                modules=modules,
+                vertical_pack=vertical_pack,
+                expected_checksum=expected_checksum,
+                vertical_pack_closure=vertical_pack_closure,
+            )
         result = self.init_project_with_summary(
             name=name,
             agent_profile=agent_profile,
@@ -1626,6 +1702,7 @@ class P2PWorkspace:
             vertical_pack=vertical_pack,
             expected_checksum=expected_checksum,
             vertical_pack_closure=vertical_pack_closure,
+            authority_context=resolved_authority_context,
         )
         summary = self._project_init_result_summary(
             result,
@@ -1642,6 +1719,7 @@ class P2PWorkspace:
             preview_token=preview_token,
             result=summary,
             candidates=candidates,
+            authority=authority_evidence,
         )
         mutation = AtomicMutationWriter(root=self.root, p2p_dir=self.p2p_dir).apply(
             operation_id="project-init-receipt",
@@ -1676,6 +1754,238 @@ class P2PWorkspace:
             status="applied",
             actor=actor,
             message="Project initialization completed.",
+        )
+
+    def _apply_new_project_initialization_atomically(
+        self,
+        *,
+        name: str,
+        operation_key: str,
+        actor: str,
+        request_fingerprint: str,
+        preview_token: str,
+        authority_context: AuthorityContext,
+        authority_evidence: AuthorityEvidence,
+        agent_profile: str | None,
+        repository_mode: str,
+        project_domain: str,
+        rubric_enabled: dict[str, bool] | None,
+        owner: str | None,
+        remote_provider: str | None,
+        remote_name: str,
+        remote_url_value: str | None,
+        vertical_id: str | None,
+        profile: str,
+        modules: list[str] | None,
+        vertical_pack: Path | None,
+        expected_checksum: str,
+        vertical_pack_closure: list[tuple[Path, str]] | None,
+    ) -> dict[str, object]:
+        with tempfile.TemporaryDirectory(prefix="p2p-project-init-") as temporary:
+            staged_root = Path(temporary)
+            self._copy_initialization_repository_inputs(staged_root)
+            staged = P2PWorkspace(staged_root)
+            staged_result = staged.init_project_with_summary(
+                name=name,
+                agent_profile=agent_profile,
+                repository_mode=repository_mode,
+                project_domain=project_domain,
+                rubric_enabled=rubric_enabled,
+                owner=owner,
+                remote_provider=remote_provider,
+                remote_name=remote_name,
+                remote_url_value=remote_url_value,
+                vertical_id=vertical_id,
+                profile=profile,
+                modules=modules,
+                vertical_pack=vertical_pack,
+                expected_checksum=expected_checksum,
+                vertical_pack_closure=vertical_pack_closure,
+                authority_context=authority_context,
+            )
+            staged_candidates = self._initialization_staged_candidates(staged_root)
+            receipt_candidates = {
+                path: content
+                for path, content in staged_candidates.items()
+                if _is_project_init_receipt_path(path)
+            }
+            summary = staged._project_init_result_summary(
+                staged_result,
+                requested_vertical=vertical_id,
+            )
+            summary["changed_paths"] = sorted(receipt_candidates)
+            summary["mcp_hint"] = _project_init_mcp_hint_payload(
+                build_mcp_hint(self.root, project_name=name)
+            )
+            receipt_path, receipt_content, _receipt = (
+                self._mutation_receipt_service().prepare(
+                    idempotency_key=operation_key,
+                    operation="init",
+                    actor=actor,
+                    request_fingerprint_sha256=request_fingerprint,
+                    preview_token=preview_token,
+                    result=summary,
+                    candidates=receipt_candidates,
+                    authority=authority_evidence,
+                )
+            )
+            candidates = {**staged_candidates, receipt_path: receipt_content}
+            allowed_repository_targets = tuple(
+                path for path in candidates if not path.startswith(".p2p/")
+            )
+            sources = tuple(
+                source_precondition(
+                    path,
+                    (
+                        (self.root / path).read_bytes()
+                        if (self.root / path).is_file()
+                        and not (self.root / path).is_symlink()
+                        else None
+                    ),
+                )
+                for path in sorted(candidates)
+            )
+            mutation = AtomicMutationWriter(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                allowed_repository_targets=allowed_repository_targets,
+            ).apply(
+                operation_id="project-init",
+                candidates=candidates,
+                sources=sources,
+                preview_token=preview_token,
+                actor=actor,
+            )
+        if mutation.status != "applied":
+            replay = self._mutation_receipt_service().replay(
+                idempotency_key=operation_key,
+                request_fingerprint_sha256=request_fingerprint,
+            )
+            if replay is not None:
+                return _project_init_operation_payload(
+                    dict(replay.result),
+                    status="already_applied",
+                    actor=replay.actor,
+                    message="Project initialization completed during retry recovery.",
+                )
+            code = (
+                "P2P_INIT_PROJECT_BUSY"
+                if mutation.status == "blocked"
+                else "P2P_INIT_BOOTSTRAP_FAILED"
+            )
+            raise ValueError(f"{code}: {mutation.message or mutation.status}")
+        for directory in (self.p2p_dir / "proposals", self.p2p_dir / "prompts"):
+            directory.mkdir(parents=True, exist_ok=True)
+        return _project_init_operation_payload(
+            summary,
+            status="applied",
+            actor=actor,
+            message="Project initialization completed atomically.",
+        )
+
+    def _copy_initialization_repository_inputs(self, staged_root: Path) -> None:
+        candidates = (
+            Path(".gitignore"),
+            Path("P2P-SETUP.md"),
+            Path("AGENTS.md"),
+            Path("CLAUDE.md"),
+            Path("GEMINI.md"),
+            Path(".agents"),
+            Path(".cursor/rules/p2p.mdc"),
+            Path(".github/copilot-instructions.md"),
+        )
+        for relative in candidates:
+            source = self.root / relative
+            target = staged_root / relative
+            if source.is_symlink():
+                raise ValueError(
+                    f"P2P_INIT_BOOTSTRAP_FAILED: initialization input is a symlink: {relative}"
+                )
+            if source.is_dir():
+                shutil.copytree(source, target)
+            elif source.is_file():
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, target)
+
+    def _initialization_staged_candidates(self, staged_root: Path) -> dict[str, bytes]:
+        candidates: dict[str, bytes] = {}
+        for path in sorted(staged_root.rglob("*")):
+            if not path.is_file() or path.is_symlink():
+                continue
+            relative = path.relative_to(staged_root).as_posix()
+            if relative.startswith(".p2p/.internal/workspace-transactions/"):
+                continue
+            content = path.read_bytes()
+            live = self.root / relative
+            if (
+                relative.startswith(".p2p/")
+                or not live.is_file()
+                or live.is_symlink()
+                or live.read_bytes() != content
+            ):
+                candidates[relative] = content
+        if ".p2p/project/authority.yml" not in candidates:
+            raise ValueError(
+                "P2P_AUTHORITY_CONTEXT_INVALID: staged initialization lacks authority descriptor"
+            )
+        return candidates
+
+    def _project_init_authority_context(
+        self,
+        *,
+        operation_key: str,
+        owner: str | None,
+        repository_mode: str,
+        supplied_context: AuthorityContext | None,
+    ) -> tuple[AuthorityContext, AuthorityEvidence]:
+        authority_service = self._project_authority_service()
+        project_exists = (self.p2p_dir / "project.yml").exists()
+        permission_payload = (
+            self._permissions_service().show()
+            if project_exists
+            else self._permissions_service().default_policy_payload(
+                owner_name=owner,
+                repository_mode=repository_mode,
+            )
+        )
+        if project_exists:
+            descriptor = authority_service.read_descriptor()
+        elif supplied_context is not None:
+            descriptor = authority_service.descriptor_from_bootstrap_context(
+                supplied_context,
+                display_name="External project authority",
+            )
+        else:
+            descriptor = authority_service.new_local_descriptor(
+                display_name=(f"Local authority for {owner}" if owner else ""),
+                authority_id=(
+                    "p2p-project-authority-"
+                    + hashlib.sha256(operation_key.encode("utf-8")).hexdigest()[:32]
+                ),
+            )
+        if supplied_context is None:
+            subject = self._permissions_service().identity_slug(owner or "owner")
+            context, permission_sha = authority_service.local_context(
+                subject_id=subject,
+                executor_id=subject,
+                executor_kind="person",
+                required_capabilities=("project.initialize",),
+                channel="cli",
+                descriptor=descriptor,
+                permission_payload=permission_payload,
+            )
+        else:
+            context = authority_service.validate_context(
+                supplied_context,
+                required_capabilities=("project.initialize",),
+                descriptor=descriptor,
+                bootstrap=not project_exists,
+            )
+            permission_sha = None
+        return context, authority_evidence_from_context(
+            context,
+            channel="cli",
+            permission_policy_sha256=permission_sha,
         )
 
     def _ensure_project_init_operation_can_apply(
@@ -1756,6 +2066,7 @@ class P2PWorkspace:
         repository = project_payload.get("repository")
         remote = project_payload.get("remote")
         active = self.active_project_vertical()
+        authority = self._project_authority_service().read_descriptor()
         created_paths = _sorted_posix_paths(result.created)
         created_file_paths = [
             path
@@ -1767,6 +2078,7 @@ class P2PWorkspace:
             "operation": "init",
             "operation_id": "project.init",
             "project": dict(project) if isinstance(project, Mapping) else {},
+            "authority": authority.to_dict(),
             "created_paths": created_paths,
             "created_file_paths": created_file_paths,
             "agent_selection": {
@@ -1825,6 +2137,7 @@ class P2PWorkspace:
         for relative in (
             ".p2p/project.yml",
             ".p2p/project/workspace-schema.yml",
+            ".p2p/project/authority.yml",
             ".p2p/project/runtime.yml",
             ".p2p/project/domain.yml",
             ".p2p/project/rubrics.yml",
@@ -2343,6 +2656,23 @@ class P2PWorkspace:
 
     def mutation_status(self, *, idempotency_key: str) -> MutationReceiptStatus:
         return self._mutation_receipt_service().status(idempotency_key)
+
+    def project_authority(self) -> ProjectAuthorityDescriptor:
+        return self._project_authority_service().read_descriptor()
+
+    def preview_project_authority_rotation(
+        self,
+        **values,
+    ) -> AuthorityRotationPreview:
+        self._ensure_runtime_write_allowed("project_authority_rotate_preview")
+        return self._project_authority_rotation_service().preview(**values)
+
+    def apply_project_authority_rotation(
+        self,
+        **values,
+    ) -> AuthorityRotationResult:
+        self._ensure_runtime_write_allowed("project_authority_rotate_apply")
+        return self._project_authority_rotation_service().apply(**values)
 
     def rollback_workspace_transaction(
         self,
@@ -4735,6 +5065,36 @@ def _extend_created_paths(created: list[Path], changed_paths: tuple[str, ...] | 
             created.append(candidate)
 
 
+def _is_project_init_receipt_path(value: str) -> bool:
+    return (
+        (value.startswith(".p2p/") and not value.startswith(".p2p/.internal/"))
+        or value.startswith(".agents/")
+        or value
+        in {
+            ".cursor/rules/p2p.mdc",
+            ".github/copilot-instructions.md",
+            ".gitignore",
+            "AGENTS.md",
+            "CLAUDE.md",
+            "GEMINI.md",
+            "P2P-SETUP.md",
+        }
+    )
+
+
+def _project_init_mcp_hint_payload(hint: McpHint) -> dict[str, object]:
+    return {
+        "server_name": hint.server_name,
+        "root": hint.root.as_posix(),
+        "project_python": hint.project_python.as_posix(),
+        "project_python_exists": hint.project_python_exists,
+        "server_command": list(hint.server_command),
+        "codex_command": list(hint.codex_command),
+        "fallback_command": list(hint.fallback_command),
+        "notes": list(hint.notes),
+    }
+
+
 def _project_init_semantic_inputs(
     *,
     name: str,
@@ -4752,6 +5112,7 @@ def _project_init_semantic_inputs(
     vertical_pack: Path | None,
     expected_checksum: str,
     vertical_pack_closure: list[tuple[Path, str]] | None,
+    authority_context: AuthorityContext | None,
 ) -> dict[str, object]:
     return {
         "name": name,
@@ -4778,6 +5139,9 @@ def _project_init_semantic_inputs(
                 key=lambda item: (item[0].as_posix(), item[1]),
             )
         ],
+        "authority_context": (
+            authority_context.to_dict() if authority_context is not None else None
+        ),
     }
 
 
@@ -4809,6 +5173,9 @@ def _public_project_init_result(result: dict[str, object]) -> dict[str, object]:
         "operation_id": result.get("operation_id"),
         "project": dict(result.get("project", {}))
         if isinstance(result.get("project"), Mapping)
+        else {},
+        "authority": dict(result.get("authority", {}))
+        if isinstance(result.get("authority"), Mapping)
         else {},
         "created_paths": list(result.get("created_paths", []))
         if isinstance(result.get("created_paths"), list)

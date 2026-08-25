@@ -28,13 +28,17 @@ The example deliberately accepts the bounded CLI feature.
 
 owner
 
-## Owner
+## Project Authority
+
+p2p-example-software-authority
+
+## Executor
 
 owner
 
 ## Ledger Head
 
-PDE-ed8a33ec34f42017a317f039
+PDE-ac898b1236f1b7add3ac0f11
 
 ## Decision Fingerprint
 

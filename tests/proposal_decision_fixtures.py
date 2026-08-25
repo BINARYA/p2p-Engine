@@ -2,6 +2,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from p2p_engine.core.authority import (
+    LOCAL_AUTHORITY_POLICY_VERSION,
+    AuthorityBasis,
+    AuthorityClaim,
+    AuthorityContext,
+    AuthorityIdentity,
+    AuthorityIdentityKind,
+    AuthorityMode,
+    AuthorityProjectBinding,
+    authority_evidence_from_context,
+)
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionAffectedDecision,
@@ -54,12 +65,26 @@ def proposal_markdown(proposal_id: str = "PROP-001", *, status: str = "draft") -
 
 
 def authority(owner: str = "owner") -> ProposalDecisionAuthorityEvidence:
-    return ProposalDecisionAuthorityEvidence(
-        owner_id=owner,
-        owner_role="owner",
-        executor_actor_id=owner,
-        executor_kind="person",
-        channel="cli",
+    context = AuthorityContext(
+        mode=AuthorityMode.local_policy,
+        project_authority=AuthorityProjectBinding(
+            authority_id="p2p-test-project-authority",
+            generation=1,
+            local_policy_version=LOCAL_AUTHORITY_POLICY_VERSION,
+        ),
+        subject=AuthorityIdentity(owner, AuthorityIdentityKind.person),
+        executor=AuthorityIdentity(owner, AuthorityIdentityKind.person),
+        authorization_decision_id="p2p-test-authority-decision",
+        claims=(
+            AuthorityClaim(
+                capability="proposal.decide",
+                basis=AuthorityBasis.local_policy,
+            ),
+        ),
+    )
+    return authority_evidence_from_context(
+        context,
+        channel="test_fixture",
         permission_policy_sha256="a" * 64,
     )
 
@@ -76,6 +101,7 @@ def append_event(
     affected: ProposalDecisionEvent | None = None,
     impact_required: bool = False,
     proposal_text_override: str = "",
+    authority_evidence: ProposalDecisionAuthorityEvidence | None = None,
 ) -> tuple[ProposalDecisionLedger, ProposalDecisionEvent]:
     codec = ProposalDecisionLedgerCodec()
     proposal_text = proposal_text_override or proposal_markdown(ledger.proposal_id)
@@ -106,7 +132,7 @@ def append_event(
         rationale=reason,
         conditions=conditions,
         decided_on=decided_on,
-        authority=authority(),
+        authority=authority_evidence or authority(),
         predecessor=ledger.events[-1] if ledger.events else None,
         proposal_semantic_sha256=proposal_sha,
         decision_semantic_sha256=decision_sha,
@@ -146,7 +172,7 @@ def ledger_with_acceptance(
     )
 
 
-def write_v3_proposal(
+def write_current_proposal(
     proposal_dir: Path,
     ledger: ProposalDecisionLedger,
     *,

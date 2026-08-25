@@ -7,7 +7,6 @@ import yaml
 from p2p_engine.core.mutation_preview import semantic_sha256
 from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionAffectedDecision,
-    ProposalDecisionAuthorityEvidence,
     ProposalDecisionCondition,
     ProposalDecisionEventType,
     ProposalDecisionImpactBinding,
@@ -24,6 +23,7 @@ from p2p_engine.services.proposal_decision_ledger import (
     render_decision_projection,
 )
 from p2p_engine.services.project_questions import ProjectQuestionStateService
+from tests.proposal_decision_fixtures import authority as decision_authority
 
 
 def initialize_project(root: Path) -> Path:
@@ -138,14 +138,7 @@ def write_proposal(
                 rationale=decision_reason,
                 conditions=conditions,
                 decided_on=decision_date,
-                authority=ProposalDecisionAuthorityEvidence(
-                    owner_id=approver,
-                    owner_role="owner",
-                    executor_actor_id=approver,
-                    executor_kind="person",
-                    channel="test_fixture",
-                    permission_policy_sha256="a" * 64,
-                ),
+                authority=decision_authority(approver),
                 predecessor=None,
                 proposal_semantic_sha256=proposal_sha,
                 decision_semantic_sha256=decision_sha,

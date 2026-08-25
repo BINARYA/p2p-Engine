@@ -55,7 +55,7 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
         policy["runtime_bootstrap"]["workspace_schema_status_command"]
         == "p2p workspace schema status"
     )
-    assert policy["runtime_bootstrap"]["workspace_schema_policy"] == "current_only_v3"
+    assert policy["runtime_bootstrap"]["workspace_schema_policy"] == "current_only_v4"
     assert (
         policy["runtime_bootstrap"]["workspace_recovery_status_command"]
         == "p2p workspace transaction status"
@@ -87,7 +87,7 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
         "stale",
     ]
     decision_policy = policy["proposal_decision_lifecycle"]
-    assert decision_policy["canonical_schema_v3_artifact"] == "decision-events.yml"
+    assert decision_policy["canonical_schema_v4_artifact"] == "decision-events.yml"
     assert decision_policy["write_protocol"] == "preview_then_exact_apply"
     assert decision_policy["reject_means_never_active"] is True
     assert decision_policy["revoke_preserves_accepted_history"] is True

@@ -4,15 +4,15 @@ registry_bundle:
   source_catalog_policy_version: registry-sources-v1
   source_fingerprint:
     algorithm: sha256
-    value: 5559ff57d8c6254196ac9d0fc219e4c3cc4d08b612d08dbc617251b432789775
+    value: 9216230f323c0e87f10e3efbf2dd9b802775c4ff5e6f159a87fe44bce8bbd4f1
   source_scopes:
     artifacts: 5cdafadee8a9c0bb0f1abcff258058f0f5a23f528e4125f052247523dba8043c
     changes: 973104ceb493c2ae33c2163a0db172bbaede4f14d6ed6d6a394b851105dcfd4f
     choices: ec440467528f29152d1957e7fe3c4b483bf35a51b0c96c83f0638b9388fe0285
-    decisions: 658c28117b116ad9e7f18aee17850b77d8b56dc6181882b8ddf151012cdea733
-    proposals: 9dc93b966af5c8a533af96503dd56438dcbb9ad9d9c349ceab6bbabd57e6188b
-    readiness: ff5054c7fa0b69dbb13107077e9dacad1eb52c039f50e3a10257e5ed8c355cec
-    relations: 6df66fb798993e76dc1331ab078b25130e250af9e268f2f8ba771a73ffeb4487
+    decisions: 0c26e14abd07b6929a2aecbd30d5a5a6206efe5c139767eae34d5c098c0e9078
+    proposals: 734b724e120de0221e2046830ec53b8d7f6dfdba609ec3378cedda55ff67daf4
+    readiness: acc6d7a179496239bc4fbb5367018f9a1ef279a34961ea659e9a3e214672e8bb
+    relations: 2fc6b97890d50c299b77c38292bff3132ba81f40e887e887ef18e4ab7c4dc551
   outputs:
     artifacts.yml:
       sha256: b7fce775e0745d27faf803cdb93a8fc920fe3cb12bc024d7037641d2e9ee8c83
@@ -24,10 +24,10 @@ registry_bundle:
       sha256: 88f73453a87a52ea4c2cad072b4f61584553e563bc6d684b10dfc1c55320150b
       records: 0
     decisions.yml:
-      sha256: 6637cb47fd3b0057a740839fd057d6f501b49c2ce8d48a1923d1253b28d0d0ff
+      sha256: a4853b0f1769784c668e25a32e5d9c271f6b4ec95eee9821a1342e61510b99a8
       records: 1
     proposals.yml:
-      sha256: cfb36a672053c14136b9af4be540f3c4b4ce75324a29e830411d638a1948248c
+      sha256: 3b10ed5afceaf7c23b0e42fef08447f2f09e02283bab40c2061eb0074e3f0947
       records: 1
     readiness.yml:
       sha256: bdc6c6888c3b669eff08c60a6a8d01c940063654929fe685d7a36d19bfd8e0de

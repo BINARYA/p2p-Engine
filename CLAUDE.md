@@ -95,7 +95,23 @@ ask you to stop, defer, or mute questions.
 
 ## Proposal Decision Lifecycle
 
-Proposal decisions are append-only governance events in workspace schema v3.
+Proposal decisions are append-only governance events in workspace schema v4.
+
+Project authority, authorized subject and executor are distinct. Inspect
+`p2p project authority show --format json` and
+`p2p project authority capabilities --format json` before a hosted governed
+write. Standalone local-policy decisions keep the current owner flow and need
+no authority-context file. An external-attestation decision must use the exact
+bounded `p2p-authority-context/v1` JSON from the trusted provider for preview
+and apply; never invent, broaden or edit its claims. P2P records this provider
+claim but does not verify it online. The hosted service must protect worker
+invocation and must never put tokens, cookies or provider payloads in the
+context.
+
+`proposal.decide` authorizes a decision. A readiness override additionally
+requires `proposal.readiness.override` with root-authority basis; a delegated
+decision grant cannot imply it. Exact replay returns the original attribution
+without re-authorizing or applying the event again.
 
 Before explaining or changing authority:
 - inspect `p2p decision status PROP-XXX`;
@@ -124,7 +140,7 @@ With MCP, use `p2p_proposal_decision_preview` and token-bound
 authority and executor identity must remain separate. MCP decision writes use
 the explicit preview/apply tools rather than CLI convenience entries.
 
-This runtime accepts workspace schema v3 only. If schema status is unsupported,
+This runtime accepts workspace schema v4 only. If schema status is unsupported,
 stop and report that the workspace must be recreated or converted outside this
 runtime. Do not create or repair `decision-events.yml`, projections, schema
 state, transaction locks, journals or candidates manually.

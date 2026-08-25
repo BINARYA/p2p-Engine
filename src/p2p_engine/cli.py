@@ -18,6 +18,7 @@ from p2p_engine.cli_commands.doctor import register_doctor_commands
 from p2p_engine.cli_commands.mutations import register_mutation_commands
 from p2p_engine.cli_commands.next_actions import register_next_commands
 from p2p_engine.cli_commands.project_ops import register_project_ops_commands
+from p2p_engine.cli_commands.project_authority import register_project_authority_commands
 from p2p_engine.cli_commands.project_readiness import register_project_readiness_commands
 from p2p_engine.cli_commands.project_status import register_project_status_commands
 from p2p_engine.cli_commands.prompts import register_prompt_commands
@@ -33,6 +34,7 @@ from p2p_engine.cli_shared import workspace as _workspace
 from p2p_engine.services.agent_selection import AgentProfileSelection, select_agent_profile
 from p2p_engine.services.gitignore_hygiene import GitignoreHygieneResult
 from p2p_engine.services.mcp_hints import McpHint, render_shell_command
+from p2p_engine.services.authority import AuthorityContractCodec
 from p2p_engine.storage.filesystem import P2PWorkspace
 from p2p_engine.core.portable_verticals import (
     PORTABLE_VERTICAL_PACKAGE_VERSION,
@@ -60,6 +62,8 @@ swot_app = typer.Typer(help="Generate SWOT prompts")
 vote_app = typer.Typer(help="Record and inspect governance votes")
 precedent_app = typer.Typer(help="Record governance decision precedents")
 project_app = typer.Typer(help="Manage rationalized project state")
+project_authority_app = typer.Typer(help="Inspect and rotate project authority")
+project_authority_rotate_app = typer.Typer(help="Preview, apply, and inspect authority rotation")
 project_brief_app = typer.Typer(help="Generate and import operational project briefs")
 project_remote_app = typer.Typer(help="Manage project remote profile")
 project_rubrics_app = typer.Typer(help="Manage project definition rubrics")
@@ -138,6 +142,7 @@ project_app.add_typer(project_definition_app, name="definition")
 project_app.add_typer(project_interaction_style_app, name="interaction-style")
 project_app.add_typer(project_vertical_app, name="vertical")
 project_app.add_typer(project_readiness_app, name="readiness")
+project_app.add_typer(project_authority_app, name="authority")
 project_readiness_app.add_typer(project_readiness_questions_app, name="questions")
 assess_app.add_typer(assess_maturity_app, name="maturity")
 intake_app.add_typer(intake_apply_app, name="apply")
@@ -188,6 +193,10 @@ register_project_ops_commands(
 register_project_readiness_commands(
     project_readiness_app,
     project_readiness_questions_app,
+)
+register_project_authority_commands(
+    project_authority_app,
+    project_authority_rotate_app,
 )
 register_work_spec_commands(change_app, spec_app, work_app)
 register_collaboration_commands(
@@ -311,6 +320,14 @@ def init(
         "--operation-key",
         help="Opaque caller-supplied operation key for JSON initialization retries",
     ),
+    authority_context: Path | None = typer.Option(
+        None,
+        "--authority-context",
+        help=(
+            "Allowlisted JSON AuthorityContext for external-attestation "
+            "initialization; valid only with --format json"
+        ),
+    ),
     output_format: str = typer.Option(
         "text",
         "--format",
@@ -329,6 +346,18 @@ def init(
         _fail("P2P_IDEMPOTENCY_KEY_REQUIRED: JSON init requires --operation-key")
     if operation_key.strip() and not json_output:
         _fail("P2P_INIT_OPERATION_KEY_REQUIRES_JSON: --operation-key requires --format json")
+    if authority_context is not None and not json_output:
+        _fail(
+            "P2P_AUTHORITY_CONTEXT_INVALID: --authority-context requires --format json"
+        )
+    parsed_authority_context = None
+    if authority_context is not None:
+        try:
+            parsed_authority_context = AuthorityContractCodec().context_from_path(
+                authority_context
+            )
+        except ValueError as exc:
+            _fail(str(exc))
     rubric_enabled: dict[str, bool] | None = None
     if name is None:
         console.print("[bold]P2P project initialization[/bold]")
@@ -430,6 +459,7 @@ def init(
                 vertical_pack=vertical_pack,
                 expected_checksum=expected_checksum,
                 vertical_pack_closure=vertical_pack_closure,
+                authority_context=parsed_authority_context,
             )
             print_json(payload)
             return
@@ -449,6 +479,7 @@ def init(
             vertical_pack=vertical_pack,
             expected_checksum=expected_checksum,
             vertical_pack_closure=vertical_pack_closure,
+            authority_context=parsed_authority_context,
         )
     except ValueError as exc:
         _fail(str(exc))

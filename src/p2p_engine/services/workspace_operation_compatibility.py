@@ -141,6 +141,8 @@ _CURRENT_SCHEMA_OPERATIONS = frozenset(
         "next_actions_refresh",
         "permissions_actor_add",
         "project_assessment_refresh",
+        "project_authority_rotate_apply",
+        "project_authority_rotate_preview",
         "project_brief_import",
         "project_brief_prompt",
         "project_definition_apply",

@@ -99,7 +99,7 @@ def test_checked_in_examples_use_only_current_workspace_and_agent_contracts() ->
             (root / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8")
         )
 
-        assert schema["current_version"] == 3
+        assert schema["current_version"] == 4
         assert runtime == {"requires": f"=={__version__}", "recommended": __version__}
         assert integration["adapters"]["codex"]["status"] == "installed"
         assert not (root / ".codex" / "skills").exists()

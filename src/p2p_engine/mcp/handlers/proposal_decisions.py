@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
+from p2p_engine.core.authority import AuthorityMode
 from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionCondition,
     ProposalDecisionEventType,
@@ -13,6 +14,7 @@ from p2p_engine.core.proposal_decision_events import (
 from p2p_engine.mcp.consent_audit import consume_consent_with_audit
 from p2p_engine.mcp.handlers.common import required, to_jsonable
 from p2p_engine.foundation.yaml_loaders import load_yaml
+from p2p_engine.services.authority import AuthorityContractCodec
 from p2p_engine.storage.filesystem import P2PWorkspace
 
 
@@ -78,6 +80,11 @@ def handle_proposal_decision_tool(
                 request,
                 preview_token=required(arguments, "preview_token"),
                 confirm=_required_true(arguments, "confirm"),
+            ),
+            external_authority=(
+                request.authority_context is not None
+                and request.authority_context.mode
+                == AuthorityMode.external_attestation
             ),
         )
     if name == f"{_PREFIX}projection_repair_preview":
@@ -204,6 +211,13 @@ def _request(
         impact_preview_token=_optional_text(arguments, "impact_preview_token"),
         drift_acknowledged=_bool(arguments, "drift_acknowledged"),
         readiness_override=_bool(arguments, "readiness_override"),
+        authority_context=(
+            AuthorityContractCodec().context_from_mapping(
+                _authority_context_mapping(arguments)
+            )
+            if arguments.get("authority_context") is not None
+            else None
+        ),
     )
 
 
@@ -214,6 +228,7 @@ def _apply_with_consent(
     proposal_id: str,
     apply: Callable[[], object],
     wrapper: str = "proposal_decision",
+    external_authority: bool = False,
 ) -> dict[str, object]:
     preview_token = required(arguments, "preview_token")
     actor_id = required(arguments, "actor_id")
@@ -258,7 +273,8 @@ def _apply_with_consent(
         raise ValueError(
             f"P2P374_DECISION_CONSENT_MISMATCH: {exc}"
         ) from exc
-    _validate_current_consent_approver(workspace, receipt)
+    if not external_authority:
+        _validate_current_consent_approver(workspace, receipt)
     before_head = workspace.proposal_decision_status(proposal_id).head_event_id
     try:
         result = apply()
@@ -300,16 +316,35 @@ def _apply_with_consent(
         consent_id,
         result=binding,
     )
+    event = payload.get("event")
+    event_mapping = event if isinstance(event, Mapping) else {}
+    authority = event_mapping.get("authority")
+    authority_mapping = authority if isinstance(authority, Mapping) else {}
+    subject = authority_mapping.get("subject")
+    executor = authority_mapping.get("executor")
+    subject_mapping = subject if isinstance(subject, Mapping) else {}
+    executor_mapping = executor if isinstance(executor, Mapping) else {}
     return {
         wrapper: payload,
         "consent": to_jsonable(consumed),
         "governance": {
             "owner_decision_required": True,
             "decision_made": True,
-            "executor_actor_id": actor_id,
-            "owner_id": required(arguments, "owner_id"),
+            "subject_id": subject_mapping.get("id"),
+            "executor_id": executor_mapping.get("id"),
+            "authority_id": authority_mapping.get("authority_id"),
+            "authority_mode": authority_mapping.get("mode"),
         },
     }
+
+
+def _authority_context_mapping(
+    arguments: Mapping[str, Any],
+) -> Mapping[str, object]:
+    value = arguments.get("authority_context")
+    if not isinstance(value, Mapping):
+        raise ValueError("authority_context must be an object")
+    return value
 
 
 def _validate_consumed_receipt(

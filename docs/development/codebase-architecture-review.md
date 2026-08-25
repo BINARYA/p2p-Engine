@@ -8,7 +8,7 @@ l'architettura futura del prodotto.
 
 > Nota 0.4.6: questa fotografia resta intenzionalmente riferita alla 0.4.1.
 > La baseline corrente ha rimosso analyzer, registry, handler e CLI delle
-> workspace migration; supporta solo workspace schema 3 e vertical-pack schema
+> workspace migration; supporta solo workspace schema 4 e vertical-pack schema
 > 2. Il journal atomico corrente e' separato sotto
 > `.p2p/.internal/workspace-transactions/`. Per i contratti operativi correnti
 > vedere [`WORKSPACE-SCHEMA.md`](../WORKSPACE-SCHEMA.md) e

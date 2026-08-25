@@ -25,9 +25,18 @@ comandi diretti sulla root: 6
 
 > Nota 0.4.6: questo inventario resta la fotografia storica del tag v0.4.5.
 > La 0.4.6 rimuove `workspace migrate`, `project vertical propose` e
-> `project vertical add`; accetta solo workspace schema 3 e vertical-pack
+> `project vertical add`; accetta solo workspace schema 4 e vertical-pack
 > schema 2. Le superfici correnti sono documentate in
 > [`CLI-GUIDE.md`](../CLI-GUIDE.md) e sono sempre verificabili con `p2p --help`.
+
+> Estensione schema 4: la superficie corrente espone
+> `p2p project authority show`, `capabilities` e
+> `rotate preview|apply|status`. `p2p init`, `p2p decision preview|apply` e la
+> rotazione accettano il contratto JSON tipizzato `--authority-context` nelle
+> modalità documentate. Le capability con stato `planned` o
+> `existing_unintegrated` non sono presentate come mutazioni esterne già
+> disponibili. Il registro eseguibile resta
+> `p2p project authority capabilities --format json`.
 
 L'inventario e' stato estratto dal registro Typer costruito da
 [`cli.py`](../../src/p2p_engine/cli.py) e dai moduli in

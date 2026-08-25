@@ -168,7 +168,7 @@ effect of a contract update.
 ### Current Workspace Schema
 
 Workspace layout versioning is independent from the runtime contract. P2P
-Engine 0.4.11 accepts schema 3 only. Inspect schema alignment and interrupted
+Engine 0.4.11 accepts schema 4 only. Inspect schema alignment and interrupted
 transaction state without writing:
 
 ```bash
@@ -569,7 +569,7 @@ p2p project readiness questions next --format json
 ```
 
 The review reports prioritized typed gaps, counts, bounded legacy evidence and
-concrete next operations. On workspace schema v3, project questions live in
+concrete next operations. On workspace schema v4, project questions live in
 `.p2p/project/questions.yml`; definition `open_questions` remain empty.
 
 Only the declared project owner can answer, replace, defer, mute, reopen or
@@ -877,8 +877,10 @@ evidence hints only; follow the displayed P2P commands for changes.
 
 ## 6. Decide A Proposal
 
-Proposal decisions are owner-controlled. Use these only when the owner has made
-the corresponding decision. Schema-v3 decisions are append-only events in
+Proposal decisions require `proposal.decide`. In local-policy projects this
+preserves the owner-controlled flow. External-attestation projects may use a
+delegated subject when the trusted provider supplies an exact typed context.
+Schema-4 decisions are append-only events in
 `decision-events.yml`; `decision.md` and the proposal status are deterministic
 projections.
 
@@ -910,6 +912,13 @@ p2p decision apply PROP-001 \
   --preview-token '<preview-token>' \
   --confirm
 ```
+
+For hosted authority, add the same `--authority-context context.json`,
+`--actor`, `--executor-actor` and `--executor-kind` to preview and apply. The
+context digest and the distinct subject/executor identities are persisted in
+the decision event and mutation receipt. `--override-readiness` additionally
+requires a root-authority `proposal.readiness.override` claim. See
+[`AUTHORITY-CONTEXT.md`](AUTHORITY-CONTEXT.md).
 
 `proposal accept`, `proposal reject`, `proposal defer`, and `decision record`
 are deliberate convenience entries into the same current decision service. Without a token they only return

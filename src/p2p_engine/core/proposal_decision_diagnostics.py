@@ -100,10 +100,10 @@ _KNOWN = (
         "Grant proposal_decision_apply consent for the exact PROP-ID@preview-token target.",
     ),
     (
-        "P2P375_DECISION_SCHEMA_V3_REQUIRED",
-        "Workspace schema v3 required",
+        "P2P375_DECISION_SCHEMA_V4_REQUIRED",
+        "Workspace schema v4 required",
         "error",
-        "Inspect workspace schema status; this runtime supports schema v3 only.",
+        "Inspect workspace schema status; this runtime supports schema v4 only.",
     ),
     (
         "P2P376_DECISION_FUTURE_CONTRACT",

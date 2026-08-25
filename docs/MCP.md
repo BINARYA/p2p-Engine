@@ -490,16 +490,25 @@ contribution-list contract. MCP does not wrap these payloads in `p2p-cli/v1`.
 Unsupported generic artifact writes remain unsupported. Agents should report the
 missing primitive instead of writing arbitrary files under `.p2p/`.
 
-MCP exposes token-bound proposal decision preview/apply tools. Apply requires a
+MCP exposes token-bound proposal decision preview/apply tools. Their optional
+`authority_context` object is the same closed `p2p-authority-context/v1`
+contract accepted by the generic decision CLI. It records project authority,
+authorized subject and actual executor separately; it never accepts arbitrary
+provider payloads. Apply requires a
 granted `proposal_decision_apply` receipt whose target is exactly
 `PROP-XXX@preview-token`; owner authority and executor identity remain
 separate. Legacy `p2p_proposal_accept`, `p2p_proposal_reject`, and
 `p2p_proposal_defer` tools are preview-only compatibility surfaces. Their old
-unbound consent receipts cannot write schema-v3 events and are not consumed.
+unbound consent receipts cannot write schema-4 events and are not consumed.
 It also exposes local MCP parity for the managed Work lifecycle through
 domain-specific Work tools. It still does not expose choice decisions, spec
 imports, conflict recording, voting, precedent recording, choice blocking, raw
 Git shortcuts, provider PR/MR creation, remote HTTP MCP, or a hosted IAM model.
+
+P2P performs no provider network verification. A hosted MCP gateway must
+authenticate and authorize before constructing the context and must protect
+worker invocation. Local MCP consent remains a separate transport safety gate.
+Authority rotation apply is intentionally not exposed over MCP.
 
 For end-to-end proposal collaboration, MCP can prepare the path but cannot grant
 owner consent:

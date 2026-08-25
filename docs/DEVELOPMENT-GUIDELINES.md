@@ -166,11 +166,15 @@ an active registry record. Generated actions remain derived and must not be
 written to curated next-action storage.
 
 `ProposalDecisionService` owns all proposal authority mutations. Workspace
-schema v3 stores one append-only proposal-local ledger and derives proposal and
+schema v4 stores one append-only proposal-local ledger and derives proposal and
 decision projections from it. CLI and MCP adapters must use the same
 preview/apply request, token, retry and transition rules. A read, preview or
 failed apply must not write state. MCP consent binds the exact proposal and
-preview token and must not collapse owner authority into executor identity.
+preview token and must not collapse project authority, authorized subject and
+executor identity. Integrated governed writes resolve authority through
+`ProjectAuthorityService`; core services must not import hosted roles, grant
+tables or provider clients. External attestations are validated offline and
+the invoking server remains responsible for protecting the worker boundary.
 Dependent Change, Work, spec, vertical, project or publication lifecycles are
 reported as impact and remediation work; decision apply never rewrites them.
 

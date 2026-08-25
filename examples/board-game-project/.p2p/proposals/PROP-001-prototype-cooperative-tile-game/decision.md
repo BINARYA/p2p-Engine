@@ -28,13 +28,17 @@ The example deliberately accepts the bounded prototype direction.
 
 owner
 
-## Owner
+## Project Authority
+
+p2p-example-board-game-authority
+
+## Executor
 
 owner
 
 ## Ledger Head
 
-PDE-7a7d2b993dbeb32bd424567c
+PDE-229234a3e0cb278700b27df0
 
 ## Decision Fingerprint
 

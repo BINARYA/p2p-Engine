@@ -89,8 +89,8 @@ def test_fast_status_uses_preflight_and_never_calls_deep_providers(tmp_path: Pat
         {
             "state": "current",
             "layout_status": "layout_current",
-            "current_version": 3,
-            "target_version": 3,
+            "current_version": 4,
+            "target_version": 4,
             "migration_required": False,
             "recovery": {},
         },

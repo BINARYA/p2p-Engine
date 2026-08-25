@@ -9,7 +9,7 @@ decisions:
   reason: The example deliberately accepts the bounded prototype direction.
   effective_state: accepted
   head_event_type: accepted
-  head_event_id: PDE-7a7d2b993dbeb32bd424567c
+  head_event_id: PDE-229234a3e0cb278700b27df0
   event_count: 1
   authority_resolution: resolved
   active: true

@@ -8,6 +8,8 @@ from pathlib import Path
 
 import yaml
 
+from p2p_engine.core.authority import AuthorityContext, ProjectAuthorityDescriptor
+from p2p_engine.core.mutation_preview import semantic_sha256, source_precondition
 from p2p_engine.core.runtime_contract import RUNTIME_SETUP_GUIDE_MARKER
 from p2p_engine.core.workspace_schema import (
     CURRENT_WORKSPACE_SCHEMA_VERSION,
@@ -27,8 +29,9 @@ from p2p_engine.services.project_maturity import (
 )
 from p2p_engine.services.readiness import DEFAULT_READINESS_PROFILE_ID
 from p2p_engine.services.project_questions import ProjectQuestionStateService
+from p2p_engine.services.authority import ProjectAuthorityService
 from p2p_engine.services.runtime_contract import RuntimeContractService
-from p2p_engine.services.workspace_schema import WorkspaceSchemaService
+from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 
 REPOSITORY_MODES = {"local", "cloud"}
 
@@ -94,6 +97,7 @@ class ProjectInitializationService:
         remote_provider: str | None = None,
         remote_name: str = "origin",
         remote_url_value: str | None = None,
+        authority_context: AuthorityContext | None = None,
     ) -> list[Path]:
         return self.init_project_with_summary(
             name=name,
@@ -105,6 +109,7 @@ class ProjectInitializationService:
             remote_provider=remote_provider,
             remote_name=remote_name,
             remote_url_value=remote_url_value,
+            authority_context=authority_context,
         ).created
 
     def init_project_with_summary(
@@ -118,6 +123,7 @@ class ProjectInitializationService:
         remote_provider: str | None = None,
         remote_name: str = "origin",
         remote_url_value: str | None = None,
+        authority_context: AuthorityContext | None = None,
     ) -> ProjectInitializationResult:
         is_new_project = not (self.p2p_dir / "project.yml").exists()
         agent_selection = self.select_agent_profile(agent_profile)
@@ -129,6 +135,15 @@ class ProjectInitializationService:
             remote=remote_name,
             url=remote_url_value,
         )
+        permissions_payload = self.permissions_default_policy_payload(
+            owner_name=owner,
+            repository_mode=repository_mode,
+        )
+        authority_descriptor = self._bootstrap_authority_descriptor(
+            is_new_project=is_new_project,
+            owner=owner,
+            authority_context=authority_context,
+        )
         files = self._bootstrap_files(
             name=name,
             repository_mode=repository_mode,
@@ -136,20 +151,17 @@ class ProjectInitializationService:
             rubric_enabled=rubric_enabled,
             owner=owner,
             remote_profile=remote_profile,
+            permissions_payload=permissions_payload,
+            authority_descriptor=authority_descriptor,
         )
-        created = self._write_missing_files(files)
-        if is_new_project:
-            schema_service = WorkspaceSchemaService(root=self.root, p2p_dir=self.p2p_dir)
-            schema_service.write_state(
-                WorkspaceSchemaState(
-                    contract_version=WORKSPACE_SCHEMA_CONTRACT_VERSION,
-                    current_version=CURRENT_WORKSPACE_SCHEMA_VERSION,
-                    baseline="initialized_current",
-                    initialized_at=date.today().isoformat(),
-                    initialized_by=owner or "owner",
-                )
-            )
-            created.append(schema_service.path.relative_to(self.root))
+        created = self._write_missing_files(
+            files,
+            actor=(
+                authority_context.executor.identity_id
+                if authority_context is not None
+                else owner or "owner"
+            ),
+        )
         warnings = self._setup_guide_warnings()
         created.extend(self._create_missing_directories())
         gitignore_hygiene = self.apply_gitignore_hygiene(self.root)
@@ -181,6 +193,8 @@ class ProjectInitializationService:
         rubric_enabled: dict[str, bool] | None,
         owner: str | None,
         remote_profile: dict[str, object],
+        permissions_payload: dict[str, object],
+        authority_descriptor: ProjectAuthorityDescriptor | None,
     ) -> dict[Path, str]:
         runtime_service = RuntimeContractService(root=self.root, p2p_dir=self.p2p_dir)
         is_new_project = not (self.p2p_dir / "project.yml").exists()
@@ -225,10 +239,7 @@ class ProjectInitializationService:
                 rubrics_payload(project_domain, rubric_enabled=rubric_enabled)
             ),
             self.p2p_dir / "project" / "permissions.yml": _yaml_dump(
-                self.permissions_default_policy_payload(
-                    owner_name=owner,
-                    repository_mode=repository_mode,
-                )
+                permissions_payload
             ),
         }
         if is_new_project:
@@ -251,16 +262,103 @@ class ProjectInitializationService:
         if is_new_project:
             files[runtime_service.contract_path] = _yaml_dump(runtime_service.default_contract_payload())
             files[runtime_service.setup_guide_path] = runtime_service.render_setup_guide()
+            schema = WorkspaceSchemaState(
+                contract_version=WORKSPACE_SCHEMA_CONTRACT_VERSION,
+                current_version=CURRENT_WORKSPACE_SCHEMA_VERSION,
+                baseline="initialized_current",
+                initialized_at=date.today().isoformat(),
+                initialized_by=owner or "owner",
+            )
+            files[self.p2p_dir / "project" / "workspace-schema.yml"] = _yaml_dump(
+                schema.to_payload()
+            )
+            if authority_descriptor is None:
+                raise ValueError(
+                    "P2P_AUTHORITY_CONTEXT_INVALID: new project authority is missing"
+                )
+            files[self.p2p_dir / "project" / "authority.yml"] = (
+                ProjectAuthorityService(
+                    root=self.root,
+                    p2p_dir=self.p2p_dir,
+                )
+                .descriptor_bytes(authority_descriptor)
+                .decode("ascii")
+            )
         return files
 
-    def _write_missing_files(self, files: dict[Path, str]) -> list[Path]:
+    def _write_missing_files(
+        self,
+        files: dict[Path, str],
+        *,
+        actor: str,
+    ) -> list[Path]:
         created: list[Path] = []
+        canonical = {
+            path.relative_to(self.root).as_posix(): content.encode("utf-8")
+            for path, content in files.items()
+            if path.is_relative_to(self.p2p_dir) and not path.exists()
+        }
+        if canonical:
+            preview_token = semantic_sha256(
+                {
+                    "operation": "project.bootstrap",
+                    "candidates": {
+                        path: semantic_sha256({"content": content.decode("utf-8")})
+                        for path, content in sorted(canonical.items())
+                    },
+                }
+            )
+            result = AtomicMutationWriter(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+            ).apply(
+                operation_id="project-bootstrap",
+                candidates=canonical,
+                sources=tuple(
+                    source_precondition(path, None) for path in sorted(canonical)
+                ),
+                preview_token=preview_token,
+                actor=actor,
+            )
+            if result.status != "applied":
+                raise ValueError(
+                    "P2P_INIT_BOOTSTRAP_FAILED: " + (result.message or result.status)
+                )
+            created.extend(Path(path) for path in result.changed_paths)
         for path, content in files.items():
+            if path.is_relative_to(self.p2p_dir):
+                continue
             if not path.exists():
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(content, encoding="utf-8")
                 created.append(path.relative_to(self.root))
         return created
+
+    def _bootstrap_authority_descriptor(
+        self,
+        *,
+        is_new_project: bool,
+        owner: str | None,
+        authority_context: AuthorityContext | None,
+    ) -> ProjectAuthorityDescriptor | None:
+        service = ProjectAuthorityService(root=self.root, p2p_dir=self.p2p_dir)
+        if not is_new_project:
+            descriptor = service.read_descriptor()
+            if authority_context is not None:
+                service.validate_context(
+                    authority_context,
+                    required_capabilities=("project.initialize",),
+                    descriptor=descriptor,
+                )
+            return None
+        if authority_context is None:
+            return service.new_local_descriptor(
+                display_name=(f"Local authority for {owner}" if owner else "")
+            )
+        return service.descriptor_from_bootstrap_context(
+            authority_context,
+            display_name="External project authority",
+        )
 
     def _setup_guide_warnings(self) -> list[str]:
         setup_path = self.root / "P2P-SETUP.md"

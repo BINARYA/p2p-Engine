@@ -83,7 +83,7 @@ def test_reinitializing_workspace_does_not_silently_recreate_missing_schema(tmp_
 def test_schema_parser_rejects_obsolete_history_and_unknown_fields(tmp_path: Path) -> None:
     base: dict[str, object] = {
         "contract_version": 1,
-        "current_version": 3,
+        "current_version": 4,
         "baseline": "initialized_current",
         "initialized_at": "2026-07-15",
         "initialized_by": "owner",
@@ -111,7 +111,7 @@ def test_schema_parser_rejects_obsolete_history_and_unknown_fields(tmp_path: Pat
 
 @pytest.mark.parametrize(
     ("contract_version", "schema_version"),
-    [(2, 3), (1, 1), (1, 2), (1, 4)],
+    [(2, 4), (1, 1), (1, 2), (1, 5)],
 )
 def test_every_non_current_contract_is_unsupported(
     tmp_path: Path,
@@ -205,6 +205,29 @@ def test_current_schema_validation_requires_valid_question_authority(tmp_path: P
     questions_path.write_bytes(original + b"unknown: true\n")
     malformed = workspace.validate()
     assert any(item.code == "P2P340_PROJECT_QUESTIONS_INVALID" for item in malformed.findings)
+
+
+def test_current_schema_requires_valid_project_authority_descriptor(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Authority Validation", owner="owner")
+    authority_path = tmp_path / ".p2p" / "project" / "authority.yml"
+    original = authority_path.read_bytes()
+
+    authority_path.unlink()
+    missing = workspace.workspace_schema_status()
+    assert any(
+        item.code == "P2P305_WORKSPACE_LAYOUT_MISSING"
+        and item.path == ".p2p/project/authority.yml"
+        for item in missing.findings
+    )
+
+    authority_path.write_bytes(original + b"unknown: true\n")
+    malformed = workspace.workspace_schema_status()
+    assert any(
+        item.code == "P2P_AUTHORITY_CONTEXT_INVALID"
+        and item.path == ".p2p/project/authority.yml"
+        for item in malformed.findings
+    )
 
 
 def test_current_schema_rejects_competing_definition_questions(tmp_path: Path) -> None:

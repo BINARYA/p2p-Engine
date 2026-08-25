@@ -1,13 +1,13 @@
 proposal_decision_ledger:
-  contract_version: 1
+  contract_version: 2
   proposal_id: PROP-001
   authority_resolution: resolved
   effective_state: accepted
-  head_event_id: PDE-7a7d2b993dbeb32bd424567c
+  head_event_id: PDE-229234a3e0cb278700b27df0
   events:
-  - event_schema_version: 1
-    event_id: PDE-7a7d2b993dbeb32bd424567c
-    operation_key: P2POP-fae812f6be5c4f3c1528256d
+  - event_schema_version: 2
+    event_id: PDE-229234a3e0cb278700b27df0
+    operation_key: P2POP-d5604f851171469a0aa63b31
     proposal_id: PROP-001
     event_type: accepted
     effective_state: accepted
@@ -15,11 +15,26 @@ proposal_decision_ledger:
     conditions: []
     decided_on: '2026-08-04'
     authority:
-      owner_id: owner
-      owner_role: owner
-      executor_actor_id: owner
-      executor_kind: person
-      channel: cli
+      schema: p2p-authority-evidence/v1
+      mode: local_policy
+      authority_id: p2p-example-board-game-authority
+      authority_generation: 1
+      subject:
+        id: owner
+        kind: person
+      executor:
+        id: owner
+        kind: person
+      claims:
+      - capability: proposal.decide
+        basis: local_policy
+      authorization_decision_id: p2p-example-board-game-decision
+      authority_context_sha256: b95b75d6ae68046662a5c9257d0abc29cc719609dc2a72178364a191f895898c
+      channel: example
+      provider_id: null
+      provider_policy_version: null
+      local_policy_version: p2p-local-authority/v1
+      authorized_at: null
       permission_policy_sha256: ba5abcbe4702b7e94108b01ae84e5faf8aa01c66c518876e10df887bf3079e11
       consent_id: null
       consent_sha256: null
@@ -41,9 +56,9 @@ proposal_decision_ledger:
       source_fingerprint_sha256: null
       total_count: 0
     readiness:
-      source_fingerprint_sha256: 8dd0aa5938b85de5463b3c058a90ad09fc17bf06ddc7ea3ede93e67b7e0281c8
-      owner_override: true
+      source_fingerprint_sha256: null
+      owner_override: false
     mutation:
-      preview_token: 342da3ec75d490154d4b9a1eb140420a4ba8e6ea4697ea1150f40b043cd908a2
-      request_fingerprint_sha256: 07828f07d227cc3cf811e14321ac4599c179542562e9c063f2ccfddc9125cf18
-    event_sha256: 23838efbd10bfd0e0443c309f04892a62cd638f7aec4314dadb4c245a5d7fb7a
+      preview_token: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+      request_fingerprint_sha256: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+    event_sha256: e703d7db83d498a517195b43782a5eaca3bb5df0a58b0a8c04308aa779d24773

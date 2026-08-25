@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Mapping
 
+from p2p_engine.core.authority import AuthorityContext, AuthorityEvidence
 from p2p_engine.core.mutation_preview import MutationPreview, MutationResult
 
 
@@ -107,28 +108,7 @@ class ProposalDecisionCondition:
         return {"id": self.condition_id, "text": self.text}
 
 
-@dataclass(frozen=True)
-class ProposalDecisionAuthorityEvidence:
-    owner_id: str
-    owner_role: str
-    executor_actor_id: str
-    executor_kind: str
-    channel: str
-    permission_policy_sha256: str
-    consent_id: str | None = None
-    consent_sha256: str | None = None
-
-    def to_dict(self) -> dict[str, object]:
-        return {
-            "owner_id": self.owner_id,
-            "owner_role": self.owner_role,
-            "executor_actor_id": self.executor_actor_id,
-            "executor_kind": self.executor_kind,
-            "channel": self.channel,
-            "permission_policy_sha256": self.permission_policy_sha256,
-            "consent_id": self.consent_id,
-            "consent_sha256": self.consent_sha256,
-        }
+ProposalDecisionAuthorityEvidence = AuthorityEvidence
 
 
 @dataclass(frozen=True)
@@ -479,6 +459,7 @@ class ProposalDecisionRequest:
     readiness_override: bool = False
     consent_id: str | None = None
     consent_sha256: str | None = None
+    authority_context: AuthorityContext | None = None
 
 
 @dataclass(frozen=True)
@@ -510,6 +491,11 @@ class ProposalDecisionPreview:
                 "revocation_event_id": self.request.revocation_event_id,
                 "drift_acknowledged": self.request.drift_acknowledged,
                 "readiness_override": self.request.readiness_override,
+                "authority_context": (
+                    self.request.authority_context.to_dict()
+                    if self.request.authority_context is not None
+                    else None
+                ),
             },
             "preview": self.mutation.to_dict(),
             "event": self.event.to_dict(),

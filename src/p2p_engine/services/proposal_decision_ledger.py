@@ -7,6 +7,7 @@ from typing import Mapping
 
 import yaml
 
+from p2p_engine.core.authority import AuthorityBasis
 from p2p_engine.foundation.yaml_loaders import DuplicateYamlKeyError, load_yaml
 
 from p2p_engine.core.mutation_preview import semantic_sha256
@@ -29,10 +30,11 @@ from p2p_engine.core.proposal_decision_events import (
 )
 from p2p_engine.foundation.files import yaml_dump
 from p2p_engine.foundation.markdown import read_markdown_section, read_title, replace_section
+from p2p_engine.services.authority import AuthorityContractCodec
 
 
-LEDGER_CONTRACT_VERSION = 1
-EVENT_SCHEMA_VERSION = 1
+LEDGER_CONTRACT_VERSION = 2
+EVENT_SCHEMA_VERSION = 2
 EVENT_INTEGRITY_POLICY_VERSION = 1
 PROPOSAL_SEMANTICS_POLICY_VERSION = 1
 DECISION_SEMANTICS_POLICY_VERSION = 1
@@ -79,18 +81,6 @@ _EVENT_KEYS = frozenset(
         "event_sha256",
     }
 )
-_AUTHORITY_KEYS = frozenset(
-    {
-        "owner_id",
-        "owner_role",
-        "executor_actor_id",
-        "executor_kind",
-        "channel",
-        "permission_policy_sha256",
-        "consent_id",
-        "consent_sha256",
-    }
-)
 _PREDECESSOR_KEYS = frozenset({"event_id", "event_sha256"})
 _AFFECTED_KEYS = frozenset(
     {"event_id", "decision_semantic_sha256", "revocation_event_id"}
@@ -132,6 +122,9 @@ def strict_yaml_load(content: bytes) -> object:
 
 
 class ProposalDecisionLedgerCodec:
+    def __init__(self) -> None:
+        self.authority_codec = AuthorityContractCodec()
+
     def empty(self, proposal_id: str) -> ProposalDecisionLedger:
         _validate_proposal_id(proposal_id)
         return ProposalDecisionLedger(
@@ -476,7 +469,6 @@ class ProposalDecisionLedgerCodec:
         impact_raw = _required_mapping(raw, "impact")
         readiness_raw = _required_mapping(raw, "readiness")
         mutation_raw = _required_mapping(raw, "mutation")
-        _closed_keys(authority_raw, _AUTHORITY_KEYS, "authority")
         _closed_keys(predecessor_raw, _PREDECESSOR_KEYS, "predecessor")
         _closed_keys(affected_raw, _AFFECTED_KEYS, "affected_decision")
         _closed_keys(lineage_raw, _LINEAGE_KEYS, "lineage")
@@ -504,22 +496,7 @@ class ProposalDecisionLedgerCodec:
             rationale=_required_text(raw, "rationale"),
             conditions=conditions,
             decided_on=_required_text(raw, "decided_on"),
-            authority=ProposalDecisionAuthorityEvidence(
-                owner_id=_required_text(authority_raw, "owner_id"),
-                owner_role=_required_text(authority_raw, "owner_role"),
-                executor_actor_id=_required_text(authority_raw, "executor_actor_id"),
-                executor_kind=_required_text(authority_raw, "executor_kind"),
-                channel=_required_text(authority_raw, "channel"),
-                permission_policy_sha256=_required_text(
-                    authority_raw,
-                    "permission_policy_sha256",
-                ),
-                consent_id=_optional_text(authority_raw.get("consent_id"), "authority.consent_id"),
-                consent_sha256=_optional_text(
-                    authority_raw.get("consent_sha256"),
-                    "authority.consent_sha256",
-                ),
-            ),
+            authority=self.authority_codec.evidence_from_mapping(authority_raw),
             predecessor=ProposalDecisionPredecessor(
                 event_id=_optional_text(predecessor_raw.get("event_id"), "predecessor.event_id"),
                 event_sha256=_optional_text(
@@ -620,14 +597,37 @@ class ProposalDecisionLedgerCodec:
         for value, field in (
             (event.proposal_semantic_sha256, "proposal_semantic_sha256"),
             (event.decision_semantic_sha256, "decision_semantic_sha256"),
-            (event.authority.permission_policy_sha256, "permission_policy_sha256"),
+            (event.authority.authority_context_sha256, "authority_context_sha256"),
             (event.mutation.preview_token, "preview_token"),
             (event.mutation.request_fingerprint_sha256, "request_fingerprint_sha256"),
             (event.event_sha256, "event_sha256"),
         ):
             _validate_sha256(value, field)
-        if event.authority.owner_role != "owner":
-            raise _invalid("event authority owner_role must be owner")
+        decide_claim = next(
+            (
+                claim
+                for claim in event.authority.claims
+                if claim.capability == "proposal.decide"
+            ),
+            None,
+        )
+        if decide_claim is None:
+            raise _invalid("event authority must include proposal.decide")
+        override_claim = next(
+            (
+                claim
+                for claim in event.authority.claims
+                if claim.capability == "proposal.readiness.override"
+            ),
+            None,
+        )
+        if event.readiness.owner_override:
+            if override_claim is None or override_claim.basis != AuthorityBasis.root_authority:
+                raise _invalid(
+                    "readiness override requires root proposal.readiness.override authority"
+                )
+        elif override_claim is not None:
+            raise _invalid("unexpected proposal.readiness.override authority claim")
         validate_lineage(event.lineage, proposal_id=proposal_id, event_type=event.event_type)
         expected_hash = semantic_sha256(event.to_dict(include_hash=False))
         if event.event_sha256 != expected_hash:
@@ -815,9 +815,11 @@ def render_decision_projection(
         "## Date\n\n"
         f"{event.decided_on}\n\n"
         "## Approver\n\n"
-        f"{event.authority.owner_id}\n\n"
-        "## Owner\n\n"
-        f"{event.authority.owner_id}\n\n"
+        f"{event.authority.subject.identity_id}\n\n"
+        "## Project Authority\n\n"
+        f"{event.authority.authority_id}\n\n"
+        "## Executor\n\n"
+        f"{event.authority.executor.identity_id}\n\n"
         "## Ledger Head\n\n"
         f"{event.event_id}\n\n"
         "## Decision Fingerprint\n\n"

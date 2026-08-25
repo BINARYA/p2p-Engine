@@ -42,7 +42,7 @@ def test_project_snapshot_handles_project_without_proposals(tmp_path: Path) -> N
     assert snapshot["contract_version"] == "p2p-project-snapshot/v1"
     assert snapshot["project"]["name"] == "Snapshot Project"
     assert snapshot["runtime"]["compatible"] is True
-    assert snapshot["workspace_schema"]["current_version"] == 3
+    assert snapshot["workspace_schema"]["current_version"] == 4
     assert snapshot["transactions"]["required"] is False
     assert snapshot["vertical"]["active"]["vertical_id"] == "base_project"
     assert snapshot["sections"]["total"] >= 1

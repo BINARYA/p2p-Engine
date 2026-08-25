@@ -22,7 +22,7 @@ def test_semantic_inventory_is_read_only_and_records_governed_families(tmp_path:
     (root / ".p2p" / "project").mkdir()
     (root / ".p2p" / "project.yml").write_text("project:\n  name: Demo\n", encoding="utf-8")
     (root / ".p2p" / "project" / "workspace-schema.yml").write_text(
-        "workspace_schema:\n  current_version: 3\n",
+        "workspace_schema:\n  current_version: 4\n",
         encoding="utf-8",
     )
     (proposal / "proposal.md").write_text(

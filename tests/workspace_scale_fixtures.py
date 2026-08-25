@@ -17,8 +17,7 @@ from p2p_engine.services.proposal_decision_ledger import (
 from p2p_engine.storage.filesystem import P2PWorkspace
 from tests.proposal_decision_fixtures import (
     append_event,
-    proposal_markdown,
-    write_v3_proposal,
+    write_current_proposal,
 )
 
 
@@ -34,14 +33,14 @@ def build_scale_workspace(
     root: Path,
     *,
     proposal_count: int,
-    schema_version: int = 3,
+    schema_version: int = 4,
     rich_proposals: int = 100,
     reverse_enumeration: bool = False,
 ) -> ScaleWorkspace:
     if proposal_count < 1:
         raise ValueError("proposal_count must be positive")
-    if schema_version not in {2, 3}:
-        raise ValueError("schema_version must be 2 or 3")
+    if schema_version != 4:
+        raise ValueError("schema_version must be 4")
     workspace = P2PWorkspace(root)
     workspace.init_project(
         "Read Performance Fixture",
@@ -49,11 +48,12 @@ def build_scale_workspace(
         vertical_id="software_project",
         owner="owner",
     )
-    if schema_version == 2:
-        schema_path = root / ".p2p/project/workspace-schema.yml"
-        payload = yaml.safe_load(schema_path.read_text(encoding="utf-8"))
-        payload["workspace_schema"]["current_version"] = 2
-        schema_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    authority_service = workspace._project_authority_service()
+    descriptor = authority_service.new_local_descriptor(
+        authority_id="p2p-test-project-authority",
+        display_name="Read performance fixture authority",
+    )
+    authority_service.path.write_bytes(authority_service.descriptor_bytes(descriptor))
 
     proposal_ids = tuple(f"PROP-{number:03d}" for number in range(1, proposal_count + 1))
     iteration = reversed(proposal_ids) if reverse_enumeration else iter(proposal_ids)
@@ -62,44 +62,32 @@ def build_scale_workspace(
         number = int(proposal_id.split("-", 1)[1])
         proposal_dir = root / ".p2p/proposals" / f"{proposal_id}-scale-fixture"
         state = _state_for(number)
-        if schema_version == 3:
-            ledger = codec.empty(proposal_id)
-            if state != ProposalDecisionEffectiveState.undecided:
-                ledger, _ = append_event(
-                    ledger,
-                    event_type=ProposalDecisionEventType(state.value),
-                    effective_state=state,
-                    conditions=(
-                        (
-                            ProposalDecisionCondition(
-                                condition_id=f"COND-{proposal_id}-001",
-                                text="Complete the deterministic scale condition.",
-                            ),
-                        )
-                        if state == ProposalDecisionEffectiveState.accepted_with_changes
-                        else ()
-                    ),
-                )
-            write_v3_proposal(proposal_dir, ledger)
-            (proposal_dir / "decision.md").write_text(
-                render_decision_projection(
-                    proposal_id,
-                    ledger.events[-1] if ledger.events else None,
-                    empty_state=ledger.effective_state,
+        ledger = codec.empty(proposal_id)
+        if state != ProposalDecisionEffectiveState.undecided:
+            ledger, _ = append_event(
+                ledger,
+                event_type=ProposalDecisionEventType(state.value),
+                effective_state=state,
+                conditions=(
+                    (
+                        ProposalDecisionCondition(
+                            condition_id=f"COND-{proposal_id}-001",
+                            text="Complete the deterministic scale condition.",
+                        ),
+                    )
+                    if state == ProposalDecisionEffectiveState.accepted_with_changes
+                    else ()
                 ),
-                encoding="utf-8",
             )
-        else:
-            proposal_dir.mkdir(parents=True)
-            status = "draft" if state == ProposalDecisionEffectiveState.undecided else state.value
-            (proposal_dir / "proposal.md").write_text(
-                proposal_markdown(proposal_id, status=status),
-                encoding="utf-8",
-            )
-            (proposal_dir / "decision.md").write_text(
-                _legacy_decision(proposal_id, status),
-                encoding="utf-8",
-            )
+        write_current_proposal(proposal_dir, ledger)
+        (proposal_dir / "decision.md").write_text(
+            render_decision_projection(
+                proposal_id,
+                ledger.events[-1] if ledger.events else None,
+                empty_state=ledger.effective_state,
+            ),
+            encoding="utf-8",
+        )
         if number <= rich_proposals:
             _write_rich_artifacts(root, proposal_dir, proposal_id, number)
 
@@ -121,16 +109,6 @@ def _state_for(number: int) -> ProposalDecisionEffectiveState:
         ProposalDecisionEffectiveState.undecided,
     )
     return states[(number - 1) % len(states)]
-
-
-def _legacy_decision(proposal_id: str, status: str) -> str:
-    return (
-        f"# Decision - {proposal_id}\n\n"
-        "## Outcome\n\n"
-        f"`{status}`\n\n"
-        "## Reason\n\n"
-        "Deterministic scale fixture.\n"
-    )
 
 
 def _write_rich_artifacts(root: Path, proposal_dir: Path, proposal_id: str, number: int) -> None:

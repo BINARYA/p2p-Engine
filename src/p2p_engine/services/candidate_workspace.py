@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path, PurePosixPath
 
 import yaml
+
+from p2p_engine.core.mutation_receipts import MUTATION_RECEIPT_ROOT
 
 
 class CandidateWorkspaceView:
@@ -75,6 +78,17 @@ def _normalize(path: str | Path) -> str:
     normalized = pure.as_posix()
     if normalized.startswith("./"):
         normalized = normalized[2:]
-    if not normalized.startswith(".p2p/") or normalized.startswith(".p2p/.internal/"):
+    if (
+        not normalized.startswith(".p2p/")
+        or (
+            normalized.startswith(".p2p/.internal/")
+            and _MUTATION_RECEIPT_TARGET.fullmatch(normalized) is None
+        )
+    ):
         raise ValueError(f"Candidate target is outside governed migration ownership: {text}")
     return normalized
+
+
+_MUTATION_RECEIPT_TARGET = re.compile(
+    rf"^{re.escape(MUTATION_RECEIPT_ROOT)}/[0-9a-f]{{64}}\.yml$"
+)

@@ -19,6 +19,34 @@ def test_package_version_matches_pyproject() -> None:
     assert __version__ == project["project"]["version"]
 
 
+def test_typed_project_authority_public_contract_smoke(tmp_path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Authority smoke", owner="owner")
+    runner = CliRunner()
+
+    authority = runner.invoke(
+        app,
+        ["project", "authority", "show", "--format", "json", "--root", str(tmp_path)],
+    )
+    capabilities = runner.invoke(
+        app,
+        ["project", "authority", "capabilities", "--format", "json"],
+    )
+
+    assert authority.exit_code == 0, authority.output
+    authority_payload = json.loads(authority.stdout)["data"]["project_authority"]
+    assert authority_payload["schema"] == "p2p-project-authority/v1"
+    assert authority_payload["mode"] == "local_policy"
+    assert authority_payload["generation"] == 1
+    assert capabilities.exit_code == 0, capabilities.output
+    capability_payload = json.loads(capabilities.stdout)["data"]
+    names = {
+        item["capability"]
+        for item in capability_payload["governed_capabilities"]["capabilities"]
+    }
+    assert {"project.authority.rotate", "proposal.decide"} <= names
+
+
 def test_domain_enums_expose_expected_values() -> None:
     assert ContributionType.suggestion.value == "suggestion"
     assert ContributionType.finding.value == "finding"

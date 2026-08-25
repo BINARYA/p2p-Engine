@@ -57,7 +57,7 @@ def _run_scale(
         lambda: build_scale_workspace(
             root,
             proposal_count=proposal_count,
-            schema_version=3,
+            schema_version=4,
             rich_proposals=min(rich_proposals, proposal_count),
         ),
         track_memory=track_memory,

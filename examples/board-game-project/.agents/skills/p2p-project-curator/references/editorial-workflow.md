@@ -2,7 +2,7 @@
 Managed by P2P Engine.
 Adapter: codex
 Template: codex-p2p-project-curator-editorial-workflow-v3
-Generation: agent-template-generation-v2:agent-capabilities-v3:codex-p2p-project-curator-editorial-workflow-v3
+Generation: agent-template-generation-v2:agent-capabilities-v4:codex-p2p-project-curator-editorial-workflow-v3
 Do not edit generated sections unless you accept drift.
 -->
 

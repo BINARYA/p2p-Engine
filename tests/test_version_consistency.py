@@ -48,4 +48,4 @@ def test_current_release_documentation_uses_package_version() -> None:
     )
     assert release_heading.search(changelog)
     assert f"P2P Engine {__version__} exposes" in cli_contract
-    assert f"P2P Engine {__version__} supports workspace schema 3 only" in workspace_contract
+    assert f"P2P Engine {__version__} supports workspace schema 4 only" in workspace_contract

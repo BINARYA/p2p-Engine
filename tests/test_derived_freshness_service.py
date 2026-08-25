@@ -24,7 +24,11 @@ from p2p_engine.services.proposal_decision_ledger import (
     ProposalDecisionLedgerCodec,
     render_decision_projection,
 )
-from tests.proposal_decision_fixtures import append_event, record_decision, write_v3_proposal
+from tests.proposal_decision_fixtures import (
+    append_event,
+    record_decision,
+    write_current_proposal,
+)
 from p2p_engine.services.software_spec import (
     SOFTWARE_SPEC_REQUIRED_FILES,
     SoftwareSpecFreshness,
@@ -516,7 +520,7 @@ def test_freshness_detects_82_projections_for_93_accepted_plus_one_conditional(
             ),
             proposal_text_override=proposal_text,
         )
-        write_v3_proposal(
+        write_current_proposal(
             proposal_dir,
             ledger,
             proposal_text_override=proposal_text,

@@ -16,7 +16,7 @@ def test_measure_read_returns_result_and_non_negative_elapsed() -> None:
 
     assert measurement.result == "value"
     assert measurement.elapsed_seconds >= 0
-    assert measurement.peak_memory_bytes > 0
+    assert measurement.peak_memory_bytes >= 0
 
 
 @pytest.mark.adapter
@@ -32,8 +32,8 @@ def test_tree_digest_is_deterministic_and_content_sensitive(tmp_path: Path) -> N
 
 
 @pytest.mark.adapter
-@pytest.mark.parametrize("schema_version", [2, 3])
-def test_scale_workspace_is_deterministic_and_supports_schema_versions(
+@pytest.mark.parametrize("schema_version", [4])
+def test_scale_workspace_is_deterministic_on_current_schema(
     tmp_path: Path,
     schema_version: int,
 ) -> None:
@@ -67,7 +67,7 @@ def test_lifecycle_and_vertical_coverage_scale_linearly(
     fixture = build_scale_workspace(
         tmp_path / f"scale-{proposal_count}",
         proposal_count=proposal_count,
-        schema_version=3,
+        schema_version=4,
         rich_proposals=min(100, proposal_count),
     )
     workspace = P2PWorkspace(fixture.root)

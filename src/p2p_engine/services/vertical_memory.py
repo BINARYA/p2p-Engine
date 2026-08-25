@@ -1098,6 +1098,7 @@ class VerticalMemoryImpactClassifier:
             elif any(
                 token in path
                 for token in (
+                    "/.internal/mutation-receipts/",
                     "/registries/",
                     "/vertical-memory/",
                     "/outputs/",

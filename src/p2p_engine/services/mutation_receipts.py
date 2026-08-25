@@ -9,6 +9,7 @@ from typing import Mapping
 import yaml
 
 from p2p_engine.core.mutation_preview import semantic_sha256
+from p2p_engine.core.authority import AuthorityEvidence
 from p2p_engine.core.mutation_receipts import (
     MUTATION_RECEIPT_MAX_FILE_BYTES,
     MUTATION_RECEIPT_MAX_KEY_BYTES,
@@ -102,6 +103,7 @@ class MutationReceiptService:
         preview_token: str,
         result: Mapping[str, object],
         candidates: Mapping[str, bytes],
+        authority: AuthorityEvidence | None = None,
     ) -> tuple[str, bytes, MutationReceipt]:
         key_hash = idempotency_key_sha256(idempotency_key)
         _require_sha256(request_fingerprint_sha256, "request fingerprint")
@@ -122,6 +124,7 @@ class MutationReceiptService:
             completed_at=_utc_now_iso(),
             result=dict(result),
             postconditions=postconditions,
+            authority=(authority.to_dict() if authority is not None else None),
         )
         content = yaml_dump(receipt.to_payload()).encode("utf-8")
         if len(content) > MUTATION_RECEIPT_MAX_FILE_BYTES:
@@ -163,6 +166,21 @@ class MutationReceiptService:
             )
         return receipt
 
+    def read(self, *, idempotency_key: str) -> MutationReceipt | None:
+        """Read an immutable outcome without re-authorizing or requiring current state."""
+        key_hash = idempotency_key_sha256(idempotency_key)
+        relative = f"{MUTATION_RECEIPT_ROOT}/{key_hash}.yml"
+        incomplete = self._incomplete_status(relative)
+        if incomplete is not None:
+            raise ValueError(
+                "P2P_IDEMPOTENCY_INCOMPLETE_TRANSACTION: "
+                f"workspace transaction {incomplete.transaction_id or 'unknown'} requires recovery"
+            )
+        path = self.root / relative
+        if not path.exists():
+            return None
+        return self._read_receipt(path, expected_key_sha256=key_hash)
+
     def status(self, idempotency_key: str) -> MutationReceiptStatus:
         key_hash = idempotency_key_sha256(idempotency_key)
         relative = f"{MUTATION_RECEIPT_ROOT}/{key_hash}.yml"
@@ -183,6 +201,7 @@ class MutationReceiptService:
             actor=receipt.actor,
             completion_status=receipt.completion_status,
             result=_public_result(receipt.result),
+            authority=receipt.authority,
             postconditions_match=postconditions_match,
             message=(
                 "Mutation receipt is complete and its postconditions match."
@@ -278,6 +297,8 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "proposal_contribution_add",
         "proposal_readiness_assess",
         "proposal_update",
+        "proposal_decision_apply",
+        "project_authority_rotate",
     }:
         raise ValueError(f"unsupported receipt operation: {operation}")
     actor = _required_text(data, "actor")
@@ -289,6 +310,20 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
     if not isinstance(result, dict):
         raise ValueError("receipt result must be a mapping")
     _validate_result(result, operation=operation)
+    raw_authority = data.get("authority")
+    authority: Mapping[str, object] | None = None
+    if raw_authority is not None:
+        if not isinstance(raw_authority, Mapping):
+            raise ValueError("receipt authority must be a mapping or null")
+        from p2p_engine.services.authority import AuthorityContractCodec
+
+        authority = AuthorityContractCodec().evidence_from_mapping(raw_authority).to_dict()
+    if operation in {
+        "init",
+        "project_authority_rotate",
+        "proposal_decision_apply",
+    } and authority is None:
+        raise ValueError(f"receipt operation {operation} requires authority evidence")
     raw_postconditions = data.get("postconditions")
     if not isinstance(raw_postconditions, list) or not raw_postconditions:
         raise ValueError("receipt postconditions must be a non-empty sequence")
@@ -322,6 +357,7 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         completed_at=completed_at,
         result=result,
         postconditions=tuple(postconditions),
+        authority=authority,
     )
 
 
@@ -334,6 +370,12 @@ def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
         return
     if operation == "proposal_readiness_assess":
         _validate_proposal_readiness_result(result)
+        return
+    if operation == "project_authority_rotate":
+        _validate_authority_rotation_result(result)
+        return
+    if operation == "proposal_decision_apply":
+        _validate_proposal_decision_result(result)
         return
     allowed = {
         "impact_contract",
@@ -432,6 +474,7 @@ def _validate_init_result(result: Mapping[str, object]) -> None:
         "operation",
         "operation_id",
         "project",
+        "authority",
         "created_paths",
         "created_file_paths",
         "agent_selection",
@@ -453,6 +496,7 @@ def _validate_init_result(result: Mapping[str, object]) -> None:
         raise ValueError("receipt result operation_id is unsupported")
     for field in (
         "project",
+        "authority",
         "agent_selection",
         "agent_instructions",
         "repository",
@@ -682,6 +726,109 @@ def _validate_proposal_readiness_result(result: Mapping[str, object]) -> None:
     )
 
 
+def _validate_authority_rotation_result(result: Mapping[str, object]) -> None:
+    allowed = {
+        "operation",
+        "operation_id",
+        "previous_descriptor",
+        "new_descriptor",
+        "rotation_request",
+        "event_id",
+        "event_path",
+        "changed_paths",
+    }
+    unknown = sorted(str(key) for key in result if key not in allowed)
+    if unknown:
+        raise ValueError(
+            "receipt authority rotation result contains unsupported fields: "
+            + ", ".join(unknown)
+        )
+    if result.get("operation") != "project_authority_rotate":
+        raise ValueError("receipt authority rotation operation is unsupported")
+    if result.get("operation_id") != "project.authority.rotate":
+        raise ValueError("receipt authority rotation operation_id is unsupported")
+    from p2p_engine.services.authority import AuthorityContractCodec
+
+    codec = AuthorityContractCodec()
+    previous = result.get("previous_descriptor")
+    target = result.get("new_descriptor")
+    if not isinstance(previous, Mapping) or not isinstance(target, Mapping):
+        raise ValueError("receipt authority rotation descriptors must be mappings")
+    previous_descriptor = codec.descriptor_from_mapping(previous)
+    new_descriptor = codec.descriptor_from_mapping(target)
+    if new_descriptor.generation != previous_descriptor.generation + 1:
+        raise ValueError("receipt authority rotation generation must advance exactly once")
+    request = result.get("rotation_request")
+    if not isinstance(request, Mapping) or set(request) != {
+        "target_mode",
+        "replacement_authority_id",
+        "provider_id",
+        "provider_policy_version",
+        "display_name",
+        "rotated_at",
+    }:
+        raise ValueError("receipt authority rotation request has invalid fields")
+    _required_text(result, "event_id")
+    event_path = _required_text(result, "event_path")
+    if event_path != ".p2p/project/authority-events.yml":
+        raise ValueError("receipt authority rotation event path is invalid")
+    changed_paths = result.get("changed_paths")
+    expected_paths = [
+        ".p2p/project/authority-events.yml",
+        ".p2p/project/authority.yml",
+    ]
+    if changed_paths != expected_paths:
+        raise ValueError("receipt authority rotation changed paths are invalid")
+
+
+def _validate_proposal_decision_result(result: Mapping[str, object]) -> None:
+    allowed = {
+        "operation",
+        "status",
+        "proposal_id",
+        "event",
+        "lifecycle",
+        "changed_paths",
+    }
+    unknown = sorted(str(key) for key in result if key not in allowed)
+    if unknown:
+        raise ValueError(
+            "receipt proposal decision result contains unsupported fields: "
+            + ", ".join(unknown)
+        )
+    if result.get("operation") != "proposal_decision_apply":
+        raise ValueError("receipt proposal decision operation is unsupported")
+    if result.get("status") != "applied":
+        raise ValueError("receipt proposal decision status must be applied")
+    proposal_id = _required_text(result, "proposal_id")
+    if re.fullmatch(r"PROP-\d{3,}", proposal_id) is None:
+        raise ValueError("receipt proposal decision proposal_id is invalid")
+    event = result.get("event")
+    lifecycle = result.get("lifecycle")
+    if not isinstance(event, Mapping) or not isinstance(lifecycle, Mapping):
+        raise ValueError("receipt proposal decision read models must be mappings")
+    if event.get("proposal_id") != proposal_id:
+        raise ValueError("receipt proposal decision event targets another proposal")
+    event_id = _required_text(event, "event_id")
+    if lifecycle.get("head_event_id") != event_id:
+        raise ValueError("receipt proposal decision lifecycle head is inconsistent")
+    authority = event.get("authority")
+    if not isinstance(authority, Mapping):
+        raise ValueError("receipt proposal decision event authority is missing")
+    from p2p_engine.services.authority import AuthorityContractCodec
+
+    AuthorityContractCodec().evidence_from_mapping(authority)
+    changed_paths = result.get("changed_paths")
+    if not isinstance(changed_paths, list) or not changed_paths:
+        raise ValueError("receipt proposal decision changed_paths must be non-empty")
+    normalized = [
+        _validated_postcondition_path(str(path), operation="proposal_decision_apply")
+        for path in changed_paths
+    ]
+    if normalized != sorted(set(normalized)):
+        raise ValueError("receipt proposal decision changed_paths must be unique and sorted")
+
+
 def _validate_bounded_receipt_sequence(value: object, *, field: str) -> None:
     if not isinstance(value, list) or len(value) > 128:
         raise ValueError(f"receipt readiness {field} must be a bounded sequence")
@@ -736,6 +883,9 @@ def _public_result(result: Mapping[str, object]) -> dict[str, object]:
             "operation_id": result.get("operation_id"),
             "project": dict(result.get("project", {}))
             if isinstance(result.get("project"), Mapping)
+            else {},
+            "authority": dict(result.get("authority", {}))
+            if isinstance(result.get("authority"), Mapping)
             else {},
             "created_paths": list(result.get("created_paths", []))
             if isinstance(result.get("created_paths"), list)
@@ -813,6 +963,34 @@ def _public_result(result: Mapping[str, object]) -> dict[str, object]:
             "path": result.get("path"),
             "readiness": dict(result.get("readiness", {}))
             if isinstance(result.get("readiness"), Mapping)
+            else {},
+        }
+    if result.get("operation") == "project_authority_rotate":
+        return {
+            "operation": result.get("operation"),
+            "operation_id": result.get("operation_id"),
+            "previous_descriptor": dict(result.get("previous_descriptor", {}))
+            if isinstance(result.get("previous_descriptor"), Mapping)
+            else {},
+            "new_descriptor": dict(result.get("new_descriptor", {}))
+            if isinstance(result.get("new_descriptor"), Mapping)
+            else {},
+            "rotation_request": dict(result.get("rotation_request", {}))
+            if isinstance(result.get("rotation_request"), Mapping)
+            else {},
+            "event_id": result.get("event_id"),
+            "event_path": result.get("event_path"),
+        }
+    if result.get("operation") == "proposal_decision_apply":
+        return {
+            "operation": result.get("operation"),
+            "status": result.get("status"),
+            "proposal_id": result.get("proposal_id"),
+            "event": dict(result.get("event", {}))
+            if isinstance(result.get("event"), Mapping)
+            else {},
+            "lifecycle": dict(result.get("lifecycle", {}))
+            if isinstance(result.get("lifecycle"), Mapping)
             else {},
         }
     return {

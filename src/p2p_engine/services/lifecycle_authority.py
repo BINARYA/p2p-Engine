@@ -317,7 +317,7 @@ class ProposalLifecycleAuthorityService:
                 strict=strict,
             )
         proposal_dir = proposal_dir or self.find_proposal_dir(proposal_id)
-        if current_version == 3 and layout_status == "current":
+        if current_version == 4 and layout_status == "current":
             return self._v3_status(
                 proposal_id,
                 proposal_dir,
@@ -327,7 +327,7 @@ class ProposalLifecycleAuthorityService:
         return self._unresolved(
             proposal_id,
             "unsupported_workspace",
-            "P2P375_DECISION_SCHEMA_V3_REQUIRED",
+            "P2P375_DECISION_SCHEMA_V4_REQUIRED",
             strict=strict,
         )
 

@@ -213,6 +213,7 @@ class WorkspaceSchemaService:
             ".p2p/project.yml",
             ".p2p/project/runtime.yml",
             ".p2p/project/workspace-schema.yml",
+            ".p2p/project/authority.yml",
             ".p2p/project/domain.yml",
             ".p2p/project/permissions.yml",
             ".p2p/governance/constitution.md",
@@ -258,6 +259,51 @@ class WorkspaceSchemaService:
                     )
                 )
         questions_path = self.root / ".p2p/project/questions.yml"
+        authority_path = self.root / ".p2p/project/authority.yml"
+        if authority_path.exists():
+            try:
+                from p2p_engine.services.authority import ProjectAuthorityService
+
+                ProjectAuthorityService(
+                    root=self.root,
+                    p2p_dir=self.p2p_dir,
+                ).read_descriptor()
+            except ValueError as exc:
+                findings.append(
+                    WorkspaceDiagnostic(
+                        code="P2P_AUTHORITY_CONTEXT_INVALID",
+                        severity="error",
+                        path=".p2p/project/authority.yml",
+                        message=str(exc),
+                        suggested_command="p2p project authority show --format json",
+                    )
+                )
+        authority_events_path = self.root / ".p2p/project/authority-events.yml"
+        if authority_path.exists() and (
+            authority_events_path.exists()
+            or not any(
+                item.path == ".p2p/project/authority.yml" for item in findings
+            )
+        ):
+            try:
+                from p2p_engine.services.authority_rotation import (
+                    ProjectAuthorityRotationService,
+                )
+
+                ProjectAuthorityRotationService(
+                    root=self.root,
+                    p2p_dir=self.p2p_dir,
+                ).validate_event_ledger()
+            except ValueError as exc:
+                findings.append(
+                    WorkspaceDiagnostic(
+                        code="P2P_AUTHORITY_CONTEXT_INVALID",
+                        severity="error",
+                        path=".p2p/project/authority-events.yml",
+                        message=str(exc),
+                        suggested_command="p2p project authority show --format json",
+                    )
+                )
         if questions_path.exists():
             try:
                 ProjectQuestionStateService(root=self.root, p2p_dir=self.p2p_dir).read()
@@ -323,7 +369,7 @@ class WorkspaceSchemaService:
                         code="P2P361_DECISION_LEDGER_INVALID",
                         severity="error",
                         path=relative,
-                        message="Workspace schema v3 requires one decision ledger per proposal.",
+                        message="Workspace schema v4 requires one decision ledger per proposal.",
                         suggested_command="p2p decision status "
                         + "-".join(proposal_dir.name.split("-", 2)[:2]),
                     )

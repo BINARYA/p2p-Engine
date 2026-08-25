@@ -9,7 +9,7 @@ decisions:
   reason: The example deliberately accepts the bounded CLI feature.
   effective_state: accepted
   head_event_type: accepted
-  head_event_id: PDE-ed8a33ec34f42017a317f039
+  head_event_id: PDE-ac898b1236f1b7add3ac0f11
   event_count: 1
   authority_resolution: resolved
   active: true

@@ -8,7 +8,7 @@ It demonstrates:
 - one accepted proposal;
 - one Change Set derived from that accepted proposal;
 - generated registries and readiness assessment;
-- current workspace schema 3 and runtime declarations;
+- current workspace schema 4, project authority and runtime declarations;
 - the exact `binarya/software_project@2.0.0` vertical;
 - current shared Codex skill files under `.agents/skills/`.
 

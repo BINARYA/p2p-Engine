@@ -11,11 +11,11 @@ repository:
 agent_profiles:
 - claude
 - codex
-- copilot
-- gemini
+- cursor
 - generic
+- opencode
 agent_capabilities:
-  version: agent-capabilities-v3
+  version: agent-capabilities-v4
   capabilities:
   - capability_id: project.inspect
     cli_paths:
@@ -51,6 +51,47 @@ agent_capabilities:
     exposure: owner_governed
     authority: owner_confirmation_for_apply
     reason: Decision writes remain token-bound and owner controlled on both surfaces.
+    adapters:
+    - generic
+    - codex
+    - claude
+  - capability_id: proposal.structured_contributions
+    cli_paths:
+    - p2p proposal contribution add
+    - p2p proposal contribution list
+    - p2p contribution add
+    - p2p contribution list
+    mcp_tools:
+    - p2p_proposal_contribution_add
+    - p2p_proposal_contribution_list
+    exposure: cli_and_mcp
+    authority: proposal_memory_write_without_decision
+    reason: Suggestions, objections, findings, open questions and alternatives are
+      proposal-bound project memory, not generic chat.
+    adapters:
+    - generic
+    - codex
+    - claude
+  - capability_id: wavekit.cli.worker_contract
+    cli_paths:
+    - p2p version
+    - p2p runtime status
+    - p2p workspace schema status
+    - p2p workspace transaction status
+    - p2p init
+    - p2p project snapshot
+    - p2p proposal list
+    - p2p proposal show
+    - p2p proposal create
+    - p2p proposal update
+    - p2p proposal contribution add
+    - p2p proposal contribution list
+    - p2p mutation status
+    mcp_tools: []
+    exposure: cli_only_worker_contract
+    authority: serialized_server_worker
+    reason: WaveKit worker retries, receipts and recovery use allowlisted CLI JSON
+      operations with --operation-key, not local MCP stdio.
     adapters:
     - generic
     - codex
@@ -168,7 +209,7 @@ runtime_bootstrap:
   setup_guide: P2P-SETUP.md
   status_command: p2p runtime status
   workspace_schema_status_command: p2p workspace schema status
-  workspace_schema_policy: current_only_v3
+  workspace_schema_policy: current_only_v4
   workspace_recovery_status_command: p2p workspace transaction status
   workspace_recovery_apply_surface: owner_confirmed_cli_only
   manual_workspace_schema_repair: forbidden
@@ -188,6 +229,36 @@ mcp:
   default_mode: read_only
   write_tools_require_explicit_tool_schema: true
   missing_write_tool_behavior: stop_and_report
+  protocol_native_payloads: true
+  uses_p2p_cli_v1_envelope: false
+  wavekit_worker_retry_boundary: cli_json_operation_key
+wavekit_cli_worker_contract:
+  transport: cli_json
+  contract_version: p2p-cli/v1
+  mcp_stdio_transport: agent_tool_surface_not_worker_retry_boundary
+  operation_key_format: wavekit:<uuid>
+  raw_operation_key_in_status_output: false
+  preflight_commands:
+  - p2p version --format json
+  - p2p runtime status --format json
+  - p2p workspace schema status --format json
+  - p2p workspace transaction status --format json
+  read_commands:
+  - p2p project snapshot --format json
+  - p2p proposal list --format json
+  - p2p proposal show PROP-XXX --format json
+  - p2p proposal contribution list PROP-XXX --format json
+  write_commands:
+  - p2p init NAME --format json --operation-key wavekit:<uuid>
+  - p2p proposal create TITLE --format json --operation-key wavekit:<uuid>
+  - p2p proposal update PROP-XXX --proposal TEXT --format json --operation-key wavekit:<uuid>
+  - p2p proposal contribution add PROP-XXX TEXT --type suggestion --format json --operation-key
+    wavekit:<uuid>
+  - p2p proposal readiness assess PROP-XXX --actor ACTOR --format json --operation-key
+    wavekit:<uuid>
+  status_command: p2p mutation status --operation-key wavekit:<uuid> --format json
+  parse_human_text: false
+  direct_p2p_file_reads: false
 owner_controlled_actions:
 - proposal_accept
 - proposal_reject
@@ -354,8 +425,22 @@ proposal_readiness:
   - p2p_proposal_artifact_set
   computed_score_is_advisory: true
   owner_override_must_not_falsify_computed_score: true
+  freshness_states:
+  - not_assessed
+  - current
+  - stale
+  freshness_read_command: p2p proposal show PROP-XXX --format json
+  wavekit_assess_command: p2p proposal readiness assess PROP-XXX --actor ACTOR --format
+    json --operation-key wavekit:<uuid>
 proposal_decision_lifecycle:
-  canonical_schema_v3_artifact: decision-events.yml
+  canonical_schema_v4_artifact: decision-events.yml
+  authority_descriptor: .p2p/project/authority.yml
+  authority_context_schema: p2p-authority-context/v1
+  capability_command: p2p project authority capabilities --format json
+  decision_capability: proposal.decide
+  readiness_override_capability: proposal.readiness.override
+  external_attestation_is_provider_claim: true
+  provider_network_verification: false
   history: append_only
   write_protocol: preview_then_exact_apply
   status_command: p2p decision status PROP-XXX
@@ -371,7 +456,7 @@ proposal_decision_lifecycle:
     apply: p2p_proposal_decision_apply
     consent_operation: proposal_decision_apply
     consent_target: PROP-XXX@preview-token
-    owner_executor_separation: true
+    authority_subject_executor_separation: true
 project_vertical_orchestration:
   prioritize_when_missing_or_fallback: true
   review_command: p2p project readiness review

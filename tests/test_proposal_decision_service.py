@@ -253,7 +253,7 @@ def test_reused_operation_key_with_changed_semantics_is_rejected(
     )
     before = _tree_digest(tmp_path)
 
-    with pytest.raises(ValueError, match="P2P366_DECISION_REPLAY_MISMATCH"):
+    with pytest.raises(ValueError, match="P2P_IDEMPOTENCY_CONFLICT"):
         service.apply(
             conflicting,
             preview_token=preview.mutation.preview_token,
@@ -369,7 +369,7 @@ def test_schema_recovery_race_after_conflicting_commit_becomes_head_conflict(
         reason="Reject.",
     )
     service = workspace._proposal_decision_service()
-    original_schema_gate = service._require_schema_v3
+    original_schema_gate = service._require_schema_v4
     committed = False
 
     def schema_gate_after_competing_commit() -> None:
@@ -391,7 +391,7 @@ def test_schema_recovery_race_after_conflicting_commit_becomes_head_conflict(
             )
         original_schema_gate()
 
-    service._require_schema_v3 = schema_gate_after_competing_commit  # type: ignore[method-assign]
+    service._require_schema_v4 = schema_gate_after_competing_commit  # type: ignore[method-assign]
 
     with pytest.raises(ValueError, match="P2P367_DECISION_CONCURRENT_HEAD"):
         service.apply(
@@ -413,7 +413,7 @@ def test_transient_schema_recovery_is_rechecked_before_failing_apply(
     workspace, proposal_id, proposal_dir = _workspace(tmp_path)
     preview = _preview(workspace, proposal_id)
     service = workspace._proposal_decision_service()
-    original_schema_gate = service._require_schema_v3
+    original_schema_gate = service._require_schema_v4
     gate_calls = 0
 
     def transient_schema_gate() -> None:
@@ -426,7 +426,7 @@ def test_transient_schema_recovery_is_rechecked_before_failing_apply(
             )
         original_schema_gate()
 
-    service._require_schema_v3 = transient_schema_gate  # type: ignore[method-assign]
+    service._require_schema_v4 = transient_schema_gate  # type: ignore[method-assign]
     result = service.apply(
         preview.request,
         preview_token=preview.mutation.preview_token,
@@ -479,7 +479,7 @@ def test_schema_recovery_race_waits_for_competing_decision_before_classifying(
     service._wait_for_competing_decision_mutation = (  # type: ignore[method-assign]
         wait_for_competing_decision
     )
-    service._require_schema_v3 = transient_schema_recovery  # type: ignore[method-assign]
+    service._require_schema_v4 = transient_schema_recovery  # type: ignore[method-assign]
 
     with pytest.raises(ValueError, match="P2P367_DECISION_CONCURRENT_HEAD"):
         service.apply(
@@ -501,7 +501,7 @@ def test_schema_gate_distinguishes_live_decision_lock_from_stale_recovery(
             "WorkspaceSchema",
             (),
             {
-                "current_version": 3,
+                "current_version": 4,
                 "layout_status": "current",
                 "recovery": {
                     "required": True,
@@ -514,14 +514,14 @@ def test_schema_gate_distinguishes_live_decision_lock_from_stale_recovery(
         )()
 
     service.workspace_schema_status = lambda: status_for(os.getpid())
-    service._require_schema_v3()
+    service._require_schema_v4()
 
     service.workspace_schema_status = lambda: status_for(2**31 - 1)
     with pytest.raises(
         ValueError,
         match="P2P307_WORKSPACE_TRANSACTION_RECOVERY_REQUIRED",
     ):
-        service._require_schema_v3()
+        service._require_schema_v4()
 
 
 def test_separate_process_same_request_has_one_commit_and_one_exact_retry(
@@ -612,7 +612,7 @@ def test_non_owner_preview_is_rejected_without_writes(tmp_path: Path) -> None:
     )
     before = _tree_digest(tmp_path)
 
-    with pytest.raises(ValueError, match="P2P364_DECISION_OWNER_REQUIRED"):
+    with pytest.raises(ValueError, match="P2P_AUTHORIZATION_DENIED"):
         service.preview(request)
 
     assert _tree_digest(tmp_path) == before

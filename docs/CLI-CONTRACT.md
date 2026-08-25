@@ -88,6 +88,31 @@ Parser failures are JSON and therefore do not require a separate stderr parser.
 
 MCP responses are protocol-native and are not wrapped in `p2p-cli/v1`.
 
+## Governed Authority Input
+
+Schema-4 governed mutations declare a capability from the public registry:
+
+```bash
+p2p project authority capabilities --format json
+p2p project authority show --format json --root /project
+```
+
+Implemented external-attestation mutations accept an allowlisted
+`p2p-authority-context/v1` JSON file through `--authority-context`. The file is
+parsed as a closed, bounded contract; arbitrary provider payloads and
+shell-expanded JSON are not supported. Project initialization, generic
+proposal decision preview/apply and authority rotation are the integrated CLI
+surfaces. Existing proposal-authoring and vertical mutations remain explicitly
+`existing_unintegrated` and local-policy only until their own feature adopts
+the shared authority contract.
+
+The context digest is part of preview and idempotency identity. An exact retry
+must resubmit the same context and returns the original receipt without a new
+authorization check. A changed subject, executor, claim basis, grant
+generation or provider policy is a different request and fails closed. See
+[AUTHORITY-CONTEXT.md](AUTHORITY-CONTEXT.md) for the trust boundary and full
+examples.
+
 ## WaveKit Worker Contract
 
 WaveKit's serialized P2P worker consumes an allowlisted subset of CLI JSON

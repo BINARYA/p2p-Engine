@@ -27,7 +27,9 @@ memory.
 ## Project State Lives In `.p2p/`
 
 P2P Engine stores project governance state under `.p2p/`. Git stores the history.
-The owner keeps authority over decisions.
+Schema 4 stores one project authority descriptor. In standalone mode, local
+permissions resolve owner authority. A hosted provider may attest an exact
+capability while P2P records the subject and executor separately.
 
 Common artifact areas:
 
@@ -62,9 +64,11 @@ Proposals start as drafts. The owner can accept, reject, or defer them.
 
 ## Decision
 
-A decision records an owner-controlled outcome and rationale. P2P Engine can
-store decisions and expose them to agents, but it does not remove owner
-authority.
+A decision records an authority-controlled outcome and rationale. Local policy
+requires the current owner. External-attestation mode may accept a delegated
+`proposal.decide` subject, while readiness override remains root-only. P2P
+Engine stores the immutable authority evidence and does not become a hosted
+identity or grant service.
 
 Use decisions when the project needs to remember why a direction was selected,
 rejected, or postponed.

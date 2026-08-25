@@ -22,6 +22,7 @@ from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionRequest,
 )
 from p2p_engine.foundation.yaml_loaders import load_yaml
+from p2p_engine.services.authority import AuthorityContractCodec
 from p2p_engine.storage.filesystem import P2PWorkspace
 
 
@@ -216,6 +217,11 @@ def register_proposal_decision_commands(
         impact_preview_token: str = typer.Option("", "--impact-preview-token"),
         acknowledge_drift: bool = typer.Option(False, "--acknowledge-drift"),
         override_readiness: bool = typer.Option(False, "--override-readiness"),
+        authority_context: Path | None = typer.Option(
+            None,
+            "--authority-context",
+            help="Exact typed AuthorityContext JSON",
+        ),
         output_format: str = typer.Option("text", "--format", help="text or json"),
         root: Path = typer.Option(Path.cwd(), "--root"),
     ) -> None:
@@ -241,6 +247,7 @@ def register_proposal_decision_commands(
                     impact_preview_token=impact_preview_token,
                     acknowledge_drift=acknowledge_drift,
                     override_readiness=override_readiness,
+                    authority_context=authority_context,
                 )
             ),
             title="Decision preview",
@@ -268,6 +275,11 @@ def register_proposal_decision_commands(
         impact_preview_token: str = typer.Option("", "--impact-preview-token"),
         acknowledge_drift: bool = typer.Option(False, "--acknowledge-drift"),
         override_readiness: bool = typer.Option(False, "--override-readiness"),
+        authority_context: Path | None = typer.Option(
+            None,
+            "--authority-context",
+            help="Exact typed AuthorityContext JSON used by preview",
+        ),
         preview_token: str = typer.Option(..., "--preview-token"),
         confirm: bool = typer.Option(False, "--confirm"),
         output_format: str = typer.Option("text", "--format", help="text or json"),
@@ -295,6 +307,7 @@ def register_proposal_decision_commands(
                     impact_preview_token=impact_preview_token,
                     acknowledge_drift=acknowledge_drift,
                     override_readiness=override_readiness,
+                    authority_context=authority_context,
                 ),
                 preview_token=preview_token,
                 confirm=confirm,
@@ -478,6 +491,7 @@ def _decision_request(
     impact_preview_token: str = "",
     acknowledge_drift: bool = False,
     override_readiness: bool = False,
+    authority_context: Path | None = None,
 ) -> ProposalDecisionRequest:
     conditions = _conditions(condition or [], conditions_file)
     kind = None
@@ -509,6 +523,11 @@ def _decision_request(
         impact_preview_token=impact_preview_token or None,
         drift_acknowledged=acknowledge_drift,
         readiness_override=override_readiness,
+        authority_context=(
+            AuthorityContractCodec().context_from_path(authority_context)
+            if authority_context is not None
+            else None
+        ),
     )
 
 

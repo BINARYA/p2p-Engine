@@ -52,6 +52,11 @@ init
 mutation.status
 precedent.search
 project.context
+project.authority.capabilities
+project.authority.rotate.apply
+project.authority.rotate.preview
+project.authority.rotate.status
+project.authority.show
 project.definition.apply
 project.definition.preview
 project.definition.show
@@ -191,7 +196,7 @@ def test_cli_json_operation_inventory_is_reviewed_and_guarded() -> None:
     inventory = json_command_inventory(get_command(app))
 
     assert frozenset(inventory) == EXPECTED_JSON_OPERATIONS
-    assert len(inventory) == 118
+    assert len(inventory) == 123
     assert inventory["vertical.inspect"] == "json"
     assert inventory["workspace.schema.status"] == "text"
 

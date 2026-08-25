@@ -83,7 +83,7 @@ def test_docs_and_templates_describe_two_phase_decision_lifecycle() -> None:
     assert "`PROP-XXX@preview-token`" in mcp_guide
     assert "old unbound consent cannot write" in mcp_guide
     assert "## Decision Event Ledger" in glossary
-    assert "supports workspace schema 3 only" in workspace_schema
+    assert "supports workspace schema 4 only" in workspace_schema
     assert "does not plan or apply workspace conversions" in workspace_schema
     assert "p2p decision preview PROP-001" in tutorial
     assert "p2p decision preview PROP-001" in install

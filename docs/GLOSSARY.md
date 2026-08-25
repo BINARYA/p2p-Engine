@@ -42,7 +42,7 @@ next actions without requiring every possible artifact to exist as a file.
 ## Decision
 
 An owner-controlled governance event. Proposal decision history is append-only
-in workspace schema v3; the current effective state is reduced from the event
+in workspace schema v4; the current effective state is reduced from the event
 chain. Choice decisions remain a separate lifecycle.
 
 ## Rejection
@@ -67,7 +67,7 @@ automatically; affected dependencies remain reviewable.
 
 ## Decision Event Ledger
 
-The canonical schema-v3 `decision-events.yml` chain for one proposal. Events
+The canonical schema-4 `decision-events.yml` chain for one proposal. Events
 bind predecessor, operation key, proposal/decision fingerprints, authority,
 lineage and impact evidence. `proposal.md` status and `decision.md` are derived
 projections, not independent authority.

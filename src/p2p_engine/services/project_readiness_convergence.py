@@ -547,9 +547,9 @@ class ProjectReadinessConvergenceService:
             if isinstance(schema_payload, Mapping)
             else 0
         )
-        if schema_version != 3:
+        if schema_version != 4:
             raise ValueError(
-                "P2P_WORKSPACE_UNSUPPORTED_SCHEMA: convergence requires workspace schema v3; "
+                "P2P_WORKSPACE_UNSUPPORTED_SCHEMA: convergence requires workspace schema v4; "
                 "run `p2p workspace schema status --format json`"
             )
         definition = self.vertical_service.parse_definition_bytes(

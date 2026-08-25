@@ -136,6 +136,13 @@ Do not edit .p2p files by hand.
 
 The agent should use P2P through MCP or CLI primitives, while you supervise and decide outcomes.
 
+Workspace schema 4 distinguishes the project authority, the authorized subject
+and the actual client or agent executor. Standalone projects keep the local
+owner policy. Hosted integrations may supply a typed external attestation for
+implemented governed mutations, but P2P neither stores provider credentials
+nor verifies hosted grants online. See
+[docs/AUTHORITY-CONTEXT.md](docs/AUTHORITY-CONTEXT.md).
+
 Current MCP access is agent-safe but not unlimited. Permission-gated tools can
 publish, request review, accept/reject proposal branches, merge, finalize, and
 cleanup proposal branches only with matching consent receipts. MCP still does
@@ -317,6 +324,9 @@ Stable:
 
 - [docs/WORKSPACE-SCHEMA.md](docs/WORKSPACE-SCHEMA.md)
   Current workspace schema contract, unsupported-schema behavior, and atomic transaction recovery.
+
+- [docs/AUTHORITY-CONTEXT.md](docs/AUTHORITY-CONTEXT.md)
+  Project authority, subject/executor separation, capabilities, external attestations and rotation.
 
 - [docs/VERTICAL-REGISTRY.md](docs/VERTICAL-REGISTRY.md)
   Provider-neutral registry protocol, secure login, immutable cache, pull, and offline init behavior.
