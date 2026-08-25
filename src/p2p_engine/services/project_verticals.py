@@ -74,6 +74,7 @@ from p2p_engine.core.project_readiness import (
     ProjectReadinessSnapshot,
 )
 from p2p_engine.core.project_questions import ProjectQuestionApplicability
+from p2p_engine.core.project_structure import StructureField
 from p2p_engine.foundation.files import relative_to_root, slugify, write_text_atomic, write_yaml_atomic, yaml_dump
 from p2p_engine.foundation.yaml_loaders import load_yaml, load_yaml_mapping
 from p2p_engine.services.project_readiness import (
@@ -84,6 +85,7 @@ from p2p_engine.services.project_readiness import (
     unmapped_proposal_ids_from_vertical_memory,
 )
 from p2p_engine.services.project_questions import ProjectQuestionStateService
+from p2p_engine.services.project_structure import ProjectStructureService
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 from p2p_engine.services.lifecycle_authority import is_active_project_projection
 
@@ -722,7 +724,7 @@ class ProjectVerticalService:
             )
         try:
             state = self._read_definition_state(path)
-            _, pack = self._active_vertical_and_pack()
+            pack = self._definition_validation_pack(state)
             issues = self._definition_state_issues(state, pack)
         except ValueError as exc:
             return ProjectDefinitionView(
@@ -768,12 +770,85 @@ class ProjectVerticalService:
         return _definition_state_from_payload(payload, path=path or self._definition_state_path())
 
     def pack_for_definition(self, state: ProjectDefinitionState) -> VerticalPack:
-        _, pack = self._active_vertical_and_pack()
+        pack = self._definition_validation_pack(state)
         issues = [item for item in self._definition_state_issues(state, pack) if item.severity == "error"]
         if issues:
             first = issues[0]
             raise ValueError(f"Project definition state is invalid: {first.field}: {first.message}")
         return pack
+
+    def _definition_validation_pack(self, state: ProjectDefinitionState) -> VerticalPack:
+        structure_path = self.p2p_dir / "project" / "structure.yml"
+        if not structure_path.is_file() or structure_path.is_symlink():
+            return self._active_vertical_and_pack()[1]
+        structure = ProjectStructureService(
+            root=self.root,
+            p2p_dir=self.p2p_dir,
+        ).show()
+        fields_by_section: dict[str, list[VerticalField]] = {}
+        for field in structure.fields:
+            if field.lifecycle != "active":
+                continue
+            fields_by_section.setdefault(field.section_id, []).append(
+                VerticalField(
+                    field_id=field.field_id,
+                    label=field.label,
+                    required=field.required,
+                    question=field.description,
+                )
+            )
+        return VerticalPack(
+            vertical_id=state.vertical_id or structure.structure_id,
+            name=structure.structure_id,
+            version=state.vertical_version or "project-owned",
+            description="Detached project-owned structure",
+            extends=None,
+            source="project_structure",
+            path=None,
+            sections=[
+                VerticalSection(
+                    section_id=item.section_id,
+                    title=item.title,
+                    purpose=item.description,
+                    required=item.required,
+                    priority=item.order,
+                    fields=fields_by_section.get(item.section_id, []),
+                )
+                for item in structure.sections
+                if item.lifecycle == "active"
+            ],
+            rubrics=[
+                VerticalRubric(
+                    rubric_id=item.criterion_id,
+                    title=item.title,
+                    section_id=item.section_id,
+                    required=item.required,
+                    keywords=list(item.keywords),
+                )
+                for item in structure.criteria
+                if item.lifecycle == "active" and item.enabled
+            ],
+            questions=[
+                VerticalQuestion(
+                    question_id=item.question_id,
+                    section_id=item.section_id,
+                    question=item.prompt,
+                    priority=item.priority,
+                    rationale=item.rationale,
+                )
+                for item in structure.questions
+                if item.lifecycle == "active"
+            ],
+            artifacts=[
+                VerticalArtifact(
+                    artifact_id=item.artifact_id,
+                    title=item.title,
+                    section_ids=list(item.section_ids),
+                    required=item.required,
+                )
+                for item in structure.artifacts
+            ],
+        )
 
     def parse_vertical_lock_bytes(self, content: bytes, *, path: Path | None = None) -> VerticalLock:
         try:
@@ -951,8 +1026,7 @@ class ProjectVerticalService:
                 "Project definition state is invalid"
                 + (f": {first.field}: {first.message}" if first else ".")
             )
-        _, pack = self._active_vertical_and_pack()
-        return view.state, pack
+        return view.state, self._definition_validation_pack(view.state)
 
     def _definition_actor_authority(self, actor: str) -> str:
         path = self.p2p_dir / "project" / "permissions.yml"
@@ -2256,16 +2330,52 @@ class ProjectVerticalService:
         audit_date: str | None = None,
     ) -> ProjectDefinitionState:
         sections: list[ProjectDefinitionSectionState] = []
-        for section in sorted(resolved.pack.sections, key=lambda item: item.priority):
-            fields = _section_fields(section, resolved.pack)
-            missing = [field.field_id for field in fields if field.required]
-            sections.append(
-                ProjectDefinitionSectionState(
-                    section_id=section.section_id,
-                    status="missing" if section.required else "not_applicable",
-                    missing_required_fields=missing,
+        structure_id = ""
+        structure_revision = 0
+        structure_checksum = ""
+        structure_path = self.p2p_dir / "project" / "structure.yml"
+        if structure_path.is_file() and not structure_path.is_symlink():
+            structure = ProjectStructureService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+            ).show(include_retired=True)
+            structure_id = structure.structure_id
+            structure_revision = structure.revision
+            structure_checksum = structure.checksum
+            fields_by_section: dict[str, list[StructureField]] = {}
+            for field in structure.fields:
+                if field.lifecycle == "active":
+                    fields_by_section.setdefault(field.section_id, []).append(field)
+            for section in sorted(
+                (item for item in structure.sections if item.lifecycle == "active"),
+                key=lambda item: (item.order, item.section_id),
+            ):
+                missing = [
+                    field.field_id
+                    for field in sorted(
+                        fields_by_section.get(section.section_id, []),
+                        key=lambda item: (item.order, item.field_id),
+                    )
+                    if field.required
+                ]
+                sections.append(
+                    ProjectDefinitionSectionState(
+                        section_id=section.section_id,
+                        status="missing" if section.required else "not_applicable",
+                        missing_required_fields=missing,
+                    )
                 )
-            )
+        else:
+            for section in sorted(resolved.pack.sections, key=lambda item: item.priority):
+                fields = _section_fields(section, resolved.pack)
+                missing = [field.field_id for field in fields if field.required]
+                sections.append(
+                    ProjectDefinitionSectionState(
+                        section_id=section.section_id,
+                        status="missing" if section.required else "not_applicable",
+                        missing_required_fields=missing,
+                    )
+                )
         return ProjectDefinitionState(
             schema_version=PROJECT_DEFINITION_SCHEMA_VERSION,
             vertical_id=resolved.pack.vertical_id,
@@ -2282,6 +2392,9 @@ class ProjectVerticalService:
                     operation="initialize_definition_state",
                 )
             ],
+            structure_id=structure_id,
+            structure_revision=structure_revision,
+            structure_checksum=structure_checksum,
             path=relative_to_root(self._definition_state_path(), self.root),
         )
 
@@ -2297,6 +2410,49 @@ class ProjectVerticalService:
         issues: list[VerticalValidationIssue] = []
         section_ids = {section.section_id for section in pack.sections}
         field_ids_by_section = {section.section_id: {field.field_id for field in _section_fields(section, pack)} for section in pack.sections}
+        structure_path = self.p2p_dir / "project" / "structure.yml"
+        uses_project_structure = structure_path.is_file() and not structure_path.is_symlink()
+        if uses_project_structure:
+            structure = ProjectStructureService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+            ).show()
+            section_ids = set(structure.active_section_ids())
+            field_ids_by_section = {section_id: set() for section_id in section_ids}
+            for field in structure.fields:
+                if field.lifecycle != "active" or field.section_id not in section_ids:
+                    continue
+                field_ids_by_section.setdefault(field.section_id, set()).add(field.field_id)
+            if state.structure_id != structure.structure_id:
+                issues.append(
+                    VerticalValidationIssue(
+                        "error",
+                        "project_definition.structure.id",
+                        "definition structure identity does not match the project-owned structure",
+                        "P2P255_PROJECT_DEFINITION_INVALID",
+                    )
+                )
+            if state.structure_revision > structure.revision:
+                issues.append(
+                    VerticalValidationIssue(
+                        "error",
+                        "project_definition.structure.revision",
+                        "definition references a future structure revision",
+                        "P2P255_PROJECT_DEFINITION_INVALID",
+                    )
+                )
+            if (
+                state.structure_revision == structure.revision
+                and state.structure_checksum != structure.checksum
+            ):
+                issues.append(
+                    VerticalValidationIssue(
+                        "error",
+                        "project_definition.structure.checksum",
+                        "definition checksum does not match its project-structure revision",
+                        "P2P255_PROJECT_DEFINITION_INVALID",
+                    )
+                )
         if state.schema_version != PROJECT_DEFINITION_SCHEMA_VERSION:
             issues.append(
                 VerticalValidationIssue(
@@ -2306,7 +2462,7 @@ class ProjectVerticalService:
                     "P2P_PROJECT_DEFINITION_UNSUPPORTED_SCHEMA",
                 )
             )
-        if state.vertical_id != pack.vertical_id:
+        if not uses_project_structure and state.vertical_id != pack.vertical_id:
             issues.append(
                 VerticalValidationIssue(
                     "error",
@@ -2315,7 +2471,7 @@ class ProjectVerticalService:
                     "P2P255_PROJECT_DEFINITION_INVALID",
                 )
             )
-        if state.vertical_version != pack.version:
+        if not uses_project_structure and state.vertical_version != pack.version:
             issues.append(
                 VerticalValidationIssue(
                     "error",
@@ -2324,8 +2480,8 @@ class ProjectVerticalService:
                     "P2P255_PROJECT_DEFINITION_INVALID",
                 )
             )
-        pack_checksum = _pack_checksum(pack)
-        if state.lock_checksum and state.lock_checksum != pack_checksum:
+        pack_checksum = _pack_checksum(pack) if not uses_project_structure else ""
+        if not uses_project_structure and state.lock_checksum and state.lock_checksum != pack_checksum:
             issues.append(
                 VerticalValidationIssue(
                     "error",
@@ -2564,6 +2720,9 @@ class ProjectVerticalService:
             next_suggested_action=next_action,
             history=history,
             orphans=state.orphans,
+            structure_id=state.structure_id,
+            structure_revision=state.structure_revision,
+            structure_checksum=state.structure_checksum,
             path=state.path,
         )
         issues = self._definition_state_issues(updated, pack)
@@ -3193,6 +3352,11 @@ def _definition_state_payload(state: ProjectDefinitionState) -> dict[str, object
             "profile": state.profile,
             "modules": state.modules,
             "lock": {"checksum": state.lock_checksum},
+            "structure": {
+                "id": state.structure_id,
+                "revision": state.structure_revision,
+                "checksum": state.structure_checksum,
+            },
             "sections": [
                 {
                     "id": section.section_id,
@@ -3365,6 +3529,9 @@ def _definition_state_from_payload(payload: dict[str, object], *, path: Path) ->
         for item in _mapping_list(data.get("orphans"))
     ]
     lock_payload = data.get("lock") if isinstance(data.get("lock"), dict) else {}
+    structure_payload = (
+        data.get("structure") if isinstance(data.get("structure"), dict) else {}
+    )
     return ProjectDefinitionState(
         schema_version=int(schema_version),
         vertical_id=str(data.get("vertical_id") or ""),
@@ -3376,6 +3543,9 @@ def _definition_state_from_payload(payload: dict[str, object], *, path: Path) ->
         next_suggested_action=data.get("next_suggested_action") if isinstance(data.get("next_suggested_action"), dict) else {},
         history=history,
         orphans=orphans,
+        structure_id=str(structure_payload.get("id") or ""),
+        structure_revision=int(structure_payload.get("revision") or 0),
+        structure_checksum=str(structure_payload.get("checksum") or ""),
         path=path,
     )
 

@@ -114,6 +114,22 @@ def test_release_verifier_requires_current_schema_runtime_and_regression_members
     } <= MODULE.CURRENT_SCHEMA_SDIST_MEMBERS
 
 
+def test_release_verifier_requires_project_structure_contract_members() -> None:
+    assert {
+        "p2p_engine/cli_commands/project_structure.py",
+        "p2p_engine/core/project_structure.py",
+        "p2p_engine/mcp/catalog/project.py",
+        "p2p_engine/mcp/handlers/project.py",
+        "p2p_engine/services/project_structure.py",
+    } <= MODULE.PROJECT_STRUCTURE_WHEEL_MEMBERS
+    assert {
+        "docs/CLI-GUIDE.md",
+        "docs/MCP.md",
+        "tests/test_project_structure.py",
+        "tests/test_skeleton.py",
+    } <= MODULE.PROJECT_STRUCTURE_SDIST_MEMBERS
+
+
 @pytest.mark.parametrize(
     "missing",
     [

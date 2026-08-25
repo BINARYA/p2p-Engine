@@ -159,6 +159,7 @@ _CURRENT_SCHEMA_OPERATIONS = frozenset(
         "project_publication_validate",
         "project_rubrics_init",
         "project_state_refresh",
+        "project_structure_change",
         "project_vertical_adopt",
         "project_vertical_install",
         "project_vertical_lock_repair",

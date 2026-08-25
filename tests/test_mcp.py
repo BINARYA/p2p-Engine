@@ -617,6 +617,14 @@ def test_mcp_project_interaction_style_tools(tmp_path: Path) -> None:
 
 def test_mcp_project_vertical_and_readiness_tools(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Vertical MCP Demo", "--root", str(tmp_path)])
+    structure_before = call_tool(
+        "p2p_project_structure_show",
+        {"root": str(tmp_path)},
+    )["project_structure"]
+    structure_section_ids = {
+        section["id"] for section in structure_before["sections"]
+    }
+    first_field = structure_before["fields"][0]
 
     listed = call_tool("p2p_project_vertical_list", {"root": str(tmp_path)})
     ids = {item["vertical_id"] for item in listed["verticals"]}
@@ -651,27 +659,39 @@ def test_mcp_project_vertical_and_readiness_tools(tmp_path: Path) -> None:
     assert context["project_context"]["lock_status"]["status"] == "valid"
 
     sections = call_tool("p2p_project_sections", {"root": str(tmp_path)})
-    assert any(section["section_id"] == "measurement_reporting" for section in sections["sections"])
+    assert {section["section_id"] for section in sections["sections"]} == (
+        structure_section_ids
+    )
+    assert "measurement_reporting" not in structure_section_ids
 
     section = call_tool(
         "p2p_project_section_show",
-        {"root": str(tmp_path), "section_id": "measurement_reporting"},
+        {"root": str(tmp_path), "section_id": first_field["section_id"]},
     )
-    assert section["section"]["section_id"] == "measurement_reporting"
+    assert section["section"]["section_id"] == first_field["section_id"]
 
     definition = call_tool("p2p_project_definition_show", {"root": str(tmp_path)})
     assert definition["definition"]["exists"] is True
 
     patch = tmp_path / "definition-patch.yml"
     patch.write_text(
-        "project_definition_patch:\n"
-        "  schema_version: 1\n"
-        "  actor: owner\n"
-        "  operations:\n"
-        "    - op: set_field\n"
-        "      section_id: measurement_reporting\n"
-        "      field_id: summary\n"
-        "      value: Outcome evidence and cadence.\n",
+        yaml.safe_dump(
+            {
+                "project_definition_patch": {
+                    "schema_version": 1,
+                    "actor": "owner",
+                    "operations": [
+                        {
+                            "op": "set_field",
+                            "section_id": first_field["section_id"],
+                            "field_id": first_field["id"],
+                            "value": "Outcome evidence and cadence.",
+                        }
+                    ],
+                }
+            },
+            sort_keys=False,
+        ),
         encoding="utf-8",
     )
     updated = call_tool("p2p_project_definition_update", {"root": str(tmp_path), "patch": str(patch)})

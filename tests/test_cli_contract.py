@@ -64,6 +64,11 @@ project.definition.update
 project.domain.clear
 project.domain.set
 project.domain.show
+project.structure.add-section
+project.structure.history
+project.structure.reorder
+project.structure.show
+project.structure.update-metadata
 project.freshness
 project.memory.show
 project.memory.status
@@ -199,7 +204,7 @@ def test_cli_json_operation_inventory_is_reviewed_and_guarded() -> None:
     inventory = json_command_inventory(get_command(app))
 
     assert frozenset(inventory) == EXPECTED_JSON_OPERATIONS
-    assert len(inventory) == 126
+    assert len(inventory) == 131
     assert inventory["vertical.inspect"] == "json"
     assert inventory["workspace.schema.status"] == "text"
 
@@ -287,6 +292,9 @@ def test_version_json_works_without_project_root() -> None:
         "portable_package_format_version": PORTABLE_VERTICAL_PACKAGE_VERSION,
         "project_domain_contract": "p2p-project-domain/v1",
         "structure_source_contract": "p2p-structure-source/v1",
+        "project_structure_contract": "p2p-project-structure/v1",
+        "project_structure_events_contract": "p2p-project-structure-events/v1",
+        "project_structure_mutation_contract": "p2p-project-structure-mutation/v1",
     }
 
 

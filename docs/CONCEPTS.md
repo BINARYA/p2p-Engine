@@ -142,19 +142,26 @@ rubrics or sections.
 Maturity assessment checks definition coverage against those rubrics. It is not
 implementation completeness.
 
-Project verticals are pure-data packs that provide domain-specific sections,
-questions, fields, artifacts, and default rubrics. A selected vertical is pinned
-by `.p2p/project/vertical.lock.yml`; after a lock exists, commands must fail
-closed on missing sources or checksum mismatch rather than silently falling back
-to `base_project`.
+Project verticals are immutable pure-data releases that provide reusable
+sections, questions, fields, artifacts and default rubrics. Initialization
+copies one effective release or starter into a detached `ProjectStructure`.
+That structure has its own stable ID, revision and checksum and remains usable
+without resolving its source again. Origin identity and checksum are provenance,
+not a live lock or readiness constraint.
+
+Simple structure edits add sections, update bounded metadata or reorder the
+complete active section set. They require `project.structure.edit`, an expected
+structure revision and an idempotency key. Referenced-element retirement and
+release replacement use separate impact-aware lifecycles.
 
 Portable schema-version-3 verticals use exact
 `publisher/vertical-id@semantic-version` coordinates and immutable local
-artifacts. P2P Engine validates, installs and adopts those artifacts offline;
-catalog discovery, user policy, moderation, download and popularity counters
-belong to an external system such as WaveKit. Multiple exact versions may
-coexist. Migration preserves exact matching evidence and retains unmatched
-evidence as explicit project-definition orphans.
+artifacts. P2P Engine validates and installs those artifacts offline; catalog
+discovery, user policy, moderation, download and popularity counters belong to
+an external system such as WaveKit. Multiple exact versions may coexist.
+Transitional release adoption or migration does not replace the project-owned
+structure. A later explicit replacement lifecycle compares the release with
+the current structure and governs every affected memory reference.
 
 `.p2p/project/definition.yml` stores durable owner answers, assumptions,
 missing required fields, blockers, open questions, section status, and
@@ -193,7 +200,7 @@ proposal or governance process.
 
 All editions use one shared, complete evidence index. A curator builds a strict
 project model, accounts for every evidence item, and writes localized reader
-prose using the active vertical as a completeness lens rather than a fixed table
+prose using the current project structure as a completeness lens rather than a fixed table
 of contents. Model and accounting sidecars preserve traceability so internal IDs,
 hashes, paths, readiness scores, and `.p2p` authority boilerplate do not need to
 appear in the reader document.

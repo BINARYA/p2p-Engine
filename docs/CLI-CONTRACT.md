@@ -101,8 +101,8 @@ Implemented external-attestation mutations accept an allowlisted
 `p2p-authority-context/v1` JSON file through `--authority-context`. The file is
 parsed as a closed, bounded contract; arbitrary provider payloads and
 shell-expanded JSON are not supported. Project initialization, generic
-proposal decision preview/apply and authority rotation are the integrated CLI
-surfaces. Existing proposal-authoring and vertical mutations remain explicitly
+proposal decision preview/apply, simple project-structure edits and authority
+rotation are the integrated CLI surfaces. Existing proposal-authoring and vertical mutations remain explicitly
 `existing_unintegrated` and local-policy only until their own feature adopts
 the shared authority contract.
 
@@ -145,6 +145,9 @@ p2p init "Project name" --starter generic --format json --operation-key wavekit:
 p2p init "Software" --domain software --vertical binarya/software_project@2.0.0 --format json --operation-key wavekit:<uuid>
 p2p project domain set gardening --name "Gardening" --actor ACTOR --format json --operation-key wavekit:<uuid>
 p2p project domain clear --actor ACTOR --format json --operation-key wavekit:<uuid>
+p2p project structure add-section "Distribution" --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>
+p2p project structure update-metadata section distribution --title "Distribution model" --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>
+p2p project structure reorder --section-id distribution --section-id scope --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>
 p2p proposal create "Title" --proposal "..." --format json --operation-key wavekit:<uuid>
 p2p proposal update PROP-001 --proposal "..." --format json --operation-key wavekit:<uuid>
 p2p proposal contribution add PROP-001 "Text" --type finding --format json --operation-key wavekit:<uuid>

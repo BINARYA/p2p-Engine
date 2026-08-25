@@ -215,14 +215,14 @@ artifacts.
 Routing summary:
 
 - chat-only exploration stays in chat;
-- project definition work starts from project vertical/context/definition
-  primitives;
+- project definition work starts from `project structure`, context and
+  definition primitives; vertical releases are seed/catalog inputs only;
 - proposal authoring uses proposal, contribution, question, artifact, or import
   primitives;
 - choices use choice primitives and leave owner-controlled decisions to the
   owner;
-- vertical-specific work uses the active vertical lifecycle, such as
-  software-spec primitives when available;
+- vertical-specific work may use release-specific primitives, but agents must
+  not treat source identity or a transitional lock as the live project shape;
 - implementation work outside `.p2p/` uses repository `specs/`, `src/`,
   `tests/`, and maintained docs;
 - generated exports use export commands or declared repository output

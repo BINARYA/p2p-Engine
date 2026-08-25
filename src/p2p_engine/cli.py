@@ -20,6 +20,7 @@ from p2p_engine.cli_commands.next_actions import register_next_commands
 from p2p_engine.cli_commands.project_ops import register_project_ops_commands
 from p2p_engine.cli_commands.project_authority import register_project_authority_commands
 from p2p_engine.cli_commands.project_domain import register_project_domain_commands
+from p2p_engine.cli_commands.project_structure import register_project_structure_commands
 from p2p_engine.cli_commands.project_readiness import register_project_readiness_commands
 from p2p_engine.cli_commands.project_status import register_project_status_commands
 from p2p_engine.cli_commands.prompts import register_prompt_commands
@@ -47,6 +48,11 @@ from p2p_engine.core.project_domain import (
     PROJECT_DOMAIN_CONTRACT,
     STRUCTURE_SOURCE_CONTRACT,
 )
+from p2p_engine.core.project_structure import (
+    PROJECT_STRUCTURE_CONTRACT,
+    PROJECT_STRUCTURE_EVENTS_CONTRACT,
+    PROJECT_STRUCTURE_MUTATION_CONTRACT,
+)
 
 app = typer.Typer(help="P2P Engine CLI", cls=VersionedJSONTyperGroup)
 proposal_app = typer.Typer(help="Manage proposals")
@@ -69,6 +75,7 @@ precedent_app = typer.Typer(help="Record governance decision precedents")
 project_app = typer.Typer(help="Manage rationalized project state")
 project_authority_app = typer.Typer(help="Inspect and rotate project authority")
 project_domain_app = typer.Typer(help="Inspect and change project subject classification")
+project_structure_app = typer.Typer(help="Inspect and edit the project-owned structure")
 project_authority_rotate_app = typer.Typer(help="Preview, apply, and inspect authority rotation")
 project_brief_app = typer.Typer(help="Generate and import operational project briefs")
 project_remote_app = typer.Typer(help="Manage project remote profile")
@@ -150,6 +157,7 @@ project_app.add_typer(project_vertical_app, name="vertical")
 project_app.add_typer(project_readiness_app, name="readiness")
 project_app.add_typer(project_authority_app, name="authority")
 project_app.add_typer(project_domain_app, name="domain")
+project_app.add_typer(project_structure_app, name="structure")
 project_readiness_app.add_typer(project_readiness_questions_app, name="questions")
 assess_app.add_typer(assess_maturity_app, name="maturity")
 intake_app.add_typer(intake_apply_app, name="apply")
@@ -206,6 +214,7 @@ register_project_authority_commands(
     project_authority_rotate_app,
 )
 register_project_domain_commands(project_domain_app)
+register_project_structure_commands(project_structure_app)
 register_work_spec_commands(change_app, spec_app, work_app)
 register_collaboration_commands(
     governance_app,
@@ -236,6 +245,9 @@ def version(
         "portable_package_format_version": PORTABLE_VERTICAL_PACKAGE_VERSION,
         "project_domain_contract": PROJECT_DOMAIN_CONTRACT,
         "structure_source_contract": STRUCTURE_SOURCE_CONTRACT,
+        "project_structure_contract": PROJECT_STRUCTURE_CONTRACT,
+        "project_structure_events_contract": PROJECT_STRUCTURE_EVENTS_CONTRACT,
+        "project_structure_mutation_contract": PROJECT_STRUCTURE_MUTATION_CONTRACT,
     }
     if normalized == "json":
         print_json(success_envelope("version", data))
@@ -247,6 +259,9 @@ def version(
     console.print(f"  portable package format: {PORTABLE_VERTICAL_PACKAGE_VERSION}")
     console.print(f"  project domain contract: {PROJECT_DOMAIN_CONTRACT}")
     console.print(f"  structure source contract: {STRUCTURE_SOURCE_CONTRACT}")
+    console.print(f"  project structure contract: {PROJECT_STRUCTURE_CONTRACT}")
+    console.print(f"  project structure events contract: {PROJECT_STRUCTURE_EVENTS_CONTRACT}")
+    console.print(f"  project structure mutation contract: {PROJECT_STRUCTURE_MUTATION_CONTRACT}")
 
 
 @app.command()

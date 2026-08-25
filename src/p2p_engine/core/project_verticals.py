@@ -324,6 +324,9 @@ class ProjectDefinitionState:
     next_suggested_action: dict[str, object] = field(default_factory=dict)
     history: list[ProjectDefinitionHistoryEntry] = field(default_factory=list)
     orphans: list[ProjectDefinitionOrphan] = field(default_factory=list)
+    structure_id: str = ""
+    structure_revision: int = 0
+    structure_checksum: str = ""
     path: Path | None = None
 
 

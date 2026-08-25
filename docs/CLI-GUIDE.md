@@ -80,6 +80,25 @@ p2p project domain set gardening --name "Gardening" --actor owner --operation-ke
 p2p project domain clear --actor owner --operation-key local:domain-002 --format json
 ```
 
+Initialization copies the effective source into a detached, project-owned
+structure. Inspect and make simple governed edits against its own revision:
+
+```bash
+p2p project structure show --format json
+p2p project structure history --limit 20 --format json
+p2p project structure add-section "Distribution" --expected-revision 1 \
+  --operation-key local:structure-001 --format json
+p2p project structure update-metadata section distribution \
+  --title "Distribution model" --expected-revision 2 \
+  --operation-key local:structure-002 --format json
+p2p project structure reorder --section-id distribution --section-id scope \
+  --expected-revision 3 --operation-key local:structure-003 --format json
+```
+
+The source release and origin checksum remain provenance only. Source updates
+do not change an initialized project. Retirement, release replacement and
+merge are separate impact-aware operations, not generic metadata updates.
+
 Typical first checks:
 
 ```bash
@@ -298,9 +317,9 @@ owner-review and approval boundaries.
 
 ## 2. Define Project Verticals And Capisaldi
 
-Project verticals are pure data packs that describe the capisaldi, rubrics,
-questions, and expected artifacts for a kind of project. `base_project` is the
-cross-domain fallback. More specific verticals can extend it.
+Project verticals are immutable pure-data releases used to seed or exchange a
+structure. They describe sections, rubrics, questions and expected artifacts,
+but after initialization the detached project-owned structure is authoritative.
 
 List and inspect verticals:
 
@@ -314,9 +333,10 @@ p2p project sections --format json
 p2p project definition show --format json
 ```
 
-If no active vertical has been selected, project reads use `base_project` as a
-normal fallback. This is not an init failure; it is a signal that an agent or
-owner should define the project skeleton before relying on readiness.
+Unqualified `p2p project sections` reads the project-owned structure. Supplying
+a vertical coordinate explicitly inspects catalog content. Active-vertical and
+lock commands are transitional release-lifecycle surfaces and do not define the
+live project shape.
 
 P2P Engine accepts schema-3 canonical multi-file packs only:
 
@@ -469,10 +489,13 @@ p2p init "My Project" --vertical example/my-vertical@1.0.0 \
   --pull --registry wavekit
 ```
 
-Existing projects use governed preview/apply. `adopt` is limited to the typed
-`empty` source classification. `migrate` first analyzes every definition,
-question and rubric effect, then requires explicit decisions for anything that
-cannot be preserved by exact compatible identity:
+The following `adopt` and `migrate` commands are transitional release-lifecycle
+surfaces. They can update active-release metadata and legacy projections, but
+they never replace the canonical `ProjectStructure`. A project initialized as
+`empty` therefore remains structurally empty after `adopt`. Replacing a live
+structure is a separate impact-aware mutation and must not be inferred from
+these commands. `migrate` can still report definition, question and rubric
+effects and remains fail-closed when explicit transition decisions are missing:
 
 ```bash
 p2p project vertical adopt preview example/my-vertical@1.0.0 --actor owner
@@ -560,9 +583,9 @@ Selecting a vertical writes explicit project state:
 .p2p/project/rubrics.yml
 ```
 
-Existing projects that already have `.p2p/project/vertical.yml` but no
-`vertical.lock.yml` are not repaired by reads. Validate reports an actionable
-warning; repair is explicit:
+Transitional source selection and lock artifacts are never repaired by
+project-structure reads. An explicit lock repair only repairs source metadata;
+it does not edit the canonical structure:
 
 ```bash
 p2p project vertical lock repair --actor owner
@@ -579,7 +602,9 @@ Vertical pack text is declarative domain data. It can define questions,
 examples, fields, and rubrics, but it cannot override system, developer,
 governance, repository, safety, or tool-permission rules.
 
-Review project readiness against the active vertical:
+The current readiness-v1 service still reviews release-backed criteria while
+readiness-v2 convergence is developed. This read does not change the canonical
+project structure:
 
 ```bash
 p2p project readiness review
@@ -646,9 +671,10 @@ vertical_coverage:
       source: declared
 ```
 
-`p2p validate` checks project-local vertical packs, active vertical state,
-vertical lock state, definition state, safety/trust issues, and declared
-proposal coverage when present. Remote vertical registries are deferred.
+`p2p validate` checks the project-owned structure and event head, project-local
+vertical packs, optional transitional vertical/lock state, definition state,
+safety/trust issues, and declared proposal coverage when present. Remote
+vertical registries are deferred.
 
 ### Correct Legacy Semantic Artifacts
 

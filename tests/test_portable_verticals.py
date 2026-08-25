@@ -366,7 +366,7 @@ def test_adopt_receipt_replays_before_current_state_is_recomputed(tmp_path: Path
 
 
 @pytest.mark.service
-def test_migrate_receipt_replays_exact_mapping_and_rejects_changed_mapping(
+def test_transitional_migrate_preview_remains_blocked_without_structure_replacement(
     tmp_path: Path,
 ) -> None:
     authoring = P2PWorkspace(tmp_path)
@@ -381,7 +381,6 @@ def test_migrate_receipt_replays_exact_mapping_and_rejects_changed_mapping(
         tmp_path,
         vertical_id="receipt-migrate-target",
         version="2.0.0",
-        field_id="renamed_summary",
     )
     project = P2PWorkspace(tmp_path / "project")
     project.init_project("Receipt migration", owner="owner", starter_id="empty")
@@ -410,69 +409,20 @@ def test_migrate_receipt_replays_exact_mapping_and_rejects_changed_mapping(
         actor="owner",
         idempotency_key=f"adopt:{source_coordinate}",
     )
-    patch = tmp_path / "receipt-migration-patch.yml"
-    patch.write_text(
-        "project_definition_patch:\n"
-        "  schema_version: 1\n"
-        "  actor: owner\n"
-        "  operations:\n"
-        "    - op: set_field\n"
-        "      section_id: custom_overview\n"
-        "      field_id: summary\n"
-        "      value: durable evidence\n"
-        "      source: owner\n",
-        encoding="utf-8",
-    )
-    project.update_project_definition(patch)
     analysis = project.preview_project_vertical_migration(
         target_coordinate,
         actor="owner",
     )
-    mapping = _transition_plan(
-        analysis,
-        targets={
-            "definition_field:custom_overview.summary": (
-                "definition_field:custom_overview.renamed_summary"
-            ),
-        },
-    )
+    plan = _transition_plan(analysis)
+    before = _workspace_file_snapshot(project.root)
     preview = project.preview_project_vertical_migration(
         target_coordinate,
         actor="owner",
-        mapping=mapping,
+        mapping=plan,
     )
-    key = "wavekit-migrate-operation"
-    applied = project.apply_project_vertical_migration(
-        target_coordinate,
-        preview_token=preview.preview.preview_token,
-        confirmed=True,
-        actor="owner",
-        idempotency_key=key,
-        mapping=mapping,
-    )
-    after_apply = _workspace_file_snapshot(project.root)
-
-    replayed = project.apply_project_vertical_migration(
-        target_coordinate,
-        preview_token=preview.preview.preview_token,
-        confirmed=True,
-        actor="owner",
-        idempotency_key=key,
-        mapping=mapping,
-    )
-
-    assert applied.mutation.status == "applied"
-    assert replayed.mutation.status == "already_applied"
-    assert _workspace_file_snapshot(project.root) == after_apply
-    with pytest.raises(ValueError, match="P2P_IDEMPOTENCY_CONFLICT"):
-        project.apply_project_vertical_migration(
-            target_coordinate,
-            preview_token=preview.preview.preview_token,
-            confirmed=True,
-            actor="owner",
-            idempotency_key=key,
-            mapping={},
-        )
+    assert preview.preview is None
+    assert "P2P_VERTICAL_MIGRATION_REQUIRES_ADOPTION" in preview.blockers
+    assert _workspace_file_snapshot(project.root) == before
 
 
 @pytest.mark.service
@@ -537,7 +487,7 @@ def test_portable_install_rolls_back_a_partial_write(tmp_path: Path) -> None:
 
 
 @pytest.mark.service
-def test_adopt_and_migrate_receipts_roll_back_with_domain_state_on_write_failure(
+def test_adopt_receipt_rolls_back_with_domain_state_on_write_failure(
     tmp_path: Path,
 ) -> None:
     authoring = P2PWorkspace(tmp_path)
@@ -552,7 +502,6 @@ def test_adopt_and_migrate_receipts_roll_back_with_domain_state_on_write_failure
         tmp_path,
         vertical_id="failure-target",
         version="2.0.0",
-        field_id="renamed_summary",
     )
     project_root = tmp_path / "project"
     project = P2PWorkspace(project_root)
@@ -617,50 +566,7 @@ def test_adopt_and_migrate_receipts_roll_back_with_domain_state_on_write_failure
         actor="owner",
         idempotency_key="successful-adopt",
     )
-    patch = tmp_path / "failure-migration-patch.yml"
-    patch.write_text(
-        "project_definition_patch:\n"
-        "  schema_version: 1\n"
-        "  actor: owner\n"
-        "  operations:\n"
-        "    - op: set_field\n"
-        "      section_id: custom_overview\n"
-        "      field_id: summary\n"
-        "      value: evidence\n"
-        "      source: owner\n",
-        encoding="utf-8",
-    )
-    project.update_project_definition(patch)
-    analysis = project.preview_project_vertical_migration(
-        target_coordinate,
-        actor="owner",
-    )
-    mapping = _transition_plan(
-        analysis,
-        targets={
-            "definition_field:custom_overview.summary": (
-                "definition_field:custom_overview.renamed_summary"
-            ),
-        },
-    )
-    migration = project.preview_project_vertical_migration(
-        target_coordinate,
-        actor="owner",
-        mapping=mapping,
-    )
-    before_migrate = _workspace_file_snapshot(project_root)
-    lifecycle.atomic_writer = failing_writer()
-    with pytest.raises(ValueError, match="P2P_VERTICAL_APPLY_FAILED"):
-        project.apply_project_vertical_migration(
-            target_coordinate,
-            preview_token=migration.preview.preview_token,
-            confirmed=True,
-            actor="owner",
-            idempotency_key="failed-migrate",
-            mapping=mapping,
-        )
-    assert _workspace_file_snapshot(project_root) == before_migrate
-    assert project.mutation_status(idempotency_key="failed-migrate").state == "not_found"
+    assert project.active_project_vertical().coordinate == source_coordinate
 
 
 @pytest.mark.service
@@ -714,7 +620,9 @@ def test_adoption_rejects_stale_preview_and_requires_confirmation(tmp_path: Path
 
 
 @pytest.mark.service
-def test_migration_preserves_exact_mapping_and_materializes_unmapped_orphan(tmp_path: Path) -> None:
+def test_transitional_vertical_changes_do_not_replace_project_owned_structure(
+    tmp_path: Path,
+) -> None:
     authoring = P2PWorkspace(tmp_path)
     source_archive, source_checksum, source_coordinate = _portable_pack(
         authoring,
@@ -727,11 +635,11 @@ def test_migration_preserves_exact_mapping_and_materializes_unmapped_orphan(tmp_
         tmp_path,
         vertical_id="migration_target",
         version="2.0.0",
-        field_id="renamed_summary",
     )
     project_root = tmp_path / "project"
     project = P2PWorkspace(project_root)
     project.init_project("Migration project", starter_id="empty")
+    initial_structure = project.project_structure()
     for archive, checksum in (
         (source_archive, source_checksum),
         (target_archive, target_checksum),
@@ -753,72 +661,18 @@ def test_migration_preserves_exact_mapping_and_materializes_unmapped_orphan(tmp_
         actor="owner",
         idempotency_key=f"adopt:{source_coordinate}",
     )
-    patch = tmp_path / "definition-patch.yml"
-    patch.write_text(
-        "project_definition_patch:\n"
-        "  schema_version: 1\n"
-        "  actor: owner\n"
-        "  operations:\n"
-        "    - op: set_field\n"
-        "      section_id: custom_overview\n"
-        "      field_id: summary\n"
-        "      value: preserved evidence\n"
-        "      source: owner\n",
-        encoding="utf-8",
-    )
-    project.update_project_definition(patch)
-
-    analysis = project.preview_project_vertical_migration(
-        target_coordinate,
-        actor="owner",
-    )
-    assert analysis.apply_allowed is False
-    assert analysis.preview is None
-    assert analysis.impact.required_decisions.total == 1
-    mapped_plan = _transition_plan(
-        analysis,
-        targets={
-            "definition_field:custom_overview.summary": (
-                "definition_field:custom_overview.renamed_summary"
-            ),
-        },
-    )
-    mapped = project.preview_project_vertical_migration(
-        target_coordinate,
-        actor="owner",
-        mapping=mapped_plan,
-    )
-    transition = mapped.impact.evidence_transitions.items[0]
-    assert transition.disposition.value == "mapped"
-    assert transition.target is not None
-    assert transition.target.ref == "definition_field:custom_overview.renamed_summary"
-
-    orphan_plan = _transition_plan(analysis)
-    orphaned = project.preview_project_vertical_migration(
-        target_coordinate,
-        actor="owner",
-        mapping=orphan_plan,
-    )
-    assert orphaned.impact.evidence_transitions.items[0].disposition.value == "preserve_as_orphan"
-    project.apply_project_vertical_migration(
-        target_coordinate,
-        preview_token=orphaned.preview.preview_token,
-        confirmed=True,
-        actor="owner",
-        idempotency_key=f"migrate:{target_coordinate}",
-        mapping=orphan_plan,
-    )
-    state = project.project_definition_view().state
-
-    assert state is not None
-    assert state.vertical_id == "migration_target"
-    assert len(state.orphans) == 1
-    assert state.orphans[0].value == "preserved evidence"
-    assert state.orphans[0].source_field_id == "summary"
+    current_structure = project.project_structure()
+    definition = project.project_definition_view()
+    assert current_structure == initial_structure
+    assert current_structure.sections == ()
+    assert project.active_project_vertical().coordinate == source_coordinate
+    assert definition.valid is True
+    assert definition.state is not None
+    assert definition.state.sections == []
 
 
 @pytest.mark.service
-def test_migration_materializes_mixed_evidence_in_its_own_memory_family(
+def test_transitional_migration_analysis_does_not_mutate_structure_bound_evidence(
     tmp_path: Path,
 ) -> None:
     authoring = P2PWorkspace(tmp_path)
@@ -838,31 +692,25 @@ def test_migration_materializes_mixed_evidence_in_its_own_memory_family(
         rubric_id="target_overview_coverage",
     )
     project = P2PWorkspace(tmp_path / "mixed-project")
-    project.init_project("Mixed migration", owner="owner", starter_id="empty")
-    for archive, checksum in (
-        (source_archive, source_checksum),
-        (target_archive, target_checksum),
-    ):
-        install = project.preview_portable_vertical_install(
-            archive,
-            expected_checksum=checksum,
-            actor="owner",
-        )
-        project.apply_portable_vertical_install(
-            archive,
-            expected_checksum=checksum,
-            preview_token=install.preview.preview_token,
-            confirmed=True,
-            actor="owner",
-            idempotency_key=f"install:{checksum}",
-        )
-    adoption = project.preview_project_vertical_adoption(source_coordinate, actor="owner")
-    project.apply_project_vertical_adoption(
-        source_coordinate,
-        preview_token=adoption.preview.preview_token,
+    project.init_project_with_summary(
+        "Mixed migration",
+        vertical_pack=source_archive,
+        expected_checksum=source_checksum,
+        owner="owner",
+    )
+    initial_structure = project.project_structure()
+    install = project.preview_portable_vertical_install(
+        target_archive,
+        expected_checksum=target_checksum,
+        actor="owner",
+    )
+    project.apply_portable_vertical_install(
+        target_archive,
+        expected_checksum=target_checksum,
+        preview_token=install.preview.preview_token,
         confirmed=True,
         actor="owner",
-        idempotency_key="mixed-adopt",
+        idempotency_key=f"install:{target_checksum}",
     )
 
     private_value = "MIXED-PRIVATE-DEFINITION-VALUE"
@@ -914,63 +762,20 @@ def test_migration_materializes_mixed_evidence_in_its_own_memory_family(
     )
 
     analysis = project.preview_project_vertical_migration(target_coordinate, actor="owner")
-    assert analysis.impact.questions.created.total == 1
-    target_question_ref = analysis.impact.questions.created.items[0]
-    target_question_id = target_question_ref.split(":", 1)[1]
-    target_refs: dict[str, str] = {}
-    for required in analysis.impact.required_decisions.items:
-        source_ref = required.source.ref
-        if source_ref.startswith("definition_field:"):
-            target_refs[source_ref] = "definition_field:target_overview.summary"
-        elif source_ref.startswith("definition_assumption:"):
-            target_refs[source_ref] = (
-                "definition_assumption:target_overview/" + source_ref.rsplit("/", 1)[1]
-            )
-        elif source_ref.startswith("definition_blocker:"):
-            target_refs[source_ref] = (
-                "definition_blocker:target_overview/" + source_ref.rsplit("/", 1)[1]
-            )
-        elif source_ref.startswith("rubric:"):
-            target_refs[source_ref] = "rubric:target_overview_coverage"
-        elif source_ref.startswith("question:"):
-            target_refs[source_ref] = target_question_ref
-    assert {item.source.kind.value for item in analysis.impact.required_decisions.items} == {
-        "definition_field",
-        "definition_assumption",
-        "definition_blocker",
-        "rubric",
-        "question",
-    }
-    plan = _transition_plan(analysis, targets=target_refs)
-    preview = project.preview_project_vertical_migration(
-        target_coordinate,
-        actor="owner",
-        mapping=plan,
-    )
-    assert preview.apply_allowed is True
-    project.apply_project_vertical_migration(
-        target_coordinate,
-        preview_token=preview.preview.preview_token,
-        confirmed=True,
-        actor="owner",
-        idempotency_key="mixed-migrate",
-        mapping=plan,
-    )
-
+    assert analysis.apply_allowed is False
+    assert analysis.preview is None
+    assert "P2P_VERTICAL_DECISION_REQUIRED" in analysis.blockers
+    assert project.project_structure() == initial_structure
     state = project.project_definition_view().state
     assert state is not None
-    section = next(item for item in state.sections if item.section_id == "target_overview")
+    section = next(item for item in state.sections if item.section_id == "custom_overview")
     assert section.fields["summary"].value == private_value
     assert [item.text for item in section.assumptions] == ["Mixed assumption"]
     assert [item.text for item in section.blockers] == ["Mixed blocker"]
     assert state.orphans == []
-    final_rubrics = yaml.safe_load(rubrics_path.read_text(encoding="utf-8"))["criteria"]
-    target_rubric = next(item for item in final_rubrics if item["id"] == "target_overview_coverage")
-    assert target_rubric["enabled"] is False
     final_questions = project.project_questions()
     questions_by_id = {item.question_id: item for item in final_questions.questions}
-    assert questions_by_id[target_question_id].state.value == "deferred"
-    assert questions_by_id[source_question_id].state.value == "superseded"
+    assert questions_by_id[source_question_id].state.value == "deferred"
     assert private_value not in rubrics_path.read_text(encoding="utf-8")
     assert private_value not in (
         project.p2p_dir / "project" / "questions.yml"
@@ -1133,38 +938,13 @@ def test_portable_bare_id_is_ambiguous_and_exact_versions_remain_operable(tmp_pa
         actor="owner",
         idempotency_key=f"adopt:{coordinate_v1}",
     )
-    patch = tmp_path / "versioned-definition-patch.yml"
-    patch.write_text(
-        "project_definition_patch:\n"
-        "  schema_version: 1\n"
-        "  actor: owner\n"
-        "  operations:\n"
-        "    - op: set_field\n"
-        "      section_id: custom_overview\n"
-        "      field_id: summary\n"
-        "      value: preserved across versions\n"
-        "      provenance:\n"
-        "        source: owner\n",
-        encoding="utf-8",
-    )
-    project.update_project_definition(patch)
-    migration = project.preview_project_vertical_migration(coordinate_v2, actor="owner")
-    project.apply_project_vertical_migration(
-        coordinate_v2,
-        preview_token=migration.preview.preview_token,
-        confirmed=True,
-        actor="owner",
-        idempotency_key=f"migrate:{coordinate_v2}",
-    )
-
     definition = project.project_definition_view()
-    assert project.active_project_vertical().coordinate == coordinate_v2
+    assert project.active_project_vertical().coordinate == coordinate_v1
     assert project.project_vertical_lock_status().status == "valid"
     assert definition.valid is True
     assert definition.state is not None
-    assert definition.state.vertical_version == "2.0.0"
-    assert definition.state.sections[0].fields["summary"].value == "preserved across versions"
-    assert project.project_readiness_snapshot().identity.vertical_version == "2.0.0"
+    assert definition.state.sections == []
+    assert project.project_structure().sections == ()
     assert project.validate().ok is True
 
 
@@ -1241,8 +1021,11 @@ def test_exact_coordinate_equivalence_preserves_precedence_and_conflict_fails_cl
 
 
 @pytest.mark.service
-@pytest.mark.parametrize("drift", ["version", "checksum"])
-def test_portable_definition_identity_drift_fails_closed(tmp_path: Path, drift: str) -> None:
+@pytest.mark.parametrize("drift", ["structure_id", "structure_checksum"])
+def test_project_structure_definition_identity_drift_fails_closed(
+    tmp_path: Path,
+    drift: str,
+) -> None:
     authoring = P2PWorkspace(tmp_path)
     archive, checksum, _ = _portable_pack(
         authoring,
@@ -1260,12 +1043,12 @@ def test_portable_definition_identity_drift_fails_closed(tmp_path: Path, drift: 
     )
     definition_path = project_root / ".p2p" / "project" / "definition.yml"
     payload = yaml.safe_load(definition_path.read_text(encoding="utf-8"))
-    if drift == "version":
-        payload["project_definition"]["vertical_version"] = "9.9.9"
-        expected_field = "project_definition.vertical_version"
+    if drift == "structure_id":
+        payload["project_definition"]["structure"]["id"] = "different-structure"
+        expected_field = "project_definition.structure.id"
     else:
-        payload["project_definition"]["lock"]["checksum"] = "0" * 64
-        expected_field = "project_definition.lock.checksum"
+        payload["project_definition"]["structure"]["checksum"] = "0" * 64
+        expected_field = "project_definition.structure.checksum"
     definition_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
 
     definition = project.project_definition_view()
@@ -1652,146 +1435,20 @@ def test_portable_cli_install_and_adopt_preview_apply_contract(tmp_path: Path) -
     adopted_payload = cli_envelope(adopted)
     assert adopted_payload["ok"] is True
     assert adopted_payload["operation"] == "project.vertical.adopt.apply"
-
-    patch = tmp_path / "cli-definition-patch.yml"
-    patch.write_text(
-        "project_definition_patch:\n"
-        "  schema_version: 1\n"
-        "  actor: owner\n"
-        "  operations:\n"
-        "    - op: set_field\n"
-        "      section_id: custom_overview\n"
-        "      field_id: summary\n"
-        "      value: CLI evidence\n"
-        "      source: owner\n",
-        encoding="utf-8",
-    )
     project = P2PWorkspace(project_root)
-    project.update_project_definition(patch)
-    target_archive, target_checksum, target_coordinate = _portable_pack(
-        authoring,
-        tmp_path,
-        vertical_id="cli-target",
-        version="2.0.0",
-        field_id="renamed_summary",
-    )
-    target_install = project.preview_portable_vertical_install(
-        target_archive,
-        expected_checksum=target_checksum,
-        actor="owner",
-    )
-    project.apply_portable_vertical_install(
-        target_archive,
-        expected_checksum=target_checksum,
-        preview_token=target_install.preview.preview_token,
-        confirmed=True,
-        actor="owner",
-        idempotency_key=f"install:{target_checksum}",
-    )
-    analysis_result = runner.invoke(
+    structure_result = runner.invoke(
         app,
         [
             "project",
-            "vertical",
-            "migrate",
-            "preview",
-            target_coordinate,
-            "--actor",
-            "owner",
+            "structure",
+            "show",
             "--root",
             str(project_root),
             "--format",
             "json",
         ],
     )
-    analysis_payload = cli_data(analysis_result)
-    assert "CLI evidence" not in analysis_result.stdout
-    text_analysis_result = runner.invoke(
-        app,
-        [
-            "project",
-            "vertical",
-            "migrate",
-            "preview",
-            target_coordinate,
-            "--actor",
-            "owner",
-            "--root",
-            str(project_root),
-        ],
-    )
-    assert text_analysis_result.exit_code == 0
-    assert "CLI evidence" not in text_analysis_result.stdout
-    assert ".p2p/" not in text_analysis_result.stdout
-    required = analysis_payload["impact"]["required_decisions"]["items"]
-    assert len(required) == 1
-    mapping_payload = {
-        "vertical_transition_plan": {
-            "schema_version": 1,
-            "contract_version": "p2p-vertical-transition-plan/v1",
-            "analysis_fingerprint_sha256": analysis_payload["impact"][
-                "analysis_fingerprint_sha256"
-            ],
-            "decisions": [
-                {
-                    "id": required[0]["id"],
-                    "action": "map",
-                    "source": required[0]["source"],
-                    "target": {
-                        "kind": "definition_field",
-                        "ref": "definition_field:custom_overview.renamed_summary",
-                    },
-                }
-            ],
-        }
-    }
-    mapping = tmp_path / "cli-mapping.yml"
-    mapping.write_text(yaml.safe_dump(mapping_payload, sort_keys=False), encoding="utf-8")
-    migrate_preview = runner.invoke(
-        app,
-        [
-            "project",
-            "vertical",
-            "migrate",
-            "preview",
-            target_coordinate,
-            "--mapping",
-            str(mapping),
-            "--actor",
-            "owner",
-            "--root",
-            str(project_root),
-            "--format",
-            "json",
-        ],
-    )
-    migrate_payload = cli_data(migrate_preview)
-    migrate_token = migrate_payload["preview"]["preview_token"]
-    migrated = runner.invoke(
-        app,
-        [
-            "project",
-            "vertical",
-            "migrate",
-            "apply",
-            target_coordinate,
-            "--mapping",
-            str(mapping),
-            "--token",
-            migrate_token,
-            "--idempotency-key",
-            "cli-migrate-operation",
-            "--confirm",
-            "--actor",
-            "owner",
-            "--root",
-            str(project_root),
-            "--format",
-            "json",
-        ],
-    )
-
-    assert migrated.exit_code == 0
-    migrated_payload = cli_envelope(migrated)
-    assert migrated_payload["ok"] is True
-    assert migrated_payload["operation"] == "project.vertical.migrate.apply"
+    assert structure_result.exit_code == 0
+    assert cli_data(structure_result)["project_structure"]["sections"] == []
+    assert project.project_definition_view().state is not None
+    assert project.project_definition_view().state.sections == []

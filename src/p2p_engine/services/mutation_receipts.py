@@ -300,6 +300,7 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "proposal_decision_apply",
         "project_authority_rotate",
         "project_domain_change",
+        "project_structure_change",
     }:
         raise ValueError(f"unsupported receipt operation: {operation}")
     actor = _required_text(data, "actor")
@@ -323,6 +324,7 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "init",
         "project_authority_rotate",
         "project_domain_change",
+        "project_structure_change",
         "proposal_decision_apply",
     } and authority is None:
         raise ValueError(f"receipt operation {operation} requires authority evidence")
@@ -378,6 +380,9 @@ def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
         return
     if operation == "project_domain_change":
         _validate_project_domain_result(result)
+        return
+    if operation == "project_structure_change":
+        _validate_project_structure_result(result)
         return
     if operation == "proposal_decision_apply":
         _validate_proposal_decision_result(result)
@@ -483,6 +488,7 @@ def _validate_init_result(result: Mapping[str, object]) -> None:
         "structure_source",
         "structure_origin",
         "structure_revision",
+        "structure_checksum",
         "authority",
         "created_paths",
         "created_file_paths",
@@ -527,6 +533,13 @@ def _validate_init_result(result: Mapping[str, object]) -> None:
         or structure_revision < 1
     ):
         raise ValueError("receipt result structure_revision must be positive")
+    structure_checksum = result.get("structure_checksum")
+    if (
+        not isinstance(structure_checksum, str)
+        or len(structure_checksum) != 64
+        or any(character not in "0123456789abcdef" for character in structure_checksum)
+    ):
+        raise ValueError("receipt result structure_checksum must be SHA-256")
     for field in (
         "created_paths",
         "created_file_paths",
@@ -846,6 +859,82 @@ def _validate_project_domain_result(result: Mapping[str, object]) -> None:
         raise ValueError("receipt project-domain path is invalid")
 
 
+def _validate_project_structure_result(result: Mapping[str, object]) -> None:
+    allowed = {
+        "contract",
+        "operation",
+        "operation_id",
+        "requested_operation",
+        "request",
+        "expected_revision",
+        "previous_revision",
+        "previous_checksum",
+        "current",
+        "event",
+        "changed_paths",
+    }
+    unknown = sorted(str(key) for key in result if key not in allowed)
+    if unknown:
+        raise ValueError(
+            "receipt project-structure result contains unsupported fields: "
+            + ", ".join(unknown)
+        )
+    if result.get("operation") != "project_structure_change":
+        raise ValueError("receipt project-structure operation is unsupported")
+    requested = result.get("requested_operation")
+    if requested not in {"add_section", "update_metadata", "reorder_sections"}:
+        raise ValueError("receipt project-structure requested operation is invalid")
+    if result.get("operation_id") != f"project.structure.{requested}":
+        raise ValueError("receipt project-structure operation_id is invalid")
+    from p2p_engine.core.project_structure import (
+        PROJECT_STRUCTURE_CONTRACT,
+        PROJECT_STRUCTURE_MUTATION_CONTRACT,
+        normalize_structure_id,
+        project_structure_event_from_mapping,
+    )
+
+    if result.get("contract") != PROJECT_STRUCTURE_MUTATION_CONTRACT:
+        raise ValueError("receipt project-structure contract is unsupported")
+    request = result.get("request")
+    if not isinstance(request, Mapping):
+        raise ValueError("receipt project-structure request must be a mapping")
+    current = result.get("current")
+    if not isinstance(current, Mapping) or set(current) != {
+        "contract",
+        "structure_id",
+        "revision",
+        "checksum",
+    }:
+        raise ValueError("receipt project-structure current summary is invalid")
+    if current.get("contract") != PROJECT_STRUCTURE_CONTRACT:
+        raise ValueError("receipt project-structure current contract is unsupported")
+    normalize_structure_id(current.get("structure_id"), field_name="structure_id")
+    current_revision = current.get("revision")
+    current_checksum = _required_sha256(current, "checksum")
+    event = project_structure_event_from_mapping(result.get("event"))
+    expected_revision = result.get("expected_revision")
+    previous_revision = result.get("previous_revision")
+    if (
+        isinstance(expected_revision, bool)
+        or not isinstance(expected_revision, int)
+        or expected_revision < 1
+        or previous_revision != expected_revision
+        or current_revision != expected_revision + 1
+    ):
+        raise ValueError("receipt project-structure revision transition is invalid")
+    previous_checksum = _required_sha256(result, "previous_checksum")
+    if previous_checksum == current_checksum:
+        raise ValueError("receipt project-structure mutation did not change semantics")
+    if event.revision != current_revision or event.checksum != current_checksum:
+        raise ValueError("receipt project-structure event does not match current structure")
+    expected_paths = [
+        ".p2p/project/structure-events.yml",
+        ".p2p/project/structure.yml",
+    ]
+    if result.get("changed_paths") != expected_paths:
+        raise ValueError("receipt project-structure changed paths are invalid")
+
+
 def _validate_proposal_decision_result(result: Mapping[str, object]) -> None:
     allowed = {
         "operation",
@@ -1059,6 +1148,22 @@ def _public_result(result: Mapping[str, object]) -> dict[str, object]:
             if isinstance(result.get("current"), Mapping)
             else {},
             "project_memory_revision": result.get("project_memory_revision"),
+        }
+    if result.get("operation") == "project_structure_change":
+        return {
+            "contract": result.get("contract"),
+            "operation": result.get("operation"),
+            "operation_id": result.get("operation_id"),
+            "requested_operation": result.get("requested_operation"),
+            "expected_revision": result.get("expected_revision"),
+            "previous_revision": result.get("previous_revision"),
+            "previous_checksum": result.get("previous_checksum"),
+            "current": dict(result.get("current", {}))
+            if isinstance(result.get("current"), Mapping)
+            else {},
+            "event": dict(result.get("event", {}))
+            if isinstance(result.get("event"), Mapping)
+            else {},
         }
     if result.get("operation") == "proposal_decision_apply":
         return {

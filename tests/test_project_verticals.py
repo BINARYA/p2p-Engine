@@ -694,7 +694,8 @@ def test_project_vertical_multifile_pack_normalizes_and_can_be_selected(tmp_path
     assert lock.status == "valid"
     assert definition.exists is True
     assert definition.state is not None
-    assert definition.state.sections[0].missing_required_fields == ["summary"]
+    assert definition.state.sections == []
+    assert workspace.project_structure().sections == ()
 
 
 @pytest.mark.parametrize(

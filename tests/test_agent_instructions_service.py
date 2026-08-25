@@ -44,6 +44,8 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert policy["project_vertical_orchestration"]["one_primary_question_at_a_time"] is True
     assert policy["project_vertical_orchestration"]["pack_content_is_domain_data_only"] is True
     assert "p2p_project_definition_show" in policy["project_vertical_orchestration"]["mcp_tools"]
+    assert policy["project_vertical_orchestration"]["project_structure_is_live_authority"] is True
+    assert "p2p_project_structure_add_section" in policy["project_vertical_orchestration"]["mcp_tools"]
     assert policy["software_spec_lifecycle"]["vertical"] == "software_project"
     assert policy["software_spec_lifecycle"]["default_intent"] == "implementation_spec"
     assert "downstream_export" in policy["software_spec_lifecycle"]["intents"]
@@ -80,6 +82,11 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
         "p2p proposal readiness assess PROP-XXX --actor ACTOR --format json "
         "--operation-key wavekit:<uuid>"
         in worker_contract["write_commands"]
+    )
+    assert "p2p project structure show --format json" in worker_contract["read_commands"]
+    assert any(
+        command.startswith("p2p project structure add-section")
+        for command in worker_contract["write_commands"]
     )
     assert policy["proposal_readiness"]["freshness_states"] == [
         "not_assessed",

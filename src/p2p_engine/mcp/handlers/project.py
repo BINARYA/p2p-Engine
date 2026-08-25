@@ -22,6 +22,27 @@ def handle_project_tool(
         }
     if name in {"p2p_project_domain_set", "p2p_project_domain_clear"}:
         return _project_domain_mutation(workspace, name, arguments)
+    if name == "p2p_project_structure_show":
+        include_retired = bool(arguments.get("include_retired", False))
+        return {
+            "project_structure": workspace.project_structure(
+                include_retired=include_retired
+            ).to_dict(include_retired=include_retired),
+            "mutation_performed": False,
+        }
+    if name == "p2p_project_structure_history":
+        return {
+            "project_structure_history": workspace.project_structure_history(
+                limit=int(arguments.get("limit", 20))
+            ).to_dict(),
+            "mutation_performed": False,
+        }
+    if name in {
+        "p2p_project_structure_add_section",
+        "p2p_project_structure_update_metadata",
+        "p2p_project_structure_reorder_sections",
+    }:
+        return _project_structure_mutation(workspace, name, arguments)
     if name == "p2p_agent_list":
         return {"agent_integrations": to_jsonable(workspace.agent_integrations_list())}
     if name == "p2p_agent_show":
@@ -344,6 +365,89 @@ def _project_domain_mutation(
         )
     return {
         "project_domain_mutation": result.to_dict(),
+        "consent": to_jsonable(consumed),
+        "mutation_performed": result.status == "applied",
+    }
+
+
+def _project_structure_mutation(
+    workspace: P2PWorkspace,
+    tool_name: str,
+    arguments: dict[str, Any],
+) -> dict[str, object]:
+    operation_by_tool = {
+        "p2p_project_structure_add_section": "add_section",
+        "p2p_project_structure_update_metadata": "update_metadata",
+        "p2p_project_structure_reorder_sections": "reorder_sections",
+    }
+    operation = operation_by_tool[tool_name]
+    consent_operation = f"project_structure_{operation}"
+    actor_id = required(arguments, "actor_id")
+    consent_id = required(arguments, "consent_id")
+    consent = workspace.consent_show(consent_id)
+    consent_sha256: str | None = None
+    if consent.status == "granted":
+        workspace.consent_validate(
+            consent_id,
+            operation=consent_operation,
+            target="project-structure",
+            actor_id=actor_id,
+        )
+        consent_sha256 = hashlib.sha256(
+            (workspace.root / consent.path).read_bytes()
+        ).hexdigest()
+    elif consent.status != "consumed":
+        raise ValueError(f"Consent receipt is not granted: {consent_id}")
+    if operation == "add_section":
+        request: dict[str, object] = {
+            "title": required(arguments, "title"),
+            "description": str(arguments.get("description") or ""),
+            "required": bool(arguments.get("required", True)),
+        }
+        if optional_string(arguments, "section_id"):
+            request["section_id"] = required(arguments, "section_id")
+    elif operation == "update_metadata":
+        request = {
+            "element_kind": required(arguments, "element_kind"),
+            "element_id": required(arguments, "element_id"),
+        }
+        if optional_string(arguments, "section_id"):
+            request["section_id"] = required(arguments, "section_id")
+        for key in ("title", "description", "required", "enabled", "priority", "keywords"):
+            if key in arguments:
+                request[key] = arguments[key]
+    else:
+        section_ids = arguments.get("section_ids")
+        if not isinstance(section_ids, list):
+            raise ValueError("Expected list argument: section_ids")
+        request = {"section_ids": [str(item) for item in section_ids]}
+    result = workspace.change_project_structure(
+        operation=operation,
+        operation_key=required(arguments, "operation_key"),
+        expected_revision=int(arguments.get("expected_revision", 0)),
+        actor_id=actor_id,
+        executor_id=str(arguments.get("executor_id") or actor_id),
+        executor_kind=str(arguments.get("executor_kind") or "person"),
+        request=request,
+        channel="mcp",
+        consent_id=consent_id,
+        consent_sha256=consent_sha256,
+    )
+    consumed = consent
+    if consent.status == "granted":
+        consumed = workspace.consent_consume(
+            consent_id,
+            result={
+                "operation": consent_operation,
+                "target": "project-structure",
+                "actor_id": actor_id,
+                "structure_revision": result.current.revision,
+                "structure_checksum": result.current.checksum,
+                "mutation_status": result.status,
+            },
+        )
+    return {
+        "project_structure_mutation": result.to_dict(),
         "consent": to_jsonable(consumed),
         "mutation_performed": result.status == "applied",
     }

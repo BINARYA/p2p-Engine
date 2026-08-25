@@ -11,6 +11,8 @@ import yaml
 from p2p_engine.core.authority import AuthorityContext, ProjectAuthorityDescriptor
 from p2p_engine.core.mutation_preview import semantic_sha256, source_precondition
 from p2p_engine.core.project_domain import ProjectDomainRef, StructureSource
+from p2p_engine.core.project_structure import ProjectStructure
+from p2p_engine.core.project_verticals import VerticalPack
 from p2p_engine.core.runtime_contract import RUNTIME_SETUP_GUIDE_MARKER
 from p2p_engine.core.workspace_schema import (
     CURRENT_WORKSPACE_SCHEMA_VERSION,
@@ -27,6 +29,12 @@ from p2p_engine.services.project_domain import (
     structure_source_bytes,
 )
 from p2p_engine.services.project_maturity import rubrics_payload
+from p2p_engine.services.project_structure import (
+    initial_project_structure_event,
+    project_structure_bytes,
+    project_structure_events_bytes,
+    project_structure_from_vertical_pack,
+)
 from p2p_engine.services.readiness import DEFAULT_READINESS_PROFILE_ID
 from p2p_engine.services.project_questions import ProjectQuestionStateService
 from p2p_engine.services.authority import ProjectAuthorityService
@@ -87,6 +95,7 @@ class ProjectInitializationResult:
     structure_source: StructureSource
     structure_origin: dict[str, object]
     structure_revision: int
+    structure_checksum: str
 
 
 class ProjectInitializationService:
@@ -102,6 +111,7 @@ class ProjectInitializationService:
         select_agent_profile_fn: Callable[[str | None], AgentProfileSelection] = select_agent_profile,
         build_mcp_hint_fn: Callable[..., McpHint] = build_mcp_hint,
         apply_gitignore_hygiene_fn: Callable[[Path], GitignoreHygieneResult] = apply_gitignore_hygiene,
+        resolve_structure_pack: Callable[[StructureSource], VerticalPack | None] | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -112,6 +122,7 @@ class ProjectInitializationService:
         self.select_agent_profile = select_agent_profile_fn
         self.build_mcp_hint = build_mcp_hint_fn
         self.apply_gitignore_hygiene = apply_gitignore_hygiene_fn
+        self.resolve_structure_pack = resolve_structure_pack
 
     def init_project(
         self,
@@ -130,6 +141,7 @@ class ProjectInitializationService:
         remote_name: str = "origin",
         remote_url_value: str | None = None,
         authority_context: AuthorityContext | None = None,
+        structure_pack: VerticalPack | None = None,
     ) -> list[Path]:
         return self.init_project_with_summary(
             name=name,
@@ -147,6 +159,7 @@ class ProjectInitializationService:
             remote_name=remote_name,
             remote_url_value=remote_url_value,
             authority_context=authority_context,
+            structure_pack=structure_pack,
         ).created
 
     def init_project_with_summary(
@@ -166,6 +179,7 @@ class ProjectInitializationService:
         remote_name: str = "origin",
         remote_url_value: str | None = None,
         authority_context: AuthorityContext | None = None,
+        structure_pack: VerticalPack | None = None,
     ) -> ProjectInitializationResult:
         is_new_project = not (self.p2p_dir / "project.yml").exists()
         agent_selection = self.select_agent_profile(agent_profile)
@@ -184,6 +198,19 @@ class ProjectInitializationService:
                 "identity": selected_structure_source.starter_id,
                 "checksum": None,
             }
+        )
+        resolved_structure_pack = structure_pack
+        if resolved_structure_pack is None and self.resolve_structure_pack is not None:
+            resolved_structure_pack = self.resolve_structure_pack(selected_structure_source)
+        initialized_at = date.today().isoformat()
+        initial_structure = project_structure_from_vertical_pack(
+            project_id=_slugify(name),
+            pack=resolved_structure_pack,
+            source=selected_structure_source,
+            origin=selected_structure_origin,
+            actor=owner or "owner",
+            applied_at=initialized_at,
+            rubric_enabled=rubric_enabled,
         )
         remote_profile = self.remote_profile_default_payload(
             repository_mode=repository_mode,
@@ -211,6 +238,7 @@ class ProjectInitializationService:
             remote_profile=remote_profile,
             permissions_payload=permissions_payload,
             authority_descriptor=authority_descriptor,
+            initial_structure=initial_structure,
         )
         created = self._write_missing_files(
             files,
@@ -244,6 +272,7 @@ class ProjectInitializationService:
             structure_source=selected_structure_source,
             structure_origin=selected_structure_origin,
             structure_revision=1,
+            structure_checksum=initial_structure.checksum,
         )
 
     def _bootstrap_files(
@@ -259,6 +288,7 @@ class ProjectInitializationService:
         remote_profile: dict[str, object],
         permissions_payload: dict[str, object],
         authority_descriptor: ProjectAuthorityDescriptor | None,
+        initial_structure: ProjectStructure,
     ) -> dict[Path, str]:
         runtime_service = RuntimeContractService(root=self.root, p2p_dir=self.p2p_dir)
         is_new_project = not (self.p2p_dir / "project.yml").exists()
@@ -306,6 +336,21 @@ class ProjectInitializationService:
                 initialized_at=date.today().isoformat(),
                 initialized_by=owner or "owner",
             ).decode("ascii"),
+            self.p2p_dir / "project" / "structure.yml": project_structure_bytes(
+                initial_structure
+            ).decode("ascii"),
+            self.p2p_dir / "project" / "structure-events.yml": (
+                project_structure_events_bytes(
+                    structure_id=initial_structure.structure_id,
+                    events=(
+                        initial_project_structure_event(
+                            initial_structure,
+                            actor=owner or "owner",
+                            occurred_at=date.today().isoformat(),
+                        ),
+                    ),
+                ).decode("ascii")
+            ),
             self.p2p_dir / "governance" / "constitution.md": "# Constitution\n\nPending.\n",
             self.p2p_dir / "governance" / "decision-rules.md": "# Decision Rules\n\nPending.\n",
             self.p2p_dir / "governance" / "relevance-criteria.md": "# Relevance Criteria\n\nPending.\n",

@@ -321,14 +321,19 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_project_domain_show` | read-only | no | no | Read the portable project-domain classification without exposing storage paths. |
 | `p2p_project_domain_set` | permission-gated | yes | yes | Set domain classification through typed authority, consent and receipt-backed replay without changing structure. |
 | `p2p_project_domain_clear` | permission-gated | yes | yes | Clear domain classification through typed authority, consent and receipt-backed replay without changing structure. |
+| `p2p_project_structure_show` | read-only | no | no | Read the bounded canonical project-owned structure and provenance without storage paths. |
+| `p2p_project_structure_history` | read-only | no | no | Read bounded append-only structure event evidence. |
+| `p2p_project_structure_add_section` | permission-gated | yes | yes | Add one section with expected revision, `project.structure.edit`, consent and idempotent receipt. |
+| `p2p_project_structure_update_metadata` | permission-gated | yes | yes | Update bounded metadata while preserving stable element identity. |
+| `p2p_project_structure_reorder_sections` | permission-gated | yes | yes | Reorder the exact active section set without changing identity. |
 | `p2p_project_vertical_show` | read-only | no | no | Read one self-contained vertical release. |
 | `p2p_project_vertical_validate` | read-only | no | no | Validate an installed vertical coordinate or schema-3 pack directory. |
-| `p2p_project_vertical_select` | write-safe | yes | no | Select the active project vertical without accepting or changing proposals. |
-| `p2p_project_vertical_lock_show` | read-only | no | no | Read vertical lock status without repair or fallback mutation. |
-| `p2p_project_vertical_lock_repair` | write-safe | yes | no | Explicitly create or repair `vertical.lock.yml` from active vertical state. |
+| `p2p_project_vertical_select` | transitional | yes | no | Transitional release-selection surface; it is not the canonical project structure. |
+| `p2p_project_vertical_lock_show` | transitional/read-only | no | no | Inspect a transitional source lock, not live structural authority. |
+| `p2p_project_vertical_lock_repair` | transitional | yes | no | Repair transitional source metadata; it does not edit `ProjectStructure`. |
 | `p2p_project_context` | read-only | no | no | Read active vertical, lock, rubric, definition summary, warnings, and next suggestion. |
-| `p2p_project_sections` | read-only | no | no | List active or specified vertical sections. |
-| `p2p_project_section_show` | read-only | no | no | Read one active or specified vertical section. |
+| `p2p_project_sections` | read-only | no | no | List current project-structure sections, or inspect an explicitly requested vertical release. |
+| `p2p_project_section_show` | read-only | no | no | Read one current project-structure section, or one section from an explicitly requested vertical release. |
 | `p2p_project_definition_show` | read-only | no | no | Read durable project definition state. |
 | `p2p_project_definition_update` | write-safe | yes | no | Apply a structured project definition patch file. |
 | `p2p_project_readiness_review` | advisory/read-only | no | no | Review capisaldi coverage, unmapped proposals, and questions against a vertical. |
@@ -381,8 +386,9 @@ typed `p2p-vertical-transition-impact/v1` review, an optional exact
 `p2p-vertical-transition-plan/v1`, a replacement state-bound preview token,
 explicit confirmation and a stable idempotency key.
 
-MCP clients may inspect the active vertical, lock, context, definition,
-readiness, proposals and structured contributions with registered read tools.
+MCP clients may inspect the canonical project structure and its history, plus
+transitional vertical/lock metadata, context, definition, readiness, proposals
+and structured contributions with registered read tools.
 They must not translate those reads into direct `.p2p` writes or call an
 unregistered lifecycle mutation. WaveKit may offer its own authenticated HTTP
 MCP workflow, but its serialized P2P worker still uses the CLI JSON

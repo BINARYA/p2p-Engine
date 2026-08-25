@@ -17,8 +17,12 @@ The runtime does not plan or apply workspace conversions.
 
 Schema 4 requires `.p2p/project/authority.yml`, the portable classification in
 `.p2p/project/domain.yml`, and independent initialization provenance in
-`.p2p/project/structure-source.yml`. A structural domain template is not a
-valid schema-4 domain descriptor. Vertical locks reference pack schema 3 only.
+`.p2p/project/structure-source.yml`. It also requires the canonical detached
+aggregate in `.p2p/project/structure.yml` and append-only revision evidence in
+`.p2p/project/structure-events.yml`. A structural domain template is not a
+valid schema-4 domain descriptor. `vertical.yml`, `vertical.lock.yml` and
+`definition.yml` are optional transition/definition artifacts; they do not
+replace project-structure authority.
 Typed authority evidence is required for integrated governed mutations. See
 [`AUTHORITY-CONTEXT.md`](AUTHORITY-CONTEXT.md). The current workspace declaration contains only the current contract,
 initialization baseline, date and actor. Obsolete migration-history fields are
@@ -50,9 +54,9 @@ transaction candidates. Resume verifies every replaced target, every pending
 preimage, and every staged candidate before completing the commit. A mismatch
 remains fail-closed for manual investigation.
 
-Do not edit schema declarations, locks, journals, originals, or candidates by
-hand. Transaction recovery is CLI-only; MCP exposes read-only workspace schema
-status.
+Do not edit schema declarations, project structure, event ledgers, locks,
+journals, originals, receipts or candidates by hand. Transaction recovery is
+CLI-only; MCP exposes read-only workspace schema status.
 
 After initialization or recovery, run:
 

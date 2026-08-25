@@ -40,6 +40,11 @@ from p2p_engine.core.project_domain import (
     ProjectDomainState,
     StructureSource,
 )
+from p2p_engine.core.project_structure import (
+    ProjectStructure,
+    ProjectStructureHistory,
+    ProjectStructureMutationResult,
+)
 from p2p_engine.core.project_progress import ProjectProgress
 from p2p_engine.core.project_questions import (
     ProjectQuestion,
@@ -76,6 +81,7 @@ from p2p_engine.core.project_verticals import (
     VerticalLock,
     VerticalLockStatus,
     VerticalPack,
+    VerticalField,
     VerticalSection,
     VerticalValidationResult,
 )
@@ -192,6 +198,7 @@ from p2p_engine.services.proposals import (
 )
 from p2p_engine.services.project_assessment import ProjectAssessment, ProjectAssessmentService
 from p2p_engine.services.project_domain import ProjectDomainService
+from p2p_engine.services.project_structure import ProjectStructureService
 from p2p_engine.services.project_contexts import ProjectContextRendererService
 from p2p_engine.services.project_maturity import (
     ProjectDefinitionMaturity,
@@ -375,6 +382,7 @@ class P2PWorkspace:
             ProjectAuthorityRotationService | None
         ) = None
         self._project_domain_service_instance: ProjectDomainService | None = None
+        self._project_structure_service_instance: ProjectStructureService | None = None
         self._project_maturity_service_instance: ProjectMaturityService | None = None
         self._project_metadata_service_instance: ProjectMetadataService | None = None
         self._project_progress_service_instance: ProjectProgressService | None = None
@@ -456,6 +464,16 @@ class P2PWorkspace:
                 receipts=self._mutation_receipt_service(),
             )
         return self._project_domain_service_instance
+
+    def _project_structure_service(self) -> ProjectStructureService:
+        if self._project_structure_service_instance is None:
+            self._project_structure_service_instance = ProjectStructureService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                authority=self._project_authority_service(),
+                receipts=self._mutation_receipt_service(),
+            )
+        return self._project_structure_service_instance
 
     def _agent_instruction_service(self) -> AgentInstructionService:
         if self._agent_instruction_service_instance is None:
@@ -875,6 +893,9 @@ class P2PWorkspace:
                 vertical_lock_status=self.project_vertical_lock_status,
                 vertical_sections=self.project_vertical_sections,
                 project_domain=self.project_domain,
+                project_structure=lambda: self.project_structure(
+                    include_retired=True
+                ),
                 project_progress=lambda proposals, read_context: self.project_progress(
                     proposal_summaries_snapshot=proposals,
                     read_context=read_context,
@@ -1439,8 +1460,18 @@ class P2PWorkspace:
                 readiness_default_profile_payload=self._readiness_service().default_profile_payload,
                 permissions_default_policy_payload=self._permissions_service().default_policy_payload,
                 refresh_agent_instructions=self.refresh_agent_instructions,
+                resolve_structure_pack=self._resolve_initial_structure_pack,
             )
         return self._project_initialization_service_instance
+
+    def _resolve_initial_structure_pack(self, source: StructureSource) -> VerticalPack | None:
+        if source.kind == "starter":
+            if source.starter_id == "empty":
+                return None
+            return self._project_vertical_service().resolve_pack(
+                "binarya/base_project@2.0.0"
+            ).pack
+        return self._project_vertical_service().resolve_pack(str(source.coordinate)).pack
 
     def init_project(
         self,
@@ -1524,6 +1555,7 @@ class P2PWorkspace:
         structure_source: StructureSource | None = None
         structure_origin: dict[str, object] = {}
         inspected: PortableVerticalInspection | None = None
+        structure_pack: VerticalPack | None = None
         if closure:
             if vertical_id or vertical_pack is not None:
                 raise ValueError(
@@ -1564,6 +1596,7 @@ class P2PWorkspace:
                 resolved_starter = self._project_vertical_service().resolve_pack(
                     "binarya/base_project@2.0.0"
                 )
+                structure_pack = resolved_starter.pack
                 vertical_id = resolved_starter.pack.coordinate
                 structure_origin = {
                     "kind": "starter",
@@ -1581,10 +1614,12 @@ class P2PWorkspace:
             if inspected is not None:
                 resolved_coordinate = inspected.pack.coordinate
                 resolved_checksum = inspected.semantic_checksum
+                structure_pack = inspected.pack
             elif vertical_id:
                 resolved_vertical = self._project_vertical_service().resolve_pack(vertical_id)
                 resolved_coordinate = resolved_vertical.pack.coordinate
                 resolved_checksum = resolved_vertical.checksum
+                structure_pack = resolved_vertical.pack
                 vertical_id = resolved_coordinate
             else:  # pragma: no cover - guarded by source normalization above.
                 raise ValueError("P2P_STRUCTURE_SOURCE_REQUIRED: initialization source is missing")
@@ -1621,6 +1656,7 @@ class P2PWorkspace:
             remote_name=remote_name,
             remote_url_value=remote_url_value,
             authority_context=authority_context,
+            structure_pack=structure_pack,
         )
         created = list(result.created)
         try:
@@ -1694,6 +1730,7 @@ class P2PWorkspace:
             structure_source=result.structure_source,
             structure_origin=dict(result.structure_origin),
             structure_revision=result.structure_revision,
+            structure_checksum=result.structure_checksum,
         )
 
     def init_project_with_operation_key(
@@ -2244,6 +2281,7 @@ class P2PWorkspace:
             "structure_source": result.structure_source.to_dict(),
             "structure_origin": dict(result.structure_origin),
             "structure_revision": result.structure_revision,
+            "structure_checksum": result.structure_checksum,
             "authority": authority.to_dict(),
             "created_paths": created_paths,
             "created_file_paths": created_file_paths,
@@ -2832,6 +2870,42 @@ class P2PWorkspace:
 
     def project_structure_source(self) -> dict[str, object]:
         return self._project_domain_service().structure_source()
+
+    def project_structure(self, *, include_retired: bool = False) -> ProjectStructure:
+        return self._project_structure_service().show(include_retired=include_retired)
+
+    def project_structure_history(self, *, limit: int = 20) -> ProjectStructureHistory:
+        return self._project_structure_service().history(limit=limit)
+
+    def change_project_structure(
+        self,
+        *,
+        operation: str,
+        operation_key: str,
+        expected_revision: int,
+        actor_id: str,
+        executor_id: str,
+        executor_kind: str,
+        request: Mapping[str, object],
+        authority_context: AuthorityContext | None = None,
+        channel: str = "cli",
+        consent_id: str | None = None,
+        consent_sha256: str | None = None,
+    ) -> ProjectStructureMutationResult:
+        self._ensure_runtime_write_allowed("project_structure_change")
+        return self._project_structure_service().apply(
+            operation=operation,
+            operation_key=operation_key,
+            expected_revision=expected_revision,
+            actor_id=actor_id,
+            executor_id=executor_id,
+            executor_kind=executor_kind,
+            request=request,
+            authority_context=authority_context,
+            channel=channel,
+            consent_id=consent_id,
+            consent_sha256=consent_sha256,
+        )
 
     def change_project_domain(
         self,
@@ -4687,9 +4761,40 @@ class P2PWorkspace:
         return self._project_vertical_service().project_context()
 
     def project_vertical_sections(self, vertical_id: str | None = None) -> list[VerticalSection]:
+        if vertical_id is None and (self.p2p_dir / "project" / "structure.yml").is_file():
+            structure = self.project_structure()
+            fields_by_section: dict[str, list[VerticalField]] = {}
+            for field in structure.fields:
+                if field.lifecycle != "active":
+                    continue
+                fields_by_section.setdefault(field.section_id, []).append(
+                    VerticalField(
+                        field_id=field.field_id,
+                        label=field.label,
+                        required=field.required,
+                        question=field.description,
+                    )
+                )
+            return [
+                VerticalSection(
+                    section_id=section.section_id,
+                    title=section.title,
+                    purpose=section.description,
+                    required=section.required,
+                    priority=section.order,
+                    fields=fields_by_section.get(section.section_id, []),
+                )
+                for section in structure.sections
+                if section.lifecycle == "active"
+            ]
         return self._project_vertical_service().list_sections(vertical_id=vertical_id)
 
     def project_vertical_section(self, section_id: str, vertical_id: str | None = None) -> VerticalSection:
+        if vertical_id is None and (self.p2p_dir / "project" / "structure.yml").is_file():
+            for section in self.project_vertical_sections():
+                if section.section_id == section_id.strip():
+                    return section
+            raise ValueError(f"Unknown project structure section `{section_id}`.")
         return self._project_vertical_service().show_section(section_id, vertical_id=vertical_id)
 
     def project_definition_view(self) -> ProjectDefinitionView:
@@ -5399,6 +5504,7 @@ def _public_project_init_result(result: dict[str, object]) -> dict[str, object]:
             else {}
         ),
         "structure_revision": int(result.get("structure_revision") or 0),
+        "structure_checksum": str(result.get("structure_checksum") or ""),
         "authority": dict(result.get("authority", {}))
         if isinstance(result.get("authority"), Mapping)
         else {},

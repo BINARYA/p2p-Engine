@@ -29,6 +29,7 @@ class ProjectSnapshotService:
         project_progress: Callable[[list[Any], WorkspaceReadContext | None], Any],
         publication_status: Callable[..., Any],
         project_domain: Callable[[], Any],
+        project_structure: Callable[[], Any],
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -41,6 +42,7 @@ class ProjectSnapshotService:
         self.project_progress = project_progress
         self.publication_status = publication_status
         self.project_domain = project_domain
+        self.project_structure = project_structure
 
     def snapshot(
         self,
@@ -71,6 +73,7 @@ class ProjectSnapshotService:
             "runtime": _payload(self.runtime_status()),
             "workspace_schema": _payload(getattr(status, "workspace_schema", None)),
             "transactions": _payload(self.transaction_recovery_status()),
+            "structure": self._structure_summary(),
             "vertical": self._vertical_summary(),
             "sections": self._section_collection(sections, progress=progress, limit=limit),
             "readiness": self._readiness_summary(progress),
@@ -84,6 +87,29 @@ class ProjectSnapshotService:
                 "decision_summaries": limit,
                 "section_summaries": limit,
             },
+        }
+
+    def _structure_summary(self) -> dict[str, object]:
+        structure = self.project_structure()
+        active_sections = [
+            item
+            for item in getattr(structure, "sections", ())
+            if getattr(item, "lifecycle", "active") == "active"
+        ]
+        active_criteria = [
+            item
+            for item in getattr(structure, "criteria", ())
+            if getattr(item, "lifecycle", "active") == "active"
+            and bool(getattr(item, "enabled", True))
+        ]
+        return {
+            "contract": str(getattr(structure, "contract", "")),
+            "structure_id": str(getattr(structure, "structure_id", "")),
+            "revision": int(getattr(structure, "revision", 0)),
+            "checksum": str(getattr(structure, "checksum", "")),
+            "origin": _payload(getattr(structure, "origin", None)),
+            "active_section_count": len(active_sections),
+            "active_criterion_count": len(active_criteria),
         }
 
     def _project_identity(

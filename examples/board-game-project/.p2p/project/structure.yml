@@ -1,0 +1,135 @@
+project_structure:
+  contract: p2p-project-structure/v1
+  structure_id: cooperative-shrine-game-structure
+  revision: 1
+  checksum: 450d4425689092261e6e36e9f4fb564ca9c6418e276ca131f9b4c74a3b4ddba0
+  origin:
+    kind: vertical_release
+    identity: binarya/board_game_design@1.0.0
+    checksum: fa0c3691153b8bf95425b0dcbac1fc9d3d5e5db655bf5dcf7f620d3fedd85e28
+    external_ref: null
+    applied_at: '2026-08-26'
+    applied_by: owner
+  sections:
+  - id: core_loop
+    title: Core Gameplay Loop
+    description: Define turns, rounds, progression, and the repeated player experience.
+    required: true
+    order: 0
+    lifecycle: active
+  - id: components
+    title: Components
+    description: Define the board, cards, tokens, pieces, and other physical components.
+    required: true
+    order: 1
+    lifecycle: active
+  - id: rules
+    title: Rules
+    description: Define legal actions, phases, constraints, and win or loss conditions.
+    required: true
+    order: 2
+    lifecycle: active
+  - id: playtesting
+    title: Playtesting
+    description: Define validation sessions, balance criteria, and feedback handling.
+    required: true
+    order: 3
+    lifecycle: active
+  fields:
+  - id: summary
+    section_id: core_loop
+    label: Core Gameplay Loop
+    description: What repeated sequence of choices defines one turn and one round?
+    required: true
+    order: 0
+    lifecycle: active
+  - id: summary
+    section_id: components
+    label: Components
+    description: ''
+    required: true
+    order: 0
+    lifecycle: active
+  - id: summary
+    section_id: rules
+    label: Rules
+    description: ''
+    required: true
+    order: 0
+    lifecycle: active
+  - id: summary
+    section_id: playtesting
+    label: Playtesting
+    description: ''
+    required: true
+    order: 0
+    lifecycle: active
+  questions:
+  - id: core_loop_main
+    section_id: core_loop
+    prompt: What repeated sequence of choices defines one turn and one round?
+    priority: high
+    rationale: The game needs a coherent core loop before rules can be completed.
+    order: 0
+    lifecycle: active
+  criteria:
+  - id: core_loop_quality
+    section_id: core_loop
+    title: Core Gameplay Loop
+    required: true
+    enabled: true
+    keywords:
+    - turn
+    - round
+    - loop
+    - gameplay
+    order: 0
+    lifecycle: active
+  - id: component_coverage
+    section_id: components
+    title: Component Coverage
+    required: true
+    enabled: true
+    keywords:
+    - component
+    - card
+    - board
+    - token
+    - piece
+    order: 1
+    lifecycle: active
+  - id: rules_clarity
+    section_id: rules
+    title: Rules Clarity
+    required: true
+    enabled: true
+    keywords:
+    - rule
+    - action
+    - phase
+    - win
+    order: 2
+    lifecycle: active
+  - id: playtest_plan
+    section_id: playtesting
+    title: Playtest Plan
+    required: true
+    enabled: true
+    keywords:
+    - playtest
+    - balance
+    - test
+    - feedback
+    order: 3
+    lifecycle: active
+  artifacts:
+  - id: playable_ruleset
+    title: Playable Ruleset
+    section_ids:
+    - core_loop
+    - components
+    - rules
+    - playtesting
+    required: true
+    order: 0
+    lifecycle: active

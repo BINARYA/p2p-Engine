@@ -216,6 +216,8 @@ class WorkspaceSchemaService:
             ".p2p/project/authority.yml",
             ".p2p/project/domain.yml",
             ".p2p/project/structure-source.yml",
+            ".p2p/project/structure.yml",
+            ".p2p/project/structure-events.yml",
             ".p2p/project/permissions.yml",
             ".p2p/governance/constitution.md",
             ".p2p/governance/decision-rules.md",
@@ -227,19 +229,15 @@ class WorkspaceSchemaService:
             ".p2p/proposals",
             ".p2p/prompts",
         ]
-        if (self.p2p_dir / "project" / "vertical.yml").exists():
-            canonical.extend(
-                [
-                    ".p2p/project/vertical.lock.yml",
-                    ".p2p/project/definition.yml",
-                ]
-            )
         canonical.append(".p2p/project/questions.yml")
         return {
             "canonical": tuple(canonical),
             "optional": (
                 ".p2p/project/interaction-style.yml",
                 ".p2p/project/rubrics.yml",
+                ".p2p/project/vertical.yml",
+                ".p2p/project/vertical.lock.yml",
+                ".p2p/project/definition.yml",
                 ".p2p/agent-integrations.yml",
             ),
             "derived": (".p2p/registries/", ".p2p/project/features/", "outputs/"),
@@ -263,6 +261,8 @@ class WorkspaceSchemaService:
         authority_path = self.root / ".p2p/project/authority.yml"
         domain_path = self.root / ".p2p/project/domain.yml"
         structure_source_path = self.root / ".p2p/project/structure-source.yml"
+        structure_path = self.root / ".p2p/project/structure.yml"
+        structure_events_path = self.root / ".p2p/project/structure-events.yml"
         if domain_path.exists() or structure_source_path.exists():
             from p2p_engine.services.project_domain import ProjectDomainService
 
@@ -296,6 +296,35 @@ class WorkspaceSchemaService:
                             suggested_command="p2p project domain show --format json",
                         )
                     )
+        if structure_path.exists() or structure_events_path.exists():
+            try:
+                from p2p_engine.services.project_structure import ProjectStructureService
+
+                structure_service = ProjectStructureService(
+                    root=self.root,
+                    p2p_dir=self.p2p_dir,
+                )
+                structure_service.show(include_retired=True)
+                for message in structure_service.validate():
+                    findings.append(
+                        WorkspaceDiagnostic(
+                            code="P2P_PROJECT_STRUCTURE_INVALID",
+                            severity="error",
+                            path=".p2p/project/structure-events.yml",
+                            message=message,
+                            suggested_command="p2p project structure show --format json",
+                        )
+                    )
+            except ValueError as exc:
+                findings.append(
+                    WorkspaceDiagnostic(
+                        code="P2P_PROJECT_STRUCTURE_INVALID",
+                        severity="error",
+                        path=".p2p/project/structure.yml",
+                        message=str(exc),
+                        suggested_command="p2p project structure show --format json",
+                    )
+                )
         if authority_path.exists():
             try:
                 from p2p_engine.services.authority import ProjectAuthorityService

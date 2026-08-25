@@ -5,7 +5,7 @@ import json
 from dataclasses import asdict, dataclass
 
 
-AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v5"
+AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v6"
 
 
 @dataclass(frozen=True)
@@ -58,6 +58,29 @@ AGENT_CAPABILITIES = (
         ),
     ),
     AgentCapability(
+        capability_id="project.structure.manage",
+        cli_paths=(
+            "p2p project structure show",
+            "p2p project structure history",
+            "p2p project structure add-section",
+            "p2p project structure update-metadata",
+            "p2p project structure reorder",
+        ),
+        mcp_tools=(
+            "p2p_project_structure_show",
+            "p2p_project_structure_history",
+            "p2p_project_structure_add_section",
+            "p2p_project_structure_update_metadata",
+            "p2p_project_structure_reorder_sections",
+        ),
+        exposure="owner_governed",
+        authority="project.structure.edit",
+        reason=(
+            "Project structure is the detached live shape; simple writes are "
+            "revision-checked, receipt-backed and consent-gated on MCP."
+        ),
+    ),
+    AgentCapability(
         capability_id="proposal.governance",
         cli_paths=(
             "p2p proposal list",
@@ -105,6 +128,11 @@ AGENT_CAPABILITIES = (
             "p2p workspace transaction status",
             "p2p init",
             "p2p project snapshot",
+            "p2p project structure show",
+            "p2p project structure history",
+            "p2p project structure add-section",
+            "p2p project structure update-metadata",
+            "p2p project structure reorder",
             "p2p proposal list",
             "p2p proposal show",
             "p2p proposal create",

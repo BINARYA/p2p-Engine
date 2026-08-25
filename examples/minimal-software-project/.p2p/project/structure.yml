@@ -1,0 +1,555 @@
+project_structure:
+  contract: p2p-project-structure/v1
+  structure_id: local-cli-task-tracker-structure
+  revision: 1
+  checksum: 3767aa6d61db8736bd2c40f0950f24e241d9555cedda89f476d01a595a9095e3
+  origin:
+    kind: vertical_release
+    identity: binarya/software_project@2.0.0
+    checksum: 2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d
+    external_ref: null
+    applied_at: '2026-08-26'
+    applied_by: owner
+  sections:
+  - id: vision
+    title: Vision
+    description: Why the project exists and what change it should create.
+    required: true
+    order: 0
+    lifecycle: active
+  - id: objective
+    title: Objective And Outcome
+    description: Concrete results the project must achieve.
+    required: true
+    order: 1
+    lifecycle: active
+  - id: stakeholders
+    title: Owner And Stakeholders
+    description: Decision maker, contributors, affected parties, and beneficiaries.
+    required: true
+    order: 2
+    lifecycle: active
+  - id: scope
+    title: Scope And Non-Goals
+    description: Boundaries, included work, exclusions, and constraints.
+    required: true
+    order: 3
+    lifecycle: active
+  - id: assumptions
+    title: Assumptions
+    description: Beliefs that must hold for the project to work.
+    required: true
+    order: 4
+    lifecycle: active
+  - id: risks
+    title: Risks
+    description: Failure modes, mitigations, and tradeoffs.
+    required: true
+    order: 5
+    lifecycle: active
+  - id: decisions
+    title: Decisions And Open Questions
+    description: Unresolved owner choices and recorded decisions.
+    required: true
+    order: 6
+    lifecycle: active
+  - id: milestones
+    title: Milestones And Next Actions
+    description: Staged path from definition to execution.
+    required: true
+    order: 7
+    lifecycle: active
+  - id: definition_of_done
+    title: Definition Of Done And Readiness
+    description: Criteria that make the project actionable.
+    required: true
+    order: 8
+    lifecycle: active
+  - id: artifacts
+    title: Expected Artifacts
+    description: Documents, specs, prototypes, reports, or plans the project should
+      produce.
+    required: true
+    order: 9
+    lifecycle: active
+  - id: system_objective
+    title: System Objective
+    description: Product or system objective and measurable outcome.
+    required: true
+    order: 10
+    lifecycle: active
+  - id: users_and_actors
+    title: Users And Actors
+    description: Intended users, actors, operators, and stakeholders.
+    required: true
+    order: 11
+    lifecycle: active
+  - id: mvp_scope
+    title: Scope And MVP Boundaries
+    description: MVP scope, non-goals, and release boundaries.
+    required: true
+    order: 12
+    lifecycle: active
+  - id: workflows_use_cases
+    title: Workflows And Use Cases
+    description: Core workflows, use cases, and user journeys.
+    required: true
+    order: 13
+    lifecycle: active
+  - id: data_model
+    title: Domain Concepts And Data Model
+    description: Domain entities, data model, and state transitions.
+    required: true
+    order: 14
+    lifecycle: active
+  - id: integrations_dependencies
+    title: Integrations And Dependencies
+    description: External systems, APIs, services, tools, and runtime dependencies.
+    required: true
+    order: 15
+    lifecycle: active
+  - id: constraints_nfrs
+    title: Constraints And Non-Functional Requirements
+    description: Constraints, performance, reliability, privacy, security, and operating
+      assumptions.
+    required: true
+    order: 16
+    lifecycle: active
+  - id: acceptance_validation
+    title: Acceptance And Validation Strategy
+    description: Acceptance criteria, tests, rollout validation, and quality gates.
+    required: true
+    order: 17
+    lifecycle: active
+  - id: risks_alternatives_decisions
+    title: Risks Alternatives And Owner Decisions
+    description: Unresolved risks, alternatives, tradeoffs, and owner-controlled decisions.
+    required: true
+    order: 18
+    lifecycle: active
+  fields:
+  - id: summary
+    section_id: vision
+    label: Vision
+    description: ''
+    required: true
+    order: 0
+    lifecycle: active
+  - id: summary
+    section_id: objective
+    label: Objective And Outcome
+    description: ''
+    required: true
+    order: 0
+    lifecycle: active
+  - id: summary
+    section_id: stakeholders
+    label: Owner And Stakeholders
+    description: ''
+    required: true
+    order: 0
+    lifecycle: active
+  - id: summary
+    section_id: scope
+    label: Scope And Non-Goals
+    description: ''
+    required: true
+    order: 0
+    lifecycle: active
+  - id: summary
+    section_id: assumptions
+    label: Assumptions
+    description: ''
+    required: true
+    order: 0
+    lifecycle: active
+  - id: summary
+    section_id: risks
+    label: Risks
+    description: ''
+    required: true
+    order: 0
+    lifecycle: active
+  - id: summary
+    section_id: decisions
+    label: Decisions And Open Questions
+    description: ''
+    required: true
+    order: 0
+    lifecycle: active
+  - id: summary
+    section_id: milestones
+    label: Milestones And Next Actions
+    description: ''
+    required: true
+    order: 0
+    lifecycle: active
+  - id: summary
+    section_id: definition_of_done
+    label: Definition Of Done And Readiness
+    description: ''
+    required: true
+    order: 0
+    lifecycle: active
+  - id: summary
+    section_id: artifacts
+    label: Expected Artifacts
+    description: ''
+    required: true
+    order: 0
+    lifecycle: active
+  - id: objective
+    section_id: system_objective
+    label: Product or system objective
+    description: What product or system outcome should this software deliver?
+    required: true
+    order: 0
+    lifecycle: active
+  - id: success_signal
+    section_id: system_objective
+    label: Success signal
+    description: What observable signal proves the software achieved the objective?
+    required: true
+    order: 1
+    lifecycle: active
+  - id: primary_users
+    section_id: users_and_actors
+    label: Primary users
+    description: Who are the primary users or actors?
+    required: true
+    order: 0
+    lifecycle: active
+  - id: operator_roles
+    section_id: users_and_actors
+    label: Operator roles
+    description: Which operators, maintainers, or external systems interact with it?
+    required: false
+    order: 1
+    lifecycle: active
+  - id: in_scope
+    section_id: mvp_scope
+    label: In scope
+    description: What is included in the first useful software scope?
+    required: true
+    order: 0
+    lifecycle: active
+  - id: out_of_scope
+    section_id: mvp_scope
+    label: Out of scope
+    description: What is explicitly excluded?
+    required: true
+    order: 1
+    lifecycle: active
+  - id: core_workflows
+    section_id: workflows_use_cases
+    label: Core workflows
+    description: Which workflows must the software support?
+    required: true
+    order: 0
+    lifecycle: active
+  - id: domain_entities
+    section_id: data_model
+    label: Domain entities
+    description: Which domain concepts and data entities matter?
+    required: true
+    order: 0
+    lifecycle: active
+  - id: state_lifecycle
+    section_id: data_model
+    label: State lifecycle
+    description: Which statuses or lifecycle transitions are important?
+    required: false
+    order: 1
+    lifecycle: active
+  - id: external_integrations
+    section_id: integrations_dependencies
+    label: External integrations
+    description: Which external systems or APIs does the software depend on?
+    required: true
+    order: 0
+    lifecycle: active
+  - id: constraints
+    section_id: constraints_nfrs
+    label: Constraints
+    description: Which technical, operational, or policy constraints apply?
+    required: true
+    order: 0
+    lifecycle: active
+  - id: non_functional_requirements
+    section_id: constraints_nfrs
+    label: Non-functional requirements
+    description: Which reliability, performance, privacy, or security properties matter?
+    required: true
+    order: 1
+    lifecycle: active
+  - id: acceptance_criteria
+    section_id: acceptance_validation
+    label: Acceptance criteria
+    description: What proves the software behavior is accepted?
+    required: true
+    order: 0
+    lifecycle: active
+  - id: validation_strategy
+    section_id: acceptance_validation
+    label: Validation strategy
+    description: Which tests or checks will validate the implementation?
+    required: true
+    order: 1
+    lifecycle: active
+  - id: risks
+    section_id: risks_alternatives_decisions
+    label: Risks
+    description: Which implementation or product risks remain?
+    required: true
+    order: 0
+    lifecycle: active
+  - id: alternatives
+    section_id: risks_alternatives_decisions
+    label: Alternatives
+    description: Which alternatives were considered?
+    required: false
+    order: 1
+    lifecycle: active
+  - id: owner_decisions
+    section_id: risks_alternatives_decisions
+    label: Owner decisions
+    description: Which decisions must the owner make or has the owner made?
+    required: true
+    order: 2
+    lifecycle: active
+  questions:
+  - id: software_objective_main
+    section_id: system_objective
+    prompt: What product or system objective should the software spec support?
+    priority: high
+    rationale: Software specs need a clear objective before implementation details
+      are useful.
+    order: 0
+    lifecycle: active
+  - id: software_scope_main
+    section_id: mvp_scope
+    prompt: What is in the MVP and what is out of scope?
+    priority: high
+    rationale: Scope boundaries prevent generated specs from inventing work.
+    order: 1
+    lifecycle: active
+  - id: software_validation_main
+    section_id: acceptance_validation
+    prompt: Which acceptance criteria and validation checks prove the implementation
+      works?
+    priority: high
+    rationale: Implementation specs need testable acceptance.
+    order: 2
+    lifecycle: active
+  - id: software_decision_main
+    section_id: risks_alternatives_decisions
+    prompt: Which owner decisions or unresolved alternatives block implementation?
+    priority: high
+    rationale: Owner-controlled choices must remain explicit.
+    order: 3
+    lifecycle: active
+  criteria:
+  - id: software_objective_clarity
+    section_id: system_objective
+    title: Software Objective Clarity
+    required: true
+    enabled: true
+    keywords:
+    - objective
+    - product
+    - system
+    - outcome
+    order: 0
+    lifecycle: active
+  - id: software_user_actor_coverage
+    section_id: users_and_actors
+    title: Software User And Actor Coverage
+    required: true
+    enabled: true
+    keywords:
+    - user
+    - actor
+    - operator
+    - stakeholder
+    order: 1
+    lifecycle: active
+  - id: software_scope_boundaries
+    section_id: mvp_scope
+    title: Software Scope Boundaries
+    required: true
+    enabled: true
+    keywords:
+    - scope
+    - mvp
+    - non-goal
+    - boundary
+    order: 2
+    lifecycle: active
+  - id: software_workflow_coverage
+    section_id: workflows_use_cases
+    title: Software Workflow Coverage
+    required: true
+    enabled: true
+    keywords:
+    - workflow
+    - use case
+    - journey
+    order: 3
+    lifecycle: active
+  - id: software_data_model_coverage
+    section_id: data_model
+    title: Software Data Model Coverage
+    required: true
+    enabled: true
+    keywords:
+    - data
+    - entity
+    - model
+    - status
+    order: 4
+    lifecycle: active
+  - id: software_integration_coverage
+    section_id: integrations_dependencies
+    title: Software Integration Coverage
+    required: true
+    enabled: true
+    keywords:
+    - integration
+    - dependency
+    - api
+    order: 5
+    lifecycle: active
+  - id: software_constraints_nfr_coverage
+    section_id: constraints_nfrs
+    title: Software Constraints And NFR Coverage
+    required: true
+    enabled: true
+    keywords:
+    - constraint
+    - reliability
+    - performance
+    - security
+    - privacy
+    order: 6
+    lifecycle: active
+  - id: software_acceptance_validation
+    section_id: acceptance_validation
+    title: Software Acceptance And Validation
+    required: true
+    enabled: true
+    keywords:
+    - acceptance
+    - validation
+    - test
+    order: 7
+    lifecycle: active
+  - id: software_decision_risk_coverage
+    section_id: risks_alternatives_decisions
+    title: Software Decisions And Risks
+    required: true
+    enabled: true
+    keywords:
+    - risk
+    - alternative
+    - decision
+    - tradeoff
+    order: 8
+    lifecycle: active
+  - id: vision_clarity
+    section_id: vision
+    title: Vision Clarity
+    required: true
+    enabled: true
+    keywords:
+    - vision
+    - purpose
+    - change
+    order: 9
+    lifecycle: active
+  - id: objective_clarity
+    section_id: objective
+    title: Objective Clarity
+    required: true
+    enabled: true
+    keywords:
+    - objective
+    - outcome
+    - goal
+    - result
+    order: 10
+    lifecycle: active
+  - id: stakeholder_alignment
+    section_id: stakeholders
+    title: Stakeholder Alignment
+    required: true
+    enabled: true
+    keywords:
+    - owner
+    - stakeholder
+    - beneficiary
+    - user
+    order: 11
+    lifecycle: active
+  - id: scope_boundaries
+    section_id: scope
+    title: Scope Boundaries
+    required: true
+    enabled: true
+    keywords:
+    - scope
+    - non-goal
+    - boundary
+    - constraint
+    order: 12
+    lifecycle: active
+  - id: risk_coverage
+    section_id: risks
+    title: Risk Coverage
+    required: true
+    enabled: true
+    keywords:
+    - risk
+    - mitigation
+    - tradeoff
+    order: 13
+    lifecycle: active
+  - id: readiness_criteria
+    section_id: definition_of_done
+    title: Readiness Criteria
+    required: true
+    enabled: true
+    keywords:
+    - readiness
+    - definition of done
+    - acceptance
+    order: 14
+    lifecycle: active
+  artifacts:
+  - id: software_spec_readiness_review
+    title: Software Spec Readiness Review
+    section_ids:
+    - system_objective
+    - mvp_scope
+    - acceptance_validation
+    - risks_alternatives_decisions
+    required: true
+    order: 0
+    lifecycle: active
+  - id: implementation_spec
+    title: Implementation Software Spec
+    section_ids:
+    - workflows_use_cases
+    - data_model
+    - integrations_dependencies
+    - constraints_nfrs
+    required: true
+    order: 1
+    lifecycle: active
+  - id: validation_plan
+    title: Validation Plan
+    section_ids:
+    - acceptance_validation
+    - constraints_nfrs
+    required: true
+    order: 2
+    lifecycle: active

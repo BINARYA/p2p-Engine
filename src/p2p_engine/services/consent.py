@@ -14,6 +14,9 @@ from p2p_engine.services.permissions import PermissionsService
 CONSENT_OPERATIONS = {
     "project_domain_set",
     "project_domain_clear",
+    "project_structure_add_section",
+    "project_structure_update_metadata",
+    "project_structure_reorder_sections",
     "proposal_decision_apply",
     "proposal_accept",
     "proposal_reject",

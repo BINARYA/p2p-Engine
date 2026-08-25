@@ -6,6 +6,10 @@ project_definition:
   modules: []
   lock:
     checksum: fa0c3691153b8bf95425b0dcbac1fc9d3d5e5db655bf5dcf7f620d3fedd85e28
+  structure:
+    id: cooperative-shrine-game-structure
+    revision: 1
+    checksum: 450d4425689092261e6e36e9f4fb564ca9c6418e276ca131f9b4c74a3b4ddba0
   sections:
   - id: core_loop
     status: missing

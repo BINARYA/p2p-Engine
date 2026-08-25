@@ -371,3 +371,49 @@ def test_receipt_backed_readiness_public_contract_smoke(tmp_path) -> None:
     readiness = json.loads(detail.stdout)["data"]["proposal_detail"]["readiness"]
     assert readiness["freshness"] == "current"
     assert readiness["source_fingerprint_sha256"]
+
+
+def test_project_owned_structure_public_contract_smoke(tmp_path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Structure smoke", owner="owner", starter_id="empty")
+    runner = CliRunner()
+    operation_key = "project-structure:installed-wheel-smoke"
+
+    shown = runner.invoke(
+        app,
+        ["project", "structure", "show", "--format", "json", "--root", str(tmp_path)],
+    )
+    command = [
+        "project",
+        "structure",
+        "add-section",
+        "Scope",
+        "--expected-revision",
+        "1",
+        "--operation-key",
+        operation_key,
+        "--format",
+        "json",
+        "--root",
+        str(tmp_path),
+    ]
+    applied = runner.invoke(app, command)
+    replay = runner.invoke(app, command)
+
+    assert shown.exit_code == 0, shown.output
+    shown_payload = json.loads(shown.stdout)
+    assert shown_payload["operation"] == "project.structure.show"
+    assert shown_payload["data"]["project_structure"]["revision"] == 1
+
+    assert applied.exit_code == 0, applied.output
+    applied_payload = json.loads(applied.stdout)
+    mutation = applied_payload["data"]["project_structure_mutation"]
+    assert mutation["status"] == "applied"
+    assert mutation["current"]["revision"] == 2
+    assert mutation["current"]["sections"][0]["id"] == "scope"
+
+    assert replay.exit_code == 0, replay.output
+    replay_payload = json.loads(replay.stdout)
+    replay_mutation = replay_payload["data"]["project_structure_mutation"]
+    assert replay_mutation["status"] == "already_applied"
+    assert replay_mutation["current"] == mutation["current"]
