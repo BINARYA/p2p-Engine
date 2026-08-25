@@ -1,9 +1,9 @@
 # Vertical Draft Authoring V1
 
-P2P Engine 0.4.6 separates mutable vertical authoring from immutable vertical
+P2P Engine separates mutable vertical authoring from immutable vertical
 releases. WaveKit and other callers edit one normalized document; P2P Engine
 alone compiles canonical `manifest.yml`, `vertical.yml`, `sections/*.yml` and
-the other schema-2 files.
+the other schema-3 files.
 
 ```text
 normalized draft -> materialized pack -> validation -> .p2pv package
@@ -42,6 +42,9 @@ identity:
 name: Software Blue
 description: A software project vertical.
 visibility: private
+domain_metadata:
+  primary_domain: null
+  domain_tags: []
 extends: null
 lineage:
   forked_from: null
@@ -66,6 +69,10 @@ References use an exact coordinate and semantic checksum. `extends` describes
 structural composition. `lineage.forked_from` records a social derivation.
 `lineage.previous_release` connects immutable versions of the same authored
 vertical. None is inferred from another.
+
+`domain_metadata.primary_domain` and `domain_metadata.domain_tags` are optional
+advisory catalog metadata. They do not select structure or change the domain of
+projects that adopt the release.
 
 An empty draft intentionally has no sections, readiness 0 and no placeholder
 content. It cannot be materialized, packaged, selected or published until it
@@ -128,7 +135,7 @@ state and evidence retain their own versions. WaveKit should persist the draft
 ID, revision and document hash and send the complete normalized document with
 an optimistic precondition on every update.
 
-Direct draft MCP tools are intentionally absent in 0.4.6. A server-side
+Direct draft MCP tools are intentionally absent. A server-side
 WaveKit worker invokes this CLI through its serialized operation path. Existing
 MCP proposal creation still shares the core no-target-section guard with the
 CLI and fails with `P2P_VERTICAL_NO_TARGET_SECTION` when no valid active

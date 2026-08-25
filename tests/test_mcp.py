@@ -621,7 +621,7 @@ def test_mcp_project_vertical_and_readiness_tools(tmp_path: Path) -> None:
     listed = call_tool("p2p_project_vertical_list", {"root": str(tmp_path)})
     ids = {item["vertical_id"] for item in listed["verticals"]}
     assert "base_project" in ids
-    assert listed["active"]["fallback_used"] is True
+    assert listed["active"]["fallback_used"] is False
 
     shown = call_tool(
         "p2p_project_vertical_show",
@@ -1650,6 +1650,7 @@ def test_mcp_write_safe_bootstrap_tools(tmp_path: Path) -> None:
             "agent": "codex",
             "repository": "cloud",
             "domain": "software",
+            "vertical": "binarya/software_project@2.0.0",
         },
     )
 
@@ -1694,6 +1695,7 @@ def test_mcp_agent_integration_lifecycle_tools(tmp_path: Path) -> None:
             "root": str(tmp_path),
             "name": "MCP Agents",
             "agent": "cursor",
+            "starter": "generic",
         },
     )
 
@@ -1733,7 +1735,10 @@ def test_mcp_init_default_agent_set_matches_cli_default(
     mcp_root.mkdir()
 
     cli_result = runner.invoke(app, ["init", "CLI Default", "--root", str(cli_root)])
-    mcp_result = call_tool("p2p_init_project", {"root": str(mcp_root), "name": "MCP Default"})
+    mcp_result = call_tool(
+        "p2p_init_project",
+        {"root": str(mcp_root), "name": "MCP Default", "starter": "generic"},
+    )
 
     assert cli_result.exit_code == 0
     assert mcp_result["initialized"] is True
@@ -1750,7 +1755,10 @@ def test_mcp_init_unknown_detection_falls_back_to_all_with_warning(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("P2P_CURRENT_AGENT", raising=False)
-    result = call_tool("p2p_init_project", {"root": str(tmp_path), "name": "MCP Default"})
+    result = call_tool(
+        "p2p_init_project",
+        {"root": str(tmp_path), "name": "MCP Default", "starter": "generic"},
+    )
 
     assert result["initialized"] is True
     assert result["agent_selection"]["selection_source"] == "fallback"
@@ -1769,7 +1777,15 @@ def test_mcp_init_unknown_detection_falls_back_to_all_with_warning(
 
 
 def test_mcp_init_returns_additive_mcp_hint_and_hygiene_metadata(tmp_path: Path) -> None:
-    result = call_tool("p2p_init_project", {"root": str(tmp_path), "name": "MCP Hint Project", "agent": "generic"})
+    result = call_tool(
+        "p2p_init_project",
+        {
+            "root": str(tmp_path),
+            "name": "MCP Hint Project",
+            "agent": "generic",
+            "starter": "generic",
+        },
+    )
 
     assert result["initialized"] is True
     assert result["root"] == str(tmp_path)
@@ -1782,7 +1798,15 @@ def test_mcp_init_returns_additive_mcp_hint_and_hygiene_metadata(tmp_path: Path)
 
 
 def test_mcp_agent_uninstall_refuses_generic_baseline(tmp_path: Path) -> None:
-    call_tool("p2p_init_project", {"root": str(tmp_path), "name": "MCP Agents", "agent": "cursor"})
+    call_tool(
+        "p2p_init_project",
+        {
+            "root": str(tmp_path),
+            "name": "MCP Agents",
+            "agent": "cursor",
+            "starter": "generic",
+        },
+    )
 
     with pytest.raises(ValueError, match="generic cannot be uninstalled"):
         call_tool("p2p_agent_uninstall", {"root": str(tmp_path), "adapter": "generic"})
@@ -1792,7 +1816,15 @@ def test_mcp_agent_uninstall_refuses_generic_baseline(tmp_path: Path) -> None:
 
 
 def test_mcp_agent_doctor_returns_structured_findings(tmp_path: Path) -> None:
-    call_tool("p2p_init_project", {"root": str(tmp_path), "name": "MCP Doctor", "agent": "generic"})
+    call_tool(
+        "p2p_init_project",
+        {
+            "root": str(tmp_path),
+            "name": "MCP Doctor",
+            "agent": "generic",
+            "starter": "generic",
+        },
+    )
     clean = call_tool("p2p_agent_doctor", {"root": str(tmp_path), "adapter": "generic"})
     (tmp_path / "AGENTS.md").unlink()
 
@@ -1812,6 +1844,7 @@ def test_mcp_init_project_can_start_with_unresolved_custom_domain(tmp_path: Path
             "root": str(tmp_path),
             "name": "Custom Domain Project",
             "domain": "custom",
+            "starter": "empty",
         },
     )
 
@@ -1819,9 +1852,8 @@ def test_mcp_init_project_can_start_with_unresolved_custom_domain(tmp_path: Path
     domain = (tmp_path / ".p2p" / "project" / "domain.yml").read_text(encoding="utf-8")
     rubrics = (tmp_path / ".p2p" / "project" / "rubrics.yml").read_text(encoding="utf-8")
 
-    assert "status: unresolved" in domain
-    assert "type: custom" in domain
-    assert "status: unresolved" in rubrics
+    assert "key: custom" in domain
+    assert "status: empty" in rubrics
     assert "criteria: []" in rubrics
 
     maturity = call_tool("p2p_maturity_refresh", {"root": str(tmp_path)})
@@ -2039,18 +2071,18 @@ def test_mcp_project_definition_maturity(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
     rubrics = call_tool(
         "p2p_project_rubrics_init",
-        {"root": str(tmp_path), "domain": "software", "force": True},
+        {"root": str(tmp_path), "starter": "generic", "force": True},
     )
 
-    assert rubrics["rubrics"]["domain"] == "software"
-    assert any(item["id"] == "security_privacy" for item in rubrics["rubrics"]["criteria"])
+    assert rubrics["rubrics"]["structure_source"] == "generic"
+    assert any(item["id"] == "risk_coverage" for item in rubrics["rubrics"]["criteria"])
 
     call_tool(
         "p2p_proposal_create",
         {
             "root": str(tmp_path),
             "title": "Security Model",
-            "problem": "Security and privacy need explicit permission boundaries.",
+            "problem": "Security and privacy risks need explicit permission boundaries.",
             "proposal": "Define sandbox permissions.",
         },
     )
@@ -2064,12 +2096,12 @@ def test_mcp_project_definition_maturity(tmp_path: Path) -> None:
 
     maturity = call_tool("p2p_maturity_refresh", {"root": str(tmp_path)})
 
-    assert maturity["maturity"]["domain"] == "software"
+    assert maturity["maturity"]["structure_source"] == "generic"
     assert maturity["maturity"]["score"] > 0
-    security = [
-        item for item in maturity["maturity"]["criteria"] if item["id"] == "security_privacy"
+    risks = [
+        item for item in maturity["maturity"]["criteria"] if item["id"] == "risk_coverage"
     ][0]
-    assert security["status"] == "covered"
+    assert risks["status"] == "covered"
 
     shown = call_tool("p2p_maturity_show", {"root": str(tmp_path)})
 

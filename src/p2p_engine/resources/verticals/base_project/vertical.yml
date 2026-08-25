@@ -1,5 +1,5 @@
 vertical:
-  schema_version: 2
+  schema_version: 3
   id: base_project
   name: Base Project
   version: 2.0.0

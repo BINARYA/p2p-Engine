@@ -145,47 +145,18 @@ def _pending_proposals(definition: dict[str, object]) -> str:
     return "\n".join(lines) or "- None."
 
 
-def _domain_sections(definition: dict[str, object]) -> str:
-    domain = _definition_value(definition, "domain", "generic")
-    if domain == "software":
-        return (
-            "## Software Domain Extension\n\n"
-            "### Technical Architecture\n\n"
-            f"{strip_markdown_title(_definition_spec(definition, 'design.md')) or 'NEEDS CLARIFICATION'}\n\n"
-            "### CLI/API/UI Surface\n\n"
-            "```yaml\n"
-            f"{_definition_spec(definition, 'commands.yml').strip() or 'commands: []'}\n"
-            "\n```\n\n"
-            "### Testing Strategy\n\n"
-            f"{strip_markdown_title(_definition_spec(definition, 'acceptance.md')) or 'NEEDS CLARIFICATION'}\n\n"
-            "### Deployment / Operations\n\n"
-            "NEEDS CLARIFICATION\n\n"
-            "### Integration Boundaries\n\n"
-            f"- Implementation targets: {_definition_value(definition, 'implementation_targets')}\n"
-            f"- Spec targets: {_definition_value(definition, 'spec_targets')}\n"
-            f"- Export targets: {_definition_value(definition, 'export_targets')}\n"
-        )
-    if domain == "board_game":
-        return (
-            "## Board Game Domain Extension\n\n"
-            "### Core Loop\n\nNEEDS CLARIFICATION\n\n"
-            "### Player Roles\n\nNEEDS CLARIFICATION\n\n"
-            "### Components\n\nNEEDS CLARIFICATION\n\n"
-            "### Rules\n\nNEEDS CLARIFICATION\n\n"
-            "### Win / Loss Conditions\n\nNEEDS CLARIFICATION\n\n"
-            "### Playtest Plan\n\nNEEDS CLARIFICATION\n"
-        )
-    if domain == "grant_document":
-        return (
-            "## Grant Document Domain Extension\n\n"
-            "### Funding Objective\n\nNEEDS CLARIFICATION\n\n"
-            "### Eligibility\n\nNEEDS CLARIFICATION\n\n"
-            "### Evaluation Criteria\n\nNEEDS CLARIFICATION\n\n"
-            "### Required Documents\n\nNEEDS CLARIFICATION\n\n"
-            "### Budget Structure\n\nNEEDS CLARIFICATION\n\n"
-            "### Timeline And Milestones\n\nNEEDS CLARIFICATION\n"
-        )
-    return "## Domain Extension\n\nNEEDS CLARIFICATION\n"
+def _structure_sections(definition: dict[str, object]) -> str:
+    return (
+        "## Structure-Specific Detail\n\n"
+        "### Design\n\n"
+        f"{strip_markdown_title(_definition_spec(definition, 'design.md')) or 'NEEDS CLARIFICATION'}\n\n"
+        "### Commands And Interfaces\n\n"
+        "```yaml\n"
+        f"{_definition_spec(definition, 'commands.yml').strip() or 'commands: []'}\n"
+        "\n```\n\n"
+        "### Validation\n\n"
+        f"{strip_markdown_title(_definition_spec(definition, 'acceptance.md')) or 'NEEDS CLARIFICATION'}\n"
+    )
 
 
 def _project_definition_markdown(definition: dict[str, object]) -> str:
@@ -258,7 +229,7 @@ def _project_definition_markdown(definition: dict[str, object]) -> str:
         "- Which target-specific constraints still require owner clarification?\n\n"
         "## Pending Proposals\n\n"
         f"{_pending_proposals(definition)}\n\n"
-        f"{_domain_sections(definition)}\n\n"
+        f"{_structure_sections(definition)}\n\n"
         "## Source Traceability\n\n"
         f"- Source Change Set: `{change_id}` {change_title}\n"
         f"{_proposal_sources(definition)}\n"
@@ -365,6 +336,7 @@ class SpecExportService:
         status: Callable[[], Any],
         accepted_proposals: Callable[[], list[dict[str, object]]],
         proposal_summaries: Callable[[str | None], list[Any]],
+        project_domain: Callable[[], Any] | None = None,
         required_spec_files: Callable[[], tuple[str, ...]] | None = None,
         read_yaml_mapping: Callable[[Path, dict[str, object]], dict[str, object]] | None = None,
         read_optional: Callable[[Path], str] | None = None,
@@ -375,6 +347,7 @@ class SpecExportService:
         self.status = status
         self.accepted_proposals = accepted_proposals
         self.proposal_summaries = proposal_summaries
+        self.project_domain = project_domain or (lambda: None)
         self.export_targets = software_spec_export_targets
         self.required_spec_files = required_spec_files or (
             lambda: ("index.md", "requirements.md", "design.md", "commands.yml", "data-model.yml", "acceptance.md", "provenance.yml")
@@ -493,10 +466,12 @@ class SpecExportService:
         project = project_data.get("project", {})
         if not isinstance(project, dict):
             project = {}
+        domain_state = self.project_domain()
+        descriptor = getattr(domain_state, "descriptor", None)
         source_spec = {filename: self.read_optional(spec_dir / filename) for filename in self.required_spec_files()}
         return {
             "project_name": str(project.get("name") or self.status().project_name),
-            "domain": str(project.get("domain") or "generic"),
+            "domain": getattr(descriptor, "name", "") or "Unclassified",
             "change_id": change_id,
             "change_title": change.title,
             "change_summary": change.summary,

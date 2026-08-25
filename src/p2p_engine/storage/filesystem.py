@@ -34,6 +34,12 @@ from p2p_engine.core.portable_verticals import (
     VerticalLifecycleResult,
 )
 from p2p_engine.core.project_metadata import ProjectMetadataView
+from p2p_engine.core.project_domain import (
+    ProjectDomainMutationResult,
+    ProjectDomainRef,
+    ProjectDomainState,
+    StructureSource,
+)
 from p2p_engine.core.project_progress import ProjectProgress
 from p2p_engine.core.project_questions import (
     ProjectQuestion,
@@ -185,6 +191,7 @@ from p2p_engine.services.proposals import (
     ProposalUpdatePlan,
 )
 from p2p_engine.services.project_assessment import ProjectAssessment, ProjectAssessmentService
+from p2p_engine.services.project_domain import ProjectDomainService
 from p2p_engine.services.project_contexts import ProjectContextRendererService
 from p2p_engine.services.project_maturity import (
     ProjectDefinitionMaturity,
@@ -367,6 +374,7 @@ class P2PWorkspace:
         self._project_authority_rotation_service_instance: (
             ProjectAuthorityRotationService | None
         ) = None
+        self._project_domain_service_instance: ProjectDomainService | None = None
         self._project_maturity_service_instance: ProjectMaturityService | None = None
         self._project_metadata_service_instance: ProjectMetadataService | None = None
         self._project_progress_service_instance: ProjectProgressService | None = None
@@ -438,6 +446,16 @@ class P2PWorkspace:
                 )
             )
         return self._project_authority_rotation_service_instance
+
+    def _project_domain_service(self) -> ProjectDomainService:
+        if self._project_domain_service_instance is None:
+            self._project_domain_service_instance = ProjectDomainService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                authority=self._project_authority_service(),
+                receipts=self._mutation_receipt_service(),
+            )
+        return self._project_domain_service_instance
 
     def _agent_instruction_service(self) -> AgentInstructionService:
         if self._agent_instruction_service_instance is None:
@@ -856,6 +874,7 @@ class P2PWorkspace:
                 active_vertical=self.active_project_vertical,
                 vertical_lock_status=self.project_vertical_lock_status,
                 vertical_sections=self.project_vertical_sections,
+                project_domain=self.project_domain,
                 project_progress=lambda proposals, read_context: self.project_progress(
                     proposal_summaries_snapshot=proposals,
                     read_context=read_context,
@@ -1275,6 +1294,7 @@ class P2PWorkspace:
                 accepted_proposals=self._registry_record_builder_service().accepted_proposals,
                 proposal_summaries=self.proposal_summaries,
                 required_spec_files=self._software_spec_service().required_files,
+                project_domain=self.project_domain,
             )
         return self._spec_export_service_instance
 
@@ -1427,7 +1447,11 @@ class P2PWorkspace:
         name: str,
         agent_profile: str | None = None,
         repository_mode: str = "local",
-        project_domain: str = "none",
+        project_domain: str | None = None,
+        project_domain_name: str = "",
+        project_domain_source: str = "local",
+        project_domain_external_ref: str | None = None,
+        starter_id: str | None = None,
         rubric_enabled: dict[str, bool] | None = None,
         owner: str | None = None,
         remote_provider: str | None = None,
@@ -1445,6 +1469,10 @@ class P2PWorkspace:
             agent_profile=agent_profile,
             repository_mode=repository_mode,
             project_domain=project_domain,
+            project_domain_name=project_domain_name,
+            project_domain_source=project_domain_source,
+            project_domain_external_ref=project_domain_external_ref,
+            starter_id=starter_id,
             rubric_enabled=rubric_enabled,
             owner=owner,
             remote_provider=remote_provider,
@@ -1463,7 +1491,11 @@ class P2PWorkspace:
         name: str,
         agent_profile: str | None = None,
         repository_mode: str = "local",
-        project_domain: str = "none",
+        project_domain: str | None = None,
+        project_domain_name: str = "",
+        project_domain_source: str = "local",
+        project_domain_external_ref: str | None = None,
+        starter_id: str | None = None,
         rubric_enabled: dict[str, bool] | None = None,
         owner: str | None = None,
         remote_provider: str | None = None,
@@ -1482,6 +1514,16 @@ class P2PWorkspace:
             self._ensure_runtime_write_allowed("project_init_existing")
         install_preview = None
         closure = list(vertical_pack_closure or [])
+        if starter_id and (vertical_id or vertical_pack is not None or closure):
+            raise ValueError(
+                "P2P_STRUCTURE_SOURCE_CONFLICT: use exactly one starter or vertical release"
+            )
+        selected_starter = str(starter_id or "").strip().lower()
+        if not selected_starter and not (vertical_id or vertical_pack is not None or closure):
+            selected_starter = "generic"
+        structure_source: StructureSource | None = None
+        structure_origin: dict[str, object] = {}
+        inspected: PortableVerticalInspection | None = None
         if closure:
             if vertical_id or vertical_pack is not None:
                 raise ValueError(
@@ -1494,7 +1536,12 @@ class P2PWorkspace:
             self._validate_initial_vertical_options(inspected, profile=profile, modules=modules)
             vertical_id = inspected.pack.coordinate
         if vertical_pack is not None:
-            if vertical_id:
+            active_before = self.active_project_vertical() if workspace_existed else None
+            if vertical_id and not (
+                active_before is not None
+                and not active_before.fallback_used
+                and (active_before.coordinate or active_before.vertical_id) == vertical_id
+            ):
                 raise ValueError("P2P_VERTICAL_INIT_CONFLICT: use either --vertical or --vertical-pack")
             if not expected_checksum:
                 raise ValueError("P2P_VERTICAL_INVALID_CHECKSUM: --expected-checksum is required with --vertical-pack")
@@ -1511,11 +1558,63 @@ class P2PWorkspace:
             inspected = self._portable_vertical_package_service().inspect(vertical_pack, view="effective")
             self._validate_initial_vertical_options(inspected, profile=profile, modules=modules)
             vertical_id = inspected.pack.coordinate
+        if selected_starter:
+            structure_source = StructureSource.starter(selected_starter)
+            if selected_starter == "generic":
+                resolved_starter = self._project_vertical_service().resolve_pack(
+                    "binarya/base_project@2.0.0"
+                )
+                vertical_id = resolved_starter.pack.coordinate
+                structure_origin = {
+                    "kind": "starter",
+                    "identity": "generic",
+                    "checksum": resolved_starter.checksum,
+                }
+            else:
+                vertical_id = None
+                structure_origin = {
+                    "kind": "starter",
+                    "identity": "empty",
+                    "checksum": None,
+                }
+        else:
+            if inspected is not None:
+                resolved_coordinate = inspected.pack.coordinate
+                resolved_checksum = inspected.semantic_checksum
+            elif vertical_id:
+                resolved_vertical = self._project_vertical_service().resolve_pack(vertical_id)
+                resolved_coordinate = resolved_vertical.pack.coordinate
+                resolved_checksum = resolved_vertical.checksum
+                vertical_id = resolved_coordinate
+            else:  # pragma: no cover - guarded by source normalization above.
+                raise ValueError("P2P_STRUCTURE_SOURCE_REQUIRED: initialization source is missing")
+            structure_source = StructureSource.vertical_release(
+                resolved_coordinate,
+                resolved_checksum,
+            )
+            structure_origin = {
+                "kind": "vertical_release",
+                "identity": resolved_coordinate,
+                "checksum": resolved_checksum,
+            }
+        assert structure_source is not None
+        if workspace_existed:
+            current_source = self._project_domain_service().structure_source()["source"]
+            if current_source != structure_source.to_dict():
+                raise ValueError(
+                    "P2P_INIT_EXISTING_WORKSPACE_CONFLICT: existing structure source "
+                    "differs from the requested initialization"
+                )
         result = self._project_initialization_service().init_project_with_summary(
             name=name,
             agent_profile=agent_profile,
             repository_mode=repository_mode,
             project_domain=project_domain,
+            project_domain_name=project_domain_name,
+            project_domain_source=project_domain_source,
+            project_domain_external_ref=project_domain_external_ref,
+            structure_source=structure_source,
+            structure_origin=structure_origin,
             rubric_enabled=rubric_enabled,
             owner=owner,
             remote_provider=remote_provider,
@@ -1526,7 +1625,7 @@ class P2PWorkspace:
         created = list(result.created)
         try:
             artifact_checksum = ""
-            if closure:
+            if closure and not workspace_existed:
                 for artifact, checksum in closure:
                     preview = self._vertical_lifecycle_service().install_preview(
                         artifact,
@@ -1550,7 +1649,11 @@ class P2PWorkspace:
                     )
                     artifact_checksum = checksum
                     _extend_created_paths(created, installed.mutation.changed_paths)
-            elif install_preview is not None and install_preview.preview is not None:
+            elif (
+                not workspace_existed
+                and install_preview is not None
+                and install_preview.preview is not None
+            ):
                 installed = self._vertical_lifecycle_service().install_apply(
                     vertical_pack,
                     expected_checksum=expected_checksum,
@@ -1561,7 +1664,7 @@ class P2PWorkspace:
                 )
                 artifact_checksum = install_preview.impact.target.artifact_checksum
                 _extend_created_paths(created, installed.mutation.changed_paths)
-            if vertical_id:
+            if vertical_id and not workspace_existed:
                 self._project_vertical_service().select_vertical(
                     vertical_id,
                     actor=owner or "owner",
@@ -1587,6 +1690,10 @@ class P2PWorkspace:
             mcp_hint=result.mcp_hint,
             gitignore_hygiene=result.gitignore_hygiene,
             warnings=list(result.warnings),
+            domain=result.domain,
+            structure_source=result.structure_source,
+            structure_origin=dict(result.structure_origin),
+            structure_revision=result.structure_revision,
         )
 
     def init_project_with_operation_key(
@@ -1596,7 +1703,11 @@ class P2PWorkspace:
         operation_key: str,
         agent_profile: str | None = None,
         repository_mode: str = "local",
-        project_domain: str = "none",
+        project_domain: str | None = None,
+        project_domain_name: str = "",
+        project_domain_source: str = "local",
+        project_domain_external_ref: str | None = None,
+        starter_id: str | None = None,
         rubric_enabled: dict[str, bool] | None = None,
         owner: str | None = None,
         remote_provider: str | None = None,
@@ -1624,6 +1735,10 @@ class P2PWorkspace:
             agent_profile=agent_profile,
             repository_mode=repository_mode,
             project_domain=project_domain,
+            project_domain_name=project_domain_name,
+            project_domain_source=project_domain_source,
+            project_domain_external_ref=project_domain_external_ref,
+            starter_id=starter_id,
             rubric_enabled=rubric_enabled,
             owner=owner,
             remote_provider=remote_provider,
@@ -1674,6 +1789,10 @@ class P2PWorkspace:
                 agent_profile=agent_profile,
                 repository_mode=repository_mode,
                 project_domain=project_domain,
+                project_domain_name=project_domain_name,
+                project_domain_source=project_domain_source,
+                project_domain_external_ref=project_domain_external_ref,
+                starter_id=starter_id,
                 rubric_enabled=rubric_enabled,
                 owner=owner,
                 remote_provider=remote_provider,
@@ -1691,6 +1810,10 @@ class P2PWorkspace:
             agent_profile=agent_profile,
             repository_mode=repository_mode,
             project_domain=project_domain,
+            project_domain_name=project_domain_name,
+            project_domain_source=project_domain_source,
+            project_domain_external_ref=project_domain_external_ref,
+            starter_id=starter_id,
             rubric_enabled=rubric_enabled,
             owner=owner,
             remote_provider=remote_provider,
@@ -1768,7 +1891,11 @@ class P2PWorkspace:
         authority_evidence: AuthorityEvidence,
         agent_profile: str | None,
         repository_mode: str,
-        project_domain: str,
+        project_domain: str | None,
+        project_domain_name: str,
+        project_domain_source: str,
+        project_domain_external_ref: str | None,
+        starter_id: str | None,
         rubric_enabled: dict[str, bool] | None,
         owner: str | None,
         remote_provider: str | None,
@@ -1790,6 +1917,10 @@ class P2PWorkspace:
                 agent_profile=agent_profile,
                 repository_mode=repository_mode,
                 project_domain=project_domain,
+                project_domain_name=project_domain_name,
+                project_domain_source=project_domain_source,
+                project_domain_external_ref=project_domain_external_ref,
+                starter_id=starter_id,
                 rubric_enabled=rubric_enabled,
                 owner=owner,
                 remote_provider=remote_provider,
@@ -2013,16 +2144,47 @@ class P2PWorkspace:
         if not isinstance(remote, Mapping):
             remote = {}
         expected_name = str(semantic_inputs.get("name") or "")
-        expected_domain = str(semantic_inputs.get("project_domain") or "none")
         expected_repository = str(semantic_inputs.get("repository_mode") or "local")
         if str(project.get("name") or "") != expected_name:
             raise ValueError(
                 "P2P_INIT_EXISTING_WORKSPACE_CONFLICT: existing project name "
                 "differs from the requested initialization"
             )
-        if str(project.get("domain") or "") != expected_domain:
+        current_domain = self._project_domain_service().show().descriptor
+        requested_domain_key = str(semantic_inputs.get("project_domain") or "")
+        requested_domain_name = str(semantic_inputs.get("project_domain_name") or "")
+        requested_domain_source = str(semantic_inputs.get("project_domain_source") or "local")
+        requested_domain_external_ref = str(
+            semantic_inputs.get("project_domain_external_ref") or ""
+        )
+        requested_domain = (
+            ProjectDomainRef(
+                key=requested_domain_key,
+                name=(
+                    requested_domain_name
+                    or requested_domain_key.replace("_", " ").replace("-", " ").title()
+                ),
+                source=requested_domain_source,
+                external_ref=requested_domain_external_ref or None,
+            )
+            if requested_domain_key
+            else None
+        )
+        if current_domain != requested_domain:
             raise ValueError(
                 "P2P_INIT_EXISTING_WORKSPACE_CONFLICT: existing project domain "
+                "descriptor differs from the requested initialization"
+            )
+        requested_starter = str(semantic_inputs.get("starter_id") or "")
+        if not requested_starter and not any(
+            semantic_inputs.get(field)
+            for field in ("vertical_id", "vertical_pack", "vertical_pack_closure")
+        ):
+            requested_starter = "generic"
+        current_source = self._project_domain_service().structure_source()["source"]
+        if requested_starter and current_source != StructureSource.starter(requested_starter).to_dict():
+            raise ValueError(
+                "P2P_INIT_EXISTING_WORKSPACE_CONFLICT: existing structure source "
                 "differs from the requested initialization"
             )
         if str(repository.get("mode") or "") != expected_repository:
@@ -2078,6 +2240,10 @@ class P2PWorkspace:
             "operation": "init",
             "operation_id": "project.init",
             "project": dict(project) if isinstance(project, Mapping) else {},
+            "domain": result.domain.to_dict() if result.domain is not None else None,
+            "structure_source": result.structure_source.to_dict(),
+            "structure_origin": dict(result.structure_origin),
+            "structure_revision": result.structure_revision,
             "authority": authority.to_dict(),
             "created_paths": created_paths,
             "created_file_paths": created_file_paths,
@@ -2140,6 +2306,7 @@ class P2PWorkspace:
             ".p2p/project/authority.yml",
             ".p2p/project/runtime.yml",
             ".p2p/project/domain.yml",
+            ".p2p/project/structure-source.yml",
             ".p2p/project/rubrics.yml",
             ".p2p/project/permissions.yml",
             ".p2p/project/questions.yml",
@@ -2659,6 +2826,40 @@ class P2PWorkspace:
 
     def project_authority(self) -> ProjectAuthorityDescriptor:
         return self._project_authority_service().read_descriptor()
+
+    def project_domain(self) -> ProjectDomainState:
+        return self._project_domain_service().show()
+
+    def project_structure_source(self) -> dict[str, object]:
+        return self._project_domain_service().structure_source()
+
+    def change_project_domain(
+        self,
+        *,
+        operation: str,
+        operation_key: str,
+        actor_id: str,
+        executor_id: str,
+        executor_kind: str,
+        descriptor: ProjectDomainRef | None,
+        authority_context: AuthorityContext | None = None,
+        channel: str = "cli",
+        consent_id: str | None = None,
+        consent_sha256: str | None = None,
+    ) -> ProjectDomainMutationResult:
+        self._ensure_runtime_write_allowed("project_domain_change")
+        return self._project_domain_service().apply(
+            operation=operation,
+            operation_key=operation_key,
+            actor_id=actor_id,
+            executor_id=executor_id,
+            executor_kind=executor_kind,
+            descriptor=descriptor,
+            authority_context=authority_context,
+            channel=channel,
+            consent_id=consent_id,
+            consent_sha256=consent_sha256,
+        )
 
     def preview_project_authority_rotation(
         self,
@@ -4653,12 +4854,12 @@ class P2PWorkspace:
     def show_project_assessment(self) -> ProjectAssessment:
         return self._project_assessment_service().show()
 
-    def init_project_rubrics(self, domain: str = "generic", force: bool = False) -> ProjectRubrics:
+    def init_project_rubrics(self, starter: str = "generic", force: bool = False) -> ProjectRubrics:
         self._ensure_runtime_write_allowed("project_rubrics_init")
-        return self._project_maturity_service().init_project_rubrics(domain, force=force)
+        return self._project_maturity_service().init_project_rubrics(starter, force=force)
 
-    def init_project_rubrics_preview(self, domain: str = "generic") -> list[dict[str, object]]:
-        return self._project_maturity_service().init_project_rubrics_preview(domain)
+    def init_project_rubrics_preview(self, starter: str = "generic") -> list[dict[str, object]]:
+        return self._project_maturity_service().init_project_rubrics_preview(starter)
 
     def show_project_rubrics(self) -> ProjectRubrics:
         return self._project_maturity_service().show_project_rubrics()
@@ -5100,7 +5301,11 @@ def _project_init_semantic_inputs(
     name: str,
     agent_profile: str | None,
     repository_mode: str,
-    project_domain: str,
+    project_domain: str | None,
+    project_domain_name: str,
+    project_domain_source: str,
+    project_domain_external_ref: str | None,
+    starter_id: str | None,
     rubric_enabled: dict[str, bool] | None,
     owner: str | None,
     remote_provider: str | None,
@@ -5118,7 +5323,11 @@ def _project_init_semantic_inputs(
         "name": name,
         "agent_profile": agent_profile or "",
         "repository_mode": repository_mode,
-        "project_domain": project_domain,
+        "project_domain": project_domain or "",
+        "project_domain_name": project_domain_name,
+        "project_domain_source": project_domain_source,
+        "project_domain_external_ref": project_domain_external_ref or "",
+        "starter_id": starter_id or "",
         "rubric_enabled": {
             str(key): bool(value)
             for key, value in sorted((rubric_enabled or {}).items())
@@ -5174,6 +5383,22 @@ def _public_project_init_result(result: dict[str, object]) -> dict[str, object]:
         "project": dict(result.get("project", {}))
         if isinstance(result.get("project"), Mapping)
         else {},
+        "domain": (
+            dict(result["domain"])
+            if isinstance(result.get("domain"), Mapping)
+            else None
+        ),
+        "structure_source": (
+            dict(result["structure_source"])
+            if isinstance(result.get("structure_source"), Mapping)
+            else {}
+        ),
+        "structure_origin": (
+            dict(result["structure_origin"])
+            if isinstance(result.get("structure_origin"), Mapping)
+            else {}
+        ),
+        "structure_revision": int(result.get("structure_revision") or 0),
         "authority": dict(result.get("authority", {}))
         if isinstance(result.get("authority"), Mapping)
         else {},

@@ -12,7 +12,8 @@ def tool_definitions() -> list[dict[str, object]]:
                 'boundary instructions. Uses an adaptive agent default when agent is omitted, '
                 'falls back to all built-in adapters when no current client is detected, '
                 'and returns additive MCP hint and repository hygiene metadata. '
-                'Does not make governance decisions.'
+                'Requires exactly one explicit structure source and does not infer it '
+                'from the optional domain classification.'
             ),
             {'root': {'type': 'string'},
              'name': {'type': 'string'},
@@ -26,13 +27,13 @@ def tool_definitions() -> list[dict[str, object]]:
                                 'opencode',
                                 'all']},
              'repository': {'type': 'string', 'enum': ['local', 'cloud']},
-             'domain': {'type': 'string',
-                        'enum': ['none',
-                                 'custom',
-                                 'generic',
-                                 'software',
-                                 'grant_document',
-                                 'board_game']}},
+             'owner': {'type': 'string'},
+             'domain': {'type': 'string'},
+             'domain_name': {'type': 'string'},
+             'domain_source': {'type': 'string', 'enum': ['local', 'external', 'imported', 'system']},
+             'domain_external_ref': {'type': 'string'},
+             'starter': {'type': 'string', 'enum': ['generic', 'empty']},
+             'vertical': {'type': 'string'}},
             ['name'],
         ),
         _tool(

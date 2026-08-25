@@ -166,10 +166,20 @@ generated provenance, and deterministic candidate bytes. It distinguishes
 current, compatible legacy, stale source, manually modified output, unknown
 origin, and incomplete artifacts without using file age as identity.
 
+## Project Domain
+
+A portable subject-classification descriptor with a free key, display name,
+source and optional external reference. It does not own project structure.
+
+## Structure Source
+
+The exclusive initialization source for project structure: the `generic` or
+`empty` starter, or one exact vertical release.
+
 ## Rubric
 
-A project-domain checklist used to assess project definition maturity. Rubrics
-make it clear which aspects of intent have or have not been covered.
+A structure-owned checklist used to assess project definition maturity.
+Rubrics make it clear which aspects of intent have or have not been covered.
 
 ## Project Vertical
 

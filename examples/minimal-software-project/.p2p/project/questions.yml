@@ -4,7 +4,7 @@ project_questions:
   vertical:
     id: software_project
     version: 2.0.0
-    lock_checksum: 15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13
+    lock_checksum: 2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d
   policy_versions:
     identity: 1
     fallback: 1
@@ -28,7 +28,7 @@ project_questions:
     gap_id: PGAP-14f377dc6753b0ee
     section_id: artifacts
     question_ids:
-    - PRQ-9077b20d846c1f8c
+    - PRQ-f35f6bfe9c26792d
   - id: PRG-dafa90bcd96e40b2
     identity_sha256: dafa90bcd96e40b2c077e4836685f0b2d71f5144a802ea5170986efa8390a0f3
     gap_id: PGAP-2b93e607cf86fee7
@@ -46,7 +46,7 @@ project_questions:
     gap_id: PGAP-4093c9c75ad780b2
     section_id: scope
     question_ids:
-    - PRQ-1523c1d34b3bf32f
+    - PRQ-05fcad22468f02e1
   - id: PRG-637ad7dda834daad
     identity_sha256: 637ad7dda834daad808a5962f6a29f601310940f10f79c8e358bdfc14a1aa6bb
     gap_id: PGAP-451aa72b0da33adf
@@ -76,7 +76,7 @@ project_questions:
     gap_id: PGAP-ae2f232e772d3bf3
     section_id: vision
     question_ids:
-    - PRQ-9eb7d240ab7e3308
+    - PRQ-378beb579ca2e1d7
   - id: PRG-0dbf3004225a7397
     identity_sha256: 0dbf3004225a73970e72c92e79701315f7c5e32852ded955d6d51019b499d6e4
     gap_id: PGAP-beaad1e061291e03
@@ -94,8 +94,46 @@ project_questions:
     gap_id: PGAP-d85a57d82fc1a42b
     section_id: objective
     question_ids:
-    - PRQ-b7c301a6ca8a06de
+    - PRQ-6baad7a35b9c5d28
   questions:
+  - id: PRQ-05fcad22468f02e1
+    identity_sha256: 05fcad22468f02e19f05c07517b7aacebc0634bce290742704d21531aa7fd480
+    revision: 1
+    wording_sha256: 0d711baf01233969e8592d332f9b7cd491a38e2c035c044459015140b42a61e5
+    question: What value should `Scope And Non-Goals` have?
+    state: to_answer
+    applicability: active
+    section_id: scope
+    gap_id: PGAP-4093c9c75ad780b2
+    target:
+      kind: field
+      id: summary
+    priority: high
+    rationale: Required input for project definition section `scope`.
+    source:
+      kind: deterministic_fallback
+      question_id: ''
+      key: fallback:single_missing_field
+      vertical_id: software_project
+      vertical_version: 2.0.0
+      lock_checksum: 2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d
+      fallback_policy_version: 1
+    answer_contract:
+      kind: field_value
+      required_fields:
+      - value
+      allowed_definition_operations:
+      - set_field
+    deferred_trigger: {}
+    revisions: []
+    answers: []
+    applications: []
+    transitions: []
+    superseded_by: ''
+    created_at: '2026-08-25'
+    created_by: owner
+    updated_at: '2026-08-25'
+    updated_by: owner
   - id: PRQ-07c375843509f58f
     identity_sha256: 07c375843509f58ff724e2b5f4ce396e3dbe16d89df4d009540e50349e64f066
     revision: 1
@@ -116,7 +154,7 @@ project_questions:
       key: fallback:single_missing_field
       vertical_id: software_project
       vertical_version: 2.0.0
-      lock_checksum: 15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13
+      lock_checksum: 2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d
       fallback_policy_version: 1
     answer_contract:
       kind: field_value
@@ -130,9 +168,9 @@ project_questions:
     applications: []
     transitions: []
     superseded_by: ''
-    created_at: '2026-08-04'
+    created_at: '2026-08-25'
     created_by: owner
-    updated_at: '2026-08-04'
+    updated_at: '2026-08-25'
     updated_by: owner
   - id: PRQ-0cb2e926fdcbf611
     identity_sha256: 0cb2e926fdcbf611622c62c1775520d20988ec12e2421f6f2c1aef089501c8cf
@@ -154,7 +192,7 @@ project_questions:
       key: fallback:single_missing_field
       vertical_id: software_project
       vertical_version: 2.0.0
-      lock_checksum: 15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13
+      lock_checksum: 2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d
       fallback_policy_version: 1
     answer_contract:
       kind: field_value
@@ -168,31 +206,31 @@ project_questions:
     applications: []
     transitions: []
     superseded_by: ''
-    created_at: '2026-08-04'
+    created_at: '2026-08-25'
     created_by: owner
-    updated_at: '2026-08-04'
+    updated_at: '2026-08-25'
     updated_by: owner
-  - id: PRQ-1523c1d34b3bf32f
-    identity_sha256: 1523c1d34b3bf32f2e1e8a0a5b848d726211c4534cc4604b98a78814b006cfaf
+  - id: PRQ-378beb579ca2e1d7
+    identity_sha256: 378beb579ca2e1d7958d29552149586b043813afeea0c5381586e05ba68a99ac
     revision: 1
-    wording_sha256: 77e019d5c224ebc706654f0a9376c80827f1691586efe1dfc54bb13a164e8b2a
-    question: What is explicitly in scope and out of scope?
+    wording_sha256: b2502ad3fe46ecc2216327af4f52ea352715d67b020624237a06aca81f0c3f92
+    question: What value should `Vision` have?
     state: to_answer
     applicability: active
-    section_id: scope
-    gap_id: PGAP-4093c9c75ad780b2
+    section_id: vision
+    gap_id: PGAP-ae2f232e772d3bf3
     target:
       kind: field
       id: summary
     priority: high
-    rationale: Required input for project definition section `scope`.
+    rationale: Required input for project definition section `vision`.
     source:
-      kind: vertical_declared
-      question_id: scope_main
-      key: declared:scope_main
+      kind: deterministic_fallback
+      question_id: ''
+      key: fallback:single_missing_field
       vertical_id: software_project
       vertical_version: 2.0.0
-      lock_checksum: 15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13
+      lock_checksum: 2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d
       fallback_policy_version: 1
     answer_contract:
       kind: field_value
@@ -206,9 +244,9 @@ project_questions:
     applications: []
     transitions: []
     superseded_by: ''
-    created_at: '2026-08-04'
+    created_at: '2026-08-25'
     created_by: owner
-    updated_at: '2026-08-04'
+    updated_at: '2026-08-25'
     updated_by: owner
   - id: PRQ-57b9c6d20deba372
     identity_sha256: 57b9c6d20deba372ea175beae20ed684f55df8583952f6507a0e747f129b6bbb
@@ -230,7 +268,7 @@ project_questions:
       key: fallback:single_missing_field
       vertical_id: software_project
       vertical_version: 2.0.0
-      lock_checksum: 15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13
+      lock_checksum: 2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d
       fallback_policy_version: 1
     answer_contract:
       kind: field_value
@@ -244,9 +282,9 @@ project_questions:
     applications: []
     transitions: []
     superseded_by: ''
-    created_at: '2026-08-04'
+    created_at: '2026-08-25'
     created_by: owner
-    updated_at: '2026-08-04'
+    updated_at: '2026-08-25'
     updated_by: owner
   - id: PRQ-618fa79a083246fe
     identity_sha256: 618fa79a083246fe3af16a5dcb4af477b8728981390d04c253936c3e3ee18ea9
@@ -268,7 +306,7 @@ project_questions:
       key: fallback:single_missing_field
       vertical_id: software_project
       vertical_version: 2.0.0
-      lock_checksum: 15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13
+      lock_checksum: 2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d
       fallback_policy_version: 1
     answer_contract:
       kind: field_value
@@ -282,9 +320,47 @@ project_questions:
     applications: []
     transitions: []
     superseded_by: ''
-    created_at: '2026-08-04'
+    created_at: '2026-08-25'
     created_by: owner
-    updated_at: '2026-08-04'
+    updated_at: '2026-08-25'
+    updated_by: owner
+  - id: PRQ-6baad7a35b9c5d28
+    identity_sha256: 6baad7a35b9c5d28d569af3775c60aa1964cbfeaf7047b5e0cb77b8286c5fbe5
+    revision: 1
+    wording_sha256: 78212f7cffa23e73a3e4e1a9e1aba29afb2645673699cea7a62c68285325a75e
+    question: What value should `Objective And Outcome` have?
+    state: to_answer
+    applicability: active
+    section_id: objective
+    gap_id: PGAP-d85a57d82fc1a42b
+    target:
+      kind: field
+      id: summary
+    priority: high
+    rationale: Required input for project definition section `objective`.
+    source:
+      kind: deterministic_fallback
+      question_id: ''
+      key: fallback:single_missing_field
+      vertical_id: software_project
+      vertical_version: 2.0.0
+      lock_checksum: 2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d
+      fallback_policy_version: 1
+    answer_contract:
+      kind: field_value
+      required_fields:
+      - value
+      allowed_definition_operations:
+      - set_field
+    deferred_trigger: {}
+    revisions: []
+    answers: []
+    applications: []
+    transitions: []
+    superseded_by: ''
+    created_at: '2026-08-25'
+    created_by: owner
+    updated_at: '2026-08-25'
     updated_by: owner
   - id: PRQ-72cecb1011cc313a
     identity_sha256: 72cecb1011cc313a0f22b36022c919a63659f14d8bae32ba74cd03f55c990b97
@@ -306,7 +382,7 @@ project_questions:
       key: fallback:single_missing_field
       vertical_id: software_project
       vertical_version: 2.0.0
-      lock_checksum: 15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13
+      lock_checksum: 2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d
       fallback_policy_version: 1
     answer_contract:
       kind: field_value
@@ -320,85 +396,9 @@ project_questions:
     applications: []
     transitions: []
     superseded_by: ''
-    created_at: '2026-08-04'
+    created_at: '2026-08-25'
     created_by: owner
-    updated_at: '2026-08-04'
-    updated_by: owner
-  - id: PRQ-9077b20d846c1f8c
-    identity_sha256: 9077b20d846c1f8c08bf1cfd1b7dbf2c134d641eb929ec07dfa4272c3ccaa0da
-    revision: 1
-    wording_sha256: 3b0ab043b5058110c42ff0017582752abc045cd6d12cbc0dd1cd80f71fc27c99
-    question: Which artifacts must exist before execution can start?
-    state: to_answer
-    applicability: active
-    section_id: artifacts
-    gap_id: PGAP-14f377dc6753b0ee
-    target:
-      kind: field
-      id: summary
-    priority: high
-    rationale: Required input for project definition section `artifacts`.
-    source:
-      kind: vertical_declared
-      question_id: artifact_main
-      key: declared:artifact_main
-      vertical_id: software_project
-      vertical_version: 2.0.0
-      lock_checksum: 15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13
-      fallback_policy_version: 1
-    answer_contract:
-      kind: field_value
-      required_fields:
-      - value
-      allowed_definition_operations:
-      - set_field
-    deferred_trigger: {}
-    revisions: []
-    answers: []
-    applications: []
-    transitions: []
-    superseded_by: ''
-    created_at: '2026-08-04'
-    created_by: owner
-    updated_at: '2026-08-04'
-    updated_by: owner
-  - id: PRQ-9eb7d240ab7e3308
-    identity_sha256: 9eb7d240ab7e3308cbd58dbb0eb3514004e9e0e9d372071d47588a74719d00e1
-    revision: 1
-    wording_sha256: 61bca81c6dd0df6afa824bf07d0711339207587b9becce85f4d6689bf553763d
-    question: What change should this project create?
-    state: to_answer
-    applicability: active
-    section_id: vision
-    gap_id: PGAP-ae2f232e772d3bf3
-    target:
-      kind: field
-      id: summary
-    priority: high
-    rationale: Required input for project definition section `vision`.
-    source:
-      kind: vertical_declared
-      question_id: vision_main
-      key: declared:vision_main
-      vertical_id: software_project
-      vertical_version: 2.0.0
-      lock_checksum: 15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13
-      fallback_policy_version: 1
-    answer_contract:
-      kind: field_value
-      required_fields:
-      - value
-      allowed_definition_operations:
-      - set_field
-    deferred_trigger: {}
-    revisions: []
-    answers: []
-    applications: []
-    transitions: []
-    superseded_by: ''
-    created_at: '2026-08-04'
-    created_by: owner
-    updated_at: '2026-08-04'
+    updated_at: '2026-08-25'
     updated_by: owner
   - id: PRQ-adb83b12ca6386f4
     identity_sha256: adb83b12ca6386f4954439a9cd9ed914bc1fd9d7c854e1547f09c3d5bff47ba9
@@ -420,7 +420,7 @@ project_questions:
       key: fallback:single_missing_field
       vertical_id: software_project
       vertical_version: 2.0.0
-      lock_checksum: 15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13
+      lock_checksum: 2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d
       fallback_policy_version: 1
     answer_contract:
       kind: field_value
@@ -434,47 +434,9 @@ project_questions:
     applications: []
     transitions: []
     superseded_by: ''
-    created_at: '2026-08-04'
+    created_at: '2026-08-25'
     created_by: owner
-    updated_at: '2026-08-04'
-    updated_by: owner
-  - id: PRQ-b7c301a6ca8a06de
-    identity_sha256: b7c301a6ca8a06de640007e584e8d0eee3623722345566f53c9bed694a38b238
-    revision: 1
-    wording_sha256: d791de578a5c0ef7620920f23dc11e514e64cfcca044dd691d2c9f69f18ad304
-    question: What concrete outcome proves the project worked?
-    state: to_answer
-    applicability: active
-    section_id: objective
-    gap_id: PGAP-d85a57d82fc1a42b
-    target:
-      kind: field
-      id: summary
-    priority: high
-    rationale: Required input for project definition section `objective`.
-    source:
-      kind: vertical_declared
-      question_id: objective_main
-      key: declared:objective_main
-      vertical_id: software_project
-      vertical_version: 2.0.0
-      lock_checksum: 15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13
-      fallback_policy_version: 1
-    answer_contract:
-      kind: field_value
-      required_fields:
-      - value
-      allowed_definition_operations:
-      - set_field
-    deferred_trigger: {}
-    revisions: []
-    answers: []
-    applications: []
-    transitions: []
-    superseded_by: ''
-    created_at: '2026-08-04'
-    created_by: owner
-    updated_at: '2026-08-04'
+    updated_at: '2026-08-25'
     updated_by: owner
   - id: PRQ-b7f7371421cfaafd
     identity_sha256: b7f7371421cfaafd2bb718cf4a345ef36579854d2660a6304b4048d420acdb3f
@@ -496,7 +458,7 @@ project_questions:
       key: fallback:single_missing_field
       vertical_id: software_project
       vertical_version: 2.0.0
-      lock_checksum: 15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13
+      lock_checksum: 2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d
       fallback_policy_version: 1
     answer_contract:
       kind: field_value
@@ -510,9 +472,9 @@ project_questions:
     applications: []
     transitions: []
     superseded_by: ''
-    created_at: '2026-08-04'
+    created_at: '2026-08-25'
     created_by: owner
-    updated_at: '2026-08-04'
+    updated_at: '2026-08-25'
     updated_by: owner
   - id: PRQ-c88b691b792be249
     identity_sha256: c88b691b792be249124f6dfc87df4b19f5234cee45ef9c8df8983668ad23c57e
@@ -534,7 +496,7 @@ project_questions:
       key: fallback:single_missing_field
       vertical_id: software_project
       vertical_version: 2.0.0
-      lock_checksum: 15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13
+      lock_checksum: 2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d
       fallback_policy_version: 1
     answer_contract:
       kind: field_value
@@ -548,9 +510,9 @@ project_questions:
     applications: []
     transitions: []
     superseded_by: ''
-    created_at: '2026-08-04'
+    created_at: '2026-08-25'
     created_by: owner
-    updated_at: '2026-08-04'
+    updated_at: '2026-08-25'
     updated_by: owner
   - id: PRQ-cd5392b17995e267
     identity_sha256: cd5392b17995e26773c15662bb470ce9634dd8d5aafc9725e7a4ec19cdb714db
@@ -572,7 +534,7 @@ project_questions:
       key: fallback:single_missing_field
       vertical_id: software_project
       vertical_version: 2.0.0
-      lock_checksum: 15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13
+      lock_checksum: 2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d
       fallback_policy_version: 1
     answer_contract:
       kind: field_value
@@ -586,9 +548,9 @@ project_questions:
     applications: []
     transitions: []
     superseded_by: ''
-    created_at: '2026-08-04'
+    created_at: '2026-08-25'
     created_by: owner
-    updated_at: '2026-08-04'
+    updated_at: '2026-08-25'
     updated_by: owner
   - id: PRQ-da381bbc7a076d61
     identity_sha256: da381bbc7a076d612fe650716a5a6c07668c2b4cfe05fb47471524165f23ecae
@@ -610,7 +572,7 @@ project_questions:
       key: fallback:single_missing_field
       vertical_id: software_project
       vertical_version: 2.0.0
-      lock_checksum: 15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13
+      lock_checksum: 2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d
       fallback_policy_version: 1
     answer_contract:
       kind: field_value
@@ -624,12 +586,50 @@ project_questions:
     applications: []
     transitions: []
     superseded_by: ''
-    created_at: '2026-08-04'
+    created_at: '2026-08-25'
     created_by: owner
-    updated_at: '2026-08-04'
+    updated_at: '2026-08-25'
+    updated_by: owner
+  - id: PRQ-f35f6bfe9c26792d
+    identity_sha256: f35f6bfe9c26792dd4cb0cc701dd0779e32dfd14c23c96556ad56a90660f1e67
+    revision: 1
+    wording_sha256: 77bd58d2558888f1e0d252bbf4667ba16eed3aae75e927ec43ba123d5cf0f28f
+    question: What value should `Expected Artifacts` have?
+    state: to_answer
+    applicability: active
+    section_id: artifacts
+    gap_id: PGAP-14f377dc6753b0ee
+    target:
+      kind: field
+      id: summary
+    priority: high
+    rationale: Required input for project definition section `artifacts`.
+    source:
+      kind: deterministic_fallback
+      question_id: ''
+      key: fallback:single_missing_field
+      vertical_id: software_project
+      vertical_version: 2.0.0
+      lock_checksum: 2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d
+      fallback_policy_version: 1
+    answer_contract:
+      kind: field_value
+      required_fields:
+      - value
+      allowed_definition_operations:
+      - set_field
+    deferred_trigger: {}
+    revisions: []
+    answers: []
+    applications: []
+    transitions: []
+    superseded_by: ''
+    created_at: '2026-08-25'
+    created_by: owner
+    updated_at: '2026-08-25'
     updated_by: owner
   audit:
-    created_at: '2026-08-04'
+    created_at: '2026-08-25'
     created_by: owner
-    updated_at: '2026-08-04'
+    updated_at: '2026-08-25'
     updated_by: owner

@@ -29,7 +29,7 @@ def _write_canonical_pack(root: Path, *, vertical_id: str = "custom_vertical", n
     (pack / "sections").mkdir(parents=True)
     pack.joinpath("manifest.yml").write_text(
         "manifest:\n"
-        "  schema_version: 2\n"
+        "  schema_version: 3\n"
         "  publisher: test\n"
         f"  id: {vertical_id}\n"
         f"  name: {name}\n"
@@ -44,7 +44,7 @@ def _write_canonical_pack(root: Path, *, vertical_id: str = "custom_vertical", n
     )
     pack.joinpath("vertical.yml").write_text(
         "vertical:\n"
-        "  schema_version: 2\n"
+        "  schema_version: 3\n"
         f"  id: {vertical_id}\n"
         f"  name: {name}\n"
         "  version: 1.0.0\n"
@@ -137,7 +137,7 @@ def _active_vertical_payload(vertical_id: str) -> str:
     )
 
 
-def test_project_verticals_list_internal_packs_and_fallback_base(tmp_path: Path) -> None:
+def test_project_verticals_list_internal_packs_and_selected_generic_base(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Vertical Demo")
 
@@ -146,33 +146,50 @@ def test_project_verticals_list_internal_packs_and_fallback_base(tmp_path: Path)
     ids = {vertical.vertical_id for vertical in verticals}
 
     assert active.vertical_id == "base_project"
-    assert active.fallback_used is True
-    assert {"base_project", "packaging_or_physical_product_design", "social_impact_program_design", "software_project"} <= ids
+    assert active.fallback_used is False
+    assert {
+        "base_project",
+        "board_game_design",
+        "grant_document_design",
+        "packaging_or_physical_product_design",
+        "social_impact_program_design",
+        "software_project",
+    } <= ids
 
 
-def test_bundled_vertical_seed_semantics_match_schema_v2_baseline(
+def test_bundled_vertical_seed_semantics_match_schema_v3_baseline(
     tmp_path: Path,
 ) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Bundled vertical baseline")
     expected = {
         "base_project": (
-            "d53a537905b980ec40ae3df3be1c6e7a79a7ff6d98a6f09e91d79b2a582b5c88",
+            "e6ceebecadd686110c1fe4c3c499adff751352e9891e18a2c14e8dfa29e7d02b",
             10,
             6,
         ),
+        "board_game_design": (
+            "fa0c3691153b8bf95425b0dcbac1fc9d3d5e5db655bf5dcf7f620d3fedd85e28",
+            4,
+            4,
+        ),
+        "grant_document_design": (
+            "e7b542329b6efd4cd3d8a6dc8697acc79a9a16e3d8c68a78ca3c20e4c6c64286",
+            4,
+            4,
+        ),
         "software_project": (
-            "15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13",
+            "2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d",
             19,
             15,
         ),
         "social_impact_program_design": (
-            "9552f2c980a62566800a2423d79027ed69f285b2d3063b9f3517f7c4132f7c7b",
+            "df81299aec445e14044d50a9ef2bf5c761d37f19eaca325ca0476f3b27b323e3",
             17,
             10,
         ),
         "packaging_or_physical_product_design": (
-            "088c4d9cedcce08a3c8855732a454cb71197e02e286a9a506bd93f66a0b92831",
+            "4dadb7df5003a95cd275b458b074c21fc1a25e94ce4671d588e178a368c66ca0",
             17,
             10,
         ),
@@ -190,17 +207,19 @@ def test_bundled_vertical_seeds_use_clean_canonical_layout(
 ) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Bundled canonical layout")
-    for vertical_id in (
-        "base_project",
-        "software_project",
-        "social_impact_program_design",
-        "packaging_or_physical_product_design",
+    for vertical_id, version in (
+        ("base_project", "2.0.0"),
+        ("board_game_design", "1.0.0"),
+        ("grant_document_design", "1.0.0"),
+        ("software_project", "2.0.0"),
+        ("social_impact_program_design", "2.0.0"),
+        ("packaging_or_physical_product_design", "2.0.0"),
     ):
         pack = workspace.show_project_vertical(vertical_id)
         validation = workspace.validate_project_vertical(vertical_id)
-        coordinate = f"binarya/{vertical_id}@2.0.0"
+        coordinate = f"binarya/{vertical_id}@{version}"
         assert pack.path is not None and pack.path.name == "manifest.yml"
-        assert pack.schema_version == 2
+        assert pack.schema_version == 3
         assert pack.coordinate == coordinate
         assert pack.manifest is not None
         assert pack.manifest.license_id == "Apache-2.0"
@@ -322,14 +341,14 @@ def test_empty_question_binding_metadata_does_not_change_legacy_pack_payload(
     assert enriched_questions[0]["target"] == {"kind": "field", "id": "summary"}
 
 
-def test_project_vertical_show_composes_base_project_sections(tmp_path: Path) -> None:
+def test_project_vertical_show_has_self_contained_specialized_sections(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Vertical Demo")
 
     pack = workspace.show_project_vertical("social_impact_program_design")
     section_ids = [section.section_id for section in pack.sections]
 
-    assert pack.extends == "binarya/base_project@2.0.0"
+    assert pack.extends is None
     assert "vision" in section_ids
     assert "theory_of_change" in section_ids
 
@@ -578,7 +597,7 @@ def test_project_vertical_cli_and_validation_flow(tmp_path: Path) -> None:
     listed = runner.invoke(app, ["project", "vertical", "list", "--root", str(tmp_path)])
     assert listed.exit_code == 0
     assert "Project verticals" in listed.output
-    assert "fallback_used: true" in listed.output
+    assert "fallback_used: false" in listed.output
 
     shown = runner.invoke(app, ["project", "vertical", "show", "base_project", "--root", str(tmp_path)])
     assert shown.exit_code == 0
@@ -599,7 +618,7 @@ def test_project_vertical_cli_and_validation_flow(tmp_path: Path) -> None:
     review = runner.invoke(app, ["project", "readiness", "review", "--root", str(tmp_path)])
     assert review.exit_code == 0
     assert "Project readiness review" in review.output
-    assert "fallback_used: true" in review.output
+    assert "fallback_used: false" in review.output
     assert "Generated questions:" in review.output
 
 
@@ -632,9 +651,15 @@ def test_project_vertical_resources_are_packaged() -> None:
     assert root.joinpath("social_impact_program_design", "vertical.yml").is_file()
 
 
-def test_project_vertical_read_only_commands_do_not_materialize_fallback_state(tmp_path: Path) -> None:
+def test_project_vertical_read_only_commands_do_not_change_materialized_state(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
-    workspace.init_project("Legacy Project")
+    workspace.init_project("Current Project")
+    project_dir = tmp_path / ".p2p" / "project"
+    before = {
+        path.relative_to(tmp_path).as_posix(): path.read_bytes()
+        for path in project_dir.rglob("*")
+        if path.is_file()
+    }
 
     workspace.project_verticals()
     workspace.show_project_vertical("base_project")
@@ -643,15 +668,17 @@ def test_project_vertical_read_only_commands_do_not_materialize_fallback_state(t
     workspace.project_vertical_context()
     workspace.export_visible_project_definition()
 
-    project_dir = tmp_path / ".p2p" / "project"
-    assert not (project_dir / "vertical.yml").exists()
-    assert not (project_dir / "vertical.lock.yml").exists()
-    assert not (project_dir / "definition.yml").exists()
+    after = {
+        path.relative_to(tmp_path).as_posix(): path.read_bytes()
+        for path in project_dir.rglob("*")
+        if path.is_file()
+    }
+    assert after == before
 
 
 def test_project_vertical_multifile_pack_normalizes_and_can_be_selected(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
-    workspace.init_project("Canonical Demo")
+    workspace.init_project("Canonical Demo", starter_id="empty")
     pack = _write_canonical_pack(tmp_path / "packs", vertical_id="canonical_demo", name="Canonical Demo")
 
     validation = workspace.validate_project_vertical(str(pack))
@@ -769,7 +796,7 @@ def test_project_vertical_resolver_rejects_semantic_conflicts_without_precedence
 
 def test_project_vertical_lock_repair_and_checksum_mismatch_fail_closed(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
-    workspace.init_project("Lock Demo")
+    workspace.init_project("Lock Demo", starter_id="empty")
     project_dir = tmp_path / ".p2p" / "project"
     (project_dir / "vertical.yml").write_text(_active_vertical_payload("social_impact_program_design"), encoding="utf-8")
 
@@ -972,7 +999,18 @@ def test_definition_preview_apply_rejects_stale_source_and_non_owner(tmp_path: P
 
 
 def test_project_vertical_cli_json_lock_context_sections_and_definition(tmp_path: Path) -> None:
-    runner.invoke(app, ["init", "CLI JSON Demo", "--vertical", "base_project", "--root", str(tmp_path)])
+    initialized = runner.invoke(
+        app,
+        [
+            "init",
+            "CLI JSON Demo",
+            "--vertical",
+            "binarya/base_project@2.0.0",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert initialized.exit_code == 0, initialized.output
 
     listed = runner.invoke(app, ["project", "vertical", "list", "--format", "json", "--root", str(tmp_path)])
     context = runner.invoke(app, ["project", "context", "--format", "json", "--root", str(tmp_path)])

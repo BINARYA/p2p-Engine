@@ -135,8 +135,9 @@ what not to read.
 
 ## Rubrics And Maturity
 
-Rubrics describe what a complete enough project definition should cover for a
-domain, such as software, grant documents, or board games.
+Rubrics describe what a complete enough project definition should cover for the
+current project structure. A domain classifies the subject but does not inject
+rubrics or sections.
 
 Maturity assessment checks definition coverage against those rubrics. It is not
 implementation completeness.
@@ -147,7 +148,7 @@ by `.p2p/project/vertical.lock.yml`; after a lock exists, commands must fail
 closed on missing sources or checksum mismatch rather than silently falling back
 to `base_project`.
 
-Portable schema-version-2 verticals use exact
+Portable schema-version-3 verticals use exact
 `publisher/vertical-id@semantic-version` coordinates and immutable local
 artifacts. P2P Engine validates, installs and adopts those artifacts offline;
 catalog discovery, user policy, moderation, download and popularity counters

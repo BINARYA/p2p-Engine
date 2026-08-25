@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Mapping
 
+from p2p_engine.core.project_domain import ProjectDomainRef
 from p2p_engine.core.project_readiness import ProjectReadinessDiagnostic, ProjectReadinessGap
 
 
@@ -74,13 +75,15 @@ class VerticalManifest:
     vertical_id: str
     name: str
     version: str
-    schema_version: int = 2
+    schema_version: int = 3
     publisher: str = ""
     source: str = ""
     compatibility: dict[str, object] = field(default_factory=dict)
     license_id: str = ""
     lineage: dict[str, str] = field(default_factory=dict)
     dependencies: list["VerticalDependency"] = field(default_factory=list)
+    primary_domain: ProjectDomainRef | None = None
+    domain_tags: tuple[str, ...] = ()
 
     @property
     def coordinate(self) -> str:
@@ -127,7 +130,7 @@ class VerticalPack:
     profiles: list[str] = field(default_factory=list)
     modules: list[str] = field(default_factory=list)
     examples: list[str] = field(default_factory=list)
-    schema_version: int = 2
+    schema_version: int = 3
     manifest: VerticalManifest | None = None
     profile_specs: list[VerticalProfile] = field(default_factory=list)
     module_specs: list[VerticalModule] = field(default_factory=list)

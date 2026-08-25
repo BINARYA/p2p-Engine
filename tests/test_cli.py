@@ -741,39 +741,62 @@ def test_cli_validate_reports_invalid_permissions_policy(tmp_path: Path) -> None
     assert "P2P213_INVALID_PERMISSION_ROLE" in result.output
 
 
-def test_cli_init_default_domain_and_rubric_are_unresolved(tmp_path: Path) -> None:
+def test_cli_init_default_domain_is_empty_and_generic_structure_is_explicit(tmp_path: Path) -> None:
     result = runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
 
     assert result.exit_code == 0
     domain = yaml.safe_load((tmp_path / ".p2p" / "project" / "domain.yml").read_text(encoding="utf-8"))
     rubrics = yaml.safe_load((tmp_path / ".p2p" / "project" / "rubrics.yml").read_text(encoding="utf-8"))
-    next_actions = yaml.safe_load((tmp_path / ".p2p" / "project" / "next-actions.yml").read_text(encoding="utf-8"))
+    source = yaml.safe_load(
+        (tmp_path / ".p2p" / "project" / "structure-source.yml").read_text(
+            encoding="utf-8"
+        )
+    )
 
-    assert domain["status"] == "unresolved"
-    assert domain["type"] == "none"
-    assert rubrics["status"] == "unresolved"
-    assert rubrics["criteria"] == []
-    assert next_actions["next_actions"][0]["kind"] == "define_domain"
+    assert domain["project_domain"]["descriptor"] is None
+    assert source["structure_source"]["source"] == {
+        "kind": "starter",
+        "starter_id": "generic",
+    }
+    assert rubrics["status"] == "vertical_selected"
+    assert rubrics["criteria"]
+    assert not (tmp_path / ".p2p" / "project" / "next-actions.yml").exists()
 
     result = runner.invoke(app, ["assess", "maturity", "refresh", "--root", str(tmp_path)])
 
     assert result.exit_code == 0
-    assert "status: rubric_missing" in result.output
-    assert "Define the project domain" in result.output
+    assert "status: not_defined" in result.output
 
 
-def test_cli_init_domain_template_populates_rubric(tmp_path: Path) -> None:
-    result = runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
+def test_cli_init_domain_and_vertical_are_independent(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "init",
+            "Demo Project",
+            "--domain",
+            "gardening",
+            "--vertical",
+            "binarya/software_project@2.0.0",
+            "--root",
+            str(tmp_path),
+        ],
+    )
 
     assert result.exit_code == 0
     domain = yaml.safe_load((tmp_path / ".p2p" / "project" / "domain.yml").read_text(encoding="utf-8"))
     rubrics = yaml.safe_load((tmp_path / ".p2p" / "project" / "rubrics.yml").read_text(encoding="utf-8"))
 
-    assert domain["status"] == "template_selected"
-    assert domain["template"] == "software"
-    assert rubrics["status"] == "template_selected"
-    assert rubrics["template"] == "software"
-    assert any(criterion["id"] == "security_privacy" for criterion in rubrics["criteria"])
+    assert domain["project_domain"]["descriptor"]["key"] == "gardening"
+    assert rubrics["status"] == "vertical_selected"
+    assert rubrics["structure_source"] == {
+        "kind": "vertical_release",
+        "coordinate": "binarya/software_project@2.0.0",
+    }
+    assert any(
+        criterion["id"] == "software_constraints_nfr_coverage"
+        for criterion in rubrics["criteria"]
+    )
     assert not (tmp_path / ".p2p" / "project" / "next-actions.yml").exists()
 
 
@@ -1442,7 +1465,19 @@ def test_cli_assess_show_requires_refresh(tmp_path: Path) -> None:
 
 
 def test_cli_project_rubrics_and_definition_maturity(tmp_path: Path) -> None:
-    runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "init",
+            "Demo Project",
+            "--domain",
+            "software",
+            "--vertical",
+            "binarya/software_project@2.0.0",
+            "--root",
+            str(tmp_path),
+        ],
+    )
     runner.invoke(
         app,
         [
@@ -1450,7 +1485,7 @@ def test_cli_project_rubrics_and_definition_maturity(tmp_path: Path) -> None:
             "create",
             "Security Model",
             "--problem",
-            "Security and privacy need explicit permission boundaries.",
+            "Security and privacy risks need explicit permission boundaries.",
             "--proposal",
             "Define auth, sandbox permissions, and privacy expectations.",
             "--root",
@@ -1462,14 +1497,14 @@ def test_cli_project_rubrics_and_definition_maturity(tmp_path: Path) -> None:
     result = runner.invoke(app, ["project", "rubrics", "show", "--root", str(tmp_path)])
 
     assert result.exit_code == 0
-    assert "domain: software" in result.output
-    assert "security_privacy" in result.output
+    assert "structure source: binarya/software_project@2.0.0" in result.output
+    assert "software_constraints_nfr_coverage" in result.output
 
     result = runner.invoke(app, ["assess", "maturity", "refresh", "--root", str(tmp_path)])
 
     assert result.exit_code == 0
     assert "Project definition maturity refreshed" in result.output
-    assert "security_privacy  covered  100/100" in result.output
+    assert "software_constraints_nfr_coverage  covered  100/100" in result.output
     assert "implementation completeness" not in result.output
     assert (tmp_path / ".p2p" / "project" / "maturity-assessment.yml").exists()
 
@@ -1570,7 +1605,7 @@ def test_cli_init_without_name_runs_guided_wizard(tmp_path: Path) -> None:
     result = runner.invoke(
         app,
         ["init", "--root", str(tmp_path)],
-        input="Wizard Project\ncodex\ncloud\nsoftware\nn\ny\n",
+        input="Wizard Project\ncodex\ncloud\nsoftware\ngeneric\nn\ny\n",
     )
 
     assert result.exit_code == 0
@@ -1578,7 +1613,8 @@ def test_cli_init_without_name_runs_guided_wizard(tmp_path: Path) -> None:
     assert "P2P workspace initialized" in result.output
     assert "MCP setup hint" in result.output
     assert "codex mcp add" in result.output
-    assert "Domain template" in result.output
+    assert "Domain key (optional)" in result.output
+    assert "Structure starter" in result.output
     assert "Customize rubric criteria" in result.output
     assert (tmp_path / "AGENTS.md").exists()
     assert (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").exists()
@@ -1591,7 +1627,7 @@ def test_cli_init_guided_wizard_uses_detected_agent_as_default(
     result = runner.invoke(
         app,
         ["init", "--root", str(tmp_path)],
-        input="Wizard Project\n\nlocal\nnone\nn\n",
+        input="Wizard Project\n\nlocal\n\nempty\nn\n",
         env={"P2P_CURRENT_AGENT": "codex"},
     )
 
@@ -1609,7 +1645,7 @@ def test_cli_init_guided_wizard_keeps_all_available_with_footprint_warning(
     result = runner.invoke(
         app,
         ["init", "--root", str(tmp_path)],
-        input="Wizard Project\nall\nlocal\nnone\nn\n",
+        input="Wizard Project\nall\nlocal\n\nempty\nn\n",
         env={"P2P_CURRENT_AGENT": "codex"},
     )
 
@@ -1654,6 +1690,7 @@ def test_cli_init_guided_wizard_can_disable_rubric_criteria(tmp_path: Path) -> N
             "Wizard Project\n"
             "generic\n"
             "local\n"
+            "\n"
             "generic\n"
             "y\n"
             "y\n"
@@ -1661,6 +1698,7 @@ def test_cli_init_guided_wizard_can_disable_rubric_criteria(tmp_path: Path) -> N
             "y\n"
             "y\n"
             "y\n"
+            "n\n"
             "n\n"
         ),
     )
@@ -1670,9 +1708,9 @@ def test_cli_init_guided_wizard_can_disable_rubric_criteria(tmp_path: Path) -> N
         (tmp_path / ".p2p" / "project" / "rubrics.yml").read_text(encoding="utf-8")
     )
     criteria = {item["id"]: item["enabled"] for item in rubrics["criteria"]}
-    assert criteria["problem_definition"] is True
-    assert criteria["scope_boundaries"] is False
-    assert criteria["requirements"] is True
+    assert criteria["vision_clarity"] is True
+    assert criteria["objective_clarity"] is False
+    assert criteria["stakeholder_alignment"] is True
     project = (tmp_path / ".p2p" / "project.yml").read_text(encoding="utf-8")
     assert "name: Wizard Project" in project
     assert "mode: local" in project
@@ -4628,7 +4666,7 @@ def test_cli_choice_discovery_blocking_and_next_integration(tmp_path: Path) -> N
     assert "Choice blocker cleared" in result.output
 
     runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
-    result = runner.invoke(app, ["next", "--top", "10", "--root", str(tmp_path)])
+    result = runner.invoke(app, ["next", "--top", "100", "--root", str(tmp_path)])
     assert result.exit_code == 0
     assert "continue_change" in result.output
     assert "target: CHANGE-001" in result.output
@@ -4870,7 +4908,7 @@ def test_cli_project_brief_prompt_import_and_show(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "operational:" in result.output
     assert "brief: available" in result.output
-    assert "next actions: 3" in result.output
+    assert "next actions: 13" in result.output
     assert "first next: NEXT-DERIVED-FRESHNESS high refresh_derived_state assessment" in result.output
     assert "command: p2p assess refresh" in result.output
 
@@ -4889,13 +4927,12 @@ def test_cli_next_falls_back_without_imported_next_actions(tmp_path: Path) -> No
     )
     runner.invoke(app, ["change", "set-status", "CHANGE-001", "planned", "--root", str(tmp_path)])
 
-    result = runner.invoke(app, ["next", "--top", "1", "--root", str(tmp_path)])
+    result = runner.invoke(app, ["next", "--top", "100", "--root", str(tmp_path)])
     assert result.exit_code == 0
-    assert "NEXT-FALLBACK-001  high  refresh_registry" in result.output
-    assert "p2p registry refresh" in result.output
+    assert "project_question_answer" in result.output
 
     runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
-    result = runner.invoke(app, ["next", "--top", "10", "--root", str(tmp_path)])
+    result = runner.invoke(app, ["next", "--top", "100", "--root", str(tmp_path)])
     assert result.exit_code == 0
     assert "NEXT-CHANGE-CHANGE-001  high  continue_change" in result.output
     assert "target: CHANGE-001" in result.output
@@ -4908,7 +4945,7 @@ def test_cli_next_falls_back_to_draft_proposal_review(tmp_path: Path) -> None:
     runner.invoke(app, ["proposal", "create", "Draft Work", "--root", str(tmp_path)])
     runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
 
-    result = runner.invoke(app, ["next", "--top", "10", "--root", str(tmp_path)])
+    result = runner.invoke(app, ["next", "--top", "100", "--root", str(tmp_path)])
 
     assert result.exit_code == 0
     assert "assess_proposal_readiness" in result.output
@@ -4932,7 +4969,7 @@ def test_cli_next_falls_back_to_improve_low_readiness_draft(tmp_path: Path) -> N
     )
     runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
 
-    result = runner.invoke(app, ["next", "--top", "10", "--root", str(tmp_path)])
+    result = runner.invoke(app, ["next", "--top", "100", "--root", str(tmp_path)])
 
     assert result.exit_code == 0
     assert "improve_proposal_readiness" in result.output

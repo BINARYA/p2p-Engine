@@ -13,10 +13,13 @@ p2p workspace schema status --format json
 The status is writable only when `layout_status` is `current` and
 `current_version` is `4`. A missing declaration, schema 1, 2 or 3, an unknown
 contract, or a future schema returns `P2P_WORKSPACE_UNSUPPORTED_SCHEMA`.
-P2P Engine 0.4.11 does not plan or apply workspace conversions.
+The runtime does not plan or apply workspace conversions.
 
-Schema 4 adds one required `.p2p/project/authority.yml` descriptor and typed
-authority evidence for integrated governed mutations. See
+Schema 4 requires `.p2p/project/authority.yml`, the portable classification in
+`.p2p/project/domain.yml`, and independent initialization provenance in
+`.p2p/project/structure-source.yml`. A structural domain template is not a
+valid schema-4 domain descriptor. Vertical locks reference pack schema 3 only.
+Typed authority evidence is required for integrated governed mutations. See
 [`AUTHORITY-CONTEXT.md`](AUTHORITY-CONTEXT.md). The current workspace declaration contains only the current contract,
 initialization baseline, date and actor. Obsolete migration-history fields are
 invalid and are never interpreted by the runtime.

@@ -444,7 +444,8 @@ def test_historical_conflicts_and_legacy_projection_do_not_create_choice_actions
 def test_next_actions_fall_back_to_project_review_when_no_semantic_work_exists(
     tmp_path: Path,
 ) -> None:
-    workspace = _workspace(tmp_path)
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Demo Project", starter_id="empty")
     workspace.refresh_registries()
 
     actions = workspace._next_action_service().list()

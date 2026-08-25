@@ -141,7 +141,10 @@ p2p proposal contribution list PROP-001 --type suggestion --format json
 WaveKit-facing writes use its persisted operation identity:
 
 ```bash
-p2p init "Project name" --format json --operation-key wavekit:<uuid>
+p2p init "Project name" --starter generic --format json --operation-key wavekit:<uuid>
+p2p init "Software" --domain software --vertical binarya/software_project@2.0.0 --format json --operation-key wavekit:<uuid>
+p2p project domain set gardening --name "Gardening" --actor ACTOR --format json --operation-key wavekit:<uuid>
+p2p project domain clear --actor ACTOR --format json --operation-key wavekit:<uuid>
 p2p proposal create "Title" --proposal "..." --format json --operation-key wavekit:<uuid>
 p2p proposal update PROP-001 --proposal "..." --format json --operation-key wavekit:<uuid>
 p2p proposal contribution add PROP-001 "Text" --type finding --format json --operation-key wavekit:<uuid>

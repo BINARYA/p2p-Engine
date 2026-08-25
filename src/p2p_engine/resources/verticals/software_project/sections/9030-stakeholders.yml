@@ -1,0 +1,6 @@
+section:
+  id: stakeholders
+  title: Owner And Stakeholders
+  purpose: Decision maker, contributors, affected parties, and beneficiaries.
+  required: true
+  priority: 30

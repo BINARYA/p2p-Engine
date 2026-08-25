@@ -3,7 +3,6 @@ project:
   name: Cooperative Shrine Game
   version: 0.1.0
   status: active
-  domain: board_game
 runtime_contract:
   required: true
 storage:

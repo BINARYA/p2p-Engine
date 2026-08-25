@@ -59,8 +59,8 @@ def test_lifecycle_preflight_accepts_governed_source_with_advisories(tmp_path: P
     assert view.blockers == []
     assert {item.code for item in view.advisories} >= {
         "software_vertical_not_active",
-        "project_definition_missing",
     }
+    assert "project_definition_missing" not in {item.code for item in view.advisories}
     assert f"p2p spec refresh --change {view.change_id}" in view.suggested_commands
 
 

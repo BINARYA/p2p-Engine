@@ -1,0 +1,21 @@
+vertical:
+  schema_version: 3
+  id: board_game_design
+  name: Board Game Design
+  version: 1.0.0
+  description: Define a board game through its loop, components, rules, and validation.
+  extends: null
+  questions:
+  - id: core_loop_main
+    section_id: core_loop
+    priority: high
+    question: What repeated sequence of choices defines one turn and one round?
+    rationale: The game needs a coherent core loop before rules can be completed.
+  artifacts:
+  - id: playable_ruleset
+    title: Playable Ruleset
+    section_ids: [core_loop, components, rules, playtesting]
+    required: true
+  profiles: []
+  modules: []
+  examples: []

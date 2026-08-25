@@ -124,7 +124,7 @@ def register_vertical_commands(vertical_app: typer.Typer) -> None:
         root: Path = typer.Option(Path.cwd(), "--root"),
         output_format: str = typer.Option("json", "--format", help="Output format: text or json"),
     ) -> None:
-        """Compile the normalized document into a canonical schema-2 pack."""
+        """Compile the normalized document into a canonical schema-3 pack."""
         try:
             result = VerticalDraftLifecycleService(root).materialize(draft_id, target)
         except ValueError as exc:

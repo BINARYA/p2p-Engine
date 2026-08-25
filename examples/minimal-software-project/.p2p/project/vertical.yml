@@ -3,6 +3,6 @@ project_vertical:
   active_vertical_id: software_project
   active_vertical_coordinate: binarya/software_project@2.0.0
   active_source: internal
-  selected_at: '2026-08-04'
+  selected_at: '2026-08-25'
   selected_by: owner
   fallback_used: false

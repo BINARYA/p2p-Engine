@@ -1,5 +1,5 @@
 manifest:
-  schema_version: 2
+  schema_version: 3
   publisher: binarya
   id: base_project
   name: Base Project
@@ -10,3 +10,5 @@ manifest:
   lineage: {}
   dependencies: []
   compatibility: {}
+  primary_domain: null
+  domain_tags: []

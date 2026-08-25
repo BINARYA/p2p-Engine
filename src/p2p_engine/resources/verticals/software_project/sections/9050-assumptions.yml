@@ -1,0 +1,6 @@
+section:
+  id: assumptions
+  title: Assumptions
+  purpose: Beliefs that must hold for the project to work.
+  required: true
+  priority: 50

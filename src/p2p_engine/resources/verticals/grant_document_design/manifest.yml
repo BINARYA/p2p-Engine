@@ -1,0 +1,20 @@
+manifest:
+  schema_version: 3
+  publisher: binarya
+  id: grant_document_design
+  name: Grant Document Design
+  version: 1.0.0
+  license: Apache-2.0
+  source: packaged
+  extends: null
+  lineage: {}
+  dependencies: []
+  compatibility: {}
+  primary_domain:
+    key: grant-document
+    name: Grant Document
+    source: system
+    external_ref: null
+  domain_tags:
+  - funding
+  - grant

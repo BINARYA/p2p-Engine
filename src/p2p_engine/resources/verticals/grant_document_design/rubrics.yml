@@ -1,0 +1,21 @@
+rubrics:
+- id: call_requirements_coverage
+  title: Call Requirements
+  section_id: call_requirements
+  required: true
+  keywords: [call, requirement, eligibility, deadline]
+- id: objectives_clarity
+  title: Objectives
+  section_id: objectives
+  required: true
+  keywords: [objective, impact, beneficiary, goal]
+- id: budget_quality
+  title: Budget
+  section_id: budget
+  required: true
+  keywords: [budget, cost, funding, expense]
+- id: evaluation_alignment
+  title: Evaluation Criteria
+  section_id: evaluation_criteria
+  required: true
+  keywords: [evaluation, score, criteria, award]

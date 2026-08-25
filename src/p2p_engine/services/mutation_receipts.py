@@ -299,6 +299,7 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "proposal_update",
         "proposal_decision_apply",
         "project_authority_rotate",
+        "project_domain_change",
     }:
         raise ValueError(f"unsupported receipt operation: {operation}")
     actor = _required_text(data, "actor")
@@ -321,6 +322,7 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
     if operation in {
         "init",
         "project_authority_rotate",
+        "project_domain_change",
         "proposal_decision_apply",
     } and authority is None:
         raise ValueError(f"receipt operation {operation} requires authority evidence")
@@ -373,6 +375,9 @@ def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
         return
     if operation == "project_authority_rotate":
         _validate_authority_rotation_result(result)
+        return
+    if operation == "project_domain_change":
+        _validate_project_domain_result(result)
         return
     if operation == "proposal_decision_apply":
         _validate_proposal_decision_result(result)
@@ -474,6 +479,10 @@ def _validate_init_result(result: Mapping[str, object]) -> None:
         "operation",
         "operation_id",
         "project",
+        "domain",
+        "structure_source",
+        "structure_origin",
+        "structure_revision",
         "authority",
         "created_paths",
         "created_file_paths",
@@ -503,9 +512,21 @@ def _validate_init_result(result: Mapping[str, object]) -> None:
         "remote",
         "vertical",
         "mcp_hint",
+        "structure_source",
+        "structure_origin",
     ):
         if not isinstance(result.get(field), Mapping):
             raise ValueError(f"receipt result {field} must be a mapping")
+    domain = result.get("domain")
+    if domain is not None and not isinstance(domain, Mapping):
+        raise ValueError("receipt result domain must be a mapping or null")
+    structure_revision = result.get("structure_revision")
+    if (
+        isinstance(structure_revision, bool)
+        or not isinstance(structure_revision, int)
+        or structure_revision < 1
+    ):
+        raise ValueError("receipt result structure_revision must be positive")
     for field in (
         "created_paths",
         "created_file_paths",
@@ -781,6 +802,50 @@ def _validate_authority_rotation_result(result: Mapping[str, object]) -> None:
         raise ValueError("receipt authority rotation changed paths are invalid")
 
 
+def _validate_project_domain_result(result: Mapping[str, object]) -> None:
+    allowed = {
+        "contract",
+        "operation",
+        "operation_id",
+        "requested_operation",
+        "previous",
+        "current",
+        "project_memory_revision",
+        "changed_paths",
+    }
+    unknown = sorted(str(key) for key in result if key not in allowed)
+    if unknown:
+        raise ValueError(
+            "receipt project-domain result contains unsupported fields: "
+            + ", ".join(unknown)
+        )
+    if result.get("operation") != "project_domain_change":
+        raise ValueError("receipt project-domain operation is unsupported")
+    requested = result.get("requested_operation")
+    if requested not in {"set", "clear"}:
+        raise ValueError("receipt project-domain requested operation is invalid")
+    if result.get("operation_id") != f"project.domain.{requested}":
+        raise ValueError("receipt project-domain operation_id is invalid")
+    from p2p_engine.core.project_domain import PROJECT_DOMAIN_CONTRACT
+    from p2p_engine.services.project_domain import project_domain_state_from_mapping
+
+    if result.get("contract") != PROJECT_DOMAIN_CONTRACT:
+        raise ValueError("receipt project-domain contract is unsupported")
+    previous = project_domain_state_from_mapping(result.get("previous"))
+    current = project_domain_state_from_mapping(result.get("current"))
+    if current.revision != previous.revision + 1:
+        raise ValueError("receipt project-domain revision must advance exactly once")
+    if requested == "set" and current.descriptor is None:
+        raise ValueError("receipt project-domain set requires a descriptor")
+    if requested == "clear" and current.descriptor is not None:
+        raise ValueError("receipt project-domain clear requires a null descriptor")
+    memory_revision = _required_sha256(result, "project_memory_revision")
+    if memory_revision != current.project_memory_revision:
+        raise ValueError("receipt project-domain memory revision is inconsistent")
+    if result.get("changed_paths") != [".p2p/project/domain.yml"]:
+        raise ValueError("receipt project-domain path is invalid")
+
+
 def _validate_proposal_decision_result(result: Mapping[str, object]) -> None:
     allowed = {
         "operation",
@@ -980,6 +1045,20 @@ def _public_result(result: Mapping[str, object]) -> dict[str, object]:
             else {},
             "event_id": result.get("event_id"),
             "event_path": result.get("event_path"),
+        }
+    if result.get("operation") == "project_domain_change":
+        return {
+            "contract": result.get("contract"),
+            "operation": result.get("operation"),
+            "operation_id": result.get("operation_id"),
+            "requested_operation": result.get("requested_operation"),
+            "previous": dict(result.get("previous", {}))
+            if isinstance(result.get("previous"), Mapping)
+            else {},
+            "current": dict(result.get("current", {}))
+            if isinstance(result.get("current"), Mapping)
+            else {},
+            "project_memory_revision": result.get("project_memory_revision"),
         }
     if result.get("operation") == "proposal_decision_apply":
         return {

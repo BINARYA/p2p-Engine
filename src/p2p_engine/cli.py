@@ -19,6 +19,7 @@ from p2p_engine.cli_commands.mutations import register_mutation_commands
 from p2p_engine.cli_commands.next_actions import register_next_commands
 from p2p_engine.cli_commands.project_ops import register_project_ops_commands
 from p2p_engine.cli_commands.project_authority import register_project_authority_commands
+from p2p_engine.cli_commands.project_domain import register_project_domain_commands
 from p2p_engine.cli_commands.project_readiness import register_project_readiness_commands
 from p2p_engine.cli_commands.project_status import register_project_status_commands
 from p2p_engine.cli_commands.prompts import register_prompt_commands
@@ -42,6 +43,10 @@ from p2p_engine.core.portable_verticals import (
     VerticalCoordinate,
 )
 from p2p_engine.core.workspace_schema import CURRENT_WORKSPACE_SCHEMA_VERSION
+from p2p_engine.core.project_domain import (
+    PROJECT_DOMAIN_CONTRACT,
+    STRUCTURE_SOURCE_CONTRACT,
+)
 
 app = typer.Typer(help="P2P Engine CLI", cls=VersionedJSONTyperGroup)
 proposal_app = typer.Typer(help="Manage proposals")
@@ -63,6 +68,7 @@ vote_app = typer.Typer(help="Record and inspect governance votes")
 precedent_app = typer.Typer(help="Record governance decision precedents")
 project_app = typer.Typer(help="Manage rationalized project state")
 project_authority_app = typer.Typer(help="Inspect and rotate project authority")
+project_domain_app = typer.Typer(help="Inspect and change project subject classification")
 project_authority_rotate_app = typer.Typer(help="Preview, apply, and inspect authority rotation")
 project_brief_app = typer.Typer(help="Generate and import operational project briefs")
 project_remote_app = typer.Typer(help="Manage project remote profile")
@@ -143,6 +149,7 @@ project_app.add_typer(project_interaction_style_app, name="interaction-style")
 project_app.add_typer(project_vertical_app, name="vertical")
 project_app.add_typer(project_readiness_app, name="readiness")
 project_app.add_typer(project_authority_app, name="authority")
+project_app.add_typer(project_domain_app, name="domain")
 project_readiness_app.add_typer(project_readiness_questions_app, name="questions")
 assess_app.add_typer(assess_maturity_app, name="maturity")
 intake_app.add_typer(intake_apply_app, name="apply")
@@ -198,6 +205,7 @@ register_project_authority_commands(
     project_authority_app,
     project_authority_rotate_app,
 )
+register_project_domain_commands(project_domain_app)
 register_work_spec_commands(change_app, spec_app, work_app)
 register_collaboration_commands(
     governance_app,
@@ -226,6 +234,8 @@ def version(
         "workspace_schema_version": CURRENT_WORKSPACE_SCHEMA_VERSION,
         "vertical_pack_schema_version": PORTABLE_VERTICAL_SCHEMA_VERSION,
         "portable_package_format_version": PORTABLE_VERTICAL_PACKAGE_VERSION,
+        "project_domain_contract": PROJECT_DOMAIN_CONTRACT,
+        "structure_source_contract": STRUCTURE_SOURCE_CONTRACT,
     }
     if normalized == "json":
         print_json(success_envelope("version", data))
@@ -235,6 +245,8 @@ def version(
     console.print(f"  workspace schema: {CURRENT_WORKSPACE_SCHEMA_VERSION}")
     console.print(f"  vertical pack schema: {PORTABLE_VERTICAL_SCHEMA_VERSION}")
     console.print(f"  portable package format: {PORTABLE_VERTICAL_PACKAGE_VERSION}")
+    console.print(f"  project domain contract: {PROJECT_DOMAIN_CONTRACT}")
+    console.print(f"  structure source contract: {STRUCTURE_SOURCE_CONTRACT}")
 
 
 @app.command()
@@ -265,10 +277,30 @@ def init(
         "--remote-url",
         help="Remote repository URL for cloud-backed projects",
     ),
-    domain: str = typer.Option(
-        "none",
+    domain: str | None = typer.Option(
+        None,
         "--domain",
-        help="Domain template: none, custom, generic, software, grant_document, or board_game",
+        help="Optional free project subject classification key; never selects structure",
+    ),
+    domain_name: str = typer.Option(
+        "",
+        "--domain-name",
+        help="Display name for --domain; defaults to a title derived from its key",
+    ),
+    domain_source: str = typer.Option(
+        "local",
+        "--domain-source",
+        help="Domain source classification: local, external, imported, or system",
+    ),
+    domain_external_ref: str | None = typer.Option(
+        None,
+        "--domain-external-ref",
+        help="Optional opaque provider reference; required for external domain source",
+    ),
+    starter: str | None = typer.Option(
+        None,
+        "--starter",
+        help="Built-in structure starter: generic or empty",
     ),
     owner: str | None = typer.Option(
         None,
@@ -278,7 +310,7 @@ def init(
     vertical: str | None = typer.Option(
         None,
         "--vertical",
-        help="Optional project vertical ID to select during initialization",
+        help="Exact publisher/id@version vertical release used as the structure source",
     ),
     vertical_pack: Path | None = typer.Option(
         None,
@@ -358,6 +390,14 @@ def init(
             )
         except ValueError as exc:
             _fail(str(exc))
+    if json_output and not (starter or vertical or vertical_pack is not None):
+        _fail(
+            "P2P_STRUCTURE_SOURCE_REQUIRED: JSON init requires --starter, --vertical, or --vertical-pack"
+        )
+    if starter and (vertical or vertical_pack is not None):
+        _fail(
+            "P2P_STRUCTURE_SOURCE_CONFLICT: --starter is mutually exclusive with --vertical and --vertical-pack"
+        )
     rubric_enabled: dict[str, bool] | None = None
     if name is None:
         console.print("[bold]P2P project initialization[/bold]")
@@ -375,17 +415,22 @@ def init(
             choices=("local", "cloud"),
             default=repository,
         )
-        domain = _prompt_choice(
-            "Domain template",
-            choices=("none", "custom", "generic", "software", "grant_document", "board_game"),
-            default=domain,
+        domain = typer.prompt("Domain key (optional)", default=domain or "").strip() or None
+        starter = _prompt_choice(
+            "Structure starter",
+            choices=("generic", "empty"),
+            default=starter or "generic",
         )
-        rubric_enabled = _prompt_rubric_selection(domain)
+        rubric_enabled = _prompt_rubric_selection("generic") if starter == "generic" else None
         if mcp_hint is None:
             mcp_hint = typer.confirm("Show MCP setup hint?", default=True)
     else:
         mcp_hint = bool(mcp_hint)
 
+    if starter and (vertical or vertical_pack is not None):
+        _fail(
+            "P2P_STRUCTURE_SOURCE_CONFLICT: --starter is mutually exclusive with --vertical and --vertical-pack"
+        )
     if vertical_pack is not None and (pull or vertical_registry):
         _fail(
             "P2P_VERTICAL_INIT_CONFLICT: --vertical-pack is mutually exclusive with --pull and --registry"
@@ -402,8 +447,7 @@ def init(
         try:
             exact_coordinate = str(VerticalCoordinate.parse(vertical))
         except ValueError as exc:
-            if pull:
-                _fail(str(exc))
+            _fail(str(exc))
         else:
             from p2p_engine.services.vertical_catalog import (
                 VerticalCatalogService,
@@ -411,29 +455,38 @@ def init(
             )
 
             try:
-                catalog = VerticalCatalogService(root)
                 try:
-                    selected = catalog.resolve(exact_coordinate)
+                    _workspace(root)._project_vertical_service().resolve_pack(
+                        exact_coordinate
+                    )
                 except ValueError as exc:
-                    if not str(exc).startswith("P2P_VERTICAL_NOT_FOUND:") or not pull:
+                    if not str(exc).startswith("P2P_VERTICAL_NOT_FOUND:"):
                         raise
-                    pulled = VerticalPullService().pull(
-                        exact_coordinate,
-                        registry=vertical_registry,
-                    )
-                    selected_release = next(
-                        item
-                        for item in pulled.releases
-                        if item.release.coordinate == exact_coordinate
-                    )
-                    selected = catalog.resolve(selected_release.release.coordinate)
-                if selected.artifact_path is not None:
-                    closure = catalog.installation_closure(selected)
-                    vertical_pack_closure = [
-                        (item.artifact_path, item.release.artifact.sha256)
-                        for item in closure
-                    ]
-                    vertical = None
+                    catalog = VerticalCatalogService(root)
+                    try:
+                        selected = catalog.resolve(exact_coordinate)
+                    except ValueError as catalog_exc:
+                        if not str(catalog_exc).startswith("P2P_VERTICAL_NOT_FOUND:"):
+                            raise
+                        if not pull:
+                            raise
+                        pulled = VerticalPullService().pull(
+                            exact_coordinate,
+                            registry=vertical_registry,
+                        )
+                        selected_release = next(
+                            item
+                            for item in pulled.releases
+                            if item.release.coordinate == exact_coordinate
+                        )
+                        selected = catalog.resolve(selected_release.release.coordinate)
+                    if selected.artifact_path is not None:
+                        closure = catalog.installation_closure(selected)
+                        vertical_pack_closure = [
+                            (item.artifact_path, item.release.artifact.sha256)
+                            for item in closure
+                        ]
+                        vertical = None
             except ValueError as exc:
                 _fail(str(exc))
 
@@ -448,6 +501,10 @@ def init(
                 agent_profile=agent_profile,
                 repository_mode=repository,
                 project_domain=domain,
+                project_domain_name=domain_name,
+                project_domain_source=domain_source,
+                project_domain_external_ref=domain_external_ref,
+                starter_id=starter,
                 rubric_enabled=rubric_enabled,
                 owner=owner,
                 remote_provider=provider,
@@ -468,6 +525,10 @@ def init(
             agent_profile=agent_profile,
             repository_mode=repository,
             project_domain=domain,
+            project_domain_name=domain_name,
+            project_domain_source=domain_source,
+            project_domain_external_ref=domain_external_ref,
+            starter_id=starter,
             rubric_enabled=rubric_enabled,
             owner=owner,
             remote_provider=provider,
@@ -561,8 +622,8 @@ def _print_init_repository_hygiene(result: GitignoreHygieneResult) -> None:
         console.print(f"  warning: {escape(warning)}")
 
 
-def _prompt_rubric_selection(domain: str) -> dict[str, bool] | None:
-    preview = P2PWorkspace(Path.cwd()).init_project_rubrics_preview(domain)
+def _prompt_rubric_selection(starter: str) -> dict[str, bool] | None:
+    preview = P2PWorkspace(Path.cwd()).init_project_rubrics_preview(starter)
     if not preview:
         console.print("Project definition rubric criteria: unresolved")
         console.print("Define the domain and rubric with the user and agent after initialization.")

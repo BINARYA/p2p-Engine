@@ -148,6 +148,7 @@ _CURRENT_SCHEMA_OPERATIONS = frozenset(
         "project_definition_apply",
         "project_definition_export",
         "project_definition_update",
+        "project_domain_change",
         "project_init_existing",
         "project_interaction_style_set",
         "project_metadata_apply",

@@ -65,6 +65,37 @@ def test_fresh_initialization_writes_current_schema(tmp_path: Path) -> None:
     assert status.schema.initialized_by == "Davide"
     assert status.schema.current_version == CURRENT_WORKSPACE_SCHEMA_VERSION
     assert (tmp_path / ".p2p" / "project" / "questions.yml").exists()
+    assert (tmp_path / ".p2p" / "project" / "structure-source.yml").exists()
+
+
+def test_current_schema_requires_current_domain_and_structure_source_contracts(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Domain contract")
+    source_path = tmp_path / ".p2p/project/structure-source.yml"
+    source_bytes = source_path.read_bytes()
+
+    source_path.unlink()
+    missing = workspace.workspace_schema_status()
+    assert any(
+        item.code == "P2P305_WORKSPACE_LAYOUT_MISSING"
+        and item.path == ".p2p/project/structure-source.yml"
+        for item in missing.findings
+    )
+
+    source_path.write_bytes(source_bytes)
+    domain_path = tmp_path / ".p2p/project/domain.yml"
+    domain_path.write_text(
+        "version: '1.0'\nstatus: template_selected\ntype: template\ntemplate: software\n",
+        encoding="utf-8",
+    )
+    legacy = workspace.workspace_schema_status()
+    assert any(
+        item.code == "P2P_PROJECT_DOMAIN_INVALID"
+        and item.path == ".p2p/project/domain.yml"
+        for item in legacy.findings
+    )
 
 
 def test_reinitializing_workspace_does_not_silently_recreate_missing_schema(tmp_path: Path) -> None:

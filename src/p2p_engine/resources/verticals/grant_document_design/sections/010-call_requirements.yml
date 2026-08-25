@@ -1,0 +1,6 @@
+section:
+  id: call_requirements
+  title: Call Requirements
+  purpose: Capture eligibility, mandatory content, deadlines, and submission constraints.
+  required: true
+  priority: 10

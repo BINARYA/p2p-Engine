@@ -1,0 +1,6 @@
+section:
+  id: definition_of_done
+  title: Definition Of Done And Readiness
+  purpose: Criteria that make the project actionable.
+  required: true
+  priority: 90

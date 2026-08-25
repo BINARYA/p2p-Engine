@@ -259,7 +259,7 @@ def _print_definition_maturity(maturity: object) -> None:
     console.print("Project definition maturity")
     console.print(f"  path: {maturity.path}")
     console.print(f"  generated_on: {maturity.generated_on}")
-    console.print(f"  domain: {maturity.domain}")
+    console.print(f"  structure source: {maturity.structure_source}")
     console.print(f"  score: {maturity.score}/100")
     console.print(f"  status: {maturity.status}")
     console.print("Criteria:")

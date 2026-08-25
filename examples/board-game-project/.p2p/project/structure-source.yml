@@ -1,0 +1,12 @@
+structure_source:
+  contract: p2p-structure-source/v1
+  source:
+    kind: vertical_release
+    coordinate: binarya/board_game_design@1.0.0
+    checksum: fa0c3691153b8bf95425b0dcbac1fc9d3d5e5db655bf5dcf7f620d3fedd85e28
+  origin:
+    kind: vertical_release
+    identity: binarya/board_game_design@1.0.0
+    checksum: fa0c3691153b8bf95425b0dcbac1fc9d3d5e5db655bf5dcf7f620d3fedd85e28
+  initialized_at: '2026-08-25'
+  initialized_by: owner

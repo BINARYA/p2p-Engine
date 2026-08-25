@@ -12,11 +12,23 @@ def handle_maintenance_tool(
     arguments: dict[str, Any],
 ) -> dict[str, object] | None:
     if name == "p2p_init_project":
+        starter = optional_string(arguments, "starter")
+        vertical = optional_string(arguments, "vertical")
+        if bool(starter) == bool(vertical):
+            raise ValueError(
+                "P2P_STRUCTURE_SOURCE_REQUIRED: MCP init requires exactly one of starter or vertical"
+            )
         result = workspace.init_project_with_summary(
             name=required(arguments, "name"),
             agent_profile=str(arguments["agent"]) if arguments.get("agent") else None,
             repository_mode=str(arguments.get("repository") or "local"),
-            project_domain=str(arguments.get("domain") or "none"),
+            project_domain=optional_string(arguments, "domain"),
+            project_domain_name=str(arguments.get("domain_name") or ""),
+            project_domain_source=str(arguments.get("domain_source") or "local"),
+            project_domain_external_ref=optional_string(arguments, "domain_external_ref"),
+            starter_id=starter,
+            vertical_id=vertical,
+            owner=optional_string(arguments, "owner"),
         )
         return {
             "initialized": True,
@@ -25,6 +37,10 @@ def handle_maintenance_tool(
             "agent_selection": to_jsonable(result.agent_selection),
             "mcp_hint": to_jsonable(result.mcp_hint),
             "gitignore_hygiene": to_jsonable(result.gitignore_hygiene),
+            "project_domain": to_jsonable(result.domain),
+            "structure_source": result.structure_source.to_dict(),
+            "structure_origin": dict(result.structure_origin),
+            "structure_revision": result.structure_revision,
         }
     if name == "p2p_agent_instructions_refresh":
         repository = arguments.get("repository")
@@ -65,7 +81,7 @@ def handle_maintenance_tool(
         return {
             "rubrics": to_jsonable(
                 workspace.init_project_rubrics(
-                    domain=str(arguments.get("domain") or "generic"),
+                    starter=str(arguments.get("starter") or "generic"),
                     force=bool(arguments.get("force") or False),
                 )
             )

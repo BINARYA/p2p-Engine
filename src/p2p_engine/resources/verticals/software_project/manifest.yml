@@ -1,14 +1,19 @@
 manifest:
-  schema_version: 2
+  schema_version: 3
   publisher: binarya
   id: software_project
   name: Software Project
   version: 2.0.0
   license: Apache-2.0
   source: packaged
-  extends: binarya/base_project@2.0.0
+  extends: null
   lineage: {}
-  dependencies:
-  - coordinate: binarya/base_project@2.0.0
-    checksum: sha256:d53a537905b980ec40ae3df3be1c6e7a79a7ff6d98a6f09e91d79b2a582b5c88
+  dependencies: []
   compatibility: {}
+  primary_domain:
+    key: software
+    name: Software
+    source: system
+    external_ref: null
+  domain_tags:
+  - technology

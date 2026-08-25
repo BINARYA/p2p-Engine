@@ -1,0 +1,6 @@
+section:
+  id: components
+  title: Components
+  purpose: Define the board, cards, tokens, pieces, and other physical components.
+  required: true
+  priority: 20

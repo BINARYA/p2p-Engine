@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 from typing import Any
 
+from p2p_engine.core.project_domain import ProjectDomainRef
 from p2p_engine.mcp.handlers.common import optional_string, required, to_jsonable
 from p2p_engine.storage.filesystem import P2PWorkspace
 
@@ -12,6 +14,14 @@ def handle_project_tool(
     name: str,
     arguments: dict[str, Any],
 ) -> dict[str, object] | None:
+    if name == "p2p_project_domain_show":
+        return {
+            "project_domain": workspace.project_domain().to_dict(),
+            "structure_source": workspace.project_structure_source(),
+            "mutation_performed": False,
+        }
+    if name in {"p2p_project_domain_set", "p2p_project_domain_clear"}:
+        return _project_domain_mutation(workspace, name, arguments)
     if name == "p2p_agent_list":
         return {"agent_integrations": to_jsonable(workspace.agent_integrations_list())}
     if name == "p2p_agent_show":
@@ -276,3 +286,64 @@ def handle_project_tool(
         section = required(arguments, "section")
         return {"section": section, "content": workspace.show_project_state(section)}
     return None
+
+
+def _project_domain_mutation(
+    workspace: P2PWorkspace,
+    tool_name: str,
+    arguments: dict[str, Any],
+) -> dict[str, object]:
+    operation = "set" if tool_name.endswith("_set") else "clear"
+    consent_operation = f"project_domain_{operation}"
+    actor_id = required(arguments, "actor_id")
+    consent_id = required(arguments, "consent_id")
+    consent = workspace.consent_show(consent_id)
+    consent_sha256: str | None = None
+    if consent.status == "granted":
+        workspace.consent_validate(
+            consent_id,
+            operation=consent_operation,
+            target="project-domain",
+            actor_id=actor_id,
+        )
+        consent_path = workspace.root / consent.path
+        consent_sha256 = hashlib.sha256(consent_path.read_bytes()).hexdigest()
+    elif consent.status != "consumed":
+        raise ValueError(f"Consent receipt is not granted: {consent_id}")
+    descriptor = None
+    if operation == "set":
+        key = required(arguments, "key")
+        descriptor = ProjectDomainRef(
+            key=key,
+            name=str(arguments.get("name") or key.replace("_", " ").replace("-", " ").title()),
+            source=str(arguments.get("source") or "local"),
+            external_ref=optional_string(arguments, "external_ref"),
+        )
+    result = workspace.change_project_domain(
+        operation=operation,
+        operation_key=required(arguments, "operation_key"),
+        actor_id=actor_id,
+        executor_id=str(arguments.get("executor_id") or actor_id),
+        executor_kind=str(arguments.get("executor_kind") or "person"),
+        descriptor=descriptor,
+        channel="mcp",
+        consent_id=consent_id,
+        consent_sha256=consent_sha256,
+    )
+    consumed = consent
+    if consent.status == "granted":
+        consumed = workspace.consent_consume(
+            consent_id,
+            result={
+                "operation": consent_operation,
+                "target": "project-domain",
+                "actor_id": actor_id,
+                "project_memory_revision": result.current.project_memory_revision,
+                "mutation_status": result.status,
+            },
+        )
+    return {
+        "project_domain_mutation": result.to_dict(),
+        "consent": to_jsonable(consumed),
+        "mutation_performed": result.status == "applied",
+    }

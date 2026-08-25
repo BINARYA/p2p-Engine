@@ -1,0 +1,21 @@
+rubrics:
+- id: core_loop_quality
+  title: Core Gameplay Loop
+  section_id: core_loop
+  required: true
+  keywords: [turn, round, loop, gameplay]
+- id: component_coverage
+  title: Component Coverage
+  section_id: components
+  required: true
+  keywords: [component, card, board, token, piece]
+- id: rules_clarity
+  title: Rules Clarity
+  section_id: rules
+  required: true
+  keywords: [rule, action, phase, win]
+- id: playtest_plan
+  title: Playtest Plan
+  section_id: playtesting
+  required: true
+  keywords: [playtest, balance, test, feedback]

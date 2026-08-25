@@ -51,7 +51,7 @@ of disappearing into chats, issues, or ad hoc notes.
 ```bash
 mkdir /tmp/p2p-demo
 cd /tmp/p2p-demo
-p2p init "P2P Demo" --agent codex --repository local --domain software --mcp-hint
+p2p init "P2P Demo" --agent codex --repository local --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
 ```
 
 Expected shape:

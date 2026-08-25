@@ -10,7 +10,10 @@ from p2p_engine.storage.filesystem import P2PWorkspace
 
 
 def _workspace(tmp_path: Path) -> P2PWorkspace:
-    call_tool("p2p_init_project", {"root": str(tmp_path), "name": "Demo Project"})
+    call_tool(
+        "p2p_init_project",
+        {"root": str(tmp_path), "name": "Demo Project", "starter": "generic"},
+    )
     return P2PWorkspace(tmp_path)
 
 

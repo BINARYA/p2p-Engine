@@ -54,6 +54,7 @@ from p2p_engine.core.project_verticals import (
     VerticalMigrationCandidate,
     VerticalCoverageSuggestionSection,
 )
+from p2p_engine.core.project_domain import ProjectDomainRef, normalize_domain_tags
 from p2p_engine.core.portable_verticals import VerticalCoordinate, is_semantic_version
 from p2p_engine.core.mutation_preview import (
     MutationPreview,
@@ -86,7 +87,7 @@ from p2p_engine.services.project_questions import ProjectQuestionStateService
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 from p2p_engine.services.lifecycle_authority import is_active_project_projection
 
-VERTICAL_SCHEMA_VERSION = 2
+VERTICAL_SCHEMA_VERSION = 3
 ACTIVE_VERTICAL_SCHEMA_VERSION = 1
 PROPOSAL_COVERAGE_SCHEMA_VERSION = 2
 VERTICAL_LOCK_SCHEMA_VERSION = 1
@@ -146,7 +147,7 @@ def validate_vertical_coverage_payload(payload: dict[str, object], *, target: st
         raise ValueError(f"Invalid {target}: unknown fields: {', '.join(sorted(unknown))}.")
     provenance = coverage.get("provenance")
     if not isinstance(provenance, dict):
-        raise ValueError(f"Invalid {target}: schema v2 requires provenance mapping.")
+        raise ValueError(f"Invalid {target}: schema v3 requires provenance mapping.")
     for field in ("actor", "authority", "source", "operation_id"):
         if not str(provenance.get(field) or "").strip():
             raise ValueError(f"Invalid {target}: provenance.{field} is required.")
@@ -461,6 +462,18 @@ class ProjectVerticalService:
     def _active_vertical_and_pack(self) -> tuple[ActiveProjectVertical, VerticalPack]:
         path = self._active_vertical_path()
         if not path.exists():
+            if self._uses_empty_starter():
+                empty = _empty_starter_pack()
+                return (
+                    ActiveProjectVertical(
+                        vertical_id="empty",
+                        source="starter",
+                        path=None,
+                        fallback_used=False,
+                        coordinate="",
+                    ),
+                    empty,
+                )
             base = self._load_available_pack(BASE_PROJECT_VERTICAL_ID)
             return (
                 ActiveProjectVertical(
@@ -540,10 +553,32 @@ class ProjectVerticalService:
             )
         )
 
+    def _uses_empty_starter(self) -> bool:
+        source_path = self.p2p_dir / "project" / "structure-source.yml"
+        if not source_path.is_file() or source_path.is_symlink():
+            return False
+        try:
+            payload = _read_yaml_mapping(source_path)
+        except (OSError, ValueError, yaml.YAMLError):
+            return False
+        state = payload.get("structure_source")
+        source = state.get("source") if isinstance(state, dict) else None
+        return bool(
+            isinstance(source, dict)
+            and source.get("kind") == "starter"
+            and source.get("starter_id") == "empty"
+        )
+
     def vertical_lock_status(self) -> VerticalLockStatus:
         lock_path = self._vertical_lock_path()
         display_path = relative_to_root(lock_path, self.root)
         if not lock_path.exists():
+            if self._uses_empty_starter() and not self._active_vertical_path().exists():
+                return VerticalLockStatus(
+                    status="not_applicable",
+                    path=display_path,
+                    message="Empty starter has no vertical release lock.",
+                )
             message = "Project vertical lockfile is missing."
             suggested = "p2p project vertical lock repair --actor owner"
             if not self._active_vertical_path().exists():
@@ -1898,7 +1933,8 @@ class ProjectVerticalService:
             candidates = [pack for pack in inventory if pack.coordinate == coordinate]
             if not candidates:
                 raise ValueError(
-                    f"Unknown project vertical `{reference}`. Run `p2p project vertical list`."
+                    "P2P_VERTICAL_NOT_FOUND: unknown project vertical "
+                    f"`{reference}`; run `p2p project vertical list`"
                 )
             semantic_checksums = {
                 _pack_checksum(self._compose_available_pack(pack, stack=stack))
@@ -1920,7 +1956,8 @@ class ProjectVerticalService:
             candidates = [pack for pack in inventory if pack.vertical_id == normalized]
         if not candidates:
             raise ValueError(
-                f"Unknown project vertical `{reference}`. Run `p2p project vertical list`."
+                "P2P_VERTICAL_NOT_FOUND: unknown project vertical "
+                f"`{reference}`; run `p2p project vertical list`"
             )
         coordinates = {pack.coordinate for pack in candidates}
         if len(coordinates) > 1:
@@ -1987,7 +2024,7 @@ class ProjectVerticalService:
             if not source.is_dir() or source.is_symlink():
                 raise ValueError(
                     "P2P_VERTICAL_CANONICAL_LAYOUT_REQUIRED: vertical packs must be "
-                    "schema-2 directories"
+                    "schema-3 directories"
                 )
             if not (source / "manifest.yml").exists():
                 raise ValueError(
@@ -2004,7 +2041,7 @@ class ProjectVerticalService:
             pack_source = self.root / pack_source
         if not pack_source.is_dir() or pack_source.is_symlink():
             raise ValueError(
-                "P2P_VERTICAL_CANONICAL_LAYOUT_REQUIRED: vertical packs must be schema-2 directories"
+                "P2P_VERTICAL_CANONICAL_LAYOUT_REQUIRED: vertical packs must be schema-3 directories"
             )
         payload = self._canonical_pack_payload(pack_source)
         path = pack_source / "manifest.yml"
@@ -2548,7 +2585,7 @@ class ProjectVerticalService:
         disabled = [item for item in criteria if isinstance(item, dict) and item.get("enabled") is False]
         return {
             "exists": True,
-            "domain": str(payload.get("domain") or ""),
+            "structure_source": payload.get("structure_source"),
             "status": str(payload.get("status") or ""),
             "enabled": len(enabled),
             "disabled": len(disabled),
@@ -2623,7 +2660,10 @@ class ProjectVerticalService:
         active_criteria = [item for item in criteria_payload if item.get("counts_toward_active_baseline") is not False]
         return {
             "version": "1.0",
-            "domain": f"project_vertical:{pack.vertical_id}",
+            "structure_source": {
+                "kind": "vertical_release",
+                "coordinate": pack.coordinate,
+            },
             "status": "vertical_selected",
             "template": pack.vertical_id,
             "assessment_type": "project_definition_maturity",
@@ -2815,6 +2855,12 @@ def _pack_from_payload(payload: dict[str, object], *, source: str, path: Path | 
                 )
                 for item in dependency_payloads
             ],
+            primary_domain=(
+                ProjectDomainRef.from_mapping(manifest_payload.get("primary_domain"))
+                if manifest_payload.get("primary_domain") is not None
+                else None
+            ),
+            domain_tags=normalize_domain_tags(manifest_payload.get("domain_tags", [])),
         )
         if isinstance(manifest_payload, dict) and manifest_payload
         else None,
@@ -2907,7 +2953,7 @@ def _pack_payload(pack: VerticalPack) -> dict[str, object]:
             ],
         }
     if pack.manifest is None:
-        raise ValueError("P2P_VERTICAL_CANONICAL_LAYOUT_REQUIRED: schema-2 pack manifest is required")
+        raise ValueError("P2P_VERTICAL_CANONICAL_LAYOUT_REQUIRED: schema-3 pack manifest is required")
     vertical_payload["manifest"] = {
             "schema_version": pack.manifest.schema_version,
             "publisher": pack.manifest.publisher,
@@ -2923,6 +2969,12 @@ def _pack_payload(pack: VerticalPack) -> dict[str, object]:
                 for item in pack.manifest.dependencies
             ],
             "compatibility": pack.manifest.compatibility,
+            "primary_domain": (
+                pack.manifest.primary_domain.to_dict()
+                if pack.manifest.primary_domain is not None
+                else None
+            ),
+            "domain_tags": list(pack.manifest.domain_tags),
     }
     return {
         "vertical": vertical_payload
@@ -2948,6 +3000,24 @@ def _vertical_question_payload(question: VerticalQuestion) -> dict[str, object]:
     if question.deferred_trigger:
         payload["deferred_trigger"] = question.deferred_trigger
     return payload
+
+
+def _empty_starter_pack() -> VerticalPack:
+    return VerticalPack(
+        vertical_id="empty",
+        name="Empty Starter",
+        version="0",
+        description="Project memory without project-specific structure.",
+        extends=None,
+        source="starter",
+        path=None,
+        sections=[],
+        rubrics=[],
+        questions=[],
+        artifacts=[],
+        schema_version=VERTICAL_SCHEMA_VERSION,
+        manifest=None,
+    )
 
 
 def _looks_like_canonical_pack_dir(path: Path) -> bool:
@@ -3453,7 +3523,7 @@ def _vertical_pack_issues(payload: dict[str, object]) -> list[VerticalValidation
         )
     manifest = vertical.get("manifest")
     if not isinstance(manifest, dict):
-        error("vertical.manifest", "schema version 2 requires a manifest mapping")
+        error("vertical.manifest", "schema version 3 requires a manifest mapping")
     else:
             allowed_manifest_fields = {
                 "schema_version",
@@ -3467,6 +3537,8 @@ def _vertical_pack_issues(payload: dict[str, object]) -> list[VerticalValidation
                 "lineage",
                 "dependencies",
                 "compatibility",
+                "primary_domain",
+                "domain_tags",
             }
             unknown_fields = sorted(set(manifest) - allowed_manifest_fields)
             if unknown_fields:
@@ -3477,9 +3549,9 @@ def _vertical_pack_issues(payload: dict[str, object]) -> list[VerticalValidation
                 )
             for field in ("publisher", "id", "version", "license"):
                 if not str(manifest.get(field) or "").strip():
-                    error(f"vertical.manifest.{field}", "required for schema version 2")
-            if manifest.get("schema_version") != 2:
-                error("vertical.manifest.schema_version", "must be 2")
+                    error(f"vertical.manifest.{field}", "required for schema version 3")
+            if manifest.get("schema_version") != 3:
+                error("vertical.manifest.schema_version", "must be 3")
             if str(manifest.get("id") or "") != str(vertical.get("id") or ""):
                 error("vertical.manifest.id", "must match vertical.id")
             if str(manifest.get("version") or "") != str(vertical.get("version") or ""):
@@ -3539,6 +3611,24 @@ def _vertical_pack_issues(payload: dict[str, object]) -> list[VerticalValidation
                         f"vertical.manifest.dependencies[{index}].checksum",
                         "must be sha256 followed by 64 lowercase hexadecimal characters",
                     )
+            primary_domain = manifest.get("primary_domain")
+            if primary_domain is not None:
+                try:
+                    ProjectDomainRef.from_mapping(primary_domain)
+                except ValueError as exc:
+                    error(
+                        "vertical.manifest.primary_domain",
+                        str(exc),
+                        "P2P_VERTICAL_DOMAIN_METADATA_INVALID",
+                    )
+            try:
+                normalize_domain_tags(manifest.get("domain_tags", []))
+            except ValueError as exc:
+                error(
+                    "vertical.manifest.domain_tags",
+                    str(exc),
+                    "P2P_VERTICAL_DOMAIN_METADATA_INVALID",
+                )
             extends = str(vertical.get("extends") or manifest.get("extends") or "")
             if extends:
                 try:

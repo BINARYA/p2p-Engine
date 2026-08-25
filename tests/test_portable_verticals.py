@@ -123,7 +123,7 @@ def test_portable_package_is_deterministic_and_installs_side_by_side(tmp_path: P
 
     project_root = tmp_path / "project"
     project = P2PWorkspace(project_root)
-    project.init_project("Portable project")
+    project.init_project("Portable project", starter_id="empty")
     preview = project.preview_portable_vertical_install(
         first,
         expected_checksum=checksum,
@@ -186,7 +186,7 @@ def test_install_receipt_supports_exact_replay_status_redaction_and_drift_detect
     )
     project_root = tmp_path / "project"
     project = P2PWorkspace(project_root)
-    project.init_project("Receipt install", owner="owner")
+    project.init_project("Receipt install", owner="owner", starter_id="empty")
     preview = project.preview_portable_vertical_install(
         archive,
         expected_checksum=checksum,
@@ -310,7 +310,7 @@ def test_adopt_receipt_replays_before_current_state_is_recomputed(tmp_path: Path
         version="1.0.0",
     )
     project = P2PWorkspace(tmp_path / "project")
-    project.init_project("Receipt adoption", owner="owner")
+    project.init_project("Receipt adoption", owner="owner", starter_id="empty")
     install = project.preview_portable_vertical_install(
         archive,
         expected_checksum=checksum,
@@ -384,7 +384,7 @@ def test_migrate_receipt_replays_exact_mapping_and_rejects_changed_mapping(
         field_id="renamed_summary",
     )
     project = P2PWorkspace(tmp_path / "project")
-    project.init_project("Receipt migration", owner="owner")
+    project.init_project("Receipt migration", owner="owner", starter_id="empty")
     for archive, checksum in (
         (source_archive, source_checksum),
         (target_archive, target_checksum),
@@ -502,7 +502,7 @@ def test_portable_install_rolls_back_a_partial_write(tmp_path: Path) -> None:
     )
     project_root = tmp_path / "project"
     project = P2PWorkspace(project_root)
-    project.init_project("Rollback project")
+    project.init_project("Rollback project", starter_id="empty")
 
     def fail_after_first_replace(stage: str, target: str) -> None:
         if stage == "after_replace":
@@ -556,7 +556,7 @@ def test_adopt_and_migrate_receipts_roll_back_with_domain_state_on_write_failure
     )
     project_root = tmp_path / "project"
     project = P2PWorkspace(project_root)
-    project.init_project("Receipt failure rollback", owner="owner")
+    project.init_project("Receipt failure rollback", owner="owner", starter_id="empty")
     for archive, checksum in (
         (source_archive, source_checksum),
         (target_archive, target_checksum),
@@ -674,7 +674,7 @@ def test_adoption_rejects_stale_preview_and_requires_confirmation(tmp_path: Path
     )
     project_root = tmp_path / "project"
     project = P2PWorkspace(project_root)
-    project.init_project("Adopt project")
+    project.init_project("Adopt project", starter_id="empty")
     install = project.preview_portable_vertical_install(archive, expected_checksum=checksum, actor="owner")
     project.apply_portable_vertical_install(
         archive,
@@ -731,7 +731,7 @@ def test_migration_preserves_exact_mapping_and_materializes_unmapped_orphan(tmp_
     )
     project_root = tmp_path / "project"
     project = P2PWorkspace(project_root)
-    project.init_project("Migration project")
+    project.init_project("Migration project", starter_id="empty")
     for archive, checksum in (
         (source_archive, source_checksum),
         (target_archive, target_checksum),
@@ -838,7 +838,7 @@ def test_migration_materializes_mixed_evidence_in_its_own_memory_family(
         rubric_id="target_overview_coverage",
     )
     project = P2PWorkspace(tmp_path / "mixed-project")
-    project.init_project("Mixed migration", owner="owner")
+    project.init_project("Mixed migration", owner="owner", starter_id="empty")
     for archive, checksum in (
         (source_archive, source_checksum),
         (target_archive, target_checksum),
@@ -1103,7 +1103,7 @@ def test_portable_bare_id_is_ambiguous_and_exact_versions_remain_operable(tmp_pa
         version="2.0.0",
     )
     project = P2PWorkspace(tmp_path / "project")
-    project.init_project("Versioned portable project")
+    project.init_project("Versioned portable project", starter_id="empty")
     for archive, checksum in ((v1, checksum_v1), (v2, checksum_v2)):
         preview = project.preview_portable_vertical_install(
             archive,
@@ -1183,7 +1183,7 @@ def test_exact_coordinate_equivalence_preserves_precedence_and_conflict_fails_cl
     )
     project_root = tmp_path / "project"
     project = P2PWorkspace(project_root)
-    project.init_project("Coordinate conflict")
+    project.init_project("Coordinate conflict", starter_id="empty")
     install = project.preview_portable_vertical_install(
         archive,
         expected_checksum=checksum,
@@ -1350,7 +1350,7 @@ def test_vertical_candidate_rejects_exact_identity_drift_before_writing(tmp_path
     )
     project_root = tmp_path / "project"
     project = P2PWorkspace(project_root)
-    project.init_project("Candidate drift")
+    project.init_project("Candidate drift", starter_id="empty")
     install = project.preview_portable_vertical_install(
         archive,
         expected_checksum=checksum,
@@ -1390,7 +1390,7 @@ def test_vertical_candidate_rejects_exact_identity_drift_before_writing(tmp_path
 
 
 @pytest.mark.cli
-def test_cli_validates_schema_v2_directory_with_exact_extends(tmp_path: Path) -> None:
+def test_cli_validates_schema_v3_directory_with_exact_extends(tmp_path: Path) -> None:
     authoring = P2PWorkspace(tmp_path)
     base_archive, base_checksum, base_coordinate = _portable_pack(
         authoring,
@@ -1400,7 +1400,7 @@ def test_cli_validates_schema_v2_directory_with_exact_extends(tmp_path: Path) ->
     )
     project_root = tmp_path / "project"
     project = P2PWorkspace(project_root)
-    project.init_project("Portable derived validation")
+    project.init_project("Portable derived validation", starter_id="empty")
     install = project.preview_portable_vertical_install(
         base_archive,
         expected_checksum=base_checksum,
@@ -1477,7 +1477,7 @@ def test_portable_cli_uses_stable_json_envelope(tmp_path: Path) -> None:
     assert payload["ok"] is True
     assert payload["operation"] == "project.vertical.schema"
     assert payload["error"] is None
-    assert payload["data"]["schema_version"] == 2
+    assert payload["data"]["schema_version"] == 3
 
 
 @pytest.mark.cli
@@ -1494,7 +1494,7 @@ def test_portable_cli_reports_ambiguous_bare_reference_as_json_error(tmp_path: P
     ]
     project_root = tmp_path / "project"
     project = P2PWorkspace(project_root)
-    project.init_project("CLI ambiguous reference")
+    project.init_project("CLI ambiguous reference", starter_id="empty")
     for archive, checksum, _ in archives:
         preview = project.preview_portable_vertical_install(
             archive,
@@ -1541,7 +1541,7 @@ def test_portable_cli_install_and_adopt_preview_apply_contract(tmp_path: Path) -
         version="1.0.0",
     )
     project_root = tmp_path / "project"
-    P2PWorkspace(project_root).init_project("CLI project")
+    P2PWorkspace(project_root).init_project("CLI project", starter_id="empty")
 
     bad = runner.invoke(
         app,

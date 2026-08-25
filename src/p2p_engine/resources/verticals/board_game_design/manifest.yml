@@ -1,0 +1,19 @@
+manifest:
+  schema_version: 3
+  publisher: binarya
+  id: board_game_design
+  name: Board Game Design
+  version: 1.0.0
+  license: Apache-2.0
+  source: packaged
+  extends: null
+  lineage: {}
+  dependencies: []
+  compatibility: {}
+  primary_domain:
+    key: board-game
+    name: Board Game
+    source: system
+    external_ref: null
+  domain_tags:
+  - game-design

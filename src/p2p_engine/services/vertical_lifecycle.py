@@ -94,7 +94,7 @@ class VerticalLifecycleService:
             )
         coordinate = inspection.pack.coordinate
         if not coordinate:
-            raise ValueError("P2P_VERTICAL_PORTABLE_V2_REQUIRED: artifact has no exact coordinate")
+            raise ValueError("P2P_VERTICAL_PORTABLE_V3_REQUIRED: artifact has no exact coordinate")
         closure = self._dependency_closure(inspection.pack)
         entries = self.package_service.read_archive(artifact)
         prefix = self._install_prefix(VerticalCoordinate.parse(coordinate))

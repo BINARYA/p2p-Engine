@@ -27,20 +27,20 @@ def _service(workspace: P2PWorkspace) -> ProjectMaturityService:
     )
 
 
-def test_project_maturity_service_initializes_rubrics_and_domain_state(tmp_path: Path) -> None:
+def test_project_maturity_service_initializes_generic_rubrics_without_changing_domain(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
-    workspace.init_project("Demo Project")
+    workspace.init_project("Demo Project", project_domain="gardening")
     service = _service(workspace)
 
-    rubrics = service.init_project_rubrics("software", force=True)
+    rubrics = service.init_project_rubrics("generic", force=True)
     domain = yaml.safe_load((tmp_path / ".p2p" / "project" / "domain.yml").read_text(encoding="utf-8"))
     project = yaml.safe_load((tmp_path / ".p2p" / "project.yml").read_text(encoding="utf-8"))
 
-    assert rubrics.domain == "software"
-    assert rubrics.status == "template_selected"
-    assert any(criterion["id"] == "security_privacy" for criterion in rubrics.criteria)
-    assert domain["template"] == "software"
-    assert project["project"]["domain"] == "software"
+    assert rubrics.structure_source == "generic"
+    assert rubrics.status == "starter_selected"
+    assert any(criterion["id"] == "vision_clarity" for criterion in rubrics.criteria)
+    assert domain["project_domain"]["descriptor"]["key"] == "gardening"
+    assert "domain" not in project["project"]
 
 
 def test_project_maturity_service_preview_is_read_only(tmp_path: Path) -> None:
@@ -49,42 +49,42 @@ def test_project_maturity_service_preview_is_read_only(tmp_path: Path) -> None:
     rubrics_path = tmp_path / ".p2p" / "project" / "rubrics.yml"
     before = rubrics_path.read_text(encoding="utf-8")
 
-    preview = _service(workspace).init_project_rubrics_preview("software")
+    preview = _service(workspace).init_project_rubrics_preview("generic")
 
-    assert any(criterion["id"] == "security_privacy" for criterion in preview)
+    assert any(criterion["id"] == "vision_clarity" for criterion in preview)
     assert rubrics_path.read_text(encoding="utf-8") == before
 
 
 def test_project_maturity_service_scores_accepted_evidence(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
-    workspace.init_project("Demo Project", project_domain="software")
+    workspace.init_project("Demo Project", project_domain="software", starter_id="generic")
     proposal = workspace.create_proposal_with_details(
         title="Security Model",
-        problem="Security and privacy need explicit permission boundaries.",
+        problem="Security and privacy risks need explicit permission boundaries.",
         proposal="Define auth, sandbox permissions, and privacy expectations.",
     )
     record_decision(workspace, proposal.proposal_id, DecisionOutcome.accepted, "Needed.", "owner")
 
     maturity = _service(workspace).refresh_definition_maturity()
-    security = next(criterion for criterion in maturity.criteria if criterion["id"] == "security_privacy")
+    risks = next(criterion for criterion in maturity.criteria if criterion["id"] == "risk_coverage")
 
-    assert maturity.domain == "software"
+    assert maturity.structure_source == "binarya/base_project@2.0.0"
     assert maturity.score > 0
-    assert security["status"] == "covered"
-    assert security["score"] == 100
+    assert risks["status"] == "covered"
+    assert risks["score"] == 100
     assert (tmp_path / ".p2p" / "project" / "maturity-assessment.yml").exists()
 
 
 def test_project_maturity_service_reports_unresolved_rubrics(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
-    workspace.init_project("Demo Project")
+    workspace.init_project("Demo Project", starter_id="empty")
 
     maturity = _service(workspace).refresh_definition_maturity()
 
     assert maturity.status == "rubric_missing"
     assert maturity.score == 0
     assert "Project definition rubric is unresolved or has no enabled criteria." in maturity.gaps
-    assert "Define the project domain with the user and agent." in maturity.suggested_actions
+    assert "Select a vertical release or edit the project structure." in maturity.suggested_actions
 
 
 def test_vertical_rubric_generation_preserves_enabled_flags_and_maturity_scope(tmp_path: Path) -> None:
@@ -103,5 +103,5 @@ def test_vertical_rubric_generation_preserves_enabled_flags_and_maturity_scope(t
     assert refreshed["criteria"][0]["enabled"] is False
     assert refreshed["selected_scope"]["disabled"] == 1
     assert maturity.disabled_criteria_count == 1
-    assert maturity.total_default_criteria_count == len(refreshed["criteria"])
+    assert maturity.total_default_criteria_count == refreshed["selected_scope"]["total_default"]
     assert maturity.scope_label == "selected_project_rubric"

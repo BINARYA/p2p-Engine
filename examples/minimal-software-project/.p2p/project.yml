@@ -3,7 +3,6 @@ project:
   name: Local CLI Task Tracker
   version: 0.1.0
   status: active
-  domain: software
 runtime_contract:
   required: true
 storage:

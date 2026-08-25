@@ -1,0 +1,6 @@
+section:
+  id: budget
+  title: Budget
+  purpose: Define eligible costs, funding allocation, and financial constraints.
+  required: true
+  priority: 30

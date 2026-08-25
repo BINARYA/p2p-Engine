@@ -28,6 +28,7 @@ class ProjectSnapshotService:
         vertical_sections: Callable[[], list[Any]],
         project_progress: Callable[[list[Any], WorkspaceReadContext | None], Any],
         publication_status: Callable[..., Any],
+        project_domain: Callable[[], Any],
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -39,6 +40,7 @@ class ProjectSnapshotService:
         self.vertical_sections = vertical_sections
         self.project_progress = project_progress
         self.publication_status = publication_status
+        self.project_domain = project_domain
 
     def snapshot(
         self,
@@ -98,7 +100,7 @@ class ProjectSnapshotService:
             ),
             "version": str(project.get("version") or ""),
             "status": str(project.get("status") or ""),
-            "domain": str(project.get("domain") or ""),
+            "domain": _payload(getattr(self.project_domain(), "descriptor", None)),
             "root": self.root,
         }
 

@@ -1,0 +1,6 @@
+section:
+  id: core_loop
+  title: Core Gameplay Loop
+  purpose: Define turns, rounds, progression, and the repeated player experience.
+  required: true
+  priority: 10

@@ -1,79 +1,34 @@
 project_definition:
   schema_version: 1
-  vertical_id: base_project
-  vertical_version: 2.0.0
+  vertical_id: board_game_design
+  vertical_version: 1.0.0
   profile: default
-  modules:
-  - roadmap
-  - risk_management
-  - stakeholder_alignment
+  modules: []
   lock:
-    checksum: d53a537905b980ec40ae3df3be1c6e7a79a7ff6d98a6f09e91d79b2a582b5c88
+    checksum: fa0c3691153b8bf95425b0dcbac1fc9d3d5e5db655bf5dcf7f620d3fedd85e28
   sections:
-  - id: vision
+  - id: core_loop
     status: missing
     fields: {}
     missing_required_fields:
     - summary
     assumptions: []
     blockers: []
-  - id: objective
+  - id: components
     status: missing
     fields: {}
     missing_required_fields:
     - summary
     assumptions: []
     blockers: []
-  - id: stakeholders
+  - id: rules
     status: missing
     fields: {}
     missing_required_fields:
     - summary
     assumptions: []
     blockers: []
-  - id: scope
-    status: missing
-    fields: {}
-    missing_required_fields:
-    - summary
-    assumptions: []
-    blockers: []
-  - id: assumptions
-    status: missing
-    fields: {}
-    missing_required_fields:
-    - summary
-    assumptions: []
-    blockers: []
-  - id: risks
-    status: missing
-    fields: {}
-    missing_required_fields:
-    - summary
-    assumptions: []
-    blockers: []
-  - id: decisions
-    status: missing
-    fields: {}
-    missing_required_fields:
-    - summary
-    assumptions: []
-    blockers: []
-  - id: milestones
-    status: missing
-    fields: {}
-    missing_required_fields:
-    - summary
-    assumptions: []
-    blockers: []
-  - id: definition_of_done
-    status: missing
-    fields: {}
-    missing_required_fields:
-    - summary
-    assumptions: []
-    blockers: []
-  - id: artifacts
+  - id: playtesting
     status: missing
     fields: {}
     missing_required_fields:
@@ -82,7 +37,7 @@ project_definition:
     blockers: []
   next_suggested_action: {}
   history:
-  - at: '2026-08-04'
+  - at: '2026-08-25'
     actor: owner
     operation: initialize_definition_state
     section_id: ''

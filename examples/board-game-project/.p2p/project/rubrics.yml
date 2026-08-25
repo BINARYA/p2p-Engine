@@ -1,132 +1,65 @@
 version: '1.0'
-domain: project_vertical:base_project
+structure_source:
+  kind: vertical_release
+  coordinate: binarya/board_game_design@1.0.0
 status: vertical_selected
-template: base_project
+template: board_game_design
 assessment_type: project_definition_maturity
 scoring:
   covered: 100
   partial: 50
   missing: 0
 selected_scope:
-  enabled: 6
+  enabled: 4
   disabled: 0
-  total_default: 6
+  total_default: 4
 criteria:
-- id: vision_clarity
-  title: Vision Clarity
-  enabled: true
-  required: true
-  section_id: vision
-  keywords:
-  - vision
-  - purpose
-  - change
-  source: project_vertical
-  vertical_id: base_project
-- id: objective_clarity
-  title: Objective Clarity
-  enabled: true
-  required: true
-  section_id: objective
-  keywords:
-  - objective
-  - outcome
-  - goal
-  - result
-  source: project_vertical
-  vertical_id: base_project
-- id: stakeholder_alignment
-  title: Stakeholder Alignment
-  enabled: true
-  required: true
-  section_id: stakeholders
-  keywords:
-  - owner
-  - stakeholder
-  - beneficiary
-  - user
-  source: project_vertical
-  vertical_id: base_project
-- id: scope_boundaries
-  title: Scope Boundaries
-  enabled: true
-  required: true
-  section_id: scope
-  keywords:
-  - scope
-  - non-goal
-  - boundary
-  - constraint
-  source: project_vertical
-  vertical_id: base_project
-- id: risk_coverage
-  title: Risk Coverage
-  enabled: true
-  required: true
-  section_id: risks
-  keywords:
-  - risk
-  - mitigation
-  - tradeoff
-  source: project_vertical
-  vertical_id: base_project
-- id: readiness_criteria
-  title: Readiness Criteria
-  enabled: true
-  required: true
-  section_id: definition_of_done
-  keywords:
-  - readiness
-  - definition of done
-  - acceptance
-  source: project_vertical
-  vertical_id: base_project
-- id: core_loop
+- id: core_loop_quality
   title: Core Gameplay Loop
   enabled: true
   required: true
+  section_id: core_loop
   keywords:
   - turn
   - round
   - loop
   - gameplay
-  orphaned: true
-  unmapped_from_previous_vertical: true
-  counts_toward_active_baseline: false
-- id: components
-  title: Components
+  source: project_vertical
+  vertical_id: board_game_design
+- id: component_coverage
+  title: Component Coverage
   enabled: true
   required: true
+  section_id: components
   keywords:
   - component
   - card
   - board
   - token
   - piece
-  orphaned: true
-  unmapped_from_previous_vertical: true
-  counts_toward_active_baseline: false
-- id: rules
-  title: Rules
+  source: project_vertical
+  vertical_id: board_game_design
+- id: rules_clarity
+  title: Rules Clarity
   enabled: true
   required: true
+  section_id: rules
   keywords:
   - rule
   - action
   - phase
   - win
-  orphaned: true
-  unmapped_from_previous_vertical: true
-  counts_toward_active_baseline: false
-- id: playtesting
-  title: Playtesting
+  source: project_vertical
+  vertical_id: board_game_design
+- id: playtest_plan
+  title: Playtest Plan
   enabled: true
   required: true
+  section_id: playtesting
   keywords:
   - playtest
   - balance
   - test
   - feedback
-  orphaned: true
-  unmapped_from_previous_vertical: true
-  counts_toward_active_baseline: false
+  source: project_vertical
+  vertical_id: board_game_design

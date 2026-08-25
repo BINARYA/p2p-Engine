@@ -1,0 +1,6 @@
+section:
+  id: objectives
+  title: Objectives
+  purpose: Define intended outcomes, beneficiaries, and expected impact.
+  required: true
+  priority: 20

@@ -1,0 +1,6 @@
+section:
+  id: vision
+  title: Vision
+  purpose: Why the project exists and what change it should create.
+  required: true
+  priority: 10

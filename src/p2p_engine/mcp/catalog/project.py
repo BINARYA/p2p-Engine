@@ -6,19 +6,54 @@ from p2p_engine.mcp.catalog.common import tool as _tool
 def tool_definitions() -> list[dict[str, object]]:
     return [
         _tool(
+            'p2p_project_domain_show',
+            'Read the free project subject classification and its independent structure source.',
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_domain_set',
+            (
+                'Consent-gated classification mutation. Changes only the project domain; '
+                'never changes sections, criteria, proposal coverage, or readiness inputs.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'key': {'type': 'string'},
+                'name': {'type': 'string'},
+                'source': {'type': 'string', 'enum': ['local', 'external', 'imported', 'system']},
+                'external_ref': {'type': 'string'},
+                'actor_id': {'type': 'string'},
+                'executor_id': {'type': 'string'},
+                'executor_kind': {'type': 'string', 'enum': ['person', 'user', 'agent', 'mcp_client', 'client']},
+                'consent_id': {'type': 'string'},
+                'operation_key': {'type': 'string'},
+            },
+            ['key', 'actor_id', 'consent_id', 'operation_key'],
+        ),
+        _tool(
+            'p2p_project_domain_clear',
+            (
+                'Consent-gated classification mutation. Clears only the project domain and '
+                'preserves the complete project structure and readiness inputs.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'actor_id': {'type': 'string'},
+                'executor_id': {'type': 'string'},
+                'executor_kind': {'type': 'string', 'enum': ['person', 'user', 'agent', 'mcp_client', 'client']},
+                'consent_id': {'type': 'string'},
+                'operation_key': {'type': 'string'},
+            },
+            ['actor_id', 'consent_id', 'operation_key'],
+        ),
+        _tool(
             'p2p_project_rubrics_init',
             (
                 'Write-safe project setup tool: create deterministic project definition rubrics '
-                'for a domain. Does not make governance decisions.'
+                'from the generic or empty starter. Does not change project classification.'
             ),
             {'root': {'type': 'string'},
-             'domain': {'type': 'string',
-                        'enum': ['none',
-                                 'custom',
-                                 'generic',
-                                 'software',
-                                 'grant_document',
-                                 'board_game']},
+             'starter': {'type': 'string', 'enum': ['generic', 'empty']},
              'force': {'type': 'boolean'}},
         ),
         _tool(

@@ -1,0 +1,6 @@
+section:
+  id: objective
+  title: Objective And Outcome
+  purpose: Concrete results the project must achieve.
+  required: true
+  priority: 20

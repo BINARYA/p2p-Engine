@@ -1,0 +1,21 @@
+vertical:
+  schema_version: 3
+  id: grant_document_design
+  name: Grant Document Design
+  version: 1.0.0
+  description: Define a grant submission from call constraints through evaluation criteria.
+  extends: null
+  questions:
+  - id: call_fit_main
+    section_id: call_requirements
+    priority: high
+    question: Which mandatory call requirements determine whether the submission is eligible?
+    rationale: Eligibility must be established before the document is completed.
+  artifacts:
+  - id: grant_submission
+    title: Grant Submission
+    section_ids: [call_requirements, objectives, budget, evaluation_criteria]
+    required: true
+  profiles: []
+  modules: []
+  examples: []

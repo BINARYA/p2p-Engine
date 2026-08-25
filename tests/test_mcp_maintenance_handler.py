@@ -19,7 +19,7 @@ def test_mcp_maintenance_handler_initializes_project_and_serves_next_actions(tmp
     initialized = handle_maintenance_tool(
         workspace,
         "p2p_init_project",
-        {"name": "Maintenance Project", "agent": "generic"},
+        {"name": "Maintenance Project", "agent": "generic", "starter": "generic"},
     )
     added = handle_maintenance_tool(
         workspace,
@@ -47,7 +47,11 @@ def test_mcp_maintenance_handler_initializes_project_and_serves_next_actions(tmp
 
 def test_mcp_maintenance_handler_serves_agent_and_refresh_tools(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
-    handle_maintenance_tool(workspace, "p2p_init_project", {"name": "Maintenance Project"})
+    handle_maintenance_tool(
+        workspace,
+        "p2p_init_project",
+        {"name": "Maintenance Project", "starter": "generic"},
+    )
 
     installed = handle_maintenance_tool(workspace, "p2p_agent_install", {"adapter": "gemini"})
     registry = handle_maintenance_tool(workspace, "p2p_registry_refresh", {})
@@ -65,6 +69,9 @@ def test_mcp_maintenance_handler_serves_agent_and_refresh_tools(tmp_path: Path) 
 
 
 def test_mcp_call_tool_uses_maintenance_handler(tmp_path: Path) -> None:
-    result = call_tool("p2p_init_project", {"root": str(tmp_path), "name": "Facade Project"})
+    result = call_tool(
+        "p2p_init_project",
+        {"root": str(tmp_path), "name": "Facade Project", "starter": "generic"},
+    )
 
     assert result["initialized"] is True

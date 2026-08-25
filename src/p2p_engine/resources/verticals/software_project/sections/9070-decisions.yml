@@ -1,0 +1,6 @@
+section:
+  id: decisions
+  title: Decisions And Open Questions
+  purpose: Unresolved owner choices and recorded decisions.
+  required: true
+  priority: 70

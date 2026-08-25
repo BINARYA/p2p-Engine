@@ -88,9 +88,10 @@ class VerticalDraftMaterializer:
         dependencies = document["dependencies"]
         profiles = document["profiles"]
         modules = document["modules"]
+        domain_metadata = document.get("domain_metadata", {})
         manifest = {
             "manifest": {
-                "schema_version": 2,
+                "schema_version": 3,
                 "publisher": identity["publisher"],
                 "id": identity["id"],
                 "name": document["name"],
@@ -111,11 +112,13 @@ class VerticalDraftMaterializer:
                     for item in dependencies
                 ],
                 "compatibility": document["compatibility"],
+                "primary_domain": domain_metadata.get("primary_domain"),
+                "domain_tags": domain_metadata.get("domain_tags", []),
             }
         }
         vertical = {
             "vertical": {
-                "schema_version": 2,
+                "schema_version": 3,
                 "id": identity["id"],
                 "name": document["name"],
                 "version": identity["version"],

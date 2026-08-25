@@ -1,9 +1,7 @@
 project_authority:
   schema: p2p-project-authority/v1
-  id: p2p-example-board-game-authority
+  id: p2p-project-authority-6450e9695be40c70f78a3c7e0cb6d3b9
   mode: local_policy
   generation: 1
-  display_name: Board game example authority
+  display_name: Local authority for owner
   local_policy_version: p2p-local-authority/v1
-  provider_id: null
-  provider_policy_version: null

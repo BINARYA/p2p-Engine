@@ -5,7 +5,7 @@ import json
 from dataclasses import asdict, dataclass
 
 
-AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v4"
+AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v5"
 
 
 @dataclass(frozen=True)
@@ -37,6 +37,25 @@ AGENT_CAPABILITIES = (
         exposure="cli_and_mcp",
         authority="read_only",
         reason="Project inspection is safe on both local agent surfaces.",
+    ),
+    AgentCapability(
+        capability_id="project.domain.classification",
+        cli_paths=(
+            "p2p project domain show",
+            "p2p project domain set",
+            "p2p project domain clear",
+        ),
+        mcp_tools=(
+            "p2p_project_domain_show",
+            "p2p_project_domain_set",
+            "p2p_project_domain_clear",
+        ),
+        exposure="owner_governed",
+        authority="project_domain_change",
+        reason=(
+            "Project domain is portable classification only; changing it is "
+            "receipt-backed and never changes project structure."
+        ),
     ),
     AgentCapability(
         capability_id="proposal.governance",

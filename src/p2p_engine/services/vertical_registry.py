@@ -633,7 +633,7 @@ def _parse_release(value: object, *, registry: str) -> VerticalRelease:
         raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: schema_version must be an integer") from exc
     if schema_version != PORTABLE_VERTICAL_SCHEMA_VERSION:
         raise ValueError(
-            "P2P_REGISTRY_SCHEMA_UNSUPPORTED: release does not use portable schema version 2"
+            "P2P_REGISTRY_SCHEMA_UNSUPPORTED: release does not use portable schema version 3"
         )
     artifact = value.get("artifact")
     if not isinstance(artifact, dict):

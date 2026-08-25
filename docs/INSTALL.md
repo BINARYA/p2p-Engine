@@ -121,8 +121,9 @@ The wizard asks for:
 Project name
 Initial agent profile: adaptive default, or generic, codex, claude, all
 Repository mode: local, cloud
-Domain template: none, custom, generic, software, grant_document, board_game
-Rubric criteria customization, when a template supplies criteria
+Optional free domain classification
+Structure starter: generic, empty
+Rubric criteria customization for the generic starter
 MCP setup hint
 ```
 
@@ -132,6 +133,7 @@ For a scriptable non-interactive setup:
 .venv/bin/p2p init "My Project" \
   --repository local \
   --domain software \
+  --vertical binarya/software_project@2.0.0 \
   --mcp-hint
 ```
 
@@ -164,10 +166,11 @@ include the project persistence policy: agents may analyze freely, but
 meaningful persistent writes need classification, preview, and strict placement
 unless the owner requested the exact operation and artifact.
 
-If you omit `--domain`, P2P starts with unresolved domain and rubric state. The
-first recommended project activities are then to define the domain and define
-the rubric with the user and agent. Use a domain template such as `software`
-when you want P2P to pre-populate rubric criteria at init time.
+The domain is optional free classification and is independent from structure.
+Use exactly one structure source: `--starter generic`, `--starter empty`, or an
+exact vertical release such as `--vertical binarya/software_project@2.0.0`.
+Human text mode defaults to `generic`; JSON mode requires an explicit source.
+Changing the domain later does not modify sections, rubrics or readiness.
 
 New projects also receive:
 
@@ -192,6 +195,7 @@ Local projects need only the P2P workspace:
 .venv/bin/p2p init "My Project" \
   --repository local \
   --domain software \
+  --vertical binarya/software_project@2.0.0 \
   --owner matteo \
   --mcp-hint
 ```
@@ -203,6 +207,7 @@ MVP keeps these as explicit steps:
 .venv/bin/p2p init "My Project" \
   --repository cloud \
   --domain software \
+  --vertical binarya/software_project@2.0.0 \
   --owner matteo \
   --mcp-hint
 

@@ -1,0 +1,6 @@
+section:
+  id: evaluation_criteria
+  title: Evaluation Criteria
+  purpose: Map the proposal to scoring, evidence, and award criteria.
+  required: true
+  priority: 40

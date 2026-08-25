@@ -11,6 +11,7 @@ from typing import Callable
 import uuid
 
 from p2p_engine.core.portable_verticals import VerticalCoordinate, is_semantic_version
+from p2p_engine.core.project_domain import ProjectDomainRef, normalize_domain_tags
 from p2p_engine.core.project_verticals import VerticalPack
 from p2p_engine.core.vertical_registry import VerticalCatalogItem
 from p2p_engine.core.vertical_drafts import (
@@ -56,6 +57,7 @@ _ROOT_FIELDS = {
     "examples",
     "source_attribution",
     "compatibility",
+    "domain_metadata",
 }
 
 
@@ -303,6 +305,7 @@ class VerticalDraftService:
                 "examples": [],
                 "source_attribution": {},
                 "compatibility": {},
+                "domain_metadata": {"primary_domain": None, "domain_tags": []},
             }
         )
 
@@ -314,7 +317,7 @@ class VerticalDraftService:
     ) -> dict[str, object]:
         manifest = pack.manifest
         if manifest is None:
-            raise ValueError("P2P_VERTICAL_PORTABLE_V2_REQUIRED: source pack has no manifest")
+            raise ValueError("P2P_VERTICAL_PORTABLE_V3_REQUIRED: source pack has no manifest")
         dependencies = [
             {
                 "coordinate": item.coordinate,
@@ -401,6 +404,14 @@ class VerticalDraftService:
             "examples": list(examples or []),
             "source_attribution": {"pack_source": manifest.source},
             "compatibility": dict(pack.compatibility),
+            "domain_metadata": {
+                "primary_domain": (
+                    manifest.primary_domain.to_dict()
+                    if manifest.primary_domain is not None
+                    else None
+                ),
+                "domain_tags": list(manifest.domain_tags),
+            },
         }
         return normalize_vertical_draft_document(document)
 
@@ -600,6 +611,19 @@ def normalize_vertical_draft_document(value: object) -> dict[str, object]:
         raise ValueError("P2P_VERTICAL_DRAFT_LIMIT: too many fields")
     profiles = _collection(value.get("profiles", {}), "profiles")
     modules = _collection(value.get("modules", {}), "modules")
+    domain_metadata = _mapping(value.get("domain_metadata", {}), "domain_metadata")
+    _reject_unknown(
+        domain_metadata,
+        {"primary_domain", "domain_tags"},
+        "domain_metadata",
+    )
+    primary_domain_raw = domain_metadata.get("primary_domain")
+    primary_domain = (
+        ProjectDomainRef.from_mapping(primary_domain_raw).to_dict()
+        if primary_domain_raw is not None
+        else None
+    )
+    domain_tags = list(normalize_domain_tags(domain_metadata.get("domain_tags", [])))
     document: dict[str, object] = {
         "contract_version": VERTICAL_DRAFT_DOCUMENT_VERSION,
         "identity": {
@@ -642,6 +666,10 @@ def normalize_vertical_draft_document(value: object) -> dict[str, object]:
         "compatibility": _plain_mapping(
             _mapping(value.get("compatibility", {}), "compatibility")
         ),
+        "domain_metadata": {
+            "primary_domain": primary_domain,
+            "domain_tags": domain_tags,
+        },
     }
     _validate_text_limits(document)
     encoded = canonical_vertical_draft_document(document)

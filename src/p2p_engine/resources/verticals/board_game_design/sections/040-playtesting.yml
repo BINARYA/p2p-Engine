@@ -1,0 +1,6 @@
+section:
+  id: playtesting
+  title: Playtesting
+  purpose: Define validation sessions, balance criteria, and feedback handling.
+  required: true
+  priority: 40

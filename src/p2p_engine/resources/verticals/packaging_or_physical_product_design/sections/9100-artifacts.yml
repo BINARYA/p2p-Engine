@@ -1,0 +1,6 @@
+section:
+  id: artifacts
+  title: Expected Artifacts
+  purpose: Documents, specs, prototypes, reports, or plans the project should produce.
+  required: true
+  priority: 100

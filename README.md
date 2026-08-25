@@ -95,6 +95,7 @@ Initialize P2P inside the target project:
   --agent codex \
   --repository local \
   --domain software \
+  --vertical binarya/software_project@2.0.0 \
   --mcp-hint
 ```
 
@@ -211,14 +212,14 @@ For a new project, use the default when multiple collaborators may use
 different agents:
 
 ```bash
-.venv/bin/p2p init "My Project" --repository local --domain software --mcp-hint
+.venv/bin/p2p init "My Project" --repository local --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
 ```
 
 You can also narrow the generated adapters:
 
 ```bash
-.venv/bin/p2p init "My Project" --agent codex --repository local --domain software --mcp-hint
-.venv/bin/p2p init "My Project" --agent codex --agent claude --repository local --domain software --mcp-hint
+.venv/bin/p2p init "My Project" --agent codex --repository local --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
+.venv/bin/p2p init "My Project" --agent codex --agent claude --repository local --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
 ```
 
 The `generic` baseline is always created and cannot be uninstalled.
@@ -239,7 +240,7 @@ For a remote-backed project, initialize the P2P project as cloud-backed, then
 record the remote profile and verify sync readiness:
 
 ```bash
-.venv/bin/p2p init "My Project" --repository cloud --domain software --owner matteo --mcp-hint
+.venv/bin/p2p init "My Project" --repository cloud --domain software --vertical binarya/software_project@2.0.0 --owner matteo --mcp-hint
 git remote add origin git@github.com:ORG/REPO.git
 .venv/bin/p2p project remote configure --mode remote --provider github --remote origin --url git@github.com:ORG/REPO.git
 .venv/bin/p2p sync status
@@ -375,7 +376,7 @@ Later:
 
 - packaged or compiled CLI distribution;
 - stronger spec/export workflows;
-- clearer extension points for project-domain rubrics.
+- clearer extension points for project-owned structure and portable domain classification.
 
 Hosted mediator or web products are outside this repository's current scope.
 

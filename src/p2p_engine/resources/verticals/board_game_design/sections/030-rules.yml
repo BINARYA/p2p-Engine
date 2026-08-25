@@ -1,0 +1,6 @@
+section:
+  id: rules
+  title: Rules
+  purpose: Define legal actions, phases, constraints, and win or loss conditions.
+  required: true
+  priority: 30

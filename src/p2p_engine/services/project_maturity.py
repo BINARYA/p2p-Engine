@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+from importlib.resources import files
 from pathlib import Path
 from typing import Callable, Protocol
+
+import yaml
 
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _foundation_read_yaml_mapping,
@@ -11,46 +14,7 @@ from p2p_engine.foundation.files import (
 )
 from p2p_engine.services.lifecycle_authority import is_active_project_projection
 
-PROJECT_DOMAIN_TEMPLATES = {"generic", "software", "grant_document", "board_game"}
-PROJECT_DOMAINS = {"none", "custom", *PROJECT_DOMAIN_TEMPLATES}
-
-_BUILT_IN_RUBRICS: dict[str, list[dict[str, object]]] = {
-    "generic": [
-        {"id": "problem_definition", "title": "Problem Definition", "keywords": ["problem", "need", "objective", "goal", "context"]},
-        {"id": "scope_boundaries", "title": "Scope Boundaries", "keywords": ["scope", "non-goal", "boundary", "out of scope"]},
-        {"id": "requirements", "title": "Requirements", "keywords": ["requirement", "criteria", "acceptance", "must"]},
-        {"id": "risks_tradeoffs", "title": "Risks and Tradeoffs", "keywords": ["risk", "tradeoff", "alternative", "constraint"]},
-        {"id": "validation_plan", "title": "Validation Plan", "keywords": ["test", "validation", "verify", "acceptance"]},
-    ],
-    "software": [
-        {"id": "problem_definition", "title": "Problem Definition", "keywords": ["problem", "need", "objective", "goal", "context"]},
-        {"id": "scope_boundaries", "title": "Scope Boundaries", "keywords": ["scope", "non-goal", "boundary", "out of scope"]},
-        {"id": "user_workflows", "title": "User Roles and Workflows", "keywords": ["user", "workflow", "role", "journey", "onboarding"]},
-        {"id": "functional_requirements", "title": "Functional Requirements", "keywords": ["feature", "command", "function", "requirement", "acceptance"]},
-        {"id": "non_functional_requirements", "title": "Non-Functional Requirements", "keywords": ["performance", "reliability", "scalability", "maintainability", "compatibility"]},
-        {"id": "security_privacy", "title": "Security and Privacy", "keywords": ["security", "privacy", "permission", "auth", "malicious", "sandbox"]},
-        {"id": "data_model", "title": "Data Model", "keywords": ["data model", "schema", "yaml", "json", "storage", "registry"]},
-        {"id": "integration_boundaries", "title": "Integration Boundaries", "keywords": ["integration", "mcp", "api", "adapter", "boundary", "interface"]},
-        {"id": "deployment_operations", "title": "Deployment and Operations", "keywords": ["install", "packaging", "deploy", "release", "cloud", "local"]},
-        {"id": "testing_strategy", "title": "Testing Strategy", "keywords": ["test", "pytest", "validation", "verify", "coverage"]},
-        {"id": "ux_accessibility", "title": "UX and Accessibility", "keywords": ["ux", "usability", "accessibility", "wizard", "onboarding"]},
-        {"id": "risks_tradeoffs", "title": "Risks and Tradeoffs", "keywords": ["risk", "tradeoff", "alternative", "constraint"]},
-        {"id": "acceptance_criteria", "title": "Acceptance Criteria", "keywords": ["acceptance", "definition of done", "criteria", "done"]},
-    ],
-    "grant_document": [
-        {"id": "call_requirements", "title": "Call Requirements", "keywords": ["call", "requirement", "eligibility", "deadline"]},
-        {"id": "objectives", "title": "Objectives", "keywords": ["objective", "impact", "beneficiary", "goal"]},
-        {"id": "budget", "title": "Budget", "keywords": ["budget", "cost", "funding", "expense"]},
-        {"id": "evaluation_criteria", "title": "Evaluation Criteria", "keywords": ["evaluation", "score", "criteria", "award"]},
-    ],
-    "board_game": [
-        {"id": "core_loop", "title": "Core Gameplay Loop", "keywords": ["turn", "round", "loop", "gameplay"]},
-        {"id": "components", "title": "Components", "keywords": ["component", "card", "board", "token", "piece"]},
-        {"id": "rules", "title": "Rules", "keywords": ["rule", "action", "phase", "win"]},
-        {"id": "playtesting", "title": "Playtesting", "keywords": ["playtest", "balance", "test", "feedback"]},
-    ],
-}
-
+PROJECT_RUBRIC_STARTERS = {"generic", "empty"}
 
 class _ProposalSummaryLike(Protocol):
     proposal_id: str
@@ -67,7 +31,7 @@ class _ChangeStatusLike(Protocol):
 @dataclass(frozen=True)
 class ProjectRubrics:
     path: Path
-    domain: str
+    structure_source: str
     status: str
     template: str | None
     criteria: list[dict[str, object]]
@@ -78,7 +42,7 @@ class ProjectRubrics:
 class ProjectDefinitionMaturity:
     path: Path
     generated_on: str
-    domain: str
+    structure_source: str
     score: int
     status: str
     criteria: list[dict[str, object]]
@@ -110,27 +74,17 @@ class ProjectMaturityService:
         self.change_set_statuses = change_set_statuses
         self.find_change_dir = find_change_dir
 
-    def init_project_rubrics(self, domain: str = "generic", force: bool = False) -> ProjectRubrics:
-        domain = normalize_project_domain(domain)
+    def init_project_rubrics(self, starter: str = "generic", force: bool = False) -> ProjectRubrics:
+        starter = normalize_rubric_starter(starter)
         path = self.p2p_dir / "project" / "rubrics.yml"
         if path.exists() and not force:
             raise ValueError("Project rubrics already exist. Use --force to replace them.")
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(_yaml_dump(rubrics_payload(domain)), encoding="utf-8")
-        domain_path = self.p2p_dir / "project" / "domain.yml"
-        domain_path.write_text(_yaml_dump(domain_state_payload(domain)), encoding="utf-8")
-        project_file = self.p2p_dir / "project.yml"
-        data = _read_yaml_mapping(project_file, default={})
-        project = data.get("project", {})
-        if not isinstance(project, dict):
-            project = {}
-        project["domain"] = domain
-        data["project"] = project
-        project_file.write_text(_yaml_dump(data), encoding="utf-8")
+        path.write_text(_yaml_dump(rubrics_payload(starter)), encoding="utf-8")
         return self.show_project_rubrics()
 
-    def init_project_rubrics_preview(self, domain: str = "generic") -> list[dict[str, object]]:
-        payload = rubrics_payload(domain)
+    def init_project_rubrics_preview(self, starter: str = "generic") -> list[dict[str, object]]:
+        payload = rubrics_payload(starter)
         criteria = payload.get("criteria", [])
         return [item for item in criteria if isinstance(item, dict)] if isinstance(criteria, list) else []
 
@@ -139,8 +93,23 @@ class ProjectMaturityService:
         if not path.exists():
             raise ValueError("Project rubrics not found. Run `p2p project rubrics init` first.")
         data = _read_yaml_mapping(path, default={})
-        domain = str(data.get("domain") or "generic")
-        status = str(data.get("status") or "template_selected")
+        source = data.get("structure_source")
+        if not isinstance(source, dict) or source.get("kind") not in {
+            "starter",
+            "vertical_release",
+        }:
+            raise ValueError(
+                "P2P_PROJECT_RUBRICS_INVALID: structure_source must identify a starter or vertical release"
+            )
+        if source.get("kind") == "starter":
+            source_identity = normalize_rubric_starter(str(source.get("starter_id") or ""))
+        else:
+            source_identity = str(source.get("coordinate") or "").strip()
+            if not source_identity:
+                raise ValueError(
+                    "P2P_PROJECT_RUBRICS_INVALID: vertical structure source requires coordinate"
+                )
+        status = str(data.get("status") or "starter_selected")
         template = data.get("template")
         criteria = data.get("criteria", [])
         selected_scope = data.get("selected_scope")
@@ -148,7 +117,7 @@ class ProjectMaturityService:
             criteria = []
         return ProjectRubrics(
             path=path.relative_to(self.root),
-            domain=domain,
+            structure_source=source_identity,
             status=status,
             template=str(template) if template else None,
             criteria=[item for item in criteria if isinstance(item, dict)],
@@ -173,7 +142,7 @@ class ProjectMaturityService:
         return ProjectDefinitionMaturity(
             path=path.relative_to(self.root),
             generated_on=str(data.get("generated_on") or ""),
-            domain=str(data.get("domain") or "generic"),
+            structure_source=str(data.get("structure_source") or "generic"),
             score=int(data.get("score") or 0),
             status=str(data.get("status") or "unknown"),
             criteria=[item for item in criteria if isinstance(item, dict)] if isinstance(criteria, list) else [],
@@ -204,18 +173,18 @@ class ProjectMaturityService:
             return ProjectDefinitionMaturity(
                 path=(self.p2p_dir / "project" / "maturity-assessment.yml").relative_to(self.root),
                 generated_on=date.today().isoformat(),
-                domain=rubrics.domain,
+                structure_source=rubrics.structure_source,
                 score=0,
                 status="rubric_missing",
                 criteria=[],
                 gaps=[
                     "Project definition rubric is unresolved or has no enabled criteria.",
-                    "Define the project domain before assessing maturity.",
-                    "Define the domain rubric and coverage criteria.",
+                    "Select or define project structure before assessing maturity.",
+                    "Define structure coverage criteria.",
                 ],
                 suggested_actions=[
-                    "Define the project domain with the user and agent.",
-                    "Define the project rubric and coverage criteria.",
+                    "Select a vertical release or edit the project structure.",
+                    "Define project structure coverage criteria.",
                 ],
                 selected_criteria_count=0,
                 disabled_criteria_count=disabled_count,
@@ -273,7 +242,7 @@ class ProjectMaturityService:
         return ProjectDefinitionMaturity(
             path=(self.p2p_dir / "project" / "maturity-assessment.yml").relative_to(self.root),
             generated_on=date.today().isoformat(),
-            domain=rubrics.domain,
+            structure_source=rubrics.structure_source,
             score=score,
             status=status,
             criteria=results,
@@ -313,100 +282,31 @@ class ProjectMaturityService:
         return records
 
 
-def normalize_project_domain(domain: str) -> str:
-    normalized = domain.strip().lower().replace("-", "_").replace(" ", "_")
-    aliases = {
-        "": "none",
-        "no_template": "none",
-        "no_domain": "none",
-        "unresolved": "none",
-        "blank": "none",
-        "empty": "none",
-        "custom_unresolved": "custom",
-        "soft": "software",
-        "software_development": "software",
-        "grant": "grant_document",
-        "bid": "grant_document",
-        "tender": "grant_document",
-        "game": "board_game",
-        "boardgame": "board_game",
-    }
-    normalized = aliases.get(normalized, normalized)
-    if normalized not in PROJECT_DOMAINS:
-        raise ValueError("Project domain must be none, custom, generic, software, grant_document, or board_game")
+def normalize_rubric_starter(starter: str) -> str:
+    normalized = starter.strip().lower()
+    if normalized not in PROJECT_RUBRIC_STARTERS:
+        raise ValueError("P2P_STRUCTURE_SOURCE_INVALID: rubric starter must be generic or empty")
     return normalized
 
 
-def domain_state_payload(domain: str) -> dict[str, object]:
-    domain = normalize_project_domain(domain)
-    if domain in PROJECT_DOMAIN_TEMPLATES:
-        return {
-            "version": "1.0",
-            "status": "template_selected",
-            "type": "template",
-            "name": domain,
-            "template": domain,
-        }
-    return {
-        "version": "1.0",
-        "status": "unresolved",
-        "type": domain,
-        "name": None,
-        "template": None,
-        "next_actions": [
-            {"kind": "define_custom_domain" if domain == "custom" else "define_domain", "title": "Define the project domain with the user and agent"},
-            {"kind": "define_domain_rubric", "title": "Define the project rubric and coverage criteria"},
-        ],
-    }
-
-
-def domain_setup_next_actions_payload(domain: str) -> dict[str, object]:
-    domain = normalize_project_domain(domain)
-    label = "custom" if domain == "custom" else "project"
-    return {
-        "next_actions": [
-            {
-                "id": "NEXT-001",
-                "priority": "high",
-                "kind": "define_domain",
-                "target": "project-domain",
-                "reason": f"The {label} domain is unresolved and must be defined before maturity can be assessed.",
-                "command": "p2p project show overview",
-            },
-            {
-                "id": "NEXT-002",
-                "priority": "high",
-                "kind": "define_domain_rubric",
-                "target": "project-rubric",
-                "reason": "The project rubric is unresolved and has no enabled criteria.",
-                "command": "p2p project rubrics show",
-            },
-        ]
-    }
-
-
-def rubrics_payload(domain: str, rubric_enabled: dict[str, bool] | None = None) -> dict[str, object]:
-    domain = normalize_project_domain(domain)
+def rubrics_payload(starter: str, rubric_enabled: dict[str, bool] | None = None) -> dict[str, object]:
+    starter = normalize_rubric_starter(starter)
     rubric_enabled = rubric_enabled or {}
-    if domain not in PROJECT_DOMAIN_TEMPLATES:
+    if starter == "empty":
         return {
             "version": "1.0",
-            "domain": domain,
-            "status": "unresolved",
-            "template": None,
+            "structure_source": {"kind": "starter", "starter_id": "empty"},
+            "status": "empty",
+            "template": "empty",
             "assessment_type": "project_definition_maturity",
             "scoring": {"covered": 100, "partial": 50, "missing": 0},
             "criteria": [],
-            "next_actions": [
-                {"kind": "define_domain", "title": "Define the project domain with the user and agent"},
-                {"kind": "define_domain_rubric", "title": "Define the project rubric and coverage criteria"},
-            ],
         }
     return {
         "version": "1.0",
-        "domain": domain,
-        "status": "template_selected",
-        "template": domain,
+        "structure_source": {"kind": "starter", "starter_id": starter},
+        "status": "starter_selected",
+        "template": starter,
         "assessment_type": "project_definition_maturity",
         "scoring": {"covered": 100, "partial": 50, "missing": 0},
         "criteria": [
@@ -417,16 +317,31 @@ def rubrics_payload(domain: str, rubric_enabled: dict[str, bool] | None = None) 
                 "required": True,
                 "keywords": list(item.get("keywords", [])),
             }
-            for item in _BUILT_IN_RUBRICS[domain]
+            for item in _generic_starter_rubrics()
         ],
     }
+
+
+def _generic_starter_rubrics() -> list[dict[str, object]]:
+    resource = files("p2p_engine").joinpath(
+        "resources", "verticals", "base_project", "rubrics.yml"
+    )
+    payload = yaml.safe_load(resource.read_text(encoding="utf-8"))
+    rubrics = payload.get("rubrics") if isinstance(payload, dict) else None
+    if not isinstance(rubrics, list) or not all(
+        isinstance(item, dict) for item in rubrics
+    ):
+        raise ValueError(
+            "P2P_STRUCTURE_SOURCE_INVALID: generic starter rubrics are unavailable"
+        )
+    return [dict(item) for item in rubrics]
 
 
 def definition_maturity_payload(maturity: ProjectDefinitionMaturity) -> dict[str, object]:
     return {
         "generated_on": maturity.generated_on,
         "assessment_type": "project_definition_maturity",
-        "domain": maturity.domain,
+        "structure_source": maturity.structure_source,
         "score": maturity.score,
         "status": maturity.status,
         "criteria": maturity.criteria,

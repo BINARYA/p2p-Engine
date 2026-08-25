@@ -822,7 +822,7 @@ def register_project_ops_commands(
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
         output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
     ) -> None:
-        """Create a local schema-version-2 vertical authoring scaffold."""
+        """Create a local schema-version-3 vertical authoring scaffold."""
         try:
             result = workspace_for(root).scaffold_portable_vertical(
                 target,
@@ -868,7 +868,7 @@ def register_project_ops_commands(
 
     @project_vertical_app.command("package")
     def project_vertical_package(
-        source: Path = typer.Argument(..., help="Canonical schema-version-2 pack directory"),
+        source: Path = typer.Argument(..., help="Canonical schema-version-3 pack directory"),
         output: Path = typer.Option(..., "--output", help="Portable archive path"),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
         output_format: str = typer.Option("json", "--format", help="Output format: text or json"),
@@ -1336,22 +1336,22 @@ def register_project_ops_commands(
 
     @project_rubrics_app.command("init")
     def project_rubrics_init(
-        domain: str = typer.Option(
+        starter: str = typer.Option(
             "generic",
-            "--domain",
-            help="none, custom, generic, software, grant_document, or board_game",
+            "--starter",
+            help="Cross-domain starter: generic or empty",
         ),
         force: bool = typer.Option(False, "--force", help="Replace existing project rubrics"),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
     ) -> None:
         """Create or replace project definition maturity rubrics."""
         try:
-            rubrics = workspace_for(root).init_project_rubrics(domain=domain, force=force)
+            rubrics = workspace_for(root).init_project_rubrics(starter=starter, force=force)
         except ValueError as exc:
             fail(str(exc))
         console.print("[green]Project rubrics initialized.[/green]")
         console.print(f"  path: {rubrics.path}")
-        console.print(f"  domain: {rubrics.domain}")
+        console.print(f"  structure source: {rubrics.structure_source}")
         console.print(f"  status: {rubrics.status}")
         console.print(f"  criteria: {len(rubrics.criteria)}")
 
@@ -1370,7 +1370,7 @@ def register_project_ops_commands(
             return
         console.print("Project rubrics")
         console.print(f"  path: {rubrics.path}")
-        console.print(f"  domain: {rubrics.domain}")
+        console.print(f"  structure source: {rubrics.structure_source}")
         console.print(f"  status: {rubrics.status}")
         if not rubrics.criteria:
             console.print("Criteria: unresolved")
@@ -1645,7 +1645,7 @@ def _is_portable_vertical_target(source: Path) -> bool:
     except (OSError, UnicodeDecodeError, ValueError, yaml.YAMLError):
         return False
     manifest = payload.get("manifest") if isinstance(payload, dict) else None
-    return isinstance(manifest, dict) and manifest.get("schema_version") == 2
+    return isinstance(manifest, dict) and manifest.get("schema_version") == 3
 
 
 def _operation_success(operation: str, data: object) -> dict[str, object]:

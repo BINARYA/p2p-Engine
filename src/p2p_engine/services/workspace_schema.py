@@ -215,6 +215,7 @@ class WorkspaceSchemaService:
             ".p2p/project/workspace-schema.yml",
             ".p2p/project/authority.yml",
             ".p2p/project/domain.yml",
+            ".p2p/project/structure-source.yml",
             ".p2p/project/permissions.yml",
             ".p2p/governance/constitution.md",
             ".p2p/governance/decision-rules.md",
@@ -260,6 +261,41 @@ class WorkspaceSchemaService:
                 )
         questions_path = self.root / ".p2p/project/questions.yml"
         authority_path = self.root / ".p2p/project/authority.yml"
+        domain_path = self.root / ".p2p/project/domain.yml"
+        structure_source_path = self.root / ".p2p/project/structure-source.yml"
+        if domain_path.exists() or structure_source_path.exists():
+            from p2p_engine.services.project_domain import ProjectDomainService
+
+            domain_service = ProjectDomainService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+            )
+            if domain_path.exists():
+                try:
+                    domain_service.show()
+                except ValueError as exc:
+                    findings.append(
+                        WorkspaceDiagnostic(
+                            code="P2P_PROJECT_DOMAIN_INVALID",
+                            severity="error",
+                            path=".p2p/project/domain.yml",
+                            message=str(exc),
+                            suggested_command="p2p project domain show --format json",
+                        )
+                    )
+            if structure_source_path.exists():
+                try:
+                    domain_service.structure_source()
+                except ValueError as exc:
+                    findings.append(
+                        WorkspaceDiagnostic(
+                            code="P2P_STRUCTURE_SOURCE_INVALID",
+                            severity="error",
+                            path=".p2p/project/structure-source.yml",
+                            message=str(exc),
+                            suggested_command="p2p project domain show --format json",
+                        )
+                    )
         if authority_path.exists():
             try:
                 from p2p_engine.services.authority import ProjectAuthorityService
@@ -456,19 +492,6 @@ class WorkspaceSchemaService:
         )
 
     def _alignment_advisories(self) -> list[WorkspaceDiagnostic]:
-        project = self._project_payload()
-        project_data = project.get("project") if isinstance(project, dict) else None
-        domain = str(project_data.get("domain") or "") if isinstance(project_data, dict) else ""
-        if domain == "software" and not (self.p2p_dir / "project" / "vertical.yml").exists():
-            return [
-                WorkspaceDiagnostic(
-                    code="P2P306_SOFTWARE_VERTICAL_FALLBACK",
-                    severity="warning",
-                    path=".p2p/project/vertical.yml",
-                    message="Software-domain workspace uses fallback vertical context.",
-                    suggested_command="p2p project vertical list",
-                )
-            ]
         return []
 
     def _project_payload(self) -> dict[str, object]:

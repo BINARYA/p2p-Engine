@@ -11,11 +11,13 @@ repository:
 agent_profiles:
 - claude
 - codex
+- copilot
 - cursor
+- gemini
 - generic
 - opencode
 agent_capabilities:
-  version: agent-capabilities-v4
+  version: agent-capabilities-v5
   capabilities:
   - capability_id: project.inspect
     cli_paths:
@@ -31,6 +33,23 @@ agent_capabilities:
     exposure: cli_and_mcp
     authority: read_only
     reason: Project inspection is safe on both local agent surfaces.
+    adapters:
+    - generic
+    - codex
+    - claude
+  - capability_id: project.domain.classification
+    cli_paths:
+    - p2p project domain show
+    - p2p project domain set
+    - p2p project domain clear
+    mcp_tools:
+    - p2p_project_domain_show
+    - p2p_project_domain_set
+    - p2p_project_domain_clear
+    exposure: owner_governed
+    authority: project_domain_change
+    reason: Project domain is portable classification only; changing it is receipt-backed
+      and never changes project structure.
     adapters:
     - generic
     - codex

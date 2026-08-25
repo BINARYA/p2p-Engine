@@ -169,7 +169,15 @@ class FakeWorkLifecycleWorkspace:
 
 
 def _setup_project(tmp_path: Path) -> P2PWorkspace:
-    call_tool("p2p_init_project", {"root": str(tmp_path), "name": "Demo Project", "domain": "software"})
+    call_tool(
+        "p2p_init_project",
+        {
+            "root": str(tmp_path),
+            "name": "Demo Project",
+            "domain": "software",
+            "vertical": "binarya/software_project@2.0.0",
+        },
+    )
     call_tool(
         "p2p_proposal_create",
         {
@@ -232,7 +240,11 @@ def test_mcp_work_spec_handler_serves_spec_export_and_work_flow(tmp_path: Path) 
     assert lifecycle is not None
     assert lifecycle["lifecycle"]["route"] == "preflight_change_set_then_refresh_software_spec"
     assert lifecycle["lifecycle"]["blockers"] == []
-    assert lifecycle["lifecycle"]["advisories"][0]["code"] == "software_vertical_not_active"
+    advisory_codes = {
+        item["code"] for item in lifecycle["lifecycle"]["advisories"]
+    }
+    assert "software_vertical_not_active" not in advisory_codes
+    assert "project_definition_incomplete" in advisory_codes
     assert spec is not None
     assert spec["spec"]["status"] == "generated"
     assert spec["spec"]["lifecycle"]["route"] == "preflight_change_set_then_refresh_software_spec"

@@ -220,7 +220,7 @@ class PortableVerticalPackageService:
         source = source if source.is_absolute() else self.root / source
         inspection = self.inspect(source, view="effective")
         if inspection.pack.schema_version != PORTABLE_VERTICAL_SCHEMA_VERSION or not inspection.pack.coordinate:
-            raise ValueError("P2P_VERTICAL_PORTABLE_V2_REQUIRED: only schema-version-2 packs can be packaged")
+            raise ValueError("P2P_VERTICAL_PORTABLE_V3_REQUIRED: only schema-version-3 packs can be packaged")
         entries = self.canonical_entries(source)
         output = output if output.is_absolute() else self.root / output
         output.parent.mkdir(parents=True, exist_ok=True)

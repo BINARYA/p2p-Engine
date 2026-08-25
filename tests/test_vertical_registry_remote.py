@@ -167,7 +167,7 @@ def _portable_releases(tmp_path: Path) -> tuple[dict[str, object], dict[str, obj
             "description": f"{name} description",
             "visibility": "public",
             "semantic_checksum": package.semantic_checksum,
-            "schema_version": 2,
+            "schema_version": 3,
             "artifact": {
                 "url": f"/artifacts/{package.artifact_checksum}.p2pv",
                 "sha256": package.artifact_checksum,
@@ -417,7 +417,7 @@ def test_search_pull_and_login_commands_use_versioned_json_without_secrets(
                     "description": "Search result",
                     "visibility": "public",
                     "semantic_checksum": "1" * 64,
-                    "schema_version": 2,
+                    "schema_version": 3,
                     "artifact": {
                         "url": "/artifacts/demo.p2pv",
                         "sha256": "2" * 64,
@@ -495,7 +495,7 @@ def test_malformed_artifact_leaves_no_partial_cache_closure(tmp_path: Path) -> N
         "description": "",
         "visibility": "public",
         "semantic_checksum": "1" * 64,
-        "schema_version": 2,
+        "schema_version": 3,
         "artifact": {
             "url": f"/artifacts/{checksum}.p2pv",
             "sha256": checksum,

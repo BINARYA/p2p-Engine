@@ -23,6 +23,7 @@ def test_project_initialization_service_creates_default_workspace(tmp_path: Path
     assert Path(".p2p/project/runtime.yml") in created
     assert Path("P2P-SETUP.md") in created
     assert Path(".p2p/project/domain.yml") in created
+    assert Path(".p2p/project/structure-source.yml") in created
     assert Path(".p2p/project/rubrics.yml") in created
     assert Path(".p2p/project/permissions.yml") in created
     assert Path(".p2p/config/readiness-profiles/default-readiness-v0.1.yml") in created
@@ -39,7 +40,7 @@ def test_project_initialization_service_creates_default_workspace(tmp_path: Path
     assert isinstance(repository, dict)
     assert isinstance(remote, dict)
     assert project_data["id"] == "demo-project"
-    assert project_data["domain"] == "none"
+    assert "domain" not in project_data
     assert repository["mode"] == "local"
     assert remote["mode"] == "local"
     assert project["runtime_contract"] == {"required": True}
@@ -47,6 +48,15 @@ def test_project_initialization_service_creates_default_workspace(tmp_path: Path
     p2p_runtime = runtime["runtime"]["p2p"]
     assert p2p_runtime["requires"] == f"=={P2P_ENGINE_VERSION}"
     assert p2p_runtime["recommended"] == P2P_ENGINE_VERSION
+    domain = _load_yaml(tmp_path / ".p2p" / "project" / "domain.yml")
+    structure_source = _load_yaml(
+        tmp_path / ".p2p" / "project" / "structure-source.yml"
+    )
+    assert domain["project_domain"]["descriptor"] is None
+    assert structure_source["structure_source"]["source"] == {
+        "kind": "starter",
+        "starter_id": "generic",
+    }
     setup = (tmp_path / "P2P-SETUP.md").read_text(encoding="utf-8")
     assert "P2P: generated-runtime-setup" in setup
     assert ".p2p/project/runtime.yml" in setup
@@ -135,32 +145,42 @@ def test_existing_broad_agent_install_is_not_narrowed_by_refresh_or_update(
     }
 
 
-def test_project_initialization_service_software_domain_uses_template_rubrics(tmp_path: Path) -> None:
+def test_project_initialization_service_domain_does_not_select_structure(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
 
-    workspace._project_initialization_service().init_project("Software Project", project_domain="software")
+    workspace.init_project(
+        "Software Project",
+        project_domain="software",
+        starter_id="generic",
+    )
 
     domain = _load_yaml(tmp_path / ".p2p" / "project" / "domain.yml")
     rubrics = _load_yaml(tmp_path / ".p2p" / "project" / "rubrics.yml")
-    assert domain["name"] == "software"
-    assert domain["status"] == "template_selected"
-    assert rubrics["domain"] == "software"
-    assert rubrics["status"] == "template_selected"
+    descriptor = domain["project_domain"]["descriptor"]
+    assert descriptor["key"] == "software"
+    assert descriptor["name"] == "Software"
+    assert rubrics["structure_source"] == {
+        "kind": "vertical_release",
+        "coordinate": "binarya/base_project@2.0.0",
+    }
+    assert workspace.active_project_vertical().vertical_id == "base_project"
+
+
+def test_project_initialization_service_accepts_unknown_domain_without_next_actions(tmp_path: Path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+
+    workspace.init_project(
+        "Custom Project",
+        project_domain="lunar-gardening",
+        starter_id="empty",
+    )
+
+    domain = _load_yaml(tmp_path / ".p2p" / "project" / "domain.yml")
+    rubrics = _load_yaml(tmp_path / ".p2p" / "project" / "rubrics.yml")
+    assert domain["project_domain"]["descriptor"]["key"] == "lunar-gardening"
+    assert rubrics["status"] == "empty"
+    assert rubrics["criteria"] == []
     assert not (tmp_path / ".p2p" / "project" / "next-actions.yml").exists()
-
-
-def test_project_initialization_service_unresolved_domain_creates_next_actions(tmp_path: Path) -> None:
-    workspace = P2PWorkspace(tmp_path)
-
-    workspace._project_initialization_service().init_project("Custom Project", project_domain="custom")
-
-    domain = _load_yaml(tmp_path / ".p2p" / "project" / "domain.yml")
-    rubrics = _load_yaml(tmp_path / ".p2p" / "project" / "rubrics.yml")
-    next_actions = _load_yaml(tmp_path / ".p2p" / "project" / "next-actions.yml")
-    assert domain["type"] == "custom"
-    assert domain["status"] == "unresolved"
-    assert rubrics["status"] == "unresolved"
-    assert next_actions["next_actions"][0]["id"] == "NEXT-001"
 
 
 def test_project_initialization_service_owner_and_cloud_remote_payload(tmp_path: Path) -> None:

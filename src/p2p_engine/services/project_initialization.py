@@ -10,6 +10,7 @@ import yaml
 
 from p2p_engine.core.authority import AuthorityContext, ProjectAuthorityDescriptor
 from p2p_engine.core.mutation_preview import semantic_sha256, source_precondition
+from p2p_engine.core.project_domain import ProjectDomainRef, StructureSource
 from p2p_engine.core.runtime_contract import RUNTIME_SETUP_GUIDE_MARKER
 from p2p_engine.core.workspace_schema import (
     CURRENT_WORKSPACE_SCHEMA_VERSION,
@@ -20,13 +21,12 @@ from p2p_engine.services.agent_instructions import AgentInstructionsResult
 from p2p_engine.services.agent_selection import AgentProfileSelection, select_agent_profile
 from p2p_engine.services.gitignore_hygiene import GitignoreHygieneResult, apply_gitignore_hygiene
 from p2p_engine.services.mcp_hints import McpHint, build_mcp_hint
-from p2p_engine.services.project_maturity import (
-    PROJECT_DOMAIN_TEMPLATES,
-    domain_setup_next_actions_payload,
-    domain_state_payload,
-    normalize_project_domain,
-    rubrics_payload,
+from p2p_engine.services.project_domain import (
+    initial_project_domain_state,
+    project_domain_state_bytes,
+    structure_source_bytes,
 )
+from p2p_engine.services.project_maturity import rubrics_payload
 from p2p_engine.services.readiness import DEFAULT_READINESS_PROFILE_ID
 from p2p_engine.services.project_questions import ProjectQuestionStateService
 from p2p_engine.services.authority import ProjectAuthorityService
@@ -52,6 +52,29 @@ def _yaml_dump(data: object) -> str:
     return yaml.safe_dump(data, sort_keys=False, allow_unicode=False)
 
 
+def _domain_descriptor(
+    key: str | None,
+    *,
+    name: str,
+    source: str,
+    external_ref: str | None,
+) -> ProjectDomainRef | None:
+    if key is None or not str(key).strip():
+        if name or external_ref:
+            raise ValueError(
+                "P2P_PROJECT_DOMAIN_INVALID: domain name or external reference requires a domain key"
+            )
+        return None
+    normalized_key = str(key).strip()
+    display_name = name.strip() or normalized_key.replace("_", " ").replace("-", " ").title()
+    return ProjectDomainRef(
+        key=normalized_key,
+        name=display_name,
+        source=source,
+        external_ref=external_ref,
+    )
+
+
 @dataclass(frozen=True)
 class ProjectInitializationResult:
     created: list[Path]
@@ -60,6 +83,10 @@ class ProjectInitializationResult:
     mcp_hint: McpHint
     gitignore_hygiene: GitignoreHygieneResult
     warnings: list[str]
+    domain: ProjectDomainRef | None
+    structure_source: StructureSource
+    structure_origin: dict[str, object]
+    structure_revision: int
 
 
 class ProjectInitializationService:
@@ -91,7 +118,12 @@ class ProjectInitializationService:
         name: str,
         agent_profile: str | None = None,
         repository_mode: str = "local",
-        project_domain: str = "none",
+        project_domain: str | None = None,
+        project_domain_name: str = "",
+        project_domain_source: str = "local",
+        project_domain_external_ref: str | None = None,
+        structure_source: StructureSource | None = None,
+        structure_origin: dict[str, object] | None = None,
         rubric_enabled: dict[str, bool] | None = None,
         owner: str | None = None,
         remote_provider: str | None = None,
@@ -104,6 +136,11 @@ class ProjectInitializationService:
             agent_profile=agent_profile,
             repository_mode=repository_mode,
             project_domain=project_domain,
+            project_domain_name=project_domain_name,
+            project_domain_source=project_domain_source,
+            project_domain_external_ref=project_domain_external_ref,
+            structure_source=structure_source,
+            structure_origin=structure_origin,
             rubric_enabled=rubric_enabled,
             owner=owner,
             remote_provider=remote_provider,
@@ -117,7 +154,12 @@ class ProjectInitializationService:
         name: str,
         agent_profile: str | None = None,
         repository_mode: str = "local",
-        project_domain: str = "none",
+        project_domain: str | None = None,
+        project_domain_name: str = "",
+        project_domain_source: str = "local",
+        project_domain_external_ref: str | None = None,
+        structure_source: StructureSource | None = None,
+        structure_origin: dict[str, object] | None = None,
         rubric_enabled: dict[str, bool] | None = None,
         owner: str | None = None,
         remote_provider: str | None = None,
@@ -128,7 +170,21 @@ class ProjectInitializationService:
         is_new_project = not (self.p2p_dir / "project.yml").exists()
         agent_selection = self.select_agent_profile(agent_profile)
         repository_mode = normalize_repository_mode(repository_mode)
-        project_domain = normalize_project_domain(project_domain)
+        domain_descriptor = _domain_descriptor(
+            project_domain,
+            name=project_domain_name,
+            source=project_domain_source,
+            external_ref=project_domain_external_ref,
+        )
+        selected_structure_source = structure_source or StructureSource.starter("generic")
+        selected_structure_origin = dict(
+            structure_origin
+            or {
+                "kind": "starter",
+                "identity": selected_structure_source.starter_id,
+                "checksum": None,
+            }
+        )
         remote_profile = self.remote_profile_default_payload(
             repository_mode=repository_mode,
             provider=remote_provider,
@@ -147,7 +203,9 @@ class ProjectInitializationService:
         files = self._bootstrap_files(
             name=name,
             repository_mode=repository_mode,
-            project_domain=project_domain,
+            domain_descriptor=domain_descriptor,
+            structure_source=selected_structure_source,
+            structure_origin=selected_structure_origin,
             rubric_enabled=rubric_enabled,
             owner=owner,
             remote_profile=remote_profile,
@@ -182,6 +240,10 @@ class ProjectInitializationService:
             mcp_hint=mcp_hint,
             gitignore_hygiene=gitignore_hygiene,
             warnings=warnings,
+            domain=domain_descriptor,
+            structure_source=selected_structure_source,
+            structure_origin=selected_structure_origin,
+            structure_revision=1,
         )
 
     def _bootstrap_files(
@@ -189,7 +251,9 @@ class ProjectInitializationService:
         *,
         name: str,
         repository_mode: str,
-        project_domain: str,
+        domain_descriptor: ProjectDomainRef | None,
+        structure_source: StructureSource,
+        structure_origin: dict[str, object],
         rubric_enabled: dict[str, bool] | None,
         owner: str | None,
         remote_profile: dict[str, object],
@@ -206,7 +270,6 @@ class ProjectInitializationService:
                         "name": name,
                         "version": "0.1.0",
                         "status": "active",
-                        "domain": project_domain,
                     },
                     "runtime_contract": {"required": True},
                     "storage": {
@@ -223,7 +286,26 @@ class ProjectInitializationService:
                     "remote": remote_profile,
                 }
             ),
-            self.p2p_dir / "project" / "domain.yml": _yaml_dump(domain_state_payload(project_domain)),
+            self.p2p_dir / "project" / "domain.yml": project_domain_state_bytes(
+                initial_project_domain_state(
+                    domain_descriptor,
+                    actor=owner or "owner",
+                    initialized_at=date.today().isoformat(),
+                    project_memory_revision=semantic_sha256(
+                        {
+                            "project": _slugify(name),
+                            "structure_source": structure_source.to_dict(),
+                            "structure_origin": structure_origin,
+                        }
+                    ),
+                )
+            ).decode("ascii"),
+            self.p2p_dir / "project" / "structure-source.yml": structure_source_bytes(
+                structure_source,
+                origin=structure_origin,
+                initialized_at=date.today().isoformat(),
+                initialized_by=owner or "owner",
+            ).decode("ascii"),
             self.p2p_dir / "governance" / "constitution.md": "# Constitution\n\nPending.\n",
             self.p2p_dir / "governance" / "decision-rules.md": "# Decision Rules\n\nPending.\n",
             self.p2p_dir / "governance" / "relevance-criteria.md": "# Relevance Criteria\n\nPending.\n",
@@ -236,7 +318,14 @@ class ProjectInitializationService:
             / "readiness-profiles"
             / f"{DEFAULT_READINESS_PROFILE_ID}.yml": _yaml_dump(self.readiness_default_profile_payload()),
             self.p2p_dir / "project" / "rubrics.yml": _yaml_dump(
-                rubrics_payload(project_domain, rubric_enabled=rubric_enabled)
+                rubrics_payload(
+                    (
+                        structure_source.starter_id
+                        if structure_source.kind == "starter"
+                        else "empty"
+                    ),
+                    rubric_enabled=rubric_enabled,
+                )
             ),
             self.p2p_dir / "project" / "permissions.yml": _yaml_dump(
                 permissions_payload
@@ -254,10 +343,6 @@ class ProjectInitializationService:
             )
             files[self.p2p_dir / "project" / "questions.yml"] = _yaml_dump(
                 empty_questions.to_payload()
-            )
-        if project_domain not in PROJECT_DOMAIN_TEMPLATES:
-            files[self.p2p_dir / "project" / "next-actions.yml"] = _yaml_dump(
-                domain_setup_next_actions_payload(project_domain)
             )
         if is_new_project:
             files[runtime_service.contract_path] = _yaml_dump(runtime_service.default_contract_payload())
@@ -333,7 +418,6 @@ class ProjectInitializationService:
                 path.write_text(content, encoding="utf-8")
                 created.append(path.relative_to(self.root))
         return created
-
     def _bootstrap_authority_descriptor(
         self,
         *,

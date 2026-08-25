@@ -4,14 +4,11 @@ project_definition:
   vertical_version: 2.0.0
   profile: default
   modules:
-  - roadmap
-  - risk_management
-  - stakeholder_alignment
   - software_spec_lifecycle
   - implementation_planning
   - validation_strategy
   lock:
-    checksum: 15343e360996a1166fd32570d94d2e2c984076e5ad5f61f7af84355df3ee9e13
+    checksum: 2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d
   sections:
   - id: vision
     status: missing
@@ -153,7 +150,7 @@ project_definition:
     blockers: []
   next_suggested_action: {}
   history:
-  - at: '2026-08-04'
+  - at: '2026-08-25'
     actor: owner
     operation: initialize_definition_state
     section_id: ''

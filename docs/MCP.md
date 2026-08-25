@@ -268,7 +268,7 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_intake_status` | read-only | no | no | List intake records and analysis state. |
 | `p2p_project_brief_show` | read-only | no | no | Show imported operational brief, if present. |
 | `p2p_conflict_status` | read-only | no | no | Read recorded project conflicts. |
-| `p2p_init_project` | write-safe | yes | no | Bootstrap a P2P workspace and agent boundaries. |
+| `p2p_init_project` | write-safe | yes | no | Bootstrap a P2P workspace with a free domain classification and exactly one `generic`, `empty`, or exact vertical structure source. |
 | `p2p_agent_instructions_refresh` | write-safe | yes | no | Refresh agent instructions and policy. |
 | `p2p_agent_list` | read-only | no | no | List supported and installed agent integrations. |
 | `p2p_agent_show` | read-only | no | no | Show one agent integration, files, and drift state. |
@@ -318,8 +318,11 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_project_publish_status` | read-only | no | no | Read stage-level status and approval for one selected edition. |
 | `p2p_project_publish_list` | read-only | no | no | List committed current editions without rebuilding publication state. |
 | `p2p_project_vertical_list` | read-only | no | no | List internal and project-local vertical packs plus active/fallback state. |
-| `p2p_project_vertical_show` | read-only | no | no | Read one vertical pack, including inherited `base_project` sections. |
-| `p2p_project_vertical_validate` | read-only | no | no | Validate an installed vertical coordinate or schema-2 pack directory. |
+| `p2p_project_domain_show` | read-only | no | no | Read the portable project-domain classification without exposing storage paths. |
+| `p2p_project_domain_set` | permission-gated | yes | yes | Set domain classification through typed authority, consent and receipt-backed replay without changing structure. |
+| `p2p_project_domain_clear` | permission-gated | yes | yes | Clear domain classification through typed authority, consent and receipt-backed replay without changing structure. |
+| `p2p_project_vertical_show` | read-only | no | no | Read one self-contained vertical release. |
+| `p2p_project_vertical_validate` | read-only | no | no | Validate an installed vertical coordinate or schema-3 pack directory. |
 | `p2p_project_vertical_select` | write-safe | yes | no | Select the active project vertical without accepting or changing proposals. |
 | `p2p_project_vertical_lock_show` | read-only | no | no | Read vertical lock status without repair or fallback mutation. |
 | `p2p_project_vertical_lock_repair` | write-safe | yes | no | Explicitly create or repair `vertical.lock.yml` from active vertical state. |

@@ -26,6 +26,7 @@ Scriptable setup:
 p2p init "My Project" \
   --repository local \
   --domain software \
+  --vertical binarya/software_project@2.0.0 \
   --mcp-hint
 ```
 
@@ -57,9 +58,27 @@ Init also applies append-only `.gitignore` hygiene for common local artifacts
 and reports whether the repository hygiene section was applied, already
 covered, or warning-only.
 
-`--domain` applies an optional domain template. If omitted, the project starts
-with unresolved domain and rubric state, and `p2p next` will recommend defining
-the domain and rubric before maturity assessment can become meaningful.
+`--domain` records an optional free subject classification. It never chooses
+sections, rubrics, questions or readiness criteria. Initialization resolves one
+independent structure source: `--starter generic`, `--starter empty`, or one
+exact `--vertical publisher/id@version`. Human text mode defaults to the
+documented `generic` starter; JSON mode requires the source explicitly.
+
+Examples:
+
+```bash
+p2p init "Garden plan" --domain gardening --starter generic
+p2p init "Lunar garden" --domain lunar-gardening --starter empty
+p2p init "Software" --domain software --vertical binarya/software_project@2.0.0
+```
+
+Inspect or reclassify the domain without changing structure:
+
+```bash
+p2p project domain show --format json
+p2p project domain set gardening --name "Gardening" --actor owner --operation-key local:domain-001 --format json
+p2p project domain clear --actor owner --operation-key local:domain-002 --format json
+```
 
 Typical first checks:
 
@@ -299,7 +318,7 @@ If no active vertical has been selected, project reads use `base_project` as a
 normal fallback. This is not an init failure; it is a signal that an agent or
 owner should define the project skeleton before relying on readiness.
 
-P2P Engine accepts schema-2 canonical multi-file packs only:
+P2P Engine accepts schema-3 canonical multi-file packs only:
 
 ```text
 <pack-root>/
@@ -315,12 +334,14 @@ P2P Engine accepts schema-2 canonical multi-file packs only:
 
 `vertical.yml` contains metadata only. Sections, rubrics and optional profile,
 module, artifact and example content live in their canonical split paths.
+`manifest.yml` may add advisory `primary_domain` and `domain_tags` metadata;
+these values never select structure or change the project's domain.
 
-The four bundled seeds use exact `binarya/<vertical-id>@2.0.0` coordinates.
+The bundled releases use exact `binarya/<vertical-id>@2.0.0` coordinates.
 Bare IDs work only when they resolve to one coordinate. Multiple releases make
 a bare ID ambiguous, while semantically different packs claiming the same
 coordinate fail with `P2P_VERTICAL_COORDINATE_CONFLICT`; no source precedence
-silently chooses one. Schema-1 and single-file packs are unsupported.
+silently chooses one. Schema-1, schema-2 and single-file packs are unsupported.
 
 ### Portable Versioned Packs
 

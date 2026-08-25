@@ -29,6 +29,11 @@ comandi diretti sulla root: 6
 > schema 2. Le superfici correnti sono documentate in
 > [`CLI-GUIDE.md`](../CLI-GUIDE.md) e sono sempre verificabili con `p2p --help`.
 
+> Revisione 0.5.0: il runtime corrente separa la classificazione libera del
+> dominio dalla sorgente strutturale, richiede vertical pack schema 3 e non
+> converte workspace o pack precedenti. Le righe aggiornate sotto descrivono
+> la superficie corrente; i numeri dello snapshot restano storici.
+
 > Estensione schema 4: la superficie corrente espone
 > `p2p project authority show`, `capabilities` e
 > `rotate preview|apply|status`. `p2p init`, `p2p decision preview|apply` e la
@@ -97,7 +102,7 @@ Sorgenti principali:
 | `p2p context [--budget] [--target]` | `R` | Costruisce il context packet compatto per un agente. |
 | `p2p check` | `R` | Controlla la struttura minima dello workspace. |
 | `p2p validate` | `R` | Esegue validazione strutturale e semantica completa. |
-| `p2p init NAME` | `C/G/N` | Inizializza workspace, profilo, owner, verticale e integrazioni richieste; una coordinate locale resta offline, `--pull` autorizza esplicitamente il registry remoto e `--vertical-pack` usa un artifact locale con checksum atteso. |
+| `p2p init NAME` | `C/G/N` | Inizializza dominio classificatorio e una sola sorgente strutturale: `--starter generic|empty`, `--vertical publisher/id@version` o pack locale; il JSON richiede sorgente e operation key esplicite. |
 
 ### Runtime contract
 
@@ -161,6 +166,9 @@ e [`project_status.py`](../../src/p2p_engine/cli_commands/project_status.py).
 | `p2p project metadata show` | `R` | Mostra metadati limitati e hash delle configurazioni protette. |
 | `p2p project metadata preview` | `P` | Valida una modifica bounded dei metadati. |
 | `p2p project metadata apply` | `C/O` | Applica la modifica legata alla preview. |
+| `p2p project domain show` | `R` | Mostra la classificazione libera del dominio, separata dalla struttura. |
+| `p2p project domain set` | `C/O` | Imposta il descrittore di dominio con authority context, operation key e receipt senza cambiare struttura. |
+| `p2p project domain clear` | `C/O` | Rimuove il descrittore di dominio con authority context, operation key e receipt senza cambiare struttura. |
 | `p2p project interaction-style show` | `R` | Mostra lo stile owner-facing effettivo. |
 | `p2p project interaction-style set` | `C/O` | Aggiorna verbosita, formalita o assertivita. |
 
@@ -184,7 +192,7 @@ e [`project_status.py`](../../src/p2p_engine/cli_commands/project_status.py).
 | `p2p vertical draft create --empty\|--from COORDINATE` | `C` | Crea un draft normalizzato esterno a `.p2p`, vuoto o derivato da una release esatta. |
 | `p2p vertical draft inspect DRAFT-ID` | `R` | Restituisce documento completo, revisione, hash, diagnostica ed evidenze. |
 | `p2p vertical draft update DRAFT-ID` | `C` | Sostituisce il documento completo con precondizione ottimistica e invalida le evidenze. |
-| `p2p vertical draft materialize DRAFT-ID TARGET` | `C` | Compila atomicamente il documento in una nuova directory canonica schema 2. |
+| `p2p vertical draft materialize DRAFT-ID TARGET` | `C` | Compila atomicamente il documento in una nuova directory canonica schema 3. |
 | `p2p vertical draft validate DRAFT-ID` | `C` | Valida draft e materializzazione e registra evidenza legata a revisione e hash. |
 | `p2p vertical draft package DRAFT-ID OUTPUT` | `C` | Produce l'artefatto deterministico dalla materializzazione corrente validata. |
 | `p2p vertical draft add-local DRAFT-ID` | `C` | Aggiunge la release esatta e immutabile alla cache/catalogo utente. |
@@ -192,10 +200,10 @@ e [`project_status.py`](../../src/p2p_engine/cli_commands/project_status.py).
 | `p2p project vertical list` | `R` | Elenca vertical pack integrati, utente e project-local. |
 | `p2p project vertical show VERTICAL` | `R` | Mostra manifest e contenuto del pack. |
 | `p2p project vertical validate TARGET` | `R` | Valida ID, `vertical.yml` o directory multi-file. |
-| `p2p project vertical schema` | `R` | Restituisce schema e limiti dei portable vertical pack v2. |
-| `p2p project vertical scaffold TARGET` | `C` | Crea una directory autore v2 locale; non muta `.p2p`. |
+| `p2p project vertical schema` | `R` | Restituisce schema e limiti dei portable vertical pack v3. |
+| `p2p project vertical scaffold TARGET` | `C` | Crea una directory autore v3 locale; non muta `.p2p`. |
 | `p2p project vertical inspect TARGET` | `R` | Mostra vista dichiarata o effettiva di directory e archivi locali. |
-| `p2p project vertical package TARGET` | `C` | Produce un archivio v2 deterministico fuori dallo stato progettuale. |
+| `p2p project vertical package TARGET` | `C` | Produce un archivio v3 deterministico fuori dallo stato progettuale. |
 | `p2p project vertical install preview/apply` | `R/C` | Installa offline una coordinate esatta con checksum, token e conferma. |
 | `p2p project vertical adopt preview/apply` | `R/C/O` | Adotta una coordinate esatta solo con classificazione tipizzata `empty`. |
 | `p2p project vertical migrate preview/apply` | `R/C/O` | Analizza l'impatto tipizzato, richiede un piano decisionale esatto e preserva evidenze/orfani per famiglia. |

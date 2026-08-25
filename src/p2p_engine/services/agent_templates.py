@@ -159,7 +159,11 @@ runtime. Do not create or repair `decision-events.yml`, projections, schema
 state, transaction locks, journals or candidates manually."""
 
 
-PROJECT_VERTICAL_ORCHESTRATION_BLOCK = """When the project is uninitialized, uses the base-project fallback, or has weak capisaldi coverage, treat project definition as the priority context-building task.
+PROJECT_VERTICAL_ORCHESTRATION_BLOCK = """Project domain classification and project structure are independent. `p2p project domain show` reads the free classification descriptor; receipt-backed `p2p project domain set` and `clear` change only that descriptor and never select, replace, or edit a vertical. With MCP use `p2p_project_domain_show` and the consent-gated `p2p_project_domain_set` or `p2p_project_domain_clear` tools.
+
+Initialization resolves exactly one structure source. Use `--starter generic`, `--starter empty`, or one exact `--vertical publisher/id@version`. JSON initialization must name the source explicitly; never infer it from `--domain`. Specialized software, board-game, grant-document and physical-product structures are ordinary vertical releases, not domain templates.
+
+When the project is uninitialized, uses the generic starter, uses the empty starter, or has weak capisaldi coverage, treat project definition as the priority context-building task.
 
 Use project vertical commands:
 - `p2p project vertical list`
@@ -184,7 +188,7 @@ Use project vertical commands:
 
 Behavior:
 1. inspect vertical context, definition state, rubrics, and lock status before deep project-definition work;
-2. use an exact `publisher/id@version` release when one fits; otherwise scaffold and validate a new schema-2 release;
+2. use an exact `publisher/id@version` release when one fits; otherwise scaffold and validate a new schema-3 release;
 3. package and install custom releases through the portable `.p2pv` lifecycle, then require owner-confirmed adopt or migrate apply;
 4. use the vertical skeleton and definition state to identify missing capisaldi and focused questions;
 5. connect proposals to vertical sections through supported CLI/MCP artifacts when available;

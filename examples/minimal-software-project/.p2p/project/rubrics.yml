@@ -1,5 +1,7 @@
 version: '1.0'
-domain: project_vertical:software_project
+structure_source:
+  kind: vertical_release
+  coordinate: binarya/software_project@2.0.0
 status: vertical_selected
 template: software_project
 assessment_type: project_definition_maturity
@@ -12,75 +14,6 @@ selected_scope:
   disabled: 0
   total_default: 15
 criteria:
-- id: vision_clarity
-  title: Vision Clarity
-  enabled: true
-  required: true
-  section_id: vision
-  keywords:
-  - vision
-  - purpose
-  - change
-  source: project_vertical
-  vertical_id: software_project
-- id: objective_clarity
-  title: Objective Clarity
-  enabled: true
-  required: true
-  section_id: objective
-  keywords:
-  - objective
-  - outcome
-  - goal
-  - result
-  source: project_vertical
-  vertical_id: software_project
-- id: stakeholder_alignment
-  title: Stakeholder Alignment
-  enabled: true
-  required: true
-  section_id: stakeholders
-  keywords:
-  - owner
-  - stakeholder
-  - beneficiary
-  - user
-  source: project_vertical
-  vertical_id: software_project
-- id: scope_boundaries
-  title: Scope Boundaries
-  enabled: true
-  required: true
-  section_id: scope
-  keywords:
-  - scope
-  - non-goal
-  - boundary
-  - constraint
-  source: project_vertical
-  vertical_id: software_project
-- id: risk_coverage
-  title: Risk Coverage
-  enabled: true
-  required: true
-  section_id: risks
-  keywords:
-  - risk
-  - mitigation
-  - tradeoff
-  source: project_vertical
-  vertical_id: software_project
-- id: readiness_criteria
-  title: Readiness Criteria
-  enabled: true
-  required: true
-  section_id: definition_of_done
-  keywords:
-  - readiness
-  - definition of done
-  - acceptance
-  source: project_vertical
-  vertical_id: software_project
 - id: software_objective_clarity
   title: Software Objective Clarity
   enabled: true
@@ -187,161 +120,72 @@ criteria:
   - tradeoff
   source: project_vertical
   vertical_id: software_project
-- id: problem_definition
-  title: Problem Definition
+- id: vision_clarity
+  title: Vision Clarity
   enabled: true
   required: true
+  section_id: vision
   keywords:
-  - problem
-  - need
+  - vision
+  - purpose
+  - change
+  source: project_vertical
+  vertical_id: software_project
+- id: objective_clarity
+  title: Objective Clarity
+  enabled: true
+  required: true
+  section_id: objective
+  keywords:
   - objective
+  - outcome
   - goal
-  - context
-  orphaned: true
-  unmapped_from_previous_vertical: true
-  counts_toward_active_baseline: false
-- id: user_workflows
-  title: User Roles and Workflows
+  - result
+  source: project_vertical
+  vertical_id: software_project
+- id: stakeholder_alignment
+  title: Stakeholder Alignment
   enabled: true
   required: true
+  section_id: stakeholders
   keywords:
+  - owner
+  - stakeholder
+  - beneficiary
   - user
-  - workflow
-  - role
-  - journey
-  - onboarding
-  orphaned: true
-  unmapped_from_previous_vertical: true
-  counts_toward_active_baseline: false
-- id: functional_requirements
-  title: Functional Requirements
+  source: project_vertical
+  vertical_id: software_project
+- id: scope_boundaries
+  title: Scope Boundaries
   enabled: true
   required: true
+  section_id: scope
   keywords:
-  - feature
-  - command
-  - function
-  - requirement
-  - acceptance
-  orphaned: true
-  unmapped_from_previous_vertical: true
-  counts_toward_active_baseline: false
-- id: non_functional_requirements
-  title: Non-Functional Requirements
-  enabled: true
-  required: true
-  keywords:
-  - performance
-  - reliability
-  - scalability
-  - maintainability
-  - compatibility
-  orphaned: true
-  unmapped_from_previous_vertical: true
-  counts_toward_active_baseline: false
-- id: security_privacy
-  title: Security and Privacy
-  enabled: true
-  required: true
-  keywords:
-  - security
-  - privacy
-  - permission
-  - auth
-  - malicious
-  - sandbox
-  orphaned: true
-  unmapped_from_previous_vertical: true
-  counts_toward_active_baseline: false
-- id: data_model
-  title: Data Model
-  enabled: true
-  required: true
-  keywords:
-  - data model
-  - schema
-  - yaml
-  - json
-  - storage
-  - registry
-  orphaned: true
-  unmapped_from_previous_vertical: true
-  counts_toward_active_baseline: false
-- id: integration_boundaries
-  title: Integration Boundaries
-  enabled: true
-  required: true
-  keywords:
-  - integration
-  - mcp
-  - api
-  - adapter
+  - scope
+  - non-goal
   - boundary
-  - interface
-  orphaned: true
-  unmapped_from_previous_vertical: true
-  counts_toward_active_baseline: false
-- id: deployment_operations
-  title: Deployment and Operations
+  - constraint
+  source: project_vertical
+  vertical_id: software_project
+- id: risk_coverage
+  title: Risk Coverage
   enabled: true
   required: true
-  keywords:
-  - install
-  - packaging
-  - deploy
-  - release
-  - cloud
-  - local
-  orphaned: true
-  unmapped_from_previous_vertical: true
-  counts_toward_active_baseline: false
-- id: testing_strategy
-  title: Testing Strategy
-  enabled: true
-  required: true
-  keywords:
-  - test
-  - pytest
-  - validation
-  - verify
-  - coverage
-  orphaned: true
-  unmapped_from_previous_vertical: true
-  counts_toward_active_baseline: false
-- id: ux_accessibility
-  title: UX and Accessibility
-  enabled: true
-  required: true
-  keywords:
-  - ux
-  - usability
-  - accessibility
-  - wizard
-  - onboarding
-  orphaned: true
-  unmapped_from_previous_vertical: true
-  counts_toward_active_baseline: false
-- id: risks_tradeoffs
-  title: Risks and Tradeoffs
-  enabled: true
-  required: true
+  section_id: risks
   keywords:
   - risk
+  - mitigation
   - tradeoff
-  - alternative
-  - constraint
-  orphaned: true
-  unmapped_from_previous_vertical: true
-  counts_toward_active_baseline: false
-- id: acceptance_criteria
-  title: Acceptance Criteria
+  source: project_vertical
+  vertical_id: software_project
+- id: readiness_criteria
+  title: Readiness Criteria
   enabled: true
   required: true
+  section_id: definition_of_done
   keywords:
-  - acceptance
+  - readiness
   - definition of done
-  - criteria
-  - done
-  orphaned: true
-  unmapped_from_previous_vertical: true
-  counts_toward_active_baseline: false
+  - acceptance
+  source: project_vertical
+  vertical_id: software_project

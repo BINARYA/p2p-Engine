@@ -79,7 +79,13 @@ vertical_release:
     description: Example vertical
     visibility: public
     semantic_checksum: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-    schema_version: 2
+    schema_version: 3
+    primary_domain:
+      key: software
+      name: Software
+      source: local
+      external_ref: null
+    domain_tags: [technology, collaboration]
     artifact:
       url: /artifacts/example/software-blue/1.0.0/package.p2pv
       sha256: abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
@@ -92,6 +98,10 @@ vertical_release:
 Coordinates and dependency coordinates are exact; tags, ranges and implicit
 latest-version resolution are not part of protocol v1. Artifact URLs can be
 relative or same-origin absolute URLs.
+
+`primary_domain` and `domain_tags` are optional advisory discovery metadata.
+They never select project structure, inject readiness rules, or replace the
+project's independent domain classification.
 
 ## Authentication
 

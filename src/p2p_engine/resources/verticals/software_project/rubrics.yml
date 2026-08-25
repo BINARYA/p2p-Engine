@@ -78,3 +78,54 @@ rubrics:
   - alternative
   - decision
   - tradeoff
+- id: vision_clarity
+  title: Vision Clarity
+  section_id: vision
+  required: true
+  keywords:
+  - vision
+  - purpose
+  - change
+- id: objective_clarity
+  title: Objective Clarity
+  section_id: objective
+  required: true
+  keywords:
+  - objective
+  - outcome
+  - goal
+  - result
+- id: stakeholder_alignment
+  title: Stakeholder Alignment
+  section_id: stakeholders
+  required: true
+  keywords:
+  - owner
+  - stakeholder
+  - beneficiary
+  - user
+- id: scope_boundaries
+  title: Scope Boundaries
+  section_id: scope
+  required: true
+  keywords:
+  - scope
+  - non-goal
+  - boundary
+  - constraint
+- id: risk_coverage
+  title: Risk Coverage
+  section_id: risks
+  required: true
+  keywords:
+  - risk
+  - mitigation
+  - tradeoff
+- id: readiness_criteria
+  title: Readiness Criteria
+  section_id: definition_of_done
+  required: true
+  keywords:
+  - readiness
+  - definition of done
+  - acceptance
