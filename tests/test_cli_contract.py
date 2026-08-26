@@ -67,6 +67,9 @@ project.domain.show
 project.structure.add-section
 project.structure.history
 project.structure.reorder
+project.structure.replace.apply
+project.structure.replace.preview
+project.structure.replace.status
 project.structure.retire.apply
 project.structure.retire.preview
 project.structure.retire.status
@@ -216,7 +219,7 @@ def test_cli_json_operation_inventory_is_reviewed_and_guarded() -> None:
     inventory = json_command_inventory(get_command(app))
 
     assert frozenset(inventory) == EXPECTED_JSON_OPERATIONS
-    assert len(inventory) == 143
+    assert len(inventory) == 146
     assert inventory["vertical.inspect"] == "json"
     assert inventory["workspace.schema.status"] == "text"
 
@@ -310,6 +313,9 @@ def test_version_json_works_without_project_root() -> None:
         "structure_retirement_impact_contract": "p2p-structure-retirement-impact/v1",
         "structure_retirement_plan_contract": "p2p-structure-retirement-plan/v1",
         "structure_retirement_result_contract": "p2p-structure-retirement-result/v1",
+        "structure_replacement_impact_contract": "p2p-structure-replacement-impact/v1",
+        "structure_replacement_plan_contract": "p2p-structure-replacement-plan/v1",
+        "structure_replacement_result_contract": "p2p-structure-replacement-result/v1",
         "project_memory_scope_contract": "p2p-project-memory-scope/v1",
         "project_memory_scope_events_contract": "p2p-project-memory-scope-events/v1",
         "project_memory_scope_mutation_contract": "p2p-project-memory-scope-mutation/v1",

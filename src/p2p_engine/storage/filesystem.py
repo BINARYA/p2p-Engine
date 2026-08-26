@@ -51,6 +51,12 @@ from p2p_engine.core.project_structure_export import (
     ProjectStructureExportPreview,
     ProjectStructureExportResult,
 )
+from p2p_engine.core.project_structure_replacement import (
+    ProjectStructureReplacementInspection,
+    ProjectStructureReplacementPreview,
+    ProjectStructureReplacementResult,
+    StructureReplacementPlan,
+)
 from p2p_engine.core.project_structure_retirement import (
     ProjectStructureRetirementPreview,
     ProjectStructureRetirementResult,
@@ -222,6 +228,7 @@ from p2p_engine.services.project_assessment import ProjectAssessment, ProjectAss
 from p2p_engine.services.project_domain import ProjectDomainService
 from p2p_engine.services.project_structure import ProjectStructureService
 from p2p_engine.services.project_structure_export import ProjectStructureExportService
+from p2p_engine.services.project_structure_replacement import ProjectStructureReplacementService
 from p2p_engine.services.project_structure_retirement import ProjectStructureRetirementService
 from p2p_engine.services.project_memory import ProjectMemoryService
 from p2p_engine.services.project_contexts import ProjectContextRendererService
@@ -414,6 +421,9 @@ class P2PWorkspace:
         self._project_structure_export_service_instance: (
             ProjectStructureExportService | None
         ) = None
+        self._project_structure_replacement_service_instance: (
+            ProjectStructureReplacementService | None
+        ) = None
         self._project_structure_retirement_service_instance: (
             ProjectStructureRetirementService | None
         ) = None
@@ -525,6 +535,24 @@ class P2PWorkspace:
                 )
             )
         return self._project_structure_retirement_service_instance
+
+    def _project_structure_replacement_service(self) -> ProjectStructureReplacementService:
+        if self._project_structure_replacement_service_instance is None:
+            self._project_structure_replacement_service_instance = (
+                ProjectStructureReplacementService(
+                    root=self.root,
+                    p2p_dir=self.p2p_dir,
+                    structure_service=self._project_structure_service(),
+                    memory_service=self._project_memory_service(),
+                    question_service=self._project_question_state_service(),
+                    vertical_service=self._project_vertical_service(),
+                    package_service=self._portable_vertical_package_service(),
+                    readiness_result=lambda: self.project_readiness_result(),
+                    authority=self._project_authority_service(),
+                    receipts=self._mutation_receipt_service(),
+                )
+            )
+        return self._project_structure_replacement_service_instance
 
     def _project_structure_export_service(self) -> ProjectStructureExportService:
         if self._project_structure_export_service_instance is None:
@@ -2940,6 +2968,78 @@ class P2PWorkspace:
 
     def project_structure_history(self, *, limit: int = 20) -> ProjectStructureHistory:
         return self._project_structure_service().history(limit=limit)
+
+    def inspect_project_structure_replacement_target(
+        self,
+        target: str,
+    ) -> ProjectStructureReplacementInspection:
+        return self._project_structure_replacement_service().inspect_release(target)
+
+    def preview_project_structure_replacement(
+        self,
+        *,
+        target: str,
+        expected_structure_revision: int,
+        expected_memory_revision: str,
+        actor_id: str,
+        executor_id: str,
+        executor_kind: str,
+        plan: StructureReplacementPlan | Mapping[str, object] | None = None,
+        authority_context: AuthorityContext | None = None,
+        channel: str = "cli",
+        limit: int = 100,
+    ) -> ProjectStructureReplacementPreview:
+        self._ensure_runtime_write_allowed("project_structure_replacement")
+        return self._project_structure_replacement_service().preview(
+            target=target,
+            expected_structure_revision=expected_structure_revision,
+            expected_memory_revision=expected_memory_revision,
+            actor_id=actor_id,
+            executor_id=executor_id,
+            executor_kind=executor_kind,
+            plan=plan,
+            authority_context=authority_context,
+            channel=channel,
+            limit=limit,
+        )
+
+    def apply_project_structure_replacement(
+        self,
+        *,
+        target: str,
+        expected_structure_revision: int,
+        expected_memory_revision: str,
+        preview_token: str,
+        operation_key: str,
+        confirm: bool,
+        actor_id: str,
+        executor_id: str,
+        executor_kind: str,
+        plan: StructureReplacementPlan | Mapping[str, object],
+        authority_context: AuthorityContext | None = None,
+        channel: str = "cli",
+        consent_id: str | None = None,
+        consent_sha256: str | None = None,
+        limit: int = 100,
+    ) -> ProjectStructureReplacementResult:
+        self._ensure_runtime_write_allowed("project_structure_replacement")
+        return self._project_structure_replacement_service().apply(
+            target=target,
+            expected_structure_revision=expected_structure_revision,
+            expected_memory_revision=expected_memory_revision,
+            preview_token=preview_token,
+            operation_key=operation_key,
+            confirm=confirm,
+            actor_id=actor_id,
+            executor_id=executor_id,
+            executor_kind=executor_kind,
+            plan=plan,
+            authority_context=authority_context,
+            channel=channel,
+            consent_id=consent_id,
+            consent_sha256=consent_sha256,
+            limit=limit,
+        )
 
     def project_structure_export_eligibility(self) -> ProjectStructureExportEligibility:
         return self._project_structure_export_service().eligibility()

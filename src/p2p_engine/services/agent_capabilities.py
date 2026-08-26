@@ -5,7 +5,7 @@ import json
 from dataclasses import asdict, dataclass
 
 
-AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v8"
+AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v9"
 
 
 @dataclass(frozen=True)
@@ -119,6 +119,25 @@ AGENT_CAPABILITIES = (
         ),
     ),
     AgentCapability(
+        capability_id="project.structure.replacement",
+        cli_paths=(
+            "p2p project structure replace preview",
+            "p2p project structure replace apply",
+            "p2p project structure replace status",
+        ),
+        mcp_tools=(
+            "p2p_project_structure_replacement_inspect",
+            "p2p_project_structure_replacement_preview",
+        ),
+        exposure="cli_apply_mcp_read_only",
+        authority="project.structure.replace",
+        reason=(
+            "Replacement copies one exact schema-3 release into the project-owned "
+            "structure with explicit dispositions; MCP can inspect and preview "
+            "only, and never applies or acquires a release."
+        ),
+    ),
+    AgentCapability(
         capability_id="proposal.governance",
         cli_paths=(
             "p2p proposal list",
@@ -174,6 +193,9 @@ AGENT_CAPABILITIES = (
             "p2p project structure retire preview",
             "p2p project structure retire apply",
             "p2p project structure retire status",
+            "p2p project structure replace preview",
+            "p2p project structure replace apply",
+            "p2p project structure replace status",
             "p2p project memory classification",
             "p2p proposal scope show",
             "p2p proposal scope set",
@@ -398,6 +420,23 @@ exact parent coordinate and checksum; independent exports omit social parent
 lineage but keep required attribution. MCP exposes eligibility and preview only,
 and never accepts package destinations or creates drafts/packages.
 
+Replace the active project-owned structure from one exact schema-3 release:
+
+```bash
+p2p project structure replace preview <publisher/id@version> --expected-structure-revision <n> --expected-memory-revision <sha256> --format json
+p2p project structure replace preview <publisher/id@version> --expected-structure-revision <n> --expected-memory-revision <sha256> --plan <replacement-plan.yml> --format json
+p2p project structure replace apply <publisher/id@version> --expected-structure-revision <n> --expected-memory-revision <sha256> --preview-token <token> --operation-key <operation-id> --plan <replacement-plan.yml> --confirm --format json
+p2p project structure replace status --operation-key <operation-id> --format json
+```
+
+Replacement is a detached copy, not vertical adoption or subscription. The plan
+uses `p2p-structure-replacement-plan/v1`, binds the exact target coordinate and
+semantic checksum, and resolves every required active-memory disposition.
+Authority is `project.structure.replace`; target-release visibility, publisher
+ownership, remote publication and moderation rights are separate concerns. MCP
+exposes `p2p_project_structure_replacement_inspect` and
+`p2p_project_structure_replacement_preview` only.
+
 Remote registry configuration, authentication, pull, draft authoring,
 publication, and project install/adopt/migrate are CLI-only. MCP exposes
 read-only remote network discovery for domains and releases, plus
@@ -428,6 +467,9 @@ p2p workspace schema status --format json
 p2p workspace transaction status --format json
 p2p project snapshot --format json
 p2p project memory classification --format json
+p2p project structure replace preview <publisher/id@version> --expected-structure-revision REV --expected-memory-revision SHA256 --plan replacement-plan.yml --actor ACTOR --format json
+p2p project structure replace apply <publisher/id@version> --expected-structure-revision REV --expected-memory-revision SHA256 --preview-token TOKEN --operation-key wavekit:<uuid> --plan replacement-plan.yml --actor ACTOR --confirm --format json
+p2p project structure replace status --operation-key wavekit:<uuid> --format json
 p2p proposal list --format json
 p2p proposal show PROP-XXX --format json
 p2p proposal scope show PROP-XXX --format json

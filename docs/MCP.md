@@ -341,6 +341,8 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_project_structure_reorder_sections` | permission-gated | yes | yes | Reorder the exact active section set without changing identity. |
 | `p2p_project_structure_retirement_preview` | permission-gated preview | no | no | Preview structure retirement impacts and required dispositions against current structure and memory revisions. |
 | `p2p_project_structure_retirement_apply` | permission-gated | yes | yes | Apply a token-bound structure retirement with resolved dispositions and idempotent receipt. |
+| `p2p_project_structure_replacement_inspect` | read-only | no | no | Inspect one already resolvable exact replacement release and normalized candidate structure without pulling, writing cache, or mutating the project. |
+| `p2p_project_structure_replacement_preview` | read-only preview | no | no | Compare one exact replacement release against current structure and memory revisions, returning impacts and required dispositions without an apply tool. |
 | `p2p_project_structure_export_eligibility` | read-only | no | no | Check whether the active project-owned structure can be exported as a portable vertical. |
 | `p2p_project_structure_export_preview` | read-only | no | no | Build a source-token-bound export preview without creating drafts, packages, destination paths or remote releases. |
 | `p2p_project_vertical_show` | read-only | no | no | Read one self-contained vertical release. |
@@ -414,6 +416,17 @@ The project-structure export MCP surface is also read-only. MCP exposes
 metadata validation, lineage decisions and the exact source token. MCP does not
 expose an apply/export-writing tool and cannot create a draft, choose a package
 destination, write a `.p2pv`, publish remotely or claim publisher ownership.
+
+Project-structure replacement has the same MCP read-only boundary. MCP exposes
+`p2p_project_structure_replacement_inspect` and
+`p2p_project_structure_replacement_preview` for already local, bundled or
+cached exact releases. It does not pull missing releases, choose a destination,
+create receipts, expose an MCP replacement apply tool, publish remotely, grant
+publisher ownership or subscribe the project to future release
+updates. Confirmed replacement apply remains a CLI JSON workflow using
+`p2p project structure replace apply`, `project.structure.replace`, exact source
+revisions, a complete `p2p-structure-replacement-plan/v1`, a preview token,
+explicit confirmation and one operation key.
 
 MCP clients may inspect the canonical project structure and its history, plus
 transitional vertical/lock metadata, context, definition, readiness, proposals

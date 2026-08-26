@@ -59,6 +59,11 @@ from p2p_engine.core.project_structure_retirement import (
     STRUCTURE_RETIREMENT_PLAN_CONTRACT,
     STRUCTURE_RETIREMENT_RESULT_CONTRACT,
 )
+from p2p_engine.core.project_structure_replacement import (
+    STRUCTURE_REPLACEMENT_IMPACT_CONTRACT,
+    STRUCTURE_REPLACEMENT_PLAN_CONTRACT,
+    STRUCTURE_REPLACEMENT_RESULT_CONTRACT,
+)
 from p2p_engine.core.project_memory import (
     MEMORY_CLASSIFICATION_CONTRACT,
     PROJECT_MEMORY_SCOPE_CONTRACT,
@@ -269,6 +274,9 @@ def version(
         "structure_retirement_impact_contract": STRUCTURE_RETIREMENT_IMPACT_CONTRACT,
         "structure_retirement_plan_contract": STRUCTURE_RETIREMENT_PLAN_CONTRACT,
         "structure_retirement_result_contract": STRUCTURE_RETIREMENT_RESULT_CONTRACT,
+        "structure_replacement_impact_contract": STRUCTURE_REPLACEMENT_IMPACT_CONTRACT,
+        "structure_replacement_plan_contract": STRUCTURE_REPLACEMENT_PLAN_CONTRACT,
+        "structure_replacement_result_contract": STRUCTURE_REPLACEMENT_RESULT_CONTRACT,
         "project_memory_scope_contract": PROJECT_MEMORY_SCOPE_CONTRACT,
         "project_memory_scope_events_contract": PROJECT_MEMORY_SCOPE_EVENTS_CONTRACT,
         "project_memory_scope_mutation_contract": PROJECT_MEMORY_SCOPE_MUTATION_CONTRACT,
@@ -290,6 +298,9 @@ def version(
     console.print(f"  structure retirement impact contract: {STRUCTURE_RETIREMENT_IMPACT_CONTRACT}")
     console.print(f"  structure retirement plan contract: {STRUCTURE_RETIREMENT_PLAN_CONTRACT}")
     console.print(f"  structure retirement result contract: {STRUCTURE_RETIREMENT_RESULT_CONTRACT}")
+    console.print(f"  structure replacement impact contract: {STRUCTURE_REPLACEMENT_IMPACT_CONTRACT}")
+    console.print(f"  structure replacement plan contract: {STRUCTURE_REPLACEMENT_PLAN_CONTRACT}")
+    console.print(f"  structure replacement result contract: {STRUCTURE_REPLACEMENT_RESULT_CONTRACT}")
     console.print(f"  project memory scope contract: {PROJECT_MEMORY_SCOPE_CONTRACT}")
     console.print(f"  project memory scope events contract: {PROJECT_MEMORY_SCOPE_EVENTS_CONTRACT}")
     console.print(f"  project memory scope mutation contract: {PROJECT_MEMORY_SCOPE_MUTATION_CONTRACT}")

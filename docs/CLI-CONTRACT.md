@@ -154,6 +154,9 @@ p2p project structure reorder --section-id distribution --section-id scope --exp
 p2p project structure retire preview --target section:distribution --expected-structure-revision REV --expected-memory-revision SHA256 --plan retirement-plan.yml --actor ACTOR --format json
 p2p project structure retire apply --target section:distribution --expected-structure-revision REV --expected-memory-revision SHA256 --preview-token TOKEN --operation-key wavekit:<uuid> --plan retirement-plan.yml --actor ACTOR --confirm --format json
 p2p project structure retire status --operation-key wavekit:<uuid> --format json
+p2p project structure replace preview publisher/vertical_id@1.0.0 --expected-structure-revision REV --expected-memory-revision SHA256 --plan replacement-plan.yml --actor ACTOR --format json
+p2p project structure replace apply publisher/vertical_id@1.0.0 --expected-structure-revision REV --expected-memory-revision SHA256 --preview-token TOKEN --operation-key wavekit:<uuid> --plan replacement-plan.yml --actor ACTOR --confirm --format json
+p2p project structure replace status --operation-key wavekit:<uuid> --format json
 p2p project vertical export eligibility --format json
 p2p project vertical export preview --publisher publisher --id vertical_id --version 1.0.0 --name "Vertical" --license MIT --primary-domain-key software --primary-domain-name "Software" --lineage-mode independent --format json
 p2p project vertical export apply --target build/vertical --output dist/vertical.p2pv --publisher publisher --id vertical_id --version 1.0.0 --name "Vertical" --license MIT --primary-domain-key software --primary-domain-name "Software" --lineage-mode independent --expected-structure-revision REV --expected-structure-checksum SHA256 --token TOKEN --operation-key wavekit:<uuid> --confirm --format json
@@ -312,5 +315,8 @@ Install postconditions contain `installed_coordinate`,
 `installed_semantic_checksum` and `installed_artifact_checksum`; installation
 does not claim to activate the pack. Adoption and migration postconditions
 contain `active_coordinate` plus lock, definition, question and rubric semantic
-hashes. Receipt replay and mutation status preserve the same operation-specific
-field set.
+hashes. Structure replacement postconditions contain the detached target
+coordinate/checksum, previous/current structure identity, memory revision,
+replacement event, applied dispositions and `project.structure.replace`
+capability. Receipt replay and mutation status preserve the same
+operation-specific field set.

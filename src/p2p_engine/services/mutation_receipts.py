@@ -302,6 +302,7 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "project_domain_change",
         "project_memory_scope_change",
         "project_structure_change",
+        "project_structure_replacement",
         "project_structure_retirement",
         "project_structure_export",
     }:
@@ -329,6 +330,7 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "project_domain_change",
         "project_memory_scope_change",
         "project_structure_change",
+        "project_structure_replacement",
         "project_structure_retirement",
         "project_structure_export",
         "proposal_decision_apply",
@@ -395,6 +397,9 @@ def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
         return
     if operation == "project_structure_retirement":
         _validate_project_structure_retirement_result(result)
+        return
+    if operation == "project_structure_replacement":
+        _validate_project_structure_replacement_result(result)
         return
     if operation == "project_structure_export":
         _validate_project_structure_export_result(result)
@@ -1090,6 +1095,198 @@ def _validate_project_structure_retirement_result(result: Mapping[str, object]) 
         raise ValueError("receipt project-structure-retirement changed_paths miss structure files")
 
 
+def _validate_project_structure_replacement_result(result: Mapping[str, object]) -> None:
+    allowed = {
+        "contract",
+        "status",
+        "operation",
+        "operation_id",
+        "request",
+        "target",
+        "previous_revision",
+        "previous_checksum",
+        "current",
+        "previous_memory_revision",
+        "current_memory_revision",
+        "event",
+        "applied_dispositions",
+        "readiness_identity",
+        "classification_identity",
+        "receipt",
+        "detached_copy",
+        "active_release_subscription",
+        "remote_publication",
+        "publisher_ownership_granted",
+        "moderation_rights_granted",
+        "changed_paths",
+    }
+    unknown = sorted(str(key) for key in result if key not in allowed)
+    if unknown:
+        raise ValueError(
+            "receipt project-structure-replacement result contains unsupported fields: "
+            + ", ".join(unknown)
+        )
+    from p2p_engine.core.portable_verticals import (
+        PORTABLE_VERTICAL_SCHEMA_VERSION,
+        VerticalCoordinate,
+    )
+    from p2p_engine.core.project_structure import (
+        PROJECT_STRUCTURE_CONTRACT,
+        normalize_structure_id,
+        project_structure_event_from_mapping,
+    )
+    from p2p_engine.core.project_structure_replacement import (
+        PROJECT_STRUCTURE_REPLACEMENT_CAPABILITY,
+        PROJECT_STRUCTURE_REPLACEMENT_OPERATION,
+        PROJECT_STRUCTURE_REPLACEMENT_OPERATION_ID,
+        STRUCTURE_REPLACEMENT_PLAN_CONTRACT,
+        STRUCTURE_REPLACEMENT_RESULT_CONTRACT,
+    )
+
+    if result.get("contract") != STRUCTURE_REPLACEMENT_RESULT_CONTRACT:
+        raise ValueError("receipt project-structure-replacement contract is unsupported")
+    if result.get("status") != "applied":
+        raise ValueError("receipt project-structure-replacement status is invalid")
+    if result.get("operation") != PROJECT_STRUCTURE_REPLACEMENT_OPERATION:
+        raise ValueError("receipt project-structure-replacement operation is unsupported")
+    if result.get("operation_id") != PROJECT_STRUCTURE_REPLACEMENT_OPERATION_ID:
+        raise ValueError("receipt project-structure-replacement operation_id is invalid")
+    request = result.get("request")
+    if not isinstance(request, Mapping) or set(request) != {
+        "contract",
+        "expected_structure_revision",
+        "expected_memory_revision",
+        "plan",
+    }:
+        raise ValueError("receipt project-structure-replacement request is invalid")
+    if request.get("contract") != STRUCTURE_REPLACEMENT_PLAN_CONTRACT:
+        raise ValueError("receipt project-structure-replacement request contract is unsupported")
+    _required_sha256(request, "expected_memory_revision")
+    plan = request.get("plan")
+    if not isinstance(plan, Mapping) or plan.get("contract") != STRUCTURE_REPLACEMENT_PLAN_CONTRACT:
+        raise ValueError("receipt project-structure-replacement plan is invalid")
+    plan_target = plan.get("target")
+    if not isinstance(plan_target, Mapping):
+        raise ValueError("receipt project-structure-replacement plan target is invalid")
+    plan_coordinate = _required_text(plan_target, "coordinate")
+    plan_checksum = _required_sha256(plan_target, "semantic_checksum")
+    VerticalCoordinate.parse(plan_coordinate)
+    dispositions = plan.get("dispositions")
+    if not isinstance(dispositions, list):
+        raise ValueError("receipt project-structure-replacement dispositions must be a list")
+    _validate_bounded_receipt_value(dispositions, field="plan.dispositions", depth=0)
+    target = result.get("target")
+    if not isinstance(target, Mapping):
+        raise ValueError("receipt project-structure-replacement target is invalid")
+    coordinate = _required_text(target, "coordinate")
+    VerticalCoordinate.parse(coordinate)
+    target_checksum = _required_sha256(target, "semantic_checksum")
+    if coordinate != plan_coordinate or target_checksum != plan_checksum:
+        raise ValueError("receipt project-structure-replacement target and plan diverge")
+    schema_version = target.get("schema_version")
+    if schema_version != PORTABLE_VERTICAL_SCHEMA_VERSION:
+        raise ValueError("receipt project-structure-replacement target schema is unsupported")
+    current = result.get("current")
+    if not isinstance(current, Mapping) or set(current) != {
+        "contract",
+        "structure_id",
+        "revision",
+        "checksum",
+    }:
+        raise ValueError("receipt project-structure-replacement current summary is invalid")
+    if current.get("contract") != PROJECT_STRUCTURE_CONTRACT:
+        raise ValueError("receipt project-structure-replacement current contract is unsupported")
+    normalize_structure_id(current.get("structure_id"), field_name="structure_id")
+    expected_revision = request.get("expected_structure_revision")
+    previous_revision = result.get("previous_revision")
+    current_revision = current.get("revision")
+    if (
+        isinstance(expected_revision, bool)
+        or not isinstance(expected_revision, int)
+        or expected_revision < 1
+        or isinstance(previous_revision, bool)
+        or not isinstance(previous_revision, int)
+        or previous_revision != expected_revision
+        or isinstance(current_revision, bool)
+        or not isinstance(current_revision, int)
+        or current_revision != previous_revision + 1
+    ):
+        raise ValueError("receipt project-structure-replacement revision transition is invalid")
+    current_checksum = _required_sha256(current, "checksum")
+    previous_checksum = _required_sha256(result, "previous_checksum")
+    if current_checksum == previous_checksum:
+        raise ValueError("receipt project-structure-replacement did not change semantics")
+    previous_memory = _required_sha256(result, "previous_memory_revision")
+    current_memory = _required_sha256(result, "current_memory_revision")
+    if request.get("expected_memory_revision") != previous_memory:
+        raise ValueError("receipt project-structure-replacement memory precondition is invalid")
+    event = project_structure_event_from_mapping(result.get("event"))
+    if (
+        event.event_type != "structure_replaced"
+        or event.revision != current_revision
+        or event.checksum != current_checksum
+    ):
+        raise ValueError("receipt project-structure-replacement event is inconsistent")
+    if event.details.get("detached_copy") is not True:
+        raise ValueError("receipt project-structure-replacement event is not detached")
+    applied_dispositions = result.get("applied_dispositions")
+    if not isinstance(applied_dispositions, list):
+        raise ValueError("receipt project-structure-replacement applied_dispositions must be a list")
+    _validate_bounded_receipt_value(
+        applied_dispositions,
+        field="applied_dispositions",
+        depth=0,
+    )
+    for field in ("readiness_identity", "classification_identity"):
+        identity = result.get(field)
+        if not isinstance(identity, Mapping) or set(identity) != {
+            "structure_id",
+            "structure_revision",
+            "structure_checksum",
+            "memory_revision",
+        }:
+            raise ValueError(f"receipt project-structure-replacement {field} is invalid")
+        if identity.get("structure_id") != current.get("structure_id"):
+            raise ValueError(f"receipt project-structure-replacement {field} structure id diverges")
+        if identity.get("structure_revision") != current_revision:
+            raise ValueError(f"receipt project-structure-replacement {field} revision diverges")
+        if identity.get("structure_checksum") != current_checksum:
+            raise ValueError(f"receipt project-structure-replacement {field} checksum diverges")
+        if identity.get("memory_revision") != current_memory:
+            raise ValueError(f"receipt project-structure-replacement {field} memory diverges")
+    receipt = result.get("receipt")
+    if not isinstance(receipt, Mapping):
+        raise ValueError("receipt project-structure-replacement receipt summary is invalid")
+    if receipt.get("capability") != PROJECT_STRUCTURE_REPLACEMENT_CAPABILITY:
+        raise ValueError("receipt project-structure-replacement capability is invalid")
+    _required_sha256(receipt, "operation_key_sha256")
+    if result.get("detached_copy") is not True:
+        raise ValueError("receipt project-structure-replacement must be detached")
+    for field in (
+        "active_release_subscription",
+        "remote_publication",
+        "publisher_ownership_granted",
+        "moderation_rights_granted",
+    ):
+        if result.get(field) is not False:
+            raise ValueError(f"receipt project-structure-replacement {field} must be false")
+    changed_paths = result.get("changed_paths")
+    if not isinstance(changed_paths, list) or not changed_paths:
+        raise ValueError("receipt project-structure-replacement changed_paths must be non-empty")
+    normalized = [
+        _validated_postcondition_path(str(path), operation="project_structure_replacement")
+        for path in changed_paths
+    ]
+    if normalized != sorted(set(normalized)):
+        raise ValueError("receipt project-structure-replacement changed_paths must be unique and sorted")
+    required_structure_paths = {
+        ".p2p/project/structure-events.yml",
+        ".p2p/project/structure.yml",
+    }
+    if not required_structure_paths <= set(normalized):
+        raise ValueError("receipt project-structure-replacement changed_paths miss structure files")
+
+
 def _validate_project_structure_export_result(result: Mapping[str, object]) -> None:
     allowed = {
         "contract",
@@ -1542,6 +1739,40 @@ def _public_result(result: Mapping[str, object]) -> dict[str, object]:
             "applied_dispositions": list(result.get("applied_dispositions", []))
             if isinstance(result.get("applied_dispositions"), list)
             else [],
+        }
+    if result.get("operation") == "project_structure_replacement":
+        return {
+            "contract": result.get("contract"),
+            "operation": result.get("operation"),
+            "operation_id": result.get("operation_id"),
+            "status": result.get("status"),
+            "target": dict(result.get("target", {}))
+            if isinstance(result.get("target"), Mapping)
+            else {},
+            "previous_revision": result.get("previous_revision"),
+            "previous_checksum": result.get("previous_checksum"),
+            "current": dict(result.get("current", {}))
+            if isinstance(result.get("current"), Mapping)
+            else {},
+            "previous_memory_revision": result.get("previous_memory_revision"),
+            "current_memory_revision": result.get("current_memory_revision"),
+            "event": dict(result.get("event", {}))
+            if isinstance(result.get("event"), Mapping)
+            else {},
+            "applied_dispositions": list(result.get("applied_dispositions", []))
+            if isinstance(result.get("applied_dispositions"), list)
+            else [],
+            "readiness_identity": dict(result.get("readiness_identity", {}))
+            if isinstance(result.get("readiness_identity"), Mapping)
+            else {},
+            "classification_identity": dict(result.get("classification_identity", {}))
+            if isinstance(result.get("classification_identity"), Mapping)
+            else {},
+            "detached_copy": result.get("detached_copy"),
+            "active_release_subscription": result.get("active_release_subscription"),
+            "remote_publication": result.get("remote_publication"),
+            "publisher_ownership_granted": result.get("publisher_ownership_granted"),
+            "moderation_rights_granted": result.get("moderation_rights_granted"),
         }
     if result.get("operation") == "project_structure_export":
         return {

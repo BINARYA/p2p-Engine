@@ -457,7 +457,7 @@ class ProjectStructureEvent:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "event_id", normalize_structure_id(self.event_id, field_name="event.id"))
-        if self.event_type not in {"initialized", "section_added", "metadata_updated", "sections_reordered", "elements_retired"}:
+        if self.event_type not in {"initialized", "section_added", "metadata_updated", "sections_reordered", "elements_retired", "structure_replaced"}:
             raise ValueError("P2P_PROJECT_STRUCTURE_INVALID: structure event type is unsupported")
         if isinstance(self.revision, bool) or not isinstance(self.revision, int) or self.revision < 1:
             raise ValueError("P2P_PROJECT_STRUCTURE_INVALID: structure event revision is invalid")

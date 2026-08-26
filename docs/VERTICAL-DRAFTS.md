@@ -143,6 +143,12 @@ validates it and packages it as a portable schema-3 `.p2pv`. The operation is
 offline and receipt-backed with capability `project.vertical.export`. It does
 not publish remotely and does not grant publisher ownership.
 
+The reverse workflow, `p2p project structure replace`, consumes one exact
+schema-3 release and writes a new detached `ProjectStructure` revision through
+the structure-replacement plan and receipt contract. It does not create or edit
+vertical drafts, does not publish remotely, and does not subscribe the project
+to later releases.
+
 ## WaveKit Contract
 
 All eight commands support `p2p-cli/v1` JSON envelopes. The document, draft

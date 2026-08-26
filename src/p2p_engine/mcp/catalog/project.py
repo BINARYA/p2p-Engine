@@ -117,6 +117,39 @@ def tool_definitions() -> list[dict[str, object]]:
             ],
         ),
         _tool(
+            'p2p_project_structure_replacement_inspect',
+            (
+                'Read-only inspection of an exact replacement target release. Resolves '
+                'only bundled, local or cached releases and performs no acquire, receipt '
+                'or project write.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'target': {'type': 'string'},
+            },
+            ['target'],
+        ),
+        _tool(
+            'p2p_project_structure_replacement_preview',
+            (
+                'Read-only comparison preview for replacing the project-owned structure '
+                'from an exact release. Reports stable-ID comparison, readiness and memory '
+                'impact without applying, acquiring or writing receipts.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'target': {'type': 'string'},
+                'expected_structure_revision': {'type': 'integer', 'minimum': 1},
+                'expected_memory_revision': {'type': 'string'},
+                'plan': {'type': 'object'},
+                'actor_id': {'type': 'string'},
+                'executor_id': {'type': 'string'},
+                'executor_kind': {'type': 'string', 'enum': ['person', 'user', 'agent', 'mcp_client', 'client']},
+                'limit': {'type': 'integer', 'minimum': 1, 'maximum': 1000},
+            },
+            ['target', 'expected_structure_revision', 'expected_memory_revision', 'actor_id'],
+        ),
+        _tool(
             'p2p_project_structure_add_section',
             'Consent-gated receipt-backed addition of one project-owned section.',
             {

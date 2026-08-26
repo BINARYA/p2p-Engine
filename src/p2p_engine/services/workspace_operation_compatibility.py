@@ -162,6 +162,7 @@ _CURRENT_SCHEMA_OPERATIONS = frozenset(
         "project_state_refresh",
         "project_structure_change",
         "project_structure_export",
+        "project_structure_replacement",
         "project_structure_retirement",
         "project_vertical_adopt",
         "project_vertical_install",

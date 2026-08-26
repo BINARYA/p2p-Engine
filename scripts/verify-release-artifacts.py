@@ -105,11 +105,13 @@ PROJECT_STRUCTURE_WHEEL_MEMBERS = {
     "p2p_engine/cli_commands/project_structure.py",
     "p2p_engine/core/project_structure_export.py",
     "p2p_engine/core/project_structure.py",
+    "p2p_engine/core/project_structure_replacement.py",
     "p2p_engine/core/project_structure_retirement.py",
     "p2p_engine/mcp/catalog/project.py",
     "p2p_engine/mcp/handlers/project.py",
     "p2p_engine/services/project_structure.py",
     "p2p_engine/services/project_structure_export.py",
+    "p2p_engine/services/project_structure_replacement.py",
     "p2p_engine/services/project_structure_retirement.py",
 }
 PROJECT_STRUCTURE_SDIST_MEMBERS = {
@@ -120,6 +122,7 @@ PROJECT_STRUCTURE_SDIST_MEMBERS = {
     "docs/WORKSPACE-SCHEMA.md",
     "tests/test_project_structure.py",
     "tests/test_project_structure_export.py",
+    "tests/test_project_structure_replacement.py",
     "tests/test_skeleton.py",
 }
 PROJECT_MEMORY_WHEEL_MEMBERS = {

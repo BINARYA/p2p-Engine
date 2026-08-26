@@ -497,6 +497,16 @@ rubric evidence into the definition family.
 The stdio MCP surface exposes inspection but no lifecycle mutation tool. An
 agent must report this boundary instead of inventing a tool or editing `.p2p`.
 
+To replace the active project-owned structure from a release, agents may use
+MCP only for read-only `p2p_project_structure_replacement_inspect` and
+`p2p_project_structure_replacement_preview` against an already resolvable exact
+release. Confirmed apply must use
+`p2p project structure replace apply` with expected structure and memory
+revisions, a complete `p2p-structure-replacement-plan/v1`, the preview token,
+`--confirm` and one stable operation key. Replacement requires
+`project.structure.replace`; it does not grant publisher ownership, publish
+remotely, acquire missing releases or subscribe the project to future updates.
+
 To export the active project-owned structure as a reusable portable vertical,
 agents may call `p2p_project_structure_export_eligibility` and
 `p2p_project_structure_export_preview` over MCP. These tools are read-only and

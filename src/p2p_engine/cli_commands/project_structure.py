@@ -9,6 +9,9 @@ from p2p_engine.core.project_structure_retirement import (
     structure_retirement_plan_from_mapping,
     structure_retirement_target_from_text,
 )
+from p2p_engine.core.project_structure_replacement import (
+    structure_replacement_plan_from_mapping,
+)
 from p2p_engine.cli_contract import print_json, success_envelope
 from p2p_engine.cli_shared import console, fail, workspace as workspace_for, yaml_dump_for_cli
 from p2p_engine.foundation.yaml_loaders import UNIQUE_LOADER_CONTRACT, load_yaml
@@ -17,7 +20,9 @@ from p2p_engine.services.authority import AuthorityContractCodec
 
 def register_project_structure_commands(structure_app: typer.Typer) -> None:
     retire_app = typer.Typer(help="Preview and apply governed structure retirement")
+    replace_app = typer.Typer(help="Replace the project-owned structure from an exact vertical release")
     structure_app.add_typer(retire_app, name="retire")
+    structure_app.add_typer(replace_app, name="replace")
 
     @structure_app.command("show")
     def structure_show(
@@ -270,6 +275,109 @@ def register_project_structure_commands(structure_app: typer.Typer) -> None:
             normalized,
         )
 
+    @replace_app.command("preview")
+    def replace_preview(
+        target: str = typer.Argument(..., help="Exact release coordinate or local portable pack"),
+        expected_structure_revision: int = typer.Option(..., "--expected-structure-revision", min=1),
+        expected_memory_revision: str = typer.Option(..., "--expected-memory-revision"),
+        plan: Path | None = typer.Option(None, "--plan", help="YAML replacement disposition plan"),
+        actor: str = typer.Option("owner", "--actor"),
+        executor: str = typer.Option("", "--executor"),
+        executor_kind: str = typer.Option("person", "--executor-kind"),
+        authority_context: Path | None = typer.Option(None, "--authority-context"),
+        limit: int = typer.Option(100, "--limit", min=1, max=1000),
+        output_format: str = typer.Option("text", "--format"),
+        root: Path = typer.Option(Path.cwd(), "--root"),
+    ) -> None:
+        normalized = _output_format(output_format)
+        context = _authority_context(authority_context, normalized)
+        try:
+            parsed_plan = _load_replacement_plan(plan)
+            preview = workspace_for(root).preview_project_structure_replacement(
+                target=target,
+                expected_structure_revision=expected_structure_revision,
+                expected_memory_revision=expected_memory_revision,
+                actor_id=actor,
+                executor_id=executor or actor,
+                executor_kind=executor_kind,
+                plan=parsed_plan,
+                authority_context=context,
+                channel="cli",
+                limit=limit,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        _emit(
+            "project.structure.replace.preview",
+            {"project_structure_replacement_preview": preview.to_dict()},
+            normalized,
+        )
+
+    @replace_app.command("apply")
+    def replace_apply(
+        target: str = typer.Argument(..., help="Exact release coordinate or local portable pack"),
+        expected_structure_revision: int = typer.Option(..., "--expected-structure-revision", min=1),
+        expected_memory_revision: str = typer.Option(..., "--expected-memory-revision"),
+        preview_token: str = typer.Option(..., "--preview-token"),
+        operation_key: str = typer.Option(..., "--operation-key"),
+        plan: Path = typer.Option(..., "--plan", help="YAML replacement disposition plan"),
+        confirm: bool = typer.Option(False, "--confirm"),
+        actor: str = typer.Option("owner", "--actor"),
+        executor: str = typer.Option("", "--executor"),
+        executor_kind: str = typer.Option("person", "--executor-kind"),
+        authority_context: Path | None = typer.Option(None, "--authority-context"),
+        limit: int = typer.Option(100, "--limit", min=1, max=1000),
+        output_format: str = typer.Option("text", "--format"),
+        root: Path = typer.Option(Path.cwd(), "--root"),
+    ) -> None:
+        normalized = _output_format(output_format)
+        if not operation_key.strip():
+            fail("P2P_IDEMPOTENCY_KEY_REQUIRED: replacement apply requires --operation-key")
+        context = _authority_context(authority_context, normalized)
+        try:
+            parsed_plan = _load_replacement_plan(plan)
+            result = workspace_for(root).apply_project_structure_replacement(
+                target=target,
+                expected_structure_revision=expected_structure_revision,
+                expected_memory_revision=expected_memory_revision,
+                preview_token=preview_token,
+                operation_key=operation_key,
+                confirm=confirm,
+                actor_id=actor,
+                executor_id=executor or actor,
+                executor_kind=executor_kind,
+                plan=parsed_plan,
+                authority_context=context,
+                channel="cli",
+                limit=limit,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        _emit(
+            "project.structure.replace.apply",
+            {"project_structure_replacement": result.to_dict()},
+            normalized,
+        )
+
+    @replace_app.command("status")
+    def replace_status(
+        operation_key: str = typer.Option(..., "--operation-key", "--idempotency-key"),
+        output_format: str = typer.Option("text", "--format"),
+        root: Path = typer.Option(Path.cwd(), "--root"),
+    ) -> None:
+        normalized = _output_format(output_format)
+        try:
+            status = workspace_for(root).mutation_status(
+                idempotency_key=operation_key,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        _emit(
+            "project.structure.replace.status",
+            {"mutation_status": status.to_dict()},
+            normalized,
+        )
+
 
 def _change(
     *,
@@ -336,6 +444,19 @@ def _load_retirement_plan(path: Path | None):
             loader_contract=UNIQUE_LOADER_CONTRACT,
         )
         return structure_retirement_plan_from_mapping(payload)
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        fail(str(exc))
+
+
+def _load_replacement_plan(path: Path | None):
+    if path is None:
+        return None
+    try:
+        payload = load_yaml(
+            path.read_bytes(),
+            loader_contract=UNIQUE_LOADER_CONTRACT,
+        )
+        return structure_replacement_plan_from_mapping(payload)
     except (OSError, UnicodeDecodeError, ValueError) as exc:
         fail(str(exc))
 

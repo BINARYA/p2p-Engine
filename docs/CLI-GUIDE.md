@@ -102,12 +102,26 @@ p2p project structure retire apply --target section:distribution \
   --plan retirement-plan.yml --confirm --format json
 p2p project structure retire status \
   --operation-key local:structure-retire-001 --format json
+p2p project structure replace preview example/my-vertical@1.0.0 \
+  --expected-structure-revision 5 --expected-memory-revision SHA256 \
+  --format json
+p2p project structure replace preview example/my-vertical@1.0.0 \
+  --expected-structure-revision 5 --expected-memory-revision SHA256 \
+  --plan replacement-plan.yml --format json
+p2p project structure replace apply example/my-vertical@1.0.0 \
+  --expected-structure-revision 5 --expected-memory-revision SHA256 \
+  --preview-token TOKEN --operation-key local:structure-replace-001 \
+  --plan replacement-plan.yml --confirm --format json
+p2p project structure replace status \
+  --operation-key local:structure-replace-001 --format json
 ```
 
 The source release and origin checksum remain provenance only. Source updates
 do not change an initialized project. Retirement is impact-previewed and
-disposition-driven; release replacement and merge remain separate operations,
-not generic metadata updates.
+disposition-driven. Release replacement is its own higher-risk
+`project.structure.replace` mutation: it copies one exact schema-3 release into
+the project-owned structure, resolves required active-memory dispositions, and
+does not create an active release subscription.
 
 Typical first checks:
 
@@ -522,6 +536,39 @@ draft materialize/validate/package pipeline to produce a schema-3 `.p2pv`
 artifact offline. `--lineage-mode derived` additionally requires an exact
 parent coordinate and semantic checksum; `independent` omits social parent
 lineage while preserving required attribution.
+
+To replace the active project-owned structure from a reusable release, use the
+structure replacement workflow instead of `adopt` or `migrate`:
+
+```bash
+p2p project structure replace preview example/my-vertical@1.0.0 \
+  --expected-structure-revision <current-revision> \
+  --expected-memory-revision <current-memory-sha256> \
+  --format json
+p2p project structure replace preview example/my-vertical@1.0.0 \
+  --expected-structure-revision <current-revision> \
+  --expected-memory-revision <current-memory-sha256> \
+  --plan replacement-plan.yml \
+  --format json
+p2p project structure replace apply example/my-vertical@1.0.0 \
+  --expected-structure-revision <current-revision> \
+  --expected-memory-revision <current-memory-sha256> \
+  --preview-token <preview-token> \
+  --operation-key <operation-uuid> \
+  --plan replacement-plan.yml \
+  --confirm --actor owner --format json
+p2p project structure replace status \
+  --operation-key <operation-uuid> --format json
+```
+
+The first preview reports preserved, added, retired and conflicting stable
+IDs plus required dispositions. A complete
+`p2p-structure-replacement-plan/v1` binds the exact target coordinate and
+semantic checksum; the second preview returns the apply token. Apply rechecks
+the target bytes, source structure revision, memory revision, authority context
+and operation key, then writes structure, memory dispositions, replacement
+event and receipt atomically. Future publication of the source release does not
+modify the project.
 
 Portable versions are installed side by side under:
 

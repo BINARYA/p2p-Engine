@@ -7,6 +7,9 @@ from typing import Any
 from p2p_engine.core.project_structure_retirement import (
     structure_retirement_plan_from_mapping,
 )
+from p2p_engine.core.project_structure_replacement import (
+    structure_replacement_plan_from_mapping,
+)
 from p2p_engine.core.project_domain import ProjectDomainRef
 from p2p_engine.mcp.handlers.common import optional_string, required, to_jsonable
 from p2p_engine.storage.filesystem import P2PWorkspace
@@ -72,6 +75,31 @@ def handle_project_tool(
         )
         return {
             "project_structure_export_preview": result.to_dict(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_project_structure_replacement_inspect":
+        result = workspace.inspect_project_structure_replacement_target(
+            required(arguments, "target")
+        )
+        return {
+            "project_structure_replacement_inspection": result.to_dict(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_project_structure_replacement_preview":
+        actor_id = required(arguments, "actor_id")
+        result = workspace.preview_project_structure_replacement(
+            target=required(arguments, "target"),
+            expected_structure_revision=int(arguments.get("expected_structure_revision", 0)),
+            expected_memory_revision=required(arguments, "expected_memory_revision"),
+            actor_id=actor_id,
+            executor_id=str(arguments.get("executor_id") or actor_id),
+            executor_kind=str(arguments.get("executor_kind") or "person"),
+            plan=_replacement_plan(arguments),
+            channel="mcp",
+            limit=int(arguments.get("limit", 100)),
+        )
+        return {
+            "project_structure_replacement_preview": result.to_dict(),
             "mutation_performed": False,
         }
     if name in {
@@ -609,6 +637,15 @@ def _retirement_plan(arguments: dict[str, Any]):
     if not isinstance(raw_plan, dict):
         raise ValueError("Expected object argument: plan")
     return structure_retirement_plan_from_mapping(raw_plan)
+
+
+def _replacement_plan(arguments: dict[str, Any]):
+    raw_plan = arguments.get("plan")
+    if raw_plan is None:
+        return None
+    if not isinstance(raw_plan, dict):
+        raise ValueError("Expected object argument: plan")
+    return structure_replacement_plan_from_mapping(raw_plan)
 
 
 def _project_memory_scope_mutation(

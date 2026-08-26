@@ -185,6 +185,9 @@ e [`project_status.py`](../../src/p2p_engine/cli_commands/project_status.py).
 | `p2p project structure retire preview` | `C/O` | Calcola impatti e disposition richieste senza mutare stato. |
 | `p2p project structure retire apply` | `C/O` | Applica retirement token-bound con disposition e receipt idempotente. |
 | `p2p project structure retire status` | `R` | Legge lo stato receipt della retirement tramite operation key. |
+| `p2p project structure replace preview` | `C/O` | Confronta una release esatta con struttura/memoria correnti e richiede eventuali disposition senza mutare stato. |
+| `p2p project structure replace apply` | `C/O` | Applica una copia detached della release schema 3 con plan, token, capability `project.structure.replace` e receipt idempotente. |
+| `p2p project structure replace status` | `R` | Legge replay/status della replacement tramite operation key. |
 
 ### Profilo remoto
 
