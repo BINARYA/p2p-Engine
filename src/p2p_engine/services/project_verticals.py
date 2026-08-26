@@ -74,7 +74,11 @@ from p2p_engine.core.project_readiness import (
     ProjectReadinessSnapshot,
 )
 from p2p_engine.core.project_questions import ProjectQuestionApplicability
-from p2p_engine.core.project_structure import StructureField
+from p2p_engine.core.project_structure import (
+    PROJECT_STRUCTURE_CRITERION_DEFAULT_EVALUATOR,
+    PROJECT_STRUCTURE_CRITERION_DEFAULT_WEIGHT,
+    StructureField,
+)
 from p2p_engine.foundation.files import relative_to_root, slugify, write_text_atomic, write_yaml_atomic, yaml_dump
 from p2p_engine.foundation.yaml_loaders import load_yaml, load_yaml_mapping
 from p2p_engine.services.project_readiness import (
@@ -824,6 +828,8 @@ class ProjectVerticalService:
                     section_id=item.section_id,
                     required=item.required,
                     keywords=list(item.keywords),
+                    weight=item.weight,
+                    evaluation=item.evaluation,
                 )
                 for item in structure.criteria
                 if item.lifecycle == "active" and item.enabled
@@ -2793,19 +2799,13 @@ class ProjectVerticalService:
                                     "provide an explicit rubric mapping."
                                 )
                             existing_enabled[target_id] = item.get("enabled") is not False
-        criteria_payload: list[dict[str, object]] = [
-            {
-                "id": rubric.rubric_id,
-                "title": rubric.title,
-                "enabled": existing_enabled.get(rubric.rubric_id, True),
-                "required": rubric.required,
-                "section_id": rubric.section_id,
-                "keywords": rubric.keywords,
-                "source": "project_vertical",
-                "vertical_id": pack.vertical_id,
-            }
-            for rubric in pack.rubrics
-        ]
+        criteria_payload: list[dict[str, object]] = []
+        for rubric in pack.rubrics:
+            criterion = _vertical_rubric_payload(rubric)
+            criterion["enabled"] = existing_enabled.get(rubric.rubric_id, True)
+            criterion["source"] = "project_vertical"
+            criterion["vertical_id"] = pack.vertical_id
+            criteria_payload.append(criterion)
         for item in existing_criteria:
             criterion_id = str(item.get("id") or "")
             mapped_id = mapping.get(criterion_id, criterion_id)
@@ -2906,6 +2906,12 @@ def _pack_from_payload(payload: dict[str, object], *, source: str, path: Path | 
             keywords=[str(keyword) for keyword in item.get("keywords", []) if str(keyword).strip()]
             if isinstance(item.get("keywords"), list)
             else [],
+            weight=float(item.get("weight", 1.0) or 1.0),
+            evaluation=str(
+                item.get("evaluation")
+                or item.get("evaluator")
+                or "definition_status"
+            ),
         )
         for item in _mapping_list(vertical.get("rubrics"))
     ]
@@ -3029,6 +3035,21 @@ def _pack_from_payload(payload: dict[str, object], *, source: str, path: Path | 
     )
 
 
+def _vertical_rubric_payload(rubric: VerticalRubric) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "id": rubric.rubric_id,
+        "title": rubric.title,
+        "section_id": rubric.section_id,
+        "required": rubric.required,
+        "keywords": rubric.keywords,
+    }
+    if float(rubric.weight) != PROJECT_STRUCTURE_CRITERION_DEFAULT_WEIGHT:
+        payload["weight"] = rubric.weight
+    if rubric.evaluation != PROJECT_STRUCTURE_CRITERION_DEFAULT_EVALUATOR:
+        payload["evaluation"] = rubric.evaluation
+    return payload
+
+
 def _pack_payload(pack: VerticalPack) -> dict[str, object]:
     vertical_payload: dict[str, object] = {
             "schema_version": pack.schema_version,
@@ -3067,16 +3088,7 @@ def _pack_payload(pack: VerticalPack) -> dict[str, object]:
                 }
                 for section in pack.sections
             ],
-            "rubrics": [
-                {
-                    "id": rubric.rubric_id,
-                    "title": rubric.title,
-                    "section_id": rubric.section_id,
-                    "required": rubric.required,
-                    "keywords": rubric.keywords,
-                }
-                for rubric in pack.rubrics
-            ],
+            "rubrics": [_vertical_rubric_payload(rubric) for rubric in pack.rubrics],
             "questions": [_vertical_question_payload(question) for question in pack.questions],
             "artifacts": [
                 {

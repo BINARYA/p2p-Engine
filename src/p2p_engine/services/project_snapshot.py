@@ -31,6 +31,7 @@ class ProjectSnapshotService:
         project_domain: Callable[[], Any],
         project_structure: Callable[[], Any],
         memory_classification: Callable[[], Any],
+        project_readiness: Callable[[WorkspaceReadContext | None], Any] | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -41,6 +42,7 @@ class ProjectSnapshotService:
         self.vertical_lock_status = vertical_lock_status
         self.vertical_sections = vertical_sections
         self.project_progress = project_progress
+        self.project_readiness = project_readiness
         self.publication_status = publication_status
         self.project_domain = project_domain
         self.project_structure = project_structure
@@ -62,6 +64,11 @@ class ProjectSnapshotService:
             key=lambda item: getattr(item, "proposal_id", ""),
         )
         progress = self.project_progress(proposals, read_context)
+        readiness = (
+            self.project_readiness(read_context)
+            if self.project_readiness is not None
+            else progress
+        )
         sections = sorted(
             self.vertical_sections(),
             key=lambda item: (
@@ -79,7 +86,7 @@ class ProjectSnapshotService:
             "memory_classification": _payload(self.memory_classification()),
             "vertical": self._vertical_summary(),
             "sections": self._section_collection(sections, progress=progress, limit=limit),
-            "readiness": self._readiness_summary(progress),
+            "readiness": self._readiness_summary(readiness, limit=limit),
             "proposals": self._proposal_collection(proposals, limit=limit),
             "decisions": self._decision_collection(proposals, limit=limit),
             "outputs": self._output_summary(read_context=read_context),
@@ -214,7 +221,30 @@ class ProjectSnapshotService:
             "progress": _payload(progress) if progress is not None else None,
         }
 
-    def _readiness_summary(self, progress: Any) -> dict[str, object]:
+    def _readiness_summary(self, readiness: Any, *, limit: int) -> dict[str, object]:
+        if str(getattr(readiness, "contract_version", "")) == "p2p-project-readiness/v2":
+            sections = list(getattr(readiness, "sections", ()) or ())
+            diagnostics = list(getattr(readiness, "diagnostics", ()) or ())
+            return {
+                "contract_version": str(getattr(readiness, "contract_version", "")),
+                "status": str(getattr(readiness, "status", "")),
+                "snapshot": _payload(getattr(readiness, "snapshot", None)),
+                "definition": _payload(getattr(readiness, "definition", None)),
+                "evidence": _payload(getattr(readiness, "evidence", None)),
+                "sections": _bounded_collection(
+                    sections,
+                    limit=limit,
+                    item_mapper=lambda item: item,
+                ),
+                "gap_counts": dict(getattr(readiness, "counts", {}) or {}),
+                "actions": list(getattr(readiness, "actions", ()) or ()),
+                "diagnostics": _bounded_collection(
+                    diagnostics,
+                    limit=limit,
+                    item_mapper=lambda item: item,
+                ),
+            }
+        progress = readiness
         return {
             "vertical_id": str(getattr(progress, "vertical_id", "")),
             "definition": _payload(getattr(progress, "definition", None)),

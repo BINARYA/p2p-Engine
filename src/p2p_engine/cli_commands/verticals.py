@@ -7,6 +7,10 @@ import typer
 from p2p_engine.cli_contract import error_envelope, print_json, success_envelope
 from p2p_engine.cli_shared import console, fail
 from p2p_engine.core.vertical_drafts import VERTICAL_DRAFT_MAX_DOCUMENT_BYTES
+from p2p_engine.core.vertical_registry import (
+    VERTICAL_REGISTRY_PROTOCOL_VERSION,
+    RegistryPage,
+)
 from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.services.vertical_catalog import (
     VerticalCatalogService,
@@ -23,8 +27,10 @@ from p2p_engine.services.vertical_drafts import VerticalDraftService
 def register_vertical_commands(vertical_app: typer.Typer) -> None:
     registry_app = typer.Typer(help="Configure remote vertical registries")
     draft_app = typer.Typer(help="Author mutable vertical drafts and immutable releases")
+    domain_app = typer.Typer(help="Discover remote advisory catalog domains")
     vertical_app.add_typer(registry_app, name="registry")
     vertical_app.add_typer(draft_app, name="draft")
+    vertical_app.add_typer(domain_app, name="domain")
 
     @draft_app.command("create")
     def draft_create(
@@ -200,6 +206,11 @@ def register_vertical_commands(vertical_app: typer.Typer) -> None:
             help="Catalog source: local, remote or all",
         ),
         registry: str = typer.Option("", "--registry", help="Configured remote registry"),
+        domain: str = typer.Option(
+            "",
+            "--domain",
+            help="Exact remote catalog domain external ID",
+        ),
         include_private: bool = typer.Option(
             False,
             "--include-private",
@@ -212,57 +223,207 @@ def register_vertical_commands(vertical_app: typer.Typer) -> None:
             normalized_source = source.strip().lower()
             if normalized_source not in {"local", "remote", "all"}:
                 raise ValueError("P2P_VERTICAL_INVALID_SOURCE: source must be local, remote or all")
+            if domain.strip() and normalized_source == "local":
+                raise ValueError(
+                    "P2P_REGISTRY_DOMAIN_FILTER_REQUIRES_REMOTE: --domain filters remote vertical discovery"
+                )
             client = VerticalRegistryClient() if normalized_source in {"remote", "all"} else None
             catalog = VerticalCatalogService(root, client=client)
-            local = catalog.local_items() if normalized_source in {"local", "all"} else ()
-            remote = (
-                catalog.remote_items(
-                    registry=registry,
-                    include_private=include_private,
-                )
-                if normalized_source in {"remote", "all"}
+            local = (
+                catalog.local_items()
+                if normalized_source in {"local", "all"} and not domain.strip()
                 else ()
             )
+            remote = ()
+            remote_page = RegistryPage(returned=0)
+            if normalized_source in {"remote", "all"}:
+                remote, remote_page = catalog.remote_items_with_page(
+                    registry=registry,
+                    domain=domain,
+                    include_private=include_private,
+                )
+            page = RegistryPage(returned=len((*local, *remote))) if local else remote_page
             items = (*local, *remote)
         except ValueError as exc:
             _operation_error("vertical.list", exc, output_format)
-        data = {"source": normalized_source, "verticals": items}
+        data = {
+            "source": normalized_source,
+            "registry": registry,
+            "domain": domain.strip() or None,
+            "verticals": items,
+            "vertical_releases": _versioned_items(items, page),
+        }
         if _wants_json(output_format):
             print_json(success_envelope("vertical.list", data))
             return
         console.print(f"Vertical releases ({normalized_source})")
         for item in items:
-            console.print(f"  {item.coordinate}  {item.source}  {item.visibility}  {item.name}")
+            suffix = (
+                f"  domain={item.primary_domain.key}"
+                if item.primary_domain is not None
+                else ""
+            )
+            console.print(
+                f"  {item.coordinate}  {item.source}  {item.visibility}  {item.name}{suffix}"
+            )
 
     @vertical_app.command("search")
     def vertical_search(
         query: str = typer.Argument(..., help="Catalog search terms"),
         root: Path = typer.Option(Path.cwd(), "--root", help="Optional project root"),
         registry: str = typer.Option("", "--registry", help="Configured remote registry"),
+        domain: str = typer.Option(
+            "",
+            "--domain",
+            help="Exact remote catalog domain external ID",
+        ),
         include_private: bool = typer.Option(False, "--include-private"),
         output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
     ) -> None:
         """Search local and selected remote vertical metadata."""
         try:
-            items = VerticalCatalogService(
+            catalog = VerticalCatalogService(
                 root,
                 client=VerticalRegistryClient(),
-            ).search(
-                query,
-                registry=registry,
-                include_private=include_private,
             )
+            local = ()
+            if not domain.strip():
+                normalized = query.strip().lower()
+                local = tuple(
+                    item
+                    for item in catalog.local_items()
+                    if normalized in item.coordinate.lower()
+                    or normalized in item.name.lower()
+                    or normalized in item.description.lower()
+                )
+            remote, remote_page = catalog.remote_items_with_page(
+                registry=registry,
+                query=query,
+                include_private=include_private,
+                domain=domain,
+            )
+            items = (*local, *remote)
+            page = RegistryPage(returned=len(items)) if local else remote_page
         except ValueError as exc:
             _operation_error("vertical.search", exc, output_format)
-        data = {"query": query, "verticals": items}
+        data = {
+            "query": query,
+            "registry": registry,
+            "domain": domain.strip() or None,
+            "verticals": items,
+            "vertical_releases": _versioned_items(items, page),
+        }
         if _wants_json(output_format):
             print_json(success_envelope("vertical.search", data))
             return
         for item in items:
             availability = "local" if item.local_available else "remote"
-            console.print(
-                f"  {item.coordinate}  {item.visibility}  {availability}  {item.name}"
+            suffix = (
+                f"  domain={item.primary_domain.key}"
+                if item.primary_domain is not None
+                else ""
             )
+            console.print(
+                f"  {item.coordinate}  {item.visibility}  {availability}  {item.name}{suffix}"
+            )
+
+    @domain_app.command("list")
+    def domain_list(
+        registry: str = typer.Option("", "--registry", help="Configured remote registry"),
+        include_private: bool = typer.Option(False, "--include-private"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """List remote advisory catalog domains without project mutation."""
+        try:
+            domains, page = VerticalRegistryClient().list_domains_with_page(
+                registry,
+                include_private=include_private,
+            )
+        except ValueError as exc:
+            _operation_error("vertical.domain.list", exc, output_format)
+        data = {
+            "registry": registry,
+            "vertical_domains": _versioned_items(domains, page),
+        }
+        if _wants_json(output_format):
+            print_json(success_envelope("vertical.domain.list", data))
+            return
+        console.print("Vertical catalog domains")
+        if not domains:
+            console.print("  none")
+            return
+        for item in domains:
+            recommendation = (
+                f"  recommends={item.recommended_release.coordinate}"
+                if item.recommended_release is not None
+                else ""
+            )
+            console.print(
+                f"  {item.external_id}  {item.key}  {item.visibility}  {item.lifecycle}  {item.name}{recommendation}"
+            )
+
+    @domain_app.command("search")
+    def domain_search(
+        query: str = typer.Argument(..., help="Domain catalog search terms"),
+        registry: str = typer.Option("", "--registry", help="Configured remote registry"),
+        include_private: bool = typer.Option(False, "--include-private"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Search remote advisory catalog domains without project mutation."""
+        try:
+            domains, page = VerticalRegistryClient().list_domains_with_page(
+                registry,
+                query=query,
+                include_private=include_private,
+            )
+        except ValueError as exc:
+            _operation_error("vertical.domain.search", exc, output_format)
+        data = {
+            "query": query,
+            "registry": registry,
+            "vertical_domains": _versioned_items(domains, page),
+        }
+        if _wants_json(output_format):
+            print_json(success_envelope("vertical.domain.search", data))
+            return
+        for item in domains:
+            console.print(
+                f"  {item.external_id}  {item.key}  {item.visibility}  {item.lifecycle}  {item.name}"
+            )
+
+    @domain_app.command("inspect")
+    def domain_inspect(
+        domain_id: str = typer.Argument(..., help="Exact remote domain external ID"),
+        registry: str = typer.Option("", "--registry", help="Configured remote registry"),
+        include_private: bool = typer.Option(False, "--include-private"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Inspect one remote advisory catalog domain without project mutation."""
+        try:
+            domain = VerticalRegistryClient().domain(
+                domain_id,
+                registry,
+                include_private=include_private,
+            )
+        except ValueError as exc:
+            _operation_error("vertical.domain.inspect", exc, output_format)
+        data = {
+            "registry": registry,
+            "vertical_domain": {
+                "protocol_version": VERTICAL_REGISTRY_PROTOCOL_VERSION,
+                "domain": domain,
+            },
+        }
+        if _wants_json(output_format):
+            print_json(success_envelope("vertical.domain.inspect", data))
+            return
+        console.print(f"Vertical catalog domain: {domain.external_id}")
+        console.print(f"  key: {domain.key}")
+        console.print(f"  name: {domain.name}")
+        console.print(f"  visibility: {domain.visibility}")
+        console.print(f"  lifecycle: {domain.lifecycle}")
+        if domain.recommended_release is not None:
+            console.print(f"  recommended_release: {domain.recommended_release.coordinate}")
 
     @vertical_app.command("pull")
     def vertical_pull(
@@ -461,6 +622,14 @@ def _operation_error(operation: str, exc: ValueError, output_format: str) -> Non
         print_json(error_envelope(operation, code=code, message=message))
         raise typer.Exit(1)
     fail(str(exc))
+
+
+def _versioned_items(items: tuple[object, ...], page: RegistryPage) -> dict[str, object]:
+    return {
+        "protocol_version": VERTICAL_REGISTRY_PROTOCOL_VERSION,
+        "items": items,
+        "page": page,
+    }
 
 
 def _load_draft_document(path: Path) -> dict[str, object]:

@@ -18,6 +18,7 @@ from p2p_engine.core.vertical_registry import (
     RegistryCredential,
     VerticalPullResult,
 )
+from p2p_engine.mcp.tools import call_tool
 from p2p_engine.services.vertical_catalog import VerticalCacheService, VerticalPullService
 from p2p_engine.services.vertical_registry import (
     VerticalRegistryClient,
@@ -28,7 +29,7 @@ from p2p_engine.storage.filesystem import P2PWorkspace
 
 
 runner = CliRunner()
-PROTOCOL = "p2p-vertical-registry/v1"
+PROTOCOL = "p2p-vertical-registry/v2"
 REGISTRY_URL = "https://registry.example.test"
 
 
@@ -88,9 +89,11 @@ def _client(
     transport.responses[("GET", f"{REGISTRY_URL}/.well-known/p2p-vertical-registry")] = {
         "vertical_registry": {
             "protocol_version": PROTOCOL,
-            "api_base": "/api/vertical-registry/v1",
+            "api_base": "/api/vertical-registry/v2",
             "max_artifact_bytes": 8_388_608,
             "endpoints": {
+                "domains": "domains",
+                "domain": "domains/{domain_id}",
                 "search": "releases/search",
                 "releases": "releases",
                 "release": "releases/{publisher}/{vertical_id}/{version}",
@@ -200,7 +203,7 @@ def _serve_release(transport: FakeRegistryTransport, release: dict[str, object])
     transport.responses[
         (
             "GET",
-            f"{REGISTRY_URL}/api/vertical-registry/v1/releases/"
+            f"{REGISTRY_URL}/api/vertical-registry/v2/releases/"
             f"{publisher}/{vertical_id}/{version}",
         )
     ] = {
@@ -217,13 +220,73 @@ def _serve_release(transport: FakeRegistryTransport, release: dict[str, object])
         )
 
 
+def _domain_payload(
+    external_id: str = "dom-software",
+    *,
+    key: str = "software",
+    visibility: str = "public",
+    lifecycle: str = "active",
+) -> dict[str, object]:
+    return {
+        "external_id": external_id,
+        "key": key,
+        "name": key.title(),
+        "description": f"{key} projects",
+        "visibility": visibility,
+        "lifecycle": lifecycle,
+        "publisher": "wavekit",
+        "recommended_release": {
+            "coordinate": "test/demo@1.0.0",
+            "semantic_checksum": "1" * 64,
+            "artifact_sha256": "2" * 64,
+        },
+        "unknown_display_metadata": {"accent": "blue"},
+    }
+
+
+def _release_payload(
+    coordinate: str = "test/demo@1.0.0",
+    *,
+    primary_domain: dict[str, object] | None = None,
+) -> dict[str, object]:
+    return {
+        "coordinate": coordinate,
+        "name": "Demo",
+        "description": "Search result",
+        "visibility": "public",
+        "semantic_checksum": "1" * 64,
+        "schema_version": 3,
+        "artifact": {
+            "url": "/artifacts/demo.p2pv",
+            "sha256": "2" * 64,
+            "size": 10,
+        },
+        "dependencies": [],
+        "primary_domain": primary_domain,
+    }
+
+
+def _page(items: list[dict[str, object]], *, next_cursor: str | None = None) -> dict[str, object]:
+    return {
+        "returned": len(items),
+        "next_cursor": next_cursor,
+        "truncated": bool(next_cursor),
+    }
+
+
 @pytest.mark.service
 def test_capabilities_are_negotiated_and_cached_without_credentials(tmp_path: Path) -> None:
     transport = FakeRegistryTransport()
     client, configuration = _client(tmp_path, transport)
     transport.responses[
-        ("GET", f"{REGISTRY_URL}/api/vertical-registry/v1/releases")
-    ] = {"vertical_releases": {"protocol_version": PROTOCOL, "items": []}}
+        ("GET", f"{REGISTRY_URL}/api/vertical-registry/v2/releases?limit=100")
+    ] = {
+        "vertical_releases": {
+            "protocol_version": PROTOCOL,
+            "items": [],
+            "page": {"returned": 0, "next_cursor": None, "truncated": False},
+        }
+    }
 
     assert client.list_releases() == ()
     assert client.list_releases() == ()
@@ -246,15 +309,352 @@ def test_private_listing_uses_secure_store_and_never_returns_token(tmp_path: Pat
         RegistryCredential(access_token="super-secret", expires_at=2_000),
     )
     client, _configuration = _client(tmp_path, transport, credentials=credentials)
-    url = f"{REGISTRY_URL}/api/vertical-registry/v1/releases?include_private=true"
+    url = f"{REGISTRY_URL}/api/vertical-registry/v2/releases?include_private=true&limit=100"
     transport.responses[("GET", url)] = {
-        "vertical_releases": {"protocol_version": PROTOCOL, "items": []}
+        "vertical_releases": {
+            "protocol_version": PROTOCOL,
+            "items": [],
+            "page": {"returned": 0, "next_cursor": None, "truncated": False},
+        }
     }
 
     assert client.list_releases(include_private=True) == ()
     assert transport.requests[-1] == ("GET", url, "super-secret")
     assert "super-secret" not in repr(client.list_releases(include_private=True))
     assert redact_secret("Bearer super-secret failed", "super-secret") == "Bearer [REDACTED] failed"
+
+
+@pytest.mark.service
+def test_domain_catalog_list_search_inspect_and_paginate_without_structure_payload(
+    tmp_path: Path,
+) -> None:
+    transport = FakeRegistryTransport()
+    client, _configuration = _client(tmp_path, transport)
+    first = [_domain_payload("dom-software", key="software")]
+    second = [_domain_payload("dom-grants", key="grants", visibility="private")]
+    transport.responses[
+        ("GET", f"{REGISTRY_URL}/api/vertical-registry/v2/domains?limit=100")
+    ] = {
+        "vertical_domains": {
+            "protocol_version": PROTOCOL,
+            "items": first,
+            "page": _page(first, next_cursor="cursor-2"),
+        }
+    }
+    transport.responses[
+        ("GET", f"{REGISTRY_URL}/api/vertical-registry/v2/domains?limit=100&cursor=cursor-2")
+    ] = {
+        "vertical_domains": {
+            "protocol_version": PROTOCOL,
+            "items": second,
+            "page": _page(second),
+        }
+    }
+    searched = [_domain_payload("dom-software", key="software")]
+    transport.responses[
+        ("GET", f"{REGISTRY_URL}/api/vertical-registry/v2/domains?q=soft&limit=100")
+    ] = {
+        "vertical_domains": {
+            "protocol_version": PROTOCOL,
+            "items": searched,
+            "page": _page(searched),
+        }
+    }
+    transport.responses[
+        ("GET", f"{REGISTRY_URL}/api/vertical-registry/v2/domains/dom-software")
+    ] = {
+        "vertical_domain": {
+            "protocol_version": PROTOCOL,
+            "domain": _domain_payload("dom-software", key="software"),
+        }
+    }
+
+    listed = client.list_domains()
+    domains, page = client.list_domains_with_page(query="soft")
+    inspected = client.domain("dom-software")
+
+    assert [item.external_id for item in listed] == ["dom-software", "dom-grants"]
+    assert page.returned == 1
+    assert domains[0].recommended_release is not None
+    assert domains[0].recommended_release.coordinate == "test/demo@1.0.0"
+    assert inspected.key == "software"
+    assert "sections" not in inspected.to_dict()
+
+
+@pytest.mark.service
+def test_domain_catalog_fails_closed_for_v1_cross_origin_and_malformed_payloads(
+    tmp_path: Path,
+) -> None:
+    transport = FakeRegistryTransport()
+    client, _configuration = _client(tmp_path, transport)
+    transport.responses[
+        ("GET", f"{REGISTRY_URL}/.well-known/p2p-vertical-registry")
+    ]["vertical_registry"]["protocol_version"] = "p2p-vertical-registry/v1"
+
+    with pytest.raises(ValueError, match="P2P_REGISTRY_PROTOCOL_UNSUPPORTED"):
+        client.list_domains()
+
+    transport = FakeRegistryTransport()
+    client, _configuration = _client(tmp_path / "cross", transport)
+    transport.responses[
+        ("GET", f"{REGISTRY_URL}/.well-known/p2p-vertical-registry")
+    ]["vertical_registry"]["endpoints"]["domains"] = "https://evil.example.test/domains"
+
+    with pytest.raises(ValueError, match="P2P_REGISTRY_INVALID_URL"):
+        client.list_domains()
+
+    transport = FakeRegistryTransport()
+    client, _configuration = _client(tmp_path / "bad-domain", transport)
+    bad_domain = [_domain_payload("dom-software") | {"sections": []}]
+    transport.responses[
+        ("GET", f"{REGISTRY_URL}/api/vertical-registry/v2/domains?limit=100")
+    ] = {
+        "vertical_domains": {
+            "protocol_version": PROTOCOL,
+            "items": bad_domain,
+            "page": _page(bad_domain),
+        }
+    }
+
+    with pytest.raises(ValueError, match="P2P_REGISTRY_RESPONSE_INVALID"):
+        client.list_domains()
+
+    transport = FakeRegistryTransport()
+    client, _configuration = _client(tmp_path / "cursor", transport)
+    page_items: list[dict[str, object]] = []
+    transport.responses[
+        ("GET", f"{REGISTRY_URL}/api/vertical-registry/v2/domains?limit=100")
+    ] = {
+        "vertical_domains": {
+            "protocol_version": PROTOCOL,
+            "items": page_items,
+            "page": {"returned": 1, "next_cursor": None, "truncated": False},
+        }
+    }
+
+    with pytest.raises(ValueError, match="P2P_REGISTRY_PAGINATION_INVALID"):
+        client.list_domains()
+
+
+@pytest.mark.service
+def test_domain_filtered_vertical_search_encodes_filter_and_performs_no_cache_or_project_write(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import p2p_engine.cli_commands.verticals as vertical_commands
+
+    transport = FakeRegistryTransport()
+    client, _configuration = _client(tmp_path, transport)
+    release = _release_payload(
+        primary_domain={
+            "external_id": "dom/encoded",
+            "key": "software",
+            "name": "Software",
+        }
+    )
+    url = (
+        f"{REGISTRY_URL}/api/vertical-registry/v2/releases/search"
+        "?q=demo&domain=dom%2Fencoded&limit=100"
+    )
+    transport.responses[("GET", url)] = {
+        "vertical_releases": {
+            "protocol_version": PROTOCOL,
+            "items": [release],
+            "page": _page([release]),
+        }
+    }
+    monkeypatch.setattr(vertical_commands, "VerticalRegistryClient", lambda: client)
+
+    project_root = tmp_path / "project"
+    result = runner.invoke(
+        app,
+        [
+            "vertical",
+            "search",
+            "demo",
+            "--domain",
+            "dom/encoded",
+            "--root",
+            str(project_root),
+            "--format",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)
+    item = payload["data"]["vertical_releases"]["items"][0]
+    assert item["coordinate"] == "test/demo@1.0.0"
+    assert item["primary_domain"]["external_id"] == "dom/encoded"
+    assert transport.requests[-1][1] == url
+    assert "dom/encoded" not in transport.requests[-1][1].split("?", 1)[0]
+    assert not (project_root / ".p2p").exists()
+    assert not (client.configuration.paths.vertical_cache_root).exists()
+    assert all(method != "DOWNLOAD" for method, _url, _token in transport.requests)
+
+
+@pytest.mark.service
+def test_domain_reads_fail_without_configured_registry(tmp_path: Path) -> None:
+    configuration = VerticalRegistryConfigurationService(
+        paths=vertical_user_paths({"P2P_HOME": str(tmp_path / "p2p-home")})
+    )
+    client = VerticalRegistryClient(
+        configuration=configuration,
+        transport=FakeRegistryTransport(),
+        credentials=MemoryCredentialStore(),
+    )
+
+    with pytest.raises(ValueError, match="P2P_REGISTRY_NOT_CONFIGURED"):
+        client.list_domains()
+
+
+@pytest.mark.service
+def test_private_domain_read_refreshes_existing_credential_without_secret_output(
+    tmp_path: Path,
+) -> None:
+    transport = FakeRegistryTransport()
+    credentials = MemoryCredentialStore()
+    credentials.set(
+        "wavekit",
+        RegistryCredential(
+            access_token="expired-access",
+            refresh_token="refresh-secret",
+            expires_at=900,
+        ),
+    )
+    client, _configuration = _client(tmp_path, transport, credentials=credentials)
+    transport.responses[("POST", f"{REGISTRY_URL}/oauth/token")] = {
+        "access_token": "fresh-access",
+        "refresh_token": "fresh-refresh",
+        "expires_in": 3600,
+        "scope": "vertical:read",
+    }
+    domains = [_domain_payload("dom-private", key="private", visibility="private")]
+    url = f"{REGISTRY_URL}/api/vertical-registry/v2/domains?include_private=true&limit=100"
+    transport.responses[("GET", url)] = {
+        "vertical_domains": {
+            "protocol_version": PROTOCOL,
+            "items": domains,
+            "page": _page(domains),
+        }
+    }
+
+    result = client.list_domains(include_private=True)
+
+    assert result[0].external_id == "dom-private"
+    assert transport.requests[-1] == ("GET", url, "fresh-access")
+    stored = credentials.get("wavekit")
+    assert stored is not None
+    assert stored.access_token == "fresh-access"
+    assert "refresh-secret" not in repr(result)
+
+
+@pytest.mark.service
+def test_uncategorized_vertical_filter_requires_provider_capability(
+    tmp_path: Path,
+) -> None:
+    transport = FakeRegistryTransport()
+    client, _configuration = _client(tmp_path, transport)
+
+    with pytest.raises(ValueError, match="P2P_REGISTRY_DOMAIN_FILTER_UNSUPPORTED"):
+        client.list_releases(domain="uncategorized")
+
+    transport = FakeRegistryTransport()
+    client, _configuration = _client(tmp_path / "supported", transport)
+    transport.responses[
+        ("GET", f"{REGISTRY_URL}/.well-known/p2p-vertical-registry")
+    ]["vertical_registry"]["supports_uncategorized_filter"] = True
+    transport.responses[
+        (
+            "GET",
+            f"{REGISTRY_URL}/api/vertical-registry/v2/releases"
+            "?domain=uncategorized&limit=100",
+        )
+    ] = {
+        "vertical_releases": {
+            "protocol_version": PROTOCOL,
+            "items": [],
+            "page": _page([]),
+        }
+    }
+
+    assert client.list_releases(domain="uncategorized") == ()
+
+
+@pytest.mark.smoke
+@pytest.mark.mcp
+def test_mcp_remote_registry_domain_and_release_reads_match_cli_contract(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import p2p_engine.cli_commands.verticals as vertical_commands
+    import p2p_engine.mcp.handlers.vertical_registry as mcp_vertical_registry
+
+    transport = FakeRegistryTransport()
+    client, _configuration = _client(tmp_path, transport)
+    domains = [_domain_payload("dom-software", key="software")]
+    release = _release_payload(
+        primary_domain={
+            "external_id": "dom-software",
+            "key": "software",
+            "name": "Software",
+        }
+    )
+    transport.responses[
+        ("GET", f"{REGISTRY_URL}/api/vertical-registry/v2/domains?limit=100")
+    ] = {
+        "vertical_domains": {
+            "protocol_version": PROTOCOL,
+            "items": domains,
+            "page": _page(domains),
+        }
+    }
+    transport.responses[
+        ("GET", f"{REGISTRY_URL}/api/vertical-registry/v2/domains/dom-software")
+    ] = {
+        "vertical_domain": {
+            "protocol_version": PROTOCOL,
+            "domain": domains[0],
+        }
+    }
+    transport.responses[
+        (
+            "GET",
+            f"{REGISTRY_URL}/api/vertical-registry/v2/releases/search"
+            "?q=demo&domain=dom-software&limit=100",
+        )
+    ] = {
+        "vertical_releases": {
+            "protocol_version": PROTOCOL,
+            "items": [release],
+            "page": _page([release]),
+        }
+    }
+    monkeypatch.setattr(vertical_commands, "VerticalRegistryClient", lambda: client)
+    monkeypatch.setattr(mcp_vertical_registry, "VerticalRegistryClient", lambda: client)
+
+    cli_domains = runner.invoke(
+        app,
+        ["vertical", "domain", "list", "--format", "json"],
+    )
+    mcp_domains = call_tool("p2p_vertical_domain_list", {"root": str(tmp_path)})
+    mcp_domain = call_tool(
+        "p2p_vertical_domain_inspect",
+        {"root": str(tmp_path), "domain_id": "dom-software"},
+    )
+    mcp_releases = call_tool(
+        "p2p_vertical_release_search",
+        {"root": str(tmp_path), "query": "demo", "domain": "dom-software"},
+    )
+
+    assert cli_domains.exit_code == 0, cli_domains.stdout
+    cli_payload = json.loads(cli_domains.stdout)
+    assert cli_payload["data"]["vertical_domains"] == mcp_domains["vertical_domains"]
+    assert mcp_domain["vertical_domain"]["domain"]["external_id"] == "dom-software"
+    assert mcp_releases["vertical_releases"]["items"][0]["coordinate"] == "test/demo@1.0.0"
+    assert mcp_releases["mutation_performed"] is False
+    assert mcp_releases["network_access"] == "remote_read"
+    assert not (tmp_path / ".p2p").exists()
 
 
 @pytest.mark.integration
@@ -406,7 +806,7 @@ def test_search_pull_and_login_commands_use_versioned_json_without_secrets(
 
     transport = FakeRegistryTransport()
     client, _configuration = _client(tmp_path, transport)
-    query_url = f"{REGISTRY_URL}/api/vertical-registry/v1/releases/search?q=demo"
+    query_url = f"{REGISTRY_URL}/api/vertical-registry/v2/releases/search?q=demo&limit=100"
     transport.responses[("GET", query_url)] = {
         "vertical_releases": {
             "protocol_version": PROTOCOL,
@@ -426,6 +826,7 @@ def test_search_pull_and_login_commands_use_versioned_json_without_secrets(
                     "dependencies": [],
                 }
             ],
+            "page": {"returned": 1, "next_cursor": None, "truncated": False},
         }
     }
     monkeypatch.setattr(vertical_commands, "VerticalRegistryClient", lambda: client)
@@ -632,3 +1033,18 @@ def test_http_adapter_maps_read_timeout_without_leaking_token(
         )
 
     assert "bearer-secret" not in str(error.value)
+
+
+@pytest.mark.adapter
+def test_http_adapter_maps_throttling_to_stable_registry_code(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class ThrottledResponse(_Response):
+        status = 429
+
+    transport = HTTPSVerticalRegistryTransport()
+    connection = _Connection(ThrottledResponse([b"{}"]))
+    monkeypatch.setattr(transport, "_connection", lambda _url: (connection, "/domains"))
+
+    with pytest.raises(ValueError, match="P2P_REGISTRY_THROTTLED"):
+        transport.request_json("GET", "https://registry.example.test/domains")

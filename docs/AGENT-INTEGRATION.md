@@ -497,6 +497,16 @@ rubric evidence into the definition family.
 The stdio MCP surface exposes inspection but no lifecycle mutation tool. An
 agent must report this boundary instead of inventing a tool or editing `.p2p`.
 
+## Remote Vertical Discovery
+
+Agents may use `p2p vertical domain list/search/inspect`, remote
+`p2p vertical list/search --domain`, and the MCP
+`p2p_vertical_domain_*` / `p2p_vertical_release_*` tools for read-only remote
+network discovery. These reads return advisory catalog metadata only. Catalog
+domains are not project domains, `primary_domain` is not compatibility proof,
+and recommendations never pull artifacts, initialize projects, change
+structure, or write `.p2p`.
+
 ## Codex
 
 For a P2P-managed project, use the generated agent instructions:

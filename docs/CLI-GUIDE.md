@@ -59,7 +59,7 @@ and reports whether the repository hygiene section was applied, already
 covered, or warning-only.
 
 `--domain` records an optional free subject classification. It never chooses
-sections, rubrics, questions or readiness criteria. Initialization resolves one
+sections, criteria, questions or readiness requirements. Initialization resolves one
 independent structure source: `--starter generic`, `--starter empty`, or one
 exact `--vertical publisher/id@version`. Human text mode defaults to the
 documented `generic` starter; JSON mode requires the source explicitly.
@@ -158,7 +158,7 @@ does not roll back or reinterpret the successful canonical operation.
 
 Memory organization against the detached project structure is a separate,
 canonical axis. It is not the materialized vertical-memory view above and it
-never changes readiness:
+is reported beside readiness, never folded into the readiness formula:
 
 ```bash
 p2p project memory classification --format json
@@ -405,9 +405,10 @@ coordinate `publisher/vertical-id@version`. Structural `extends`, social
 `lineage.forked_from` and release-history `lineage.previous_release` are
 separate declarations.
 
-P2P Engine 0.4.11 provides a local catalog and a provider-neutral remote
+P2P Engine 0.5 provides a local catalog and a provider-neutral v2 remote
 registry client. These commands perform no remote request unless `--refresh`
-is passed to `registry list`:
+is passed to `registry list` or a remote discovery source is explicitly
+selected:
 
 ```bash
 p2p version --format json
@@ -426,19 +427,28 @@ Remote discovery and retrieval are explicit:
 
 ```bash
 p2p vertical registry list --refresh
+p2p vertical domain list --registry wavekit
+p2p vertical domain search software --registry wavekit
+p2p vertical domain inspect dom-software --registry wavekit
 p2p vertical search software --registry wavekit
+p2p vertical search software --registry wavekit --domain dom-software
 p2p vertical list --source remote --registry wavekit
+p2p vertical list --source remote --registry wavekit --domain dom-software
 p2p vertical login wavekit
 p2p vertical list --source remote --registry wavekit --include-private
 p2p vertical pull example/software-blue@1.0.0 --registry wavekit
 p2p vertical logout wavekit
 ```
 
-Login uses the registry-advertised OAuth device flow and stores credentials in
-the operating-system keyring. Pull verifies the exact dependency closure,
-artifact SHA-256, size, schema and semantic checksums before committing the
-immutable user cache. See [VERTICAL-REGISTRY.md](VERTICAL-REGISTRY.md) for the
-protocol and cache contract.
+Catalog domains and `primary_domain` release metadata are advisory discovery
+metadata. They are not project domains, do not select structure, and do not
+prove semantic compatibility. Recommendations never trigger pull or
+initialization by themselves. Login uses the registry-advertised OAuth device
+flow and stores credentials in the operating-system keyring. Pull verifies the
+exact dependency closure, artifact SHA-256, size, schema and semantic checksums
+before committing the immutable user cache. See
+[VERTICAL-REGISTRY.md](VERTICAL-REGISTRY.md) for the protocol and cache
+contract.
 
 Normalized draft authoring is available without writing canonical YAML by
 hand:
@@ -636,9 +646,11 @@ Vertical pack text is declarative domain data. It can define questions,
 examples, fields, and rubrics, but it cannot override system, developer,
 governance, repository, safety, or tool-permission rules.
 
-The current readiness-v1 service still reviews release-backed criteria while
-readiness-v2 convergence is developed. This read does not change the canonical
-project structure:
+Project readiness v2 reads the current project-owned structure and current
+project memory without mutating either one. Definition completeness and declared
+evidence coverage are separate weighted axes; retired and not-applicable
+criteria are excluded, and a structure with no applicable active criteria
+returns `not_configured` with no numeric score:
 
 ```bash
 p2p project readiness review
@@ -648,8 +660,10 @@ p2p project readiness questions status --format json
 p2p project readiness questions next --format json
 ```
 
-The review reports prioritized typed gaps, counts, bounded legacy evidence and
-concrete next operations. On workspace schema v4, project questions live in
+The review reports the `p2p-project-readiness/v2` contract, source identity,
+prioritized typed gaps, bounded diagnostics and concrete next operations.
+Memory classification debt is guidance only and does not change the readiness
+score. On workspace schema v4, project questions live in
 `.p2p/project/questions.yml`; definition `open_questions` remain empty.
 
 Only the declared project owner can answer, replace, defer, mute, reopen or
@@ -669,7 +683,8 @@ reconcile-preview` and `reconcile-apply`; reconciliation never copies an answer
 to a semantically different target.
 
 The pre-0.5 vertical-coverage commands remain a transitional derived-memory
-surface while readiness and publication callers converge on project structure:
+surface. They are not memory classification and do not satisfy readiness
+evidence:
 
 ```bash
 p2p proposal vertical-coverage show PROP-001 --format json
@@ -1277,8 +1292,8 @@ p2p assess show
 ```
 
 This operational project assessment artifact is distinct from both
-`p2p proposal readiness assess PROP-ID` and vertical-based project definition
-completeness. For current project completeness, use read-only `p2p project
+`p2p proposal readiness assess PROP-ID` and project readiness v2. For current
+project completeness, use read-only `p2p project
 snapshot`, `p2p project progress`, or `p2p project readiness review`; do not run
 `p2p assess refresh` merely to update a client view.
 
@@ -1290,8 +1305,9 @@ p2p assess maturity refresh
 p2p assess maturity show
 ```
 
-Maturity assessment checks project definition coverage against rubrics. It is
-not a measure of implementation completeness.
+Maturity assessment now projects definition coverage from readiness-v2 criteria
+for current workspace reads. It is not a measure of implementation completeness
+and it is not the authoritative project-readiness contract.
 
 ## 14. Governance Preflight
 

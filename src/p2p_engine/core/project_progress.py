@@ -9,10 +9,10 @@ PROJECT_PROGRESS_POLICY_VERSION = 1
 
 @dataclass(frozen=True)
 class ProgressRatio:
-    numerator: int
-    denominator: int
+    numerator: float
+    denominator: float
     percentage: float | None
-    exclusions: Mapping[str, int] = field(default_factory=dict)
+    exclusions: Mapping[str, float | int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

@@ -2,11 +2,16 @@ from __future__ import annotations
 
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from p2p_engine.storage.filesystem import P2PWorkspace
 
+from p2p_engine.core.project_memory import (
+    MemoryClassificationItem,
+    MemoryClassificationSnapshot,
+)
 from p2p_engine.core.project_readiness import (
     PROJECT_READINESS_NEUTRAL_DEPENDENCY_RANK,
     ProjectReadinessAssumptionSnapshot,
@@ -16,7 +21,19 @@ from p2p_engine.core.project_readiness import (
     ProjectReadinessSnapshot,
     readiness_snapshot_identity,
 )
+from p2p_engine.core.project_structure import (
+    ProjectStructure,
+    StructureCriterion,
+    StructureOrigin,
+    StructureSection,
+)
+from p2p_engine.core.project_verticals import (
+    ProjectDefinitionSectionState,
+    ProjectDefinitionState,
+    ProjectDefinitionView,
+)
 from p2p_engine.services.project_readiness import (
+    ProjectReadinessCompositionService,
     ProjectReadinessGapService,
     ProjectReadinessPaginationService,
     ProjectReadinessSourceAccess,
@@ -301,3 +318,210 @@ def test_gap_prefix_collision_is_rejected(monkeypatch: pytest.MonkeyPatch) -> No
 
     with pytest.raises(ValueError, match="gap id collision"):
         ProjectReadinessGapService().classify(_snapshot())
+
+
+def test_project_readiness_v2_zero_active_criteria_is_not_configured(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Empty Structure", starter_id="empty", owner="owner")
+
+    readiness = workspace.project_readiness_result()
+
+    assert readiness.contract_version == "p2p-project-readiness/v2"
+    assert readiness.status == "not_configured"
+    assert readiness.definition is not None
+    assert readiness.definition.ratio.denominator == 0
+    assert readiness.definition.ratio.score is None
+    assert readiness.evidence is not None
+    assert readiness.evidence.ratio.score is None
+    assert readiness.snapshot.structure_revision == workspace.project_structure().revision
+    assert readiness.snapshot.structure_checksum == workspace.project_structure().checksum
+    assert readiness.snapshot.memory_revision == workspace.project_memory_revision()
+
+
+def test_memory_classification_debt_does_not_change_definition_readiness(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project(
+        "Classification Separation",
+        project_domain="software",
+        vertical_id="software_project",
+        owner="owner",
+    )
+    before = workspace.project_readiness_result()
+    workspace.create_proposal_with_details(
+        "Unassigned evidence",
+        problem="A proposal exists but is not section-classified.",
+        proposal="Keep classification debt outside the definition formula.",
+    )
+    after = workspace.project_readiness_result()
+
+    assert before.definition is not None
+    assert after.definition is not None
+    assert after.definition.ratio.score == before.definition.ratio.score
+    assert "memory classification" in " ".join(after.actions)
+    assert after.evidence is not None
+    assert after.evidence.ratio.exclusions["unassigned_items"] == 1
+
+
+def test_readiness_v2_is_bounded_over_active_structure_and_indexed_memory(
+    tmp_path: Path,
+) -> None:
+    section_count = 64
+    sections = tuple(
+        StructureSection(
+            section_id=f"s{index:03d}",
+            title=f"Section {index}",
+            order=index,
+        )
+        for index in range(section_count)
+    ) + (
+        StructureSection(
+            section_id="retired_section",
+            title="Retired Section",
+            order=section_count,
+            lifecycle="retired",
+        ),
+    )
+    criteria = tuple(
+        criterion
+        for index in range(section_count)
+        for criterion in (
+            StructureCriterion(
+                criterion_id=f"c{index:03d}_definition",
+                section_id=f"s{index:03d}",
+                title=f"Definition {index}",
+                order=index * 2,
+            ),
+            StructureCriterion(
+                criterion_id=f"c{index:03d}_evidence",
+                section_id=f"s{index:03d}",
+                title=f"Evidence {index}",
+                evaluation="declared_evidence",
+                order=index * 2 + 1,
+            ),
+        )
+    ) + (
+        StructureCriterion(
+            criterion_id="retired_criterion",
+            section_id="retired_section",
+            title="Retired Criterion",
+            lifecycle="retired",
+        ),
+    )
+    structure = ProjectStructure(
+        structure_id="bounded_structure",
+        revision=7,
+        checksum="a" * 64,
+        origin=StructureOrigin(
+            kind="starter",
+            identity="bounded",
+            checksum=None,
+            applied_at="2026-08-26T00:00:00Z",
+            applied_by="test",
+        ),
+        sections=sections,
+        criteria=criteria,
+    )
+    definition = ProjectDefinitionView(
+        exists=True,
+        valid=True,
+        path=tmp_path / "definition.yml",
+        state=ProjectDefinitionState(
+            schema_version=1,
+            vertical_id="bounded",
+            vertical_version="1.0.0",
+            structure_id=structure.structure_id,
+            structure_revision=structure.revision,
+            structure_checksum=structure.checksum,
+            sections=[
+                ProjectDefinitionSectionState(
+                    section_id=f"s{index:03d}",
+                    status="complete" if index % 2 == 0 else "missing",
+                )
+                for index in range(section_count)
+            ],
+        ),
+    )
+    classified_items = tuple(
+        MemoryClassificationItem(
+            object_type="proposal",
+            object_id=f"PROP-{index + 1:03d}",
+            lifecycle="active",
+            state="section_classified",
+            scope_kind="sections",
+            section_ids=(f"s{index:03d}",),
+            active_section_ids=(f"s{index:03d}",),
+        )
+        for index in range(0, section_count, 4)
+    )
+    debt_items = tuple(
+        MemoryClassificationItem(
+            object_type="proposal",
+            object_id=f"PROP-{index + 101:03d}",
+            lifecycle="active",
+            state="unassigned",
+            scope_kind="unassigned",
+        )
+        for index in range(section_count)
+    )
+    retired_item = MemoryClassificationItem(
+        object_type="proposal",
+        object_id="PROP-999",
+        lifecycle="active",
+        state="requires_reassignment",
+        scope_kind="sections",
+        section_ids=("retired_section",),
+        retired_section_ids=("retired_section",),
+    )
+    classification = MemoryClassificationSnapshot(
+        status="incomplete",
+        structure_id=structure.structure_id,
+        structure_revision=structure.revision,
+        structure_checksum=structure.checksum,
+        memory_revision="b" * 64,
+        counts={
+            "section_classified": len(classified_items),
+            "unassigned": len(debt_items),
+            "requires_reassignment": 1,
+        },
+        per_type={
+            "proposal": {
+                "section_classified": len(classified_items),
+                "unassigned": len(debt_items),
+                "requires_reassignment": 1,
+            }
+        },
+        items=classified_items + debt_items + (retired_item,),
+    )
+
+    readiness = ProjectReadinessGapService().classify(
+        ProjectReadinessCompositionService().compose(
+            structure=structure,
+            definition_view=definition,
+            memory_classification=classification,
+            workspace_schema_status=SimpleNamespace(
+                current_version=4,
+                state="current",
+                layout_status="current",
+            ),
+            owner_available=True,
+        )
+    )
+
+    assert readiness.definition is not None
+    assert readiness.definition.ratio.denominator == section_count * 2
+    assert readiness.definition.ratio.numerator == 48
+    assert readiness.evidence is not None
+    assert readiness.evidence.ratio.denominator == section_count * 2
+    assert readiness.evidence.ratio.numerator == 32
+    assert readiness.evidence.ratio.exclusions == {
+        "not_applicable_weight": 0.0,
+        "project_global_items": 0,
+        "requires_reassignment_items": 1,
+        "unassigned_items": section_count,
+    }
+    assert len(readiness.sections) == section_count
+    assert all(section.section_id != "retired_section" for section in readiness.sections)

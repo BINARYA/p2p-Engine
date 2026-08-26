@@ -113,9 +113,10 @@ contributions, choices, or deferred work.
 
 ## Maturity Assessment
 
-A deterministic check of project definition coverage against configured rubrics.
-It measures whether the project definition has enough explicit intent; it is not
-implementation completeness.
+A compatibility projection of project definition completeness. Current project
+readiness is authoritative and uses active criteria in the current
+`ProjectStructure`; maturity output remains deterministic but is not a separate
+readiness formula and is not implementation completeness.
 
 ## Owner
 
@@ -141,11 +142,12 @@ changes, and other project state. Registries are refreshed from source artifacts
 
 ## Vertical Project Memory
 
-A deterministic, compact, section-oriented read model derived from the active
-project vertical, definition, questions, proposal decision authority, declared
-coverage, choices and conflicts. It accelerates readiness, context, next actions
-and project rendering. It is disposable and rebuildable; `.p2p` canonical
-sources remain authoritative. It does not represent implementation status.
+A deterministic, compact, section-oriented read model derived from current
+project structure, definition, questions, proposal decision authority, declared
+coverage, choices and conflicts. It accelerates bounded reads, context, next
+actions and project rendering. It is disposable and rebuildable; `.p2p`
+canonical sources remain authoritative. It does not represent implementation
+status.
 
 ## Fast Freshness
 
@@ -171,6 +173,12 @@ origin, and incomplete artifacts without using file age as identity.
 A portable subject-classification descriptor with a free key, display name,
 source and optional external reference. It does not own project structure.
 
+## Catalog Domain
+
+An advisory remote registry v2 metadata object with an external ID, key,
+visibility, lifecycle and optional recommended exact release. It is not copied
+into project state by discovery reads and is not a compatibility decision.
+
 ## Structure Source
 
 The exclusive initialization source for project structure: the `generic` or
@@ -189,10 +197,18 @@ A bounded, revision-bound projection reporting whether active project memory is
 classified, global, unassigned, or requires reassignment. It is separate from
 readiness and never modifies readiness scores.
 
+## Project Readiness
+
+The `p2p-project-readiness/v2` read contract. It derives weighted definition
+completeness and declared-evidence coverage from active criteria in the current
+`ProjectStructure`, binds structure and memory identity, and returns
+`not_configured` with no score when there are no applicable active criteria.
+
 ## Rubric
 
-A structure-owned checklist used to assess project definition maturity.
-Rubrics make it clear which aspects of intent have or have not been covered.
+A legacy name for checklist-style project criteria. Current project readiness
+uses active criteria owned by `ProjectStructure`; retired criteria and origin
+pack defaults are not hidden readiness requirements.
 
 ## Project Vertical
 
@@ -200,6 +216,12 @@ A pure-data pack that describes domain-specific project sections, questions,
 fields, artifacts, and default rubrics. Vertical content is domain data; it does
 not override system, developer, governance, repository, safety, or permission
 rules.
+
+## Vertical Release Primary Domain
+
+Nullable remote discovery metadata on a `VerticalRelease`. It helps filter or
+display catalog results but does not change checksum identity, dependency
+closure, project domain or detached project structure.
 
 ## Vertical Lock
 
@@ -213,8 +235,9 @@ open questions, missing fields, blockers, section completion, and provenance.
 
 ## Selected Project Rubric Maturity
 
-The maturity score computed from enabled project criteria. It is distinct from
-full default vertical baseline coverage.
+The legacy maturity view computed from enabled project criteria. It is distinct
+from readiness v2, full default vertical baseline coverage and memory
+classification.
 
 ## Work
 

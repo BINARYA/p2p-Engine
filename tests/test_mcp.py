@@ -223,6 +223,11 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_project_vertical_select",
         "p2p_project_vertical_lock_show",
         "p2p_project_vertical_lock_repair",
+        "p2p_vertical_domain_list",
+        "p2p_vertical_domain_search",
+        "p2p_vertical_domain_inspect",
+        "p2p_vertical_release_list",
+        "p2p_vertical_release_search",
         "p2p_project_context",
         "p2p_project_sections",
         "p2p_project_section_show",
@@ -1879,7 +1884,7 @@ def test_mcp_init_project_can_start_with_unresolved_custom_domain(tmp_path: Path
 
     maturity = call_tool("p2p_maturity_refresh", {"root": str(tmp_path)})
 
-    assert maturity["maturity"]["status"] == "rubric_missing"
+    assert maturity["maturity"]["status"] == "not_configured"
     assert maturity["maturity"]["score"] == 0
 
 
@@ -2117,12 +2122,15 @@ def test_mcp_project_definition_maturity(tmp_path: Path) -> None:
 
     maturity = call_tool("p2p_maturity_refresh", {"root": str(tmp_path)})
 
-    assert maturity["maturity"]["structure_source"] == "generic"
-    assert maturity["maturity"]["score"] > 0
+    assert maturity["maturity"]["structure_source"].startswith("project_structure:")
+    assert maturity["maturity"]["basis"] == "project_readiness_v2"
+    assert maturity["maturity"]["authoritative_definition_completeness"] is True
+    assert maturity["maturity"]["score"] == 0
     risks = [
         item for item in maturity["maturity"]["criteria"] if item["id"] == "risk_coverage"
     ][0]
-    assert risks["status"] == "covered"
+    assert risks["status"] == "missing"
+    assert risks["evidence"] == []
 
     shown = call_tool("p2p_maturity_show", {"root": str(tmp_path)})
 

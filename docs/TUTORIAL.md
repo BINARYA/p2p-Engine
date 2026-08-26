@@ -213,12 +213,15 @@ p2p registry refresh
 p2p validate
 p2p assess refresh
 p2p assess show
+p2p project readiness review
+p2p project progress
 p2p assess maturity refresh
 p2p assess maturity show
 ```
 
 These commands keep generated indexes and deterministic assessments aligned with
-the project state.
+the project state. Project readiness and progress are the current read-only
+completeness surfaces; maturity is retained as a compatibility projection.
 
 ## 8. Generate Agent Context Again
 

@@ -8,10 +8,8 @@ import yaml
 from typer.testing import CliRunner
 
 from p2p_engine.cli import app
-from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.storage.filesystem import P2PWorkspace
 from tests.cli_assertions import cli_data
-from tests.proposal_decision_fixtures import record_decision
 
 
 runner = CliRunner()
@@ -49,8 +47,9 @@ def test_progress_is_read_only_and_axes_are_independent(tmp_path: Path) -> None:
     progress = workspace.project_progress(include_heuristics=True)
 
     assert _hash_tree(tmp_path) == before
-    assert progress.definition.status == "measured"
+    assert progress.definition.status == "calculated"
     assert progress.definition.ratio.percentage == 0.0
+    assert progress.definition.ratio.denominator == 15
     assert progress.evidence.ratio.numerator == 0
     data_model = next(item for item in progress.sections if item.section_id == "data_model")
     assert proposal_id in data_model.heuristic_proposals
@@ -59,7 +58,7 @@ def test_progress_is_read_only_and_axes_are_independent(tmp_path: Path) -> None:
 
     fast_progress = workspace.project_progress()
     assert all(not section.heuristic_proposals for section in fast_progress.sections)
-    assert fast_progress.evidence.ratio.exclusions["heuristics_not_requested"] == 1
+    assert "heuristics_not_requested" not in fast_progress.evidence.ratio.exclusions
 
 
 def test_question_lifecycle_counts_do_not_change_progress_percentages(tmp_path: Path) -> None:
@@ -102,9 +101,9 @@ def test_missing_definition_is_not_initialized_without_percentage(tmp_path: Path
 
     progress = workspace.project_progress()
 
-    assert progress.definition.status == "not_initialized"
-    assert progress.definition.ratio.percentage is None
-    assert progress.definition.ratio.denominator == 0
+    assert progress.definition.status == "partial"
+    assert progress.definition.ratio.percentage == 0.0
+    assert progress.definition.ratio.denominator == 15
 
 
 def test_definition_and_committed_declared_evidence_advance_separately(tmp_path: Path) -> None:
@@ -166,16 +165,26 @@ def test_definition_and_committed_declared_evidence_advance_separately(tmp_path:
 
     draft_progress = workspace.project_progress()
     draft_data = next(item for item in draft_progress.sections if item.section_id == "data_model")
-    assert draft_data.definition_units_complete == 2
-    assert draft_data.declared_non_committed_proposals == (proposal_id,)
+    assert draft_data.definition_units_complete == 1
+    assert draft_data.declared_committed_proposals == ()
     assert draft_progress.evidence.ratio.numerator == 0
 
-    record_decision(workspace, proposal_id, DecisionOutcome.accepted, "Defines project evidence.", "owner")
-    accepted_progress = workspace.project_progress()
-    accepted_data = next(item for item in accepted_progress.sections if item.section_id == "data_model")
-    assert accepted_data.declared_committed_proposals == (proposal_id,)
-    assert accepted_progress.evidence.ratio.numerator == 1
-    assert accepted_progress.definition.ratio.numerator > 0
+    workspace.assign_proposal_memory_scope(
+        proposal_id=proposal_id,
+        kind="sections",
+        section_ids=["data_model"],
+        operation_key="memory-scope-progress-12345678",
+        expected_memory_revision=workspace.project_memory_revision(),
+        expected_structure_revision=workspace.project_structure().revision,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+    )
+    classified_progress = workspace.project_progress()
+    classified_data = next(item for item in classified_progress.sections if item.section_id == "data_model")
+    assert classified_data.declared_committed_proposals == (proposal_id,)
+    assert classified_progress.evidence.ratio.numerator == 1
+    assert classified_progress.definition.ratio.numerator > 0
 
 
 def test_project_progress_cli_json_matches_service(tmp_path: Path) -> None:

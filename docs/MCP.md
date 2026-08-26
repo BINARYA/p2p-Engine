@@ -163,8 +163,8 @@ current project-structure checksum and project-memory revision.
 `project_global`, or `unassigned` scope. `p2p_proposal_scope_set` performs the
 matching receipt-backed mutation and requires a consent for operation
 `project_memory_scope_set`, target `proposal:<PROP-ID>`, plus current memory and
-structure revisions. Classification never changes readiness, and its consent
-does not authorize proposal decisions or readiness overrides.
+structure revisions. Classification never changes readiness scores, and its
+consent does not authorize proposal decisions or readiness overrides.
 
 Prompt tools keep their existing output contracts. `p2p_intake_prompt` selects a
 bounded idea-text neighborhood internally, while `p2p_explore_prompt`,
@@ -215,7 +215,7 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_validate` | read-only | no | no | Check structural and semantic consistency. |
 | `p2p_project_status` | read-only | no | no | Inspect deterministic project status. |
 | `p2p_workspace_schema_status` | read-only | no | no | Inspect workspace layout, semantic alignment and recovery state. |
-| `p2p_project_progress` | read-only | no | no | Inspect independent definition-completeness and declared-evidence axes. |
+| `p2p_project_progress` | read-only | no | no | Inspect the same weighted definition-completeness and declared-evidence axes used by project readiness. |
 | `p2p_project_freshness` | read-only | no | no | Inspect the full derived-state graph and ordered rebuild actions. |
 | `p2p_project_memory_status` | read-only | no | no | Inspect vertical-memory contract, source fingerprint and freshness without rebuilding it. |
 | `p2p_project_memory_show` | read-only | no | no | Read a bounded aggregate or exact vertical section; history requires an explicit option. |
@@ -275,9 +275,9 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_spec_show` | read-only | no | no | Read a generated software spec index. |
 | `p2p_spec_export_status` | read-only | no | no | List generated downstream spec exports. |
 | `p2p_spec_export_show` | read-only | no | no | Read the primary file for a spec export target. |
-| `p2p_assess_show` | read-only | no | no | Show stored readiness assessment. |
-| `p2p_project_rubrics_show` | read-only | no | no | Read configured maturity rubrics. |
-| `p2p_maturity_show` | read-only | no | no | Show stored maturity assessment. |
+| `p2p_assess_show` | read-only | no | no | Show the legacy stored operational readiness assessment. |
+| `p2p_project_rubrics_show` | read-only | no | no | Read legacy/configured rubrics; current project readiness is based on `ProjectStructure` criteria. |
+| `p2p_maturity_show` | read-only | no | no | Show stored maturity compatibility output. |
 | `p2p_intake_status` | read-only | no | no | List intake records and analysis state. |
 | `p2p_project_brief_show` | read-only | no | no | Show imported operational brief, if present. |
 | `p2p_conflict_status` | read-only | no | no | Read recorded project conflicts. |
@@ -290,9 +290,9 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_agent_update` | write-safe | yes | no | Update generated agent files while preserving drift safety. |
 | `p2p_agent_uninstall` | write-safe | yes | no | Remove only safe, managed, non-shared files for an adapter. |
 | `p2p_registry_refresh` | write-safe | yes | no | Regenerate deterministic registries. |
-| `p2p_assess_refresh` | write-safe | yes | no | Generate deterministic readiness assessment. |
-| `p2p_project_rubrics_init` | write-safe | yes | no | Create or refresh project rubrics. |
-| `p2p_maturity_refresh` | write-safe | yes | no | Generate deterministic maturity assessment. |
+| `p2p_assess_refresh` | write-safe | yes | no | Generate the legacy deterministic operational readiness assessment. |
+| `p2p_project_rubrics_init` | write-safe | yes | no | Create or refresh legacy rubric storage for compatibility. |
+| `p2p_maturity_refresh` | write-safe | yes | no | Generate a compatibility projection from readiness-v2 definition completeness. |
 | `p2p_proposal_create` | write-safe | yes | no | Create a draft proposal. |
 | `p2p_proposal_update` | write-safe | yes | no | Update structured draft/proposal sections. |
 | `p2p_proposal_contribution_add` | write-safe | yes | no | Add a typed contribution to a proposal. |
@@ -346,14 +346,19 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_project_vertical_select` | transitional | yes | no | Transitional release-selection surface; it is not the canonical project structure. |
 | `p2p_project_vertical_lock_show` | transitional/read-only | no | no | Inspect a transitional source lock, not live structural authority. |
 | `p2p_project_vertical_lock_repair` | transitional | yes | no | Repair transitional source metadata; it does not edit `ProjectStructure`. |
-| `p2p_project_context` | read-only | no | no | Read active vertical, lock, rubric, definition summary, warnings, and next suggestion. |
+| `p2p_vertical_domain_list` | remote-network read-only | yes | no | List advisory remote catalog domains without project mutation, pull or cache writes. |
+| `p2p_vertical_domain_search` | remote-network read-only | yes | no | Search advisory remote catalog domains; recommendations remain metadata only. |
+| `p2p_vertical_domain_inspect` | remote-network read-only | yes | no | Inspect one exact catalog domain external ID without exposing inaccessible private domains. |
+| `p2p_vertical_release_list` | remote-network read-only | yes | no | List remote vertical releases, optionally filtered by one exact advisory domain ID. |
+| `p2p_vertical_release_search` | remote-network read-only | yes | no | Search remote vertical releases with optional exact domain filtering; matches are not compatibility proof. |
+| `p2p_project_context` | read-only | no | no | Read structure/source context, definition summary, warnings, and next suggestion. |
 | `p2p_project_sections` | read-only | no | no | List current project-structure sections, or inspect an explicitly requested vertical release. |
 | `p2p_project_section_show` | read-only | no | no | Read one current project-structure section, or one section from an explicitly requested vertical release. |
 | `p2p_project_definition_show` | read-only | no | no | Read durable project definition state. |
 | `p2p_project_definition_update` | write-safe | yes | no | Apply a structured project definition patch file. |
-| `p2p_project_readiness_review` | advisory/read-only | no | no | Review capisaldi coverage, unmapped proposals, and questions against a vertical. |
-| `p2p_project_readiness_gaps` | advisory/read-only | no | no | List bounded prioritized gaps with filters and a snapshot-bound cursor. |
-| `p2p_project_readiness_gap_show` | advisory/read-only | no | no | Read one stable readiness gap. |
+| `p2p_project_readiness_review` | advisory/read-only | no | no | Review `p2p-project-readiness/v2` from current `ProjectStructure`, definition state and memory classification. |
+| `p2p_project_readiness_gaps` | advisory/read-only | no | no | List bounded readiness-v2 gaps with stable structure or memory IDs and a snapshot-bound cursor. |
+| `p2p_project_readiness_gap_show` | advisory/read-only | no | no | Read one stable readiness-v2 gap. |
 | `p2p_project_questions_status` | advisory/read-only | no | no | List persistent project-question state with bounded pagination. |
 | `p2p_project_questions_next` | advisory/read-only | no | no | Read the next applicable project question. |
 | `p2p_spec_refresh` | write-safe | yes | no | Generate a P2P-native software spec after lifecycle preflight. |
@@ -527,7 +532,9 @@ unbound consent receipts cannot write schema-4 events and are not consumed.
 It also exposes local MCP parity for the managed Work lifecycle through
 domain-specific Work tools. It still does not expose choice decisions, spec
 imports, conflict recording, voting, precedent recording, choice blocking, raw
-Git shortcuts, provider PR/MR creation, remote HTTP MCP, or a hosted IAM model.
+Git shortcuts, provider PR/MR creation, remote registry login/pull/publish, or
+a hosted IAM model. Remote vertical-registry MCP is limited to explicit
+read-only domain and release discovery.
 
 P2P performs no provider network verification. A hosted MCP gateway must
 authenticate and authorize before constructing the context and must protect
@@ -611,7 +618,7 @@ Refresh registries after accepted project state changes:
 }
 ```
 
-Review project vertical readiness:
+Review project readiness:
 
 ```json
 {

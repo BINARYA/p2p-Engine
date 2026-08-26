@@ -667,6 +667,8 @@ def project_structure_from_vertical_pack(
             enabled=(rubric_enabled or {}).get(item.rubric_id, True),
             keywords=tuple(item.keywords),
             order=index,
+            weight=item.weight,
+            evaluation=item.evaluation,
         )
         for index, item in enumerate(pack.rubrics)
     )

@@ -165,7 +165,7 @@ Initialization resolves exactly one structure source. Use `--starter generic`, `
 
 Initialization copies that effective source into one detached, project-owned structure. The live authority is `p2p project structure show`, not the source release, active-vertical state, or vertical lock. Origin is provenance only. Source updates cannot modify the project automatically.
 
-When the project is uninitialized, uses the generic starter, uses the empty starter, or has weak capisaldi coverage, treat project definition as the priority context-building task.
+When the project is uninitialized, uses the generic starter, uses the empty starter, or has weak active-criteria coverage, treat project definition as the priority context-building task.
 
 Use project structure commands first:
 - `p2p project structure show --format json`
@@ -196,7 +196,7 @@ Use vertical commands to inspect, author, install or transition reusable release
 - `p2p project memory show --limit 20 --format json`
 
 Behavior:
-1. inspect project structure, definition state and rubrics before deep project-definition work; source and lock metadata are provenance only;
+1. inspect project structure, active criteria and definition state before deep project-definition work; source and lock metadata are provenance only;
 2. use an exact `publisher/id@version` release when one fits; otherwise scaffold and validate a new schema-3 release;
 3. package and install custom releases through the portable `.p2pv` lifecycle, then require owner-confirmed adopt or migrate apply;
 4. use the current project structure and definition state to identify missing capisaldi and focused questions;
@@ -926,6 +926,8 @@ def agent_policy(
             "proposal_creation_scope": "unassigned",
             "authority_creating_decision_requires_explicit_scope": True,
             "classification_changes_readiness": False,
+            "readiness_contract": "p2p-project-readiness/v2",
+            "readiness_axes": ["definition", "evidence"],
             "classification_authorizes_decision": False,
             "init_remains_deterministic": True,
             "one_primary_question_at_a_time": True,

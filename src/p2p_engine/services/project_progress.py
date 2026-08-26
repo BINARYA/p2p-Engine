@@ -12,6 +12,7 @@ from p2p_engine.core.project_progress import (
     ProgressSectionEvidence,
     ProjectProgress,
 )
+from p2p_engine.core.project_readiness import ProjectReadinessSnapshot
 from p2p_engine.services.lifecycle_authority import (
     PROPOSAL_LIFECYCLE_AUTHORITY_POLICY_VERSION,
     is_active_project_projection,
@@ -19,6 +20,104 @@ from p2p_engine.services.lifecycle_authority import (
 from p2p_engine.services.project_verticals import ProjectVerticalService, _section_fields
 from p2p_engine.services.project_questions import ProjectQuestionStateService
 from p2p_engine.core.vertical_memory import VerticalProjectMemoryView
+
+
+def progress_from_project_readiness(
+    snapshot: ProjectReadinessSnapshot,
+    *,
+    include_heuristics: bool = False,
+) -> ProjectProgress:
+    definition = snapshot.definition
+    evidence = snapshot.evidence
+    definition_axis = ProgressAxis(
+        axis_id="definition_completeness",
+        status=definition.status if definition is not None else snapshot.status,
+        ratio=_progress_ratio(definition.ratio if definition is not None else None),
+        basis=definition.basis if definition is not None else "active_project_structure_criteria",
+    )
+    evidence_axis = ProgressAxis(
+        axis_id="declared_evidence_coverage",
+        status=evidence.status if evidence is not None else snapshot.status,
+        ratio=_progress_ratio(evidence.ratio if evidence is not None else None),
+        basis=evidence.basis if evidence is not None else "active_section_classified_project_memory",
+    )
+    blockers: list[dict[str, str]] = []
+    assumptions: list[dict[str, str]] = []
+    question_counts: Counter[str] = Counter()
+    sections: list[ProgressSectionEvidence] = []
+    for section in snapshot.sections:
+        blockers.extend(
+            {"section_id": section.section_id, "id": blocker_id, "text": ""}
+            for blocker_id in section.open_blocker_ids
+        )
+        assumptions.extend(
+            {
+                "section_id": section.section_id,
+                "id": assumption.assumption_id,
+                "text": "",
+                "status": assumption.status,
+            }
+            for assumption in section.assumptions
+        )
+        for question in section.question_states:
+            question_counts[question.state] += 1
+            if question.applicability != "applicable":
+                question_counts[question.applicability] += 1
+        if (
+            section.applicable_weight > 0
+            and section.satisfied_weight < section.applicable_weight
+            and not any(
+                item.applicability == "applicable"
+                and item.state in {"to_answer", "answered"}
+                for item in section.question_states
+            )
+        ):
+            question_counts["no_safe_question"] += 1
+        sections.append(
+            ProgressSectionEvidence(
+                section_id=section.section_id,
+                required=section.required,
+                definition_status=section.definition_status,
+                required_fields_complete=0,
+                required_fields_total=len(section.missing_required_fields),
+                definition_units_complete=section.satisfied_weight,
+                definition_units_total=section.applicable_weight,
+                declared_committed_proposals=section.active_declared_proposals,
+                declared_non_committed_proposals=(),
+                heuristic_proposals=section.heuristic_proposals if include_heuristics else (),
+            )
+        )
+    warnings = tuple(
+        sorted(
+            diagnostic.message
+            for diagnostic in snapshot.diagnostics
+            if diagnostic.severity in {"warning", "error"}
+        )
+    )
+    return ProjectProgress(
+        vertical_id=snapshot.identity.vertical_id,
+        policy_version=PROJECT_PROGRESS_POLICY_VERSION,
+        lifecycle_authority_policy_version=PROPOSAL_LIFECYCLE_AUTHORITY_POLICY_VERSION,
+        definition=definition_axis,
+        evidence=evidence_axis,
+        sections=tuple(sections),
+        blockers=tuple(blockers),
+        open_questions=(),
+        assumptions=tuple(assumptions),
+        question_counts=dict(sorted(question_counts.items())),
+        warnings=warnings,
+    )
+
+
+def _progress_ratio(ratio: object | None) -> ProgressRatio:
+    if ratio is None:
+        return ProgressRatio(numerator=0.0, denominator=0.0, percentage=None)
+    return ProgressRatio(
+        numerator=float(getattr(ratio, "numerator", 0.0)),
+        denominator=float(getattr(ratio, "denominator", 0.0)),
+        percentage=getattr(ratio, "score", None),
+        exclusions=dict(getattr(ratio, "exclusions", {}) or {}),
+    )
 
 
 class _ProposalLike(Protocol):

@@ -8,6 +8,7 @@ from p2p_engine.mcp.handlers.maintenance import handle_maintenance_tool
 from p2p_engine.mcp.handlers.proposals import handle_proposal_tool
 from p2p_engine.mcp.handlers.project import handle_project_tool
 from p2p_engine.mcp.handlers.project_readiness import handle_project_readiness_tool
+from p2p_engine.mcp.handlers.vertical_registry import handle_vertical_registry_tool
 from p2p_engine.mcp.handlers.work_specs import handle_work_spec_tool
 from p2p_engine.mcp.registry import TOOL_NAMES, tool_definitions
 from p2p_engine.storage.filesystem import P2PWorkspace
@@ -24,6 +25,9 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, o
     if handled is not None:
         return handled
     handled = handle_project_readiness_tool(workspace, name, arguments)
+    if handled is not None:
+        return handled
+    handled = handle_vertical_registry_tool(name, arguments)
     if handled is not None:
         return handled
     handled = handle_proposal_tool(workspace, name, arguments)

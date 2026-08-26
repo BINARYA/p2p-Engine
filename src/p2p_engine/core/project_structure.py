@@ -14,6 +14,12 @@ PROJECT_STRUCTURE_LIFECYCLES = frozenset({"active", "retired"})
 PROJECT_STRUCTURE_ELEMENT_KINDS = frozenset(
     {"section", "field", "question", "criterion", "artifact"}
 )
+PROJECT_STRUCTURE_CRITERION_EVALUATORS = frozenset(
+    {"definition_status", "declared_evidence"}
+)
+PROJECT_STRUCTURE_CRITERION_DEFAULT_EVALUATOR = "definition_status"
+PROJECT_STRUCTURE_CRITERION_DEFAULT_WEIGHT = 1.0
+PROJECT_STRUCTURE_CRITERION_MAX_WEIGHT = 100.0
 PROJECT_STRUCTURE_SECTION_LIMIT = 256
 PROJECT_STRUCTURE_ELEMENT_LIMIT = 2048
 PROJECT_STRUCTURE_EVENT_LIMIT = 4096
@@ -260,6 +266,8 @@ class StructureCriterion:
     keywords: tuple[str, ...] = ()
     order: int = 0
     lifecycle: str = "active"
+    weight: float = PROJECT_STRUCTURE_CRITERION_DEFAULT_WEIGHT
+    evaluation: str = PROJECT_STRUCTURE_CRITERION_DEFAULT_EVALUATOR
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "criterion_id", normalize_structure_id(self.criterion_id, field_name="criterion.id"))
@@ -267,6 +275,13 @@ class StructureCriterion:
         object.__setattr__(self, "title", normalize_structure_text(self.title, field_name="criterion.title", maximum_bytes=200))
         object.__setattr__(self, "keywords", tuple(normalize_structure_text(item, field_name="criterion.keyword", maximum_bytes=100) for item in self.keywords))
         object.__setattr__(self, "lifecycle", normalize_lifecycle(self.lifecycle))
+        object.__setattr__(self, "weight", _normalize_criterion_weight(self.weight))
+        evaluation = str(self.evaluation or PROJECT_STRUCTURE_CRITERION_DEFAULT_EVALUATOR).strip().lower()
+        if evaluation not in PROJECT_STRUCTURE_CRITERION_EVALUATORS:
+            raise ValueError(
+                "P2P_PROJECT_STRUCTURE_INVALID: criterion evaluation is unsupported"
+            )
+        object.__setattr__(self, "evaluation", evaluation)
         _require_bool(self.required, "criterion.required")
         _require_bool(self.enabled, "criterion.enabled")
         if len(set(self.keywords)) != len(self.keywords):
@@ -274,8 +289,8 @@ class StructureCriterion:
         if isinstance(self.order, bool) or not isinstance(self.order, int) or self.order < 0:
             raise ValueError("P2P_PROJECT_STRUCTURE_INVALID: criterion order must be non-negative")
 
-    def to_dict(self) -> dict[str, object]:
-        return {
+    def to_dict(self, *, include_defaults: bool = True) -> dict[str, object]:
+        payload: dict[str, object] = {
             "id": self.criterion_id,
             "section_id": self.section_id,
             "title": self.title,
@@ -285,6 +300,14 @@ class StructureCriterion:
             "order": self.order,
             "lifecycle": self.lifecycle,
         }
+        if include_defaults or self.weight != PROJECT_STRUCTURE_CRITERION_DEFAULT_WEIGHT:
+            payload["weight"] = self.weight
+        if include_defaults or self.evaluation != PROJECT_STRUCTURE_CRITERION_DEFAULT_EVALUATOR:
+            payload["evaluation"] = self.evaluation
+        return payload
+
+    def semantic_payload(self) -> dict[str, object]:
+        return self.to_dict(include_defaults=False)
 
 
 @dataclass(frozen=True)
@@ -348,7 +371,7 @@ class ProjectStructure:
             "sections": [item.to_dict() for item in self.sections],
             "fields": [item.to_dict() for item in self.fields],
             "questions": [item.to_dict() for item in self.questions],
-            "criteria": [item.to_dict() for item in self.criteria],
+            "criteria": [item.semantic_payload() for item in self.criteria],
             "artifacts": [item.to_dict() for item in self.artifacts],
         }
 
@@ -658,8 +681,29 @@ def _question_from_mapping(value: object) -> StructureQuestion:
 
 
 def _criterion_from_mapping(value: object) -> StructureCriterion:
-    raw = _strict_mapping(value, name="criterion", allowed={"id", "section_id", "title", "required", "enabled", "keywords", "order", "lifecycle"})
-    return StructureCriterion(str(raw.get("id") or ""), str(raw.get("section_id") or ""), str(raw.get("title") or ""), _mapping_bool(raw, "required", True), _mapping_bool(raw, "enabled", True), tuple(str(item) for item in _sequence(raw.get("keywords"), "criterion.keywords")), raw.get("order", 0), str(raw.get("lifecycle") or "active"))  # type: ignore[arg-type]
+    raw = _strict_mapping(
+        value,
+        name="criterion",
+        allowed={
+            "id",
+            "section_id",
+            "title",
+            "required",
+            "enabled",
+            "keywords",
+            "order",
+            "lifecycle",
+            "weight",
+            "evaluation",
+            "evaluator",
+        },
+    )
+    evaluation = raw.get("evaluation", raw.get("evaluator", PROJECT_STRUCTURE_CRITERION_DEFAULT_EVALUATOR))
+    if "evaluation" in raw and "evaluator" in raw and str(raw["evaluation"]) != str(raw["evaluator"]):
+        raise ValueError(
+            "P2P_PROJECT_STRUCTURE_INVALID: criterion evaluation aliases disagree"
+        )
+    return StructureCriterion(str(raw.get("id") or ""), str(raw.get("section_id") or ""), str(raw.get("title") or ""), _mapping_bool(raw, "required", True), _mapping_bool(raw, "enabled", True), tuple(str(item) for item in _sequence(raw.get("keywords"), "criterion.keywords")), raw.get("order", 0), str(raw.get("lifecycle") or "active"), raw.get("weight", PROJECT_STRUCTURE_CRITERION_DEFAULT_WEIGHT), str(evaluation or PROJECT_STRUCTURE_CRITERION_DEFAULT_EVALUATOR))  # type: ignore[arg-type]
 
 
 def _artifact_from_mapping(value: object) -> StructureArtifact:
@@ -700,3 +744,14 @@ def _require_bool(value: object, field_name: str) -> bool:
 
 def _mapping_bool(raw: Mapping[str, object], key: str, default: bool) -> bool:
     return _require_bool(raw.get(key, default), key)
+
+
+def _normalize_criterion_weight(value: object) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError("P2P_PROJECT_STRUCTURE_INVALID: criterion weight must be numeric")
+    normalized = float(value)
+    if not 0 < normalized <= PROJECT_STRUCTURE_CRITERION_MAX_WEIGHT:
+        raise ValueError(
+            "P2P_PROJECT_STRUCTURE_INVALID: criterion weight must be positive and bounded"
+        )
+    return normalized

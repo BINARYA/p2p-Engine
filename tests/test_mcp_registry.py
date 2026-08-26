@@ -80,6 +80,11 @@ EXPECTED_TOOL_NAMES = (
     "p2p_project_vertical_select",
     "p2p_project_vertical_lock_show",
     "p2p_project_vertical_lock_repair",
+    "p2p_vertical_domain_list",
+    "p2p_vertical_domain_search",
+    "p2p_vertical_domain_inspect",
+    "p2p_vertical_release_list",
+    "p2p_vertical_release_search",
     "p2p_project_context",
     "p2p_project_sections",
     "p2p_project_section_show",
@@ -265,6 +270,21 @@ def test_mcp_init_project_description_describes_adaptive_agent_default() -> None
     assert "adaptive agent default" in description
     assert "falls back to all built-in adapters" in description
     assert "Defaults to all built-in adapters" not in description
+
+
+def test_mcp_remote_vertical_registry_tools_declare_network_read_boundary() -> None:
+    definitions = {definition["name"]: definition for definition in tool_definitions()}
+
+    for name in (
+        "p2p_vertical_domain_list",
+        "p2p_vertical_domain_search",
+        "p2p_vertical_domain_inspect",
+        "p2p_vertical_release_list",
+        "p2p_vertical_release_search",
+    ):
+        description = definitions[name]["description"]
+        assert "Read-only remote network read" in description
+        assert "mutate project state" in description or "Does not download artifacts" in description
 
 
 def test_mcp_tools_module_reexports_registry_surface() -> None:

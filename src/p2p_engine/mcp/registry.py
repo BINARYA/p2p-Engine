@@ -7,6 +7,7 @@ from p2p_engine.mcp.catalog import project
 from p2p_engine.mcp.catalog import project_readiness
 from p2p_engine.mcp.catalog import prompts
 from p2p_engine.mcp.catalog import proposals
+from p2p_engine.mcp.catalog import vertical_registry
 from p2p_engine.mcp.catalog import work_specs
 from p2p_engine.mcp.catalog.prompts import PROMPT_TOOL_KINDS
 
@@ -86,6 +87,11 @@ TOOL_NAMES = (
     'p2p_project_vertical_select',
     'p2p_project_vertical_lock_show',
     'p2p_project_vertical_lock_repair',
+    'p2p_vertical_domain_list',
+    'p2p_vertical_domain_search',
+    'p2p_vertical_domain_inspect',
+    'p2p_vertical_release_list',
+    'p2p_vertical_release_search',
     'p2p_project_context',
     'p2p_project_sections',
     'p2p_project_section_show',
@@ -200,6 +206,7 @@ def tool_definitions() -> list[dict[str, object]]:
         *maintenance.tool_definitions(),
         *agents.tool_definitions(),
         *project.tool_definitions(),
+        *vertical_registry.tool_definitions(),
         *project_readiness.tool_definitions(),
         *proposals.tool_definitions(),
         *collaboration.tool_definitions(),

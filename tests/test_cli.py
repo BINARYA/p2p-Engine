@@ -767,7 +767,7 @@ def test_cli_init_default_domain_is_empty_and_generic_structure_is_explicit(tmp_
     result = runner.invoke(app, ["assess", "maturity", "refresh", "--root", str(tmp_path)])
 
     assert result.exit_code == 0
-    assert "status: not_defined" in result.output
+    assert "status: calculated" in result.output
 
 
 def test_cli_init_domain_and_vertical_are_independent(tmp_path: Path) -> None:
@@ -1506,7 +1506,7 @@ def test_cli_project_rubrics_and_definition_maturity(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert "Project definition maturity refreshed" in result.output
-    assert "software_constraints_nfr_coverage  covered  100/100" in result.output
+    assert "software_constraints_nfr_coverage  missing  0/100" in result.output
     assert "implementation completeness" not in result.output
     assert (tmp_path / ".p2p" / "project" / "maturity-assessment.yml").exists()
 

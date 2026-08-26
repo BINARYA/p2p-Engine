@@ -190,6 +190,8 @@ VERTICAL_REGISTRY_WHEEL_MEMBERS = {
     "p2p_engine/adapters/vertical_registry_http.py",
     "p2p_engine/cli_commands/verticals.py",
     "p2p_engine/core/vertical_registry.py",
+    "p2p_engine/mcp/catalog/vertical_registry.py",
+    "p2p_engine/mcp/handlers/vertical_registry.py",
     "p2p_engine/services/vertical_catalog.py",
     "p2p_engine/services/vertical_registry.py",
 }

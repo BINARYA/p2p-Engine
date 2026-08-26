@@ -133,14 +133,20 @@ p2p_context
 The context packet tells agents what is relevant, which commands are allowed, and
 what not to read.
 
-## Rubrics And Maturity
+## Project Readiness And Maturity
 
-Rubrics describe what a complete enough project definition should cover for the
-current project structure. A domain classifies the subject but does not inject
-rubrics or sections.
+Project readiness describes what a complete enough project definition should
+cover for the current project structure. A domain classifies the subject but
+does not inject criteria, rubrics or sections.
 
-Maturity assessment checks definition coverage against those rubrics. It is not
-implementation completeness.
+Readiness v2 derives weighted definition completeness and declared evidence
+coverage from active criteria in the current `ProjectStructure`. The two axes
+remain separate. Empty or fully retired criteria produce `not_configured`,
+not a zero score.
+
+Maturity assessment is now a compatibility projection of the readiness-v2
+definition axis. It is not implementation completeness and not a separate
+source of readiness truth.
 
 Project verticals are immutable pure-data releases that provide reusable
 sections, questions, fields, artifacts and default rubrics. Initialization
@@ -159,19 +165,22 @@ Portable schema-version-3 verticals use exact
 artifacts. P2P Engine validates and installs those artifacts offline; catalog
 discovery, user policy, moderation, download and popularity counters belong to
 an external system such as WaveKit. Multiple exact versions may coexist.
+Remote registry v2 catalog domains and release `primary_domain` values are
+advisory discovery metadata only. They do not change the project's free domain
+classification, prove compatibility, or select a detached structure source.
 Transitional release adoption or migration does not replace the project-owned
 structure. A later explicit replacement lifecycle compares the release with
 the current structure and governs every affected memory reference.
 
 `.p2p/project/definition.yml` stores durable owner answers, assumptions,
 missing required fields, blockers, open questions, section status, and
-provenance for project-definition work. Agents should inspect vertical context,
-definition state, and rubrics before asking follow-up questions, then ask one
-primary question at a time.
+provenance for project-definition work. Agents should inspect current project
+structure, active criteria and definition state before asking follow-up
+questions, then ask one primary question at a time.
 
-Selected project rubric maturity measures only enabled project criteria. Full
-vertical baseline coverage is reported separately through baseline/default
-counts where available.
+Project progress, readiness review, gaps and snapshot reads use the same
+criterion interpretation. Memory classification is published beside readiness
+and cannot change its score.
 
 ### Vertical-Aware Derived Memory
 
@@ -187,9 +196,9 @@ implicitly, and a successful governance mutation remains successful even when a
 separate derived update fails.
 
 ```bash
-p2p project rubrics show
-p2p assess maturity refresh
-p2p assess maturity show
+p2p project readiness review
+p2p project readiness gaps --limit 20 --format json
+p2p project progress --format json
 ```
 
 ## Human Project Publication

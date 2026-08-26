@@ -37,7 +37,7 @@ from p2p_engine.storage.filesystem import P2PWorkspace
 
 
 runner = CliRunner()
-PROTOCOL = "p2p-vertical-registry/v1"
+PROTOCOL = "p2p-vertical-registry/v2"
 FIXTURES = Path(__file__).parent / "fixtures" / "vertical_drafts"
 
 
@@ -262,9 +262,11 @@ class _PublicationTransport:
         return {
             "vertical_registry": {
                 "protocol_version": PROTOCOL,
-                "api_base": "/api/vertical-registry/v1",
+                "api_base": "/api/vertical-registry/v2",
                 "max_artifact_bytes": 8_388_608,
                 "endpoints": {
+                    "domains": "domains",
+                    "domain": "domains/{domain_id}",
                     "search": "releases/search",
                     "releases": "releases",
                     "release": "releases/{publisher}/{vertical_id}/{version}",

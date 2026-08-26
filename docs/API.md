@@ -25,7 +25,7 @@ workspace = P2PWorkspace(Path("."))
 Current method families include:
 
 - project initialization and agent instructions;
-- status, validation, context, readiness, and maturity;
+- status, validation, context, project-readiness v2, and maturity compatibility;
 - proposals and contributions;
 - decisions, votes, and precedents;
 - choices and choice discovery;
@@ -74,6 +74,6 @@ This file should grow into:
 - choice API;
 - Change Set API;
 - Work API;
-- assessment/rubric API;
+- assessment/readiness API;
 - MCP/core mapping;
 - refactor boundaries.

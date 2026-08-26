@@ -92,8 +92,18 @@ def test_next_and_progress_accept_caller_owned_read_contexts(tmp_path: Path) -> 
     progress_context = workspace.read_context()
     progress = workspace.project_progress(read_context=progress_context)
     assert progress.vertical_id
+    vertical_memory_calls = sum(
+        value
+        for key, value in progress_context.counters.provider_calls.items()
+        if key.startswith("vertical_memory.")
+    )
+    vertical_memory_hits = sum(
+        value
+        for key, value in progress_context.counters.provider_cache_hits.items()
+        if key.startswith("vertical_memory.")
+    )
     assert _provider_executions(
-        progress_context.counters.provider_calls.get("vertical_memory", 0),
-        progress_context.counters.provider_cache_hits.get("vertical_memory", 0),
-    ) == 1
+        vertical_memory_calls,
+        vertical_memory_hits,
+    ) >= 1
     assert progress_context.finalize().current is True

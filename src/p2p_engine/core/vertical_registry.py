@@ -5,10 +5,14 @@ from pathlib import Path
 
 
 VERTICAL_REGISTRY_CONFIG_SCHEMA_VERSION = 1
-VERTICAL_REGISTRY_PROTOCOL_VERSION = "p2p-vertical-registry/v1"
+VERTICAL_REGISTRY_PROTOCOL_VERSION = "p2p-vertical-registry/v2"
 VERTICAL_REGISTRY_CAPABILITY_PATH = "/.well-known/p2p-vertical-registry"
 VERTICAL_REGISTRY_MAX_DOCUMENT_BYTES = 1_048_576
 VERTICAL_REGISTRY_MAX_ARTIFACT_BYTES = 8_388_608
+VERTICAL_REGISTRY_MAX_PAGE_SIZE = 100
+VERTICAL_REGISTRY_MAX_PAGES = 10
+VERTICAL_REGISTRY_MAX_CURSOR_LENGTH = 1024
+VERTICAL_REGISTRY_UNCATEGORIZED_DOMAIN = "uncategorized"
 
 
 @dataclass(frozen=True)
@@ -46,6 +50,8 @@ class VerticalRegistryConfiguration:
 
 @dataclass(frozen=True)
 class RegistryEndpoints:
+    domains: str
+    domain: str
     search: str
     releases: str
     release: str
@@ -53,6 +59,8 @@ class RegistryEndpoints:
 
     def to_dict(self) -> dict[str, str]:
         return {
+            "domains": self.domains,
+            "domain": self.domain,
             "search": self.search,
             "releases": self.releases,
             "release": self.release,
@@ -83,6 +91,7 @@ class RegistryCapabilities:
     max_artifact_bytes: int
     endpoints: RegistryEndpoints
     oauth_device: OAuthDeviceConfiguration | None = None
+    supports_uncategorized_filter: bool = False
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -91,6 +100,7 @@ class RegistryCapabilities:
             "max_artifact_bytes": self.max_artifact_bytes,
             "endpoints": self.endpoints.to_dict(),
             "oauth_device": self.oauth_device.to_dict() if self.oauth_device else None,
+            "supports_uncategorized_filter": self.supports_uncategorized_filter,
         }
 
 
@@ -131,6 +141,76 @@ class DeviceAuthorization:
 
 
 @dataclass(frozen=True)
+class RegistryPage:
+    returned: int
+    next_cursor: str = ""
+    truncated: bool = False
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "returned": self.returned,
+            "next_cursor": self.next_cursor,
+            "truncated": self.truncated,
+        }
+
+
+@dataclass(frozen=True)
+class RecommendedVerticalRelease:
+    coordinate: str
+    semantic_checksum: str
+    artifact_sha256: str = ""
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "coordinate": self.coordinate,
+            "semantic_checksum": self.semantic_checksum,
+            "artifact_sha256": self.artifact_sha256,
+        }
+
+
+@dataclass(frozen=True)
+class RegistryDomainReference:
+    external_id: str
+    key: str
+    name: str = ""
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "external_id": self.external_id,
+            "key": self.key,
+            "name": self.name,
+        }
+
+
+@dataclass(frozen=True)
+class RegistryDomain:
+    external_id: str
+    key: str
+    name: str
+    description: str
+    visibility: str
+    lifecycle: str
+    publisher: str = ""
+    recommended_release: RecommendedVerticalRelease | None = None
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "external_id": self.external_id,
+            "key": self.key,
+            "name": self.name,
+            "description": self.description,
+            "visibility": self.visibility,
+            "lifecycle": self.lifecycle,
+            "publisher": self.publisher,
+            "recommended_release": (
+                self.recommended_release.to_dict()
+                if self.recommended_release is not None
+                else None
+            ),
+        }
+
+
+@dataclass(frozen=True)
 class VerticalReleaseDependency:
     coordinate: str
     semantic_checksum: str
@@ -162,6 +242,7 @@ class VerticalRelease:
     schema_version: int
     artifact: VerticalReleaseArtifact
     dependencies: tuple[VerticalReleaseDependency, ...] = ()
+    primary_domain: RegistryDomainReference | None = None
     registry: str = ""
 
     def to_dict(self) -> dict[str, object]:
@@ -174,6 +255,11 @@ class VerticalRelease:
             "schema_version": self.schema_version,
             "artifact": self.artifact.to_dict(),
             "dependencies": [item.to_dict() for item in self.dependencies],
+            "primary_domain": (
+                self.primary_domain.to_dict()
+                if self.primary_domain is not None
+                else None
+            ),
             "registry": self.registry,
         }
 
@@ -197,6 +283,7 @@ class VerticalCatalogItem:
     artifact_checksum: str = ""
     artifact_path: Path | None = None
     local_available: bool = True
+    primary_domain: RegistryDomainReference | None = None
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -210,6 +297,11 @@ class VerticalCatalogItem:
             "artifact_checksum": self.artifact_checksum,
             "artifact_path": str(self.artifact_path) if self.artifact_path else None,
             "local_available": self.local_available,
+            "primary_domain": (
+                self.primary_domain.to_dict()
+                if self.primary_domain is not None
+                else None
+            ),
         }
 
 

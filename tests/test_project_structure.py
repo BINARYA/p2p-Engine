@@ -28,6 +28,7 @@ from p2p_engine.core.project_structure import (
     PROJECT_STRUCTURE_CONTRACT,
     PROJECT_STRUCTURE_MUTATION_CONTRACT,
     ProjectStructure,
+    StructureCriterion,
     StructureField,
     StructureOrigin,
     StructureSection,
@@ -311,6 +312,42 @@ def test_structure_validation_detects_checksum_and_reference_drift() -> None:
             checksum="0" * 64,
             origin=origin,
             fields=(StructureField("summary", "missing", "Summary"),),
+        )
+
+
+def test_structure_criteria_support_bounded_weight_and_evaluator() -> None:
+    criterion = StructureCriterion(
+        criterion_id="definition_quality",
+        section_id="scope",
+        title="Definition Quality",
+        weight=2.5,
+        evaluation="definition_status",
+    )
+
+    assert criterion.to_dict()["weight"] == 2.5
+    assert criterion.to_dict()["evaluation"] == "definition_status"
+    assert criterion.semantic_payload()["weight"] == 2.5
+
+    default = StructureCriterion(
+        criterion_id="default_quality",
+        section_id="scope",
+        title="Default Quality",
+    )
+    assert "weight" not in default.semantic_payload()
+    assert "evaluation" not in default.semantic_payload()
+    with pytest.raises(ValueError, match="positive and bounded"):
+        StructureCriterion(
+            criterion_id="bad_weight",
+            section_id="scope",
+            title="Bad Weight",
+            weight=0,
+        )
+    with pytest.raises(ValueError, match="unsupported"):
+        StructureCriterion(
+            criterion_id="bad_evaluator",
+            section_id="scope",
+            title="Bad Evaluator",
+            evaluation="python_expression",
         )
 
 
@@ -868,6 +905,10 @@ def test_structure_retirement_can_retire_all_active_criteria_without_purge(
     assert result.status == "applied"
     assert workspace.project_structure().to_dict(include_retired=False)["criteria"] == []
     assert workspace.project_structure(include_retired=True).criteria
+    readiness = workspace.project_readiness_result()
+    assert readiness.status == "not_configured"
+    assert readiness.definition is not None
+    assert readiness.definition.ratio.score is None
 
 
 def test_structure_retirement_rejects_stale_sources_and_divergent_replay(

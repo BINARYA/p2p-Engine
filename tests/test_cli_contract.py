@@ -143,6 +143,9 @@ runtime.status
 validate
 version
 vertical.inspect
+vertical.domain.inspect
+vertical.domain.list
+vertical.domain.search
 vertical.draft.add-local
 vertical.draft.create
 vertical.draft.inspect
@@ -210,7 +213,7 @@ def test_cli_json_operation_inventory_is_reviewed_and_guarded() -> None:
     inventory = json_command_inventory(get_command(app))
 
     assert frozenset(inventory) == EXPECTED_JSON_OPERATIONS
-    assert len(inventory) == 137
+    assert len(inventory) == 140
     assert inventory["vertical.inspect"] == "json"
     assert inventory["workspace.schema.status"] == "text"
 

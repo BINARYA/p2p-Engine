@@ -10,6 +10,8 @@ from typing import Mapping, Sequence
 from p2p_engine.core.mutation_preview import canonical_json_bytes, semantic_sha256
 
 
+PROJECT_READINESS_CONTRACT = "p2p-project-readiness/v2"
+PROJECT_READINESS_ALGORITHM_VERSION = "project-structure-readiness-v2.0"
 PROJECT_READINESS_GAP_POLICY_VERSION = 1
 PROJECT_READINESS_CURSOR_POLICY_VERSION = 1
 PROJECT_READINESS_DEFAULT_PAGE_SIZE = 20
@@ -64,12 +66,26 @@ class ProjectReadinessSnapshotIdentity:
     modules: tuple[str, ...]
     source_hashes: Mapping[str, str]
     policy_versions: Mapping[str, int]
+    contract_version: str = PROJECT_READINESS_CONTRACT
+    algorithm_version: str = PROJECT_READINESS_ALGORITHM_VERSION
+    structure_id: str = ""
+    structure_revision: int = 0
+    structure_checksum: str = ""
+    memory_revision: str = ""
 
     def to_dict(self) -> dict[str, object]:
         return {
+            "contract_version": self.contract_version,
             "fingerprint": self.fingerprint,
+            "algorithm_version": self.algorithm_version,
             "workspace_schema_version": self.workspace_schema_version,
             "workspace_schema_state": self.workspace_schema_state,
+            "structure": {
+                "id": self.structure_id,
+                "revision": self.structure_revision,
+                "checksum": self.structure_checksum,
+            },
+            "memory_revision": self.memory_revision,
             "vertical_id": self.vertical_id,
             "vertical_version": self.vertical_version,
             "vertical_lock_checksum": self.vertical_lock_checksum,
@@ -99,6 +115,81 @@ class ProjectReadinessQuestionSnapshot:
 
 
 @dataclass(frozen=True)
+class ProjectReadinessRatio:
+    numerator: float
+    denominator: float
+    score: float | None
+    unit: str = "weight"
+    exclusions: Mapping[str, float | int] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "numerator": _compact_number(self.numerator),
+            "denominator": _compact_number(self.denominator),
+            "score": self.score,
+            "unit": self.unit,
+            "exclusions": {
+                key: _compact_number(value)
+                for key, value in sorted(self.exclusions.items())
+            },
+        }
+
+
+@dataclass(frozen=True)
+class ProjectReadinessAxis:
+    axis_id: str
+    status: str
+    ratio: ProjectReadinessRatio
+    basis: str
+    diagnostics: tuple[str, ...] = ()
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "axis_id": self.axis_id,
+            "status": self.status,
+            "ratio": self.ratio.to_dict(),
+            "basis": self.basis,
+            "diagnostics": list(self.diagnostics),
+        }
+
+
+@dataclass(frozen=True)
+class ProjectReadinessCriterionSnapshot:
+    criterion_id: str
+    section_id: str
+    title: str
+    weight: float
+    evaluation: str
+    required: bool
+    status: str
+    definition_status: str
+    evidence_item_ids: tuple[str, ...] = ()
+    not_applicable_reason: str = ""
+
+    @property
+    def applicable(self) -> bool:
+        return self.status != "not_applicable"
+
+    @property
+    def satisfied(self) -> bool:
+        return self.status == "satisfied"
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "criterion_id": self.criterion_id,
+            "section_id": self.section_id,
+            "title": self.title,
+            "weight": _compact_number(self.weight),
+            "evaluation": self.evaluation,
+            "required": self.required,
+            "status": self.status,
+            "definition_status": self.definition_status,
+            "evidence_item_ids": list(self.evidence_item_ids),
+            "not_applicable_reason": self.not_applicable_reason,
+        }
+
+
+@dataclass(frozen=True)
 class ProjectReadinessSectionSnapshot:
     section_id: str
     title: str
@@ -113,6 +204,14 @@ class ProjectReadinessSectionSnapshot:
     heuristic_proposals: tuple[str, ...] = ()
     declared_questions: tuple[str, ...] = ()
     question_states: tuple[ProjectReadinessQuestionSnapshot, ...] = ()
+    criteria: tuple[ProjectReadinessCriterionSnapshot, ...] = ()
+    active_weight: float = 0.0
+    applicable_weight: float = 0.0
+    satisfied_weight: float = 0.0
+    evidence_weight: float = 0.0
+    definition_score: float | None = None
+    evidence_score: float | None = None
+    readiness_status: str = "not_configured"
 
 
 @dataclass(frozen=True)
@@ -126,6 +225,13 @@ class ProjectReadinessSnapshot:
     unmapped_proposals: tuple[str, ...]
     owner_available: bool = True
     diagnostics: tuple["ProjectReadinessDiagnostic", ...] = ()
+    contract_version: str = PROJECT_READINESS_CONTRACT
+    algorithm_version: str = PROJECT_READINESS_ALGORITHM_VERSION
+    status: str = "calculated"
+    definition: ProjectReadinessAxis | None = None
+    evidence: ProjectReadinessAxis | None = None
+    actions: tuple[str, ...] = ()
+    memory_classification_status: str = "unknown"
 
 
 @dataclass(frozen=True)
@@ -216,13 +322,25 @@ class ProjectReadinessResult:
     gaps: tuple[ProjectReadinessGap, ...]
     diagnostics: tuple[ProjectReadinessDiagnostic, ...]
     counts: Mapping[str, int]
+    status: str = "calculated"
+    definition: ProjectReadinessAxis | None = None
+    evidence: ProjectReadinessAxis | None = None
+    sections: tuple[ProjectReadinessSectionSnapshot, ...] = ()
+    actions: tuple[str, ...] = ()
+    contract_version: str = PROJECT_READINESS_CONTRACT
 
     def to_dict(self) -> dict[str, object]:
         return {
+            "contract_version": self.contract_version,
+            "status": self.status,
             "snapshot": self.snapshot.to_dict(),
+            "definition": self.definition.to_dict() if self.definition else None,
+            "evidence": self.evidence.to_dict() if self.evidence else None,
+            "sections": [_section_to_dict(item) for item in self.sections],
             "gaps": [item.to_dict() for item in self.gaps],
             "diagnostics": [item.to_dict() for item in self.diagnostics],
             "counts": dict(self.counts),
+            "actions": list(self.actions),
         }
 
 
@@ -306,10 +424,22 @@ def readiness_snapshot_identity(
     modules: Sequence[str],
     source_hashes: Mapping[str, str],
     policy_versions: Mapping[str, int],
+    structure_id: str = "",
+    structure_revision: int = 0,
+    structure_checksum: str = "",
+    memory_revision: str = "",
+    algorithm_version: str = PROJECT_READINESS_ALGORITHM_VERSION,
+    contract_version: str = PROJECT_READINESS_CONTRACT,
 ) -> ProjectReadinessSnapshotIdentity:
     payload = {
+        "contract_version": contract_version,
+        "algorithm_version": algorithm_version,
         "workspace_schema_version": workspace_schema_version,
         "workspace_schema_state": workspace_schema_state,
+        "structure_id": structure_id,
+        "structure_revision": structure_revision,
+        "structure_checksum": structure_checksum,
+        "memory_revision": memory_revision,
         "vertical_id": vertical_id,
         "vertical_version": vertical_version,
         "vertical_lock_checksum": vertical_lock_checksum,
@@ -329,6 +459,12 @@ def readiness_snapshot_identity(
         modules=tuple(sorted(str(item) for item in modules)),
         source_hashes=dict(sorted(source_hashes.items())),
         policy_versions=dict(sorted(policy_versions.items())),
+        contract_version=contract_version,
+        algorithm_version=algorithm_version,
+        structure_id=structure_id,
+        structure_revision=structure_revision,
+        structure_checksum=structure_checksum,
+        memory_revision=memory_revision,
     )
 
 
@@ -355,3 +491,31 @@ def readiness_gap_identity(
 
 def readiness_class_rank(kind: ProjectReadinessGapKind) -> int:
     return _CLASS_RANKS[kind]
+
+
+def _section_to_dict(section: ProjectReadinessSectionSnapshot) -> dict[str, object]:
+    return {
+        "section_id": section.section_id,
+        "title": section.title,
+        "required": section.required,
+        "priority": section.priority,
+        "definition_status": section.definition_status,
+        "missing_required_fields": list(section.missing_required_fields),
+        "declared_proposals": list(section.declared_proposals),
+        "active_declared_proposals": list(section.active_declared_proposals),
+        "heuristic_proposals": list(section.heuristic_proposals),
+        "declared_questions": list(section.declared_questions),
+        "criteria": [item.to_dict() for item in section.criteria],
+        "active_weight": _compact_number(section.active_weight),
+        "applicable_weight": _compact_number(section.applicable_weight),
+        "satisfied_weight": _compact_number(section.satisfied_weight),
+        "evidence_weight": _compact_number(section.evidence_weight),
+        "definition_score": section.definition_score,
+        "evidence_score": section.evidence_score,
+        "readiness_status": section.readiness_status,
+    }
+
+
+def _compact_number(value: float | int) -> float | int:
+    numeric = float(value)
+    return int(numeric) if numeric.is_integer() else numeric

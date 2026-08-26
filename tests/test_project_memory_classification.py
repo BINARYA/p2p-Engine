@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, replace
+from dataclasses import replace
 import json
 from pathlib import Path
 
@@ -214,7 +214,7 @@ def test_multi_section_and_global_scope_are_atomic_and_unblock_decision(
     workspace = _workspace(tmp_path)
     proposal = workspace.create_proposal("Cross-cutting proposal")
     section_ids = list(workspace.project_structure().active_section_ids())[:2]
-    before_progress = asdict(workspace.project_progress())
+    before_progress = workspace.project_progress()
 
     assigned = _assign(
         workspace,
@@ -239,7 +239,10 @@ def test_multi_section_and_global_scope_are_atomic_and_unblock_decision(
     assert replay.status == "already_applied"
     assert workspace.project_memory_classification().status == "complete"
     assert _decision_preview(workspace, proposal.proposal_id).mutation.apply_allowed is True
-    assert asdict(workspace.project_progress()) == before_progress
+    after_progress = workspace.project_progress()
+    assert after_progress.definition == before_progress.definition
+    assert after_progress.evidence.ratio.numerator > before_progress.evidence.ratio.numerator
+    assert after_progress.evidence.ratio.denominator == before_progress.evidence.ratio.denominator
 
     global_result = _assign(
         workspace,

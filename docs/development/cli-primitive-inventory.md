@@ -199,8 +199,9 @@ e [`project_status.py`](../../src/p2p_engine/cli_commands/project_status.py).
 | --- | --- | --- |
 | `p2p vertical registry add/list/remove` | `R/C/N` | Configura registry utente esterni a `.p2p`; solo `list --refresh` negozia capability remote. |
 | `p2p vertical login/logout` | `C/N` | Esegue OAuth device flow e conserva/rimuove credenziali nel keyring di sistema. |
-| `p2p vertical search QUERY` | `R/N` | Combina metadati locali e remoti indicando sorgente, visibilita e coordinate esatta. |
-| `p2p vertical list --source local\|remote\|all` | `R/N` | Elenca release locali o remote; il default locale non accede alla rete. |
+| `p2p vertical domain list/search/inspect` | `R/N` | Legge domini catalogo advisory dal registry v2; nessuna mutazione progetto, pull o scrittura cache artifact. |
+| `p2p vertical search QUERY [--domain DOMAIN-ID]` | `R/N` | Combina metadati locali e remoti; `--domain` filtra esattamente solo la discovery remota. |
+| `p2p vertical list --source local\|remote\|all [--domain DOMAIN-ID]` | `R/N` | Elenca release locali o remote; il default locale non accede alla rete e `--domain` richiede discovery remota. |
 | `p2p vertical pull COORDINATE` | `C/N` | Verifica e salva atomicamente in cache una release esatta e la sua chiusura di dipendenze. |
 | `p2p vertical inspect TARGET` | `R` | Ispeziona coordinate bundled/cache o artifact locale senza scritture persistenti. |
 | `p2p vertical draft create --empty\|--from COORDINATE` | `C` | Crea un draft normalizzato esterno a `.p2p`, vuoto o derivato da una release esatta. |
@@ -229,8 +230,8 @@ e [`project_status.py`](../../src/p2p_engine/cli_commands/project_status.py).
 
 | Comando | Effetto | Utilita |
 | --- | --- | --- |
-| `p2p project rubrics init` | `C` | Crea o sostituisce le rubriche di maturita. |
-| `p2p project rubrics show` | `R` | Mostra le rubriche configurate. |
+| `p2p project rubrics init` | `C` | Crea o sostituisce lo storage rubriche legacy/compatibile. |
+| `p2p project rubrics show` | `R` | Mostra le rubriche configurate; la readiness corrente usa i criteri di `ProjectStructure`. |
 | `p2p project definition show` | `R` | Mostra campi, assunzioni, domande e completamento persistenti. |
 | `p2p project definition update PATCH` | `C` | Applica direttamente una patch strutturata supportata. |
 | `p2p project definition preview PATCH` | `P` | Valida e tokenizza una candidate patch. |
@@ -240,9 +241,9 @@ e [`project_status.py`](../../src/p2p_engine/cli_commands/project_status.py).
 
 | Comando | Effetto | Utilita |
 | --- | --- | --- |
-| `p2p project readiness review` | `R` | Riepiloga gap prioritari e sezioni del verticale. |
-| `p2p project readiness gaps` | `R` | Elenca gap paginati legati a uno snapshot. |
-| `p2p project readiness gap GAP-ID` | `R` | Mostra un singolo gap stabile. |
+| `p2p project readiness review` | `R` | Riepiloga readiness v2 da struttura corrente, definizione e memoria classificata. |
+| `p2p project readiness gaps` | `R` | Elenca gap paginati readiness-v2 legati a uno snapshot. |
+| `p2p project readiness gap GAP-ID` | `R` | Mostra un singolo gap readiness-v2 stabile. |
 | `p2p project readiness preview` | `P` | Converte risposte selezionate in una candidate convergence patch. |
 | `p2p project readiness apply` | `C/O` | Applica la convergenza legata al token. |
 
@@ -285,8 +286,8 @@ e [`project_status.py`](../../src/p2p_engine/cli_commands/project_status.py).
 | --- | --- | --- |
 | `p2p assess refresh` | `D` | Genera l'assessment deterministico corrente. |
 | `p2p assess show` | `R` | Mostra l'assessment memorizzato. |
-| `p2p assess maturity refresh` | `D` | Ricalcola la maturita dalle rubriche abilitate. |
-| `p2p assess maturity show` | `R` | Mostra la maturita memorizzata. |
+| `p2p assess maturity refresh` | `D` | Genera una proiezione compatibile dalla completezza definitoria readiness-v2. |
+| `p2p assess maturity show` | `R` | Mostra la maturita compatibile memorizzata. |
 
 ## 3. Proposte, domande e analisi
 

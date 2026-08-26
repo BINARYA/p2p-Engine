@@ -116,7 +116,7 @@ def test_mcp_progress_freshness_and_coverage_reads_are_mutation_free(tmp_path: P
             {"root": str(tmp_path), "proposal_id": proposal.proposal_id},
         )
 
-    assert progress["project_progress"]["definition"]["status"] == "measured"
+    assert progress["project_progress"]["definition"]["status"] == "calculated"
     assert progress["mutation_performed"] is False
     assert freshness["project_freshness"]["graph_version"] == 1
     assert freshness["mutation_performed"] is False

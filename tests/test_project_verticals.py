@@ -470,7 +470,17 @@ def test_project_vertical_validation_rejects_invalid_question_binding_metadata(
 
 
 def test_project_readiness_review_uses_declared_coverage_and_reports_missing_sections(tmp_path: Path) -> None:
-    runner.invoke(app, ["init", "Impact Demo", "--root", str(tmp_path)])
+    runner.invoke(
+        app,
+        [
+            "init",
+            "Impact Demo",
+            "--root",
+            str(tmp_path),
+            "--vertical",
+            "binarya/social_impact_program_design@2.0.0",
+        ],
+    )
     runner.invoke(
         app,
         [
@@ -507,47 +517,23 @@ def test_project_readiness_review_uses_declared_coverage_and_reports_missing_sec
         ],
     )
     workspace = P2PWorkspace(tmp_path)
-    workspace.select_project_vertical("social_impact_program_design", actor="owner")
-    coverage = {
-        "vertical_coverage": {
-            "schema_version": 2,
-            "proposal_id": "PROP-001",
-            "vertical_id": "social_impact_program_design",
-            "sections": [
-                {
-                    "id": "measurement_reporting",
-                    "relevance": "direct",
-                    "rationale": "The proposal defines metrics and reporting cadence.",
-                    "source": "owner_review",
-                    "provenance": {},
-                }
-            ],
-            "provenance": {
-                "operation_id": "proposal-vertical-coverage:PROP-001",
-                "actor": "owner",
-                "authority": "owner_confirmed",
-                "source": "owner_review",
-            },
-        }
-    }
-    preview = workspace.preview_proposal_vertical_coverage(
-        "PROP-001",
-        coverage,
-        actor="owner",
-    )
-    workspace.apply_proposal_vertical_coverage(
-        "PROP-001",
-        coverage,
-        preview_token=preview.preview_token,
-        actor="owner",
-        confirm=True,
+    workspace.assign_proposal_memory_scope(
+        proposal_id="PROP-001",
+        kind="sections",
+        section_ids=["measurement_reporting"],
+        operation_key="readiness-review-scope-001",
+        expected_memory_revision=workspace.project_memory_revision(),
+        expected_structure_revision=workspace.project_structure().revision,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
     )
 
     review = workspace.review_project_readiness()
     sections = {section.section_id: section for section in review.sections}
 
     assert review.active_vertical_id == "social_impact_program_design"
-    assert sections["measurement_reporting"].status == "covered"
+    assert sections["measurement_reporting"].status == "missing"
     assert "PROP-001" in sections["measurement_reporting"].proposals
     assert "theory_of_change" in review.missing_capisaldi
     assert "PROP-002" in review.unmapped_proposals
@@ -585,8 +571,8 @@ def test_project_readiness_review_separates_complete_definition_from_proposal_ev
     vision = next(section for section in review.sections if section.section_id == "vision")
 
     assert vision.definition_status == "complete"
-    assert vision.status == "defined"
-    assert vision.gaps == ["missing_proposal_coverage"]
+    assert vision.status == "covered"
+    assert vision.gaps == ["missing_section_classified_evidence"]
     assert "vision" not in review.missing_capisaldi
     assert not any(question in review.generated_questions for question in vision.questions)
 

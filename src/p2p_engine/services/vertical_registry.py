@@ -19,12 +19,20 @@ from p2p_engine.core.vertical_registry import (
     VERTICAL_REGISTRY_CAPABILITY_PATH,
     VERTICAL_REGISTRY_CONFIG_SCHEMA_VERSION,
     VERTICAL_REGISTRY_MAX_DOCUMENT_BYTES,
+    VERTICAL_REGISTRY_MAX_CURSOR_LENGTH,
+    VERTICAL_REGISTRY_MAX_PAGES,
+    VERTICAL_REGISTRY_MAX_PAGE_SIZE,
     VERTICAL_REGISTRY_PROTOCOL_VERSION,
+    VERTICAL_REGISTRY_UNCATEGORIZED_DOMAIN,
     DeviceAuthorization,
     OAuthDeviceConfiguration,
     RegistryCapabilities,
     RegistryCredential,
+    RegistryDomain,
+    RegistryDomainReference,
     RegistryEndpoints,
+    RegistryPage,
+    RecommendedVerticalRelease,
     VerticalRegistryConfiguration,
     VerticalRegistryRecord,
     VerticalPublicationReceipt,
@@ -38,7 +46,34 @@ from p2p_engine.foundation.yaml_loaders import load_yaml
 
 
 _REGISTRY_NAME = re.compile(r"^[a-z0-9](?:[a-z0-9_-]{0,62}[a-z0-9])?$")
+_REGISTRY_DOMAIN_KEY = re.compile(r"^[a-z0-9](?:[a-z0-9_-]{0,126}[a-z0-9])?$")
+_CONTROL_CHARACTERS = re.compile(r"[\x00-\x1f\x7f]")
 _LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+_DOMAIN_VISIBILITIES = frozenset({"public", "private", "unlisted"})
+_DOMAIN_LIFECYCLES = frozenset({"active", "deprecated", "withdrawn"})
+_RELEASE_VISIBILITIES = frozenset({"public", "private"})
+_DOMAIN_EXECUTABLE_FIELDS = frozenset(
+    {
+        "artifact",
+        "artifacts",
+        "command",
+        "commands",
+        "criteria",
+        "executable",
+        "execution",
+        "fields",
+        "instructions",
+        "memory",
+        "project_memory",
+        "questions",
+        "readiness",
+        "readiness_weights",
+        "script",
+        "sections",
+        "tasks",
+        "workflow",
+    }
+)
 
 
 def vertical_user_paths(environment: dict[str, str] | None = None) -> VerticalUserPaths:
@@ -252,8 +287,94 @@ class VerticalRegistryClient:
             max_bytes=VERTICAL_REGISTRY_MAX_DOCUMENT_BYTES,
         )
         capabilities = _parse_capabilities(_unwrap(raw, "vertical_registry"))
+        self._validate_capability_urls(record, capabilities)
         self.configuration.update_capabilities(record.name, capabilities)
         return capabilities
+
+    def list_domains(
+        self,
+        registry: str = "",
+        *,
+        query: str = "",
+        include_private: bool = False,
+    ) -> tuple[RegistryDomain, ...]:
+        domains, _page = self.list_domains_with_page(
+            registry,
+            query=query,
+            include_private=include_private,
+        )
+        return domains
+
+    def list_domains_with_page(
+        self,
+        registry: str = "",
+        *,
+        query: str = "",
+        include_private: bool = False,
+    ) -> tuple[tuple[RegistryDomain, ...], RegistryPage]:
+        record = self.configuration.resolve(registry)
+        capabilities = self.capabilities(record.name)
+        parameters: dict[str, str] = {}
+        normalized_query = query.strip()
+        if normalized_query:
+            parameters["q"] = normalized_query
+        if include_private:
+            parameters["include_private"] = "true"
+        token = self._access_token(record.name, required=include_private)
+        return self._collect_pages(
+            record,
+            capabilities,
+            capabilities.endpoints.domains,
+            parameters=parameters,
+            token=token,
+            envelope_key="vertical_domains",
+            parser=lambda item: _parse_domain(item),
+            identity=lambda item: item.external_id,
+            fingerprint=_domain_fingerprint,
+        )
+
+    def domain(
+        self,
+        domain_id: str,
+        registry: str = "",
+        *,
+        include_private: bool = False,
+    ) -> RegistryDomain:
+        external_id = _validate_external_id(domain_id, field="domain")
+        record = self.configuration.resolve(registry)
+        capabilities = self.capabilities(record.name)
+        token = self._access_token(record.name, required=include_private)
+        try:
+            endpoint = capabilities.endpoints.domain.format(
+                domain_id=quote(external_id, safe=""),
+                domain=quote(external_id, safe=""),
+            )
+        except KeyError as exc:
+            raise ValueError(
+                "P2P_REGISTRY_RESPONSE_INVALID: domain endpoint has unsupported placeholders"
+            ) from exc
+        try:
+            raw = self.transport.request_json(
+                "GET",
+                self._api_url(record, capabilities, endpoint),
+                token=token,
+                max_bytes=VERTICAL_REGISTRY_MAX_DOCUMENT_BYTES,
+            )
+        except ValueError as exc:
+            if str(exc).startswith("P2P_REGISTRY_RELEASE_NOT_FOUND:"):
+                raise ValueError(
+                    "P2P_REGISTRY_DOMAIN_NOT_FOUND: domain was not found"
+                ) from exc
+            raise
+        payload = _unwrap(raw, "vertical_domain")
+        if not isinstance(payload, dict):
+            raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: expected vertical_domain mapping")
+        _validate_protocol(payload.get("protocol_version"))
+        domain_payload = payload.get("domain", payload)
+        domain = _parse_domain(domain_payload)
+        if domain.external_id != external_id:
+            raise ValueError("P2P_REGISTRY_METADATA_MISMATCH: requested and returned domains differ")
+        return domain
 
     def list_releases(
         self,
@@ -261,33 +382,58 @@ class VerticalRegistryClient:
         *,
         query: str = "",
         include_private: bool = False,
+        domain: str = "",
     ) -> tuple[VerticalRelease, ...]:
+        releases, _page = self.list_releases_with_page(
+            registry,
+            query=query,
+            include_private=include_private,
+            domain=domain,
+        )
+        return releases
+
+    def list_releases_with_page(
+        self,
+        registry: str = "",
+        *,
+        query: str = "",
+        include_private: bool = False,
+        domain: str = "",
+    ) -> tuple[tuple[VerticalRelease, ...], RegistryPage]:
         record = self.configuration.resolve(registry)
         capabilities = self.capabilities(record.name)
         endpoint = capabilities.endpoints.search if query else capabilities.endpoints.releases
-        url = self._api_url(record, capabilities, endpoint)
         parameters: dict[str, str] = {}
-        if query:
-            parameters["q"] = query
+        normalized_query = query.strip()
+        if normalized_query:
+            parameters["q"] = normalized_query
         if include_private:
             parameters["include_private"] = "true"
-        if parameters:
-            url += ("&" if "?" in url else "?") + urlencode(parameters)
+        normalized_domain = domain.strip()
+        if normalized_domain:
+            if (
+                normalized_domain == VERTICAL_REGISTRY_UNCATEGORIZED_DOMAIN
+                and not capabilities.supports_uncategorized_filter
+            ):
+                raise ValueError(
+                    "P2P_REGISTRY_DOMAIN_FILTER_UNSUPPORTED: registry does not advertise uncategorized filtering"
+                )
+            parameters["domain"] = _validate_external_id(
+                normalized_domain,
+                field="domain",
+            )
         token = self._access_token(record.name, required=include_private)
-        raw = self.transport.request_json(
-            "GET",
-            url,
+        return self._collect_pages(
+            record,
+            capabilities,
+            endpoint,
+            parameters=parameters,
             token=token,
-            max_bytes=VERTICAL_REGISTRY_MAX_DOCUMENT_BYTES,
+            envelope_key="vertical_releases",
+            parser=lambda item: _parse_release(item, registry=record.name),
+            identity=lambda item: item.coordinate,
+            fingerprint=_release_fingerprint,
         )
-        payload = _unwrap(raw, "vertical_releases")
-        if not isinstance(payload, dict):
-            raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: expected vertical_releases mapping")
-        _validate_protocol(payload.get("protocol_version"))
-        items = payload.get("items", [])
-        if not isinstance(items, list):
-            raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: items must be a list")
-        return tuple(_parse_release(item, registry=record.name) for item in items)
 
     def release(self, coordinate: str, registry: str = "") -> VerticalRelease:
         parsed = VerticalCoordinate.parse(coordinate)
@@ -529,6 +675,120 @@ class VerticalRegistryClient:
         self.credentials.set(record.name, refreshed)
         return refreshed
 
+    def _collect_pages(
+        self,
+        record: VerticalRegistryRecord,
+        capabilities: RegistryCapabilities,
+        endpoint: str,
+        *,
+        parameters: dict[str, str],
+        token: str,
+        envelope_key: str,
+        parser: Callable[[object], object],
+        identity: Callable[[object], str],
+        fingerprint: Callable[[object], tuple[object, ...]],
+    ) -> tuple[tuple[object, ...], RegistryPage]:
+        collected: list[object] = []
+        by_identity: dict[str, tuple[object, ...]] = {}
+        cursor = ""
+        seen_cursors: set[str] = set()
+        for _page_index in range(VERTICAL_REGISTRY_MAX_PAGES):
+            page_parameters = {
+                **parameters,
+                "limit": str(VERTICAL_REGISTRY_MAX_PAGE_SIZE),
+            }
+            if cursor:
+                page_parameters["cursor"] = cursor
+                seen_cursors.add(cursor)
+            url = _append_query(
+                self._api_url(record, capabilities, endpoint),
+                page_parameters,
+            )
+            raw = self.transport.request_json(
+                "GET",
+                url,
+                token=token,
+                max_bytes=VERTICAL_REGISTRY_MAX_DOCUMENT_BYTES,
+            )
+            payload = _unwrap(raw, envelope_key)
+            if not isinstance(payload, dict):
+                raise ValueError(f"P2P_REGISTRY_RESPONSE_INVALID: expected {envelope_key} mapping")
+            _validate_protocol(payload.get("protocol_version"))
+            items_payload = payload.get("items", [])
+            if not isinstance(items_payload, list):
+                raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: items must be a list")
+            if len(items_payload) > VERTICAL_REGISTRY_MAX_PAGE_SIZE:
+                raise ValueError("P2P_REGISTRY_PAGE_OVERFLOW: registry returned too many items")
+            page = _parse_page(payload.get("page"), expected_returned=len(items_payload))
+            for item_payload in items_payload:
+                parsed = parser(item_payload)
+                item_id = identity(parsed)
+                item_fingerprint = fingerprint(parsed)
+                previous = by_identity.get(item_id)
+                if previous is not None:
+                    if previous != item_fingerprint:
+                        raise ValueError(
+                            "P2P_REGISTRY_RESPONSE_INVALID: conflicting duplicate catalog item"
+                        )
+                    continue
+                by_identity[item_id] = item_fingerprint
+                collected.append(parsed)
+            next_cursor = page.next_cursor
+            if not next_cursor:
+                if page.truncated:
+                    raise ValueError(
+                        "P2P_REGISTRY_PAGINATION_INVALID: terminal page cannot be truncated"
+                    )
+                return (
+                    tuple(collected),
+                    RegistryPage(returned=len(collected), next_cursor="", truncated=False),
+                )
+            if next_cursor in seen_cursors or next_cursor == cursor:
+                raise ValueError("P2P_REGISTRY_PAGINATION_INVALID: cursor repeated")
+            cursor = next_cursor
+        raise ValueError("P2P_REGISTRY_PAGE_LIMIT_EXCEEDED: registry page traversal exceeded bounds")
+
+    def _validate_capability_urls(
+        self,
+        record: VerticalRegistryRecord,
+        capabilities: RegistryCapabilities,
+    ) -> None:
+        sample_domain = quote("domain-123", safe="")
+        sample_release = {
+            "publisher": quote("publisher", safe=""),
+            "vertical_id": quote("vertical", safe=""),
+            "version": quote("1.0.0", safe=""),
+        }
+        try:
+            self._api_url(record, capabilities, capabilities.endpoints.domains)
+            self._api_url(
+                record,
+                capabilities,
+                capabilities.endpoints.domain.format(
+                    domain_id=sample_domain,
+                    domain=sample_domain,
+                ),
+            )
+            self._api_url(record, capabilities, capabilities.endpoints.search)
+            self._api_url(record, capabilities, capabilities.endpoints.releases)
+            self._api_url(
+                record,
+                capabilities,
+                capabilities.endpoints.release.format(**sample_release),
+            )
+            if capabilities.endpoints.publish:
+                self._api_url(record, capabilities, capabilities.endpoints.publish)
+            if capabilities.oauth_device is not None:
+                _same_origin_url(
+                    record.url,
+                    capabilities.oauth_device.device_authorization_endpoint,
+                )
+                _same_origin_url(record.url, capabilities.oauth_device.token_endpoint)
+        except KeyError as exc:
+            raise ValueError(
+                "P2P_REGISTRY_RESPONSE_INVALID: endpoint has unsupported placeholders"
+            ) from exc
+
     @staticmethod
     def _api_url(
         record: VerticalRegistryRecord,
@@ -571,12 +831,36 @@ def _normalize_url(value: object) -> str:
 def _parse_capabilities(value: object) -> RegistryCapabilities:
     if not isinstance(value, dict):
         raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: capabilities must be a mapping")
+    required_fields = value.get("required_fields", [])
+    if required_fields is not None:
+        if not isinstance(required_fields, list):
+            raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: required_fields must be a list")
+        supported_required = {
+            "protocol_version",
+            "api_base",
+            "max_artifact_bytes",
+            "endpoints",
+            "oauth_device",
+            "supports_uncategorized_filter",
+        }
+        unknown_required = {
+            str(item)
+            for item in required_fields
+            if str(item) not in supported_required
+        }
+        if unknown_required:
+            raise ValueError(
+                "P2P_REGISTRY_RESPONSE_INVALID: unsupported required capability fields "
+                f"{sorted(unknown_required)}"
+            )
     _validate_protocol(value.get("protocol_version"))
     endpoints = value.get("endpoints")
     if not isinstance(endpoints, dict):
         raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: endpoints must be a mapping")
     try:
         parsed_endpoints = RegistryEndpoints(
+            domains=_required_text(endpoints, "domains"),
+            domain=_required_text(endpoints, "domain"),
             search=_required_text(endpoints, "search"),
             releases=_required_text(endpoints, "releases"),
             release=_required_text(endpoints, "release"),
@@ -588,11 +872,25 @@ def _parse_capabilities(value: object) -> RegistryCapabilities:
         raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: incomplete capabilities") from exc
     if max_artifact_bytes <= 0:
         raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: max_artifact_bytes must be positive")
+    for field, endpoint in (
+        ("domains", parsed_endpoints.domains),
+        ("search", parsed_endpoints.search),
+        ("releases", parsed_endpoints.releases),
+        ("publish", parsed_endpoints.publish),
+    ):
+        if endpoint and ("{" in endpoint or "}" in endpoint):
+            raise ValueError(
+                f"P2P_REGISTRY_RESPONSE_INVALID: {field} endpoint has unsupported placeholders"
+            )
     required_template_fields = {"{publisher}", "{vertical_id}", "{version}"}
     if any(token not in parsed_endpoints.release for token in required_template_fields):
         raise ValueError(
             "P2P_REGISTRY_RESPONSE_INVALID: release endpoint must contain "
             "publisher, vertical_id and version placeholders"
+        )
+    if "{domain_id}" not in parsed_endpoints.domain and "{domain}" not in parsed_endpoints.domain:
+        raise ValueError(
+            "P2P_REGISTRY_RESPONSE_INVALID: domain endpoint must contain a domain placeholder"
         )
     oauth_payload = value.get("oauth_device")
     oauth: OAuthDeviceConfiguration | None = None
@@ -616,6 +914,96 @@ def _parse_capabilities(value: object) -> RegistryCapabilities:
         max_artifact_bytes=max_artifact_bytes,
         endpoints=parsed_endpoints,
         oauth_device=oauth,
+        supports_uncategorized_filter=bool(value.get("supports_uncategorized_filter") or False),
+    )
+
+
+def _parse_page(value: object, *, expected_returned: int) -> RegistryPage:
+    if not isinstance(value, dict):
+        raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: page must be a mapping")
+    try:
+        returned = int(value.get("returned"))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: page.returned must be an integer") from exc
+    if returned != expected_returned:
+        raise ValueError("P2P_REGISTRY_PAGINATION_INVALID: page returned count mismatch")
+    if returned < 0 or returned > VERTICAL_REGISTRY_MAX_PAGE_SIZE:
+        raise ValueError("P2P_REGISTRY_PAGE_OVERFLOW: page returned count exceeds bounds")
+    next_cursor = str(value.get("next_cursor") or "").strip()
+    if next_cursor:
+        _validate_cursor(next_cursor)
+    return RegistryPage(
+        returned=returned,
+        next_cursor=next_cursor,
+        truncated=bool(value.get("truncated") or False),
+    )
+
+
+def _parse_domain(value: object) -> RegistryDomain:
+    if not isinstance(value, dict):
+        raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: domain must be a mapping")
+    forbidden = sorted(set(value) & _DOMAIN_EXECUTABLE_FIELDS)
+    if forbidden:
+        raise ValueError(
+            "P2P_REGISTRY_RESPONSE_INVALID: domain response contains executable or project-structure fields"
+        )
+    external_id = _validate_external_id(
+        value.get("external_id", value.get("id")),
+        field="domain.external_id",
+    )
+    key = _validate_domain_key(_required_text(value, "key"))
+    visibility = str(value.get("visibility") or "public").strip().lower()
+    if visibility not in _DOMAIN_VISIBILITIES:
+        raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: invalid domain visibility")
+    lifecycle = str(value.get("lifecycle") or "active").strip().lower()
+    if lifecycle not in _DOMAIN_LIFECYCLES:
+        raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: invalid domain lifecycle")
+    recommended_payload = value.get("recommended_release")
+    recommended: RecommendedVerticalRelease | None = None
+    if recommended_payload is not None:
+        if not isinstance(recommended_payload, dict):
+            raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: recommended_release must be a mapping")
+        recommended = RecommendedVerticalRelease(
+            coordinate=str(
+                VerticalCoordinate.parse(_required_text(recommended_payload, "coordinate"))
+            ),
+            semantic_checksum=_checksum(
+                recommended_payload.get("semantic_checksum"),
+                field="recommended semantic_checksum",
+            ),
+            artifact_sha256=(
+                _checksum(
+                    recommended_payload.get("artifact_sha256"),
+                    field="recommended artifact_sha256",
+                )
+                if recommended_payload.get("artifact_sha256")
+                else ""
+            ),
+        )
+    return RegistryDomain(
+        external_id=external_id,
+        key=key,
+        name=str(value.get("name") or key),
+        description=str(value.get("description") or ""),
+        visibility=visibility,
+        lifecycle=lifecycle,
+        publisher=str(value.get("publisher") or ""),
+        recommended_release=recommended,
+    )
+
+
+def _parse_domain_reference(value: object) -> RegistryDomainReference | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: primary_domain must be a mapping or null")
+    return RegistryDomainReference(
+        external_id=_validate_external_id(
+            value.get("external_id", value.get("id")),
+            field="primary_domain.external_id",
+        ),
+        key=_validate_domain_key(_required_text(value, "key")),
+        name=str(value.get("name") or ""),
     )
 
 
@@ -624,7 +1012,7 @@ def _parse_release(value: object, *, registry: str) -> VerticalRelease:
         raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: release must be a mapping")
     coordinate = str(VerticalCoordinate.parse(_required_text(value, "coordinate")))
     visibility = str(value.get("visibility") or "public")
-    if visibility not in {"public", "private"}:
+    if visibility not in _RELEASE_VISIBILITIES:
         raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: visibility must be public or private")
     semantic_checksum = _checksum(value.get("semantic_checksum"), field="semantic_checksum")
     try:
@@ -680,12 +1068,13 @@ def _parse_release(value: object, *, registry: str) -> VerticalRelease:
             size=size,
         ),
         dependencies=tuple(dependencies),
+        primary_domain=_parse_domain_reference(value.get("primary_domain")),
         registry=registry,
     )
 
 
 def parse_vertical_release(value: object, *, registry: str) -> VerticalRelease:
-    """Parse one provider-neutral protocol-v1 release document."""
+    """Parse one provider-neutral protocol-v2 release document."""
     return _parse_release(value, registry=registry)
 
 
@@ -714,7 +1103,7 @@ def _parse_credential(
 def _validate_protocol(value: object) -> None:
     if str(value or "") != VERTICAL_REGISTRY_PROTOCOL_VERSION:
         raise ValueError(
-            "P2P_REGISTRY_PROTOCOL_UNSUPPORTED: expected p2p-vertical-registry/v1"
+            "P2P_REGISTRY_PROTOCOL_UNSUPPORTED: expected p2p-vertical-registry/v2"
         )
 
 
@@ -738,6 +1127,80 @@ def _checksum(value: object, *, field: str) -> str:
     if not re.fullmatch(r"[0-9a-f]{64}", checksum):
         raise ValueError(f"P2P_REGISTRY_RESPONSE_INVALID: {field} must be a SHA-256 checksum")
     return checksum
+
+
+def _validate_external_id(value: object, *, field: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        raise ValueError(f"P2P_REGISTRY_RESPONSE_INVALID: {field} is required")
+    if len(text) > 200 or _CONTROL_CHARACTERS.search(text):
+        raise ValueError(f"P2P_REGISTRY_RESPONSE_INVALID: {field} is not a bounded external ID")
+    return text
+
+
+def _validate_domain_key(value: object) -> str:
+    key = str(value or "").strip().lower()
+    if not _REGISTRY_DOMAIN_KEY.fullmatch(key):
+        raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: invalid domain key")
+    return key
+
+
+def _validate_cursor(value: str) -> str:
+    cursor = str(value or "").strip()
+    if len(cursor) > VERTICAL_REGISTRY_MAX_CURSOR_LENGTH or _CONTROL_CHARACTERS.search(cursor):
+        raise ValueError("P2P_REGISTRY_PAGINATION_INVALID: invalid cursor")
+    return cursor
+
+
+def _domain_fingerprint(value: object) -> tuple[object, ...]:
+    if not isinstance(value, RegistryDomain):
+        raise TypeError("expected RegistryDomain")
+    recommendation = value.recommended_release
+    return (
+        value.external_id,
+        value.key,
+        value.name,
+        value.description,
+        value.visibility,
+        value.lifecycle,
+        value.publisher,
+        (
+            recommendation.coordinate,
+            recommendation.semantic_checksum,
+            recommendation.artifact_sha256,
+        )
+        if recommendation is not None
+        else None,
+    )
+
+
+def _release_fingerprint(value: object) -> tuple[object, ...]:
+    if not isinstance(value, VerticalRelease):
+        raise TypeError("expected VerticalRelease")
+    return (
+        value.coordinate,
+        value.name,
+        value.description,
+        value.visibility,
+        value.semantic_checksum,
+        value.schema_version,
+        value.artifact.sha256,
+        value.artifact.size,
+        tuple((item.coordinate, item.semantic_checksum) for item in value.dependencies),
+        (
+            value.primary_domain.external_id,
+            value.primary_domain.key,
+            value.primary_domain.name,
+        )
+        if value.primary_domain is not None
+        else None,
+    )
+
+
+def _append_query(url: str, parameters: dict[str, str]) -> str:
+    if not parameters:
+        return url
+    return url + ("&" if "?" in url else "?") + urlencode(parameters)
 
 
 def _same_origin_url(base: str, value: str) -> str:

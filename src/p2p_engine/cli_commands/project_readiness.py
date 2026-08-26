@@ -34,11 +34,17 @@ def register_project_readiness_commands(
             workspace = workspace_for(root)
             result = workspace.review_project_readiness(vertical)
             page = workspace.project_readiness_gaps(limit=limit)
+            readiness = workspace.project_readiness_result(vertical)
         except ValueError as exc:
             _fail_operation(exc, output_format, "project_readiness_review")
         payload = {
             "project_readiness": {
                 "mutation_performed": False,
+                "contract_version": readiness.contract_version,
+                "status": readiness.status,
+                "snapshot": readiness.snapshot.to_dict(),
+                "definition": readiness.definition.to_dict() if readiness.definition else None,
+                "evidence": readiness.evidence.to_dict() if readiness.evidence else None,
                 "active_vertical_id": result.active_vertical_id,
                 "vertical_source": result.vertical_source,
                 "fallback_used": result.fallback_used,
@@ -51,16 +57,25 @@ def register_project_readiness_commands(
                 "unmapped_proposals_total": result.unmapped_proposals_total,
                 "unmapped_proposals_truncated": result.unmapped_proposals_truncated,
                 "suggested_next": result.suggested_next,
+                "actions": readiness.actions,
             }
         }
         if output_format == "json":
             _print_json(payload)
             return
         console.print("Project readiness review")
+        console.print(f"  contract: {readiness.contract_version}")
+        console.print(f"  status: {readiness.status}")
         console.print(f"  active_vertical: {result.active_vertical_id}")
         console.print(f"  source: {result.vertical_source}")
         console.print(f"  fallback_used: {str(result.fallback_used).lower()}")
         console.print(f"  snapshot: {result.snapshot_fingerprint}")
+        if readiness.definition is not None:
+            score = readiness.definition.ratio.score
+            console.print(f"  definition: {score if score is not None else 'not_configured'}")
+        if readiness.evidence is not None:
+            score = readiness.evidence.ratio.score
+            console.print(f"  evidence: {score if score is not None else 'not_configured'}")
         console.print("Sections:")
         for section in result.sections:
             console.print(

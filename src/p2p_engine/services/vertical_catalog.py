@@ -33,6 +33,10 @@ from p2p_engine.storage.filesystem import P2PWorkspace
 
 
 _CACHE_SCHEMA_VERSION = 1
+_SUPPORTED_CACHE_PROTOCOLS = {
+    "p2p-vertical-registry/v1",
+    VERTICAL_REGISTRY_PROTOCOL_VERSION,
+}
 
 
 class VerticalCacheService:
@@ -187,7 +191,7 @@ class VerticalCacheService:
             raise ValueError("P2P_REGISTRY_CACHE_INVALID: expected vertical_cache mapping")
         if payload.get("schema_version") != _CACHE_SCHEMA_VERSION:
             raise ValueError("P2P_REGISTRY_CACHE_INVALID: unsupported cache schema")
-        if payload.get("protocol_version") != VERTICAL_REGISTRY_PROTOCOL_VERSION:
+        if payload.get("protocol_version") not in _SUPPORTED_CACHE_PROTOCOLS:
             raise ValueError("P2P_REGISTRY_CACHE_INVALID: unsupported registry protocol")
         release = parse_vertical_release(payload.get("release"), registry=expected_registry)
         expected_directory = self.release_directory(expected_registry, release.coordinate)
@@ -459,10 +463,33 @@ class VerticalCatalogService:
         registry: str = "",
         query: str = "",
         include_private: bool = False,
+        domain: str = "",
     ) -> tuple[VerticalCatalogItem, ...]:
+        items, _page = self.remote_items_with_page(
+            registry=registry,
+            query=query,
+            include_private=include_private,
+            domain=domain,
+        )
+        return items
+
+    def remote_items_with_page(
+        self,
+        *,
+        registry: str = "",
+        query: str = "",
+        include_private: bool = False,
+        domain: str = "",
+    ):
         if self.client is None:
             raise ValueError("P2P_REGISTRY_NOT_CONFIGURED: remote catalog client is unavailable")
         local_coordinates = {item.coordinate for item in self.local_items()}
+        releases, page = self.client.list_releases_with_page(
+            registry,
+            query=query,
+            include_private=include_private,
+            domain=domain,
+        )
         return tuple(
             VerticalCatalogItem(
                 coordinate=release.coordinate,
@@ -474,13 +501,10 @@ class VerticalCatalogService:
                 semantic_checksum=release.semantic_checksum,
                 artifact_checksum=release.artifact.sha256,
                 local_available=release.coordinate in local_coordinates,
+                primary_domain=release.primary_domain,
             )
-            for release in self.client.list_releases(
-                registry,
-                query=query,
-                include_private=include_private,
-            )
-        )
+            for release in releases
+        ), page
 
     def resolve(self, coordinate: str) -> VerticalCatalogItem:
         exact = str(VerticalCoordinate.parse(coordinate))
@@ -585,19 +609,25 @@ class VerticalCatalogService:
         *,
         registry: str = "",
         include_private: bool = False,
+        domain: str = "",
     ) -> tuple[VerticalCatalogItem, ...]:
         normalized = query.strip().lower()
-        local = tuple(
-            item
-            for item in self.local_items()
-            if normalized in item.coordinate.lower()
-            or normalized in item.name.lower()
-            or normalized in item.description.lower()
+        local = (
+            ()
+            if domain.strip()
+            else tuple(
+                item
+                for item in self.local_items()
+                if normalized in item.coordinate.lower()
+                or normalized in item.name.lower()
+                or normalized in item.description.lower()
+            )
         )
         remote = self.remote_items(
             registry=registry,
             query=query,
             include_private=include_private,
+            domain=domain,
         )
         _assert_no_conflicts([*local, *remote])
         return (*local, *remote)

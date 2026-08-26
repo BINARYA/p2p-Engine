@@ -287,6 +287,8 @@ class HTTPSVerticalRegistryTransport:
             raise ValueError("P2P_REGISTRY_RELEASE_NOT_FOUND: exact release was not found")
         if status == 409:
             raise ValueError("P2P_REGISTRY_CONFLICT: registry rejected the request")
+        if status == 429:
+            raise ValueError("P2P_REGISTRY_THROTTLED: registry request was throttled")
         raise ValueError(f"P2P_REGISTRY_UNAVAILABLE: registry returned HTTP {status}")
 
     @classmethod

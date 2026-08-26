@@ -598,6 +598,10 @@ Assess project definition maturity:
 .venv/bin/p2p assess maturity show
 ```
 
+For current project completeness, prefer read-only project readiness and
+progress. Maturity output is a compatibility projection of readiness-v2
+definition completeness.
+
 ## Optional Manual CLI Trial
 
 Most users should let agents use these primitives through MCP or CLI access.
@@ -718,5 +722,5 @@ p2p assess refresh
   privileged Work operations require matching consent receipts.
 - Provider PR/MR creation is not implemented; request-review records handoff
   metadata and guidance only.
-- Rubric maturity scoring is deterministic and conservative, not AI semantic review.
+- Project readiness scoring is deterministic and conservative, not AI semantic review.
 - Mediator and Web layers are not implemented.

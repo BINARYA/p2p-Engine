@@ -984,10 +984,12 @@ class NextActionService:
             result = self.project_readiness_result()
         if not isinstance(result, ProjectReadinessResult):
             return []
-        if not result.snapshot.vertical_lock_checksum:
-            return []
         actions: list[NextAction] = []
-        for gap in result.gaps:
+        ordered_gaps = sorted(
+            result.gaps,
+            key=lambda gap: (0 if gap.question_id else 1, *gap.tie_break),
+        )
+        for gap in ordered_gaps:
             if gap.kind == ProjectReadinessGapKind.UNMAPPED_PROPOSAL_COVERAGE:
                 continue
             if gap.kind == ProjectReadinessGapKind.COMPATIBILITY_BLOCKER:

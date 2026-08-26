@@ -26,6 +26,8 @@ class VerticalRubric:
     section_id: str
     required: bool = True
     keywords: list[str] = field(default_factory=list)
+    weight: float = 1.0
+    evaluation: str = "definition_status"
 
 
 @dataclass(frozen=True)

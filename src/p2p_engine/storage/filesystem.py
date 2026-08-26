@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
+from datetime import date
 import hashlib
 from pathlib import Path
 import shutil
@@ -62,7 +63,11 @@ from p2p_engine.core.project_questions import (
     ProjectQuestionArtifact,
     ProjectQuestionOperationResult,
 )
-from p2p_engine.core.project_readiness import ProjectReadinessResult, ProjectReadinessSnapshot
+from p2p_engine.core.project_readiness import (
+    PROJECT_READINESS_REVIEW_DETAIL_LIMIT,
+    ProjectReadinessResult,
+    ProjectReadinessSnapshot,
+)
 from p2p_engine.core.project_readiness import ProjectReadinessPage
 from p2p_engine.core.project_readiness_convergence import (
     ProjectQuestionReconciliationPreview,
@@ -94,6 +99,7 @@ from p2p_engine.core.project_verticals import (
     VerticalPack,
     VerticalField,
     VerticalSection,
+    VerticalSectionReview,
     VerticalValidationResult,
 )
 from p2p_engine.core.runtime_contract import (
@@ -217,17 +223,20 @@ from p2p_engine.services.project_maturity import (
     ProjectDefinitionMaturity,
     ProjectMaturityService,
     ProjectRubrics,
+    definition_maturity_payload,
 )
 from p2p_engine.services.project_interaction_style import ProjectInteractionStyleService
 from p2p_engine.services.project_metadata import ProjectMetadataService
-from p2p_engine.services.project_progress import ProjectProgressService
+from p2p_engine.services.project_progress import (
+    ProjectProgressService,
+    progress_from_project_readiness,
+)
 from p2p_engine.services.project_snapshot import ProjectSnapshotPayload, ProjectSnapshotService
 from p2p_engine.services.project_questions import ProjectQuestionStateService
 from p2p_engine.services.project_readiness import (
+    ProjectReadinessCompositionService,
     ProjectReadinessGapService,
     ProjectReadinessPaginationService,
-    readiness_snapshot_from_vertical_memory,
-    unmapped_proposal_ids_from_vertical_memory,
 )
 from p2p_engine.services.project_readiness_convergence import ProjectReadinessConvergenceService
 from p2p_engine.services.project_verticals import ProjectVerticalService
@@ -405,6 +414,7 @@ class P2PWorkspace:
         self._project_progress_service_instance: ProjectProgressService | None = None
         self._project_snapshot_service_instance: ProjectSnapshotService | None = None
         self._project_question_state_service_instance: ProjectQuestionStateService | None = None
+        self._project_readiness_service_instance: ProjectReadinessCompositionService | None = None
         self._project_readiness_convergence_service_instance: (
             ProjectReadinessConvergenceService | None
         ) = None
@@ -622,44 +632,14 @@ class P2PWorkspace:
         *,
         read_context: WorkspaceReadContext | None = None,
     ) -> ProjectReadinessResult:
-        vertical_service = self._project_vertical_service()
-        schema_path = self.p2p_dir / "project" / "workspace-schema.yml"
-        permissions_path = self.p2p_dir / "project" / "permissions.yml"
-        schema_content = (
-            read_context.documents.bytes(schema_path)
-            if read_context is not None and read_context.documents.capture(schema_path).exists
-            else schema_path.read_bytes()
-            if schema_path.is_file()
-            else None
-        )
-        permissions_content = (
-            read_context.documents.bytes(permissions_path)
-            if read_context is not None and read_context.documents.capture(permissions_path).exists
-            else permissions_path.read_bytes()
-            if permissions_path.is_file()
-            else None
-        )
-        schema_version, schema_state = vertical_service._readiness_workspace_schema_identity(
-            schema_content
-        )
-        snapshot = readiness_snapshot_from_vertical_memory(
-            view,
-            workspace_schema_version=schema_version,
-            workspace_schema_state=schema_state,
-            owner_available=vertical_service._readiness_owner_available(
-                permissions_content
-            ),
-            unmapped_proposals=unmapped_proposal_ids_from_vertical_memory(
-                view,
-                (
-                    item.proposal_id
-                    for item in (
-                        proposal_summaries_snapshot
-                        if proposal_summaries_snapshot is not None
-                        else self.proposal_summaries()
-                    )
-                ),
-            ),
+        del proposal_summaries_snapshot
+        snapshot = self._project_readiness_service().compose(
+            structure=self.project_structure(include_retired=True),
+            definition_view=self.project_definition_view(),
+            memory_classification=self.project_memory_classification(),
+            vertical_memory=view,
+            workspace_schema_status=self.workspace_schema_status(),
+            owner_available=self._project_readiness_owner_available(read_context=read_context),
         )
         return ProjectReadinessGapService().classify(snapshot)
 
@@ -954,6 +934,9 @@ class P2PWorkspace:
                     proposal_summaries_snapshot=proposals,
                     read_context=read_context,
                 ),
+                project_readiness=lambda read_context: self.project_readiness_result(
+                    read_context=read_context
+                ),
                 publication_status=self.project_publication_status,
             )
         return self._project_snapshot_service_instance
@@ -966,6 +949,11 @@ class P2PWorkspace:
                 permissions=self._permissions_service(),
             )
         return self._project_question_state_service_instance
+
+    def _project_readiness_service(self) -> ProjectReadinessCompositionService:
+        if self._project_readiness_service_instance is None:
+            self._project_readiness_service_instance = ProjectReadinessCompositionService()
+        return self._project_readiness_service_instance
 
     def _project_readiness_convergence_service(self) -> ProjectReadinessConvergenceService:
         if self._project_readiness_convergence_service_instance is None:
@@ -4670,13 +4658,122 @@ class P2PWorkspace:
         return self._project_vertical_service().active_vertical()
 
     def review_project_readiness(self, vertical_id: str | None = None) -> ProjectReadinessReview:
-        return self._project_vertical_service().project_readiness_review(vertical_id=vertical_id)
+        snapshot = self.project_readiness_snapshot(vertical_id=vertical_id)
+        readiness = ProjectReadinessGapService().classify(snapshot)
+        detail_limit = PROJECT_READINESS_REVIEW_DETAIL_LIMIT
+        section_reviews: list[VerticalSectionReview] = []
+        missing_capisaldi: list[str] = []
+        generated_questions: list[str] = []
+        for section in snapshot.sections:
+            if section.applicable_weight <= 0:
+                status = "not_configured"
+            elif section.satisfied_weight >= section.applicable_weight:
+                status = "covered"
+            elif section.satisfied_weight > 0:
+                status = "partial"
+            else:
+                status = "missing"
+            gaps: list[str] = []
+            if section.applicable_weight > 0 and section.satisfied_weight < section.applicable_weight:
+                gaps.append("active_criteria_unsatisfied")
+                missing_capisaldi.append(section.section_id)
+            if section.applicable_weight > 0 and section.evidence_weight == 0:
+                gaps.append("missing_section_classified_evidence")
+            questions = (
+                list(section.declared_questions[:3])
+                if section.applicable_weight > 0
+                and section.satisfied_weight < section.applicable_weight
+                else []
+            )
+            generated_questions.extend(questions)
+            section_reviews.append(
+                VerticalSectionReview(
+                    section_id=section.section_id,
+                    title=section.title,
+                    status=status,
+                    proposals=list(section.active_declared_proposals),
+                    gaps=gaps,
+                    risks=[],
+                    questions=questions,
+                    declared_proposals=list(section.active_declared_proposals),
+                    heuristic_proposals=list(section.heuristic_proposals),
+                    definition_status=section.definition_status,
+                )
+            )
+        suggested = list(readiness.actions)
+        if readiness.gaps:
+            suggested.insert(0, readiness.gaps[0].next_operation)
+        generated_questions = list(dict.fromkeys(generated_questions))
+        return ProjectReadinessReview(
+            active_vertical_id=snapshot.identity.vertical_id,
+            vertical_source=snapshot.vertical_source,
+            fallback_used=snapshot.fallback_used,
+            sections=section_reviews,
+            unmapped_proposals=list(snapshot.unmapped_proposals[:detail_limit]),
+            missing_capisaldi=list(dict.fromkeys(missing_capisaldi)),
+            generated_questions=generated_questions[:detail_limit],
+            suggested_next=list(dict.fromkeys(suggested)),
+            definition_valid=snapshot.definition_valid,
+            heuristic_mappings={
+                section.section_id: list(section.heuristic_proposals)
+                for section in snapshot.sections
+                if section.heuristic_proposals
+            },
+            snapshot_fingerprint=readiness.snapshot.fingerprint,
+            gaps=list(readiness.gaps[:detail_limit]),
+            gap_counts=dict(readiness.counts),
+            diagnostics=list(readiness.diagnostics),
+            unmapped_proposals_total=len(snapshot.unmapped_proposals),
+            unmapped_proposals_truncated=len(snapshot.unmapped_proposals) > detail_limit,
+            generated_questions_total=len(generated_questions),
+            generated_questions_truncated=len(generated_questions) > detail_limit,
+        )
 
-    def project_readiness_result(self, vertical_id: str | None = None) -> ProjectReadinessResult:
-        return self._project_vertical_service().project_readiness_result(vertical_id=vertical_id)
+    def project_readiness_result(
+        self,
+        vertical_id: str | None = None,
+        *,
+        read_context: WorkspaceReadContext | None = None,
+    ) -> ProjectReadinessResult:
+        return ProjectReadinessGapService().classify(
+            self.project_readiness_snapshot(
+                vertical_id=vertical_id,
+                read_context=read_context,
+            )
+        )
 
-    def project_readiness_snapshot(self, vertical_id: str | None = None) -> ProjectReadinessSnapshot:
-        return self._project_vertical_service().project_readiness_snapshot(vertical_id=vertical_id)
+    def project_readiness_snapshot(
+        self,
+        vertical_id: str | None = None,
+        *,
+        read_context: WorkspaceReadContext | None = None,
+    ) -> ProjectReadinessSnapshot:
+        vertical_memory = self.vertical_project_memory(read_context=read_context)
+        return self._project_readiness_service().compose(
+            structure=self.project_structure(include_retired=True),
+            definition_view=self.project_definition_view(),
+            memory_classification=self.project_memory_classification(),
+            vertical_memory=vertical_memory,
+            workspace_schema_status=self.workspace_schema_status(),
+            owner_available=self._project_readiness_owner_available(read_context=read_context),
+            requested_vertical_id=vertical_id,
+        )
+
+    def _project_readiness_owner_available(
+        self,
+        *,
+        read_context: WorkspaceReadContext | None = None,
+    ) -> bool:
+        permissions_path = self.p2p_dir / "project" / "permissions.yml"
+        if read_context is not None:
+            try:
+                document = read_context.documents.capture(permissions_path)
+            except ValueError:
+                return False
+            content = read_context.documents.bytes(permissions_path) if document.exists else None
+        else:
+            content = permissions_path.read_bytes() if permissions_path.is_file() else None
+        return self._project_vertical_service()._readiness_owner_available(content)
 
     def project_questions(self) -> ProjectQuestionArtifact:
         self._workspace_operation_compatibility_service().check(
@@ -5023,31 +5120,27 @@ class P2PWorkspace:
         vertical_memory_snapshot: VerticalProjectMemoryView | None = None,
         read_context: WorkspaceReadContext | None = None,
     ) -> ProjectProgress:
-        if (
-            read_context is None
-            and proposal_summaries_snapshot is None
-            and vertical_memory_snapshot is None
-            and not include_heuristics
-        ):
+        del proposal_summaries_snapshot
+        if read_context is None and vertical_memory_snapshot is None:
             return self.read_consistently(
-                lambda context: self._project_progress_service().status(
-                    vertical_memory_snapshot=context.provide(
-                        "vertical_memory",
-                        (True, False),
-                        lambda: self.vertical_project_memory(read_context=context),
-                    )
+                lambda context: progress_from_project_readiness(
+                    self.project_readiness_snapshot(read_context=context),
+                    include_heuristics=include_heuristics,
                 )
             )
-        if vertical_memory_snapshot is None and read_context is not None and not include_heuristics:
-            vertical_memory_snapshot = read_context.provide(
-                "vertical_memory",
-                (True, False),
-                lambda: self.vertical_project_memory(read_context=read_context),
+        snapshot = self.project_readiness_snapshot(read_context=read_context)
+        if vertical_memory_snapshot is not None:
+            snapshot = self._project_readiness_service().compose(
+                structure=self.project_structure(include_retired=True),
+                definition_view=self.project_definition_view(),
+                memory_classification=self.project_memory_classification(),
+                vertical_memory=vertical_memory_snapshot,
+                workspace_schema_status=self.workspace_schema_status(),
+                owner_available=self._project_readiness_owner_available(read_context=read_context),
             )
-        return self._project_progress_service().status(
-            proposal_summaries_snapshot=proposal_summaries_snapshot,
+        return progress_from_project_readiness(
+            snapshot,
             include_heuristics=include_heuristics,
-            vertical_memory_snapshot=vertical_memory_snapshot,
         )
 
     def project_freshness(
@@ -5146,10 +5239,78 @@ class P2PWorkspace:
 
     def refresh_definition_maturity(self) -> ProjectDefinitionMaturity:
         self._ensure_runtime_write_allowed("definition_maturity_refresh")
-        return self._project_maturity_service().refresh_definition_maturity()
+        maturity = self._definition_maturity_from_readiness()
+        path = self.p2p_dir / "project" / "maturity-assessment.yml"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            _yaml_dump(definition_maturity_payload(maturity)),
+            encoding="utf-8",
+        )
+        return maturity
 
     def show_definition_maturity(self) -> ProjectDefinitionMaturity:
         return self._project_maturity_service().show_definition_maturity()
+
+    def _definition_maturity_from_readiness(self) -> ProjectDefinitionMaturity:
+        readiness = self.project_readiness_result()
+        definition = readiness.definition
+        score = (
+            int(round(definition.ratio.score))
+            if definition is not None and definition.ratio.score is not None
+            else 0
+        )
+        criteria: list[dict[str, object]] = []
+        for section in readiness.sections:
+            for criterion in section.criteria:
+                if criterion.status == "not_applicable":
+                    criterion_score = None
+                else:
+                    criterion_score = 100 if criterion.satisfied else 0
+                criteria.append(
+                    {
+                        "id": criterion.criterion_id,
+                        "title": criterion.title,
+                        "section_id": criterion.section_id,
+                        "status": criterion.status,
+                        "score": criterion_score,
+                        "required": criterion.required,
+                        "weight": criterion.weight,
+                        "evaluation": criterion.evaluation,
+                        "evidence": list(criterion.evidence_item_ids),
+                    }
+                )
+        gaps = [
+            gap.rationale
+            for gap in readiness.gaps
+            if gap.kind.value == "incomplete_required_definition"
+        ]
+        return ProjectDefinitionMaturity(
+            path=(self.p2p_dir / "project" / "maturity-assessment.yml").relative_to(self.root),
+            generated_on=date.today().isoformat(),
+            structure_source=(
+                f"project_structure:{readiness.snapshot.structure_id}"
+                f"@{readiness.snapshot.structure_revision}"
+            ),
+            score=score,
+            status=readiness.status,
+            criteria=criteria,
+            gaps=gaps,
+            suggested_actions=list(readiness.actions),
+            selected_criteria_count=len(
+                [item for item in criteria if item.get("status") != "not_applicable"]
+            ),
+            disabled_criteria_count=len(
+                [
+                    item
+                    for item in self.project_structure(include_retired=True).criteria
+                    if item.lifecycle != "active" or not item.enabled
+                ]
+            ),
+            total_default_criteria_count=len(self.project_structure(include_retired=True).criteria),
+            scope_label="current_project_structure",
+            basis="project_readiness_v2",
+            authoritative_definition_completeness=True,
+        )
 
     def context_packet(
         self,
