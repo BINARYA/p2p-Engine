@@ -34,6 +34,7 @@ def _meaningful_text(label: str) -> str:
 
 def test_artifact_catalog_lists_logical_slots_for_reduced_footprint(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Review View", starter_id="empty")
     proposal = workspace.create_proposal_with_details(
         title="Reduced Footprint",
         problem="Reduced proposals should not need every possible artifact file.",
@@ -91,6 +92,7 @@ def test_artifact_catalog_rejects_narrative_files_without_current_state(tmp_path
 
 def test_artifact_catalog_reports_imported_artifacts_from_current_files(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Review View", starter_id="empty")
     proposal = workspace.create_proposal_with_details(title="Imported Artifacts")
 
     workspace.import_proposal_artifact_content(
@@ -120,6 +122,7 @@ def test_artifact_catalog_reports_imported_artifacts_from_current_files(tmp_path
 
 def test_full_view_separates_question_sources_and_preserves_files(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Review View", starter_id="empty")
     proposal = workspace.create_proposal_with_details(
         title="Question Groups",
         problem="Question-like data comes from multiple sources.",
@@ -201,6 +204,7 @@ def test_readiness_and_artifact_status_remain_separate_when_they_diverge(tmp_pat
 
 def test_full_view_clips_long_narrative_artifact_summaries(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Review View", starter_id="empty")
     proposal = workspace.create_proposal_with_details(title="Long Narrative")
     long_text = "# Findings\n\n" + ("Detailed owner-visible evidence. " * 30)
     (tmp_path / proposal.path / "findings.md").write_text(long_text, encoding="utf-8")

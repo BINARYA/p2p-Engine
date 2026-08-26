@@ -8,6 +8,7 @@ import yaml
 
 from p2p_engine.core.proposal_decision_events import ProposalDecisionEventType
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.proposal_decision_fixtures import ensure_global_scope
 
 
 def _workspace(root: Path) -> P2PWorkspace:
@@ -22,6 +23,7 @@ def _apply_decision(
     event_type: ProposalDecisionEventType,
     reason: str,
 ) -> object:
+    ensure_global_scope(workspace, proposal_id)
     service = workspace._proposal_decision_service()
     values: dict[str, object] = {}
     if event_type == ProposalDecisionEventType.reinstated:

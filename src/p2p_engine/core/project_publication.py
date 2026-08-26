@@ -163,6 +163,7 @@ class PublicationEvidenceEntry:
     source_selector: str
     semantic_sha256: str
     content_mode: str
+    memory_scope_kind: str = "unavailable"
     payload: Mapping[str, object] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, object]:
@@ -176,6 +177,7 @@ class PublicationEvidenceEntry:
             "source_selector": self.source_selector,
             "semantic_sha256": self.semantic_sha256,
             "content_mode": self.content_mode,
+            "memory_scope_kind": self.memory_scope_kind,
             "payload": dict(self.payload),
         }
 

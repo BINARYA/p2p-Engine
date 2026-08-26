@@ -28,6 +28,17 @@ def _workspace(root: Path) -> tuple[P2PWorkspace, str, Path]:
     workspace = P2PWorkspace(root)
     workspace.init_project("Decision Service", owner="owner")
     proposal = workspace.create_proposal("Governed decision")
+    workspace.assign_proposal_memory_scope(
+        proposal_id=proposal.proposal_id,
+        kind="project_global",
+        section_ids=[],
+        operation_key="decision-test-scope-12345678",
+        expected_memory_revision=workspace.project_memory_revision(),
+        expected_structure_revision=workspace.project_structure().revision,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+    )
     return workspace, proposal.proposal_id, root / proposal.path
 
 

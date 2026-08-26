@@ -21,6 +21,7 @@ from p2p_engine.cli_commands.project_ops import register_project_ops_commands
 from p2p_engine.cli_commands.project_authority import register_project_authority_commands
 from p2p_engine.cli_commands.project_domain import register_project_domain_commands
 from p2p_engine.cli_commands.project_structure import register_project_structure_commands
+from p2p_engine.cli_commands.project_memory import register_project_memory_commands
 from p2p_engine.cli_commands.project_readiness import register_project_readiness_commands
 from p2p_engine.cli_commands.project_status import register_project_status_commands
 from p2p_engine.cli_commands.prompts import register_prompt_commands
@@ -53,6 +54,12 @@ from p2p_engine.core.project_structure import (
     PROJECT_STRUCTURE_EVENTS_CONTRACT,
     PROJECT_STRUCTURE_MUTATION_CONTRACT,
 )
+from p2p_engine.core.project_memory import (
+    MEMORY_CLASSIFICATION_CONTRACT,
+    PROJECT_MEMORY_SCOPE_CONTRACT,
+    PROJECT_MEMORY_SCOPE_EVENTS_CONTRACT,
+    PROJECT_MEMORY_SCOPE_MUTATION_CONTRACT,
+)
 
 app = typer.Typer(help="P2P Engine CLI", cls=VersionedJSONTyperGroup)
 proposal_app = typer.Typer(help="Manage proposals")
@@ -60,6 +67,7 @@ proposal_readiness_app = typer.Typer(help="Inspect proposal readiness")
 proposal_questions_app = typer.Typer(help="Manage proposal readiness questions")
 proposal_artifact_app = typer.Typer(help="Manage proposal artifact coverage state")
 proposal_contribution_app = typer.Typer(help="Manage proposal contributions")
+proposal_scope_app = typer.Typer(help="Inspect and assign explicit project-memory scope")
 contribution_app = typer.Typer(help="Manage contributions")
 decision_app = typer.Typer(help="Inspect, preview, apply, and repair proposal decisions")
 explore_app = typer.Typer(help="Explore rough proposals")
@@ -76,6 +84,7 @@ project_app = typer.Typer(help="Manage rationalized project state")
 project_authority_app = typer.Typer(help="Inspect and rotate project authority")
 project_domain_app = typer.Typer(help="Inspect and change project subject classification")
 project_structure_app = typer.Typer(help="Inspect and edit the project-owned structure")
+project_memory_app = typer.Typer(help="Inspect project-memory organization against structure")
 project_authority_rotate_app = typer.Typer(help="Preview, apply, and inspect authority rotation")
 project_brief_app = typer.Typer(help="Generate and import operational project briefs")
 project_remote_app = typer.Typer(help="Manage project remote profile")
@@ -114,6 +123,7 @@ proposal_app.add_typer(proposal_readiness_app, name="readiness")
 proposal_app.add_typer(proposal_questions_app, name="questions")
 proposal_app.add_typer(proposal_artifact_app, name="artifact")
 proposal_app.add_typer(proposal_contribution_app, name="contribution")
+proposal_app.add_typer(proposal_scope_app, name="scope")
 app.add_typer(proposal_app, name="proposal")
 app.add_typer(contribution_app, name="contribution")
 app.add_typer(decision_app, name="decision")
@@ -158,6 +168,7 @@ project_app.add_typer(project_readiness_app, name="readiness")
 project_app.add_typer(project_authority_app, name="authority")
 project_app.add_typer(project_domain_app, name="domain")
 project_app.add_typer(project_structure_app, name="structure")
+project_app.add_typer(project_memory_app, name="memory")
 project_readiness_app.add_typer(project_readiness_questions_app, name="questions")
 assess_app.add_typer(assess_maturity_app, name="maturity")
 intake_app.add_typer(intake_apply_app, name="apply")
@@ -193,6 +204,7 @@ register_prompt_commands(
 )
 register_project_ops_commands(
     project_app,
+    project_memory_app,
     project_remote_app,
     project_rubrics_app,
     project_definition_app,
@@ -215,6 +227,7 @@ register_project_authority_commands(
 )
 register_project_domain_commands(project_domain_app)
 register_project_structure_commands(project_structure_app)
+register_project_memory_commands(proposal_scope_app, project_memory_app)
 register_work_spec_commands(change_app, spec_app, work_app)
 register_collaboration_commands(
     governance_app,
@@ -248,6 +261,10 @@ def version(
         "project_structure_contract": PROJECT_STRUCTURE_CONTRACT,
         "project_structure_events_contract": PROJECT_STRUCTURE_EVENTS_CONTRACT,
         "project_structure_mutation_contract": PROJECT_STRUCTURE_MUTATION_CONTRACT,
+        "project_memory_scope_contract": PROJECT_MEMORY_SCOPE_CONTRACT,
+        "project_memory_scope_events_contract": PROJECT_MEMORY_SCOPE_EVENTS_CONTRACT,
+        "project_memory_scope_mutation_contract": PROJECT_MEMORY_SCOPE_MUTATION_CONTRACT,
+        "memory_classification_contract": MEMORY_CLASSIFICATION_CONTRACT,
     }
     if normalized == "json":
         print_json(success_envelope("version", data))
@@ -262,6 +279,10 @@ def version(
     console.print(f"  project structure contract: {PROJECT_STRUCTURE_CONTRACT}")
     console.print(f"  project structure events contract: {PROJECT_STRUCTURE_EVENTS_CONTRACT}")
     console.print(f"  project structure mutation contract: {PROJECT_STRUCTURE_MUTATION_CONTRACT}")
+    console.print(f"  project memory scope contract: {PROJECT_MEMORY_SCOPE_CONTRACT}")
+    console.print(f"  project memory scope events contract: {PROJECT_MEMORY_SCOPE_EVENTS_CONTRACT}")
+    console.print(f"  project memory scope mutation contract: {PROJECT_MEMORY_SCOPE_MUTATION_CONTRACT}")
+    console.print(f"  memory classification contract: {MEMORY_CLASSIFICATION_CONTRACT}")
 
 
 @app.command()

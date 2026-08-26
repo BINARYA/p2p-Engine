@@ -300,6 +300,7 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "proposal_decision_apply",
         "project_authority_rotate",
         "project_domain_change",
+        "project_memory_scope_change",
         "project_structure_change",
     }:
         raise ValueError(f"unsupported receipt operation: {operation}")
@@ -324,6 +325,7 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "init",
         "project_authority_rotate",
         "project_domain_change",
+        "project_memory_scope_change",
         "project_structure_change",
         "proposal_decision_apply",
     } and authority is None:
@@ -380,6 +382,9 @@ def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
         return
     if operation == "project_domain_change":
         _validate_project_domain_result(result)
+        return
+    if operation == "project_memory_scope_change":
+        _validate_project_memory_scope_result(result)
         return
     if operation == "project_structure_change":
         _validate_project_structure_result(result)
@@ -935,6 +940,82 @@ def _validate_project_structure_result(result: Mapping[str, object]) -> None:
         raise ValueError("receipt project-structure changed paths are invalid")
 
 
+def _validate_project_memory_scope_result(result: Mapping[str, object]) -> None:
+    allowed = {
+        "contract",
+        "operation",
+        "operation_id",
+        "request",
+        "previous_scope",
+        "current_scope",
+        "previous_memory_revision",
+        "current_memory_revision",
+        "event",
+        "changed_paths",
+    }
+    unknown = sorted(str(key) for key in result if key not in allowed)
+    if unknown:
+        raise ValueError(
+            "receipt project-memory-scope result contains unsupported fields: "
+            + ", ".join(unknown)
+        )
+    from p2p_engine.core.project_memory import (
+        PROJECT_MEMORY_SCOPE_MUTATION_CONTRACT,
+        project_memory_scope_from_mapping,
+    )
+    from p2p_engine.services.project_memory import _event_from_mapping
+
+    if result.get("contract") != PROJECT_MEMORY_SCOPE_MUTATION_CONTRACT:
+        raise ValueError("receipt project-memory-scope contract is unsupported")
+    if result.get("operation") != "project_memory_scope_change":
+        raise ValueError("receipt project-memory-scope operation is unsupported")
+    if result.get("operation_id") != "project.memory.scope.set":
+        raise ValueError("receipt project-memory-scope operation_id is invalid")
+    request = result.get("request")
+    if not isinstance(request, Mapping) or set(request) != {
+        "proposal_id",
+        "kind",
+        "section_ids",
+        "expected_memory_revision",
+        "expected_structure_revision",
+    }:
+        raise ValueError("receipt project-memory-scope request is invalid")
+    previous = project_memory_scope_from_mapping(result.get("previous_scope"))
+    current = project_memory_scope_from_mapping(result.get("current_scope"))
+    if current.object_id != previous.object_id or current.revision != previous.revision + 1:
+        raise ValueError("receipt project-memory-scope revision must advance exactly once")
+    if request.get("proposal_id") != current.object_id or request.get("kind") != current.kind.value:
+        raise ValueError("receipt project-memory-scope request and result diverge")
+    if request.get("section_ids") != list(current.section_ids):
+        raise ValueError("receipt project-memory-scope section targets diverge")
+    previous_memory = _required_sha256(result, "previous_memory_revision")
+    current_memory = _required_sha256(result, "current_memory_revision")
+    if request.get("expected_memory_revision") != previous_memory or previous_memory == current_memory:
+        raise ValueError("receipt project-memory-scope memory revisions are invalid")
+    expected_structure = request.get("expected_structure_revision")
+    if (
+        isinstance(expected_structure, bool)
+        or not isinstance(expected_structure, int)
+        or expected_structure < 1
+        or current.structure_revision != expected_structure
+    ):
+        raise ValueError("receipt project-memory-scope structure revision is invalid")
+    event = _event_from_mapping(result.get("event"))
+    if event.scope_revision != current.revision or event.scope_sha256 != current.semantic_sha256:
+        raise ValueError("receipt project-memory-scope event is inconsistent")
+    prefix = f".p2p/proposals/{current.object_id}-"
+    changed_paths = result.get("changed_paths")
+    if (
+        not isinstance(changed_paths, list)
+        or len(changed_paths) != 2
+        or changed_paths != sorted(changed_paths)
+        or not all(str(path).startswith(prefix) for path in changed_paths)
+        or {str(path).rsplit("/", 1)[-1] for path in changed_paths}
+        != {"memory-scope.yml", "memory-scope-events.yml"}
+    ):
+        raise ValueError("receipt project-memory-scope changed paths are invalid")
+
+
 def _validate_proposal_decision_result(result: Mapping[str, object]) -> None:
     allowed = {
         "operation",
@@ -1148,6 +1229,26 @@ def _public_result(result: Mapping[str, object]) -> dict[str, object]:
             if isinstance(result.get("current"), Mapping)
             else {},
             "project_memory_revision": result.get("project_memory_revision"),
+        }
+    if result.get("operation") == "project_memory_scope_change":
+        return {
+            "contract": result.get("contract"),
+            "operation": result.get("operation"),
+            "operation_id": result.get("operation_id"),
+            "request": dict(result.get("request", {}))
+            if isinstance(result.get("request"), Mapping)
+            else {},
+            "previous_scope": dict(result.get("previous_scope", {}))
+            if isinstance(result.get("previous_scope"), Mapping)
+            else {},
+            "current_scope": dict(result.get("current_scope", {}))
+            if isinstance(result.get("current_scope"), Mapping)
+            else {},
+            "previous_memory_revision": result.get("previous_memory_revision"),
+            "current_memory_revision": result.get("current_memory_revision"),
+            "event": dict(result.get("event", {}))
+            if isinstance(result.get("event"), Mapping)
+            else {},
         }
     if result.get("operation") == "project_structure_change":
         return {

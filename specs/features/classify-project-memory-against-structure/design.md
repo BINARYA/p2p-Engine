@@ -42,18 +42,24 @@ Historical references retain their retired section IDs. Active references to
 retired sections are `requires_reassignment`; they are not rewritten by reads.
 The retirement feature supplies explicit dispositions and atomic updates.
 
-### D005 - Extend Existing Vertical Memory, Do Not Duplicate It
+### D005 - Project Memory Replaces Structural Authority
 
-The current vertical-memory index already distinguishes mapped and unmapped
-proposals. Refactor it into a project-structure memory projection and add global
-and reassignment buckets. Canonical proposal/decision artifacts remain sources
-of truth.
+The project-structure classification index owns section, global, unassigned and
+reassignment semantics. Canonical proposal, decision, scope and formal-question
+artifacts remain sources of truth. The pre-rebase vertical-memory projection
+may remain as a temporary readiness/publication consumer, but it cannot supply
+scope, satisfy classification or pass the decision gate. Its final replacement
+belongs to the dependent `rebase-readiness-on-project-structure` feature so the
+repository remains executable between ordered plan steps.
 
 ### D006 - Versioned Public Contract
 
 Scope uses `p2p-project-memory-scope/v1`; classification uses
 `p2p-memory-classification/v1`. The old `vertical_coverage` contract is removed
-in the current-only schema-4 runtime rather than supported in parallel.
+from structural authority in the current-only schema-4 runtime. Its temporary
+pre-rebase read surface is explicitly non-authoritative and is removed when the
+readiness services converge on ProjectStructure; it is not accepted as a
+fallback for missing scope.
 
 ### D007 - Classification And Decision Authority Stay Separate
 
@@ -109,5 +115,8 @@ scope write. Receipt replay is independent from later classification drift.
 ## Compatibility
 
 The feature is schema-4-only. Existing `vertical_coverage` artifacts are not
-accepted by runtime 0.5.0. Test fixtures are regenerated in the new explicit
-scope format.
+accepted as scope by runtime 0.5.0 and cannot satisfy classification or the
+decision gate. The temporary reader needed by the not-yet-rebased readiness
+service is deleted by the ordered readiness feature, not maintained as a
+historical-memory compatibility path. Test fixtures use the new explicit scope
+format.

@@ -15,6 +15,7 @@ from p2p_engine.storage.filesystem import P2PWorkspace
 from tests.cli_assertions import cli_data
 from tests.filesystem_assertions import assert_no_workspace_mutation
 from tests.publication_fixtures import write_publication_candidates
+from tests.proposal_decision_fixtures import ensure_global_scope
 
 runner = CliRunner()
 
@@ -44,6 +45,7 @@ def _apply_proposal_decision(
     approver: str = "owner",
     override_readiness: bool = False,
 ):
+    ensure_global_scope(P2PWorkspace(root), proposal_id, actor=approver)
     command = {
         "accepted": "accept",
         "rejected": "reject",
@@ -2060,6 +2062,7 @@ def test_cli_import_exploration_file_and_record_decision(tmp_path: Path) -> None
     )
     assert result.exit_code == 0
     assert "Exploration imported" in result.output
+    ensure_global_scope(P2PWorkspace(tmp_path), "PROP-001")
 
     preview_result = runner.invoke(
         app,
@@ -2425,6 +2428,7 @@ def test_cli_proposal_accept_can_record_readiness_override(tmp_path: Path) -> No
         / "PROP-001-override-readiness"
         / "readiness.yml"
     )
+    ensure_global_scope(P2PWorkspace(tmp_path), "PROP-001")
 
     preview = runner.invoke(
         app,
@@ -2476,6 +2480,7 @@ def test_cli_proposal_decision_shortcuts(tmp_path: Path) -> None:
         ("deferred", "PROP-003", "Needs more context."),
     )
     for outcome, proposal_id, reason in cases:
+        ensure_global_scope(P2PWorkspace(tmp_path), proposal_id)
         command = {
             "accepted": "accept",
             "rejected": "reject",

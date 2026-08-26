@@ -52,6 +52,7 @@ def test_artifact_state_service_initializes_default_records(tmp_path: Path) -> N
 
 def test_workspace_create_initializes_artifact_state_by_default(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Artifact State", starter_id="empty")
 
     proposal = workspace.create_proposal_with_details(
         title="CLI MCP Storage Proposal",
@@ -186,6 +187,7 @@ def test_cli_proposal_artifact_commands(tmp_path: Path) -> None:
 
 def test_cli_mark_legacy_is_not_registered(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Artifact State", starter_id="empty")
     proposal = workspace.create_proposal("Legacy Mark")
     (tmp_path / proposal.path / "artifact-state.yml").unlink()
 

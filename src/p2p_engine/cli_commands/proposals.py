@@ -21,7 +21,12 @@ def register_proposal_commands(
     contribution_app: typer.Typer,
     decision_app: typer.Typer,
 ) -> None:
-    vertical_coverage_app = typer.Typer(help="Inspect, suggest and import proposal vertical coverage")
+    vertical_coverage_app = typer.Typer(
+        help=(
+            "Inspect transitional pre-rebase vertical coverage; it cannot set "
+            "project-memory scope or satisfy the decision gate"
+        )
+    )
     proposal_app.add_typer(vertical_coverage_app, name="vertical-coverage")
     register_proposal_core_commands(proposal_app)
     register_proposal_readiness_commands(proposal_readiness_app)

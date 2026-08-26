@@ -4,7 +4,7 @@ import hashlib
 import os
 import re
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
 from datetime import date
 from pathlib import Path
@@ -117,6 +117,7 @@ ImpactProvider = Callable[
     [str, ProposalDecisionEventType, ProposalDecisionLifecycleView],
     Mapping[str, object],
 ]
+DecisionScopeGate = Callable[[str], Sequence[SourcePrecondition] | None]
 
 
 class ProposalDecisionService:
@@ -134,6 +135,7 @@ class ProposalDecisionService:
         atomic_writer: AtomicMutationWriter | None = None,
         readiness: ReadinessService | None = None,
         impact_provider: ImpactProvider | None = None,
+        decision_scope_gate: DecisionScopeGate | None = None,
         clock: Callable[[], str] | None = None,
     ) -> None:
         self.root = root.resolve()
@@ -169,6 +171,7 @@ class ProposalDecisionService:
         )
         self.readiness = readiness
         self.impact_provider = impact_provider
+        self.decision_scope_gate = decision_scope_gate
         self.clock = clock or (lambda: date.today().isoformat())
 
     def status(
@@ -324,6 +327,14 @@ class ProposalDecisionService:
             source_head_event_id=ledger.head_event_id,
         )
         require_transition(lifecycle.effective_state, normalized.event_type)
+        decision_scope_sources: tuple[SourcePrecondition, ...] = ()
+        if (
+            normalized.event_type in _ACTIVE_EVENTS
+            and self.decision_scope_gate is not None
+        ):
+            decision_scope_sources = tuple(
+                self.decision_scope_gate(normalized.proposal_id) or ()
+            )
         self._validate_binding(lifecycle, normalized)
         self._validate_lineage(normalized)
         affected = self._affected_decision(
@@ -382,6 +393,7 @@ class ProposalDecisionService:
             impact_sources,
             include_readiness=readiness_candidate is not None,
             receipt_path=self.receipts.relative_path(normalized.operation_key),
+            additional_sources=decision_scope_sources,
         )
         canonical_targets = self._target_paths(
             normalized.proposal_id,
@@ -1433,6 +1445,7 @@ class ProposalDecisionService:
         *,
         include_readiness: bool,
         receipt_path: str,
+        additional_sources: Sequence[SourcePrecondition] = (),
     ) -> tuple[SourcePrecondition, ...]:
         proposal_dir = snapshot["proposal_dir"]
         assert isinstance(proposal_dir, Path)
@@ -1459,10 +1472,19 @@ class ProposalDecisionService:
                     f"P2P370_DECISION_IMPACT_INCOMPLETE: conflicting capture for {path}"
                 )
             values[path] = content
-        return tuple(
-            source_precondition(path, content)
-            for path, content in sorted(values.items())
-        )
+        captured: dict[str, SourcePrecondition] = {}
+        for path, content in sorted(values.items()):
+            item = source_precondition(path, content)
+            captured[item.path] = item
+        for item in additional_sources:
+            existing = captured.get(item.path)
+            if existing is not None and existing != item:
+                raise ValueError(
+                    "P2P_PROJECT_MEMORY_SCOPE_STALE: conflicting decision source "
+                    f"capture for {item.path}"
+                )
+            captured[item.path] = item
+        return tuple(captured[path] for path in sorted(captured))
 
     def _target_paths(
         self,

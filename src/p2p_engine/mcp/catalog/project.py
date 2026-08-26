@@ -119,6 +119,55 @@ def tool_definitions() -> list[dict[str, object]]:
             ['section_ids', 'expected_revision', 'actor_id', 'consent_id', 'operation_key'],
         ),
         _tool(
+            'p2p_project_memory_classification',
+            (
+                'Read bounded project-memory organization against the canonical project '
+                'structure. This is separate from readiness and never mutates state.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'limit': {'type': 'integer', 'minimum': 1, 'maximum': 4096},
+            },
+        ),
+        _tool(
+            'p2p_proposal_scope_show',
+            'Read one proposal explicit sections, project-global or unassigned memory scope.',
+            {
+                'root': {'type': 'string'},
+                'proposal_id': {'type': 'string'},
+            },
+            ['proposal_id'],
+        ),
+        _tool(
+            'p2p_proposal_scope_set',
+            (
+                'Consent-gated receipt-backed atomic assignment of proposal memory scope. '
+                'Requires current memory and structure revisions.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'proposal_id': {'type': 'string'},
+                'kind': {'type': 'string', 'enum': ['sections', 'project_global', 'unassigned']},
+                'section_ids': {'type': 'array', 'items': {'type': 'string'}},
+                'expected_memory_revision': {'type': 'string'},
+                'expected_structure_revision': {'type': 'integer', 'minimum': 1},
+                'actor_id': {'type': 'string'},
+                'executor_id': {'type': 'string'},
+                'executor_kind': {'type': 'string', 'enum': ['person', 'user', 'agent', 'mcp_client', 'client']},
+                'consent_id': {'type': 'string'},
+                'operation_key': {'type': 'string'},
+            },
+            [
+                'proposal_id',
+                'kind',
+                'expected_memory_revision',
+                'expected_structure_revision',
+                'actor_id',
+                'consent_id',
+                'operation_key',
+            ],
+        ),
+        _tool(
             'p2p_project_rubrics_init',
             (
                 'Write-safe project setup tool: create deterministic project definition rubrics '
@@ -235,13 +284,19 @@ def tool_definitions() -> list[dict[str, object]]:
         ),
         _tool(
             'p2p_proposal_vertical_coverage_show',
-            'Read declared proposal vertical coverage and compatibility status without mutation.',
+            (
+                'Read transitional pre-rebase vertical coverage without mutation. '
+                'This artifact cannot classify project memory or satisfy the decision gate.'
+            ),
             {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},
             ['proposal_id'],
         ),
         _tool(
             'p2p_proposal_vertical_coverage_suggest',
-            'Suggest proposal vertical sections with heuristic evidence without creating authoritative state.',
+            (
+                'Suggest transitional vertical mappings with heuristic evidence. '
+                'Suggestions never create project-memory scope or authoritative state.'
+            ),
             {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},
             ['proposal_id'],
         ),

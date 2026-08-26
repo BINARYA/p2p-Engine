@@ -34,6 +34,7 @@ from tests.proposal_decision_fixtures import (
     append_event,
     ledger_with_acceptance,
     write_current_proposal,
+    ensure_global_scope,
 )
 
 
@@ -48,6 +49,7 @@ def _apply_record(
     outcome: DecisionOutcome,
     reason: str,
 ):
+    ensure_global_scope(workspace, proposal_id)
     preview = workspace.record_decision(
         proposal_id,
         outcome,

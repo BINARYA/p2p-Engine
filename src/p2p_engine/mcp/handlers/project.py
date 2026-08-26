@@ -43,6 +43,22 @@ def handle_project_tool(
         "p2p_project_structure_reorder_sections",
     }:
         return _project_structure_mutation(workspace, name, arguments)
+    if name == "p2p_project_memory_classification":
+        return {
+            "memory_classification": workspace.project_memory_classification().to_dict(
+                limit=int(arguments.get("limit", 100))
+            ),
+            "mutation_performed": False,
+        }
+    if name == "p2p_proposal_scope_show":
+        return {
+            "project_memory_scope": workspace.proposal_memory_scope(
+                required(arguments, "proposal_id")
+            ).to_dict(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_proposal_scope_set":
+        return _project_memory_scope_mutation(workspace, arguments)
     if name == "p2p_agent_list":
         return {"agent_integrations": to_jsonable(workspace.agent_integrations_list())}
     if name == "p2p_agent_show":
@@ -448,6 +464,65 @@ def _project_structure_mutation(
         )
     return {
         "project_structure_mutation": result.to_dict(),
+        "consent": to_jsonable(consumed),
+        "mutation_performed": result.status == "applied",
+    }
+
+
+def _project_memory_scope_mutation(
+    workspace: P2PWorkspace,
+    arguments: dict[str, Any],
+) -> dict[str, object]:
+    actor_id = required(arguments, "actor_id")
+    proposal_id = required(arguments, "proposal_id")
+    consent_id = required(arguments, "consent_id")
+    consent_operation = "project_memory_scope_set"
+    consent = workspace.consent_show(consent_id)
+    consent_sha256: str | None = None
+    if consent.status == "granted":
+        workspace.consent_validate(
+            consent_id,
+            operation=consent_operation,
+            target=f"proposal:{proposal_id}",
+            actor_id=actor_id,
+        )
+        consent_sha256 = hashlib.sha256(
+            (workspace.root / consent.path).read_bytes()
+        ).hexdigest()
+    elif consent.status != "consumed":
+        raise ValueError(f"Consent receipt is not granted: {consent_id}")
+    raw_sections = arguments.get("section_ids", [])
+    if not isinstance(raw_sections, list):
+        raise ValueError("Expected list argument: section_ids")
+    result = workspace.assign_proposal_memory_scope(
+        proposal_id=proposal_id,
+        kind=required(arguments, "kind"),
+        section_ids=[str(item) for item in raw_sections],
+        operation_key=required(arguments, "operation_key"),
+        expected_memory_revision=required(arguments, "expected_memory_revision"),
+        expected_structure_revision=int(arguments.get("expected_structure_revision", 0)),
+        actor_id=actor_id,
+        executor_id=str(arguments.get("executor_id") or actor_id),
+        executor_kind=str(arguments.get("executor_kind") or "person"),
+        channel="mcp",
+        consent_id=consent_id,
+        consent_sha256=consent_sha256,
+    )
+    consumed = consent
+    if consent.status == "granted":
+        consumed = workspace.consent_consume(
+            consent_id,
+            result={
+                "operation": consent_operation,
+                "target": f"proposal:{proposal_id}",
+                "actor_id": actor_id,
+                "scope_revision": result.current.revision,
+                "memory_revision": result.current_memory_revision,
+                "mutation_status": result.status,
+            },
+        )
+    return {
+        "project_memory_scope_mutation": result.to_dict(),
         "consent": to_jsonable(consumed),
         "mutation_performed": result.status == "applied",
     }

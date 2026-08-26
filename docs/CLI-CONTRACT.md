@@ -102,7 +102,8 @@ Implemented external-attestation mutations accept an allowlisted
 parsed as a closed, bounded contract; arbitrary provider payloads and
 shell-expanded JSON are not supported. Project initialization, generic
 proposal decision preview/apply, simple project-structure edits and authority
-rotation are the integrated CLI surfaces. Existing proposal-authoring and vertical mutations remain explicitly
+rotation, and project-memory scope assignment are the integrated CLI surfaces.
+Existing proposal-authoring and vertical mutations remain explicitly
 `existing_unintegrated` and local-policy only until their own feature adopts
 the shared authority contract.
 
@@ -133,8 +134,10 @@ Project and proposal reads:
 
 ```bash
 p2p project snapshot --format json
+p2p project memory classification --format json
 p2p proposal list --format json
 p2p proposal show PROP-001 --format json
+p2p proposal scope show PROP-001 --format json
 p2p proposal contribution list PROP-001 --type suggestion --format json
 ```
 
@@ -149,6 +152,7 @@ p2p project structure add-section "Distribution" --expected-revision REV --actor
 p2p project structure update-metadata section distribution --title "Distribution model" --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>
 p2p project structure reorder --section-id distribution --section-id scope --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>
 p2p proposal create "Title" --proposal "..." --format json --operation-key wavekit:<uuid>
+p2p proposal scope set PROP-001 --kind sections --section-id distribution --expected-memory-revision SHA256 --expected-structure-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>
 p2p proposal update PROP-001 --proposal "..." --format json --operation-key wavekit:<uuid>
 p2p proposal contribution add PROP-001 "Text" --type finding --format json --operation-key wavekit:<uuid>
 p2p proposal readiness assess PROP-001 --actor ACTOR --format json --operation-key wavekit:<uuid>
@@ -157,6 +161,13 @@ p2p proposal readiness assess PROP-001 --actor ACTOR --format json --operation-k
 An exact retry with the same operation key and the same semantic request returns
 `already_applied`. Reusing the same key for different semantic inputs fails with
 `P2P_IDEMPOTENCY_CONFLICT`.
+
+Proposal creation records explicit `unassigned` scope. Accepting or reinstating
+a proposal requires one or more active sections or explicit `project_global`
+scope. Scope mutation uses capability `project.memory.classify` and cannot
+authorize `proposal.decide` or `proposal.readiness.override`. The
+`p2p-memory-classification/v1` read model reports organization only and always
+declares `readiness_effect: none`.
 
 After a lost or uncertain response:
 

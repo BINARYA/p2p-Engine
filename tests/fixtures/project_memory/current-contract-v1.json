@@ -1,0 +1,81 @@
+{
+  "classification": {
+    "collections": {
+      "historical": {"items": [], "returned": 0, "total": 0, "truncated": false},
+      "project_global": {"items": [], "returned": 0, "total": 0, "truncated": false},
+      "requires_reassignment": {"items": [], "returned": 0, "total": 0, "truncated": false},
+      "section_classified": {"items": [], "returned": 0, "total": 0, "truncated": false},
+      "unassigned": {
+        "items": [
+          {
+            "active_section_ids": [],
+            "decision_blocking": true,
+            "lifecycle": "undecided",
+            "message": "",
+            "object_id": "PROP-001",
+            "object_type": "proposal",
+            "retired_section_ids": [],
+            "scope_kind": "unassigned",
+            "section_ids": [],
+            "state": "unassigned",
+            "unknown_section_ids": []
+          }
+        ],
+        "returned": 1,
+        "total": 1,
+        "truncated": false
+      },
+      "unknown": {"items": [], "returned": 0, "total": 0, "truncated": false}
+    },
+    "contract": "p2p-memory-classification/v1",
+    "counts": {
+      "active_total": 1,
+      "decision_blocking": 1,
+      "historical": 0,
+      "project_global": 0,
+      "requires_reassignment": 0,
+      "section_classified": 0,
+      "unassigned": 1,
+      "unknown": 0
+    },
+    "diagnostics": [],
+    "memory_revision": "<sha256>",
+    "per_type": {
+      "proposal": {
+        "active_total": 1,
+        "decision_blocking": 1,
+        "historical": 0,
+        "project_global": 0,
+        "requires_reassignment": 0,
+        "section_classified": 0,
+        "unassigned": 1,
+        "unknown": 0
+      }
+    },
+    "readiness_effect": "none",
+    "status": "incomplete",
+    "structure": {
+      "checksum": "1c348c1a91d825eda47b53cb9734ec62ebbd0d1ce874c83824d185fc66423d65",
+      "id": "memory-golden-structure",
+      "revision": 1
+    },
+    "truncated": false
+  },
+  "scope": {
+    "authority": {},
+    "contract": "p2p-project-memory-scope/v1",
+    "kind": "unassigned",
+    "object_id": "PROP-001",
+    "object_type": "proposal",
+    "revision": 1,
+    "section_ids": [],
+    "semantic_sha256": "8b547ff5f49830cfd926e5991fae083a02ef889b26332b8d1e63c86b3d6c4922",
+    "structure": {
+      "checksum": "1c348c1a91d825eda47b53cb9734ec62ebbd0d1ce874c83824d185fc66423d65",
+      "id": "memory-golden-structure",
+      "revision": 1
+    },
+    "updated_at": "<timestamp>",
+    "updated_by": "local"
+  }
+}

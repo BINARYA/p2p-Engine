@@ -45,6 +45,11 @@ from p2p_engine.core.project_structure import (
     ProjectStructureHistory,
     ProjectStructureMutationResult,
 )
+from p2p_engine.core.project_memory import (
+    MemoryClassificationSnapshot,
+    ProjectMemoryScope,
+    ProjectMemoryScopeMutationResult,
+)
 from p2p_engine.core.project_progress import ProjectProgress
 from p2p_engine.core.project_questions import (
     ProjectQuestion,
@@ -199,6 +204,7 @@ from p2p_engine.services.proposals import (
 from p2p_engine.services.project_assessment import ProjectAssessment, ProjectAssessmentService
 from p2p_engine.services.project_domain import ProjectDomainService
 from p2p_engine.services.project_structure import ProjectStructureService
+from p2p_engine.services.project_memory import ProjectMemoryService
 from p2p_engine.services.project_contexts import ProjectContextRendererService
 from p2p_engine.services.project_maturity import (
     ProjectDefinitionMaturity,
@@ -383,6 +389,7 @@ class P2PWorkspace:
         ) = None
         self._project_domain_service_instance: ProjectDomainService | None = None
         self._project_structure_service_instance: ProjectStructureService | None = None
+        self._project_memory_service_instance: ProjectMemoryService | None = None
         self._project_maturity_service_instance: ProjectMaturityService | None = None
         self._project_metadata_service_instance: ProjectMetadataService | None = None
         self._project_progress_service_instance: ProjectProgressService | None = None
@@ -474,6 +481,24 @@ class P2PWorkspace:
                 receipts=self._mutation_receipt_service(),
             )
         return self._project_structure_service_instance
+
+    def _project_memory_service(self) -> ProjectMemoryService:
+        if self._project_memory_service_instance is None:
+            self._project_memory_service_instance = ProjectMemoryService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                find_proposal_dir=self._proposal_document_service().find_dir,
+                project_structure=lambda: self.project_structure(
+                    include_retired=True
+                ),
+                proposal_lifecycle=lambda proposal_id: (
+                    self._proposal_lifecycle_authority_service().status(proposal_id)
+                ),
+                project_questions=self._project_question_state_service().read_optional,
+                authority=self._project_authority_service(),
+                receipts=self._mutation_receipt_service(),
+            )
+        return self._project_memory_service_instance
 
     def _agent_instruction_service(self) -> AgentInstructionService:
         if self._agent_instruction_service_instance is None:
@@ -759,6 +784,9 @@ class P2PWorkspace:
                 readiness=self._readiness_service(),
                 impact_provider=self._proposal_decision_impact_service().provider,
                 lifecycle=self._proposal_lifecycle_authority_service(),
+                decision_scope_gate=(
+                    self._project_memory_service().decision_scope_preconditions
+                ),
             )
         return self._proposal_decision_service_instance
 
@@ -896,6 +924,7 @@ class P2PWorkspace:
                 project_structure=lambda: self.project_structure(
                     include_retired=True
                 ),
+                memory_classification=self.project_memory_classification,
                 project_progress=lambda proposals, read_context: self.project_progress(
                     proposal_summaries_snapshot=proposals,
                     read_context=read_context,
@@ -1348,6 +1377,7 @@ class P2PWorkspace:
                     self._proposal_lifecycle_authority_service().capture_all
                 ),
                 vertical_project_memory=self.vertical_project_memory,
+                memory_classification=self.project_memory_classification,
             )
         return self._project_publication_service_instance
 
@@ -2877,6 +2907,49 @@ class P2PWorkspace:
     def project_structure_history(self, *, limit: int = 20) -> ProjectStructureHistory:
         return self._project_structure_service().history(limit=limit)
 
+    def proposal_memory_scope(self, proposal_id: str) -> ProjectMemoryScope:
+        return self._project_memory_service().show_scope(proposal_id)
+
+    def project_memory_revision(self) -> str:
+        return self._project_memory_service().memory_revision()
+
+    def project_memory_classification(self) -> MemoryClassificationSnapshot:
+        return self._project_memory_service().classification()
+
+    def assign_proposal_memory_scope(
+        self,
+        *,
+        proposal_id: str,
+        kind: str,
+        section_ids: list[str] | tuple[str, ...],
+        operation_key: str,
+        expected_memory_revision: str,
+        expected_structure_revision: int,
+        actor_id: str,
+        executor_id: str,
+        executor_kind: str,
+        authority_context: AuthorityContext | None = None,
+        channel: str = "cli",
+        consent_id: str | None = None,
+        consent_sha256: str | None = None,
+    ) -> ProjectMemoryScopeMutationResult:
+        self._ensure_runtime_write_allowed("project_memory_scope_change")
+        return self._project_memory_service().assign_scope(
+            proposal_id=proposal_id,
+            kind=kind,
+            section_ids=section_ids,
+            operation_key=operation_key,
+            expected_memory_revision=expected_memory_revision,
+            expected_structure_revision=expected_structure_revision,
+            actor_id=actor_id,
+            executor_id=executor_id,
+            executor_kind=executor_kind,
+            authority_context=authority_context,
+            channel=channel,
+            consent_id=consent_id,
+            consent_sha256=consent_sha256,
+        )
+
     def change_project_structure(
         self,
         *,
@@ -3353,9 +3426,10 @@ class P2PWorkspace:
 
     def create_proposal(self, title: str) -> Proposal:
         self._ensure_runtime_write_allowed("proposal_create")
-        self._ensure_proposal_target_section()
         proposal = self._proposal_document_service().create(title)
+        self._write_initial_proposal_scope(proposal, actor="local")
         self._proposal_artifact_state_service().initialize(proposal.proposal_id)
+        self._project_memory_service().invalidate()
         return proposal
 
     def create_proposal_with_details(
@@ -3369,7 +3443,6 @@ class P2PWorkspace:
         acceptance_criteria: list[str] | None = None,
     ) -> Proposal:
         self._ensure_runtime_write_allowed("proposal_create")
-        self._ensure_proposal_target_section()
         proposal = self._proposal_document_service().create_with_details(
             title=title,
             problem=problem,
@@ -3379,7 +3452,9 @@ class P2PWorkspace:
             proposal=proposal,
             acceptance_criteria=acceptance_criteria,
         )
+        self._write_initial_proposal_scope(proposal, actor="local")
         self._proposal_artifact_state_service().initialize(proposal.proposal_id)
+        self._project_memory_service().invalidate()
         return proposal
 
     def create_proposal_with_operation_key(
@@ -3429,7 +3504,6 @@ class P2PWorkspace:
             )
 
         self._ensure_runtime_write_allowed("proposal_create")
-        self._ensure_proposal_target_section()
         plan = self._proposal_document_service().create_plan_with_details(
             title=title,
             problem=problem,
@@ -3484,6 +3558,7 @@ class P2PWorkspace:
                 else "P2P_PROPOSAL_CREATE_FAILED"
             )
             raise ValueError(f"{code}: {mutation.message or mutation.status}")
+        self._project_memory_service().invalidate()
         return _proposal_operation_payload(
             summary,
             status="applied",
@@ -3507,23 +3582,32 @@ class P2PWorkspace:
                 actor=actor,
             )
         )
-        return {
+        candidates = {
             f"{plan.proposal.path.as_posix()}/{filename}": content.encode("utf-8")
             for filename, content in sorted(files.items())
         }
-
-    def _ensure_proposal_target_section(self) -> None:
-        try:
-            sections = self._project_vertical_service().list_sections()
-        except ValueError as exc:
-            if "P2P_VERTICAL_NO_SECTIONS" not in str(exc):
-                raise
-            sections = []
-        if not sections:
-            raise ValueError(
-                "P2P_VERTICAL_NO_TARGET_SECTION: complete and adopt a valid vertical release "
-                "with at least one governed section before creating a proposal"
+        candidates.update(
+            self._project_memory_service().initial_scope_candidates(
+                proposal_id=plan.proposal.proposal_id,
+                proposal_dir=proposal_dir,
+                actor=actor,
             )
+        )
+        return candidates
+
+    def _write_initial_proposal_scope(self, proposal: Proposal, *, actor: str) -> None:
+        candidates = self._project_memory_service().initial_scope_candidates(
+            proposal_id=proposal.proposal_id,
+            proposal_dir=self.root / proposal.path,
+            actor=actor,
+        )
+        for relative, content in candidates.items():
+            path = self.root / relative
+            if path.exists():
+                raise ValueError(
+                    f"P2P_PROJECT_MEMORY_SCOPE_INVALID: initial scope path already exists: {relative}"
+                )
+            path.write_bytes(content)
 
     def update_proposal(
         self,

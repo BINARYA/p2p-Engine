@@ -9,6 +9,7 @@ from p2p_engine import __version__
 from p2p_engine.cli import app
 from p2p_engine.core.contribution import ContributionType
 from p2p_engine.core.decision import DecisionOutcome
+from p2p_engine.mcp.tools import call_tool
 from p2p_engine.storage.filesystem import P2PWorkspace
 
 
@@ -417,3 +418,66 @@ def test_project_owned_structure_public_contract_smoke(tmp_path) -> None:
     replay_mutation = replay_payload["data"]["project_structure_mutation"]
     assert replay_mutation["status"] == "already_applied"
     assert replay_mutation["current"] == mutation["current"]
+
+
+def test_project_memory_classification_public_contract_smoke(tmp_path) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Memory classification smoke", owner="owner", starter_id="empty")
+    proposal = workspace.create_proposal("Unclassified smoke proposal")
+    runner = CliRunner()
+    operation_key = "project-memory:installed-wheel-smoke"
+
+    scope = runner.invoke(
+        app,
+        [
+            "proposal",
+            "scope",
+            "show",
+            proposal.proposal_id,
+            "--format",
+            "json",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assignment = runner.invoke(
+        app,
+        [
+            "proposal",
+            "scope",
+            "set",
+            proposal.proposal_id,
+            "--kind",
+            "project_global",
+            "--expected-memory-revision",
+            workspace.project_memory_revision(),
+            "--expected-structure-revision",
+            "1",
+            "--operation-key",
+            operation_key,
+            "--format",
+            "json",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    classification = call_tool(
+        "p2p_project_memory_classification",
+        {"root": str(tmp_path), "limit": 10},
+    )["memory_classification"]
+    workspace.prepare_project_publication()
+    evidence = yaml.safe_load(
+        (tmp_path / "outputs/latest/publication-evidence.yml").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert scope.exit_code == 0, scope.output
+    assert json.loads(scope.stdout)["data"]["project_memory_scope"]["kind"] == "unassigned"
+    assert assignment.exit_code == 0, assignment.output
+    mutation = json.loads(assignment.stdout)["data"]["project_memory_scope_mutation"]
+    assert mutation["status"] == "applied"
+    assert mutation["current_scope"]["kind"] == "project_global"
+    assert classification["contract"] == "p2p-memory-classification/v1"
+    assert classification["counts"]["project_global"] == 1
+    assert evidence["memory_classification"]["counts"]["project_global"] == 1

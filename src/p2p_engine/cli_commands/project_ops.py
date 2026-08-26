@@ -16,6 +16,7 @@ from p2p_engine.foundation.yaml_loaders import load_yaml
 
 def register_project_ops_commands(
     project_app: typer.Typer,
+    project_memory_app: typer.Typer,
     project_remote_app: typer.Typer,
     project_rubrics_app: typer.Typer,
     project_definition_app: typer.Typer,
@@ -34,10 +35,8 @@ def register_project_ops_commands(
     project_vertical_adopt_app = typer.Typer(help="Preview and apply vertical adoption for an empty definition")
     project_vertical_migrate_app = typer.Typer(help="Preview and apply evidence-preserving vertical migration")
     project_metadata_app = typer.Typer(help="Inspect and update bounded project metadata")
-    project_memory_app = typer.Typer(help="Inspect vertical-aware derived project memory")
     project_app.add_typer(project_publish_app, name="publish")
     project_app.add_typer(project_metadata_app, name="metadata")
-    project_app.add_typer(project_memory_app, name="memory")
     project_vertical_app.add_typer(project_vertical_lock_app, name="lock")
     project_vertical_app.add_typer(project_vertical_install_app, name="install")
     project_vertical_app.add_typer(project_vertical_adopt_app, name="adopt")

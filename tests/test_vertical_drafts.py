@@ -31,7 +31,6 @@ from p2p_engine.services.vertical_registry import (
     VerticalRegistryClient,
     VerticalRegistryConfigurationService,
 )
-from p2p_engine.services.project_verticals import ProjectVerticalService
 from p2p_engine.services.vertical_packages import PortableVerticalPackageService
 from p2p_engine.mcp.handlers.proposals import handle_proposal_tool
 from p2p_engine.storage.filesystem import P2PWorkspace
@@ -414,21 +413,18 @@ def test_draft_cli_create_and_inspect_use_versioned_json_contract(
 
 
 @pytest.mark.service
-def test_proposal_guard_runs_before_id_allocation_or_artifact_write(
+def test_zero_section_project_creates_explicit_unassigned_proposal(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     workspace = P2PWorkspace(tmp_path)
-    workspace.init_project("No target section")
-    service = workspace._project_vertical_service()
-    monkeypatch.setattr(service, "list_sections", lambda **_kwargs: [])
+    workspace.init_project("No target section", starter_id="empty")
     proposals_root = tmp_path / ".p2p" / "proposals"
     before = tuple(proposals_root.iterdir())
 
-    with pytest.raises(ValueError, match="P2P_VERTICAL_NO_TARGET_SECTION"):
-        workspace.create_proposal("Must be blocked")
+    proposal = workspace.create_proposal("May remain unassigned")
 
-    assert tuple(proposals_root.iterdir()) == before
+    assert len(tuple(proposals_root.iterdir())) == len(before) + 1
+    assert workspace.proposal_memory_scope(proposal.proposal_id).kind.value == "unassigned"
 
 
 @pytest.mark.integration
@@ -457,28 +453,26 @@ def test_zero_section_artifact_cannot_be_installed(tmp_path: Path) -> None:
 
 
 @pytest.mark.integration
-def test_no_target_section_guard_is_shared_by_cli_and_mcp(
+def test_zero_section_unassigned_creation_is_shared_by_cli_and_mcp(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     root = tmp_path / "project"
     workspace = P2PWorkspace(root)
-    workspace.init_project("Shared proposal guard")
-    monkeypatch.setattr(ProjectVerticalService, "list_sections", lambda *_args, **_kwargs: [])
+    workspace.init_project("Shared proposal creation", starter_id="empty")
 
     cli = runner.invoke(
         app,
-        ["proposal", "create", "CLI blocked", "--root", str(root)],
+        ["proposal", "create", "CLI unassigned", "--root", str(root)],
     )
-    assert cli.exit_code != 0
-    assert "P2P_VERTICAL_NO_TARGET_SECTION" in cli.stdout
+    assert cli.exit_code == 0, cli.stdout
 
-    with pytest.raises(ValueError, match="P2P_VERTICAL_NO_TARGET_SECTION"):
-        handle_proposal_tool(
-            workspace,
-            "p2p_proposal_create",
-            {"title": "MCP blocked"},
-        )
+    handle_proposal_tool(
+        workspace,
+        "p2p_proposal_create",
+        {"title": "MCP unassigned"},
+    )
+    assert workspace.proposal_memory_scope("PROP-001").kind.value == "unassigned"
+    assert workspace.proposal_memory_scope("PROP-002").kind.value == "unassigned"
 
 
 @pytest.mark.service

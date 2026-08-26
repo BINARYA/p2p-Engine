@@ -29,6 +29,17 @@ def _workspace(root: Path) -> tuple[P2PWorkspace, str]:
         kind="agent",
     )
     proposal = workspace.create_proposal("MCP two phase")
+    workspace.assign_proposal_memory_scope(
+        proposal_id=proposal.proposal_id,
+        kind="project_global",
+        section_ids=[],
+        operation_key="mcp-decision-test-scope-12345678",
+        expected_memory_revision=workspace.project_memory_revision(),
+        expected_structure_revision=workspace.project_structure().revision,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+    )
     _git(root, "init")
     _git(root, "config", "user.email", "test@example.com")
     _git(root, "config", "user.name", "Test User")

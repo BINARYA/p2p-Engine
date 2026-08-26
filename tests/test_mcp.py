@@ -18,7 +18,7 @@ from p2p_engine.mcp.server import handle_message
 from p2p_engine.mcp.handlers.common import to_jsonable
 from p2p_engine.mcp.tools import TOOL_NAMES, call_tool, tool_definitions
 from p2p_engine.storage.filesystem import P2PWorkspace
-from tests.proposal_decision_fixtures import record_decision
+from tests.proposal_decision_fixtures import ensure_global_scope, record_decision
 from tests.filesystem_assertions import assert_no_workspace_mutation
 from tests.publication_fixtures import write_publication_candidates
 
@@ -1044,6 +1044,7 @@ def test_mcp_legacy_accept_and_defer_consent_only_return_bound_preview(
     _git(tmp_path, "branch", "-M", "main")
 
     workspace = P2PWorkspace(tmp_path)
+    ensure_global_scope(workspace, "PROP-001", actor="matteo")
     for operation, tool_name, proposal_id in [
         ("proposal_accept", "p2p_proposal_accept", "PROP-001"),
         ("proposal_defer", "p2p_proposal_defer", "PROP-002"),

@@ -188,6 +188,41 @@ def write_current_proposal(
     (proposal_dir / "decision-events.yml").write_bytes(codec.dumps(ledger))
 
 
+def ensure_global_scope(
+    workspace: P2PWorkspace,
+    proposal_id: str,
+    *,
+    actor: str = "owner",
+) -> None:
+    try:
+        scope = workspace.proposal_memory_scope(proposal_id)
+    except ValueError as exc:
+        if "canonical scope or event ledger is missing" not in str(exc):
+            raise
+        proposal_dir = workspace._proposal_document_service().find_dir(proposal_id)
+        candidates = workspace._project_memory_service().initial_scope_candidates(
+            proposal_id=proposal_id,
+            proposal_dir=proposal_dir,
+            actor="test-fixture",
+        )
+        for relative, content in candidates.items():
+            (workspace.root / relative).write_bytes(content)
+        scope = workspace.proposal_memory_scope(proposal_id)
+    if scope.kind.value != "unassigned":
+        return
+    workspace.assign_proposal_memory_scope(
+        proposal_id=proposal_id,
+        kind="project_global",
+        section_ids=[],
+        operation_key=f"test-global-scope-{proposal_id.lower()}-12345678",
+        expected_memory_revision=workspace.project_memory_revision(),
+        expected_structure_revision=workspace.project_structure().revision,
+        actor_id=actor,
+        executor_id=actor,
+        executor_kind="person",
+    )
+
+
 def record_decision(
     workspace: P2PWorkspace,
     proposal_id: str,
@@ -196,6 +231,7 @@ def record_decision(
     approver: str,
     **values,
 ):
+    ensure_global_scope(workspace, proposal_id, actor=approver)
     event_type = ProposalDecisionEventType(outcome.value)
     conditions = values.pop("conditions", ())
     if (

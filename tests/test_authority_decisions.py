@@ -72,6 +72,28 @@ def _workspace(root: Path) -> tuple[P2PWorkspace, str]:
         authority_context=bootstrap,
     )
     proposal = workspace.create_proposal("Delegated decision")
+    scope_context = _external_context(
+        (
+            AuthorityClaim(
+                capability="project.memory.classify",
+                basis=AuthorityBasis.root_authority,
+                authority_generation=1,
+            ),
+        ),
+        decision_id="wavekit-classification-decision-42",
+    )
+    workspace.assign_proposal_memory_scope(
+        proposal_id=proposal.proposal_id,
+        kind="project_global",
+        section_ids=[],
+        operation_key="external-decision-test-scope-12345678",
+        expected_memory_revision=workspace.project_memory_revision(),
+        expected_structure_revision=workspace.project_structure().revision,
+        actor_id=scope_context.subject.identity_id,
+        executor_id=scope_context.executor.identity_id,
+        executor_kind=scope_context.executor.kind.value,
+        authority_context=scope_context,
+    )
     return workspace, proposal.proposal_id
 
 
@@ -313,6 +335,17 @@ def test_local_exact_replay_survives_subject_revocation(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     workspace.init_project("Local replay", owner="owner")
     proposal = workspace.create_proposal("Replay after permission change")
+    workspace.assign_proposal_memory_scope(
+        proposal_id=proposal.proposal_id,
+        kind="project_global",
+        section_ids=[],
+        operation_key="local-replay-test-scope-12345678",
+        expected_memory_revision=workspace.project_memory_revision(),
+        expected_structure_revision=workspace.project_structure().revision,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+    )
     service = workspace._proposal_decision_service()
     request = service.request(
         proposal_id=proposal.proposal_id,

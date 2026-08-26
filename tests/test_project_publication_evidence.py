@@ -9,6 +9,10 @@ from p2p_engine.core.vertical_memory import (
     VerticalMemorySection,
     VerticalProjectMemoryView,
 )
+from p2p_engine.core.project_memory import (
+    MemoryClassificationItem,
+    MemoryClassificationSnapshot,
+)
 from p2p_engine.services.project_publication_evidence import (
     ProjectPublicationEvidenceService,
 )
@@ -148,6 +152,52 @@ def test_publication_evidence_retains_active_unmapped_sources(tmp_path: Path) ->
     )
     assert proposal["editorial_class"] == "cross_cutting"
     assert payload["counts"]["cross_cutting"] > 0
+
+
+def test_publication_evidence_retains_explicit_unassigned_memory(tmp_path: Path) -> None:
+    p2p_dir, export = _write_sources(tmp_path)
+    classification = MemoryClassificationSnapshot(
+        status="incomplete",
+        structure_id="publication-structure",
+        structure_revision=3,
+        structure_checksum="a" * 64,
+        memory_revision="b" * 64,
+        counts={"active_total": 1, "unassigned": 1},
+        per_type={"proposal": {"active_total": 1, "unassigned": 1}},
+        items=(
+            MemoryClassificationItem(
+                object_type="proposal",
+                object_id="PROP-001",
+                lifecycle="accepted",
+                state="unassigned",
+                scope_kind="unassigned",
+                decision_blocking=True,
+            ),
+        ),
+    )
+    service = ProjectPublicationEvidenceService(
+        root=tmp_path,
+        p2p_dir=p2p_dir,
+        accepted_proposals=lambda: [{"proposal_id": "PROP-001"}],
+        vertical_memory=lambda: _vertical_view(),
+        memory_classification=lambda: classification,
+    )
+
+    payload = service.build(
+        source_fingerprint_sha256="e" * 64,
+        source_export_path=export,
+        source_export_sha256="f" * 64,
+    )
+
+    proposal = next(
+        item
+        for item in payload["entries"]
+        if item["source_path"].endswith("PROP-001-active/proposal.md")
+    )
+    assert payload["memory_classification"] == classification.to_dict()
+    assert proposal["memory_scope_kind"] == "unassigned"
+    assert proposal["vertical_sections"] == []
+    assert proposal["editorial_class"] == "cross_cutting"
     assert any(item["code"] == "publication_cross_cutting_evidence" for item in payload["diagnostics"])
 
 

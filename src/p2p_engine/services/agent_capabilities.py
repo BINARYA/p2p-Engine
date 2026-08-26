@@ -5,7 +5,7 @@ import json
 from dataclasses import asdict, dataclass
 
 
-AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v6"
+AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v7"
 
 
 @dataclass(frozen=True)
@@ -81,6 +81,26 @@ AGENT_CAPABILITIES = (
         ),
     ),
     AgentCapability(
+        capability_id="project.memory.classification",
+        cli_paths=(
+            "p2p project memory classification",
+            "p2p proposal scope show",
+            "p2p proposal scope set",
+        ),
+        mcp_tools=(
+            "p2p_project_memory_classification",
+            "p2p_proposal_scope_show",
+            "p2p_proposal_scope_set",
+        ),
+        exposure="owner_governed",
+        authority="project.memory.classify",
+        reason=(
+            "Classification is a separate organizational axis; scope writes are "
+            "revision-checked and receipt-backed and never authorize decisions or "
+            "change readiness."
+        ),
+    ),
+    AgentCapability(
         capability_id="proposal.governance",
         cli_paths=(
             "p2p proposal list",
@@ -133,6 +153,9 @@ AGENT_CAPABILITIES = (
             "p2p project structure add-section",
             "p2p project structure update-metadata",
             "p2p project structure reorder",
+            "p2p project memory classification",
+            "p2p proposal scope show",
+            "p2p proposal scope set",
             "p2p proposal list",
             "p2p proposal show",
             "p2p proposal create",
@@ -337,8 +360,11 @@ p2p runtime status --format json
 p2p workspace schema status --format json
 p2p workspace transaction status --format json
 p2p project snapshot --format json
+p2p project memory classification --format json
 p2p proposal list --format json
 p2p proposal show PROP-XXX --format json
+p2p proposal scope show PROP-XXX --format json
+p2p proposal scope set PROP-XXX --kind sections --section-id SECTION-ID --expected-memory-revision <sha256> --expected-structure-revision <n> --format json --operation-key wavekit:<uuid>
 p2p proposal create "Title" --format json --operation-key wavekit:<uuid>
 p2p proposal update PROP-XXX --proposal "..." --format json --operation-key wavekit:<uuid>
 p2p proposal contribution add PROP-XXX "Text" --type suggestion --format json --operation-key wavekit:<uuid>
@@ -352,6 +378,13 @@ Every CLI JSON response uses the `p2p-cli/v1` envelope. Inspect `ok`,
 retries reuse the same `--operation-key` only for the same semantic request.
 After an uncertain write, inspect `p2p mutation status --operation-key ...`
 before retrying.
+
+Proposal creation records explicit `unassigned` scope. Before an accepting or
+reinstating decision, assign one or more active sections or explicit
+`project_global` scope. Classification is not readiness: changing scope must
+not change a readiness score. Capability `project.memory.classify` authorizes
+only scope organization and cannot substitute for `proposal.decide` or
+`proposal.readiness.override`.
 
 Read `proposal_detail.readiness.freshness` through `p2p proposal show` before
 requesting a recalculation. `current` means the stored result matches current

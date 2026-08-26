@@ -156,6 +156,16 @@ cursors. Neither tool refreshes files. Materialized project memory is derived;
 canonical `.p2p` intent remains authoritative and accepted proposals are not
 evidence of implementation.
 
+Structural organization is exposed separately from that derived vertical view.
+`p2p_project_memory_classification` reads a bounded snapshot bound to the
+current project-structure checksum and project-memory revision.
+`p2p_proposal_scope_show` reads one proposal's explicit `sections`,
+`project_global`, or `unassigned` scope. `p2p_proposal_scope_set` performs the
+matching receipt-backed mutation and requires a consent for operation
+`project_memory_scope_set`, target `proposal:<PROP-ID>`, plus current memory and
+structure revisions. Classification never changes readiness, and its consent
+does not authorize proposal decisions or readiness overrides.
+
 Prompt tools keep their existing output contracts. `p2p_intake_prompt` selects a
 bounded idea-text neighborhood internally, while `p2p_explore_prompt`,
 `p2p_impact_prompt` and `p2p_synthesize_prompt` select a bounded proposal
@@ -209,8 +219,11 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_project_freshness` | read-only | no | no | Inspect the full derived-state graph and ordered rebuild actions. |
 | `p2p_project_memory_status` | read-only | no | no | Inspect vertical-memory contract, source fingerprint and freshness without rebuilding it. |
 | `p2p_project_memory_show` | read-only | no | no | Read a bounded aggregate or exact vertical section; history requires an explicit option. |
-| `p2p_proposal_vertical_coverage_show` | read-only | no | no | Read declared proposal-to-vertical coverage status. |
-| `p2p_proposal_vertical_coverage_suggest` | advisory/read-only | no | no | Suggest bounded section mappings without creating authority. |
+| `p2p_project_memory_classification` | read-only | no | no | Read bounded structural classification, revisions and debt separately from readiness. |
+| `p2p_proposal_scope_show` | read-only | no | no | Read explicit section, project-global or unassigned proposal scope. |
+| `p2p_proposal_scope_set` | governed write | yes | consent | Assign scope atomically with current memory and structure revisions. |
+| `p2p_proposal_vertical_coverage_show` | transitional read-only | no | no | Inspect the pre-0.5 derived vertical-coverage artifact; it is not current scope authority. |
+| `p2p_proposal_vertical_coverage_suggest` | transitional advisory | no | no | Suggest legacy mappings without satisfying classification or decision gates. |
 | `p2p_project_interaction_style_show` | read-only | no | no | Read effective project interaction style values and descriptions. |
 | `p2p_project_interaction_style_set` | write-safe | yes | no | Set project-level interaction style values without governance side effects. |
 | `p2p_next` | read-only | no | no | Show the complete composed advisory action set, optionally bounded by `top`. |

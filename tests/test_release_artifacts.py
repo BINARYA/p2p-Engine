@@ -123,11 +123,29 @@ def test_release_verifier_requires_project_structure_contract_members() -> None:
         "p2p_engine/services/project_structure.py",
     } <= MODULE.PROJECT_STRUCTURE_WHEEL_MEMBERS
     assert {
+        "docs/CLI-CONTRACT.md",
         "docs/CLI-GUIDE.md",
         "docs/MCP.md",
         "tests/test_project_structure.py",
         "tests/test_skeleton.py",
     } <= MODULE.PROJECT_STRUCTURE_SDIST_MEMBERS
+
+
+def test_release_verifier_requires_project_memory_contract_members() -> None:
+    assert {
+        "p2p_engine/cli_commands/project_memory.py",
+        "p2p_engine/core/project_memory.py",
+        "p2p_engine/mcp/catalog/project.py",
+        "p2p_engine/mcp/handlers/project.py",
+        "p2p_engine/services/project_memory.py",
+    } <= MODULE.PROJECT_MEMORY_WHEEL_MEMBERS
+    assert {
+        "docs/CLI-GUIDE.md",
+        "docs/MCP.md",
+        "tests/fixtures/project_memory/current-contract-v1.json",
+        "tests/test_project_memory_classification.py",
+        "tests/test_skeleton.py",
+    } <= MODULE.PROJECT_MEMORY_SDIST_MEMBERS
 
 
 @pytest.mark.parametrize(

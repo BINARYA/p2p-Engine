@@ -230,6 +230,7 @@ class ProjectPublicationService:
             Callable[[], dict[str, ProposalDecisionLifecycleView]] | None
         ) = None,
         vertical_project_memory: Callable[[], VerticalProjectMemoryView] | None = None,
+        memory_classification: Callable[[], Any] | None = None,
         pdf_renderer: PdfRenderer | None = None,
         transaction_hook: Callable[[str, Path | None], None] | None = None,
     ) -> None:
@@ -249,6 +250,7 @@ class ProjectPublicationService:
             accepted_proposals=accepted_proposals,
             proposal_decision_lifecycles=proposal_decision_lifecycles,
             vertical_memory=vertical_project_memory,
+            memory_classification=memory_classification,
         )
 
     def paths(

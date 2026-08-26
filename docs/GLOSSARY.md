@@ -176,6 +176,19 @@ source and optional external reference. It does not own project structure.
 The exclusive initialization source for project structure: the `generic` or
 `empty` starter, or one exact vertical release.
 
+## Project Memory Scope
+
+The explicit structural organization of one classifiable memory object. A
+proposal has exactly one scope kind: one or more active `sections`,
+`project_global`, or `unassigned`. Absence of section IDs never implies global
+scope.
+
+## Memory Classification
+
+A bounded, revision-bound projection reporting whether active project memory is
+classified, global, unassigned, or requires reassignment. It is separate from
+readiness and never modifies readiness scores.
+
 ## Rubric
 
 A structure-owned checklist used to assess project definition maturity.

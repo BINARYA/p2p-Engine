@@ -8,6 +8,8 @@ from typer.testing import CliRunner
 from p2p_engine.cli import app
 from p2p_engine.services.proposal_decision_ledger import ProposalDecisionLedgerCodec
 from tests.cli_assertions import cli_data, cli_failure_result
+from tests.proposal_decision_fixtures import ensure_global_scope
+from p2p_engine.storage.filesystem import P2PWorkspace
 
 
 runner = CliRunner()
@@ -22,6 +24,7 @@ def _project(root: Path) -> Path:
         app,
         ["proposal", "create", "Two Phase Decision", "--root", str(root)],
     ).exit_code == 0
+    ensure_global_scope(P2PWorkspace(root), "PROP-001")
     return (
         root
         / ".p2p"

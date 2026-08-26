@@ -151,6 +151,7 @@ _CURRENT_SCHEMA_OPERATIONS = frozenset(
         "project_domain_change",
         "project_init_existing",
         "project_interaction_style_set",
+        "project_memory_scope_change",
         "project_metadata_apply",
         "project_publication_import",
         "project_publication_prepare",

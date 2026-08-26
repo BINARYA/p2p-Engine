@@ -46,6 +46,12 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert "p2p_project_definition_show" in policy["project_vertical_orchestration"]["mcp_tools"]
     assert policy["project_vertical_orchestration"]["project_structure_is_live_authority"] is True
     assert "p2p_project_structure_add_section" in policy["project_vertical_orchestration"]["mcp_tools"]
+    assert "p2p_project_memory_classification" in policy["project_vertical_orchestration"]["mcp_tools"]
+    assert "p2p_proposal_scope_set" in policy["project_vertical_orchestration"]["mcp_tools"]
+    assert policy["project_vertical_orchestration"]["proposal_creation_scope"] == "unassigned"
+    assert policy["project_vertical_orchestration"]["authority_creating_decision_requires_explicit_scope"] is True
+    assert policy["project_vertical_orchestration"]["classification_changes_readiness"] is False
+    assert policy["project_vertical_orchestration"]["classification_authorizes_decision"] is False
     assert policy["software_spec_lifecycle"]["vertical"] == "software_project"
     assert policy["software_spec_lifecycle"]["default_intent"] == "implementation_spec"
     assert "downstream_export" in policy["software_spec_lifecycle"]["intents"]
@@ -84,6 +90,7 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
         in worker_contract["write_commands"]
     )
     assert "p2p project structure show --format json" in worker_contract["read_commands"]
+    assert "p2p project memory classification --format json" in worker_contract["read_commands"]
     assert any(
         command.startswith("p2p project structure add-section")
         for command in worker_contract["write_commands"]

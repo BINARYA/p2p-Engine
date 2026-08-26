@@ -15,6 +15,7 @@ from p2p_engine.core.project_publication import (
     PublicationEvidenceEntry,
     contribution_share_summary,
 )
+from p2p_engine.core.project_memory import PROJECT_MEMORY_OBJECT_LIMIT
 from p2p_engine.core.proposal_decision_events import ProposalDecisionLifecycleView
 from p2p_engine.core.vertical_memory import VerticalProjectMemoryView
 from p2p_engine.foundation.yaml_loaders import UNIQUE_LOADER_CONTRACT, load_yaml_mapping
@@ -35,6 +36,8 @@ _PROCESS_ONLY_NAMES = {
     "tasks.yml",
     "execution-plan.md",
     "implementation-plan.md",
+    "memory-scope.yml",
+    "memory-scope-events.yml",
 }
 _UNCERTAINTY_NAMES = {
     "assumptions.md",
@@ -72,6 +75,7 @@ class PublicationEvidenceCapture:
     source_fingerprint_sha256: str
     source_inputs: tuple[dict[str, str], ...]
     vertical: dict[str, object]
+    memory_classification: dict[str, object]
     entries: tuple[PublicationEvidenceEntry, ...]
     contributions: PublicationContributionSummary
     diagnostics: tuple[dict[str, str], ...]
@@ -87,12 +91,14 @@ class ProjectPublicationEvidenceService:
         accepted_proposals: Callable[[], list[dict[str, object]]],
         proposal_decision_lifecycles: Callable[..., dict[str, ProposalDecisionLifecycleView]] | None = None,
         vertical_memory: Callable[..., VerticalProjectMemoryView] | None = None,
+        memory_classification: Callable[..., object] | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
         self.accepted_proposals = accepted_proposals
         self.proposal_decision_lifecycles = proposal_decision_lifecycles
         self.vertical_memory = vertical_memory
+        self.memory_classification = memory_classification
 
     def build(
         self,
@@ -129,6 +135,17 @@ class ProjectPublicationEvidenceService:
         vertical_view = self._vertical_view(read_context)
         sections_by_proposal = _sections_by_proposal(vertical_view)
         unmapped = _unmapped_proposal_ids(vertical_view)
+        classification_payload: dict[str, object] = {}
+        scope_kind_by_proposal: dict[str, str] = {}
+        if self.memory_classification is not None:
+            classification = _invoke_provider(self.memory_classification, read_context)
+            if hasattr(classification, "to_dict"):
+                classification_payload = classification.to_dict(
+                    limit=PROJECT_MEMORY_OBJECT_LIMIT
+                )
+                sections_by_proposal, unmapped, scope_kind_by_proposal = (
+                    _classification_proposal_maps(classification_payload)
+                )
 
         entries: list[PublicationEvidenceEntry] = []
         sources: list[dict[str, str]] = []
@@ -169,6 +186,10 @@ class ProjectPublicationEvidenceService:
                 source_selector=source_selector,
                 semantic_sha256=semantic_hash,
                 content_mode="inline_complete",
+                memory_scope_kind=scope_kind_by_proposal.get(
+                    proposal_id,
+                    "inherited" if proposal_id else "project_global",
+                ),
                 payload=payload,
             )
             entries.append(entry)
@@ -196,6 +217,7 @@ class ProjectPublicationEvidenceService:
             source_fingerprint_sha256=_source_fingerprint(sources),
             source_inputs=tuple(sources),
             vertical=vertical_payload,
+            memory_classification=classification_payload,
             entries=tuple(entries),
             contributions=contribution_summary,
             diagnostics=tuple(_diagnostics(vertical_view, entries)),
@@ -216,6 +238,7 @@ class ProjectPublicationEvidenceService:
             "generator": PUBLICATION_EVIDENCE_GENERATOR,
             "source_fingerprint_sha256": fingerprint,
             "vertical": capture.vertical,
+            "memory_classification": capture.memory_classification,
             "source_export": {
                 "path": source_export_path.relative_to(self.root).as_posix(),
                 "sha256": source_export_sha256,
@@ -486,6 +509,41 @@ def _unmapped_proposal_ids(view: VerticalProjectMemoryView | None) -> set[str]:
         for item in view.unmapped_active_proposals
         if str(item.get("proposal_id") or item.get("id") or "")
     }
+
+
+def _classification_proposal_maps(
+    payload: Mapping[str, object],
+) -> tuple[dict[str, set[str]], set[str], dict[str, str]]:
+    sections: dict[str, set[str]] = {}
+    unassigned: set[str] = set()
+    kinds: dict[str, str] = {}
+    collections = payload.get("collections")
+    if not isinstance(collections, Mapping):
+        return sections, unassigned, kinds
+    for collection in collections.values():
+        if not isinstance(collection, Mapping):
+            continue
+        items = collection.get("items")
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, Mapping) or item.get("object_type") != "proposal":
+                continue
+            proposal_id = str(item.get("object_id") or "")
+            if not proposal_id:
+                continue
+            scope_kind = str(item.get("scope_kind") or "unknown")
+            kinds[proposal_id] = scope_kind
+            raw_sections = item.get("active_section_ids") or item.get("section_ids") or []
+            if isinstance(raw_sections, list):
+                sections[proposal_id] = {str(value) for value in raw_sections if str(value)}
+            if scope_kind == "unassigned" or item.get("state") in {
+                "unassigned",
+                "requires_reassignment",
+                "unknown",
+            }:
+                unassigned.add(proposal_id)
+    return sections, unassigned, kinds
 
 
 def _vertical_payload(view: VerticalProjectMemoryView | None) -> dict[str, object]:

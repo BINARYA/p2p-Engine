@@ -158,6 +158,7 @@ e [`project_status.py`](../../src/p2p_engine/cli_commands/project_status.py).
 | --- | --- | --- |
 | `p2p project memory status` | `R` | Mostra materializzazione, fingerprint e freshness della memoria. |
 | `p2p project memory show` | `R` | Legge aggregato o sezione esatta della memoria verticale. |
+| `p2p project memory classification` | `R` | Legge la classificazione bounded della memoria contro struttura e revisioni correnti, separata dalla readiness. |
 
 ### Metadati e stile di interazione
 
@@ -364,12 +365,22 @@ I due percorsi sono superfici compatibili sullo stesso concetto.
 
 ### Copertura del verticale
 
+Superficie transitoria pre-0.5, non autoritativa per la classificazione corrente
+o per il gate delle decisioni.
+
 | Comando | Effetto | Utilita |
 | --- | --- | --- |
 | `p2p proposal vertical-coverage show PROP-ID` | `R` | Mostra mapping dichiarati e diagnostica. |
 | `p2p proposal vertical-coverage suggest PROP-ID` | `R` | Suggerisce mapping senza renderli autoritativi. |
 | `p2p proposal vertical-coverage preview PROP-ID SOURCE` | `P` | Valida sostituzione di coverage e artifact state. |
 | `p2p proposal vertical-coverage import PROP-ID SOURCE` | `C/O` | Importa atomicamente coverage e provenienza. |
+
+### Scope della memoria di progetto
+
+| Comando | Effetto | Utilita |
+| --- | --- | --- |
+| `p2p proposal scope show PROP-ID` | `R` | Legge lo scope esplicito `sections`, `project_global` o `unassigned`. |
+| `p2p proposal scope set PROP-ID` | `C/O` | Assegna atomicamente lo scope con revisioni attese, authority context, operation key e receipt. |
 
 ### Analisi e prompt/import
 

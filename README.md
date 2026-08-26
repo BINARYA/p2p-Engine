@@ -273,6 +273,12 @@ Proposal
 Decision
   Owner-controlled outcome for a proposal or choice.
 
+Project Memory Scope
+  Explicit section, project-global, or unassigned organization for classifiable memory.
+
+Memory Classification
+  Revision-bound organization status kept separate from project readiness.
+
 Choice
   Explicit set of alternatives that needs a decision.
 

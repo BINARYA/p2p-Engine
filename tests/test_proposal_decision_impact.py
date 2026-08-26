@@ -14,6 +14,7 @@ from p2p_engine.services.proposal_decision_impact import (
     ProposalDecisionImpactService,
 )
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.proposal_decision_fixtures import ensure_global_scope
 
 
 def _tree_digest(root: Path) -> str:
@@ -32,6 +33,7 @@ def _workspace(root: Path) -> tuple[P2PWorkspace, str, Path]:
     workspace = P2PWorkspace(root)
     workspace.init_project("Impact Fixture", owner="owner")
     proposal = workspace.create_proposal("Decision impact")
+    ensure_global_scope(workspace, proposal.proposal_id)
     service = workspace._proposal_decision_service()
     preview = service.preview(
         service.request(

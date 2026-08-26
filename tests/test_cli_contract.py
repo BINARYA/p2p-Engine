@@ -70,6 +70,7 @@ project.structure.reorder
 project.structure.show
 project.structure.update-metadata
 project.freshness
+project.memory.classification
 project.memory.show
 project.memory.status
 project.metadata.apply
@@ -125,6 +126,8 @@ proposal.defer
 proposal.list
 proposal.readiness.assess
 proposal.reject
+proposal.scope.set
+proposal.scope.show
 proposal.show
 proposal.update
 proposal.vertical-coverage.import
@@ -204,7 +207,7 @@ def test_cli_json_operation_inventory_is_reviewed_and_guarded() -> None:
     inventory = json_command_inventory(get_command(app))
 
     assert frozenset(inventory) == EXPECTED_JSON_OPERATIONS
-    assert len(inventory) == 131
+    assert len(inventory) == 134
     assert inventory["vertical.inspect"] == "json"
     assert inventory["workspace.schema.status"] == "text"
 
@@ -295,6 +298,10 @@ def test_version_json_works_without_project_root() -> None:
         "project_structure_contract": "p2p-project-structure/v1",
         "project_structure_events_contract": "p2p-project-structure-events/v1",
         "project_structure_mutation_contract": "p2p-project-structure-mutation/v1",
+        "project_memory_scope_contract": "p2p-project-memory-scope/v1",
+        "project_memory_scope_events_contract": "p2p-project-memory-scope-events/v1",
+        "project_memory_scope_mutation_contract": "p2p-project-memory-scope-mutation/v1",
+        "memory_classification_contract": "p2p-memory-classification/v1",
     }
 
 

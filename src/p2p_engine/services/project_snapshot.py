@@ -30,6 +30,7 @@ class ProjectSnapshotService:
         publication_status: Callable[..., Any],
         project_domain: Callable[[], Any],
         project_structure: Callable[[], Any],
+        memory_classification: Callable[[], Any],
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -43,6 +44,7 @@ class ProjectSnapshotService:
         self.publication_status = publication_status
         self.project_domain = project_domain
         self.project_structure = project_structure
+        self.memory_classification = memory_classification
 
     def snapshot(
         self,
@@ -74,6 +76,7 @@ class ProjectSnapshotService:
             "workspace_schema": _payload(getattr(status, "workspace_schema", None)),
             "transactions": _payload(self.transaction_recovery_status()),
             "structure": self._structure_summary(),
+            "memory_classification": _payload(self.memory_classification()),
             "vertical": self._vertical_summary(),
             "sections": self._section_collection(sections, progress=progress, limit=limit),
             "readiness": self._readiness_summary(progress),

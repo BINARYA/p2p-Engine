@@ -135,8 +135,9 @@ state and evidence retain their own versions. WaveKit should persist the draft
 ID, revision and document hash and send the complete normalized document with
 an optimistic precondition on every update.
 
-Direct draft MCP tools are intentionally absent. A server-side
-WaveKit worker invokes this CLI through its serialized operation path. Existing
-MCP proposal creation still shares the core no-target-section guard with the
-CLI and fails with `P2P_VERTICAL_NO_TARGET_SECTION` when no valid active
-section exists.
+Direct draft MCP tools are intentionally absent. A server-side WaveKit worker
+invokes this CLI through its serialized operation path. Proposal creation is
+independent from vertical availability: CLI and MCP create explicit
+`unassigned` project-memory scope when the project structure has no active
+sections. An accepting or reinstating decision remains blocked until the owner
+assigns active sections or explicit `project_global` scope.

@@ -8,6 +8,7 @@ import yaml
 from p2p_engine.core.proposal_decision_events import ProposalDecisionEventType
 from p2p_engine.foundation.markdown import replace_section
 from p2p_engine.storage.filesystem import P2PWorkspace
+from tests.proposal_decision_fixtures import ensure_global_scope
 
 
 def _apply(
@@ -16,6 +17,7 @@ def _apply(
     event_type: ProposalDecisionEventType,
     reason: str,
 ) -> object:
+    ensure_global_scope(workspace, proposal_id)
     service = workspace._proposal_decision_service()
     preview = service.preview(
         service.request(

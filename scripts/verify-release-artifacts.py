@@ -117,6 +117,22 @@ PROJECT_STRUCTURE_SDIST_MEMBERS = {
     "tests/test_project_structure.py",
     "tests/test_skeleton.py",
 }
+PROJECT_MEMORY_WHEEL_MEMBERS = {
+    "p2p_engine/cli_commands/project_memory.py",
+    "p2p_engine/core/project_memory.py",
+    "p2p_engine/mcp/catalog/project.py",
+    "p2p_engine/mcp/handlers/project.py",
+    "p2p_engine/services/project_memory.py",
+}
+PROJECT_MEMORY_SDIST_MEMBERS = {
+    *(f"src/{member}" for member in PROJECT_MEMORY_WHEEL_MEMBERS),
+    "docs/CLI-CONTRACT.md",
+    "docs/CLI-GUIDE.md",
+    "docs/MCP.md",
+    "tests/fixtures/project_memory/current-contract-v1.json",
+    "tests/test_project_memory_classification.py",
+    "tests/test_skeleton.py",
+}
 CLI_CONTRACT_WHEEL_MEMBERS = {
     "p2p_engine/cli.py",
     "p2p_engine/cli_contract.py",
@@ -318,6 +334,7 @@ def verify_wheel(path: Path, *, version: str) -> int:
     required.update(DECISION_LIFECYCLE_WHEEL_MEMBERS)
     required.update(CURRENT_SCHEMA_WHEEL_MEMBERS)
     required.update(PROJECT_STRUCTURE_WHEEL_MEMBERS)
+    required.update(PROJECT_MEMORY_WHEEL_MEMBERS)
     required.update(CLI_CONTRACT_WHEEL_MEMBERS)
     required.update(PORTABLE_VERTICAL_WHEEL_MEMBERS)
     required.update(TYPED_VERTICAL_TRANSITION_WHEEL_MEMBERS)
@@ -355,6 +372,7 @@ def verify_sdist(path: Path, *, version: str) -> int:
     required.update(DECISION_LIFECYCLE_SDIST_MEMBERS)
     required.update(CURRENT_SCHEMA_SDIST_MEMBERS)
     required.update(PROJECT_STRUCTURE_SDIST_MEMBERS)
+    required.update(PROJECT_MEMORY_SDIST_MEMBERS)
     required.update(CLI_CONTRACT_SDIST_MEMBERS)
     required.update(PORTABLE_VERTICAL_SDIST_MEMBERS)
     required.update(TYPED_VERTICAL_TRANSITION_SDIST_MEMBERS)

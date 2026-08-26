@@ -299,6 +299,7 @@ def test_readiness_review_reports_advisory_merge_candidates(tmp_path) -> None:
 
 def test_readiness_assess_consumes_artifact_state_gaps_and_owner_visible_cautions(tmp_path) -> None:
     workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Readiness", starter_id="empty")
     proposal = workspace.create_proposal_with_details(
         title="Artifact Aware Readiness",
         proposal="This changes CLI, MCP, storage, and source-of-truth behavior.",

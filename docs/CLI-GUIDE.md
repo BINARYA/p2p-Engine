@@ -144,6 +144,30 @@ update. Its additive `derived_updates.vertical_project_memory` result is one of
 `updated`, `unchanged`, `stale`, `failed` or `not_applicable`. A derived failure
 does not roll back or reinterpret the successful canonical operation.
 
+### Project-Memory Classification
+
+Memory organization against the detached project structure is a separate,
+canonical axis. It is not the materialized vertical-memory view above and it
+never changes readiness:
+
+```bash
+p2p project memory classification --format json
+p2p proposal scope show PROP-001 --format json
+p2p proposal scope set PROP-001 --kind sections \
+  --section-id system_objective --section-id mvp_scope \
+  --expected-memory-revision <sha256> --expected-structure-revision 1 \
+  --operation-key local:scope-001 --format json
+p2p proposal scope set PROP-001 --kind project_global \
+  --expected-memory-revision <sha256> --expected-structure-revision 1 \
+  --operation-key local:scope-002 --format json
+```
+
+New proposals start as explicit `unassigned` memory, including projects with an
+empty structure. Draft work may remain unassigned, but accepting or reinstating
+a proposal requires active section scope or explicit `project_global` scope.
+Scope mutation requires capability `project.memory.classify`; that capability
+does not authorize proposal decisions or readiness overrides.
+
 ### Runtime Contract
 
 Project runtime compatibility is declared in `.p2p/project/runtime.yml`.
@@ -634,8 +658,8 @@ vertical changes while question evidence exists, use `questions
 reconcile-preview` and `reconcile-apply`; reconciliation never copies an answer
 to a semantically different target.
 
-Proposal-to-vertical traceability can be declared with an optional proposal
-artifact:
+The pre-0.5 vertical-coverage commands remain a transitional derived-memory
+surface while readiness and publication callers converge on project structure:
 
 ```bash
 p2p proposal vertical-coverage show PROP-001 --format json
@@ -645,9 +669,9 @@ p2p proposal vertical-coverage import PROP-001 coverage.yml \
   --preview-token '<token>' --actor owner --confirm
 ```
 
-Suggestions are read-only and never authoritative. Preview/import validates the
-complete replacement and commits coverage plus artifact-state provenance as one
-operation. Project definition and bounded project metadata use the same
+They are not the current structural authority and cannot satisfy the proposal
+decision scope gate. Use `proposal scope` for new classification writes.
+Project definition and bounded project metadata use their existing
 preview/resupplied-patch/apply contract:
 
 ```bash

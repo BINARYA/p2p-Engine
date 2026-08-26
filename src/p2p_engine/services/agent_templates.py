@@ -238,7 +238,7 @@ Behavior:
 2. project-definition work uses project structure/context/definition primitives first;
 3. implementation specs require a Change Set sourced from accepted P2P proposals;
 4. refresh/export preflight blockers must stop the write and report diagnostics;
-5. lifecycle advisories, such as inactive `software_project` vertical coverage, should be surfaced without blocking governed writes;
+5. lifecycle advisories, such as inactive structure classification, should be surfaced without blocking governed writes;
 6. downstream exports are derived handoff artifacts, not canonical P2P state;
 7. exact owner file requests may write the requested repository path only when the operation and durable destination are explicit;
 8. agents must not invent alternative spec filenames, export directories, or canonical memory locations."""
@@ -751,8 +751,10 @@ def agent_policy(
                 "p2p project snapshot --format json",
                 "p2p project structure show --format json",
                 "p2p project structure history --limit 20 --format json",
+                "p2p project memory classification --format json",
                 "p2p proposal list --format json",
                 "p2p proposal show PROP-XXX --format json",
+                "p2p proposal scope show PROP-XXX --format json",
                 "p2p proposal contribution list PROP-XXX --format json",
             ],
             "write_commands": [
@@ -760,6 +762,7 @@ def agent_policy(
                 "p2p project structure add-section TITLE --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>",
                 "p2p project structure update-metadata KIND ID --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>",
                 "p2p project structure reorder --section-id ID --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>",
+                "p2p proposal scope set PROP-XXX --kind sections --section-id ID --expected-memory-revision SHA256 --expected-structure-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>",
                 "p2p proposal create TITLE --format json --operation-key wavekit:<uuid>",
                 "p2p proposal update PROP-XXX --proposal TEXT --format json --operation-key wavekit:<uuid>",
                 "p2p proposal contribution add PROP-XXX TEXT --type suggestion --format json --operation-key wavekit:<uuid>",
@@ -877,6 +880,9 @@ def agent_policy(
                 "p2p project structure add-section <title> --expected-revision <n> --operation-key <key> --format json",
                 "p2p project structure update-metadata <kind> <id> --expected-revision <n> --operation-key <key> --format json",
                 "p2p project structure reorder --section-id <id> ... --expected-revision <n> --operation-key <key> --format json",
+                "p2p project memory classification --format json",
+                "p2p proposal scope show PROP-XXX --format json",
+                "p2p proposal scope set PROP-XXX --kind sections --section-id <id> --expected-memory-revision <sha256> --expected-structure-revision <n> --operation-key <key> --format json",
                 "p2p project vertical list",
                 "p2p project vertical show <vertical-id>",
                 "p2p project context --format json",
@@ -897,6 +903,9 @@ def agent_policy(
                 "p2p_project_structure_add_section",
                 "p2p_project_structure_update_metadata",
                 "p2p_project_structure_reorder_sections",
+                "p2p_project_memory_classification",
+                "p2p_proposal_scope_show",
+                "p2p_proposal_scope_set",
                 "p2p_project_vertical_list",
                 "p2p_project_vertical_show",
                 "p2p_project_vertical_validate",
@@ -913,6 +922,11 @@ def agent_policy(
             "project_structure_is_live_authority": True,
             "origin_is_provenance_only": True,
             "structure_mutation_capability": "project.structure.edit",
+            "memory_classification_capability": "project.memory.classify",
+            "proposal_creation_scope": "unassigned",
+            "authority_creating_decision_requires_explicit_scope": True,
+            "classification_changes_readiness": False,
+            "classification_authorizes_decision": False,
             "init_remains_deterministic": True,
             "one_primary_question_at_a_time": True,
             "pack_content_is_domain_data_only": True,
