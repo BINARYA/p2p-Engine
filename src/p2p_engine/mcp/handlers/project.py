@@ -40,6 +40,40 @@ def handle_project_tool(
             ).to_dict(),
             "mutation_performed": False,
         }
+    if name == "p2p_project_structure_export_eligibility":
+        return {
+            "project_structure_export_eligibility": workspace.project_structure_export_eligibility().to_dict(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_project_structure_export_preview":
+        primary_domain = arguments.get("primary_domain")
+        if not isinstance(primary_domain, dict):
+            primary_domain = {}
+        result = workspace.preview_project_structure_export(
+            publisher=required(arguments, "publisher"),
+            vertical_id=required(arguments, "vertical_id"),
+            version=required(arguments, "version"),
+            name=required(arguments, "name"),
+            license_id=required(arguments, "license"),
+            primary_domain=primary_domain,
+            domain_tags=[
+                str(item)
+                for item in arguments.get("domain_tags", [])
+                if str(item).strip()
+            ]
+            if isinstance(arguments.get("domain_tags", []), list)
+            else [],
+            lineage_mode=required(arguments, "lineage_mode"),
+            parent_coordinate=optional_string(arguments, "parent_coordinate"),
+            parent_semantic_checksum=optional_string(arguments, "parent_semantic_checksum"),
+            description=optional_string(arguments, "description"),
+            actor_id=str(arguments.get("actor_id") or "owner"),
+            executor_id=str(arguments.get("executor_id") or arguments.get("actor_id") or "owner"),
+        )
+        return {
+            "project_structure_export_preview": result.to_dict(),
+            "mutation_performed": False,
+        }
     if name in {
         "p2p_project_structure_add_section",
         "p2p_project_structure_update_metadata",

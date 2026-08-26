@@ -134,7 +134,7 @@ GOVERNED_CAPABILITIES: Final[tuple[GovernedCapability, ...]] = (
         LOCAL_POLICY_OWNER,
         _BOTH_MODES,
         True,
-        "planned",
+        "implemented",
     ),
     GovernedCapability(
         "proposal.create",

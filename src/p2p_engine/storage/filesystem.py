@@ -46,6 +46,11 @@ from p2p_engine.core.project_structure import (
     ProjectStructureHistory,
     ProjectStructureMutationResult,
 )
+from p2p_engine.core.project_structure_export import (
+    ProjectStructureExportEligibility,
+    ProjectStructureExportPreview,
+    ProjectStructureExportResult,
+)
 from p2p_engine.core.project_structure_retirement import (
     ProjectStructureRetirementPreview,
     ProjectStructureRetirementResult,
@@ -216,6 +221,7 @@ from p2p_engine.services.proposals import (
 from p2p_engine.services.project_assessment import ProjectAssessment, ProjectAssessmentService
 from p2p_engine.services.project_domain import ProjectDomainService
 from p2p_engine.services.project_structure import ProjectStructureService
+from p2p_engine.services.project_structure_export import ProjectStructureExportService
 from p2p_engine.services.project_structure_retirement import ProjectStructureRetirementService
 from p2p_engine.services.project_memory import ProjectMemoryService
 from p2p_engine.services.project_contexts import ProjectContextRendererService
@@ -405,6 +411,9 @@ class P2PWorkspace:
         ) = None
         self._project_domain_service_instance: ProjectDomainService | None = None
         self._project_structure_service_instance: ProjectStructureService | None = None
+        self._project_structure_export_service_instance: (
+            ProjectStructureExportService | None
+        ) = None
         self._project_structure_retirement_service_instance: (
             ProjectStructureRetirementService | None
         ) = None
@@ -516,6 +525,18 @@ class P2PWorkspace:
                 )
             )
         return self._project_structure_retirement_service_instance
+
+    def _project_structure_export_service(self) -> ProjectStructureExportService:
+        if self._project_structure_export_service_instance is None:
+            self._project_structure_export_service_instance = ProjectStructureExportService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                structure_service=self._project_structure_service(),
+                vertical_service=self._project_vertical_service(),
+                authority=self._project_authority_service(),
+                receipts=self._mutation_receipt_service(),
+            )
+        return self._project_structure_export_service_instance
 
     def _project_memory_service(self) -> ProjectMemoryService:
         if self._project_memory_service_instance is None:
@@ -2919,6 +2940,100 @@ class P2PWorkspace:
 
     def project_structure_history(self, *, limit: int = 20) -> ProjectStructureHistory:
         return self._project_structure_service().history(limit=limit)
+
+    def project_structure_export_eligibility(self) -> ProjectStructureExportEligibility:
+        return self._project_structure_export_service().eligibility()
+
+    def preview_project_structure_export(
+        self,
+        *,
+        publisher: str,
+        vertical_id: str,
+        version: str,
+        name: str,
+        license_id: str,
+        primary_domain: Mapping[str, object],
+        domain_tags: Sequence[str] = (),
+        lineage_mode: str,
+        parent_coordinate: str = "",
+        parent_semantic_checksum: str = "",
+        description: str = "",
+        actor_id: str = "owner",
+        executor_id: str = "",
+    ) -> ProjectStructureExportPreview:
+        return self._project_structure_export_service().preview(
+            publisher=publisher,
+            vertical_id=vertical_id,
+            version=version,
+            name=name,
+            license_id=license_id,
+            primary_domain=primary_domain,
+            domain_tags=domain_tags,
+            lineage_mode=lineage_mode,
+            parent_coordinate=parent_coordinate,
+            parent_semantic_checksum=parent_semantic_checksum,
+            description=description,
+            actor_id=actor_id,
+            executor_id=executor_id,
+        )
+
+    def apply_project_structure_export(
+        self,
+        *,
+        publisher: str,
+        vertical_id: str,
+        version: str,
+        name: str,
+        license_id: str,
+        primary_domain: Mapping[str, object],
+        domain_tags: Sequence[str] = (),
+        lineage_mode: str,
+        expected_structure_revision: int,
+        expected_structure_checksum: str,
+        preview_token: str,
+        operation_key: str,
+        materialization_target: Path,
+        package_output: Path,
+        confirm: bool,
+        parent_coordinate: str = "",
+        parent_semantic_checksum: str = "",
+        description: str = "",
+        actor_id: str = "owner",
+        executor_id: str = "",
+        executor_kind: str = "person",
+        authority_context: AuthorityContext | None = None,
+        channel: str = "cli",
+        consent_id: str | None = None,
+        consent_sha256: str | None = None,
+    ) -> ProjectStructureExportResult:
+        self._ensure_runtime_write_allowed("project_structure_export")
+        return self._project_structure_export_service().apply(
+            publisher=publisher,
+            vertical_id=vertical_id,
+            version=version,
+            name=name,
+            license_id=license_id,
+            primary_domain=primary_domain,
+            domain_tags=domain_tags,
+            lineage_mode=lineage_mode,
+            expected_structure_revision=expected_structure_revision,
+            expected_structure_checksum=expected_structure_checksum,
+            preview_token=preview_token,
+            operation_key=operation_key,
+            materialization_target=materialization_target,
+            package_output=package_output,
+            confirm=confirm,
+            parent_coordinate=parent_coordinate,
+            parent_semantic_checksum=parent_semantic_checksum,
+            description=description,
+            actor_id=actor_id,
+            executor_id=executor_id,
+            executor_kind=executor_kind,
+            authority_context=authority_context,
+            channel=channel,
+            consent_id=consent_id,
+            consent_sha256=consent_sha256,
+        )
 
     def proposal_memory_scope(self, proposal_id: str) -> ProjectMemoryScope:
         return self._project_memory_service().show_scope(proposal_id)

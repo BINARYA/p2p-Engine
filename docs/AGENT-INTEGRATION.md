@@ -497,6 +497,15 @@ rubric evidence into the definition family.
 The stdio MCP surface exposes inspection but no lifecycle mutation tool. An
 agent must report this boundary instead of inventing a tool or editing `.p2p`.
 
+To export the active project-owned structure as a reusable portable vertical,
+agents may call `p2p_project_structure_export_eligibility` and
+`p2p_project_structure_export_preview` over MCP. These tools are read-only and
+do not accept destinations. A confirmed export must use
+`p2p project vertical export apply` with the preview token, expected structure
+revision/checksum, explicit lineage mode, local target/output paths and one
+stable idempotency key. This authority is limited to local export identity; it
+does not imply publisher ownership, registry publication or moderation rights.
+
 ## Remote Vertical Discovery
 
 Agents may use `p2p vertical domain list/search/inspect`, remote

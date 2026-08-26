@@ -219,6 +219,9 @@ e [`project_status.py`](../../src/p2p_engine/cli_commands/project_status.py).
 | `p2p project vertical scaffold TARGET` | `C` | Crea una directory autore v3 locale; non muta `.p2p`. |
 | `p2p project vertical inspect TARGET` | `R` | Mostra vista dichiarata o effettiva di directory e archivi locali. |
 | `p2p project vertical package TARGET` | `C` | Produce un archivio v3 deterministico fuori dallo stato progettuale. |
+| `p2p project vertical export eligibility` | `R` | Verifica se la struttura progetto attiva contiene elementi esportabili senza scrivere draft o pacchetti. |
+| `p2p project vertical export preview` | `R` | Costruisce preview read-only legata a revisione/checksum esatti e lineage esplicita. |
+| `p2p project vertical export apply` | `C/O` | Crea o rigioca draft/materializzazione/package locali con receipt `project.vertical.export`; non pubblica remoto. |
 | `p2p project vertical install preview/apply` | `R/C` | Installa offline una coordinate esatta con checksum, token e conferma. |
 | `p2p project vertical adopt preview/apply` | `R/C/O` | Adotta una coordinate esatta solo con classificazione tipizzata `empty`. |
 | `p2p project vertical migrate preview/apply` | `R/C/O` | Analizza l'impatto tipizzato, richiede un piano decisionale esatto e preserva evidenze/orfani per famiglia. |

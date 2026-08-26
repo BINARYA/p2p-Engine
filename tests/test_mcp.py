@@ -211,6 +211,8 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         "p2p_project_show",
         "p2p_project_export",
         "p2p_project_export_status",
+        "p2p_project_structure_export_eligibility",
+        "p2p_project_structure_export_preview",
         "p2p_project_publish_prepare",
         "p2p_project_publish_import",
         "p2p_project_publish_validate",
@@ -310,6 +312,7 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
         or "consent_revoke" in name
         for name in names
     )
+    assert "p2p_project_structure_export_apply" not in names
 
 
 def test_mcp_proposal_contribution_schema_matches_core_types() -> None:

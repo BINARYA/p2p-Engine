@@ -106,6 +106,9 @@ project.sections
 project.snapshot
 project.vertical.adopt.apply
 project.vertical.adopt.preview
+project.vertical.export.apply
+project.vertical.export.eligibility
+project.vertical.export.preview
 project.vertical.inspect
 project.vertical.install.apply
 project.vertical.install.preview
@@ -213,7 +216,7 @@ def test_cli_json_operation_inventory_is_reviewed_and_guarded() -> None:
     inventory = json_command_inventory(get_command(app))
 
     assert frozenset(inventory) == EXPECTED_JSON_OPERATIONS
-    assert len(inventory) == 140
+    assert len(inventory) == 143
     assert inventory["vertical.inspect"] == "json"
     assert inventory["workspace.schema.status"] == "text"
 

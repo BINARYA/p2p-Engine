@@ -20,8 +20,8 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     snapshot = public_surface_snapshot()
 
     assert snapshot.contract_version == PUBLIC_SURFACE_CONTRACT_VERSION
-    assert len(snapshot.cli_paths) == 285
-    assert len(snapshot.mcp_tools) == 186
+    assert len(snapshot.cli_paths) == 288
+    assert len(snapshot.mcp_tools) == 188
     assert "p2p vertical registry list" in snapshot.cli_paths
     assert "p2p vertical domain list" in snapshot.cli_paths
     assert "p2p vertical domain search" in snapshot.cli_paths
@@ -31,6 +31,8 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     assert "p2p project authority rotate apply" in snapshot.cli_paths
     assert "p2p project domain set" in snapshot.cli_paths
     assert "p2p project structure add-section" in snapshot.cli_paths
+    assert "p2p project vertical export preview" in snapshot.cli_paths
+    assert "p2p project vertical export apply" in snapshot.cli_paths
     assert "p2p project structure retire preview" in snapshot.cli_paths
     assert "p2p project structure retire apply" in snapshot.cli_paths
     assert "p2p project structure retire status" in snapshot.cli_paths
@@ -44,6 +46,8 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     assert "p2p_vertical_release_search" in snapshot.mcp_tools
     assert "p2p_project_domain_set" in snapshot.mcp_tools
     assert "p2p_project_structure_add_section" in snapshot.mcp_tools
+    assert "p2p_project_structure_export_eligibility" in snapshot.mcp_tools
+    assert "p2p_project_structure_export_preview" in snapshot.mcp_tools
     assert "p2p_project_structure_retirement_preview" in snapshot.mcp_tools
     assert "p2p_project_structure_retirement_apply" in snapshot.mcp_tools
     assert "p2p_project_memory_classification" in snapshot.mcp_tools

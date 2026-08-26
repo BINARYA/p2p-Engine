@@ -12,6 +12,7 @@ from p2p_engine.cli_shared import workspace as workspace_for
 from p2p_engine.cli_shared import yaml_dump_for_cli
 from p2p_engine.cli_contract import error_envelope, print_json, success_envelope
 from p2p_engine.foundation.yaml_loaders import load_yaml
+from p2p_engine.services.authority import AuthorityContractCodec
 
 
 def register_project_ops_commands(
@@ -34,6 +35,7 @@ def register_project_ops_commands(
     project_vertical_install_app = typer.Typer(help="Preview and apply portable vertical installation")
     project_vertical_adopt_app = typer.Typer(help="Preview and apply vertical adoption for an empty definition")
     project_vertical_migrate_app = typer.Typer(help="Preview and apply evidence-preserving vertical migration")
+    project_vertical_export_app = typer.Typer(help="Export active project structure as a portable vertical")
     project_metadata_app = typer.Typer(help="Inspect and update bounded project metadata")
     project_app.add_typer(project_publish_app, name="publish")
     project_app.add_typer(project_metadata_app, name="metadata")
@@ -41,6 +43,7 @@ def register_project_ops_commands(
     project_vertical_app.add_typer(project_vertical_install_app, name="install")
     project_vertical_app.add_typer(project_vertical_adopt_app, name="adopt")
     project_vertical_app.add_typer(project_vertical_migrate_app, name="migrate")
+    project_vertical_app.add_typer(project_vertical_export_app, name="export")
 
     @project_memory_app.command("status")
     def project_memory_status(
@@ -886,6 +889,167 @@ def register_project_ops_commands(
         console.print(f"  artifact_checksum: {result.artifact_checksum}")
         console.print(f"  semantic_checksum: {result.semantic_checksum}")
 
+    @project_vertical_export_app.command("eligibility")
+    def project_vertical_export_eligibility(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("json", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Check whether the active project structure can be exported."""
+        try:
+            result = workspace_for(root).project_structure_export_eligibility()
+        except ValueError as exc:
+            _fail_operation("project_structure_export_eligibility", exc, output_format)
+        if _wants_json(output_format):
+            _print_json(_operation_success("project_structure_export_eligibility", {"project_structure_export_eligibility": result.to_dict()}))
+            return
+        console.print("Project structure export eligibility")
+        console.print(f"  eligible: {str(result.eligible).lower()}")
+        console.print(f"  structure: {result.source.structure_id} r{result.source.revision}")
+        console.print(f"  checksum: {result.source.checksum}")
+        console.print(f"  active sections: {result.counts.active.get('sections', 0)}")
+        for blocker in result.blockers:
+            console.print(f"  blocker: {blocker}")
+
+    @project_vertical_export_app.command("preview")
+    def project_vertical_export_preview(
+        publisher: str = typer.Option(..., "--publisher", help="Target coordinate publisher"),
+        vertical_id: str = typer.Option(..., "--id", help="Target vertical ID"),
+        version: str = typer.Option(..., "--version", help="Target semantic version"),
+        name: str = typer.Option(..., "--name", help="Target display name"),
+        license_id: str = typer.Option(..., "--license", help="Target license identifier"),
+        primary_domain_key: str = typer.Option(..., "--primary-domain-key", help="Exported catalog domain key"),
+        primary_domain_name: str = typer.Option(..., "--primary-domain-name", help="Exported catalog domain name"),
+        primary_domain_source: str = typer.Option("local", "--primary-domain-source", help="Domain source: local, external, imported, or system"),
+        primary_domain_ref: str | None = typer.Option(None, "--primary-domain-ref", help="Required external ref for external domains"),
+        domain_tag: list[str] | None = typer.Option(None, "--domain-tag", help="Advisory domain tag; repeat as needed"),
+        lineage_mode: str = typer.Option(..., "--lineage-mode", help="Lineage mode: derived or independent"),
+        parent_coordinate: str = typer.Option("", "--parent-coordinate", help="Exact parent release for derived export"),
+        parent_semantic_checksum: str = typer.Option("", "--parent-semantic-checksum", help="Parent semantic checksum"),
+        description: str = typer.Option("", "--description", help="Optional exported vertical description"),
+        actor: str = typer.Option("owner", "--actor", help="Requesting actor"),
+        executor: str = typer.Option("", "--executor", help="Executing identity; defaults to actor"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("json", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Preview a side-effect-free active structure export."""
+        try:
+            result = workspace_for(root).preview_project_structure_export(
+                publisher=publisher,
+                vertical_id=vertical_id,
+                version=version,
+                name=name,
+                license_id=license_id,
+                primary_domain=_primary_domain(
+                    primary_domain_key,
+                    primary_domain_name,
+                    primary_domain_source,
+                    primary_domain_ref,
+                ),
+                domain_tags=domain_tag or [],
+                lineage_mode=lineage_mode,
+                parent_coordinate=parent_coordinate,
+                parent_semantic_checksum=parent_semantic_checksum,
+                description=description,
+                actor_id=actor,
+                executor_id=executor or actor,
+            )
+        except ValueError as exc:
+            _fail_operation("project_structure_export_preview", exc, output_format)
+        if _wants_json(output_format):
+            _print_json(_operation_success("project_structure_export_preview", {"project_structure_export_preview": result.to_dict()}))
+            return
+        console.print("Project structure export preview")
+        console.print(f"  coordinate: {result.coordinate}")
+        console.print(f"  source: {result.source.structure_id} r{result.source.revision}")
+        console.print(f"  preview_token: {result.preview.preview_token}")
+        console.print(f"  apply_allowed: {str(result.apply_allowed).lower()}")
+        console.print(f"  draft_document_hash: {result.draft_document_hash}")
+        for blocker in result.blockers:
+            console.print(f"  blocker: {blocker}")
+
+    @project_vertical_export_app.command("apply")
+    def project_vertical_export_apply(
+        target: Path = typer.Option(..., "--target", help="Local materialized pack directory"),
+        output: Path = typer.Option(..., "--output", help="Local .p2pv package path"),
+        publisher: str = typer.Option(..., "--publisher", help="Target coordinate publisher"),
+        vertical_id: str = typer.Option(..., "--id", help="Target vertical ID"),
+        version: str = typer.Option(..., "--version", help="Target semantic version"),
+        name: str = typer.Option(..., "--name", help="Target display name"),
+        license_id: str = typer.Option(..., "--license", help="Target license identifier"),
+        primary_domain_key: str = typer.Option(..., "--primary-domain-key", help="Exported catalog domain key"),
+        primary_domain_name: str = typer.Option(..., "--primary-domain-name", help="Exported catalog domain name"),
+        primary_domain_source: str = typer.Option("local", "--primary-domain-source", help="Domain source: local, external, imported, or system"),
+        primary_domain_ref: str | None = typer.Option(None, "--primary-domain-ref", help="Required external ref for external domains"),
+        domain_tag: list[str] | None = typer.Option(None, "--domain-tag", help="Advisory domain tag; repeat as needed"),
+        lineage_mode: str = typer.Option(..., "--lineage-mode", help="Lineage mode: derived or independent"),
+        expected_structure_revision: int = typer.Option(..., "--expected-structure-revision", min=1),
+        expected_structure_checksum: str = typer.Option(..., "--expected-structure-checksum"),
+        token: str = typer.Option(..., "--token", help="Preview token"),
+        idempotency_key: str = typer.Option(..., "--idempotency-key", help="Opaque operation key"),
+        parent_coordinate: str = typer.Option("", "--parent-coordinate", help="Exact parent release for derived export"),
+        parent_semantic_checksum: str = typer.Option("", "--parent-semantic-checksum", help="Parent semantic checksum"),
+        description: str = typer.Option("", "--description", help="Optional exported vertical description"),
+        confirm: bool = typer.Option(False, "--confirm", help="Confirm local export artifact creation"),
+        actor: str = typer.Option("owner", "--actor", help="Authorized project subject"),
+        executor: str = typer.Option("", "--executor", help="Executing identity; defaults to actor"),
+        executor_kind: str = typer.Option("person", "--executor-kind"),
+        authority_context: Path | None = typer.Option(None, "--authority-context", help="External AuthorityContext JSON; JSON mode only"),
+        consent_id: str | None = typer.Option(None, "--consent-id", help="Optional external consent identifier"),
+        consent_sha256: str | None = typer.Option(None, "--consent-sha256", help="Optional external consent digest"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("json", "--format", help="Output format: text or json"),
+    ) -> None:
+        """Apply a previewed local structure export to draft and package artifacts."""
+        try:
+            json_output = _wants_json(output_format)
+            context = _load_authority_context(authority_context, json_output=json_output)
+            result = workspace_for(root).apply_project_structure_export(
+                publisher=publisher,
+                vertical_id=vertical_id,
+                version=version,
+                name=name,
+                license_id=license_id,
+                primary_domain=_primary_domain(
+                    primary_domain_key,
+                    primary_domain_name,
+                    primary_domain_source,
+                    primary_domain_ref,
+                ),
+                domain_tags=domain_tag or [],
+                lineage_mode=lineage_mode,
+                expected_structure_revision=expected_structure_revision,
+                expected_structure_checksum=expected_structure_checksum,
+                preview_token=token,
+                operation_key=idempotency_key,
+                materialization_target=target,
+                package_output=output,
+                confirm=confirm,
+                parent_coordinate=parent_coordinate,
+                parent_semantic_checksum=parent_semantic_checksum,
+                description=description,
+                actor_id=actor,
+                executor_id=executor or actor,
+                executor_kind=executor_kind,
+                authority_context=context,
+                channel="cli",
+                consent_id=consent_id,
+                consent_sha256=consent_sha256,
+            )
+        except ValueError as exc:
+            _fail_operation("project_structure_export_apply", exc, output_format)
+        if json_output:
+            _print_json(_operation_success("project_structure_export_apply", {"project_structure_export": result.to_dict()}))
+            return
+        console.print(f"[green]Project structure export {result.status}.[/green]")
+        console.print(f"  coordinate: {result.coordinate}")
+        console.print(f"  draft: {result.draft_id}")
+        console.print(f"  semantic_checksum: {result.semantic_checksum}")
+        console.print(f"  artifact_checksum: {result.artifact_checksum}")
+        if result.materialization_target is not None:
+            console.print(f"  target: {result.materialization_target}")
+        if result.package_output is not None:
+            console.print(f"  output: {result.package_output}")
+
     @project_vertical_install_app.command("preview")
     def project_vertical_install_preview(
         artifact: Path = typer.Argument(..., help="Portable vertical archive"),
@@ -1645,6 +1809,32 @@ def _is_portable_vertical_target(source: Path) -> bool:
         return False
     manifest = payload.get("manifest") if isinstance(payload, dict) else None
     return isinstance(manifest, dict) and manifest.get("schema_version") == 3
+
+
+def _primary_domain(
+    key: str,
+    name: str,
+    source: str,
+    external_ref: str | None,
+) -> dict[str, object]:
+    return {
+        "key": key,
+        "name": name,
+        "source": source,
+        "external_ref": external_ref,
+    }
+
+
+def _load_authority_context(
+    authority_context: Path | None,
+    *,
+    json_output: bool,
+):
+    if authority_context is None:
+        return None
+    if not json_output:
+        raise ValueError("P2P_AUTHORITY_CONTEXT_INVALID: --authority-context requires --format json")
+    return AuthorityContractCodec().context_from_path(authority_context)
 
 
 def _operation_success(operation: str, data: object) -> dict[str, object]:

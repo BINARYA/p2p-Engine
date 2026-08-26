@@ -855,6 +855,8 @@ def _normalize_target(
         return normalized
     if _is_mutation_receipt_target(normalized):
         return normalized
+    if _is_project_structure_export_marker_target(normalized):
+        return normalized
     if not normalized.startswith(".p2p/") or normalized.startswith(".p2p/.internal/"):
         raise ValueError(f"Workspace transaction target is outside allowed canonical paths: {relative}")
     return normalized
@@ -867,6 +869,15 @@ _MUTATION_RECEIPT_TARGET = re.compile(
 
 def _is_mutation_receipt_target(relative: str) -> bool:
     return _MUTATION_RECEIPT_TARGET.fullmatch(relative) is not None
+
+
+_PROJECT_STRUCTURE_EXPORT_MARKER_TARGET = re.compile(
+    r"^\.p2p/\.internal/project-structure-exports/[0-9a-f]{64}\.yml$"
+)
+
+
+def _is_project_structure_export_marker_target(relative: str) -> bool:
+    return _PROJECT_STRUCTURE_EXPORT_MARKER_TARGET.fullmatch(relative) is not None
 
 
 def _normalize_repository_target(relative: str) -> str:

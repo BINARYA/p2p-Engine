@@ -24,6 +24,8 @@ EXPECTED_TOOL_NAMES = (
     "p2p_project_domain_clear",
     "p2p_project_structure_show",
     "p2p_project_structure_history",
+    "p2p_project_structure_export_eligibility",
+    "p2p_project_structure_export_preview",
     "p2p_project_structure_add_section",
     "p2p_project_structure_update_metadata",
     "p2p_project_structure_reorder_sections",

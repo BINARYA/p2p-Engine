@@ -303,6 +303,7 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "project_memory_scope_change",
         "project_structure_change",
         "project_structure_retirement",
+        "project_structure_export",
     }:
         raise ValueError(f"unsupported receipt operation: {operation}")
     actor = _required_text(data, "actor")
@@ -329,6 +330,7 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "project_memory_scope_change",
         "project_structure_change",
         "project_structure_retirement",
+        "project_structure_export",
         "proposal_decision_apply",
     } and authority is None:
         raise ValueError(f"receipt operation {operation} requires authority evidence")
@@ -393,6 +395,9 @@ def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
         return
     if operation == "project_structure_retirement":
         _validate_project_structure_retirement_result(result)
+        return
+    if operation == "project_structure_export":
+        _validate_project_structure_export_result(result)
         return
     if operation == "proposal_decision_apply":
         _validate_proposal_decision_result(result)
@@ -1085,6 +1090,108 @@ def _validate_project_structure_retirement_result(result: Mapping[str, object]) 
         raise ValueError("receipt project-structure-retirement changed_paths miss structure files")
 
 
+def _validate_project_structure_export_result(result: Mapping[str, object]) -> None:
+    allowed = {
+        "contract",
+        "status",
+        "operation",
+        "operation_id",
+        "request",
+        "source",
+        "lineage",
+        "domain_metadata",
+        "draft",
+        "package",
+        "receipt",
+        "remote_publication",
+        "publisher_ownership_granted",
+        "changed_paths",
+    }
+    unknown = sorted(str(key) for key in result if key not in allowed)
+    if unknown:
+        raise ValueError(
+            "receipt project-structure-export result contains unsupported fields: "
+            + ", ".join(unknown)
+        )
+    from p2p_engine.core.project_structure_export import (
+        PROJECT_STRUCTURE_EXPORT_CAPABILITY,
+        PROJECT_STRUCTURE_EXPORT_OPERATION,
+        PROJECT_STRUCTURE_EXPORT_OPERATION_ID,
+        PROJECT_STRUCTURE_EXPORT_RESULT_CONTRACT,
+    )
+
+    if result.get("contract") != PROJECT_STRUCTURE_EXPORT_RESULT_CONTRACT:
+        raise ValueError("receipt project-structure-export contract is unsupported")
+    if result.get("status") != "applied":
+        raise ValueError("receipt project-structure-export status is invalid")
+    if result.get("operation") != PROJECT_STRUCTURE_EXPORT_OPERATION:
+        raise ValueError("receipt project-structure-export operation is unsupported")
+    if result.get("operation_id") != PROJECT_STRUCTURE_EXPORT_OPERATION_ID:
+        raise ValueError("receipt project-structure-export operation_id is invalid")
+    request = result.get("request")
+    if not isinstance(request, Mapping):
+        raise ValueError("receipt project-structure-export request must be a mapping")
+    source = result.get("source")
+    if not isinstance(source, Mapping):
+        raise ValueError("receipt project-structure-export source must be a mapping")
+    _required_text(source, "structure_id")
+    for field in ("checksum", "active_semantic_hash"):
+        _required_sha256(source, field)
+    revision = source.get("revision")
+    if isinstance(revision, bool) or not isinstance(revision, int) or revision < 1:
+        raise ValueError("receipt project-structure-export source revision is invalid")
+    lineage = result.get("lineage")
+    if not isinstance(lineage, Mapping) or lineage.get("mode") not in {"derived", "independent"}:
+        raise ValueError("receipt project-structure-export lineage is invalid")
+    domain_metadata = result.get("domain_metadata")
+    if not isinstance(domain_metadata, Mapping):
+        raise ValueError("receipt project-structure-export domain metadata is invalid")
+    draft = result.get("draft")
+    if not isinstance(draft, Mapping):
+        raise ValueError("receipt project-structure-export draft is invalid")
+    draft_id = _required_text(draft, "draft_id")
+    if not draft_id.startswith("VDRAFT-"):
+        raise ValueError("receipt project-structure-export draft ID is invalid")
+    draft_revision = draft.get("revision")
+    if isinstance(draft_revision, bool) or not isinstance(draft_revision, int) or draft_revision < 1:
+        raise ValueError("receipt project-structure-export draft revision is invalid")
+    _required_sha256(draft, "document_hash")
+    package = result.get("package")
+    if not isinstance(package, Mapping):
+        raise ValueError("receipt project-structure-export package is invalid")
+    coordinate = _required_text(package, "coordinate")
+    if coordinate != request.get("coordinate"):
+        raise ValueError("receipt project-structure-export coordinate mismatch")
+    _required_sha256(package, "semantic_checksum")
+    _required_sha256(package, "artifact_checksum")
+    size = package.get("size")
+    if isinstance(size, bool) or not isinstance(size, int) or size <= 0:
+        raise ValueError("receipt project-structure-export package size is invalid")
+    entries = package.get("entries")
+    if not isinstance(entries, list) or not entries:
+        raise ValueError("receipt project-structure-export package entries are invalid")
+    receipt = result.get("receipt")
+    if not isinstance(receipt, Mapping):
+        raise ValueError("receipt project-structure-export receipt summary is invalid")
+    if receipt.get("capability") != PROJECT_STRUCTURE_EXPORT_CAPABILITY:
+        raise ValueError("receipt project-structure-export capability is invalid")
+    _required_sha256(receipt, "operation_key_sha256")
+    marker_path = _required_text(receipt, "marker_path")
+    changed_paths = result.get("changed_paths")
+    if not isinstance(changed_paths, list) or changed_paths != [marker_path]:
+        raise ValueError("receipt project-structure-export changed_paths are invalid")
+    normalized = [
+        _validated_postcondition_path(str(path), operation="project_structure_export")
+        for path in changed_paths
+    ]
+    if normalized != [marker_path]:
+        raise ValueError("receipt project-structure-export marker path is invalid")
+    if result.get("remote_publication") is not False:
+        raise ValueError("receipt project-structure-export cannot imply publication")
+    if result.get("publisher_ownership_granted") is not False:
+        raise ValueError("receipt project-structure-export cannot grant publisher ownership")
+
+
 def _validate_project_memory_scope_result(result: Mapping[str, object]) -> None:
     allowed = {
         "contract",
@@ -1436,6 +1543,33 @@ def _public_result(result: Mapping[str, object]) -> dict[str, object]:
             if isinstance(result.get("applied_dispositions"), list)
             else [],
         }
+    if result.get("operation") == "project_structure_export":
+        return {
+            "contract": result.get("contract"),
+            "operation": result.get("operation"),
+            "operation_id": result.get("operation_id"),
+            "status": result.get("status"),
+            "source": dict(result.get("source", {}))
+            if isinstance(result.get("source"), Mapping)
+            else {},
+            "lineage": dict(result.get("lineage", {}))
+            if isinstance(result.get("lineage"), Mapping)
+            else {},
+            "domain_metadata": dict(result.get("domain_metadata", {}))
+            if isinstance(result.get("domain_metadata"), Mapping)
+            else {},
+            "draft": dict(result.get("draft", {}))
+            if isinstance(result.get("draft"), Mapping)
+            else {},
+            "package": dict(result.get("package", {}))
+            if isinstance(result.get("package"), Mapping)
+            else {},
+            "receipt": dict(result.get("receipt", {}))
+            if isinstance(result.get("receipt"), Mapping)
+            else {},
+            "remote_publication": result.get("remote_publication"),
+            "publisher_ownership_granted": result.get("publisher_ownership_granted"),
+        }
     if result.get("operation") == "proposal_decision_apply":
         return {
             "operation": result.get("operation"),
@@ -1470,6 +1604,12 @@ def _validated_postcondition_path(value: str, *, operation: str) -> str:
         raise ValueError(f"unsafe receipt postcondition path: {value}")
     normalized = pure.as_posix()
     if operation == "init" and _is_init_postcondition_path(normalized):
+        return normalized
+    if (
+        operation == "project_structure_export"
+        and normalized.startswith(".p2p/.internal/project-structure-exports/")
+        and normalized.endswith(".yml")
+    ):
         return normalized
     if not normalized.startswith(".p2p/") or normalized.startswith(".p2p/.internal/"):
         raise ValueError(f"receipt postcondition path is not canonical project state: {value}")

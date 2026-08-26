@@ -128,12 +128,28 @@ p2p vertical draft publish VDRAFT-... \
 already identifies different immutable content. `publish` never repackages;
 it uploads the exact artifact recorded in current evidence.
 
+## Project Structure Export
+
+`p2p project vertical export preview` maps the active project-owned
+`ProjectStructure` into this same `p2p-vertical-draft/v1` document contract
+without mutating project structure, readiness, origin, memory or history. It
+exports active sections, fields, questions, criteria, artifacts and compatible
+structural metadata only; retired elements, proposal and decision contents,
+evidence and project memory are excluded.
+
+`p2p project vertical export apply` rechecks the preview token, exact source
+revision and checksum, then creates or replays a local draft, materializes it,
+validates it and packages it as a portable schema-3 `.p2pv`. The operation is
+offline and receipt-backed with capability `project.vertical.export`. It does
+not publish remotely and does not grant publisher ownership.
+
 ## WaveKit Contract
 
 All eight commands support `p2p-cli/v1` JSON envelopes. The document, draft
-state and evidence retain their own versions. WaveKit should persist the draft
-ID, revision and document hash and send the complete normalized document with
-an optimistic precondition on every update.
+state and evidence retain their own versions. Project-structure export commands
+also use `p2p-cli/v1` while preserving the draft and portable-pack contracts.
+WaveKit should persist the draft ID, revision and document hash and send the
+complete normalized document with an optimistic precondition on every update.
 
 Direct draft MCP tools are intentionally absent. A server-side WaveKit worker
 invokes this CLI through its serialized operation path. Proposal creation is

@@ -154,6 +154,9 @@ p2p project structure reorder --section-id distribution --section-id scope --exp
 p2p project structure retire preview --target section:distribution --expected-structure-revision REV --expected-memory-revision SHA256 --plan retirement-plan.yml --actor ACTOR --format json
 p2p project structure retire apply --target section:distribution --expected-structure-revision REV --expected-memory-revision SHA256 --preview-token TOKEN --operation-key wavekit:<uuid> --plan retirement-plan.yml --actor ACTOR --confirm --format json
 p2p project structure retire status --operation-key wavekit:<uuid> --format json
+p2p project vertical export eligibility --format json
+p2p project vertical export preview --publisher publisher --id vertical_id --version 1.0.0 --name "Vertical" --license MIT --primary-domain-key software --primary-domain-name "Software" --lineage-mode independent --format json
+p2p project vertical export apply --target build/vertical --output dist/vertical.p2pv --publisher publisher --id vertical_id --version 1.0.0 --name "Vertical" --license MIT --primary-domain-key software --primary-domain-name "Software" --lineage-mode independent --expected-structure-revision REV --expected-structure-checksum SHA256 --token TOKEN --operation-key wavekit:<uuid> --confirm --format json
 p2p proposal create "Title" --proposal "..." --format json --operation-key wavekit:<uuid>
 p2p proposal scope set PROP-001 --kind sections --section-id distribution --expected-memory-revision SHA256 --expected-structure-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>
 p2p proposal update PROP-001 --proposal "..." --format json --operation-key wavekit:<uuid>

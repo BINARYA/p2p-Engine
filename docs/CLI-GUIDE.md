@@ -491,6 +491,38 @@ p2p project vertical install apply ./my-vertical.p2pv \
   --confirm --actor owner --format json
 ```
 
+To reuse the current project-owned structure as a new portable vertical, export
+it through a token-bound preview/apply workflow:
+
+```bash
+p2p project vertical export eligibility --format json
+p2p project vertical export preview \
+  --publisher example --id my-vertical --version 1.0.0 \
+  --name "My Vertical" --license MIT \
+  --primary-domain-key software --primary-domain-name "Software" \
+  --lineage-mode independent --format json
+p2p project vertical export apply \
+  --target ./build/my-vertical \
+  --output ./build/my-vertical.p2pv \
+  --publisher example --id my-vertical --version 1.0.0 \
+  --name "My Vertical" --license MIT \
+  --primary-domain-key software --primary-domain-name "Software" \
+  --lineage-mode independent \
+  --expected-structure-revision <revision-from-preview> \
+  --expected-structure-checksum <checksum-from-preview> \
+  --token <preview-token> \
+  --idempotency-key <operation-uuid> \
+  --confirm --actor owner --format json
+```
+
+Preview is read-only and binds the exact `ProjectStructure` revision, checksum
+and active semantic hash. Apply rejects stale tokens, exports active sections,
+fields, questions, criteria and artifacts only, and uses the existing vertical
+draft materialize/validate/package pipeline to produce a schema-3 `.p2pv`
+artifact offline. `--lineage-mode derived` additionally requires an exact
+parent coordinate and semantic checksum; `independent` omits social parent
+lineage while preserving required attribution.
+
 Portable versions are installed side by side under:
 
 ```text

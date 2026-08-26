@@ -173,6 +173,15 @@ class VerticalDraftService:
             ),
         )
 
+    def create_from_document(
+        self,
+        document: dict[str, object],
+        *,
+        origin: VerticalDraftOrigin,
+    ) -> VerticalDraftOperationResult:
+        """Create a draft from a caller-normalized authoring document."""
+        return self._create(document, origin)
+
     def inspect(self, draft_id: str) -> VerticalDraftView:
         state, evidence = self._read(draft_id)
         return self._view(state, evidence)
@@ -364,6 +373,8 @@ class VerticalDraftService:
                     "section_id": item.section_id,
                     "required": item.required,
                     "keywords": list(item.keywords),
+                    "weight": item.weight,
+                    "evaluation": item.evaluation,
                 }
                 for item in pack.rubrics
             ],
@@ -929,6 +940,15 @@ def _parse_origin(value: dict[str, object]) -> VerticalDraftOrigin:
         if not _CHECKSUM.fullmatch(semantic_checksum):
             raise ValueError(
                 "P2P_VERTICAL_DRAFT_INVALID: clone origin checksum must be SHA-256"
+            )
+    elif kind == "project_structure_export":
+        if coordinate:
+            raise ValueError(
+                "P2P_VERTICAL_DRAFT_INVALID: project structure export origin cannot identify a release coordinate"
+            )
+        if semantic_checksum and not _CHECKSUM.fullmatch(semantic_checksum):
+            raise ValueError(
+                "P2P_VERTICAL_DRAFT_INVALID: project structure export origin checksum must be SHA-256"
             )
     else:
         raise ValueError("P2P_VERTICAL_DRAFT_INVALID: unsupported draft origin")

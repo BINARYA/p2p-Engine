@@ -63,6 +63,60 @@ def tool_definitions() -> list[dict[str, object]]:
             },
         ),
         _tool(
+            'p2p_project_structure_export_eligibility',
+            (
+                'Read-only export eligibility check for turning the active project '
+                'structure into a portable vertical. Performs no draft, package, '
+                'destination, project-structure or publication writes.'
+            ),
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_structure_export_preview',
+            (
+                'Read-only export preview for the active project structure. Binds '
+                'the exact source revision/checksum and export metadata but performs '
+                'no draft, package, destination, project-structure or publication writes.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'publisher': {'type': 'string'},
+                'vertical_id': {'type': 'string'},
+                'version': {'type': 'string'},
+                'name': {'type': 'string'},
+                'license': {'type': 'string'},
+                'description': {'type': 'string'},
+                'primary_domain': {
+                    'type': 'object',
+                    'properties': {
+                        'key': {'type': 'string'},
+                        'name': {'type': 'string'},
+                        'source': {
+                            'type': 'string',
+                            'enum': ['local', 'external', 'imported', 'system'],
+                        },
+                        'external_ref': {'type': 'string'},
+                    },
+                    'required': ['key', 'name'],
+                },
+                'domain_tags': {'type': 'array', 'items': {'type': 'string'}},
+                'lineage_mode': {'type': 'string', 'enum': ['derived', 'independent']},
+                'parent_coordinate': {'type': 'string'},
+                'parent_semantic_checksum': {'type': 'string'},
+                'actor_id': {'type': 'string'},
+                'executor_id': {'type': 'string'},
+            },
+            [
+                'publisher',
+                'vertical_id',
+                'version',
+                'name',
+                'license',
+                'primary_domain',
+                'lineage_mode',
+            ],
+        ),
+        _tool(
             'p2p_project_structure_add_section',
             'Consent-gated receipt-backed addition of one project-owned section.',
             {

@@ -83,6 +83,7 @@ def _normalize(path: str | Path) -> str:
         or (
             normalized.startswith(".p2p/.internal/")
             and _MUTATION_RECEIPT_TARGET.fullmatch(normalized) is None
+            and _PROJECT_STRUCTURE_EXPORT_MARKER_TARGET.fullmatch(normalized) is None
         )
     ):
         raise ValueError(f"Candidate target is outside governed migration ownership: {text}")
@@ -91,4 +92,8 @@ def _normalize(path: str | Path) -> str:
 
 _MUTATION_RECEIPT_TARGET = re.compile(
     rf"^{re.escape(MUTATION_RECEIPT_ROOT)}/[0-9a-f]{{64}}\.yml$"
+)
+
+_PROJECT_STRUCTURE_EXPORT_MARKER_TARGET = re.compile(
+    r"^\.p2p/\.internal/project-structure-exports/[0-9a-f]{64}\.yml$"
 )
