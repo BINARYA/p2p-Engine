@@ -143,6 +143,12 @@ validates it and packages it as a portable schema-3 `.p2pv`. The operation is
 offline and receipt-backed with capability `project.vertical.export`. It does
 not publish remotely and does not grant publisher ownership.
 
+The export workflow reuses the draft lifecycle, materializer, validation and
+portable-package services above; it is not a parallel renderer. The release
+gate packages a sanitized WaveKit-facing CLI fixture at
+`p2p_engine/resources/contracts/wavekit-cli-fixtures-v1.json` so workers can
+validate the exact command contract from an installed wheel.
+
 The reverse workflow, `p2p project structure replace`, consumes one exact
 schema-3 release and writes a new detached `ProjectStructure` revision through
 the structure-replacement plan and receipt contract. It does not create or edit

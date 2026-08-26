@@ -6,6 +6,27 @@ This project is early-stage and did not previously maintain a public changelog.
 Use this file for human-readable release notes as the repository moves toward
 tagged releases.
 
+## 0.5.0 - Unreleased
+
+- Converged the public P2P Engine 0.5.0 surfaces around workspace schema 4,
+  portable vertical schema 3, project-owned structure, memory classification,
+  readiness v2, typed AuthorityContext, mutation receipts and registry-v2
+  domain discovery.
+- Added a release-gate contract inventory and sanitized WaveKit-facing CLI
+  fixture bundle that map worker commands, capabilities, AuthorityContext
+  behavior, receipts, MCP parity and explicit post-0.5.0 deferrals.
+- Kept structure export and replacement as offline, receipt-backed CLI apply
+  workflows while MCP exposes only read-only eligibility, inspect and preview
+  surfaces.
+- Removed executable registry protocol-v1 cache fallback from the current
+  runtime; old registry-v1 references remain historical spec/test evidence
+  only.
+- This release is a clean break for current runtime state: P2P Engine 0.5.0
+  supports workspace schema 4 and portable vertical schema 3 only. It does not
+  provide in-runtime migration, conversion or compatibility aliases for older
+  workspace or vertical schemas; recreate or externally convert older
+  development workspaces before using this runtime.
+
 ## 0.4.11 - 2026-08-19
 
 - Added receipt-backed JSON proposal readiness assessment for WaveKit workers,

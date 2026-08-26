@@ -89,8 +89,26 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
         "--operation-key wavekit:<uuid>"
         in worker_contract["write_commands"]
     )
+    assert "p2p status --format json" in worker_contract["preflight_commands"]
     assert "p2p project structure show --format json" in worker_contract["read_commands"]
+    assert "p2p project domain show --format json" in worker_contract["read_commands"]
+    assert (
+        "p2p project vertical export eligibility --format json"
+        in worker_contract["read_commands"]
+    )
     assert "p2p project memory classification --format json" in worker_contract["read_commands"]
+    assert (
+        "p2p vertical domain list --registry REGISTRY --format json"
+        in worker_contract["registry_v2_read_commands"]
+    )
+    assert any(
+        command.startswith("p2p project structure replace apply")
+        for command in worker_contract["write_commands"]
+    )
+    assert any(
+        command.startswith("p2p project vertical export apply")
+        for command in worker_contract["write_commands"]
+    )
     assert any(
         command.startswith("p2p project structure add-section")
         for command in worker_contract["write_commands"]
@@ -128,7 +146,10 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert "legacy_undeclared" not in agents
     assert "ask the owner for explicit environment action" in agents
     assert "WaveKit CLI Worker Contract" in agents
+    assert "p2p status --format json" in agents
     assert "p2p project snapshot --format json" in agents
+    assert "p2p project vertical export eligibility --format json" in agents
+    assert "p2p vertical domain list --registry REGISTRY --format json" in agents
     assert "p2p proposal create \"Title\" --format json --operation-key wavekit:<uuid>" in agents
     assert "p2p mutation status --operation-key wavekit:<uuid> --format json" in agents
     assert "proposal_detail.readiness.freshness" in agents

@@ -7,7 +7,7 @@ description: Build a vertical-aware, language-specific human project publication
 Managed by P2P Engine.
 Adapter: codex
 Template: codex-p2p-project-curator-skill-v3
-Generation: agent-template-generation-v2:agent-capabilities-v5:codex-p2p-project-curator-skill-v3
+Generation: agent-template-generation-v2:agent-capabilities-v9:codex-p2p-project-curator-skill-v3
 Do not edit generated sections unless you accept drift.
 -->
 
@@ -28,7 +28,7 @@ decision, readiness, Change Set, Work, or governance process used to design it.
    - [Publication contracts](references/publication-contracts.md)
    - [Vertical interpretation](references/vertical-interpretation.md)
    - [Editorial rubric](references/editorial-rubric.md)
-4. Inspect every evidence-index entry and the active vertical before choosing an
+4. Inspect every evidence-index entry and the current project structure before choosing an
    outline.
 5. Write only the packet-declared candidate Markdown, project model, and
    evidence-accounting files, then stop.

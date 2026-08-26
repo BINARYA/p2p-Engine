@@ -57,15 +57,31 @@ use `--operation-key wavekit:<uuid>` for retryable writes.
 Use CLI JSON for worker reads and writes such as:
 
 ```bash
+p2p version --format json
+p2p status --format json
 p2p project snapshot --format json
+p2p project domain show --format json
+p2p project structure show --format json
+p2p project vertical export eligibility --format json
 p2p proposal list --format json
 p2p proposal show PROP-XXX --format json
 p2p proposal create "Title" --format json --operation-key wavekit:<uuid>
+p2p project domain set DOMAIN --name NAME --actor ACTOR --format json --operation-key wavekit:<uuid>
+p2p project vertical export apply --target build/vertical --output dist/vertical.p2pv --publisher PUBLISHER --id VERTICAL-ID --version VERSION --name NAME --license LICENSE --primary-domain-key DOMAIN --primary-domain-name NAME --lineage-mode independent --expected-structure-revision REV --expected-structure-checksum SHA256 --token TOKEN --idempotency-key wavekit:<uuid> --confirm --actor ACTOR --format json
+p2p project structure replace apply COORDINATE --expected-structure-revision REV --expected-memory-revision SHA256 --preview-token TOKEN --operation-key wavekit:<uuid> --plan replacement-plan.yml --actor ACTOR --confirm --format json
 p2p proposal update PROP-XXX --proposal "..." --format json --operation-key wavekit:<uuid>
 p2p proposal contribution add PROP-XXX "Text" --type suggestion --format json --operation-key wavekit:<uuid>
 p2p proposal contribution list PROP-XXX --type suggestion --format json
+p2p vertical domain list --registry REGISTRY --format json
+p2p vertical search software --registry REGISTRY --domain DOMAIN-ID --format json
 p2p mutation status --operation-key wavekit:<uuid> --format json
 ```
+
+The deterministic fixture for the exact release is packaged at
+`p2p_engine/resources/contracts/wavekit-cli-fixtures-v1.json`. It uses neutral
+project-authority placeholders and does not encode WaveKit membership roles,
+mutable owner identities, local paths, secrets, registry publication rights or
+moderation rights.
 
 MCP stdio responses are protocol-native and are not wrapped in `p2p-cli/v1`.
 MCP is an agent tool surface, not the WaveKit worker receipt/retry boundary.

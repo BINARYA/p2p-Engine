@@ -1,0 +1,155 @@
+{
+  "authority": {
+    "executor_identity": "EXECUTOR",
+    "mutable_owner_identity_is_project_authority": false,
+    "project_authority_identity": "PROJECT-AUTHORITY-ID",
+    "subject_executor_separated": true,
+    "subject_identity": "ACTOR",
+    "wavekit_membership_role_required": false
+  },
+  "command_groups": [
+    {
+      "commands": [
+        "p2p version --format json",
+        "p2p status --format json",
+        "p2p runtime status --format json",
+        "p2p workspace schema status --format json",
+        "p2p workspace transaction status --format json"
+      ],
+      "group": "preflight",
+      "mutates_project": false
+    },
+    {
+      "commands": [
+        "p2p project snapshot --format json",
+        "p2p project domain show --format json",
+        "p2p project structure show --format json",
+        "p2p project structure history --limit 20 --format json",
+        "p2p project vertical export eligibility --format json",
+        "p2p project memory classification --format json",
+        "p2p proposal list --format json",
+        "p2p proposal show PROP-XXX --format json",
+        "p2p proposal scope show PROP-XXX --format json",
+        "p2p proposal contribution list PROP-XXX --format json"
+      ],
+      "group": "read",
+      "mutates_project": false
+    },
+    {
+      "commands": [
+        "p2p vertical domain list --registry REGISTRY --format json",
+        "p2p vertical domain search software --registry REGISTRY --format json",
+        "p2p vertical domain inspect DOMAIN-ID --registry REGISTRY --format json",
+        "p2p vertical search software --registry REGISTRY --domain DOMAIN-ID --format json",
+        "p2p vertical list --source remote --registry REGISTRY --domain DOMAIN-ID --format json"
+      ],
+      "group": "registry_v2_read",
+      "mutates_project": false
+    },
+    {
+      "commands": [
+        "p2p init NAME --format json --operation-key wavekit:<uuid>",
+        "p2p project domain set DOMAIN --name NAME --actor ACTOR --format json --operation-key wavekit:<uuid>",
+        "p2p project domain clear --actor ACTOR --format json --operation-key wavekit:<uuid>",
+        "p2p project structure add-section TITLE --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>",
+        "p2p project structure update-metadata KIND ID --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>",
+        "p2p project structure reorder --section-id ID --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>",
+        "p2p project structure retire preview --target section:SECTION-ID --expected-structure-revision REV --expected-memory-revision SHA256 --plan retirement-plan.yml --actor ACTOR --format json",
+        "p2p project structure retire apply --target section:SECTION-ID --expected-structure-revision REV --expected-memory-revision SHA256 --preview-token TOKEN --operation-key wavekit:<uuid> --plan retirement-plan.yml --actor ACTOR --confirm --format json",
+        "p2p project structure retire status --operation-key wavekit:<uuid> --format json",
+        "p2p project structure replace preview COORDINATE --expected-structure-revision REV --expected-memory-revision SHA256 --plan replacement-plan.yml --actor ACTOR --format json",
+        "p2p project structure replace apply COORDINATE --expected-structure-revision REV --expected-memory-revision SHA256 --preview-token TOKEN --operation-key wavekit:<uuid> --plan replacement-plan.yml --actor ACTOR --confirm --format json",
+        "p2p project structure replace status --operation-key wavekit:<uuid> --format json",
+        "p2p project vertical export preview --publisher PUBLISHER --id VERTICAL-ID --version VERSION --name NAME --license LICENSE --primary-domain-key DOMAIN --primary-domain-name NAME --lineage-mode independent --format json",
+        "p2p project vertical export apply --target build/vertical --output dist/vertical.p2pv --publisher PUBLISHER --id VERTICAL-ID --version VERSION --name NAME --license LICENSE --primary-domain-key DOMAIN --primary-domain-name NAME --lineage-mode independent --expected-structure-revision REV --expected-structure-checksum SHA256 --token TOKEN --idempotency-key wavekit:<uuid> --confirm --actor ACTOR --format json",
+        "p2p proposal scope set PROP-XXX --kind sections --section-id ID --expected-memory-revision SHA256 --expected-structure-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>",
+        "p2p proposal create TITLE --format json --operation-key wavekit:<uuid>",
+        "p2p proposal update PROP-XXX --proposal TEXT --format json --operation-key wavekit:<uuid>",
+        "p2p proposal contribution add PROP-XXX TEXT --type suggestion --format json --operation-key wavekit:<uuid>",
+        "p2p proposal readiness assess PROP-XXX --actor ACTOR --format json --operation-key wavekit:<uuid>"
+      ],
+      "group": "write",
+      "mutates_project": true
+    },
+    {
+      "commands": [
+        "p2p mutation status --operation-key wavekit:<uuid> --format json"
+      ],
+      "group": "recovery",
+      "mutates_project": false
+    }
+  ],
+  "contract_version": "p2p-wavekit-cli-fixtures/v1",
+  "contract_versions": {
+    "authority_context_schema": "p2p-authority-context/v1",
+    "authority_evidence_schema": "p2p-authority-evidence/v1",
+    "cli_contract_version": "p2p-cli/v1",
+    "contract_inventory_version": "p2p-release-contracts/v1",
+    "engine_version": "0.5.0",
+    "local_authority_policy_version": "p2p-local-authority/v1",
+    "memory_classification_contract": "p2p-memory-classification/v1",
+    "mutation_receipt_schema_version": 3,
+    "portable_package_format_version": 1,
+    "project_authority_schema": "p2p-project-authority/v1",
+    "project_domain_contract": "p2p-project-domain/v1",
+    "project_memory_scope_contract": "p2p-project-memory-scope/v1",
+    "project_memory_scope_events_contract": "p2p-project-memory-scope-events/v1",
+    "project_memory_scope_mutation_contract": "p2p-project-memory-scope-mutation/v1",
+    "project_readiness_algorithm_version": "project-structure-readiness-v2.0",
+    "project_readiness_contract": "p2p-project-readiness/v2",
+    "project_readiness_convergence_policy_version": 1,
+    "project_readiness_cursor_policy_version": 1,
+    "project_readiness_gap_policy_version": 1,
+    "project_structure_contract": "p2p-project-structure/v1",
+    "project_structure_events_contract": "p2p-project-structure-events/v1",
+    "project_structure_export_marker_contract": "p2p-project-structure-export-marker/v1",
+    "project_structure_export_preview_contract": "p2p-project-structure-export-preview/v1",
+    "project_structure_export_result_contract": "p2p-project-structure-export-result/v1",
+    "project_structure_mutation_contract": "p2p-project-structure-mutation/v1",
+    "structure_replacement_impact_contract": "p2p-structure-replacement-impact/v1",
+    "structure_replacement_plan_contract": "p2p-structure-replacement-plan/v1",
+    "structure_replacement_result_contract": "p2p-structure-replacement-result/v1",
+    "structure_retirement_impact_contract": "p2p-structure-retirement-impact/v1",
+    "structure_retirement_plan_contract": "p2p-structure-retirement-plan/v1",
+    "structure_retirement_result_contract": "p2p-structure-retirement-result/v1",
+    "structure_source_contract": "p2p-structure-source/v1",
+    "vertical_draft_document_contract": "p2p-vertical-draft/v1",
+    "vertical_draft_evidence_contract": "p2p-vertical-draft-evidence/v1",
+    "vertical_draft_state_contract": "p2p-vertical-draft-state/v1",
+    "vertical_pack_schema_version": 3,
+    "vertical_registry_config_schema_version": 1,
+    "vertical_registry_protocol_version": "p2p-vertical-registry/v2",
+    "workspace_schema_contract_version": 1,
+    "workspace_schema_policy_version": 4,
+    "workspace_schema_version": 4
+  },
+  "engine_version": "0.5.0",
+  "mcp_policy": {
+    "export_apply_available": false,
+    "registry_v2_reads_available": true,
+    "replacement_apply_available": false,
+    "responses_are_cli_enveloped": false
+  },
+  "operation_inventory_sha256": "56b40c723f05c4cc8b6d4aa037b0acddcafc07faf17c3b901460d6062a312305",
+  "registry_v2": {
+    "domain_filtering": "exact_external_id_only",
+    "mutation_performed": false,
+    "protocol_v1_behavior": "deterministic_rejection",
+    "protocol_version": "p2p-vertical-registry/v2"
+  },
+  "sanitization": {
+    "no_local_absolute_paths": true,
+    "no_secrets_or_tokens": true,
+    "operation_key_placeholder": "wavekit:<uuid>",
+    "root_placeholder": "<PROJECT_ROOT>"
+  },
+  "semantic_sha256": "4f657e4d6416f12b2b2b7ded5c3a9027da25b30e0b9534acefdd025f448982d6",
+  "transport": {
+    "envelope": "p2p-cli/v1",
+    "kind": "cli_json",
+    "mcp_stdio_transport": "agent_tool_surface_not_worker_retry_boundary",
+    "operation_key_format": "wavekit:<uuid>",
+    "parse_human_text": false,
+    "raw_operation_key_in_status_output": false
+  }
+}

@@ -27,6 +27,10 @@ P2P Engine keeps the working memory of a project in `.p2p/`, backed by Git.
 - manages work metadata for branch-based implementation flows;
 - generates compact context packets for agents;
 - derives compact vertical-aware project memory for bounded retrieval;
+- keeps a detached project-owned structure that can be edited, retired,
+  exported as a portable vertical, or replaced from one exact release;
+- discovers portable verticals through provider-neutral registry-v2 domain
+  metadata;
 - validates P2P project state;
 - assesses project readiness and definition maturity;
 - converges owner-answered project questions into definition state through an
@@ -85,7 +89,7 @@ mkdir /tmp/my-project
 cd /tmp/my-project
 python3 -m venv .venv
 .venv/bin/python -m pip install \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.4.11/p2p_engine-0.4.11-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.5.0/p2p_engine-0.5.0-py3-none-any.whl
 ```
 
 Initialize P2P inside the target project:

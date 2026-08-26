@@ -20,6 +20,7 @@ from p2p_engine.core.portable_verticals import (
     PORTABLE_VERTICAL_PACKAGE_VERSION,
     PORTABLE_VERTICAL_SCHEMA_VERSION,
 )
+from p2p_engine.core.release_contracts import current_contract_versions
 from p2p_engine.core.workspace_schema import CURRENT_WORKSPACE_SCHEMA_VERSION
 
 
@@ -146,6 +147,7 @@ proposal.vertical-coverage.suggest
 runtime.contract.apply
 runtime.contract.preview
 runtime.status
+status
 validate
 version
 vertical.inspect
@@ -219,7 +221,8 @@ def test_cli_json_operation_inventory_is_reviewed_and_guarded() -> None:
     inventory = json_command_inventory(get_command(app))
 
     assert frozenset(inventory) == EXPECTED_JSON_OPERATIONS
-    assert len(inventory) == 146
+    assert len(inventory) == 147
+    assert inventory["status"] == "text"
     assert inventory["vertical.inspect"] == "json"
     assert inventory["workspace.schema.status"] == "text"
 
@@ -299,28 +302,7 @@ def test_version_json_works_without_project_root() -> None:
     assert payload["ok"] is True
     assert payload["operation"] == "version"
     assert payload["error"] is None
-    assert payload["data"] == {
-        "engine_version": __version__,
-        "cli_contract_version": CLI_CONTRACT_VERSION,
-        "workspace_schema_version": CURRENT_WORKSPACE_SCHEMA_VERSION,
-        "vertical_pack_schema_version": PORTABLE_VERTICAL_SCHEMA_VERSION,
-        "portable_package_format_version": PORTABLE_VERTICAL_PACKAGE_VERSION,
-        "project_domain_contract": "p2p-project-domain/v1",
-        "structure_source_contract": "p2p-structure-source/v1",
-        "project_structure_contract": "p2p-project-structure/v1",
-        "project_structure_events_contract": "p2p-project-structure-events/v1",
-        "project_structure_mutation_contract": "p2p-project-structure-mutation/v1",
-        "structure_retirement_impact_contract": "p2p-structure-retirement-impact/v1",
-        "structure_retirement_plan_contract": "p2p-structure-retirement-plan/v1",
-        "structure_retirement_result_contract": "p2p-structure-retirement-result/v1",
-        "structure_replacement_impact_contract": "p2p-structure-replacement-impact/v1",
-        "structure_replacement_plan_contract": "p2p-structure-replacement-plan/v1",
-        "structure_replacement_result_contract": "p2p-structure-replacement-result/v1",
-        "project_memory_scope_contract": "p2p-project-memory-scope/v1",
-        "project_memory_scope_events_contract": "p2p-project-memory-scope-events/v1",
-        "project_memory_scope_mutation_contract": "p2p-project-memory-scope-mutation/v1",
-        "memory_classification_contract": "p2p-memory-classification/v1",
-    }
+    assert payload["data"] == current_contract_versions()
 
 
 @pytest.mark.cli
@@ -332,3 +314,5 @@ def test_version_text_reports_distinct_contracts() -> None:
     assert f"workspace schema: {CURRENT_WORKSPACE_SCHEMA_VERSION}" in result.stdout
     assert f"vertical pack schema: {PORTABLE_VERTICAL_SCHEMA_VERSION}" in result.stdout
     assert f"portable package format: {PORTABLE_VERTICAL_PACKAGE_VERSION}" in result.stdout
+    assert "vertical registry protocol version: p2p-vertical-registry/v2" in result.stdout
+    assert "authority context schema: p2p-authority-context/v1" in result.stdout

@@ -148,6 +148,11 @@ the in-memory manifest/stale contract without changing this read-only behavior.
 The index reads canonical/governed P2P evidence, not generated registries,
 decision maps, project narratives, prompts, publications or cache files.
 
+`p2p_workspace_schema_status` is a read-only contract probe. It returns the
+workspace schema status plus the same `contract_versions` tuple exposed by
+`p2p version --format json` and `p2p status --format json`; MCP still returns a
+protocol-native payload, not a `p2p-cli/v1` envelope.
+
 Untargeted compact context uses the vertical-aware project-memory read model as
 its primary project shape. `p2p_project_memory_status` and
 `p2p_project_memory_show` provide read-only parity with the CLI. The show tool
@@ -214,7 +219,7 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_context` | read-only | no | no | First tool before broad reads. |
 | `p2p_validate` | read-only | no | no | Check structural and semantic consistency. |
 | `p2p_project_status` | read-only | no | no | Inspect deterministic project status. |
-| `p2p_workspace_schema_status` | read-only | no | no | Inspect workspace layout, semantic alignment and recovery state. |
+| `p2p_workspace_schema_status` | read-only | no | no | Inspect workspace layout, semantic alignment, recovery state and release contract versions. |
 | `p2p_project_progress` | read-only | no | no | Inspect the same weighted definition-completeness and declared-evidence axes used by project readiness. |
 | `p2p_project_freshness` | read-only | no | no | Inspect the full derived-state graph and ordered rebuild actions. |
 | `p2p_project_memory_status` | read-only | no | no | Inspect vertical-memory contract, source fingerprint and freshness without rebuilding it. |

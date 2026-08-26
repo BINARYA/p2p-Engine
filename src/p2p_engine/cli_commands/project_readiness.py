@@ -29,7 +29,7 @@ def register_project_readiness_commands(
         limit: int = typer.Option(10, "--limit", min=1, max=100),
         root: Path = typer.Option(Path.cwd(), "--root"),
     ) -> None:
-        """Review bounded project-readiness gaps and vertical sections."""
+        """Review bounded project-readiness gaps and project-structure sections."""
         try:
             workspace = workspace_for(root)
             result = workspace.review_project_readiness(vertical)
@@ -82,7 +82,7 @@ def register_project_readiness_commands(
                 f"  - {section.section_id}  definition: {section.definition_status}  "
                 f"evidence: {section.status}"
             )
-        console.print("Missing capisaldi:")
+        console.print("Missing active criteria:")
         for section_id in result.missing_capisaldi:
             console.print(f"  - {section_id}")
         if not result.missing_capisaldi:

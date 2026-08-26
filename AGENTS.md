@@ -262,7 +262,7 @@ state, transaction locks, journals or candidates manually.
 
 ## Project Vertical Orchestration
 
-When the project is uninitialized, uses the base-project fallback, or has weak capisaldi coverage, treat project definition as the priority context-building task.
+When the project is uninitialized, uses the base-project fallback, or has weak active-criteria coverage, treat project definition as the priority context-building task.
 
 Use project vertical commands:
 - `p2p project vertical list`
@@ -285,10 +285,10 @@ Use project vertical commands:
 - `p2p project memory show --limit 20 --format json`
 
 Behavior:
-1. inspect vertical context, definition state, rubrics, and lock status before deep project-definition work;
-2. use an exact `publisher/id@version` release when one fits; otherwise scaffold and validate a new schema-2 release;
+1. inspect project structure, active criteria, definition state, and source provenance before deep project-definition work;
+2. use an exact `publisher/id@version` release when one fits; otherwise scaffold and validate a new schema-3 release;
 3. package and install custom releases through the portable `.p2pv` lifecycle, then require owner-confirmed adopt or migrate apply;
-4. use the vertical skeleton and definition state to identify missing capisaldi and focused questions;
+4. use the current project structure and definition state to identify missing active criteria and focused questions;
 5. connect proposals to vertical sections through supported CLI/MCP artifacts when available;
 6. ask one primary project-definition question at a time and record owner answers only through `p2p project readiness questions answer`;
 7. never treat an answer as applied definition truth until the owner confirms a matching convergence preview/apply token;

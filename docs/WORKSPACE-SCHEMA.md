@@ -1,14 +1,19 @@
 # Current Workspace Schema Contract
 
-P2P Engine 0.4.11 supports workspace schema 4 only. Fresh `p2p init` operations
+P2P Engine 0.5.0 supports workspace schema 4 only. Fresh `p2p init` operations
 create that schema and its complete canonical layout.
 
 Inspect the contract without writing:
 
 ```bash
+p2p status --format json
 p2p workspace schema status
 p2p workspace schema status --format json
 ```
+
+`p2p status --format json` returns the workspace status beside the full release
+`contract_versions` tuple shared with `p2p version --format json` and
+`p2p_workspace_schema_status`.
 
 The status is writable only when `layout_status` is `current` and
 `current_version` is `4`. A missing declaration, schema 1, 2 or 3, an unknown

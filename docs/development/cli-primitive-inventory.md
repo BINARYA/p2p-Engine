@@ -43,6 +43,12 @@ comandi diretti sulla root: 6
 > disponibili. Il registro eseguibile resta
 > `p2p project authority capabilities --format json`.
 
+> Gate 0.5.0: `p2p version --format json`, `p2p status --format json` e
+> `p2p_workspace_schema_status` espongono la stessa tupla
+> `contract_versions`. La mappa capability/CLI/MCP/fixture per P1-P7,
+> registry-v2 e i deferral MCP e' mantenuta in
+> [`project-structure-surface-convergence.md`](project-structure-surface-convergence.md).
+
 L'inventario e' stato estratto dal registro Typer costruito da
 [`cli.py`](../../src/p2p_engine/cli.py) e dai moduli in
 [`cli_commands/`](../../src/p2p_engine/cli_commands/). Il comando
@@ -98,7 +104,7 @@ Sorgenti principali:
 | Comando | Effetto | Utilita |
 | --- | --- | --- |
 | `p2p doctor` | `R` | Diagnostica CLI, workspace, Git e disponibilita MCP. |
-| `p2p status` | `R` | Mostra un riepilogo di progetto e proposte. |
+| `p2p status` | `R` | Mostra un riepilogo di progetto e proposte; con `--format json` include la tupla `contract_versions` del gate 0.5.0. |
 | `p2p context [--budget] [--target]` | `R` | Costruisce il context packet compatto per un agente. |
 | `p2p check` | `R` | Controlla la struttura minima dello workspace. |
 | `p2p validate` | `R` | Esegue validazione strutturale e semantica completa. |

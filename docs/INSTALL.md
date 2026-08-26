@@ -39,10 +39,10 @@ Install a versioned wheel from GitHub Releases:
 
 ```bash
 .venv/bin/python -m pip install \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.4.11/p2p_engine-0.4.11-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.5.0/p2p_engine-0.5.0-py3-none-any.whl
 ```
 
-Replace `v0.4.11` and `p2p_engine-0.4.11-py3-none-any.whl` with the release you
+Replace `v0.5.0` and `p2p_engine-0.5.0-py3-none-any.whl` with the release you
 intend to use. The wheel filename is expected to follow:
 
 ```text
@@ -55,6 +55,7 @@ Verify the CLI:
 .venv/bin/p2p --help
 .venv/bin/python -m p2p_engine.mcp.server --help
 .venv/bin/p2p doctor
+.venv/bin/p2p status --format json
 ```
 
 For a server worker integration such as WaveKit, verify the machine contract
@@ -62,6 +63,7 @@ before enabling writes:
 
 ```bash
 .venv/bin/p2p version --format json
+.venv/bin/p2p status --format json
 .venv/bin/p2p runtime status --format json
 .venv/bin/p2p workspace schema status --format json
 .venv/bin/p2p workspace transaction status --format json
@@ -244,7 +246,7 @@ From the target project:
 
 ```bash
 .venv/bin/python -m pip install --upgrade \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.4.11/p2p_engine-0.4.11-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.5.0/p2p_engine-0.5.0-py3-none-any.whl
 
 .venv/bin/p2p doctor
 .venv/bin/p2p runtime status
@@ -260,6 +262,12 @@ This upgrades the installed engine runtime. It does not pull or merge the target
 project repository. For project Git synchronization, use the P2P sync commands
 documented for managed collaboration.
 
+P2P Engine 0.5.0 is a clean break for current runtime state: it supports
+workspace schema 4 and portable vertical schema 3 only. It does not provide
+in-runtime migration, conversion or compatibility aliases for older workspace
+or vertical schemas; recreate or externally convert older development
+workspaces before using this runtime for governed writes.
+
 ## Publish A GitHub Release Wheel
 
 This section is for P2P Engine maintainers publishing a GitHub Release artifact.
@@ -271,21 +279,22 @@ version, commit and push `main`, then push a matching version tag:
 ```bash
 # pyproject.toml
 # [project]
-# version = "0.4.11"
+# version = "0.5.0"
 
 git add pyproject.toml
-git commit -m "Bump version to 0.4.11"
+git commit -m "Bump version to 0.5.0"
 git push origin main
 
-git tag -a v0.4.11 -m "P2P Engine v0.4.11"
-git push origin v0.4.11
+git tag -a v0.5.0 -m "P2P Engine v0.5.0"
+git push origin v0.5.0
 ```
 
-The release workflow runs tests, runs `p2p validate`, builds the source
-distribution and wheel, and uploads both files to the matching GitHub Release.
-The tag must match `pyproject.toml`: tag `v0.4.11` requires
-`version = "0.4.11"`. Do not reuse an existing version or tag for different
-contents.
+The release workflow runs public/full tests across the supported Python
+matrix, runs `p2p validate`, builds the source distribution and wheel, verifies
+archive contents, runs installed-wheel smoke tests, and uploads both files to
+the matching GitHub Release. The tag must match `pyproject.toml`: tag
+`v0.5.0` requires `version = "0.5.0"`. Do not reuse an existing version or tag
+for different contents.
 
 Expected release assets:
 
@@ -318,7 +327,7 @@ Attach that `.whl` and the matching `.tar.gz` to the GitHub Release only if the
 automated workflow is unavailable. For example:
 
 ```text
-v0.4.11 -> p2p_engine-0.4.11-py3-none-any.whl, p2p_engine-0.4.11.tar.gz
+v0.5.0 -> p2p_engine-0.5.0-py3-none-any.whl, p2p_engine-0.5.0.tar.gz
 ```
 
 ## Connect An Agent

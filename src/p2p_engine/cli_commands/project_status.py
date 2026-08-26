@@ -7,10 +7,12 @@ from pathlib import Path
 
 import typer
 
+from p2p_engine.cli_contract import print_json
 from p2p_engine.cli_shared import console
 from p2p_engine.cli_shared import fail
 from p2p_engine.cli_shared import workspace as workspace_for
 from p2p_engine.cli_shared import yaml_dump_for_cli
+from p2p_engine.core.release_contracts import current_contract_versions
 
 
 def register_project_status_commands(
@@ -19,10 +21,23 @@ def register_project_status_commands(
     assess_maturity_app: typer.Typer,
 ) -> None:
     @app.command()
-    def status(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+    def status(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+    ) -> None:
         """Show project and proposal status."""
         workspace = workspace_for(root)
         summary = workspace.status()
+        if output_format == "json":
+            print_json(
+                {
+                    "workspace_status": _validation_result_to_dict(summary),
+                    "contract_versions": current_contract_versions(),
+                }
+            )
+            return
+        if output_format != "text":
+            fail("Status format must be text or json")
         console.print(f"Project: [bold]{summary.project_name}[/bold]")
         console.print(f"Workspace: {summary.root}")
         if summary.workspace_schema is not None:

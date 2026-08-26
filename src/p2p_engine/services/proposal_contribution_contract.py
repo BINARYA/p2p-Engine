@@ -19,7 +19,7 @@ CONTRIBUTION_REVIEW_CAPABILITY = {
     "code": "P2P_CONTRIBUTION_REVIEW_UNSUPPORTED",
     "message": (
         "Contribution review/promote/reject state is not modeled in "
-        "p2p-engine 0.4.11. Consumers must not store shadow project-memory "
+        "p2p-engine 0.5.0. Consumers must not store shadow project-memory "
         "review state outside .p2p."
     ),
 }

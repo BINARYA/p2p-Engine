@@ -37,6 +37,18 @@ BUNDLED_VERTICAL_PACK_SECTIONS = {
         "090-definition_of_done.yml",
         "100-artifacts.yml",
     ),
+    "board_game_design": (
+        "010-core_loop.yml",
+        "020-components.yml",
+        "030-rules.yml",
+        "040-playtesting.yml",
+    ),
+    "grant_document_design": (
+        "010-call_requirements.yml",
+        "020-objectives.yml",
+        "030-budget.yml",
+        "040-evaluation_criteria.yml",
+    ),
     "packaging_or_physical_product_design": (
         "010-contained_product.yml",
         "020-success_definition.yml",
@@ -235,6 +247,18 @@ CURRENT_SURFACE_SDIST_MEMBERS = {
     "tests/test_public_surface_inventory.py",
     "tests/test_version_consistency.py",
 }
+RELEASE_CONVERGENCE_WHEEL_MEMBERS = {
+    "p2p_engine/core/release_contracts.py",
+    "p2p_engine/resources/contracts/__init__.py",
+    "p2p_engine/resources/contracts/wavekit-cli-fixtures-v1.json",
+    "p2p_engine/services/release_convergence.py",
+}
+RELEASE_CONVERGENCE_SDIST_MEMBERS = {
+    *(f"src/{member}" for member in RELEASE_CONVERGENCE_WHEEL_MEMBERS),
+    "docs/development/project-structure-surface-convergence.md",
+    "scripts/verify-convergence-gate.py",
+    "tests/test_release_convergence.py",
+}
 DISCARDED_SURFACE_TOKENS = (
     "legacy_undeclared",
     "absent_legacy",
@@ -351,6 +375,7 @@ def verify_wheel(path: Path, *, version: str) -> int:
     required.update(VERTICAL_REGISTRY_WHEEL_MEMBERS)
     required.update(VERTICAL_DRAFT_WHEEL_MEMBERS)
     required.update(CURRENT_SURFACE_WHEEL_MEMBERS)
+    required.update(RELEASE_CONVERGENCE_WHEEL_MEMBERS)
     required.update(_vertical_pack_required_members("p2p_engine"))
     with zipfile.ZipFile(path) as archive:
         members = _normalized_members(archive.namelist(), archive_root=None)
@@ -389,6 +414,7 @@ def verify_sdist(path: Path, *, version: str) -> int:
     required.update(VERTICAL_REGISTRY_SDIST_MEMBERS)
     required.update(VERTICAL_DRAFT_SDIST_MEMBERS)
     required.update(CURRENT_SURFACE_SDIST_MEMBERS)
+    required.update(RELEASE_CONVERGENCE_SDIST_MEMBERS)
     required.update(_vertical_pack_required_members("src/p2p_engine"))
     with tarfile.open(path, mode="r:gz") as archive:
         members = _normalized_members(archive.getnames(), archive_root=archive_root)

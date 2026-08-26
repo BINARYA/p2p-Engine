@@ -179,12 +179,16 @@ AGENT_CAPABILITIES = (
     AgentCapability(
         capability_id="wavekit.cli.worker_contract",
         cli_paths=(
+            "p2p status",
             "p2p version",
             "p2p runtime status",
             "p2p workspace schema status",
             "p2p workspace transaction status",
             "p2p init",
             "p2p project snapshot",
+            "p2p project domain show",
+            "p2p project domain set",
+            "p2p project domain clear",
             "p2p project structure show",
             "p2p project structure history",
             "p2p project structure add-section",
@@ -196,6 +200,9 @@ AGENT_CAPABILITIES = (
             "p2p project structure replace preview",
             "p2p project structure replace apply",
             "p2p project structure replace status",
+            "p2p project vertical export eligibility",
+            "p2p project vertical export preview",
+            "p2p project vertical export apply",
             "p2p project memory classification",
             "p2p proposal scope show",
             "p2p proposal scope set",
@@ -206,6 +213,11 @@ AGENT_CAPABILITIES = (
             "p2p proposal contribution add",
             "p2p proposal contribution list",
             "p2p mutation status",
+            "p2p vertical domain list",
+            "p2p vertical domain search",
+            "p2p vertical domain inspect",
+            "p2p vertical list",
+            "p2p vertical search",
         ),
         mcp_tools=(),
         exposure="cli_only_worker_contract",
@@ -462,14 +474,24 @@ retry receipts, or recovery after a lost response:
 
 ```bash
 p2p version --format json
+p2p status --format json
 p2p runtime status --format json
 p2p workspace schema status --format json
 p2p workspace transaction status --format json
 p2p project snapshot --format json
 p2p project memory classification --format json
+p2p project domain show --format json
+p2p project domain set software --name Software --actor ACTOR --format json --operation-key wavekit:<uuid>
+p2p project domain clear --actor ACTOR --format json --operation-key wavekit:<uuid>
+p2p project structure retire preview --target section:SECTION-ID --expected-structure-revision REV --expected-memory-revision SHA256 --plan retirement-plan.yml --actor ACTOR --format json
+p2p project structure retire apply --target section:SECTION-ID --expected-structure-revision REV --expected-memory-revision SHA256 --preview-token TOKEN --operation-key wavekit:<uuid> --plan retirement-plan.yml --actor ACTOR --confirm --format json
+p2p project structure retire status --operation-key wavekit:<uuid> --format json
 p2p project structure replace preview <publisher/id@version> --expected-structure-revision REV --expected-memory-revision SHA256 --plan replacement-plan.yml --actor ACTOR --format json
 p2p project structure replace apply <publisher/id@version> --expected-structure-revision REV --expected-memory-revision SHA256 --preview-token TOKEN --operation-key wavekit:<uuid> --plan replacement-plan.yml --actor ACTOR --confirm --format json
 p2p project structure replace status --operation-key wavekit:<uuid> --format json
+p2p project vertical export eligibility --format json
+p2p project vertical export preview --publisher publisher --id vertical-id --version 1.0.0 --name "Vertical" --license MIT --primary-domain-key software --primary-domain-name Software --lineage-mode independent --format json
+p2p project vertical export apply --target build/vertical --output dist/vertical.p2pv --publisher publisher --id vertical-id --version 1.0.0 --name "Vertical" --license MIT --primary-domain-key software --primary-domain-name Software --lineage-mode independent --expected-structure-revision REV --expected-structure-checksum SHA256 --token TOKEN --idempotency-key wavekit:<uuid> --confirm --actor ACTOR --format json
 p2p proposal list --format json
 p2p proposal show PROP-XXX --format json
 p2p proposal scope show PROP-XXX --format json
@@ -479,6 +501,11 @@ p2p proposal update PROP-XXX --proposal "..." --format json --operation-key wave
 p2p proposal contribution add PROP-XXX "Text" --type suggestion --format json --operation-key wavekit:<uuid>
 p2p proposal contribution list PROP-XXX --type suggestion --format json
 p2p proposal readiness assess PROP-XXX --actor ACTOR --format json --operation-key wavekit:<uuid>
+p2p vertical domain list --registry REGISTRY --format json
+p2p vertical domain search software --registry REGISTRY --format json
+p2p vertical domain inspect DOMAIN-ID --registry REGISTRY --format json
+p2p vertical search software --registry REGISTRY --domain DOMAIN-ID --format json
+p2p vertical list --source remote --registry REGISTRY --domain DOMAIN-ID --format json
 p2p mutation status --operation-key wavekit:<uuid> --format json
 ```
 
@@ -501,6 +528,12 @@ assessment inputs, `stale` means evidence changed or the result predates the
 current assessment policy, and `not_assessed` means no snapshot exists. A
 WaveKit worker uses the keyed readiness command above only for an explicit
 recalculation request; ordinary UI refresh remains read-only.
+
+Registry-v2 domain discovery is a provider-neutral read contract. It may use
+remote network access only for explicitly selected registry reads, must reject
+protocol v1, and must not imply structure compatibility, artifact pull, project
+initialization, publisher ownership, moderation rights, or WaveKit membership
+authority.
 
 Local MCP stdio remains an agent tool surface. MCP responses are protocol-native
 and are not wrapped in `p2p-cli/v1`; MCP write tools also do not provide the

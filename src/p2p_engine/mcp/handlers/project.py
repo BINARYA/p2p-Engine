@@ -11,6 +11,7 @@ from p2p_engine.core.project_structure_replacement import (
     structure_replacement_plan_from_mapping,
 )
 from p2p_engine.core.project_domain import ProjectDomainRef
+from p2p_engine.core.release_contracts import current_contract_versions
 from p2p_engine.mcp.handlers.common import optional_string, required, to_jsonable
 from p2p_engine.storage.filesystem import P2PWorkspace
 
@@ -207,6 +208,7 @@ def handle_project_tool(
     if name == "p2p_workspace_schema_status":
         return {
             "workspace_schema": workspace.workspace_schema_status().to_dict(),
+            "contract_versions": current_contract_versions(),
             "mutation_performed": False,
         }
     if name == "p2p_proposal_vertical_coverage_show":

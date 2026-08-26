@@ -7,7 +7,6 @@ from rich.markup import escape
 
 from p2p_engine import __version__
 from p2p_engine.cli_contract import (
-    CLI_CONTRACT_VERSION,
     VersionedJSONTyperGroup,
     print_json,
     success_envelope,
@@ -39,37 +38,14 @@ from p2p_engine.services.gitignore_hygiene import GitignoreHygieneResult
 from p2p_engine.services.mcp_hints import McpHint, render_shell_command
 from p2p_engine.services.authority import AuthorityContractCodec
 from p2p_engine.storage.filesystem import P2PWorkspace
-from p2p_engine.core.portable_verticals import (
-    PORTABLE_VERTICAL_PACKAGE_VERSION,
-    PORTABLE_VERTICAL_SCHEMA_VERSION,
-    VerticalCoordinate,
-)
-from p2p_engine.core.workspace_schema import CURRENT_WORKSPACE_SCHEMA_VERSION
-from p2p_engine.core.project_domain import (
-    PROJECT_DOMAIN_CONTRACT,
-    STRUCTURE_SOURCE_CONTRACT,
-)
-from p2p_engine.core.project_structure import (
-    PROJECT_STRUCTURE_CONTRACT,
-    PROJECT_STRUCTURE_EVENTS_CONTRACT,
-    PROJECT_STRUCTURE_MUTATION_CONTRACT,
-)
-from p2p_engine.core.project_structure_retirement import (
-    STRUCTURE_RETIREMENT_IMPACT_CONTRACT,
-    STRUCTURE_RETIREMENT_PLAN_CONTRACT,
-    STRUCTURE_RETIREMENT_RESULT_CONTRACT,
-)
-from p2p_engine.core.project_structure_replacement import (
-    STRUCTURE_REPLACEMENT_IMPACT_CONTRACT,
-    STRUCTURE_REPLACEMENT_PLAN_CONTRACT,
-    STRUCTURE_REPLACEMENT_RESULT_CONTRACT,
-)
-from p2p_engine.core.project_memory import (
-    MEMORY_CLASSIFICATION_CONTRACT,
-    PROJECT_MEMORY_SCOPE_CONTRACT,
-    PROJECT_MEMORY_SCOPE_EVENTS_CONTRACT,
-    PROJECT_MEMORY_SCOPE_MUTATION_CONTRACT,
-)
+from p2p_engine.core.portable_verticals import VerticalCoordinate
+from p2p_engine.core.release_contracts import current_contract_versions
+
+_VERSION_TEXT_LABELS = {
+    "workspace_schema_version": "workspace schema",
+    "vertical_pack_schema_version": "vertical pack schema",
+    "portable_package_format_version": "portable package format",
+}
 
 app = typer.Typer(help="P2P Engine CLI", cls=VersionedJSONTyperGroup)
 proposal_app = typer.Typer(help="Manage proposals")
@@ -102,7 +78,7 @@ project_rubrics_app = typer.Typer(help="Manage project definition rubrics")
 project_definition_app = typer.Typer(help="Manage project definition state")
 project_interaction_style_app = typer.Typer(help="Manage project interaction style")
 project_vertical_app = typer.Typer(help="Manage project vertical packs")
-project_readiness_app = typer.Typer(help="Review project readiness against vertical capisaldi")
+project_readiness_app = typer.Typer(help="Review project readiness against project-owned structure")
 project_readiness_questions_app = typer.Typer(help="Manage persistent project-readiness questions")
 impact_app = typer.Typer(help="Analyze proposal impact")
 conflict_app = typer.Typer(help="Record and inspect project conflicts")
@@ -260,51 +236,16 @@ def version(
     normalized = output_format.strip().lower()
     if normalized not in {"text", "json"}:
         raise typer.BadParameter("Output format must be text or json.")
-    data = {
-        "engine_version": __version__,
-        "cli_contract_version": CLI_CONTRACT_VERSION,
-        "workspace_schema_version": CURRENT_WORKSPACE_SCHEMA_VERSION,
-        "vertical_pack_schema_version": PORTABLE_VERTICAL_SCHEMA_VERSION,
-        "portable_package_format_version": PORTABLE_VERTICAL_PACKAGE_VERSION,
-        "project_domain_contract": PROJECT_DOMAIN_CONTRACT,
-        "structure_source_contract": STRUCTURE_SOURCE_CONTRACT,
-        "project_structure_contract": PROJECT_STRUCTURE_CONTRACT,
-        "project_structure_events_contract": PROJECT_STRUCTURE_EVENTS_CONTRACT,
-        "project_structure_mutation_contract": PROJECT_STRUCTURE_MUTATION_CONTRACT,
-        "structure_retirement_impact_contract": STRUCTURE_RETIREMENT_IMPACT_CONTRACT,
-        "structure_retirement_plan_contract": STRUCTURE_RETIREMENT_PLAN_CONTRACT,
-        "structure_retirement_result_contract": STRUCTURE_RETIREMENT_RESULT_CONTRACT,
-        "structure_replacement_impact_contract": STRUCTURE_REPLACEMENT_IMPACT_CONTRACT,
-        "structure_replacement_plan_contract": STRUCTURE_REPLACEMENT_PLAN_CONTRACT,
-        "structure_replacement_result_contract": STRUCTURE_REPLACEMENT_RESULT_CONTRACT,
-        "project_memory_scope_contract": PROJECT_MEMORY_SCOPE_CONTRACT,
-        "project_memory_scope_events_contract": PROJECT_MEMORY_SCOPE_EVENTS_CONTRACT,
-        "project_memory_scope_mutation_contract": PROJECT_MEMORY_SCOPE_MUTATION_CONTRACT,
-        "memory_classification_contract": MEMORY_CLASSIFICATION_CONTRACT,
-    }
+    data = current_contract_versions()
     if normalized == "json":
         print_json(success_envelope("version", data))
         return
     console.print(f"P2P Engine {__version__}")
-    console.print(f"  cli contract: {CLI_CONTRACT_VERSION}")
-    console.print(f"  workspace schema: {CURRENT_WORKSPACE_SCHEMA_VERSION}")
-    console.print(f"  vertical pack schema: {PORTABLE_VERTICAL_SCHEMA_VERSION}")
-    console.print(f"  portable package format: {PORTABLE_VERTICAL_PACKAGE_VERSION}")
-    console.print(f"  project domain contract: {PROJECT_DOMAIN_CONTRACT}")
-    console.print(f"  structure source contract: {STRUCTURE_SOURCE_CONTRACT}")
-    console.print(f"  project structure contract: {PROJECT_STRUCTURE_CONTRACT}")
-    console.print(f"  project structure events contract: {PROJECT_STRUCTURE_EVENTS_CONTRACT}")
-    console.print(f"  project structure mutation contract: {PROJECT_STRUCTURE_MUTATION_CONTRACT}")
-    console.print(f"  structure retirement impact contract: {STRUCTURE_RETIREMENT_IMPACT_CONTRACT}")
-    console.print(f"  structure retirement plan contract: {STRUCTURE_RETIREMENT_PLAN_CONTRACT}")
-    console.print(f"  structure retirement result contract: {STRUCTURE_RETIREMENT_RESULT_CONTRACT}")
-    console.print(f"  structure replacement impact contract: {STRUCTURE_REPLACEMENT_IMPACT_CONTRACT}")
-    console.print(f"  structure replacement plan contract: {STRUCTURE_REPLACEMENT_PLAN_CONTRACT}")
-    console.print(f"  structure replacement result contract: {STRUCTURE_REPLACEMENT_RESULT_CONTRACT}")
-    console.print(f"  project memory scope contract: {PROJECT_MEMORY_SCOPE_CONTRACT}")
-    console.print(f"  project memory scope events contract: {PROJECT_MEMORY_SCOPE_EVENTS_CONTRACT}")
-    console.print(f"  project memory scope mutation contract: {PROJECT_MEMORY_SCOPE_MUTATION_CONTRACT}")
-    console.print(f"  memory classification contract: {MEMORY_CLASSIFICATION_CONTRACT}")
+    for key, value in data.items():
+        if key == "engine_version":
+            continue
+        label = _VERSION_TEXT_LABELS.get(key, key.replace("_", " "))
+        console.print(f"  {label}: {value}")
 
 
 @app.command()

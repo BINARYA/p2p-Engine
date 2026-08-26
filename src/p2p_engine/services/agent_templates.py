@@ -209,7 +209,7 @@ Behavior:
 3. export the active project-owned structure as a portable vertical only through `p2p project vertical export preview` and `p2p project vertical export apply`, with exact source revision/checksum, explicit lineage mode and local artifact destinations;
 4. replace the active project-owned structure from a release only through `p2p project structure replace preview` and `p2p project structure replace apply`; the result is a detached copy, not adopt/migrate or a future subscription;
 5. package and install custom releases through the portable `.p2pv` lifecycle, then require owner-confirmed adopt or migrate apply;
-6. use the current project structure and definition state to identify missing capisaldi and focused questions;
+6. use the current project structure and definition state to identify missing active criteria and focused questions;
 7. connect proposals to vertical sections through supported CLI/MCP artifacts when available;
 8. ask one primary project-definition question at a time and record owner answers only through `p2p project readiness questions answer`;
 9. never treat an answer as applied definition truth until the owner confirms a matching convergence preview/apply token;
@@ -754,28 +754,45 @@ def agent_policy(
             "raw_operation_key_in_status_output": False,
             "preflight_commands": [
                 "p2p version --format json",
+                "p2p status --format json",
                 "p2p runtime status --format json",
                 "p2p workspace schema status --format json",
                 "p2p workspace transaction status --format json",
             ],
             "read_commands": [
                 "p2p project snapshot --format json",
+                "p2p project domain show --format json",
                 "p2p project structure show --format json",
                 "p2p project structure history --limit 20 --format json",
+                "p2p project vertical export eligibility --format json",
                 "p2p project memory classification --format json",
                 "p2p proposal list --format json",
                 "p2p proposal show PROP-XXX --format json",
                 "p2p proposal scope show PROP-XXX --format json",
                 "p2p proposal contribution list PROP-XXX --format json",
             ],
+            "registry_v2_read_commands": [
+                "p2p vertical domain list --registry REGISTRY --format json",
+                "p2p vertical domain search software --registry REGISTRY --format json",
+                "p2p vertical domain inspect DOMAIN-ID --registry REGISTRY --format json",
+                "p2p vertical search software --registry REGISTRY --domain DOMAIN-ID --format json",
+                "p2p vertical list --source remote --registry REGISTRY --domain DOMAIN-ID --format json",
+            ],
             "write_commands": [
                 "p2p init NAME --format json --operation-key wavekit:<uuid>",
+                "p2p project domain set DOMAIN --name NAME --actor ACTOR --format json --operation-key wavekit:<uuid>",
+                "p2p project domain clear --actor ACTOR --format json --operation-key wavekit:<uuid>",
                 "p2p project structure add-section TITLE --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>",
                 "p2p project structure update-metadata KIND ID --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>",
                 "p2p project structure reorder --section-id ID --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>",
+                "p2p project structure retire preview --target section:SECTION-ID --expected-structure-revision REV --expected-memory-revision SHA256 --plan retirement-plan.yml --actor ACTOR --format json",
+                "p2p project structure retire apply --target section:SECTION-ID --expected-structure-revision REV --expected-memory-revision SHA256 --preview-token TOKEN --operation-key wavekit:<uuid> --plan retirement-plan.yml --actor ACTOR --confirm --format json",
+                "p2p project structure retire status --operation-key wavekit:<uuid> --format json",
                 "p2p project structure replace preview COORDINATE --expected-structure-revision REV --expected-memory-revision SHA256 --plan replacement-plan.yml --actor ACTOR --format json",
                 "p2p project structure replace apply COORDINATE --expected-structure-revision REV --expected-memory-revision SHA256 --preview-token TOKEN --operation-key wavekit:<uuid> --plan replacement-plan.yml --actor ACTOR --confirm --format json",
                 "p2p project structure replace status --operation-key wavekit:<uuid> --format json",
+                "p2p project vertical export preview --publisher PUBLISHER --id VERTICAL-ID --version VERSION --name NAME --license LICENSE --primary-domain-key DOMAIN --primary-domain-name NAME --lineage-mode independent --format json",
+                "p2p project vertical export apply --target build/vertical --output dist/vertical.p2pv --publisher PUBLISHER --id VERTICAL-ID --version VERSION --name NAME --license LICENSE --primary-domain-key DOMAIN --primary-domain-name NAME --lineage-mode independent --expected-structure-revision REV --expected-structure-checksum SHA256 --token TOKEN --idempotency-key wavekit:<uuid> --confirm --actor ACTOR --format json",
                 "p2p proposal scope set PROP-XXX --kind sections --section-id ID --expected-memory-revision SHA256 --expected-structure-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>",
                 "p2p proposal create TITLE --format json --operation-key wavekit:<uuid>",
                 "p2p proposal update PROP-XXX --proposal TEXT --format json --operation-key wavekit:<uuid>",

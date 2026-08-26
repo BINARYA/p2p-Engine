@@ -127,6 +127,7 @@ Typical first checks:
 
 ```bash
 p2p status
+p2p status --format json
 p2p runtime status
 p2p context --budget small
 p2p context --target PROP-001 --budget small
@@ -254,7 +255,7 @@ effect of a contract update.
 ### Current Workspace Schema
 
 Workspace layout versioning is independent from the runtime contract. P2P
-Engine 0.4.11 accepts schema 4 only. Inspect schema alignment and interrupted
+Engine 0.5.0 accepts schema 4 only. Inspect schema alignment and interrupted
 transaction state without writing:
 
 ```bash
@@ -654,12 +655,16 @@ vertical_transition_plan:
         ref: definition_field:new_section.new_field
 ```
 
-The 0.4.11 JSON transport contract is `p2p-cli/v1`. Every command supporting
+The 0.5.0 JSON transport contract is `p2p-cli/v1`. Every command supporting
 `--format json` returns exactly `contract_version`, `ok`, `operation`, `data`,
 `warnings`, and `error`. Domain payloads remain operation-specific under
 `data`. Parser errors use the same envelope. See
 [CLI JSON Contract](CLI-CONTRACT.md) for operation IDs, exit classes and
-consumer migration. Preview operations do not write state; apply requires the
+consumer integration. `p2p version --format json` and
+`p2p status --format json` expose the exact release contract tuple needed by
+collaborators and WaveKit workers, including workspace schema, portable
+vertical schema, registry-v2, draft, readiness, AuthorityContext and receipt
+versions. Preview operations do not write state; apply requires the
 current token, explicit confirmation, actor and a caller-supplied idempotency
 key. Use the same key only to retry the exact same request. After an uncertain
 response, inspect the durable result without writing:
@@ -677,6 +682,8 @@ WaveKit-style server workers should use the allowlisted CLI JSON contract for
 deterministic reads, writes and recovery:
 
 ```bash
+p2p version --format json
+p2p status --format json
 p2p project snapshot --format json
 p2p proposal list --format json
 p2p proposal show PROP-001 --format json

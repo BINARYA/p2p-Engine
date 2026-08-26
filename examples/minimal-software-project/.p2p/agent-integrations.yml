@@ -1,6 +1,6 @@
 schema_version: 2
 baseline_profile: generic
-generated_at: '2026-08-25'
+generated_at: '2026-08-26'
 adapters:
   claude:
     status: installed
@@ -17,16 +17,16 @@ adapters:
       owner: generic
       managed: true
       template_id: generic-agents-md-v2
-      template_generation_id: agent-template-generation-v2:agent-capabilities-v5:generic-agents-md-v2
-      sha256: c2cbbeeda5e0e2edda75d58c88ca8eb811d0765f6adda68398daeea08daf1ad2
+      template_generation_id: agent-template-generation-v2:agent-capabilities-v9:generic-agents-md-v2
+      sha256: 9cf777cd8adb72783f2d698c5e66c859b5c549e71e1bd9338ebba1e8df8ba69e
       drift: clean
     - path: CLAUDE.md
       shared: false
       owner: claude
       managed: true
       template_id: claude-md-v2
-      template_generation_id: agent-template-generation-v2:agent-capabilities-v5:claude-md-v2
-      sha256: 626cca7aa7cc2c9f25e506b4aa7afaa048343f9cc4a2d1acfb1e929d77255817
+      template_generation_id: agent-template-generation-v2:agent-capabilities-v9:claude-md-v2
+      sha256: dec114b966b60c439c5a43c87c3c38b5a6d107e77c11a831ebbe7ede4e927552
       drift: clean
   codex:
     status: installed
@@ -43,56 +43,56 @@ adapters:
       owner: generic
       managed: true
       template_id: generic-agents-md-v2
-      template_generation_id: agent-template-generation-v2:agent-capabilities-v5:generic-agents-md-v2
-      sha256: c2cbbeeda5e0e2edda75d58c88ca8eb811d0765f6adda68398daeea08daf1ad2
+      template_generation_id: agent-template-generation-v2:agent-capabilities-v9:generic-agents-md-v2
+      sha256: 9cf777cd8adb72783f2d698c5e66c859b5c549e71e1bd9338ebba1e8df8ba69e
       drift: clean
     - path: .agents/skills/p2p-project/SKILL.md
       shared: false
       owner: codex
       managed: true
       template_id: codex-p2p-skill-v2
-      template_generation_id: agent-template-generation-v2:agent-capabilities-v5:codex-p2p-skill-v2
-      sha256: 4f26b131442751a7db09a871d1589af6e4835bed1e61874b7336733bd3ff24b0
+      template_generation_id: agent-template-generation-v2:agent-capabilities-v9:codex-p2p-skill-v2
+      sha256: 54b346e3b58f018ef3e768afa66bcd0a856fa02f06f86f96bbf81350d0df599d
       drift: clean
     - path: .agents/skills/p2p-project-curator/SKILL.md
       shared: false
       owner: codex
       managed: true
       template_id: codex-p2p-project-curator-skill-v3
-      template_generation_id: agent-template-generation-v2:agent-capabilities-v5:codex-p2p-project-curator-skill-v3
-      sha256: a2e15c013de19e517019d6b3f742aa2557ab27315645697a85f339ec16277cdd
+      template_generation_id: agent-template-generation-v2:agent-capabilities-v9:codex-p2p-project-curator-skill-v3
+      sha256: 7598b416bbf2b0f5a20f023eeb30539a4b29035f393a783eb4edb408e8beba28
       drift: clean
     - path: .agents/skills/p2p-project-curator/references/editorial-workflow.md
       shared: false
       owner: codex
       managed: true
       template_id: codex-p2p-project-curator-editorial-workflow-v3
-      template_generation_id: agent-template-generation-v2:agent-capabilities-v5:codex-p2p-project-curator-editorial-workflow-v3
-      sha256: 9417bb894da0adafa07e1c59b47835309d9a56aa1fd3460cbb934fe6b61ae676
+      template_generation_id: agent-template-generation-v2:agent-capabilities-v9:codex-p2p-project-curator-editorial-workflow-v3
+      sha256: 1d57c5854de847ccb22d8f44f82cc49057a55422bf48beda7b5ede53dc2c62ad
       drift: clean
     - path: .agents/skills/p2p-project-curator/references/publication-contracts.md
       shared: false
       owner: codex
       managed: true
       template_id: codex-p2p-project-curator-publication-contracts-v3
-      template_generation_id: agent-template-generation-v2:agent-capabilities-v5:codex-p2p-project-curator-publication-contracts-v3
-      sha256: 7358efda46bad8a531eba7fe77a306cedc5b4e38f70cee4fe599fb789d86d7e7
+      template_generation_id: agent-template-generation-v2:agent-capabilities-v9:codex-p2p-project-curator-publication-contracts-v3
+      sha256: 360d363eaea4ce789e6c4525cf666fada13dcfb43c56bb5abb01a9b4b8541c8f
       drift: clean
     - path: .agents/skills/p2p-project-curator/references/vertical-interpretation.md
       shared: false
       owner: codex
       managed: true
       template_id: codex-p2p-project-curator-vertical-interpretation-v3
-      template_generation_id: agent-template-generation-v2:agent-capabilities-v5:codex-p2p-project-curator-vertical-interpretation-v3
-      sha256: a37f37fba533d3fcd76fc0072fb667dee736c23c6512bd59c0431366f34fd898
+      template_generation_id: agent-template-generation-v2:agent-capabilities-v9:codex-p2p-project-curator-vertical-interpretation-v3
+      sha256: bae0df86ad8cf571c04832ed5bd4d5151c85d19421e7df33e1f7f6787a901cf4
       drift: clean
     - path: .agents/skills/p2p-project-curator/references/editorial-rubric.md
       shared: false
       owner: codex
       managed: true
       template_id: codex-p2p-project-curator-editorial-rubric-v3
-      template_generation_id: agent-template-generation-v2:agent-capabilities-v5:codex-p2p-project-curator-editorial-rubric-v3
-      sha256: e2766c4b0daa90dc7bb0e2fd23f5fe1b29160f94f5859bcc4aae97fd5f1146fa
+      template_generation_id: agent-template-generation-v2:agent-capabilities-v9:codex-p2p-project-curator-editorial-rubric-v3
+      sha256: f91a0ca64ae860e96951a1c1072408761a825696469ac77e932796c75fbcaa8c
       drift: clean
   copilot:
     status: installed
@@ -109,16 +109,16 @@ adapters:
       owner: generic
       managed: true
       template_id: generic-agents-md-v2
-      template_generation_id: agent-template-generation-v2:agent-capabilities-v5:generic-agents-md-v2
-      sha256: c2cbbeeda5e0e2edda75d58c88ca8eb811d0765f6adda68398daeea08daf1ad2
+      template_generation_id: agent-template-generation-v2:agent-capabilities-v9:generic-agents-md-v2
+      sha256: 9cf777cd8adb72783f2d698c5e66c859b5c549e71e1bd9338ebba1e8df8ba69e
       drift: clean
     - path: .github/copilot-instructions.md
       shared: false
       owner: copilot
       managed: true
       template_id: copilot-instructions-v2
-      template_generation_id: agent-template-generation-v2:agent-capabilities-v5:copilot-instructions-v2
-      sha256: 7ca3c6ae55f5ffde67a284b1d27733359a8e24ec5aa81474df56a710a5438e1f
+      template_generation_id: agent-template-generation-v2:agent-capabilities-v9:copilot-instructions-v2
+      sha256: 8d9f2b3f9e26402a6bc6e1847f93cbc13505432f6e27be485b5c10d7283c2cc4
       drift: clean
   cursor:
     status: installed
@@ -135,16 +135,16 @@ adapters:
       owner: generic
       managed: true
       template_id: generic-agents-md-v2
-      template_generation_id: agent-template-generation-v2:agent-capabilities-v5:generic-agents-md-v2
-      sha256: c2cbbeeda5e0e2edda75d58c88ca8eb811d0765f6adda68398daeea08daf1ad2
+      template_generation_id: agent-template-generation-v2:agent-capabilities-v9:generic-agents-md-v2
+      sha256: 9cf777cd8adb72783f2d698c5e66c859b5c549e71e1bd9338ebba1e8df8ba69e
       drift: clean
     - path: .cursor/rules/p2p.mdc
       shared: false
       owner: cursor
       managed: true
       template_id: cursor-p2p-rule-v2
-      template_generation_id: agent-template-generation-v2:agent-capabilities-v5:cursor-p2p-rule-v2
-      sha256: 3891328bfcfabf45b97f75f9349e21b7502ebd6723063b72eb58166529021d4c
+      template_generation_id: agent-template-generation-v2:agent-capabilities-v9:cursor-p2p-rule-v2
+      sha256: e721283c36de0348f324c5d90a9bc107f484e78ce4e1ec9a03977e9eb0cbf2ed
       drift: clean
   gemini:
     status: installed
@@ -161,16 +161,16 @@ adapters:
       owner: generic
       managed: true
       template_id: generic-agents-md-v2
-      template_generation_id: agent-template-generation-v2:agent-capabilities-v5:generic-agents-md-v2
-      sha256: c2cbbeeda5e0e2edda75d58c88ca8eb811d0765f6adda68398daeea08daf1ad2
+      template_generation_id: agent-template-generation-v2:agent-capabilities-v9:generic-agents-md-v2
+      sha256: 9cf777cd8adb72783f2d698c5e66c859b5c549e71e1bd9338ebba1e8df8ba69e
       drift: clean
     - path: GEMINI.md
       shared: false
       owner: gemini
       managed: true
       template_id: gemini-md-v2
-      template_generation_id: agent-template-generation-v2:agent-capabilities-v5:gemini-md-v2
-      sha256: 32824ffe35ee8327e55d02873140cc501bb2030d3f1e794a3128c720c5554e65
+      template_generation_id: agent-template-generation-v2:agent-capabilities-v9:gemini-md-v2
+      sha256: cedf20ba38f4435141ea164cbdfb74c68125bf47445470d2efe89a72ede75fb5
       drift: clean
   generic:
     status: installed
@@ -187,16 +187,16 @@ adapters:
       owner: generic
       managed: true
       template_id: generic-agents-md-v2
-      template_generation_id: agent-template-generation-v2:agent-capabilities-v5:generic-agents-md-v2
-      sha256: c2cbbeeda5e0e2edda75d58c88ca8eb811d0765f6adda68398daeea08daf1ad2
+      template_generation_id: agent-template-generation-v2:agent-capabilities-v9:generic-agents-md-v2
+      sha256: 9cf777cd8adb72783f2d698c5e66c859b5c549e71e1bd9338ebba1e8df8ba69e
       drift: clean
     - path: .p2p/agent-policy.yml
       shared: true
       owner: generic
       managed: true
       template_id: generic-agent-policy-v2
-      template_generation_id: agent-template-generation-v2:agent-capabilities-v5:generic-agent-policy-v2
-      sha256: 10aca487b878a2a2df8c01a512f9357f9b13ad663af4e928606e50ec858017b7
+      template_generation_id: agent-template-generation-v2:agent-capabilities-v9:generic-agent-policy-v2
+      sha256: c5b6134b59f884f4b9db36dc8bd7dd968793fd58e3b72bcaad97cb97b484cb9a
       drift: clean
   opencode:
     status: installed
@@ -213,6 +213,6 @@ adapters:
       owner: generic
       managed: true
       template_id: generic-agents-md-v2
-      template_generation_id: agent-template-generation-v2:agent-capabilities-v5:generic-agents-md-v2
-      sha256: c2cbbeeda5e0e2edda75d58c88ca8eb811d0765f6adda68398daeea08daf1ad2
+      template_generation_id: agent-template-generation-v2:agent-capabilities-v9:generic-agents-md-v2
+      sha256: 9cf777cd8adb72783f2d698c5e66c859b5c549e71e1bd9338ebba1e8df8ba69e
       drift: clean

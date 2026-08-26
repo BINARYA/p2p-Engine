@@ -17,7 +17,7 @@ agent_profiles:
 - generic
 - opencode
 agent_capabilities:
-  version: agent-capabilities-v5
+  version: agent-capabilities-v9
   capabilities:
   - capability_id: project.inspect
     cli_paths:
@@ -50,6 +50,77 @@ agent_capabilities:
     authority: project_domain_change
     reason: Project domain is portable classification only; changing it is receipt-backed
       and never changes project structure.
+    adapters:
+    - generic
+    - codex
+    - claude
+  - capability_id: project.structure.manage
+    cli_paths:
+    - p2p project structure show
+    - p2p project structure history
+    - p2p project structure add-section
+    - p2p project structure update-metadata
+    - p2p project structure reorder
+    mcp_tools:
+    - p2p_project_structure_show
+    - p2p_project_structure_history
+    - p2p_project_structure_add_section
+    - p2p_project_structure_update_metadata
+    - p2p_project_structure_reorder_sections
+    exposure: owner_governed
+    authority: project.structure.edit
+    reason: Project structure is the detached live shape; simple writes are revision-checked,
+      receipt-backed and consent-gated on MCP.
+    adapters:
+    - generic
+    - codex
+    - claude
+  - capability_id: project.memory.classification
+    cli_paths:
+    - p2p project memory classification
+    - p2p proposal scope show
+    - p2p proposal scope set
+    mcp_tools:
+    - p2p_project_memory_classification
+    - p2p_proposal_scope_show
+    - p2p_proposal_scope_set
+    exposure: owner_governed
+    authority: project.memory.classify
+    reason: Classification is a separate organizational axis; scope writes are revision-checked
+      and receipt-backed and never authorize decisions or change readiness.
+    adapters:
+    - generic
+    - codex
+    - claude
+  - capability_id: project.structure.retirement
+    cli_paths:
+    - p2p project structure retire preview
+    - p2p project structure retire apply
+    - p2p project structure retire status
+    mcp_tools:
+    - p2p_project_structure_retirement_preview
+    - p2p_project_structure_retirement_apply
+    exposure: owner_governed
+    authority: project.structure.retire
+    reason: Retirement is impact-previewed, disposition-driven, and applied as one
+      receipt-backed structure and memory mutation.
+    adapters:
+    - generic
+    - codex
+    - claude
+  - capability_id: project.structure.replacement
+    cli_paths:
+    - p2p project structure replace preview
+    - p2p project structure replace apply
+    - p2p project structure replace status
+    mcp_tools:
+    - p2p_project_structure_replacement_inspect
+    - p2p_project_structure_replacement_preview
+    exposure: cli_apply_mcp_read_only
+    authority: project.structure.replace
+    reason: Replacement copies one exact schema-3 release into the project-owned structure
+      with explicit dispositions; MCP can inspect and preview only, and never applies
+      or acquires a release.
     adapters:
     - generic
     - codex
@@ -93,12 +164,33 @@ agent_capabilities:
     - claude
   - capability_id: wavekit.cli.worker_contract
     cli_paths:
+    - p2p status
     - p2p version
     - p2p runtime status
     - p2p workspace schema status
     - p2p workspace transaction status
     - p2p init
     - p2p project snapshot
+    - p2p project domain show
+    - p2p project domain set
+    - p2p project domain clear
+    - p2p project structure show
+    - p2p project structure history
+    - p2p project structure add-section
+    - p2p project structure update-metadata
+    - p2p project structure reorder
+    - p2p project structure retire preview
+    - p2p project structure retire apply
+    - p2p project structure retire status
+    - p2p project structure replace preview
+    - p2p project structure replace apply
+    - p2p project structure replace status
+    - p2p project vertical export eligibility
+    - p2p project vertical export preview
+    - p2p project vertical export apply
+    - p2p project memory classification
+    - p2p proposal scope show
+    - p2p proposal scope set
     - p2p proposal list
     - p2p proposal show
     - p2p proposal create
@@ -106,6 +198,11 @@ agent_capabilities:
     - p2p proposal contribution add
     - p2p proposal contribution list
     - p2p mutation status
+    - p2p vertical domain list
+    - p2p vertical domain search
+    - p2p vertical domain inspect
+    - p2p vertical list
+    - p2p vertical search
     mcp_tools: []
     exposure: cli_only_worker_contract
     authority: serialized_server_worker
@@ -160,14 +257,34 @@ agent_capabilities:
     - generic
     - codex
     - claude
+  - capability_id: vertical.remote.discovery
+    cli_paths:
+    - p2p vertical list
+    - p2p vertical search
+    - p2p vertical domain list
+    - p2p vertical domain search
+    - p2p vertical domain inspect
+    mcp_tools:
+    - p2p_vertical_domain_list
+    - p2p_vertical_domain_search
+    - p2p_vertical_domain_inspect
+    - p2p_vertical_release_list
+    - p2p_vertical_release_search
+    exposure: cli_and_mcp_remote_network_read
+    authority: read_only_authenticated_user_when_private
+    reason: Remote catalog discovery reads provider metadata only; domain matches
+      and recommendations do not select structure or write the artifact cache.
+    adapters:
+    - generic
+    - codex
+    - claude
   - capability_id: vertical.remote.obtain
     cli_paths:
-    - p2p vertical search
     - p2p vertical pull
     mcp_tools: []
     exposure: cli_only
     authority: authenticated_user_when_private
-    reason: Remote search and immutable user-cache writes are CLI-only in this release.
+    reason: Pull is an explicit immutable user-cache write and remains CLI-only.
     adapters:
     - generic
     - codex
@@ -259,16 +376,65 @@ wavekit_cli_worker_contract:
   raw_operation_key_in_status_output: false
   preflight_commands:
   - p2p version --format json
+  - p2p status --format json
   - p2p runtime status --format json
   - p2p workspace schema status --format json
   - p2p workspace transaction status --format json
   read_commands:
   - p2p project snapshot --format json
+  - p2p project domain show --format json
+  - p2p project structure show --format json
+  - p2p project structure history --limit 20 --format json
+  - p2p project vertical export eligibility --format json
+  - p2p project memory classification --format json
   - p2p proposal list --format json
   - p2p proposal show PROP-XXX --format json
+  - p2p proposal scope show PROP-XXX --format json
   - p2p proposal contribution list PROP-XXX --format json
+  registry_v2_read_commands:
+  - p2p vertical domain list --registry REGISTRY --format json
+  - p2p vertical domain search software --registry REGISTRY --format json
+  - p2p vertical domain inspect DOMAIN-ID --registry REGISTRY --format json
+  - p2p vertical search software --registry REGISTRY --domain DOMAIN-ID --format json
+  - p2p vertical list --source remote --registry REGISTRY --domain DOMAIN-ID --format
+    json
   write_commands:
   - p2p init NAME --format json --operation-key wavekit:<uuid>
+  - p2p project domain set DOMAIN --name NAME --actor ACTOR --format json --operation-key
+    wavekit:<uuid>
+  - p2p project domain clear --actor ACTOR --format json --operation-key wavekit:<uuid>
+  - p2p project structure add-section TITLE --expected-revision REV --actor ACTOR
+    --format json --operation-key wavekit:<uuid>
+  - p2p project structure update-metadata KIND ID --expected-revision REV --actor
+    ACTOR --format json --operation-key wavekit:<uuid>
+  - p2p project structure reorder --section-id ID --expected-revision REV --actor
+    ACTOR --format json --operation-key wavekit:<uuid>
+  - p2p project structure retire preview --target section:SECTION-ID --expected-structure-revision
+    REV --expected-memory-revision SHA256 --plan retirement-plan.yml --actor ACTOR
+    --format json
+  - p2p project structure retire apply --target section:SECTION-ID --expected-structure-revision
+    REV --expected-memory-revision SHA256 --preview-token TOKEN --operation-key wavekit:<uuid>
+    --plan retirement-plan.yml --actor ACTOR --confirm --format json
+  - p2p project structure retire status --operation-key wavekit:<uuid> --format json
+  - p2p project structure replace preview COORDINATE --expected-structure-revision
+    REV --expected-memory-revision SHA256 --plan replacement-plan.yml --actor ACTOR
+    --format json
+  - p2p project structure replace apply COORDINATE --expected-structure-revision REV
+    --expected-memory-revision SHA256 --preview-token TOKEN --operation-key wavekit:<uuid>
+    --plan replacement-plan.yml --actor ACTOR --confirm --format json
+  - p2p project structure replace status --operation-key wavekit:<uuid> --format json
+  - p2p project vertical export preview --publisher PUBLISHER --id VERTICAL-ID --version
+    VERSION --name NAME --license LICENSE --primary-domain-key DOMAIN --primary-domain-name
+    NAME --lineage-mode independent --format json
+  - p2p project vertical export apply --target build/vertical --output dist/vertical.p2pv
+    --publisher PUBLISHER --id VERTICAL-ID --version VERSION --name NAME --license
+    LICENSE --primary-domain-key DOMAIN --primary-domain-name NAME --lineage-mode
+    independent --expected-structure-revision REV --expected-structure-checksum SHA256
+    --token TOKEN --idempotency-key wavekit:<uuid> --confirm --actor ACTOR --format
+    json
+  - p2p proposal scope set PROP-XXX --kind sections --section-id ID --expected-memory-revision
+    SHA256 --expected-structure-revision REV --actor ACTOR --format json --operation-key
+    wavekit:<uuid>
   - p2p proposal create TITLE --format json --operation-key wavekit:<uuid>
   - p2p proposal update PROP-XXX --proposal TEXT --format json --operation-key wavekit:<uuid>
   - p2p proposal contribution add PROP-XXX TEXT --type suggestion --format json --operation-key
@@ -390,14 +556,14 @@ artifact_contract_policy:
 routing_playbook:
   chat_only_exploration: Analyze, compare, critique, or suggest in chat without writing
     persistent state.
-  project_definition_work: Use project vertical/context/definition primitives before
+  project_definition_work: Use project structure/context/definition primitives before
     creating durable artifacts.
   proposal_authoring: Use proposal, contribution, questions, artifact, or import primitives;
     never edit .p2p directly.
   choices: Use choice discovery/show/decision primitives and leave owner-controlled
     decisions to the owner.
-  vertical_specific_primitives: Use the active vertical lifecycle, such as software-spec
-    primitives from PROP-094 when available.
+  vertical_specific_primitives: Use applicable release-specific primitives without
+    treating source identity as live project structure.
   implementation_work: For implementation work outside `.p2p/`, use repository specs,
     src, tests, and docs.
   exact_file_requests: Write the requested repository path only when the owner specified
@@ -480,6 +646,18 @@ project_vertical_orchestration:
   prioritize_when_missing_or_fallback: true
   review_command: p2p project readiness review
   commands:
+  - p2p project structure show --format json
+  - p2p project structure history --limit 20 --format json
+  - p2p project structure add-section <title> --expected-revision <n> --operation-key
+    <key> --format json
+  - p2p project structure update-metadata <kind> <id> --expected-revision <n> --operation-key
+    <key> --format json
+  - p2p project structure reorder --section-id <id> ... --expected-revision <n> --operation-key
+    <key> --format json
+  - p2p project memory classification --format json
+  - p2p proposal scope show PROP-XXX --format json
+  - p2p proposal scope set PROP-XXX --kind sections --section-id <id> --expected-memory-revision
+    <sha256> --expected-structure-revision <n> --operation-key <key> --format json
   - p2p project vertical list
   - p2p project vertical show <vertical-id>
   - p2p project context --format json
@@ -489,6 +667,13 @@ project_vertical_orchestration:
     <version> --name <name> --license <spdx-id>
   - p2p project vertical validate <directory>
   - p2p project vertical package <directory> --output <pack.p2pv>
+  - p2p project vertical export eligibility --format json
+  - p2p project vertical export preview --publisher <publisher> --id <id> --version
+    <version> --name <name> --license <spdx-id> --primary-domain-key <key> --primary-domain-name
+    <name> --lineage-mode derived|independent --format json
+  - p2p project vertical export apply --target <directory> --output <pack.p2pv> --expected-structure-revision
+    <n> --expected-structure-checksum <sha256> --token <preview-token> --idempotency-key
+    <key> --confirm --format json
   - p2p project vertical install preview <pack.p2pv> --expected-checksum <sha256>
     --actor <owner>
   - p2p project vertical adopt preview <publisher/id@version> --actor <owner>
@@ -496,6 +681,16 @@ project_vertical_orchestration:
   - p2p project vertical lock show
   - p2p project readiness review
   mcp_tools:
+  - p2p_project_structure_show
+  - p2p_project_structure_history
+  - p2p_project_structure_export_eligibility
+  - p2p_project_structure_export_preview
+  - p2p_project_structure_add_section
+  - p2p_project_structure_update_metadata
+  - p2p_project_structure_reorder_sections
+  - p2p_project_memory_classification
+  - p2p_proposal_scope_show
+  - p2p_proposal_scope_set
   - p2p_project_vertical_list
   - p2p_project_vertical_show
   - p2p_project_vertical_validate
@@ -508,6 +703,18 @@ project_vertical_orchestration:
   - p2p_project_definition_update
   - p2p_project_readiness_review
   owner_confirms_add_or_select: true
+  project_structure_is_live_authority: true
+  origin_is_provenance_only: true
+  structure_mutation_capability: project.structure.edit
+  memory_classification_capability: project.memory.classify
+  proposal_creation_scope: unassigned
+  authority_creating_decision_requires_explicit_scope: true
+  classification_changes_readiness: false
+  readiness_contract: p2p-project-readiness/v2
+  readiness_axes:
+  - definition
+  - evidence
+  classification_authorizes_decision: false
   init_remains_deterministic: true
   one_primary_question_at_a_time: true
   pack_content_is_domain_data_only: true

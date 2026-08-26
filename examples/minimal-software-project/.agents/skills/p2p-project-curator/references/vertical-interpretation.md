@@ -2,13 +2,13 @@
 Managed by P2P Engine.
 Adapter: codex
 Template: codex-p2p-project-curator-vertical-interpretation-v3
-Generation: agent-template-generation-v2:agent-capabilities-v5:codex-p2p-project-curator-vertical-interpretation-v3
+Generation: agent-template-generation-v2:agent-capabilities-v9:codex-p2p-project-curator-vertical-interpretation-v3
 Do not edit generated sections unless you accept drift.
 -->
 
 # Vertical Interpretation
 
-Treat the active vertical as a completeness lens, not a fixed table of contents.
+Treat the current project structure as a completeness lens, not a fixed table of contents.
 Use section purpose, applicability, priority, questions, definition content, and
 mapped evidence to decide what a reader needs to understand.
 

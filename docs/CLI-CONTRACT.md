@@ -1,6 +1,6 @@
 # CLI JSON Contract
 
-P2P Engine 0.4.11 exposes one machine-facing CLI transport contract:
+P2P Engine 0.5.0 exposes one machine-facing CLI transport contract:
 `p2p-cli/v1`. Every command that accepts `--format json`, including commands
 whose format defaults to JSON, emits exactly one JSON document to stdout.
 
@@ -88,6 +88,14 @@ Parser failures are JSON and therefore do not require a separate stderr parser.
 
 MCP responses are protocol-native and are not wrapped in `p2p-cli/v1`.
 
+`p2p version --format json` returns the complete release contract tuple.
+`p2p status --format json` returns the same tuple under
+`data.contract_versions` beside the read-only workspace status. The tuple
+includes engine, CLI envelope, workspace schema, portable vertical schema,
+portable package format, registry protocol, registry config, vertical draft,
+project-domain, project-structure, project-memory, readiness, AuthorityContext
+and mutation-receipt contract versions.
+
 ## Governed Authority Input
 
 Schema-4 governed mutations declare a capability from the public registry:
@@ -125,6 +133,7 @@ Startup and recovery probes:
 
 ```bash
 p2p version --format json
+p2p status --format json
 p2p runtime status --format json
 p2p workspace schema status --format json
 p2p workspace transaction status --format json
@@ -134,11 +143,27 @@ Project and proposal reads:
 
 ```bash
 p2p project snapshot --format json
+p2p project domain show --format json
+p2p project structure show --format json
+p2p project structure history --limit 20 --format json
+p2p project vertical export eligibility --format json
 p2p project memory classification --format json
 p2p proposal list --format json
 p2p proposal show PROP-001 --format json
 p2p proposal scope show PROP-001 --format json
 p2p proposal contribution list PROP-001 --type suggestion --format json
+```
+
+Registry-v2 reads are provider-neutral and advisory. They can perform explicit
+remote network reads, but they do not prove compatibility, pull artifacts,
+initialize projects, change structure or grant publisher/moderation rights:
+
+```bash
+p2p vertical domain list --registry REGISTRY --format json
+p2p vertical domain search software --registry REGISTRY --format json
+p2p vertical domain inspect DOMAIN-ID --registry REGISTRY --format json
+p2p vertical search software --registry REGISTRY --domain DOMAIN-ID --format json
+p2p vertical list --source remote --registry REGISTRY --domain DOMAIN-ID --format json
 ```
 
 WaveKit-facing writes use its persisted operation identity:
@@ -214,6 +239,11 @@ p2p proposal readiness assess PROP-001
 Local MCP exposes the same atomic assessment semantics through
 `p2p_proposal_readiness_assess`, but its response remains protocol-native and
 does not implement the WaveKit CLI receipt envelope.
+
+The deterministic worker fixture for this release is packaged as
+`p2p_engine/resources/contracts/wavekit-cli-fixtures-v1.json`. It is generated
+from the current agent policy and validated by the convergence gate; workers
+can compare it with the installed runtime without reading P2P internals.
 
 Overall project definition completeness is a separate derived, read-only
 surface. Use `project snapshot`, `project progress` or `project readiness`

@@ -95,6 +95,13 @@ jobs:
       - name: Verify distribution artifacts
         run: python scripts/verify-release-artifacts.py
 
+      - name: Run installed wheel smoke tests
+        run: |
+          python -m venv .release-wheel-venv
+          .release-wheel-venv/bin/python -m pip install "dist/p2p_engine-${GITHUB_REF_NAME#v}-py3-none-any.whl"
+          .release-wheel-venv/bin/python -m pip install pytest
+          PYTEST_BIN=.release-wheel-venv/bin/pytest ./scripts/test-installed.sh -q
+
       - name: Create release notes
         run: |
           cat > release-notes.md <<EOF

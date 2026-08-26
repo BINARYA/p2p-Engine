@@ -66,6 +66,23 @@ def test_release_verifier_requires_current_agent_surface_members() -> None:
     } <= MODULE.CURRENT_SURFACE_SDIST_MEMBERS
 
 
+def test_release_verifier_requires_convergence_gate_members() -> None:
+    assert {
+        "p2p_engine/core/release_contracts.py",
+        "p2p_engine/services/release_convergence.py",
+        "p2p_engine/resources/contracts/__init__.py",
+        "p2p_engine/resources/contracts/wavekit-cli-fixtures-v1.json",
+    } <= MODULE.RELEASE_CONVERGENCE_WHEEL_MEMBERS
+    assert {
+        "src/p2p_engine/core/release_contracts.py",
+        "src/p2p_engine/services/release_convergence.py",
+        "src/p2p_engine/resources/contracts/wavekit-cli-fixtures-v1.json",
+        "scripts/verify-convergence-gate.py",
+        "docs/development/project-structure-surface-convergence.md",
+        "tests/test_release_convergence.py",
+    } <= MODULE.RELEASE_CONVERGENCE_SDIST_MEMBERS
+
+
 def test_release_verifier_requires_typed_vertical_transition_contract() -> None:
     assert {
         "p2p_engine/core/vertical_transition_impact.py",

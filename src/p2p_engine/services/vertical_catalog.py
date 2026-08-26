@@ -34,7 +34,6 @@ from p2p_engine.storage.filesystem import P2PWorkspace
 
 _CACHE_SCHEMA_VERSION = 1
 _SUPPORTED_CACHE_PROTOCOLS = {
-    "p2p-vertical-registry/v1",
     VERTICAL_REGISTRY_PROTOCOL_VERSION,
 }
 

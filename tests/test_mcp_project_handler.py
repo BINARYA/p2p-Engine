@@ -6,6 +6,7 @@ import pytest
 from typer.testing import CliRunner
 
 from p2p_engine.cli import app
+from p2p_engine.core.release_contracts import current_contract_versions
 from p2p_engine.mcp.handlers.project import handle_project_tool
 from p2p_engine.mcp.registry import tool_definitions
 from p2p_engine.mcp.tools import call_tool
@@ -64,6 +65,7 @@ def test_mcp_workspace_schema_status_is_read_only_and_migrations_are_absent(tmp_
 
     after = sorted(path.relative_to(tmp_path) for path in tmp_path.rglob("*"))
     assert schema["workspace_schema"] == workspace.workspace_schema_status().to_dict()
+    assert schema["contract_versions"] == current_contract_versions()
     assert schema["mutation_performed"] is False
     assert before == after
     assert {
