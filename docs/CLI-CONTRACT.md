@@ -151,6 +151,9 @@ p2p project domain clear --actor ACTOR --format json --operation-key wavekit:<uu
 p2p project structure add-section "Distribution" --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>
 p2p project structure update-metadata section distribution --title "Distribution model" --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>
 p2p project structure reorder --section-id distribution --section-id scope --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>
+p2p project structure retire preview --target section:distribution --expected-structure-revision REV --expected-memory-revision SHA256 --plan retirement-plan.yml --actor ACTOR --format json
+p2p project structure retire apply --target section:distribution --expected-structure-revision REV --expected-memory-revision SHA256 --preview-token TOKEN --operation-key wavekit:<uuid> --plan retirement-plan.yml --actor ACTOR --confirm --format json
+p2p project structure retire status --operation-key wavekit:<uuid> --format json
 p2p proposal create "Title" --proposal "..." --format json --operation-key wavekit:<uuid>
 p2p proposal scope set PROP-001 --kind sections --section-id distribution --expected-memory-revision SHA256 --expected-structure-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>
 p2p proposal update PROP-001 --proposal "..." --format json --operation-key wavekit:<uuid>

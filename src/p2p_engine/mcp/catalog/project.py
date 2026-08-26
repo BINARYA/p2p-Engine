@@ -119,6 +119,72 @@ def tool_definitions() -> list[dict[str, object]]:
             ['section_ids', 'expected_revision', 'actor_id', 'consent_id', 'operation_key'],
         ),
         _tool(
+            'p2p_project_structure_retirement_preview',
+            'Preview governed retirement of structure elements and required memory dispositions.',
+            {
+                'root': {'type': 'string'},
+                'targets': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'kind': {'type': 'string', 'enum': ['section', 'field', 'question', 'criterion', 'artifact']},
+                            'id': {'type': 'string'},
+                            'section_id': {'type': 'string'},
+                        },
+                        'required': ['kind', 'id'],
+                    },
+                },
+                'expected_structure_revision': {'type': 'integer', 'minimum': 1},
+                'expected_memory_revision': {'type': 'string'},
+                'plan': {'type': 'object'},
+                'actor_id': {'type': 'string'},
+                'executor_id': {'type': 'string'},
+                'executor_kind': {'type': 'string', 'enum': ['person', 'user', 'agent', 'mcp_client', 'client']},
+                'limit': {'type': 'integer', 'minimum': 1, 'maximum': 1000},
+            },
+            ['targets', 'expected_structure_revision', 'expected_memory_revision', 'actor_id'],
+        ),
+        _tool(
+            'p2p_project_structure_retirement_apply',
+            'Consent-gated receipt-backed retirement of structure elements and resolved memory impacts.',
+            {
+                'root': {'type': 'string'},
+                'targets': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'kind': {'type': 'string', 'enum': ['section', 'field', 'question', 'criterion', 'artifact']},
+                            'id': {'type': 'string'},
+                            'section_id': {'type': 'string'},
+                        },
+                        'required': ['kind', 'id'],
+                    },
+                },
+                'expected_structure_revision': {'type': 'integer', 'minimum': 1},
+                'expected_memory_revision': {'type': 'string'},
+                'preview_token': {'type': 'string'},
+                'plan': {'type': 'object'},
+                'confirm': {'type': 'boolean'},
+                'actor_id': {'type': 'string'},
+                'executor_id': {'type': 'string'},
+                'executor_kind': {'type': 'string', 'enum': ['person', 'user', 'agent', 'mcp_client', 'client']},
+                'consent_id': {'type': 'string'},
+                'operation_key': {'type': 'string'},
+                'limit': {'type': 'integer', 'minimum': 1, 'maximum': 1000},
+            },
+            [
+                'targets',
+                'expected_structure_revision',
+                'expected_memory_revision',
+                'preview_token',
+                'actor_id',
+                'consent_id',
+                'operation_key',
+            ],
+        ),
+        _tool(
             'p2p_project_memory_classification',
             (
                 'Read bounded project-memory organization against the canonical project '

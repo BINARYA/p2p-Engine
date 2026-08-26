@@ -5,12 +5,20 @@ import uuid
 
 import typer
 
+from p2p_engine.core.project_structure_retirement import (
+    structure_retirement_plan_from_mapping,
+    structure_retirement_target_from_text,
+)
 from p2p_engine.cli_contract import print_json, success_envelope
 from p2p_engine.cli_shared import console, fail, workspace as workspace_for, yaml_dump_for_cli
+from p2p_engine.foundation.yaml_loaders import UNIQUE_LOADER_CONTRACT, load_yaml
 from p2p_engine.services.authority import AuthorityContractCodec
 
 
 def register_project_structure_commands(structure_app: typer.Typer) -> None:
+    retire_app = typer.Typer(help="Preview and apply governed structure retirement")
+    structure_app.add_typer(retire_app, name="retire")
+
     @structure_app.command("show")
     def structure_show(
         include_retired: bool = typer.Option(False, "--include-retired", help="Include retired structural elements"),
@@ -153,6 +161,115 @@ def register_project_structure_commands(structure_app: typer.Typer) -> None:
             public_operation="project.structure.reorder",
         )
 
+    @retire_app.command("preview")
+    def retire_preview(
+        target: list[str] = typer.Option(..., "--target", help="Target as kind:id; repeat for multiple targets"),
+        expected_structure_revision: int = typer.Option(..., "--expected-structure-revision", min=1),
+        expected_memory_revision: str = typer.Option(..., "--expected-memory-revision"),
+        plan: Path | None = typer.Option(None, "--plan", help="YAML disposition plan"),
+        actor: str = typer.Option("owner", "--actor"),
+        executor: str = typer.Option("", "--executor"),
+        executor_kind: str = typer.Option("person", "--executor-kind"),
+        authority_context: Path | None = typer.Option(None, "--authority-context"),
+        limit: int = typer.Option(100, "--limit", min=1, max=1000),
+        output_format: str = typer.Option("text", "--format"),
+        root: Path = typer.Option(Path.cwd(), "--root"),
+    ) -> None:
+        normalized = _output_format(output_format)
+        context = _authority_context(authority_context, normalized)
+        try:
+            parsed_targets = [
+                structure_retirement_target_from_text(item) for item in target
+            ]
+            parsed_plan = _load_retirement_plan(plan)
+            preview = workspace_for(root).preview_project_structure_retirement(
+                targets=parsed_targets,
+                expected_structure_revision=expected_structure_revision,
+                expected_memory_revision=expected_memory_revision,
+                actor_id=actor,
+                executor_id=executor or actor,
+                executor_kind=executor_kind,
+                plan=parsed_plan,
+                authority_context=context,
+                channel="cli",
+                limit=limit,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        _emit(
+            "project.structure.retire.preview",
+            {"project_structure_retirement_preview": preview.to_dict()},
+            normalized,
+        )
+
+    @retire_app.command("apply")
+    def retire_apply(
+        target: list[str] = typer.Option(..., "--target", help="Target as kind:id; repeat for multiple targets"),
+        expected_structure_revision: int = typer.Option(..., "--expected-structure-revision", min=1),
+        expected_memory_revision: str = typer.Option(..., "--expected-memory-revision"),
+        preview_token: str = typer.Option(..., "--preview-token"),
+        operation_key: str = typer.Option(..., "--operation-key"),
+        plan: Path | None = typer.Option(None, "--plan", help="YAML disposition plan"),
+        confirm: bool = typer.Option(False, "--confirm"),
+        actor: str = typer.Option("owner", "--actor"),
+        executor: str = typer.Option("", "--executor"),
+        executor_kind: str = typer.Option("person", "--executor-kind"),
+        authority_context: Path | None = typer.Option(None, "--authority-context"),
+        limit: int = typer.Option(100, "--limit", min=1, max=1000),
+        output_format: str = typer.Option("text", "--format"),
+        root: Path = typer.Option(Path.cwd(), "--root"),
+    ) -> None:
+        normalized = _output_format(output_format)
+        if not operation_key.strip():
+            fail("P2P_IDEMPOTENCY_KEY_REQUIRED: retirement apply requires --operation-key")
+        context = _authority_context(authority_context, normalized)
+        try:
+            parsed_targets = [
+                structure_retirement_target_from_text(item) for item in target
+            ]
+            parsed_plan = _load_retirement_plan(plan)
+            result = workspace_for(root).apply_project_structure_retirement(
+                targets=parsed_targets,
+                expected_structure_revision=expected_structure_revision,
+                expected_memory_revision=expected_memory_revision,
+                preview_token=preview_token,
+                operation_key=operation_key,
+                confirm=confirm,
+                actor_id=actor,
+                executor_id=executor or actor,
+                executor_kind=executor_kind,
+                plan=parsed_plan,
+                authority_context=context,
+                channel="cli",
+                limit=limit,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        _emit(
+            "project.structure.retire.apply",
+            {"project_structure_retirement": result.to_dict()},
+            normalized,
+        )
+
+    @retire_app.command("status")
+    def retire_status(
+        operation_key: str = typer.Option(..., "--operation-key", "--idempotency-key"),
+        output_format: str = typer.Option("text", "--format"),
+        root: Path = typer.Option(Path.cwd(), "--root"),
+    ) -> None:
+        normalized = _output_format(output_format)
+        try:
+            status = workspace_for(root).mutation_status(
+                idempotency_key=operation_key,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        _emit(
+            "project.structure.retire.status",
+            {"mutation_status": status.to_dict()},
+            normalized,
+        )
+
 
 def _change(
     *,
@@ -194,6 +311,33 @@ def _change(
     except ValueError as exc:
         fail(str(exc))
     _emit(public_operation, {"project_structure_mutation": result.to_dict()}, normalized)
+
+
+def _authority_context(
+    authority_context: Path | None,
+    output_format: str,
+):
+    if output_format != "json" and authority_context is not None:
+        fail("P2P_AUTHORITY_CONTEXT_INVALID: --authority-context requires --format json")
+    if authority_context is None:
+        return None
+    try:
+        return AuthorityContractCodec().context_from_path(authority_context)
+    except ValueError as exc:
+        fail(str(exc))
+
+
+def _load_retirement_plan(path: Path | None):
+    if path is None:
+        return None
+    try:
+        payload = load_yaml(
+            path.read_bytes(),
+            loader_contract=UNIQUE_LOADER_CONTRACT,
+        )
+        return structure_retirement_plan_from_mapping(payload)
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        fail(str(exc))
 
 
 def _emit(operation: str, payload: dict[str, object], output_format: str) -> None:

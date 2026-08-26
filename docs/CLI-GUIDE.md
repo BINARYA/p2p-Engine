@@ -93,11 +93,21 @@ p2p project structure update-metadata section distribution \
   --operation-key local:structure-002 --format json
 p2p project structure reorder --section-id distribution --section-id scope \
   --expected-revision 3 --operation-key local:structure-003 --format json
+p2p project structure retire preview --target section:distribution \
+  --expected-structure-revision 4 --expected-memory-revision SHA256 \
+  --plan retirement-plan.yml --format json
+p2p project structure retire apply --target section:distribution \
+  --expected-structure-revision 4 --expected-memory-revision SHA256 \
+  --preview-token TOKEN --operation-key local:structure-retire-001 \
+  --plan retirement-plan.yml --confirm --format json
+p2p project structure retire status \
+  --operation-key local:structure-retire-001 --format json
 ```
 
 The source release and origin checksum remain provenance only. Source updates
-do not change an initialized project. Retirement, release replacement and
-merge are separate impact-aware operations, not generic metadata updates.
+do not change an initialized project. Retirement is impact-previewed and
+disposition-driven; release replacement and merge remain separate operations,
+not generic metadata updates.
 
 Typical first checks:
 

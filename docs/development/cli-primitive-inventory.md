@@ -182,6 +182,9 @@ e [`project_status.py`](../../src/p2p_engine/cli_commands/project_status.py).
 | `p2p project structure add-section` | `C/O` | Aggiunge una sezione con expected revision, capability e receipt idempotente. |
 | `p2p project structure update-metadata` | `C/O` | Modifica metadati bounded preservando l'ID stabile. |
 | `p2p project structure reorder` | `C/O` | Riordina l'insieme esatto delle sezioni attive. |
+| `p2p project structure retire preview` | `C/O` | Calcola impatti e disposition richieste senza mutare stato. |
+| `p2p project structure retire apply` | `C/O` | Applica retirement token-bound con disposition e receipt idempotente. |
+| `p2p project structure retire status` | `R` | Legge lo stato receipt della retirement tramite operation key. |
 
 ### Profilo remoto
 

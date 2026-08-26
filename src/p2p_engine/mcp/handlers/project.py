@@ -4,6 +4,9 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
+from p2p_engine.core.project_structure_retirement import (
+    structure_retirement_plan_from_mapping,
+)
 from p2p_engine.core.project_domain import ProjectDomainRef
 from p2p_engine.mcp.handlers.common import optional_string, required, to_jsonable
 from p2p_engine.storage.filesystem import P2PWorkspace
@@ -43,6 +46,10 @@ def handle_project_tool(
         "p2p_project_structure_reorder_sections",
     }:
         return _project_structure_mutation(workspace, name, arguments)
+    if name == "p2p_project_structure_retirement_preview":
+        return _project_structure_retirement_preview(workspace, arguments)
+    if name == "p2p_project_structure_retirement_apply":
+        return _project_structure_retirement_apply(workspace, arguments)
     if name == "p2p_project_memory_classification":
         return {
             "memory_classification": workspace.project_memory_classification().to_dict(
@@ -467,6 +474,107 @@ def _project_structure_mutation(
         "consent": to_jsonable(consumed),
         "mutation_performed": result.status == "applied",
     }
+
+
+def _project_structure_retirement_preview(
+    workspace: P2PWorkspace,
+    arguments: dict[str, Any],
+) -> dict[str, object]:
+    actor_id = required(arguments, "actor_id")
+    result = workspace.preview_project_structure_retirement(
+        targets=_retirement_targets(arguments),
+        expected_structure_revision=int(arguments.get("expected_structure_revision", 0)),
+        expected_memory_revision=required(arguments, "expected_memory_revision"),
+        actor_id=actor_id,
+        executor_id=str(arguments.get("executor_id") or actor_id),
+        executor_kind=str(arguments.get("executor_kind") or "person"),
+        plan=_retirement_plan(arguments),
+        channel="mcp",
+        limit=int(arguments.get("limit", 100)),
+    )
+    return {
+        "project_structure_retirement_preview": result.to_dict(),
+        "mutation_performed": False,
+    }
+
+
+def _project_structure_retirement_apply(
+    workspace: P2PWorkspace,
+    arguments: dict[str, Any],
+) -> dict[str, object]:
+    actor_id = required(arguments, "actor_id")
+    consent_id = required(arguments, "consent_id")
+    consent_operation = "project_structure_retire_apply"
+    consent = workspace.consent_show(consent_id)
+    consent_sha256: str | None = None
+    if consent.status == "granted":
+        workspace.consent_validate(
+            consent_id,
+            operation=consent_operation,
+            target="project-structure",
+            actor_id=actor_id,
+        )
+        consent_sha256 = hashlib.sha256(
+            (workspace.root / consent.path).read_bytes()
+        ).hexdigest()
+    elif consent.status != "consumed":
+        raise ValueError(f"Consent receipt is not granted: {consent_id}")
+    result = workspace.apply_project_structure_retirement(
+        targets=_retirement_targets(arguments),
+        expected_structure_revision=int(arguments.get("expected_structure_revision", 0)),
+        expected_memory_revision=required(arguments, "expected_memory_revision"),
+        preview_token=required(arguments, "preview_token"),
+        operation_key=required(arguments, "operation_key"),
+        confirm=bool(arguments.get("confirm", False)),
+        actor_id=actor_id,
+        executor_id=str(arguments.get("executor_id") or actor_id),
+        executor_kind=str(arguments.get("executor_kind") or "person"),
+        plan=_retirement_plan(arguments),
+        channel="mcp",
+        consent_id=consent_id,
+        consent_sha256=consent_sha256,
+        limit=int(arguments.get("limit", 100)),
+    )
+    consumed = consent
+    if consent.status == "granted":
+        consumed = workspace.consent_consume(
+            consent_id,
+            result={
+                "operation": consent_operation,
+                "target": "project-structure",
+                "actor_id": actor_id,
+                "structure_revision": result.current.revision,
+                "structure_checksum": result.current.checksum,
+                "memory_revision": result.current_memory_revision,
+                "mutation_status": result.status,
+            },
+        )
+    return {
+        "project_structure_retirement": result.to_dict(),
+        "consent": to_jsonable(consumed),
+        "mutation_performed": result.status == "applied",
+    }
+
+
+def _retirement_targets(arguments: dict[str, Any]) -> list[dict[str, object]]:
+    raw_targets = arguments.get("targets")
+    if not isinstance(raw_targets, list) or not raw_targets:
+        raise ValueError("Expected non-empty list argument: targets")
+    targets: list[dict[str, object]] = []
+    for item in raw_targets:
+        if not isinstance(item, dict):
+            raise ValueError("Expected object entries in argument: targets")
+        targets.append(dict(item))
+    return targets
+
+
+def _retirement_plan(arguments: dict[str, Any]):
+    raw_plan = arguments.get("plan")
+    if raw_plan is None:
+        return None
+    if not isinstance(raw_plan, dict):
+        raise ValueError("Expected object argument: plan")
+    return structure_retirement_plan_from_mapping(raw_plan)
 
 
 def _project_memory_scope_mutation(

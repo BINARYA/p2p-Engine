@@ -5,7 +5,7 @@ import json
 from dataclasses import asdict, dataclass
 
 
-AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v7"
+AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v8"
 
 
 @dataclass(frozen=True)
@@ -101,6 +101,24 @@ AGENT_CAPABILITIES = (
         ),
     ),
     AgentCapability(
+        capability_id="project.structure.retirement",
+        cli_paths=(
+            "p2p project structure retire preview",
+            "p2p project structure retire apply",
+            "p2p project structure retire status",
+        ),
+        mcp_tools=(
+            "p2p_project_structure_retirement_preview",
+            "p2p_project_structure_retirement_apply",
+        ),
+        exposure="owner_governed",
+        authority="project.structure.retire",
+        reason=(
+            "Retirement is impact-previewed, disposition-driven, and applied as "
+            "one receipt-backed structure and memory mutation."
+        ),
+    ),
+    AgentCapability(
         capability_id="proposal.governance",
         cli_paths=(
             "p2p proposal list",
@@ -153,6 +171,9 @@ AGENT_CAPABILITIES = (
             "p2p project structure add-section",
             "p2p project structure update-metadata",
             "p2p project structure reorder",
+            "p2p project structure retire preview",
+            "p2p project structure retire apply",
+            "p2p project structure retire status",
             "p2p project memory classification",
             "p2p proposal scope show",
             "p2p proposal scope set",

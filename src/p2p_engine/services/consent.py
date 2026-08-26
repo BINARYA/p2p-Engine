@@ -17,6 +17,7 @@ CONSENT_OPERATIONS = {
     "project_structure_add_section",
     "project_structure_update_metadata",
     "project_structure_reorder_sections",
+    "project_structure_retire_apply",
     "project_memory_scope_set",
     "proposal_decision_apply",
     "proposal_accept",

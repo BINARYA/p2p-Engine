@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
 import hashlib
 from pathlib import Path
@@ -44,6 +44,12 @@ from p2p_engine.core.project_structure import (
     ProjectStructure,
     ProjectStructureHistory,
     ProjectStructureMutationResult,
+)
+from p2p_engine.core.project_structure_retirement import (
+    ProjectStructureRetirementPreview,
+    ProjectStructureRetirementResult,
+    StructureRetirementPlan,
+    StructureRetirementTarget,
 )
 from p2p_engine.core.project_memory import (
     MemoryClassificationSnapshot,
@@ -204,6 +210,7 @@ from p2p_engine.services.proposals import (
 from p2p_engine.services.project_assessment import ProjectAssessment, ProjectAssessmentService
 from p2p_engine.services.project_domain import ProjectDomainService
 from p2p_engine.services.project_structure import ProjectStructureService
+from p2p_engine.services.project_structure_retirement import ProjectStructureRetirementService
 from p2p_engine.services.project_memory import ProjectMemoryService
 from p2p_engine.services.project_contexts import ProjectContextRendererService
 from p2p_engine.services.project_maturity import (
@@ -389,6 +396,9 @@ class P2PWorkspace:
         ) = None
         self._project_domain_service_instance: ProjectDomainService | None = None
         self._project_structure_service_instance: ProjectStructureService | None = None
+        self._project_structure_retirement_service_instance: (
+            ProjectStructureRetirementService | None
+        ) = None
         self._project_memory_service_instance: ProjectMemoryService | None = None
         self._project_maturity_service_instance: ProjectMaturityService | None = None
         self._project_metadata_service_instance: ProjectMetadataService | None = None
@@ -481,6 +491,21 @@ class P2PWorkspace:
                 receipts=self._mutation_receipt_service(),
             )
         return self._project_structure_service_instance
+
+    def _project_structure_retirement_service(self) -> ProjectStructureRetirementService:
+        if self._project_structure_retirement_service_instance is None:
+            self._project_structure_retirement_service_instance = (
+                ProjectStructureRetirementService(
+                    root=self.root,
+                    p2p_dir=self.p2p_dir,
+                    structure_service=self._project_structure_service(),
+                    memory_service=self._project_memory_service(),
+                    question_service=self._project_question_state_service(),
+                    authority=self._project_authority_service(),
+                    receipts=self._mutation_receipt_service(),
+                )
+            )
+        return self._project_structure_retirement_service_instance
 
     def _project_memory_service(self) -> ProjectMemoryService:
         if self._project_memory_service_instance is None:
@@ -2978,6 +3003,72 @@ class P2PWorkspace:
             channel=channel,
             consent_id=consent_id,
             consent_sha256=consent_sha256,
+        )
+
+    def preview_project_structure_retirement(
+        self,
+        *,
+        targets: Sequence[StructureRetirementTarget | Mapping[str, object]],
+        expected_structure_revision: int,
+        expected_memory_revision: str,
+        actor_id: str,
+        executor_id: str,
+        executor_kind: str,
+        plan: StructureRetirementPlan | Mapping[str, object] | None = None,
+        authority_context: AuthorityContext | None = None,
+        channel: str = "cli",
+        limit: int = 100,
+    ) -> ProjectStructureRetirementPreview:
+        self._ensure_runtime_write_allowed("project_structure_retirement")
+        return self._project_structure_retirement_service().preview(
+            targets=targets,
+            expected_structure_revision=expected_structure_revision,
+            expected_memory_revision=expected_memory_revision,
+            actor_id=actor_id,
+            executor_id=executor_id,
+            executor_kind=executor_kind,
+            plan=plan,
+            authority_context=authority_context,
+            channel=channel,
+            limit=limit,
+        )
+
+    def apply_project_structure_retirement(
+        self,
+        *,
+        targets: Sequence[StructureRetirementTarget | Mapping[str, object]],
+        expected_structure_revision: int,
+        expected_memory_revision: str,
+        preview_token: str,
+        operation_key: str,
+        confirm: bool,
+        actor_id: str,
+        executor_id: str,
+        executor_kind: str,
+        plan: StructureRetirementPlan | Mapping[str, object],
+        authority_context: AuthorityContext | None = None,
+        channel: str = "cli",
+        consent_id: str | None = None,
+        consent_sha256: str | None = None,
+        limit: int = 100,
+    ) -> ProjectStructureRetirementResult:
+        self._ensure_runtime_write_allowed("project_structure_retirement")
+        return self._project_structure_retirement_service().apply(
+            targets=targets,
+            expected_structure_revision=expected_structure_revision,
+            expected_memory_revision=expected_memory_revision,
+            preview_token=preview_token,
+            operation_key=operation_key,
+            confirm=confirm,
+            actor_id=actor_id,
+            executor_id=executor_id,
+            executor_kind=executor_kind,
+            plan=plan,
+            authority_context=authority_context,
+            channel=channel,
+            consent_id=consent_id,
+            consent_sha256=consent_sha256,
+            limit=limit,
         )
 
     def change_project_domain(

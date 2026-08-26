@@ -339,6 +339,8 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_project_structure_add_section` | permission-gated | yes | yes | Add one section with expected revision, `project.structure.edit`, consent and idempotent receipt. |
 | `p2p_project_structure_update_metadata` | permission-gated | yes | yes | Update bounded metadata while preserving stable element identity. |
 | `p2p_project_structure_reorder_sections` | permission-gated | yes | yes | Reorder the exact active section set without changing identity. |
+| `p2p_project_structure_retirement_preview` | permission-gated preview | no | no | Preview structure retirement impacts and required dispositions against current structure and memory revisions. |
+| `p2p_project_structure_retirement_apply` | permission-gated | yes | yes | Apply a token-bound structure retirement with resolved dispositions and idempotent receipt. |
 | `p2p_project_vertical_show` | read-only | no | no | Read one self-contained vertical release. |
 | `p2p_project_vertical_validate` | read-only | no | no | Validate an installed vertical coordinate or schema-3 pack directory. |
 | `p2p_project_vertical_select` | transitional | yes | no | Transitional release-selection surface; it is not the canonical project structure. |

@@ -18,6 +18,12 @@ from p2p_engine.core.authority import (
     AuthorityMode,
     AuthorityProjectBinding,
 )
+from p2p_engine.core.project_questions import (
+    ProjectQuestionApplicability,
+    ProjectQuestionState,
+)
+from p2p_engine.core.project_memory import ProjectMemoryScopeKind
+from p2p_engine.core.proposal_decision_events import ProposalDecisionEventType
 from p2p_engine.core.project_structure import (
     PROJECT_STRUCTURE_CONTRACT,
     PROJECT_STRUCTURE_MUTATION_CONTRACT,
@@ -28,6 +34,11 @@ from p2p_engine.core.project_structure import (
     project_structure_checksum,
     validate_project_structure,
     with_project_structure_checksum,
+)
+from p2p_engine.core.project_structure_retirement import (
+    STRUCTURE_RETIREMENT_PLAN_CONTRACT,
+    STRUCTURE_RETIREMENT_RESULT_CONTRACT,
+    StructureRetirementTarget,
 )
 from p2p_engine.mcp.tools import call_tool
 from p2p_engine.services.project_structure import ProjectStructureService
@@ -93,6 +104,30 @@ def _add_section(
         request={"title": title, "description": "Distribution constraints.", "required": True},
         authority_context=context,
     )
+
+
+def _plan_from_preview(preview) -> dict[str, object]:
+    dispositions = []
+    for impact in preview.required_dispositions:
+        if "remove_sections" in impact.allowed_actions:
+            action = "remove_sections"
+        elif "retire" in impact.allowed_actions:
+            action = "retire"
+        elif "project_global" in impact.allowed_actions:
+            action = "project_global"
+        else:
+            action = impact.allowed_actions[0]
+        dispositions.append(
+            {
+                "id": impact.impact_id,
+                "action": action,
+                "reason": "Test disposition.",
+            }
+        )
+    return {
+        "contract": STRUCTURE_RETIREMENT_PLAN_CONTRACT,
+        "dispositions": dispositions,
+    }
 
 
 def test_generic_initialization_materializes_detached_revision_one_structure(
@@ -472,7 +507,796 @@ def test_local_non_owner_cannot_edit_project_structure(tmp_path: Path) -> None:
         )
 
     assert workspace.project_structure().revision == 1
-    assert workspace.project_structure().sections == ()
+    assert workspace.project_structure().active_section_ids() == ()
+
+
+def test_structure_retirement_reassigns_active_proposal_scope_atomically(
+    tmp_path: Path,
+) -> None:
+    workspace = _workspace(tmp_path, starter="empty")
+    _add_section(workspace, key="retire-alpha-add-12345678", revision=1, title="Alpha")
+    _add_section(workspace, key="retire-beta-add-12345678", revision=2, title="Beta")
+    proposal = workspace.create_proposal("Scoped retirement")
+    workspace.assign_proposal_memory_scope(
+        proposal_id=proposal.proposal_id,
+        kind="sections",
+        section_ids=["alpha"],
+        operation_key="retire-scope-assign-12345678",
+        expected_memory_revision=workspace.project_memory_revision(),
+        expected_structure_revision=workspace.project_structure().revision,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+    )
+    expected_structure_revision = workspace.project_structure().revision
+    expected_memory_revision = workspace.project_memory_revision()
+    target = StructureRetirementTarget("section", "alpha")
+
+    blocked = workspace.preview_project_structure_retirement(
+        targets=[target],
+        expected_structure_revision=expected_structure_revision,
+        expected_memory_revision=expected_memory_revision,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+    )
+    plan = {
+        "contract": STRUCTURE_RETIREMENT_PLAN_CONTRACT,
+        "dispositions": [
+            {
+                "id": f"proposal:{proposal.proposal_id}:scope",
+                "action": "reassign_sections",
+                "section_ids": ["beta"],
+                "reason": "Move live proposal memory to the surviving section.",
+            }
+        ],
+    }
+    preview = workspace.preview_project_structure_retirement(
+        targets=[target],
+        expected_structure_revision=expected_structure_revision,
+        expected_memory_revision=expected_memory_revision,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+        plan=plan,
+    )
+    result = workspace.apply_project_structure_retirement(
+        targets=[target],
+        expected_structure_revision=expected_structure_revision,
+        expected_memory_revision=expected_memory_revision,
+        preview_token=preview.preview.preview_token,
+        operation_key="structure-retire-apply-12345678",
+        confirm=True,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+        plan=plan,
+    )
+    replay = workspace.apply_project_structure_retirement(
+        targets=[target],
+        expected_structure_revision=expected_structure_revision,
+        expected_memory_revision=expected_memory_revision,
+        preview_token=preview.preview.preview_token,
+        operation_key="structure-retire-apply-12345678",
+        confirm=True,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+        plan=plan,
+    )
+
+    assert blocked.preview.apply_allowed is False
+    assert "P2P_STRUCTURE_RETIREMENT_DISPOSITION_REQUIRED" in blocked.preview.blockers
+    assert preview.preview.apply_allowed is True
+    assert preview.classification_projection["proposal_scopes_reassigned"] == 1
+    assert result.contract == STRUCTURE_RETIREMENT_RESULT_CONTRACT
+    assert result.status == "applied"
+    assert replay.status == "already_applied"
+    assert result.event.event_type == "elements_retired"
+    assert workspace.project_structure().active_section_ids() == ("beta",)
+    retired = workspace.project_structure(include_retired=True).sections[0]
+    assert retired.section_id == "alpha"
+    assert retired.lifecycle == "retired"
+    scope = workspace.proposal_memory_scope(proposal.proposal_id)
+    assert scope.section_ids == ("beta",)
+    assert workspace.project_memory_classification().status == "complete"
+    with pytest.raises(ValueError, match="P2P_PROJECT_STRUCTURE_ID_CONFLICT"):
+        _add_section(
+            workspace,
+            key="structure-retired-id-reuse-12345678",
+            revision=workspace.project_structure().revision,
+            title="Alpha",
+        )
+
+
+def test_structure_retirement_supports_global_unassigned_and_historical_refs(
+    tmp_path: Path,
+) -> None:
+    workspace = _workspace(tmp_path, starter="empty")
+    _add_section(workspace, key="retire-disposition-alpha-12345678", revision=1, title="Alpha")
+    global_proposal = workspace.create_proposal("Global disposition")
+    unassigned_proposal = workspace.create_proposal("Unassigned disposition")
+    historical_proposal = workspace.create_proposal("Historical disposition")
+    for index, proposal in enumerate(
+        (global_proposal, unassigned_proposal, historical_proposal),
+        start=1,
+    ):
+        workspace.assign_proposal_memory_scope(
+            proposal_id=proposal.proposal_id,
+            kind="sections",
+            section_ids=["alpha"],
+            operation_key=f"retire-disposition-scope-{index}-12345678",
+            expected_memory_revision=workspace.project_memory_revision(),
+            expected_structure_revision=workspace.project_structure().revision,
+            actor_id="owner",
+            executor_id="owner",
+            executor_kind="person",
+        )
+    decision_service = workspace._proposal_decision_service()
+    request = decision_service.request(
+        proposal_id=historical_proposal.proposal_id,
+        event_type=ProposalDecisionEventType.rejected,
+        reason="Make this reference historical.",
+        actor_id="owner",
+    )
+    decision_preview = decision_service.preview(request)
+    workspace.apply_proposal_decision(
+        decision_preview.request,
+        preview_token=decision_preview.mutation.preview_token,
+        confirm=True,
+    )
+    expected_structure_revision = workspace.project_structure().revision
+    expected_memory_revision = workspace.project_memory_revision()
+    target = StructureRetirementTarget("section", "alpha")
+    plan = {
+        "contract": STRUCTURE_RETIREMENT_PLAN_CONTRACT,
+        "dispositions": [
+            {
+                "id": f"proposal:{global_proposal.proposal_id}:scope",
+                "action": "project_global",
+                "reason": "Promote to project-global memory.",
+            },
+            {
+                "id": f"proposal:{unassigned_proposal.proposal_id}:scope",
+                "action": "unassigned",
+                "reason": "Keep explicit owner debt after retirement.",
+            },
+        ],
+    }
+    preview = workspace.preview_project_structure_retirement(
+        targets=[target],
+        expected_structure_revision=expected_structure_revision,
+        expected_memory_revision=expected_memory_revision,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+        plan=plan,
+    )
+    result = workspace.apply_project_structure_retirement(
+        targets=[target],
+        expected_structure_revision=expected_structure_revision,
+        expected_memory_revision=expected_memory_revision,
+        preview_token=preview.preview.preview_token,
+        operation_key="structure-retire-global-unassigned-12345678",
+        confirm=True,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+        plan=plan,
+    )
+
+    assert result.status == "applied"
+    assert preview.classification_projection["proposal_scopes_global"] == 1
+    assert preview.classification_projection["proposal_scopes_unassigned"] == 1
+    assert workspace.proposal_memory_scope(global_proposal.proposal_id).kind == ProjectMemoryScopeKind.project_global
+    assert workspace.proposal_memory_scope(unassigned_proposal.proposal_id).kind == ProjectMemoryScopeKind.unassigned
+    historical_scope = workspace.proposal_memory_scope(historical_proposal.proposal_id)
+    assert historical_scope.section_ids == ("alpha",)
+    historical_item = next(
+        item
+        for item in workspace.project_memory_classification().items
+        if item.object_id == historical_proposal.proposal_id
+    )
+    assert historical_item.state == "historical"
+
+
+def test_structure_retirement_retires_formal_questions_and_resolves_artifacts(
+    tmp_path: Path,
+) -> None:
+    workspace = _workspace(tmp_path)
+    section_id = workspace.project_structure().active_section_ids()[0]
+    expected_structure_revision = workspace.project_structure().revision
+    expected_memory_revision = workspace.project_memory_revision()
+    target = StructureRetirementTarget("section", section_id)
+    initial = workspace.preview_project_structure_retirement(
+        targets=[target],
+        expected_structure_revision=expected_structure_revision,
+        expected_memory_revision=expected_memory_revision,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+    )
+    dispositions = []
+    for impact in initial.required_dispositions:
+        if impact.object_type == "formal_question":
+            dispositions.append(
+                {"id": impact.impact_id, "action": "retire", "reason": "Target removed."}
+            )
+        elif impact.object_type == "structure_artifact":
+            action = (
+                "remove_sections"
+                if "remove_sections" in impact.allowed_actions
+                else "retire"
+            )
+            dispositions.append(
+                {"id": impact.impact_id, "action": action, "reason": "Resolve artifact reference."}
+            )
+    plan = {
+        "contract": STRUCTURE_RETIREMENT_PLAN_CONTRACT,
+        "dispositions": dispositions,
+    }
+    preview = workspace.preview_project_structure_retirement(
+        targets=[target],
+        expected_structure_revision=expected_structure_revision,
+        expected_memory_revision=expected_memory_revision,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+        plan=plan,
+    )
+    result = workspace.apply_project_structure_retirement(
+        targets=[target],
+        expected_structure_revision=expected_structure_revision,
+        expected_memory_revision=expected_memory_revision,
+        preview_token=preview.preview.preview_token,
+        operation_key="structure-retire-generic-12345678",
+        confirm=True,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+        plan=plan,
+    )
+    questions = workspace._project_question_state_service().read()
+    retired_question_ids = {
+        item["id"].split(":", 1)[1]
+        for item in dispositions
+        if str(item["id"]).startswith("formal_question:")
+    }
+
+    assert initial.preview.apply_allowed is False
+    assert preview.preview.apply_allowed is True
+    assert result.status == "applied"
+    assert section_id not in workspace.project_structure().active_section_ids()
+    assert retired_question_ids
+    for question in questions.questions:
+        if question.question_id in retired_question_ids:
+            assert question.state == ProjectQuestionState.RETIRED
+            assert question.applicability == ProjectQuestionApplicability.TARGET_REMOVED
+
+
+def test_structure_retirement_supports_nested_field_and_rejects_bad_targets(
+    tmp_path: Path,
+) -> None:
+    workspace = _workspace(tmp_path)
+    field = next(item for item in workspace.project_structure().fields if item.lifecycle == "active")
+    expected_structure_revision = workspace.project_structure().revision
+    expected_memory_revision = workspace.project_memory_revision()
+    target = StructureRetirementTarget("field", field.field_id, field.section_id)
+    initial = workspace.preview_project_structure_retirement(
+        targets=[target],
+        expected_structure_revision=expected_structure_revision,
+        expected_memory_revision=expected_memory_revision,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+    )
+    plan = _plan_from_preview(initial)
+    preview = workspace.preview_project_structure_retirement(
+        targets=[target],
+        expected_structure_revision=expected_structure_revision,
+        expected_memory_revision=expected_memory_revision,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+        plan=plan,
+    )
+    result = workspace.apply_project_structure_retirement(
+        targets=[target],
+        expected_structure_revision=expected_structure_revision,
+        expected_memory_revision=expected_memory_revision,
+        preview_token=preview.preview.preview_token,
+        operation_key="structure-retire-field-12345678",
+        confirm=True,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+        plan=plan,
+    )
+
+    assert result.status == "applied"
+    assert field.section_id in workspace.project_structure().active_section_ids()
+    retired_field = next(
+        item
+        for item in workspace.project_structure(include_retired=True).fields
+        if item.field_id == field.field_id and item.section_id == field.section_id
+    )
+    assert retired_field.lifecycle == "retired"
+    with pytest.raises(ValueError, match="P2P_STRUCTURE_RETIREMENT_TARGET_INVALID"):
+        workspace.preview_project_structure_retirement(
+            targets=[{"kind": "widget", "id": "missing"}],
+            expected_structure_revision=workspace.project_structure().revision,
+            expected_memory_revision=workspace.project_memory_revision(),
+            actor_id="owner",
+            executor_id="owner",
+            executor_kind="person",
+        )
+
+
+def test_structure_retirement_can_retire_all_active_criteria_without_purge(
+    tmp_path: Path,
+) -> None:
+    workspace = _workspace(tmp_path)
+    criteria = [
+        StructureRetirementTarget("criterion", item.criterion_id)
+        for item in workspace.project_structure().criteria
+        if item.lifecycle == "active"
+    ]
+    expected_structure_revision = workspace.project_structure().revision
+    expected_memory_revision = workspace.project_memory_revision()
+    preview = workspace.preview_project_structure_retirement(
+        targets=criteria,
+        expected_structure_revision=expected_structure_revision,
+        expected_memory_revision=expected_memory_revision,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+    )
+    assert preview.readiness_projection["active_criteria_after"] == 0
+    result = workspace.apply_project_structure_retirement(
+        targets=criteria,
+        expected_structure_revision=expected_structure_revision,
+        expected_memory_revision=expected_memory_revision,
+        preview_token=preview.preview.preview_token,
+        operation_key="structure-retire-criteria-12345678",
+        confirm=True,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+        plan={"contract": STRUCTURE_RETIREMENT_PLAN_CONTRACT, "dispositions": []},
+    )
+
+    assert result.status == "applied"
+    assert workspace.project_structure().to_dict(include_retired=False)["criteria"] == []
+    assert workspace.project_structure(include_retired=True).criteria
+
+
+def test_structure_retirement_rejects_stale_sources_and_divergent_replay(
+    tmp_path: Path,
+) -> None:
+    workspace = _workspace(tmp_path, starter="empty")
+    _add_section(workspace, key="retire-stale-alpha-12345678", revision=1, title="Alpha")
+    expected_structure_revision = workspace.project_structure().revision
+    expected_memory_revision = workspace.project_memory_revision()
+    target = StructureRetirementTarget("section", "alpha")
+    preview = workspace.preview_project_structure_retirement(
+        targets=[target],
+        expected_structure_revision=expected_structure_revision,
+        expected_memory_revision=expected_memory_revision,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+    )
+    _add_section(workspace, key="retire-stale-beta-12345678", revision=2, title="Beta")
+
+    with pytest.raises(ValueError, match="P2P_STRUCTURE_RETIREMENT_STALE_STRUCTURE"):
+        workspace.apply_project_structure_retirement(
+            targets=[target],
+            expected_structure_revision=expected_structure_revision,
+            expected_memory_revision=expected_memory_revision,
+            preview_token=preview.preview.preview_token,
+            operation_key="structure-retire-stale-12345678",
+            confirm=True,
+            actor_id="owner",
+            executor_id="owner",
+            executor_kind="person",
+            plan={"contract": STRUCTURE_RETIREMENT_PLAN_CONTRACT, "dispositions": []},
+        )
+
+    fresh_preview = workspace.preview_project_structure_retirement(
+        targets=[target],
+        expected_structure_revision=workspace.project_structure().revision,
+        expected_memory_revision=workspace.project_memory_revision(),
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+    )
+    result = workspace.apply_project_structure_retirement(
+        targets=[target],
+        expected_structure_revision=workspace.project_structure().revision,
+        expected_memory_revision=workspace.project_memory_revision(),
+        preview_token=fresh_preview.preview.preview_token,
+        operation_key="structure-retire-divergent-12345678",
+        confirm=True,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+        plan={"contract": STRUCTURE_RETIREMENT_PLAN_CONTRACT, "dispositions": []},
+    )
+    assert result.status == "applied"
+    with pytest.raises(ValueError, match="P2P_IDEMPOTENCY_CONFLICT"):
+        workspace.apply_project_structure_retirement(
+            targets=[StructureRetirementTarget("section", "beta")],
+            expected_structure_revision=3,
+            expected_memory_revision=workspace.project_memory_revision(),
+            preview_token=fresh_preview.preview.preview_token,
+            operation_key="structure-retire-divergent-12345678",
+            confirm=True,
+            actor_id="owner",
+            executor_id="owner",
+            executor_kind="person",
+            plan={"contract": STRUCTURE_RETIREMENT_PLAN_CONTRACT, "dispositions": []},
+        )
+    with pytest.raises(ValueError, match="P2P_IDEMPOTENCY_CONFLICT"):
+        workspace.apply_project_structure_retirement(
+            targets=[target],
+            expected_structure_revision=3,
+            expected_memory_revision=workspace.project_memory_revision(),
+            preview_token=fresh_preview.preview.preview_token,
+            operation_key="structure-retire-divergent-12345678",
+            confirm=True,
+            actor_id="owner",
+            executor_id="owner",
+            executor_kind="person",
+            plan={
+                "contract": STRUCTURE_RETIREMENT_PLAN_CONTRACT,
+                "dispositions": [
+                    {
+                        "id": "proposal:PROP-999:scope",
+                        "action": "project_global",
+                        "reason": "Divergent plan.",
+                    }
+                ],
+            },
+        )
+
+
+def test_structure_retirement_blocks_truncated_reference_index(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = _workspace(tmp_path, starter="empty")
+    _add_section(workspace, key="retire-truncated-alpha-12345678", revision=1, title="Alpha")
+    service = workspace._project_structure_retirement_service()
+    records, _truncated = service.memory_service._source_records()
+    expected_memory_revision = workspace.project_memory_revision()
+
+    monkeypatch.setattr(
+        service.memory_service,
+        "_source_records",
+        lambda: (records, True),
+    )
+    preview = workspace.preview_project_structure_retirement(
+        targets=[StructureRetirementTarget("section", "alpha")],
+        expected_structure_revision=workspace.project_structure().revision,
+        expected_memory_revision=expected_memory_revision,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+    )
+
+    assert preview.preview.apply_allowed is False
+    assert "P2P_STRUCTURE_RETIREMENT_REFERENCE_INDEX_INCOMPLETE" in preview.preview.blockers
+
+
+def test_structure_retirement_fault_rolls_back_event_and_receipt(
+    tmp_path: Path,
+) -> None:
+    workspace = _workspace(tmp_path, starter="empty")
+    _add_section(workspace, key="retire-fault-alpha-12345678", revision=1, title="Alpha")
+    before_structure = (tmp_path / ".p2p/project/structure.yml").read_bytes()
+    before_events = (tmp_path / ".p2p/project/structure-events.yml").read_bytes()
+    preview = workspace.preview_project_structure_retirement(
+        targets=[StructureRetirementTarget("section", "alpha")],
+        expected_structure_revision=workspace.project_structure().revision,
+        expected_memory_revision=workspace.project_memory_revision(),
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+    )
+
+    def fail(stage: str, _target: str) -> None:
+        if stage == "before_journal":
+            raise RuntimeError("injected retirement failure")
+
+    workspace._project_structure_retirement_service_instance = (
+        workspace._project_structure_retirement_service().__class__(
+            root=tmp_path,
+            p2p_dir=tmp_path / ".p2p",
+            structure_service=workspace._project_structure_service(),
+            memory_service=workspace._project_memory_service(),
+            question_service=workspace._project_question_state_service(),
+            authority=workspace._project_authority_service(),
+            receipts=workspace._mutation_receipt_service(),
+            atomic_writer=AtomicMutationWriter(
+                root=tmp_path,
+                p2p_dir=tmp_path / ".p2p",
+                failure_injector=fail,
+            ),
+        )
+    )
+    key = "structure-retire-fault-12345678"
+    with pytest.raises(ValueError, match="P2P_STRUCTURE_RETIREMENT_MUTATION_FAILED"):
+        workspace.apply_project_structure_retirement(
+            targets=[StructureRetirementTarget("section", "alpha")],
+            expected_structure_revision=workspace.project_structure().revision,
+            expected_memory_revision=workspace.project_memory_revision(),
+            preview_token=preview.preview.preview_token,
+            operation_key=key,
+            confirm=True,
+            actor_id="owner",
+            executor_id="owner",
+            executor_kind="person",
+            plan={"contract": STRUCTURE_RETIREMENT_PLAN_CONTRACT, "dispositions": []},
+        )
+
+    assert (tmp_path / ".p2p/project/structure.yml").read_bytes() == before_structure
+    assert (tmp_path / ".p2p/project/structure-events.yml").read_bytes() == before_events
+    assert workspace.mutation_status(idempotency_key=key).state == "not_found"
+
+
+def test_structure_retirement_reference_index_reads_memory_sources_once(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = _workspace(tmp_path, starter="empty")
+    for index in range(5):
+        _add_section(
+            workspace,
+            key=f"retire-index-section-{index}-12345678",
+            revision=workspace.project_structure().revision,
+            title=f"Section {index}",
+        )
+    service = workspace._project_structure_retirement_service()
+    calls = {"source_records": 0}
+    original = service.memory_service._source_records
+
+    def counted_source_records():
+        calls["source_records"] += 1
+        return original()
+
+    monkeypatch.setattr(service.memory_service, "_source_records", counted_source_records)
+    targets = [
+        StructureRetirementTarget("section", section_id)
+        for section_id in workspace.project_structure().active_section_ids()[:3]
+    ]
+    expected_memory_revision = workspace.project_memory_revision()
+    calls["source_records"] = 0
+    preview = workspace.preview_project_structure_retirement(
+        targets=targets,
+        expected_structure_revision=workspace.project_structure().revision,
+        expected_memory_revision=expected_memory_revision,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+    )
+
+    assert preview.preview.apply_allowed is True
+    assert calls["source_records"] == 1
+
+
+def test_external_retirement_authority_is_bound_to_preview_and_apply(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project(
+        "Hosted Retirement",
+        owner="local-maintainer",
+        starter_id="empty",
+        authority_context=_external_context(
+            "project.initialize",
+            decision="hosted-retire-init-01",
+        ),
+    )
+    edit_context = _external_context(
+        "project.structure.edit",
+        decision="hosted-retire-edit-01",
+    )
+    _add_section(workspace, key="hosted-retire-add-12345678", revision=1, context=edit_context)
+    retire_context = _external_context(
+        "project.structure.retire",
+        decision="hosted-retire-preview-01",
+    )
+    changed_context = _external_context(
+        "project.structure.retire",
+        decision="hosted-retire-preview-02",
+    )
+    preview = workspace.preview_project_structure_retirement(
+        targets=[StructureRetirementTarget("section", "distribution")],
+        expected_structure_revision=workspace.project_structure().revision,
+        expected_memory_revision=workspace.project_memory_revision(),
+        actor_id=retire_context.subject.identity_id,
+        executor_id=retire_context.executor.identity_id,
+        executor_kind=retire_context.executor.kind.value,
+        authority_context=retire_context,
+    )
+    with pytest.raises(ValueError, match="P2P_STRUCTURE_RETIREMENT_PREVIEW_MISMATCH"):
+        workspace.apply_project_structure_retirement(
+            targets=[StructureRetirementTarget("section", "distribution")],
+            expected_structure_revision=workspace.project_structure().revision,
+            expected_memory_revision=workspace.project_memory_revision(),
+            preview_token=preview.preview.preview_token,
+            operation_key="hosted-retire-apply-12345678",
+            confirm=True,
+            actor_id=changed_context.subject.identity_id,
+            executor_id=changed_context.executor.identity_id,
+            executor_kind=changed_context.executor.kind.value,
+            authority_context=changed_context,
+            plan={"contract": STRUCTURE_RETIREMENT_PLAN_CONTRACT, "dispositions": []},
+        )
+    assert workspace.project_structure().active_section_ids() == ("distribution",)
+
+
+def test_mcp_structure_retirement_preview_apply_and_replay_have_parity(
+    tmp_path: Path,
+) -> None:
+    workspace = _workspace(tmp_path, starter="empty")
+    _add_section(workspace, key="retire-mcp-add-12345678", revision=1, title="Alpha")
+    preview = call_tool(
+        "p2p_project_structure_retirement_preview",
+        {
+            "root": str(tmp_path),
+            "targets": [{"kind": "section", "id": "alpha"}],
+            "expected_structure_revision": workspace.project_structure().revision,
+            "expected_memory_revision": workspace.project_memory_revision(),
+            "actor_id": "owner",
+        },
+    )
+    consent = workspace.consent_grant(
+        "project_structure_retire_apply",
+        "project-structure",
+        "owner",
+        approved_by="owner",
+    )
+    arguments = {
+        "root": str(tmp_path),
+        "targets": [{"kind": "section", "id": "alpha"}],
+        "expected_structure_revision": workspace.project_structure().revision,
+        "expected_memory_revision": workspace.project_memory_revision(),
+        "preview_token": preview["project_structure_retirement_preview"]["preview"]["preview_token"],
+        "actor_id": "owner",
+        "consent_id": consent.consent_id,
+        "operation_key": "structure-retire-mcp-12345678",
+        "confirm": True,
+    }
+    first = call_tool("p2p_project_structure_retirement_apply", arguments)
+    replay = call_tool("p2p_project_structure_retirement_apply", arguments)
+
+    assert preview["project_structure_retirement_preview"]["preview"]["apply_allowed"] is True
+    assert first["project_structure_retirement"]["status"] == "applied"
+    assert first["consent"]["status"] == "consumed"
+    assert replay["project_structure_retirement"]["status"] == "already_applied"
+    assert workspace.project_structure().active_section_ids() == ()
+    assert workspace.project_structure(include_retired=True).sections[0].lifecycle == "retired"
+
+
+def test_cli_structure_retirement_preview_apply_uses_versioned_contract(
+    tmp_path: Path,
+) -> None:
+    workspace = _workspace(tmp_path, starter="empty")
+    _add_section(workspace, key="retire-cli-alpha-12345678", revision=1, title="Alpha")
+    _add_section(workspace, key="retire-cli-beta-12345678", revision=2, title="Beta")
+    proposal = workspace.create_proposal("CLI retirement")
+    workspace.assign_proposal_memory_scope(
+        proposal_id=proposal.proposal_id,
+        kind="sections",
+        section_ids=["alpha"],
+        operation_key="retire-cli-scope-12345678",
+        expected_memory_revision=workspace.project_memory_revision(),
+        expected_structure_revision=workspace.project_structure().revision,
+        actor_id="owner",
+        executor_id="owner",
+        executor_kind="person",
+    )
+    plan_path = tmp_path / "retirement-plan.yml"
+    plan_path.write_text(
+        "\n".join(
+            [
+                f"contract: {STRUCTURE_RETIREMENT_PLAN_CONTRACT}",
+                "dispositions:",
+                f"  - id: proposal:{proposal.proposal_id}:scope",
+                "    action: reassign_sections",
+                "    section_ids:",
+                "      - beta",
+                "    reason: CLI governed reassignment.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    preview = runner.invoke(
+        app,
+        [
+            "project",
+            "structure",
+            "retire",
+            "preview",
+            "--target",
+            "section:alpha",
+            "--expected-structure-revision",
+            str(workspace.project_structure().revision),
+            "--expected-memory-revision",
+            workspace.project_memory_revision(),
+            "--plan",
+            str(plan_path),
+            "--format",
+            "json",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert preview.exit_code == 0, preview.output
+    preview_payload = cli_data(
+        preview,
+        operation="project.structure.retire.preview",
+    )["project_structure_retirement_preview"]
+    applied = runner.invoke(
+        app,
+        [
+            "project",
+            "structure",
+            "retire",
+            "apply",
+            "--target",
+            "section:alpha",
+            "--expected-structure-revision",
+            str(workspace.project_structure().revision),
+            "--expected-memory-revision",
+            workspace.project_memory_revision(),
+            "--preview-token",
+            preview_payload["preview"]["preview_token"],
+            "--operation-key",
+            "retire-cli-apply-12345678",
+            "--plan",
+            str(plan_path),
+            "--confirm",
+            "--format",
+            "json",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    status = runner.invoke(
+        app,
+        [
+            "project",
+            "structure",
+            "retire",
+            "status",
+            "--operation-key",
+            "retire-cli-apply-12345678",
+            "--format",
+            "json",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    assert preview_payload["preview"]["apply_allowed"] is True
+    assert applied.exit_code == 0, applied.output
+    result = cli_data(
+        applied,
+        operation="project.structure.retire.apply",
+    )["project_structure_retirement"]
+    assert result["contract"] == STRUCTURE_RETIREMENT_RESULT_CONTRACT
+    assert result["status"] == "applied"
+    assert status.exit_code == 0, status.output
+    status_payload = cli_data(
+        status,
+        operation="project.structure.retire.status",
+    )["mutation_status"]
+    assert status_payload["state"] == "applied"
+    assert status_payload["operation"] == "project_structure_retirement"
+    assert workspace.proposal_memory_scope(proposal.proposal_id).section_ids == ("beta",)
 
 
 def test_cli_json_structure_read_write_and_error_contract(tmp_path: Path) -> None:

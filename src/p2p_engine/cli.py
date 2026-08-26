@@ -54,6 +54,11 @@ from p2p_engine.core.project_structure import (
     PROJECT_STRUCTURE_EVENTS_CONTRACT,
     PROJECT_STRUCTURE_MUTATION_CONTRACT,
 )
+from p2p_engine.core.project_structure_retirement import (
+    STRUCTURE_RETIREMENT_IMPACT_CONTRACT,
+    STRUCTURE_RETIREMENT_PLAN_CONTRACT,
+    STRUCTURE_RETIREMENT_RESULT_CONTRACT,
+)
 from p2p_engine.core.project_memory import (
     MEMORY_CLASSIFICATION_CONTRACT,
     PROJECT_MEMORY_SCOPE_CONTRACT,
@@ -261,6 +266,9 @@ def version(
         "project_structure_contract": PROJECT_STRUCTURE_CONTRACT,
         "project_structure_events_contract": PROJECT_STRUCTURE_EVENTS_CONTRACT,
         "project_structure_mutation_contract": PROJECT_STRUCTURE_MUTATION_CONTRACT,
+        "structure_retirement_impact_contract": STRUCTURE_RETIREMENT_IMPACT_CONTRACT,
+        "structure_retirement_plan_contract": STRUCTURE_RETIREMENT_PLAN_CONTRACT,
+        "structure_retirement_result_contract": STRUCTURE_RETIREMENT_RESULT_CONTRACT,
         "project_memory_scope_contract": PROJECT_MEMORY_SCOPE_CONTRACT,
         "project_memory_scope_events_contract": PROJECT_MEMORY_SCOPE_EVENTS_CONTRACT,
         "project_memory_scope_mutation_contract": PROJECT_MEMORY_SCOPE_MUTATION_CONTRACT,
@@ -279,6 +287,9 @@ def version(
     console.print(f"  project structure contract: {PROJECT_STRUCTURE_CONTRACT}")
     console.print(f"  project structure events contract: {PROJECT_STRUCTURE_EVENTS_CONTRACT}")
     console.print(f"  project structure mutation contract: {PROJECT_STRUCTURE_MUTATION_CONTRACT}")
+    console.print(f"  structure retirement impact contract: {STRUCTURE_RETIREMENT_IMPACT_CONTRACT}")
+    console.print(f"  structure retirement plan contract: {STRUCTURE_RETIREMENT_PLAN_CONTRACT}")
+    console.print(f"  structure retirement result contract: {STRUCTURE_RETIREMENT_RESULT_CONTRACT}")
     console.print(f"  project memory scope contract: {PROJECT_MEMORY_SCOPE_CONTRACT}")
     console.print(f"  project memory scope events contract: {PROJECT_MEMORY_SCOPE_EVENTS_CONTRACT}")
     console.print(f"  project memory scope mutation contract: {PROJECT_MEMORY_SCOPE_MUTATION_CONTRACT}")

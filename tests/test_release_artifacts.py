@@ -118,9 +118,11 @@ def test_release_verifier_requires_project_structure_contract_members() -> None:
     assert {
         "p2p_engine/cli_commands/project_structure.py",
         "p2p_engine/core/project_structure.py",
+        "p2p_engine/core/project_structure_retirement.py",
         "p2p_engine/mcp/catalog/project.py",
         "p2p_engine/mcp/handlers/project.py",
         "p2p_engine/services/project_structure.py",
+        "p2p_engine/services/project_structure_retirement.py",
     } <= MODULE.PROJECT_STRUCTURE_WHEEL_MEMBERS
     assert {
         "docs/CLI-CONTRACT.md",

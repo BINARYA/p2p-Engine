@@ -27,6 +27,8 @@ EXPECTED_TOOL_NAMES = (
     "p2p_project_structure_add_section",
     "p2p_project_structure_update_metadata",
     "p2p_project_structure_reorder_sections",
+    "p2p_project_structure_retirement_preview",
+    "p2p_project_structure_retirement_apply",
     "p2p_project_memory_classification",
     "p2p_proposal_scope_show",
     "p2p_proposal_scope_set",

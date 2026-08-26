@@ -302,6 +302,7 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "project_domain_change",
         "project_memory_scope_change",
         "project_structure_change",
+        "project_structure_retirement",
     }:
         raise ValueError(f"unsupported receipt operation: {operation}")
     actor = _required_text(data, "actor")
@@ -327,6 +328,7 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "project_domain_change",
         "project_memory_scope_change",
         "project_structure_change",
+        "project_structure_retirement",
         "proposal_decision_apply",
     } and authority is None:
         raise ValueError(f"receipt operation {operation} requires authority evidence")
@@ -388,6 +390,9 @@ def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
         return
     if operation == "project_structure_change":
         _validate_project_structure_result(result)
+        return
+    if operation == "project_structure_retirement":
+        _validate_project_structure_retirement_result(result)
         return
     if operation == "proposal_decision_apply":
         _validate_proposal_decision_result(result)
@@ -940,6 +945,146 @@ def _validate_project_structure_result(result: Mapping[str, object]) -> None:
         raise ValueError("receipt project-structure changed paths are invalid")
 
 
+def _validate_project_structure_retirement_result(result: Mapping[str, object]) -> None:
+    allowed = {
+        "contract",
+        "operation",
+        "operation_id",
+        "request",
+        "resolved_targets",
+        "previous_revision",
+        "previous_checksum",
+        "current",
+        "previous_memory_revision",
+        "current_memory_revision",
+        "event",
+        "applied_dispositions",
+        "changed_paths",
+    }
+    unknown = sorted(str(key) for key in result if key not in allowed)
+    if unknown:
+        raise ValueError(
+            "receipt project-structure-retirement result contains unsupported fields: "
+            + ", ".join(unknown)
+        )
+    from p2p_engine.core.project_structure import (
+        PROJECT_STRUCTURE_CONTRACT,
+        normalize_structure_id,
+        project_structure_event_from_mapping,
+    )
+    from p2p_engine.core.project_structure_retirement import (
+        STRUCTURE_RETIREMENT_PLAN_CONTRACT,
+        STRUCTURE_RETIREMENT_RESULT_CONTRACT,
+    )
+
+    if result.get("contract") != STRUCTURE_RETIREMENT_RESULT_CONTRACT:
+        raise ValueError("receipt project-structure-retirement contract is unsupported")
+    if result.get("operation") != "project_structure_retirement":
+        raise ValueError("receipt project-structure-retirement operation is unsupported")
+    if result.get("operation_id") != "project.structure.retire.apply":
+        raise ValueError("receipt project-structure-retirement operation_id is invalid")
+    request = result.get("request")
+    if not isinstance(request, Mapping) or set(request) != {
+        "contract",
+        "expected_structure_revision",
+        "expected_memory_revision",
+        "targets",
+        "plan",
+    }:
+        raise ValueError("receipt project-structure-retirement request is invalid")
+    if request.get("contract") != STRUCTURE_RETIREMENT_PLAN_CONTRACT:
+        raise ValueError("receipt project-structure-retirement request contract is unsupported")
+    _required_sha256(request, "expected_memory_revision")
+    expected_revision = request.get("expected_structure_revision")
+    previous_revision = result.get("previous_revision")
+    if (
+        isinstance(expected_revision, bool)
+        or not isinstance(expected_revision, int)
+        or expected_revision < 1
+        or isinstance(previous_revision, bool)
+        or not isinstance(previous_revision, int)
+        or previous_revision != expected_revision
+    ):
+        raise ValueError("receipt project-structure-retirement previous revision is invalid")
+    request_targets = request.get("targets")
+    if not isinstance(request_targets, list) or not request_targets:
+        raise ValueError("receipt project-structure-retirement request targets are invalid")
+    _validate_bounded_receipt_value(
+        request_targets,
+        field="request.targets",
+        depth=0,
+    )
+    applied_dispositions = result.get("applied_dispositions")
+    if not isinstance(applied_dispositions, list):
+        raise ValueError("receipt project-structure-retirement applied_dispositions must be a list")
+    _validate_bounded_receipt_value(
+        applied_dispositions,
+        field="applied_dispositions",
+        depth=0,
+    )
+    resolved_targets = result.get("resolved_targets")
+    if not isinstance(resolved_targets, list) or not resolved_targets:
+        raise ValueError("receipt project-structure-retirement resolved targets are invalid")
+    for target in resolved_targets:
+        if not isinstance(target, Mapping):
+            raise ValueError("receipt project-structure-retirement target must be a mapping")
+        normalize_structure_id(target.get("id"), field_name="target.id")
+    plan = request.get("plan")
+    if not isinstance(plan, Mapping) or plan.get("contract") != STRUCTURE_RETIREMENT_PLAN_CONTRACT:
+        raise ValueError("receipt project-structure-retirement plan is invalid")
+    dispositions = plan.get("dispositions")
+    if not isinstance(dispositions, list):
+        raise ValueError("receipt project-structure-retirement dispositions must be a list")
+    current = result.get("current")
+    if not isinstance(current, Mapping) or set(current) != {
+        "contract",
+        "structure_id",
+        "revision",
+        "checksum",
+    }:
+        raise ValueError("receipt project-structure-retirement current summary is invalid")
+    if current.get("contract") != PROJECT_STRUCTURE_CONTRACT:
+        raise ValueError("receipt project-structure-retirement current contract is unsupported")
+    normalize_structure_id(current.get("structure_id"), field_name="structure_id")
+    current_revision = current.get("revision")
+    current_checksum = _required_sha256(current, "checksum")
+    previous_checksum = _required_sha256(result, "previous_checksum")
+    if (
+        isinstance(current_revision, bool)
+        or not isinstance(current_revision, int)
+        or current_revision != previous_revision + 1
+        or current_checksum == previous_checksum
+    ):
+        raise ValueError("receipt project-structure-retirement revision transition is invalid")
+    previous_memory = _required_sha256(result, "previous_memory_revision")
+    current_memory = _required_sha256(result, "current_memory_revision")
+    if request.get("expected_memory_revision") != previous_memory:
+        raise ValueError("receipt project-structure-retirement memory precondition is invalid")
+    _require_sha256(current_memory, "current_memory_revision")
+    event = project_structure_event_from_mapping(result.get("event"))
+    if (
+        event.event_type != "elements_retired"
+        or event.revision != current_revision
+        or event.checksum != current_checksum
+    ):
+        raise ValueError("receipt project-structure-retirement event is inconsistent")
+    changed_paths = result.get("changed_paths")
+    if not isinstance(changed_paths, list) or not changed_paths:
+        raise ValueError("receipt project-structure-retirement changed_paths must be non-empty")
+    normalized = [
+        _validated_postcondition_path(str(path), operation="project_structure_retirement")
+        for path in changed_paths
+    ]
+    if normalized != sorted(set(normalized)):
+        raise ValueError("receipt project-structure-retirement changed_paths must be unique and sorted")
+    required_structure_paths = {
+        ".p2p/project/structure-events.yml",
+        ".p2p/project/structure.yml",
+    }
+    if not required_structure_paths <= set(normalized):
+        raise ValueError("receipt project-structure-retirement changed_paths miss structure files")
+
+
 def _validate_project_memory_scope_result(result: Mapping[str, object]) -> None:
     allowed = {
         "contract",
@@ -1265,6 +1410,31 @@ def _public_result(result: Mapping[str, object]) -> dict[str, object]:
             "event": dict(result.get("event", {}))
             if isinstance(result.get("event"), Mapping)
             else {},
+        }
+    if result.get("operation") == "project_structure_retirement":
+        return {
+            "contract": result.get("contract"),
+            "operation": result.get("operation"),
+            "operation_id": result.get("operation_id"),
+            "request": dict(result.get("request", {}))
+            if isinstance(result.get("request"), Mapping)
+            else {},
+            "resolved_targets": list(result.get("resolved_targets", []))
+            if isinstance(result.get("resolved_targets"), list)
+            else [],
+            "previous_revision": result.get("previous_revision"),
+            "previous_checksum": result.get("previous_checksum"),
+            "current": dict(result.get("current", {}))
+            if isinstance(result.get("current"), Mapping)
+            else {},
+            "previous_memory_revision": result.get("previous_memory_revision"),
+            "current_memory_revision": result.get("current_memory_revision"),
+            "event": dict(result.get("event", {}))
+            if isinstance(result.get("event"), Mapping)
+            else {},
+            "applied_dispositions": list(result.get("applied_dispositions", []))
+            if isinstance(result.get("applied_dispositions"), list)
+            else [],
         }
     if result.get("operation") == "proposal_decision_apply":
         return {

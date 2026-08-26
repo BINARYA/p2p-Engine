@@ -104,9 +104,11 @@ CURRENT_SCHEMA_SDIST_MEMBERS = {
 PROJECT_STRUCTURE_WHEEL_MEMBERS = {
     "p2p_engine/cli_commands/project_structure.py",
     "p2p_engine/core/project_structure.py",
+    "p2p_engine/core/project_structure_retirement.py",
     "p2p_engine/mcp/catalog/project.py",
     "p2p_engine/mcp/handlers/project.py",
     "p2p_engine/services/project_structure.py",
+    "p2p_engine/services/project_structure_retirement.py",
 }
 PROJECT_STRUCTURE_SDIST_MEMBERS = {
     *(f"src/{member}" for member in PROJECT_STRUCTURE_WHEEL_MEMBERS),
