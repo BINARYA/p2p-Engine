@@ -6,6 +6,7 @@ import subprocess
 import tomllib
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -218,7 +219,21 @@ def test_security_audit_exception_schema_rejects_expired_or_incomplete_entries(
         assert message in result.stdout
 
 
-def test_publish_script_refuses_existing_release_before_create(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("repository", "expected_command"),
+    (
+        (None, "release view v0.5.0"),
+        (
+            "BINARYA/p2p-Engine",
+            "release view v0.5.0 --repo BINARYA/p2p-Engine",
+        ),
+    ),
+)
+def test_publish_script_refuses_existing_release_before_create(
+    tmp_path: Path,
+    repository: str | None,
+    expected_command: str,
+) -> None:
     dist = tmp_path / "dist"
     dist.mkdir()
     for name in (
@@ -241,6 +256,10 @@ def test_publish_script_refuses_existing_release_before_create(tmp_path: Path) -
     fake.chmod(0o755)
     env = os.environ.copy()
     env.update({"GH_BIN": str(fake), "FAKE_GH_LOG": str(log)})
+    if repository is None:
+        env.pop("GITHUB_REPOSITORY", None)
+    else:
+        env["GITHUB_REPOSITORY"] = repository
 
     result = subprocess.run(
         [
@@ -261,4 +280,4 @@ def test_publish_script_refuses_existing_release_before_create(tmp_path: Path) -
 
     assert result.returncode == 1
     assert "create-only publication refused" in result.stderr
-    assert log.read_text(encoding="utf-8").splitlines() == ["release view v0.5.0"]
+    assert log.read_text(encoding="utf-8").splitlines() == [expected_command]
