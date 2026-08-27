@@ -217,8 +217,8 @@ Routing summary:
   owner;
 - vertical-specific work may use release-specific primitives, but agents must
   not treat source identity or a transitional lock as the live project shape;
-- implementation work outside `.p2p/` uses repository `specs/`, `src/`,
-  `tests/`, and maintained docs;
+- implementation work outside `.p2p/` follows the target repository's
+  maintained source, test, and documentation layout;
 - generated exports use export commands or declared repository output
   locations;
 - stable documentation goes to `docs/` only with owner intent.
@@ -291,17 +291,19 @@ and can be prepared by an agent or collaborator:
 
 ```bash
 p2p runtime contract preview \
-  --requires "==0.2.0" \
-  --recommended "0.2.0" \
-  --reason "Move project to runtime line 0.2" \
+  --requires ">=0.5.0,<0.6" \
+  --recommended "0.5.0" \
+  --reason "Allow compatible 0.5 patch releases." \
   --format json
 ```
 
 The preview token binds project state and the proposed contract change; it is
 not an authorization. An authorized owner must run `p2p runtime contract apply`
-with the same proposed values, the token, and `--confirm`. If the current
-contract is missing, invalid, unsupported, or legacy undeclared, preview is
-diagnostic only and does not produce an applicable token.
+with the same proposed values, reason, token, and `--confirm`. If the current
+contract state is `missing_contract`, `invalid_contract`, or
+`unsupported_contract`, preview is diagnostic only and does not produce an
+applicable token. An `incompatible` installed runtime must be replaced by an
+owner before further governed writes.
 
 Agents must not use this lifecycle to install a runtime, repair a missing
 contract, adopt an unmanaged `P2P-SETUP.md`, or bypass owner authority. If

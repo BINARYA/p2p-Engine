@@ -26,7 +26,8 @@ Implemented:
 
 ## Near Term
 
-- Complete owner-controlled legal metadata and release notes for 0.5.0.
+- Keep 0.5.0 marked Unreleased until the owner-approved candidate is green,
+  then record the publication date and finalize the release notes.
 - Run the commit-bound Python 3.11/3.14 candidate workflow.
 - Complete the WaveKit fixture handoff against the verified 0.5.0 artifact.
 - Continue hardening validation and recovery paths.

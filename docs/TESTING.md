@@ -101,10 +101,7 @@ test file.
 
 ## Test Authoring Policy
 
-Read `specs/skills/TEST_QUALITY_SKILL.md` before adding or reorganizing
-non-trivial tests.
-
-The short version:
+Apply this repository test-authoring policy:
 
 - add the lowest-layer test that proves the behavior;
 - add CLI tests when command behavior or output changes;

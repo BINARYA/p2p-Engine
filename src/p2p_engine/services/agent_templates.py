@@ -22,7 +22,7 @@ from p2p_engine.services.agent_capabilities import (
 
 BUILT_IN_AGENT_ADAPTERS = ("generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode")
 AGENT_PROFILES = {*BUILT_IN_AGENT_ADAPTERS, "all"}
-AGENT_TEMPLATE_GENERATION_ID = f"agent-template-generation-v2:{AGENT_CAPABILITY_CATALOG_VERSION}"
+AGENT_TEMPLATE_GENERATION_ID = f"agent-template-generation-v3:{AGENT_CAPABILITY_CATALOG_VERSION}"
 
 
 def normalize_agent_profile(profile: str) -> str:
@@ -189,7 +189,7 @@ Use vertical commands to inspect, author, install or transition reusable release
 - `p2p project vertical package <directory> --output <pack.p2pv>`
 - `p2p project vertical export eligibility --format json`
 - `p2p project vertical export preview --publisher <publisher> --id <id> --version <version> --name <name> --license <spdx-id> --primary-domain-key <key> --primary-domain-name <name> --lineage-mode derived|independent --format json`
-- `p2p project vertical export apply --target <directory> --output <pack.p2pv> --expected-structure-revision <n> --expected-structure-checksum <sha256> --token <preview-token> --idempotency-key <key> --confirm --format json`
+- `p2p project vertical export apply --target <directory> --output <pack.p2pv> --publisher <publisher> --id <id> --version <version> --name <name> --license <spdx-id> --primary-domain-key <key> --primary-domain-name <name> --lineage-mode derived|independent --expected-structure-revision <n> --expected-structure-checksum <sha256> --token <preview-token> --idempotency-key <key> --confirm --format json`
 - `p2p project vertical install preview <pack.p2pv> --expected-checksum <sha256> --actor <owner>`
 - `p2p project vertical adopt preview <publisher/id@version> --actor <owner>`
 - `p2p project vertical migrate preview <publisher/id@version> --actor <owner>`
@@ -441,7 +441,7 @@ def routing_playbook_payload() -> dict[str, str]:
         "proposal_authoring": "Use proposal, contribution, questions, artifact, or import primitives; never edit .p2p directly.",
         "choices": "Use choice discovery/show/decision primitives and leave owner-controlled decisions to the owner.",
         "vertical_specific_primitives": "Use applicable release-specific primitives without treating source identity as live project structure.",
-        "implementation_work": "For implementation work outside `.p2p/`, use repository specs, src, tests, and docs.",
+        "implementation_work": "For implementation work outside `.p2p/`, follow the repository's maintained source, test, and documentation layout.",
         "exact_file_requests": "Write the requested repository path only when the owner specified the exact operation and artifact.",
         "generated_exports": "Use export commands or declared repository output locations; treat exports as derived by default.",
         "stable_documentation": "Write docs/ only for stable owner-intended documentation after classification or exact request.",
@@ -482,6 +482,17 @@ def software_spec_lifecycle_policy_payload() -> dict[str, object]:
     }
 
 
+def source_control_boundary_payload() -> dict[str, object]:
+    return {
+        "runtime_owns_source_control": False,
+        "repository_operations_are_external": True,
+        "accepted_proposal_implies_implementation": False,
+        "completed_work_implies_implementation": False,
+        "traceability_references_are_evidence_only": True,
+        "agent_behavior": "use_external_repository_tools_only_when_separately_authorized",
+    }
+
+
 def persistent_write_policy_block() -> str:
     write_classes = "\n".join(
         "- `{name}`: {description}; surface: `{surface}`.".format(
@@ -513,6 +524,12 @@ Before a meaningful persistent write, preview:
 
 Exact owner requests can skip redundant confirmation only when the owner specified the operation, target path or P2P object, artifact kind, and durable destination. Vague requests such as "prepare the specs", "organize the project", or "put down a proposal" are not exact requests. Route exact requests through the correct CLI, MCP tool, or repository write surface.
 
+Source-control boundary:
+
+- P2P Engine does not create branches, commits, tags, pull requests, merges, pushes, releases, or repository synchronization.
+- An accepted proposal, Change Set, or completed Work record is project-state evidence only; it never proves that implementation work was performed.
+- Use external repository tooling for implementation delivery only when that separate operation is authorized, and store repository or release identifiers only as traceability metadata.
+
 Placement policy is strict. Do not invent durable output paths.
 
 - `.p2p/` is governed state and must be written only through `p2p` CLI commands or explicit MCP write tools.
@@ -542,7 +559,9 @@ def persistent_write_boundary_block() -> str:
 - Preview meaningful persistent writes unless the owner requested the exact operation, target, artifact kind, and durable destination.
 - Do not invent durable output paths.
 - Unknown durable destinations require preview and owner confirmation, or stop-and-report for governed artifacts without a primitive.
-- Use P2P CLI or explicit MCP write tools for `.p2p/`, `outputs/` for generated exports, `drafts/` or `docs/drafts/` for working drafts, and `docs/` only for stable owner-intended documentation."""
+- Use P2P CLI or explicit MCP write tools for `.p2p/`, `outputs/` for generated exports, `drafts/` or `docs/drafts/` for working drafts, and `docs/` only for stable owner-intended documentation.
+- P2P Engine does not create branches, commits, tags, pull requests, merges, pushes, releases, or repository synchronization.
+- Accepted proposals, Change Sets, and completed Work records do not prove implementation; use separately authorized repository tooling and explicit implementation evidence."""
 
 
 def agent_integration_lifecycle_block() -> str:
@@ -736,6 +755,7 @@ def agent_policy(
             "uses_p2p_cli_v1_envelope": False,
             "wavekit_worker_retry_boundary": "cli_json_operation_key",
         },
+        "source_control_boundary": source_control_boundary_payload(),
         "wavekit_cli_worker_contract": {
             "transport": "cli_json",
             "contract_version": "p2p-cli/v1",
@@ -902,7 +922,7 @@ def agent_policy(
                 "p2p project vertical package <directory> --output <pack.p2pv>",
                 "p2p project vertical export eligibility --format json",
                 "p2p project vertical export preview --publisher <publisher> --id <id> --version <version> --name <name> --license <spdx-id> --primary-domain-key <key> --primary-domain-name <name> --lineage-mode derived|independent --format json",
-                "p2p project vertical export apply --target <directory> --output <pack.p2pv> --expected-structure-revision <n> --expected-structure-checksum <sha256> --token <preview-token> --idempotency-key <key> --confirm --format json",
+                "p2p project vertical export apply --target <directory> --output <pack.p2pv> --publisher <publisher> --id <id> --version <version> --name <name> --license <spdx-id> --primary-domain-key <key> --primary-domain-name <name> --lineage-mode derived|independent --expected-structure-revision <n> --expected-structure-checksum <sha256> --token <preview-token> --idempotency-key <key> --confirm --format json",
                 "p2p project vertical install preview <pack.p2pv> --expected-checksum <sha256> --actor <owner>",
                 "p2p project vertical adopt preview <publisher/id@version> --actor <owner>",
                 "p2p project vertical migrate preview <publisher/id@version> --actor <owner>",

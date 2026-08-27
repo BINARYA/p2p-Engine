@@ -1,9 +1,0 @@
-schema_version: 1
-status: passed
-validated_at: '2026-07-20'
-input: outputs/latest/project.curated.md
-curated_sha256: 0b4a46693d2a47b0b3fb360807260564b614e5bb515603b139d8151f85f74805
-profile: outputs/latest/publication-profile.yml
-profile_sha256: c47e93a77090506689c9cc3bc78bf524245e5c01a828fcf764a1ee5170336e78
-validator_version: publication-validator-v1
-findings: []

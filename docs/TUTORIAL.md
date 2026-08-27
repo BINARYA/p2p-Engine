@@ -54,27 +54,41 @@ cd /tmp/p2p-demo
 p2p init "P2P Demo" --agent codex --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
 ```
 
-Expected shape:
+Expected shape (the command reports every created managed file):
 
 ```text
 P2P workspace initialized.
   created .p2p/project.yml
-  created .p2p/project/rubrics.yml
+  created .p2p/project/runtime.yml
+  created .p2p/project/structure.yml
   created AGENTS.md
   created .p2p/agent-policy.yml
 ```
 
-Initial project files:
+Selected initial project files:
 
 ```text
 .
   AGENTS.md
+  P2P-SETUP.md
+  .agents/
+    skills/
+      p2p-project/
+        SKILL.md
   .p2p/
+    agent-integrations.yml
     agent-policy.yml
     project.yml
     project/
+      authority.yml
+      runtime.yml
       rubrics.yml
+      structure.yml
+      workspace-schema.yml
 ```
+
+The exact adapter footprint depends on `--agent`. Inspect it with
+`p2p agent list`; do not use a checked-in demo snapshot as the contract.
 
 ## 2. Ask For Compact Context
 
@@ -121,8 +135,8 @@ Create a proposal for the narrow first direction:
 ```bash
 p2p proposal create "Start With CLI And Local MCP" \
   --problem "The project needs a first usable interface without overbuilding a hosted product." \
-  --context "The project needs Git-native governance state, bounded agent context, and explicit owner decisions." \
-  --goal "Make the engine usable from source through CLI commands." \
+  --context "The project needs filesystem-backed governance state, bounded agent context, and explicit owner decisions." \
+  --goal "Make the installed engine usable through CLI commands." \
   --goal "Expose safe local MCP tools for agents." \
   --non-goal "Build a hosted web product in the first implementation layer." \
   --proposal "Start with a deterministic local CLI and a local stdio MCP server. Keep hosted mediator or web layers out of the engine repository." \
@@ -136,6 +150,25 @@ Inspect it:
 p2p proposal list
 p2p proposal show PROP-001
 ```
+
+New proposals start with explicit `unassigned` project-memory scope. Before an
+acceptance or reinstatement, classify the proposal against active sections or
+mark it explicitly project-wide. This example is project-wide:
+
+```bash
+p2p project memory classification --format json
+p2p proposal scope show PROP-001 --format json
+p2p proposal scope set PROP-001 \
+  --kind project_global \
+  --expected-memory-revision '<data.memory_classification.memory_revision>' \
+  --expected-structure-revision '<data.memory_classification.structure.revision>' \
+  --operation-key 'tutorial:scope-prop-001' \
+  --format json
+```
+
+Copy the exact `memory_revision` and `structure.revision` values returned by
+the classification read. For section-bounded intent, use `--kind sections`
+with one or more active `--section-id` values instead.
 
 Expected shape:
 

@@ -4,8 +4,9 @@ This page is the short operational concept guide for P2P Engine. It explains the
 model used by the CLI, MCP server, tutorial, and generated `.p2p/` project
 state.
 
-For definitions, see [GLOSSARY.md](GLOSSARY.md). For the longer design
-rationale, see [vision/p2p-engine-foundation.md](vision/p2p-engine-foundation.md).
+For definitions, see [GLOSSARY.md](GLOSSARY.md). Current implementation
+boundaries are documented in
+[DEVELOPMENT-GUIDELINES.md](DEVELOPMENT-GUIDELINES.md).
 
 ## The Core Loop
 
@@ -170,8 +171,11 @@ Remote registry v2 catalog domains and release `primary_domain` values are
 advisory discovery metadata only. They do not change the project's free domain
 classification, prove compatibility, or select a detached structure source.
 Transitional release adoption or migration does not replace the project-owned
-structure. A later explicit replacement lifecycle compares the release with
-the current structure and governs every affected memory reference.
+structure. The implemented structure replacement lifecycle uses
+`p2p project structure replace preview/apply/status` to compare an exact
+schema-3 release with current structure and memory revisions, require an impact
+plan where needed, and govern every affected memory reference before applying
+a detached replacement copy.
 
 `.p2p/project/definition.yml` stores durable owner answers, assumptions,
 missing required fields, blockers, open questions, section status, and

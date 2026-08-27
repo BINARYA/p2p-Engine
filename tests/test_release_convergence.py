@@ -201,9 +201,10 @@ def test_docs_release_notes_and_allowlist_record_clean_break() -> None:
     assert "WaveKit-facing CLI fixture bundle" in convergence_doc
     assert "P2P Engine 0.5.0" in convergence_doc
     assert allowed["CHANGELOG.md"]
-    assert "historical feature spec" in allowed[
-        "specs/features/prop-105-local-vertical-catalog-and-remote-registry-client/"
-    ]
+    assert set(allowed) == {
+        "CHANGELOG.md",
+        "tests/fixtures/vertical_transition/legacy-0.4.7-characterization.json",
+    }
 
 
 @pytest.mark.unit

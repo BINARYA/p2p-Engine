@@ -23,7 +23,7 @@ def test_source_package_and_mcp_versions_are_consistent(tmp_path: Path) -> None:
     }
 
 
-def test_current_release_documentation_uses_package_version() -> None:
+def test_current_release_documentation_matches_publication_state() -> None:
     root = Path(__file__).resolve().parents[1]
     wheel_name = f"p2p_engine-{__version__}-py3-none-any.whl"
     release_url = f"/releases/download/v{__version__}/{wheel_name}"
@@ -31,21 +31,27 @@ def test_current_release_documentation_uses_package_version() -> None:
     readme = (root / "README.md").read_text(encoding="utf-8")
     install = (root / "docs" / "INSTALL.md").read_text(encoding="utf-8")
     changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
+    release_note = (root / "docs" / "releases" / f"{__version__}.md").read_text(
+        encoding="utf-8"
+    )
     cli_contract = (root / "docs" / "CLI-CONTRACT.md").read_text(encoding="utf-8")
     workspace_contract = (root / "docs" / "WORKSPACE-SCHEMA.md").read_text(encoding="utf-8")
 
-    assert release_url in readme
-    assert release_url in install
-    release_urls = re.findall(
-        r"/releases/download/v([^/]+)/p2p_engine-([0-9.]+)-py3-none-any\.whl",
-        "\n".join([readme, install]),
-    )
-    assert release_urls
-    assert set(release_urls) == {(__version__, __version__)}
     release_heading = re.compile(
-        rf"^## {re.escape(__version__)} - (?:Unreleased|\d{{4}}-\d{{2}}-\d{{2}})$",
+        rf"^## {re.escape(__version__)} - (?P<state>Unreleased|\d{{4}}-\d{{2}}-\d{{2}})$",
         re.MULTILINE,
     )
-    assert release_heading.search(changelog)
+    heading = release_heading.search(changelog)
+    assert heading is not None
+    if heading.group("state") == "Unreleased":
+        assert release_url not in readme
+        assert release_url not in install
+        assert "<published-version>" in readme
+        assert "<published-version>" in install
+    else:
+        assert release_url in readme
+        assert release_url in install
+    assert release_url in release_note
+    assert "After publication" in release_note
     assert f"P2P Engine {__version__} exposes" in cli_contract
     assert f"P2P Engine {__version__} supports workspace schema 4 only" in workspace_contract

@@ -21,6 +21,13 @@ tagged releases.
 - Removed executable registry protocol-v1 cache fallback from the current
   runtime; old registry-v1 references remain historical spec/test evidence
   only.
+- Removed the Git/synchronization product surface from CLI, MCP, services and
+  generated agent guidance. P2P Engine 0.5.0 no longer manages repositories,
+  remotes, proposal branches, draft commits, review requests, merges, pushes,
+  releases, or branch-based Work lifecycle operations.
+- Stopped tracking local implementation-spec history and generated project
+  publications, drafts and demo snapshots in the product repository. Demos are
+  generated on demand with the current runtime.
 - This release is a clean break for current runtime state: P2P Engine 0.5.0
   supports workspace schema 4 and portable vertical schema 3 only. It does not
   provide in-runtime migration, conversion or compatibility aliases for older
@@ -164,7 +171,9 @@ tagged releases.
   products such as WaveKit can enforce their own catalog and authorization
   policies while P2P remains deterministic and offline.
 - Removed the canonical P2P project-design workspace from the implementation
-  repository and retained implementation specifications locally under `specs/`.
+  repository. At the time of this release, implementation specifications were
+  retained locally under `specs/`; 0.5.0 later stopped tracking that local
+  archive.
 - Corrected concurrent readiness convergence classification so changed
   preconditions report `stale_preview` instead of a generic failure.
 

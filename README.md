@@ -61,11 +61,13 @@ Humans do not need to operate P2P Engine manually for every step. The intended m
 
 ```text
 Status: Alpha / MVP+
-Install: project-local virtualenv from GitHub Release wheel
+Source version: 0.5.0 release candidate (Unreleased)
+Install: project-local virtualenv from an existing GitHub Release wheel
 CLI: usable
 MCP: local stdio MVP
 Hosted product: not included in this repository
-Packaged binary: not yet available
+Python wheel and sdist: reproducible release automation implemented
+Standalone compiled binary: not available
 Future package target: public package registry, e.g. PyPI
 ```
 
@@ -87,14 +89,17 @@ Agent client
   Codex, Claude, or another MCP/CLI-capable agent that uses P2P primitives.
 ```
 
-Create a project and install P2P Engine into that project-local virtualenv:
+Create a project and install an existing published version into that
+project-local virtualenv. Replace `<published-version>` with a tag that is
+actually present on the GitHub Releases page; `0.5.0` must not be used here
+until its release has been published.
 
 ```bash
 mkdir /tmp/my-project
 cd /tmp/my-project
 python3 -m venv .venv
 .venv/bin/python -m pip install \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.5.0/p2p_engine-0.5.0-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v<published-version>/p2p_engine-<published-version>-py3-none-any.whl
 ```
 
 Initialize P2P inside the target project:
@@ -310,7 +315,8 @@ Maturity Assessment
 Stable:
 
 - [docs/INSTALL.md](docs/INSTALL.md)  
-  Install from source, initialize a project, verify the CLI, and configure local MCP.
+  Install a published release wheel, initialize a project, verify the CLI, and
+  configure local MCP.
 
 - [docs/TUTORIAL.md](docs/TUTORIAL.md)  
   End-to-end walkthrough from rough idea to proposal, owner decision, Change Set, and agent context.
@@ -342,13 +348,11 @@ Stable:
 - [docs/MCP.md](docs/MCP.md)  
   Local MCP server setup, tool matrix, safety boundaries, and example calls.
 
-Examples:
+Local demos:
 
-- [examples/minimal-software-project](examples/minimal-software-project)  
-  Small software-domain project with an accepted proposal and Change Set.
-
-- [examples/board-game-project](examples/board-game-project)  
-  Board-game-domain project showing P2P outside software-only workflows.
+- [examples/README.md](examples/README.md)
+  Create disposable examples with the current runtime instead of relying on
+  checked-in project snapshots.
 
 Work in progress:
 
@@ -358,29 +362,20 @@ Work in progress:
 - [docs/API.md](docs/API.md)  
   Contributor-facing Python API reference. End-user agents should prefer CLI and MCP.
 
-Vision / design notes:
-
-- [docs/vision/p2p-engine-foundation.md](docs/vision/p2p-engine-foundation.md)  
-  Long-form design rationale. Contains implemented, planned, and exploratory ideas.
-
-- [docs/vision/p2p-engine-landscape-and-positioning.md](docs/vision/p2p-engine-landscape-and-positioning.md)  
-  Long-form positioning against adjacent tools and workflows.
-
 ## Roadmap
 
 Short-term:
 
-- expand CLI guide and MCP tool reference;
-- add real coverage reporting;
-- document agent integration patterns;
-- plan modular refactor of the large `P2PWorkspace` facade;
-- validate MCP behavior with more real clients.
+- finish and publish the verified 0.5.0 release candidate;
+- validate MCP behavior with more real clients;
+- continue hardening validation and recovery paths;
+- plan modular refactoring of the large `P2PWorkspace` facade.
 
 Later:
 
-- packaged or compiled CLI distribution;
-- stronger spec/export workflows;
-- clearer extension points for project-owned structure and portable domain classification.
+- publish through a public Python package registry;
+- optionally investigate a standalone compiled executable;
+- strengthen spec/export workflows and extension points.
 
 Hosted mediator or web products are outside this repository's current scope.
 

@@ -1,1 +1,0 @@
-# Decision - {{ proposal_id }}

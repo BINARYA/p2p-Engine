@@ -356,11 +356,6 @@ SDIST_REMOVED_TOKEN_ALLOWLIST = {
     "tests/test_release_artifacts.py": {"p2p_sync_status"},
 }
 SDIST_DISCARDED_TOKEN_ALLOWLIST = {
-    # Archived inventories retain exact historical names for audit traceability.
-    "docs/development/cli-primitive-inventory.md": {
-        "workspace migrate", "legacy-resolution", "mark-legacy",
-    },
-    "docs/development/codebase-architecture-review.md": {"proposal_decision_legacy"},
     # Guard implementations and negative regressions must name what they reject.
     "scripts/verify-release-artifacts.py": set(DISCARDED_SURFACE_TOKENS),
     "tests/test_agent_instructions_service.py": {"legacy_undeclared", "codex-legacy"},

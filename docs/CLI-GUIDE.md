@@ -224,12 +224,14 @@ Project owners can preview and apply a governed runtime contract change with:
 
 ```bash
 p2p runtime contract preview \
-  --requires ">=0.2.0,<0.3" \
-  --recommended "0.2.4"
+  --requires ">=0.5.0,<0.6" \
+  --recommended "0.5.0" \
+  --reason "Allow compatible 0.5 patch releases."
 
 p2p runtime contract apply \
-  --requires ">=0.2.0,<0.3" \
-  --recommended "0.2.4" \
+  --requires ">=0.5.0,<0.6" \
+  --recommended "0.5.0" \
+  --reason "Allow compatible 0.5 patch releases." \
   --expected-state-token "<token-from-preview>" \
   --confirm
 ```
@@ -238,6 +240,10 @@ p2p runtime contract apply \
 checks the managed setup guide state, reports owner-authority diagnostics, and
 returns an expected-state token only when the current contract is trusted and
 the update is structurally applicable.
+
+Use the exact same `--reason` for preview and apply whenever preview reports
+`reason_required: true`; narrowing or otherwise strongly changing compatibility
+without that reason is blocked.
 
 `apply` rechecks the current state, owner authority, confirmation, reason
 requirements, and expected-state token before writing. It updates managed
@@ -1123,8 +1129,9 @@ p2p decision preview PROP-001 \
 
 Use `reinstated` only with the original accepted event and matching revocation
 references. Use typed lineage for `superseded`, `split`, and
-`merged_into_other`. Managed branch accept/reject commands remain branch
-operations and never append proposal decision events.
+`merged_into_other`. P2P Engine has no branch accept/reject commands:
+source-control operations are external and never append proposal decision
+events.
 
 Projection and ledger repair have separate preview/apply commands:
 
@@ -1345,7 +1352,7 @@ p2p work plan --change CHANGE-001 --target speckit
 p2p work list
 p2p work status
 p2p work show WORK-001
-p2p work retire WORK-001 --actor owner
+p2p work retire WORK-001 --reason "The planned handoff is no longer needed."
 ```
 
 Branches, commits, review, merge and publication are external delivery-system

@@ -423,7 +423,7 @@ Export the active project-owned structure into the same draft/package lifecycle:
 ```bash
 p2p project vertical export eligibility --format json
 p2p project vertical export preview --publisher <publisher> --id <id> --version <version> --name <name> --license <spdx-id> --primary-domain-key <key> --primary-domain-name <name> --lineage-mode derived|independent --format json
-p2p project vertical export apply --target <pack-directory> --output <pack.p2pv> --expected-structure-revision <n> --expected-structure-checksum <sha256> --token <preview-token> --idempotency-key <operation-id> --confirm --format json
+p2p project vertical export apply --target <pack-directory> --output <pack.p2pv> --publisher <publisher> --id <id> --version <version> --name <name> --license <spdx-id> --primary-domain-key <key> --primary-domain-name <name> --lineage-mode derived|independent --expected-structure-revision <n> --expected-structure-checksum <sha256> --token <preview-token> --idempotency-key <operation-id> --confirm --format json
 ```
 
 Project structure export requires exact publisher, ID, semantic version, name,

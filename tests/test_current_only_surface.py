@@ -2,18 +2,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import yaml
-
-from p2p_engine import __version__
-from p2p_engine.storage.filesystem import P2PWorkspace
-
-
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = ROOT / "src" / "p2p_engine"
 MAINTAINED_DOCUMENTS = (
     ROOT / "README.md",
     ROOT / "AGENTS.md",
     ROOT / "CLAUDE.md",
+    ROOT / "CONTRIBUTING.md",
+    ROOT / "ROADMAP.md",
     ROOT / "docs" / "INSTALL.md",
     ROOT / "docs" / "CLI-GUIDE.md",
     ROOT / "docs" / "CLI-CONTRACT.md",
@@ -21,10 +17,6 @@ MAINTAINED_DOCUMENTS = (
     ROOT / "docs" / "AGENT-INTEGRATION.md",
     ROOT / "docs" / "WORKSPACE-SCHEMA.md",
 )
-HISTORICAL_DOCUMENT_ALLOWLIST = {
-    ROOT / "docs" / "development" / "cli-primitive-inventory.md",
-    ROOT / "docs" / "development" / "codebase-architecture-review.md",
-}
 DISCARDED_SURFACE_TOKENS = (
     "legacy_undeclared",
     "absent_legacy",
@@ -73,34 +65,65 @@ def test_maintained_documents_and_adapters_have_no_discarded_surfaces() -> None:
     assert not codex_skills.exists() or not any(path.is_file() for path in codex_skills.rglob("*"))
 
 
-def test_obsolete_command_evidence_is_confined_to_reviewed_historical_docs() -> None:
+def test_maintained_docs_have_no_obsolete_command_evidence() -> None:
     offenders = {
         path
         for path in (ROOT / "docs").rglob("*.md")
         if _hits(path)
     }
 
-    assert offenders == HISTORICAL_DOCUMENT_ALLOWLIST
-    for path in offenders:
-        opening = path.read_text(encoding="utf-8")[:1500].lower()
-        assert "fotografia" in opening or "storica" in opening
+    assert offenders == set()
 
 
-def test_checked_in_examples_use_only_current_workspace_and_agent_contracts() -> None:
-    for name in ("board-game-project", "minimal-software-project"):
-        root = ROOT / "examples" / name
-        schema = yaml.safe_load(
-            (root / ".p2p" / "project" / "workspace-schema.yml").read_text(encoding="utf-8")
-        )["workspace_schema"]
-        runtime = yaml.safe_load(
-            (root / ".p2p" / "project" / "runtime.yml").read_text(encoding="utf-8")
-        )["runtime"]["p2p"]
-        integration = yaml.safe_load(
-            (root / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8")
-        )
+def test_local_history_and_generated_project_artifacts_are_ignored() -> None:
+    ignore = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
 
-        assert schema["current_version"] == 4
-        assert runtime == {"requires": f"=={__version__}", "recommended": __version__}
-        assert integration["adapters"]["codex"]["status"] == "installed"
-        assert not (root / ".codex" / "skills").exists()
-        assert P2PWorkspace(root).validate().findings == []
+    assert "/specs/" in ignore
+    assert "/outputs/" in ignore
+    assert "/drafts/" in ignore
+    assert "/examples/*/" in ignore
+    assert "/.p2p/" in ignore
+    assert "/.agents/" in ignore
+    assert "/.cursor/" in ignore
+    assert (ROOT / "examples" / "README.md").is_file()
+    assert not (ROOT / "examples" / "board-game-project").exists()
+    assert not (ROOT / "examples" / "minimal-software-project").exists()
+    assert not (ROOT / "docs" / "vision").exists()
+
+
+def test_acceptance_walkthroughs_assign_scope_before_decision_preview() -> None:
+    for path in (ROOT / "docs" / "TUTORIAL.md", ROOT / "docs" / "INSTALL.md"):
+        text = path.read_text(encoding="utf-8")
+        proposal = text.index("p2p proposal show PROP-001")
+        scope = text.index("p2p proposal scope set PROP-001", proposal)
+        decision = text.index("p2p decision preview PROP-001", scope)
+
+        assert proposal < scope < decision
+        assert "--kind project_global" in text[scope:decision]
+
+
+def test_unreleased_install_guides_do_not_claim_the_0_5_asset_exists() -> None:
+    unavailable_asset = (
+        "https://github.com/BINARYA/p2p-Engine/releases/download/"
+        "v0.5.0/p2p_engine-0.5.0-py3-none-any.whl"
+    )
+
+    assert unavailable_asset not in (ROOT / "README.md").read_text(encoding="utf-8")
+    assert unavailable_asset not in (ROOT / "docs" / "INSTALL.md").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_current_cli_examples_match_non_git_runtime_contracts() -> None:
+    guide = (ROOT / "docs" / "CLI-GUIDE.md").read_text(encoding="utf-8")
+    contract = (ROOT / "docs" / "CLI-CONTRACT.md").read_text(encoding="utf-8")
+
+    assert "Managed branch accept/reject commands" not in guide
+    assert 'p2p work retire WORK-001 --reason "' in guide
+    export_apply = next(
+        line
+        for line in contract.splitlines()
+        if line.startswith("p2p project vertical export apply ")
+    )
+    assert "--idempotency-key" in export_apply
+    assert "--operation-key" not in export_apply

@@ -1,6 +1,0 @@
-workspace_schema:
-  contract_version: 1
-  current_version: 4
-  baseline: initialized_current
-  initialized_at: '2026-08-25'
-  initialized_by: owner

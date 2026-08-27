@@ -20,6 +20,10 @@ p2p status --root ../projects/p2p-engine-project
 - Keep packaged resources under `src/p2p_engine/resources/`.
 - Keep development and release automation under `scripts/` and
   `.github/workflows/`.
+- Treat `specs/` as an ignored local historical archive, never as maintained
+  product documentation or an instruction source.
+- Treat `outputs/`, `drafts/`, and generated `examples/*/` projects as local
+  derived artifacts. Tests must create isolated projects in temporary paths.
 - Run focused tests first, then `./scripts/test-public.sh -q` and
   `./scripts/test-full.sh -q` when the change affects public or release
   contracts.

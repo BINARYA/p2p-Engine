@@ -138,6 +138,40 @@ def test_current_agent_template_command_and_tool_references_are_registered() -> 
 
 
 @pytest.mark.unit
+def test_generated_structure_export_apply_examples_include_required_options() -> None:
+    rendered = agent_instruction_files(
+        "Surface Project",
+        ["generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode"],
+    )
+    commands = {
+        match.rstrip("`.,:;")
+        for content in rendered.values()
+        for match in re.findall(r"p2p project vertical export apply [^`\n]+", content)
+    }
+    required_options = {
+        "--target",
+        "--output",
+        "--publisher",
+        "--id",
+        "--version",
+        "--name",
+        "--license",
+        "--primary-domain-key",
+        "--primary-domain-name",
+        "--lineage-mode",
+        "--expected-structure-revision",
+        "--expected-structure-checksum",
+        "--token",
+        "--idempotency-key",
+        "--confirm",
+    }
+
+    assert commands
+    for command in commands:
+        assert required_options <= set(re.findall(r"--[a-z-]+", command)), command
+
+
+@pytest.mark.unit
 def test_mcp_reference_table_is_checked_against_the_registered_registry() -> None:
     root = Path(__file__).resolve().parents[1]
     mcp_guide = (root / "docs" / "MCP.md").read_text(encoding="utf-8")

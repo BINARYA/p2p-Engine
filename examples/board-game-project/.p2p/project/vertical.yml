@@ -1,8 +1,0 @@
-project_vertical:
-  schema_version: 1
-  active_vertical_id: board_game_design
-  active_vertical_coordinate: binarya/board_game_design@1.0.0
-  active_source: internal
-  selected_at: '2026-08-27'
-  selected_by: owner
-  fallback_used: false

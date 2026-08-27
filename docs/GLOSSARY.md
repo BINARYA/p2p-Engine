@@ -241,6 +241,7 @@ classification.
 
 ## Work
 
-Managed metadata for implementation or handoff activity, usually connected to a
-Change Set and branch-based workflow. Work metadata does not replace Git history
-or code review.
+Logical planning and handoff metadata connected to a Change Set and a named
+downstream target. Work records do not create or inspect branches, commits,
+reviews, merges, releases, Git history, or implementation completion. Those
+belong to separately authorized external delivery tooling and evidence.

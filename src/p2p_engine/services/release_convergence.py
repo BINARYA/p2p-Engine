@@ -448,21 +448,6 @@ def obsolete_reference_allowlist() -> tuple[dict[str, str], ...]:
             "reason": "immutable release history remains historically accurate",
         },
         {
-            "path": "docs/development/cli-primitive-inventory.md",
-            "pattern": "historical discarded-surface terms",
-            "reason": "reviewed historical architecture snapshot",
-        },
-        {
-            "path": "docs/development/codebase-architecture-review.md",
-            "pattern": "historical discarded-surface terms",
-            "reason": "reviewed historical architecture snapshot",
-        },
-        {
-            "path": "specs/features/prop-105-local-vertical-catalog-and-remote-registry-client/",
-            "pattern": "p2p-vertical-registry/v1",
-            "reason": "historical feature spec only; not executable runtime surface",
-        },
-        {
             "path": "tests/fixtures/vertical_transition/legacy-0.4.7-characterization.json",
             "pattern": "legacy 0.4.7 characterization",
             "reason": "bounded regression fixture for historical behavior",

@@ -15,8 +15,10 @@ messages.
 
 This is not a single shared daemon. If Codex, Claude, and VS Code all connect to
 the same target project through `stdio`, each client may start its own P2P MCP
-server process. Shared state must therefore live outside the MCP process: in the
-target repository, `.p2p/`, Git history, and P2P core storage.
+server process. Shared P2P state must therefore live outside the MCP process in
+the governed target root's `.p2p/` workspace and other P2P core storage. A
+caller may version that state externally, but Git history is neither required
+storage nor a P2P runtime authority.
 
 For a future multi-agent setup that requires one long-running shared service,
 P2P Engine would need a Streamable HTTP MCP server. The current implementation
@@ -209,8 +211,10 @@ expiry, when present
 
 The tool consumes the receipt after successful execution and stores result
 metadata. Consent receipts are auditable local project records, not strong
-authentication. In cloud-backed projects, Git provider permissions, protected
-branches, and token scopes remain the real enforcement layer for remote state.
+authentication. A hosted integration such as WaveKit must enforce its own user
+authentication, project authorization, concurrency and worker access. Optional
+source-control provider permissions protect only that provider's external
+repository operations; they do not authorize P2P project-state mutations.
 
 ## Tool Matrix
 

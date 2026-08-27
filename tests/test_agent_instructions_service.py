@@ -74,6 +74,11 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert policy["runtime_bootstrap"]["environment_mutation"] == "owner_explicit_action_required"
     assert policy["mcp"]["protocol_native_payloads"] is True
     assert policy["mcp"]["uses_p2p_cli_v1_envelope"] is False
+    source_control = policy["source_control_boundary"]
+    assert source_control["runtime_owns_source_control"] is False
+    assert source_control["repository_operations_are_external"] is True
+    assert source_control["accepted_proposal_implies_implementation"] is False
+    assert source_control["completed_work_implies_implementation"] is False
     worker_contract = policy["wavekit_cli_worker_contract"]
     assert worker_contract["transport"] == "cli_json"
     assert worker_contract["contract_version"] == "p2p-cli/v1"
@@ -159,6 +164,8 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
         in agents
     )
     assert "MCP responses are protocol-native" in agents
+    assert "P2P Engine does not create branches, commits, tags, pull requests" in agents
+    assert "never proves that implementation work was performed" in agents
     assert "Proposal Decision Lifecycle" in agents
     assert "Reject only a proposal that was never active" in agents
     assert "p2p_proposal_decision_apply" in agents
@@ -231,7 +238,7 @@ def test_agent_instruction_service_registers_project_curator_codex_outputs(
     assert modern["shared"] is False
     assert modern["managed"] is True
     assert modern["drift"] == "clean"
-    assert modern["template_generation_id"].startswith("agent-template-generation-v2:")
+    assert modern["template_generation_id"].startswith("agent-template-generation-v3:")
     assert len(str(modern["sha256"])) == 64
     reference_paths = {
         path
@@ -358,6 +365,8 @@ def test_agent_instruction_service_generates_persistence_boundary_for_supported_
         assert "Do not invent durable output paths." in content
         assert "operation, target, artifact kind, and durable destination" in content
         assert "Unknown durable destinations require preview and owner confirmation" in content
+        assert "P2P Engine does not create branches, commits, tags, pull requests" in content
+        assert "do not prove implementation" in content
 
     registry = yaml.safe_load((tmp_path / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
     assert registry["adapters"]["opencode"]["files"][0]["path"] == "AGENTS.md"

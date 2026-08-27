@@ -1,3 +1,0 @@
-# Relevance Criteria
-
-Pending.

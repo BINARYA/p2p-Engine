@@ -81,9 +81,9 @@ source preconditions and idempotency key.
 
 Current remote registry discovery uses `p2p-vertical-registry/v2`. Domain list,
 domain search, domain inspect and domain-filtered release list/search are
-provider-neutral reads. Protocol-v1 references are allowed only in historical
-feature specs and tests that prove deterministic rejection. There is no
-executable protocol-v1 fallback in the runtime catalog client.
+provider-neutral reads. Protocol-v1 references remain only in bounded tests
+that prove deterministic rejection. There is no executable protocol-v1
+fallback in the runtime catalog client.
 
 ## Release Notes And Resources
 

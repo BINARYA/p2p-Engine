@@ -10,7 +10,8 @@ separate from the normal new-project setup.
 Current status:
 
 ```text
-Supported today: project-local install from a GitHub Release wheel.
+Source checkout: 0.5.0 release candidate (Unreleased).
+Supported distribution: project-local install from an existing GitHub Release wheel.
 Transitional channel: versioned .whl files attached to GitHub Releases.
 Future target: public package registry, e.g. PyPI.
 ```
@@ -34,15 +35,16 @@ cd my-project
 python3 -m venv .venv
 ```
 
-Install a versioned wheel from GitHub Releases:
+Install a versioned wheel that is already present on GitHub Releases. Replace
+`<published-version>` with an existing release tag; do not use `0.5.0` until
+the separate release step has published it.
 
 ```bash
 .venv/bin/python -m pip install \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.5.0/p2p_engine-0.5.0-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v<published-version>/p2p_engine-<published-version>-py3-none-any.whl
 ```
 
-Replace `v0.5.0` and `p2p_engine-0.5.0-py3-none-any.whl` with the release you
-intend to use. The wheel filename is expected to follow:
+The wheel filename follows:
 
 ```text
 p2p_engine-<version>-py3-none-any.whl
@@ -61,7 +63,7 @@ workflow also creates a GitHub Artifact Attestation for the exact published
 files. Verification is optional and requires only the GitHub CLI:
 
 ```bash
-gh attestation verify p2p_engine-0.5.0-py3-none-any.whl \
+gh attestation verify p2p_engine-<published-version>-py3-none-any.whl \
   --repo BINARYA/p2p-Engine
 ```
 
@@ -233,7 +235,7 @@ From the target project:
 
 ```bash
 .venv/bin/python -m pip install --upgrade \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.5.0/p2p_engine-0.5.0-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v<published-version>/p2p_engine-<published-version>-py3-none-any.whl
 
 .venv/bin/p2p doctor
 .venv/bin/p2p runtime status
@@ -620,6 +622,25 @@ Inspect it:
 p2p proposal show PROP-001
 ```
 
+Assign explicit project-memory scope before an authority-creating decision.
+For this project-wide example, read the current memory and structure revisions,
+then copy those exact values into the mutation:
+
+```bash
+p2p project memory classification --format json
+p2p proposal scope show PROP-001 --format json
+p2p proposal scope set PROP-001 \
+  --kind project_global \
+  --expected-memory-revision '<data.memory_classification.memory_revision>' \
+  --expected-structure-revision '<data.memory_classification.structure.revision>' \
+  --operation-key 'local:scope-prop-001' \
+  --format json
+```
+
+Use `--kind sections --section-id <active-section-id>` instead when the
+proposal concerns only named active sections. An `unassigned` proposal may be
+drafted, but it cannot be accepted or reinstated.
+
 Preview it when the owner decides:
 
 ```bash
@@ -710,13 +731,17 @@ p2p assess refresh
 
 ## Current Limitations
 
-- Installation is source-based.
-- Packaged or compiled CLI distribution is future work.
+- P2P Engine is distributed as a Python wheel and source distribution; a
+  standalone compiled executable and public package-registry publication are
+  not available yet.
+- The source tree is currently the unreleased 0.5.0 candidate, so normal users
+  must install an existing published version until the separate release step
+  completes.
 - MCP support is local stdio. Privileged write operations are available only
   through explicit permission-gated tools.
-- Local MCP exposes the managed Work lifecycle through domain-specific tools;
-  privileged Work operations require matching consent receipts.
-- Provider PR/MR creation is not implemented; request-review records handoff
-  metadata and guidance only.
+- Work is logical planning and handoff metadata. P2P Engine does not create or
+  manage implementation branches, commits, review requests, merges or releases.
+- Provider PR/MR creation and repository synchronization are external delivery
+  integrations, not P2P Engine runtime primitives.
 - Project readiness scoring is deterministic and conservative, not AI semantic review.
 - Mediator and Web layers are not implemented.

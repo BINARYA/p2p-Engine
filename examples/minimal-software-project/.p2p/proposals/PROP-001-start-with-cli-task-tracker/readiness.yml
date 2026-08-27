@@ -1,9 +1,0 @@
-readiness:
-  status: not_assessed
-  reason: readiness assessment has not been created yet
-  owner_override: true
-  effective_status: forced_ready
-  effective_score: 100
-  override_reason: The example deliberately accepts the bounded CLI feature.
-  override_approver: owner
-  override_recorded_at: '2026-08-04'

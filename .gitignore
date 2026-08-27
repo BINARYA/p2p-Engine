@@ -25,6 +25,16 @@ ruleset.json
 release-how-to.md
 
 # P2P local/generated scratch areas
-.p2p/prompts/
-.p2p/tmp/
-.p2p/cache/
+/.p2p/
+/.agents/
+/.cursor/
+
+# Local design history (not product source or maintained documentation)
+/specs/
+
+# Generated project publications and working drafts
+/outputs/
+/drafts/
+
+# Locally generated demo projects; keep only examples/README.md tracked
+/examples/*/
