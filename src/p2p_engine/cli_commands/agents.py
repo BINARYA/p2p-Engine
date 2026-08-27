@@ -18,19 +18,11 @@ def register_agent_commands(agent_app: typer.Typer, agent_instructions_app: type
             "--agent",
             help="Agent profile to add or refresh: generic, codex, claude, or all",
         ),
-        repository: str | None = typer.Option(
-            None,
-            "--repository",
-            help="Repository mode override: local or cloud",
-        ),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
     ) -> None:
         """Refresh agent-safe project instructions without removing other profiles."""
         try:
-            result = workspace_for(root).refresh_agent_instructions(
-                profile=profile,
-                repository_mode=repository,
-            )
+            result = workspace_for(root).refresh_agent_instructions(profile=profile)
         except ValueError as exc:
             fail(str(exc))
         console.print("[green]Agent instructions refreshed.[/green]")

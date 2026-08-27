@@ -2,10 +2,10 @@
 
 ## Scopo
 
-Questa e' una fotografia descrittiva della CLI P2P Engine disponibile nel
-checkout analizzato. Serve a capire quali primitive esistono e in quale ambito
-operano. Non propone una futura organizzazione della CLI e non afferma che ogni
-comando appartenga necessariamente al perimetro desiderato del prodotto.
+Questa e' una fotografia storica della CLI P2P Engine al tag v0.4.5. Nessuna
+riga di questo documento e' un'istruzione operativa o una dichiarazione della
+superficie 0.5.0 corrente. Serve soltanto a ricostruire quali primitive
+esistevano e in quale ambito operavano.
 Integra la
 [`codebase-architecture-review.md`](codebase-architecture-review.md)
 con il dettaglio della superficie CLI, senza duplicarne l'analisi dei moduli e
@@ -29,10 +29,10 @@ comandi diretti sulla root: 6
 > schema 2. Le superfici correnti sono documentate in
 > [`CLI-GUIDE.md`](../CLI-GUIDE.md) e sono sempre verificabili con `p2p --help`.
 
-> Revisione 0.5.0: il runtime corrente separa la classificazione libera del
-> dominio dalla sorgente strutturale, richiede vertical pack schema 3 e non
-> converte workspace o pack precedenti. Le righe aggiornate sotto descrivono
-> la superficie corrente; i numeri dello snapshot restano storici.
+> Superseded in 0.5.0: per la superficie corrente usare
+> [`CLI-GUIDE.md`](../CLI-GUIDE.md) e `p2p --help`. In particolare le sezioni
+> storiche su repository remoto, sync e lifecycle Git di proposal/Work sono
+> state rimosse dal prodotto e non devono essere eseguite.
 
 > Estensione schema 4: la superficie corrente espone
 > `p2p project authority show`, `capabilities` e

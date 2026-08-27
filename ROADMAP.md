@@ -18,18 +18,22 @@ Implemented:
 - project rubrics and maturity assessment;
 - software spec generation and export MVP;
 - guided project init and agent instruction generation.
+- raw, width-independent CLI JSON for machine consumers;
+- path-free bundled vertical locks and strict portable-package YAML parsing;
+- deterministic WaveKit transition fixtures for engine 0.5.0;
+- logical Work planning with source-control lifecycle outside the runtime;
+- reproducible wheel/sdist candidate automation with installed-wheel smoke.
 
 ## Near Term
 
-- Expand practical CLI and MCP documentation.
-- Add more real-client MCP verification.
-- Improve coverage reporting.
+- Complete owner-controlled legal metadata and release notes for 0.5.0.
+- Run the commit-bound Python 3.11/3.14 candidate workflow.
+- Complete the WaveKit fixture handoff against the verified 0.5.0 artifact.
 - Continue hardening validation and recovery paths.
-- Clarify extension points for project-domain rubrics.
 
 ## Later
 
-- Package or compile the CLI for easier installation.
+- Publish immutable release artifacts after a green owner-approved candidate.
 - Strengthen spec/export workflows.
 - Split the large internal workspace facade into smaller managers while
   preserving public behavior.
@@ -40,3 +44,7 @@ Implemented:
 - Hosted SaaS product implementation.
 - Provider-specific AI orchestration.
 - Replacing Git, issue trackers, or downstream spec tools.
+
+Source-control, review, CI and publication remain external repository tooling.
+P2P Engine may store inert traceability references, but it does not own branch,
+commit, synchronization, merge or release lifecycles.

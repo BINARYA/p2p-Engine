@@ -40,34 +40,6 @@ def tool_definitions() -> list[dict[str, object]]:
             ['work_id'],
         ),
         _tool(
-            'p2p_work_branch',
-            (
-                'Local MCP Work lifecycle tool: create and checkout the managed Work branch. '
-                'Does not publish, merge, finalize, cleanup, or create provider PR/MR records.'
-            ),
-            {'root': {'type': 'string'}, 'work_id': {'type': 'string'}},
-            ['work_id'],
-        ),
-        _tool(
-            'p2p_work_submit',
-            (
-                'Local MCP Work lifecycle tool: commit implementation changes on the managed '
-                'Work branch. Does not publish, merge, finalize, cleanup, or create provider '
-                'PR/MR records.'
-            ),
-            {'root': {'type': 'string'}, 'work_id': {'type': 'string'}},
-            ['work_id'],
-        ),
-        _tool(
-            'p2p_work_review',
-            (
-                'Local MCP Work lifecycle tool: record local Work review readiness. Does not '
-                'publish, merge, finalize, cleanup, or create provider PR/MR records.'
-            ),
-            {'root': {'type': 'string'}, 'work_id': {'type': 'string'}},
-            ['work_id'],
-        ),
-        _tool(
             'p2p_spec_lifecycle',
             (
                 'Read-only advisory tool: show the governed software specification lifecycle '
@@ -106,7 +78,7 @@ def tool_definitions() -> list[dict[str, object]]:
             'p2p_change_create',
             (
                 'Write-safe deterministic tool: create a metadata-only Change Set from an '
-                'accepted proposal. Does not update status, branch, commit, or merge.'
+                'accepted proposal. Does not update implementation status.'
             ),
             {'root': {'type': 'string'},
              'source': {'type': 'string'},
@@ -153,81 +125,11 @@ def tool_definitions() -> list[dict[str, object]]:
             'p2p_work_plan',
             (
                 'Write-safe deterministic tool: create a Work manifest from a validated spec '
-                'export. Does not create branches, commits, PRs, or merges.'
+                'export. It records logical project state only.'
             ),
             {'root': {'type': 'string'},
              'change_id': {'type': 'string'},
              'target': {'type': 'string', 'enum': ['generic', 'openspec', 'speckit']}},
             ['change_id', 'target'],
-        ),
-        _tool(
-            'p2p_work_publish',
-            (
-                'Consent-gated local MCP Work lifecycle tool: publish a reviewed managed Work '
-                'branch to a configured Git remote. Requires a granted work_publish consent '
-                'receipt and does not create provider PR/MR records.'
-            ),
-            {'root': {'type': 'string'},
-             'work_id': {'type': 'string'},
-             'actor_id': {'type': 'string'},
-             'consent_id': {'type': 'string'},
-             'remote': {'type': 'string'}},
-            ['work_id', 'actor_id', 'consent_id'],
-        ),
-        _tool(
-            'p2p_work_request_review',
-            (
-                'Consent-gated local MCP Work lifecycle tool: record provider-advisory Work '
-                'review metadata. Requires a granted work_request_review consent receipt and '
-                'does not create provider PR/MR records.'
-            ),
-            {'root': {'type': 'string'},
-             'work_id': {'type': 'string'},
-             'actor_id': {'type': 'string'},
-             'consent_id': {'type': 'string'},
-             'provider': {'type': 'string', 'enum': ['generic', 'github', 'gitlab']}},
-            ['work_id', 'actor_id', 'consent_id'],
-        ),
-        _tool(
-            'p2p_work_accept',
-            (
-                'Consent-gated local MCP Work lifecycle tool: merge a published managed Work '
-                'branch into its base branch. Requires a granted work_accept consent receipt. '
-                'Does not finalize, push the base branch, or cleanup branches.'
-            ),
-            {'root': {'type': 'string'},
-             'work_id': {'type': 'string'},
-             'actor_id': {'type': 'string'},
-             'consent_id': {'type': 'string'}},
-            ['work_id', 'actor_id', 'consent_id'],
-        ),
-        _tool(
-            'p2p_work_finalize',
-            (
-                'Consent-gated local MCP Work lifecycle tool: finalize an accepted Work item '
-                'by pushing its base branch. Requires a granted work_finalize consent receipt. '
-                'Does not cleanup branches.'
-            ),
-            {'root': {'type': 'string'},
-             'work_id': {'type': 'string'},
-             'actor_id': {'type': 'string'},
-             'consent_id': {'type': 'string'},
-             'remote': {'type': 'string'}},
-            ['work_id', 'actor_id', 'consent_id'],
-        ),
-        _tool(
-            'p2p_work_cleanup',
-            (
-                'Consent-gated local MCP Work lifecycle tool: cleanup a finalized managed Work '
-                'branch. Requires a granted work_cleanup consent receipt. Remote branch '
-                'deletion occurs only when delete_remote is true.'
-            ),
-            {'root': {'type': 'string'},
-             'work_id': {'type': 'string'},
-             'actor_id': {'type': 'string'},
-             'consent_id': {'type': 'string'},
-             'delete_remote': {'type': 'boolean'},
-             'remote': {'type': 'string'}},
-            ['work_id', 'actor_id', 'consent_id'],
         ),
     ]

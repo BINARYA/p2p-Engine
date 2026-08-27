@@ -1,18 +1,17 @@
 from __future__ import annotations
 
+import json
+import os
+import re
+import sys
+import traceback
 from contextlib import redirect_stdout
 from contextvars import ContextVar
 from dataclasses import asdict, is_dataclass
 from io import StringIO
-import json
-import os
 from pathlib import Path
-import re
-import sys
-import traceback
 from typing import Any
 
-import typer
 from typer.core import TyperGroup
 
 try:  # Typer 0.27 vendors Click; older supported Typer versions do not.

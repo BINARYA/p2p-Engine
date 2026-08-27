@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import json
 import re
 from pathlib import Path
 from uuid import UUID
 
 import typer
 
+from p2p_engine.cli_contract import print_json
 from p2p_engine.cli_shared import console, fail
 from p2p_engine.cli_shared import workspace as workspace_for
 
@@ -37,7 +37,7 @@ def register_mutation_commands(mutation_app: typer.Typer) -> None:
             "raw_value_returned": False,
         }
         if output_format == "json":
-            console.out(json.dumps(payload, indent=2), highlight=False)
+            print_json(payload)
             return
         if output_format != "text":
             fail("Mutation status format must be text or json")

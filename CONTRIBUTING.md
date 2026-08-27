@@ -22,20 +22,20 @@ contributions, or implementation changes to the P2P Engine repository itself.
 Normal users should follow `docs/INSTALL.md` instead and initialize P2P inside
 their own target project.
 
-From the P2P Engine checkout, verify the local engine:
+From the P2P Engine checkout, verify the implementation directly:
 
 ```bash
-.venv/bin/p2p context --budget small
-.venv/bin/p2p validate
+.venv/bin/python -m pip check
+./scripts/test-public.sh -q
 ```
 
-If your agent supports MCP local stdio servers, configure the MCP server with
-this repository as the root:
+If your agent supports MCP local stdio servers, configure it only against an
+actual P2P project-state root. The P2P Engine source checkout is not that root:
 
 ```bash
 /absolute/path/to/p2p-Engine/.venv/bin/python \
   -m p2p_engine.mcp.server \
-  --root /absolute/path/to/p2p-Engine
+  --root /absolute/path/to/projects/p2p-engine-project
 ```
 
 For Codex CLI, the command has this shape:
@@ -44,25 +44,25 @@ For Codex CLI, the command has this shape:
 codex mcp add p2p-engine -- \
   /absolute/path/to/p2p-Engine/.venv/bin/python \
   -m p2p_engine.mcp.server \
-  --root /absolute/path/to/p2p-Engine
+  --root /absolute/path/to/projects/p2p-engine-project
 ```
 
 Then tell the agent:
 
 ```text
-Use the P2P MCP server for this repository.
+Use the P2P MCP server for the separate P2P Engine project-state repository.
 Start with p2p_context.
 Use P2P CLI/MCP primitives for proposals, contributions, Change Sets, validation, and registries.
 Do not edit .p2p files manually.
 Do not accept, reject, defer, decide, merge, push, or publish unless the maintainer explicitly instructs that exact action.
 ```
 
-For non-MCP agents, let the agent use the repository-local CLI:
+For non-MCP governance work, pass the separate root explicitly:
 
 ```bash
-.venv/bin/p2p context --budget small
-.venv/bin/p2p proposal list
-.venv/bin/p2p change status
+.venv/bin/p2p context --budget small --root ../projects/p2p-engine-project
+.venv/bin/p2p proposal list --root ../projects/p2p-engine-project
+.venv/bin/p2p change status --root ../projects/p2p-engine-project
 ```
 
 When proposing substantial work for P2P Engine, prefer this flow:
@@ -73,10 +73,11 @@ When proposing substantial work for P2P Engine, prefer this flow:
   --context "Relevant project context." \
   --goal "What success looks like." \
   --proposal "Proposed direction." \
-  --acceptance "How maintainers can verify it."
+  --acceptance "How maintainers can verify it." \
+  --root ../projects/p2p-engine-project
 
-.venv/bin/p2p registry refresh
-.venv/bin/p2p validate
+.venv/bin/p2p registry refresh --root ../projects/p2p-engine-project
+.venv/bin/p2p validate --root ../projects/p2p-engine-project
 ```
 
 Maintainer governance remains explicit. A contributor or agent may draft,
@@ -89,18 +90,14 @@ Run:
 
 ```bash
 python -m pytest -q
-p2p validate
-```
-
-If `p2p` is not on `PATH`, use:
-
-```bash
-.venv/bin/p2p validate
+python scripts/check-source-boundary.py
 ```
 
 ## P2P Project State
 
-Use P2P CLI or MCP primitives for `.p2p/` mutations. Do not edit generated
+The canonical design state is in the separate
+`../projects/p2p-engine-project/` repository. Use P2P CLI or MCP primitives for
+its `.p2p/` mutations. Do not edit generated
 registries or internal P2P files by hand unless the change is explicitly about
 storage format or repair.
 

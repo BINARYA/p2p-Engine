@@ -263,18 +263,10 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_registry_status` | read-only | no | no | Check generated registry availability and freshness. |
 | `p2p_registry_show` | read-only | no | no | Read a generated registry. |
 | `p2p_project_show` | read-only | no | no | Read generated project sections or feature documents. |
-| `p2p_project_remote_show` | read-only | no | no | Inspect local/cloud remote profile metadata. |
-| `p2p_project_remote_configure` | write-safe | yes | no | Configure P2P remote profile metadata without provider side effects. |
 | `p2p_permissions_show` | read-only | no | no | Read project-declared actors and role policy. |
 | `p2p_consent_request` | write-safe | yes | no | Record a pending owner consent request; does not grant consent. |
 | `p2p_consent_status` | read-only | no | no | List consent receipts without creating or consuming them. |
 | `p2p_consent_show` | read-only | no | no | Inspect one consent receipt. |
-| `p2p_sync_status` | read-only | no | no | Inspect managed Git sync readiness. |
-| `p2p_sync_fetch` | managed sync | yes | no | Fetch configured remote refs without pull/push/merge. |
-| `p2p_proposal_draft_commit` | managed branch | yes | no | Commit proposal draft changes before branching. |
-| `p2p_proposal_branch` | managed branch | yes | no | Create and check out a managed proposal branch from an explicit base. |
-| `p2p_proposal_branch_status` | read-only | no | no | Inspect one managed proposal branch. |
-| `p2p_proposal_branch_scan` | read-oriented | yes | no | Scan local managed proposal branches and refresh the proposal branch registry. |
 | `p2p_spec_lifecycle` | advisory/read-only | no | no | Inspect software spec lifecycle routing and preflight diagnostics. |
 | `p2p_spec_status` | read-only | no | no | List P2P-native software specs with additive semantic freshness details. |
 | `p2p_spec_show` | read-only | no | no | Read a generated software spec index. |
@@ -374,26 +366,9 @@ branches, and token scopes remain the real enforcement layer for remote state.
 | `p2p_spec_export` | write-safe | yes | no | Export spec outputs for `generic`, `openspec`, or `speckit` after lifecycle preflight. |
 | `p2p_spec_export_validate` | read-only | no | no | Validate an existing spec export. |
 | `p2p_work_plan` | write-safe | yes | no | Create a Work manifest from a validated export. |
-| `p2p_work_branch` | managed Work | yes | no | Create and check out the managed Work branch. |
-| `p2p_work_submit` | managed Work | yes | no | Commit implementation changes on the managed Work branch. |
-| `p2p_work_review` | managed Work | yes | no | Record local Work review readiness. |
-| `p2p_work_publish` | permission-gated | yes | yes | Publish reviewed Work branch with `work_publish` consent. |
-| `p2p_work_request_review` | permission-gated | yes | yes | Record provider-advisory Work review metadata with `work_request_review` consent. |
-| `p2p_work_accept` | permission-gated | yes | yes | Merge published Work branch into its base branch with `work_accept` consent. |
-| `p2p_work_finalize` | permission-gated | yes | yes | Push accepted Work base branch with `work_finalize` consent. |
-| `p2p_work_cleanup` | permission-gated | yes | yes | Delete finalized Work branches with `work_cleanup` consent; remote deletion requires `delete_remote: true`. |
-| `p2p_sync_pull` | permission-gated | yes | yes | Fast-forward pull current branch with `sync_pull` consent. |
-| `p2p_sync_push` | permission-gated | yes | yes | Push current branch with `sync_push` consent. |
-| `p2p_proposal_publish` | permission-gated | yes | yes | Publish current proposal branch with `proposal_publish` consent. |
-| `p2p_proposal_request_review` | permission-gated | yes | yes | Record review handoff metadata with `proposal_request_review` consent. |
 | `p2p_proposal_accept` | compatibility preview | no | yes | Return an acceptance preview; old unbound consent cannot write. |
 | `p2p_proposal_reject` | compatibility preview | no | yes | Return a rejection preview; old unbound consent cannot write. |
 | `p2p_proposal_defer` | compatibility preview | no | yes | Return a deferral preview; old unbound consent cannot write. |
-| `p2p_proposal_accept_branch` | permission-gated | yes | yes | Record owner-controlled branch acceptance with `proposal_accept_branch` consent. |
-| `p2p_proposal_reject_branch` | permission-gated | yes | yes | Record owner-controlled branch rejection with `proposal_reject_branch` consent. |
-| `p2p_proposal_merge` | permission-gated | yes | yes | Merge proposal branch into base branch with `proposal_merge` consent. |
-| `p2p_proposal_finalize` | permission-gated | yes | yes | Push finalized base branch with `proposal_finalize` consent. |
-| `p2p_proposal_cleanup` | permission-gated | yes | yes | Delete finalized/rejected/retired proposal branches with `proposal_cleanup` consent. |
 | `p2p_intake_prompt` | advisory/write-safe | yes | no | Create an intake prompt for a raw idea. |
 | `p2p_project_brief_prompt` | advisory/write-safe | yes | no | Create project brief prompt artifacts. |
 | `p2p_choice_discover` | advisory | no | no | Discover possible choices and blockers. |
@@ -556,11 +531,11 @@ granted `proposal_decision_apply` receipt whose target is exactly
 separate. Legacy `p2p_proposal_accept`, `p2p_proposal_reject`, and
 `p2p_proposal_defer` tools are preview-only compatibility surfaces. Their old
 unbound consent receipts cannot write schema-4 events and are not consumed.
-It also exposes local MCP parity for the managed Work lifecycle through
-domain-specific Work tools. It still does not expose choice decisions, spec
-imports, conflict recording, voting, precedent recording, choice blocking, raw
-Git shortcuts, provider PR/MR creation, remote registry login/pull/publish, or
-a hosted IAM model. Remote vertical-registry MCP is limited to explicit
+It exposes neutral Work planning and read tools, but source-control and delivery
+lifecycle operations are outside P2P Engine. It still does not expose choice
+decisions, spec imports, conflict recording, voting, precedent recording,
+choice blocking, provider review creation, remote registry login/pull/publish,
+or a hosted IAM model. Remote vertical-registry MCP is limited to explicit
 read-only domain and release discovery.
 
 P2P performs no provider network verification. A hosted MCP gateway must
@@ -568,17 +543,14 @@ authenticate and authorize before constructing the context and must protect
 worker invocation. Local MCP consent remains a separate transport safety gate.
 Authority rotation apply is intentionally not exposed over MCP.
 
-For end-to-end proposal collaboration, MCP can prepare the path but cannot grant
-owner consent:
+For proposal decisions, MCP can prepare the path but cannot grant owner consent:
 
 ```text
 p2p_proposal_create or p2p_proposal_update
-p2p_proposal_draft_commit
-p2p_proposal_branch with base_branch, usually main
 p2p_consent_request
 owner grants consent through CLI, UI, or authenticated cloud workflow
-p2p_proposal_publish
-p2p_proposal_request_review
+p2p_proposal_decision_preview
+p2p_proposal_decision_apply
 ```
 
 `p2p_consent_request` creates a `requested` receipt. Permission-gated tools
@@ -661,43 +633,33 @@ this release. Use the owner-authorized CLI commands. Write parity requires a
 separate consent-gated proposal after the CLI payloads have usage evidence and
 stable semantics.
 
-Use a permission-gated proposal operation:
+Use a permission-gated proposal decision operation after obtaining its preview
+token:
 
 ```bash
 p2p permissions actor add lorenzo --role contributor
-p2p consent grant proposal_publish PROP-001 --actor lorenzo --approved-by owner
+p2p consent grant proposal_decision_apply PROP-001@PREVIEW-TOKEN \
+  --actor lorenzo --approved-by owner
 ```
 
 ```json
 {
-  "tool": "p2p_proposal_publish",
+  "tool": "p2p_proposal_decision_apply",
   "arguments": {
     "root": "/path/to/project",
     "proposal_id": "PROP-001",
+    "decision": "accept",
+    "preview_token": "PREVIEW-TOKEN",
     "actor_id": "lorenzo",
     "consent_id": "CONSENT-001"
   }
 }
 ```
 
-Common consent operation to tool mapping:
+Current consent operation to decision tool mapping:
 
 ```text
-sync_pull                 -> p2p_sync_pull
-sync_push                 -> p2p_sync_push
-proposal_publish          -> p2p_proposal_publish
-proposal_request_review   -> p2p_proposal_request_review
 proposal_decision_apply   -> p2p_proposal_decision_apply
-proposal_accept_branch    -> p2p_proposal_accept_branch
-proposal_reject_branch    -> p2p_proposal_reject_branch
-proposal_merge            -> p2p_proposal_merge
-proposal_finalize         -> p2p_proposal_finalize
-proposal_cleanup          -> p2p_proposal_cleanup
-work_publish              -> p2p_work_publish
-work_request_review       -> p2p_work_request_review
-work_accept               -> p2p_work_accept
-work_finalize             -> p2p_work_finalize
-work_cleanup              -> p2p_work_cleanup
 ```
 
 The `proposal_decision_apply` target is
@@ -705,23 +667,17 @@ The `proposal_decision_apply` target is
 `proposal_reject`, and `proposal_defer` receipts have no write mapping in
 schema v3.
 
-Local Work lifecycle flow:
+Logical Work flow:
 
 ```text
 p2p_work_plan
-p2p_work_branch
-p2p_work_submit
-p2p_work_review
-p2p_work_publish with work_publish consent
-p2p_work_request_review with work_request_review consent
-p2p_work_accept with work_accept consent
-p2p_work_finalize with work_finalize consent
-p2p_work_cleanup with work_cleanup consent
+p2p_work_list
+p2p_work_status
+p2p_work_show
 ```
 
-`p2p_work_request_review` records provider-advisory metadata and suggested next
-steps only. It does not open GitHub pull requests, GitLab merge requests, or any
-provider-side review records.
+P2P Work records describe logical project-state handoffs only. Source-control,
+review, merge and delivery operations belong to external implementation tooling.
 
 The local MCP server runs in the caller's local execution context. Remote HTTP
 MCP, Wavekit user authentication, client grants, strong receipts, hosted audit

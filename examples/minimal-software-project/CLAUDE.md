@@ -8,7 +8,7 @@ Do not edit generated sections unless you accept drift.
 
 # Claude Instructions - Local CLI Task Tracker
 
-This repository is managed with P2P Engine.
+This project is managed with P2P Engine.
 
 Follow `AGENTS.md` and `.p2p/agent-policy.yml`.
 
@@ -19,12 +19,10 @@ Key rules:
 - If a requested P2P action has no available command or MCP write tool, stop and explain the missing primitive.
 - Do not make owner-controlled governance decisions unless the owner explicitly instructs the exact decision.
 - Do not recommend proposal acceptance before checking readiness or explicitly stating that readiness is missing.
-- Do not run raw Git commands for managed branch, sync, publish, or merge work unless the owner explicitly authorizes an escape hatch.
-- Use `p2p sync status`, `p2p proposal branch`, `p2p proposal publish`, `p2p proposal request-review`, and `p2p proposal scan` for managed collaboration workflows.
 - Treat MCP as read-only unless a tool explicitly declares a write operation.
 - Before explaining existing proposals, choices, Change Sets, or Work items, read them with the relevant registered P2P show command or equivalent MCP read tool.
 - Use `p2p context --budget small` or MCP `p2p_context` before broad file reads.
-- Do not scan all `.p2p/`, registries, source files, or Git history unless the task explicitly requires it.
+- Do not scan all `.p2p/`, registries, or source files unless the task explicitly requires it.
 
 ## Persistent Write Boundary
 
@@ -207,8 +205,7 @@ matching revocation. Supersession, split and merge require typed lineage.
 
 Decision apply never rewrites dependent Change Sets, Work, specs, vertical
 evidence, code or publication state. Report impact and use generated
-remediation actions. Managed branch accept/reject commands are separate Git
-lifecycle operations and never create proposal decision events.
+remediation actions.
 
 With MCP, use `p2p_proposal_decision_preview` and token-bound
 `p2p_proposal_decision_apply`. Consent operation is
@@ -459,5 +456,3 @@ validation truth, permissions, consent, or factual claims.
 
 Do not edit `.p2p` files directly, reverse-engineer managed paths, or copy
 temporary files into managed P2P memory as a workaround for changing style.
-
-Repository mode: `local`.

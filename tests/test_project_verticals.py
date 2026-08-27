@@ -23,6 +23,15 @@ from tests.proposal_decision_fixtures import record_decision
 
 runner = CliRunner()
 
+BUNDLED_VERTICAL_IDS = (
+    "base_project",
+    "board_game_design",
+    "grant_document_design",
+    "packaging_or_physical_product_design",
+    "social_impact_program_design",
+    "software_project",
+)
+
 
 def _write_canonical_pack(root: Path, *, vertical_id: str = "custom_vertical", name: str = "Custom Vertical") -> Path:
     pack = root / vertical_id
@@ -266,6 +275,61 @@ def test_bundled_vertical_lock_ignores_preconversion_diagnostic_path(
     status = workspace.project_vertical_lock_status()
 
     assert status.status == "valid"
+    assert lock_path.read_bytes() == before
+
+
+@pytest.mark.parametrize("vertical_id", BUNDLED_VERTICAL_IDS)
+def test_bundled_vertical_lock_persists_only_logical_source_identity(
+    tmp_path: Path,
+    vertical_id: str,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Portable lock", vertical_id=vertical_id)
+
+    payload = yaml.safe_load(
+        (tmp_path / ".p2p" / "project" / "vertical.lock.yml").read_text(encoding="utf-8")
+    )
+    source = payload["project_vertical_lock"]["source"]
+
+    assert source == {
+        "type": "internal",
+        "resolved_from": f"p2p_engine.resources.verticals/{vertical_id}",
+        "path": "",
+        "package": "p2p_engine",
+    }
+    serialized = yaml.safe_dump(payload, sort_keys=False)
+    assert str(Path.home()) not in serialized
+    assert str(Path.cwd()) not in serialized
+
+
+@pytest.mark.parametrize(
+    "forbidden_path",
+    [
+        "/home/example/vertical.yml",
+        "/Users/example/vertical.yml",
+        r"C:\\Users\\example\\vertical.yml",
+        r"\\\\server\\share\\vertical.yml",
+        "../outside/vertical.yml",
+    ],
+)
+def test_validation_rejects_nonportable_vertical_lock_paths_without_writing(
+    tmp_path: Path,
+    forbidden_path: str,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Unsafe lock", vertical_id="base_project")
+    lock_path = tmp_path / ".p2p" / "project" / "vertical.lock.yml"
+    payload = yaml.safe_load(lock_path.read_text(encoding="utf-8"))
+    payload["project_vertical_lock"]["source"]["path"] = forbidden_path
+    lock_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    before = lock_path.read_bytes()
+
+    result = workspace.validate()
+
+    assert any(
+        finding.code == "P2P259_FORBIDDEN_VERTICAL_SOURCE_PATH"
+        for finding in result.findings
+    )
     assert lock_path.read_bytes() == before
 
 

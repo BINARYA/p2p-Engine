@@ -8,7 +8,7 @@ Do not edit generated sections unless you accept drift.
 
 # GitHub Copilot Instructions - Local CLI Task Tracker
 
-This repository is managed with P2P Engine.
+This project is managed with P2P Engine.
 
 - Use `p2p` CLI commands for P2P writes when shell access is available.
 - Use explicit MCP write tools only when the tool schema supports the requested operation.
@@ -199,8 +199,7 @@ matching revocation. Supersession, split and merge require typed lineage.
 
 Decision apply never rewrites dependent Change Sets, Work, specs, vertical
 evidence, code or publication state. Report impact and use generated
-remediation actions. Managed branch accept/reject commands are separate Git
-lifecycle operations and never create proposal decision events.
+remediation actions.
 
 With MCP, use `p2p_proposal_decision_preview` and token-bound
 `p2p_proposal_decision_apply`. Consent operation is
@@ -428,5 +427,3 @@ validation truth, permissions, consent, or factual claims.
 
 Do not edit `.p2p` files directly, reverse-engineer managed paths, or copy
 temporary files into managed P2P memory as a workaround for changing style.
-
-Repository mode: `local`.

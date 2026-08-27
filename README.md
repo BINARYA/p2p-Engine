@@ -2,7 +2,10 @@
 
 Turn messy project intent into versioned proposals, decisions, specs, and agent-ready context.
 
-P2P Engine is a local CLI/core/MCP toolkit for preserving project intent in Git. It helps humans and AI agents move from rough ideas to explicit proposals, owner decisions, Change Sets, project rubrics, and downstream specification artifacts.
+P2P Engine is a local CLI/core/MCP toolkit for preserving structured project
+intent. It helps humans and AI agents move from rough ideas to explicit
+proposals, owner decisions, Change Sets, project rubrics, and downstream
+specification artifacts.
 
 P2P Engine is an operating substrate for coding and planning agents, not a traditional developer productivity CLI. Humans remain in charge of supervision and decisions; agents use P2P to structure project intent, memory, and execution context.
 
@@ -15,7 +18,9 @@ Project intent is easy to lose.
 - Decisions need traceability: who decided what, why, and what changed.
 - Downstream tools need structured project definition, not only prose.
 
-P2P Engine keeps the working memory of a project in `.p2p/`, backed by Git.
+P2P Engine keeps the working memory of a project in filesystem-backed `.p2p/`
+state. Source-control and delivery systems may version or reference that state,
+but remain external integrations rather than P2P runtime lifecycle primitives.
 
 ## What It Does
 
@@ -24,7 +29,7 @@ P2P Engine keeps the working memory of a project in `.p2p/`, backed by Git.
 - compares alternatives through choices, conflicts, and impact prompts;
 - records owner decisions;
 - derives Change Sets from accepted proposals;
-- manages work metadata for branch-based implementation flows;
+- manages logical Work planning and handoff metadata;
 - generates compact context packets for agents;
 - derives compact vertical-aware project memory for bounded retrieval;
 - keeps a detached project-owned structure that can be edited, retired,
@@ -44,7 +49,7 @@ P2P Engine keeps the working memory of a project in `.p2p/`, backed by Git.
 - AI coding and planning agents that need structured project memory;
 - humans supervising agent-driven project workflows;
 - solo developers using Codex, Claude, or other AI agents;
-- small technical teams that want Git-native project intent and decision history;
+- small technical teams that want structured project intent and decision history;
 - maintainers who want decisions and tradeoffs to remain auditable;
 - people experimenting with proposal-to-plan workflows.
 
@@ -97,7 +102,6 @@ Initialize P2P inside the target project:
 ```bash
 .venv/bin/p2p init "My Project" \
   --agent codex \
-  --repository local \
   --domain software \
   --vertical binarya/software_project@2.0.0 \
   --mcp-hint
@@ -127,7 +131,7 @@ CLI access
 MCP access
   The agent uses structured P2P MCP tools.
   This is the recommended structured integration. It includes read/status tools,
-  draft/refinement tools, and selected permission-gated Git/proposal operations.
+  draft/refinement tools, and selected permission-gated governance operations.
 ```
 
 With either mode, ask the agent to start from compact P2P context:
@@ -149,10 +153,9 @@ nor verifies hosted grants online. See
 [docs/AUTHORITY-CONTEXT.md](docs/AUTHORITY-CONTEXT.md).
 
 Current MCP access is agent-safe but not unlimited. Permission-gated tools can
-publish, request review, accept/reject proposal branches, merge, finalize, and
-cleanup proposal branches only with matching consent receipts. MCP still does
-not create provider PR/MR resources, decide choices, import specs, or expose the
-full Work lifecycle as permission-gated tools.
+apply supported governance decisions only with matching authority and consent
+evidence. MCP does not create branches, commits, provider PR/MR resources,
+releases, or other source-delivery artifacts.
 
 See [docs/INSTALL.md](docs/INSTALL.md) for project-local install, upgrade, and new-project setup. See [docs/MCP.md](docs/MCP.md) for MCP client setup, `stdio` behavior, and tool boundaries.
 
@@ -216,14 +219,14 @@ For a new project, use the default when multiple collaborators may use
 different agents:
 
 ```bash
-.venv/bin/p2p init "My Project" --repository local --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
+.venv/bin/p2p init "My Project" --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
 ```
 
 You can also narrow the generated adapters:
 
 ```bash
-.venv/bin/p2p init "My Project" --agent codex --repository local --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
-.venv/bin/p2p init "My Project" --agent codex --agent claude --repository local --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
+.venv/bin/p2p init "My Project" --agent codex --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
+.venv/bin/p2p init "My Project" --agent codex --agent claude --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
 ```
 
 The `generic` baseline is always created and cannot be uninstalled.
@@ -240,19 +243,10 @@ Useful lifecycle commands:
 .venv/bin/p2p agent uninstall cursor
 ```
 
-For a remote-backed project, initialize the P2P project as cloud-backed, then
-record the remote profile and verify sync readiness:
-
-```bash
-.venv/bin/p2p init "My Project" --repository cloud --domain software --vertical binarya/software_project@2.0.0 --owner matteo --mcp-hint
-git remote add origin git@github.com:ORG/REPO.git
-.venv/bin/p2p project remote configure --mode remote --provider github --remote origin --url git@github.com:ORG/REPO.git
-.venv/bin/p2p sync status
-```
-
-`p2p init --repository cloud` records project intent; it does not create a
-GitHub/GitLab repository or configure SSH credentials. Proposal `PROP-073`
-tracks future ergonomic improvements for one-step remote initialization.
+P2P initialization is source-control neutral. If a project is also stored in a
+Git repository or delivered through a hosting provider, configure and operate
+that system with its own tooling. Repository, issue, pull-request, commit and
+release identifiers may be recorded only as inert traceability references.
 
 Core agent rule:
 
@@ -399,15 +393,16 @@ Run tests:
 python -m pytest -q
 ```
 
-Validate this repository's P2P state:
+Validate an explicitly separate P2P project-state repository when governance
+evidence is needed for P2P Engine development:
 
 ```bash
-p2p context --budget small
-p2p validate
-p2p assess show
-p2p assess maturity show
+p2p context --budget small --root ../projects/p2p-engine-project
+p2p validate --root ../projects/p2p-engine-project
 ```
 
 ## License
 
-See [LICENSE](LICENSE).
+P2P Engine is licensed under the GNU General Public License version 3 or later
+(`GPL-3.0-or-later`). Copyright © 2026 mrjungle and contributors. See
+[LICENSE](LICENSE) for the complete license text.

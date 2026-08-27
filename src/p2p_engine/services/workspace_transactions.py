@@ -171,13 +171,13 @@ class DurableTransactionFilesystem:
         root: Path,
         p2p_dir: Path,
         lock_service: WorkspaceTransactionLockService,
-        allowed_repository_targets: tuple[str, ...] = (),
+        allowed_project_targets: tuple[str, ...] = (),
     ) -> None:
         self.root = root.resolve()
         self.p2p_dir = p2p_dir.resolve()
         self.lock_service = lock_service
-        self.allowed_repository_targets = frozenset(
-            _normalize_repository_target(item) for item in allowed_repository_targets
+        self.allowed_project_targets = frozenset(
+            _normalize_project_target(item) for item in allowed_project_targets
         )
 
     def create_transaction(self, transaction_id: str) -> Path:
@@ -195,12 +195,12 @@ class DurableTransactionFilesystem:
         return transaction_dir
 
     def target_path(self, relative: str) -> Path:
-        normalized = _normalize_target(relative, self.allowed_repository_targets)
+        normalized = _normalize_target(relative, self.allowed_project_targets)
         live = self.root / normalized
         if live.is_symlink():
             raise ValueError(f"Workspace transaction target cannot be a symlink: {relative}")
         target = (self.root / normalized).resolve(strict=False)
-        if normalized not in self.allowed_repository_targets and not target.is_relative_to(self.p2p_dir):
+        if normalized not in self.allowed_project_targets and not target.is_relative_to(self.p2p_dir):
             raise ValueError(f"Workspace transaction target escapes .p2p: {relative}")
         current = live.parent
         while current != self.root and current != self.p2p_dir.parent:
@@ -237,7 +237,7 @@ class DurableTransactionFilesystem:
 
     def read_candidate(self, transaction_dir: Path, relative: str) -> bytes:
         candidate = transaction_dir / "candidates" / _normalize_target(
-            relative, self.allowed_repository_targets
+            relative, self.allowed_project_targets
         )
         if not candidate.is_file() or candidate.is_symlink():
             raise ValueError(f"Missing or unsafe staged candidate: {relative}")
@@ -260,7 +260,7 @@ class DurableTransactionFilesystem:
 
     def read_original(self, transaction_dir: Path, relative: str) -> bytes:
         original = transaction_dir / "originals" / _normalize_target(
-            relative, self.allowed_repository_targets
+            relative, self.allowed_project_targets
         )
         if not original.is_file() or original.is_symlink():
             raise ValueError(f"Missing or unsafe transaction original: {relative}")
@@ -299,7 +299,7 @@ class AtomicMutationWriter:
         p2p_dir: Path,
         lock_service: WorkspaceTransactionLockService | None = None,
         failure_injector=None,
-        allowed_repository_targets: tuple[str, ...] = (),
+        allowed_project_targets: tuple[str, ...] = (),
     ) -> None:
         self.root = root.resolve()
         self.p2p_dir = p2p_dir.resolve()
@@ -311,7 +311,7 @@ class AtomicMutationWriter:
             root=self.root,
             p2p_dir=self.p2p_dir,
             lock_service=self.lock_service,
-            allowed_repository_targets=allowed_repository_targets,
+            allowed_project_targets=allowed_project_targets,
         )
         self.failure_injector = failure_injector
 
@@ -843,7 +843,7 @@ def physical_sha256(path: Path) -> str | None:
 
 def _normalize_target(
     relative: str,
-    allowed_repository_targets: frozenset[str] = frozenset(),
+    allowed_project_targets: frozenset[str] = frozenset(),
 ) -> str:
     pure = PurePosixPath(str(relative).replace("\\", "/"))
     if pure.is_absolute() or ".." in pure.parts or not pure.parts:
@@ -851,7 +851,7 @@ def _normalize_target(
     normalized = pure.as_posix()
     if normalized.startswith("./"):
         normalized = normalized[2:]
-    if normalized in allowed_repository_targets:
+    if normalized in allowed_project_targets:
         return normalized
     if _is_mutation_receipt_target(normalized):
         return normalized
@@ -880,7 +880,7 @@ def _is_project_structure_export_marker_target(relative: str) -> bool:
     return _PROJECT_STRUCTURE_EXPORT_MARKER_TARGET.fullmatch(relative) is not None
 
 
-def _normalize_repository_target(relative: str) -> str:
+def _normalize_project_target(relative: str) -> str:
     pure = PurePosixPath(str(relative).replace("\\", "/"))
     if pure.is_absolute() or ".." in pure.parts or not pure.parts:
         raise ValueError(f"Unsafe repository mutation target: {relative}")

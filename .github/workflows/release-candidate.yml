@@ -1,0 +1,132 @@
+name: Release candidate
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Exact commit SHA to verify
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Exact commit SHA to verify
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  source-matrix:
+    name: Candidate source / Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTEST_BIN: pytest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.11"
+          - "3.14"
+    steps:
+      - name: Check out the requested commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - name: Prove exact commit identity
+        env:
+          EXPECTED_REF: ${{ inputs.ref }}
+        run: |
+          test "${#EXPECTED_REF}" -eq 40
+          case "$EXPECTED_REF" in *[!0-9a-fA-F]*) exit 2 ;; esac
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "${EXPECTED_REF}^{commit}")"
+          printf 'candidate_sha=%s\n' "$(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install development environment
+        run: python -m pip install ".[dev]"
+
+      - name: Run source candidate gates
+        run: |
+          python -m pip check
+          python scripts/generate-wavekit-transition-fixtures.py --check
+          python scripts/check-source-boundary.py
+          python scripts/check-doc-links.py
+          ./scripts/check-static.sh
+          ./scripts/test-public.sh -q
+          ./scripts/test-full.sh -q
+
+  artifact:
+    name: Reproducible installed candidate
+    needs: source-matrix
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Check out the requested commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - name: Prove exact commit identity
+        env:
+          EXPECTED_REF: ${{ inputs.ref }}
+        run: |
+          test "${#EXPECTED_REF}" -eq 40
+          case "$EXPECTED_REF" in *[!0-9a-fA-F]*) exit 2 ;; esac
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "${EXPECTED_REF}^{commit}")"
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.11"
+
+      - name: Install the constrained release toolchain
+        run: python -m pip install ".[dev]"
+
+      - name: Verify owner-controlled metadata
+        run: python scripts/verify-release-metadata.py
+
+      - name: Build twice and verify exact artifacts
+        run: |
+          source_epoch="$(git show -s --format=%ct HEAD)"
+          SOURCE_DATE_EPOCH="$source_epoch" ./scripts/build-release-candidate.sh
+
+      - name: Run package, convergence, dependency and installed checks
+        run: |
+          python -m twine check dist/p2p_engine-*.whl dist/p2p_engine-*.tar.gz
+          python scripts/verify-convergence-gate.py
+          ./scripts/audit-wheel.sh --wheel dist/p2p_engine-0.5.0-py3-none-any.whl
+          ./scripts/test-installed.sh --wheel dist/p2p_engine-0.5.0-py3-none-any.whl
+
+      - name: Record immutable artifact identities
+        run: |
+          printf 'candidate_sha=%s\n\n' "$(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          printf '```text\n' >> "$GITHUB_STEP_SUMMARY"
+          cat dist/SHA256SUMS >> "$GITHUB_STEP_SUMMARY"
+          printf '```\n' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Retain the exact verified candidate artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: p2p-engine-release-candidate-${{ inputs.ref }}
+          path: |
+            dist/p2p_engine-0.5.0-py3-none-any.whl
+            dist/p2p_engine-0.5.0.tar.gz
+            dist/SHA256SUMS
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7

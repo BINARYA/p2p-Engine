@@ -154,7 +154,7 @@ project_definition:
     blockers: []
   next_suggested_action: {}
   history:
-  - at: '2026-08-25'
+  - at: '2026-08-27'
     actor: owner
     operation: initialize_definition_state
     section_id: ''

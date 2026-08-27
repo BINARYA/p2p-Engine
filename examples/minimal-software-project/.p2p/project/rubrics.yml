@@ -16,176 +16,176 @@ selected_scope:
 criteria:
 - id: software_objective_clarity
   title: Software Objective Clarity
-  enabled: true
-  required: true
   section_id: system_objective
+  required: true
   keywords:
   - objective
   - product
   - system
   - outcome
+  enabled: true
   source: project_vertical
   vertical_id: software_project
 - id: software_user_actor_coverage
   title: Software User And Actor Coverage
-  enabled: true
-  required: true
   section_id: users_and_actors
+  required: true
   keywords:
   - user
   - actor
   - operator
   - stakeholder
+  enabled: true
   source: project_vertical
   vertical_id: software_project
 - id: software_scope_boundaries
   title: Software Scope Boundaries
-  enabled: true
-  required: true
   section_id: mvp_scope
+  required: true
   keywords:
   - scope
   - mvp
   - non-goal
   - boundary
+  enabled: true
   source: project_vertical
   vertical_id: software_project
 - id: software_workflow_coverage
   title: Software Workflow Coverage
-  enabled: true
-  required: true
   section_id: workflows_use_cases
+  required: true
   keywords:
   - workflow
   - use case
   - journey
+  enabled: true
   source: project_vertical
   vertical_id: software_project
 - id: software_data_model_coverage
   title: Software Data Model Coverage
-  enabled: true
-  required: true
   section_id: data_model
+  required: true
   keywords:
   - data
   - entity
   - model
   - status
+  enabled: true
   source: project_vertical
   vertical_id: software_project
 - id: software_integration_coverage
   title: Software Integration Coverage
-  enabled: true
-  required: true
   section_id: integrations_dependencies
+  required: true
   keywords:
   - integration
   - dependency
   - api
+  enabled: true
   source: project_vertical
   vertical_id: software_project
 - id: software_constraints_nfr_coverage
   title: Software Constraints And NFR Coverage
-  enabled: true
-  required: true
   section_id: constraints_nfrs
+  required: true
   keywords:
   - constraint
   - reliability
   - performance
   - security
   - privacy
+  enabled: true
   source: project_vertical
   vertical_id: software_project
 - id: software_acceptance_validation
   title: Software Acceptance And Validation
-  enabled: true
-  required: true
   section_id: acceptance_validation
+  required: true
   keywords:
   - acceptance
   - validation
   - test
+  enabled: true
   source: project_vertical
   vertical_id: software_project
 - id: software_decision_risk_coverage
   title: Software Decisions And Risks
-  enabled: true
-  required: true
   section_id: risks_alternatives_decisions
+  required: true
   keywords:
   - risk
   - alternative
   - decision
   - tradeoff
+  enabled: true
   source: project_vertical
   vertical_id: software_project
 - id: vision_clarity
   title: Vision Clarity
-  enabled: true
-  required: true
   section_id: vision
+  required: true
   keywords:
   - vision
   - purpose
   - change
+  enabled: true
   source: project_vertical
   vertical_id: software_project
 - id: objective_clarity
   title: Objective Clarity
-  enabled: true
-  required: true
   section_id: objective
+  required: true
   keywords:
   - objective
   - outcome
   - goal
   - result
+  enabled: true
   source: project_vertical
   vertical_id: software_project
 - id: stakeholder_alignment
   title: Stakeholder Alignment
-  enabled: true
-  required: true
   section_id: stakeholders
+  required: true
   keywords:
   - owner
   - stakeholder
   - beneficiary
   - user
+  enabled: true
   source: project_vertical
   vertical_id: software_project
 - id: scope_boundaries
   title: Scope Boundaries
-  enabled: true
-  required: true
   section_id: scope
+  required: true
   keywords:
   - scope
   - non-goal
   - boundary
   - constraint
+  enabled: true
   source: project_vertical
   vertical_id: software_project
 - id: risk_coverage
   title: Risk Coverage
-  enabled: true
-  required: true
   section_id: risks
+  required: true
   keywords:
   - risk
   - mitigation
   - tradeoff
+  enabled: true
   source: project_vertical
   vertical_id: software_project
 - id: readiness_criteria
   title: Readiness Criteria
-  enabled: true
-  required: true
   section_id: definition_of_done
+  required: true
   keywords:
   - readiness
   - definition of done
   - acceptance
+  enabled: true
   source: project_vertical
   vertical_id: software_project

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping
 from enum import Enum
 from pathlib import Path
@@ -8,10 +7,8 @@ from pathlib import Path
 import typer
 
 from p2p_engine.cli_contract import print_json
-from p2p_engine.cli_shared import console
-from p2p_engine.cli_shared import fail
+from p2p_engine.cli_shared import console, fail, yaml_dump_for_cli
 from p2p_engine.cli_shared import workspace as workspace_for
-from p2p_engine.cli_shared import yaml_dump_for_cli
 from p2p_engine.core.release_contracts import current_contract_versions
 
 
@@ -77,7 +74,7 @@ def register_project_status_commands(
         if output_format == "yaml":
             typer.echo(yaml_dump_for_cli(_validation_result_to_dict(packet)))
         elif output_format == "json":
-            typer.echo(json.dumps(_validation_result_to_dict(packet), indent=2))
+            print_json(_validation_result_to_dict(packet))
         elif output_format == "text":
             _print_context_packet(packet)
         else:
@@ -106,7 +103,7 @@ def register_project_status_commands(
         except ValueError as exc:
             fail(str(exc))
         if output_format == "json":
-            console.print(json.dumps(_validation_result_to_dict(result), indent=2))
+            print_json(_validation_result_to_dict(result))
         elif output_format == "text":
             console.print("Validation")
             console.print(f"  errors: {result.errors}")

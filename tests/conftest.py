@@ -14,24 +14,11 @@ _DIRECT_FILE_MARKERS: dict[str, tuple[str, ...]] = {
 
 _ADAPTER_FILES = {
     "test_foundation_helpers.py",
-    "test_remote_profile_service.py",
-    "test_sync_service.py",
-}
-
-_GIT_FILES = {
-    "test_mcp_collaboration_handler.py",
-    "test_mcp_consent_audit.py",
-    "test_proposal_branch_service.py",
-    "test_proposal_draft_commit_service.py",
-    "test_sync_service.py",
-    "test_work_branch_service.py",
 }
 
 _SLOW_FILES = {
     "test_cli.py",
     "test_mcp.py",
-    "test_proposal_branch_service.py",
-    "test_work_branch_service.py",
 }
 
 
@@ -51,8 +38,6 @@ def _markers_for_item(item: pytest.Item) -> tuple[str, ...]:
         markers.add("service")
     if file_name in _ADAPTER_FILES:
         markers.add("adapter")
-    if file_name in _GIT_FILES:
-        markers.update({"git", "integration"})
     if file_name in _SLOW_FILES:
         markers.add("slow")
 
@@ -61,34 +46,8 @@ def _markers_for_item(item: pytest.Item) -> tuple[str, ...]:
         markers.update({"cli", "integration"})
     if test_name.startswith("test_mcp_"):
         markers.update({"mcp", "integration"})
-    if _is_git_contract_test(test_name):
-        markers.update({"git", "integration"})
 
     if not markers:
         markers.add("service")
 
     return tuple(sorted(markers))
-
-
-def _is_git_contract_test(test_name: str) -> bool:
-    git_terms = (
-        "branch",
-        "cleanup",
-        "finalize",
-        "git",
-        "merge",
-        "publish",
-        "remote",
-        "request_review",
-        "sync",
-        "work_accept",
-        "work_branch",
-        "work_cleanup",
-        "work_finalize",
-        "work_publish",
-        "work_request_review",
-        "work_review",
-        "work_scan",
-        "work_submit",
-    )
-    return any(term in test_name for term in git_terms)

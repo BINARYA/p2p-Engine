@@ -113,6 +113,7 @@ class ValidationService:
         self._validate_governance_policy(add)
         self._validate_runtime_contract(add)
         self._validate_workspace_schema(add)
+        self._validate_vertical_lock_source_path(add)
         self._validate_project_verticals(add)
         self._validate_registries(add, registry_status_snapshot)
 
@@ -126,6 +127,32 @@ class ValidationService:
             infos=infos,
             findings=findings,
         )
+
+    def _validate_vertical_lock_source_path(
+        self,
+        add: Callable[[str, str, Path, str, str], None],
+    ) -> None:
+        lock_path = self.p2p_dir / "project" / "vertical.lock.yml"
+        if not lock_path.is_file():
+            return
+        try:
+            payload = load_yaml(lock_path.read_bytes())
+        except (OSError, ValueError, yaml.YAMLError):
+            return
+        lock = payload.get("project_vertical_lock") if isinstance(payload, dict) else None
+        source = lock.get("source") if isinstance(lock, dict) else None
+        raw_path = str(source.get("path") or "") if isinstance(source, dict) else ""
+        if raw_path and _forbidden_persisted_source_path(raw_path):
+            add(
+                "P2P259_FORBIDDEN_VERTICAL_SOURCE_PATH",
+                "error",
+                lock_path,
+                (
+                    "Project vertical lock source.path must be empty or a normalized "
+                    "project-relative POSIX path."
+                ),
+                "p2p project vertical lock repair",
+            )
 
     def _validate_required_paths(self, add: Callable[[str, str, Path, str, str], None]) -> None:
         required_paths = [
@@ -495,6 +522,20 @@ def _read_yaml_mapping(path: Path, default: dict[str, object]) -> dict[str, obje
     if not isinstance(data, dict):
         raise ValueError(f"YAML document must be a mapping: {_relative_to_root(path, path.parent)}")
     return data
+
+
+def _forbidden_persisted_source_path(value: str) -> bool:
+    raw = value.strip()
+    if not raw:
+        return False
+    if raw.startswith(("/", "\\", "//")):
+        return True
+    if re.match(r"^[A-Za-z]:[\\/]", raw):
+        return True
+    if "\\" in raw:
+        return True
+    parts = raw.split("/")
+    return any(part in {"", ".", ".."} for part in parts)
 
 
 def _read_proposal_status(path: Path) -> str:

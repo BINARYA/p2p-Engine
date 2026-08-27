@@ -163,7 +163,6 @@ from p2p_engine.services.agent_templates import (
 from p2p_engine.services.changes import (
     ChangeSetDetail,
     ChangeSetLifecycleService,
-    ChangeSetPolicy,
     ChangeSetStatus,
     ChangeSetTaskView,
 )
@@ -198,7 +197,6 @@ from p2p_engine.services.proposal_artifacts import (
 from p2p_engine.services.proposal_artifact_state import ProposalArtifactStateService
 from p2p_engine.services.proposal_decisions import ProposalDecisionService
 from p2p_engine.services.proposal_decision_impact import ProposalDecisionImpactService
-from p2p_engine.services.proposal_drafts import ProposalDraftCommit, ProposalDraftCommitService
 from p2p_engine.services.proposal_contribution_contract import (
     CONTRIBUTION_REVIEW_CAPABILITY,
     ProposalContributionContractService,
@@ -258,7 +256,6 @@ from p2p_engine.services.vertical_packages import PortableVerticalPackageService
 from p2p_engine.services.project_initialization import (
     ProjectInitializationResult,
     ProjectInitializationService,
-    normalize_repository_mode as _normalize_repository_mode,
 )
 from p2p_engine.services.project_publication import (
     PublicationCatalogResult,
@@ -271,15 +268,6 @@ from p2p_engine.services.project_publication import (
 from p2p_engine.services.project_publication_rendering import PublicationRenderResult
 from p2p_engine.services.project_publication_validation import PublicationValidationResult
 from p2p_engine.services.project_state import ProjectBriefPrompt, ProjectStateService, ProjectStateStatus
-from p2p_engine.services.proposal_branches import (
-    ProposalBranchDetail,
-    ProposalBranchScan,
-    ProposalBranchService,
-    ProposalCleanup,
-    ProposalFinalize,
-    ProposalMerge,
-    ProposalMergeConflict,
-)
 from p2p_engine.services.readiness import (
     PROPOSAL_READINESS_ASSESSMENT_POLICY_VERSION,
     ProposalReadiness,
@@ -290,14 +278,12 @@ from p2p_engine.services.readiness import (
 )
 from p2p_engine.services.registries import RegistryService, RegistryStatus, RegistryView
 from p2p_engine.services.registry_records import RegistryRecordBuilderService
-from p2p_engine.services.remote_profile import RemoteProfileService, RemoteProjectProfile
 from p2p_engine.services.runtime_contract import RuntimeContractService
 from p2p_engine.services.spec_export import (
     SoftwareSpecExportStatus,
     SoftwareSpecExportValidation,
     SpecExportService,
 )
-from p2p_engine.services.sync import SyncResult, SyncService, SyncStatus
 from p2p_engine.services.validation import ValidationFinding, ValidationResult, ValidationService
 from p2p_engine.services.workspace_schema import WorkspaceSchemaService
 from p2p_engine.services.workspace_reads import WorkspaceReadContext
@@ -318,19 +304,6 @@ from p2p_engine.services.visible_project_export import (
 from p2p_engine.services.software_spec import SoftwareSpecPrompt, SoftwareSpecService, SoftwareSpecStatus
 from p2p_engine.services.software_spec_lifecycle import SoftwareSpecLifecycleService
 from p2p_engine.core.software_spec_lifecycle import SpecLifecycleView
-from p2p_engine.services.work_branches import (
-    WorkAccept,
-    WorkAcceptConflict,
-    WorkBranch,
-    WorkBranchService,
-    WorkCleanup,
-    WorkFinalize,
-    WorkPublish,
-    WorkReview,
-    WorkReviewRequest,
-    WorkScan,
-    WorkSubmit,
-)
 from p2p_engine.services.work_planning import WorkDetail, WorkPlanningService, WorkRetire, WorkStatus, WorkSummary
 from p2p_engine.services.workspace_status import (
     FastFreshnessService,
@@ -341,34 +314,6 @@ from p2p_engine.services.workspace_status import (
 )
 from p2p_engine.services.workspace_operation_compatibility import (
     WorkspaceOperationCompatibilityService,
-)
-from p2p_engine.storage.git import (
-    abort_merge,
-    branch_exists,
-    changed_files,
-    checkout_branch,
-    commit_all,
-    conflicted_files,
-    create_and_checkout_branch,
-    delete_local_branch,
-    delete_local_branch_force,
-    delete_remote_branch,
-    fetch_remote,
-    get_git_status,
-    head_commit,
-    list_files_at_ref,
-    list_local_proposal_branches,
-    list_local_work_branches,
-    list_remote_proposal_branches,
-    merge_branch_no_commit,
-    merge_in_progress,
-    push_branch,
-    read_file_at_ref,
-    rename_current_branch,
-    remote_url,
-    pull_branch,
-    stage_all,
-    restore_path,
 )
 
 DEFAULT_READINESS_PROFILE_ID = "default-readiness-v0.1"
@@ -399,7 +344,6 @@ class P2PWorkspace:
         self._proposal_lifecycle_authority_service_instance: (
             ProposalLifecycleAuthorityService | None
         ) = None
-        self._proposal_draft_commit_service_instance: ProposalDraftCommitService | None = None
         self._proposal_document_service_instance: ProposalDocumentService | None = None
         self._proposal_contribution_contract_service_instance: (
             ProposalContributionContractService | None
@@ -446,22 +390,18 @@ class P2PWorkspace:
         self._project_state_service_instance: ProjectStateService | None = None
         self._fast_freshness_service_instance: FastFreshnessService | None = None
         self._next_action_service_instance: NextActionService | None = None
-        self._proposal_branch_service_instance: ProposalBranchService | None = None
         self._proposal_artifact_service_instance: ProposalArtifactService | None = None
         self._proposal_artifact_state_service_instance: ProposalArtifactStateService | None = None
         self._proposal_review_view_service_instance: ProposalReviewViewService | None = None
         self._readiness_service_instance: ReadinessService | None = None
         self._registry_service_instance: RegistryService | None = None
         self._registry_record_builder_service_instance: RegistryRecordBuilderService | None = None
-        self._remote_profile_service_instance: RemoteProfileService | None = None
         self._runtime_contract_service_instance: RuntimeContractService | None = None
         self._spec_export_service_instance: SpecExportService | None = None
         self._software_spec_lifecycle_service_instance: SoftwareSpecLifecycleService | None = None
         self._software_spec_service_instance: SoftwareSpecService | None = None
-        self._sync_service_instance: SyncService | None = None
         self._validation_service_instance: ValidationService | None = None
         self._visible_project_export_service_instance: VisibleProjectExportService | None = None
-        self._work_branch_service_instance: WorkBranchService | None = None
         self._work_planning_service_instance: WorkPlanningService | None = None
         self._workspace_status_service_instance: WorkspaceStatusService | None = None
         self._workspace_schema_service_instance: WorkspaceSchemaService | None = None
@@ -590,10 +530,7 @@ class P2PWorkspace:
                 root=self.root,
                 p2p_dir=self.p2p_dir,
                 project_name=self._project_name,
-                repository_mode=self._repository_mode,
-                set_repository_mode=self._set_repository_mode,
                 normalize_profile=_normalize_agent_profile,
-                normalize_repository_mode=_normalize_repository_mode,
                 expanded_profiles=_expanded_agent_profiles,
                 instruction_files=_agent_instruction_files,
                 adapter_files=_agent_adapter_files,
@@ -779,51 +716,6 @@ class P2PWorkspace:
                 )
             )
         return self._proposal_contribution_contract_service_instance
-
-    def _proposal_draft_commit_service(self) -> ProposalDraftCommitService:
-        if self._proposal_draft_commit_service_instance is None:
-            self._proposal_draft_commit_service_instance = ProposalDraftCommitService(
-                root=self.root,
-                find_proposal_dir=self._proposal_document_service().find_dir,
-                git_status=get_git_status,
-                changed_files=changed_files,
-                commit_all=commit_all,
-                identity_slug=_identity_slug,
-            )
-        return self._proposal_draft_commit_service_instance
-
-    def _proposal_branch_service(self) -> ProposalBranchService:
-        if self._proposal_branch_service_instance is None:
-            self._proposal_branch_service_instance = ProposalBranchService(
-                root=self.root,
-                p2p_dir=self.p2p_dir,
-                find_proposal_dir=self._proposal_document_service().find_dir,
-                git_status=get_git_status,
-                checkout_branch=checkout_branch,
-                head_commit=head_commit,
-                branch_exists=branch_exists,
-                create_and_checkout_branch=create_and_checkout_branch,
-                rename_current_branch=rename_current_branch,
-                commit_all=commit_all,
-                remote_profile=self.remote_profile,
-                remote_url=remote_url,
-                fetch_remote=fetch_remote,
-                push_branch=push_branch,
-                merge_branch_no_commit=merge_branch_no_commit,
-                conflicted_files=conflicted_files,
-                merge_in_progress=merge_in_progress,
-                stage_all=stage_all,
-                restore_path=restore_path,
-                abort_merge=abort_merge,
-                delete_local_branch=delete_local_branch,
-                delete_local_branch_force=delete_local_branch_force,
-                delete_remote_branch=delete_remote_branch,
-                list_local_proposal_branches=list_local_proposal_branches,
-                list_remote_proposal_branches=list_remote_proposal_branches,
-                list_files_at_ref=list_files_at_ref,
-                read_file_at_ref=read_file_at_ref,
-            )
-        return self._proposal_branch_service_instance
 
     def _proposal_decision_service(self) -> ProposalDecisionService:
         if self._proposal_decision_service_instance is None:
@@ -1338,15 +1230,6 @@ class P2PWorkspace:
             )
         return self._registry_record_builder_service_instance
 
-    def _remote_profile_service(self) -> RemoteProfileService:
-        if self._remote_profile_service_instance is None:
-            self._remote_profile_service_instance = RemoteProfileService(
-                root=self.root,
-                p2p_dir=self.p2p_dir,
-                remote_url_resolver=remote_url,
-            )
-        return self._remote_profile_service_instance
-
     def _runtime_contract_service(self) -> RuntimeContractService:
         if self._runtime_contract_service_instance is None:
             self._runtime_contract_service_instance = RuntimeContractService(root=self.root, p2p_dir=self.p2p_dir)
@@ -1382,19 +1265,6 @@ class P2PWorkspace:
                 ),
             )
         return self._software_spec_lifecycle_service_instance
-
-    def _sync_service(self) -> SyncService:
-        if self._sync_service_instance is None:
-            self._sync_service_instance = SyncService(
-                root=self.root,
-                remote_profile=self.remote_profile,
-                git_status=get_git_status,
-                remote_url=remote_url,
-                fetch_remote=fetch_remote,
-                pull_branch=pull_branch,
-                push_branch=push_branch,
-            )
-        return self._sync_service_instance
 
     def _spec_export_service(self) -> SpecExportService:
         if self._spec_export_service_instance is None:
@@ -1451,43 +1321,11 @@ class P2PWorkspace:
                 export_targets=self._spec_export_service().export_targets,
                 validate_export=self.validate_software_spec_export,
                 find_change_dir=self._change_set_lifecycle_service().find_dir,
-                scanned_work_items=self._scanned_work_items,
                 proposal_lifecycle_status=(
                     self._proposal_lifecycle_authority_service().status
                 ),
             )
         return self._work_planning_service_instance
-
-    def _work_branch_service(self) -> WorkBranchService:
-        if self._work_branch_service_instance is None:
-            self._work_branch_service_instance = WorkBranchService(
-                root=self.root,
-                p2p_dir=self.p2p_dir,
-                find_work_dir=self._work_planning_service().find_dir,
-                list_local_work_branches=list_local_work_branches,
-                list_files_at_ref=list_files_at_ref,
-                read_file_at_ref=read_file_at_ref,
-                git_status=get_git_status,
-                branch_exists=branch_exists,
-                head_commit=head_commit,
-                create_and_checkout_branch=create_and_checkout_branch,
-                changed_files=changed_files,
-                commit_all=commit_all,
-                remote_url=remote_url,
-                push_branch=push_branch,
-                remote_profile=self.remote_profile,
-                checkout_branch=checkout_branch,
-                merge_branch_no_commit=merge_branch_no_commit,
-                conflicted_files=conflicted_files,
-                merge_in_progress=merge_in_progress,
-                stage_all=stage_all,
-                restore_path=restore_path,
-                abort_merge=abort_merge,
-                show_work=self.show_work,
-                delete_local_branch=delete_local_branch,
-                delete_remote_branch=delete_remote_branch,
-            )
-        return self._work_branch_service_instance
 
     def _workspace_status_service(self) -> WorkspaceStatusService:
         if self._workspace_status_service_instance is None:
@@ -1548,7 +1386,6 @@ class P2PWorkspace:
             self._project_initialization_service_instance = ProjectInitializationService(
                 root=self.root,
                 p2p_dir=self.p2p_dir,
-                remote_profile_default_payload=self._remote_profile_service().default_payload,
                 readiness_default_profile_payload=self._readiness_service().default_profile_payload,
                 permissions_default_policy_payload=self._permissions_service().default_policy_payload,
                 refresh_agent_instructions=self.refresh_agent_instructions,
@@ -1569,7 +1406,6 @@ class P2PWorkspace:
         self,
         name: str,
         agent_profile: str | None = None,
-        repository_mode: str = "local",
         project_domain: str | None = None,
         project_domain_name: str = "",
         project_domain_source: str = "local",
@@ -1577,9 +1413,6 @@ class P2PWorkspace:
         starter_id: str | None = None,
         rubric_enabled: dict[str, bool] | None = None,
         owner: str | None = None,
-        remote_provider: str | None = None,
-        remote_name: str = "origin",
-        remote_url_value: str | None = None,
         vertical_id: str | None = None,
         profile: str = "default",
         modules: list[str] | None = None,
@@ -1590,7 +1423,6 @@ class P2PWorkspace:
         return self.init_project_with_summary(
             name=name,
             agent_profile=agent_profile,
-            repository_mode=repository_mode,
             project_domain=project_domain,
             project_domain_name=project_domain_name,
             project_domain_source=project_domain_source,
@@ -1598,9 +1430,6 @@ class P2PWorkspace:
             starter_id=starter_id,
             rubric_enabled=rubric_enabled,
             owner=owner,
-            remote_provider=remote_provider,
-            remote_name=remote_name,
-            remote_url_value=remote_url_value,
             vertical_id=vertical_id,
             profile=profile,
             modules=modules,
@@ -1613,7 +1442,6 @@ class P2PWorkspace:
         self,
         name: str,
         agent_profile: str | None = None,
-        repository_mode: str = "local",
         project_domain: str | None = None,
         project_domain_name: str = "",
         project_domain_source: str = "local",
@@ -1621,9 +1449,6 @@ class P2PWorkspace:
         starter_id: str | None = None,
         rubric_enabled: dict[str, bool] | None = None,
         owner: str | None = None,
-        remote_provider: str | None = None,
-        remote_name: str = "origin",
-        remote_url_value: str | None = None,
         vertical_id: str | None = None,
         profile: str = "default",
         modules: list[str] | None = None,
@@ -1735,7 +1560,6 @@ class P2PWorkspace:
         result = self._project_initialization_service().init_project_with_summary(
             name=name,
             agent_profile=agent_profile,
-            repository_mode=repository_mode,
             project_domain=project_domain,
             project_domain_name=project_domain_name,
             project_domain_source=project_domain_source,
@@ -1744,9 +1568,6 @@ class P2PWorkspace:
             structure_origin=structure_origin,
             rubric_enabled=rubric_enabled,
             owner=owner,
-            remote_provider=remote_provider,
-            remote_name=remote_name,
-            remote_url_value=remote_url_value,
             authority_context=authority_context,
             structure_pack=structure_pack,
         )
@@ -1816,7 +1637,6 @@ class P2PWorkspace:
             agent_selection=result.agent_selection,
             agent_instructions=result.agent_instructions,
             mcp_hint=result.mcp_hint,
-            gitignore_hygiene=result.gitignore_hygiene,
             warnings=list(result.warnings),
             domain=result.domain,
             structure_source=result.structure_source,
@@ -1831,7 +1651,6 @@ class P2PWorkspace:
         *,
         operation_key: str,
         agent_profile: str | None = None,
-        repository_mode: str = "local",
         project_domain: str | None = None,
         project_domain_name: str = "",
         project_domain_source: str = "local",
@@ -1839,9 +1658,6 @@ class P2PWorkspace:
         starter_id: str | None = None,
         rubric_enabled: dict[str, bool] | None = None,
         owner: str | None = None,
-        remote_provider: str | None = None,
-        remote_name: str = "origin",
-        remote_url_value: str | None = None,
         vertical_id: str | None = None,
         profile: str = "default",
         modules: list[str] | None = None,
@@ -1854,7 +1670,6 @@ class P2PWorkspace:
             self._project_init_authority_context(
                 operation_key=operation_key,
                 owner=owner,
-                repository_mode=repository_mode,
                 supplied_context=authority_context,
             )
         )
@@ -1862,7 +1677,6 @@ class P2PWorkspace:
         semantic_inputs = _project_init_semantic_inputs(
             name=name,
             agent_profile=agent_profile,
-            repository_mode=repository_mode,
             project_domain=project_domain,
             project_domain_name=project_domain_name,
             project_domain_source=project_domain_source,
@@ -1870,9 +1684,6 @@ class P2PWorkspace:
             starter_id=starter_id,
             rubric_enabled=rubric_enabled,
             owner=owner,
-            remote_provider=remote_provider,
-            remote_name=remote_name,
-            remote_url_value=remote_url_value,
             vertical_id=vertical_id,
             profile=profile,
             modules=modules,
@@ -1916,7 +1727,6 @@ class P2PWorkspace:
                 authority_context=resolved_authority_context,
                 authority_evidence=authority_evidence,
                 agent_profile=agent_profile,
-                repository_mode=repository_mode,
                 project_domain=project_domain,
                 project_domain_name=project_domain_name,
                 project_domain_source=project_domain_source,
@@ -1924,9 +1734,6 @@ class P2PWorkspace:
                 starter_id=starter_id,
                 rubric_enabled=rubric_enabled,
                 owner=owner,
-                remote_provider=remote_provider,
-                remote_name=remote_name,
-                remote_url_value=remote_url_value,
                 vertical_id=vertical_id,
                 profile=profile,
                 modules=modules,
@@ -1937,7 +1744,6 @@ class P2PWorkspace:
         result = self.init_project_with_summary(
             name=name,
             agent_profile=agent_profile,
-            repository_mode=repository_mode,
             project_domain=project_domain,
             project_domain_name=project_domain_name,
             project_domain_source=project_domain_source,
@@ -1945,9 +1751,6 @@ class P2PWorkspace:
             starter_id=starter_id,
             rubric_enabled=rubric_enabled,
             owner=owner,
-            remote_provider=remote_provider,
-            remote_name=remote_name,
-            remote_url_value=remote_url_value,
             vertical_id=vertical_id,
             profile=profile,
             modules=modules,
@@ -2019,7 +1822,6 @@ class P2PWorkspace:
         authority_context: AuthorityContext,
         authority_evidence: AuthorityEvidence,
         agent_profile: str | None,
-        repository_mode: str,
         project_domain: str | None,
         project_domain_name: str,
         project_domain_source: str,
@@ -2027,9 +1829,6 @@ class P2PWorkspace:
         starter_id: str | None,
         rubric_enabled: dict[str, bool] | None,
         owner: str | None,
-        remote_provider: str | None,
-        remote_name: str,
-        remote_url_value: str | None,
         vertical_id: str | None,
         profile: str,
         modules: list[str] | None,
@@ -2039,12 +1838,11 @@ class P2PWorkspace:
     ) -> dict[str, object]:
         with tempfile.TemporaryDirectory(prefix="p2p-project-init-") as temporary:
             staged_root = Path(temporary)
-            self._copy_initialization_repository_inputs(staged_root)
+            self._copy_initialization_project_inputs(staged_root)
             staged = P2PWorkspace(staged_root)
             staged_result = staged.init_project_with_summary(
                 name=name,
                 agent_profile=agent_profile,
-                repository_mode=repository_mode,
                 project_domain=project_domain,
                 project_domain_name=project_domain_name,
                 project_domain_source=project_domain_source,
@@ -2052,9 +1850,6 @@ class P2PWorkspace:
                 starter_id=starter_id,
                 rubric_enabled=rubric_enabled,
                 owner=owner,
-                remote_provider=remote_provider,
-                remote_name=remote_name,
-                remote_url_value=remote_url_value,
                 vertical_id=vertical_id,
                 profile=profile,
                 modules=modules,
@@ -2090,7 +1885,7 @@ class P2PWorkspace:
                 )
             )
             candidates = {**staged_candidates, receipt_path: receipt_content}
-            allowed_repository_targets = tuple(
+            allowed_project_targets = tuple(
                 path for path in candidates if not path.startswith(".p2p/")
             )
             sources = tuple(
@@ -2108,7 +1903,7 @@ class P2PWorkspace:
             mutation = AtomicMutationWriter(
                 root=self.root,
                 p2p_dir=self.p2p_dir,
-                allowed_repository_targets=allowed_repository_targets,
+                allowed_project_targets=allowed_project_targets,
             ).apply(
                 operation_id="project-init",
                 candidates=candidates,
@@ -2143,9 +1938,8 @@ class P2PWorkspace:
             message="Project initialization completed atomically.",
         )
 
-    def _copy_initialization_repository_inputs(self, staged_root: Path) -> None:
+    def _copy_initialization_project_inputs(self, staged_root: Path) -> None:
         candidates = (
-            Path(".gitignore"),
             Path("P2P-SETUP.md"),
             Path("AGENTS.md"),
             Path("CLAUDE.md"),
@@ -2195,7 +1989,6 @@ class P2PWorkspace:
         *,
         operation_key: str,
         owner: str | None,
-        repository_mode: str,
         supplied_context: AuthorityContext | None,
     ) -> tuple[AuthorityContext, AuthorityEvidence]:
         authority_service = self._project_authority_service()
@@ -2203,10 +1996,7 @@ class P2PWorkspace:
         permission_payload = (
             self._permissions_service().show()
             if project_exists
-            else self._permissions_service().default_policy_payload(
-                owner_name=owner,
-                repository_mode=repository_mode,
-            )
+            else self._permissions_service().default_policy_payload(owner_name=owner)
         )
         if project_exists:
             descriptor = authority_service.read_descriptor()
@@ -2264,16 +2054,9 @@ class P2PWorkspace:
         self._ensure_runtime_write_allowed("project_init_existing")
         payload = _read_yaml_mapping(project_path, default={})
         project = payload.get("project")
-        repository = payload.get("repository")
-        remote = payload.get("remote")
         if not isinstance(project, Mapping):
             raise ValueError("P2P_INIT_EXISTING_WORKSPACE_CONFLICT: project.yml is invalid")
-        if not isinstance(repository, Mapping):
-            repository = {}
-        if not isinstance(remote, Mapping):
-            remote = {}
         expected_name = str(semantic_inputs.get("name") or "")
-        expected_repository = str(semantic_inputs.get("repository_mode") or "local")
         if str(project.get("name") or "") != expected_name:
             raise ValueError(
                 "P2P_INIT_EXISTING_WORKSPACE_CONFLICT: existing project name "
@@ -2316,23 +2099,6 @@ class P2PWorkspace:
                 "P2P_INIT_EXISTING_WORKSPACE_CONFLICT: existing structure source "
                 "differs from the requested initialization"
             )
-        if str(repository.get("mode") or "") != expected_repository:
-            raise ValueError(
-                "P2P_INIT_EXISTING_WORKSPACE_CONFLICT: existing repository mode "
-                "differs from the requested initialization"
-            )
-        if expected_repository == "cloud":
-            expected_remote = {
-                "provider": str(semantic_inputs.get("remote_provider") or ""),
-                "remote": str(semantic_inputs.get("remote_name") or "origin"),
-                "url": str(semantic_inputs.get("remote_url_value") or ""),
-            }
-            for field, expected in expected_remote.items():
-                if str(remote.get(field) or "") != expected:
-                    raise ValueError(
-                        "P2P_INIT_EXISTING_WORKSPACE_CONFLICT: existing remote "
-                        f"{field} differs from the requested initialization"
-                    )
         requested_vertical = str(semantic_inputs.get("vertical_id") or "")
         if requested_vertical:
             active = self.active_project_vertical()
@@ -2354,8 +2120,6 @@ class P2PWorkspace:
             default={},
         )
         project = project_payload.get("project")
-        repository = project_payload.get("repository")
-        remote = project_payload.get("remote")
         active = self.active_project_vertical()
         authority = self._project_authority_service().read_descriptor()
         created_paths = _sorted_posix_paths(result.created)
@@ -2393,8 +2157,6 @@ class P2PWorkspace:
                 "policy_path": result.agent_instructions.policy_path.as_posix(),
                 "skipped": list(result.agent_instructions.skipped),
             },
-            "repository": dict(repository) if isinstance(repository, Mapping) else {},
-            "remote": dict(remote) if isinstance(remote, Mapping) else {},
             "vertical": {
                 "requested": requested_vertical or "",
                 "active": {
@@ -2447,7 +2209,6 @@ class P2PWorkspace:
             ".p2p/agent-integrations.yml",
             "AGENTS.md",
             "P2P-SETUP.md",
-            ".gitignore",
         ):
             path = self.root / relative
             if path.is_file() and not path.is_symlink():
@@ -2544,10 +2305,9 @@ class P2PWorkspace:
     def refresh_agent_instructions(
         self,
         profile: str = "generic",
-        repository_mode: str | None = None,
     ) -> AgentInstructionsResult:
         self._ensure_runtime_write_allowed("agent_instructions_refresh")
-        return self._agent_instruction_service().refresh_instructions(profile, repository_mode)
+        return self._agent_instruction_service().refresh_instructions(profile)
 
     def agent_integrations_list(self) -> dict[str, object]:
         return self._agent_instruction_service().list_integrations()
@@ -2561,19 +2321,18 @@ class P2PWorkspace:
     def install_agent_integrations(
         self,
         target: str = "all",
-        repository_mode: str | None = None,
         *,
         force: bool = False,
     ) -> AgentIntegrationResult:
         self._ensure_runtime_write_allowed("agent_install")
-        return self._agent_instruction_service().install_integrations(target, repository_mode, force=force)
+        return self._agent_instruction_service().install_integrations(target, force=force)
 
     def uninstall_agent_integration(self, adapter: str) -> AgentIntegrationResult:
         self._ensure_runtime_write_allowed("agent_uninstall")
         return self._agent_instruction_service().uninstall_integration(adapter)
 
     def permissions_show(self) -> dict[str, object]:
-        return self._permissions_service().show(repository_mode=self._repository_mode(default="local"))
+        return self._permissions_service().show()
 
     def permissions_actor_add(
         self,
@@ -2588,7 +2347,6 @@ class P2PWorkspace:
             role=role,
             kind=kind,
             display_name=display_name,
-            repository_mode=self._repository_mode(default="local"),
         )
 
     def consent_grant(
@@ -2695,30 +2453,6 @@ class P2PWorkspace:
         name = data.get("project", {}).get("name") if isinstance(data.get("project"), dict) else None
         return str(name or self.root.name)
 
-    def _repository_mode(self, default: str = "local") -> str:
-        project_file = self.p2p_dir / "project.yml"
-        if not project_file.exists():
-            return default
-        data = _read_yaml_mapping(project_file, default={})
-        repo_data = data.get("repository", {})
-        if not isinstance(repo_data, dict):
-            return default
-        return str(repo_data.get("mode") or default)
-
-    def _set_repository_mode(self, mode: str) -> None:
-        self._ensure_runtime_write_allowed("repository_mode_set")
-        mode = _normalize_repository_mode(mode)
-        project_file = self.p2p_dir / "project.yml"
-        data = _read_yaml_mapping(project_file, default={})
-        repo_data = data.get("repository", {})
-        if not isinstance(repo_data, dict):
-            repo_data = {}
-        repo_data["mode"] = mode
-        repo_data.setdefault("managed_by_p2p", False)
-        data["repository"] = repo_data
-        project_file.parent.mkdir(parents=True, exist_ok=True)
-        project_file.write_text(_yaml_dump(data), encoding="utf-8")
-
     def status(
         self,
         *,
@@ -2732,40 +2466,6 @@ class P2PWorkspace:
                 allow_existing_transaction_lock=True,
             )
         return self._workspace_status_service().status(read_context=read_context)
-
-    def remote_profile(self) -> RemoteProjectProfile:
-        return self._remote_profile_service().show()
-
-    def configure_remote_profile(
-        self,
-        *,
-        mode: str,
-        provider: str | None = None,
-        remote: str = "origin",
-        url: str | None = None,
-    ) -> RemoteProjectProfile:
-        self._ensure_runtime_write_allowed("remote_profile_configure")
-        return self._remote_profile_service().configure(
-            mode=mode,
-            provider=provider,
-            remote=remote,
-            url=url,
-        )
-
-    def sync_status(self, remote: str | None = None) -> SyncStatus:
-        return self._sync_service().status(remote)
-
-    def sync_fetch(self, remote: str | None = None) -> SyncResult:
-        self._ensure_runtime_write_allowed("sync_fetch")
-        return self._sync_service().fetch(remote)
-
-    def sync_pull(self, remote: str | None = None) -> SyncResult:
-        self._ensure_runtime_write_allowed("sync_pull")
-        return self._sync_service().pull(remote)
-
-    def sync_push(self, remote: str | None = None) -> SyncResult:
-        self._ensure_runtime_write_allowed("sync_push")
-        return self._sync_service().push(remote)
 
     def proposal_summaries(
         self,
@@ -2822,95 +2522,6 @@ class P2PWorkspace:
             proposal_id,
             contribution_limit=contribution_limit,
         )
-
-    def commit_proposal_draft(self, proposal_id: str, actor: str = "local") -> ProposalDraftCommit:
-        self._ensure_runtime_write_allowed("proposal_draft_commit")
-        return self._proposal_draft_commit_service().commit(proposal_id, actor)
-
-    def branch_proposal(
-        self,
-        proposal_id: str,
-        actor: str = "local",
-        base_branch: str | None = None,
-        allow_proposal_base: bool = False,
-    ) -> ProposalBranchDetail:
-        self._ensure_runtime_write_allowed("proposal_branch")
-        return self._proposal_branch_service().branch(
-            proposal_id,
-            actor=actor,
-            base_branch=base_branch,
-            allow_proposal_base=allow_proposal_base,
-        )
-
-    def show_proposal_branch(self, proposal_id: str) -> ProposalBranchDetail:
-        return self._proposal_branch_service().show(proposal_id)
-
-    def publish_proposal_branch(
-        self,
-        proposal_id: str,
-        remote: str | None = None,
-        *,
-        auto_renumber: bool = False,
-    ) -> ProposalBranchDetail:
-        self._ensure_runtime_write_allowed("proposal_publish")
-        return self._proposal_branch_service().publish(
-            proposal_id,
-            remote=remote,
-            auto_renumber=auto_renumber,
-        )
-
-    def request_proposal_branch_review(self, proposal_id: str, provider: str | None = None) -> ProposalBranchDetail:
-        self._ensure_runtime_write_allowed("proposal_request_review")
-        return self._proposal_branch_service().request_review(proposal_id, provider)
-
-    def retire_proposal_branch(self, proposal_id: str, reason: str) -> ProposalBranchDetail:
-        self._ensure_runtime_write_allowed("proposal_retire_branch")
-        return self._proposal_branch_service().retire(proposal_id, reason)
-
-    def accept_proposal_branch(self, proposal_id: str, reason: str) -> ProposalBranchDetail:
-        self._ensure_runtime_write_allowed("proposal_accept_branch")
-        return self._proposal_branch_service().accept(proposal_id, reason)
-
-    def reject_proposal_branch(self, proposal_id: str, reason: str) -> ProposalBranchDetail:
-        self._ensure_runtime_write_allowed("proposal_reject_branch")
-        return self._proposal_branch_service().reject(proposal_id, reason)
-
-    def _decide_proposal_branch(self, proposal_id: str, outcome: str, reason: str) -> ProposalBranchDetail:
-        self._ensure_runtime_write_allowed("proposal_decide_branch")
-        return self._proposal_branch_service().decide(proposal_id, outcome, reason)
-
-    def merge_proposal_branch(self, proposal_id: str) -> ProposalMerge | ProposalMergeConflict:
-        self._ensure_runtime_write_allowed("proposal_merge")
-        return self._proposal_branch_service().merge(proposal_id)
-
-    def continue_merge_proposal_branch(self, proposal_id: str) -> ProposalMerge:
-        self._ensure_runtime_write_allowed("proposal_merge_continue")
-        return self._proposal_branch_service().continue_merge(proposal_id)
-
-    def abort_merge_proposal_branch(self, proposal_id: str) -> ProposalBranchDetail:
-        self._ensure_runtime_write_allowed("proposal_merge_abort")
-        return self._proposal_branch_service().abort_merge_branch(proposal_id)
-
-    def finalize_proposal_branch(self, proposal_id: str, remote: str | None = None) -> ProposalFinalize:
-        self._ensure_runtime_write_allowed("proposal_finalize")
-        return self._proposal_branch_service().finalize(proposal_id, remote)
-
-    def cleanup_proposal_branch(
-        self,
-        proposal_id: str,
-        *,
-        delete_remote: bool = False,
-        remote: str | None = None,
-    ) -> ProposalCleanup:
-        self._ensure_runtime_write_allowed("proposal_cleanup")
-        return self._proposal_branch_service().cleanup(
-            proposal_id,
-            delete_remote=delete_remote,
-            remote=remote,
-        )
-
-    def scan_proposal_branches(self) -> ProposalBranchScan:
-        return self._proposal_branch_service().scan()
 
     def check(self) -> WorkspaceCheck:
         return self._workspace_status_service().check()
@@ -5626,64 +5237,9 @@ class P2PWorkspace:
     def show_work(self, work_id: str) -> WorkDetail:
         return self._work_planning_service().show(work_id)
 
-    def branch_work(self, work_id: str) -> WorkBranch:
-        self._ensure_runtime_write_allowed("work_branch")
-        return self._work_branch_service().branch(work_id)
-
     def retire_work(self, work_id: str, reason: str) -> WorkRetire:
         self._ensure_runtime_write_allowed("work_retire")
         return self._work_planning_service().retire(work_id, reason)
-
-    def submit_work(self, work_id: str) -> WorkSubmit:
-        self._ensure_runtime_write_allowed("work_submit")
-        return self._work_branch_service().submit(work_id)
-
-    def review_work(self, work_id: str) -> WorkReview:
-        self._ensure_runtime_write_allowed("work_review")
-        return self._work_branch_service().review(work_id)
-
-    def publish_work(self, work_id: str, remote: str = "origin") -> WorkPublish:
-        self._ensure_runtime_write_allowed("work_publish")
-        return self._work_branch_service().publish(work_id, remote)
-
-    def request_external_work_review(
-        self,
-        work_id: str,
-        provider: str | None = None,
-    ) -> WorkReviewRequest:
-        self._ensure_runtime_write_allowed("work_request_review")
-        return self._work_branch_service().request_external_review(work_id, provider)
-
-    def accept_work(self, work_id: str) -> WorkAccept | WorkAcceptConflict:
-        self._ensure_runtime_write_allowed("work_accept")
-        return self._work_branch_service().accept(work_id)
-
-    def continue_accept_work(self, work_id: str) -> WorkAccept:
-        self._ensure_runtime_write_allowed("work_accept_continue")
-        return self._work_branch_service().continue_accept(work_id)
-
-    def abort_accept_work(self, work_id: str) -> WorkDetail:
-        self._ensure_runtime_write_allowed("work_accept_abort")
-        return self._work_branch_service().abort_accept(work_id)  # type: ignore[return-value]
-
-    def finalize_work(self, work_id: str, remote: str = "origin") -> WorkFinalize:
-        self._ensure_runtime_write_allowed("work_finalize")
-        return self._work_branch_service().finalize(work_id, remote)
-
-    def cleanup_work(self, work_id: str, delete_remote: bool = False, remote: str = "origin") -> WorkCleanup:
-        self._ensure_runtime_write_allowed("work_cleanup")
-        return self._work_branch_service().cleanup(work_id, delete_remote=delete_remote, remote=remote)
-
-    def _scanned_work_items(self) -> list[dict[str, object]]:
-        path = self.p2p_dir / "registries" / "work.yml"
-        data = _read_yaml_mapping(path, default={"work_items": []})
-        items = data.get("work_items", [])
-        if not isinstance(items, list):
-            return []
-        return [item for item in items if isinstance(item, dict)]
-
-    def scan_work_branches(self) -> WorkScan:
-        return self._work_branch_service().scan()
 
     def next_actions(
         self,
@@ -5792,9 +5348,6 @@ class P2PWorkspace:
 
     def change_set_statuses(self) -> list[ChangeSetStatus]:
         return self._change_set_lifecycle_service().statuses()
-
-    def change_set_policy(self, change_id: str) -> ChangeSetPolicy:
-        return self._change_set_lifecycle_service().policy(change_id)
 
     def show_change_set(self, change_id: str) -> ChangeSetDetail:
         return self._change_set_lifecycle_service().show(change_id)
@@ -5930,7 +5483,6 @@ def _is_project_init_receipt_path(value: str) -> bool:
         in {
             ".cursor/rules/p2p.mdc",
             ".github/copilot-instructions.md",
-            ".gitignore",
             "AGENTS.md",
             "CLAUDE.md",
             "GEMINI.md",
@@ -5956,7 +5508,6 @@ def _project_init_semantic_inputs(
     *,
     name: str,
     agent_profile: str | None,
-    repository_mode: str,
     project_domain: str | None,
     project_domain_name: str,
     project_domain_source: str,
@@ -5964,9 +5515,6 @@ def _project_init_semantic_inputs(
     starter_id: str | None,
     rubric_enabled: dict[str, bool] | None,
     owner: str | None,
-    remote_provider: str | None,
-    remote_name: str,
-    remote_url_value: str | None,
     vertical_id: str | None,
     profile: str,
     modules: list[str] | None,
@@ -5978,7 +5526,6 @@ def _project_init_semantic_inputs(
     return {
         "name": name,
         "agent_profile": agent_profile or "",
-        "repository_mode": repository_mode,
         "project_domain": project_domain or "",
         "project_domain_name": project_domain_name,
         "project_domain_source": project_domain_source,
@@ -5989,9 +5536,6 @@ def _project_init_semantic_inputs(
             for key, value in sorted((rubric_enabled or {}).items())
         },
         "owner": owner or "",
-        "remote_provider": remote_provider or "",
-        "remote_name": remote_name,
-        "remote_url_value": remote_url_value or "",
         "vertical_id": vertical_id or "",
         "profile": profile,
         "modules": sorted(str(item) for item in (modules or [])),
@@ -6070,12 +5614,6 @@ def _public_project_init_result(result: dict[str, object]) -> dict[str, object]:
         else {},
         "agent_instructions": dict(result.get("agent_instructions", {}))
         if isinstance(result.get("agent_instructions"), Mapping)
-        else {},
-        "repository": dict(result.get("repository", {}))
-        if isinstance(result.get("repository"), Mapping)
-        else {},
-        "remote": dict(result.get("remote", {}))
-        if isinstance(result.get("remote"), Mapping)
         else {},
         "vertical": dict(result.get("vertical", {}))
         if isinstance(result.get("vertical"), Mapping)

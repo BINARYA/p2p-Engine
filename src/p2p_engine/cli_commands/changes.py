@@ -37,25 +37,6 @@ def register_change_commands(change_app: typer.Typer) -> None:
         for change in changes:
             console.print(f"  {change.change_id}  {change.status}  {change.title}")
 
-    @change_app.command("policy")
-    def change_policy(
-        change_id: str = typer.Argument(..., help="Change Set ID, e.g. CHANGE-001"),
-        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
-    ) -> None:
-        """Show managed Git policy for a Change Set."""
-        try:
-            policy = workspace_for(root).change_set_policy(change_id)
-        except ValueError as exc:
-            fail(str(exc))
-        console.print(f"Git policy for [bold]{policy.change_id}[/bold]")
-        console.print(f"  operation_level: {policy.operation_level}")
-        console.print(f"  auto_commit: {policy.auto_commit}")
-        console.print(f"  auto_branch: {policy.auto_branch}")
-        console.print(f"  auto_tag: {policy.auto_tag}")
-        console.print("  reasons:")
-        for reason in policy.reasons:
-            console.print(f"    - {reason}")
-
     @change_app.command("show")
     def change_show(
         change_id: str = typer.Argument(..., help="Change Set ID, e.g. CHANGE-001"),

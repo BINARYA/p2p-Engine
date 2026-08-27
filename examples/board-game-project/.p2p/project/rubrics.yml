@@ -16,50 +16,50 @@ selected_scope:
 criteria:
 - id: core_loop_quality
   title: Core Gameplay Loop
-  enabled: true
-  required: true
   section_id: core_loop
+  required: true
   keywords:
   - turn
   - round
   - loop
   - gameplay
+  enabled: true
   source: project_vertical
   vertical_id: board_game_design
 - id: component_coverage
   title: Component Coverage
-  enabled: true
-  required: true
   section_id: components
+  required: true
   keywords:
   - component
   - card
   - board
   - token
   - piece
+  enabled: true
   source: project_vertical
   vertical_id: board_game_design
 - id: rules_clarity
   title: Rules Clarity
-  enabled: true
-  required: true
   section_id: rules
+  required: true
   keywords:
   - rule
   - action
   - phase
   - win
+  enabled: true
   source: project_vertical
   vertical_id: board_game_design
 - id: playtest_plan
   title: Playtest Plan
-  enabled: true
-  required: true
   section_id: playtesting
+  required: true
   keywords:
   - playtest
   - balance
   - test
   - feedback
+  enabled: true
   source: project_vertical
   vertical_id: board_game_design

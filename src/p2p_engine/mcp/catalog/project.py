@@ -720,25 +720,6 @@ def tool_definitions() -> list[dict[str, object]]:
             ['section'],
         ),
         _tool(
-            'p2p_project_remote_show',
-            'Show local/cloud remote project profile metadata.',
-            {'root': {'type': 'string'}},
-        ),
-        _tool(
-            'p2p_project_remote_configure',
-            (
-                'Write-safe project setup tool: configure P2P remote profile metadata without '
-                'creating provider repositories, opening PRs, or editing Git remotes.'
-            ),
-            {'root': {'type': 'string'},
-             'mode': {'type': 'string', 'enum': ['local', 'remote']},
-             'provider': {'type': 'string',
-                          'enum': ['local', 'generic', 'github', 'gitlab']},
-             'remote': {'type': 'string'},
-             'url': {'type': 'string'}},
-            ['mode'],
-        ),
-        _tool(
             'p2p_permissions_show',
             'Read project-declared permission identities and role policy.',
             {'root': {'type': 'string'}},

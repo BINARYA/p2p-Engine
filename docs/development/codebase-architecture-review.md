@@ -13,6 +13,10 @@ l'architettura futura del prodotto.
 > `.p2p/.internal/workspace-transactions/`. Per i contratti operativi correnti
 > vedere [`WORKSPACE-SCHEMA.md`](../WORKSPACE-SCHEMA.md) e
 > [`CLI-GUIDE.md`](../CLI-GUIDE.md).
+>
+> Nota 0.5.0: questa fotografia e' archiviale e non descrive la superficie
+> corrente. L'adapter `src/p2p_engine/storage/git.py` e i lifecycle Git di
+> prodotto sono stati rimossi; source control e release sono tooling esterno.
 
 La fotografia distingue quattro categorie:
 
@@ -169,7 +173,7 @@ riflette soprattutto l'ampiezza della facade, non un unico algoritmo
 monolitico. Restano nella classe anche alcuni default e alcune operazioni
 dirette, per cui non e' una facade puramente meccanica.
 
-[`storage/git.py`](../../src/p2p_engine/storage/git.py#L174) concentra le
+Il file storico `src/p2p_engine/storage/git.py` concentrava le
 invocazioni a `git` tramite `subprocess.run`. Non sono emerse altre chiamate a
 processi esterni nel codice runtime.
 

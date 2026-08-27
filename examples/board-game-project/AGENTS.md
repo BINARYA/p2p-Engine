@@ -228,10 +228,7 @@ Owner-controlled actions include:
 
 - accepting, rejecting, deferring, revoking, replacing, or reinstating proposals;
 - deciding choices;
-- accepting, finalizing, cleaning up, or merging managed work;
-- accepting, rejecting, merging, or finalizing managed proposal branches;
 - changing governance policy;
-- creating direct Git merges into the main branch.
 
 ## Proposal Readiness
 
@@ -322,8 +319,7 @@ matching revocation. Supersession, split and merge require typed lineage.
 
 Decision apply never rewrites dependent Change Sets, Work, specs, vertical
 evidence, code or publication state. Report impact and use generated
-remediation actions. Managed branch accept/reject commands are separate Git
-lifecycle operations and never create proposal decision events.
+remediation actions.
 
 With MCP, use `p2p_proposal_decision_preview` and token-bound
 `p2p_proposal_decision_apply`. Consent operation is
@@ -575,35 +571,13 @@ validation truth, permissions, consent, or factual claims.
 Do not edit `.p2p` files directly, reverse-engineer managed paths, or copy
 temporary files into managed P2P memory as a workaround for changing style.
 
-## Managed Git Collaboration
-
-Do not run raw `git branch`, `git fetch`, `git pull`, `git push`, `git merge`, or provider PR/MR commands for managed P2P project state unless the owner explicitly authorizes an escape hatch.
-
-Use P2P-managed commands instead:
-
-```bash
-p2p sync status
-p2p sync fetch
-p2p sync pull
-p2p sync push
-p2p proposal branch PROP-XXX --actor "name-or-agent"
-p2p proposal status PROP-XXX
-p2p proposal publish PROP-XXX
-p2p proposal publish PROP-XXX --auto-renumber
-p2p proposal request-review PROP-XXX
-p2p proposal scan
-p2p proposal retire-branch PROP-XXX --reason "..."
-```
-
-Before creating proposal or Work branches, inspect P2P state and sync state. Stop for owner approval before remote publication, accept, reject, merge, finalize, cleanup, or any operation marked owner-controlled by policy.
-
 ## MCP Boundary
 
 Assume MCP tools are read-only unless the tool schema explicitly describes a write action.
 
-When MCP is read-only, use it for status and inspection only. For mutations, use `p2p` CLI commands when available or explicit write-safe MCP tools such as `p2p_project_remote_configure`, `p2p_consent_request`, `p2p_proposal_draft_commit`, `p2p_proposal_branch`, `p2p_work_branch`, `p2p_work_submit`, `p2p_work_review`, and `p2p_sync_fetch` when their schema matches the requested action.
-
-MCP may use implemented permission-gated repository tools only with a valid consent receipt. MCP must not retire or create provider PR/MR handoffs until those operations are explicitly implemented and authorized.
+When MCP is read-only, use it for status and inspection only. For mutations, use
+`p2p` CLI commands when available or explicit write tools whose schema matches
+the requested project-state action and whose authority contract is satisfied.
 
 ## Explaining Existing P2P Artifacts
 
@@ -613,7 +587,7 @@ Use `p2p proposal show`, `p2p choice show`, `p2p change show`, `p2p work show`, 
 
 ## Token Budget Discipline
 
-AI is expensive. CLI is cheap. Git is memory. `.p2p` is governance. Owner decides. Agent works in bounded sessions.
+AI is expensive. CLI is cheap. `.p2p` is governed project state. Owner decides. Agent works in bounded sessions.
 
 Before broad reads, use compact context:
 
@@ -624,7 +598,9 @@ p2p context --target PROP-XXX --budget small
 
 With MCP, use `p2p_context` first.
 
-Read summaries first; read details only by explicit ID. Do not scan all `.p2p/`, all registries, all proposals, all source files, or Git history unless the task explicitly requires it or compact context is insufficient.
+Read summaries first; read details only by explicit ID. Do not scan all `.p2p/`,
+all registries, all proposals, or all source files unless the task explicitly
+requires it or compact context is insufficient.
 
 ## Recommended Start
 
@@ -652,5 +628,4 @@ p2p proposal create "Title" --problem "..." --goal "..." --proposal "..." --acce
 ## Project Bootstrap
 
 - Initial agent profiles: claude, codex, copilot, cursor, gemini, generic, opencode
-- Repository mode: local
 - Additional agent instructions can be added later with `p2p agent instructions refresh`.

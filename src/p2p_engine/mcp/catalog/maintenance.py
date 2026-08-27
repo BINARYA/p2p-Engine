@@ -11,7 +11,7 @@ def tool_definitions() -> list[dict[str, object]]:
                 'Write-safe bootstrap tool: initialize a P2P project and generate agent '
                 'boundary instructions. Uses an adaptive agent default when agent is omitted, '
                 'falls back to all built-in adapters when no current client is detected, '
-                'and returns additive MCP hint and repository hygiene metadata. '
+                'and returns additive MCP setup metadata. '
                 'Requires exactly one explicit structure source and does not infer it '
                 'from the optional domain classification.'
             ),
@@ -26,7 +26,6 @@ def tool_definitions() -> list[dict[str, object]]:
                                 'gemini',
                                 'opencode',
                                 'all']},
-             'repository': {'type': 'string', 'enum': ['local', 'cloud']},
              'owner': {'type': 'string'},
              'domain': {'type': 'string'},
              'domain_name': {'type': 'string'},

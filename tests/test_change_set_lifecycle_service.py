@@ -43,7 +43,7 @@ def test_change_set_lifecycle_service_creates_shows_and_lists_change(tmp_path: P
     assert "implementation_targets:" in change_text
 
 
-def test_change_set_lifecycle_service_reads_policy_and_tasks(tmp_path: Path) -> None:
+def test_change_set_lifecycle_service_reads_tasks(tmp_path: Path) -> None:
     workspace = _accepted_workspace(tmp_path)
     service = workspace._change_set_lifecycle_service()
     service.create("PROP-001")
@@ -57,11 +57,8 @@ def test_change_set_lifecycle_service_reads_policy_and_tasks(tmp_path: Path) -> 
         encoding="utf-8",
     )
 
-    policy = service.policy("CHANGE-001")
     tasks = service.tasks("CHANGE-001")
 
-    assert policy.operation_level == "metadata_only"
-    assert policy.auto_commit is False
     assert tasks.tasks[0]["id"] == "T001"
     assert tasks.actions[0]["checked"] is True
 
@@ -88,10 +85,6 @@ def test_change_set_lifecycle_service_validates_error_paths(tmp_path: Path) -> N
     record_decision(workspace, "PROP-001", DecisionOutcome.accepted, "Ready.", "owner")
     service.create("PROP-001")
     change_dir = tmp_path / ".p2p" / "changes" / "CHANGE-001-draft-work"
-
-    (change_dir / "git-policy.yml").write_text("git_policy: []\n", encoding="utf-8")
-    with pytest.raises(ValueError, match="expected `git_policy` mapping"):
-        service.policy("CHANGE-001")
 
     (change_dir / "tasks.yml").write_text("tasks: {}\n", encoding="utf-8")
     with pytest.raises(ValueError, match="expected `tasks` list"):

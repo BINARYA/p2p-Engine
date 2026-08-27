@@ -53,25 +53,49 @@
           "profile": "default",
           "modules": []
         },
-        "dependency_additions": {"total": 0, "returned": 0, "truncated": false, "items": []},
-        "dependency_removals": {"total": 0, "returned": 0, "truncated": false, "items": []}
+        "dependency_additions": {
+          "total": 0,
+          "returned": 0,
+          "truncated": false,
+          "items": []
+        },
+        "dependency_removals": {
+          "total": 0,
+          "returned": 0,
+          "truncated": false,
+          "items": []
+        }
       },
-      "artifacts": {"total": 0, "returned": 0, "truncated": false, "items": []},
+      "artifacts": {
+        "total": 0,
+        "returned": 0,
+        "truncated": false,
+        "items": []
+      },
       "blockers": {
         "total": 1,
         "returned": 1,
         "truncated": false,
-        "items": [{
-          "code": "P2P_VERTICAL_ADOPTION_REQUIRES_MIGRATION",
-          "severity": "blocker",
-          "category": "source_state",
-          "reference": "example/software@1.0.0",
-          "recovery_action": "Run project vertical migrate preview for the target coordinate."
-        }]
+        "items": [
+          {
+            "code": "P2P_VERTICAL_ADOPTION_REQUIRES_MIGRATION",
+            "severity": "blocker",
+            "category": "source_state",
+            "reference": "example/software@1.0.0",
+            "recovery_action": "Run project vertical migrate preview for the target coordinate."
+          }
+        ]
       },
-      "warnings": {"total": 0, "returned": 0, "truncated": false, "items": []}
+      "warnings": {
+        "total": 0,
+        "returned": 0,
+        "truncated": false,
+        "items": []
+      }
     },
-    "blockers": ["P2P_VERTICAL_ADOPTION_REQUIRES_MIGRATION"],
+    "blockers": [
+      "P2P_VERTICAL_ADOPTION_REQUIRES_MIGRATION"
+    ],
     "preview": null
   },
   "warnings": [],

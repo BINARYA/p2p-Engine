@@ -18,14 +18,12 @@ from p2p_engine.services.authority import AuthorityContractCodec
 def register_project_ops_commands(
     project_app: typer.Typer,
     project_memory_app: typer.Typer,
-    project_remote_app: typer.Typer,
     project_rubrics_app: typer.Typer,
     project_definition_app: typer.Typer,
     project_interaction_style_app: typer.Typer,
     project_vertical_app: typer.Typer,
     project_readiness_app: typer.Typer,
     project_brief_app: typer.Typer,
-    sync_app: typer.Typer,
     permissions_app: typer.Typer,
     permissions_actor_app: typer.Typer,
     consent_app: typer.Typer,
@@ -657,48 +655,6 @@ def register_project_ops_commands(
             fail(str(exc))
         console.print("[green]Project interaction style updated.[/green]")
         _print_interaction_style(view)
-
-    @project_remote_app.command("show")
-    def project_remote_show(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
-        """Show local/remote project profile."""
-        try:
-            profile = workspace_for(root).remote_profile()
-        except ValueError as exc:
-            fail(str(exc))
-        console.print("Project remote profile")
-        console.print(f"  mode: {profile.mode}")
-        console.print(f"  provider: {profile.provider}")
-        console.print(f"  remote: {profile.remote or 'none'}")
-        console.print(f"  url: {profile.url or 'none'}")
-        console.print(f"  review_request: {profile.review_request_mode}")
-        console.print(f"  opens_external_request: {str(profile.opens_external_request).lower()}")
-        console.print(f"  path: {profile.path}")
-
-    @project_remote_app.command("configure")
-    def project_remote_configure(
-        mode: str = typer.Option(..., "--mode", help="Project remote mode: local or remote"),
-        provider: str | None = typer.Option(None, "--provider", help="Provider: generic, github, or gitlab"),
-        remote: str = typer.Option("origin", "--remote", help="Git remote name for remote-backed projects"),
-        url: str | None = typer.Option(None, "--url", help="Remote repository URL"),
-        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
-    ) -> None:
-        """Configure local/remote project profile without creating provider resources."""
-        try:
-            profile = workspace_for(root).configure_remote_profile(
-                mode=mode,
-                provider=provider,
-                remote=remote,
-                url=url,
-            )
-        except ValueError as exc:
-            fail(str(exc))
-        console.print("[green]Project remote profile configured.[/green]")
-        console.print(f"  mode: {profile.mode}")
-        console.print(f"  provider: {profile.provider}")
-        console.print(f"  remote: {profile.remote or 'none'}")
-        console.print(f"  url: {profile.url or 'none'}")
-        console.print("  creates_remote_repository: false")
-        console.print("  opens_external_request: false")
 
     @project_vertical_app.command("list")
     def project_vertical_list(
@@ -1343,64 +1299,6 @@ def register_project_ops_commands(
         console.print(f"  required: {str(section.required).lower()}")
         console.print(f"  purpose: {section.purpose}")
 
-    @sync_app.command("status")
-    def sync_status(
-        remote: str | None = typer.Option(None, "--remote", help="Override configured Git remote"),
-        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
-    ) -> None:
-        """Show managed Git synchronization status."""
-        try:
-            status = workspace_for(root).sync_status(remote)
-        except ValueError as exc:
-            fail(str(exc))
-        console.print("Sync status")
-        console.print(f"  repository: {str(status.is_repository).lower()}")
-        console.print(f"  branch: {status.branch or 'none'}")
-        console.print(f"  clean: {str(status.is_clean).lower()}")
-        console.print(f"  mode: {status.mode}")
-        console.print(f"  provider: {status.provider}")
-        console.print(f"  remote: {status.remote or 'none'}")
-        console.print(f"  profile_url: {status.profile_url or 'none'}")
-        console.print(f"  remote_url: {status.remote_url or 'none'}")
-        console.print(f"  can_sync: {str(status.can_sync).lower()}")
-        console.print(f"  reason: {status.reason}")
-
-    @sync_app.command("fetch")
-    def sync_fetch(
-        remote: str | None = typer.Option(None, "--remote", help="Override configured Git remote"),
-        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
-    ) -> None:
-        """Fetch configured remote refs through P2P validation."""
-        try:
-            result = workspace_for(root).sync_fetch(remote)
-        except ValueError as exc:
-            fail(str(exc))
-        _print_sync_result(result)
-
-    @sync_app.command("pull")
-    def sync_pull(
-        remote: str | None = typer.Option(None, "--remote", help="Override configured Git remote"),
-        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
-    ) -> None:
-        """Fast-forward pull the current branch through P2P validation."""
-        try:
-            result = workspace_for(root).sync_pull(remote)
-        except ValueError as exc:
-            fail(str(exc))
-        _print_sync_result(result)
-
-    @sync_app.command("push")
-    def sync_push(
-        remote: str | None = typer.Option(None, "--remote", help="Override configured Git remote"),
-        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
-    ) -> None:
-        """Push the current branch through P2P validation."""
-        try:
-            result = workspace_for(root).sync_push(remote)
-        except ValueError as exc:
-            fail(str(exc))
-        _print_sync_result(result)
-
     @permissions_app.command("show")
     def permissions_show(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
         """Show project-declared permission identities and roles."""
@@ -1688,14 +1586,6 @@ def _print_interaction_style(view: object) -> None:
     if updated_by:
         console.print(f"  updated_by: {updated_by}")
     console.print(f"  path: {getattr(view, 'path')}")
-
-
-def _print_sync_result(result: object) -> None:
-    console.print(f"[green]Sync {getattr(result, 'status')}.[/green]")
-    console.print(f"  action: {getattr(result, 'action')}")
-    console.print(f"  branch: {getattr(result, 'branch') or 'none'}")
-    console.print(f"  remote: {getattr(result, 'remote')}")
-    console.print(f"  remote_url: {getattr(result, 'remote_url')}")
 
 
 def _print_consent(consent: object) -> None:

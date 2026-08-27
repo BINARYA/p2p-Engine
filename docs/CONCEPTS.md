@@ -26,7 +26,8 @@ memory.
 
 ## Project State Lives In `.p2p/`
 
-P2P Engine stores project governance state under `.p2p/`. Git stores the history.
+P2P Engine stores project governance state under `.p2p/`. Filesystem state is
+the runtime boundary; an external source-control system may version it.
 Schema 4 stores one project authority descriptor. In standalone mode, local
 permissions resolve owner authority. A hosted provider may attest an exact
 capability while P2P records the subject and executor separately.
@@ -38,7 +39,7 @@ Common artifact areas:
   proposals/    structured candidate directions
   choices/      explicit alternatives and selected outcomes
   changes/      operational Change Sets from accepted intent
-  work/         managed handoff and branch lifecycle metadata
+  work/         logical planning and handoff metadata
   registries/   generated indexes over project state
   project/      project overview, rubrics, assessments, and next actions
 ```
@@ -92,14 +93,14 @@ A Change Set turns accepted intent into operational work metadata. It connects
 governance state to implementation planning, generated specs, tasks, and managed
 work.
 
-Change Sets do not replace Git commits or code review. They explain what work is
-derived from accepted project intent.
+Change Sets do not replace implementation, source-control commits or code
+review. They explain what work is derived from accepted project intent.
 
 ## Work
 
-Work metadata tracks implementation or handoff lifecycle around a Change Set.
-Depending on the command, Work can involve local Git branches, review handoff,
-publish, accept, finalize, and cleanup steps.
+Work metadata tracks logical implementation planning or handoff around a Change
+Set. It can be planned, listed, inspected or retired; repository delivery
+lifecycle remains external.
 
 Use Work when implementation needs managed lifecycle state beyond a single
 proposal or Change Set.

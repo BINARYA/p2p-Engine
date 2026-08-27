@@ -21,7 +21,6 @@ from p2p_engine.core.workspace_schema import (
 )
 from p2p_engine.services.agent_instructions import AgentInstructionsResult
 from p2p_engine.services.agent_selection import AgentProfileSelection, select_agent_profile
-from p2p_engine.services.gitignore_hygiene import GitignoreHygieneResult, apply_gitignore_hygiene
 from p2p_engine.services.mcp_hints import McpHint, build_mcp_hint
 from p2p_engine.services.project_domain import (
     initial_project_domain_state,
@@ -40,16 +39,6 @@ from p2p_engine.services.project_questions import ProjectQuestionStateService
 from p2p_engine.services.authority import ProjectAuthorityService
 from p2p_engine.services.runtime_contract import RuntimeContractService
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
-
-REPOSITORY_MODES = {"local", "cloud"}
-
-
-def normalize_repository_mode(mode: str) -> str:
-    normalized = mode.strip().lower()
-    if normalized not in REPOSITORY_MODES:
-        raise ValueError("Repository mode must be local or cloud")
-    return normalized
-
 
 def _slugify(value: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
@@ -89,7 +78,6 @@ class ProjectInitializationResult:
     agent_selection: AgentProfileSelection
     agent_instructions: AgentInstructionsResult
     mcp_hint: McpHint
-    gitignore_hygiene: GitignoreHygieneResult
     warnings: list[str]
     domain: ProjectDomainRef | None
     structure_source: StructureSource
@@ -104,31 +92,26 @@ class ProjectInitializationService:
         *,
         root: Path,
         p2p_dir: Path,
-        remote_profile_default_payload: Callable[..., dict[str, object]],
         readiness_default_profile_payload: Callable[[], dict[str, object]],
         permissions_default_policy_payload: Callable[..., dict[str, object]],
         refresh_agent_instructions: Callable[..., AgentInstructionsResult],
         select_agent_profile_fn: Callable[[str | None], AgentProfileSelection] = select_agent_profile,
         build_mcp_hint_fn: Callable[..., McpHint] = build_mcp_hint,
-        apply_gitignore_hygiene_fn: Callable[[Path], GitignoreHygieneResult] = apply_gitignore_hygiene,
         resolve_structure_pack: Callable[[StructureSource], VerticalPack | None] | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
-        self.remote_profile_default_payload = remote_profile_default_payload
         self.readiness_default_profile_payload = readiness_default_profile_payload
         self.permissions_default_policy_payload = permissions_default_policy_payload
         self.refresh_agent_instructions = refresh_agent_instructions
         self.select_agent_profile = select_agent_profile_fn
         self.build_mcp_hint = build_mcp_hint_fn
-        self.apply_gitignore_hygiene = apply_gitignore_hygiene_fn
         self.resolve_structure_pack = resolve_structure_pack
 
     def init_project(
         self,
         name: str,
         agent_profile: str | None = None,
-        repository_mode: str = "local",
         project_domain: str | None = None,
         project_domain_name: str = "",
         project_domain_source: str = "local",
@@ -137,16 +120,12 @@ class ProjectInitializationService:
         structure_origin: dict[str, object] | None = None,
         rubric_enabled: dict[str, bool] | None = None,
         owner: str | None = None,
-        remote_provider: str | None = None,
-        remote_name: str = "origin",
-        remote_url_value: str | None = None,
         authority_context: AuthorityContext | None = None,
         structure_pack: VerticalPack | None = None,
     ) -> list[Path]:
         return self.init_project_with_summary(
             name=name,
             agent_profile=agent_profile,
-            repository_mode=repository_mode,
             project_domain=project_domain,
             project_domain_name=project_domain_name,
             project_domain_source=project_domain_source,
@@ -155,9 +134,6 @@ class ProjectInitializationService:
             structure_origin=structure_origin,
             rubric_enabled=rubric_enabled,
             owner=owner,
-            remote_provider=remote_provider,
-            remote_name=remote_name,
-            remote_url_value=remote_url_value,
             authority_context=authority_context,
             structure_pack=structure_pack,
         ).created
@@ -166,7 +142,6 @@ class ProjectInitializationService:
         self,
         name: str,
         agent_profile: str | None = None,
-        repository_mode: str = "local",
         project_domain: str | None = None,
         project_domain_name: str = "",
         project_domain_source: str = "local",
@@ -175,15 +150,11 @@ class ProjectInitializationService:
         structure_origin: dict[str, object] | None = None,
         rubric_enabled: dict[str, bool] | None = None,
         owner: str | None = None,
-        remote_provider: str | None = None,
-        remote_name: str = "origin",
-        remote_url_value: str | None = None,
         authority_context: AuthorityContext | None = None,
         structure_pack: VerticalPack | None = None,
     ) -> ProjectInitializationResult:
         is_new_project = not (self.p2p_dir / "project.yml").exists()
         agent_selection = self.select_agent_profile(agent_profile)
-        repository_mode = normalize_repository_mode(repository_mode)
         domain_descriptor = _domain_descriptor(
             project_domain,
             name=project_domain_name,
@@ -212,16 +183,7 @@ class ProjectInitializationService:
             applied_at=initialized_at,
             rubric_enabled=rubric_enabled,
         )
-        remote_profile = self.remote_profile_default_payload(
-            repository_mode=repository_mode,
-            provider=remote_provider,
-            remote=remote_name,
-            url=remote_url_value,
-        )
-        permissions_payload = self.permissions_default_policy_payload(
-            owner_name=owner,
-            repository_mode=repository_mode,
-        )
+        permissions_payload = self.permissions_default_policy_payload(owner_name=owner)
         authority_descriptor = self._bootstrap_authority_descriptor(
             is_new_project=is_new_project,
             owner=owner,
@@ -229,13 +191,11 @@ class ProjectInitializationService:
         )
         files = self._bootstrap_files(
             name=name,
-            repository_mode=repository_mode,
             domain_descriptor=domain_descriptor,
             structure_source=selected_structure_source,
             structure_origin=selected_structure_origin,
             rubric_enabled=rubric_enabled,
             owner=owner,
-            remote_profile=remote_profile,
             permissions_payload=permissions_payload,
             authority_descriptor=authority_descriptor,
             initial_structure=initial_structure,
@@ -250,13 +210,9 @@ class ProjectInitializationService:
         )
         warnings = self._setup_guide_warnings()
         created.extend(self._create_missing_directories())
-        gitignore_hygiene = self.apply_gitignore_hygiene(self.root)
-        if gitignore_hygiene.status == "applied" and gitignore_hygiene.path not in created:
-            created.append(gitignore_hygiene.path)
         mcp_hint = self.build_mcp_hint(self.root, project_name=name)
         instructions = self.refresh_agent_instructions(
             profile=agent_selection.effective_profile,
-            repository_mode=repository_mode,
         )
         for path in [*instructions.created, *instructions.updated]:
             if path not in created:
@@ -266,7 +222,6 @@ class ProjectInitializationService:
             agent_selection=agent_selection,
             agent_instructions=instructions,
             mcp_hint=mcp_hint,
-            gitignore_hygiene=gitignore_hygiene,
             warnings=warnings,
             domain=domain_descriptor,
             structure_source=selected_structure_source,
@@ -279,13 +234,11 @@ class ProjectInitializationService:
         self,
         *,
         name: str,
-        repository_mode: str,
         domain_descriptor: ProjectDomainRef | None,
         structure_source: StructureSource,
         structure_origin: dict[str, object],
         rubric_enabled: dict[str, bool] | None,
         owner: str | None,
-        remote_profile: dict[str, object],
         permissions_payload: dict[str, object],
         authority_descriptor: ProjectAuthorityDescriptor | None,
         initial_structure: ProjectStructure,
@@ -309,11 +262,6 @@ class ProjectInitializationService:
                     },
                     "workflow": {"current_phase": "cli_managed"},
                     "ai": {"mode": "prompt_only", "direct_invocation": False},
-                    "repository": {
-                        "mode": repository_mode,
-                        "managed_by_p2p": False,
-                    },
-                    "remote": remote_profile,
                 }
             ),
             self.p2p_dir / "project" / "domain.yml": project_domain_state_bytes(

@@ -21,9 +21,8 @@ Use P2P Engine as the source of truth for project governance and planning.
 - Use `p2p` CLI commands or explicit MCP write tools for P2P mutations.
 - If no CLI command or MCP write tool exists for the requested operation, stop and report the missing primitive.
 - Do not edit `.p2p/` internals directly, invent IDs, or synthesize decision files.
-- Do not accept, reject, defer, decide, merge, finalize, or cleanup without explicit owner instruction.
+- Do not accept, reject, defer, or decide without explicit owner instruction.
 - Do not recommend proposal acceptance before checking readiness.
-- Do not run raw Git commands for managed branch, sync, publish, or merge work unless the owner explicitly authorizes an escape hatch.
 - Use compact context before broad file reads.
 
 ## Persistent Write Boundary
@@ -207,8 +206,7 @@ matching revocation. Supersession, split and merge require typed lineage.
 
 Decision apply never rewrites dependent Change Sets, Work, specs, vertical
 evidence, code or publication state. Report impact and use generated
-remediation actions. Managed branch accept/reject commands are separate Git
-lifecycle operations and never create proposal decision events.
+remediation actions.
 
 With MCP, use `p2p_proposal_decision_preview` and token-bound
 `p2p_proposal_decision_apply`. Consent operation is
@@ -459,5 +457,3 @@ validation truth, permissions, consent, or factual claims.
 
 Do not edit `.p2p` files directly, reverse-engineer managed paths, or copy
 temporary files into managed P2P memory as a workaround for changing style.
-
-Repository mode: `local`.

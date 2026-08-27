@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
-import json
 from pathlib import Path
 from typing import Any
 
 import typer
 import yaml
+
+from p2p_engine.cli_contract import print_json
 
 
 def to_plain(value: Any) -> Any:
@@ -27,7 +28,7 @@ def emit_structured(value: Any, output_format: str) -> bool:
         return False
     payload = to_plain(value)
     if normalized == "json":
-        print(json.dumps(payload, indent=2, sort_keys=False))
+        print_json(payload)
         return True
     if normalized == "yaml":
         print(yaml.safe_dump(payload, sort_keys=False, allow_unicode=False).rstrip())

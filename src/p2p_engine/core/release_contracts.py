@@ -67,7 +67,6 @@ from p2p_engine.core.workspace_schema import (
     WORKSPACE_SCHEMA_POLICY_VERSION,
 )
 
-
 RELEASE_CONTRACT_INVENTORY_VERSION = "p2p-release-contracts/v1"
 
 

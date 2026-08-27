@@ -514,8 +514,6 @@ def _validate_init_result(result: Mapping[str, object]) -> None:
         "created_file_paths",
         "agent_selection",
         "agent_instructions",
-        "repository",
-        "remote",
         "vertical",
         "warnings",
         "mcp_hint",
@@ -534,8 +532,6 @@ def _validate_init_result(result: Mapping[str, object]) -> None:
         "authority",
         "agent_selection",
         "agent_instructions",
-        "repository",
-        "remote",
         "vertical",
         "mcp_hint",
         "structure_source",
@@ -1583,12 +1579,6 @@ def _public_result(result: Mapping[str, object]) -> dict[str, object]:
             "agent_instructions": dict(result.get("agent_instructions", {}))
             if isinstance(result.get("agent_instructions"), Mapping)
             else {},
-            "repository": dict(result.get("repository", {}))
-            if isinstance(result.get("repository"), Mapping)
-            else {},
-            "remote": dict(result.get("remote", {}))
-            if isinstance(result.get("remote"), Mapping)
-            else {},
             "vertical": dict(result.get("vertical", {}))
             if isinstance(result.get("vertical"), Mapping)
             else {},
@@ -1855,7 +1845,6 @@ def _is_init_postcondition_path(value: str) -> bool:
         in {
             ".cursor/rules/p2p.mdc",
             ".github/copilot-instructions.md",
-            ".gitignore",
             "AGENTS.md",
             "CLAUDE.md",
             "GEMINI.md",

@@ -24,7 +24,6 @@ Scriptable setup:
 
 ```bash
 p2p init "My Project" \
-  --repository local \
   --domain software \
   --vertical binarya/software_project@2.0.0 \
   --mcp-hint
@@ -38,7 +37,7 @@ detected adapter is only a bootstrap hint, not a persisted project identity.
 To narrow the generated adapters explicitly, repeat `--agent`:
 
 ```bash
-p2p init "My Project" --agent codex --agent claude --repository local
+p2p init "My Project" --agent codex --agent claude
 ```
 
 `generic` is always included.
@@ -54,9 +53,8 @@ p2p_engine.mcp.server --root /path/to/project`; the shorter
 `p2p-mcp-server --root /path/to/project` form remains a PATH-based fallback.
 `--root` means the governed P2P decision root.
 
-Init also applies append-only `.gitignore` hygiene for common local artifacts
-and reports whether the repository hygiene section was applied, already
-covered, or warning-only.
+Initialization is source-control neutral: it creates neither `.git` nor
+`.gitignore` and does not inspect repository status.
 
 `--domain` records an optional free subject classification. It never chooses
 sections, criteria, questions or readiness requirements. Initialization resolves one
@@ -1340,27 +1338,18 @@ speckit/
 
 ## 12. Manage Work Metadata
 
-Work commands manage handoff and branch lifecycle metadata for P2P-managed work.
+Work commands manage logical planning and handoff metadata for P2P-managed work.
 
 ```bash
 p2p work plan --change CHANGE-001 --target speckit
+p2p work list
 p2p work status
 p2p work show WORK-001
+p2p work retire WORK-001 --actor owner
 ```
 
-Branch and review commands can touch Git state. Use them only when the local
-repository policy is clear:
-
-```bash
-p2p work branch WORK-001
-p2p work submit WORK-001
-p2p work review WORK-001
-p2p work publish WORK-001
-p2p work request-review WORK-001
-p2p work accept WORK-001
-p2p work finalize WORK-001
-p2p work cleanup WORK-001
-```
+Branches, commits, review, merge and publication are external delivery-system
+concerns and are not inferred from Work status.
 
 ## 13. Assess And Validate
 

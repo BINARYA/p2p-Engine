@@ -118,7 +118,7 @@ class RuntimeContractService:
         self.atomic_writer = atomic_writer or AtomicMutationWriter(
             root=root,
             p2p_dir=p2p_dir,
-            allowed_repository_targets=("P2P-SETUP.md",),
+            allowed_project_targets=("P2P-SETUP.md",),
         )
 
     @property

@@ -313,8 +313,6 @@ def handle_proposal_tool(
             arguments,
             event_type=ProposalDecisionEventType.deferred,
         )
-    if name == "p2p_proposal_branch_scan":
-        return {"proposal_branch_scan": to_jsonable(workspace.scan_proposal_branches())}
     return None
 
 

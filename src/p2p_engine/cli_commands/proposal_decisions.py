@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import re
 from pathlib import Path
 from typing import Callable, Mapping
@@ -8,6 +7,7 @@ from typing import Callable, Mapping
 import typer
 import yaml
 
+from p2p_engine.cli_contract import print_json
 from p2p_engine.cli_shared import console
 from p2p_engine.cli_shared import workspace as workspace_for
 from p2p_engine.core.decision import DecisionOutcome
@@ -631,7 +631,7 @@ def _emit_payload(
 ) -> None:
     normalized = output_format.strip().lower()
     if normalized == "json":
-        print(json.dumps(payload, indent=2, sort_keys=True))
+        print_json(payload)
         return
     if normalized != "text":
         raise typer.BadParameter("Output format must be text or json.")
@@ -700,7 +700,7 @@ def _emit_error(
         "recovery": definition.recovery if definition is not None else "",
     }
     if output_format.strip().lower() == "json":
-        print(json.dumps(payload, indent=2, sort_keys=True))
+        print_json(payload)
     else:
         console.print(f"[red]Error:[/red] {message}")
     raise typer.Exit(code=1)

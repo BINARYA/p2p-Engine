@@ -51,7 +51,7 @@ of disappearing into chats, issues, or ad hoc notes.
 ```bash
 mkdir /tmp/p2p-demo
 cd /tmp/p2p-demo
-p2p init "P2P Demo" --agent codex --repository local --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
+p2p init "P2P Demo" --agent codex --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
 ```
 
 Expected shape:
@@ -257,6 +257,6 @@ chain:
 rough idea -> proposal -> owner decision -> Change Set -> registries -> agent context
 ```
 
-That chain is what P2P Engine preserves in Git. A new agent can start from
+That chain is what P2P Engine preserves in structured project state. A new agent can start from
 `p2p context --budget small`, see the accepted direction and Change Set, and
 avoid rediscovering the same decision from scratch.

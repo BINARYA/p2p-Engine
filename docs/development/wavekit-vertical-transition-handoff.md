@@ -2,8 +2,9 @@
 
 ## Purpose
 
-P2P Engine 0.4.8 replaces the generic vertical lifecycle `impact` object with
-the versioned `p2p-vertical-transition-impact/v1` contract. This note defines
+P2P Engine 0.5.0 retains the vertical lifecycle `impact` object introduced in
+0.4.8 and binds it to the current receipt and release contracts through the
+versioned `p2p-vertical-transition-impact/v1` contract. This note defines
 the evidence WaveKit can use to close task `7.8` without interpreting P2P
 workspace files or reproducing transition rules outside P2P Engine.
 
@@ -21,13 +22,18 @@ tests/fixtures/vertical_transition/manifest-v1.json
 
 The manifest binds:
 
-- P2P Engine `0.4.8`;
+- P2P Engine `0.5.0`;
 - global CLI contract `p2p-cli/v1`;
 - impact contract `p2p-vertical-transition-impact/v1`;
 - plan contract `p2p-vertical-transition-plan/v1`;
-- mutation receipt schema `2`;
+- mutation receipt schema `3`;
 - exact per-collection and total-impact limits;
 - the SHA-256 checksum of every handoff fixture.
+
+Regenerate the current members and manifest deterministically with
+`scripts/generate-wavekit-transition-fixtures.py`; use `--check` in validation.
+`legacy-0.4.7-characterization.json` is historical input only and is never
+indexed as a current 0.5.0 output.
 
 The fixtures cover populated adoption, migration requiring owner decisions, a
 complete canonical plan and the resulting apply response. They contain domain

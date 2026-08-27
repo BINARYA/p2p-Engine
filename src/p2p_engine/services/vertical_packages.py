@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import hashlib
 import json
-from pathlib import Path, PurePosixPath
 import stat
 import tempfile
 import zipfile
+from pathlib import Path, PurePosixPath
 
 import yaml
 
@@ -22,9 +22,8 @@ from p2p_engine.core.portable_verticals import (
 )
 from p2p_engine.core.project_verticals import VerticalPack, VerticalValidationIssue
 from p2p_engine.foundation.files import write_yaml_atomic, yaml_dump
-from p2p_engine.foundation.yaml_loaders import load_yaml
+from p2p_engine.foundation.yaml_loaders import UNIQUE_LOADER_CONTRACT, load_yaml
 from p2p_engine.services.project_verticals import ProjectVerticalService
-
 
 _ROOT_FILES = {"manifest.yml", "vertical.yml", "rubrics.yml"}
 _CONTENT_DIRS = {"sections", "profiles", "modules", "artifacts", "examples"}
@@ -356,9 +355,11 @@ class PortableVerticalPackageService:
         suffix = PurePosixPath(name).suffix.lower()
         if suffix in {".yml", ".yaml"}:
             try:
-                payload = load_yaml(content)
+                payload = load_yaml(content, loader_contract=UNIQUE_LOADER_CONTRACT)
             except (ValueError, yaml.YAMLError) as exc:
-                raise ValueError(f"P2P_VERTICAL_INVALID_PACK: invalid YAML entry `{name}`") from exc
+                raise ValueError(
+                    f"P2P_VERTICAL_INVALID_PACK: invalid YAML entry `{name}`: {exc}"
+                ) from exc
             if not isinstance(payload, (dict, list)):
                 raise ValueError(f"P2P_VERTICAL_INVALID_PACK: YAML entry must contain structured data `{name}`")
             return yaml_dump(payload).encode("utf-8")

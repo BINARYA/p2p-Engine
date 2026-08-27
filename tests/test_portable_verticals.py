@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from pathlib import Path
 import shutil
 import zipfile
+from pathlib import Path
 
 import pytest
 import yaml
@@ -13,7 +13,6 @@ from p2p_engine.services.vertical_lifecycle import VerticalLifecycleService
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 from p2p_engine.storage.filesystem import P2PWorkspace
 from tests.cli_assertions import cli_data, cli_envelope, cli_error
-
 
 runner = CliRunner()
 
@@ -71,6 +70,80 @@ def _workspace_file_snapshot(root: Path) -> dict[str, bytes]:
         for path in root.rglob("*")
         if path.is_file()
     }
+
+
+@pytest.mark.parametrize(
+    ("member", "duplicate_text"),
+    [
+        ("manifest.yml", "manifest:\n  schema_version: 3\n  schema_version: 3\n"),
+        ("rubrics.yml", "rubrics: []\nrubrics: []\n"),
+        ("sections/custom_overview.yml", "section:\n  id: one\n  id: two\n"),
+        (
+            "vertical.yml",
+            "vertical:\n  schema_version: 3\n  metadata:\n    label: one\n    label: two\n",
+        ),
+    ],
+)
+def test_portable_vertical_directory_rejects_duplicate_yaml_keys_before_output(
+    tmp_path: Path,
+    member: str,
+    duplicate_text: str,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    source = tmp_path / "duplicate-pack"
+    workspace.scaffold_portable_vertical(
+        source,
+        publisher="test",
+        vertical_id="duplicate_pack",
+        version="1.0.0",
+        name="Duplicate Pack",
+        license_id="MIT",
+    )
+    target = source / member
+    target.write_text(duplicate_text, encoding="utf-8")
+    before = target.read_bytes()
+    output = tmp_path / "duplicate.p2pv"
+
+    with pytest.raises(
+        ValueError,
+        match=r"P2P_VERTICAL_INVALID_PACK: invalid YAML entry .*Duplicate YAML key",
+    ):
+        workspace.package_portable_vertical(source, output=output)
+
+    assert target.read_bytes() == before
+    assert not output.exists()
+
+
+def test_portable_vertical_archive_rejects_duplicate_yaml_keys(
+    tmp_path: Path,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    source = tmp_path / "archive-source"
+    workspace.scaffold_portable_vertical(
+        source,
+        publisher="test",
+        vertical_id="archive_duplicate",
+        version="1.0.0",
+        name="Archive Duplicate",
+        license_id="MIT",
+    )
+    archive = tmp_path / "duplicate-archive.p2pv"
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_STORED) as handle:
+        for path in sorted(source.rglob("*")):
+            if path.is_file():
+                relative = path.relative_to(source).as_posix()
+                content = path.read_bytes()
+                if relative == "rubrics.yml":
+                    content = b"rubrics: []\nrubrics: []\n"
+                handle.writestr(relative, content)
+    before = archive.read_bytes()
+
+    validation = workspace.validate_portable_vertical(archive)
+
+    assert validation.valid is False
+    assert validation.issues[0].code == "P2P_VERTICAL_INVALID_PACK"
+    assert "rubrics.yml" in validation.issues[0].message
+    assert archive.read_bytes() == before
 
 
 def _transition_plan(

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import typer
 
+from p2p_engine.cli_contract import print_json
 from p2p_engine.cli_shared import console, fail
 from p2p_engine.cli_shared import workspace as workspace_for
 from p2p_engine.core.workspace_schema import LAYOUT_CURRENT
@@ -27,7 +27,7 @@ def register_workspace_schema_commands(schema_app: typer.Typer) -> None:
             fail(str(exc))
         payload = status.to_dict()
         if output_format == "json":
-            console.out(json.dumps(payload, indent=2), highlight=False)
+            print_json(payload)
         elif output_format == "text":
             console.print("Workspace schema")
             for key in (

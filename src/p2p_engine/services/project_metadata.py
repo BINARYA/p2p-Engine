@@ -141,7 +141,7 @@ class ProjectMetadataService:
         unknown = set(patch.values) - set(PROJECT_METADATA_ALLOWED_FIELDS)
         if unknown:
             raise ValueError(f"Unsupported project metadata fields: {', '.join(sorted(unknown))}")
-        for protected in ("runtime_contract", "remote", "repository", "storage", "git", "ai"):
+        for protected in ("runtime_contract", "storage", "ai"):
             if current.get(protected) != candidate.get(protected):
                 raise ValueError(f"Project metadata patch cannot change protected `{protected}` configuration.")
         current_project = current.get("project")

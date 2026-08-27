@@ -310,7 +310,7 @@ def test_runtime_contract_update_rolls_back_when_first_target_write_fails(tmp_pa
     writer = AtomicMutationWriter(
         root=tmp_path,
         p2p_dir=tmp_path / ".p2p",
-        allowed_repository_targets=("P2P-SETUP.md",),
+        allowed_project_targets=("P2P-SETUP.md",),
         failure_injector=fail,
     )
     service = RuntimeContractService(
@@ -350,7 +350,7 @@ def test_runtime_contract_update_rolls_back_all_targets_after_later_failure(tmp_
     writer = AtomicMutationWriter(
         root=tmp_path,
         p2p_dir=tmp_path / ".p2p",
-        allowed_repository_targets=("P2P-SETUP.md",),
+        allowed_project_targets=("P2P-SETUP.md",),
         failure_injector=fail,
     )
     service = RuntimeContractService(

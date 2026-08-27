@@ -1,11 +1,17 @@
 # Security Policy
 
-P2P Engine is currently alpha software installed from source.
+P2P Engine is currently alpha software. Supported releases are distributed as
+versioned wheels attached to GitHub Releases; source checkouts are for
+development and review.
 
 ## Supported Versions
 
 Only the default branch is actively considered for security fixes during this
 early stage.
+
+Before installation, verify the wheel against the release's `SHA256SUMS` file.
+Checksums establish artifact integrity, not publisher identity or provenance;
+the release notes state the provenance policy for that release.
 
 ## Reporting A Vulnerability
 

@@ -34,15 +34,11 @@ def test_project_initialization_service_creates_default_workspace(tmp_path: Path
 
     project = _load_yaml(tmp_path / ".p2p" / "project.yml")
     project_data = project["project"]
-    repository = project["repository"]
-    remote = project["remote"]
     assert isinstance(project_data, dict)
-    assert isinstance(repository, dict)
-    assert isinstance(remote, dict)
     assert project_data["id"] == "demo-project"
     assert "domain" not in project_data
-    assert repository["mode"] == "local"
-    assert remote["mode"] == "local"
+    assert "repository" not in project
+    assert "remote" not in project
     assert project["runtime_contract"] == {"required": True}
     runtime = _load_yaml(tmp_path / ".p2p" / "project" / "runtime.yml")
     p2p_runtime = runtime["runtime"]["p2p"]
@@ -98,27 +94,27 @@ def test_project_initialization_compat_facade_still_returns_created_paths(
     assert Path(".agents/skills/p2p-project/SKILL.md") in created
 
 
-def test_project_initialization_summary_includes_mcp_hint_and_gitignore_hygiene(tmp_path: Path) -> None:
+def test_project_initialization_summary_includes_mcp_hint_without_gitignore(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
 
     result = workspace.init_project_with_summary("Root Hygiene Project", agent_profile="generic")
 
     assert result.mcp_hint.server_name == "p2p-root-hygiene-project"
     assert result.mcp_hint.server_command[-2:] == ["--root", str(tmp_path)]
-    assert result.gitignore_hygiene.status == "applied"
-    assert Path(".gitignore") in result.created
-    assert (tmp_path / ".gitignore").exists()
+    assert not hasattr(result, "gitignore_hygiene")
+    assert Path(".gitignore") not in result.created
+    assert not (tmp_path / ".gitignore").exists()
 
 
-def test_project_initialization_compat_facade_includes_gitignore_path_once(tmp_path: Path) -> None:
+def test_project_initialization_compat_facade_remains_idempotent_without_gitignore(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
 
     created = workspace.init_project("Compat Hygiene Project", agent_profile="generic")
     second_created = workspace.init_project("Compat Hygiene Project", agent_profile="generic")
 
     assert isinstance(created, list)
-    assert Path(".gitignore") in created
-    assert created.count(Path(".gitignore")) == 1
+    assert Path(".gitignore") not in created
+    assert not (tmp_path / ".gitignore").exists()
     assert second_created == []
 
 
@@ -183,31 +179,20 @@ def test_project_initialization_service_accepts_unknown_domain_without_next_acti
     assert not (tmp_path / ".p2p" / "project" / "next-actions.yml").exists()
 
 
-def test_project_initialization_service_owner_and_cloud_remote_payload(tmp_path: Path) -> None:
+def test_project_initialization_service_persists_owner_without_repository_payload(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
 
     workspace._project_initialization_service().init_project(
-        "Remote Project",
-        repository_mode="cloud",
+        "Owned Project",
         owner="Davide",
-        remote_provider="github",
-        remote_name="upstream",
-        remote_url_value="https://example.test/org/repo.git",
     )
 
     project = _load_yaml(tmp_path / ".p2p" / "project.yml")
     permissions = _load_yaml(tmp_path / ".p2p" / "project" / "permissions.yml")
-    remote = project["remote"]
-    repository = project["repository"]
     identities = permissions["identities"]
-    assert isinstance(remote, dict)
-    assert isinstance(repository, dict)
     assert isinstance(identities, dict)
-    assert repository["mode"] == "cloud"
-    assert remote["mode"] == "remote"
-    assert remote["provider"] == "github"
-    assert remote["remote"] == "upstream"
-    assert remote["url"] == "https://example.test/org/repo.git"
+    assert "repository" not in project
+    assert "remote" not in project
     assert identities["davide"]["display_name"] == "Davide"
     assert identities["davide"]["role"] == "owner"
 

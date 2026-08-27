@@ -389,7 +389,7 @@ def test_serialized_question_artifact_has_one_registered_root(tmp_path: Path) ->
 def _persist_question_fixture(tmp_path: Path) -> tuple[ProjectQuestionStateService, str]:
     p2p_dir = tmp_path / ".p2p"
     permissions = PermissionsService(root=tmp_path, p2p_dir=p2p_dir)
-    permissions.write_policy(permissions.default_policy_payload(owner_name="Mr Jungle", repository_mode="local"))
+    permissions.write_policy(permissions.default_policy_payload(owner_name="Mr Jungle"))
     service = ProjectQuestionStateService(
         root=tmp_path,
         p2p_dir=p2p_dir,
@@ -533,7 +533,7 @@ def test_lifecycle_requires_reason_and_terminal_states_do_not_transition(tmp_pat
 def test_only_versioned_declared_deferred_trigger_reopens_deterministically(tmp_path: Path) -> None:
     p2p_dir = tmp_path / ".p2p"
     permissions = PermissionsService(root=tmp_path, p2p_dir=p2p_dir)
-    permissions.write_policy(permissions.default_policy_payload(owner_name="owner", repository_mode="local"))
+    permissions.write_policy(permissions.default_policy_payload(owner_name="owner"))
     service = ProjectQuestionStateService(
         root=tmp_path,
         p2p_dir=p2p_dir,

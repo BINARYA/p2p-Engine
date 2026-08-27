@@ -424,6 +424,7 @@ def test_wavekit_handoff_fixture_manifest_is_current_bounded_and_path_free() -> 
     assert manifest["engine_version"] == __version__
     assert manifest["impact_contract_version"] == "p2p-vertical-transition-impact/v1"
     assert manifest["plan_contract_version"] == "p2p-vertical-transition-plan/v1"
+    assert manifest["receipt_schema_version"] == 3
     assert manifest["limits"] == {
         "collection_items": 128,
         "transition_material_items": 512,

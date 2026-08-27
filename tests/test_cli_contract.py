@@ -23,7 +23,6 @@ from p2p_engine.core.portable_verticals import (
 from p2p_engine.core.release_contracts import current_contract_versions
 from p2p_engine.core.workspace_schema import CURRENT_WORKSPACE_SCHEMA_VERSION
 
-
 runner = CliRunner()
 
 EXPECTED_JSON_OPERATIONS = frozenset(
@@ -316,3 +315,79 @@ def test_version_text_reports_distinct_contracts() -> None:
     assert f"portable package format: {PORTABLE_VERTICAL_PACKAGE_VERSION}" in result.stdout
     assert "vertical registry protocol version: p2p-vertical-registry/v2" in result.stdout
     assert "authority context schema: p2p-authority-context/v1" in result.stdout
+
+
+@pytest.mark.cli
+@pytest.mark.parametrize(
+    ("state", "runtime_text"),
+    [
+        ("missing_contract", None),
+        ("invalid_contract", "runtime_contract: [\n"),
+        (
+            "unsupported_contract",
+            "runtime_contract:\n  schema_version: 999\nruntime:\n  p2p:\n    requires: '>=0'\n    recommended: 0.5.0\n",
+        ),
+        (
+            "incompatible",
+            "runtime_contract:\n  schema_version: 1\nruntime:\n  p2p:\n    requires: '<0.5.0'\n    recommended: 0.4.11\n",
+        ),
+    ],
+)
+@pytest.mark.parametrize("terminal_width", [40, 120])
+def test_runtime_status_diagnostics_are_raw_json_at_any_width(
+    tmp_path: Path,
+    state: str,
+    runtime_text: str | None,
+    terminal_width: int,
+) -> None:
+    initialized = runner.invoke(app, ["init", "Runtime JSON", "--root", str(tmp_path)])
+    assert initialized.exit_code == 0
+    runtime_path = tmp_path / ".p2p" / "project" / "runtime.yml"
+    if runtime_text is None:
+        runtime_path.unlink()
+    else:
+        runtime_path.write_text(runtime_text, encoding="utf-8")
+
+    result = runner.invoke(
+        app,
+        ["runtime", "status", "--format", "json", "--root", str(tmp_path)],
+        terminal_width=terminal_width,
+        color=True,
+    )
+
+    assert result.exit_code == 0
+    assert "\x1b[" not in result.stdout
+    payload = json.loads(result.stdout)
+    assert payload["contract_version"] == CLI_CONTRACT_VERSION
+    assert payload["ok"] is True
+    assert payload["operation"] == "runtime.status"
+    assert payload["data"]["state"] == state
+
+
+@pytest.mark.cli
+@pytest.mark.parametrize("terminal_width", [40, 120])
+def test_validate_failure_preserves_structured_result_at_any_width(
+    tmp_path: Path,
+    terminal_width: int,
+) -> None:
+    initialized = runner.invoke(app, ["init", "Validation JSON", "--root", str(tmp_path)])
+    assert initialized.exit_code == 0
+    (tmp_path / ".p2p" / "project" / "runtime.yml").unlink()
+
+    result = runner.invoke(
+        app,
+        ["validate", "--format", "json", "--root", str(tmp_path)],
+        terminal_width=terminal_width,
+        color=True,
+    )
+
+    assert result.exit_code == 2
+    assert "\x1b[" not in result.stdout
+    payload = json.loads(result.stdout)
+    assert payload["ok"] is False
+    assert payload["operation"] == "validate"
+    assert payload["error"]["code"] == "P2P266_RUNTIME_CONTRACT_MISSING"
+    validation = payload["error"]["details"]["result"]
+    assert validation["errors"] >= 1
+    assert isinstance(validation["findings"], list)
+    assert validation["findings"][0]["code"]

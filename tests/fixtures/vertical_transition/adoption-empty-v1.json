@@ -41,23 +41,68 @@
           "profile": "default",
           "modules": []
         },
-        "dependency_additions": {"total": 0, "returned": 0, "truncated": false, "items": []},
-        "dependency_removals": {"total": 0, "returned": 0, "truncated": false, "items": []}
+        "dependency_additions": {
+          "total": 0,
+          "returned": 0,
+          "truncated": false,
+          "items": []
+        },
+        "dependency_removals": {
+          "total": 0,
+          "returned": 0,
+          "truncated": false,
+          "items": []
+        }
       },
       "artifacts": {
         "total": 5,
         "returned": 5,
         "truncated": false,
         "items": [
-          {"kind": "definition", "disposition": "create", "before_semantic_sha256": null, "candidate_semantic_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"},
-          {"kind": "lock", "disposition": "create", "before_semantic_sha256": null, "candidate_semantic_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"},
-          {"kind": "questions", "disposition": "update", "before_semantic_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "candidate_semantic_sha256": "1111111111111111111111111111111111111111111111111111111111111111"},
-          {"kind": "rubrics", "disposition": "update", "before_semantic_sha256": "2222222222222222222222222222222222222222222222222222222222222222", "candidate_semantic_sha256": "3333333333333333333333333333333333333333333333333333333333333333"},
-          {"kind": "vertical", "disposition": "create", "before_semantic_sha256": null, "candidate_semantic_sha256": "4444444444444444444444444444444444444444444444444444444444444444"}
+          {
+            "kind": "definition",
+            "disposition": "create",
+            "before_semantic_sha256": null,
+            "candidate_semantic_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "kind": "lock",
+            "disposition": "create",
+            "before_semantic_sha256": null,
+            "candidate_semantic_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "kind": "questions",
+            "disposition": "update",
+            "before_semantic_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "candidate_semantic_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "kind": "rubrics",
+            "disposition": "update",
+            "before_semantic_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "candidate_semantic_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          {
+            "kind": "vertical",
+            "disposition": "create",
+            "before_semantic_sha256": null,
+            "candidate_semantic_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
         ]
       },
-      "blockers": {"total": 0, "returned": 0, "truncated": false, "items": []},
-      "warnings": {"total": 0, "returned": 0, "truncated": false, "items": []}
+      "blockers": {
+        "total": 0,
+        "returned": 0,
+        "truncated": false,
+        "items": []
+      },
+      "warnings": {
+        "total": 0,
+        "returned": 0,
+        "truncated": false,
+        "items": []
+      }
     },
     "blockers": [],
     "preview": {

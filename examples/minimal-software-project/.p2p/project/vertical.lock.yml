@@ -7,15 +7,18 @@ project_vertical_lock:
   source:
     type: internal
     resolved_from: p2p_engine.resources.verticals/software_project
-    path: /home/davide/dati/60_lavoro/064_wavek/wavekit_20260719/p2p-engine/src/p2p_engine/resources/verticals/software_project/manifest.yml
+    path: ''
     package: p2p_engine
   checksum:
     algorithm: sha256
     value: 2dabdbb9254785f4122165f6ea37a281e92214d4014253028e2861d01f0a866d
   compatibility: {}
   selected:
-    at: '2026-08-25'
+    at: '2026-08-27'
     by: owner
   trust:
     signed: false
   coordinate: binarya/software_project@2.0.0
+  artifact_checksum:
+    algorithm: sha256
+    value: 252f4615a967bcb3193291eaabcd9aab78649b9d09778c28be18633dcc96d860

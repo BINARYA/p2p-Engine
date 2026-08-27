@@ -26,7 +26,7 @@ Public-contract validation is for externally observed behavior:
 ```
 
 Run it when a change can affect CLI output, MCP payloads, persisted contracts,
-validation findings, Git/sync behavior, generated artifacts, or compatibility
+validation findings, filesystem behavior, generated artifacts, or compatibility
 facades.
 
 Smoke validation is a small broad-confidence check:
@@ -78,12 +78,11 @@ coverage artifact. It also does not assess user project evidence coverage.
 
 - `unit`: pure or near-pure behavior with no public CLI/MCP boundary.
 - `service`: domain or application service behavior.
-- `adapter`: filesystem, serialization, Git adapter, or integration adapter
+- `adapter`: filesystem, serialization, or integration adapter
   behavior.
 - `cli`: observable CLI command behavior, output, exit behavior, or side effects.
 - `mcp`: observable MCP tool schema, payload, error, or permission behavior.
 - `integration`: workflow crossing multiple application boundaries.
-- `git`: Git, sync, branch, remote, or repository-collaboration behavior.
 - `slow`: materially broader or slower than normal focused feedback.
 - `smoke`: minimal broad confidence checks.
 
@@ -97,7 +96,6 @@ test file.
 .venv/bin/pytest -m "service and not slow"
 .venv/bin/pytest -m "unit or adapter"
 .venv/bin/pytest -m "cli or mcp"
-.venv/bin/pytest -m "git"
 .venv/bin/pytest -m "smoke"
 ```
 
@@ -113,6 +111,6 @@ The short version:
 - add MCP tests when tool schemas, payloads, permissions, or errors change;
 - do not duplicate the same scenario across layers unless each layer has a
   separate contract;
-- mark broad, Git-backed, integration, or slow tests explicitly;
+- mark broad, integration, or slow tests explicitly;
 - report focused, public-contract, and full-suite validation in implementation
   summaries when relevant.

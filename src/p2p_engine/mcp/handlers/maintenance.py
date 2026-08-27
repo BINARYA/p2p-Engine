@@ -21,7 +21,6 @@ def handle_maintenance_tool(
         result = workspace.init_project_with_summary(
             name=required(arguments, "name"),
             agent_profile=str(arguments["agent"]) if arguments.get("agent") else None,
-            repository_mode=str(arguments.get("repository") or "local"),
             project_domain=optional_string(arguments, "domain"),
             project_domain_name=str(arguments.get("domain_name") or ""),
             project_domain_source=str(arguments.get("domain_source") or "local"),
@@ -36,17 +35,14 @@ def handle_maintenance_tool(
             "created_or_updated": result.created,
             "agent_selection": to_jsonable(result.agent_selection),
             "mcp_hint": to_jsonable(result.mcp_hint),
-            "gitignore_hygiene": to_jsonable(result.gitignore_hygiene),
             "project_domain": to_jsonable(result.domain),
             "structure_source": result.structure_source.to_dict(),
             "structure_origin": dict(result.structure_origin),
             "structure_revision": result.structure_revision,
         }
     if name == "p2p_agent_instructions_refresh":
-        repository = arguments.get("repository")
         result = workspace.refresh_agent_instructions(
             profile=str(arguments.get("profile") or "generic"),
-            repository_mode=str(repository) if repository is not None else None,
         )
         return {"agent_instructions": to_jsonable(result)}
     if name == "p2p_agent_install":

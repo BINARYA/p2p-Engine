@@ -21,13 +21,33 @@
         "total": 4,
         "returned": 4,
         "truncated": false,
-        "items": ["manifest", "rubrics", "sections", "vertical"]
+        "items": [
+          "manifest",
+          "rubrics",
+          "sections",
+          "vertical"
+        ]
       },
-      "dependency_closure": {"total": 0, "returned": 0, "truncated": false, "items": []},
+      "dependency_closure": {
+        "total": 0,
+        "returned": 0,
+        "truncated": false,
+        "items": []
+      },
       "disposition": "install",
       "conflict": false,
-      "blockers": {"total": 0, "returned": 0, "truncated": false, "items": []},
-      "warnings": {"total": 0, "returned": 0, "truncated": false, "items": []}
+      "blockers": {
+        "total": 0,
+        "returned": 0,
+        "truncated": false,
+        "items": []
+      },
+      "warnings": {
+        "total": 0,
+        "returned": 0,
+        "truncated": false,
+        "items": []
+      }
     },
     "blockers": [],
     "preview": {

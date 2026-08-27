@@ -144,8 +144,7 @@ matching revocation. Supersession, split and merge require typed lineage.
 
 Decision apply never rewrites dependent Change Sets, Work, specs, vertical
 evidence, code or publication state. Report impact and use generated
-remediation actions. Managed branch accept/reject commands are separate Git
-lifecycle operations and never create proposal decision events.
+remediation actions.
 
 With MCP, use `p2p_proposal_decision_preview` and token-bound
 `p2p_proposal_decision_apply`. Consent operation is
@@ -611,15 +610,13 @@ def agent_adapter_capabilities(adapter_id: str) -> dict[str, object]:
 def agent_instruction_files(
     project_name: str,
     profiles: list[str],
-    repository_mode: str,
     interaction_style: Any = None,
 ) -> dict[Path, str]:
     profiles = sorted(set(profiles))
-    files = {Path("AGENTS.md"): agents_markdown(project_name, profiles, repository_mode, interaction_style)}
+    files = {Path("AGENTS.md"): agents_markdown(project_name, profiles, interaction_style)}
     if "codex" in profiles:
         files[Path(".agents/skills/p2p-project/SKILL.md")] = shared_p2p_project_skill(
             project_name,
-            repository_mode,
             interaction_style,
         )
         files[Path(".agents/skills/p2p-project-curator/SKILL.md")] = project_curator_skill(
@@ -632,17 +629,16 @@ def agent_instruction_files(
                 f"codex-p2p-project-curator-{relative.stem}-v3",
             )
     if "claude" in profiles:
-        files[Path("CLAUDE.md")] = claude_markdown(project_name, repository_mode, interaction_style)
+        files[Path("CLAUDE.md")] = claude_markdown(project_name, interaction_style)
     if "cursor" in profiles:
-        files[Path(".cursor/rules/p2p.mdc")] = cursor_rule(project_name, repository_mode, interaction_style)
+        files[Path(".cursor/rules/p2p.mdc")] = cursor_rule(project_name, interaction_style)
     if "copilot" in profiles:
         files[Path(".github/copilot-instructions.md")] = copilot_instructions(
             project_name,
-            repository_mode,
             interaction_style,
         )
     if "gemini" in profiles:
-        files[Path("GEMINI.md")] = gemini_markdown(project_name, repository_mode, interaction_style)
+        files[Path("GEMINI.md")] = gemini_markdown(project_name, interaction_style)
     return files
 
 
@@ -650,7 +646,6 @@ def agent_adapter_files(
     project_name: str,
     adapter_id: str,
     profiles: list[str],
-    repository_mode: str,
 ) -> list[tuple[Path, str, bool, str]]:
     files: list[tuple[Path, str, bool, str]] = []
     if adapter_id == "generic":
@@ -696,7 +691,6 @@ def agent_adapter_files(
 def agent_policy(
     project_name: str,
     profiles: list[str],
-    repository_mode: str,
     interaction_style: Any = None,
 ) -> dict[str, object]:
     return {
@@ -707,10 +701,6 @@ def agent_policy(
             "missing_primitive_behavior": "stop_and_report",
             "direct_p2p_file_edits": "forbidden",
             "owner_controls_governance": True,
-        },
-        "repository": {
-            "mode": repository_mode,
-            "cloud_is_advisory_until_configured": repository_mode == "cloud",
         },
         "agent_profiles": profiles,
         "agent_capabilities": capability_catalog_payload(),
@@ -812,17 +802,6 @@ def agent_policy(
             "proposal_replace",
             "proposal_reinstate",
             "choice_decide",
-            "work_accept",
-            "work_finalize",
-            "work_cleanup",
-            "proposal_branch_accept",
-            "proposal_branch_reject",
-            "proposal_branch_merge",
-            "proposal_branch_finalize",
-            "proposal_branch_remote_publish",
-            "direct_git_merge",
-            "raw_git_managed_branch",
-            "raw_git_managed_sync",
         ],
         "write_policy": write_policy_payload(),
         "placement_policy": placement_policy_payload(),
@@ -892,7 +871,6 @@ def agent_policy(
             "reject_means_never_active": True,
             "revoke_preserves_accepted_history": True,
             "dependent_lifecycle_mutation": "forbidden",
-            "branch_decisions_are_separate": True,
             "manual_ledger_or_projection_repair": "forbidden",
             "mcp": {
                 "preview": "p2p_proposal_decision_preview",
@@ -971,58 +949,6 @@ def agent_policy(
         },
         "software_spec_lifecycle": software_spec_lifecycle_policy_payload(),
         "interaction_style": _interaction_style_policy(interaction_style),
-        "managed_git_collaboration": {
-            "raw_git_for_managed_state": "forbidden_without_owner_escape_hatch",
-            "inspect_before_branching": [
-                "p2p status",
-                "p2p sync status",
-            ],
-            "proposal_branch_commands": [
-                "p2p proposal branch PROP-XXX --actor <actor>",
-                "p2p proposal status PROP-XXX",
-                "p2p proposal publish PROP-XXX",
-                "p2p proposal publish PROP-XXX --auto-renumber",
-                "p2p proposal request-review PROP-XXX",
-                "p2p proposal scan",
-                "p2p proposal retire-branch PROP-XXX --reason <reason>",
-            ],
-            "sync_commands": [
-                "p2p sync status",
-                "p2p sync fetch",
-                "p2p sync pull",
-                "p2p sync push",
-            ],
-            "mcp_tools": [
-                "p2p_project_remote_configure",
-                "p2p_consent_request",
-                "p2p_sync_status",
-                "p2p_sync_fetch",
-                "p2p_sync_pull",
-                "p2p_sync_push",
-                "p2p_proposal_draft_commit",
-                "p2p_proposal_branch",
-                "p2p_proposal_branch_status",
-                "p2p_proposal_publish",
-                "p2p_proposal_request_review",
-                "p2p_proposal_accept_branch",
-                "p2p_proposal_reject_branch",
-                "p2p_proposal_merge",
-                "p2p_proposal_finalize",
-                "p2p_proposal_cleanup",
-                "p2p_proposal_branch_scan",
-                "p2p_work_branch",
-                "p2p_work_submit",
-                "p2p_work_review",
-                "p2p_work_publish",
-                "p2p_work_request_review",
-                "p2p_work_accept",
-                "p2p_work_finalize",
-                "p2p_work_cleanup",
-            ],
-            "deferred_permission_gated_mcp_tools": [
-                "p2p_proposal_retire_branch",
-            ],
-        },
         "allowed_mutation_boundary": {
             "use_p2p_cli_commands": True,
             "use_mcp_write_tools_only_when_available": True,
@@ -1093,7 +1019,11 @@ def _scale_value(interaction_style: Any, name: str, default: int) -> int:
     return int(nested_value if nested_value is not None else value)
 
 
-def agents_markdown(project_name: str, profiles: list[str], repository_mode: str, interaction_style: Any = None) -> str:
+def agents_markdown(
+    project_name: str,
+    profiles: list[str],
+    interaction_style: Any = None,
+) -> str:
     profile_text = ", ".join(profiles)
     return f"""{managed_markdown_header("generic", "generic-agents-md-v2")}# Agent Instructions - {project_name}
 
@@ -1151,10 +1081,7 @@ Owner-controlled actions include:
 
 - accepting, rejecting, deferring, revoking, replacing, or reinstating proposals;
 - deciding choices;
-- accepting, finalizing, cleaning up, or merging managed work;
-- accepting, rejecting, merging, or finalizing managed proposal branches;
 - changing governance policy;
-- creating direct Git merges into the main branch.
 
 ## Proposal Readiness
 
@@ -1203,35 +1130,13 @@ If readiness is missing, weak, below target, or blocked by failed gates, ask foc
 
 {interaction_style_block(interaction_style)}
 
-## Managed Git Collaboration
-
-Do not run raw `git branch`, `git fetch`, `git pull`, `git push`, `git merge`, or provider PR/MR commands for managed P2P project state unless the owner explicitly authorizes an escape hatch.
-
-Use P2P-managed commands instead:
-
-```bash
-p2p sync status
-p2p sync fetch
-p2p sync pull
-p2p sync push
-p2p proposal branch PROP-XXX --actor "name-or-agent"
-p2p proposal status PROP-XXX
-p2p proposal publish PROP-XXX
-p2p proposal publish PROP-XXX --auto-renumber
-p2p proposal request-review PROP-XXX
-p2p proposal scan
-p2p proposal retire-branch PROP-XXX --reason "..."
-```
-
-Before creating proposal or Work branches, inspect P2P state and sync state. Stop for owner approval before remote publication, accept, reject, merge, finalize, cleanup, or any operation marked owner-controlled by policy.
-
 ## MCP Boundary
 
 Assume MCP tools are read-only unless the tool schema explicitly describes a write action.
 
-When MCP is read-only, use it for status and inspection only. For mutations, use `p2p` CLI commands when available or explicit write-safe MCP tools such as `p2p_project_remote_configure`, `p2p_consent_request`, `p2p_proposal_draft_commit`, `p2p_proposal_branch`, `p2p_work_branch`, `p2p_work_submit`, `p2p_work_review`, and `p2p_sync_fetch` when their schema matches the requested action.
-
-MCP may use implemented permission-gated repository tools only with a valid consent receipt. MCP must not retire or create provider PR/MR handoffs until those operations are explicitly implemented and authorized.
+When MCP is read-only, use it for status and inspection only. For mutations, use
+`p2p` CLI commands when available or explicit write tools whose schema matches
+the requested project-state action and whose authority contract is satisfied.
 
 ## Explaining Existing P2P Artifacts
 
@@ -1241,7 +1146,7 @@ Use `p2p proposal show`, `p2p choice show`, `p2p change show`, `p2p work show`, 
 
 ## Token Budget Discipline
 
-AI is expensive. CLI is cheap. Git is memory. `.p2p` is governance. Owner decides. Agent works in bounded sessions.
+AI is expensive. CLI is cheap. `.p2p` is governed project state. Owner decides. Agent works in bounded sessions.
 
 Before broad reads, use compact context:
 
@@ -1252,7 +1157,9 @@ p2p context --target PROP-XXX --budget small
 
 With MCP, use `p2p_context` first.
 
-Read summaries first; read details only by explicit ID. Do not scan all `.p2p/`, all registries, all proposals, all source files, or Git history unless the task explicitly requires it or compact context is insufficient.
+Read summaries first; read details only by explicit ID. Do not scan all `.p2p/`,
+all registries, all proposals, or all source files unless the task explicitly
+requires it or compact context is insufficient.
 
 ## Recommended Start
 
@@ -1280,12 +1187,14 @@ p2p proposal create "Title" --problem "..." --goal "..." --proposal "..." --acce
 ## Project Bootstrap
 
 - Initial agent profiles: {profile_text}
-- Repository mode: {repository_mode}
 - Additional agent instructions can be added later with `p2p agent instructions refresh`.
 """
 
 
-def shared_p2p_project_skill(project_name: str, repository_mode: str, interaction_style: Any = None) -> str:
+def shared_p2p_project_skill(
+    project_name: str,
+    interaction_style: Any = None,
+) -> str:
     return f"""---
 name: p2p-project
 description: Use when working in this P2P-managed project. Enforces P2P Engine boundaries for any compatible project skill loader.
@@ -1302,9 +1211,8 @@ Use P2P Engine as the source of truth for project governance and planning.
 - Use `p2p` CLI commands or explicit MCP write tools for P2P mutations.
 - If no CLI command or MCP write tool exists for the requested operation, stop and report the missing primitive.
 - Do not edit `.p2p/` internals directly, invent IDs, or synthesize decision files.
-- Do not accept, reject, defer, decide, merge, finalize, or cleanup without explicit owner instruction.
+- Do not accept, reject, defer, or decide without explicit owner instruction.
 - Do not recommend proposal acceptance before checking readiness.
-- Do not run raw Git commands for managed branch, sync, publish, or merge work unless the owner explicitly authorizes an escape hatch.
 - Use compact context before broad file reads.
 
 ## Persistent Write Boundary
@@ -1350,8 +1258,6 @@ Use P2P Engine as the source of truth for project governance and planning.
 ## Project Interaction Style
 
 {interaction_style_block(interaction_style)}
-
-Repository mode: `{repository_mode}`.
 """
 
 
@@ -1618,10 +1524,10 @@ substance, boundaries, important uncertainties, and vertical-specific shape.
 """
 
 
-def claude_markdown(project_name: str, repository_mode: str, interaction_style: Any = None) -> str:
+def claude_markdown(project_name: str, interaction_style: Any = None) -> str:
     return f"""{managed_markdown_header("claude", "claude-md-v2")}# Claude Instructions - {project_name}
 
-This repository is managed with P2P Engine.
+This project is managed with P2P Engine.
 
 Follow `AGENTS.md` and `.p2p/agent-policy.yml`.
 
@@ -1632,12 +1538,10 @@ Key rules:
 - If a requested P2P action has no available command or MCP write tool, stop and explain the missing primitive.
 - Do not make owner-controlled governance decisions unless the owner explicitly instructs the exact decision.
 - Do not recommend proposal acceptance before checking readiness or explicitly stating that readiness is missing.
-- Do not run raw Git commands for managed branch, sync, publish, or merge work unless the owner explicitly authorizes an escape hatch.
-- Use `p2p sync status`, `p2p proposal branch`, `p2p proposal publish`, `p2p proposal request-review`, and `p2p proposal scan` for managed collaboration workflows.
 - Treat MCP as read-only unless a tool explicitly declares a write operation.
 - Before explaining existing proposals, choices, Change Sets, or Work items, read them with the relevant registered P2P show command or equivalent MCP read tool.
 - Use `p2p context --budget small` or MCP `p2p_context` before broad file reads.
-- Do not scan all `.p2p/`, registries, source files, or Git history unless the task explicitly requires it.
+- Do not scan all `.p2p/`, registries, or source files unless the task explicitly requires it.
 
 ## Persistent Write Boundary
 
@@ -1682,12 +1586,10 @@ Key rules:
 ## Project Interaction Style
 
 {interaction_style_block(interaction_style)}
-
-Repository mode: `{repository_mode}`.
 """
 
 
-def cursor_rule(project_name: str, repository_mode: str, interaction_style: Any = None) -> str:
+def cursor_rule(project_name: str, interaction_style: Any = None) -> str:
     return f"""---
 description: P2P Engine project governance and agent workflow rules
 alwaysApply: true
@@ -1741,15 +1643,13 @@ alwaysApply: true
 ## Project Interaction Style
 
 {interaction_style_block(interaction_style)}
-
-Repository mode: `{repository_mode}`.
 """
 
 
-def copilot_instructions(project_name: str, repository_mode: str, interaction_style: Any = None) -> str:
+def copilot_instructions(project_name: str, interaction_style: Any = None) -> str:
     return f"""{managed_markdown_header("copilot", "copilot-instructions-v2")}# GitHub Copilot Instructions - {project_name}
 
-This repository is managed with P2P Engine.
+This project is managed with P2P Engine.
 
 - Use `p2p` CLI commands for P2P writes when shell access is available.
 - Use explicit MCP write tools only when the tool schema supports the requested operation.
@@ -1798,15 +1698,13 @@ This repository is managed with P2P Engine.
 ## Project Interaction Style
 
 {interaction_style_block(interaction_style)}
-
-Repository mode: `{repository_mode}`.
 """
 
 
-def gemini_markdown(project_name: str, repository_mode: str, interaction_style: Any = None) -> str:
+def gemini_markdown(project_name: str, interaction_style: Any = None) -> str:
     return f"""{managed_markdown_header("gemini", "gemini-md-v2")}# Gemini Instructions - {project_name}
 
-This repository is managed with P2P Engine.
+This project is managed with P2P Engine.
 
 - Use `p2p` CLI commands or explicit MCP write tools for P2P mutations.
 - Do not edit `.p2p/` internals directly.
@@ -1854,6 +1752,4 @@ This repository is managed with P2P Engine.
 ## Project Interaction Style
 
 {interaction_style_block(interaction_style)}
-
-Repository mode: `{repository_mode}`.
 """

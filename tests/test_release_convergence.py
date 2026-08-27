@@ -208,28 +208,29 @@ def test_docs_release_notes_and_allowlist_record_clean_break() -> None:
 
 @pytest.mark.unit
 def test_release_workflow_runs_installed_wheel_smoke_after_artifact_verification() -> None:
-    workflow = yaml.safe_load(
+    candidate = yaml.safe_load(
+        (ROOT / ".github" / "workflows" / "release-candidate.yml").read_text(
+            encoding="utf-8"
+        )
+    )
+    release = yaml.safe_load(
         (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
     )
-    test_matrix = workflow["jobs"]["test-matrix"]
-    build_release = workflow["jobs"]["build-release"]
-    steps = [step["name"] for step in build_release["steps"]]
+    source_matrix = candidate["jobs"]["source-matrix"]
+    artifact = candidate["jobs"]["artifact"]
+    commands = "\n".join(str(step.get("run", "")) for step in artifact["steps"])
 
-    assert test_matrix["strategy"]["matrix"]["python-version"] == ["3.11", "3.14"]
-    assert build_release["needs"] == "test-matrix"
-    assert "Build source and wheel distributions" in steps
-    assert "Verify distribution artifacts" in steps
-    assert "Run installed wheel smoke tests" in steps
-    assert steps.index("Build source and wheel distributions") < steps.index(
-        "Verify distribution artifacts"
+    assert source_matrix["strategy"]["matrix"]["python-version"] == ["3.11", "3.14"]
+    assert artifact["needs"] == "source-matrix"
+    assert "build-release-candidate.sh" in commands
+    assert "twine check" in commands
+    assert "test-installed.sh --wheel" in commands
+    assert commands.index("build-release-candidate.sh") < commands.index("twine check")
+    assert commands.index("twine check") < commands.index("test-installed.sh --wheel")
+    assert release["jobs"]["candidate"]["uses"] == (
+        "./.github/workflows/release-candidate.yml"
     )
-    assert steps.index("Verify distribution artifacts") < steps.index(
-        "Run installed wheel smoke tests"
-    )
-    assert all(
-        "dist/" not in str(step.get("run", ""))
-        for step in test_matrix["steps"]
-    )
+    assert all("dist/" not in str(step.get("run", "")) for step in source_matrix["steps"])
 
 
 @pytest.mark.unit

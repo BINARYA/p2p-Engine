@@ -5,9 +5,6 @@ p2p_agent_policy:
   missing_primitive_behavior: stop_and_report
   direct_p2p_file_edits: forbidden
   owner_controls_governance: true
-repository:
-  mode: local
-  cloud_is_advisory_until_configured: false
 agent_profiles:
 - claude
 - codex
@@ -453,17 +450,6 @@ owner_controlled_actions:
 - proposal_replace
 - proposal_reinstate
 - choice_decide
-- work_accept
-- work_finalize
-- work_cleanup
-- proposal_branch_accept
-- proposal_branch_reject
-- proposal_branch_merge
-- proposal_branch_finalize
-- proposal_branch_remote_publish
-- direct_git_merge
-- raw_git_managed_branch
-- raw_git_managed_sync
 write_policy:
   analysis_without_write: allowed
   preview_required_for:
@@ -634,7 +620,6 @@ proposal_decision_lifecycle:
   reject_means_never_active: true
   revoke_preserves_accepted_history: true
   dependent_lifecycle_mutation: forbidden
-  branch_decisions_are_separate: true
   manual_ledger_or_projection_repair: forbidden
   mcp:
     preview: p2p_proposal_decision_preview
@@ -847,52 +832,6 @@ interaction_style:
       formality: direct
       assertiveness: baseline
     path: .p2p/project/interaction-style.yml
-managed_git_collaboration:
-  raw_git_for_managed_state: forbidden_without_owner_escape_hatch
-  inspect_before_branching:
-  - p2p status
-  - p2p sync status
-  proposal_branch_commands:
-  - p2p proposal branch PROP-XXX --actor <actor>
-  - p2p proposal status PROP-XXX
-  - p2p proposal publish PROP-XXX
-  - p2p proposal publish PROP-XXX --auto-renumber
-  - p2p proposal request-review PROP-XXX
-  - p2p proposal scan
-  - p2p proposal retire-branch PROP-XXX --reason <reason>
-  sync_commands:
-  - p2p sync status
-  - p2p sync fetch
-  - p2p sync pull
-  - p2p sync push
-  mcp_tools:
-  - p2p_project_remote_configure
-  - p2p_consent_request
-  - p2p_sync_status
-  - p2p_sync_fetch
-  - p2p_sync_pull
-  - p2p_sync_push
-  - p2p_proposal_draft_commit
-  - p2p_proposal_branch
-  - p2p_proposal_branch_status
-  - p2p_proposal_publish
-  - p2p_proposal_request_review
-  - p2p_proposal_accept_branch
-  - p2p_proposal_reject_branch
-  - p2p_proposal_merge
-  - p2p_proposal_finalize
-  - p2p_proposal_cleanup
-  - p2p_proposal_branch_scan
-  - p2p_work_branch
-  - p2p_work_submit
-  - p2p_work_review
-  - p2p_work_publish
-  - p2p_work_request_review
-  - p2p_work_accept
-  - p2p_work_finalize
-  - p2p_work_cleanup
-  deferred_permission_gated_mcp_tools:
-  - p2p_proposal_retire_branch
 allowed_mutation_boundary:
   use_p2p_cli_commands: true
   use_mcp_write_tools_only_when_available: true

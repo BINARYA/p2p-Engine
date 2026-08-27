@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import asdict, is_dataclass
 from enum import Enum
@@ -10,6 +9,7 @@ from typing import Mapping
 import typer
 import yaml
 
+from p2p_engine.cli_contract import print_json
 from p2p_engine.cli_shared import console, fail
 from p2p_engine.cli_shared import workspace as workspace_for
 from p2p_engine.foundation.yaml_loaders import load_yaml
@@ -440,7 +440,7 @@ def _emit(wrapper: str, payload: Mapping[str, object], output_format: str) -> No
 
 
 def _print_json(payload: object) -> None:
-    console.print(json.dumps(_jsonable(payload), indent=2, sort_keys=True), soft_wrap=True)
+    print_json(_jsonable(payload))
 
 
 def _fail_operation(error: ValueError, output_format: str, operation: str) -> None:

@@ -71,26 +71,20 @@ class AgentInstructionService:
         root: Path,
         p2p_dir: Path,
         project_name: Callable[[], str],
-        repository_mode: Callable[[str], str],
-        set_repository_mode: Callable[[str], None],
         normalize_profile: Callable[[str], str],
-        normalize_repository_mode: Callable[[str], str],
         expanded_profiles: Callable[[str], list[str]],
-        instruction_files: Callable[[str, list[str], str, Any], dict[Path, str]],
-        adapter_files: Callable[[str, str, list[str], str], list[tuple[Path, str, bool, str]]],
+        instruction_files: Callable[[str, list[str], Any], dict[Path, str]],
+        adapter_files: Callable[[str, str, list[str]], list[tuple[Path, str, bool, str]]],
         adapter_capabilities: Callable[[str], dict[str, object]],
         template_generation: Callable[[str], str],
-        agent_policy: Callable[[str, list[str], str, Any], dict[str, object]],
+        agent_policy: Callable[[str, list[str], Any], dict[str, object]],
         built_in_adapters: tuple[str, ...],
         interaction_style: Callable[[], Any] | None = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
         self.project_name = project_name
-        self.repository_mode = repository_mode
-        self.set_repository_mode = set_repository_mode
         self.normalize_profile = normalize_profile
-        self.normalize_repository_mode = normalize_repository_mode
         self.expanded_profiles = expanded_profiles
         self.instruction_files = instruction_files
         self.adapter_files = adapter_files
@@ -103,11 +97,9 @@ class AgentInstructionService:
     def refresh_instructions(
         self,
         profile: str = "generic",
-        repository_mode: str | None = None,
     ) -> AgentInstructionsResult:
         profile = self.normalize_profile(profile)
         project_name = self.project_name()
-        repository_mode = self.normalize_repository_mode(repository_mode or self.repository_mode("local"))
         profiles = self.expanded_profiles(profile)
         interaction_style = self.interaction_style() if self.interaction_style is not None else None
         policy_path = self.policy_path()
@@ -120,7 +112,6 @@ class AgentInstructionService:
         files, relative_policy = self._managed_instruction_files(
             project_name,
             merged_profiles,
-            repository_mode,
             interaction_style,
         )
         created, updated, skipped = self._write_generated_files_safely(
@@ -128,8 +119,7 @@ class AgentInstructionService:
             self.registry_file_map(registry),
         )
 
-        self.set_repository_mode(repository_mode)
-        new_registry = self.build_registry(merged_profiles, repository_mode)
+        new_registry = self.build_registry(merged_profiles)
         self.write_registry(self._with_skipped_file_records(registry, new_registry, skipped))
         return AgentInstructionsResult(
             profile=profile,
@@ -272,12 +262,10 @@ class AgentInstructionService:
     def install_integrations(
         self,
         target: str = "all",
-        repository_mode: str | None = None,
         *,
         force: bool = False,
     ) -> AgentIntegrationResult:
         target = self.normalize_profile(target)
-        repository_mode = self.normalize_repository_mode(repository_mode or self.repository_mode("local"))
         project_name = self.project_name()
         interaction_style = self.interaction_style() if self.interaction_style is not None else None
         registry = self.registry()
@@ -293,10 +281,9 @@ class AgentInstructionService:
         all_files, _relative_policy = self._managed_instruction_files(
             project_name,
             profiles,
-            repository_mode,
             interaction_style,
         )
-        writable_paths = self._operation_file_paths(project_name, target, profiles, repository_mode)
+        writable_paths = self._operation_file_paths(project_name, target, profiles)
         files = {path: content for path, content in all_files.items() if path in writable_paths}
         created, updated, skipped = self._write_generated_files_safely(
             files,
@@ -304,7 +291,7 @@ class AgentInstructionService:
             force=force,
         )
 
-        new_registry = self.build_registry(profiles, repository_mode)
+        new_registry = self.build_registry(profiles)
         removed, obsolete_skipped = self._remove_obsolete_managed_files(
             old_registry,
             new_registry,
@@ -316,7 +303,6 @@ class AgentInstructionService:
         registry = self._with_preserved_file_records(old_registry, new_registry, preserved_paths)
         registry = self._with_skipped_file_records(old_registry, registry, skipped)
         self.write_registry(registry)
-        self.set_repository_mode(repository_mode)
         return AgentIntegrationResult(
             target=target,
             created=created,
@@ -360,9 +346,8 @@ class AgentInstructionService:
         registry["adapters"] = adapters
         remaining_profiles = sorted({"generic"} | {str(item) for item in adapters.keys()})
         project_name = self.project_name()
-        repository_mode = self.repository_mode("local")
         interaction_style = self.interaction_style() if self.interaction_style is not None else None
-        shared_files = self.instruction_files(project_name, remaining_profiles, repository_mode, interaction_style)
+        shared_files = self.instruction_files(project_name, remaining_profiles, interaction_style)
         for relative_path in (Path("AGENTS.md"),):
             content = shared_files.get(relative_path)
             if content is None:
@@ -372,9 +357,9 @@ class AgentInstructionService:
         policy_path = self.policy_path()
         _write_text_atomic(
             policy_path,
-            _yaml_dump(self.agent_policy(project_name, remaining_profiles, repository_mode, interaction_style)),
+            _yaml_dump(self.agent_policy(project_name, remaining_profiles, interaction_style)),
         )
-        registry = self.build_registry(remaining_profiles, repository_mode)
+        registry = self.build_registry(remaining_profiles)
         self.write_registry(registry)
         return AgentIntegrationResult(
             target=adapter,
@@ -420,12 +405,12 @@ class AgentInstructionService:
                     records[str(record["path"])] = record
         return records
 
-    def build_registry(self, profiles: list[str], repository_mode: str) -> dict[str, object]:
+    def build_registry(self, profiles: list[str]) -> dict[str, object]:
         project_name = self.project_name()
         installed = sorted(set(self.expanded_profiles("generic")) | set(profiles))
         adapters: dict[str, object] = {}
         for adapter_id in installed:
-            files = self.adapter_files(project_name, adapter_id, installed, repository_mode)
+            files = self.adapter_files(project_name, adapter_id, installed)
             file_records = []
             for relative_path, template_id, shared, owner in files:
                 relative_path = self._safe_relative_path(relative_path, label="Agent adapter path")
@@ -460,13 +445,12 @@ class AgentInstructionService:
         self,
         project_name: str,
         profiles: list[str],
-        repository_mode: str,
         interaction_style: Any,
     ) -> tuple[dict[Path, str], Path]:
-        files = dict(self.instruction_files(project_name, profiles, repository_mode, interaction_style))
+        files = dict(self.instruction_files(project_name, profiles, interaction_style))
         relative_policy = self.policy_path().relative_to(self.root)
         files[relative_policy] = _yaml_dump(
-            self.agent_policy(project_name, profiles, repository_mode, interaction_style)
+            self.agent_policy(project_name, profiles, interaction_style)
         )
         safe_files = {
             self._safe_relative_path(relative_path, label="Agent instruction path"): content
@@ -479,7 +463,6 @@ class AgentInstructionService:
         project_name: str,
         target: str,
         profiles: list[str],
-        repository_mode: str,
     ) -> set[Path]:
         target_profiles = self.built_in_adapters if target == "all" else tuple(self.expanded_profiles(target))
         writable: set[Path] = set()
@@ -488,7 +471,6 @@ class AgentInstructionService:
                 project_name,
                 adapter_id,
                 profiles,
-                repository_mode,
             ):
                 writable.add(self._safe_relative_path(relative_path, label="Agent adapter path"))
         return writable
@@ -582,14 +564,12 @@ class AgentInstructionService:
 
     def _expected_templates(self, adapter_id: str) -> dict[str, str]:
         project_name = self.project_name()
-        repository_mode = self.repository_mode("local")
         return {
             str(self._safe_relative_path(path, label="Agent adapter path")): template_id
             for path, template_id, _shared, _owner in self.adapter_files(
                 project_name,
                 adapter_id,
                 list(self.built_in_adapters),
-                repository_mode,
             )
         }
 

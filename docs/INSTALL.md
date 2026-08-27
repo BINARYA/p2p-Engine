@@ -18,7 +18,6 @@ Future target: public package registry, e.g. PyPI.
 ## Requirements
 
 - Python 3.11 or newer
-- Git
 - A shell with virtualenv support
 - Optional: an MCP-capable or CLI-capable agent client
 
@@ -48,6 +47,27 @@ intend to use. The wheel filename is expected to follow:
 ```text
 p2p_engine-<version>-py3-none-any.whl
 ```
+
+Download `SHA256SUMS` from the same release and verify the wheel before
+installation:
+
+```bash
+sha256sum --check --ignore-missing SHA256SUMS
+```
+
+The check must name the selected wheel as `OK`. Checksums prove byte integrity;
+they are not signatures or provenance attestations. The tag-triggered release
+workflow also creates a GitHub Artifact Attestation for the exact published
+files. Verification is optional and requires only the GitHub CLI:
+
+```bash
+gh attestation verify p2p_engine-0.5.0-py3-none-any.whl \
+  --repo BINARYA/p2p-Engine
+```
+
+The attestation binds the downloaded artifact to the public repository,
+release workflow and source commit. It is generated only for release tags, not
+for normal pushes, pull requests or ordinary CI runs.
 
 Verify the CLI:
 
@@ -122,7 +142,6 @@ The wizard asks for:
 ```text
 Project name
 Initial agent profile: adaptive default, or generic, codex, claude, all
-Repository mode: local, cloud
 Optional free domain classification
 Structure starter: generic, empty
 Rubric criteria customization for the generic starter
@@ -133,7 +152,6 @@ For a scriptable non-interactive setup:
 
 ```bash
 .venv/bin/p2p init "My Project" \
-  --repository local \
   --domain software \
   --vertical binarya/software_project@2.0.0 \
   --mcp-hint
@@ -153,8 +171,7 @@ To generate only selected adapters, repeat `--agent`:
 ```bash
 .venv/bin/p2p init "My Project" \
   --agent codex \
-  --agent claude \
-  --repository local
+  --agent claude
 ```
 
 Use the lifecycle commands shown by init to manage the footprint later, such as
@@ -189,53 +206,23 @@ For existing projects, ordinary `p2p init` does not recover a required but
 missing runtime contract. Restore `.p2p/project/runtime.yml` from project
 history, or use a future explicit recovery operation when one exists.
 
-### Local vs Remote-Backed Projects
+### Source-Control Boundary
 
-Local projects need only the P2P workspace:
+P2P projects need only the filesystem-backed P2P workspace:
 
 ```bash
 .venv/bin/p2p init "My Project" \
-  --repository local \
   --domain software \
   --vertical binarya/software_project@2.0.0 \
   --owner matteo \
   --mcp-hint
 ```
 
-Remote-backed projects add a P2P remote profile and a Git remote. The current
-MVP keeps these as explicit steps:
-
-```bash
-.venv/bin/p2p init "My Project" \
-  --repository cloud \
-  --domain software \
-  --vertical binarya/software_project@2.0.0 \
-  --owner matteo \
-  --mcp-hint
-
-git remote add origin git@github.com:ORG/REPO.git
-
-.venv/bin/p2p project remote configure \
-  --mode remote \
-  --provider github \
-  --remote origin \
-  --url git@github.com:ORG/REPO.git
-
-.venv/bin/p2p project remote show
-.venv/bin/p2p sync status
-```
-
-To modify the remote profile later, run `p2p project remote configure` again.
-To mark the project local-only again:
-
-```bash
-.venv/bin/p2p project remote configure --mode local
-```
-
-P2P does not create provider repositories, configure SSH keys, create tokens, or
-change GitHub/GitLab branch protection in the MVP. It records P2P profile
-metadata and validates local Git readiness. Proposal `PROP-073` tracks a more
-ergonomic one-command remote initialization flow.
+P2P Engine does not create or synchronize repositories, manage branches or
+commits, configure provider credentials, or operate pull requests and releases.
+When a project uses source control, configure it with external repository
+tooling. Repository, issue, pull-request, commit and release identifiers may be
+stored only as inert traceability references.
 
 ## Upgrade An Existing Project
 
@@ -258,9 +245,8 @@ From the target project:
 .venv/bin/p2p validate
 ```
 
-This upgrades the installed engine runtime. It does not pull or merge the target
-project repository. For project Git synchronization, use the P2P sync commands
-documented for managed collaboration.
+This upgrades the installed engine runtime. It does not inspect, pull, merge or
+otherwise modify a source repository.
 
 P2P Engine 0.5.0 is a clean break for current runtime state: it supports
 workspace schema 4 and portable vertical schema 3 only. It does not provide
@@ -273,35 +259,45 @@ workspaces before using this runtime for governed writes.
 This section is for P2P Engine maintainers publishing a GitHub Release artifact.
 Normal target projects should install the published wheel instead.
 
-The normal release path is automated by GitHub Actions. Update the package
-version, commit and push `main`, then push a matching version tag:
+The normal release path is automated by GitHub Actions. The owner first runs the
+non-publishing candidate workflow for one exact, already-approved commit SHA:
 
 ```bash
-# pyproject.toml
-# [project]
-# version = "0.5.0"
+gh workflow run release-candidate.yml \
+  --ref main \
+  -f ref=<approved-40-character-commit-sha>
+```
 
-git add pyproject.toml
-git commit -m "Bump version to 0.5.0"
-git push origin main
+Only after that exact SHA is green may the owner create and push its matching
+version tag:
 
-git tag -a v0.5.0 -m "P2P Engine v0.5.0"
+```bash
+git tag -a v0.5.0 <approved-40-character-commit-sha> -m "P2P Engine v0.5.0"
 git push origin v0.5.0
 ```
 
-The release workflow runs public/full tests across the supported Python
-matrix, runs `p2p validate`, builds the source distribution and wheel, verifies
-archive contents, runs installed-wheel smoke tests, and uploads both files to
-the matching GitHub Release. The tag must match `pyproject.toml`: tag
-`v0.5.0` requires `version = "0.5.0"`. Do not reuse an existing version or tag
-for different contents.
+The candidate workflow runs public/full tests across the supported Python
+matrix, runs `p2p validate`, builds the source distribution and wheel twice,
+verifies archive contents, runs installed-wheel smoke tests, and retains the
+exact verified artifact set for seven days. The tag workflow downloads that
+same set, rechecks its checksums, generates GitHub Artifact Attestations and
+creates the matching GitHub Release exactly once. It does not rebuild a second
+unrelated upload set. The tag must match `pyproject.toml`: tag `v0.5.0`
+requires `version = "0.5.0"`. Do not reuse an existing version or tag for
+different contents.
 
 Expected release assets:
 
 ```text
 p2p_engine-<version>-py3-none-any.whl
 p2p_engine-<version>.tar.gz
+SHA256SUMS
 ```
+
+GitHub stores the signed attestation alongside the repository rather than as a
+fourth release asset. Maintainers do not manage signing keys or run a separate
+command: pushing the final version tag triggers attestation automatically after
+the complete candidate gate passes.
 
 ### Manual Build Fallback
 
@@ -314,7 +310,8 @@ From the P2P Engine source checkout:
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -e ".[dev]"
-python -m build
+SOURCE_DATE_EPOCH=<approved-commit-timestamp> \
+  ./scripts/build-release-candidate.sh
 ```
 
 The expected wheel artifact is:
@@ -323,11 +320,11 @@ The expected wheel artifact is:
 dist/p2p_engine-<version>-py3-none-any.whl
 ```
 
-Attach that `.whl` and the matching `.tar.gz` to the GitHub Release only if the
-automated workflow is unavailable. For example:
+This fallback is diagnostic only and does not authorize manual upload. A release
+must still pass the create-only tag workflow. For example, the candidate set is:
 
 ```text
-v0.5.0 -> p2p_engine-0.5.0-py3-none-any.whl, p2p_engine-0.5.0.tar.gz
+v0.5.0 -> p2p_engine-0.5.0-py3-none-any.whl, p2p_engine-0.5.0.tar.gz, SHA256SUMS
 ```
 
 ## Connect An Agent
@@ -339,8 +336,7 @@ contributing to P2P Engine itself.
 The recommended local integration mode is MCP over `stdio`. In this mode, the
 agent client starts the P2P MCP server as a local subprocess. If multiple
 clients connect to the same target project, each client may start its own
-process; shared state lives in the target repository, `.p2p/`, Git, and P2P
-core storage.
+process; shared P2P state lives in the target root's `.p2p/` directory.
 
 The MCP server command should point at the governed P2P decision root. Prefer
 the project-local Python module form:
@@ -535,51 +531,42 @@ p2p permissions actor add lorenzo --role contributor
 Grant one operation:
 
 ```bash
-p2p consent grant proposal_publish PROP-001 --actor lorenzo --approved-by matteo
+p2p consent grant proposal_decision_apply PROP-001@PREVIEW-TOKEN \
+  --actor lorenzo --approved-by matteo
 p2p consent status
 p2p consent show CONSENT-001
 ```
 
-Then the MCP client may call the matching tool with:
+Then the MCP client may call the matching decision tool with:
 
 ```json
 {
-  "tool": "p2p_proposal_publish",
+  "tool": "p2p_proposal_decision_apply",
   "arguments": {
     "root": "/path/to/my-project",
     "proposal_id": "PROP-001",
+    "event_type": "accepted",
+    "preview_token": "<preview-token>",
+    "operation_key": "<operation-key>",
+    "reason": "Owner-approved reason",
     "actor_id": "lorenzo",
     "consent_id": "CONSENT-001"
   }
 }
 ```
 
-Common proposal lifecycle operations:
+Current proposal decision operations:
 
 ```text
-proposal_publish          -> p2p_proposal_publish
-proposal_request_review   -> p2p_proposal_request_review
 proposal_accept           -> p2p_proposal_accept
 proposal_reject           -> p2p_proposal_reject
 proposal_defer            -> p2p_proposal_defer
-proposal_accept_branch    -> p2p_proposal_accept_branch
-proposal_reject_branch    -> p2p_proposal_reject_branch
-proposal_merge            -> p2p_proposal_merge
-proposal_finalize         -> p2p_proposal_finalize
-proposal_cleanup          -> p2p_proposal_cleanup
-work_publish              -> p2p_work_publish
-work_request_review       -> p2p_work_request_review
-work_accept               -> p2p_work_accept
-work_finalize             -> p2p_work_finalize
-work_cleanup              -> p2p_work_cleanup
-sync_pull                 -> p2p_sync_pull
-sync_push                 -> p2p_sync_push
+proposal_decision_apply   -> p2p_proposal_decision_apply
 ```
 
 Consent receipts are declarative audit records. They are not strong
-authentication. In cloud-backed projects, provider permissions, branch
-protection, and token scopes remain the enforcement layer for protected remote
-state.
+authentication. Hosted products must enforce their own identity, authorization
+and transport controls before invoking P2P Engine.
 
 ## Verify A Target Project
 

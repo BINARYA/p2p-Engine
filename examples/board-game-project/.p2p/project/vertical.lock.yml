@@ -7,15 +7,18 @@ project_vertical_lock:
   source:
     type: internal
     resolved_from: p2p_engine.resources.verticals/board_game_design
-    path: /home/davide/dati/60_lavoro/064_wavek/wavekit_20260719/p2p-engine/src/p2p_engine/resources/verticals/board_game_design/manifest.yml
+    path: ''
     package: p2p_engine
   checksum:
     algorithm: sha256
     value: fa0c3691153b8bf95425b0dcbac1fc9d3d5e5db655bf5dcf7f620d3fedd85e28
   compatibility: {}
   selected:
-    at: '2026-08-25'
+    at: '2026-08-27'
     by: owner
   trust:
     signed: false
   coordinate: binarya/board_game_design@1.0.0
+  artifact_checksum:
+    algorithm: sha256
+    value: 4f163e86d8efbe099e96dd0391d59044c454ec8ea28d2aea861dffda68347ba0

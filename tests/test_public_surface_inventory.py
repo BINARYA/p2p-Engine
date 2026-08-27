@@ -20,8 +20,8 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     snapshot = public_surface_snapshot()
 
     assert snapshot.contract_version == PUBLIC_SURFACE_CONTRACT_VERSION
-    assert len(snapshot.cli_paths) == 291
-    assert len(snapshot.mcp_tools) == 190
+    assert len(snapshot.cli_paths) == 264
+    assert len(snapshot.mcp_tools) == 165
     assert "p2p vertical registry list" in snapshot.cli_paths
     assert "p2p vertical domain list" in snapshot.cli_paths
     assert "p2p vertical domain search" in snapshot.cli_paths
@@ -100,7 +100,6 @@ def test_current_agent_template_command_and_tool_references_are_registered() -> 
     rendered = agent_instruction_files(
         "Surface Project",
         ["generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode"],
-        "local",
     )
     command_references: set[str] = set()
     tool_references: set[str] = set()

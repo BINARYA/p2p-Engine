@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling==1.31.0"]
 build-backend = "hatchling.build"
 
 [project]
@@ -8,6 +8,23 @@ version = "0.5.0"
 description = "Proposal-to-Plan Engine CLI"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [
+  { name = "mrjungle" },
+]
+maintainers = [
+  { name = "mrjungle" },
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
 dependencies = [
   "keyring>=25.0",
   "packaging>=24.0",
@@ -16,12 +33,23 @@ dependencies = [
   "typer>=0.12.5",
 ]
 
+[project.urls]
+Homepage = "https://github.com/BINARYA/p2p-Engine"
+Repository = "https://github.com/BINARYA/p2p-Engine"
+Issues = "https://github.com/BINARYA/p2p-Engine/issues"
+Changelog = "https://github.com/BINARYA/p2p-Engine/blob/main/CHANGELOG.md"
+
 [project.optional-dependencies]
 dev = [
-  "build>=1.2.0",
+  "build==1.5.0",
   "markdown-it-py>=3.0.0",
+  "mypy==1.20.2",
+  "pip-audit==2.10.1",
   "pytest>=8.3.0",
   "pytest-cov>=5.0.0",
+  "ruff==0.16.4",
+  "twine==6.2.0",
+  "types-PyYAML>=6.0.12",
   "weasyprint>=62.0",
 ]
 pdf = [
@@ -54,11 +82,31 @@ testpaths = ["tests"]
 markers = [
   "unit: pure or near-pure behavior with no public CLI/MCP boundary.",
   "service: domain or application service behavior.",
-  "adapter: filesystem, serialization, Git adapter, or integration adapter behavior.",
+  "adapter: filesystem, serialization, or integration adapter behavior.",
   "cli: observable CLI command behavior, output, exit behavior, or side effects.",
   "mcp: observable MCP tool schema, payload, error, or permission behavior.",
   "integration: workflow crossing multiple application boundaries.",
-  "git: Git, sync, branch, remote, or repository-collaboration behavior.",
   "slow: materially broader or slower than normal focused feedback.",
   "smoke: minimal broad confidence checks.",
 ]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.mypy]
+python_version = "3.11"
+files = [
+  "src/p2p_engine/cli_commands/runtime.py",
+  "src/p2p_engine/core/release_contracts.py",
+  "src/p2p_engine/services/vertical_packages.py",
+  "scripts/generate-wavekit-transition-fixtures.py",
+  "scripts/verify-release-artifacts.py",
+]
+check_untyped_defs = true
+ignore_missing_imports = true
+no_implicit_optional = true
+show_error_codes = true

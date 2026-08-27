@@ -39,29 +39,79 @@
         "profile": "default",
         "modules": []
       },
-      "sections": {"total": 0, "returned": 0, "truncated": false, "items": []},
+      "sections": {
+        "total": 0,
+        "returned": 0,
+        "truncated": false,
+        "items": []
+      },
       "evidence_transitions": {
         "total": 1,
         "returned": 1,
         "truncated": false,
-        "items": [{
-          "source": {"kind": "definition_field", "ref": "definition_field:legacy.constraints"},
-          "target": null,
-          "disposition": "decision_required",
-          "value_present": true,
-          "provenance_present": true,
-          "decision_id": "VTD-0123456789abcdef"
-        }]
+        "items": [
+          {
+            "source": {
+              "kind": "definition_field",
+              "ref": "definition_field:legacy.constraints"
+            },
+            "target": null,
+            "disposition": "decision_required",
+            "value_present": true,
+            "provenance_present": true,
+            "decision_id": "VTD-0123456789abcdef"
+          }
+        ]
       },
-      "rubrics": {"total": 0, "returned": 0, "truncated": false, "items": []},
+      "rubrics": {
+        "total": 0,
+        "returned": 0,
+        "truncated": false,
+        "items": []
+      },
       "questions": {
-        "preserved": {"total": 0, "returned": 0, "truncated": false, "items": []},
-        "revised": {"total": 0, "returned": 0, "truncated": false, "items": []},
-        "created": {"total": 0, "returned": 0, "truncated": false, "items": []},
-        "retired": {"total": 0, "returned": 0, "truncated": false, "items": []},
-        "superseded": {"total": 0, "returned": 0, "truncated": false, "items": []},
-        "inactive_owner_evidence": {"total": 0, "returned": 0, "truncated": false, "items": []},
-        "owner_review_required": {"total": 0, "returned": 0, "truncated": false, "items": []}
+        "preserved": {
+          "total": 0,
+          "returned": 0,
+          "truncated": false,
+          "items": []
+        },
+        "revised": {
+          "total": 0,
+          "returned": 0,
+          "truncated": false,
+          "items": []
+        },
+        "created": {
+          "total": 0,
+          "returned": 0,
+          "truncated": false,
+          "items": []
+        },
+        "retired": {
+          "total": 0,
+          "returned": 0,
+          "truncated": false,
+          "items": []
+        },
+        "superseded": {
+          "total": 0,
+          "returned": 0,
+          "truncated": false,
+          "items": []
+        },
+        "inactive_owner_evidence": {
+          "total": 0,
+          "returned": 0,
+          "truncated": false,
+          "items": []
+        },
+        "owner_review_required": {
+          "total": 0,
+          "returned": 0,
+          "truncated": false,
+          "items": []
+        }
       },
       "lock": {
         "before": {
@@ -78,37 +128,71 @@
           "profile": "default",
           "modules": []
         },
-        "dependency_additions": {"total": 0, "returned": 0, "truncated": false, "items": []},
-        "dependency_removals": {"total": 0, "returned": 0, "truncated": false, "items": []}
+        "dependency_additions": {
+          "total": 0,
+          "returned": 0,
+          "truncated": false,
+          "items": []
+        },
+        "dependency_removals": {
+          "total": 0,
+          "returned": 0,
+          "truncated": false,
+          "items": []
+        }
       },
-      "artifacts": {"total": 0, "returned": 0, "truncated": false, "items": []},
+      "artifacts": {
+        "total": 0,
+        "returned": 0,
+        "truncated": false,
+        "items": []
+      },
       "required_decisions": {
         "total": 1,
         "returned": 1,
         "truncated": false,
-        "items": [{
-          "id": "VTD-0123456789abcdef",
-          "kind": "evidence_destination",
-          "source": {"kind": "definition_field", "ref": "definition_field:legacy.constraints"},
-          "allowed_actions": ["map", "preserve_as_orphan"],
-          "compatible_target_kinds": ["definition_field"]
-        }]
+        "items": [
+          {
+            "id": "VTD-0123456789abcdef",
+            "kind": "evidence_destination",
+            "source": {
+              "kind": "definition_field",
+              "ref": "definition_field:legacy.constraints"
+            },
+            "allowed_actions": [
+              "map",
+              "preserve_as_orphan"
+            ],
+            "compatible_target_kinds": [
+              "definition_field"
+            ]
+          }
+        ]
       },
       "blockers": {
         "total": 1,
         "returned": 1,
         "truncated": false,
-        "items": [{
-          "code": "P2P_VERTICAL_DECISION_REQUIRED",
-          "severity": "blocker",
-          "category": "transition_plan",
-          "reference": "example/software@2.0.0",
-          "recovery_action": "Create a complete transition plan and re-run preview with --mapping."
-        }]
+        "items": [
+          {
+            "code": "P2P_VERTICAL_DECISION_REQUIRED",
+            "severity": "blocker",
+            "category": "transition_plan",
+            "reference": "example/software@2.0.0",
+            "recovery_action": "Create a complete transition plan and re-run preview with --mapping."
+          }
+        ]
       },
-      "warnings": {"total": 0, "returned": 0, "truncated": false, "items": []}
+      "warnings": {
+        "total": 0,
+        "returned": 0,
+        "truncated": false,
+        "items": []
+      }
     },
-    "blockers": ["P2P_VERTICAL_DECISION_REQUIRED"],
+    "blockers": [
+      "P2P_VERTICAL_DECISION_REQUIRED"
+    ],
     "preview": null
   },
   "warnings": [],

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -8,17 +7,6 @@ import yaml
 
 from p2p_engine.mcp.tools import call_tool
 from p2p_engine.storage.filesystem import P2PWorkspace
-
-
-def _git(root: Path, *arguments: str) -> None:
-    subprocess.run(
-        ["git", *arguments],
-        cwd=root,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
 
 def _workspace(root: Path) -> tuple[P2PWorkspace, str]:
     workspace = P2PWorkspace(root)
@@ -40,11 +28,6 @@ def _workspace(root: Path) -> tuple[P2PWorkspace, str]:
         executor_id="owner",
         executor_kind="person",
     )
-    _git(root, "init")
-    _git(root, "config", "user.email", "test@example.com")
-    _git(root, "config", "user.name", "Test User")
-    _git(root, "add", ".")
-    _git(root, "commit", "-m", "baseline")
     return workspace, proposal.proposal_id
 
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import replace
 import json
 from pathlib import Path
-import subprocess
 
 import pytest
 from typer.testing import CliRunner
@@ -441,20 +440,6 @@ def test_external_decision_mcp_carries_typed_authority_and_local_consent(
         role="contributor",
         kind="client",
     )
-    for arguments in (
-        ("init",),
-        ("config", "user.email", "test@example.com"),
-        ("config", "user.name", "Test User"),
-        ("add", "."),
-        ("commit", "-m", "baseline"),
-    ):
-        subprocess.run(
-            ["git", *arguments],
-            cwd=tmp_path,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
     base = {
         "root": str(tmp_path),
         "proposal_id": proposal_id,

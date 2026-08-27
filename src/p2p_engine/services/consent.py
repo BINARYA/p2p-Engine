@@ -23,21 +23,6 @@ CONSENT_OPERATIONS = {
     "proposal_accept",
     "proposal_reject",
     "proposal_defer",
-    "proposal_publish",
-    "proposal_request_review",
-    "proposal_retire_branch",
-    "proposal_accept_branch",
-    "proposal_reject_branch",
-    "proposal_merge",
-    "proposal_finalize",
-    "proposal_cleanup",
-    "sync_pull",
-    "sync_push",
-    "work_publish",
-    "work_request_review",
-    "work_accept",
-    "work_finalize",
-    "work_cleanup",
 }
 
 

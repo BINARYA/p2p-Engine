@@ -116,7 +116,6 @@ class _WorkDetailLike(Protocol):
     status: str
     change_id: str
     target: str
-    branch_name: str
     path: Path
 
 
@@ -605,7 +604,7 @@ class ContextPacketService:
                 "Do not scan all .p2p/ directories.",
                 "Do not read all registries when this context packet is sufficient.",
                 "Do not read all proposal, choice, change, or work files without a target ID.",
-                "Do not inspect source code or Git history unless the task explicitly requires implementation details.",
+                "Do not inspect source code unless the task explicitly requires implementation details.",
                 "Do not explain saved P2P artifacts from conversation memory; use show/context commands.",
             ],
             bounded_next_step=bounded_next_step,
@@ -708,7 +707,6 @@ class ContextPacketService:
                 "status": detail.status,
                 "change_id": detail.change_id,
                 "target": detail.target,
-                "branch_name": detail.branch_name,
                 "path": detail.path,
                 "command": f"p2p work show {detail.work_id}",
             }

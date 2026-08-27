@@ -31,7 +31,7 @@ class PermissionsService:
     def path(self) -> Path:
         return self.p2p_dir / "project" / "permissions.yml"
 
-    def default_policy_payload(self, owner_name: str | None, repository_mode: str) -> dict[str, object]:
+    def default_policy_payload(self, owner_name: str | None) -> dict[str, object]:
         owner_id = self.identity_slug(owner_name or "owner")
         owner_display = owner_name or "owner"
         return {
@@ -39,13 +39,7 @@ class PermissionsService:
                 "version": 1,
                 "model": "role_plus_consent_receipt",
                 "identity_strength": "project_declared",
-                "repository_mode": repository_mode,
-                "cloud_enforcement": [
-                    "git_provider_permissions",
-                    "branch_protection",
-                    "required_approvals",
-                    "token_scopes",
-                ],
+                "enforcement_scope": "project_state_authority",
             },
             "identities": {
                 owner_id: {
@@ -68,8 +62,8 @@ class PermissionsService:
                     "can_request_privileged_operations": True,
                 },
                 "contributor": {
-                    "can_create_local_branches": True,
-                    "can_request_review": True,
+                    "can_contribute_project_material": True,
+                    "can_request_owner_review": True,
                 },
                 "agent": {
                     "can_use_safe_tools": True,
@@ -114,7 +108,7 @@ class PermissionsService:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(_yaml_dump(payload), encoding="utf-8")
 
-    def show(self, *, repository_mode: str = "local") -> dict[str, object]:
+    def show(self) -> dict[str, object]:
         path = self.path()
         if not path.exists():
             raise ValueError(
@@ -127,13 +121,8 @@ class PermissionsService:
     def resolve_actor(
         self,
         actor_id: str,
-        *,
-        repository_mode: str = "local",
     ) -> PermissionActor:
-        return self.resolve_actor_payload(
-            actor_id,
-            self.show(repository_mode=repository_mode),
-        )
+        return self.resolve_actor_payload(actor_id, self.show())
 
     def resolve_actor_payload(
         self,
@@ -159,9 +148,8 @@ class PermissionsService:
         role: str,
         *,
         operation: str,
-        repository_mode: str = "local",
     ) -> PermissionActor:
-        actor = self.resolve_actor(actor_id, repository_mode=repository_mode)
+        actor = self.resolve_actor(actor_id)
         expected = self.normalize_role(role)
         if actor.role != expected:
             raise ValueError(
@@ -176,14 +164,12 @@ class PermissionsService:
         role: str = "contributor",
         kind: str = "person",
         display_name: str | None = None,
-        *,
-        repository_mode: str = "local",
     ) -> PermissionActor:
         actor_slug = self.identity_slug(actor_id)
         role = self.normalize_role(role)
         kind = self.normalize_actor_kind(kind)
         path = self.path()
-        payload = self.show(repository_mode=repository_mode)
+        payload = self.show()
         identities = payload.setdefault("identities", {})
         if not isinstance(identities, dict):
             raise ValueError("Invalid permissions policy: identities must be a mapping")

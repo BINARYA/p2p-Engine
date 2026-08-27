@@ -34,7 +34,6 @@ from p2p_engine.cli_shared import console
 from p2p_engine.cli_shared import fail as _fail
 from p2p_engine.cli_shared import workspace as _workspace
 from p2p_engine.services.agent_selection import AgentProfileSelection, select_agent_profile
-from p2p_engine.services.gitignore_hygiene import GitignoreHygieneResult
 from p2p_engine.services.mcp_hints import McpHint, render_shell_command
 from p2p_engine.services.authority import AuthorityContractCodec
 from p2p_engine.storage.filesystem import P2PWorkspace
@@ -73,7 +72,6 @@ project_structure_app = typer.Typer(help="Inspect and edit the project-owned str
 project_memory_app = typer.Typer(help="Inspect project-memory organization against structure")
 project_authority_rotate_app = typer.Typer(help="Preview, apply, and inspect authority rotation")
 project_brief_app = typer.Typer(help="Generate and import operational project briefs")
-project_remote_app = typer.Typer(help="Manage project remote profile")
 project_rubrics_app = typer.Typer(help="Manage project definition rubrics")
 project_definition_app = typer.Typer(help="Manage project definition state")
 project_interaction_style_app = typer.Typer(help="Manage project interaction style")
@@ -89,7 +87,6 @@ intake_app = typer.Typer(help="Analyze raw ideas against project context")
 intake_apply_app = typer.Typer(help="Plan and run controlled intake applications")
 choice_app = typer.Typer(help="Manage project choices")
 work_app = typer.Typer(help="Manage P2P work manifests")
-sync_app = typer.Typer(help="Synchronize P2P projects through managed Git operations")
 permissions_app = typer.Typer(help="Manage project-declared permission identities")
 permissions_actor_app = typer.Typer(help="Manage permission actors")
 consent_app = typer.Typer(help="Manage permission-gated consent receipts")
@@ -132,7 +129,6 @@ app.add_typer(registry_app, name="registry")
 app.add_typer(intake_app, name="intake")
 app.add_typer(choice_app, name="choice")
 app.add_typer(work_app, name="work")
-app.add_typer(sync_app, name="sync")
 app.add_typer(permissions_app, name="permissions")
 app.add_typer(consent_app, name="consent")
 app.add_typer(agent_app, name="agent")
@@ -145,7 +141,6 @@ app.add_typer(mutation_app, name="mutation")
 workspace_app.add_typer(workspace_schema_app, name="schema")
 workspace_app.add_typer(workspace_transaction_app, name="transaction")
 project_app.add_typer(project_brief_app, name="brief")
-project_app.add_typer(project_remote_app, name="remote")
 project_app.add_typer(project_rubrics_app, name="rubrics")
 project_app.add_typer(project_definition_app, name="definition")
 project_app.add_typer(project_interaction_style_app, name="interaction-style")
@@ -191,14 +186,12 @@ register_prompt_commands(
 register_project_ops_commands(
     project_app,
     project_memory_app,
-    project_remote_app,
     project_rubrics_app,
     project_definition_app,
     project_interaction_style_app,
     project_vertical_app,
     project_readiness_app,
     project_brief_app,
-    sync_app,
     permissions_app,
     permissions_actor_app,
     consent_app,
@@ -255,26 +248,6 @@ def init(
         None,
         "--agent",
         help="Initial agent adapter. Repeat for a narrowed install set. Omit to use adaptive detection.",
-    ),
-    repository: str = typer.Option(
-        "local",
-        "--repository",
-        help="Repository mode: local or cloud",
-    ),
-    provider: str | None = typer.Option(
-        None,
-        "--provider",
-        help="Cloud remote provider: generic, github, or gitlab",
-    ),
-    remote: str = typer.Option(
-        "origin",
-        "--remote",
-        help="Git remote name for cloud-backed projects",
-    ),
-    remote_url: str | None = typer.Option(
-        None,
-        "--remote-url",
-        help="Remote repository URL for cloud-backed projects",
     ),
     domain: str | None = typer.Option(
         None,
@@ -409,11 +382,6 @@ def init(
             default=default_agent,
         )
         agent = [selected_agent] if provided_agent_option or selected_agent != default_agent else None
-        repository = _prompt_choice(
-            "Repository mode",
-            choices=("local", "cloud"),
-            default=repository,
-        )
         domain = typer.prompt("Domain key (optional)", default=domain or "").strip() or None
         starter = _prompt_choice(
             "Structure starter",
@@ -498,7 +466,6 @@ def init(
                 name=name,
                 operation_key=operation_key,
                 agent_profile=agent_profile,
-                repository_mode=repository,
                 project_domain=domain,
                 project_domain_name=domain_name,
                 project_domain_source=domain_source,
@@ -506,9 +473,6 @@ def init(
                 starter_id=starter,
                 rubric_enabled=rubric_enabled,
                 owner=owner,
-                remote_provider=provider,
-                remote_name=remote,
-                remote_url_value=remote_url,
                 vertical_id=vertical,
                 profile=profile,
                 modules=module,
@@ -522,7 +486,6 @@ def init(
         result = workspace.init_project_with_summary(
             name=name,
             agent_profile=agent_profile,
-            repository_mode=repository,
             project_domain=domain,
             project_domain_name=domain_name,
             project_domain_source=domain_source,
@@ -530,9 +493,6 @@ def init(
             starter_id=starter,
             rubric_enabled=rubric_enabled,
             owner=owner,
-            remote_provider=provider,
-            remote_name=remote,
-            remote_url_value=remote_url,
             vertical_id=vertical,
             profile=profile,
             modules=module,
@@ -549,25 +509,8 @@ def init(
     for warning in result.warnings:
         console.print(f"  warning: {escape(warning)}")
     _print_init_agent_selection(result.agent_selection)
-    _print_init_repository_hygiene(result.gitignore_hygiene)
-    _print_init_remote_status(workspace)
     _print_init_mcp_setup(result.mcp_hint, show_mcp_hint=mcp_hint)
     _print_init_next_steps()
-
-
-def _print_init_remote_status(workspace: P2PWorkspace) -> None:
-    profile = workspace.remote_profile()
-    if profile.mode == "local":
-        return
-    status = workspace.sync_status()
-    console.print("Remote profile")
-    console.print(f"  mode: {profile.mode}")
-    console.print(f"  provider: {profile.provider}")
-    console.print(f"  remote: {profile.remote or 'none'}")
-    console.print(f"  profile_url: {profile.url or 'none'}")
-    console.print(f"  git_remote_url: {status.remote_url or 'none'}")
-    console.print(f"  can_sync: {str(status.can_sync).lower()}")
-    console.print(f"  reason: {status.reason}")
 
 
 def _prompt_choice(prompt: str, choices: tuple[str, ...], default: str) -> str:
@@ -609,16 +552,6 @@ def _print_init_agent_selection(selection: AgentProfileSelection) -> None:
     console.print("    p2p agent doctor <adapter>")
     console.print("    p2p agent uninstall <adapter>")
     console.print("    p2p agent instructions refresh --profile <adapter>")
-
-
-def _print_init_repository_hygiene(result: GitignoreHygieneResult) -> None:
-    console.print("Repository hygiene")
-    console.print(f"  status: {result.status}")
-    console.print(f"  path: {result.path}")
-    if result.added_patterns:
-        console.print(f"  added: {escape(', '.join(result.added_patterns))}")
-    for warning in result.warnings:
-        console.print(f"  warning: {escape(warning)}")
 
 
 def _prompt_rubric_selection(starter: str) -> dict[str, bool] | None:

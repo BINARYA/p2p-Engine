@@ -20,8 +20,7 @@ def tool_definitions() -> list[dict[str, object]]:
                                   'copilot',
                                   'gemini',
                                   'opencode',
-                                  'all']},
-             'repository': {'type': 'string', 'enum': ['local', 'cloud']}},
+                                  'all']}},
         ),
         _tool(
             'p2p_agent_list',

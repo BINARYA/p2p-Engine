@@ -1,17 +1,42 @@
 from __future__ import annotations
 
-import re
 import hashlib
 import os
+import re
 from dataclasses import asdict, replace
 from datetime import date
 from importlib import resources
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Callable, Protocol, TypeVar
+from typing import Callable, Protocol, TypeVar
 
 import yaml
 
+from p2p_engine.core.mutation_preview import (
+    MutationPreview,
+    MutationPreviewService,
+    MutationResult,
+    semantic_sha256,
+    source_precondition,
+)
+from p2p_engine.core.portable_verticals import VerticalCoordinate, is_semantic_version
+from p2p_engine.core.project_domain import ProjectDomainRef, normalize_domain_tags
+from p2p_engine.core.project_questions import ProjectQuestionApplicability
+from p2p_engine.core.project_readiness import (
+    PROJECT_READINESS_GAP_POLICY_VERSION,
+    PROJECT_READINESS_REVIEW_DETAIL_LIMIT,
+    ProjectReadinessAssumptionSnapshot,
+    ProjectReadinessDiagnostic,
+    ProjectReadinessQuestionSnapshot,
+    ProjectReadinessResult,
+    ProjectReadinessSectionSnapshot,
+    ProjectReadinessSnapshot,
+)
+from p2p_engine.core.project_structure import (
+    PROJECT_STRUCTURE_CRITERION_DEFAULT_EVALUATOR,
+    PROJECT_STRUCTURE_CRITERION_DEFAULT_WEIGHT,
+    StructureField,
+)
 from p2p_engine.core.project_verticals import (
     ActiveProjectVertical,
     ProjectDefinitionAssumption,
@@ -34,64 +59,45 @@ from p2p_engine.core.project_verticals import (
     ResolvedVerticalPack,
     VerticalArtifact,
     VerticalCompletionPolicy,
+    VerticalCoverageSuggestionSection,
     VerticalDependency,
     VerticalField,
+    VerticalListItem,
     VerticalLock,
     VerticalLockStatus,
-    VerticalListItem,
     VerticalManifest,
+    VerticalMigrationCandidate,
     VerticalModule,
     VerticalPack,
     VerticalPackSource,
     VerticalProfile,
     VerticalQuestion,
+    VerticalReadState,
     VerticalRubric,
     VerticalSection,
     VerticalSectionReview,
-    VerticalReadState,
     VerticalValidationIssue,
     VerticalValidationResult,
-    VerticalMigrationCandidate,
-    VerticalCoverageSuggestionSection,
 )
-from p2p_engine.core.project_domain import ProjectDomainRef, normalize_domain_tags
-from p2p_engine.core.portable_verticals import VerticalCoordinate, is_semantic_version
-from p2p_engine.core.mutation_preview import (
-    MutationPreview,
-    MutationPreviewService,
-    MutationResult,
-    semantic_sha256,
-    source_precondition,
+from p2p_engine.foundation.files import (
+    relative_to_root,
+    slugify,
+    write_text_atomic,
+    write_yaml_atomic,
+    yaml_dump,
 )
-from p2p_engine.core.project_readiness import (
-    PROJECT_READINESS_GAP_POLICY_VERSION,
-    PROJECT_READINESS_REVIEW_DETAIL_LIMIT,
-    ProjectReadinessAssumptionSnapshot,
-    ProjectReadinessDiagnostic,
-    ProjectReadinessResult,
-    ProjectReadinessQuestionSnapshot,
-    ProjectReadinessSectionSnapshot,
-    ProjectReadinessSnapshot,
-)
-from p2p_engine.core.project_questions import ProjectQuestionApplicability
-from p2p_engine.core.project_structure import (
-    PROJECT_STRUCTURE_CRITERION_DEFAULT_EVALUATOR,
-    PROJECT_STRUCTURE_CRITERION_DEFAULT_WEIGHT,
-    StructureField,
-)
-from p2p_engine.foundation.files import relative_to_root, slugify, write_text_atomic, write_yaml_atomic, yaml_dump
 from p2p_engine.foundation.yaml_loaders import load_yaml, load_yaml_mapping
+from p2p_engine.services.lifecycle_authority import is_active_project_projection
+from p2p_engine.services.project_questions import ProjectQuestionStateService
 from p2p_engine.services.project_readiness import (
     ProjectReadinessGapService,
-    ProjectReadinessSourceAccess,
     ProjectReadinessSnapshotBuilder,
+    ProjectReadinessSourceAccess,
     readiness_snapshot_from_vertical_memory,
     unmapped_proposal_ids_from_vertical_memory,
 )
-from p2p_engine.services.project_questions import ProjectQuestionStateService
 from p2p_engine.services.project_structure import ProjectStructureService
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
-from p2p_engine.services.lifecycle_authority import is_active_project_projection
 
 VERTICAL_SCHEMA_VERSION = 3
 ACTIVE_VERTICAL_SCHEMA_VERSION = 1
@@ -3102,7 +3108,6 @@ def _pack_payload(pack: VerticalPack) -> dict[str, object]:
             "profiles": pack.profiles,
             "modules": pack.modules,
             "examples": pack.examples,
-            "schema_version": pack.schema_version,
             "compatibility": pack.compatibility,
             "profile_specs": [
                 {
@@ -3207,17 +3212,40 @@ def _completion_policy_from_payload(value: object) -> VerticalCompletionPolicy |
 
 def _source_from_pack(pack: VerticalPack, root: Path) -> VerticalPackSource:
     path = pack.path
-    resolved_from = ""
-    if path is not None:
-        resolved_from = str(relative_to_root(path, root))
     if pack.source == INTERNAL_SOURCE:
-        resolved_from = f"p2p_engine.resources.verticals/{pack.vertical_id}"
+        return VerticalPackSource(
+            source_type=pack.source,
+            resolved_from=f"p2p_engine.resources.verticals/{pack.vertical_id}",
+            path=None,
+            package="p2p_engine",
+        )
+    portable_path = _project_relative_source_path(path, root)
+    resolved_from = (
+        portable_path.as_posix()
+        if portable_path is not None
+        else f"{pack.source}:{pack.coordinate or pack.vertical_id}"
+    )
     return VerticalPackSource(
         source_type=pack.source,
         resolved_from=resolved_from,
-        path=relative_to_root(path, root) if path else None,
-        package="p2p_engine" if pack.source == INTERNAL_SOURCE else "",
+        path=portable_path,
+        package="",
     )
+
+
+def _project_relative_source_path(path: Path | None, root: Path) -> Path | None:
+    """Return a stable in-project path without persisting a host location."""
+    if path is None:
+        return None
+    resolved_root = root.resolve()
+    try:
+        resolved_path = path.resolve()
+        relative = resolved_path.relative_to(resolved_root)
+    except (OSError, ValueError):
+        return None
+    if ".." in relative.parts or relative.is_absolute():
+        return None
+    return Path(relative.as_posix())
 
 
 def _pack_checksum(pack: VerticalPack) -> str:

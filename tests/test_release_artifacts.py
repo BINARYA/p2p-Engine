@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import argparse
 import importlib.util
 from pathlib import Path
 
 import pytest
 import yaml
-
 
 SCRIPT_PATH = (
     Path(__file__).resolve().parents[1] / "scripts" / "verify-release-artifacts.py"
@@ -16,13 +16,16 @@ MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
 
-def test_release_matrix_uses_pytest_from_the_active_python_environment() -> None:
+def test_release_candidate_matrix_uses_supported_isolated_python_versions() -> None:
     workflow_path = (
-        Path(__file__).resolve().parents[1] / ".github" / "workflows" / "release.yml"
+        Path(__file__).resolve().parents[1]
+        / ".github"
+        / "workflows"
+        / "release-candidate.yml"
     )
     workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
 
-    test_matrix = workflow["jobs"]["test-matrix"]
+    test_matrix = workflow["jobs"]["source-matrix"]
     assert test_matrix["env"]["PYTEST_BIN"] == "pytest"
     assert test_matrix["strategy"]["matrix"]["python-version"] == ["3.11", "3.14"]
 
@@ -64,6 +67,35 @@ def test_release_verifier_requires_current_agent_surface_members() -> None:
         "tests/test_public_surface_inventory.py",
         "tests/test_version_consistency.py",
     } <= MODULE.CURRENT_SURFACE_SDIST_MEMBERS
+
+
+def test_release_verifier_requires_license_and_release_documentation() -> None:
+    source = Path(__file__).resolve().parents[1]
+    assert (source / "LICENSE").is_file()
+    assert (source / "docs" / "releases" / "0.5.0.md").is_file()
+    contract = MODULE._project_metadata_contract()
+    assert contract.license_expression == "GPL-3.0-or-later"
+    assert contract.authors == ("mrjungle",)
+    assert contract.maintainers == ("mrjungle",)
+
+
+def test_release_verifier_rejects_wrong_license_expression_in_metadata() -> None:
+    metadata = b"\n".join(
+        (
+            b"Metadata-Version: 2.4",
+            b"Name: p2p-engine",
+            b"Version: 0.5.0",
+            b"Requires-Python: >=3.11",
+            b"License-Expression: GPL-3.0-only",
+            b"Author: mrjungle",
+            b"Maintainer: mrjungle",
+            b"License-File: LICENSE",
+            b"",
+        )
+    )
+
+    with pytest.raises(ValueError, match="License-Expression"):
+        MODULE._verify_core_metadata(metadata, version="0.5.0", target="wheel")
 
 
 def test_release_verifier_requires_convergence_gate_members() -> None:
@@ -113,6 +145,103 @@ def test_release_verifier_rejects_discarded_runtime_surface_content() -> None:
             member="p2p_engine/example.py",
             target="wheel",
         )
+
+
+@pytest.mark.parametrize(
+    ("content", "message"),
+    [
+        (b"/home/release-user/private/file\n", "POSIX home path"),
+        (b"C:\\Users\\release-user\\private.txt\n", "Windows home path"),
+        (b"\\\\server\\share\\private.txt\n", "UNC path"),
+        (b"-----BEGIN PRIVATE KEY-----\n", "private key"),
+        (b"p2p_sync_status\n", "removed product surface"),
+    ],
+)
+def test_release_text_scan_rejects_private_or_removed_content(
+    content: bytes,
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        MODULE._scan_text_member(content, member="example.txt", target="sdist")
+
+
+def test_release_text_scan_returns_only_used_narrow_exception() -> None:
+    used = MODULE._scan_text_member(
+        b"negative assertion: p2p_sync_status is absent\n",
+        member="tests/negative.py",
+        target="sdist",
+        allowed_removed_tokens={"p2p_sync_status"},
+    )
+
+    assert used == {"p2p_sync_status"}
+
+
+@pytest.mark.parametrize(
+    "member",
+    [
+        "/home/release-user/project.py",
+        "../outside.py",
+        "package/../../outside.py",
+        ".git/config",
+        "package/__pycache__/module.pyc",
+        "package/module.pyo",
+    ],
+)
+def test_release_member_normalization_rejects_unsafe_paths(member: str) -> None:
+    with pytest.raises(ValueError, match="unsafe|forbidden"):
+        MODULE._normalized_members([member], archive_root=None)
+
+
+def test_release_verifier_rejects_unused_or_missing_allowlist_entries() -> None:
+    with pytest.raises(ValueError, match="allowlist member is absent"):
+        MODULE._require_used_allowlist(
+            {"present.py"},
+            {"absent.py": {"historical-token"}},
+            {},
+            label="historical",
+        )
+
+    with pytest.raises(ValueError, match="unused historical allowlist"):
+        MODULE._require_used_allowlist(
+            {"present.py"},
+            {"present.py": {"historical-token"}},
+            {"present.py": set()},
+            label="historical",
+        )
+
+
+def test_release_verifier_accepts_used_historical_exception() -> None:
+    MODULE._require_used_allowlist(
+        {"history.md"},
+        {"history.md": {"legacy-name"}},
+        {"history.md": {"legacy-name"}},
+        label="historical",
+    )
+
+
+def test_release_verifier_rejects_mismatched_metadata_version() -> None:
+    with pytest.raises(ValueError, match="wheel version 0.4.6 does not match 0.5.0"):
+        MODULE._require_version("0.4.6", "0.5.0", target="wheel")
+
+
+def test_release_verifier_rejects_extra_output_assets(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for name in (
+        "p2p_engine-0.5.0-py3-none-any.whl",
+        "p2p_engine-0.5.0.tar.gz",
+        "old-candidate.whl",
+    ):
+        (tmp_path / name).write_bytes(b"synthetic")
+    monkeypatch.setattr(
+        MODULE,
+        "_parse_args",
+        lambda: argparse.Namespace(dist=tmp_path, version="0.5.0"),
+    )
+
+    with pytest.raises(SystemExit, match="unexpected release artifacts: old-candidate.whl"):
+        MODULE.main()
 
 
 def test_release_verifier_requires_current_schema_runtime_and_regression_members() -> None:

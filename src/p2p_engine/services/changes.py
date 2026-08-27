@@ -71,16 +71,6 @@ class ChangeSetStatus:
 
 
 @dataclass(frozen=True)
-class ChangeSetPolicy:
-    change_id: str
-    operation_level: str
-    auto_commit: bool
-    auto_branch: bool
-    auto_tag: bool
-    reasons: list[str]
-
-
-@dataclass(frozen=True)
 class ChangeSetDetail:
     change_id: str
     title: str
@@ -130,19 +120,6 @@ def _read_proposal_status(path: Path) -> str:
     return "draft"
 
 
-def _metadata_only_git_policy() -> dict[str, object]:
-    return {
-        "git_policy": {
-            "mode": "managed",
-            "operation_level": "metadata_only",
-            "expose_git_details": False,
-            "commits": {"auto_commit": False},
-            "branches": {"auto_create": False},
-            "tags": {"auto_create": False},
-        }
-    }
-
-
 def _change_markdown(
     change_id: str,
     title: str,
@@ -178,7 +155,7 @@ def _change_markdown(
         "### Included\n\n"
         "- Derived from accepted proposal scope.\n\n"
         "### Excluded\n\n"
-        "- Automatic Git commits, branches, tags, or merges.\n\n"
+        "- Implementation delivery and external tooling operations.\n\n"
         "## Deliverables\n\n"
         "- Change Set metadata.\n\n"
         "## Acceptance Criteria\n\n"
@@ -288,7 +265,6 @@ class ChangeSetLifecycleService:
             ),
             "impact-map.yml": _read_optional(proposal_dir / "impact-map.yml")
             or _yaml_dump({"impact": {"proposal": source, "features": [], "commands": [], "files": []}}),
-            "git-policy.yml": _yaml_dump(_metadata_only_git_policy()),
             "execution-plan.md": _read_optional(proposal_dir / "execution-plan.md")
             or f"# Execution Plan - {change_id}\n\nPending.\n",
             "tasks.yml": _read_optional(proposal_dir / "tasks.yml") or "tasks: []\n",
@@ -327,27 +303,6 @@ class ChangeSetLifecycleService:
                 )
             )
         return statuses
-
-    def policy(self, change_id: str) -> ChangeSetPolicy:
-        change_dir = self.find_dir(change_id)
-        data = _read_yaml_mapping(change_dir / "git-policy.yml", default=_metadata_only_git_policy())
-        policy = data.get("git_policy", {})
-        if not isinstance(policy, dict):
-            raise ValueError("Invalid git-policy.yml: expected `git_policy` mapping.")
-        commits = policy.get("commits", {})
-        branches = policy.get("branches", {})
-        tags = policy.get("tags", {})
-        return ChangeSetPolicy(
-            change_id=change_id,
-            operation_level=str(policy.get("operation_level", "metadata_only")),
-            auto_commit=bool(commits.get("auto_commit", False)) if isinstance(commits, dict) else False,
-            auto_branch=bool(branches.get("auto_create", False)) if isinstance(branches, dict) else False,
-            auto_tag=bool(tags.get("auto_create", False)) if isinstance(tags, dict) else False,
-            reasons=[
-                "MVP uses metadata_only managed Git policy.",
-                "No Git commits, branches, tags, or merges are created automatically.",
-            ],
-        )
 
     def show(self, change_id: str) -> ChangeSetDetail:
         change_dir = self.find_dir(change_id)

@@ -10,7 +10,6 @@ import typer
 from p2p_engine.cli_shared import console
 from p2p_engine.cli_shared import fail
 from p2p_engine.cli_shared import workspace as workspace_for
-from p2p_engine.storage.git import get_git_status
 
 
 def register_doctor_commands(app: typer.Typer, agent_app: typer.Typer) -> None:
@@ -18,7 +17,7 @@ def register_doctor_commands(app: typer.Typer, agent_app: typer.Typer) -> None:
     def doctor(
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
     ) -> None:
-        """Diagnose P2P CLI, project, Git, and MCP runtime readiness."""
+        """Diagnose P2P CLI, project, and MCP runtime readiness."""
         _print_doctor(root, agent_mode=False)
 
     @agent_app.command("doctor")
@@ -58,7 +57,6 @@ def _print_doctor(root: Path, *, agent_mode: bool) -> None:
     local_p2p = resolved_root / ".venv" / "bin" / "p2p"
     package_importable = importlib.util.find_spec("p2p_engine") is not None
     mcp_importable = importlib.util.find_spec("p2p_engine.mcp.server") is not None
-    git_status = get_git_status(resolved_root)
     project_exists = (resolved_root / ".p2p" / "project.yml").exists()
 
     console.print("P2P doctor")
@@ -72,16 +70,8 @@ def _print_doctor(root: Path, *, agent_mode: bool) -> None:
     console.print(f"  python_module_cli: python -m p2p_engine")
     console.print(f"  mcp_server_importable: {str(mcp_importable).lower()}")
     console.print(f"  mcp_server_module: python -m p2p_engine.mcp.server --root {resolved_root}")
-    console.print(f"  git_repository: {str(git_status.is_repository).lower()}")
-    console.print(f"  git_branch: {git_status.branch or 'none'}")
-    console.print(f"  git_clean: {str(git_status.is_clean).lower()}")
-
     if project_exists:
         workspace = workspace_for(resolved_root)
-        status = workspace.sync_status()
-        console.print(f"  repository_mode: {status.mode}")
-        console.print(f"  sync_ready: {str(status.can_sync).lower()}")
-        console.print(f"  sync_reason: {status.reason}")
         try:
             schema = workspace.workspace_schema_status()
         except (OSError, ValueError) as exc:
@@ -107,9 +97,6 @@ def _print_doctor(root: Path, *, agent_mode: bool) -> None:
         else:
             console.print(f"  derived_freshness: {freshness.status}")
     else:
-        console.print("  repository_mode: unknown")
-        console.print("  sync_ready: false")
-        console.print("  sync_reason: no .p2p/project.yml found")
         console.print("  workspace_schema_state: unavailable")
         console.print("  derived_freshness: unavailable")
 

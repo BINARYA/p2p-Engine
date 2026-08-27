@@ -3,127 +3,88 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - "v*.*.*"
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
-  test-matrix:
-    name: Test Python ${{ matrix.python-version }}
+  candidate:
+    name: Verify tagged candidate
+    permissions:
+      contents: read
+    uses: ./.github/workflows/release-candidate.yml
+    with:
+      ref: ${{ github.sha }}
+
+  attest:
+    name: Attest exact candidate artifacts
+    needs: candidate
     runs-on: ubuntu-latest
-    env:
-      PYTEST_BIN: pytest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version:
-          - "3.11"
-          - "3.14"
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install project with development dependencies
-        run: python -m pip install -e ".[dev]"
-
-      - name: Run public contract tests
-        run: ./scripts/test-public.sh -q
-
-      - name: Run full tests
-        run: ./scripts/test-full.sh -q
-
-  build-release:
-    name: Build and publish release artifacts
-    needs: test-matrix
-    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      artifact-metadata: write
+      attestations: write
+      contents: read
+      id-token: write
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Download the exact verified candidate artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          python-version: "3.11"
+          name: p2p-engine-release-candidate-${{ github.sha }}
+          path: dist
 
-      - name: Install project with development dependencies
-        run: python -m pip install -e ".[dev]"
-
-      - name: Check tag matches package version
+      - name: Recheck exact artifact identities
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          import os
-          import tomllib
+          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 3
+          cd dist
+          sha256sum --check SHA256SUMS
 
-          version = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
-          tag = os.environ["GITHUB_REF_NAME"]
-          expected = f"v{version}"
-          if tag != expected:
-              raise SystemExit(f"Tag/version mismatch: tag {tag!r}, pyproject version {version!r}; expected {expected!r}")
-          print(f"Release version verified: {version}")
-          PY
+      - name: Generate GitHub build provenance
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-path: |
+            dist/p2p_engine-*.whl
+            dist/p2p_engine-*.tar.gz
+            dist/SHA256SUMS
 
-      - name: Run release contract tests
-        run: pytest -q tests/test_version_consistency.py tests/test_release_artifacts.py
+  publish:
+    name: Create immutable GitHub release
+    needs: attest
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - name: Check out the exact tagged commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
 
-      - name: Validate a fresh current-schema workspace
+      - name: Download the attested candidate artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: p2p-engine-release-candidate-${{ github.sha }}
+          path: dist
+
+      - name: Verify tag, final metadata and checksums
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          smoke_root="$(mktemp -d)"
-          trap 'rm -rf "${smoke_root}"' EXIT
-          p2p init "Release Smoke" \
-            --owner release-ci \
-            --agent generic \
-            --root "${smoke_root}"
-          p2p runtime status --root "${smoke_root}"
-          p2p workspace schema status --root "${smoke_root}"
-          p2p registry refresh --root "${smoke_root}"
-          p2p validate --root "${smoke_root}"
+          python scripts/verify-release-metadata.py --tag "$RELEASE_TAG"
+          cd dist
+          sha256sum --check SHA256SUMS
 
-      - name: Build source and wheel distributions
-        run: python -m build
-
-      - name: Verify distribution artifacts
-        run: python scripts/verify-release-artifacts.py
-
-      - name: Run installed wheel smoke tests
-        run: |
-          python -m venv .release-wheel-venv
-          .release-wheel-venv/bin/python -m pip install "dist/p2p_engine-${GITHUB_REF_NAME#v}-py3-none-any.whl"
-          .release-wheel-venv/bin/python -m pip install pytest
-          PYTEST_BIN=.release-wheel-venv/bin/pytest ./scripts/test-installed.sh -q
-
-      - name: Create release notes
-        run: |
-          cat > release-notes.md <<EOF
-          P2P Engine ${GITHUB_REF_NAME}
-
-          Install the project-local wheel:
-
-          \`\`\`bash
-          .venv/bin/python -m pip install \\
-            https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/p2p_engine-${GITHUB_REF_NAME#v}-py3-none-any.whl
-          \`\`\`
-          EOF
-
-      - name: Create or update GitHub Release
+      - name: Publish exact artifacts once
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          if gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            gh release upload "${GITHUB_REF_NAME}" dist/*.whl dist/*.tar.gz --repo "${GITHUB_REPOSITORY}" --clobber
-          else
-            gh release create "${GITHUB_REF_NAME}" dist/*.whl dist/*.tar.gz \
-              --repo "${GITHUB_REPOSITORY}" \
-              --title "P2P Engine ${GITHUB_REF_NAME}" \
-              --notes-file release-notes.md
-          fi
+          ./scripts/publish-release.sh \
+            --tag "$RELEASE_TAG" \
+            --dist dist \
+            --notes "docs/releases/${RELEASE_TAG#v}.md"
