@@ -10,8 +10,8 @@ separate from the normal new-project setup.
 Current status:
 
 ```text
-Source checkout: 0.5.0 release candidate (Unreleased).
-Supported distribution: project-local install from an existing GitHub Release wheel.
+Source checkout: 0.5.0.
+Supported distribution: project-local install from the GitHub Release wheel.
 Transitional channel: versioned .whl files attached to GitHub Releases.
 Future target: public package registry, e.g. PyPI.
 ```
@@ -35,13 +35,11 @@ cd my-project
 python3 -m venv .venv
 ```
 
-Install a versioned wheel that is already present on GitHub Releases. Replace
-`<published-version>` with an existing release tag; do not use `0.5.0` until
-the separate release step has published it.
+Install the published 0.5.0 wheel from GitHub Releases:
 
 ```bash
 .venv/bin/python -m pip install \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v<published-version>/p2p_engine-<published-version>-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.5.0/p2p_engine-0.5.0-py3-none-any.whl
 ```
 
 The wheel filename follows:
@@ -63,7 +61,7 @@ workflow also creates a GitHub Artifact Attestation for the exact published
 files. Verification is optional and requires only the GitHub CLI:
 
 ```bash
-gh attestation verify p2p_engine-<published-version>-py3-none-any.whl \
+gh attestation verify p2p_engine-0.5.0-py3-none-any.whl \
   --repo BINARYA/p2p-Engine
 ```
 
@@ -734,9 +732,8 @@ p2p assess refresh
 - P2P Engine is distributed as a Python wheel and source distribution; a
   standalone compiled executable and public package-registry publication are
   not available yet.
-- The source tree is currently the unreleased 0.5.0 candidate, so normal users
-  must install an existing published version until the separate release step
-  completes.
+- The current supported release is 0.5.0; normal users should install its
+  published wheel rather than depend on a source checkout.
 - MCP support is local stdio. Privileged write operations are available only
   through explicit permission-gated tools.
 - Work is logical planning and handoff metadata. P2P Engine does not create or

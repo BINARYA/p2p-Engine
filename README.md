@@ -61,8 +61,8 @@ Humans do not need to operate P2P Engine manually for every step. The intended m
 
 ```text
 Status: Alpha / MVP+
-Source version: 0.5.0 release candidate (Unreleased)
-Install: project-local virtualenv from an existing GitHub Release wheel
+Source version: 0.5.0
+Install: project-local virtualenv from the GitHub Release wheel
 CLI: usable
 MCP: local stdio MVP
 Hosted product: not included in this repository
@@ -89,17 +89,15 @@ Agent client
   Codex, Claude, or another MCP/CLI-capable agent that uses P2P primitives.
 ```
 
-Create a project and install an existing published version into that
-project-local virtualenv. Replace `<published-version>` with a tag that is
-actually present on the GitHub Releases page; `0.5.0` must not be used here
-until its release has been published.
+Create a project and install P2P Engine 0.5.0 into that project-local
+virtualenv:
 
 ```bash
 mkdir /tmp/my-project
 cd /tmp/my-project
 python3 -m venv .venv
 .venv/bin/python -m pip install \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v<published-version>/p2p_engine-<published-version>-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.5.0/p2p_engine-0.5.0-py3-none-any.whl
 ```
 
 Initialize P2P inside the target project:
@@ -366,7 +364,7 @@ Work in progress:
 
 Short-term:
 
-- finish and publish the verified 0.5.0 release candidate;
+- validate the 0.5.0 release across downstream integrations;
 - validate MCP behavior with more real clients;
 - continue hardening validation and recovery paths;
 - plan modular refactoring of the large `P2PWorkspace` facade.

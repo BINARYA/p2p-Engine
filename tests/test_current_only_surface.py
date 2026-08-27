@@ -102,14 +102,14 @@ def test_acceptance_walkthroughs_assign_scope_before_decision_preview() -> None:
         assert "--kind project_global" in text[scope:decision]
 
 
-def test_unreleased_install_guides_do_not_claim_the_0_5_asset_exists() -> None:
-    unavailable_asset = (
+def test_current_install_guides_reference_the_0_5_release_asset() -> None:
+    release_asset = (
         "https://github.com/BINARYA/p2p-Engine/releases/download/"
         "v0.5.0/p2p_engine-0.5.0-py3-none-any.whl"
     )
 
-    assert unavailable_asset not in (ROOT / "README.md").read_text(encoding="utf-8")
-    assert unavailable_asset not in (ROOT / "docs" / "INSTALL.md").read_text(
+    assert release_asset in (ROOT / "README.md").read_text(encoding="utf-8")
+    assert release_asset in (ROOT / "docs" / "INSTALL.md").read_text(
         encoding="utf-8"
     )
 

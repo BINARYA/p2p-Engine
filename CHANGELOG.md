@@ -6,7 +6,7 @@ This project is early-stage and did not previously maintain a public changelog.
 Use this file for human-readable release notes as the repository moves toward
 tagged releases.
 
-## 0.5.0 - Unreleased
+## 0.5.0 - 2026-08-27
 
 - Converged the public P2P Engine 0.5.0 surfaces around workspace schema 4,
   portable vertical schema 3, project-owned structure, memory classification,

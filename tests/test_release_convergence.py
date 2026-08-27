@@ -30,7 +30,6 @@ from p2p_engine.services.release_convergence import (
 )
 from p2p_engine.storage.filesystem import P2PWorkspace
 
-
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = CliRunner()
 
@@ -185,7 +184,7 @@ def test_docs_release_notes_and_allowlist_record_clean_break() -> None:
     ).read_text(encoding="utf-8")
     allowed = {item["path"]: item["reason"] for item in obsolete_reference_allowlist()}
 
-    assert "## 0.5.0 - Unreleased" in changelog
+    assert "## 0.5.0 - 2026-08-27" in changelog
     assert "workspace schema 4" in changelog
     assert "portable vertical schema 3" in changelog
     normalized_changelog = " ".join(changelog.split())

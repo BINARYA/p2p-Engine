@@ -43,15 +43,10 @@ def test_current_release_documentation_matches_publication_state() -> None:
     )
     heading = release_heading.search(changelog)
     assert heading is not None
-    if heading.group("state") == "Unreleased":
-        assert release_url not in readme
-        assert release_url not in install
-        assert "<published-version>" in readme
-        assert "<published-version>" in install
-    else:
-        assert release_url in readme
-        assert release_url in install
+    assert heading.group("state") == "2026-08-27"
+    assert release_url in readme
+    assert release_url in install
     assert release_url in release_note
-    assert "After publication" in release_note
+    assert "Install the exact release wheel" in release_note
     assert f"P2P Engine {__version__} exposes" in cli_contract
     assert f"P2P Engine {__version__} supports workspace schema 4 only" in workspace_contract

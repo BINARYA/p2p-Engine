@@ -26,15 +26,13 @@ Implemented:
 
 ## Near Term
 
-- Keep 0.5.0 marked Unreleased until the owner-approved candidate is green,
-  then record the publication date and finalize the release notes.
-- Run the commit-bound Python 3.11/3.14 candidate workflow.
-- Complete the WaveKit fixture handoff against the verified 0.5.0 artifact.
+- Complete the WaveKit fixture handoff against the verified 0.5.0 release
+  artifact.
 - Continue hardening validation and recovery paths.
 
 ## Later
 
-- Publish immutable release artifacts after a green owner-approved candidate.
+- Add a public package-registry distribution channel when ready.
 - Strengthen spec/export workflows.
 - Split the large internal workspace facade into smaller managers while
   preserving public behavior.

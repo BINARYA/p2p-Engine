@@ -124,7 +124,7 @@ def test_candidate_builder_compares_clean_builds_before_checksums() -> None:
     assert text.index('cmp -s "$artifact" "$peer"') < text.index("sha256sum")
 
 
-def test_owner_approved_package_metadata_is_complete_and_unreleased_is_allowed() -> None:
+def test_owner_approved_package_metadata_is_complete() -> None:
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))[
         "project"
     ]
@@ -140,40 +140,17 @@ def test_owner_approved_package_metadata_is_complete_and_unreleased_is_allowed()
     assert "mrjungle and contributors" in readme
 
 
-def test_release_finalization_gate_rejects_intentional_unreleased_state() -> None:
-    issues = METADATA.validate_release_metadata(ROOT, require_release=True)
-
-    assert "CHANGELOG.md requires a dated 0.5.0 section" in issues
-    assert "CHANGELOG.md still marks 0.5.0 as Unreleased" in issues
-    assert "release notes are still marked Unreleased" in issues
-    assert all("license" not in issue.lower() for issue in issues)
-    assert all("identity" not in issue.lower() for issue in issues)
-    assert all("urls" not in issue.lower() for issue in issues)
+def test_release_finalization_gate_accepts_owner_finalized_state() -> None:
+    assert METADATA.validate_release_metadata(ROOT, require_release=True) == []
 
 
-def test_candidate_build_fails_cleanly_before_build_while_release_is_unreleased(
-    tmp_path: Path,
-) -> None:
-    output = tmp_path / "candidate"
-    env = os.environ.copy()
-    env.update({"PYTHON_BIN": os.fspath(Path(os.sys.executable)), "SOURCE_DATE_EPOCH": "1"})
-
-    result = subprocess.run(
-        [
-            str(ROOT / "scripts" / "build-release-candidate.sh"),
-            "--output",
-            str(output),
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-        env=env,
-        timeout=10,
+def test_candidate_builder_requires_finalized_metadata_before_build() -> None:
+    text = (ROOT / "scripts" / "build-release-candidate.sh").read_text(
+        encoding="utf-8"
     )
 
-    assert result.returncode == 1
-    assert "CHANGELOG.md requires a dated 0.5.0 section" in result.stdout
-    assert not output.exists() or not any(output.iterdir())
+    assert "metadata_args+=(--release)" in text
+    assert text.index("verify-release-metadata.py") < text.index('"$python_bin" -m build')
 
 
 def test_security_audit_exception_schema_rejects_expired_or_incomplete_entries(
