@@ -72,6 +72,10 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert policy["runtime_bootstrap"]["manual_workspace_schema_repair"] == "forbidden"
     assert "legacy_undeclared" not in policy["runtime_bootstrap"]
     assert policy["runtime_bootstrap"]["environment_mutation"] == "owner_explicit_action_required"
+    assert policy["runtime_bootstrap"]["recommended_installation_manager"] == "uv_tool"
+    assert policy["runtime_bootstrap"]["runtime_environment_location"] == "outside_project_root"
+    assert policy["runtime_bootstrap"]["autonomous_installation"] == "forbidden"
+    assert ".venv/Scripts/p2p.exe" in policy["runtime_bootstrap"]["discovery_order"]
     assert policy["mcp"]["protocol_native_payloads"] is True
     assert policy["mcp"]["uses_p2p_cli_v1_envelope"] is False
     source_control = policy["source_control_boundary"]
@@ -238,7 +242,7 @@ def test_agent_instruction_service_registers_project_curator_codex_outputs(
     assert modern["shared"] is False
     assert modern["managed"] is True
     assert modern["drift"] == "clean"
-    assert modern["template_generation_id"].startswith("agent-template-generation-v3:")
+    assert modern["template_generation_id"].startswith("agent-template-generation-v4:")
     assert len(str(modern["sha256"])) == 64
     reference_paths = {
         path

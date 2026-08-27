@@ -10,8 +10,9 @@ learn every command; it is to see why P2P Engine exists.
 5. create a Change Set;
 6. refresh registries and generate agent context.
 
-The example assumes P2P Engine is installed in the project-local `.venv`. If
-`p2p` is not on `PATH`, use `.venv/bin/p2p`.
+The example assumes the recommended uv tool installation exposes `p2p` on
+`PATH`; the project itself needs no `.venv`. See `docs/INSTALL.md` for uv setup
+and the separately labelled pip/virtualenv fallback.
 
 ## Scenario
 

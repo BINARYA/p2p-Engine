@@ -24,21 +24,43 @@ For a future multi-agent setup that requires one long-running shared service,
 P2P Engine would need a Streamable HTTP MCP server. The current implementation
 is local `stdio`.
 
-Run the stdio server from the governed P2P decision root. Prefer the
-project-local virtualenv form:
+Run `p2p doctor --root /path/to/project` and use the absolute
+`running_python` it reports. That interpreter is the runtime that generated the
+hint and can import the MCP server; it does not need to live in the project:
 
 ```bash
-/path/to/project/.venv/bin/python \
+/absolute/path/reported/by/p2p-doctor/python \
   -m p2p_engine.mcp.server \
   --root /path/to/project
 ```
 
+Typical uv locations are
+`~/.local/share/uv/tools/p2p-engine/bin/python` on POSIX and
+`%APPDATA%\uv\tools\p2p-engine\Scripts\python.exe` on Windows, but clients
+must use the discovered absolute value rather than assuming a default path.
+
 `--root` selects the governed P2P project root used for decisions and state. If
-`p2p-mcp-server` is available on `PATH`, this shorter form remains valid:
+`p2p-mcp-server` is actually resolvable in the client process's `PATH`, this
+shorter form remains valid:
 
 ```bash
 p2p-mcp-server --root /path/to/project
 ```
+
+For a project that requires P2P Engine 0.5.0 while the persistent tool is
+incompatible, configure the owner-approved exact runtime. Keep command and
+arguments separate in client configuration:
+
+```text
+command: /absolute/path/to/uv
+args: tool, run, --isolated, --managed-python, --python, 3.12, --no-config,
+      --from, https://github.com/BINARYA/p2p-Engine/releases/download/v0.5.0/p2p_engine-0.5.0-py3-none-any.whl,
+      p2p-mcp-server, --root, /path/to/project
+```
+
+This launches a pinned process; MCP neither installs/reconciles persistent
+runtimes nor bypasses runtime-contract write gates. A cold cache may require
+network access. Environment changes always require explicit owner action.
 
 ## Verified Client Setup
 
@@ -49,7 +71,7 @@ portable across all clients without adaptation.
 
 ```bash
 codex mcp add p2p-my-project -- \
-  /path/to/my-project/.venv/bin/python \
+  /absolute/path/reported/by/p2p-doctor/python \
   -m p2p_engine.mcp.server \
   --root /path/to/my-project
 ```
@@ -62,7 +84,7 @@ and use `/mcp` inside the Codex terminal UI to inspect active servers.
 
 ```bash
 claude mcp add --transport stdio p2p-my-project -- \
-  /path/to/my-project/.venv/bin/python \
+  /absolute/path/reported/by/p2p-doctor/python \
   -m p2p_engine.mcp.server \
   --root /path/to/my-project
 ```
@@ -80,7 +102,7 @@ the same command and arguments:
 {
   "mcpServers": {
     "p2p-my-project": {
-      "command": "/path/to/my-project/.venv/bin/python",
+      "command": "/absolute/path/reported/by/p2p-doctor/python",
       "args": [
         "-m",
         "p2p_engine.mcp.server",
@@ -109,7 +131,7 @@ VS Code's MCP configuration is separate from Codex configuration. Use workspace
   "servers": {
     "p2p-my-project": {
       "type": "stdio",
-      "command": "${workspaceFolder}/.venv/bin/python",
+      "command": "/absolute/path/reported/by/p2p-doctor/python",
       "args": [
         "-m",
         "p2p_engine.mcp.server",
@@ -695,8 +717,13 @@ these local operations.
 Server cannot start:
 
 ```bash
-/path/to/project/.venv/bin/python -m p2p_engine.mcp.server --root /path/to/project
+p2p doctor --root /path/to/project
+/absolute/path/reported/by/p2p-doctor/python -m p2p_engine.mcp.server --root /path/to/project
 ```
+
+If this is an existing pip/virtualenv fallback, `doctor` also recognizes
+`.venv/bin/python` and `.venv\Scripts\python.exe`. It never recommends a
+nonexistent project-local interpreter.
 
 Agent is reading too much:
 

@@ -48,9 +48,11 @@ After init, manage the footprint with `p2p agent list`,
 `p2p agent instructions refresh --profile <adapter>`.
 
 When `--mcp-hint` is used, init prints a root-aware MCP setup section. The
-preferred server command uses `/path/to/project/.venv/bin/python -m
-p2p_engine.mcp.server --root /path/to/project`; the shorter
-`p2p-mcp-server --root /path/to/project` form remains a PATH-based fallback.
+preferred server command uses the absolute running P2P interpreter reported by
+`p2p doctor`, followed by `-m p2p_engine.mcp.server --root /path/to/project`.
+An existing POSIX/Windows project virtualenv is only a supported fallback;
+`p2p-mcp-server --root /path/to/project` is offered only when it resolves on
+`PATH`. The hint also reports an exact-version uv command when uv is available.
 `--root` means the governed P2P decision root.
 
 Initialization is source-control neutral: it creates neither `.git` nor
@@ -1427,10 +1429,20 @@ inference.
 
 `p2p: command not found`
 
-Use the virtualenv binary or activate the virtualenv:
+For the recommended uv tool install, update the owner shell path and rerun
+diagnostics:
+
+```bash
+uv tool update-shell
+p2p doctor
+```
+
+For an existing pip/virtualenv fallback, use the platform-native binary or
+activate that virtualenv:
 
 ```bash
 .venv/bin/p2p --help
+.venv\Scripts\p2p.exe --help
 . .venv/bin/activate
 ```
 

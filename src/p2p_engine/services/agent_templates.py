@@ -22,7 +22,7 @@ from p2p_engine.services.agent_capabilities import (
 
 BUILT_IN_AGENT_ADAPTERS = ("generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode")
 AGENT_PROFILES = {*BUILT_IN_AGENT_ADAPTERS, "all"}
-AGENT_TEMPLATE_GENERATION_ID = f"agent-template-generation-v3:{AGENT_CAPABILITY_CATALOG_VERSION}"
+AGENT_TEMPLATE_GENERATION_ID = f"agent-template-generation-v4:{AGENT_CAPABILITY_CATALOG_VERSION}"
 
 
 def normalize_agent_profile(profile: str) -> str:
@@ -290,13 +290,17 @@ Behavior:
 2. use `P2P-SETUP.md` as human-facing setup guidance only when present;
 3. treat `recommended` as the exact version a fresh collaborator should install;
 4. treat `requires` as the compatible runtime range for operating the project;
-5. inspect workspace schema separately from runtime compatibility;
-6. require workspace schema v4; unsupported versions have no conversion path in this runtime;
-7. inspect and explicitly recover interrupted atomic transactions before unrelated governed writes;
-8. require the explicit runtime contract and never infer it from the installed package;
-9. report `missing_contract`, `invalid_contract`, `unsupported_contract`, or `incompatible` before governed writes;
-10. ask the owner for explicit environment action before installing, upgrading, downgrading, or replacing P2P Engine;
-11. never edit runtime/schema state, transaction locks, journals or candidates by hand as a repair shortcut."""
+5. use `p2p` on `PATH` as the normal command; an uv tool environment does not belong inside this project;
+6. treat existing POSIX `.venv/bin`, Windows `.venv/Scripts`, and `python -m p2p_engine` commands only as fallbacks;
+7. when the default runtime is incompatible, report the exact-version uv command from `P2P-SETUP.md` and stop for owner action;
+8. never install uv, Python or P2P Engine, update shell `PATH`, or run an environment-mutating command without explicit owner approval;
+9. ask the owner for explicit environment action whenever installation, upgrade, downgrade, replacement or removal is required;
+10. inspect workspace schema separately from runtime compatibility;
+11. require workspace schema v4; unsupported versions have no conversion path in this runtime;
+12. inspect and explicitly recover interrupted atomic transactions before unrelated governed writes;
+13. require the explicit runtime contract and never infer it from the installed package;
+14. report `missing_contract`, `invalid_contract`, `unsupported_contract`, or `incompatible` before governed writes;
+15. never edit runtime/schema state, transaction locks, journals or candidates by hand as a repair shortcut."""
 
 
 WRITE_CLASS_ORDER = (
@@ -733,9 +737,15 @@ def agent_policy(
             "workspace_recovery_apply_surface": "owner_confirmed_cli_only",
             "manual_workspace_schema_repair": "forbidden",
             "environment_mutation": "owner_explicit_action_required",
+            "recommended_installation_manager": "uv_tool",
+            "runtime_environment_location": "outside_project_root",
+            "exact_version_guidance": "P2P-SETUP.md",
+            "autonomous_installation": "forbidden",
             "discovery_order": [
                 "p2p",
+                "running P2P runtime reported by p2p doctor",
                 ".venv/bin/p2p",
+                ".venv/Scripts/p2p.exe",
                 "python -m p2p_engine",
                 "available MCP tools",
             ],
@@ -743,6 +753,7 @@ def agent_policy(
                 "p2p doctor",
                 "p2p agent doctor",
                 ".venv/bin/p2p agent doctor",
+                ".venv/Scripts/p2p.exe agent doctor",
                 "python -m p2p_engine agent doctor",
             ],
             "when_unavailable": "stop_and_report_diagnostics",
@@ -1082,12 +1093,15 @@ If `p2p` is not available on `PATH`, try this discovery order before stopping:
 
 ```bash
 p2p doctor
-.venv/bin/p2p agent doctor
 python -m p2p_engine agent doctor
+.venv/bin/p2p agent doctor
+.venv/Scripts/p2p.exe agent doctor
 python -m p2p_engine.mcp.server --root /path/to/project
 ```
 
-Use the first available P2P command as the write interface. If no CLI command or explicit MCP write tool is available, report the diagnostics and ask the owner to install P2P Engine or provide a runner/container with P2P installed. Do not edit `.p2p/` manually as a fallback.
+The normal local installation exposes `p2p` from an owner-managed uv tool environment outside the project. A project `.venv` is optional. If the runtime is missing or incompatible, report the diagnostics and the exact owner-run command from `P2P-SETUP.md`; do not install uv, Python or P2P Engine, and do not update `PATH`, without explicit owner approval.
+
+Use the first compatible P2P command as the write interface. If no CLI command or explicit MCP write tool is available, ask the owner to install P2P Engine or provide a runner/container with P2P installed. Do not edit `.p2p/` manually as a fallback.
 
 ## WaveKit CLI Worker Contract
 
@@ -1246,6 +1260,10 @@ Use P2P Engine as the source of truth for project governance and planning.
 ## Governed Root
 
 {governed_root_guidance_block()}
+
+## Runtime Bootstrap
+
+{RUNTIME_CONTRACT_GUIDANCE_BLOCK}
 
 ## WaveKit CLI Worker Contract
 
@@ -1574,6 +1592,10 @@ Key rules:
 ## Governed Root
 
 {governed_root_guidance_block()}
+
+## Runtime Bootstrap
+
+{RUNTIME_CONTRACT_GUIDANCE_BLOCK}
 
 ## WaveKit CLI Worker Contract
 

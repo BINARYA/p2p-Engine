@@ -69,6 +69,21 @@ def test_release_verifier_requires_current_agent_surface_members() -> None:
     } <= MODULE.CURRENT_SURFACE_SDIST_MEMBERS
 
 
+def test_release_verifier_requires_uv_installation_contract_members() -> None:
+    assert {
+        "p2p_engine/cli_commands/doctor.py",
+        "p2p_engine/services/installation_guidance.py",
+        "p2p_engine/services/mcp_hints.py",
+        "p2p_engine/services/runtime_contract.py",
+    } <= MODULE.UV_INSTALLATION_WHEEL_MEMBERS
+    assert {
+        "docs/INSTALL.md",
+        "docs/MCP.md",
+        "scripts/test-uv-installed.py",
+        "tests/test_uv_installation_harness.py",
+    } <= MODULE.UV_INSTALLATION_SDIST_MEMBERS
+
+
 def test_release_verifier_requires_license_and_release_documentation() -> None:
     source = Path(__file__).resolve().parents[1]
     assert (source / "LICENSE").is_file()

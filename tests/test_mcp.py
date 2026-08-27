@@ -924,7 +924,11 @@ def test_mcp_init_returns_additive_mcp_hint_without_repository_metadata(tmp_path
     assert "created_or_updated" in result
     assert result["mcp_hint"]["server_name"] == "p2p-mcp-hint-project"
     assert result["mcp_hint"]["server_command"][-2:] == ["--root", str(tmp_path)]
-    assert result["mcp_hint"]["fallback_command"] == ["p2p-mcp-server", "--root", str(tmp_path)]
+    assert result["mcp_hint"]["server_executable"] == result["mcp_hint"]["server_command"][0]
+    assert result["mcp_hint"]["server_args"] == result["mcp_hint"]["server_command"][1:]
+    assert result["mcp_hint"]["fallback_command"] == []
+    assert result["mcp_hint"]["invocation_mode"] == "running-runtime"
+    assert result["mcp_hint"]["project_venv_command"] == []
     assert "gitignore_hygiene" not in result
     assert "repository" not in result
     assert not (tmp_path / ".gitignore").exists()

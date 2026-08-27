@@ -9,6 +9,7 @@ ruff_targets=(
   scripts/check-source-boundary.py
   scripts/check-doc-links.py
   scripts/generate-wavekit-transition-fixtures.py
+  scripts/test-uv-installed.py
   scripts/verify-audit-exceptions.py
   scripts/verify-release-artifacts.py
   scripts/verify-release-metadata.py

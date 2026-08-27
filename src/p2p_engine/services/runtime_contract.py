@@ -7,12 +7,11 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-
-from p2p_engine.foundation.yaml_loaders import load_yaml
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.version import InvalidVersion, Version
 
 from p2p_engine import __version__ as P2P_ENGINE_VERSION
+from p2p_engine.core.mutation_preview import source_precondition
 from p2p_engine.core.runtime_contract import (
     RUNTIME_CONTRACT_BLOCKER_CONFIRMATION_REQUIRED,
     RUNTIME_CONTRACT_BLOCKER_INVALID_PROPOSED_CONTRACT,
@@ -21,12 +20,6 @@ from p2p_engine.core.runtime_contract import (
     RUNTIME_CONTRACT_BLOCKER_STALE_PREVIEW,
     RUNTIME_CONTRACT_BLOCKER_UNMANAGED_SETUP_GUIDE,
     RUNTIME_CONTRACT_BLOCKER_UNTRUSTED_CURRENT_CONTRACT,
-    RUNTIME_CONTRACT_UPDATE_STATUS_APPLICABLE,
-    RUNTIME_CONTRACT_UPDATE_STATUS_BLOCKED,
-    RUNTIME_CONTRACT_UPDATE_STATUS_NO_CHANGE,
-    RUNTIME_CONTRACT_UPDATE_STATUS_PARTIAL_FAILURE,
-    RUNTIME_CONTRACT_UPDATE_STATUS_PREVIEW_BLOCKED,
-    RUNTIME_CONTRACT_UPDATE_STATUS_UPDATED,
     RUNTIME_CONTRACT_IMPACT_CURRENT_RUNTIME_EXCLUDED,
     RUNTIME_CONTRACT_IMPACT_RANGE_TIGHTENING,
     RUNTIME_CONTRACT_IMPACT_RANGE_WIDENING,
@@ -39,11 +32,17 @@ from p2p_engine.core.runtime_contract import (
     RUNTIME_CONTRACT_MISSING_FIELD,
     RUNTIME_CONTRACT_RECOMMENDED_OUT_OF_RANGE,
     RUNTIME_CONTRACT_UNSUPPORTED,
-    RUNTIME_SETUP_GUIDE_DRIFT,
+    RUNTIME_CONTRACT_UPDATE_STATUS_APPLICABLE,
+    RUNTIME_CONTRACT_UPDATE_STATUS_BLOCKED,
+    RUNTIME_CONTRACT_UPDATE_STATUS_NO_CHANGE,
+    RUNTIME_CONTRACT_UPDATE_STATUS_PARTIAL_FAILURE,
+    RUNTIME_CONTRACT_UPDATE_STATUS_PREVIEW_BLOCKED,
+    RUNTIME_CONTRACT_UPDATE_STATUS_UPDATED,
     RUNTIME_SETUP_GUIDE_ACTION_BLOCKED,
     RUNTIME_SETUP_GUIDE_ACTION_GENERATE,
     RUNTIME_SETUP_GUIDE_ACTION_NONE,
     RUNTIME_SETUP_GUIDE_ACTION_REGENERATE,
+    RUNTIME_SETUP_GUIDE_DRIFT,
     RUNTIME_SETUP_GUIDE_MARKER,
     RUNTIME_SETUP_GUIDE_STATE_MANAGED_ALIGNED,
     RUNTIME_SETUP_GUIDE_STATE_MANAGED_DRIFTED,
@@ -64,7 +63,6 @@ from p2p_engine.core.runtime_contract import (
     RuntimeStatus,
     RuntimeWritePreflight,
 )
-from p2p_engine.core.mutation_preview import semantic_sha256, source_precondition
 from p2p_engine.foundation.files import (
     identity_slug,
     read_yaml_mapping,
@@ -72,6 +70,12 @@ from p2p_engine.foundation.files import (
     write_text_atomic,
     write_yaml_atomic,
     yaml_dump,
+)
+from p2p_engine.foundation.yaml_loaders import load_yaml
+from p2p_engine.services.installation_guidance import (
+    exact_version_invocation,
+    persistent_install_invocation,
+    render_shell_command,
 )
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 
@@ -150,6 +154,21 @@ class RuntimeContractService:
 
     def render_setup_guide(self, contract: RuntimeContract | None = None) -> str:
         contract = contract or self._contract_from_payload(self.default_contract_payload())
+        persistent_command = render_shell_command(
+            persistent_install_invocation(contract.p2p.recommended).command
+        )
+        exact_command = render_shell_command(
+            exact_version_invocation(
+                contract.p2p.recommended,
+                "p2p",
+                "runtime",
+                "status",
+                "--root",
+                ".",
+                uv_executable="uvx",
+                uvx=True,
+            ).command
+        )
         return "\n".join(
             [
                 RUNTIME_SETUP_GUIDE_MARKER,
@@ -162,8 +181,37 @@ class RuntimeContractService:
                 f"- Recommended runtime version: `{contract.p2p.recommended}`",
                 "- Source of truth: `.p2p/project/runtime.yml`",
                 "",
-                "Install the recommended P2P Engine version using the official installation guidance.",
-                "After installation, run `p2p runtime status` from the project root.",
+                "## Recommended owner-run setup (uv)",
+                "",
+                "P2P Engine recommends a user-level uv tool environment outside this project.",
+                "Installing uv, Python or P2P Engine mutates the host environment and requires "
+                "explicit owner approval; agents must not run these commands autonomously.",
+                "",
+                "```bash",
+                persistent_command,
+                "uv tool update-shell  # only when uv reports that its tool bin is not on PATH",
+                "p2p runtime status --root .",
+                "```",
+                "",
+                "If the persistent `p2p` version is incompatible, the owner can run the exact "
+                "recommended version without replacing the default tool:",
+                "",
+                "```bash",
+                exact_command,
+                "```",
+                "",
+                "The exact command is isolated and pinned to the maintained GitHub Release wheel. "
+                "It may require network access when its uv cache is cold.",
+                "",
+                "## Supported fallback",
+                "",
+                "Where uv is unavailable, an owner may install the same exact wheel into an "
+                "existing project virtualenv with pip. Do not use pip to mutate an uv-managed "
+                "tool environment. POSIX `.venv/bin` and Windows `.venv/Scripts` layouts are "
+                "fallbacks, not required project memory.",
+                "",
+                "Never edit `.p2p/` manually to bypass a missing or incompatible runtime. Stop, "
+                "report `p2p runtime status`, and obtain owner action.",
                 "",
             ]
         )
@@ -256,6 +304,18 @@ class RuntimeContractService:
                 findings=[],
                 suggested_command="p2p runtime status",
             )
+        exact_status_command = render_shell_command(
+            exact_version_invocation(
+                contract.p2p.recommended,
+                "p2p",
+                "runtime",
+                "status",
+                "--root",
+                str(self.root.resolve()),
+                uv_executable="uvx",
+                uvx=True,
+            ).command
+        )
         finding = RuntimeFinding(
             code=RUNTIME_STATUS_INCOMPATIBLE,
             severity="error",
@@ -264,7 +324,7 @@ class RuntimeContractService:
                 f"Current P2P Engine runtime {self.current_version} does not satisfy "
                 f"project requirement {contract.p2p.requires}."
             ),
-            suggested_command="install the recommended P2P Engine version, then run p2p runtime status",
+            suggested_command=exact_status_command,
         )
         return RuntimeStatus(
             contract_path=relative_to_root(self.contract_path, self.root),
@@ -274,7 +334,7 @@ class RuntimeContractService:
             recommended=contract.p2p.recommended,
             current_version=self.current_version,
             findings=[finding],
-            suggested_command="install the recommended P2P Engine version, then run p2p runtime status",
+            suggested_command=exact_status_command,
         )
 
     def validation_findings(self) -> list[RuntimeFinding]:

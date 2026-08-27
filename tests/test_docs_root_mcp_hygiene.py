@@ -10,7 +10,7 @@ def _read_doc(name: str) -> str:
     return (DOCS_ROOT / name).read_text(encoding="utf-8")
 
 
-def test_docs_prefer_project_local_mcp_python_and_keep_path_fallback() -> None:
+def test_docs_prefer_running_runtime_mcp_and_keep_supported_fallbacks() -> None:
     text = "\n".join(
         [
             _read_doc("MCP.md"),
@@ -19,9 +19,12 @@ def test_docs_prefer_project_local_mcp_python_and_keep_path_fallback() -> None:
         ]
     )
 
-    assert ".venv/bin/python" in text
+    assert "/absolute/path/reported/by/p2p-doctor/python" in text
+    assert ".venv/bin/python" in text  # explicitly labelled fallback
+    assert ".venv\\Scripts\\python.exe" in text
     assert "-m p2p_engine.mcp.server" in text or '"p2p_engine.mcp.server"' in text
     assert "p2p-mcp-server" in text
+    assert "when it is actually resolvable" in text or "actually resolvable" in text
 
 
 def test_docs_do_not_describe_root_as_sibling_repository_support() -> None:

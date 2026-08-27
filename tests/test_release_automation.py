@@ -21,6 +21,7 @@ SETUP_PYTHON_SHA = "a26af69be951a213d495a4c3e4e4022e16d87065"
 UPLOAD_ARTIFACT_SHA = "ea165f8d65b6e75b540449e92b4886f43607fa02"
 DOWNLOAD_ARTIFACT_SHA = "d3f86a106a0bac45b974a628896c90dbdf5c8093"
 ATTEST_SHA = "508db95dd578ae2727ebd6217d5ba78e4fbda05d"
+SETUP_UV_SHA = "c771a70e6277c0a99b617c7a806ffedaca235ff9"
 
 
 def _workflow(name: str) -> tuple[dict[str, object], str]:
@@ -28,16 +29,31 @@ def _workflow(name: str) -> tuple[dict[str, object], str]:
     return yaml.safe_load(text), text
 
 
-def test_ci_is_pre_tag_and_uses_supported_matrix_without_dist_sharing() -> None:
+def test_ci_is_pre_tag_and_reuses_one_wheel_across_supported_uv_matrix() -> None:
     workflow, text = _workflow("ci.yml")
     source = workflow["jobs"]["source"]
+    uv_wheel = workflow["jobs"]["uv-wheel"]
+    uv_installed = workflow["jobs"]["uv-installed"]
 
     assert source["strategy"]["matrix"]["python-version"] == ["3.11", "3.14"]
     assert workflow["permissions"] == {"contents": "read"}
     assert "pull_request:" in text
     assert "branches:\n      - main" in text
     assert "workflow_dispatch:" in text
-    assert "dist/" not in text
+    assert uv_wheel["needs"] == "source"
+    assert uv_installed["needs"] == "uv-wheel"
+    assert [item["target"] for item in uv_installed["strategy"]["matrix"]["include"]] == [
+        "linux-x86_64",
+        "macos-x86_64",
+        "windows-x86_64",
+        "macos-arm64",
+    ]
+    assert text.count("p2p-engine-uv-candidate-${{ github.sha }}") == 2
+    assert "version: \"0.12.6\"" in text
+    assert "--managed-python" in (ROOT / "scripts" / "test-uv-installed.py").read_text(
+        encoding="utf-8"
+    )
+    assert all("dist/" not in str(step.get("run", "")) for step in source["steps"])
     assert "coverage" not in text.lower()
 
 
@@ -64,6 +80,15 @@ def test_candidate_is_exact_read_only_non_publishing_gate() -> None:
     assert "test-installed.sh --wheel" in text
     assert "audit-wheel.sh --wheel" in text
     assert "actions/upload-artifact@" + UPLOAD_ARTIFACT_SHA in text
+    uv_matrix = workflow["jobs"]["uv-installed-matrix"]
+    assert uv_matrix["needs"] == "artifact"
+    assert [item["target"] for item in uv_matrix["strategy"]["matrix"]["include"]] == [
+        "linux-x86_64",
+        "macos-x86_64",
+        "windows-x86_64",
+        "macos-arm64",
+    ]
+    assert "test-uv-installed.py" in text
     assert "release create" not in text
     assert "publish-release.sh" not in text
     assert "coverage" not in text.lower()
@@ -111,6 +136,8 @@ def test_third_party_actions_are_full_sha_pinned() -> None:
                 assert line.split("@", 1)[1].split()[0] == DOWNLOAD_ARTIFACT_SHA
             if "uses: actions/attest@" in line:
                 assert line.split("@", 1)[1].split()[0] == ATTEST_SHA
+            if "uses: astral-sh/setup-uv@" in line:
+                assert line.split("@", 1)[1].split()[0] == SETUP_UV_SHA
 
 
 def test_candidate_builder_compares_clean_builds_before_checksums() -> None:

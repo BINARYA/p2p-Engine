@@ -62,7 +62,7 @@ Humans do not need to operate P2P Engine manually for every step. The intended m
 ```text
 Status: Alpha / MVP+
 Source version: 0.5.0
-Install: project-local virtualenv from the GitHub Release wheel
+Install: uv-managed user tool from the exact GitHub Release wheel
 CLI: usable
 MCP: local stdio MVP
 Hosted product: not included in this repository
@@ -75,35 +75,48 @@ Current implementation includes proposal lifecycle, decisions, choices, Change S
 
 ## 5-Minute Agent Setup
 
-The normal workflow is to install P2P Engine into the target project's own
-virtualenv. GitHub Release wheels are the transitional distribution channel.
-The future target is a public package registry where setup becomes
-`python -m pip install p2p-engine`.
+The recommended local workflow installs P2P Engine once as an isolated uv user
+tool. uv obtains its own compatible Python, so target projects do not need a
+Python installation or `.venv`. GitHub Release wheels are the current
+distribution channel; public-index installation remains a future option.
 
 ```text
 Target project
-  The project that gets `.p2p/` state, agent instructions, and a local `.venv`
-  containing the `p2p` runtime.
+  The project that gets `.p2p/` state and agent instructions. The P2P runtime
+  remains in uv's user-level tool directory outside this project.
 
 Agent client
   Codex, Claude, or another MCP/CLI-capable agent that uses P2P primitives.
 ```
 
-Create a project and install P2P Engine 0.5.0 into that project-local
-virtualenv:
+Install the pinned uv release using its official owner-run bootstrap (choose
+one command), then install the exact P2P Engine 0.5.0 wheel:
 
 ```bash
+# Linux and macOS
+curl -LsSf https://astral.sh/uv/0.12.6/install.sh | sh
+
+# Windows PowerShell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/0.12.6/install.ps1 | iex"
+
+uv tool install --managed-python --python 3.12 --no-config \
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.5.0/p2p_engine-0.5.0-py3-none-any.whl
+uv tool update-shell  # only if uv reports that its tool bin is not on PATH
+
 mkdir /tmp/my-project
 cd /tmp/my-project
-python3 -m venv .venv
-.venv/bin/python -m pip install \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.5.0/p2p_engine-0.5.0-py3-none-any.whl
 ```
+
+Installing uv, its managed Python, or P2P Engine changes the host environment
+and is always an explicit owner action. P2P commands, MCP and generated agents
+never run these installation commands automatically. See
+[docs/INSTALL.md](docs/INSTALL.md) for verified downloads, lifecycle,
+offline/proxy behavior, Windows details and the pip/virtualenv fallback.
 
 Initialize P2P inside the target project:
 
 ```bash
-.venv/bin/p2p init "My Project" \
+p2p init "My Project" \
   --agent codex \
   --domain software \
   --vertical binarya/software_project@2.0.0 \
@@ -160,7 +173,9 @@ apply supported governance decisions only with matching authority and consent
 evidence. MCP does not create branches, commits, provider PR/MR resources,
 releases, or other source-delivery artifacts.
 
-See [docs/INSTALL.md](docs/INSTALL.md) for project-local install, upgrade, and new-project setup. See [docs/MCP.md](docs/MCP.md) for MCP client setup, `stdio` behavior, and tool boundaries.
+See [docs/INSTALL.md](docs/INSTALL.md) for uv-first install, upgrade, rollback,
+uninstall and new-project setup. See [docs/MCP.md](docs/MCP.md) for MCP client
+setup, `stdio` behavior, and tool boundaries.
 
 ### Optional Manual CLI Trial
 
@@ -169,14 +184,14 @@ or recover from agent/client issues. This is not the intended primary workflow
 for normal use.
 
 ```bash
-.venv/bin/p2p context --budget small
-.venv/bin/p2p proposal create "First direction" \
+p2p context --budget small
+p2p proposal create "First direction" \
   --problem "The project needs an explicit first direction." \
   --goal "Define the initial scope." \
   --proposal "Start with a small owner-reviewed proposal." \
   --acceptance "The owner can review and decide it."
-.venv/bin/p2p proposal readiness assess PROP-001
-.venv/bin/p2p proposal show PROP-001 --format json
+p2p proposal readiness assess PROP-001
+p2p proposal show PROP-001 --format json
 ```
 
 Proposal detail reports whether stored readiness is `current`, `stale`, or
@@ -193,8 +208,8 @@ default and other normalized language editions can coexist without overwriting
 one another:
 
 ```bash
-.venv/bin/p2p project publish prepare --language en --output-name project
-.venv/bin/p2p project publish list
+p2p project publish prepare --language en --output-name project
+p2p project publish list
 ```
 
 Prepare emits a bounded curator packet plus exact Markdown, project-model, and
@@ -204,10 +219,10 @@ three before validation, optional PDF rendering, and separate owner review. See
 
 ## Install
 
-Current install method:
+Recommended local install method:
 
 ```text
-project-local Python virtualenv + GitHub Release wheel
+uv-managed Python user tool + exact GitHub Release wheel
 ```
 
 See [docs/INSTALL.md](docs/INSTALL.md) for installing P2P Engine and setting up a new target project.
@@ -222,14 +237,14 @@ For a new project, use the default when multiple collaborators may use
 different agents:
 
 ```bash
-.venv/bin/p2p init "My Project" --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
+p2p init "My Project" --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
 ```
 
 You can also narrow the generated adapters:
 
 ```bash
-.venv/bin/p2p init "My Project" --agent codex --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
-.venv/bin/p2p init "My Project" --agent codex --agent claude --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
+p2p init "My Project" --agent codex --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
+p2p init "My Project" --agent codex --agent claude --domain software --vertical binarya/software_project@2.0.0 --mcp-hint
 ```
 
 The `generic` baseline is always created and cannot be uninstalled.
@@ -238,12 +253,12 @@ Installed integrations are tracked in `.p2p/agent-integrations.yml`.
 Useful lifecycle commands:
 
 ```bash
-.venv/bin/p2p agent list
-.venv/bin/p2p agent show codex
-.venv/bin/p2p agent install cursor
-.venv/bin/p2p agent update all
-.venv/bin/p2p agent doctor all
-.venv/bin/p2p agent uninstall cursor
+p2p agent list
+p2p agent show codex
+p2p agent install cursor
+p2p agent update all
+p2p agent doctor all
+p2p agent uninstall cursor
 ```
 
 P2P initialization is source-control neutral. If a project is also stored in a

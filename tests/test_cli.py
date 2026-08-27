@@ -142,7 +142,10 @@ def test_cli_init_status_create_and_prompt_flow(tmp_path: Path) -> None:
     assert "p2p project vertical scaffold" in agents
     assert "p2p context --budget small" in agents
     assert "Runtime Bootstrap" in agents
+    assert "uv tool environment outside the project" in agents
+    assert "do not install uv, Python or P2P Engine" in agents
     assert ".venv/bin/p2p agent doctor" in agents
+    assert ".venv/Scripts/p2p.exe agent doctor" in agents
     assert "python -m p2p_engine agent doctor" in agents
     assert (tmp_path / ".p2p" / "project" / "runtime.yml").exists()
     assert (tmp_path / "P2P-SETUP.md").exists()
@@ -1250,7 +1253,7 @@ def test_cli_init_guided_wizard_keeps_all_available_with_footprint_warning(
     _assert_codex_curator_skill(tmp_path)
 
 
-def test_cli_init_mcp_hint_uses_root_aware_project_python_command(tmp_path: Path) -> None:
+def test_cli_init_mcp_hint_uses_root_aware_running_runtime_command(tmp_path: Path) -> None:
     root = tmp_path / "Project With Spaces & Symbols"
     result = runner.invoke(app, ["init", "Demo Project", "--mcp-hint", "--root", str(root)])
 
@@ -1258,9 +1261,9 @@ def test_cli_init_mcp_hint_uses_root_aware_project_python_command(tmp_path: Path
     assert "MCP setup" in result.output
     assert "governed P2P decision root" in result.output
     assert "codex mcp add" in result.output
-    assert ".venv/bin/python" in result.output
+    assert "invocation" not in result.output
     assert "p2p_engine.mcp.server" in result.output
-    assert "p2p-mcp-server" in result.output
+    assert "No existing project-local" in result.output
     assert "Project With" in result.output
     assert "Spaces" in result.output
     assert "Symbols" in result.output
@@ -1507,9 +1510,10 @@ def test_cli_doctor_reports_runtime_readiness(tmp_path: Path) -> None:
     assert "P2P doctor" in result.output
     assert "project: true" in result.output
     assert "package_importable: true" in result.output
-    assert "python_module_cli: python -m p2p_engine" in result.output
+    assert "running_runtime_importable: true" in result.output
+    assert "python_module_cli:" in result.output
     assert "mcp_server_importable: true" in result.output
-    assert "discovery_order: p2p -> .venv/bin/p2p -> python -m p2p_engine -> MCP" in result.output
+    assert "discovery_order: p2p on PATH -> running P2P runtime" in result.output
     assert "suggested_start:" in result.output
 
 

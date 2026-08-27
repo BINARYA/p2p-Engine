@@ -584,13 +584,24 @@ def _print_init_mcp_setup(hint: McpHint, show_mcp_hint: bool = False) -> None:
     console.print(f"  root: {hint.root}")
     console.print("  `--root` points to the governed P2P decision root used for decisions and state.")
     console.print("  Codex registration:")
-    console.print(f"    {render_shell_command(hint.codex_command)}")
+    console.print(
+        f"    {render_shell_command(hint.codex_command) if hint.codex_command else 'unavailable'}"
+    )
     console.print("  Generic stdio server command:")
-    console.print(f"    {render_shell_command(hint.server_command)}")
+    console.print(
+        f"    {render_shell_command(hint.server_command) if hint.server_command else 'unavailable'}"
+    )
     for note in hint.notes:
         console.print(f"  note: {note}")
-    console.print("  PATH fallback:")
-    console.print(f"    {render_shell_command(hint.fallback_command)}")
+    if hint.fallback_command:
+        console.print("  PATH fallback:")
+        console.print(f"    {render_shell_command(hint.fallback_command)}")
+    if hint.project_venv_command:
+        console.print("  Existing project virtualenv fallback:")
+        console.print(f"    {render_shell_command(hint.project_venv_command)}")
+    if hint.exact_version_command:
+        console.print("  Exact-version owner-run alternative:")
+        console.print(f"    {render_shell_command(hint.exact_version_command)}")
 
 
 def _print_init_next_steps() -> None:

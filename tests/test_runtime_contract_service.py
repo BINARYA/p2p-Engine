@@ -157,7 +157,7 @@ def test_runtime_setup_guide_drift_uses_full_rendered_content(tmp_path: Path) ->
     workspace.init_project("Runtime Setup")
     setup_path = tmp_path / "P2P-SETUP.md"
     setup_path.write_text(
-        setup_path.read_text(encoding="utf-8").replace("official installation guidance", "manual notes"),
+        setup_path.read_text(encoding="utf-8").replace("Recommended owner-run setup", "manual notes"),
         encoding="utf-8",
     )
 
@@ -185,6 +185,11 @@ def test_runtime_setup_guide_render_contains_managed_marker(tmp_path: Path) -> N
     assert RUNTIME_SETUP_GUIDE_MARKER in content
     assert ".p2p/project/runtime.yml" in content
     assert "p2p runtime status" in content
+    assert "uv tool install --managed-python --python 3.12 --no-config" in content
+    assert "uvx --isolated" in content
+    assert "explicit owner approval" in content
+    assert "must not run these commands autonomously" in content
+    assert "installer:" not in content
 
 
 def test_runtime_contract_status_survives_copied_project_without_git_metadata(tmp_path: Path) -> None:

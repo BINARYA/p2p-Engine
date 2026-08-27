@@ -248,6 +248,26 @@ CURRENT_SURFACE_SDIST_MEMBERS = {
     "tests/test_public_surface_inventory.py",
     "tests/test_version_consistency.py",
 }
+UV_INSTALLATION_WHEEL_MEMBERS = {
+    "p2p_engine/cli_commands/doctor.py",
+    "p2p_engine/services/installation_guidance.py",
+    "p2p_engine/services/mcp_hints.py",
+    "p2p_engine/services/runtime_contract.py",
+}
+UV_INSTALLATION_SDIST_MEMBERS = {
+    *(f"src/{member}" for member in UV_INSTALLATION_WHEEL_MEMBERS),
+    "docs/AGENT-INTEGRATION.md",
+    "docs/CLI-GUIDE.md",
+    "docs/INSTALL.md",
+    "docs/MCP.md",
+    "docs/TUTORIAL.md",
+    "scripts/test-uv-installed.py",
+    "tests/test_doctor_discovery.py",
+    "tests/test_installation_guidance.py",
+    "tests/test_mcp_hint_service.py",
+    "tests/test_uv_installation_docs.py",
+    "tests/test_uv_installation_harness.py",
+}
 RELEASE_CONVERGENCE_WHEEL_MEMBERS = {
     "p2p_engine/core/release_contracts.py",
     "p2p_engine/resources/contracts/__init__.py",
@@ -632,6 +652,7 @@ def verify_wheel(path: Path, *, version: str) -> int:
     required.update(VERTICAL_REGISTRY_WHEEL_MEMBERS)
     required.update(VERTICAL_DRAFT_WHEEL_MEMBERS)
     required.update(CURRENT_SURFACE_WHEEL_MEMBERS)
+    required.update(UV_INSTALLATION_WHEEL_MEMBERS)
     required.update(RELEASE_CONVERGENCE_WHEEL_MEMBERS)
     required.update(_vertical_pack_required_members("p2p_engine"))
     with zipfile.ZipFile(path) as archive:
@@ -678,6 +699,7 @@ def verify_sdist(path: Path, *, version: str) -> int:
         "scripts/check-static.sh",
         "scripts/check-doc-links.py",
         "scripts/test-installed.sh",
+        "scripts/test-uv-installed.py",
         "scripts/archive-project-state.py",
         "src/p2p_engine/core/project_questions.py",
         "src/p2p_engine/services/project_readiness_convergence.py",
@@ -693,6 +715,7 @@ def verify_sdist(path: Path, *, version: str) -> int:
     required.update(VERTICAL_REGISTRY_SDIST_MEMBERS)
     required.update(VERTICAL_DRAFT_SDIST_MEMBERS)
     required.update(CURRENT_SURFACE_SDIST_MEMBERS)
+    required.update(UV_INSTALLATION_SDIST_MEMBERS)
     required.update(RELEASE_CONVERGENCE_SDIST_MEMBERS)
     required.update(_vertical_pack_required_members("src/p2p_engine"))
     with tarfile.open(path, mode="r:gz") as archive:

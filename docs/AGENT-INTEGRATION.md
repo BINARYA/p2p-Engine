@@ -316,9 +316,17 @@ to the governed P2P decision root used for decisions and state:
 
 ```bash
 p2p agent doctor --root /path/to/project
-.venv/bin/p2p agent doctor --root /path/to/project
 python -m p2p_engine agent doctor --root /path/to/project
+.venv/bin/p2p agent doctor --root /path/to/project
+.venv\Scripts\p2p.exe agent doctor --root C:\path\to\project
 ```
+
+The normal command is `p2p` from the owner-managed uv tool environment outside
+the project. The Python module and existing POSIX/Windows project virtualenv
+forms are fallbacks. If the runtime is missing or incompatible, report
+`P2P-SETUP.md` guidance and stop for explicit owner action; an agent must not
+install uv, Python or P2P Engine, update `PATH`, or edit `.p2p` to bypass the
+runtime gate.
 
 If none of those commands is available, the agent may inspect configured MCP
 tools and use explicit write-safe tools when their schema matches the requested
@@ -537,7 +545,7 @@ Configure MCP when available:
 
 ```bash
 codex mcp add p2p-my-project -- \
-  /path/to/my-project/.venv/bin/python \
+  /absolute/path/reported/by/p2p-doctor/python \
   -m p2p_engine.mcp.server \
   --root /path/to/my-project
 ```

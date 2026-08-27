@@ -2175,8 +2175,13 @@ class P2PWorkspace:
                 "project_python": result.mcp_hint.project_python.as_posix(),
                 "project_python_exists": result.mcp_hint.project_python_exists,
                 "server_command": list(result.mcp_hint.server_command),
+                "server_executable": result.mcp_hint.server_executable,
+                "server_args": result.mcp_hint.server_args,
                 "codex_command": list(result.mcp_hint.codex_command),
                 "fallback_command": list(result.mcp_hint.fallback_command),
+                "project_venv_command": list(result.mcp_hint.project_venv_command),
+                "exact_version_command": list(result.mcp_hint.exact_version_command),
+                "invocation_mode": result.mcp_hint.invocation_mode,
                 "notes": list(result.mcp_hint.notes),
             },
             "next_steps": [
@@ -5498,8 +5503,13 @@ def _project_init_mcp_hint_payload(hint: McpHint) -> dict[str, object]:
         "project_python": hint.project_python.as_posix(),
         "project_python_exists": hint.project_python_exists,
         "server_command": list(hint.server_command),
+        "server_executable": hint.server_executable,
+        "server_args": hint.server_args,
         "codex_command": list(hint.codex_command),
         "fallback_command": list(hint.fallback_command),
+        "project_venv_command": list(hint.project_venv_command),
+        "exact_version_command": list(hint.exact_version_command),
+        "invocation_mode": hint.invocation_mode,
         "notes": list(hint.notes),
     }
 
