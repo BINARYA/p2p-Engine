@@ -40,6 +40,16 @@ def test_ci_is_pre_tag_and_uses_supported_matrix_without_dist_sharing() -> None:
     assert "coverage" not in text.lower()
 
 
+def test_staged_mypy_gate_is_import_bounded_and_cache_independent() -> None:
+    configuration = tomllib.loads(
+        (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    )["tool"]["mypy"]
+    script = (ROOT / "scripts" / "check-static.sh").read_text(encoding="utf-8")
+
+    assert configuration["follow_imports"] == "silent"
+    assert '"$python_bin" -m mypy --no-incremental' in script
+
+
 def test_candidate_is_exact_read_only_non_publishing_gate() -> None:
     workflow, text = _workflow("release-candidate.yml")
 

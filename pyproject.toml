@@ -107,6 +107,7 @@ files = [
   "scripts/verify-release-artifacts.py",
 ]
 check_untyped_defs = true
+follow_imports = "silent"
 ignore_missing_imports = true
 no_implicit_optional = true
 show_error_codes = true

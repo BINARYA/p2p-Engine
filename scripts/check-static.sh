@@ -26,4 +26,4 @@ ruff_targets=(
 )
 
 "$python_bin" -m ruff check "${ruff_targets[@]}"
-"$python_bin" -m mypy
+"$python_bin" -m mypy --no-incremental
