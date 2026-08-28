@@ -60,6 +60,16 @@ def test_ci_is_pre_tag_and_reuses_one_wheel_across_supported_uv_matrix() -> None
     assert "coverage" not in text.lower()
 
 
+def test_ci_surfaces_test_failures_as_public_check_annotations() -> None:
+    _workflow_data, text = _workflow("ci.yml")
+
+    assert 'tee "$log"' in text
+    assert 'status="${PIPESTATUS[0]}"' in text
+    assert "::error title=Public contract gate failed::" in text
+    assert "::error title=Full test gate failed::" in text
+    assert text.count('exit "$status"') == 2
+
+
 def test_runner_temp_is_bound_only_after_each_matrix_runner_exists() -> None:
     for workflow_name, job_name in (
         ("ci.yml", "uv-installed"),

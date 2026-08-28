@@ -50,10 +50,30 @@ jobs:
         run: ./scripts/check-static.sh
 
       - name: Run public contracts
-        run: ./scripts/test-public.sh -q
+        run: |
+          log="$RUNNER_TEMP/p2p-public-tests.log"
+          set +e
+          ./scripts/test-public.sh -q 2>&1 | tee "$log"
+          status="${PIPESTATUS[0]}"
+          set -e
+          if (( status != 0 )); then
+            summary="$(tail -n 80 "$log" | tail -c 6000 | tr '\n' ' ' | sed 's/%/%25/g')"
+            printf '::error title=Public contract gate failed::%s\n' "$summary"
+          fi
+          exit "$status"
 
       - name: Run the full suite
-        run: ./scripts/test-full.sh -q
+        run: |
+          log="$RUNNER_TEMP/p2p-full-tests.log"
+          set +e
+          ./scripts/test-full.sh -q 2>&1 | tee "$log"
+          status="${PIPESTATUS[0]}"
+          set -e
+          if (( status != 0 )); then
+            summary="$(tail -n 80 "$log" | tail -c 6000 | tr '\n' ' ' | sed 's/%/%25/g')"
+            printf '::error title=Full test gate failed::%s\n' "$summary"
+          fi
+          exit "$status"
 
   uv-wheel:
     name: Build immutable uv candidate
