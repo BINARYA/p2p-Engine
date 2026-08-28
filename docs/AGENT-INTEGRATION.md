@@ -291,8 +291,8 @@ and can be prepared by an agent or collaborator:
 
 ```bash
 p2p runtime contract preview \
-  --requires ">=0.5.0,<0.6" \
-  --recommended "0.5.0" \
+  --requires ">=0.5.1,<0.6" \
+  --recommended "0.5.1" \
   --reason "Allow compatible 0.5 patch releases." \
   --format json
 ```

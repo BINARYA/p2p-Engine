@@ -15,10 +15,10 @@ from p2p_engine.services.agent_templates import agent_policy
 from p2p_engine.services.public_surface_inventory import public_surface_snapshot
 
 
-CONVERGENCE_GATE_CONTRACT = "p2p-0.5.0-convergence-gate/v1"
+CONVERGENCE_GATE_CONTRACT = "p2p-0.5.1-convergence-gate/v1"
 WAVEKIT_CLI_FIXTURE_BUNDLE_CONTRACT = "p2p-wavekit-cli-fixtures/v1"
 WAVEKIT_CLI_FIXTURE_RESOURCE = "wavekit-cli-fixtures-v1.json"
-RELEASE_LINE = "0.5.0"
+RELEASE_LINE = "0.5.1"
 SUPPORTED_RELEASE_PYTHONS = ("3.11", "3.14")
 
 

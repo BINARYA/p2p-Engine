@@ -109,8 +109,19 @@ jobs:
         run: |
           python -m twine check dist/p2p_engine-*.whl dist/p2p_engine-*.tar.gz
           python scripts/verify-convergence-gate.py
-          ./scripts/audit-wheel.sh --wheel dist/p2p_engine-0.5.0-py3-none-any.whl
-          ./scripts/test-installed.sh --wheel dist/p2p_engine-0.5.0-py3-none-any.whl
+          ./scripts/audit-wheel.sh --wheel dist/p2p_engine-*.whl
+          ./scripts/test-installed.sh --wheel dist/p2p_engine-*.whl
+
+      - name: Fetch and verify the immutable 0.5.0 lifecycle baseline
+        run: |
+          mkdir previous-artifact
+          curl --fail --location --retry 3 --retry-all-errors \
+            --output previous-artifact/p2p_engine-0.5.0-py3-none-any.whl \
+            https://github.com/BINARYA/p2p-Engine/releases/download/v0.5.0/p2p_engine-0.5.0-py3-none-any.whl
+          printf '%s  %s\n' \
+            99c43fa51ba78a01dfdc153c9821d5f2bf6890156a03447eeeb159ee894a6768 \
+            previous-artifact/p2p_engine-0.5.0-py3-none-any.whl \
+            | sha256sum --check -
 
       - name: Record immutable artifact identities
         run: |
@@ -124,9 +135,18 @@ jobs:
         with:
           name: p2p-engine-release-candidate-${{ inputs.ref }}
           path: |
-            dist/p2p_engine-0.5.0-py3-none-any.whl
-            dist/p2p_engine-0.5.0.tar.gz
+            dist/p2p_engine-*.whl
+            dist/p2p_engine-*.tar.gz
             dist/SHA256SUMS
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+      - name: Retain the verified lifecycle baseline separately
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: p2p-engine-previous-0.5.0-${{ inputs.ref }}
+          path: previous-artifact/p2p_engine-0.5.0-py3-none-any.whl
           if-no-files-found: error
           compression-level: 0
           retention-days: 7
@@ -137,7 +157,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-      P2P_UV_TEST_TMPDIR: ${{ runner.temp }}
       PYTHONDONTWRITEBYTECODE: "1"
     strategy:
       fail-fast: false
@@ -164,6 +183,12 @@ jobs:
           name: p2p-engine-release-candidate-${{ inputs.ref }}
           path: uv-artifact
 
+      - name: Download the verified lifecycle baseline
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: p2p-engine-previous-0.5.0-${{ inputs.ref }}
+          path: previous-artifact
+
       - name: Set up harness Python only
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
@@ -184,12 +209,19 @@ jobs:
           wheels = list(Path("uv-artifact").glob("*.whl"))
           if len(wheels) != 1:
               raise SystemExit(f"expected one candidate wheel, found {len(wheels)}")
+          previous = list(Path("previous-artifact").glob("*.whl"))
+          if len(previous) != 1:
+              raise SystemExit(f"expected one previous wheel, found {len(previous)}")
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as stream:
               stream.write(f"path={wheels[0].resolve()}\n")
+              stream.write(f"previous={previous[0].resolve()}\n")
 
       - name: Qualify managed-Python uv installation
+        env:
+          P2P_UV_TEST_TMPDIR: ${{ runner.temp }}
         run: >-
           python scripts/test-uv-installed.py
           --uv uv
           --python 3.12
+          --previous-wheel "${{ steps.wheel.outputs.previous }}"
           --wheel "${{ steps.wheel.outputs.path }}"

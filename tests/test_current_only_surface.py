@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from p2p_engine import __version__
+
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = ROOT / "src" / "p2p_engine"
 MAINTAINED_DOCUMENTS = (
@@ -102,10 +104,10 @@ def test_acceptance_walkthroughs_assign_scope_before_decision_preview() -> None:
         assert "--kind project_global" in text[scope:decision]
 
 
-def test_current_install_guides_reference_the_0_5_release_asset() -> None:
+def test_current_install_guides_reference_the_current_release_asset() -> None:
     release_asset = (
         "https://github.com/BINARYA/p2p-Engine/releases/download/"
-        "v0.5.0/p2p_engine-0.5.0-py3-none-any.whl"
+        f"v{__version__}/p2p_engine-{__version__}-py3-none-any.whl"
     )
 
     assert release_asset in (ROOT / "README.md").read_text(encoding="utf-8")

@@ -14,7 +14,7 @@ fixture bundle lives at
 `p2p version --format json`, `p2p status --format json` and
 `p2p_workspace_schema_status` expose the same contract tuple:
 
-- P2P Engine `0.5.0`
+- P2P Engine `0.5.1`
 - CLI envelope `p2p-cli/v1`
 - workspace schema 4
 - portable vertical schema 3 and package format 1
@@ -87,8 +87,8 @@ fallback in the runtime catalog client.
 
 ## Release Notes And Resources
 
-The release notes state a clean break: P2P Engine 0.5.0 supports workspace
-schema 4 and portable vertical schema 3 only. It does not provide in-runtime
+The release notes state that P2P Engine 0.5.1 preserves the clean boundary:
+workspace schema 4 and portable vertical schema 3 only. It does not provide in-runtime
 migration, conversion or compatibility aliases for older workspace or vertical
 schemas.
 

@@ -7,6 +7,8 @@ from pathlib import Path
 import pytest
 import yaml
 
+from p2p_engine import __version__
+
 SCRIPT_PATH = (
     Path(__file__).resolve().parents[1] / "scripts" / "verify-release-artifacts.py"
 )
@@ -87,7 +89,7 @@ def test_release_verifier_requires_uv_installation_contract_members() -> None:
 def test_release_verifier_requires_license_and_release_documentation() -> None:
     source = Path(__file__).resolve().parents[1]
     assert (source / "LICENSE").is_file()
-    assert (source / "docs" / "releases" / "0.5.0.md").is_file()
+    assert (source / "docs" / "releases" / f"{__version__}.md").is_file()
     contract = MODULE._project_metadata_contract()
     assert contract.license_expression == "GPL-3.0-or-later"
     assert contract.authors == ("mrjungle",)

@@ -47,14 +47,14 @@ shorter form remains valid:
 p2p-mcp-server --root /path/to/project
 ```
 
-For a project that requires P2P Engine 0.5.0 while the persistent tool is
+For a project that requires P2P Engine 0.5.1 while the persistent tool is
 incompatible, configure the owner-approved exact runtime. Keep command and
 arguments separate in client configuration:
 
 ```text
 command: /absolute/path/to/uv
 args: tool, run, --isolated, --managed-python, --python, 3.12, --no-config,
-      --from, https://github.com/BINARYA/p2p-Engine/releases/download/v0.5.0/p2p_engine-0.5.0-py3-none-any.whl,
+      --from, https://github.com/BINARYA/p2p-Engine/releases/download/v0.5.1/p2p_engine-0.5.1-py3-none-any.whl,
       p2p-mcp-server, --root, /path/to/project
 ```
 

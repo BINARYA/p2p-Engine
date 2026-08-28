@@ -20,7 +20,7 @@ def test_primary_installation_docs_are_uv_first_and_version_pinned() -> None:
 
     for text in (readme, install):
         assert "uv tool install --managed-python --python 3.12 --no-config" in text
-        assert "p2p_engine-0.5.0-py3-none-any.whl" in text
+        assert f"p2p_engine-{P2P_ENGINE_VERSION}-py3-none-any.whl" in text
         assert "project-local install from the GitHub Release wheel" not in text
         assert "normal workflow is to install P2P Engine into the target project's own" not in text
     assert "pip/Virtualenv Fallback" in install

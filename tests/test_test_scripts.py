@@ -9,6 +9,8 @@ import time
 
 import pytest
 
+from p2p_engine import __version__
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -158,7 +160,7 @@ def test_installed_script_rejects_wrong_wheel_before_environment_creation(
 def test_installed_script_cleans_environment_after_install_failure(
     tmp_path: Path,
 ) -> None:
-    wheel = tmp_path / "p2p_engine-0.5.0-py3-none-any.whl"
+    wheel = tmp_path / f"p2p_engine-{__version__}-py3-none-any.whl"
     wheel.write_bytes(b"not a wheel")
     scratch = tmp_path / "scratch"
     scratch.mkdir()
@@ -186,7 +188,7 @@ def test_installed_script_cleans_environment_after_install_failure(
 def test_installed_script_cleans_environment_when_interrupted(
     tmp_path: Path,
 ) -> None:
-    wheel = tmp_path / "p2p_engine-0.5.0-py3-none-any.whl"
+    wheel = tmp_path / f"p2p_engine-{__version__}-py3-none-any.whl"
     wheel.write_bytes(b"not a wheel")
     scratch = tmp_path / "scratch"
     scratch.mkdir()
@@ -194,6 +196,7 @@ def test_installed_script_cleans_environment_when_interrupted(
         **os.environ,
         "PYTHON_BIN": sys.executable,
         "P2P_TEST_TMPDIR": str(scratch),
+        "P2P_TEST_FAILURE_MODE": "interrupted-smoke",
     }
     process = subprocess.Popen(
         [str(ROOT / "scripts" / "test-installed.sh"), "--wheel", str(wheel)],

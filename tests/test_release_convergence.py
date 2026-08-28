@@ -82,7 +82,7 @@ def test_convergence_inventory_maps_surfaces_capabilities_and_deferrals() -> Non
     snapshot = public_surface_snapshot()
 
     assert payload["contract_version"] == CONVERGENCE_GATE_CONTRACT
-    assert payload["release_line"] == RELEASE_LINE == __version__ == "0.5.0"
+    assert payload["release_line"] == RELEASE_LINE == __version__ == "0.5.1"
     assert issue_codes(validate_convergence_inventory()) == ()
     assert payload["issues"] == []
     assert payload["public_surface"]["semantic_sha256"] == snapshot.semantic_sha256
@@ -184,7 +184,7 @@ def test_docs_release_notes_and_allowlist_record_clean_break() -> None:
     ).read_text(encoding="utf-8")
     allowed = {item["path"]: item["reason"] for item in obsolete_reference_allowlist()}
 
-    assert "## 0.5.0 - 2026-08-27" in changelog
+    assert "## 0.5.1 - 2026-08-28" in changelog
     assert "workspace schema 4" in changelog
     assert "portable vertical schema 3" in changelog
     normalized_changelog = " ".join(changelog.split())
@@ -198,7 +198,7 @@ def test_docs_release_notes_and_allowlist_record_clean_break() -> None:
     assert "p2p-vertical-registry/v2" in convergence_doc
     assert "protocol-v1" in convergence_doc
     assert "WaveKit-facing CLI fixture bundle" in convergence_doc
-    assert "P2P Engine 0.5.0" in convergence_doc
+    assert "P2P Engine `0.5.1`" in convergence_doc
     assert allowed["CHANGELOG.md"]
     assert set(allowed) == {
         "CHANGELOG.md",

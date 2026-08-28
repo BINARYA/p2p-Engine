@@ -72,6 +72,12 @@ abort() {
 trap cleanup EXIT
 trap abort INT TERM
 
+if [[ "$failure_mode" == "interrupted-smoke" ]]; then
+  while true; do
+    sleep 1
+  done
+fi
+
 venv_root="$installed_root/venv"
 smoke_root="$installed_root/external-cwd"
 sentinel_bin="$installed_root/sentinel-bin"
@@ -144,10 +150,6 @@ if [[ "$failure_mode" == "git-invocation" ]]; then
     exit 1
   }
 fi
-if [[ "$failure_mode" == "interrupted-smoke" ]]; then
-  kill -TERM "$$"
-fi
-
 "$venv_root/bin/python" - "$expected_version" "$wheel_path" "$script_root" <<'PY'
 from importlib import metadata, resources
 from pathlib import Path

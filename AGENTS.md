@@ -27,7 +27,7 @@ p2p status --root ../projects/p2p-engine-project
 - Run focused tests first, then `./scripts/test-public.sh -q` and
   `./scripts/test-full.sh -q` when the change affects public or release
   contracts.
-- Do not use coverage as a release gate for the 0.5.0 candidate.
+- Do not use coverage as a release gate for the 0.5.1 candidate.
 
 ## Product boundary
 

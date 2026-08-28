@@ -688,7 +688,7 @@ def verify_sdist(path: Path, *, version: str) -> int:
         "README.md",
         "security-audit-exceptions.yml",
         "docs/WORKSPACE-SCHEMA.md",
-        "docs/releases/0.5.0.md",
+        f"docs/releases/{version}.md",
         "PKG-INFO",
         "pyproject.toml",
         "scripts/verify-release-artifacts.py",

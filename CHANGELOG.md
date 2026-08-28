@@ -6,6 +6,27 @@ This project is early-stage and did not previously maintain a public changelog.
 Use this file for human-readable release notes as the repository moves toward
 tagged releases.
 
+## 0.5.1 - 2026-08-28
+
+- Made `uv tool install` from the exact GitHub Release wheel the recommended
+  local installation path, with uv-managed Python and the tool environment
+  outside target projects; retained pip/virtualenv as an explicit fallback.
+- Added exact-version `uvx --isolated` guidance, upgrade, rollback, reinstall,
+  uninstall, proxy/offline, checksum and attestation documentation without
+  making uv a runtime dependency.
+- Aligned `p2p doctor`, initialization MCP hints, generated `P2P-SETUP.md`,
+  agent policy and Generic, Codex and Claude instructions with platform-aware
+  uv-first runtime discovery and explicit owner control of environment changes.
+- Added an isolated installed-wheel harness that verifies both CLI and MCP,
+  warm/offline cache behavior, project-state byte preservation and the real
+  `0.5.0 -> 0.5.1 -> 0.5.0 -> 0.5.1` lifecycle.
+- Added Linux x86-64, macOS x86-64, Windows x86-64 and macOS ARM64 uv
+  qualification using one immutable candidate wheel while preserving the
+  existing pip-installed-wheel and Python 3.11/3.14 gates.
+- Hardened CI workflow validation so runner-scoped temporary paths are bound at
+  step execution time and candidate artifact selection is not hard-coded to a
+  previous release filename.
+
 ## 0.5.0 - 2026-08-27
 
 - Converged the public P2P Engine 0.5.0 surfaces around workspace schema 4,
