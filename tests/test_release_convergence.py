@@ -220,7 +220,7 @@ def test_release_workflow_runs_installed_wheel_smoke_after_artifact_verification
     artifact = candidate["jobs"]["artifact"]
     commands = "\n".join(str(step.get("run", "")) for step in artifact["steps"])
 
-    assert source_matrix["strategy"]["matrix"]["python-version"] == ["3.11", "3.14"]
+    assert source_matrix["strategy"]["matrix"]["python-version"] == ["3.12"]
     assert artifact["needs"] == "source-matrix"
     assert "build-release-candidate.sh" in commands
     assert "twine check" in commands

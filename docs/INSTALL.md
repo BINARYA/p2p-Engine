@@ -24,10 +24,11 @@ Future target: public package registry (not currently published/qualified).
 - Optional: an MCP-capable or CLI-capable agent client
 
 The recommended path does not require an existing Python, administrator access,
-shell activation or a `.venv` in the target project. The wheel itself continues
-to support Python 3.11 and newer. Linux/Windows ARM64 and other systems are not
-qualified by this release; use the labelled pip/virtualenv fallback where an
-appropriate Python is available.
+shell activation or a `.venv` in the target project. Package metadata permits
+Python 3.11 and newer, while this release is qualified with uv-managed Python
+3.12. Linux/Windows ARM64 and other systems are not qualified by this release;
+use the labelled pip/virtualenv fallback where an appropriate Python is
+available.
 
 ## Recommended uv Installation
 
@@ -161,7 +162,8 @@ used until that exact package/version is verifiably published.
 
 Use this supported fallback for constrained networks, unqualified platforms or
 policies that prohibit uv. Do not use pip inside an uv-managed tool environment.
-This path requires an existing Python 3.11 or newer.
+This path requires an existing Python 3.11 or newer. Python 3.12 is the
+release-qualified runtime; other metadata-compatible versions are best-effort.
 
 Create a project directory:
 

@@ -29,7 +29,7 @@ def test_release_candidate_matrix_uses_supported_isolated_python_versions() -> N
 
     test_matrix = workflow["jobs"]["source-matrix"]
     assert test_matrix["env"]["PYTEST_BIN"] == "pytest"
-    assert test_matrix["strategy"]["matrix"]["python-version"] == ["3.11", "3.14"]
+    assert test_matrix["strategy"]["matrix"]["python-version"] == ["3.12"]
 
 
 def test_release_verifier_requires_all_canonical_bundled_vertical_members() -> None:

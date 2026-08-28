@@ -19,7 +19,7 @@ CONVERGENCE_GATE_CONTRACT = "p2p-0.5.1-convergence-gate/v1"
 WAVEKIT_CLI_FIXTURE_BUNDLE_CONTRACT = "p2p-wavekit-cli-fixtures/v1"
 WAVEKIT_CLI_FIXTURE_RESOURCE = "wavekit-cli-fixtures-v1.json"
 RELEASE_LINE = "0.5.1"
-SUPPORTED_RELEASE_PYTHONS = ("3.11", "3.14")
+SUPPORTED_RELEASE_PYTHONS = ("3.12",)
 
 
 @dataclass(frozen=True)

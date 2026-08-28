@@ -35,7 +35,7 @@ def test_ci_is_pre_tag_and_reuses_one_wheel_across_supported_uv_matrix() -> None
     uv_wheel = workflow["jobs"]["uv-wheel"]
     uv_installed = workflow["jobs"]["uv-installed"]
 
-    assert source["strategy"]["matrix"]["python-version"] == ["3.11", "3.14"]
+    assert source["strategy"]["matrix"]["python-version"] == ["3.12"]
     assert workflow["permissions"] == {"contents": "read"}
     assert "pull_request:" in text
     assert "branches:\n      - main" in text
@@ -48,6 +48,10 @@ def test_ci_is_pre_tag_and_reuses_one_wheel_across_supported_uv_matrix() -> None
         "windows-x86_64",
         "macos-arm64",
     ]
+    assert [
+        item["lifecycle"]
+        for item in uv_installed["strategy"]["matrix"]["include"]
+    ] == [True, False, False, False]
     assert text.count("p2p-engine-uv-candidate-${{ github.sha }}") == 2
     assert text.count("p2p-engine-uv-previous-0.5.0-${{ github.sha }}") == 2
     assert "99c43fa51ba78a01dfdc153c9821d5f2bf6890156a03447eeeb159ee894a6768" in text
@@ -83,7 +87,24 @@ def test_runner_temp_is_bound_only_after_each_matrix_runner_exists() -> None:
             for step in job["steps"]
             if step.get("name") == "Qualify managed-Python uv installation"
         )
+        lifecycle = next(
+            step
+            for step in job["steps"]
+            if step.get("name")
+            == "Qualify managed-Python uv installation and 0.5.0 lifecycle"
+        )
+        baseline = next(
+            step
+            for step in job["steps"]
+            if step.get("name") == "Download the verified lifecycle baseline"
+        )
         assert qualification["env"]["P2P_UV_TEST_TMPDIR"] == "${{ runner.temp }}"
+        assert lifecycle["env"]["P2P_UV_TEST_TMPDIR"] == "${{ runner.temp }}"
+        assert qualification["if"] == "matrix.lifecycle == false"
+        assert lifecycle["if"] == "matrix.lifecycle"
+        assert baseline["if"] == "matrix.lifecycle"
+        assert "--previous-wheel" not in qualification["run"]
+        assert "--previous-wheel" in lifecycle["run"]
 
 
 def test_staged_mypy_gate_is_import_bounded_and_cache_independent() -> None:
@@ -102,7 +123,7 @@ def test_candidate_is_exact_read_only_non_publishing_gate() -> None:
     assert workflow["permissions"] == {"contents": "read"}
     assert workflow["jobs"]["source-matrix"]["strategy"]["matrix"][
         "python-version"
-    ] == ["3.11", "3.14"]
+    ] == ["3.12"]
     assert "ref: ${{ inputs.ref }}" in text
     assert "git rev-parse HEAD" in text
     assert "build-release-candidate.sh" in text
@@ -116,6 +137,12 @@ def test_candidate_is_exact_read_only_non_publishing_gate() -> None:
         "macos-x86_64",
         "windows-x86_64",
         "macos-arm64",
+    ]
+    assert [item["lifecycle"] for item in uv_matrix["strategy"]["matrix"]["include"]] == [
+        True,
+        False,
+        False,
+        False,
     ]
     assert "test-uv-installed.py" in text
     assert "--previous-wheel" in text

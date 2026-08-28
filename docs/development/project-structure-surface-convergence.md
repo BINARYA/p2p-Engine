@@ -100,10 +100,11 @@ the packaged fixture matches the installed runtime generator.
 
 ## CI And Residual Risk
 
-The release workflow runs the source public/full suites across Python 3.11 and
-3.14, then builds artifacts in one dedicated release job, verifies archive
-contents and runs installed-wheel smoke tests. Matrix jobs do not upload or
-share release assets.
+The release workflow runs the source public/full suites once on the canonical
+Python 3.12 runtime, then builds artifacts in one dedicated release job,
+verifies archive contents and runs installed-wheel smoke tests. Cross-platform
+uv jobs share the one immutable candidate wheel; only Linux also exercises the
+historical 0.5.0 upgrade/rollback lifecycle.
 
 The only recorded non-blocking deferral is `project.structure.merge_restore`.
 It remains unavailable until its own feature adds domain behavior, surfaces,

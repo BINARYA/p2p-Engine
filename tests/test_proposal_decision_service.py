@@ -501,6 +501,56 @@ def test_schema_recovery_race_waits_for_competing_decision_before_classifying(
     assert wait_calls == 2
 
 
+def test_exact_retry_reloads_state_after_live_receipt_transaction(
+    tmp_path: Path,
+) -> None:
+    workspace, proposal_id, _ = _workspace(tmp_path)
+    preview = _preview(workspace, proposal_id, reason="Accept.")
+    service = workspace._proposal_decision_service()
+    original_read = service.receipts.read
+    receipt_reads = 0
+    wait_calls = 0
+
+    def transient_receipt_read(*, idempotency_key: str):
+        nonlocal receipt_reads
+        receipt_reads += 1
+        if receipt_reads == 1:
+            raise ValueError(
+                "P2P_IDEMPOTENCY_INCOMPLETE_TRANSACTION: "
+                "simulated live decision transaction"
+            )
+        return original_read(idempotency_key=idempotency_key)
+
+    def wait_for_competing_decision() -> None:
+        nonlocal wait_calls
+        wait_calls += 1
+        if wait_calls == 2:
+            competing = P2PWorkspace(tmp_path)._proposal_decision_service()
+            assert (
+                competing.apply(
+                    preview.request,
+                    preview_token=preview.mutation.preview_token,
+                    confirm=True,
+                ).status
+                == "applied"
+            )
+
+    service.receipts.read = transient_receipt_read  # type: ignore[method-assign]
+    service._wait_for_competing_decision_mutation = (  # type: ignore[method-assign]
+        wait_for_competing_decision
+    )
+
+    result = service.apply(
+        preview.request,
+        preview_token=preview.mutation.preview_token,
+        confirm=True,
+    )
+
+    assert result.status == "already_applied"
+    assert receipt_reads == 2
+    assert wait_calls == 2
+
+
 def test_schema_gate_distinguishes_live_decision_lock_from_stale_recovery(
     tmp_path: Path,
 ) -> None:

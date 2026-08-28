@@ -25,6 +25,7 @@ from p2p_engine.core.mutation_preview import (
     semantic_sha256,
     source_precondition,
 )
+from p2p_engine.core.mutation_receipts import MutationReceipt
 from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionAffectedDecision,
     ProposalDecisionApplyResult,
@@ -1562,16 +1563,33 @@ class ProposalDecisionService:
     ) -> ProposalDecisionApplyResult | None:
         if not request.operation_key:
             return None
-        ledger = self._read_ledger(request.proposal_id)
-        matching = next(
-            (
-                event
-                for event in ledger.events
-                if event.operation_key == request.operation_key
-            ),
-            None,
-        )
-        receipt = self.receipts.read(idempotency_key=request.operation_key)
+
+        def read_retry_state() -> tuple[
+            ProposalDecisionLedger,
+            ProposalDecisionEvent | None,
+            MutationReceipt | None,
+        ]:
+            ledger = self._read_ledger(request.proposal_id)
+            matching_event = next(
+                (
+                    event
+                    for event in ledger.events
+                    if event.operation_key == request.operation_key
+                ),
+                None,
+            )
+            receipt_state = self.receipts.read(
+                idempotency_key=request.operation_key
+            )
+            return ledger, matching_event, receipt_state
+
+        try:
+            ledger, matching, receipt = read_retry_state()
+        except ValueError as exc:
+            if not str(exc).startswith("P2P_IDEMPOTENCY_INCOMPLETE_TRANSACTION:"):
+                raise
+            self._wait_for_competing_decision_mutation()
+            ledger, matching, receipt = read_retry_state()
         if matching is None:
             if receipt is not None:
                 raise ValueError(

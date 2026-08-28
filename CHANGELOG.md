@@ -21,11 +21,17 @@ tagged releases.
   warm/offline cache behavior, project-state byte preservation and the real
   `0.5.0 -> 0.5.1 -> 0.5.0 -> 0.5.1` lifecycle.
 - Added Linux x86-64, macOS x86-64, Windows x86-64 and macOS ARM64 uv
-  qualification using one immutable candidate wheel while preserving the
-  existing pip-installed-wheel and Python 3.11/3.14 gates.
+  qualification using one immutable candidate wheel. Release source and
+  installed-artifact gates use the canonical uv-managed Python 3.12 runtime;
+  package metadata continues to permit Python 3.11 and newer.
 - Hardened CI workflow validation so runner-scoped temporary paths are bound at
   step execution time and candidate artifact selection is not hard-coded to a
   previous release filename.
+- Replaced POSIX-only PID liveness probes with non-signalling Windows process
+  handle queries, preventing workspace lock checks from emitting
+  `CTRL_C_EVENT` into the caller's console group.
+- Closed the exact-retry race where a live competing decision transaction
+  could briefly be misclassified as interrupted recovery.
 
 ## 0.5.0 - 2026-08-27
 
