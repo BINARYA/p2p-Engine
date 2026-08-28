@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import os
 import re
 import time
 from collections.abc import Callable, Mapping, Sequence
@@ -45,6 +44,7 @@ from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionReadinessBinding,
     ProposalDecisionRequest,
 )
+from p2p_engine.foundation.processes import pid_is_running
 from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.services.lifecycle_authority import (
     ProposalLifecycleAuthorityService,
@@ -1879,13 +1879,7 @@ class ProposalDecisionService:
         pid = lock.get("pid")
         if isinstance(pid, bool) or not isinstance(pid, int) or pid <= 0:
             return False
-        try:
-            os.kill(pid, 0)
-        except ProcessLookupError:
-            return False
-        except PermissionError:
-            return True
-        return True
+        return pid_is_running(pid)
 
     @staticmethod
     def _permission_payload(content: object) -> dict[str, object]:

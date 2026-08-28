@@ -26,6 +26,7 @@ from p2p_engine.core.mutation_preview import MutationResult, SourcePrecondition
 from p2p_engine.core.mutation_receipts import MUTATION_RECEIPT_ROOT
 from p2p_engine.services.candidate_workspace import CandidateWorkspaceView
 from p2p_engine.foundation.files import sync_directory, write_bytes_atomic, write_yaml_atomic
+from p2p_engine.foundation.processes import pid_is_running
 
 
 def utc_now_iso() -> str:
@@ -126,7 +127,7 @@ class WorkspaceTransactionLockService:
             )
         transaction_dir = self.transactions_root / transaction_id
         state = LOCK_RECOVERY_OWNED if (transaction_dir / "journal.yml").exists() else (
-            LOCK_ACTIVE if _pid_is_running(pid) else LOCK_STALE
+            LOCK_ACTIVE if pid_is_running(pid) else LOCK_STALE
         )
         return WorkspaceTransactionLock(
             state=state,
@@ -905,15 +906,3 @@ def _journal_string_list(value: object, field: str) -> list[str]:
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
         raise ValueError(f"Workspace transaction journal field {field} must be a string sequence")
     return value
-
-
-def _pid_is_running(pid: int) -> bool:
-    if pid <= 0:
-        return False
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    return True
