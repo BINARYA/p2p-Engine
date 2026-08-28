@@ -90,12 +90,14 @@ def test_github_failure_annotation_is_multiline_safe(
 
     MODULE.report_failure("failed 100%\r\nsecond line")
 
-    stderr = capsys.readouterr().err.splitlines()
-    assert stderr == [
+    captured = capsys.readouterr()
+    assert captured.err.splitlines() == [
         "failed 100%",
         "second line",
+    ]
+    assert captured.out.splitlines() == [
         "::error title=uv installed-wheel qualification failed::"
-        "failed 100%25%0D%0Asecond line",
+        "failed 100%25 | second line",
     ]
 
 
@@ -107,9 +109,11 @@ def test_github_failure_annotation_is_bounded(
 
     MODULE.report_failure("prefix-" + "x" * 7000)
 
-    annotation = capsys.readouterr().err.splitlines()[-1]
+    captured = capsys.readouterr()
+    annotation = captured.out.splitlines()[-1]
     assert annotation.startswith(
         "::error title=uv installed-wheel qualification failed::"
     )
-    assert annotation.endswith("x" * 6000)
+    assert annotation.endswith("x" * 3000)
     assert "prefix-" not in annotation
+    assert captured.err == "prefix-" + "x" * 7000 + "\n"

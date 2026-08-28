@@ -475,15 +475,11 @@ def report_failure(message: str) -> None:
     print(message, file=sys.stderr)
     if os.environ.get("GITHUB_ACTIONS", "").lower() != "true":
         return
-    annotation = message[-6000:]
-    escaped = (
-        annotation.replace("%", "%25")
-        .replace("\r", "%0D")
-        .replace("\n", "%0A")
-    )
+    annotation = " | ".join(message.splitlines())
+    escaped = annotation.replace("%", "%25")[-3000:]
     print(
         f"::error title=uv installed-wheel qualification failed::{escaped}",
-        file=sys.stderr,
+        flush=True,
     )
 
 
