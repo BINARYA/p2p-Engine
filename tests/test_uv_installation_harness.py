@@ -80,3 +80,20 @@ def test_harness_project_digest_tracks_names_and_bytes(tmp_path: Path) -> None:
     first.write_text("version: 2\n", encoding="utf-8")
 
     assert MODULE.project_digest(project) != initial
+
+
+def test_github_failure_annotation_is_multiline_safe(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+
+    MODULE.report_failure("failed 100%\r\nsecond line")
+
+    stderr = capsys.readouterr().err.splitlines()
+    assert stderr == [
+        "failed 100%",
+        "second line",
+        "::error title=uv installed-wheel qualification failed::"
+        "failed 100%25%0D%0Asecond line",
+    ]

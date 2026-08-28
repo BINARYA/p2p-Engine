@@ -470,6 +470,21 @@ def _file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def report_failure(message: str) -> None:
+    print(message, file=sys.stderr)
+    if os.environ.get("GITHUB_ACTIONS", "").lower() != "true":
+        return
+    escaped = (
+        message.replace("%", "%25")
+        .replace("\r", "%0D")
+        .replace("\n", "%0A")
+    )
+    print(
+        f"::error title=uv installed-wheel qualification failed::{escaped}",
+        file=sys.stderr,
+    )
+
+
 def _arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Qualify one immutable P2P Engine wheel in isolated uv directories."
@@ -492,13 +507,13 @@ def main() -> int:
         candidate = inspect_wheel(args.wheel)
         previous = inspect_wheel(args.previous_wheel) if args.previous_wheel else None
     except (OSError, ValueError, zipfile.BadZipFile) as exc:
-        print(f"uv installed-wheel input error: {exc}", file=sys.stderr)
+        report_failure(f"uv installed-wheel input error: {exc}")
         return 2
 
     temporary_parent = Path(os.environ.get("P2P_UV_TEST_TMPDIR", tempfile.gettempdir()))
     temporary_parent = temporary_parent.expanduser().resolve()
     if not temporary_parent.is_dir():
-        print(f"temporary parent is not a directory: {temporary_parent}", file=sys.stderr)
+        report_failure(f"temporary parent is not a directory: {temporary_parent}")
         return 2
 
     source_root = Path(__file__).resolve().parents[1]
@@ -538,7 +553,7 @@ def main() -> int:
                 [str(tool_python), "-c", "import platform; print(platform.python_version())"]
             ).stdout.strip()
         except (AssertionError, OSError, subprocess.SubprocessError, ValueError) as exc:
-            print(f"uv installed-wheel qualification failed: {exc}", file=sys.stderr)
+            report_failure(f"uv installed-wheel qualification failed: {exc}")
             return 1
 
     evidence = {
