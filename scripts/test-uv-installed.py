@@ -9,6 +9,7 @@ import platform
 import subprocess
 import sys
 import tempfile
+import traceback
 import zipfile
 from dataclasses import dataclass
 from email.parser import Parser
@@ -474,8 +475,9 @@ def report_failure(message: str) -> None:
     print(message, file=sys.stderr)
     if os.environ.get("GITHUB_ACTIONS", "").lower() != "true":
         return
+    annotation = message[-6000:]
     escaped = (
-        message.replace("%", "%25")
+        annotation.replace("%", "%25")
         .replace("\r", "%0D")
         .replace("\n", "%0A")
     )
@@ -578,4 +580,12 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        exit_code = main()
+    except Exception:
+        report_failure(
+            "uv installed-wheel qualification raised an unexpected exception:\n"
+            f"{traceback.format_exc()}"
+        )
+        raise
+    raise SystemExit(exit_code)

@@ -97,3 +97,19 @@ def test_github_failure_annotation_is_multiline_safe(
         "::error title=uv installed-wheel qualification failed::"
         "failed 100%25%0D%0Asecond line",
     ]
+
+
+def test_github_failure_annotation_is_bounded(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+
+    MODULE.report_failure("prefix-" + "x" * 7000)
+
+    annotation = capsys.readouterr().err.splitlines()[-1]
+    assert annotation.startswith(
+        "::error title=uv installed-wheel qualification failed::"
+    )
+    assert annotation.endswith("x" * 6000)
+    assert "prefix-" not in annotation
