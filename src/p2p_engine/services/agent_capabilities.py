@@ -4,7 +4,7 @@ import hashlib
 import json
 from dataclasses import asdict, dataclass
 
-AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v10"
+AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v11"
 
 
 @dataclass(frozen=True)
@@ -129,6 +129,32 @@ AGENT_CAPABILITIES = (
         ),
     ),
     AgentCapability(
+        capability_id="project.memory.portability",
+        cli_paths=(
+            "p2p project memory inspect",
+            "p2p project memory verify",
+            "p2p project memory bundle-export",
+            "p2p project memory archive-verify",
+            "p2p project memory backup",
+            "p2p project memory restore-preview",
+            "p2p project memory restore-apply",
+            "p2p project memory recovery-status",
+        ),
+        mcp_tools=(
+            "p2p_canonical_memory_inspect",
+            "p2p_canonical_memory_verify",
+            "p2p_project_bundle_export_metadata",
+            "p2p_project_archive_verify",
+        ),
+        exposure="cli_restore_mcp_read_only",
+        authority="read_only_or_owner_confirmed_project_memory_restore",
+        reason=(
+            "Canonical memory and bundle reads are storage-neutral. Export and backup "
+            "are explicit local archive writes; restore is exact-preview, backup-protected, "
+            "owner-confirmed and CLI-only, while MCP remains read-only."
+        ),
+    ),
+    AgentCapability(
         capability_id="project.structure.retirement",
         cli_paths=(
             "p2p project structure retire preview",
@@ -234,6 +260,14 @@ AGENT_CAPABILITIES = (
             "p2p project vertical export preview",
             "p2p project vertical export apply",
             "p2p project memory classification",
+            "p2p project memory inspect",
+            "p2p project memory verify",
+            "p2p project memory bundle-export",
+            "p2p project memory archive-verify",
+            "p2p project memory backup",
+            "p2p project memory restore-preview",
+            "p2p project memory restore-apply",
+            "p2p project memory recovery-status",
             "p2p proposal scope show",
             "p2p proposal scope set",
             "p2p proposal list",
@@ -508,6 +542,8 @@ p2p workspace schema status --format json
 p2p workspace transaction status --format json
 p2p project identity status --format json
 p2p project identity show --format json
+p2p project memory inspect --format json
+p2p project memory verify --format json
 p2p project snapshot --format json
 p2p project memory classification --format json
 p2p project domain show --format json

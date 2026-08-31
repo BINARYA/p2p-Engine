@@ -32,6 +32,13 @@ identity blocks governed mutations. A structural domain template is not a
 valid schema-4 domain descriptor. `vertical.yml`, `vertical.lock.yml` and
 `definition.yml` are optional transition/definition artifacts; they do not
 replace project-structure authority.
+
+The workspace schema is a physical adapter concern, not the interchange
+contract. `p2p-canonical-memory/v1` projects the portable logical aggregate;
+`p2p-project-bundle/v1` serializes it deterministically and never embeds a live
+SQLite database, filesystem journal or WAL/SHM file. Replica-local state and
+generated projections remain outside the semantic digest. See
+[`CANONICAL-MEMORY-AND-BUNDLES.md`](CANONICAL-MEMORY-AND-BUNDLES.md).
 Typed authority evidence is required for integrated governed mutations. See
 [`AUTHORITY-CONTEXT.md`](AUTHORITY-CONTEXT.md). The current workspace declaration contains only the current contract,
 initialization baseline, date and actor. Obsolete migration-history fields are

@@ -372,6 +372,39 @@ def tool_definitions() -> list[dict[str, object]]:
             },
         ),
         _tool(
+            'p2p_canonical_memory_inspect',
+            (
+                'Read the fail-closed classification of every durable .p2p artifact. '
+                'This exposes storage-neutral portability decisions and performs no mutation.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'limit': {'type': 'integer', 'minimum': 1, 'maximum': 100000},
+            },
+        ),
+        _tool(
+            'p2p_canonical_memory_verify',
+            'Verify canonical entities, relations, lineage, identity and managed blobs without writing.',
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_bundle_export_metadata',
+            (
+                'Compute deterministic canonical-bundle metadata and archive digest in memory. '
+                'No archive or project file is written.'
+            ),
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_project_archive_verify',
+            'Verify a canonical bundle or physical backup independently without activating it.',
+            {
+                'root': {'type': 'string'},
+                'source': {'type': 'string'},
+            },
+            ['source'],
+        ),
+        _tool(
             'p2p_proposal_scope_show',
             'Read one proposal explicit sections, project-global or unassigned memory scope.',
             {

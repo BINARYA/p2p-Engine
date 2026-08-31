@@ -51,6 +51,17 @@ slug, root path, Git state, local `replica_id`, or a server's remote project ID.
 Copying `.p2p/` bytes preserves the embedded identity but does not decide the
 copy's operational intent. See [PROJECT-IDENTITY.md](PROJECT-IDENTITY.md).
 
+### Canonical Project Memory
+
+The logical project aggregate is independent of the current filesystem adapter
+and any future SQLite adapter. Its entities, relations, lineage and managed
+blobs have a deterministic semantic digest. A portable project bundle transfers
+that aggregate but not replica-local receipts/cursors, credentials, generated
+integrations or backend internals. A physical backup instead preserves the
+local store for recovery. Both are distinct from synchronization and from
+project identity derivation. See
+[CANONICAL-MEMORY-AND-BUNDLES.md](CANONICAL-MEMORY-AND-BUNDLES.md).
+
 Generated registries should be refreshed from source artifacts with:
 
 ```bash

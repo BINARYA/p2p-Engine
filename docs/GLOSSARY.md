@@ -220,6 +220,31 @@ A bounded, revision-bound projection reporting whether active project memory is
 classified, global, unassigned, or requires reassignment. It is separate from
 readiness and never modifies readiness scores.
 
+## Canonical Project Memory
+
+The backend-neutral logical aggregate identified by
+`p2p-canonical-memory/v1`: canonical entities, explicit relations, retained
+lineage and referenced managed blobs. Physical paths and database rows are not
+part of this contract.
+
+## Project Bundle
+
+A deterministic `p2p-project-bundle/v1` portable archive of canonical project
+memory and complete managed blobs. It excludes replica-local state, secrets,
+generated integrations and live database/journal files.
+
+## Physical Backup
+
+An independently verified `p2p-physical-backup/v1` recovery archive for one
+local store. It may retain replica-local state and is not a portable bundle or
+sync protocol.
+
+## Managed Blob
+
+Binary or opaque content explicitly imported into canonical memory and
+addressed by its SHA-256 digest. External referenced content is not a managed
+blob until imported.
+
 ## Project Readiness
 
 The `p2p-project-readiness/v2` read contract. It derives weighted definition

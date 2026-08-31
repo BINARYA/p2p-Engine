@@ -26,6 +26,7 @@ Current method families include:
 
 - project initialization and agent instructions;
 - stable project identity/status, copy assessment, lifecycle DTOs, adoption and derivation;
+- canonical-memory inventory/snapshot ports, deterministic bundle codec, physical backup and staged restore;
 - status, validation, context, project-readiness v2, and maturity compatibility;
 - proposals and contributions;
 - decisions, votes, and precedents;
@@ -64,6 +65,14 @@ Stable identity application services live in
 `p2p_engine.core.project_identity`. Storage adapters implement the
 `ProjectIdentityStore` port. End users should use the CLI/MCP surfaces documented
 in [`PROJECT-IDENTITY.md`](PROJECT-IDENTITY.md), not adapter paths.
+
+`CanonicalMemoryPort` is the backend-neutral read boundary used by
+`CanonicalBundleCodec`. `FilesystemCanonicalMemoryStore` is the current
+adapter. `CanonicalMemoryService` owns inspect/verify/export, coordinated or
+closed-store backup, preview/apply restore, rollback and recovery status. These
+Python types are contributor APIs; agents must use the CLI or explicit MCP
+reads and must not inspect adapter-private storage. See
+[`CANONICAL-MEMORY-AND-BUNDLES.md`](CANONICAL-MEMORY-AND-BUNDLES.md).
 
 ## Documentation Plan
 

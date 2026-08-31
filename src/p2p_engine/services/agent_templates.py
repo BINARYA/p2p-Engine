@@ -22,7 +22,7 @@ from p2p_engine.services.agent_capabilities import (
 
 BUILT_IN_AGENT_ADAPTERS = ("generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode")
 AGENT_PROFILES = {*BUILT_IN_AGENT_ADAPTERS, "all"}
-AGENT_TEMPLATE_GENERATION_ID = f"agent-template-generation-v5:{AGENT_CAPABILITY_CATALOG_VERSION}"
+AGENT_TEMPLATE_GENERATION_ID = f"agent-template-generation-v6:{AGENT_CAPABILITY_CATALOG_VERSION}"
 
 
 def normalize_agent_profile(profile: str) -> str:
@@ -258,6 +258,41 @@ key, root authority, and explicit confirmation. With MCP, use only the
 corresponding consent-gated adopt/derive tools. There is no public raw identity
 setter. If the status is invalid or ambiguous, stop and report the recovery
 instruction instead of editing `.p2p/`."""
+
+
+CANONICAL_MEMORY_GUIDANCE_BLOCK = """Project memory has a canonical logical
+contract independent of its physical storage backend. Agents must use P2P CLI
+or explicit MCP tools and must never infer, inspect, or modify filesystem,
+SQLite, journal, WAL, or backend-private storage directly.
+
+Before exporting or recovering memory, inspect and verify the complete durable
+boundary:
+
+```bash
+p2p project memory inspect --format json
+p2p project memory verify --format json
+```
+
+`p2p project memory bundle-export --output <file>.p2pbundle` creates a
+deterministic portable bundle containing canonical project entities,
+relationships, lineage and referenced managed blobs. It excludes replica-local
+state, credentials, personal configuration, generated integrations, journals,
+WAL files and a live database image. Verify any bundle or physical backup with
+`p2p project memory archive-verify <archive> --format json` before relying on
+it. `p2p project memory backup` is a physical recovery artifact and is not a
+portable interchange format.
+
+Restore is owner-controlled and CLI-only: use `restore-preview`, retain its
+exact token and operation key, then use matching `restore-apply --confirm`.
+Restore validates in staging, takes a pre-restore physical backup and atomically
+activates the result. Never unpack an archive into `.p2p`, copy a live database,
+or edit restore receipts manually. Inspect interrupted state with
+`p2p project memory recovery-status` and stop if recovery is required.
+
+MCP exposes only `p2p_canonical_memory_inspect`,
+`p2p_canonical_memory_verify`, `p2p_project_bundle_export_metadata` and
+`p2p_project_archive_verify`. These are read-only; MCP cannot export, back up,
+restore, choose archive destinations, or activate project memory."""
 
 
 STANDALONE_VERTICAL_GUIDANCE_BLOCK = standalone_vertical_guidance()
@@ -813,6 +848,31 @@ def agent_policy(
             "raw_identity_setter": False,
             "invalid_or_ambiguous_behavior": "stop_and_report",
         },
+        "canonical_project_memory": {
+            "contract": "p2p-canonical-memory/v1",
+            "bundle_contract": "p2p-project-bundle/v1",
+            "physical_backup_contract": "p2p-physical-backup/v1",
+            "inspect_command": "p2p project memory inspect --format json",
+            "verify_command": "p2p project memory verify --format json",
+            "archive_verify_command": ("p2p project memory archive-verify ARCHIVE --format json"),
+            "portable_bundle_excludes": [
+                "replica_local_state",
+                "credentials",
+                "personal_configuration",
+                "generated_integrations",
+                "live_database",
+                "journal_or_wal",
+            ],
+            "backend_private_access": "forbidden",
+            "restore_surface": "owner_confirmed_cli_only",
+            "mcp_read_tools": [
+                "p2p_canonical_memory_inspect",
+                "p2p_canonical_memory_verify",
+                "p2p_project_bundle_export_metadata",
+                "p2p_project_archive_verify",
+            ],
+            "mcp_restore": False,
+        },
         "mcp": {
             "default_mode": "read_only",
             "write_tools_require_explicit_tool_schema": True,
@@ -838,6 +898,8 @@ def agent_policy(
             "read_commands": [
                 "p2p project identity status --format json",
                 "p2p project identity show --format json",
+                "p2p project memory inspect --format json",
+                "p2p project memory verify --format json",
                 "p2p project snapshot --format json",
                 "p2p project domain show --format json",
                 "p2p project structure show --format json",
@@ -1150,6 +1212,10 @@ Do not satisfy the request by reverse-engineering `.p2p/` and writing files dire
 
 {PROJECT_IDENTITY_GUIDANCE_BLOCK}
 
+## Canonical Project Memory and Bundles
+
+{CANONICAL_MEMORY_GUIDANCE_BLOCK}
+
 If `p2p` is not available on `PATH`, try this discovery order before stopping:
 
 ```bash
@@ -1329,6 +1395,10 @@ Use P2P Engine as the source of truth for project governance and planning.
 ## Stable Project Identity
 
 {PROJECT_IDENTITY_GUIDANCE_BLOCK}
+
+## Canonical Project Memory and Bundles
+
+{CANONICAL_MEMORY_GUIDANCE_BLOCK}
 
 ## WaveKit CLI Worker Contract
 
@@ -1666,6 +1736,10 @@ Key rules:
 
 {PROJECT_IDENTITY_GUIDANCE_BLOCK}
 
+## Canonical Project Memory and Bundles
+
+{CANONICAL_MEMORY_GUIDANCE_BLOCK}
+
 ## WaveKit CLI Worker Contract
 
 {WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK}
@@ -1731,6 +1805,10 @@ alwaysApply: true
 
 {PROJECT_IDENTITY_GUIDANCE_BLOCK}
 
+## Canonical Project Memory and Bundles
+
+{CANONICAL_MEMORY_GUIDANCE_BLOCK}
+
 ## WaveKit CLI Worker Contract
 
 {WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK}
@@ -1790,6 +1868,10 @@ This project is managed with P2P Engine.
 
 {PROJECT_IDENTITY_GUIDANCE_BLOCK}
 
+## Canonical Project Memory and Bundles
+
+{CANONICAL_MEMORY_GUIDANCE_BLOCK}
+
 ## WaveKit CLI Worker Contract
 
 {WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK}
@@ -1847,6 +1929,10 @@ This project is managed with P2P Engine.
 ## Stable Project Identity
 
 {PROJECT_IDENTITY_GUIDANCE_BLOCK}
+
+## Canonical Project Memory and Bundles
+
+{CANONICAL_MEMORY_GUIDANCE_BLOCK}
 
 ## WaveKit CLI Worker Contract
 

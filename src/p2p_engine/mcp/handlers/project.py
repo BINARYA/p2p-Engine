@@ -176,6 +176,30 @@ def handle_project_tool(
             ),
             "mutation_performed": False,
         }
+    if name == "p2p_canonical_memory_inspect":
+        return {
+            "canonical_memory": workspace.canonical_memory_inspect().to_dict(
+                limit=int(arguments.get("limit", 4096))
+            ),
+            "mutation_performed": False,
+        }
+    if name == "p2p_canonical_memory_verify":
+        return {
+            "memory_verification": workspace.canonical_memory_verify().to_dict(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_project_bundle_export_metadata":
+        return {
+            "bundle_export": workspace.canonical_bundle_metadata().to_dict(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_project_archive_verify":
+        return {
+            "archive_verification": workspace.canonical_archive_verify(
+                Path(required(arguments, "source"))
+            ).to_dict(),
+            "mutation_performed": False,
+        }
     if name == "p2p_proposal_scope_show":
         return {
             "project_memory_scope": workspace.proposal_memory_scope(

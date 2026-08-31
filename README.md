@@ -22,6 +22,11 @@ P2P Engine keeps the working memory of a project in filesystem-backed `.p2p/`
 state. Source-control and delivery systems may version or reference that state,
 but remain external integrations rather than P2P runtime lifecycle primitives.
 
+That memory also has a storage-neutral canonical contract. Deterministic
+`.p2pbundle` archives move logical project state and managed blobs without
+copying replica-local state, credentials, generated integrations, or a live
+database; separately verified `.p2pbackup` archives support local recovery.
+
 ## What It Does
 
 - captures rough ideas and proposal drafts;
@@ -364,6 +369,9 @@ Stable:
 
 - [docs/MCP.md](docs/MCP.md)  
   Local MCP server setup, tool matrix, safety boundaries, and example calls.
+
+- [docs/CANONICAL-MEMORY-AND-BUNDLES.md](docs/CANONICAL-MEMORY-AND-BUNDLES.md)
+  Storage-neutral logical memory, deterministic bundles, physical backups, and governed restore.
 
 Local demos:
 

@@ -212,6 +212,28 @@ a proposal requires active section scope or explicit `project_global` scope.
 Scope mutation requires capability `project.memory.classify`; that capability
 does not authorize proposal decisions or readiness overrides.
 
+### Canonical Memory, Bundle And Backup
+
+Canonical project memory is independent of its physical backend. Inspect and
+verify the entire `.p2p` boundary before creating a portable bundle:
+
+```bash
+p2p project memory inspect --format json
+p2p project memory verify --format json
+p2p project memory bundle-export --output project.p2pbundle --format json
+p2p project memory archive-verify project.p2pbundle --format json
+p2p project memory backup --output project.p2pbackup --format json
+p2p project memory recovery-status --format json
+```
+
+Bundles contain logical project entities, relations, lineage and complete
+managed blobs. They exclude replica-local state, secrets, integrations,
+generated views and live backend files. Physical backups are exact local
+recovery artifacts. Restore uses `restore-preview`, then the exact archive,
+operation key and token with `restore-apply --confirm`; it validates in staging,
+creates a pre-restore backup and activates atomically. See
+[CANONICAL-MEMORY-AND-BUNDLES.md](CANONICAL-MEMORY-AND-BUNDLES.md).
+
 ### Runtime Contract
 
 Project runtime compatibility is declared in `.p2p/project/runtime.yml`.

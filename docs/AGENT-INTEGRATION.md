@@ -359,6 +359,15 @@ identity-less development state and independent derivation use their governed
 preview/apply workflows. See
 [`PROJECT-IDENTITY.md`](PROJECT-IDENTITY.md).
 
+Project memory is likewise storage-neutral. Agents inspect it with
+`p2p project memory inspect/verify --format json` or the read-only MCP tools;
+they must never inspect or modify filesystem, SQLite, journal or WAL internals.
+Portable bundle export, physical backup and owner-confirmed restore are CLI
+operations. MCP can inspect/verify and compute export metadata but cannot write
+an archive or restore memory. Generated instructions contain the same rule for
+every adapter. See
+[`CANONICAL-MEMORY-AND-BUNDLES.md`](CANONICAL-MEMORY-AND-BUNDLES.md).
+
 Existing broad installations are preserved. Running refresh, install, update,
 or project upgrade later with a narrower adapter target does not automatically
 remove previously installed adapters; use `p2p agent uninstall <adapter>` for an

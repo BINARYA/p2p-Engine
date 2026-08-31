@@ -156,6 +156,7 @@ _CURRENT_SCHEMA_OPERATIONS = frozenset(
         "project_identity_derive",
         "project_identity_derive_preview",
         "project_memory_scope_change",
+        "project_memory_restore",
         "project_metadata_apply",
         "project_publication_import",
         "project_publication_prepare",

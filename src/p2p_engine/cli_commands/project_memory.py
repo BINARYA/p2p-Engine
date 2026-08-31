@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from pathlib import Path
 import uuid
+from pathlib import Path
 
 import typer
 
 from p2p_engine.cli_contract import print_json, success_envelope
-from p2p_engine.cli_shared import console, fail, workspace as workspace_for, yaml_dump_for_cli
+from p2p_engine.cli_shared import console, fail, yaml_dump_for_cli
+from p2p_engine.cli_shared import workspace as workspace_for
 from p2p_engine.services.authority import AuthorityContractCodec
 
 
@@ -100,6 +101,130 @@ def register_project_memory_commands(
             {"memory_classification": payload},
             normalized,
         )
+
+    @project_memory_app.command("inspect")
+    def inspect(
+        limit: int = typer.Option(4096, "--limit", min=1, max=100_000),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Classify the complete durable .p2p boundary for bundle safety."""
+        normalized = _output_format(output_format)
+        try:
+            payload = workspace_for(root).canonical_memory_inspect().to_dict(limit=limit)
+        except ValueError as exc:
+            fail(str(exc))
+        _emit("project.memory.inspect", {"canonical_memory": payload}, normalized)
+
+    @project_memory_app.command("verify")
+    def verify(
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Verify the current canonical logical memory without mutating it."""
+        normalized = _output_format(output_format)
+        result = workspace_for(root).canonical_memory_verify()
+        _emit("project.memory.verify", {"memory_verification": result.to_dict()}, normalized)
+
+    @project_memory_app.command("bundle-export")
+    def bundle_export(
+        output: Path = typer.Option(..., "--output", help="New .p2pbundle output outside .p2p"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Export a deterministic backend-neutral canonical project bundle."""
+        normalized = _output_format(output_format)
+        try:
+            result = workspace_for(root).canonical_bundle_export(output)
+        except ValueError as exc:
+            fail(str(exc))
+        _emit("project.memory.bundle_export", {"bundle_export": result.to_dict()}, normalized)
+
+    @project_memory_app.command("archive-verify")
+    def archive_verify(
+        source: Path = typer.Argument(..., help="Bundle or physical-backup archive"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Verify an archive independently without activating it."""
+        normalized = _output_format(output_format)
+        result = workspace_for(root).canonical_archive_verify(source)
+        _emit(
+            "project.memory.archive_verify", {"archive_verification": result.to_dict()}, normalized
+        )
+
+    @project_memory_app.command("backup")
+    def backup(
+        output: Path = typer.Option(..., "--output", help="New .p2pbackup output outside .p2p"),
+        closed: bool = typer.Option(
+            False,
+            "--closed",
+            help="Owner assertion that the store is closed; otherwise coordinate the live backend",
+        ),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Create an independently verifiable physical .p2p backup."""
+        normalized = _output_format(output_format)
+        try:
+            result = workspace_for(root).canonical_memory_backup(output, coordinated=not closed)
+        except ValueError as exc:
+            fail(str(exc))
+        _emit("project.memory.backup", {"physical_backup": result.to_dict()}, normalized)
+
+    @project_memory_app.command("restore-preview")
+    def restore_preview(
+        source: Path = typer.Argument(..., help="Verified bundle or physical backup"),
+        operation_key: str = typer.Option(..., "--operation-key", help="Opaque idempotency key"),
+        actor: str = typer.Option("owner", "--actor", help="Authorized owner identity"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Preview a backup-protected staged restore."""
+        normalized = _output_format(output_format)
+        try:
+            result = workspace_for(root).canonical_memory_restore_preview(
+                source=source,
+                operation_key=operation_key,
+                actor=actor,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        _emit("project.memory.restore_preview", {"restore_preview": result.to_dict()}, normalized)
+
+    @project_memory_app.command("restore-apply")
+    def restore_apply(
+        source: Path = typer.Argument(..., help="Exact archive used by restore-preview"),
+        operation_key: str = typer.Option(..., "--operation-key", help="Matching idempotency key"),
+        preview_token: str = typer.Option(..., "--token", help="Exact preview token"),
+        actor: str = typer.Option("owner", "--actor", help="Authorized owner identity"),
+        confirm: bool = typer.Option(False, "--confirm", help="Confirm atomic restore activation"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Validate in staging, back up, and atomically activate a restore."""
+        normalized = _output_format(output_format)
+        try:
+            result = workspace_for(root).canonical_memory_restore_apply(
+                source=source,
+                operation_key=operation_key,
+                actor=actor,
+                preview_token=preview_token,
+                confirm=confirm,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        _emit("project.memory.restore_apply", {"restore": result.to_dict()}, normalized)
+
+    @project_memory_app.command("recovery-status")
+    def recovery_status(
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Inspect interrupted canonical-memory restore state."""
+        normalized = _output_format(output_format)
+        result = workspace_for(root).canonical_memory_recovery_status()
+        _emit("project.memory.recovery_status", {"recovery": result.to_dict()}, normalized)
 
 
 def _emit(operation: str, payload: dict[str, object], output_format: str) -> None:

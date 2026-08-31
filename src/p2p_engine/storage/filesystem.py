@@ -17,6 +17,16 @@ from p2p_engine.core.authority import (
     ProjectAuthorityDescriptor,
     authority_evidence_from_context,
 )
+from p2p_engine.core.canonical_memory import (
+    BundleExportResult,
+    BundleValidationResult,
+    CanonicalMemoryInventory,
+    CanonicalMemorySnapshot,
+    MemoryRecoveryStatus,
+    MemoryRestorePreview,
+    MemoryRestoreResult,
+    PhysicalBackupResult,
+)
 from p2p_engine.core.contribution import Contribution, ContributionType
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.core.decision_context import DecisionContextIndex
@@ -170,6 +180,7 @@ from p2p_engine.services.agent_templates import (
     normalize_agent_profile as _normalize_agent_profile,
     template_generation_id as _template_generation_id,
 )
+from p2p_engine.services.canonical_memory import CanonicalMemoryService
 from p2p_engine.services.changes import (
     ChangeSetDetail,
     ChangeSetLifecycleService,
@@ -368,6 +379,7 @@ class P2PWorkspace:
         self._project_interaction_style_service_instance: ProjectInteractionStyleService | None = None
         self._project_initialization_service_instance: ProjectInitializationService | None = None
         self._project_identity_service_instance: ProjectIdentityService | None = None
+        self._canonical_memory_service_instance: CanonicalMemoryService | None = None
         self._project_authority_service_instance: ProjectAuthorityService | None = None
         self._project_authority_rotation_service_instance: (
             ProjectAuthorityRotationService | None
@@ -450,6 +462,14 @@ class P2PWorkspace:
                 receipts=self._mutation_receipt_service(),
             )
         return self._project_identity_service_instance
+
+    def _canonical_memory_service(self) -> CanonicalMemoryService:
+        if self._canonical_memory_service_instance is None:
+            self._canonical_memory_service_instance = CanonicalMemoryService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+            )
+        return self._canonical_memory_service_instance
 
     def _project_authority_rotation_service(self) -> ProjectAuthorityRotationService:
         if self._project_authority_rotation_service_instance is None:
@@ -1424,6 +1444,66 @@ class P2PWorkspace:
 
     def project_identity_transition_matrix(self) -> list[dict[str, object]]:
         return self._project_identity_service().transition_matrix()
+
+    def canonical_memory_inspect(self) -> CanonicalMemoryInventory:
+        return self._canonical_memory_service().inspect()
+
+    def canonical_memory_snapshot(self) -> CanonicalMemorySnapshot:
+        return self._canonical_memory_service().snapshot()
+
+    def canonical_memory_verify(self) -> BundleValidationResult:
+        return self._canonical_memory_service().verify_current()
+
+    def canonical_bundle_metadata(self) -> BundleExportResult:
+        return self._canonical_memory_service().bundle_metadata()
+
+    def canonical_bundle_export(self, output: Path) -> BundleExportResult:
+        return self._canonical_memory_service().export_bundle(output)
+
+    def canonical_archive_verify(self, source: Path) -> BundleValidationResult:
+        return self._canonical_memory_service().verify_archive(source)
+
+    def canonical_memory_backup(
+        self,
+        output: Path,
+        *,
+        coordinated: bool = True,
+    ) -> PhysicalBackupResult:
+        return self._canonical_memory_service().backup(output, coordinated=coordinated)
+
+    def canonical_memory_restore_preview(
+        self,
+        *,
+        source: Path,
+        operation_key: str,
+        actor: str,
+    ) -> MemoryRestorePreview:
+        return self._canonical_memory_service().restore_preview(
+            source=source,
+            operation_key=operation_key,
+            actor=actor,
+        )
+
+    def canonical_memory_restore_apply(
+        self,
+        *,
+        source: Path,
+        operation_key: str,
+        actor: str,
+        preview_token: str,
+        confirm: bool,
+    ) -> MemoryRestoreResult:
+        self._ensure_runtime_write_allowed("project_memory_restore")
+        return self._canonical_memory_service().restore_apply(
+            source=source,
+            operation_key=operation_key,
+            actor=actor,
+            preview_token=preview_token,
+            confirm=confirm,
+        )
+
+    def canonical_memory_recovery_status(self) -> MemoryRecoveryStatus:
+        return self._canonical_memory_service().recovery_status()
 
     def assess_project_copy(
         self,

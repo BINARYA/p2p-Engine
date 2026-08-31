@@ -259,6 +259,10 @@ repository operations; they do not authorize P2P project-state mutations.
 | `p2p_project_memory_status` | read-only | no | no | Inspect vertical-memory contract, source fingerprint and freshness without rebuilding it. |
 | `p2p_project_memory_show` | read-only | no | no | Read a bounded aggregate or exact vertical section; history requires an explicit option. |
 | `p2p_project_memory_classification` | read-only | no | no | Read bounded structural classification, revisions and debt separately from readiness. |
+| `p2p_canonical_memory_inspect` | read-only | no | no | Classify every durable `.p2p` artifact and fail closed on unresolved state. |
+| `p2p_canonical_memory_verify` | read-only | no | no | Verify the current storage-neutral logical aggregate, identity, relations, lineage and managed blobs. |
+| `p2p_project_bundle_export_metadata` | read-only | no | no | Compute deterministic portable-bundle metadata and digest in memory without writing an archive. |
+| `p2p_project_archive_verify` | read-only | no | no | Verify a bundle or physical backup independently without extraction or activation. |
 | `p2p_proposal_scope_show` | read-only | no | no | Read explicit section, project-global or unassigned proposal scope. |
 | `p2p_proposal_scope_set` | governed write | yes | consent | Assign scope atomically with current memory and structure revisions. |
 | `p2p_proposal_vertical_coverage_show` | transitional read-only | no | no | Inspect the pre-0.5 derived vertical-coverage artifact; it is not current scope authority. |
