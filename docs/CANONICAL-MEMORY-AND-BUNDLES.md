@@ -1,9 +1,10 @@
 # Canonical Project Memory And Bundles
 
 P2P Engine exposes project memory as a logical, versioned contract independent
-of the storage backend. The current adapter reads the `.p2p/` filesystem tree,
-but callers must not depend on paths, YAML layout, a future SQLite schema,
-journals, or WAL files. CLI and MCP contracts remain the supported boundary.
+of the storage backend. The filesystem adapter reads the `.p2p/` document tree;
+the opt-in experimental SQLite adapter reads semantic tables and canonical JSON.
+Callers must not depend on paths, YAML layout, SQLite tables, journals, or WAL
+files. CLI and MCP contracts remain the supported boundary.
 
 ## Three Different Artifacts
 
@@ -18,10 +19,14 @@ It does not contain `replica_id`, replica cursors, consent or mutation receipts,
 credentials, personal settings, agent integrations, generated projections,
 runtime locks, a live database, a journal or WAL/SHM files.
 
-A physical backup (`p2p-physical-backup/v1`) is an exact recovery artifact for
-one local store. It retains portable and replica-local durable state, but
-excludes active workspace-transaction locks and recursive backup trees. It is
-not an interchange or synchronization protocol.
+A physical backup (`p2p-physical-backup/v1`) is an adapter-specific recovery
+artifact for one local store. It retains portable and replica-local durable
+state, but excludes active workspace-transaction locks and recursive backup
+trees. It is not an interchange or synchronization protocol.
+
+For SQLite, a physical backup contains a clean database produced through the
+online backup API, the storage manifest and referenced external blobs. It never
+copies a live main database alone and never includes WAL/SHM/journal files.
 
 The replica-local `.p2p/local/storage.yml` adapter manifest is therefore
 included in a physical backup. It is excluded from canonical entities,
@@ -38,10 +43,11 @@ p2p project memory archive-verify project.p2pbundle --format json
 p2p project memory backup --output project.p2pbackup --format json
 ```
 
-`inspect` classifies every durable `.p2p` file. Unknown paths, symlinks,
-unsupported documents, secret-shaped fields in canonical or replica-local
-state, and oversized logical records block snapshots, bundles and backups.
-Archives are never overwritten and must be written outside `.p2p`.
+For filesystem projects, `inspect` classifies every durable `.p2p` file.
+Unknown paths, symlinks, unsupported documents, secret-shaped fields in
+canonical or replica-local state, and oversized logical records block
+snapshots, bundles and backups. Archives are never overwritten and must be
+written outside `.p2p`.
 
 Bundle archives use canonical JSON/JSONL, stable entry ordering, fixed ZIP
 metadata, per-entry checksums, exact manifest counts and content-addressed blob
@@ -65,12 +71,12 @@ p2p project memory restore-apply project.p2pbundle \
 p2p project memory recovery-status --format json
 ```
 
-Apply verifies the exact archive and token, acquires the workspace mutation
-lock, creates a verified pre-restore physical backup, builds a separate staging
-store, runs full project validation, writes an idempotency receipt and swaps the
-validated store atomically. A failure before or during activation rolls back to
-the previous active store. If rollback itself cannot complete, the recovery
-marker and both physical trees are retained for explicit owner recovery.
+Apply verifies the exact archive and token, creates a verified pre-restore
+physical backup, builds a separate staging store, validates its semantic digest,
+identity, constraints and blobs, and swaps the validated store atomically. The
+filesystem adapter also uses its workspace mutation lock and domain validation;
+SQLite serializes the maintenance operation and uses its explicit fence. A
+failure before or during activation rolls back to the previous active store.
 
 Bundle restore replaces portable logical state and removes stale derived views;
 it preserves target-local replica state and generated integrations. Physical

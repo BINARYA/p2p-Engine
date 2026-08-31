@@ -286,6 +286,87 @@ class Harness:
         self.assert_mcp_stdio([str(_entry_point(self.layout.binaries, "p2p-mcp-server"))])
         return project_digest(project)
 
+    def initialize_sqlite_smoke(self) -> None:
+        p2p = _entry_point(self.layout.binaries, "p2p")
+        project = self.layout.root / "projects" / "sqlite-candidate"
+        bundle = project / "candidate.p2pbundle"
+        initialized = self.run_json(
+            [
+                str(p2p),
+                "init",
+                "uv installed SQLite smoke",
+                "--starter",
+                "generic",
+                "--agent",
+                "codex",
+                "--storage-adapter",
+                "sqlite",
+                "--format",
+                "json",
+                "--operation-key",
+                "uv-installed-sqlite-smoke-init-v1",
+                "--root",
+                str(project),
+            ]
+        )
+        if not initialized.get("ok"):
+            raise AssertionError(initialized)
+        database = project / ".p2p" / "local" / "project.sqlite3"
+        if not database.is_file() or (project / ".p2p" / "project.yml").exists():
+            raise AssertionError("SQLite candidate did not activate one authoritative backend")
+        exported = self.run_json(
+            [
+                str(p2p),
+                "project",
+                "memory",
+                "bundle-export",
+                "--output",
+                str(bundle),
+                "--format",
+                "json",
+                "--root",
+                str(project),
+            ]
+        )
+        if not exported.get("ok") or not bundle.is_file():
+            raise AssertionError(exported)
+        validated = self.run_json(
+            [str(p2p), "validate", "--format", "json", "--root", str(project)]
+        )
+        if not validated.get("ok"):
+            raise AssertionError(validated)
+        self.assert_sqlite_mcp_read(project)
+
+    def assert_sqlite_mcp_read(self, project: Path) -> None:
+        requests = (
+            {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": {
+                    "name": "p2p_project_bundle_export_metadata",
+                    "arguments": {"root": str(project)},
+                },
+            },
+        )
+        completed = self.run(
+            [
+                str(_entry_point(self.layout.binaries, "p2p-mcp-server")),
+                "--root",
+                str(project),
+            ],
+            input_text="".join(json.dumps(request) + "\n" for request in requests),
+            timeout=30,
+        )
+        responses = [
+            json.loads(line) for line in completed.stdout.splitlines() if line.strip()
+        ]
+        if [response.get("id") for response in responses] != [1, 2]:
+            raise AssertionError(responses)
+        if "error" in responses[1] or responses[1].get("result", {}).get("isError"):
+            raise AssertionError(responses[1])
+
     def assert_import_provenance(self, wheel: WheelIdentity) -> None:
         tool_python = _tool_python(self.layout.tools)
         program = """
@@ -538,6 +619,7 @@ def main() -> int:
                 harness.lifecycle(previous, candidate)
             harness.install(candidate, force=True)
             before_uninstall = harness.initialize_and_smoke(candidate)
+            harness.initialize_sqlite_smoke()
             harness.assert_exact_and_cache_modes(candidate)
             harness.uninstall()
             after_uninstall = project_digest(layout.project)

@@ -18,9 +18,11 @@ Project intent is easy to lose.
 - Decisions need traceability: who decided what, why, and what changed.
 - Downstream tools need structured project definition, not only prose.
 
-P2P Engine keeps the working memory of a project inside `.p2p/`. The current
-filesystem adapter is selected by a replica-local storage manifest, while CLI,
-MCP and the logical project model use a storage-neutral application boundary.
+P2P Engine keeps the working memory of a project inside `.p2p/`. A replica-local
+manifest selects exactly one adapter, while CLI, MCP and the logical project
+model use a storage-neutral application boundary. Filesystem remains the
+default; a separate branch carries an opt-in SQLite candidate for objective
+evaluation and never dual-writes one project.
 Source-control and delivery systems may version or reference project state, but
 remain external integrations rather than P2P runtime lifecycle primitives.
 

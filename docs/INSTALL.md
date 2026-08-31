@@ -341,7 +341,9 @@ stored only as inert traceability references.
 
 Do not rerun `p2p init` to upgrade an existing P2P project. The one storage
 exception is deliberate adoption of a validated legacy filesystem project via
-`--storage-adapter filesystem`; it is not a runtime upgrade. Use the named uv
+`--storage-adapter filesystem`; it is not a runtime upgrade. The experimental
+SQLite branch permits `--storage-adapter sqlite` only for a new, separate test
+project; it does not migrate existing state or change the default. Use the named uv
 replacement/rollback commands above, verify compatibility for the intended
 project, then refresh P2P-owned generated artifacts. Existing fallback
 virtualenv users may upgrade the exact wheel with pip in that virtualenv.

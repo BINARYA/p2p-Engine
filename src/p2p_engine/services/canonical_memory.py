@@ -385,7 +385,7 @@ class CanonicalBundleCodec:
     def encode_physical_backup(
         self,
         *,
-        store: FilesystemCanonicalMemoryStore,
+        store: CanonicalMemoryPort,
         files: Mapping[str, bytes],
         directories: Iterable[str],
         semantic_state_digest: str,

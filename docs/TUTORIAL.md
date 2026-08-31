@@ -136,7 +136,7 @@ Create a proposal for the narrow first direction:
 ```bash
 p2p proposal create "Start With CLI And Local MCP" \
   --problem "The project needs a first usable interface without overbuilding a hosted product." \
-  --context "The project needs filesystem-backed governance state, bounded agent context, and explicit owner decisions." \
+  --context "The project needs durable local governance state, bounded agent context, and explicit owner decisions." \
   --goal "Make the installed engine usable through CLI commands." \
   --goal "Expose safe local MCP tools for agents." \
   --non-goal "Build a hosted web product in the first implementation layer." \

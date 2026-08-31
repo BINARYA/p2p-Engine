@@ -284,8 +284,9 @@ def init(
         None,
         "--storage-adapter",
         help=(
-            "Project storage adapter. New projects default to filesystem; "
-            "existing projects reopen their recorded adapter automatically."
+            "Project storage adapter: filesystem (default) or sqlite "
+            "(experimental candidate). Existing projects reopen their recorded "
+            "adapter automatically."
         ),
     ),
     vertical: str | None = typer.Option(

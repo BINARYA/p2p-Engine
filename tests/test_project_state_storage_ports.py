@@ -144,19 +144,19 @@ def test_filesystem_selection_rejects_contradictory_backend_artifact(tmp_path: P
     assert raised.value.code == ProjectStorageErrorCode.configuration_contradiction
 
 
-def test_unavailable_adapter_is_rejected_without_initializing_or_dual_writing(
+def test_sqlite_adapter_is_explicitly_initialized_without_dual_writing(
     tmp_path: Path,
 ) -> None:
-    with pytest.raises(ProjectStorageError) as raised:
-        P2PWorkspace(tmp_path).init_project(
-            "Unavailable adapter",
-            owner="owner",
-            storage_adapter="sqlite",
-        )
+    P2PWorkspace(tmp_path).init_project(
+        "SQLite adapter",
+        owner="owner",
+        storage_adapter="sqlite",
+    )
+    reopened = open_project_application(tmp_path)
 
-    assert raised.value.code == ProjectStorageErrorCode.adapter_unavailable
+    assert reopened.storage_selection().adapter == "sqlite"
     assert not (tmp_path / ".p2p/project.yml").exists()
-    assert not (tmp_path / ".p2p/local/project.sqlite3").exists()
+    assert (tmp_path / ".p2p/local/project.sqlite3").is_file()
 
 
 def test_identity_derivation_updates_storage_binding_in_same_mutation(tmp_path: Path) -> None:

@@ -36,6 +36,18 @@ made explicit without changing normal commands:
 p2p init "My Project" --starter generic --storage-adapter filesystem
 ```
 
+On the dedicated experimental branch, an owner may instead create a separate
+SQLite candidate project:
+
+```bash
+p2p init "SQLite Trial" --starter generic --storage-adapter sqlite
+```
+
+This does not migrate an existing project or change the default. Do not copy or
+edit the database, manifest, WAL or journal. Use normal P2P commands, portable
+bundles and verified backups. SQLite remains local/single-host and must not be
+used on a shared multi-host network filesystem.
+
 Reopening an initialized project reads its replica-local selection
 automatically. Ordinary commands never infer another backend from files and
 never write to two backends. A legacy filesystem project without the selection

@@ -11,8 +11,9 @@ release automation and technical documentation. It does not own the canonical
 P2P Engine project-design state. Governance commands must target the separate
 `../projects/p2p-engine-project` root explicitly.
 
-P2P Engine runtime owns structured project intent and filesystem-backed `.p2p/`
-state. It does not own repository synchronization, branches, commits, merge,
+P2P Engine runtime owns structured project intent stored through the selected
+local project-state adapter inside the `.p2p/` container. It does not own
+repository synchronization, branches, commits, merge,
 review requests, CI or publication. External repository tools may supply opaque
 traceability references, which never prove implementation status.
 
@@ -27,6 +28,9 @@ traceability references, which never prove implementation status.
 - Route machine-readable CLI output through the shared raw JSON serializer.
 - Reject duplicate YAML keys before portable-package canonicalization.
 - Keep bundled and portable release state free of host-specific paths.
+- Keep application/domain services storage-neutral; SQL, YAML paths and adapter
+  journals remain inside adapters.
+- Never implement backend comparison by dual-writing one project.
 - Add the narrowest source, subprocess and installed-wheel regressions that
   prove a public contract.
 - Do not reintroduce compatibility aliases or removed source-control surfaces.

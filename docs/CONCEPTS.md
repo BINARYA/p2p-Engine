@@ -53,8 +53,8 @@ copy's operational intent. See [PROJECT-IDENTITY.md](PROJECT-IDENTITY.md).
 
 ### Canonical Project Memory
 
-The logical project aggregate is independent of the current filesystem adapter
-and any future SQLite adapter. Its entities, relations, lineage and managed
+The logical project aggregate is independent of both the default filesystem
+adapter and the opt-in experimental SQLite adapter. Its entities, relations, lineage and managed
 blobs have a deterministic semantic digest. A portable project bundle transfers
 that aggregate but not replica-local receipts/cursors, credentials, generated
 integrations or backend internals. A physical backup instead preserves the

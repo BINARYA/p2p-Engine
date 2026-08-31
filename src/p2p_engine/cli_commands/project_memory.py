@@ -9,6 +9,7 @@ from p2p_engine.cli_contract import print_json, success_envelope
 from p2p_engine.cli_shared import console, fail, yaml_dump_for_cli
 from p2p_engine.cli_shared import workspace as workspace_for
 from p2p_engine.services.authority import AuthorityContractCodec
+from p2p_engine.services.project_application import project_memory_recovery_status
 
 
 def register_project_memory_commands(
@@ -223,7 +224,7 @@ def register_project_memory_commands(
     ) -> None:
         """Inspect interrupted canonical-memory restore state."""
         normalized = _output_format(output_format)
-        result = workspace_for(root).canonical_memory_recovery_status()
+        result = project_memory_recovery_status(root)
         _emit("project.memory.recovery_status", {"recovery": result.to_dict()}, normalized)
 
 

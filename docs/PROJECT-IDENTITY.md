@@ -31,8 +31,8 @@ across namespaces.
 
 ## Persisted Contract
 
-The current filesystem adapter persists canonical project identity separately
-from local replica state:
+The filesystem adapter persists canonical project identity separately from
+local replica state:
 
 ```text
 .p2p/project.yml             project UUID hint and readable metadata
@@ -40,13 +40,17 @@ from local replica state:
 .p2p/local/replica.yml       local mode, replica ID, optional remote binding
 ```
 
-These paths are adapter implementation details, not an editing interface. The
+The experimental SQLite adapter stores the same logical identity in typed
+project/lineage rows and keeps only its replica-local manifest and database
+container under `.p2p/local/`. These layouts are adapter implementation details,
+not an editing interface. The
 domain DTO and CLI/MCP outputs contain no filesystem path, YAML, SQLite,
-PostgreSQL, Git, or credential fields. A future storage adapter must pass the
+PostgreSQL, Git, or credential fields. Every storage adapter must pass the
 same adapter-contract tests without changing public semantics.
 
-The current retained backend is filesystem storage. SQLite is a later candidate
-and is not enabled by this feature.
+Filesystem remains the experiment default. SQLite is an opt-in candidate and is
+not retained or merged as the selected backend until the objective gate records
+`sqlite-go`.
 
 ## Lifecycle Rules
 
@@ -151,6 +155,6 @@ transaction files manually.
 ## Deliberate Limits
 
 This foundation defines transfer, replica, copy/move, and detach DTOs for later
-features. It does not implement network transfer, remote registration,
-synchronization, realtime collaboration, WaveKit persistence, SQLite, or
-automatic merging of divergent copies.
+features. The local SQLite experiment does not implement network transfer,
+remote registration, synchronization, realtime collaboration, WaveKit
+persistence, or automatic merging of divergent copies.
