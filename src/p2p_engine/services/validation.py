@@ -63,6 +63,7 @@ class ValidationService:
         governance_validation_findings: Callable[[], list[tuple[str, str, Path, str, str]]] | None = None,
         runtime_validation_findings: Callable[[], list[Any]] | None = None,
         workspace_schema_validation_findings: Callable[[], list[Any]] | None = None,
+        project_identity_status: Callable[[], Any] | None = None,
         proposal_lifecycle_status: (
             Callable[[str], ProposalDecisionLifecycleView] | None
         ) = None,
@@ -78,6 +79,7 @@ class ValidationService:
         self.governance_validation_findings = governance_validation_findings
         self.runtime_validation_findings = runtime_validation_findings
         self.workspace_schema_validation_findings = workspace_schema_validation_findings
+        self.project_identity_status = project_identity_status
         self.proposal_lifecycle_status = proposal_lifecycle_status
 
     def validate(self, *, registry_status_snapshot: Any | None = None) -> ValidationResult:
@@ -101,6 +103,7 @@ class ValidationService:
             )
 
         self._validate_required_paths(add)
+        self._validate_project_identity(add)
         self._validate_structured_yaml(add)
         self._validate_readiness(add)
         self._validate_proposal_questions(add)
@@ -126,6 +129,28 @@ class ValidationService:
             warnings=warnings,
             infos=infos,
             findings=findings,
+        )
+
+    def _validate_project_identity(
+        self,
+        add: Callable[[str, str, Path, str, str], None],
+    ) -> None:
+        if self.project_identity_status is None:
+            return
+        status = self.project_identity_status()
+        if status.state in {"valid", "uninitialized"}:
+            return
+        code = (
+            "P2P_PROJECT_IDENTITY_ADOPTION_REQUIRED"
+            if status.state == "adoption_required"
+            else "P2P_PROJECT_IDENTITY_INVALID"
+        )
+        add(
+            code,
+            "error",
+            self.p2p_dir / "project" / "identity.yml",
+            "; ".join(status.blockers) or "Project identity is not valid.",
+            status.suggested_command,
         )
 
     def _validate_vertical_lock_source_path(

@@ -43,7 +43,13 @@ Common artifact areas:
   work/         logical planning and handoff metadata
   registries/   generated indexes over project state
   project/      project overview, rubrics, assessments, and next actions
+  local/        physical-replica state, separate from canonical project identity
 ```
+
+`project_uuid` is stable logical project identity. It is not the project name,
+slug, root path, Git state, local `replica_id`, or a server's remote project ID.
+Copying `.p2p/` bytes preserves the embedded identity but does not decide the
+copy's operational intent. See [PROJECT-IDENTITY.md](PROJECT-IDENTITY.md).
 
 Generated registries should be refreshed from source artifacts with:
 

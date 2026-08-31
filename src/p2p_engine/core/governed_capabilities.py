@@ -49,6 +49,22 @@ GOVERNED_CAPABILITIES: Final[tuple[GovernedCapability, ...]] = (
         "implemented",
     ),
     GovernedCapability(
+        "project.identity.adopt",
+        "project_lifecycle",
+        LOCAL_POLICY_OWNER,
+        _BOTH_MODES,
+        True,
+        "implemented",
+    ),
+    GovernedCapability(
+        "project.identity.derive",
+        "project_lifecycle",
+        LOCAL_POLICY_OWNER,
+        _BOTH_MODES,
+        True,
+        "implemented",
+    ),
+    GovernedCapability(
         "project.vertical.install",
         "project_vertical",
         LOCAL_POLICY_OWNER,

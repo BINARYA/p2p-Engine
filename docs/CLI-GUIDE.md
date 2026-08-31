@@ -58,6 +58,25 @@ An existing POSIX/Windows project virtualenv is only a supported fallback;
 Initialization is source-control neutral: it creates neither `.git` nor
 `.gitignore` and does not inspect repository status.
 
+Initialization assigns a stable project UUID plus a separate local replica ID.
+They are independent of the project name, path, Git state and current storage
+adapter. Inspect them before transfer, copy, restore or derivation work:
+
+```bash
+p2p project identity status --format json
+p2p project identity show --format json
+p2p project identity transitions --format json
+```
+
+Do not edit or copy identifiers between projects. A physical copy does not by
+itself decide whether it is a moved instance, backup, read-only inspection,
+replica, or independent project. Use `p2p project identity copy-check` when a
+duplicate UUID/replica pair is observed. To make a copied workspace independent,
+use `p2p project identity derive preview` followed by its exact token-bound,
+root-authorized `apply --confirm`. An identity-less development fixture uses
+the separate backup-protected `adopt preview/apply` flow. See
+[`PROJECT-IDENTITY.md`](PROJECT-IDENTITY.md) for the full lifecycle and errors.
+
 `--domain` records an optional free subject classification. It never chooses
 sections, criteria, questions or readiness requirements. Initialization resolves one
 independent structure source: `--starter generic`, `--starter empty`, or one

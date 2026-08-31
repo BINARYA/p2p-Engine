@@ -19,6 +19,7 @@ from p2p_engine.cli_commands.next_actions import register_next_commands
 from p2p_engine.cli_commands.project_ops import register_project_ops_commands
 from p2p_engine.cli_commands.project_authority import register_project_authority_commands
 from p2p_engine.cli_commands.project_domain import register_project_domain_commands
+from p2p_engine.cli_commands.project_identity import register_project_identity_commands
 from p2p_engine.cli_commands.project_structure import register_project_structure_commands
 from p2p_engine.cli_commands.project_memory import register_project_memory_commands
 from p2p_engine.cli_commands.project_readiness import register_project_readiness_commands
@@ -165,6 +166,7 @@ register_workspace_schema_commands(workspace_schema_app)
 register_workspace_transaction_commands(workspace_transaction_app)
 register_mutation_commands(mutation_app)
 register_project_status_commands(app, assess_app, assess_maturity_app)
+register_project_identity_commands(project_app)
 register_proposal_commands(
     proposal_app,
     proposal_readiness_app,

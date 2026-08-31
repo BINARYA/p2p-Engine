@@ -350,6 +350,15 @@ Detection is not project identity. P2P must not persist a current, active, or
 default agent in `.p2p/project.yml` or `.p2p/agent-integrations.yml`; the
 registry records generated files, owners, hashes, and drift only.
 
+The actual project identity is a stable storage-neutral `project_uuid` with a
+separate local `replica_id`. Generated instructions require agents to inspect
+it with `p2p project identity status/show --format json` or the equivalent MCP
+read tools. Agents must never manufacture, overwrite, or copy identity fields
+between projects. An ambiguous physical copy requires an explicit owner choice;
+identity-less development state and independent derivation use their governed
+preview/apply workflows. See
+[`PROJECT-IDENTITY.md`](PROJECT-IDENTITY.md).
+
 Existing broad installations are preserved. Running refresh, install, update,
 or project upgrade later with a narrower adapter target does not automatically
 remove previously installed adapters; use `p2p agent uninstall <adapter>` for an

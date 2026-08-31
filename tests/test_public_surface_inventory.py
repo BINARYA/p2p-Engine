@@ -20,14 +20,16 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     snapshot = public_surface_snapshot()
 
     assert snapshot.contract_version == PUBLIC_SURFACE_CONTRACT_VERSION
-    assert len(snapshot.cli_paths) == 264
-    assert len(snapshot.mcp_tools) == 165
+    assert len(snapshot.cli_paths) == 272
+    assert len(snapshot.mcp_tools) == 173
     assert "p2p vertical registry list" in snapshot.cli_paths
     assert "p2p vertical domain list" in snapshot.cli_paths
     assert "p2p vertical domain search" in snapshot.cli_paths
     assert "p2p vertical domain inspect" in snapshot.cli_paths
     assert "p2p vertical draft publish" in snapshot.cli_paths
     assert "p2p project authority capabilities" in snapshot.cli_paths
+    assert "p2p project identity show" in snapshot.cli_paths
+    assert "p2p project identity derive apply" in snapshot.cli_paths
     assert "p2p project authority rotate apply" in snapshot.cli_paths
     assert "p2p project domain set" in snapshot.cli_paths
     assert "p2p project structure add-section" in snapshot.cli_paths
@@ -48,6 +50,8 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     assert "p2p_vertical_release_list" in snapshot.mcp_tools
     assert "p2p_vertical_release_search" in snapshot.mcp_tools
     assert "p2p_project_domain_set" in snapshot.mcp_tools
+    assert "p2p_project_identity_show" in snapshot.mcp_tools
+    assert "p2p_project_identity_derive_apply" in snapshot.mcp_tools
     assert "p2p_project_structure_add_section" in snapshot.mcp_tools
     assert "p2p_project_structure_export_eligibility" in snapshot.mcp_tools
     assert "p2p_project_structure_export_preview" in snapshot.mcp_tools
@@ -115,9 +119,7 @@ def test_current_agent_template_command_and_tool_references_are_registered() -> 
     for content in rendered.values():
         command_references.update(re.findall(r"`(p2p [^`\n]+)`", content))
         command_references.update(
-            line.strip()
-            for line in content.splitlines()
-            if line.strip().startswith("p2p ")
+            line.strip() for line in content.splitlines() if line.strip().startswith("p2p ")
         )
         tool_references.update(re.findall(r"`(p2p_[a-z0-9_]+)`", content))
 
@@ -125,8 +127,7 @@ def test_current_agent_template_command_and_tool_references_are_registered() -> 
         command.rstrip(".,:;")
         for command in command_references
         if not any(
-            command.rstrip(".,:;") == path
-            or command.rstrip(".,:;").startswith(path + " ")
+            command.rstrip(".,:;") == path or command.rstrip(".,:;").startswith(path + " ")
             for path in snapshot.cli_paths
         )
     }

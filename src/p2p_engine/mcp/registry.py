@@ -14,6 +14,14 @@ from p2p_engine.mcp.catalog.prompts import PROMPT_TOOL_KINDS
 
 TOOL_NAMES = (
     'p2p_init_project',
+    'p2p_project_identity_show',
+    'p2p_project_identity_status',
+    'p2p_project_identity_transitions',
+    'p2p_project_identity_copy_check',
+    'p2p_project_identity_adopt_preview',
+    'p2p_project_identity_adopt_apply',
+    'p2p_project_identity_derive_preview',
+    'p2p_project_identity_derive_apply',
     'p2p_agent_instructions_refresh',
     'p2p_agent_list',
     'p2p_agent_show',

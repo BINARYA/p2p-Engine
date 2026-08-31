@@ -39,6 +39,7 @@ def handle_maintenance_tool(
             "structure_source": result.structure_source.to_dict(),
             "structure_origin": dict(result.structure_origin),
             "structure_revision": result.structure_revision,
+            "project_identity": result.identity.to_dict(),
         }
     if name == "p2p_agent_instructions_refresh":
         result = workspace.refresh_agent_instructions(

@@ -858,6 +858,8 @@ def _normalize_target(
         return normalized
     if _is_project_structure_export_marker_target(normalized):
         return normalized
+    if _is_identity_adoption_backup_target(normalized):
+        return normalized
     if not normalized.startswith(".p2p/") or normalized.startswith(".p2p/.internal/"):
         raise ValueError(f"Workspace transaction target is outside allowed canonical paths: {relative}")
     return normalized
@@ -879,6 +881,15 @@ _PROJECT_STRUCTURE_EXPORT_MARKER_TARGET = re.compile(
 
 def _is_project_structure_export_marker_target(relative: str) -> bool:
     return _PROJECT_STRUCTURE_EXPORT_MARKER_TARGET.fullmatch(relative) is not None
+
+
+_IDENTITY_ADOPTION_BACKUP_TARGET = re.compile(
+    r"^\.p2p/\.internal/identity-adoption-backups/[0-9a-f]{64}/project\.yml$"
+)
+
+
+def _is_identity_adoption_backup_target(relative: str) -> bool:
+    return _IDENTITY_ADOPTION_BACKUP_TARGET.fullmatch(relative) is not None
 
 
 def _normalize_project_target(relative: str) -> str:

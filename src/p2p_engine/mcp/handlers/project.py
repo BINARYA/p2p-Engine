@@ -21,6 +21,62 @@ def handle_project_tool(
     name: str,
     arguments: dict[str, Any],
 ) -> dict[str, object] | None:
+    if name == "p2p_project_identity_show":
+        return {
+            "project_identity": workspace.project_identity().to_dict(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_project_identity_status":
+        return {
+            "project_identity_status": workspace.project_identity_status().to_dict(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_project_identity_transitions":
+        return {
+            "identity_transitions": workspace.project_identity_transition_matrix(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_project_identity_copy_check":
+        return {
+            "project_copy_assessment": workspace.assess_project_copy(
+                observed_project_uuid=required(arguments, "observed_project_uuid"),
+                observed_replica_id=optional_string(arguments, "observed_replica_id") or "",
+                intent=optional_string(arguments, "intent") or "",
+            ).to_dict(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_project_identity_adopt_preview":
+        actor_id = required(arguments, "actor_id")
+        return {
+            "project_identity_adoption": workspace.preview_project_identity_adoption(
+                operation_key=required(arguments, "operation_key"),
+                actor_id=actor_id,
+                executor_id=str(arguments.get("executor_id") or actor_id),
+                executor_kind=str(arguments.get("executor_kind") or "person"),
+                channel="mcp",
+            ).to_dict(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_project_identity_derive_preview":
+        actor_id = required(arguments, "actor_id")
+        return {
+            "project_identity_derivation": workspace.preview_project_identity_derivation(
+                operation_key=required(arguments, "operation_key"),
+                actor_id=actor_id,
+                executor_id=str(arguments.get("executor_id") or actor_id),
+                executor_kind=str(arguments.get("executor_kind") or "person"),
+                display_name=str(arguments.get("display_name") or ""),
+                retain_lineage=bool(arguments.get("retain_lineage", True)),
+                lineage_visibility=str(arguments.get("lineage_visibility") or "preserved"),
+                channel="mcp",
+            ).to_dict(),
+            "mutation_performed": False,
+        }
+    if name in {
+        "p2p_project_identity_adopt_apply",
+        "p2p_project_identity_derive_apply",
+    }:
+        return _project_identity_mutation(workspace, name, arguments)
     if name == "p2p_project_domain_show":
         return {
             "project_domain": workspace.project_domain().to_dict(),
@@ -394,6 +450,65 @@ def handle_project_tool(
         section = required(arguments, "section")
         return {"section": section, "content": workspace.show_project_state(section)}
     return None
+
+
+def _project_identity_mutation(
+    workspace: P2PWorkspace,
+    name: str,
+    arguments: dict[str, Any],
+) -> dict[str, object]:
+    actor_id = required(arguments, "actor_id")
+    consent_id = required(arguments, "consent_id")
+    preview_token = required(arguments, "preview_token")
+    kind = "adopt" if name == "p2p_project_identity_adopt_apply" else "derive"
+    consent_operation = f"project_identity_{kind}_apply"
+    consent_target = f"project-identity@{preview_token}"
+    consent = workspace.consent_show(consent_id)
+    if consent.status == "granted":
+        workspace.consent_validate(
+            consent_id,
+            operation=consent_operation,
+            target=consent_target,
+            actor_id=actor_id,
+        )
+    elif consent.status != "consumed":
+        raise ValueError(f"Consent receipt is not granted: {consent_id}")
+    common = {
+        "operation_key": required(arguments, "operation_key"),
+        "actor_id": actor_id,
+        "executor_id": str(arguments.get("executor_id") or actor_id),
+        "executor_kind": str(arguments.get("executor_kind") or "person"),
+        "preview_token": preview_token,
+        "confirm": bool(arguments.get("confirm", False)),
+        "channel": "mcp",
+    }
+    result = (
+        workspace.apply_project_identity_adoption(**common)
+        if kind == "adopt"
+        else workspace.apply_project_identity_derivation(
+            **common,
+            display_name=str(arguments.get("display_name") or ""),
+            retain_lineage=bool(arguments.get("retain_lineage", True)),
+            lineage_visibility=str(arguments.get("lineage_visibility") or "preserved"),
+        )
+    )
+    consumed = consent
+    if consent.status == "granted" and result.status in {"applied", "already_applied"}:
+        consumed = workspace.consent_consume(
+            consent_id,
+            result={
+                "operation": consent_operation,
+                "target": consent_target,
+                "actor_id": actor_id,
+                "project_uuid": result.current.project_uuid.value,
+                "mutation_status": result.status,
+            },
+        )
+    return {
+        "project_identity_mutation": result.to_dict(),
+        "consent": to_jsonable(consumed),
+        "mutation_performed": result.status == "applied",
+    }
 
 
 def _project_domain_mutation(

@@ -11,6 +11,7 @@ import yaml
 from p2p_engine.core.authority import AuthorityContext, ProjectAuthorityDescriptor
 from p2p_engine.core.mutation_preview import semantic_sha256, source_precondition
 from p2p_engine.core.project_domain import ProjectDomainRef, StructureSource
+from p2p_engine.core.project_identity import ProjectIdentity
 from p2p_engine.core.project_structure import ProjectStructure
 from p2p_engine.core.project_verticals import VerticalPack
 from p2p_engine.core.runtime_contract import RUNTIME_SETUP_GUIDE_MARKER
@@ -39,6 +40,7 @@ from p2p_engine.services.project_questions import ProjectQuestionStateService
 from p2p_engine.services.authority import ProjectAuthorityService
 from p2p_engine.services.runtime_contract import RuntimeContractService
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
+from p2p_engine.storage.project_identity import FilesystemProjectIdentityStore
 
 def _slugify(value: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
@@ -84,6 +86,7 @@ class ProjectInitializationResult:
     structure_origin: dict[str, object]
     structure_revision: int
     structure_checksum: str
+    identity: ProjectIdentity
 
 
 class ProjectInitializationService:
@@ -154,6 +157,15 @@ class ProjectInitializationService:
         structure_pack: VerticalPack | None = None,
     ) -> ProjectInitializationResult:
         is_new_project = not (self.p2p_dir / "project.yml").exists()
+        identity_store = FilesystemProjectIdentityStore(
+            root=self.root,
+            p2p_dir=self.p2p_dir,
+        )
+        identity = (
+            ProjectIdentity.new(name)
+            if is_new_project
+            else identity_store.load()
+        )
         agent_selection = self.select_agent_profile(agent_profile)
         domain_descriptor = _domain_descriptor(
             project_domain,
@@ -191,6 +203,7 @@ class ProjectInitializationService:
         )
         files = self._bootstrap_files(
             name=name,
+            identity=identity,
             domain_descriptor=domain_descriptor,
             structure_source=selected_structure_source,
             structure_origin=selected_structure_origin,
@@ -228,12 +241,14 @@ class ProjectInitializationService:
             structure_origin=selected_structure_origin,
             structure_revision=1,
             structure_checksum=initial_structure.checksum,
+            identity=identity,
         )
 
     def _bootstrap_files(
         self,
         *,
         name: str,
+        identity: ProjectIdentity,
         domain_descriptor: ProjectDomainRef | None,
         structure_source: StructureSource,
         structure_origin: dict[str, object],
@@ -244,12 +259,17 @@ class ProjectInitializationService:
         initial_structure: ProjectStructure,
     ) -> dict[Path, str]:
         runtime_service = RuntimeContractService(root=self.root, p2p_dir=self.p2p_dir)
+        identity_store = FilesystemProjectIdentityStore(
+            root=self.root,
+            p2p_dir=self.p2p_dir,
+        )
         is_new_project = not (self.p2p_dir / "project.yml").exists()
         files: dict[Path, str] = {
             self.p2p_dir / "project.yml": _yaml_dump(
                 {
                     "project": {
                         "id": _slugify(name),
+                        "uuid": identity.project_uuid.value,
                         "name": name,
                         "version": "0.1.0",
                         "status": "active",
@@ -325,6 +345,7 @@ class ProjectInitializationService:
             ),
         }
         if is_new_project:
+            files.update(identity_store.initialization_documents(identity))
             question_service = ProjectQuestionStateService(root=self.root, p2p_dir=self.p2p_dir)
             empty_questions = question_service.empty_artifact(
                 project_id=_slugify(name),

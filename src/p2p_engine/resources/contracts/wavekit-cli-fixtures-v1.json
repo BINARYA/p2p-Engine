@@ -21,6 +21,8 @@
     },
     {
       "commands": [
+        "p2p project identity status --format json",
+        "p2p project identity show --format json",
         "p2p project snapshot --format json",
         "p2p project domain show --format json",
         "p2p project structure show --format json",
@@ -143,7 +145,7 @@
     "operation_key_placeholder": "wavekit:<uuid>",
     "root_placeholder": "<PROJECT_ROOT>"
   },
-  "semantic_sha256": "c18e3a17960a2583f4324d19794bd43adea9899df3d7659b2521e23c0b78156c",
+  "semantic_sha256": "083f9a4fa6cc42e98bf07caa5665b7df3c788936dca5263464b41b13f78355da",
   "transport": {
     "envelope": "p2p-cli/v1",
     "kind": "cli_json",

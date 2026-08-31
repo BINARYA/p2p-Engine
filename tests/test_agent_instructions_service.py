@@ -242,7 +242,7 @@ def test_agent_instruction_service_registers_project_curator_codex_outputs(
     assert modern["shared"] is False
     assert modern["managed"] is True
     assert modern["drift"] == "clean"
-    assert modern["template_generation_id"].startswith("agent-template-generation-v4:")
+    assert modern["template_generation_id"].startswith("agent-template-generation-v5:")
     assert len(str(modern["sha256"])) == 64
     reference_paths = {
         path

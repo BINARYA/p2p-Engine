@@ -299,6 +299,8 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "proposal_update",
         "proposal_decision_apply",
         "project_authority_rotate",
+        "project_identity_adopt",
+        "project_identity_derive",
         "project_domain_change",
         "project_memory_scope_change",
         "project_structure_change",
@@ -327,6 +329,8 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
     if operation in {
         "init",
         "project_authority_rotate",
+        "project_identity_adopt",
+        "project_identity_derive",
         "project_domain_change",
         "project_memory_scope_change",
         "project_structure_change",
@@ -385,6 +389,9 @@ def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
         return
     if operation == "project_authority_rotate":
         _validate_authority_rotation_result(result)
+        return
+    if operation in {"project_identity_adopt", "project_identity_derive"}:
+        _validate_project_identity_result(result, operation=operation)
         return
     if operation == "project_domain_change":
         _validate_project_domain_result(result)
@@ -504,6 +511,7 @@ def _validate_init_result(result: Mapping[str, object]) -> None:
         "operation",
         "operation_id",
         "project",
+        "project_identity",
         "domain",
         "structure_source",
         "structure_origin",
@@ -529,6 +537,7 @@ def _validate_init_result(result: Mapping[str, object]) -> None:
         raise ValueError("receipt result operation_id is unsupported")
     for field in (
         "project",
+        "project_identity",
         "authority",
         "agent_selection",
         "agent_instructions",
@@ -539,6 +548,12 @@ def _validate_init_result(result: Mapping[str, object]) -> None:
     ):
         if not isinstance(result.get(field), Mapping):
             raise ValueError(f"receipt result {field} must be a mapping")
+    from p2p_engine.core.project_identity import project_identity_from_mapping
+
+    identity = project_identity_from_mapping(result.get("project_identity"))
+    project = result.get("project")
+    if not isinstance(project, Mapping) or project.get("uuid") != identity.project_uuid.value:
+        raise ValueError("receipt init project and project identity UUIDs diverge")
     domain = result.get("domain")
     if domain is not None and not isinstance(domain, Mapping):
         raise ValueError("receipt result domain must be a mapping or null")
@@ -774,6 +789,95 @@ def _validate_proposal_readiness_result(result: Mapping[str, object]) -> None:
         field="owner_question_state",
         depth=0,
     )
+
+
+def _validate_project_identity_result(
+    result: Mapping[str, object],
+    *,
+    operation: str,
+) -> None:
+    allowed = {
+        "operation",
+        "operation_id",
+        "kind",
+        "request",
+        "previous_identity",
+        "current_identity",
+        "source_revision",
+        "backup_path",
+        "changed_paths",
+    }
+    unknown = sorted(str(key) for key in result if key not in allowed)
+    if unknown:
+        raise ValueError(
+            "receipt project-identity result contains unsupported fields: "
+            + ", ".join(unknown)
+        )
+    expected_kind = "adopt" if operation == "project_identity_adopt" else "derive"
+    expected_operation_id = f"project-identity-{expected_kind}"
+    if result.get("operation") != operation:
+        raise ValueError("receipt project-identity operation is unsupported")
+    if result.get("operation_id") != expected_operation_id:
+        raise ValueError("receipt project-identity operation_id is invalid")
+    if result.get("kind") != expected_kind:
+        raise ValueError("receipt project-identity kind is invalid")
+    request = result.get("request")
+    if not isinstance(request, Mapping) or set(request) != {
+        "display_name",
+        "retain_lineage",
+        "lineage_visibility",
+    }:
+        raise ValueError("receipt project-identity request is invalid")
+    if not isinstance(request.get("display_name"), str):
+        raise ValueError("receipt project-identity display_name must be text")
+    if not isinstance(request.get("retain_lineage"), bool):
+        raise ValueError("receipt project-identity retain_lineage must be boolean")
+    if request.get("lineage_visibility") not in {"preserved", "private"}:
+        raise ValueError("receipt project-identity lineage_visibility is invalid")
+    from p2p_engine.core.project_identity import project_identity_from_mapping
+
+    current = project_identity_from_mapping(result.get("current_identity"))
+    previous_raw = result.get("previous_identity")
+    previous = (
+        project_identity_from_mapping(previous_raw)
+        if isinstance(previous_raw, Mapping)
+        else None
+    )
+    if expected_kind == "adopt" and previous_raw is not None:
+        raise ValueError("receipt identity adoption cannot have a previous identity")
+    if expected_kind == "derive":
+        if previous is None or previous.project_uuid == current.project_uuid:
+            raise ValueError("receipt identity derivation must create a new project UUID")
+        if current.remote_binding is not None or current.mode.value != "standalone":
+            raise ValueError("receipt identity derivation must remove active remote binding")
+    source = result.get("source_revision")
+    if not isinstance(source, Mapping) or set(source) != {"namespace", "sha256"}:
+        raise ValueError("receipt project-identity source revision is invalid")
+    if source.get("namespace") != "source_memory":
+        raise ValueError("receipt project-identity source revision namespace is invalid")
+    _require_sha256(str(source.get("sha256") or ""), "source_revision.sha256")
+    backup = result.get("backup_path")
+    if expected_kind == "adopt":
+        if (
+            not isinstance(backup, str)
+            or not backup.startswith(".p2p/.internal/identity-adoption-backups/")
+            or not backup.endswith("/project.yml")
+        ):
+            raise ValueError("receipt identity adoption backup path is invalid")
+    elif backup is not None:
+        raise ValueError("receipt identity derivation cannot claim an adoption backup")
+    changed = result.get("changed_paths")
+    if not isinstance(changed, list) or changed != sorted(set(changed)):
+        raise ValueError("receipt project-identity changed paths must be unique and sorted")
+    required = {
+        ".p2p/project.yml",
+        ".p2p/project/identity.yml",
+        ".p2p/local/replica.yml",
+    }
+    if expected_kind == "adopt":
+        required.add(str(backup))
+    if set(changed) != required:
+        raise ValueError("receipt project-identity changed paths are invalid")
 
 
 def _validate_authority_rotation_result(result: Mapping[str, object]) -> None:
@@ -1564,6 +1668,9 @@ def _public_result(result: Mapping[str, object]) -> dict[str, object]:
             "project": dict(result.get("project", {}))
             if isinstance(result.get("project"), Mapping)
             else {},
+            "project_identity": dict(result.get("project_identity", {}))
+            if isinstance(result.get("project_identity"), Mapping)
+            else {},
             "authority": dict(result.get("authority", {}))
             if isinstance(result.get("authority"), Mapping)
             else {},
@@ -1590,6 +1697,33 @@ def _public_result(result: Mapping[str, object]) -> dict[str, object]:
             else {},
             "next_steps": list(result.get("next_steps", []))
             if isinstance(result.get("next_steps"), list)
+            else [],
+        }
+    if result.get("operation") in {
+        "project_identity_adopt",
+        "project_identity_derive",
+    }:
+        return {
+            "operation": result.get("operation"),
+            "operation_id": result.get("operation_id"),
+            "kind": result.get("kind"),
+            "previous_identity": (
+                dict(result["previous_identity"])
+                if isinstance(result.get("previous_identity"), Mapping)
+                else None
+            ),
+            "current_identity": (
+                dict(result["current_identity"])
+                if isinstance(result.get("current_identity"), Mapping)
+                else {}
+            ),
+            "source_revision": (
+                dict(result["source_revision"])
+                if isinstance(result.get("source_revision"), Mapping)
+                else {}
+            ),
+            "changed_paths": list(result.get("changed_paths", []))
+            if isinstance(result.get("changed_paths"), list)
             else [],
         }
     if result.get("operation") == "proposal_create":
@@ -1825,6 +1959,12 @@ def _validated_postcondition_path(value: str, *, operation: str) -> str:
         raise ValueError(f"unsafe receipt postcondition path: {value}")
     normalized = pure.as_posix()
     if operation == "init" and _is_init_postcondition_path(normalized):
+        return normalized
+    if (
+        operation == "project_identity_adopt"
+        and normalized.startswith(".p2p/.internal/identity-adoption-backups/")
+        and normalized.endswith("/project.yml")
+    ):
         return normalized
     if (
         operation == "project_structure_export"

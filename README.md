@@ -31,6 +31,7 @@ but remain external integrations rather than P2P runtime lifecycle primitives.
 - derives Change Sets from accepted proposals;
 - manages logical Work planning and handoff metadata;
 - generates compact context packets for agents;
+- assigns a stable project UUID distinct from names, paths, local replicas and remote IDs;
 - derives compact vertical-aware project memory for bounded retrieval;
 - keeps a detached project-owned structure that can be edited, retired,
   exported as a portable vertical, or replaced from one exact release;
@@ -348,6 +349,9 @@ Stable:
 
 - [docs/WORKSPACE-SCHEMA.md](docs/WORKSPACE-SCHEMA.md)
   Current workspace schema contract, unsupported-schema behavior, and atomic transaction recovery.
+
+- [docs/PROJECT-IDENTITY.md](docs/PROJECT-IDENTITY.md)
+  Stable project UUID, local replica identity, copy intent, adoption, derivation and CLI/MCP contracts.
 
 - [docs/AUTHORITY-CONTEXT.md](docs/AUTHORITY-CONTEXT.md)
   Project authority, subject/executor separation, capabilities, external attestations and rotation.

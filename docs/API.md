@@ -25,6 +25,7 @@ workspace = P2PWorkspace(Path("."))
 Current method families include:
 
 - project initialization and agent instructions;
+- stable project identity/status, copy assessment, lifecycle DTOs, adoption and derivation;
 - status, validation, context, project-readiness v2, and maturity compatibility;
 - proposals and contributions;
 - decisions, votes, and precedents;
@@ -57,6 +58,12 @@ print(proposal.proposal_id)
 ## Error Model
 
 Most public methods raise `ValueError` for invalid IDs, missing source artifacts, invalid lifecycle transitions, or unsupported options.
+
+Stable identity application services live in
+`p2p_engine.services.project_identity`; typed storage-neutral values live in
+`p2p_engine.core.project_identity`. Storage adapters implement the
+`ProjectIdentityStore` port. End users should use the CLI/MCP surfaces documented
+in [`PROJECT-IDENTITY.md`](PROJECT-IDENTITY.md), not adapter paths.
 
 ## Documentation Plan
 

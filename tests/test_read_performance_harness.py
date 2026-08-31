@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+import yaml
 
 from p2p_engine.services.workspace_reads import WorkspaceReadContext
 from p2p_engine.storage.filesystem import P2PWorkspace
@@ -55,7 +56,19 @@ def test_scale_workspace_is_deterministic_on_current_schema(
     assert first.schema_version == second.schema_version == schema_version
     assert len(list((first.root / ".p2p/proposals").iterdir())) == 10
     assert len(list((second.root / ".p2p/proposals").iterdir())) == 10
-    assert tree_digest(first.root / ".p2p") == tree_digest(second.root / ".p2p")
+    identity_paths = frozenset({"project.yml", "project/identity.yml", "local/replica.yml"})
+    assert tree_digest(first.root / ".p2p", exclude=identity_paths) == tree_digest(
+        second.root / ".p2p", exclude=identity_paths
+    )
+    first_manifest = yaml.safe_load((first.root / ".p2p/project.yml").read_text(encoding="utf-8"))
+    second_manifest = yaml.safe_load((second.root / ".p2p/project.yml").read_text(encoding="utf-8"))
+    first_manifest["project"].pop("uuid")
+    second_manifest["project"].pop("uuid")
+    assert first_manifest == second_manifest
+    assert (
+        first.root.joinpath(".p2p/project/identity.yml").read_bytes()
+        != (second.root / ".p2p/project/identity.yml").read_bytes()
+    )
 
 
 @pytest.mark.slow
@@ -73,9 +86,7 @@ def test_lifecycle_and_vertical_coverage_scale_linearly(
     workspace = P2PWorkspace(fixture.root)
     context = WorkspaceReadContext(fixture.root)
 
-    lifecycles = workspace._proposal_lifecycle_authority_service().capture_all(
-        read_context=context
-    )
+    lifecycles = workspace._proposal_lifecycle_authority_service().capture_all(read_context=context)
     vertical = workspace._project_vertical_service()
     coverage = vertical.proposal_vertical_coverage_statuses(
         tuple(sorted(lifecycles)),

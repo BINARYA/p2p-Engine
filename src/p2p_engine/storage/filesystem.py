@@ -35,6 +35,16 @@ from p2p_engine.core.portable_verticals import (
     VerticalLifecycleResult,
 )
 from p2p_engine.core.project_metadata import ProjectMetadataView
+from p2p_engine.core.project_identity import (
+    CopyCollisionAssessment,
+    DetachIdentityContract,
+    ProjectIdentity,
+    ProjectIdentityMutationPreview,
+    ProjectIdentityMutationResult,
+    ProjectIdentityStatus,
+    ReplicaIdentityContract,
+    TransferIdentityContract,
+)
 from p2p_engine.core.project_domain import (
     ProjectDomainMutationResult,
     ProjectDomainRef,
@@ -257,6 +267,7 @@ from p2p_engine.services.project_initialization import (
     ProjectInitializationResult,
     ProjectInitializationService,
 )
+from p2p_engine.services.project_identity import ProjectIdentityService
 from p2p_engine.services.project_publication import (
     PublicationCatalogResult,
     ProjectPublicationImportResult,
@@ -356,6 +367,7 @@ class P2PWorkspace:
         self._project_context_renderer_service_instance: ProjectContextRendererService | None = None
         self._project_interaction_style_service_instance: ProjectInteractionStyleService | None = None
         self._project_initialization_service_instance: ProjectInitializationService | None = None
+        self._project_identity_service_instance: ProjectIdentityService | None = None
         self._project_authority_service_instance: ProjectAuthorityService | None = None
         self._project_authority_rotation_service_instance: (
             ProjectAuthorityRotationService | None
@@ -428,6 +440,16 @@ class P2PWorkspace:
                 permissions=self._permissions_service(),
             )
         return self._project_authority_service_instance
+
+    def _project_identity_service(self) -> ProjectIdentityService:
+        if self._project_identity_service_instance is None:
+            self._project_identity_service_instance = ProjectIdentityService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                authority=self._project_authority_service(),
+                receipts=self._mutation_receipt_service(),
+            )
+        return self._project_identity_service_instance
 
     def _project_authority_rotation_service(self) -> ProjectAuthorityRotationService:
         if self._project_authority_rotation_service_instance is None:
@@ -565,6 +587,7 @@ class P2PWorkspace:
                 governance_validation_findings=self._governance_policy_service().validation_findings,
                 runtime_validation_findings=self._runtime_contract_service().validation_findings,
                 workspace_schema_validation_findings=self._workspace_schema_service().validation_findings,
+                project_identity_status=self.project_identity_status,
                 proposal_lifecycle_status=(
                     self._proposal_lifecycle_authority_service().status
                 ),
@@ -1393,6 +1416,161 @@ class P2PWorkspace:
             )
         return self._project_initialization_service_instance
 
+    def project_identity_status(self) -> ProjectIdentityStatus:
+        return self._project_identity_service().status()
+
+    def project_identity(self) -> ProjectIdentity:
+        return self._project_identity_service().show()
+
+    def project_identity_transition_matrix(self) -> list[dict[str, object]]:
+        return self._project_identity_service().transition_matrix()
+
+    def assess_project_copy(
+        self,
+        *,
+        observed_project_uuid: str,
+        observed_replica_id: str = "",
+        intent: str = "",
+    ) -> CopyCollisionAssessment:
+        return self._project_identity_service().assess_copy(
+            observed_project_uuid=observed_project_uuid,
+            observed_replica_id=observed_replica_id,
+            intent=intent,
+        )
+
+    def project_transfer_identity_contract(
+        self,
+        *,
+        server_instance_id: str,
+        remote_project_id: str = "",
+    ) -> TransferIdentityContract:
+        return self._project_identity_service().transfer_contract(
+            server_instance_id=server_instance_id,
+            remote_project_id=remote_project_id,
+        )
+
+    def project_replica_identity_contract(
+        self,
+        *,
+        move: bool,
+        operation_key: str,
+    ) -> ReplicaIdentityContract:
+        return self._project_identity_service().replica_contract(
+            move=move,
+            operation_key=operation_key,
+        )
+
+    def project_detach_identity_contract(
+        self,
+        *,
+        operation_key: str,
+        retain_lineage: bool = True,
+    ) -> DetachIdentityContract:
+        return self._project_identity_service().detach_contract(
+            operation_key=operation_key,
+            retain_lineage=retain_lineage,
+        )
+
+    def preview_project_identity_adoption(
+        self,
+        *,
+        operation_key: str,
+        actor_id: str,
+        executor_id: str,
+        executor_kind: str,
+        authority_context: AuthorityContext | None = None,
+        channel: str = "cli",
+    ) -> ProjectIdentityMutationPreview:
+        self._ensure_identity_recovery_write_allowed("project_identity_adopt_preview")
+        return self._project_identity_service().preview_adoption(
+            operation_key=operation_key,
+            actor_id=actor_id,
+            executor_id=executor_id,
+            executor_kind=executor_kind,
+            authority_context=authority_context,
+            channel=channel,
+        )
+
+    def apply_project_identity_adoption(
+        self,
+        *,
+        operation_key: str,
+        actor_id: str,
+        executor_id: str,
+        executor_kind: str,
+        preview_token: str,
+        confirm: bool,
+        authority_context: AuthorityContext | None = None,
+        channel: str = "cli",
+    ) -> ProjectIdentityMutationResult:
+        self._ensure_identity_recovery_write_allowed("project_identity_adopt")
+        return self._project_identity_service().apply_adoption(
+            operation_key=operation_key,
+            actor_id=actor_id,
+            executor_id=executor_id,
+            executor_kind=executor_kind,
+            preview_token=preview_token,
+            confirm=confirm,
+            authority_context=authority_context,
+            channel=channel,
+        )
+
+    def preview_project_identity_derivation(
+        self,
+        *,
+        operation_key: str,
+        actor_id: str,
+        executor_id: str,
+        executor_kind: str,
+        display_name: str = "",
+        retain_lineage: bool = True,
+        lineage_visibility: str = "preserved",
+        authority_context: AuthorityContext | None = None,
+        channel: str = "cli",
+    ) -> ProjectIdentityMutationPreview:
+        self._ensure_runtime_write_allowed("project_identity_derive_preview")
+        return self._project_identity_service().preview_derivation(
+            operation_key=operation_key,
+            actor_id=actor_id,
+            executor_id=executor_id,
+            executor_kind=executor_kind,
+            display_name=display_name,
+            retain_lineage=retain_lineage,
+            lineage_visibility=lineage_visibility,
+            authority_context=authority_context,
+            channel=channel,
+        )
+
+    def apply_project_identity_derivation(
+        self,
+        *,
+        operation_key: str,
+        actor_id: str,
+        executor_id: str,
+        executor_kind: str,
+        preview_token: str,
+        confirm: bool,
+        display_name: str = "",
+        retain_lineage: bool = True,
+        lineage_visibility: str = "preserved",
+        authority_context: AuthorityContext | None = None,
+        channel: str = "cli",
+    ) -> ProjectIdentityMutationResult:
+        self._ensure_runtime_write_allowed("project_identity_derive")
+        return self._project_identity_service().apply_derivation(
+            operation_key=operation_key,
+            actor_id=actor_id,
+            executor_id=executor_id,
+            executor_kind=executor_kind,
+            preview_token=preview_token,
+            confirm=confirm,
+            display_name=display_name,
+            retain_lineage=retain_lineage,
+            lineage_visibility=lineage_visibility,
+            authority_context=authority_context,
+            channel=channel,
+        )
+
     def _resolve_initial_structure_pack(self, source: StructureSource) -> VerticalPack | None:
         if source.kind == "starter":
             if source.starter_id == "empty":
@@ -1643,6 +1821,7 @@ class P2PWorkspace:
             structure_origin=dict(result.structure_origin),
             structure_revision=result.structure_revision,
             structure_checksum=result.structure_checksum,
+            identity=result.identity,
         )
 
     def init_project_with_operation_key(
@@ -2133,6 +2312,7 @@ class P2PWorkspace:
             "operation": "init",
             "operation_id": "project.init",
             "project": dict(project) if isinstance(project, Mapping) else {},
+            "project_identity": result.identity.to_dict(),
             "domain": result.domain.to_dict() if result.domain is not None else None,
             "structure_source": result.structure_source.to_dict(),
             "structure_origin": dict(result.structure_origin),
@@ -2186,6 +2366,7 @@ class P2PWorkspace:
             },
             "next_steps": [
                 "p2p status",
+                "p2p project identity show --format json",
                 "p2p project snapshot --format json",
                 "p2p proposal create <title>",
             ],
@@ -2199,6 +2380,8 @@ class P2PWorkspace:
         paths = set(created_file_paths)
         for relative in (
             ".p2p/project.yml",
+            ".p2p/project/identity.yml",
+            ".p2p/local/replica.yml",
             ".p2p/project/workspace-schema.yml",
             ".p2p/project/authority.yml",
             ".p2p/project/runtime.yml",
@@ -2365,7 +2548,10 @@ class P2PWorkspace:
         single_use: bool = True,
         scope: str | None = None,
     ) -> ConsentReceipt:
-        self._ensure_runtime_write_allowed("consent_grant")
+        if operation == "project_identity_adopt_apply":
+            self._ensure_identity_recovery_write_allowed("consent_grant")
+        else:
+            self._ensure_runtime_write_allowed("consent_grant")
         return self._consent_service().grant(
             operation,
             target,
@@ -2386,7 +2572,10 @@ class P2PWorkspace:
         scope: str | None = None,
         expires_on: str | None = None,
     ) -> ConsentReceipt:
-        self._ensure_runtime_write_allowed("consent_request")
+        if operation == "project_identity_adopt_apply":
+            self._ensure_identity_recovery_write_allowed("consent_request")
+        else:
+            self._ensure_runtime_write_allowed("consent_request")
         return self._consent_service().request(
             operation,
             target,
@@ -3049,6 +3238,20 @@ class P2PWorkspace:
         self._workspace_transaction_lock_service().require_write_available(operation)
         if not self.p2p_dir.exists() or not (self.p2p_dir / "project.yml").exists():
             return self._runtime_contract_service().write_preflight(operation)
+        preflight = self._runtime_contract_service().write_preflight(operation)
+        preflight.require_allowed()
+        self._workspace_operation_compatibility_service().check(
+            operation,
+            self._workspace_schema_service().status(),
+        ).require_allowed()
+        self._project_identity_service().require_mutable(operation)
+        return preflight
+
+    def _ensure_identity_recovery_write_allowed(
+        self,
+        operation: str,
+    ) -> RuntimeWritePreflight:
+        self._workspace_transaction_lock_service().require_write_available(operation)
         preflight = self._runtime_contract_service().write_preflight(operation)
         preflight.require_allowed()
         self._workspace_operation_compatibility_service().check(
@@ -5592,6 +5795,9 @@ def _public_project_init_result(result: dict[str, object]) -> dict[str, object]:
         "operation_id": result.get("operation_id"),
         "project": dict(result.get("project", {}))
         if isinstance(result.get("project"), Mapping)
+        else {},
+        "project_identity": dict(result.get("project_identity", {}))
+        if isinstance(result.get("project_identity"), Mapping)
         else {},
         "domain": (
             dict(result["domain"])

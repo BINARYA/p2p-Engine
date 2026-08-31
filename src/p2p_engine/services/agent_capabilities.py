@@ -4,8 +4,7 @@ import hashlib
 import json
 from dataclasses import asdict, dataclass
 
-
-AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v9"
+AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v10"
 
 
 @dataclass(frozen=True)
@@ -20,6 +19,35 @@ class AgentCapability:
 
 
 AGENT_CAPABILITIES = (
+    AgentCapability(
+        capability_id="project.identity",
+        cli_paths=(
+            "p2p project identity show",
+            "p2p project identity status",
+            "p2p project identity transitions",
+            "p2p project identity copy-check",
+            "p2p project identity adopt preview",
+            "p2p project identity adopt apply",
+            "p2p project identity derive preview",
+            "p2p project identity derive apply",
+        ),
+        mcp_tools=(
+            "p2p_project_identity_show",
+            "p2p_project_identity_status",
+            "p2p_project_identity_transitions",
+            "p2p_project_identity_copy_check",
+            "p2p_project_identity_adopt_preview",
+            "p2p_project_identity_adopt_apply",
+            "p2p_project_identity_derive_preview",
+            "p2p_project_identity_derive_apply",
+        ),
+        exposure="root_governed",
+        authority="read_only_or_project_identity_root_authority",
+        reason=(
+            "Stable identity reads are storage-neutral; adoption and derivation "
+            "are exact-preview, receipt-backed root-authority mutations with MCP consent."
+        ),
+    ),
     AgentCapability(
         capability_id="project.inspect",
         cli_paths=(
@@ -185,6 +213,8 @@ AGENT_CAPABILITIES = (
             "p2p workspace schema status",
             "p2p workspace transaction status",
             "p2p init",
+            "p2p project identity status",
+            "p2p project identity show",
             "p2p project snapshot",
             "p2p project domain show",
             "p2p project domain set",
@@ -293,9 +323,7 @@ AGENT_CAPABILITIES = (
     ),
     AgentCapability(
         capability_id="vertical.remote.obtain",
-        cli_paths=(
-            "p2p vertical pull",
-        ),
+        cli_paths=("p2p vertical pull",),
         mcp_tools=(),
         exposure="cli_only",
         authority="authenticated_user_when_private",
@@ -478,6 +506,8 @@ p2p status --format json
 p2p runtime status --format json
 p2p workspace schema status --format json
 p2p workspace transaction status --format json
+p2p project identity status --format json
+p2p project identity show --format json
 p2p project snapshot --format json
 p2p project memory classification --format json
 p2p project domain show --format json

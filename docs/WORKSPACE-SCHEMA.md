@@ -24,7 +24,11 @@ Schema 4 requires `.p2p/project/authority.yml`, the portable classification in
 `.p2p/project/domain.yml`, and independent initialization provenance in
 `.p2p/project/structure-source.yml`. It also requires the canonical detached
 aggregate in `.p2p/project/structure.yml` and append-only revision evidence in
-`.p2p/project/structure-events.yml`. A structural domain template is not a
+`.p2p/project/structure-events.yml`. Current initialization also writes the
+storage-neutral stable identity contract and local replica record described in
+[`PROJECT-IDENTITY.md`](PROJECT-IDENTITY.md). Identity-less development state
+must use explicit backup-protected adoption; malformed or contradictory
+identity blocks governed mutations. A structural domain template is not a
 valid schema-4 domain descriptor. `vertical.yml`, `vertical.lock.yml` and
 `definition.yml` are optional transition/definition artifacts; they do not
 replace project-structure authority.

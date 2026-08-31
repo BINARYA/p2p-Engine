@@ -148,7 +148,7 @@ class ProjectMetadataService:
         candidate_project = candidate.get("project")
         if not isinstance(current_project, Mapping) or not isinstance(candidate_project, Mapping):
             raise ValueError("Project manifest project section must be a mapping.")
-        for protected in ("id", "name", "version", "domain", "meaning"):
+        for protected in ("id", "uuid", "name", "version", "domain", "meaning"):
             if current_project.get(protected) != candidate_project.get(protected):
                 raise ValueError(f"Project metadata patch cannot change project.{protected}.")
 

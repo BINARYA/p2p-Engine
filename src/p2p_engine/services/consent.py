@@ -12,6 +12,8 @@ from p2p_engine.foundation.files import (
 from p2p_engine.services.permissions import PermissionsService
 
 CONSENT_OPERATIONS = {
+    "project_identity_adopt_apply",
+    "project_identity_derive_apply",
     "project_domain_set",
     "project_domain_clear",
     "project_structure_add_section",

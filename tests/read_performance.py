@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import hashlib
+import tracemalloc
+from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter
-import tracemalloc
 from typing import Callable, TypeVar
-
 
 T = TypeVar("T")
 
@@ -39,12 +38,14 @@ def measure_read(
     )
 
 
-def tree_digest(root: Path) -> str:
+def tree_digest(root: Path, *, exclude: frozenset[str] = frozenset()) -> str:
     digest = hashlib.sha256()
     if not root.exists():
         return digest.hexdigest()
     for path in sorted(root.rglob("*"), key=lambda item: item.relative_to(root).as_posix()):
         relative = path.relative_to(root).as_posix()
+        if relative in exclude:
+            continue
         digest.update(relative.encode("utf-8"))
         digest.update(b"\0")
         if path.is_symlink():

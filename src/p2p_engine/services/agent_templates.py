@@ -22,7 +22,7 @@ from p2p_engine.services.agent_capabilities import (
 
 BUILT_IN_AGENT_ADAPTERS = ("generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode")
 AGENT_PROFILES = {*BUILT_IN_AGENT_ADAPTERS, "all"}
-AGENT_TEMPLATE_GENERATION_ID = f"agent-template-generation-v4:{AGENT_CAPABILITY_CATALOG_VERSION}"
+AGENT_TEMPLATE_GENERATION_ID = f"agent-template-generation-v5:{AGENT_CAPABILITY_CATALOG_VERSION}"
 
 
 def normalize_agent_profile(profile: str) -> str:
@@ -224,6 +224,40 @@ Behavior:
 19. keep `p2p init` deterministic: the agent may guide missing initialization after detecting it, but the CLI init flow itself is not an agent interview;
 20. use vertical project memory as a bounded derived read model before broad proposal scans, while keeping canonical `.p2p` sources authoritative;
 21. never infer implementation status from an accepted contribution in vertical project memory."""
+
+
+PROJECT_IDENTITY_GUIDANCE_BLOCK = """Every initialized project has a stable
+`project_uuid` that is independent of its name, slug, directory, storage
+backend, Git repository, and any WaveKit identifier. The local operational copy
+has a separate `replica_id`; remote binding and lineage are separate typed
+metadata.
+
+Before relying on project identity, use:
+
+```bash
+p2p project identity status --format json
+p2p project identity show --format json
+```
+
+With MCP, use `p2p_project_identity_status` and
+`p2p_project_identity_show`. Treat both as storage-neutral contracts. Never
+infer whether memory is stored in files or a database from their output.
+
+Never invent, replace, copy between projects, or edit `project_uuid`,
+`replica_id`, remote bindings, lineage, or identity files directly. Copying a
+project directory does not decide whether the result is the same instance, a
+new replica, a read-only copy, or a derived project. If a copied workspace is
+ambiguous, stop and request an explicit owner choice; inspect it with
+`p2p project identity copy-check` where the observed IDs are known.
+
+An identity-less existing project must use the explicit, backup-protected
+`p2p project identity adopt preview` and matching `apply` workflow. Creating an
+independent project from a copy must use `p2p project identity derive preview`
+and matching `apply`. Both writes require the exact preview token, operation
+key, root authority, and explicit confirmation. With MCP, use only the
+corresponding consent-gated adopt/derive tools. There is no public raw identity
+setter. If the status is invalid or ambiguous, stop and report the recovery
+instruction instead of editing `.p2p/`."""
 
 
 STANDALONE_VERTICAL_GUIDANCE_BLOCK = standalone_vertical_guidance()
@@ -758,6 +792,27 @@ def agent_policy(
             ],
             "when_unavailable": "stop_and_report_diagnostics",
         },
+        "project_identity": {
+            "contract": "p2p-project-identity/v1",
+            "status_command": "p2p project identity status --format json",
+            "show_command": "p2p project identity show --format json",
+            "copy_check_command": "p2p project identity copy-check",
+            "mcp_read_tools": [
+                "p2p_project_identity_status",
+                "p2p_project_identity_show",
+            ],
+            "governed_mcp_writes": [
+                "p2p_project_identity_adopt_apply",
+                "p2p_project_identity_derive_apply",
+            ],
+            "project_uuid_is_stable": True,
+            "project_uuid_is_independent_of_name_path_storage_and_remote_id": True,
+            "replica_id_is_local_instance_identity": True,
+            "copy_intent_requires_owner_choice": True,
+            "manual_identity_edits": "forbidden",
+            "raw_identity_setter": False,
+            "invalid_or_ambiguous_behavior": "stop_and_report",
+        },
         "mcp": {
             "default_mode": "read_only",
             "write_tools_require_explicit_tool_schema": True,
@@ -781,6 +836,8 @@ def agent_policy(
                 "p2p workspace transaction status --format json",
             ],
             "read_commands": [
+                "p2p project identity status --format json",
+                "p2p project identity show --format json",
                 "p2p project snapshot --format json",
                 "p2p project domain show --format json",
                 "p2p project structure show --format json",
@@ -1089,6 +1146,10 @@ Do not satisfy the request by reverse-engineering `.p2p/` and writing files dire
 
 {RUNTIME_CONTRACT_GUIDANCE_BLOCK}
 
+## Stable Project Identity
+
+{PROJECT_IDENTITY_GUIDANCE_BLOCK}
+
 If `p2p` is not available on `PATH`, try this discovery order before stopping:
 
 ```bash
@@ -1264,6 +1325,10 @@ Use P2P Engine as the source of truth for project governance and planning.
 ## Runtime Bootstrap
 
 {RUNTIME_CONTRACT_GUIDANCE_BLOCK}
+
+## Stable Project Identity
+
+{PROJECT_IDENTITY_GUIDANCE_BLOCK}
 
 ## WaveKit CLI Worker Contract
 
@@ -1597,6 +1662,10 @@ Key rules:
 
 {RUNTIME_CONTRACT_GUIDANCE_BLOCK}
 
+## Stable Project Identity
+
+{PROJECT_IDENTITY_GUIDANCE_BLOCK}
+
 ## WaveKit CLI Worker Contract
 
 {WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK}
@@ -1658,6 +1727,10 @@ alwaysApply: true
 
 {governed_root_guidance_block()}
 
+## Stable Project Identity
+
+{PROJECT_IDENTITY_GUIDANCE_BLOCK}
+
 ## WaveKit CLI Worker Contract
 
 {WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK}
@@ -1713,6 +1786,10 @@ This project is managed with P2P Engine.
 
 {governed_root_guidance_block()}
 
+## Stable Project Identity
+
+{PROJECT_IDENTITY_GUIDANCE_BLOCK}
+
 ## WaveKit CLI Worker Contract
 
 {WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK}
@@ -1766,6 +1843,10 @@ This project is managed with P2P Engine.
 ## Governed Root
 
 {governed_root_guidance_block()}
+
+## Stable Project Identity
+
+{PROJECT_IDENTITY_GUIDANCE_BLOCK}
 
 ## WaveKit CLI Worker Contract
 

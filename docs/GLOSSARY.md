@@ -105,6 +105,29 @@ from internal workflow IDs and paths.
 The project authority boundary around intent, decisions, and lifecycle state.
 P2P Engine can store and validate governance artifacts, but the owner decides.
 
+## Project UUID
+
+The immutable, globally unique logical identity assigned when a project is
+initialized or explicitly adopted. It is independent of display name, slug,
+path, Git, storage backend, replica and remote server address.
+
+## Replica ID
+
+The identity of one operational local materialization of a project. It is not
+the project UUID. A copied linked materialization requires a new replica ID if
+the previous copy may remain operational; a true move may preserve it after the
+old materialization is retired.
+
+## Remote Project ID
+
+An opaque project address assigned by one remote server instance and mapped to
+the stable project UUID. It has meaning only with its server instance ID.
+
+## Project Lineage
+
+Typed historical provenance from a derivation, detach, or bundle restore. It
+does not grant authority, membership, remote binding, or synchronization rights.
+
 ## Intake
 
 An advisory workflow for raw ideas. Intake helps analyze overlap, possible

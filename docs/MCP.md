@@ -245,6 +245,14 @@ repository operations; they do not authorize P2P project-state mutations.
 | `p2p_context` | read-only | no | no | First tool before broad reads. |
 | `p2p_validate` | read-only | no | no | Check structural and semantic consistency. |
 | `p2p_project_status` | read-only | no | no | Inspect deterministic project status. |
+| `p2p_project_identity_show` | read-only | no | no | Read the stable project UUID, local replica address, mode, binding and lineage without storage details. |
+| `p2p_project_identity_status` | read-only | no | no | Read validity, mutation eligibility and actionable adoption/recovery guidance. |
+| `p2p_project_identity_transitions` | read-only | no | no | Read the fixed identity behavior for rename, move, backup, restore, copy, derive and detach. |
+| `p2p_project_identity_copy_check` | read-only | no | no | Classify an observed UUID/replica collision using explicit copy intent. |
+| `p2p_project_identity_adopt_preview` | governed preview | no | yes | Preview backup-protected adoption for an identity-less development project. |
+| `p2p_project_identity_adopt_apply` | consent-gated | yes | yes | Apply the exact adoption preview with root authority and consent bound to `project-identity@preview-token`. |
+| `p2p_project_identity_derive_preview` | governed preview | no | yes | Preview a new independent UUID with optional typed lineage. |
+| `p2p_project_identity_derive_apply` | consent-gated | yes | yes | Apply the exact derivation preview with root authority and token-bound consent. |
 | `p2p_workspace_schema_status` | read-only | no | no | Inspect workspace layout, semantic alignment, recovery state and release contract versions. |
 | `p2p_project_progress` | read-only | no | no | Inspect the same weighted definition-completeness and declared-evidence axes used by project readiness. |
 | `p2p_project_freshness` | read-only | no | no | Inspect the full derived-state graph and ordered rebuild actions. |
