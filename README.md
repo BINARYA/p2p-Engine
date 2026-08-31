@@ -18,9 +18,11 @@ Project intent is easy to lose.
 - Decisions need traceability: who decided what, why, and what changed.
 - Downstream tools need structured project definition, not only prose.
 
-P2P Engine keeps the working memory of a project in filesystem-backed `.p2p/`
-state. Source-control and delivery systems may version or reference that state,
-but remain external integrations rather than P2P runtime lifecycle primitives.
+P2P Engine keeps the working memory of a project inside `.p2p/`. The current
+filesystem adapter is selected by a replica-local storage manifest, while CLI,
+MCP and the logical project model use a storage-neutral application boundary.
+Source-control and delivery systems may version or reference project state, but
+remain external integrations rather than P2P runtime lifecycle primitives.
 
 That memory also has a storage-neutral canonical contract. Deterministic
 `.p2pbundle` archives move logical project state and managed blobs without
@@ -37,6 +39,8 @@ database; separately verified `.p2pbackup` archives support local recovery.
 - manages logical Work planning and handoff metadata;
 - generates compact context packets for agents;
 - assigns a stable project UUID distinct from names, paths, local replicas and remote IDs;
+- resolves exactly one writable local storage adapter per project without
+  exposing its layout to agents, CLI consumers or MCP clients;
 - derives compact vertical-aware project memory for bounded retrieval;
 - keeps a detached project-owned structure that can be edited, retired,
   exported as a portable vertical, or replaced from one exact release;
@@ -78,6 +82,9 @@ Future package target: public package registry, e.g. PyPI
 ```
 
 Current implementation includes proposal lifecycle, decisions, choices, Change Sets, Work metadata, registries, validation, compact context, rubrics, maturity assessment, spec/export MVP, and a guided init wizard.
+
+The internal storage architecture and compatibility boundary are documented in
+[`docs/PROJECT-STORAGE-PORTS.md`](docs/PROJECT-STORAGE-PORTS.md).
 
 ## 5-Minute Agent Setup
 
@@ -394,7 +401,8 @@ Short-term:
 - validate the 0.5.1 release across downstream integrations;
 - validate MCP behavior with more real clients;
 - continue hardening validation and recovery paths;
-- plan modular refactoring of the large `P2PWorkspace` facade.
+- measure the filesystem adapter behind the new application/storage ports
+  against the frozen pre-port baseline.
 
 Later:
 

@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import hashlib
-from pathlib import Path, PurePosixPath
 import re
+from datetime import datetime, timezone
+from pathlib import Path, PurePosixPath
 from typing import Mapping
 
 import yaml
 
-from p2p_engine.core.mutation_preview import semantic_sha256
 from p2p_engine.core.authority import AuthorityEvidence
+from p2p_engine.core.mutation_preview import semantic_sha256
 from p2p_engine.core.mutation_receipts import (
     MUTATION_RECEIPT_MAX_FILE_BYTES,
     MUTATION_RECEIPT_MAX_KEY_BYTES,
@@ -19,11 +19,10 @@ from p2p_engine.core.mutation_receipts import (
     MutationReceipt,
     MutationReceiptStatus,
 )
+from p2p_engine.core.vertical_transition_impact import VERTICAL_TRANSITION_IMPACT_CONTRACT
 from p2p_engine.foundation.files import yaml_dump
 from p2p_engine.foundation.yaml_loaders import UNIQUE_LOADER_CONTRACT, load_yaml
 from p2p_engine.services.workspace_transactions import physical_sha256
-from p2p_engine.core.vertical_transition_impact import VERTICAL_TRANSITION_IMPACT_CONTRACT
-
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -876,8 +875,12 @@ def _validate_project_identity_result(
     }
     if expected_kind == "adopt":
         required.add(str(backup))
-    if set(changed) != required:
-        raise ValueError("receipt project-identity changed paths are invalid")
+        accepted_changed_paths = {
+            frozenset(required),
+            frozenset({*required, ".p2p/local/storage.yml"}),
+        }
+        if frozenset(changed) not in accepted_changed_paths:
+            raise ValueError("receipt project-identity changed paths are invalid")
 
 
 def _validate_authority_rotation_result(result: Mapping[str, object]) -> None:

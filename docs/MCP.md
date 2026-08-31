@@ -20,6 +20,12 @@ the governed target root's `.p2p/` workspace and other P2P core storage. A
 caller may version that state externally, but Git history is neither required
 storage nor a P2P runtime authority.
 
+CLI and MCP enter the same project application service. The replica-local
+storage manifest selects one writable adapter; MCP tools do not expose its
+paths or provide raw storage operations. `p2p_init_project` accepts the
+currently available `filesystem` selection, while reopening uses the stored
+selection automatically.
+
 For a future multi-agent setup that requires one long-running shared service,
 P2P Engine would need a Streamable HTTP MCP server. The current implementation
 is local `stdio`.

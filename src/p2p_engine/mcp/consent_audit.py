@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from p2p_engine.storage.filesystem import P2PWorkspace
+from p2p_engine.services.project_application import ProjectApplicationService as P2PWorkspace
 
 
 def consume_consent_with_audit(

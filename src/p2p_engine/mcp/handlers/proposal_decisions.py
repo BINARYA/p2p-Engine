@@ -13,9 +13,8 @@ from p2p_engine.core.proposal_decision_events import (
 )
 from p2p_engine.mcp.consent_audit import consume_consent_with_audit
 from p2p_engine.mcp.handlers.common import required, to_jsonable
-from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.services.authority import AuthorityContractCodec
-from p2p_engine.storage.filesystem import P2PWorkspace
+from p2p_engine.services.project_application import ProjectApplicationService as P2PWorkspace
 
 
 _PREFIX = "p2p_proposal_decision_"
@@ -412,7 +411,7 @@ def _consent_result(
     workspace: P2PWorkspace,
     relative_path: Path,
 ) -> Mapping[str, object]:
-    payload = load_yaml((workspace.root / relative_path).read_bytes())
+    payload = workspace.read_governed_yaml(relative_path.as_posix())
     if not isinstance(payload, Mapping):
         return {}
     result = payload.get("result")
@@ -504,5 +503,4 @@ def _candidate_path(
     workspace: P2PWorkspace,
     arguments: Mapping[str, Any],
 ) -> Path:
-    path = Path(required(arguments, "candidate_path"))
-    return path if path.is_absolute() else workspace.root / path
+    return workspace.resolve_external_input(required(arguments, "candidate_path"))

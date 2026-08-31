@@ -12,6 +12,7 @@ from p2p_engine.core.authority import AuthorityContext, ProjectAuthorityDescript
 from p2p_engine.core.mutation_preview import semantic_sha256, source_precondition
 from p2p_engine.core.project_domain import ProjectDomainRef, StructureSource
 from p2p_engine.core.project_identity import ProjectIdentity
+from p2p_engine.core.project_state_storage import ProjectStorageManifest
 from p2p_engine.core.project_structure import ProjectStructure
 from p2p_engine.core.project_verticals import VerticalPack
 from p2p_engine.core.runtime_contract import RUNTIME_SETUP_GUIDE_MARKER
@@ -22,6 +23,7 @@ from p2p_engine.core.workspace_schema import (
 )
 from p2p_engine.services.agent_instructions import AgentInstructionsResult
 from p2p_engine.services.agent_selection import AgentProfileSelection, select_agent_profile
+from p2p_engine.services.authority import ProjectAuthorityService
 from p2p_engine.services.mcp_hints import McpHint, build_mcp_hint
 from p2p_engine.services.project_domain import (
     initial_project_domain_state,
@@ -29,6 +31,7 @@ from p2p_engine.services.project_domain import (
     structure_source_bytes,
 )
 from p2p_engine.services.project_maturity import rubrics_payload
+from p2p_engine.services.project_questions import ProjectQuestionStateService
 from p2p_engine.services.project_structure import (
     initial_project_structure_event,
     project_structure_bytes,
@@ -36,11 +39,15 @@ from p2p_engine.services.project_structure import (
     project_structure_from_vertical_pack,
 )
 from p2p_engine.services.readiness import DEFAULT_READINESS_PROFILE_ID
-from p2p_engine.services.project_questions import ProjectQuestionStateService
-from p2p_engine.services.authority import ProjectAuthorityService
 from p2p_engine.services.runtime_contract import RuntimeContractService
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 from p2p_engine.storage.project_identity import FilesystemProjectIdentityStore
+from p2p_engine.storage.project_storage import (
+    PROJECT_STORAGE_MANIFEST_PATH,
+    ProjectStorageManifestStore,
+    ProjectStorageResolver,
+)
+
 
 def _slugify(value: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
@@ -125,6 +132,7 @@ class ProjectInitializationService:
         owner: str | None = None,
         authority_context: AuthorityContext | None = None,
         structure_pack: VerticalPack | None = None,
+        storage_adapter: str | None = None,
     ) -> list[Path]:
         return self.init_project_with_summary(
             name=name,
@@ -139,6 +147,7 @@ class ProjectInitializationService:
             owner=owner,
             authority_context=authority_context,
             structure_pack=structure_pack,
+            storage_adapter=storage_adapter,
         ).created
 
     def init_project_with_summary(
@@ -155,6 +164,7 @@ class ProjectInitializationService:
         owner: str | None = None,
         authority_context: AuthorityContext | None = None,
         structure_pack: VerticalPack | None = None,
+        storage_adapter: str | None = None,
     ) -> ProjectInitializationResult:
         is_new_project = not (self.p2p_dir / "project.yml").exists()
         identity_store = FilesystemProjectIdentityStore(
@@ -166,6 +176,27 @@ class ProjectInitializationService:
             if is_new_project
             else identity_store.load()
         )
+        storage_resolver = ProjectStorageResolver(self.root)
+        if is_new_project:
+            storage_manifest = storage_resolver.manifest_for_new_project(
+                project_uuid=identity.project_uuid.value,
+                adapter=storage_adapter or "filesystem",
+            )
+        else:
+            selection = storage_resolver.resolve()
+            if (
+                storage_adapter is not None
+                and selection.adapter != storage_adapter.strip().lower()
+            ):
+                raise ValueError(
+                    "P2P_STORAGE_CONFIGURATION_CONTRADICTION: requested init adapter "
+                    "differs from the active project adapter"
+                )
+            storage_manifest = (
+                selection.manifest
+                if storage_adapter is not None and not selection.persistent
+                else None
+            )
         agent_selection = self.select_agent_profile(agent_profile)
         domain_descriptor = _domain_descriptor(
             project_domain,
@@ -212,6 +243,7 @@ class ProjectInitializationService:
             permissions_payload=permissions_payload,
             authority_descriptor=authority_descriptor,
             initial_structure=initial_structure,
+            storage_manifest=storage_manifest,
         )
         created = self._write_missing_files(
             files,
@@ -257,6 +289,7 @@ class ProjectInitializationService:
         permissions_payload: dict[str, object],
         authority_descriptor: ProjectAuthorityDescriptor | None,
         initial_structure: ProjectStructure,
+        storage_manifest: ProjectStorageManifest | None,
     ) -> dict[Path, str]:
         runtime_service = RuntimeContractService(root=self.root, p2p_dir=self.p2p_dir)
         identity_store = FilesystemProjectIdentityStore(
@@ -346,6 +379,11 @@ class ProjectInitializationService:
         }
         if is_new_project:
             files.update(identity_store.initialization_documents(identity))
+            if storage_manifest is None:  # pragma: no cover - guarded by initialization.
+                raise ValueError("P2P_STORAGE_MANIFEST_INVALID: new project storage is missing")
+            files[self.root / PROJECT_STORAGE_MANIFEST_PATH] = (
+                ProjectStorageManifestStore.render(storage_manifest).decode("ascii")
+            )
             question_service = ProjectQuestionStateService(root=self.root, p2p_dir=self.p2p_dir)
             empty_questions = question_service.empty_artifact(
                 project_id=_slugify(name),
@@ -357,6 +395,12 @@ class ProjectInitializationService:
             )
             files[self.p2p_dir / "project" / "questions.yml"] = _yaml_dump(
                 empty_questions.to_payload()
+            )
+        elif storage_manifest is not None:
+            # Existing projects are never rewritten merely by opening them.
+            # Passing an explicit adapter to init is the governed adoption act.
+            files[self.root / PROJECT_STORAGE_MANIFEST_PATH] = (
+                ProjectStorageManifestStore.render(storage_manifest).decode("ascii")
             )
         if is_new_project:
             files[runtime_service.contract_path] = _yaml_dump(runtime_service.default_contract_payload())

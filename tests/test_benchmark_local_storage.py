@@ -37,9 +37,20 @@ def test_dataset_is_deterministic_and_covers_frozen_categories(tmp_path: Path) -
     ]
 
 
-def test_pilot_is_machine_readable_and_never_exposes_b_or_c(tmp_path: Path) -> None:
+def test_pilot_is_machine_readable_and_never_exposes_b_or_c(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
     module = _module()
     revision = module._git("rev-parse", "HEAD")
+    original_git = module._git
+
+    def clean_git(*arguments: str) -> str:
+        if arguments[:2] == ("status", "--porcelain"):
+            return ""
+        return original_git(*arguments)
+
+    monkeypatch.setattr(module, "_git", clean_git)
     result = module.run_pilot(
         expected_revision=revision,
         profiles=("small",),
@@ -54,6 +65,7 @@ def test_pilot_is_machine_readable_and_never_exposes_b_or_c(tmp_path: Path) -> N
     assert result["contract"] == "p2p-local-backend-benchmark/v1"
     assert result["run_kind"] == "baseline-a-pilot"
     assert result["baseline"]["variant"] == "A-filesystem-before-storage-ports"
+    assert result["gate_eligible"] is True
     assert set(result["measurements"]) == {"small"}
     assert set(result["measurements"]["small"]) == {
         "cold_project_open",
@@ -76,6 +88,30 @@ def test_baseline_revision_mismatch_is_rejected() -> None:
         assert "baseline revision mismatch" in str(exc)
     else:
         raise AssertionError("mismatched baseline revision was accepted")
+
+
+def test_variant_b_requires_clean_source_unless_explicitly_provisional(
+    monkeypatch,
+) -> None:
+    module = _module()
+    revision = module._git("rev-parse", "HEAD")
+    original_git = module._git
+
+    def dirty_git(*arguments: str) -> str:
+        if arguments[:2] == ("status", "--porcelain"):
+            return " M src/p2p_engine/example.py"
+        return original_git(*arguments)
+
+    monkeypatch.setattr(module, "_git", dirty_git)
+    observed = module.verify_baseline(
+        revision,
+        variant="b",
+        allow_dirty_product=True,
+    )
+
+    assert observed["variant"] == "B-filesystem-behind-storage-ports"
+    assert observed["product_source_clean"] is False
+    assert observed["product_source_status"]
 
 
 def test_workload_catalog_freezes_required_families() -> None:

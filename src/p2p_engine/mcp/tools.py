@@ -11,13 +11,13 @@ from p2p_engine.mcp.handlers.project_readiness import handle_project_readiness_t
 from p2p_engine.mcp.handlers.vertical_registry import handle_vertical_registry_tool
 from p2p_engine.mcp.handlers.work_specs import handle_work_spec_tool
 from p2p_engine.mcp.registry import TOOL_NAMES, tool_definitions
-from p2p_engine.storage.filesystem import P2PWorkspace
+from p2p_engine.services.project_application import open_project_application
 
 
 def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, object]:
     arguments = arguments or {}
     root = Path(str(arguments.get("root") or Path.cwd()))
-    workspace = P2PWorkspace(root)
+    workspace = open_project_application(root)
     handled = handle_maintenance_tool(workspace, name, arguments)
     if handled is not None:
         return handled

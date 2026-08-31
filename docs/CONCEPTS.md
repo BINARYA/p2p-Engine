@@ -62,6 +62,19 @@ local store for recovery. Both are distinct from synchronization and from
 project identity derivation. See
 [CANONICAL-MEMORY-AND-BUNDLES.md](CANONICAL-MEMORY-AND-BUNDLES.md).
 
+### Project Storage Boundary
+
+Each physical project replica selects exactly one writable adapter through
+`.p2p/local/storage.yml`. The manifest binds the adapter schema to the stable
+`project_uuid`, but remains replica-local: it is recoverable in a physical
+backup and absent from portable logical memory. Missing manifests on existing
+filesystem projects use a validated, non-writing compatibility selection.
+
+CLI and MCP both enter `ProjectApplicationService`. Typed repositories and one
+revision-checked Unit of Work per command separate application behavior from
+physical persistence; generated agent instructions remain identical. See
+[PROJECT-STORAGE-PORTS.md](PROJECT-STORAGE-PORTS.md).
+
 Generated registries should be refreshed from source artifacts with:
 
 ```bash

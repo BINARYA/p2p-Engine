@@ -343,7 +343,7 @@ DEFAULT_READINESS_PROFILE_VERSION = "0.1"
 ReadResultT = TypeVar("ReadResultT")
 
 
-class P2PWorkspace:
+class FilesystemWorkspace:
     def __init__(self, root: Path) -> None:
         self.root = root.resolve()
         self.p2p_dir = self.root / ".p2p"
@@ -1677,6 +1677,7 @@ class P2PWorkspace:
         vertical_pack: Path | None = None,
         expected_checksum: str = "",
         authority_context: AuthorityContext | None = None,
+        storage_adapter: str | None = None,
     ) -> list[Path]:
         return self.init_project_with_summary(
             name=name,
@@ -1694,6 +1695,7 @@ class P2PWorkspace:
             vertical_pack=vertical_pack,
             expected_checksum=expected_checksum,
             authority_context=authority_context,
+            storage_adapter=storage_adapter,
         ).created
 
     def init_project_with_summary(
@@ -1714,6 +1716,7 @@ class P2PWorkspace:
         expected_checksum: str = "",
         vertical_pack_closure: list[tuple[Path, str]] | None = None,
         authority_context: AuthorityContext | None = None,
+        storage_adapter: str | None = None,
     ) -> ProjectInitializationResult:
         workspace_existed = self.p2p_dir.exists()
         if (self.p2p_dir / "project.yml").exists():
@@ -1828,6 +1831,7 @@ class P2PWorkspace:
             owner=owner,
             authority_context=authority_context,
             structure_pack=structure_pack,
+            storage_adapter=storage_adapter,
         )
         created = list(result.created)
         try:
@@ -1924,6 +1928,7 @@ class P2PWorkspace:
         expected_checksum: str = "",
         vertical_pack_closure: list[tuple[Path, str]] | None = None,
         authority_context: AuthorityContext | None = None,
+        storage_adapter: str | None = None,
     ) -> dict[str, object]:
         resolved_authority_context, authority_evidence = (
             self._project_init_authority_context(
@@ -1950,6 +1955,7 @@ class P2PWorkspace:
             expected_checksum=expected_checksum,
             vertical_pack_closure=vertical_pack_closure,
             authority_context=resolved_authority_context,
+            storage_adapter=storage_adapter,
         )
         preview_token = semantic_sha256(
             {
@@ -1999,6 +2005,7 @@ class P2PWorkspace:
                 vertical_pack=vertical_pack,
                 expected_checksum=expected_checksum,
                 vertical_pack_closure=vertical_pack_closure,
+                storage_adapter=storage_adapter,
             )
         result = self.init_project_with_summary(
             name=name,
@@ -2017,6 +2024,7 @@ class P2PWorkspace:
             expected_checksum=expected_checksum,
             vertical_pack_closure=vertical_pack_closure,
             authority_context=resolved_authority_context,
+            storage_adapter=storage_adapter,
         )
         summary = self._project_init_result_summary(
             result,
@@ -2094,11 +2102,12 @@ class P2PWorkspace:
         vertical_pack: Path | None,
         expected_checksum: str,
         vertical_pack_closure: list[tuple[Path, str]] | None,
+        storage_adapter: str | None,
     ) -> dict[str, object]:
         with tempfile.TemporaryDirectory(prefix="p2p-project-init-") as temporary:
             staged_root = Path(temporary)
             self._copy_initialization_project_inputs(staged_root)
-            staged = P2PWorkspace(staged_root)
+            staged = FilesystemWorkspace(staged_root)
             staged_result = staged.init_project_with_summary(
                 name=name,
                 agent_profile=agent_profile,
@@ -2116,6 +2125,7 @@ class P2PWorkspace:
                 expected_checksum=expected_checksum,
                 vertical_pack_closure=vertical_pack_closure,
                 authority_context=authority_context,
+                storage_adapter=storage_adapter,
             )
             staged_candidates = self._initialization_staged_candidates(staged_root)
             receipt_candidates = {
@@ -2508,7 +2518,7 @@ class P2PWorkspace:
         actor: str,
     ) -> PortableVerticalInspection:
         with tempfile.TemporaryDirectory(prefix="p2p-init-vertical-") as temporary:
-            verifier = P2PWorkspace(Path(temporary))
+            verifier = FilesystemWorkspace(Path(temporary))
             verifier._project_initialization_service().init_project_with_summary(
                 name="Vertical initialization preflight"
             )
@@ -5756,6 +5766,32 @@ class P2PWorkspace:
         return self._choice_lifecycle_service().decide(choice_id, option, reason, decider)
 
 
+class P2PWorkspace:
+    """Thin compatibility facade over the storage-neutral application entry point."""
+
+    def __init__(self, root: Path) -> None:
+        from p2p_engine.services.project_application import open_project_application
+
+        object.__setattr__(self, "_application", open_project_application(root))
+
+    @property
+    def root(self) -> Path:
+        return self._application.root
+
+    @property
+    def p2p_dir(self) -> Path:
+        return self._application.p2p_dir
+
+    def __getattr__(self, name: str):
+        return getattr(self._application, name)
+
+    def __setattr__(self, name: str, value: object) -> None:
+        if name == "_application":
+            object.__setattr__(self, name, value)
+            return
+        setattr(self._application.adapter.compatibility_target(), name, value)
+
+
 def _extend_created_paths(created: list[Path], changed_paths: tuple[str, ...] | list[str]) -> None:
     for path in changed_paths:
         candidate = Path(path)
@@ -5815,6 +5851,7 @@ def _project_init_semantic_inputs(
     expected_checksum: str,
     vertical_pack_closure: list[tuple[Path, str]] | None,
     authority_context: AuthorityContext | None,
+    storage_adapter: str | None,
 ) -> dict[str, object]:
     return {
         "name": name,
@@ -5844,6 +5881,7 @@ def _project_init_semantic_inputs(
         "authority_context": (
             authority_context.to_dict() if authority_context is not None else None
         ),
+        "storage_adapter": (storage_adapter or "filesystem").strip().lower(),
     }
 
 

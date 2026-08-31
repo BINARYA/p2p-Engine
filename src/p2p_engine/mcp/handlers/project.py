@@ -13,7 +13,7 @@ from p2p_engine.core.project_structure_replacement import (
 from p2p_engine.core.project_domain import ProjectDomainRef
 from p2p_engine.core.release_contracts import current_contract_versions
 from p2p_engine.mcp.handlers.common import optional_string, required, to_jsonable
-from p2p_engine.storage.filesystem import P2PWorkspace
+from p2p_engine.services.project_application import ProjectApplicationService as P2PWorkspace
 
 
 def handle_project_tool(
@@ -553,8 +553,9 @@ def _project_domain_mutation(
             target="project-domain",
             actor_id=actor_id,
         )
-        consent_path = workspace.root / consent.path
-        consent_sha256 = hashlib.sha256(consent_path.read_bytes()).hexdigest()
+        consent_sha256 = hashlib.sha256(
+            workspace.read_governed_bytes(consent.path.as_posix())
+        ).hexdigest()
     elif consent.status != "consumed":
         raise ValueError(f"Consent receipt is not granted: {consent_id}")
     descriptor = None
@@ -620,7 +621,7 @@ def _project_structure_mutation(
             actor_id=actor_id,
         )
         consent_sha256 = hashlib.sha256(
-            (workspace.root / consent.path).read_bytes()
+            workspace.read_governed_bytes(consent.path.as_posix())
         ).hexdigest()
     elif consent.status != "consumed":
         raise ValueError(f"Consent receipt is not granted: {consent_id}")
@@ -718,7 +719,7 @@ def _project_structure_retirement_apply(
             actor_id=actor_id,
         )
         consent_sha256 = hashlib.sha256(
-            (workspace.root / consent.path).read_bytes()
+            workspace.read_governed_bytes(consent.path.as_posix())
         ).hexdigest()
     elif consent.status != "consumed":
         raise ValueError(f"Consent receipt is not granted: {consent_id}")
@@ -807,7 +808,7 @@ def _project_memory_scope_mutation(
             actor_id=actor_id,
         )
         consent_sha256 = hashlib.sha256(
-            (workspace.root / consent.path).read_bytes()
+            workspace.read_governed_bytes(consent.path.as_posix())
         ).hexdigest()
     elif consent.status != "consumed":
         raise ValueError(f"Consent receipt is not granted: {consent_id}")

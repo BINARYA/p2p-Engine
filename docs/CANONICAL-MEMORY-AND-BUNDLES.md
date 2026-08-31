@@ -23,6 +23,11 @@ one local store. It retains portable and replica-local durable state, but
 excludes active workspace-transaction locks and recursive backup trees. It is
 not an interchange or synchronization protocol.
 
+The replica-local `.p2p/local/storage.yml` adapter manifest is therefore
+included in a physical backup. It is excluded from canonical entities,
+semantic digests and portable bundles. Changing only this manifest cannot
+change the logical project checksum.
+
 ## Inspect, Verify And Export
 
 ```bash
@@ -97,7 +102,8 @@ outside `.p2p` are never swept into a bundle.
 
 ## Adapter Contract
 
-Storage adapters implement inventory, identity, canonical entity/relation/blob
-reads and blob-byte reads. The codec, semantic digest, bundle contract and
-restore policy do not expose physical locators. A later filesystem or SQLite
-adapter must pass the same contract and round-trip tests before comparison.
+Storage adapters implement typed project-state queries, revision-checked Units
+of Work, snapshots, blobs, physical backup/restore, migration metadata and
+capability reporting. The codec, semantic digest, bundle contract and restore
+policy do not expose physical locators. Every adapter must pass the same
+semantic, atomicity, recovery and round-trip contract tests.

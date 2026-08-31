@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from p2p_engine.mcp.handlers.common import optional_string, required, to_jsonable
-from p2p_engine.storage.filesystem import P2PWorkspace
+from p2p_engine.services.project_application import ProjectApplicationService as P2PWorkspace
 
 
 def handle_project_readiness_tool(

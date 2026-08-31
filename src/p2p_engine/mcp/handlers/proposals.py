@@ -16,7 +16,7 @@ from p2p_engine.mcp.handlers.proposal_decisions import (
     convenience_preview,
     handle_proposal_decision_tool,
 )
-from p2p_engine.storage.filesystem import P2PWorkspace
+from p2p_engine.services.project_application import ProjectApplicationService as P2PWorkspace
 
 
 ARTIFACT_IMPORT_KINDS = {
@@ -349,10 +349,7 @@ def _proposal_artifact_import_tool(
 def _artifact_import_source_path(workspace: P2PWorkspace, source_value: str | None) -> Path | None:
     if source_value is None:
         return None
-    source = Path(source_value)
-    if source.is_absolute():
-        return source
-    return workspace.root / source
+    return workspace.resolve_external_input(source_value)
 
 
 def _contribution_type(arguments: dict[str, Any]) -> ContributionType:

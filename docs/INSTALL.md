@@ -320,7 +320,8 @@ history, or use a future explicit recovery operation when one exists.
 
 ### Source-Control Boundary
 
-P2P projects need only the filesystem-backed P2P workspace:
+P2P projects need only their `.p2p/` project container. The current runtime
+selects its filesystem adapter internally:
 
 ```bash
 p2p init "My Project" \
@@ -338,7 +339,9 @@ stored only as inert traceability references.
 
 ## Refresh An Existing Project After A Runtime Change
 
-Do not rerun `p2p init` to upgrade an existing P2P project. Use the named uv
+Do not rerun `p2p init` to upgrade an existing P2P project. The one storage
+exception is deliberate adoption of a validated legacy filesystem project via
+`--storage-adapter filesystem`; it is not a runtime upgrade. Use the named uv
 replacement/rollback commands above, verify compatibility for the intended
 project, then refresh P2P-owned generated artifacts. Existing fallback
 virtualenv users may upgrade the exact wheel with pip in that virtualenv.

@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Reproducible local-storage benchmark harness.
 
-Step 25A intentionally enables only the baseline-A pilot.  Later roadmap
-steps may add adapters for variants B and C, but must preserve the dataset and
-workload contracts frozen here.
+Step 25A froze variant A. Step 26 adds variant B without changing the dataset,
+workload, batching, noise or decision contracts. Candidate C remains disabled.
 """
 
 from __future__ import annotations
@@ -47,7 +46,8 @@ HARNESS_CONTRACT = "p2p-local-backend-benchmark/v1"
 DATASET_CONTRACT = "p2p-local-backend-dataset/v1"
 DATASET_VERSION = "baseline-a-datasets/v1"
 WORKLOAD_VERSION = "baseline-a-workloads/v1"
-BASELINE_VARIANT = "A-filesystem-before-storage-ports"
+BASELINE_A_VARIANT = "A-filesystem-before-storage-ports"
+BASELINE_B_VARIANT = "B-filesystem-behind-storage-ports"
 DATASET_NAMESPACE = UUID("9491fe2b-4be8-5ea8-a71b-c40269177d08")
 
 
@@ -299,6 +299,23 @@ def _stabilize_identity(root: Path, *, seed: int, profile: str) -> str:
         target = root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(content)
+    storage_manifest = root / ".p2p/local/storage.yml"
+    if storage_manifest.is_file():
+        from p2p_engine.core.project_state_storage import ProjectStorageManifest
+        from p2p_engine.storage.project_storage import ProjectStorageManifestStore
+
+        manifest_store = ProjectStorageManifestStore(root)
+        manifest = manifest_store.load()
+        storage_manifest.write_bytes(
+            manifest_store.render(
+                ProjectStorageManifest(
+                    contract=manifest.contract,
+                    project_uuid=project_uuid.value,
+                    adapter=manifest.adapter,
+                    schema_version=manifest.schema_version,
+                )
+            )
+        )
     return project_uuid.value
 
 
@@ -637,24 +654,30 @@ def _product_source_digest() -> str:
     return digest.hexdigest()
 
 
-def verify_baseline(expected_revision: str) -> dict[str, object]:
+def verify_baseline(
+    expected_revision: str,
+    *,
+    variant: str = "a",
+    allow_dirty_product: bool = False,
+) -> dict[str, object]:
     revision = _git("rev-parse", "HEAD")
     if revision != expected_revision:
         raise RuntimeError(
             f"baseline revision mismatch: expected {expected_revision}, observed {revision}"
         )
     changed_product = _git("status", "--porcelain", "--", "src", "pyproject.toml", "uv.lock")
-    if changed_product:
+    if changed_product and not allow_dirty_product:
         raise RuntimeError("baseline product source is dirty; pilot is invalid")
     expected_module = (SOURCE_ROOT / "src/p2p_engine/__init__.py").resolve()
     actual_module = Path(p2p_engine.__file__).resolve()
     if actual_module != expected_module:
         raise RuntimeError(f"benchmark imported {actual_module}, expected {expected_module}")
     return {
-        "variant": BASELINE_VARIANT,
+        "variant": BASELINE_A_VARIANT if variant == "a" else BASELINE_B_VARIANT,
         "git_revision": revision,
         "product_source_digest": _product_source_digest(),
-        "product_source_clean": True,
+        "product_source_clean": not bool(changed_product),
+        "product_source_status": changed_product.splitlines(),
         "module_path": actual_module.as_posix(),
         "package_version": getattr(p2p_engine, "__version__", None),
     }
@@ -717,8 +740,18 @@ def run_pilot(
     repetitions: int,
     temporary_parent: Path,
     allow_memory_filesystem: bool = False,
+    variant: str = "a",
+    allow_dirty_product: bool = False,
 ) -> dict[str, object]:
-    baseline = verify_baseline(expected_revision)
+    if variant not in {"a", "b"}:
+        raise RuntimeError("only frozen variants A and B are enabled")
+    if allow_dirty_product and variant != "b":
+        raise RuntimeError("dirty product measurement is permitted only for provisional B")
+    baseline = verify_baseline(
+        expected_revision,
+        variant=variant,
+        allow_dirty_product=allow_dirty_product,
+    )
     environment = environment_record(temporary_parent)
     if (
         environment["filesystem_type"] in {"tmpfs", "ramfs"}
@@ -728,7 +761,9 @@ def run_pilot(
             "temporary parent uses an in-memory filesystem; choose the product disk "
             "or pass --allow-memory-filesystem for a non-gating smoke run"
         )
-    parent = Path(tempfile.mkdtemp(prefix="p2p-baseline-a-pilot-", dir=temporary_parent))
+    parent = Path(
+        tempfile.mkdtemp(prefix=f"p2p-baseline-{variant}-pilot-", dir=temporary_parent)
+    )
     try:
         datasets: dict[str, object] = {}
         measurements: dict[str, object] = {}
@@ -747,8 +782,15 @@ def run_pilot(
             )
         return {
             "contract": HARNESS_CONTRACT,
-            "run_kind": "baseline-a-pilot",
+            "run_kind": (
+                "baseline-a-pilot"
+                if variant == "a"
+                else "baseline-b-pilot"
+                if baseline["product_source_clean"]
+                else "baseline-b-provisional"
+            ),
             "valid": True,
+            "gate_eligible": bool(baseline["product_source_clean"]),
             "baseline": baseline,
             "environment": environment,
             "dataset_version": DATASET_VERSION,
@@ -774,15 +816,21 @@ def run_pilot(
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run the immutable filesystem baseline-A pilot for local storage."
+        description="Run frozen filesystem variant A or post-port variant B."
     )
     parser.add_argument("--expected-revision", required=True)
+    parser.add_argument("--variant", choices=("a", "b"), default="a")
     parser.add_argument(
         "--profile",
         action="append",
         choices=tuple(DATASET_PROFILES),
         dest="profiles",
         help="Repeat to select profiles; defaults to small, medium, and large.",
+    )
+    parser.add_argument(
+        "--allow-dirty-product",
+        action="store_true",
+        help="Record a clearly non-gating provisional B run before the owner commit.",
     )
     parser.add_argument(
         "--only",
@@ -824,9 +872,11 @@ def main() -> int:
             repetitions=args.repetitions,
             temporary_parent=args.temporary_parent.resolve(),
             allow_memory_filesystem=args.allow_memory_filesystem,
+            variant=args.variant,
+            allow_dirty_product=args.allow_dirty_product,
         )
     except (OSError, RuntimeError, ValueError) as exc:
-        print(f"baseline-A pilot invalid: {exc}", file=sys.stderr)
+        print(f"baseline-{args.variant.upper()} pilot invalid: {exc}", file=sys.stderr)
         return 2
     encoded = json.dumps(result, indent=2, sort_keys=True) + "\n"
     if args.output is not None:

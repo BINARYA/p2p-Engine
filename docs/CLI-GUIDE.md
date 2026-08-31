@@ -29,6 +29,20 @@ p2p init "My Project" \
   --mcp-hint
 ```
 
+New projects default to the available `filesystem` adapter. The choice may be
+made explicit without changing normal commands:
+
+```bash
+p2p init "My Project" --starter generic --storage-adapter filesystem
+```
+
+Reopening an initialized project reads its replica-local selection
+automatically. Ordinary commands never infer another backend from files and
+never write to two backends. A legacy filesystem project without the selection
+manifest opens through a validated, non-writing fallback; rerunning init with
+the explicit `--storage-adapter filesystem` option is the deliberate adoption
+action. Agents should not read or edit the manifest.
+
 When `--agent` is omitted, `p2p init` uses an adaptive bootstrap default. It
 installs `generic` plus the detected current adapter when detection is reliable;
 otherwise it falls back to all built-in adapters and prints a warning. The

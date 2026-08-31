@@ -37,7 +37,6 @@ from p2p_engine.cli_shared import workspace as _workspace
 from p2p_engine.services.agent_selection import AgentProfileSelection, select_agent_profile
 from p2p_engine.services.mcp_hints import McpHint, render_shell_command
 from p2p_engine.services.authority import AuthorityContractCodec
-from p2p_engine.storage.filesystem import P2PWorkspace
 from p2p_engine.core.portable_verticals import VerticalCoordinate
 from p2p_engine.core.release_contracts import current_contract_versions
 
@@ -281,6 +280,14 @@ def init(
         "--owner",
         help="Project owner display name. Defaults to generic owner.",
     ),
+    storage_adapter: str | None = typer.Option(
+        None,
+        "--storage-adapter",
+        help=(
+            "Project storage adapter. New projects default to filesystem; "
+            "existing projects reopen their recorded adapter automatically."
+        ),
+    ),
     vertical: str | None = typer.Option(
         None,
         "--vertical",
@@ -482,6 +489,7 @@ def init(
                 expected_checksum=expected_checksum,
                 vertical_pack_closure=vertical_pack_closure,
                 authority_context=parsed_authority_context,
+                storage_adapter=storage_adapter,
             )
             print_json(payload)
             return
@@ -502,6 +510,7 @@ def init(
             expected_checksum=expected_checksum,
             vertical_pack_closure=vertical_pack_closure,
             authority_context=parsed_authority_context,
+            storage_adapter=storage_adapter,
         )
     except ValueError as exc:
         _fail(str(exc))
@@ -557,7 +566,7 @@ def _print_init_agent_selection(selection: AgentProfileSelection) -> None:
 
 
 def _prompt_rubric_selection(starter: str) -> dict[str, bool] | None:
-    preview = P2PWorkspace(Path.cwd()).init_project_rubrics_preview(starter)
+    preview = _workspace(Path.cwd()).init_project_rubrics_preview(starter)
     if not preview:
         console.print("Project definition rubric criteria: unresolved")
         console.print("Define the domain and rubric with the user and agent after initialization.")

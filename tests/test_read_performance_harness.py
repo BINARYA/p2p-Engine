@@ -56,7 +56,14 @@ def test_scale_workspace_is_deterministic_on_current_schema(
     assert first.schema_version == second.schema_version == schema_version
     assert len(list((first.root / ".p2p/proposals").iterdir())) == 10
     assert len(list((second.root / ".p2p/proposals").iterdir())) == 10
-    identity_paths = frozenset({"project.yml", "project/identity.yml", "local/replica.yml"})
+    identity_paths = frozenset(
+        {
+            "project.yml",
+            "project/identity.yml",
+            "local/replica.yml",
+            "local/storage.yml",
+        }
+    )
     assert tree_digest(first.root / ".p2p", exclude=identity_paths) == tree_digest(
         second.root / ".p2p", exclude=identity_paths
     )

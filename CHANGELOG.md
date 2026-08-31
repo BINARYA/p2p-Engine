@@ -6,6 +6,19 @@ This project is early-stage and did not previously maintain a public changelog.
 Use this file for human-readable release notes as the repository moves toward
 tagged releases.
 
+## Unreleased
+
+- Added a storage-neutral project application boundary with typed repository,
+  Unit-of-Work, blob, snapshot, backup/restore, migration and capability ports.
+- Retained the optimized filesystem implementation behind a selected adapter
+  and reduced `P2PWorkspace` to a compatibility facade used by existing Python
+  callers.
+- Added the replica-local `.p2p/local/storage.yml` selector, validated legacy
+  filesystem fallback, explicit adoption, stable-identity alignment and
+  fail-closed mismatch/contradiction handling without dual writes.
+- Routed CLI and MCP construction through the same application service while
+  preserving the versioned CLI JSON boundary for server consumers.
+
 ## 0.5.1 - 2026-08-28
 
 - Made `uv tool install` from the exact GitHub Release wheel the recommended

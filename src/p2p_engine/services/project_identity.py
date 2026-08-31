@@ -286,6 +286,7 @@ class ProjectIdentityService:
             channel=channel,
         )
         candidates = self.store.candidate_documents(candidate)
+        candidates.update(self._storage_manifest_candidate(candidate))
         backup_path = (
             ".p2p/.internal/identity-adoption-backups/"
             f"{idempotency_key_sha256(operation_key)}/project.yml"
@@ -380,6 +381,7 @@ class ProjectIdentityService:
             candidate,
             allow_project_uuid_change=True,
         )
+        candidates.update(self._storage_manifest_candidate(candidate))
         receipt_path = self.receipts.relative_path(operation_key)
         sources = tuple(
             source_precondition(
@@ -517,6 +519,7 @@ class ProjectIdentityService:
             preview.candidate,
             allow_project_uuid_change=kind == "derive",
         )
+        candidates.update(self._storage_manifest_candidate(preview.candidate))
         if preview.backup_path:
             candidates[preview.backup_path] = (self.root / PROJECT_MANIFEST_PATH).read_bytes()
         result_payload = {
@@ -592,6 +595,36 @@ class ProjectIdentityService:
             mutation=mutation,
             message="Project identity committed atomically.",
         )
+
+    def _storage_manifest_candidate(
+        self,
+        identity: ProjectIdentity,
+    ) -> dict[str, bytes]:
+        """Keep replica-local adapter identity aligned in the same transaction."""
+        from p2p_engine.core.project_state_storage import ProjectStorageManifest
+        from p2p_engine.storage.project_storage import (
+            PROJECT_STORAGE_MANIFEST_PATH,
+            ProjectStorageManifestStore,
+            ProjectStorageResolver,
+        )
+
+        manifest_store = ProjectStorageManifestStore(self.root)
+        manifest = (
+            manifest_store.load()
+            if manifest_store.path.exists()
+            else ProjectStorageResolver(self.root).manifest_for_new_project(
+                project_uuid=identity.project_uuid.value,
+            )
+        )
+        updated = ProjectStorageManifest(
+            contract=manifest.contract,
+            project_uuid=identity.project_uuid.value,
+            adapter=manifest.adapter,
+            schema_version=manifest.schema_version,
+        )
+        return {
+            PROJECT_STORAGE_MANIFEST_PATH: manifest_store.render(updated),
+        }
 
     def _replay(
         self,

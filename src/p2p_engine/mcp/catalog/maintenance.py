@@ -31,6 +31,7 @@ def tool_definitions() -> list[dict[str, object]]:
              'domain_name': {'type': 'string'},
              'domain_source': {'type': 'string', 'enum': ['local', 'external', 'imported', 'system']},
              'domain_external_ref': {'type': 'string'},
+             'storage_adapter': {'type': 'string', 'enum': ['filesystem']},
              'starter': {'type': 'string', 'enum': ['generic', 'empty']},
              'vertical': {'type': 'string'}},
             ['name'],

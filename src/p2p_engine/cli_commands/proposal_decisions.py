@@ -23,7 +23,7 @@ from p2p_engine.core.proposal_decision_events import (
 )
 from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.services.authority import AuthorityContractCodec
-from p2p_engine.storage.filesystem import P2PWorkspace
+from p2p_engine.services.project_application import ProjectApplicationService as P2PWorkspace
 
 
 def register_proposal_decision_commands(

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from p2p_engine.mcp.handlers.common import optional_string, required, to_jsonable
-from p2p_engine.storage.filesystem import P2PWorkspace
+from p2p_engine.services.project_application import ProjectApplicationService as P2PWorkspace
 
 
 def handle_maintenance_tool(
@@ -28,6 +28,7 @@ def handle_maintenance_tool(
             starter_id=starter,
             vertical_id=vertical,
             owner=optional_string(arguments, "owner"),
+            storage_adapter=optional_string(arguments, "storage_adapter"),
         )
         return {
             "initialized": True,

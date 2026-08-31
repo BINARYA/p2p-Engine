@@ -130,6 +130,46 @@ class FilesystemProjectIdentityStore:
             ),
         )
 
+    def storage_project_uuid(self) -> ProjectUuid:
+        """Read the storage identity without requiring a valid project.yml hint.
+
+        Adapter selection happens before application-level validation.  It must
+        still fail closed on canonical/replica disagreement, but it must not
+        mask the established validator diagnostic when project.yml itself is
+        malformed.
+        """
+        canonical = self._read_document(
+            self.identity_path,
+            max_bytes=PROJECT_IDENTITY_MAX_BYTES,
+            root_key="project_identity",
+            missing_code="P2P_PROJECT_IDENTITY_ADOPTION_REQUIRED",
+        )
+        replica = self._read_document(
+            self.replica_path,
+            max_bytes=PROJECT_REPLICA_MAX_BYTES,
+            root_key="project_replica",
+            missing_code="P2P_PROJECT_REPLICA_MISSING",
+        )
+        if set(canonical) != _CANONICAL_KEYS or set(replica) != _REPLICA_KEYS:
+            raise ValueError(
+                "P2P_PROJECT_IDENTITY_INVALID: identity fields are not exact"
+            )
+        if canonical.get("contract") != PROJECT_IDENTITY_CONTRACT:
+            raise ValueError(
+                "P2P_PROJECT_IDENTITY_INVALID: unsupported project identity contract"
+            )
+        if replica.get("contract") != PROJECT_REPLICA_CONTRACT:
+            raise ValueError(
+                "P2P_PROJECT_IDENTITY_INVALID: unsupported project replica contract"
+            )
+        project_uuid = ProjectUuid(str(canonical.get("project_uuid") or ""))
+        replica_uuid = ProjectUuid(str(replica.get("project_uuid") or ""))
+        if project_uuid != replica_uuid:
+            raise ValueError(
+                "P2P_PROJECT_IDENTITY_MISMATCH: canonical and replica UUIDs differ"
+            )
+        return project_uuid
+
     def manifest(self) -> dict[str, object]:
         return self._read_root_mapping(
             self.manifest_path,

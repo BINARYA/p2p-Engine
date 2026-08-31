@@ -18,7 +18,11 @@ from p2p_engine.storage.filesystem import P2PWorkspace
 workspace = P2PWorkspace(Path("."))
 ```
 
-`P2PWorkspace` is intentionally stable for the MVP, but it is large. A future refactor is expected to split internal behavior into managers while keeping a compatibility facade.
+`P2PWorkspace` is retained as a thin compatibility facade. It opens the
+storage-neutral `ProjectApplicationService`, which resolves one project adapter
+and delegates current compatibility behavior to that adapter. New internal
+consumers should depend on the application service or semantic ports rather
+than importing filesystem implementations.
 
 ## Public Areas
 
@@ -74,6 +78,13 @@ Python types are contributor APIs; agents must use the CLI or explicit MCP
 reads and must not inspect adapter-private storage. See
 [`CANONICAL-MEMORY-AND-BUNDLES.md`](CANONICAL-MEMORY-AND-BUNDLES.md).
 
+`ProjectStateRepository`, `ProjectUnitOfWork`, `BlobStore`, snapshot, backup and
+migration ports live under `p2p_engine.ports.project_state`. Their DTOs and
+normalized errors live in `p2p_engine.core.project_state_storage`. These are
+internal contributor contracts, not a supported WaveKit integration API.
+WaveKit and other server consumers continue to use the versioned CLI JSON
+contract. See [`PROJECT-STORAGE-PORTS.md`](PROJECT-STORAGE-PORTS.md).
+
 ## Documentation Plan
 
 This file should grow into:
@@ -82,7 +93,7 @@ This file should grow into:
 - arguments, returns, and raised errors;
 - examples for stable method families;
 - notes on which methods are internal helpers despite being visible in Python;
-- migration notes for the planned P2PWorkspace refactor.
+- migration notes for later adapter implementations.
 
 ## Planned Additions
 
@@ -92,4 +103,4 @@ This file should grow into:
 - Work API;
 - assessment/readiness API;
 - MCP/core mapping;
-- refactor boundaries.
+- adapter contract examples.
