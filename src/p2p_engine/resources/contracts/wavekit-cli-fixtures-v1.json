@@ -100,7 +100,7 @@
       "compatibility": "same-major",
       "contract": "p2p-domain/v1"
     },
-    "engine_version": "0.6.0",
+    "engine_version": "0.6.1",
     "local_authority_policy_version": "p2p-local-authority/v1",
     "local_memory_schema_version": {
       "compatibility": "exact-schema",
@@ -164,7 +164,7 @@
     "workspace_schema_policy_version": 4,
     "workspace_schema_version": 4
   },
-  "engine_version": "0.6.0",
+  "engine_version": "0.6.1",
   "mcp_policy": {
     "export_apply_available": false,
     "merge_apply_available": false,
@@ -188,7 +188,7 @@
     "operation_key_placeholder": "wavekit:<uuid>",
     "root_placeholder": "<PROJECT_ROOT>"
   },
-  "semantic_sha256": "8b50a9d9c759cc95dc0b15a39b6d289412a753f9c5c16fbe4dc5f62dbeb98999",
+  "semantic_sha256": "020c6638cddfdf649e73e997c4194695e505d4ec7114fc5ed42744ffc6f028ff",
   "transport": {
     "envelope": "p2p-cli/v1",
     "kind": "cli_json",

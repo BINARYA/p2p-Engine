@@ -8,6 +8,23 @@ tagged releases.
 
 ## Unreleased
 
+## 0.6.1 - 2026-09-01
+
+- Added deterministic project-structure comparison and selective merge from
+  one exact portable vertical release or canonical project-memory bundle.
+- Added explicit stable-ID placement and collision decisions, dependency
+  closure validation, preview tokens bound to source, target, memory and
+  authority state, and atomic receipt-backed apply/recovery.
+- Added retained canonical structure snapshots and forward-only restore: a
+  restore creates the next structure revision instead of rewinding unrelated
+  project history.
+- Added governed memory dispositions during merge and restore while reusing
+  the existing retirement, readiness and classification rules.
+- Added the complete privileged CLI lifecycle and read-only MCP comparison and
+  retained-snapshot inspection without exposing physical storage paths.
+- Preserved workspace schema 4, portable vertical schema 3, the `p2p-cli/v1`
+  envelope and the filesystem adapter as the sole supported product backend.
+
 ## 0.6.0 - 2026-09-01
 
 - Added immutable `project_uuid` and replica identity distinct from project

@@ -26,7 +26,7 @@ Implemented:
 
 ## Near Term
 
-- Validate the project-memory foundations against the verified 0.6.0 release
+- Validate the project-memory foundations against the verified 0.6.1 release
   artifact and downstream WaveKit integration.
 - Continue hardening validation and recovery paths.
 
