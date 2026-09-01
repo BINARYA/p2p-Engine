@@ -1,0 +1,320 @@
+name: Local storage backend gate
+
+on:
+  push:
+    branches:
+      - experiment/sqlite-project-state
+    paths:
+      - .github/workflows/local-storage-backend-gate.yml
+      - scripts/benchmark-local-storage.py
+      - scripts/evaluate-local-storage-backends.py
+      - tests/test_benchmark_local_storage.py
+      - tests/test_evaluate_local_storage_backends.py
+      - uv.lock
+  workflow_dispatch:
+    inputs:
+      harness_ref:
+        description: Exact 40-character commit SHA containing the gate harness
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: local-storage-backend-gate-${{ inputs.harness_ref || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  evaluate:
+    name: Evaluate / ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 330
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x86_64
+            os: ubuntu-24.04
+          - target: macos-arm64
+            os: macos-14
+          - target: macos-x86_64
+            os: macos-15-intel
+          - target: windows-x86_64
+            os: windows-2025
+    steps:
+      - name: Check out the exact harness commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.harness_ref || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Set up pinned uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.6"
+          enable-cache: false
+
+      - name: Resolve portable evidence paths
+        id: paths
+        if: ${{ always() }}
+        shell: python
+        env:
+          GATE_TARGET: ${{ matrix.target }}
+          RUNNER_TEMP_PATH: ${{ runner.temp }}
+        run: |
+          import os
+          from pathlib import Path
+
+          temporary_parent = Path(os.environ["RUNNER_TEMP_PATH"]).resolve()
+          output = temporary_parent / (
+              f"local-storage-gate-{os.environ['GATE_TARGET']}.json"
+          )
+          github_output = Path(os.environ["GITHUB_OUTPUT"])
+          with github_output.open("a", encoding="utf-8", newline="\n") as stream:
+              stream.write(f"temporary_parent={temporary_parent}\n")
+              stream.write(f"output={output}\n")
+
+      - name: Prove exact harness identity
+        shell: python
+        env:
+          EXPECTED_REF: ${{ inputs.harness_ref || github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          expected = os.environ["EXPECTED_REF"]
+          if re.fullmatch(r"[0-9a-fA-F]{40}", expected) is None:
+              raise SystemExit("harness_ref must be an exact 40-character commit SHA")
+          actual = subprocess.check_output(
+              ["git", "rev-parse", "HEAD"], text=True
+          ).strip()
+          resolved = subprocess.check_output(
+              ["git", "rev-parse", f"{expected}^{{commit}}"], text=True
+          ).strip()
+          if actual != resolved:
+              raise SystemExit(
+                  f"harness checkout mismatch: expected {resolved}, observed {actual}"
+              )
+          print(f"harness_sha={actual}")
+
+      - name: Install the locked development environment
+        shell: python
+        run: |
+          import subprocess
+          import sys
+
+          subprocess.run(
+              ["uv", "lock", "--check"], check=True
+          )
+          subprocess.run(
+              [
+                  "uv",
+                  "sync",
+                  "--locked",
+                  "--extra",
+                  "dev",
+                  "--python",
+                  sys.executable,
+              ],
+              check=True,
+          )
+          subprocess.run(["uv", "pip", "check"], check=True)
+
+      - name: Run gate preflight checks
+        shell: python
+        run: |
+          import subprocess
+          subprocess.run(
+              [
+                  "uv",
+                  "run",
+                  "--no-sync",
+                  "python",
+                  "-m",
+                  "pytest",
+                  "-q",
+                  "tests/test_benchmark_local_storage.py",
+                  "tests/test_evaluate_local_storage_backends.py",
+              ],
+              check=True,
+          )
+          subprocess.run(
+              [
+                  "uv",
+                  "run",
+                  "--no-sync",
+                  "python",
+                  "-m",
+                  "ruff",
+                  "check",
+                  "scripts/benchmark-local-storage.py",
+                  "scripts/evaluate-local-storage-backends.py",
+              ],
+              check=True,
+          )
+
+      - name: Evaluate immutable local-storage candidates
+        timeout-minutes: 300
+        shell: python
+        env:
+          GATE_OUTPUT: ${{ steps.paths.outputs.output }}
+          GATE_TEMPORARY_PARENT: ${{ steps.paths.outputs.temporary_parent }}
+          P2P_GATE_TARGET: ${{ matrix.target }}
+        run: |
+          import os
+          import subprocess
+          command = [
+              "uv",
+              "run",
+              "--no-sync",
+              "python",
+              "scripts/evaluate-local-storage-backends.py",
+              "--temporary-parent",
+              os.environ["GATE_TEMPORARY_PARENT"],
+              "--output",
+              os.environ["GATE_OUTPUT"],
+          ]
+          raise SystemExit(subprocess.run(command, check=False).returncode)
+
+      - name: Preserve a valid JSON failure envelope
+        if: ${{ always() }}
+        shell: python
+        env:
+          GATE_OUTPUT: ${{ steps.paths.outputs.output }}
+          GATE_TARGET: ${{ matrix.target }}
+          HARNESS_REF: ${{ inputs.harness_ref || github.sha }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          output_value = os.environ.get("GATE_OUTPUT", "").strip()
+          if not output_value:
+              raise SystemExit("portable gate output path was not resolved")
+          output = Path(output_value)
+          failure: dict[str, object] | None = None
+          if not output.is_file():
+              failure = {
+                  "reason": "evaluator did not produce its JSON evidence file",
+              }
+          else:
+              raw = output.read_bytes()
+              try:
+                  json.loads(raw)
+              except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                  failure = {
+                      "reason": "evaluator produced invalid JSON evidence",
+                      "diagnostic": str(exc),
+                      "invalid_output_sha256": hashlib.sha256(raw).hexdigest(),
+                      "invalid_output_bytes": len(raw),
+                  }
+          if failure is not None:
+              envelope = {
+                  "contract": "p2p-local-storage-gate-workflow-failure/v1",
+                  "valid": False,
+                  "target": os.environ["GATE_TARGET"],
+                  "harness_ref": os.environ["HARNESS_REF"],
+                  "workflow_run_id": os.environ["WORKFLOW_RUN_ID"],
+                  "workflow_run_attempt": os.environ["WORKFLOW_RUN_ATTEMPT"],
+                  **failure,
+              }
+              output.parent.mkdir(parents=True, exist_ok=True)
+              output.write_text(
+                  json.dumps(envelope, indent=2, sort_keys=True) + "\n",
+                  encoding="utf-8",
+                  newline="\n",
+              )
+
+      - name: Upload platform gate evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: local-storage-gate-${{ matrix.target }}-${{ inputs.harness_ref || github.sha }}
+          path: ${{ steps.paths.outputs.output }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  aggregate:
+    name: Aggregate cross-platform evidence
+    needs: evaluate
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      HARNESS_REF: ${{ inputs.harness_ref || github.sha }}
+    steps:
+      - name: Check out the exact harness commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.harness_ref || github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Download every platform artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: local-storage-gate-*-${{ inputs.harness_ref || github.sha }}
+          path: platform-evidence
+          merge-multiple: true
+
+      - name: Aggregate without selecting or changing Git state
+        id: aggregate-path
+        shell: python
+        env:
+          RUNNER_TEMP_PATH: ${{ runner.temp }}
+        run: |
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          sources = sorted(Path("platform-evidence").glob("*.json"))
+          output = Path(os.environ["RUNNER_TEMP_PATH"]) / (
+              "local-storage-gate-cross-platform.json"
+          )
+          command = [
+              sys.executable,
+              "scripts/evaluate-local-storage-backends.py",
+              "--output",
+              str(output),
+          ]
+          for source in sources:
+              command.extend(("--aggregate", str(source)))
+          completed = subprocess.run(command, check=False)
+          with Path(os.environ["GITHUB_OUTPUT"]).open(
+              "a", encoding="utf-8", newline="\n"
+          ) as stream:
+              stream.write(f"output={output}\n")
+          raise SystemExit(completed.returncode)
+
+      - name: Upload aggregate evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: local-storage-gate-cross-platform-${{ inputs.harness_ref || github.sha }}
+          path: ${{ steps.aggregate-path.outputs.output }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
