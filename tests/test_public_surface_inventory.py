@@ -20,8 +20,13 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     snapshot = public_surface_snapshot()
 
     assert snapshot.contract_version == PUBLIC_SURFACE_CONTRACT_VERSION
-    assert len(snapshot.cli_paths) == 280
-    assert len(snapshot.mcp_tools) == 177
+    assert len(snapshot.cli_paths) == 285
+    assert len(snapshot.mcp_tools) == 174
+    assert "p2p integration status" in snapshot.cli_paths
+    assert "p2p integration install" in snapshot.cli_paths
+    assert "p2p integration refresh" in snapshot.cli_paths
+    assert "p2p integration profile" in snapshot.cli_paths
+    assert "p2p integration remove" in snapshot.cli_paths
     assert "p2p vertical registry list" in snapshot.cli_paths
     assert "p2p vertical domain list" in snapshot.cli_paths
     assert "p2p vertical domain search" in snapshot.cli_paths
@@ -70,6 +75,11 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     assert "p2p_project_memory_restore_apply" not in snapshot.mcp_tools
     assert "p2p_proposal_scope_show" in snapshot.mcp_tools
     assert "p2p_proposal_scope_set" in snapshot.mcp_tools
+    assert "p2p_integration_status" in snapshot.mcp_tools
+    assert "p2p_agent_install" not in snapshot.mcp_tools
+    assert "p2p_agent_update" not in snapshot.mcp_tools
+    assert "p2p_agent_uninstall" not in snapshot.mcp_tools
+    assert "p2p_agent_instructions_refresh" not in snapshot.mcp_tools
     assert len(snapshot.semantic_sha256) == 64
     assert snapshot.issues == ()
 

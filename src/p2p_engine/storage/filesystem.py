@@ -278,6 +278,10 @@ from p2p_engine.services.project_initialization import (
     ProjectInitializationResult,
     ProjectInitializationService,
 )
+from p2p_engine.services.project_integration import (
+    IntegrationOperationResult,
+    ProjectIntegrationService,
+)
 from p2p_engine.services.project_identity import ProjectIdentityService
 from p2p_engine.services.project_publication import (
     PublicationCatalogResult,
@@ -348,6 +352,7 @@ class FilesystemWorkspace:
         self.root = root.resolve()
         self.p2p_dir = self.root / ".p2p"
         self._agent_instruction_service_instance: AgentInstructionService | None = None
+        self._project_integration_service_instance: ProjectIntegrationService | None = None
         self._change_set_lifecycle_service_instance: ChangeSetLifecycleService | None = None
         self._choice_lifecycle_service_instance: ChoiceLifecycleService | None = None
         self._permissions_service_instance: PermissionsService | None = None
@@ -583,6 +588,16 @@ class FilesystemWorkspace:
                 interaction_style=self.project_interaction_style,
             )
         return self._agent_instruction_service_instance
+
+    def _project_integration_service(self) -> ProjectIntegrationService:
+        if self._project_integration_service_instance is None:
+            self._project_integration_service_instance = ProjectIntegrationService(
+                root=self.root,
+                p2p_dir=self.p2p_dir,
+                agent_instructions=self._agent_instruction_service(),
+                runtime_contract=self._runtime_contract_service(),
+            )
+        return self._project_integration_service_instance
 
     def _consent_service(self) -> ConsentService:
         if self._consent_service_instance is None:
@@ -2608,6 +2623,41 @@ class FilesystemWorkspace:
     def uninstall_agent_integration(self, adapter: str) -> AgentIntegrationResult:
         self._ensure_runtime_write_allowed("agent_uninstall")
         return self._agent_instruction_service().uninstall_integration(adapter)
+
+    def project_integration_status(self) -> dict[str, object]:
+        return self._project_integration_service().status()
+
+    def install_project_integration(
+        self,
+        *,
+        profile: str = "standalone",
+        agent_target: str = "generic",
+    ) -> IntegrationOperationResult:
+        self._ensure_runtime_write_allowed("project_integration_install")
+        return self._project_integration_service().install(
+            profile=profile,
+            agent_target=agent_target,
+        )
+
+    def refresh_project_integration(
+        self,
+        *,
+        profile: str = "standalone",
+    ) -> IntegrationOperationResult:
+        self._ensure_runtime_write_allowed("project_integration_refresh")
+        return self._project_integration_service().refresh(profile=profile)
+
+    def transition_project_integration(
+        self,
+        *,
+        profile: str,
+    ) -> IntegrationOperationResult:
+        self._ensure_runtime_write_allowed("project_integration_profile")
+        return self._project_integration_service().transition(profile=profile)
+
+    def remove_project_integration(self) -> IntegrationOperationResult:
+        self._ensure_runtime_write_allowed("project_integration_remove")
+        return self._project_integration_service().remove()
 
     def permissions_show(self) -> dict[str, object]:
         return self._permissions_service().show()

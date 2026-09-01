@@ -1,15 +1,28 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from dataclasses import dataclass, field
-from datetime import date
 from pathlib import Path
 from typing import Any, Callable
 
+from p2p_engine.core.project_integration import (
+    PROJECT_INTEGRATION_CONTRACT,
+    PROJECT_INTEGRATION_MANIFEST_VERSION,
+    STANDALONE_PROFILE,
+    access_profile,
+    current_integration_versions,
+)
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
+)
+from p2p_engine.foundation.files import (
     write_text_atomic as _write_text_atomic,
+)
+from p2p_engine.foundation.files import (
     write_yaml_atomic as _write_yaml_atomic,
+)
+from p2p_engine.foundation.files import (
     yaml_dump as _yaml_dump,
 )
 
@@ -245,7 +258,10 @@ class AgentInstructionService:
                         )
                     )
                 continue
-            for file_status in status.get("files", []):
+            status_files = status.get("files", [])
+            if not isinstance(status_files, list):
+                continue
+            for file_status in status_files:
                 if not isinstance(file_status, dict):
                     continue
                 self._append_file_doctor_finding(findings, adapter_id, file_status)
@@ -405,7 +421,13 @@ class AgentInstructionService:
                     records[str(record["path"])] = record
         return records
 
-    def build_registry(self, profiles: list[str]) -> dict[str, object]:
+    def build_registry(
+        self,
+        profiles: list[str],
+        *,
+        candidate_contents: dict[Path, bytes | None] | None = None,
+        artifact_ownership: dict[str, dict[str, object]] | None = None,
+    ) -> dict[str, object]:
         project_name = self.project_name()
         installed = sorted(set(self.expanded_profiles("generic")) | set(profiles))
         adapters: dict[str, object] = {}
@@ -415,18 +437,36 @@ class AgentInstructionService:
             for relative_path, template_id, shared, owner in files:
                 relative_path = self._safe_relative_path(relative_path, label="Agent adapter path")
                 path = self.root / relative_path
-                file_records.append(
-                    {
+                ownership = (artifact_ownership or {}).get(str(relative_path), {})
+                candidate = (
+                    candidate_contents.get(relative_path)
+                    if candidate_contents is not None and relative_path in candidate_contents
+                    else None
+                )
+                candidate_known = (
+                    candidate_contents is not None and relative_path in candidate_contents
+                )
+                exists = candidate is not None if candidate_known else path.exists()
+                digest = (
+                    hashlib.sha256(candidate).hexdigest()
+                    if candidate_known and candidate is not None
+                    else (_sha256_file(path) if path.exists() else "")
+                )
+                file_record: dict[str, object] = {
                         "path": str(relative_path),
                         "shared": shared,
                         "owner": owner,
-                        "managed": path.exists(),
+                        "managed": exists,
                         "template_id": template_id,
                         "template_generation_id": self.template_generation(template_id),
-                        "sha256": _sha256_file(path) if path.exists() else "",
-                        "drift": "clean" if path.exists() else "missing",
-                    }
-                )
+                        "sha256": digest,
+                        "drift": "clean" if exists else "missing",
+                }
+                if ownership.get("kind") == "managed-section":
+                    file_record["ownership"] = "managed-section"
+                    file_record["section_id"] = str(ownership.get("section_id") or "")
+                    file_record["managed_sha256"] = str(ownership.get("sha256") or "")
+                file_records.append(file_record)
             adapters[adapter_id] = {
                 "status": "installed",
                 "maturity": "stable",
@@ -434,12 +474,71 @@ class AgentInstructionService:
                 "capabilities": self.adapter_capabilities(adapter_id),
                 "files": file_records,
             }
-        return {
+        registry: dict[str, object] = {
             "schema_version": 2,
             "baseline_profile": "generic",
-            "generated_at": date.today().isoformat(),
             "adapters": adapters,
         }
+        inventory: list[dict[str, object]] = []
+        seen: set[str] = set()
+        for record in self.registry_file_map(registry).values():
+            path_key = str(record.get("path") or "")
+            if not path_key or path_key in seen:
+                continue
+            seen.add(path_key)
+            ownership = (artifact_ownership or {}).get(path_key, {})
+            inventory.append(
+                {
+                    "path": path_key,
+                    "kind": str(ownership.get("kind") or "whole-file"),
+                    "owner": "p2p-engine",
+                    "sha256": str(ownership.get("sha256") or record.get("sha256") or ""),
+                    **(
+                        {"section_id": str(ownership["section_id"])}
+                        if ownership.get("section_id")
+                        else {}
+                    ),
+                }
+            )
+        setup_path = Path("P2P-SETUP.md")
+        setup_candidate = (
+            candidate_contents.get(setup_path)
+            if candidate_contents is not None and setup_path in candidate_contents
+            else None
+        )
+        setup_exists = (
+            setup_candidate is not None
+            if candidate_contents is not None and setup_path in candidate_contents
+            else (self.root / setup_path).exists()
+        )
+        if setup_exists:
+            setup_digest = (
+                hashlib.sha256(setup_candidate).hexdigest()
+                if setup_candidate is not None
+                else _sha256_file(self.root / setup_path)
+            )
+            inventory.append(
+                {
+                    "path": str(setup_path),
+                    "kind": "whole-file",
+                    "owner": "p2p-engine-runtime",
+                    "sha256": setup_digest,
+                }
+            )
+        registry["integration"] = {
+            "manifest_version": PROJECT_INTEGRATION_MANIFEST_VERSION,
+            "contract_version": PROJECT_INTEGRATION_CONTRACT,
+            "access_profile": STANDALONE_PROFILE,
+            "profile": access_profile(STANDALONE_PROFILE).to_dict(),
+            "versions": current_integration_versions(),
+            "artifacts": sorted(inventory, key=lambda item: str(item["path"])),
+            "mcp_host_configuration": {
+                "ownership": "user",
+                "mutation_via_mcp": False,
+                "generated_file": None,
+            },
+        }
+        return registry
 
     def _managed_instruction_files(
         self,
@@ -493,6 +592,9 @@ class AgentInstructionService:
             if path.exists():
                 existing_content = path.read_text(encoding="utf-8")
                 current_hash = _sha256_file(path)
+                if existing_record and existing_record.get("ownership") == "managed-section":
+                    skipped.append({"path": str(relative), "reason": "user_owned_container"})
+                    continue
                 if existing_record and existing_record.get("sha256") != current_hash and not force:
                     skipped.append({"path": str(relative), "reason": "drifted"})
                     continue
@@ -560,6 +662,24 @@ class AgentInstructionService:
                     record["managed"] = False
                     record["sha256"] = _sha256_file(current_path) if current_path.exists() else ""
                     record["drift"] = "unmanaged" if current_path.exists() else "missing"
+        old_integration = old_registry.get("integration", {})
+        new_integration = new_registry.get("integration", {})
+        if isinstance(old_integration, dict) and isinstance(new_integration, dict):
+            old_artifacts = old_integration.get("artifacts", [])
+            new_artifacts = new_integration.get("artifacts", [])
+            if isinstance(old_artifacts, list) and isinstance(new_artifacts, list):
+                preserved_artifacts = {
+                    str(item.get("path")): dict(item)
+                    for item in old_artifacts
+                    if isinstance(item, dict)
+                    and str(item.get("path") or "") in preserved_paths
+                }
+                for index, item in enumerate(new_artifacts):
+                    if not isinstance(item, dict):
+                        continue
+                    path_key = str(item.get("path") or "")
+                    if path_key in preserved_artifacts:
+                        new_artifacts[index] = preserved_artifacts[path_key]
         return new_registry
 
     def _expected_templates(self, adapter_id: str) -> dict[str, str]:
@@ -658,6 +778,17 @@ class AgentInstructionService:
         registry_status = str(file_record.get("drift") or "clean")
         if not path.exists():
             content_status = "missing"
+        elif file_record.get("ownership") == "managed-section":
+            try:
+                digest = _managed_section_sha256(path)
+            except ValueError:
+                content_status = "conflicted"
+            else:
+                content_status = (
+                    "clean"
+                    if digest and digest == file_record.get("managed_sha256")
+                    else "modified"
+                )
         elif file_record.get("managed") is False:
             content_status = "unmanaged"
         elif registry_status in _ERROR_FILE_STATUSES | {"unmanaged"}:
@@ -776,6 +907,22 @@ class AgentInstructionService:
 
 def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _managed_section_sha256(path: Path) -> str:
+    content = path.read_bytes()
+    start = b"<!-- P2P:BEGIN managed-section id=p2p-project-access"
+    end = b"<!-- P2P:END managed-section id=p2p-project-access -->"
+    starts = [match.start() for match in re.finditer(re.escape(start), content)]
+    ends = [match.end() for match in re.finditer(re.escape(end), content)]
+    if len(starts) != 1 or len(ends) != 1 or ends[0] <= starts[0]:
+        raise ValueError("managed section markers are malformed")
+    section_end = ends[0]
+    if content[section_end : section_end + 2] == b"\r\n":
+        section_end += 2
+    elif content[section_end : section_end + 1] in {b"\n", b"\r"}:
+        section_end += 1
+    return hashlib.sha256(content[starts[0] : section_end]).hexdigest()
 
 
 def _remove_empty_parents(path: Path, *, stop_at: Path) -> None:

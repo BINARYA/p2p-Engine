@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from p2p_engine import __version__
+from p2p_engine.core.project_integration import PROJECT_INTEGRATION_CONTRACT
 
 RUNTIME_STATUS_COMPATIBLE = "compatible"
 RUNTIME_STATUS_INCOMPATIBLE = "incompatible"
@@ -21,7 +23,11 @@ RUNTIME_CONTRACT_MISSING = "P2P266_RUNTIME_CONTRACT_MISSING"
 RUNTIME_SETUP_GUIDE_DRIFT = "P2P268_RUNTIME_SETUP_GUIDE_DRIFT"
 RUNTIME_SETUP_GUIDE_UNMANAGED = "P2P269_RUNTIME_SETUP_GUIDE_UNMANAGED"
 
-RUNTIME_SETUP_GUIDE_MARKER = "<!-- P2P: generated-runtime-setup schema=1 source=.p2p/project/runtime.yml -->"
+RUNTIME_SETUP_GUIDE_MARKER = (
+    "<!-- P2P: generated-runtime-setup schema=1 "
+    f"generator={__version__} integration={PROJECT_INTEGRATION_CONTRACT} "
+    "profile=standalone ownership=whole-file source=.p2p/project/runtime.yml -->"
+)
 
 RUNTIME_CONTRACT_UPDATE_STATUS_APPLICABLE = "applicable"
 RUNTIME_CONTRACT_UPDATE_STATUS_PREVIEW_BLOCKED = "preview_blocked"

@@ -89,13 +89,30 @@
     "authority_evidence_schema": "p2p-authority-evidence/v1",
     "cli_contract_version": "p2p-cli/v1",
     "contract_inventory_version": "p2p-release-contracts/v1",
+    "domain_memory_contract_version": {
+      "compatibility": "same-major",
+      "contract": "p2p-domain/v1"
+    },
     "engine_version": "0.5.1",
     "local_authority_policy_version": "p2p-local-authority/v1",
+    "local_memory_schema_version": {
+      "compatibility": "exact-schema",
+      "schema_version": 1
+    },
     "memory_classification_contract": "p2p-memory-classification/v1",
     "mutation_receipt_schema_version": 3,
     "portable_package_format_version": 1,
     "project_authority_schema": "p2p-project-authority/v1",
+    "project_bundle_contract_version": {
+      "compatibility": "same-major",
+      "contract": "p2p-project-bundle/v1"
+    },
     "project_domain_contract": "p2p-project-domain/v1",
+    "project_integration_contract_version": {
+      "compatibility": "same-major",
+      "contract": "p2p-project-integration/v1",
+      "manifest_version": 1
+    },
     "project_memory_scope_contract": "p2p-project-memory-scope/v1",
     "project_memory_scope_events_contract": "p2p-project-memory-scope-events/v1",
     "project_memory_scope_mutation_contract": "p2p-project-memory-scope-mutation/v1",
@@ -117,6 +134,11 @@
     "structure_retirement_plan_contract": "p2p-structure-retirement-plan/v1",
     "structure_retirement_result_contract": "p2p-structure-retirement-result/v1",
     "structure_source_contract": "p2p-structure-source/v1",
+    "sync_protocol_version": {
+      "compatibility": "not-negotiated",
+      "protocol": null,
+      "status": "unavailable"
+    },
     "vertical_draft_document_contract": "p2p-vertical-draft/v1",
     "vertical_draft_evidence_contract": "p2p-vertical-draft-evidence/v1",
     "vertical_draft_state_contract": "p2p-vertical-draft-state/v1",
@@ -147,7 +169,7 @@
     "operation_key_placeholder": "wavekit:<uuid>",
     "root_placeholder": "<PROJECT_ROOT>"
   },
-  "semantic_sha256": "79161b724e5cad6b76bf4f9a666bd9444a0b96a67daf6fea368b1a976d401cd2",
+  "semantic_sha256": "ee8deda73b0b4749acc16deeff11a15f65a9076fee9c1883010b4fa1f94a2d26",
   "transport": {
     "envelope": "p2p-cli/v1",
     "kind": "cli_json",

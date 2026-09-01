@@ -287,6 +287,7 @@ p2p init "My Project" \
 ```
 
 Use the lifecycle commands shown by init to manage the footprint later, such as
+`p2p integration status`, `p2p integration refresh --profile standalone`,
 `p2p agent list`, `p2p agent install <adapter>`,
 `p2p agent update <adapter>`, `p2p agent doctor <adapter>`,
 `p2p agent uninstall <adapter>`, and
@@ -351,6 +352,8 @@ From the target project:
 ```bash
 p2p doctor
 p2p runtime status
+p2p integration status --format json
+p2p integration refresh --profile standalone --format json
 p2p agent doctor
 p2p agent list
 p2p agent update all

@@ -20,6 +20,7 @@ from p2p_engine.cli_commands.project_ops import register_project_ops_commands
 from p2p_engine.cli_commands.project_authority import register_project_authority_commands
 from p2p_engine.cli_commands.project_domain import register_project_domain_commands
 from p2p_engine.cli_commands.project_identity import register_project_identity_commands
+from p2p_engine.cli_commands.project_integration import register_project_integration_commands
 from p2p_engine.cli_commands.project_structure import register_project_structure_commands
 from p2p_engine.cli_commands.project_memory import register_project_memory_commands
 from p2p_engine.cli_commands.project_readiness import register_project_readiness_commands
@@ -92,6 +93,7 @@ permissions_actor_app = typer.Typer(help="Manage permission actors")
 consent_app = typer.Typer(help="Manage permission-gated consent receipts")
 agent_app = typer.Typer(help="Manage agent-facing project instructions")
 agent_instructions_app = typer.Typer(help="Generate and refresh agent instructions")
+integration_app = typer.Typer(help="Manage versioned project integration artifacts")
 assess_app = typer.Typer(help="Assess project readiness and maturity")
 assess_maturity_app = typer.Typer(help="Assess project definition maturity")
 next_app = typer.Typer(help="Manage advisory next actions", invoke_without_command=True)
@@ -132,6 +134,7 @@ app.add_typer(work_app, name="work")
 app.add_typer(permissions_app, name="permissions")
 app.add_typer(consent_app, name="consent")
 app.add_typer(agent_app, name="agent")
+app.add_typer(integration_app, name="integration")
 app.add_typer(assess_app, name="assess")
 app.add_typer(next_app, name="next")
 app.add_typer(runtime_app, name="runtime")
@@ -159,6 +162,7 @@ permissions_app.add_typer(permissions_actor_app, name="actor")
 register_doctor_commands(app, agent_app)
 register_vertical_commands(vertical_app)
 register_agent_commands(agent_app, agent_instructions_app)
+register_project_integration_commands(integration_app)
 register_next_commands(next_app)
 register_runtime_commands(runtime_app)
 register_workspace_schema_commands(workspace_schema_app)

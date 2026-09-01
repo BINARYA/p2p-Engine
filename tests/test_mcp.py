@@ -13,12 +13,12 @@ from p2p_engine import __version__
 from p2p_engine.cli import app
 from p2p_engine.core.contribution import allowed_contribution_type_values
 from p2p_engine.core.decision import DecisionOutcome
-from p2p_engine.mcp.server import handle_message
 from p2p_engine.mcp.handlers.common import to_jsonable
+from p2p_engine.mcp.server import handle_message
 from p2p_engine.mcp.tools import TOOL_NAMES, call_tool, tool_definitions
 from p2p_engine.storage.filesystem import P2PWorkspace
-from tests.proposal_decision_fixtures import ensure_global_scope, record_decision
 from tests.filesystem_assertions import assert_no_workspace_mutation
+from tests.proposal_decision_fixtures import ensure_global_scope, record_decision
 from tests.publication_fixtures import write_publication_candidates
 
 runner = CliRunner()
@@ -63,7 +63,7 @@ def test_mcp_tool_definitions_expose_agent_safe_surface() -> None:
     assert proposal_show["inputSchema"]["properties"]["full"]["type"] == "boolean"
     assert {
         "p2p_init_project",
-        "p2p_agent_instructions_refresh",
+        "p2p_integration_status",
         "p2p_proposal_accept",
         "p2p_proposal_reject",
         "p2p_proposal_defer",
@@ -778,7 +778,7 @@ def test_mcp_permission_and_consent_read_tools(tmp_path: Path) -> None:
     assert shown["consent"]["actor_id"] == "lorenzo"
 
 
-def test_mcp_write_safe_bootstrap_tools(tmp_path: Path) -> None:
+def test_mcp_bootstrap_and_read_only_integration_status(tmp_path: Path) -> None:
     initialized = call_tool(
         "p2p_init_project",
         {
@@ -796,17 +796,15 @@ def test_mcp_write_safe_bootstrap_tools(tmp_path: Path) -> None:
     assert (tmp_path / ".p2p" / "project" / "rubrics.yml").exists()
     assert (tmp_path / ".agents" / "skills" / "p2p-project" / "SKILL.md").exists()
 
-    refreshed = call_tool(
-        "p2p_agent_instructions_refresh",
-        {"root": str(tmp_path), "profile": "claude"},
-    )
+    status = call_tool("p2p_integration_status", {"root": str(tmp_path)})
 
-    assert refreshed["agent_instructions"]["profile"] == "claude"
-    assert (tmp_path / "CLAUDE.md").exists()
+    assert status["project_integration"]["state"] == "current"
+    assert status["mutation_performed"] is False
+    assert not (tmp_path / "CLAUDE.md").exists()
     policy_text = (tmp_path / ".p2p" / "agent-policy.yml").read_text(encoding="utf-8")
     policy = yaml.safe_load(policy_text)
     assert "codex" in policy["agent_profiles"]
-    assert "claude" in policy["agent_profiles"]
+    assert "claude" not in policy["agent_profiles"]
     assert policy["write_policy"]["analysis_without_write"] == "allowed"
     assert policy["write_policy"]["preview_can_be_skipped_when"] == (
         "owner_requested_exact_operation_and_artifact"
@@ -820,7 +818,7 @@ def test_mcp_write_safe_bootstrap_tools(tmp_path: Path) -> None:
     assert "p2p_work_publish" not in policy_text
 
 
-def test_mcp_agent_integration_lifecycle_tools(tmp_path: Path) -> None:
+def test_mcp_agent_integration_surface_is_read_only(tmp_path: Path) -> None:
     initialized = call_tool(
         "p2p_init_project",
         {
@@ -838,22 +836,14 @@ def test_mcp_agent_integration_lifecycle_tools(tmp_path: Path) -> None:
     assert adapters["cursor"]["installed"] is True
     assert adapters["codex"]["installed"] is False
 
-    installed = call_tool("p2p_agent_install", {"root": str(tmp_path), "adapter": "gemini"})
-    assert installed["agent_integration"]["target"] == "gemini"
-    assert (tmp_path / "GEMINI.md").exists()
-
-    shown = call_tool("p2p_agent_show", {"root": str(tmp_path), "adapter": "gemini"})
+    shown = call_tool("p2p_agent_show", {"root": str(tmp_path), "adapter": "cursor"})
     assert shown["agent_integration"]["installed"] is True
-    assert shown["agent_integration"]["files"][1]["path"] == "GEMINI.md"
-
-    gemini = tmp_path / "GEMINI.md"
-    gemini.write_text(gemini.read_text(encoding="utf-8") + "\nmanual edit\n", encoding="utf-8")
-    updated = call_tool("p2p_agent_update", {"root": str(tmp_path), "adapter": "gemini"})
-    assert updated["agent_integration"]["skipped"][0]["reason"] == "drifted"
-
-    uninstalled = call_tool("p2p_agent_uninstall", {"root": str(tmp_path), "adapter": "gemini"})
-    skipped_reasons = {item["reason"] for item in uninstalled["agent_integration"]["skipped"]}
-    assert "drifted" in skipped_reasons
+    status = call_tool("p2p_integration_status", {"root": str(tmp_path)})
+    assert status["project_integration"]["active_profile"] == "standalone"
+    for tool in ("p2p_agent_install", "p2p_agent_update", "p2p_agent_uninstall"):
+        with pytest.raises(ValueError, match="Unknown MCP tool"):
+            call_tool(tool, {"root": str(tmp_path), "adapter": "gemini"})
+    assert not (tmp_path / "GEMINI.md").exists()
 
 
 def test_mcp_init_default_agent_set_matches_cli_default(
@@ -939,7 +929,7 @@ def test_mcp_init_returns_additive_mcp_hint_without_repository_metadata(tmp_path
     assert not (tmp_path / ".gitignore").exists()
 
 
-def test_mcp_agent_uninstall_refuses_generic_baseline(tmp_path: Path) -> None:
+def test_mcp_agent_uninstall_is_not_a_public_tool(tmp_path: Path) -> None:
     call_tool(
         "p2p_init_project",
         {
@@ -950,7 +940,7 @@ def test_mcp_agent_uninstall_refuses_generic_baseline(tmp_path: Path) -> None:
         },
     )
 
-    with pytest.raises(ValueError, match="generic cannot be uninstalled"):
+    with pytest.raises(ValueError, match="Unknown MCP tool"):
         call_tool("p2p_agent_uninstall", {"root": str(tmp_path), "adapter": "generic"})
 
     registry = yaml.safe_load((tmp_path / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))

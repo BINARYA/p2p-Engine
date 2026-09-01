@@ -49,6 +49,11 @@ governance.validate
 impact.apply
 impact.preview
 init
+integration.install
+integration.profile
+integration.refresh
+integration.remove
+integration.status
 mutation.status
 precedent.search
 project.context
@@ -236,7 +241,7 @@ def test_cli_json_operation_inventory_is_reviewed_and_guarded() -> None:
     inventory = json_command_inventory(get_command(app))
 
     assert frozenset(inventory) == EXPECTED_JSON_OPERATIONS
-    assert len(inventory) == 163
+    assert len(inventory) == 168
     assert inventory["status"] == "text"
     assert inventory["vertical.inspect"] == "json"
     assert inventory["workspace.schema.status"] == "text"

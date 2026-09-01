@@ -12,6 +12,12 @@ from p2p_engine.core.interaction_style import (
     interaction_style_policy_payload,
     scale_view,
 )
+from p2p_engine.core.project_integration import (
+    PROJECT_INTEGRATION_CONTRACT,
+    PROJECT_INTEGRATION_GUIDE_PATH,
+    STANDALONE_PROFILE,
+    current_integration_versions,
+)
 from p2p_engine.core.software_spec_lifecycle import SPEC_LIFECYCLE_INTENTS
 from p2p_engine.services.agent_capabilities import (
     AGENT_CAPABILITY_CATALOG_VERSION,
@@ -68,6 +74,10 @@ def managed_markdown_header(adapter: str, template_id: str) -> str:
         f"Adapter: {adapter}\n"
         f"Template: {template_id}\n"
         f"Generation: {template_generation_id(template_id)}\n"
+        f"Generator version: {current_integration_versions()['runtime']['version']}\n"
+        f"Integration contract: {PROJECT_INTEGRATION_CONTRACT}\n"
+        f"Access profile: {STANDALONE_PROFILE}\n"
+        "Ownership: whole-file\n"
         "Do not edit generated sections unless you accept drift.\n"
         "-->\n\n"
     )
@@ -638,11 +648,15 @@ def persistent_write_boundary_block() -> str:
 
 
 def agent_integration_lifecycle_block() -> str:
-    return """Agent bootstrap may detect the current client to reduce the initial file footprint. That detection is not project identity and must not be stored as governance state.
+    return f"""Agent bootstrap may detect the current client to reduce the initial file footprint. That detection is not project identity and must not be stored as governance state.
+
+Read `{PROJECT_INTEGRATION_GUIDE_PATH}` before choosing a transport or mutation surface. It is a regenerable projection, not project memory. Inspect it with `p2p integration status --format json`; refresh or remove host files only through the local CLI, never through MCP.
 
 Use these lifecycle commands instead of editing generated agent files by hand:
 
 ```bash
+p2p integration status --format json
+p2p integration refresh --profile standalone --format json
 p2p agent list
 p2p agent install <adapter>
 p2p agent update <adapter>
@@ -652,6 +666,53 @@ p2p agent instructions refresh --profile <adapter>
 ```
 
 Keep `generic` as the shared baseline. Installing or updating one adapter must not remove previously installed adapters unless the owner explicitly requests uninstall."""
+
+
+def project_integration_guide() -> str:
+    versions = current_integration_versions()
+    return f"""{managed_markdown_header("generic", "project-integration-guide-v1")}# P2P Project Integration
+
+This file is a regenerable runtime projection. It is not canonical project memory.
+
+## Active access profile
+
+- Profile: `{STANDALONE_PROFILE}`
+- Authority: the local project is authoritative.
+- Supported agent surfaces: local CLI and local MCP over `stdio`.
+- Offline reads: authoritative.
+- Offline governed mutations: allowed through P2P application services.
+
+## Supported entry points
+
+```bash
+p2p integration status --format json
+p2p runtime status --root . --format json
+p2p project identity status --root . --format json
+p2p-mcp-server --root .
+```
+
+Use the CLI or an explicitly registered MCP tool. Never read or write `.p2p`
+documents, database files, journals, WAL files, SQL tables, or generated exports
+as canonical state. P2P Engine does not turn Git branch, commit, merge, push,
+pull-request, or release operations into project-memory mutations.
+
+Host MCP configuration is user-owned. P2P reports a safe `stdio` command but
+does not rewrite MCP host configuration through MCP itself and never renders
+credentials, tokens, passwords, private keys, or bearer headers.
+
+## Compatibility dimensions
+
+- Runtime generator: `{versions['runtime']['version']}`
+- Local-memory schema: `{versions['local_memory']['schema_version']}`
+- Domain contract: `{versions['domain']['contract']}`
+- Bundle contract: `{versions['bundle']['contract']}`
+- Sync protocol: unavailable in this profile/release
+- Integration contract: `{PROJECT_INTEGRATION_CONTRACT}`
+
+`linked-local` and `remote-only` are reserved profiles. They are not rendered
+until the required WaveKit authority, authentication, transfer, replica,
+freshness, and remote-transport capabilities exist.
+"""
 
 
 def governed_root_guidance_block() -> str:
@@ -705,7 +766,10 @@ def agent_instruction_files(
     interaction_style: Any = None,
 ) -> dict[Path, str]:
     profiles = sorted(set(profiles))
-    files = {Path("AGENTS.md"): agents_markdown(project_name, profiles, interaction_style)}
+    files = {
+        Path("AGENTS.md"): agents_markdown(project_name, profiles, interaction_style),
+        Path(PROJECT_INTEGRATION_GUIDE_PATH): project_integration_guide(),
+    }
     if "codex" in profiles:
         files[Path(".agents/skills/p2p-project/SKILL.md")] = shared_p2p_project_skill(
             project_name,
@@ -742,6 +806,14 @@ def agent_adapter_files(
     files: list[tuple[Path, str, bool, str]] = []
     if adapter_id == "generic":
         files.append((Path("AGENTS.md"), "generic-agents-md-v2", True, "generic"))
+        files.append(
+            (
+                Path(PROJECT_INTEGRATION_GUIDE_PATH),
+                "project-integration-guide-v1",
+                True,
+                "generic",
+            )
+        )
         files.append((Path(".p2p/agent-policy.yml"), "generic-agent-policy-v2", True, "generic"))
     elif adapter_id == "codex":
         files.append((Path("AGENTS.md"), "generic-agents-md-v2", True, "generic"))
@@ -793,6 +865,15 @@ def agent_policy(
             "missing_primitive_behavior": "stop_and_report",
             "direct_p2p_file_edits": "forbidden",
             "owner_controls_governance": True,
+        },
+        "project_integration": {
+            "contract": PROJECT_INTEGRATION_CONTRACT,
+            "access_profile": STANDALONE_PROFILE,
+            "authority": "local",
+            "surfaces": ["cli", "mcp-stdio"],
+            "backend_visible_to_agents": False,
+            "host_configuration_mutation_via_mcp": False,
+            "sync_protocol": None,
         },
         "agent_profiles": profiles,
         "agent_capabilities": capability_catalog_payload(),

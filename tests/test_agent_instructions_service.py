@@ -6,7 +6,6 @@ import yaml
 
 from p2p_engine.storage.filesystem import P2PWorkspace
 
-
 REQUIRED_WRITE_CLASSES = {
     "read_only",
     "chat_only",
@@ -476,8 +475,10 @@ def test_agent_instruction_service_preserves_registry_file_statuses_in_health(tm
     service = workspace._agent_instruction_service()
     registry = service.registry()
     files = registry["adapters"]["generic"]["files"]
-    files[0]["drift"] = "conflicted"
-    files[1]["template_generation_id"] = "agent-template-generation-v1"
+    next(item for item in files if item["path"] == "AGENTS.md")["drift"] = "conflicted"
+    next(item for item in files if item["path"] == ".p2p/agent-policy.yml")[
+        "template_generation_id"
+    ] = "agent-template-generation-v1"
     service.write_registry(registry)
 
     shown = service.show_integration("generic")

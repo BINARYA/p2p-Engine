@@ -42,35 +42,6 @@ def handle_maintenance_tool(
             "structure_revision": result.structure_revision,
             "project_identity": result.identity.to_dict(),
         }
-    if name == "p2p_agent_instructions_refresh":
-        result = workspace.refresh_agent_instructions(
-            profile=str(arguments.get("profile") or "generic"),
-        )
-        return {"agent_instructions": to_jsonable(result)}
-    if name == "p2p_agent_install":
-        return {
-            "agent_integration": to_jsonable(
-                workspace.install_agent_integrations(
-                    str(arguments.get("adapter") or "all"),
-                    force=bool(arguments.get("force") or False),
-                )
-            )
-        }
-    if name == "p2p_agent_update":
-        return {
-            "agent_integration": to_jsonable(
-                workspace.install_agent_integrations(
-                    str(arguments.get("adapter") or "all"),
-                    force=bool(arguments.get("force") or False),
-                )
-            )
-        }
-    if name == "p2p_agent_uninstall":
-        return {
-            "agent_integration": to_jsonable(
-                workspace.uninstall_agent_integration(str(arguments.get("adapter") or ""))
-            )
-        }
     if name == "p2p_registry_refresh":
         return {"written": to_jsonable(workspace.refresh_registries())}
     if name == "p2p_assess_refresh":

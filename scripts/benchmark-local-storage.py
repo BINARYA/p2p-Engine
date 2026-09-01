@@ -19,9 +19,12 @@ import subprocess
 import sys
 import tempfile
 from collections.abc import Callable, Iterable
+from contextlib import ExitStack
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from time import perf_counter_ns
+from unittest.mock import patch
 from uuid import UUID, uuid5
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
@@ -46,9 +49,23 @@ HARNESS_CONTRACT = "p2p-local-backend-benchmark/v1"
 DATASET_CONTRACT = "p2p-local-backend-dataset/v1"
 DATASET_VERSION = "baseline-a-datasets/v1"
 WORKLOAD_VERSION = "baseline-a-workloads/v1"
+FROZEN_DATASET_INITIALIZED_ON = "2026-08-31"
 BASELINE_A_VARIANT = "A-filesystem-before-storage-ports"
 BASELINE_B_VARIANT = "B-filesystem-behind-storage-ports"
 DATASET_NAMESPACE = UUID("9491fe2b-4be8-5ea8-a71b-c40269177d08")
+
+
+class _FrozenDatasetDate(date):
+    @classmethod
+    def today(cls) -> date:
+        return cls.fromisoformat(FROZEN_DATASET_INITIALIZED_ON)
+
+
+_INITIALIZATION_DATE_IMPORTS = (
+    "p2p_engine.services.project_initialization.date",
+    "p2p_engine.services.project_verticals.date",
+    "p2p_engine.services.proposal_questions.date",
+)
 
 
 @dataclass(frozen=True)
@@ -416,12 +433,15 @@ def directory_size(root: Path) -> int:
 
 
 def build_dataset(root: Path, profile: DatasetProfile, *, seed: int) -> dict[str, object]:
-    built = build_scale_workspace(
-        root,
-        proposal_count=profile.proposal_count,
-        schema_version=4,
-        rich_proposals=profile.rich_proposals,
-    )
+    with ExitStack() as frozen_clock:
+        for import_path in _INITIALIZATION_DATE_IMPORTS:
+            frozen_clock.enter_context(patch(import_path, _FrozenDatasetDate))
+        built = build_scale_workspace(
+            root,
+            proposal_count=profile.proposal_count,
+            schema_version=4,
+            rich_proposals=profile.rich_proposals,
+        )
     project_uuid = _stabilize_identity(root, seed=seed, profile=profile.name)
     _add_dataset_documents(root, profile, seed=seed)
     workspace = P2PWorkspace(root)

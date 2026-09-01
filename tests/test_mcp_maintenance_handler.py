@@ -45,12 +45,12 @@ def test_mcp_maintenance_handler_initializes_project_and_serves_next_actions(tmp
     assert completed["next_action_result"]["action"]["status"] == "completed"
 
 
-def test_mcp_maintenance_handler_serves_agent_and_refresh_tools(tmp_path: Path) -> None:
+def test_mcp_maintenance_handler_keeps_host_agent_mutation_out_of_mcp(tmp_path: Path) -> None:
     workspace = P2PWorkspace(tmp_path)
     handle_maintenance_tool(
         workspace,
         "p2p_init_project",
-        {"name": "Maintenance Project", "starter": "generic"},
+        {"name": "Maintenance Project", "agent": "generic", "starter": "generic"},
     )
 
     installed = handle_maintenance_tool(workspace, "p2p_agent_install", {"adapter": "gemini"})
@@ -58,8 +58,8 @@ def test_mcp_maintenance_handler_serves_agent_and_refresh_tools(tmp_path: Path) 
     assessment = handle_maintenance_tool(workspace, "p2p_assess_refresh", {})
     maturity = handle_maintenance_tool(workspace, "p2p_maturity_refresh", {})
 
-    assert installed is not None
-    assert installed["agent_integration"]["target"] == "gemini"
+    assert installed is None
+    assert not (tmp_path / "GEMINI.md").exists()
     assert registry is not None
     assert "written" in registry
     assert assessment is not None

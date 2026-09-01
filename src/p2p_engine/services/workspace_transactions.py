@@ -8,10 +8,11 @@ import shutil
 import time
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
-from typing import Any
 
 import yaml
 
+from p2p_engine.core.mutation_preview import MutationResult, SourcePrecondition
+from p2p_engine.core.mutation_receipts import MUTATION_RECEIPT_ROOT
 from p2p_engine.core.workspace_schema import (
     LOCK_ABSENT,
     LOCK_ACTIVE,
@@ -22,11 +23,9 @@ from p2p_engine.core.workspace_schema import (
     WorkspaceTransactionRecoveryResult,
     WorkspaceTransactionRecoveryStatus,
 )
-from p2p_engine.core.mutation_preview import MutationResult, SourcePrecondition
-from p2p_engine.core.mutation_receipts import MUTATION_RECEIPT_ROOT
-from p2p_engine.services.candidate_workspace import CandidateWorkspaceView
 from p2p_engine.foundation.files import sync_directory, write_bytes_atomic, write_yaml_atomic
 from p2p_engine.foundation.processes import pid_is_running
+from p2p_engine.services.candidate_workspace import CandidateWorkspaceView
 
 
 def utc_now_iso() -> str:
@@ -370,6 +369,7 @@ class AtomicMutationWriter:
                 "source_version": 1,
                 "target_version": 1,
                 "target_order": targets,
+                "allowed_project_targets": sorted(self.filesystem.allowed_project_targets),
                 "originals": {},
                 "candidates": {},
                 "replaced": [],
@@ -483,15 +483,15 @@ class AtomicMutationWriter:
             assert isinstance(candidate_meta, dict)
             for target in reversed(replaced):
                 candidate = candidate_meta.get(target)
-                original = originals.get(target)
-                if not isinstance(candidate, dict) or not isinstance(original, dict):
+                original_record = originals.get(target)
+                if not isinstance(candidate, dict) or not isinstance(original_record, dict):
                     blocked.append(target)
                     continue
                 if physical_sha256(self.filesystem.target_path(target)) != candidate.get("physical_sha256"):
                     blocked.append(target)
                     continue
-                if original.get("exists"):
-                    mode = original.get("mode")
+                if original_record.get("exists"):
+                    mode = original_record.get("mode")
                     self.filesystem.replace_target(
                         target,
                         self.filesystem.read_original(transaction_dir, target),
@@ -580,7 +580,7 @@ class WorkspaceTransactionRecoveryService:
                     journal_state = str(self.filesystem.read_journal(transaction_dir).get("state") or "unknown")
                 except ValueError:
                     journal_state = "invalid"
-        actions = ()
+        actions: tuple[str, ...] = ()
         if transaction_id and journal_state not in {"invalid", "unknown"}:
             actions = ("rollback", "resume")
         elif transaction_id and lock.state == LOCK_STALE:
@@ -629,7 +629,11 @@ class WorkspaceTransactionRecoveryService:
             )
         try:
             journal = self.filesystem.read_journal(transaction_dir)
-            return self._rollback_journal(transaction_dir, journal)
+            return self._rollback_journal(
+                transaction_dir,
+                journal,
+                filesystem=self._filesystem_for_journal(journal),
+            )
         except (OSError, ValueError) as exc:
             return WorkspaceTransactionRecoveryResult(
                 status="recovery_required",
@@ -655,24 +659,25 @@ class WorkspaceTransactionRecoveryService:
         transaction_dir = self.lock_service.transactions_root / transaction_id
         try:
             journal = self.filesystem.read_journal(transaction_dir)
+            filesystem = self._filesystem_for_journal(journal)
             target_order = _journal_string_list(journal.get("target_order"), "target_order")
             replaced = _journal_string_list(journal.get("replaced"), "replaced")
             originals = _journal_mapping(journal.get("originals"), "originals")
             candidates = _journal_mapping(journal.get("candidates"), "candidates")
             for target in replaced:
                 candidate = _journal_mapping(candidates.get(target), f"candidates.{target}")
-                if physical_sha256(self.filesystem.target_path(target)) != candidate.get("physical_sha256"):
+                if physical_sha256(filesystem.target_path(target)) != candidate.get("physical_sha256"):
                     raise ValueError(f"Already replaced target changed externally: {target}")
             for target in target_order:
                 if target in replaced:
                     continue
                 original = _journal_mapping(originals.get(target), f"originals.{target}")
                 expected = original.get("physical_sha256") if original.get("exists") else None
-                if physical_sha256(self.filesystem.target_path(target)) != expected:
+                if physical_sha256(filesystem.target_path(target)) != expected:
                     raise ValueError(f"Target preimage changed before replacement: {target}")
                 candidate = _journal_mapping(candidates.get(target), f"candidates.{target}")
                 if not candidate.get("delete"):
-                    content = self.filesystem.read_candidate(transaction_dir, target)
+                    content = filesystem.read_candidate(transaction_dir, target)
                     if hashlib.sha256(content).hexdigest() != candidate.get("physical_sha256"):
                         raise ValueError(f"Staged candidate hash changed: {target}")
             changed: list[str] = []
@@ -682,22 +687,22 @@ class WorkspaceTransactionRecoveryService:
                 original = _journal_mapping(originals.get(target), f"originals.{target}")
                 candidate = _journal_mapping(candidates.get(target), f"candidates.{target}")
                 if candidate.get("delete"):
-                    self.filesystem.remove_target(target)
+                    filesystem.remove_target(target)
                 else:
                     mode = original.get("mode")
-                    self.filesystem.replace_target(
+                    filesystem.replace_target(
                         target,
-                        self.filesystem.read_candidate(transaction_dir, target),
+                        filesystem.read_candidate(transaction_dir, target),
                         mode=mode if isinstance(mode, int) else None,
                     )
                 replaced.append(target)
                 changed.append(target)
                 journal["replaced"] = replaced
                 journal["state"] = "committing"
-                self.filesystem.write_journal(transaction_dir, journal)
+                filesystem.write_journal(transaction_dir, journal)
             journal["state"] = "committed"
-            self.filesystem.write_journal(transaction_dir, journal)
-            self.filesystem.cleanup(transaction_dir)
+            filesystem.write_journal(transaction_dir, journal)
+            filesystem.cleanup(transaction_dir)
             self.lock_service.release(transaction_id)
             return WorkspaceTransactionRecoveryResult(
                 status="applied",
@@ -717,34 +722,45 @@ class WorkspaceTransactionRecoveryService:
         self,
         transaction_dir: Path,
         journal: dict[str, object],
+        *,
+        filesystem: DurableTransactionFilesystem,
     ) -> WorkspaceTransactionRecoveryResult:
         transaction_id = str(journal.get("transaction_id") or transaction_dir.name)
         replaced = _journal_string_list(journal.get("replaced"), "replaced")
         originals = _journal_mapping(journal.get("originals"), "originals")
         candidates = _journal_mapping(journal.get("candidates"), "candidates")
-        restored: list[str] = []
+        restored = _journal_string_list(journal.get("restored", []), "restored")
+        restored_set = set(restored)
         blocked: list[str] = []
         for target in reversed(replaced):
             candidate = _journal_mapping(candidates.get(target), f"candidates.{target}")
-            if physical_sha256(self.filesystem.target_path(target)) != candidate.get("physical_sha256"):
+            original = _journal_mapping(originals.get(target), f"originals.{target}")
+            current_digest = physical_sha256(filesystem.target_path(target))
+            original_digest = (
+                original.get("physical_sha256") if original.get("exists") else None
+            )
+            if target in restored_set and current_digest == original_digest:
+                continue
+            if current_digest != candidate.get("physical_sha256"):
                 blocked.append(target)
                 continue
-            original = _journal_mapping(originals.get(target), f"originals.{target}")
             if original.get("exists"):
                 mode = original.get("mode")
-                self.filesystem.replace_target(
+                filesystem.replace_target(
                     target,
-                    self.filesystem.read_original(transaction_dir, target),
+                    filesystem.read_original(transaction_dir, target),
                     mode=mode if isinstance(mode, int) else None,
                 )
             else:
-                self.filesystem.remove_target(target)
-            restored.append(target)
+                filesystem.remove_target(target)
+            if target not in restored_set:
+                restored.append(target)
+                restored_set.add(target)
         if blocked:
             journal["state"] = "recovery_required"
             journal["rollback_blocked_targets"] = blocked
             journal["restored"] = restored
-            self.filesystem.write_journal(transaction_dir, journal)
+            filesystem.write_journal(transaction_dir, journal)
             return WorkspaceTransactionRecoveryResult(
                 status="recovery_required",
                 transaction_id=transaction_id,
@@ -752,7 +768,7 @@ class WorkspaceTransactionRecoveryService:
                 message="Rollback preserved externally changed targets: " + ", ".join(blocked),
                 recovery_required=True,
             )
-        self.filesystem.cleanup(transaction_dir)
+        filesystem.cleanup(transaction_dir)
         try:
             self.lock_service.release(transaction_id)
         except ValueError as exc:
@@ -768,6 +784,27 @@ class WorkspaceTransactionRecoveryService:
             transaction_id=transaction_id,
             restored_paths=tuple(restored),
             message="Workspace transaction replacements were rolled back completely.",
+        )
+
+    def _filesystem_for_journal(
+        self,
+        journal: dict[str, object],
+    ) -> DurableTransactionFilesystem:
+        raw = journal.get("allowed_project_targets", [])
+        if not isinstance(raw, list) or not all(isinstance(item, str) for item in raw):
+            raise ValueError("Workspace transaction allowed_project_targets must be a string list")
+        target_order = _journal_string_list(journal.get("target_order"), "target_order")
+        external = {
+            _normalize_project_target(item)
+            for item in raw
+        }
+        if any(not target.startswith(".p2p/") and target not in external for target in target_order):
+            raise ValueError("Workspace transaction journal omits an external target allowlist entry")
+        return DurableTransactionFilesystem(
+            root=self.root,
+            p2p_dir=self.p2p_dir,
+            lock_service=self.lock_service,
+            allowed_project_targets=tuple(sorted(external)),
         )
 
     def _validate_recovery_request(

@@ -21,6 +21,11 @@ def handle_project_tool(
     name: str,
     arguments: dict[str, Any],
 ) -> dict[str, object] | None:
+    if name == "p2p_integration_status":
+        return {
+            "project_integration": workspace.project_integration_status(),
+            "mutation_performed": False,
+        }
     if name == "p2p_project_identity_show":
         return {
             "project_identity": workspace.project_identity().to_dict(),

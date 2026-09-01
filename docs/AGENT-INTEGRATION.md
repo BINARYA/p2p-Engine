@@ -335,6 +335,28 @@ must stop and report diagnostics instead of editing `.p2p/` directly.
 
 ## Project-Local Agent Integrations
 
+The access profile and the client adapter are independent. The current runtime
+implements `standalone`: local project authority with both CLI and MCP
+`stdio`. It records runtime, memory, domain, bundle, sync and integration
+versions separately in `.p2p/agent-integrations.yml` and generates
+`P2P-INTEGRATION.md`. Future `linked-local` and `remote-only` profiles are
+reported as unsupported until their WaveKit capabilities exist.
+
+Inspect and manage the complete projection through the local CLI:
+
+```bash
+p2p integration status --format json
+p2p integration install --profile standalone --agent all --format json
+p2p integration refresh --profile standalone --format json
+p2p integration profile standalone --format json
+p2p integration remove --format json
+```
+
+MCP exposes only read-only integration status. It never installs, refreshes or
+removes host/project integration files. See
+[`PROJECT-INTEGRATION-ARTIFACTS.md`](PROJECT-INTEGRATION-ARTIFACTS.md) for
+ownership markers, preservation, compatibility and recovery rules.
+
 New projects use an adaptive agent bootstrap default:
 
 ```bash
@@ -395,8 +417,8 @@ P2P records generated files, owners, shared-file status, hashes, and drift in
 `.p2p/agent-integrations.yml`. Do not edit that registry by hand.
 
 `generic` is the mandatory baseline adapter. It is always included in the
-effective install set and cannot be uninstalled through CLI, MCP, or the service
-layer.
+effective install set and cannot be uninstalled through the adapter CLI or the
+service layer. Adapter and host-file mutation commands are not exposed by MCP.
 
 `agent list` and `agent show` expose both compatibility drift and production
 health:

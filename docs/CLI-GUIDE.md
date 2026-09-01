@@ -61,6 +61,11 @@ After init, manage the footprint with `p2p agent list`,
 `p2p agent doctor <adapter>`, `p2p agent uninstall <adapter>`, and
 `p2p agent instructions refresh --profile <adapter>`.
 
+Manage the versioned access-profile projection separately with
+`p2p integration status|install|refresh|profile|remove`. Only `standalone` is
+currently renderable. These host-file mutation commands are local CLI
+operations and are not available through MCP.
+
 When `--mcp-hint` is used, init prints a root-aware MCP setup section. The
 preferred server command uses the absolute running P2P interpreter reported by
 `p2p doctor`, followed by `-m p2p_engine.mcp.server --root /path/to/project`.
@@ -906,6 +911,8 @@ Use lifecycle commands instead of editing generated files or the registry by
 hand:
 
 ```bash
+p2p integration status --format json
+p2p integration refresh --profile standalone --format json
 p2p agent list
 p2p agent show codex
 p2p agent install cursor

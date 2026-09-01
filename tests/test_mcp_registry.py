@@ -4,7 +4,6 @@ from p2p_engine.mcp.registry import PROMPT_TOOL_KINDS, TOOL_NAMES, tool_definiti
 from p2p_engine.mcp.tools import TOOL_NAMES as COMPAT_TOOL_NAMES
 from p2p_engine.mcp.tools import tool_definitions as compat_tool_definitions
 
-
 EXPECTED_TOOL_NAMES = (
     "p2p_init_project",
     "p2p_project_identity_show",
@@ -15,13 +14,10 @@ EXPECTED_TOOL_NAMES = (
     "p2p_project_identity_adopt_apply",
     "p2p_project_identity_derive_preview",
     "p2p_project_identity_derive_apply",
-    "p2p_agent_instructions_refresh",
+    "p2p_integration_status",
     "p2p_agent_list",
     "p2p_agent_show",
     "p2p_agent_doctor",
-    "p2p_agent_install",
-    "p2p_agent_update",
-    "p2p_agent_uninstall",
     "p2p_registry_refresh",
     "p2p_validate",
     "p2p_context",

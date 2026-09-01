@@ -17,6 +17,7 @@ from p2p_engine.core.project_domain import (
     PROJECT_DOMAIN_CONTRACT,
     STRUCTURE_SOURCE_CONTRACT,
 )
+from p2p_engine.core.project_integration import current_integration_versions
 from p2p_engine.core.project_memory import (
     MEMORY_CLASSIFICATION_CONTRACT,
     PROJECT_MEMORY_SCOPE_CONTRACT,
@@ -71,6 +72,7 @@ RELEASE_CONTRACT_INVENTORY_VERSION = "p2p-release-contracts/v1"
 
 
 def current_contract_versions() -> dict[str, object]:
+    integration_versions = current_integration_versions()
     return {
         "contract_inventory_version": RELEASE_CONTRACT_INVENTORY_VERSION,
         "engine_version": __version__,
@@ -115,4 +117,9 @@ def current_contract_versions() -> dict[str, object]:
         "authority_evidence_schema": AUTHORITY_EVIDENCE_SCHEMA,
         "local_authority_policy_version": LOCAL_AUTHORITY_POLICY_VERSION,
         "mutation_receipt_schema_version": MUTATION_RECEIPT_SCHEMA_VERSION,
+        "local_memory_schema_version": integration_versions["local_memory"],
+        "domain_memory_contract_version": integration_versions["domain"],
+        "project_bundle_contract_version": integration_versions["bundle"],
+        "sync_protocol_version": integration_versions["sync"],
+        "project_integration_contract_version": integration_versions["integration"],
     }

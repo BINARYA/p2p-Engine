@@ -323,13 +323,10 @@ repository operations; they do not authorize P2P project-state mutations.
 | `p2p_project_brief_show` | read-only | no | no | Show imported operational brief, if present. |
 | `p2p_conflict_status` | read-only | no | no | Read recorded project conflicts. |
 | `p2p_init_project` | write-safe | yes | no | Bootstrap a P2P workspace with a free domain classification and exactly one `generic`, `empty`, or exact vertical structure source. |
-| `p2p_agent_instructions_refresh` | write-safe | yes | no | Refresh agent instructions and policy. |
+| `p2p_integration_status` | read-only | no | no | Report the access profile, independent contract versions, artifact ownership and drift without changing host files. |
 | `p2p_agent_list` | read-only | no | no | List supported and installed agent integrations. |
 | `p2p_agent_show` | read-only | no | no | Show one agent integration, files, and drift state. |
 | `p2p_agent_doctor` | read-only | no | no | Return structured agent integration health findings. |
-| `p2p_agent_install` | write-safe | yes | no | Install project-local generated files for an agent adapter. |
-| `p2p_agent_update` | write-safe | yes | no | Update generated agent files while preserving drift safety. |
-| `p2p_agent_uninstall` | write-safe | yes | no | Remove only safe, managed, non-shared files for an adapter. |
 | `p2p_registry_refresh` | write-safe | yes | no | Regenerate deterministic registries. |
 | `p2p_assess_refresh` | write-safe | yes | no | Generate the legacy deterministic operational readiness assessment. |
 | `p2p_project_rubrics_init` | write-safe | yes | no | Create or refresh legacy rubric storage for compatibility. |

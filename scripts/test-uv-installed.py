@@ -263,6 +263,42 @@ class Harness:
         )
         if not runtime["data"]["compatible"]:
             raise AssertionError(runtime)
+        integration = self.run_json(
+            [str(p2p), "integration", "status", "--format", "json", "--root", str(project)]
+        )
+        if integration["data"]["state"] != "current":
+            raise AssertionError(integration)
+        refreshed = self.run_json(
+            [
+                str(p2p),
+                "integration",
+                "refresh",
+                "--profile",
+                "standalone",
+                "--format",
+                "json",
+                "--root",
+                str(project),
+            ]
+        )
+        if refreshed["data"]["status"] not in {"applied", "no-change"}:
+            raise AssertionError(refreshed)
+        identity = self.run_json(
+            [
+                str(p2p),
+                "project",
+                "identity",
+                "status",
+                "--format",
+                "json",
+                "--root",
+                str(project),
+            ]
+        )
+        if identity["data"]["project_identity_status"]["state"] != "valid":
+            raise AssertionError(identity)
+        if not (project / "P2P-INTEGRATION.md").is_file():
+            raise AssertionError("clean init did not render P2P-INTEGRATION.md")
         self.run([str(p2p), "agent", "doctor", "all", "--root", str(project)])
         self.run(
             [
@@ -325,6 +361,15 @@ print(json.dumps({'python': sys.version.split()[0], 'module': str(module_path)})
         requests = (
             {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
             {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
+            {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "tools/call",
+                "params": {
+                    "name": "p2p_integration_status",
+                    "arguments": {"root": str(self.layout.project)},
+                },
+            },
         )
         completed = self.run(
             [*command, "--root", str(self.layout.project)],
@@ -332,11 +377,29 @@ print(json.dumps({'python': sys.version.split()[0], 'module': str(module_path)})
             timeout=30,
         )
         responses = [json.loads(line) for line in completed.stdout.splitlines() if line.strip()]
-        if [response.get("id") for response in responses] != [1, 2]:
+        if [response.get("id") for response in responses] != [1, 2, 3]:
             raise AssertionError(responses)
         names = {tool["name"] for tool in responses[1]["result"]["tools"]}
-        if "p2p_context" not in names or "p2p_work_plan" not in names:
+        if (
+            "p2p_context" not in names
+            or "p2p_work_plan" not in names
+            or "p2p_integration_status" not in names
+        ):
             raise AssertionError(sorted(names))
+        forbidden_host_mutations = {
+            "p2p_agent_instructions_refresh",
+            "p2p_agent_install",
+            "p2p_agent_update",
+            "p2p_agent_uninstall",
+        }
+        if names & forbidden_host_mutations:
+            raise AssertionError(sorted(names & forbidden_host_mutations))
+        status_content = responses[2].get("result", {}).get("content", [])
+        status_payload = (
+            json.loads(status_content[0].get("text", "{}")) if status_content else {}
+        )
+        if status_payload.get("project_integration", {}).get("state") != "current":
+            raise AssertionError(responses[2])
 
     def assert_exact_and_cache_modes(self, wheel: WheelIdentity) -> None:
         base = [

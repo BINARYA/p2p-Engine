@@ -262,10 +262,15 @@ p2p init "My Project" --agent codex --agent claude --domain software --vertical 
 
 The `generic` baseline is always created and cannot be uninstalled.
 Installed integrations are tracked in `.p2p/agent-integrations.yml`.
+Their runtime/access-profile lifecycle is versioned independently from the
+agent adapter choice. The current release implements the `standalone` profile;
+`linked-local` and `remote-only` are reported but cannot be rendered yet.
 
 Useful lifecycle commands:
 
 ```bash
+p2p integration status --format json
+p2p integration refresh --profile standalone --format json
 p2p agent list
 p2p agent show codex
 p2p agent install cursor
@@ -389,6 +394,7 @@ Local demos:
 Work in progress:
 
 - [docs/AGENT-INTEGRATION.md](docs/AGENT-INTEGRATION.md)  
+- [docs/PROJECT-INTEGRATION-ARTIFACTS.md](docs/PROJECT-INTEGRATION-ARTIFACTS.md)
   How Codex, Claude, and other agents should use P2P Engine safely and efficiently.
 
 - [docs/API.md](docs/API.md)  
