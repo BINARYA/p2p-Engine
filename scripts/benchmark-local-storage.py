@@ -39,6 +39,7 @@ from p2p_engine.core.project_identity import (  # noqa: E402
     ProjectUuid,
     ReplicaId,
 )
+from p2p_engine.services.runtime_contract import RuntimeContractService  # noqa: E402
 from p2p_engine.storage.filesystem import P2PWorkspace  # noqa: E402
 from p2p_engine.storage.project_identity import (  # noqa: E402
     FilesystemProjectIdentityStore,
@@ -50,6 +51,7 @@ DATASET_CONTRACT = "p2p-local-backend-dataset/v1"
 DATASET_VERSION = "baseline-a-datasets/v1"
 WORKLOAD_VERSION = "baseline-a-workloads/v1"
 FROZEN_DATASET_INITIALIZED_ON = "2026-08-31"
+FROZEN_DATASET_RUNTIME_VERSION = "0.5.1"
 BASELINE_A_VARIANT = "A-filesystem-before-storage-ports"
 BASELINE_B_VARIANT = "B-filesystem-behind-storage-ports"
 DATASET_NAMESPACE = UUID("9491fe2b-4be8-5ea8-a71b-c40269177d08")
@@ -442,6 +444,11 @@ def build_dataset(root: Path, profile: DatasetProfile, *, seed: int) -> dict[str
             schema_version=4,
             rich_proposals=profile.rich_proposals,
         )
+    RuntimeContractService(
+        root=root,
+        p2p_dir=root / ".p2p",
+        current_version=FROZEN_DATASET_RUNTIME_VERSION,
+    ).write_default_contract()
     project_uuid = _stabilize_identity(root, seed=seed, profile=profile.name)
     _add_dataset_documents(root, profile, seed=seed)
     workspace = P2PWorkspace(root)
@@ -612,7 +619,33 @@ def _measure(operation: Callable[[], object]) -> float:
     return elapsed
 
 
+def _frozen_runtime_service(*args: object, **kwargs: object) -> RuntimeContractService:
+    kwargs["current_version"] = FROZEN_DATASET_RUNTIME_VERSION
+    return RuntimeContractService(*args, **kwargs)
+
+
 def run_pilot_profile(
+    root: Path,
+    scratch: Path,
+    *,
+    selected: Iterable[str],
+    warmups: int,
+    repetitions: int,
+) -> dict[str, object]:
+    with patch(
+        "p2p_engine.storage.filesystem.RuntimeContractService",
+        _frozen_runtime_service,
+    ):
+        return _run_pilot_profile(
+            root,
+            scratch,
+            selected=selected,
+            warmups=warmups,
+            repetitions=repetitions,
+        )
+
+
+def _run_pilot_profile(
     root: Path,
     scratch: Path,
     *,

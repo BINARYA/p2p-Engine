@@ -4,6 +4,7 @@ from collections import Counter
 from collections.abc import Callable
 from typing import Any
 
+from p2p_engine import __version__
 from p2p_engine.core.contribution import (
     Contribution,
     ContributionType,
@@ -19,7 +20,7 @@ CONTRIBUTION_REVIEW_CAPABILITY = {
     "code": "P2P_CONTRIBUTION_REVIEW_UNSUPPORTED",
     "message": (
         "Contribution review/promote/reject state is not modeled in "
-        "p2p-engine 0.5.1. Consumers must not store shadow project-memory "
+        f"p2p-engine {__version__}. Consumers must not store shadow project-memory "
         "review state outside .p2p."
     ),
 }

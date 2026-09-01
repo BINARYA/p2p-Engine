@@ -20,14 +20,14 @@ Implemented:
 - guided project init and agent instruction generation.
 - raw, width-independent CLI JSON for machine consumers;
 - path-free bundled vertical locks and strict portable-package YAML parsing;
-- deterministic WaveKit transition fixtures for engine 0.5.1;
+- deterministic WaveKit transition fixtures for the current engine release;
 - logical Work planning with source-control lifecycle outside the runtime;
 - reproducible wheel/sdist candidate automation with installed-wheel smoke.
 
 ## Near Term
 
-- Complete the WaveKit fixture handoff against the verified 0.5.1 release
-  artifact.
+- Validate the project-memory foundations against the verified 0.6.0 release
+  artifact and downstream WaveKit integration.
 - Continue hardening validation and recovery paths.
 
 ## Later

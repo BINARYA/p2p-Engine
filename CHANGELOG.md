@@ -8,6 +8,14 @@ tagged releases.
 
 ## Unreleased
 
+## 0.6.0 - 2026-09-01
+
+- Added immutable `project_uuid` and replica identity distinct from project
+  names, paths, storage keys and future remote identifiers, with explicit
+  adoption, copy, derivation and collision handling.
+- Added the storage-neutral `p2p-canonical-memory/v1` aggregate,
+  deterministic `.p2pbundle` import/export and verified `.p2pbackup`
+  recovery archives while excluding local credentials and replica state.
 - Added a storage-neutral project application boundary with typed repository,
   Unit-of-Work, blob, snapshot, backup/restore, migration and capability ports.
 - Retained the optimized filesystem implementation behind a selected adapter
@@ -18,6 +26,14 @@ tagged releases.
   fail-closed mismatch/contradiction handling without dual writes.
 - Routed CLI and MCP construction through the same application service while
   preserving the versioned CLI JSON boundary for server consumers.
+- Added versioned project-integration manifests and safe lifecycle operations
+  for standalone, linked-local and remote-only agent profiles, including
+  idempotent refresh/removal and preservation of user-owned files or sections.
+- Kept the filesystem adapter as the sole supported product backend; the
+  experimental SQLite work remains outside this release and is not required
+  to open existing projects.
+- Made cross-platform uv qualification current-wheel-only and normalized
+  manifest paths across POSIX and Windows without losing ownership evidence.
 
 ## 0.5.1 - 2026-08-28
 

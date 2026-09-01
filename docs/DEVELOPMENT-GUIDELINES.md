@@ -46,4 +46,4 @@ python scripts/check-source-boundary.py
 Release candidates additionally require owner-controlled metadata, reproducible
 artifacts, standard package checks, dependency audit and the isolated installed
 wheel harness. Coverage remains an optional diagnostic and is not part of the
-0.5.1 candidate gate.
+release candidate gate.

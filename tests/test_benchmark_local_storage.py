@@ -32,6 +32,7 @@ def test_dataset_is_deterministic_and_covers_frozen_categories(tmp_path: Path) -
     assert first["history_records"] == 16
     assert first["blob_count"] == 2
     assert first["relation_count"] == 2
+    assert module.FROZEN_DATASET_RUNTIME_VERSION == "0.5.1"
     assert first["logical_fixture_digest"] == module.FROZEN_DATASET_DIGESTS["small"][
         "logical_fixture_digest"
     ]

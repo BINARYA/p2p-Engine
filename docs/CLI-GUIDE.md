@@ -286,14 +286,14 @@ Project owners can preview and apply a governed runtime contract change with:
 
 ```bash
 p2p runtime contract preview \
-  --requires ">=0.5.1,<0.6" \
-  --recommended "0.5.1" \
-  --reason "Allow compatible 0.5 patch releases."
+  --requires ">=0.6.0,<0.7.0" \
+  --recommended "0.6.0" \
+  --reason "Allow compatible 0.6 releases."
 
 p2p runtime contract apply \
-  --requires ">=0.5.1,<0.6" \
-  --recommended "0.5.1" \
-  --reason "Allow compatible 0.5 patch releases." \
+  --requires ">=0.6.0,<0.7.0" \
+  --recommended "0.6.0" \
+  --reason "Allow compatible 0.6 releases." \
   --expected-state-token "<token-from-preview>" \
   --confirm
 ```
@@ -321,7 +321,7 @@ effect of a contract update.
 ### Current Workspace Schema
 
 Workspace layout versioning is independent from the runtime contract. P2P
-Engine 0.5.1 accepts schema 4 only. Inspect schema alignment and interrupted
+Engine 0.6.0 accepts schema 4 only. Inspect schema alignment and interrupted
 transaction state without writing:
 
 ```bash
@@ -721,7 +721,7 @@ vertical_transition_plan:
         ref: definition_field:new_section.new_field
 ```
 
-The 0.5.1 JSON transport contract is `p2p-cli/v1`. Every command supporting
+The 0.6.0 JSON transport contract is `p2p-cli/v1`. Every command supporting
 `--format json` returns exactly `contract_version`, `ok`, `operation`, `data`,
 `warnings`, and `error`. Domain payloads remain operation-specific under
 `data`. Parser errors use the same envelope. See
