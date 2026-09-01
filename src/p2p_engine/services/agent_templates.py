@@ -287,12 +287,16 @@ exact token and operation key, then use matching `restore-apply --confirm`.
 Restore validates in staging, takes a pre-restore physical backup and atomically
 activates the result. Never unpack an archive into `.p2p`, copy a live database,
 or edit restore receipts manually. Inspect interrupted state with
-`p2p project memory recovery-status` and stop if recovery is required.
+`p2p project memory recovery-status` and stop if recovery is required. The
+rollback-only `recovery-apply` command is an owner-controlled emergency
+mutation: never infer its ID/token or invoke it autonomously. Use it only after
+the owner explicitly directs the rollback and supplies the exact status-bound
+confirmation values.
 
 MCP exposes only `p2p_canonical_memory_inspect`,
 `p2p_canonical_memory_verify`, `p2p_project_bundle_export_metadata` and
 `p2p_project_archive_verify`. These are read-only; MCP cannot export, back up,
-restore, choose archive destinations, or activate project memory."""
+restore, recover, choose archive destinations, or activate project memory."""
 
 
 STANDALONE_VERTICAL_GUIDANCE_BLOCK = standalone_vertical_guidance()

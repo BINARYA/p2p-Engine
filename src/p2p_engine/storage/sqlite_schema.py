@@ -5,9 +5,15 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
+from p2p_engine.storage.path_safety import (
+    UnsafeProjectStoragePath,
+    validate_confined_project_path,
+)
+
 SQLITE_ADAPTER = "sqlite"
 SQLITE_DATABASE_PATH = ".p2p/local/project.sqlite3"
 SQLITE_MAINTENANCE_MARKER = ".p2p/local/sqlite-maintenance.json"
+SQLITE_ACTIVATION_MARKER = ".p2p/local/sqlite-activation.json"
 SQLITE_SCHEMA_CONTRACT = "p2p-sqlite-project-state/v1"
 SQLITE_SCHEMA_VERSION = 1
 SQLITE_APPLICATION_ID = 0x50325032
@@ -198,10 +204,24 @@ class SQLiteDatabaseHeader:
     maintenance_state: str
 
 
-def read_sqlite_database_header(path: Path) -> SQLiteDatabaseHeader:
-    if path.is_symlink() or not path.is_file():
-        raise ValueError("P2P_SQLITE_DATABASE_MISSING: SQLite project database is missing")
-    uri = f"file:{path.resolve().as_posix()}?mode=ro"
+def read_sqlite_database_header(
+    path: Path,
+    *,
+    project_root: Path | None = None,
+) -> SQLiteDatabaseHeader:
+    root = project_root.resolve() if project_root is not None else path.parent
+    try:
+        safe_path = validate_confined_project_path(
+            root,
+            path,
+            expected="file",
+            must_exist=True,
+        )
+    except UnsafeProjectStoragePath as exc:
+        raise ValueError(
+            f"P2P_SQLITE_DATABASE_UNSAFE: SQLite project database path is unsafe: {exc}"
+        ) from exc
+    uri = f"{safe_path.as_uri()}?mode=ro"
     try:
         connection = sqlite3.connect(uri, uri=True, timeout=1.0)
         connection.row_factory = sqlite3.Row

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Mapping
@@ -47,6 +48,73 @@ def idempotency_key_sha256(value: str) -> str:
 
 def preview_token_sha256(value: str) -> str:
     return hashlib.sha256(str(value).encode("utf-8")).hexdigest()
+
+
+def render_mutation_receipt(receipt: MutationReceipt) -> bytes:
+    """Serialize one validated receipt using the stable project YAML codec."""
+    content = yaml_dump(receipt.to_payload()).encode("utf-8")
+    if len(content) > MUTATION_RECEIPT_MAX_FILE_BYTES:
+        raise ValueError(
+            "P2P_VERTICAL_IMPACT_LIMIT_EXCEEDED: mutation receipt exceeds "
+            f"{MUTATION_RECEIPT_MAX_FILE_BYTES} bytes"
+        )
+    return content
+
+
+def parse_mutation_receipt(
+    content: bytes,
+    *,
+    expected_key_sha256: str | None = None,
+) -> MutationReceipt:
+    """Parse and validate receipt bytes without depending on a filesystem path."""
+    if len(content) > MUTATION_RECEIPT_MAX_FILE_BYTES:
+        raise ValueError(
+            "P2P_IDEMPOTENCY_RECEIPT_CORRUPT: receipt exceeds the size limit"
+        )
+    try:
+        payload = load_yaml(content, loader_contract=UNIQUE_LOADER_CONTRACT)
+    except (UnicodeDecodeError, ValueError, yaml.YAMLError) as exc:
+        raise ValueError(f"P2P_IDEMPOTENCY_RECEIPT_CORRUPT: {exc}") from exc
+    receipt = parse_mutation_receipt_payload(payload)
+    if expected_key_sha256 is not None and receipt.key_sha256 != expected_key_sha256:
+        raise ValueError(
+            "P2P_IDEMPOTENCY_RECEIPT_CORRUPT: receipt key hash does not match its path"
+        )
+    return receipt
+
+
+def parse_mutation_receipt_payload(payload: object) -> MutationReceipt:
+    """Validate an already decoded receipt document."""
+    try:
+        return _receipt_from_payload(payload)
+    except ValueError as exc:
+        message = str(exc)
+        if message.startswith("P2P_IDEMPOTENCY_RECEIPT_CORRUPT:"):
+            raise
+        raise ValueError(f"P2P_IDEMPOTENCY_RECEIPT_CORRUPT: {message}") from exc
+
+
+def rebind_mutation_receipt_postconditions(
+    receipt: MutationReceipt,
+    candidates: Mapping[str, bytes],
+) -> MutationReceipt:
+    """Bind a receipt to an equivalent adapter-specific physical projection."""
+    expected = [item.path for item in receipt.postconditions]
+    if sorted(candidates) != expected:
+        raise ValueError(
+            "P2P_IDEMPOTENCY_RECEIPT_CORRUPT: projection candidates do not match "
+            "receipt postconditions"
+        )
+    return replace(
+        receipt,
+        postconditions=tuple(
+            MutationPostcondition(
+                path=path,
+                physical_sha256=hashlib.sha256(candidates[path]).hexdigest(),
+            )
+            for path in expected
+        ),
+    )
 
 
 def mutation_request_fingerprint(
@@ -125,12 +193,7 @@ class MutationReceiptService:
             postconditions=postconditions,
             authority=(authority.to_dict() if authority is not None else None),
         )
-        content = yaml_dump(receipt.to_payload()).encode("utf-8")
-        if len(content) > MUTATION_RECEIPT_MAX_FILE_BYTES:
-            raise ValueError(
-                "P2P_VERTICAL_IMPACT_LIMIT_EXCEEDED: mutation receipt exceeds "
-                f"{MUTATION_RECEIPT_MAX_FILE_BYTES} bytes"
-            )
+        content = render_mutation_receipt(receipt)
         return (
             f"{MUTATION_RECEIPT_ROOT}/{key_hash}.yml",
             content,
@@ -210,23 +273,17 @@ class MutationReceiptService:
         )
 
     def _read_receipt(self, path: Path, *, expected_key_sha256: str) -> MutationReceipt:
-        try:
-            if path.is_symlink() or not path.is_file():
-                raise ValueError("receipt path is not a regular file")
-            if path.stat().st_size > MUTATION_RECEIPT_MAX_FILE_BYTES:
-                raise ValueError("receipt exceeds the size limit")
-            payload = load_yaml(
-                path.read_bytes(),
-                loader_contract=UNIQUE_LOADER_CONTRACT,
-            )
-            receipt = _receipt_from_payload(payload)
-        except (OSError, UnicodeDecodeError, ValueError, yaml.YAMLError) as exc:
-            raise ValueError(f"P2P_IDEMPOTENCY_RECEIPT_CORRUPT: {exc}") from exc
-        if receipt.key_sha256 != expected_key_sha256:
+        if path.is_symlink() or not path.is_file():
             raise ValueError(
-                "P2P_IDEMPOTENCY_RECEIPT_CORRUPT: receipt key hash does not match its path"
+                "P2P_IDEMPOTENCY_RECEIPT_CORRUPT: receipt path is not a regular file"
             )
-        return receipt
+        try:
+            return parse_mutation_receipt(
+                path.read_bytes(),
+                expected_key_sha256=expected_key_sha256,
+            )
+        except OSError as exc:
+            raise ValueError(f"P2P_IDEMPOTENCY_RECEIPT_CORRUPT: {exc}") from exc
 
     def _postconditions_match(self, receipt: MutationReceipt) -> bool:
         try:

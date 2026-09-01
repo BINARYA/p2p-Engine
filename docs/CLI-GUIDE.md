@@ -260,6 +260,25 @@ operation key and token with `restore-apply --confirm`; it validates in staging,
 creates a pre-restore backup and activates atomically. See
 [CANONICAL-MEMORY-AND-BUNDLES.md](CANONICAL-MEMORY-AND-BUNDLES.md).
 
+When `recovery-status` reports `recovery_required`, copy its exact
+`recovery_id` and `recovery_token`; after checking the source identity and
+operation, a current project owner can request the only supported action:
+
+```bash
+p2p project memory recovery-apply \
+  --recovery-id <exact-recovery-uuid> \
+  --token <exact-recovery-token> \
+  --actor owner --action rollback --confirm --format json
+```
+
+This command is for interrupted SQLite maintenance and works while normal
+project open is fenced. It never resumes an operation forward, never chooses a
+state automatically and is not exposed as an MCP mutation. A repeated identical
+request returns the durable completion result. A different ID or token is
+rejected; after cleanup, another verified current owner may replay the same
+request while the completion keeps the original recovery actor for audit.
+Legacy recovery markers are diagnostic-only.
+
 ### Runtime Contract
 
 Project runtime compatibility is declared in `.p2p/project/runtime.yml`.

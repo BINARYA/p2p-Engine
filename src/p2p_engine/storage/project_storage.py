@@ -16,8 +16,14 @@ from p2p_engine.core.project_state_storage import (
 from p2p_engine.foundation.files import yaml_dump
 from p2p_engine.foundation.yaml_loaders import UNIQUE_LOADER_CONTRACT, load_yaml
 from p2p_engine.storage.canonical_memory import classify_memory_path
+from p2p_engine.storage.path_safety import (
+    UnsafeProjectStoragePath,
+    is_link_or_reparse_point,
+    validate_confined_project_path,
+)
 from p2p_engine.storage.project_identity import FilesystemProjectIdentityStore
 from p2p_engine.storage.sqlite_schema import (
+    SQLITE_ACTIVATION_MARKER,
     SQLITE_ADAPTER,
     SQLITE_DATABASE_PATH,
     SQLITE_MAINTENANCE_MARKER,
@@ -42,19 +48,40 @@ class ProjectStorageManifestStore:
         self.path = self.root / PROJECT_STORAGE_MANIFEST_PATH
 
     def exists(self) -> bool:
-        return self.path.is_file() and not self.path.is_symlink()
+        try:
+            validate_confined_project_path(
+                self.root,
+                self.path,
+                expected="file",
+                must_exist=False,
+            )
+        except UnsafeProjectStoragePath as exc:
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.manifest_invalid,
+                "replica-local storage manifest path is unsafe",
+                diagnostic=str(exc),
+            ) from exc
+        return self.path.is_file()
 
     def load(self) -> ProjectStorageManifest:
-        if not self.path.exists():
+        try:
+            validate_confined_project_path(
+                self.root,
+                self.path,
+                expected="file",
+                must_exist=True,
+            )
+        except UnsafeProjectStoragePath as exc:
+            message = (
+                "replica-local storage manifest is missing"
+                if "missing" in str(exc)
+                else "replica-local storage manifest path is unsafe"
+            )
             raise ProjectStorageError(
                 ProjectStorageErrorCode.manifest_invalid,
-                "replica-local storage manifest is missing",
-            )
-        if self.path.is_symlink() or not self.path.is_file():
-            raise ProjectStorageError(
-                ProjectStorageErrorCode.manifest_invalid,
-                "replica-local storage manifest is not a regular file",
-            )
+                message,
+                diagnostic=str(exc),
+            ) from exc
         if self.path.stat().st_size > PROJECT_STORAGE_MANIFEST_MAX_BYTES:
             raise ProjectStorageError(
                 ProjectStorageErrorCode.manifest_invalid,
@@ -133,14 +160,42 @@ class ProjectStorageResolver:
 
     def resolve(self) -> ProjectStorageSelection:
         project_path = self.p2p_dir / "project.yml"
-        if self.p2p_dir.exists() and (
-            self.p2p_dir.is_symlink() or not self.p2p_dir.is_dir()
-        ):
+        local_dir = self.p2p_dir / "local"
+        try:
+            validate_confined_project_path(
+                self.root,
+                self.p2p_dir,
+                expected="directory",
+                must_exist=False,
+            )
+            # Marker probes live below ``.p2p/local``. Validate that parent
+            # first so an ENOTDIR/OSError cannot be mistaken for a recovery
+            # marker (notably by Windows reparse-point fail-closed probes).
+            validate_confined_project_path(
+                self.root,
+                local_dir,
+                expected="directory",
+                must_exist=False,
+            )
+        except UnsafeProjectStoragePath as exc:
             raise ProjectStorageError(
                 ProjectStorageErrorCode.integrity_failure,
-                "project storage container is missing or unsafe",
+                "project storage manifest container is missing or unsafe",
+                diagnostic=str(exc),
+            ) from exc
+        activation_marker = self.root / SQLITE_ACTIVATION_MARKER
+        if activation_marker.exists() or is_link_or_reparse_point(activation_marker):
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.recovery_required,
+                "Project storage is fenced by an interrupted SQLite activation",
             )
-        if self.manifests.path.exists():
+        maintenance_marker = self.root / SQLITE_MAINTENANCE_MARKER
+        if maintenance_marker.exists() or is_link_or_reparse_point(maintenance_marker):
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.recovery_required,
+                "Project storage is fenced by interrupted SQLite maintenance",
+            )
+        if self.manifests.exists():
             manifest = self.manifests.load()
             self._validate_available(manifest)
             if manifest.adapter == SQLITE_ADAPTER:
@@ -182,7 +237,10 @@ class ProjectStorageResolver:
                 persistent=True,
                 identity=identity,
             )
-        if not project_path.exists():
+        if not project_path.exists() and not is_link_or_reparse_point(project_path):
+            # A root containing SQLite artifacts but no replica-local manifest
+            # is damaged, not a fresh filesystem project.
+            self._validate_contradictions(FILESYSTEM_ADAPTER)
             return self.for_initialization()
         self._validate_legacy_filesystem_project()
         project_uuid, identity = self._selection_identity()
@@ -256,13 +314,17 @@ class ProjectStorageResolver:
             )
 
     def _validate_sqlite_selection(self, manifest: ProjectStorageManifest):
-        if (self.root / SQLITE_MAINTENANCE_MARKER).exists():
+        maintenance_marker = self.root / SQLITE_MAINTENANCE_MARKER
+        if maintenance_marker.exists() or is_link_or_reparse_point(maintenance_marker):
             raise ProjectStorageError(
                 ProjectStorageErrorCode.recovery_required,
                 "SQLite project has an interrupted maintenance marker",
             )
         try:
-            header = read_sqlite_database_header(self.root / SQLITE_DATABASE_PATH)
+            header = read_sqlite_database_header(
+                self.root / SQLITE_DATABASE_PATH,
+                project_root=self.root,
+            )
         except ValueError as exc:
             raise ProjectStorageError(
                 ProjectStorageErrorCode.integrity_failure,
@@ -286,37 +348,70 @@ class ProjectStorageResolver:
         return header
 
     def _validate_legacy_filesystem_project(self) -> None:
-        if self.p2p_dir.is_symlink() or not self.p2p_dir.is_dir():
+        try:
+            validate_confined_project_path(
+                self.root,
+                self.p2p_dir,
+                expected="directory",
+                must_exist=True,
+            )
+        except UnsafeProjectStoragePath as exc:
             raise ProjectStorageError(
                 ProjectStorageErrorCode.integrity_failure,
                 "legacy filesystem project memory root is missing or unsafe",
-            )
+                diagnostic=str(exc),
+            ) from exc
         project = self.p2p_dir / "project.yml"
-        if project.is_symlink() or not project.is_file():
+        try:
+            validate_confined_project_path(
+                self.root,
+                project,
+                expected="file",
+                must_exist=True,
+            )
+        except UnsafeProjectStoragePath as exc:
             raise ProjectStorageError(
                 ProjectStorageErrorCode.integrity_failure,
                 "legacy filesystem project manifest is missing or unsafe",
-            )
+                diagnostic=str(exc),
+            ) from exc
 
     def _validate_contradictions(self, adapter: str) -> None:
         if adapter == FILESYSTEM_ADAPTER:
             conflicting = [
-                path for path in _SQLITE_CONTRADICTION_PATHS if (self.root / path).exists()
+                path
+                for path in _SQLITE_CONTRADICTION_PATHS
+                if (self.root / path).exists()
+                or is_link_or_reparse_point(self.root / path)
             ]
         elif adapter == SQLITE_ADAPTER:
             conflicting = []
             if self.p2p_dir.is_dir():
                 for path in self.p2p_dir.rglob("*"):
-                    if not path.is_file() or path.is_symlink():
+                    if is_link_or_reparse_point(path):
+                        conflicting.append(f".p2p/{path.relative_to(self.p2p_dir).as_posix()}")
+                        continue
+                    if not path.is_file():
                         continue
                     relative = path.relative_to(self.p2p_dir).as_posix()
-                    classification, _kind, _reason = classify_memory_path(relative)
+                    # Classify using the portable case-insensitive identity of
+                    # the locator. On Windows, case-only variants alias the
+                    # canonical path and must not hide a second authority; on
+                    # case-sensitive hosts rejecting them keeps bundles
+                    # portable to Windows.
+                    classification, _kind, _reason = classify_memory_path(
+                        relative.casefold()
+                    )
                     if classification == "canonical_project":
                         conflicting.append(f".p2p/{relative}")
             conflicting.extend(
                 path
                 for path in _SQLITE_CONTRADICTION_PATHS
-                if path != SQLITE_DATABASE_PATH and (self.root / path).exists()
+                if path != SQLITE_DATABASE_PATH
+                and (
+                    (self.root / path).exists()
+                    or is_link_or_reparse_point(self.root / path)
+                )
             )
         else:
             conflicting = []

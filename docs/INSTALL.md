@@ -316,12 +316,16 @@ to `.p2p/project/runtime.yml` as the source of truth.
 
 For existing projects, ordinary `p2p init` does not recover a required but
 missing runtime contract. Restore `.p2p/project/runtime.yml` from project
-history, or use a future explicit recovery operation when one exists.
+history. The SQLite maintenance recovery command described below cannot
+reconstruct a missing runtime contract; it only rolls back an interrupted
+SQLite maintenance operation.
 
 ### Source-Control Boundary
 
-P2P projects need only their `.p2p/` project container. The current runtime
-selects its filesystem adapter internally:
+P2P projects need only their `.p2p/` project container. The runtime resolves
+exactly one authoritative adapter from the project manifest. Filesystem is the
+default; the separate SQLite experiment permits explicit opt-in only for a new
+test project:
 
 ```bash
 p2p init "My Project" \

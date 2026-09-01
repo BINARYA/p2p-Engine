@@ -368,6 +368,13 @@ an archive or restore memory. Generated instructions contain the same rule for
 every adapter. See
 [`CANONICAL-MEMORY-AND-BUNDLES.md`](CANONICAL-MEMORY-AND-BUNDLES.md).
 
+If project-memory status reports `recovery_required`, an agent must stop normal
+work and report the exact status to the owner. It must not delete markers,
+locks, staging or backup artifacts and must never invoke
+`p2p project memory recovery-apply` autonomously. That rollback-only CLI
+mutation is allowed only after the owner supplies the exact recovery ID, token,
+actor and confirmation instruction. It is deliberately absent from MCP.
+
 Existing broad installations are preserved. Running refresh, install, update,
 or project upgrade later with a narrower adapter target does not automatically
 remove previously installed adapters; use `p2p agent uninstall <adapter>` for an

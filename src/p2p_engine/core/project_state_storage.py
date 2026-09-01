@@ -24,6 +24,7 @@ class ProjectStorageErrorCode(str, Enum):
     configuration_contradiction = "P2P_STORAGE_CONFIGURATION_CONTRADICTION"
     identity_mismatch = "P2P_STORAGE_IDENTITY_MISMATCH"
     stale_revision = "P2P_STORAGE_STALE_REVISION"
+    idempotency_conflict = "P2P_IDEMPOTENCY_CONFLICT"
     busy = "P2P_STORAGE_BUSY"
     integrity_failure = "P2P_STORAGE_INTEGRITY_FAILURE"
     recovery_required = "P2P_STORAGE_RECOVERY_REQUIRED"

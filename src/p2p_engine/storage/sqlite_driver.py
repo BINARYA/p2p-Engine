@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ntpath
 import os
 import sqlite3
 from collections.abc import Callable, Iterator
@@ -10,6 +11,11 @@ from pathlib import Path
 from p2p_engine.core.project_state_storage import (
     ProjectStorageError,
     ProjectStorageErrorCode,
+)
+from p2p_engine.storage.path_safety import (
+    UnsafeProjectStoragePath,
+    lexical_absolute,
+    validate_confined_project_path,
 )
 from p2p_engine.storage.sqlite_schema import SQLITE_APPLICATION_ID
 
@@ -27,6 +33,7 @@ UNSAFE_MULTI_HOST_FILESYSTEMS = frozenset(
         "nfs",
         "nfs4",
         "smb3",
+        "windows-remote",
     }
 )
 
@@ -60,7 +67,7 @@ class SQLiteRuntimeCapabilities:
 def local_filesystem_type(path: Path) -> str:
     """Best-effort local mount detection without shelling out."""
     if os.name == "nt":
-        return "windows-local-or-unknown"
+        return _windows_filesystem_type(path)
     mountinfo = Path("/proc/self/mountinfo")
     if not mountinfo.is_file():
         return "unknown"
@@ -88,6 +95,37 @@ def local_filesystem_type(path: Path) -> str:
     return best[1] if best is not None else "unknown"
 
 
+def _windows_filesystem_type(
+    path: os.PathLike[str],
+    *,
+    drive_type_resolver: Callable[[str], int] | None = None,
+) -> str:
+    value = os.fspath(path).replace("/", "\\")
+    lowered = value.lower()
+    if lowered.startswith("\\\\?\\unc\\") or (
+        value.startswith("\\\\") and not lowered.startswith("\\\\?\\")
+    ):
+        return "windows-remote"
+    drive, _tail = ntpath.splitdrive(value)
+    if not drive:
+        return "windows-local-or-unknown"
+    resolver = drive_type_resolver or _windows_drive_type
+    try:
+        drive_type = resolver(f"{drive}\\")
+    except OSError:
+        return "windows-local-or-unknown"
+    return "windows-remote" if drive_type == 4 else "windows-local"
+
+
+def _windows_drive_type(root: str) -> int:
+    import ctypes
+
+    get_drive_type = ctypes.windll.kernel32.GetDriveTypeW
+    get_drive_type.argtypes = (ctypes.c_wchar_p,)
+    get_drive_type.restype = ctypes.c_uint
+    return int(get_drive_type(root))
+
+
 def _nearest_existing(path: Path) -> Path:
     candidate = path.resolve(strict=False)
     while not candidate.exists() and candidate != candidate.parent:
@@ -109,10 +147,12 @@ class SQLiteConnectionFactory:
         self,
         path: Path,
         *,
+        project_root: Path | None = None,
         busy_timeout_ms: int = DEFAULT_BUSY_TIMEOUT_MS,
         filesystem_detector: Callable[[Path], str] = local_filesystem_type,
     ) -> None:
-        self.path = path.resolve(strict=False)
+        self.path = lexical_absolute(path)
+        self.project_root = project_root.resolve() if project_root is not None else None
         self.busy_timeout_ms = busy_timeout_ms
         self.filesystem_detector = filesystem_detector
         if busy_timeout_ms < 1 or busy_timeout_ms > 60_000:
@@ -125,6 +165,7 @@ class SQLiteConnectionFactory:
                 "runtime SQLite is older than the supported schema baseline",
                 diagnostic=sqlite3.sqlite_version,
             )
+        self._validate_database_path(must_exist=False)
         filesystem = self.filesystem_detector(self.path).lower()
         if filesystem in UNSAFE_MULTI_HOST_FILESYSTEMS:
             raise ProjectStorageError(
@@ -137,6 +178,7 @@ class SQLiteConnectionFactory:
     def prepare_parent(self) -> None:
         self.validate_environment()
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._validate_database_path(must_exist=False)
         _restrict_permissions(self.path.parent, directory=True)
 
     @contextmanager
@@ -152,15 +194,12 @@ class SQLiteConnectionFactory:
         self.validate_environment()
         if writable:
             self.prepare_parent()
+            self._validate_database_path(must_exist=False)
             target = str(self.path)
             uri = False
         else:
-            if self.path.is_symlink() or not self.path.is_file():
-                raise ProjectStorageError(
-                    ProjectStorageErrorCode.integrity_failure,
-                    "SQLite project database is missing or unsafe",
-                )
-            target = f"file:{self.path.as_posix()}?mode=ro"
+            self._validate_database_path(must_exist=True)
+            target = f"{self.path.as_uri()}?mode=ro"
             uri = True
         connection: sqlite3.Connection | None = None
         try:
@@ -208,7 +247,29 @@ class SQLiteConnectionFactory:
             if connection is not None:
                 connection.close()
             if writable and self.path.exists():
+                self._validate_database_path(must_exist=True)
                 _restrict_permissions(self.path, directory=False)
+
+    def _validate_database_path(self, *, must_exist: bool) -> None:
+        root = self.project_root
+        if root is None:
+            # A direct factory without project context can still reject unsafe
+            # leaf/parent indirection; callers that own a project must pass its
+            # root to additionally enforce the containment boundary.
+            root = _direct_path_validation_root(self.path)
+        try:
+            validate_confined_project_path(
+                root,
+                self.path,
+                expected="file",
+                must_exist=must_exist,
+            )
+        except UnsafeProjectStoragePath as exc:
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "SQLite project database path is missing or unsafe",
+                diagnostic=str(exc),
+            ) from exc
 
     def detect_capabilities(self) -> SQLiteRuntimeCapabilities:
         filesystem = self.validate_environment()
@@ -261,3 +322,12 @@ def _restrict_permissions(path: Path, *, directory: bool) -> None:
             "SQLite storage permissions could not be restricted",
             diagnostic=str(exc),
         ) from exc
+
+
+def _direct_path_validation_root(path: Path) -> Path:
+    """Choose a stable existing ancestor while retaining parent-link checks."""
+
+    candidate = path.parent
+    while not candidate.exists() and candidate != candidate.parent:
+        candidate = candidate.parent
+    return candidate

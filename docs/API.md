@@ -71,11 +71,15 @@ Stable identity application services live in
 in [`PROJECT-IDENTITY.md`](PROJECT-IDENTITY.md), not adapter paths.
 
 `CanonicalMemoryPort` is the backend-neutral read boundary used by
-`CanonicalBundleCodec`. `FilesystemCanonicalMemoryStore` is the current
-adapter. `CanonicalMemoryService` owns inspect/verify/export, coordinated or
-closed-store backup, preview/apply restore, rollback and recovery status. These
-Python types are contributor APIs; agents must use the CLI or explicit MCP
-reads and must not inspect adapter-private storage. See
+`CanonicalBundleCodec`. `FilesystemCanonicalMemoryStore` remains the default;
+the experimental SQLite candidate implements the same boundary without
+changing callers. `CanonicalMemoryService` owns inspect/verify/export,
+coordinated or closed-store backup, preview/apply restore and recovery status. Interrupted
+SQLite maintenance is handled by the storage-independent application entry
+points `project_memory_recovery_status` and `project_memory_recovery_apply`;
+the latter is owner-authorized, confirmation-bound and rollback-only. These
+Python types are contributor APIs; agents must use the documented CLI or
+explicit MCP reads and must not inspect adapter-private storage. See
 [`CANONICAL-MEMORY-AND-BUNDLES.md`](CANONICAL-MEMORY-AND-BUNDLES.md).
 
 `ProjectStateRepository`, `ProjectUnitOfWork`, `BlobStore`, snapshot, backup and

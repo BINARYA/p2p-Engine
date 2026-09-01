@@ -139,6 +139,7 @@ AGENT_CAPABILITIES = (
             "p2p project memory restore-preview",
             "p2p project memory restore-apply",
             "p2p project memory recovery-status",
+            "p2p project memory recovery-apply",
         ),
         mcp_tools=(
             "p2p_canonical_memory_inspect",
@@ -147,11 +148,12 @@ AGENT_CAPABILITIES = (
             "p2p_project_archive_verify",
         ),
         exposure="cli_restore_mcp_read_only",
-        authority="read_only_or_owner_confirmed_project_memory_restore",
+        authority="read_only_or_owner_confirmed_project_memory_restore_or_recovery",
         reason=(
             "Canonical memory and bundle reads are storage-neutral. Export and backup "
             "are explicit local archive writes; restore is exact-preview, backup-protected, "
-            "owner-confirmed and CLI-only, while MCP remains read-only."
+            "owner-confirmed and CLI-only; interrupted maintenance recovery is an "
+            "exact-token rollback-only owner mutation, while MCP remains read-only."
         ),
     ),
     AgentCapability(
@@ -268,6 +270,7 @@ AGENT_CAPABILITIES = (
             "p2p project memory restore-preview",
             "p2p project memory restore-apply",
             "p2p project memory recovery-status",
+            "p2p project memory recovery-apply",
             "p2p proposal scope show",
             "p2p proposal scope set",
             "p2p proposal list",

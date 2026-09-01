@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import hashlib
 import json
 import os
+import re
 import sqlite3
+import stat
+import tempfile
 from collections.abc import Callable, Iterable, Mapping
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -19,6 +25,7 @@ from p2p_engine.core.canonical_memory import (
     canonical_json_bytes,
     semantic_sha256,
 )
+from p2p_engine.core.mutation_receipts import MutationReceipt
 from p2p_engine.core.project_identity import (
     ProjectIdentity,
     project_identity_from_mapping,
@@ -33,9 +40,12 @@ from p2p_engine.core.project_state_storage import (
     ProjectStorageError,
     ProjectStorageErrorCode,
 )
+from p2p_engine.foundation.files import sync_directory
 from p2p_engine.ports.project_state import ProjectStateRepository
 from p2p_engine.services.canonical_memory import CanonicalBundleCodec
+from p2p_engine.services.mutation_receipts import parse_mutation_receipt_payload
 from p2p_engine.storage.canonical_memory import managed_blob_references
+from p2p_engine.storage.path_safety import is_link_or_reparse_point
 from p2p_engine.storage.sqlite_driver import (
     DEFAULT_BUSY_TIMEOUT_MS,
     SQLiteConnectionFactory,
@@ -44,6 +54,7 @@ from p2p_engine.storage.sqlite_driver import (
 from p2p_engine.storage.sqlite_schema import (
     SQLITE_APPLICATION_ID,
     SQLITE_DATABASE_PATH,
+    SQLITE_MAINTENANCE_MARKER,
     SQLITE_SCHEMA_CONTRACT,
     SQLITE_SCHEMA_V1,
     SQLITE_SCHEMA_V1_SHA256,
@@ -51,6 +62,66 @@ from p2p_engine.storage.sqlite_schema import (
 )
 
 FailureInjector = Callable[[str], None]
+SQLITE_PUBLIC_RECEIPT_OPERATION_PREFIX = "sqlite-public-mutation-"
+SQLITE_PUBLIC_RECEIPT_DOCUMENT_MAX_BYTES = 1_048_576
+_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_SQLITE_RESTORE_OPERATION = re.compile(r"^sqlite-restore-[0-9a-f]{64}$")
+_DURABLE_PUBLIC_RECEIPT_PATHS = (
+    re.compile(
+        r"^\.p2p/\.internal/project-structure-exports/[0-9a-f]{64}\.yml$"
+    ),
+    re.compile(
+        r"^\.p2p/\.internal/identity-adoption-backups/"
+        r"[0-9a-f]{64}/project\.yml$"
+    ),
+)
+
+
+def _maintenance_marker_present(root: Path) -> bool:
+    marker = root / SQLITE_MAINTENANCE_MARKER
+    return marker.exists() or is_link_or_reparse_point(marker)
+
+
+@dataclass(frozen=True)
+class SQLitePublicMutationRecord:
+    """One public receipt and DB-owned replica-local postconditions."""
+
+    receipt: MutationReceipt
+    durable_documents: tuple[tuple[str, bytes], ...] = ()
+
+    def __post_init__(self) -> None:
+        paths = [path for path, _content in self.durable_documents]
+        if paths != sorted(set(paths)):
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "SQLite public receipt documents are not unique and ordered",
+            )
+        expected = {
+            item.path: item.physical_sha256
+            for item in self.receipt.postconditions
+            if sqlite_public_receipt_document_path(item.path)
+        }
+        if set(paths) != set(expected):
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "SQLite public receipt has incomplete durable postconditions",
+            )
+        for path, content in self.durable_documents:
+            if len(content) > SQLITE_PUBLIC_RECEIPT_DOCUMENT_MAX_BYTES:
+                raise ProjectStorageError(
+                    ProjectStorageErrorCode.integrity_failure,
+                    "SQLite public receipt document exceeds the size limit",
+                    diagnostic=path,
+                )
+            if hashlib.sha256(content).hexdigest() != expected[path]:
+                raise ProjectStorageError(
+                    ProjectStorageErrorCode.integrity_failure,
+                    "SQLite public receipt document digest is inconsistent",
+                    diagnostic=path,
+                )
+
+    def document_map(self) -> dict[str, bytes]:
+        return dict(self.durable_documents)
 
 
 def _utc_now() -> str:
@@ -59,6 +130,207 @@ def _utc_now() -> str:
 
 def _json_text(value: object) -> str:
     return canonical_json_bytes(value).decode("utf-8").rstrip("\n")
+
+
+def sqlite_public_receipt_operation_id(key_sha256: str) -> str:
+    if not _SHA256.fullmatch(key_sha256):
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "public mutation receipt key is not a SHA-256 digest",
+        )
+    return f"{SQLITE_PUBLIC_RECEIPT_OPERATION_PREFIX}{key_sha256}"
+
+
+def sqlite_public_receipt_document_path(path: str) -> bool:
+    return any(pattern.fullmatch(path) is not None for pattern in _DURABLE_PUBLIC_RECEIPT_PATHS)
+
+
+def sqlite_public_mutation_record(
+    receipt: MutationReceipt,
+    documents: Mapping[str, bytes] | None = None,
+) -> SQLitePublicMutationRecord:
+    return SQLitePublicMutationRecord(
+        receipt=receipt,
+        durable_documents=tuple(sorted((documents or {}).items())),
+    )
+
+
+def _encode_public_receipt_documents(
+    record: SQLitePublicMutationRecord,
+) -> list[dict[str, str]]:
+    return [
+        {
+            "path": path,
+            "physical_sha256": hashlib.sha256(content).hexdigest(),
+            "content_base64": base64.b64encode(content).decode("ascii"),
+        }
+        for path, content in record.durable_documents
+    ]
+
+
+def _decode_public_receipt_documents(value: object) -> dict[str, bytes]:
+    if not isinstance(value, list):
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "SQLite public receipt documents are not a sequence",
+        )
+    documents: dict[str, bytes] = {}
+    for item in value:
+        if not isinstance(item, Mapping) or set(item) != {
+            "path",
+            "physical_sha256",
+            "content_base64",
+        }:
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "SQLite public receipt document metadata is invalid",
+            )
+        path = str(item["path"])
+        digest = str(item["physical_sha256"])
+        encoded = item["content_base64"]
+        if not sqlite_public_receipt_document_path(path) or not _SHA256.fullmatch(
+            digest
+        ):
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "SQLite public receipt document identity is invalid",
+                diagnostic=path,
+            )
+        if not isinstance(encoded, str):
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "SQLite public receipt document content is invalid",
+                diagnostic=path,
+            )
+        try:
+            content = base64.b64decode(encoded.encode("ascii"), validate=True)
+        except (UnicodeEncodeError, binascii.Error) as exc:
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "SQLite public receipt document content is not canonical base64",
+                diagnostic=path,
+            ) from exc
+        if path in documents or hashlib.sha256(content).hexdigest() != digest:
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "SQLite public receipt document is duplicate or corrupt",
+                diagnostic=path,
+            )
+        documents[path] = content
+    return documents
+
+
+def _validated_replay_result(
+    row: sqlite3.Row,
+    *,
+    mutation: ProjectStateMutation,
+    public_record: SQLitePublicMutationRecord | None,
+) -> ProjectStateCommitResult:
+    try:
+        payload = json.loads(str(row["result_json"]))
+    except json.JSONDecodeError as exc:
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "SQLite operation receipt contains invalid JSON",
+            diagnostic=str(exc),
+        ) from exc
+    if not isinstance(payload, Mapping):
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "SQLite operation receipt result is not an object",
+        )
+    stored_revision = str(row["result_revision_sha256"])
+    stored_receipt_id = str(row["receipt_id"])
+    if (
+        str(row["status"]) != "applied"
+        or str(row["project_uuid"]) != mutation.target.project_uuid
+        or payload.get("revision") != stored_revision
+        or str(payload.get("receipt_id") or "") != stored_receipt_id
+    ):
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "SQLite operation receipt columns and result payload disagree",
+        )
+    request_matches = (
+        str(row["actor"]) == mutation.actor
+        and stored_receipt_id == mutation.receipt_id
+    )
+    if public_record is not None:
+        try:
+            stored_public_receipt = parse_mutation_receipt_payload(
+                payload.get("public_receipt")
+            )
+            sqlite_public_mutation_record(
+                stored_public_receipt,
+                _decode_public_receipt_documents(
+                    payload.get("public_receipt_documents", [])
+                ),
+            )
+        except (ValueError, ProjectStorageError) as exc:
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "SQLite public operation receipt failed replay validation",
+                diagnostic=str(exc),
+            ) from exc
+        candidate = public_record.receipt
+        request_matches = request_matches and (
+            stored_public_receipt.key_sha256 == candidate.key_sha256
+            and stored_public_receipt.operation == candidate.operation
+            and stored_public_receipt.actor == candidate.actor
+            and stored_public_receipt.request_fingerprint_sha256
+            == candidate.request_fingerprint_sha256
+            and stored_public_receipt.preview_token_sha256
+            == candidate.preview_token_sha256
+        )
+    elif payload.get("public_receipt") is not None:
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "SQLite generic operation receipt contains public mutation state",
+        )
+    else:
+        request_matches = request_matches and (
+            stored_revision == mutation.target.semantic_state_digest
+        )
+    if not request_matches:
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.idempotency_conflict,
+            "operation ID was already used for a different SQLite mutation",
+        )
+    changed_payload = payload.get("changed_entities", [])
+    if not isinstance(changed_payload, list):
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "SQLite operation receipt changed entities are invalid",
+        )
+    try:
+        changed = tuple(
+            ProjectEntityRef(
+                str(item["entity_type"]),
+                str(item["technical_id"]),
+            )
+            for item in changed_payload
+            if isinstance(item, Mapping)
+            and set(item) == {"entity_type", "technical_id"}
+        )
+    except (KeyError, ValueError) as exc:
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "SQLite operation receipt changed entity is invalid",
+            diagnostic=str(exc),
+        ) from exc
+    if len(changed) != len(changed_payload):
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "SQLite operation receipt changed entity fields are invalid",
+        )
+    return ProjectStateCommitResult(
+        status="applied",
+        operation_id=mutation.operation_id,
+        revision=ProjectStateRevision(stored_revision),
+        changed_entities=changed,
+        receipt_id=stored_receipt_id,
+        replayed=True,
+    )
 
 
 def _record(entity: CanonicalEntity) -> ProjectEntityRecord:
@@ -78,6 +350,293 @@ def sqlite_blob_path(root: Path, digest: str) -> Path:
             "managed blob digest is invalid",
         )
     return root / ".p2p/blobs/sha256" / raw[:2] / raw
+
+
+def _is_link_or_reparse_point(path: Path) -> bool:
+    """Return whether *path* is an unsafe indirection on this platform."""
+    try:
+        if path.is_symlink():
+            return True
+        is_junction = getattr(path, "is_junction", None)
+        if callable(is_junction) and is_junction():
+            return True
+        metadata = path.lstat()
+    except FileNotFoundError:
+        return False
+    except OSError as exc:
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "managed blob path metadata cannot be inspected safely",
+            diagnostic=str(exc),
+        ) from exc
+    attributes = int(getattr(metadata, "st_file_attributes", 0))
+    reparse_flag = int(getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400))
+    return bool(attributes & reparse_flag)
+
+
+def _blob_path_state(root: Path, digest: str) -> tuple[Path, bool]:
+    """Validate the complete blob path without following unsafe components."""
+    anchor = root.resolve()
+    if _is_link_or_reparse_point(anchor) or not anchor.is_dir():
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "managed blob project root is unsafe",
+        )
+    path = sqlite_blob_path(anchor, digest)
+    try:
+        relative = path.relative_to(anchor)
+    except ValueError as exc:
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "managed blob path escapes the project root",
+        ) from exc
+
+    current = anchor
+    missing_component = False
+    for index, part in enumerate(relative.parts):
+        current /= part
+        if _is_link_or_reparse_point(current):
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "managed blob path contains a symlink, junction, or reparse point",
+                diagnostic=relative.as_posix(),
+            )
+        try:
+            metadata = current.lstat()
+        except FileNotFoundError:
+            missing_component = True
+            continue
+        except OSError as exc:
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "managed blob path metadata cannot be inspected safely",
+                diagnostic=str(exc),
+            ) from exc
+        try:
+            if not current.resolve(strict=False).is_relative_to(anchor):
+                raise ProjectStorageError(
+                    ProjectStorageErrorCode.integrity_failure,
+                    "managed blob path escapes the project root",
+                    diagnostic=relative.as_posix(),
+                )
+        except OSError as exc:
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "managed blob path cannot be resolved safely",
+                diagnostic=str(exc),
+            ) from exc
+        is_leaf = index == len(relative.parts) - 1
+        expected_type = stat.S_ISREG if is_leaf else stat.S_ISDIR
+        if missing_component or not expected_type(metadata.st_mode):
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "managed blob path has an unexpected filesystem object",
+                diagnostic=relative.as_posix(),
+            )
+    return path, not missing_component
+
+
+def _ensure_blob_parent(root: Path, digest: str) -> Path:
+    """Create missing blob directories one-by-one and durably link each parent."""
+    anchor = root.resolve()
+    path = sqlite_blob_path(anchor, digest)
+    relative_parent = path.parent.relative_to(anchor)
+    current = anchor
+    for part in relative_parent.parts:
+        current /= part
+        if _is_link_or_reparse_point(current):
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "managed blob parent contains a symlink, junction, or reparse point",
+                diagnostic=relative_parent.as_posix(),
+            )
+        try:
+            metadata = current.lstat()
+        except FileNotFoundError:
+            try:
+                current.mkdir(mode=0o700)
+            except FileExistsError:
+                pass
+            except OSError as exc:
+                raise ProjectStorageError(
+                    ProjectStorageErrorCode.integrity_failure,
+                    "managed blob parent cannot be created safely",
+                    diagnostic=str(exc),
+                ) from exc
+            if _is_link_or_reparse_point(current):
+                raise ProjectStorageError(
+                    ProjectStorageErrorCode.integrity_failure,
+                    "managed blob parent became an unsafe filesystem indirection",
+                    diagnostic=relative_parent.as_posix(),
+                )
+            try:
+                metadata = current.lstat()
+            except OSError as exc:
+                raise ProjectStorageError(
+                    ProjectStorageErrorCode.integrity_failure,
+                    "managed blob parent cannot be inspected after creation",
+                    diagnostic=str(exc),
+                ) from exc
+            sync_directory(current.parent)
+        except OSError as exc:
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "managed blob parent cannot be inspected safely",
+                diagnostic=str(exc),
+            ) from exc
+        if not stat.S_ISDIR(metadata.st_mode):
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "managed blob parent is not a directory",
+                diagnostic=relative_parent.as_posix(),
+            )
+        try:
+            if not current.resolve(strict=False).is_relative_to(anchor):
+                raise ProjectStorageError(
+                    ProjectStorageErrorCode.integrity_failure,
+                    "managed blob parent escapes the project root",
+                    diagnostic=relative_parent.as_posix(),
+                )
+        except OSError as exc:
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "managed blob parent cannot be resolved safely",
+                diagnostic=str(exc),
+            ) from exc
+    return path
+
+
+def read_sqlite_blob_bytes(root: Path, digest: str) -> bytes:
+    """Read one blob only after path and opened-file identity checks."""
+    path, exists = _blob_path_state(root, digest)
+    if not exists:
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "managed blob bytes are missing",
+        )
+    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    descriptor: int | None = None
+    try:
+        before = path.lstat()
+        descriptor = os.open(path, flags)
+        opened = os.fstat(descriptor)
+        if not stat.S_ISREG(opened.st_mode) or not os.path.samestat(before, opened):
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "managed blob changed while it was being opened",
+            )
+        with os.fdopen(descriptor, "rb") as stream:
+            descriptor = None
+            content = stream.read()
+    except ProjectStorageError:
+        raise
+    except OSError as exc:
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "managed blob bytes cannot be read safely",
+            diagnostic=str(exc),
+        ) from exc
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+    _path, still_exists = _blob_path_state(root, digest)
+    try:
+        after = path.lstat()
+    except OSError as exc:
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "managed blob cannot be revalidated after reading",
+            diagnostic=str(exc),
+        ) from exc
+    if not still_exists or not os.path.samestat(opened, after):
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "managed blob changed while it was being read",
+        )
+    return content
+
+
+def install_sqlite_blob_bytes(root: Path, digest: str, content: bytes) -> bool:
+    """Publish verified content atomically without replacing an existing path."""
+    raw = digest.removeprefix("sha256:")
+    if hashlib.sha256(content).hexdigest() != raw:
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "managed blob payload does not match its digest",
+        )
+    path, exists = _blob_path_state(root, digest)
+    if exists:
+        if read_sqlite_blob_bytes(root, digest) != content:
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "content-addressed blob path contains different bytes",
+            )
+        return False
+
+    path = _ensure_blob_parent(root, digest)
+    _path, exists = _blob_path_state(root, digest)
+    if exists:
+        if read_sqlite_blob_bytes(root, digest) != content:
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "content-addressed blob path contains different bytes",
+            )
+        return False
+
+    descriptor: int | None = None
+    temporary: Path | None = None
+    created = False
+    try:
+        descriptor, temporary_name = tempfile.mkstemp(
+            prefix=f".{path.name}.",
+            dir=path.parent,
+        )
+        temporary = Path(temporary_name)
+        remaining = memoryview(content)
+        while remaining:
+            written = os.write(descriptor, remaining)
+            if written <= 0:
+                raise OSError("managed blob staging write made no progress")
+            remaining = remaining[written:]
+        os.fsync(descriptor)
+        if os.name != "nt":
+            os.fchmod(descriptor, 0o600)
+        os.close(descriptor)
+        descriptor = None
+        try:
+            os.link(temporary, path)
+            created = True
+        except FileExistsError:
+            if read_sqlite_blob_bytes(root, digest) != content:
+                raise ProjectStorageError(
+                    ProjectStorageErrorCode.integrity_failure,
+                    "content-addressed blob path contains different bytes",
+                )
+        sync_directory(path.parent)
+    except ProjectStorageError:
+        raise
+    except OSError as exc:
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "managed blob cannot be published safely",
+            diagnostic=str(exc),
+        ) from exc
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+        if temporary is not None:
+            try:
+                temporary.unlink(missing_ok=True)
+                sync_directory(temporary.parent)
+            except OSError:
+                pass
+
+    if read_sqlite_blob_bytes(root, digest) != content:
+        raise ProjectStorageError(
+            ProjectStorageErrorCode.integrity_failure,
+            "published managed blob failed verification",
+        )
+    return created
 
 
 def snapshot_digest(snapshot: CanonicalMemorySnapshot) -> str:
@@ -105,11 +664,10 @@ class SQLiteProjectStateRepository:
         failure_injector: FailureInjector | None = None,
     ) -> None:
         self.root = root.resolve()
-        self.database_path = (database_path or self.root / SQLITE_DATABASE_PATH).resolve(
-            strict=False
-        )
+        self.database_path = database_path or self.root / SQLITE_DATABASE_PATH
         self.connections = SQLiteConnectionFactory(
             self.database_path,
+            project_root=self.root if database_path is None else None,
             busy_timeout_ms=busy_timeout_ms,
         )
         self.codec = CanonicalBundleCodec()
@@ -217,6 +775,86 @@ class SQLiteProjectStateRepository:
             rows = connection.execute(sql, parameters).fetchall()
         return tuple(_record(_entity_from_row(row)) for row in rows)
 
+    def public_mutation_records(self) -> tuple[SQLitePublicMutationRecord, ...]:
+        """Read public receipts and DB-owned replica-local postconditions."""
+        with self.connections.connect(writable=False) as connection:
+            rows = connection.execute(
+                "SELECT operation_id, receipt_id, project_uuid, actor, "
+                "result_revision_sha256, status, result_json FROM receipts "
+                "WHERE operation_id LIKE ? ORDER BY operation_id",
+                (f"{SQLITE_PUBLIC_RECEIPT_OPERATION_PREFIX}%",),
+            ).fetchall()
+            project = connection.execute(
+                "SELECT project_uuid FROM storage_metadata WHERE singleton = 1"
+            ).fetchone()
+        if project is None:
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.integrity_failure,
+                "SQLite public mutation receipts have no project metadata",
+            )
+        project_uuid = str(project["project_uuid"])
+        records: list[SQLitePublicMutationRecord] = []
+        for row in rows:
+            try:
+                result = json.loads(str(row["result_json"]))
+            except json.JSONDecodeError as exc:
+                raise ProjectStorageError(
+                    ProjectStorageErrorCode.integrity_failure,
+                    "SQLite public mutation receipt contains invalid JSON",
+                    diagnostic=str(exc),
+                ) from exc
+            if not isinstance(result, Mapping):
+                raise ProjectStorageError(
+                    ProjectStorageErrorCode.integrity_failure,
+                    "SQLite public mutation receipt result is not an object",
+                )
+            payload = result.get("public_receipt")
+            try:
+                receipt = parse_mutation_receipt_payload(payload)
+            except ValueError as exc:
+                raise ProjectStorageError(
+                    ProjectStorageErrorCode.integrity_failure,
+                    "SQLite public mutation receipt failed validation",
+                    diagnostic=str(exc),
+                ) from exc
+            if (
+                str(row["operation_id"])
+                != sqlite_public_receipt_operation_id(receipt.key_sha256)
+                or str(row["receipt_id"]) != receipt.key_sha256
+                or str(row["project_uuid"]) != project_uuid
+                or str(row["actor"]) != receipt.actor
+                or str(row["status"]) != "applied"
+                or result.get("revision") != str(row["result_revision_sha256"])
+                or str(result.get("receipt_id") or "") != receipt.key_sha256
+            ):
+                raise ProjectStorageError(
+                    ProjectStorageErrorCode.integrity_failure,
+                    "SQLite public mutation receipt identity is inconsistent",
+                )
+            documents = _decode_public_receipt_documents(
+                result.get("public_receipt_documents", []),
+            )
+            records.append(sqlite_public_mutation_record(receipt, documents))
+        return tuple(records)
+
+    def public_mutation_receipts(self) -> tuple[MutationReceipt, ...]:
+        """Read public idempotency receipts committed with SQLite state."""
+        return tuple(record.receipt for record in self.public_mutation_records())
+
+    def public_mutation_documents(self) -> dict[str, bytes]:
+        """Return the replica-local receipt postconditions owned by SQLite."""
+        documents: dict[str, bytes] = {}
+        for record in self.public_mutation_records():
+            for path, content in record.durable_documents:
+                if path in documents and documents[path] != content:
+                    raise ProjectStorageError(
+                        ProjectStorageErrorCode.integrity_failure,
+                        "SQLite public receipts disagree on a durable document",
+                        diagnostic=path,
+                    )
+                documents[path] = content
+        return documents
+
     def integrity_check(self, *, verify_blobs: bool = True) -> tuple[str, ...]:
         issues: list[str] = []
         try:
@@ -228,6 +866,7 @@ class SQLiteProjectStateRepository:
                 foreign_keys = list(connection.execute("PRAGMA foreign_key_check"))
                 issues.extend(f"foreign-key:{tuple(row)}" for row in foreign_keys)
             snapshot = self.snapshot()
+            self.public_mutation_records()
             if verify_blobs:
                 issues.extend(f"blob:{item}" for item in SQLiteBlobStore(self).verify(
                     blob.digest for blob in snapshot.blobs
@@ -290,7 +929,10 @@ class SQLiteBlobStore:
             row = connection.execute(
                 "SELECT 1 FROM blobs WHERE digest = ?", (digest,)
             ).fetchone()
-        return row is not None and sqlite_blob_path(self.repository.root, digest).is_file()
+        if row is None:
+            return False
+        _path, exists = _blob_path_state(self.repository.root, digest)
+        return exists
 
     def read(self, digest: str) -> bytes:
         with self.repository.connections.connect(writable=False) as connection:
@@ -302,15 +944,7 @@ class SQLiteBlobStore:
                 ProjectStorageErrorCode.integrity_failure,
                 "managed blob metadata is missing",
             )
-        path = sqlite_blob_path(self.repository.root, digest)
-        try:
-            content = path.read_bytes()
-        except OSError as exc:
-            raise ProjectStorageError(
-                ProjectStorageErrorCode.integrity_failure,
-                "managed blob bytes are missing",
-                diagnostic=str(exc),
-            ) from exc
+        content = read_sqlite_blob_bytes(self.repository.root, digest)
         raw = digest.removeprefix("sha256:")
         if len(content) != int(row["size"]) or hashlib.sha256(content).hexdigest() != raw:
             raise ProjectStorageError(
@@ -338,6 +972,7 @@ class SQLiteProjectUnitOfWork:
     ) -> None:
         self._repository = repository
         self._mutation: ProjectStateMutation | None = None
+        self._public_mutation: SQLitePublicMutationRecord | None = None
         self._closed = False
         self.failure_injector = failure_injector or repository.failure_injector
 
@@ -365,6 +1000,23 @@ class SQLiteProjectUnitOfWork:
         _validate_target_snapshot(mutation.target)
         self._mutation = mutation
 
+    def stage_public_receipt(
+        self,
+        receipt: MutationReceipt,
+        *,
+        durable_documents: Mapping[str, bytes] | None = None,
+    ) -> None:
+        """Bind one public idempotency receipt to this SQLite transaction."""
+        if self._closed or self._public_mutation is not None:
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.internal,
+                "unit of work already has a staged public receipt",
+            )
+        self._public_mutation = sqlite_public_mutation_record(
+            receipt,
+            durable_documents,
+        )
+
     def commit(self) -> ProjectStateCommitResult:
         if self._closed or self._mutation is None:
             raise ProjectStorageError(
@@ -372,6 +1024,30 @@ class SQLiteProjectUnitOfWork:
                 "unit of work has no staged command",
             )
         mutation = self._mutation
+        public_record = self._public_mutation
+        public_receipt = public_record.receipt if public_record is not None else None
+        uses_public_namespace = mutation.operation_id.startswith(
+            SQLITE_PUBLIC_RECEIPT_OPERATION_PREFIX
+        )
+        if (uses_public_namespace and public_receipt is None) or (
+            _SQLITE_RESTORE_OPERATION.fullmatch(mutation.operation_id) is not None
+            or mutation.operation_id.startswith("sqlite-bootstrap-")
+        ):
+            self._closed = True
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.configuration_contradiction,
+                "SQLite operation ID uses a reserved persistence namespace",
+            )
+        if public_receipt is not None and (
+            mutation.operation_id
+            != sqlite_public_receipt_operation_id(public_receipt.key_sha256)
+            or mutation.receipt_id != public_receipt.key_sha256
+        ):
+            self._closed = True
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.internal,
+                "public receipt identity disagrees with the staged SQLite command",
+            )
         timeout_ms = (
             max(1, int(mutation.lock_wait_timeout * 1000))
             if mutation.lock_wait_timeout
@@ -380,13 +1056,24 @@ class SQLiteProjectUnitOfWork:
         created_blobs: list[Path] = []
         connection: sqlite3.Connection | None = None
         committed = False
+        commit_outcome_ambiguous = False
         try:
+            if _maintenance_marker_present(self._repository.root):
+                raise ProjectStorageError(
+                    ProjectStorageErrorCode.recovery_required,
+                    "SQLite project is fenced by a maintenance marker",
+                )
             with self._repository.connections.connect(
                 writable=True, busy_timeout_ms=timeout_ms
             ) as active:
                 connection = active
                 active.execute("BEGIN IMMEDIATE")
                 self._inject("after_begin")
+                if _maintenance_marker_present(self._repository.root):
+                    raise ProjectStorageError(
+                        ProjectStorageErrorCode.recovery_required,
+                        "SQLite project is fenced by a maintenance marker",
+                    )
                 maintenance = active.execute(
                     "SELECT maintenance_state FROM storage_metadata WHERE singleton = 1"
                 ).fetchone()
@@ -396,23 +1083,17 @@ class SQLiteProjectUnitOfWork:
                         "SQLite project is fenced by a maintenance operation",
                     )
                 replay = active.execute(
-                    "SELECT result_json FROM receipts WHERE operation_id = ?",
+                    "SELECT receipt_id, project_uuid, actor, result_revision_sha256, "
+                    "status, result_json FROM receipts WHERE operation_id = ?",
                     (mutation.operation_id,),
                 ).fetchone()
                 if replay is not None:
-                    payload = json.loads(str(replay["result_json"]))
                     active.execute("ROLLBACK")
                     self._closed = True
-                    return ProjectStateCommitResult(
-                        status="applied",
-                        operation_id=mutation.operation_id,
-                        revision=ProjectStateRevision(str(payload["revision"])),
-                        changed_entities=tuple(
-                            ProjectEntityRef(str(item["entity_type"]), str(item["technical_id"]))
-                            for item in payload.get("changed_entities", [])
-                        ),
-                        receipt_id=str(payload.get("receipt_id") or ""),
-                        replayed=True,
+                    return _validated_replay_result(
+                        replay,
+                        mutation=mutation,
+                        public_record=public_record,
                     )
                 current = _snapshot_from_connection(active)
                 if mutation.expected_revision.sha256 != current.semantic_state_digest:
@@ -437,7 +1118,7 @@ class SQLiteProjectUnitOfWork:
                 )
                 self._inject("after_state_write")
                 changed = _changed_entity_refs(current, mutation.target)
-                result_payload = {
+                result_payload: dict[str, object] = {
                     "revision": mutation.target.semantic_state_digest,
                     "changed_entities": [
                         {
@@ -448,6 +1129,12 @@ class SQLiteProjectUnitOfWork:
                     ],
                     "receipt_id": mutation.receipt_id,
                 }
+                if public_receipt is not None:
+                    result_payload["public_receipt"] = public_receipt.to_payload()
+                    assert public_record is not None
+                    result_payload["public_receipt_documents"] = (
+                        _encode_public_receipt_documents(public_record)
+                    )
                 now = _utc_now()
                 active.execute(
                     "INSERT INTO receipts(operation_id, receipt_id, project_uuid, actor, "
@@ -475,43 +1162,71 @@ class SQLiteProjectUnitOfWork:
                     "SELECT sequence FROM operation_records ORDER BY sequence DESC LIMIT -1 OFFSET 1000)"
                 )
                 self._inject("before_commit")
-                active.execute("COMMIT")
+                if _maintenance_marker_present(self._repository.root):
+                    raise ProjectStorageError(
+                        ProjectStorageErrorCode.recovery_required,
+                        "SQLite project became fenced during the command",
+                    )
+                try:
+                    active.execute("COMMIT")
+                except Exception:
+                    # DB-API can report a lost acknowledgement after SQLite
+                    # has durably ended the transaction. In that case the
+                    # receipt and blob references may already be committed;
+                    # never delete their bytes as if rollback were certain.
+                    try:
+                        commit_outcome_ambiguous = not active.in_transaction
+                    except (AttributeError, sqlite3.Error):
+                        commit_outcome_ambiguous = True
+                    raise
                 committed = True
                 connection = None
                 self._inject("after_commit")
-        except ProjectStorageError:
+        except ProjectStorageError as exc:
             _rollback_if_open(connection)
-            if not committed:
+            if not committed and not commit_outcome_ambiguous:
                 _remove_created_blobs(created_blobs)
             self._closed = True
+            if commit_outcome_ambiguous:
+                raise ProjectStorageError(
+                    ProjectStorageErrorCode.integrity_failure,
+                    "SQLite commit acknowledgement was lost; retry the exact operation",
+                    diagnostic=str(exc),
+                ) from exc
             raise
         except (OSError, ValueError, sqlite3.Error) as exc:
             _rollback_if_open(connection)
-            if not committed:
+            if not committed and not commit_outcome_ambiguous:
                 _remove_created_blobs(created_blobs)
             self._closed = True
+            if commit_outcome_ambiguous:
+                raise ProjectStorageError(
+                    ProjectStorageErrorCode.integrity_failure,
+                    "SQLite commit acknowledgement was lost; retry the exact operation",
+                    diagnostic=str(exc),
+                ) from exc
             raise ProjectStorageError(
                 ProjectStorageErrorCode.integrity_failure,
                 "SQLite project-state command rolled back",
                 diagnostic=str(exc),
             ) from exc
         self._closed = True
-        final = self._repository.snapshot()
-        if final.semantic_state_digest != mutation.target.semantic_state_digest:
-            raise ProjectStorageError(
-                ProjectStorageErrorCode.integrity_failure,
-                "committed SQLite state differs from the staged semantic digest",
-            )
+        # COMMIT and its receipt are atomic. A later serialized writer may
+        # legitimately advance the global snapshot before this caller resumes
+        # (for example while an after-commit hook is paused), so rereading the
+        # latest project state here would falsely report this durable commit as
+        # failed. Return the revision recorded by this transaction instead.
         return ProjectStateCommitResult(
             status="applied",
             operation_id=mutation.operation_id,
-            revision=ProjectStateRevision(final.semantic_state_digest),
+            revision=ProjectStateRevision(mutation.target.semantic_state_digest),
             changed_entities=changed,
             receipt_id=mutation.receipt_id,
         )
 
     def rollback(self) -> None:
         self._mutation = None
+        self._public_mutation = None
         self._closed = True
 
     def __enter__(self) -> SQLiteProjectUnitOfWork:
@@ -531,6 +1246,7 @@ def create_sqlite_database(
     *,
     identity: ProjectIdentity,
     snapshot: CanonicalMemorySnapshot,
+    public_receipts: Iterable[SQLitePublicMutationRecord] = (),
     failure_injector: FailureInjector | None = None,
 ) -> None:
     _validate_target_snapshot(snapshot)
@@ -578,6 +1294,14 @@ def create_sqlite_database(
                 project_revision=1,
                 operation_id="sqlite-bootstrap-v1",
             )
+            for record in public_receipts:
+                _insert_public_mutation_receipt(
+                    connection,
+                    record=record,
+                    project_uuid=snapshot.project_uuid,
+                    expected_revision=snapshot.semantic_state_digest,
+                    result_revision=snapshot.semantic_state_digest,
+                )
             if failure_injector is not None:
                 failure_injector("before_schema_commit")
             connection.execute("COMMIT")
@@ -586,6 +1310,47 @@ def create_sqlite_database(
         for suffix in ("-wal", "-shm", "-journal"):
             path.with_name(path.name + suffix).unlink(missing_ok=True)
         raise
+
+
+def _insert_public_mutation_receipt(
+    connection: sqlite3.Connection,
+    *,
+    record: SQLitePublicMutationRecord,
+    project_uuid: str,
+    expected_revision: str,
+    result_revision: str,
+) -> None:
+    receipt = record.receipt
+    operation_id = sqlite_public_receipt_operation_id(receipt.key_sha256)
+    now = _utc_now()
+    result_payload = {
+        "revision": result_revision,
+        "changed_entities": [],
+        "receipt_id": receipt.key_sha256,
+        "public_receipt": receipt.to_payload(),
+        "public_receipt_documents": _encode_public_receipt_documents(record),
+    }
+    connection.execute(
+        "INSERT INTO receipts(operation_id, receipt_id, project_uuid, actor, "
+        "expected_revision_sha256, result_revision_sha256, status, result_json, "
+        "created_at) VALUES (?, ?, ?, ?, ?, ?, 'applied', ?, ?)",
+        (
+            operation_id,
+            receipt.key_sha256,
+            project_uuid,
+            receipt.actor,
+            expected_revision,
+            result_revision,
+            _json_text(result_payload),
+            now,
+        ),
+    )
+    connection.execute(
+        "INSERT INTO operation_records(operation_id, project_uuid, operation_kind, "
+        "status, started_at, completed_at) "
+        "VALUES (?, ?, 'public-domain-mutation', 'applied', ?, ?)",
+        (operation_id, project_uuid, now, now),
+    )
 
 
 def _write_snapshot(
@@ -927,24 +1692,8 @@ def _materialize_target_blobs(
                 ProjectStorageErrorCode.integrity_failure,
                 "managed blob payload does not match its metadata",
             )
-        path = sqlite_blob_path(repository.root, blob.digest)
-        if path.exists():
-            existing = path.read_bytes()
-            if existing != content:
-                raise ProjectStorageError(
-                    ProjectStorageErrorCode.integrity_failure,
-                    "content-addressed blob path contains different bytes",
-                )
-            continue
-        path.parent.mkdir(parents=True, exist_ok=True)
-        if os.name != "nt":
-            path.parent.chmod(0o700)
-        temporary = path.with_name(f".{path.name}.{os.getpid()}.stage")
-        temporary.write_bytes(content)
-        if os.name != "nt":
-            temporary.chmod(0o600)
-        os.replace(temporary, path)
-        created.append(path)
+        if install_sqlite_blob_bytes(repository.root, blob.digest, content):
+            created.append(sqlite_blob_path(repository.root, blob.digest))
     return created
 
 
@@ -952,6 +1701,7 @@ def _remove_created_blobs(paths: Iterable[Path]) -> None:
     for path in paths:
         try:
             path.unlink(missing_ok=True)
+            sync_directory(path.parent)
         except OSError:
             pass
 

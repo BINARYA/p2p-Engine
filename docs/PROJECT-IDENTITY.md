@@ -146,11 +146,16 @@ Identity records, public outputs, receipts, and generated agent guidance do not
 contain credentials, access tokens, cookies, or private keys. Remote bindings
 contain only bounded opaque addresses.
 
-Identity-changing writes use the common atomic workspace journal. A handled
-failure rolls back every target. If external edits prevent rollback, the normal
-workspace transaction recovery flow blocks unrelated mutations until explicit
-owner recovery. Do not edit identity, replica, lineage, receipts, backups, or
-transaction files manually.
+Filesystem identity-changing writes use the common atomic workspace journal.
+The experimental SQLite adapter serializes the compatibility projection with
+the same workspace lock, but commits canonical identity in a replacement
+database guarded by its v2 maintenance marker. A handled failure rolls back
+every target. After a real process exit, ordinary open remains fenced and a
+current owner uses `p2p project memory recovery-status` followed by the exact
+rollback-only `recovery-apply` request. Recovery verifies the source database,
+manifest, blobs and generated/auxiliary agent surfaces and refuses to overwrite
+or delete a file changed after the crash. Do not edit identity, replica,
+lineage, receipts, backups, markers, locks or transaction files manually.
 
 ## Deliberate Limits
 

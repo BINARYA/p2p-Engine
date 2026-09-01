@@ -30,6 +30,11 @@ That memory also has a storage-neutral canonical contract. Deterministic
 `.p2pbundle` archives move logical project state and managed blobs without
 copying replica-local state, credentials, generated integrations, or a live
 database; separately verified `.p2pbackup` archives support local recovery.
+The SQLite candidate also exposes owner-confirmed, rollback-only recovery for
+an interrupted restore, identity cutover, initial activation or schema
+migration; new project opens and every mutation remain fenced until that recovery
+completes. An application opened before the interruption may still read its last
+consistent snapshot, but it cannot commit new state.
 
 ## What It Does
 
@@ -403,8 +408,9 @@ Short-term:
 - validate the 0.5.1 release across downstream integrations;
 - validate MCP behavior with more real clients;
 - continue hardening validation and recovery paths;
-- measure the filesystem adapter behind the new application/storage ports
-  against the frozen pre-port baseline.
+- freeze the corrected SQLite C2 candidate, then rerun the already-frozen
+  A/B/C2 correctness and performance gate without erasing historical C1
+  evidence.
 
 Later:
 

@@ -4,7 +4,7 @@ from dataclasses import replace
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from p2p_engine.core.canonical_memory import MemoryRecoveryStatus
+from p2p_engine.core.canonical_memory import MemoryRecoveryResult, MemoryRecoveryStatus
 from p2p_engine.core.project_state_storage import (
     FILESYSTEM_ADAPTER,
     ProjectEntityRecord,
@@ -19,10 +19,14 @@ from p2p_engine.foundation.yaml_loaders import UNIQUE_LOADER_CONTRACT, load_yaml
 from p2p_engine.ports.project_state import ProjectStateAdapter, ProjectUnitOfWork
 from p2p_engine.storage.canonical_memory import FilesystemCanonicalMemoryStore
 from p2p_engine.storage.filesystem_project_state import FilesystemProjectStateAdapter
+from p2p_engine.storage.path_safety import is_link_or_reparse_point
 from p2p_engine.storage.project_storage import ProjectStorageResolver
-from p2p_engine.storage.sqlite_adapter import SQLiteBackupPort, SQLiteProjectStateAdapter
+from p2p_engine.storage.sqlite_adapter import SQLiteProjectStateAdapter
 from p2p_engine.storage.sqlite_initialization import activate_sqlite_from_filesystem
-from p2p_engine.storage.sqlite_project_state import SQLiteProjectStateRepository
+from p2p_engine.storage.sqlite_recovery import (
+    SQLITE_ACTIVATION_MARKER,
+    SQLiteRecoveryCoordinator,
+)
 from p2p_engine.storage.sqlite_schema import SQLITE_ADAPTER, SQLITE_MAINTENANCE_MARKER
 
 
@@ -186,6 +190,24 @@ class ProjectApplicationService:
     def canonical_memory_recovery_status(self):
         return self.adapter.backups.recovery_status()
 
+    def canonical_memory_recovery_apply(
+        self,
+        *,
+        recovery_id: str,
+        recovery_token: str,
+        actor: str,
+        action: str,
+        confirm: bool,
+    ) -> MemoryRecoveryResult:
+        return project_memory_recovery_apply(
+            self.root,
+            recovery_id=recovery_id,
+            recovery_token=recovery_token,
+            actor=actor,
+            action=action,
+            confirm=confirm,
+        )
+
     def read_governed_yaml(self, relative: str) -> object:
         try:
             return load_yaml(
@@ -306,11 +328,32 @@ def open_project_application(root: Path) -> ProjectApplicationService:
 def project_memory_recovery_status(root: Path) -> MemoryRecoveryStatus:
     """Read recovery state even when a SQLite maintenance fence blocks open."""
     resolved = root.resolve()
-    marker = resolved / SQLITE_MAINTENANCE_MARKER
-    if marker.exists() or marker.is_symlink():
-        manifest = ProjectStorageResolver(resolved).manifests.load()
-        if manifest.adapter == SQLITE_ADAPTER:
-            return SQLiteBackupPort(
-                SQLiteProjectStateRepository(resolved)
-            ).recovery_status()
+    sqlite_markers = (
+        resolved / SQLITE_MAINTENANCE_MARKER,
+        resolved / SQLITE_ACTIVATION_MARKER,
+    )
+    if any(
+        marker.exists() or is_link_or_reparse_point(marker)
+        for marker in sqlite_markers
+    ):
+        return SQLiteRecoveryCoordinator(resolved).status()
     return open_project_application(resolved).canonical_memory_recovery_status()
+
+
+def project_memory_recovery_apply(
+    root: Path,
+    *,
+    recovery_id: str,
+    recovery_token: str,
+    actor: str,
+    action: str = "rollback",
+    confirm: bool,
+) -> MemoryRecoveryResult:
+    """Apply explicit SQLite recovery without requiring a live adapter open."""
+    return SQLiteRecoveryCoordinator(root).apply(
+        recovery_id=recovery_id,
+        recovery_token=recovery_token,
+        actor=actor,
+        action=action,
+        confirm=confirm,
+    )

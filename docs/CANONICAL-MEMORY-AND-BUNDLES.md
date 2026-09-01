@@ -27,6 +27,14 @@ trees. It is not an interchange or synchronization protocol.
 For SQLite, a physical backup contains a clean database produced through the
 online backup API, the storage manifest and referenced external blobs. It never
 copies a live main database alone and never includes WAL/SHM/journal files.
+Its manifest, semantic digest and referenced blob set are derived from that
+exact copied database revision, even if a writer commits during backup. Archive
+verification checks both the physical archive hash and the declared semantic
+digest. Portable-bundle metadata is likewise returned from the same snapshot
+that was encoded, rather than from a second live read.
+SQLite-authoritative mutation receipts are therefore retained by a physical
+backup as database state. They remain replica-local operational history and are
+still excluded from canonical memory and portable bundles.
 
 The replica-local `.p2p/local/storage.yml` adapter manifest is therefore
 included in a physical backup. It is excluded from canonical entities,
@@ -69,6 +77,11 @@ p2p project memory restore-apply project.p2pbundle \
   --token <exact-preview-token> --confirm --format json
 
 p2p project memory recovery-status --format json
+
+p2p project memory recovery-apply \
+  --recovery-id <exact-recovery-uuid> \
+  --token <exact-recovery-token> --actor owner \
+  --action rollback --confirm --format json
 ```
 
 Apply verifies the exact archive and token, creates a verified pre-restore
@@ -77,6 +90,26 @@ identity, constraints and blobs, and swaps the validated store atomically. The
 filesystem adapter also uses its workspace mutation lock and domain validation;
 SQLite serializes the maintenance operation and uses its explicit fence. A
 failure before or during activation rolls back to the previous active store.
+
+If the process terminates before that handled rollback completes, ordinary
+project open remains fenced. `recovery-status` can still read the versioned
+marker without opening the selected adapter and reports the exact recovery ID,
+confirmation token, operation, phase and verified source identity. Only a
+current source-project owner may run `recovery-apply`; the first contract offers
+only an explicit rollback to the verified source state. The same protocol
+covers interrupted SQLite restore, identity replacement, initial filesystem to
+SQLite activation and schema migration. It rejects a live forward writer,
+changed recovery artifacts, unsafe paths and stale or mismatched tokens. A
+durable completion receipt makes a lost recovery response and a crash during
+cleanup safe to replay. A different verified current owner may finish cleanup
+or recover a lost acknowledgement with the exact same ID and token; the durable
+result preserves the original recovery actor.
+
+Recovery does not guess whether to continue forward. In particular, an
+interrupted schema migration is rolled back before a fresh migration attempt.
+Legacy v1 markers remain visible for diagnosis but are not applied
+automatically. Do not delete a marker, lock, staging directory or recovery
+database by hand.
 
 Bundle restore replaces portable logical state and removes stale derived views;
 it preserves target-local replica state and generated integrations. Physical
@@ -92,8 +125,9 @@ MCP intentionally exposes only read-only operations:
 - `p2p_project_bundle_export_metadata` (computes metadata without writing an archive);
 - `p2p_project_archive_verify`.
 
-MCP cannot choose an output path, export, back up, restore or activate memory.
-A future MCP restore requires a separate consent-safe contract.
+MCP cannot choose an output path, export, back up, restore, recover or activate
+memory. A future MCP restore/recovery mutation requires a separate consent-safe
+contract.
 
 ## Managed Blobs And External References
 

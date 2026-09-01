@@ -452,14 +452,67 @@ class MemoryRecoveryStatus:
     marker: str = ""
     staging_path: str = ""
     recovery_path: str = ""
+    operation: str = ""
+    phase: str = ""
+    recovery_id: str = ""
+    recovery_token: str = ""
+    applicable: bool = False
+    allowed_actions: tuple[str, ...] = ()
+    source_project_uuid: str = ""
+    source_semantic_state_digest: str = ""
+    target_project_uuid: str = ""
+    target_semantic_state_digest: str = ""
+    marker_contract: str = ""
     message: str = ""
 
     def to_dict(self) -> dict[str, object]:
         return {
-            "contract": "p2p-memory-recovery-status/v1",
+            "contract": "p2p-memory-recovery-status/v2",
             "state": self.state,
             "marker": self.marker,
             "staging_path": self.staging_path,
             "recovery_path": self.recovery_path,
+            "operation": self.operation,
+            "phase": self.phase,
+            "recovery_id": self.recovery_id,
+            "recovery_token": self.recovery_token,
+            "applicable": self.applicable,
+            "allowed_actions": list(self.allowed_actions),
+            "source": {
+                "project_uuid": self.source_project_uuid,
+                "semantic_state_digest": self.source_semantic_state_digest,
+            },
+            "target": {
+                "project_uuid": self.target_project_uuid,
+                "semantic_state_digest": self.target_semantic_state_digest,
+            },
+            "marker_contract": self.marker_contract,
+            "message": self.message,
+        }
+
+
+@dataclass(frozen=True)
+class MemoryRecoveryResult:
+    status: str
+    recovery_id: str
+    operation: str
+    action: str
+    actor: str
+    project_uuid: str
+    semantic_state_digest: str
+    replayed: bool = False
+    message: str = ""
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "contract": "p2p-memory-recovery-result/v1",
+            "status": self.status,
+            "recovery_id": self.recovery_id,
+            "operation": self.operation,
+            "action": self.action,
+            "actor": self.actor,
+            "project_uuid": self.project_uuid,
+            "semantic_state_digest": self.semantic_state_digest,
+            "replayed": self.replayed,
             "message": self.message,
         }

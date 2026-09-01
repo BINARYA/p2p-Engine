@@ -9,7 +9,10 @@ from p2p_engine.cli_contract import print_json, success_envelope
 from p2p_engine.cli_shared import console, fail, yaml_dump_for_cli
 from p2p_engine.cli_shared import workspace as workspace_for
 from p2p_engine.services.authority import AuthorityContractCodec
-from p2p_engine.services.project_application import project_memory_recovery_status
+from p2p_engine.services.project_application import (
+    project_memory_recovery_apply,
+    project_memory_recovery_status,
+)
 
 
 def register_project_memory_commands(
@@ -226,6 +229,47 @@ def register_project_memory_commands(
         normalized = _output_format(output_format)
         result = project_memory_recovery_status(root)
         _emit("project.memory.recovery_status", {"recovery": result.to_dict()}, normalized)
+
+    @project_memory_app.command("recovery-apply")
+    def recovery_apply(
+        recovery_id: str = typer.Option(..., "--recovery-id", help="Exact recovery UUID"),
+        recovery_token: str = typer.Option(
+            ...,
+            "--token",
+            help="Exact confirmation token reported by recovery-status",
+        ),
+        actor: str = typer.Option("owner", "--actor", help="Authorized source owner"),
+        action: str = typer.Option(
+            "rollback",
+            "--action",
+            help="Recovery action; only rollback is supported",
+        ),
+        confirm: bool = typer.Option(
+            False,
+            "--confirm",
+            help="Confirm rollback to the verified source state",
+        ),
+        output_format: str = typer.Option(
+            "text",
+            "--format",
+            help="Output format: text or json",
+        ),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Roll back interrupted SQLite maintenance through its durable fence."""
+        normalized = _output_format(output_format)
+        try:
+            result = project_memory_recovery_apply(
+                root,
+                recovery_id=recovery_id,
+                recovery_token=recovery_token,
+                actor=actor,
+                action=action,
+                confirm=confirm,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        _emit("project.memory.recovery_apply", {"recovery": result.to_dict()}, normalized)
 
 
 def _emit(operation: str, payload: dict[str, object], output_format: str) -> None:
