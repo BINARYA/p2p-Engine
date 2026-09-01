@@ -152,6 +152,19 @@ p2p project structure replace apply example/my-vertical@1.0.0 \
   --plan replacement-plan.yml --confirm --format json
 p2p project structure replace status \
   --operation-key local:structure-replace-001 --format json
+p2p project structure merge compare example/my-vertical@1.0.0 \
+  --select section:scope --format json
+p2p project structure merge preview example/my-vertical@1.0.0 \
+  --plan merge-plan.yml --format json
+p2p project structure merge apply example/my-vertical@1.0.0 \
+  --plan merge-plan.yml --preview-token TOKEN \
+  --operation-key local:structure-merge-001 --confirm --format json
+p2p project structure retained list --format json
+p2p project structure retained inspect 4 --format json
+p2p project structure restore preview --plan restore-plan.yml --format json
+p2p project structure restore apply --plan restore-plan.yml \
+  --preview-token TOKEN --operation-key local:structure-restore-001 \
+  --confirm --format json
 ```
 
 The source release and origin checksum remain provenance only. Source updates
@@ -160,6 +173,14 @@ disposition-driven. Release replacement is its own higher-risk
 `project.structure.replace` mutation: it copies one exact schema-3 release into
 the project-owned structure, resolves required active-memory dispositions, and
 does not create an active release subscription.
+
+Selective merge is a separate `project.structure.merge` mutation. Its exact
+typed plan binds source digest, selected stable IDs, dependency closure,
+placements, collision decisions and current structure/memory revisions.
+Restore uses the distinct `project.structure.restore` capability and only a
+listed retained structure revision. It always creates a new forward revision;
+it does not rewind the project. See
+[Project Structure Merge And Restore](PROJECT-STRUCTURE-MERGE-RESTORE.md).
 
 Typical first checks:
 
@@ -636,6 +657,47 @@ the target bytes, source structure revision, memory revision, authority context
 and operation key, then writes structure, memory dispositions, replacement
 event and receipt atomically. Future publication of the source release does not
 modify the project.
+
+To import only selected stable-ID elements rather than replace the whole
+structure, use merge compare to obtain the exact dependency closure and
+collisions, then supply one complete versioned plan to preview and apply:
+
+```bash
+p2p project structure merge compare example/my-vertical@1.0.0 \
+  --select section:scope --format json
+p2p project structure merge preview example/my-vertical@1.0.0 \
+  --plan merge-plan.yml --actor owner --format json
+p2p project structure merge apply example/my-vertical@1.0.0 \
+  --plan merge-plan.yml --preview-token <preview-token> \
+  --operation-key <operation-uuid> --actor owner --confirm --format json
+p2p project structure merge status \
+  --operation-key <operation-uuid> --format json
+```
+
+Merge accepts one exact release or verified `.p2pbundle`. Every stable-ID
+collision requires an explicit action; P2P never matches by title, similar
+text, path or storage record. The result is a detached project-owned copy.
+
+Every governed structure mutation retains the previous canonical structure.
+Inspect the newest-100 retention window and restore one listed snapshot as a
+new forward revision:
+
+```bash
+p2p project structure retained list --format json
+p2p project structure retained inspect <revision> --format json
+p2p project structure restore preview --plan restore-plan.yml \
+  --actor owner --format json
+p2p project structure restore apply --plan restore-plan.yml \
+  --preview-token <preview-token> --operation-key <operation-uuid> \
+  --actor owner --confirm --format json
+p2p project structure restore status \
+  --operation-key <operation-uuid> --format json
+```
+
+Missing, corrupt or pruned revisions fail closed. Restore changes structure
+and explicitly governed affected references only; identity, decisions,
+evidence, audit and receipts are never rewound. Details and plan contracts are
+in [Project Structure Merge And Restore](PROJECT-STRUCTURE-MERGE-RESTORE.md).
 
 Portable versions are installed side by side under:
 

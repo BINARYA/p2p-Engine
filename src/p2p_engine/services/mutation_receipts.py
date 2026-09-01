@@ -303,7 +303,9 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "project_domain_change",
         "project_memory_scope_change",
         "project_structure_change",
+        "project_structure_merge",
         "project_structure_replacement",
+        "project_structure_restore",
         "project_structure_retirement",
         "project_structure_export",
     }:
@@ -333,7 +335,9 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "project_domain_change",
         "project_memory_scope_change",
         "project_structure_change",
+        "project_structure_merge",
         "project_structure_replacement",
+        "project_structure_restore",
         "project_structure_retirement",
         "project_structure_export",
         "proposal_decision_apply",
@@ -406,6 +410,9 @@ def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
         return
     if operation == "project_structure_replacement":
         _validate_project_structure_replacement_result(result)
+        return
+    if operation in {"project_structure_merge", "project_structure_restore"}:
+        _validate_project_structure_transition_result(result, operation=operation)
         return
     if operation == "project_structure_export":
         _validate_project_structure_export_result(result)
@@ -1052,6 +1059,7 @@ def _validate_project_structure_result(result: Mapping[str, object]) -> None:
         raise ValueError("receipt project-structure event does not match current structure")
     expected_paths = [
         ".p2p/project/structure-events.yml",
+        ".p2p/project/structure-snapshots.yml",
         ".p2p/project/structure.yml",
     ]
     if result.get("changed_paths") != expected_paths:
@@ -1388,6 +1396,129 @@ def _validate_project_structure_replacement_result(result: Mapping[str, object])
     }
     if not required_structure_paths <= set(normalized):
         raise ValueError("receipt project-structure-replacement changed_paths miss structure files")
+
+
+def _validate_project_structure_transition_result(
+    result: Mapping[str, object],
+    *,
+    operation: str,
+) -> None:
+    from p2p_engine.core.project_structure import project_structure_event_from_mapping
+    from p2p_engine.core.project_structure_merge_restore import (
+        StructureSourceIdentity,
+        structure_merge_plan_from_mapping,
+        structure_restore_plan_from_mapping,
+    )
+
+    expected = {
+        "contract",
+        "operation",
+        "operation_id",
+        "status",
+        "request",
+        "source",
+        "previous",
+        "current",
+        "previous_memory_revision",
+        "current_memory_revision",
+        "event",
+        "changed_entities",
+        "detached_copy",
+        "active_release_subscription",
+        "second_authority_created",
+        "changed_paths",
+    }
+    unknown = sorted(str(key) for key in set(result) - expected)
+    missing = sorted(expected - set(result))
+    if unknown or missing:
+        raise ValueError(
+            "receipt project-structure-transition fields are not exact: "
+            f"missing={missing}, unsupported={unknown}"
+        )
+    if result.get("contract") != "p2p-structure-transition-receipt/v1":
+        raise ValueError("receipt project-structure-transition contract is unsupported")
+    if result.get("operation") != operation or result.get("status") != "applied":
+        raise ValueError("receipt project-structure-transition operation/status is invalid")
+    suffix = "merge" if operation == "project_structure_merge" else "restore"
+    if result.get("operation_id") != f"project.structure.{suffix}.apply":
+        raise ValueError("receipt project-structure-transition operation_id is invalid")
+    request = result.get("request")
+    if not isinstance(request, Mapping) or set(request) != {"contract", "plan"}:
+        raise ValueError("receipt project-structure-transition request is invalid")
+    if suffix == "merge":
+        structure_merge_plan_from_mapping(request.get("plan"))
+    else:
+        structure_restore_plan_from_mapping(request.get("plan"))
+    source = result.get("source")
+    if not isinstance(source, Mapping) or set(source) != {
+        "kind",
+        "identity",
+        "digest",
+        "schema_version",
+    }:
+        raise ValueError("receipt project-structure-transition source is invalid")
+    StructureSourceIdentity(
+        kind=str(source.get("kind") or ""),
+        identity=str(source.get("identity") or ""),
+        digest=str(source.get("digest") or ""),
+        schema_version=int(source.get("schema_version") or 0),
+    )
+    summaries: dict[str, Mapping[str, object]] = {}
+    for field in ("previous", "current"):
+        value = result.get(field)
+        if not isinstance(value, Mapping) or set(value) != {
+            "structure_id",
+            "revision",
+            "checksum",
+        }:
+            raise ValueError(f"receipt project-structure-transition {field} is invalid")
+        _require_sha256(str(value.get("checksum") or ""), f"{field}.checksum")
+        revision = value.get("revision")
+        if isinstance(revision, bool) or not isinstance(revision, int) or revision < 1:
+            raise ValueError(f"receipt project-structure-transition {field} revision is invalid")
+        summaries[field] = value
+    if summaries["current"]["revision"] != summaries["previous"]["revision"] + 1:
+        raise ValueError("receipt project-structure-transition is not forward-only")
+    if summaries["current"]["structure_id"] != summaries["previous"]["structure_id"]:
+        raise ValueError("receipt project-structure-transition changed structure identity")
+    for field in ("previous_memory_revision", "current_memory_revision"):
+        _require_sha256(str(result.get(field) or ""), field)
+    event = project_structure_event_from_mapping(result.get("event"))
+    if event.event_type != f"structure_{'merged' if suffix == 'merge' else 'restored'}":
+        raise ValueError("receipt project-structure-transition event type is invalid")
+    if event.revision != summaries["current"]["revision"] or event.checksum != summaries["current"]["checksum"]:
+        raise ValueError("receipt project-structure-transition event diverges")
+    changed_entities = result.get("changed_entities")
+    if not isinstance(changed_entities, list) or changed_entities != sorted(set(changed_entities)):
+        raise ValueError("receipt project-structure-transition changed entities are invalid")
+    required_entities = {
+        "project.mutation_receipt",
+        "project.structure",
+        "project.structure_events",
+        "project.structure_snapshots",
+    }
+    if set(changed_entities) != required_entities:
+        raise ValueError("receipt project-structure-transition changed entities are incomplete")
+    for field in (
+        "detached_copy",
+        "active_release_subscription",
+        "second_authority_created",
+    ):
+        expected_value = field == "detached_copy"
+        if result.get(field) is not expected_value:
+            raise ValueError(f"receipt project-structure-transition {field} is invalid")
+    changed_paths = result.get("changed_paths")
+    if not isinstance(changed_paths, list) or changed_paths != sorted(set(changed_paths)):
+        raise ValueError("receipt project-structure-transition changed paths are invalid")
+    for path in changed_paths:
+        _validated_postcondition_path(str(path), operation=operation)
+    required_paths = {
+        ".p2p/project/structure.yml",
+        ".p2p/project/structure-events.yml",
+        ".p2p/project/structure-snapshots.yml",
+    }
+    if not required_paths <= set(changed_paths):
+        raise ValueError("receipt project-structure-transition changed paths are incomplete")
 
 
 def _validate_project_structure_export_result(result: Mapping[str, object]) -> None:
@@ -1900,6 +2031,36 @@ def _public_result(result: Mapping[str, object]) -> dict[str, object]:
             "remote_publication": result.get("remote_publication"),
             "publisher_ownership_granted": result.get("publisher_ownership_granted"),
             "moderation_rights_granted": result.get("moderation_rights_granted"),
+        }
+    if result.get("operation") in {
+        "project_structure_merge",
+        "project_structure_restore",
+    }:
+        return {
+            "contract": result.get("contract"),
+            "operation": result.get("operation"),
+            "operation_id": result.get("operation_id"),
+            "status": result.get("status"),
+            "source": dict(result.get("source", {}))
+            if isinstance(result.get("source"), Mapping)
+            else {},
+            "previous": dict(result.get("previous", {}))
+            if isinstance(result.get("previous"), Mapping)
+            else {},
+            "current": dict(result.get("current", {}))
+            if isinstance(result.get("current"), Mapping)
+            else {},
+            "previous_memory_revision": result.get("previous_memory_revision"),
+            "current_memory_revision": result.get("current_memory_revision"),
+            "event": dict(result.get("event", {}))
+            if isinstance(result.get("event"), Mapping)
+            else {},
+            "changed_entities": list(result.get("changed_entities", []))
+            if isinstance(result.get("changed_entities"), list)
+            else [],
+            "detached_copy": result.get("detached_copy"),
+            "active_release_subscription": result.get("active_release_subscription"),
+            "second_authority_created": result.get("second_authority_created"),
         }
     if result.get("operation") == "project_structure_export":
         return {

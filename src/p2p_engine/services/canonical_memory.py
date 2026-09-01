@@ -90,6 +90,7 @@ _PROJECT_SINGLETON_COORDINATES = frozenset(
         "rubrics",
         "runtime",
         "structure-events",
+        "structure-snapshots",
         "structure-source",
         "structure",
         "vertical.lock",

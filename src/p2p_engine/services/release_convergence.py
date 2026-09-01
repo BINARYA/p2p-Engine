@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from importlib import resources
 import hashlib
 import json
+from dataclasses import asdict, dataclass
+from importlib import resources
 from pathlib import Path
 from typing import Iterable
 
@@ -13,7 +13,6 @@ from p2p_engine.core.release_contracts import current_contract_versions
 from p2p_engine.core.vertical_registry import VERTICAL_REGISTRY_PROTOCOL_VERSION
 from p2p_engine.services.agent_templates import agent_policy
 from p2p_engine.services.public_surface_inventory import public_surface_snapshot
-
 
 CONVERGENCE_GATE_CONTRACT = "p2p-0.6.0-convergence-gate/v1"
 WAVEKIT_CLI_FIXTURE_BUNDLE_CONTRACT = "p2p-wavekit-cli-fixtures/v1"
@@ -424,18 +423,49 @@ def operation_traceability_inventory() -> tuple[OperationTrace, ...]:
             tests=("tests/test_vertical_transition_impact.py",),
         ),
         OperationTrace(
-            requirement_group="Post-0.5 deferral",
-            operation="project.structure.merge_restore",
-            cli_paths=(),
-            mcp_tools=(),
+            requirement_group="P8 structure merge",
+            operation="project.structure.merge",
+            cli_paths=(
+                "p2p project structure merge compare",
+                "p2p project structure merge preview",
+                "p2p project structure merge apply",
+                "p2p project structure merge status",
+                "p2p project structure merge recover",
+            ),
+            mcp_tools=("p2p_project_structure_merge_compare",),
             capability="project.structure.merge",
-            authority_context="deferred",
-            receipt_evidence="deferred",
-            mcp_parity="deferred_after_0.5.0",
-            hosted_boundary="P8 merge/restore remains unavailable until its own convergence pass.",
-            fixture_group="deferred",
-            tests=(),
-            deferred=True,
+            authority_context="subject_executor_separated",
+            receipt_evidence="mutation-receipt/schema-3 plus structure transition result",
+            mcp_parity="cli_apply_mcp_read_only_deferral",
+            hosted_boundary=(
+                "Merge imports an explicit typed closure from one exact source without "
+                "creating a release subscription or server persistence dependency."
+            ),
+            fixture_group="project_structure_merge_restore",
+            tests=("tests/test_project_structure_merge_restore.py",),
+        ),
+        OperationTrace(
+            requirement_group="P8 structure restore",
+            operation="project.structure.restore",
+            cli_paths=(
+                "p2p project structure retained list",
+                "p2p project structure retained inspect",
+                "p2p project structure restore preview",
+                "p2p project structure restore apply",
+                "p2p project structure restore status",
+                "p2p project structure restore recover",
+            ),
+            mcp_tools=("p2p_project_structure_retained_inspect",),
+            capability="project.structure.restore",
+            authority_context="subject_executor_separated",
+            receipt_evidence="mutation-receipt/schema-3 plus structure transition result",
+            mcp_parity="cli_apply_mcp_read_only_deferral",
+            hosted_boundary=(
+                "Restore uses one retained canonical snapshot as a forward revision and "
+                "never rewinds non-structure project history."
+            ),
+            fixture_group="project_structure_merge_restore",
+            tests=("tests/test_project_structure_merge_restore.py",),
         ),
     )
 
@@ -548,14 +578,7 @@ def convergence_gate_payload() -> dict[str, object]:
         },
         "obsolete_reference_allowlist": list(obsolete_reference_allowlist()),
         "packaged_resource_inventory": packaged_resource_inventory(),
-        "residual_risks": [
-            {
-                "risk": "project.structure.merge_restore",
-                "status": "deferred_after_0.5.0",
-                "blocking_release_tag": False,
-                "note": "Not an available operation in this release line.",
-            }
-        ],
+        "residual_risks": [],
         "issues": [issue.to_dict() for issue in validate_convergence_inventory()],
     }
 
@@ -626,6 +649,10 @@ def wavekit_cli_fixture_bundle() -> dict[str, object]:
             "responses_are_cli_enveloped": False,
             "export_apply_available": False,
             "replacement_apply_available": False,
+            "merge_compare_available": True,
+            "retained_inspect_available": True,
+            "merge_apply_available": False,
+            "restore_apply_available": False,
             "registry_v2_reads_available": True,
         },
         "sanitization": {

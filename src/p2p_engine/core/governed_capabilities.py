@@ -134,7 +134,7 @@ GOVERNED_CAPABILITIES: Final[tuple[GovernedCapability, ...]] = (
         LOCAL_POLICY_OWNER,
         _BOTH_MODES,
         True,
-        "planned",
+        "implemented_cli_apply_mcp_read_only",
     ),
     GovernedCapability(
         "project.structure.restore",
@@ -142,7 +142,7 @@ GOVERNED_CAPABILITIES: Final[tuple[GovernedCapability, ...]] = (
         LOCAL_POLICY_OWNER,
         _BOTH_MODES,
         True,
-        "planned",
+        "implemented_cli_apply_mcp_read_only",
     ),
     GovernedCapability(
         "project.vertical.export",

@@ -281,6 +281,7 @@ def test_release_verifier_requires_project_structure_contract_members() -> None:
     assert {
         "p2p_engine/cli_commands/project_structure.py",
         "p2p_engine/core/project_structure_export.py",
+        "p2p_engine/core/project_structure_merge_restore.py",
         "p2p_engine/core/project_structure.py",
         "p2p_engine/core/project_structure_replacement.py",
         "p2p_engine/core/project_structure_retirement.py",
@@ -288,16 +289,20 @@ def test_release_verifier_requires_project_structure_contract_members() -> None:
         "p2p_engine/mcp/handlers/project.py",
         "p2p_engine/services/project_structure.py",
         "p2p_engine/services/project_structure_export.py",
+        "p2p_engine/services/project_structure_merge_restore.py",
         "p2p_engine/services/project_structure_replacement.py",
         "p2p_engine/services/project_structure_retirement.py",
+        "p2p_engine/services/project_structure_snapshots.py",
     } <= MODULE.PROJECT_STRUCTURE_WHEEL_MEMBERS
     assert {
         "docs/CLI-CONTRACT.md",
         "docs/CLI-GUIDE.md",
         "docs/MCP.md",
+        "docs/PROJECT-STRUCTURE-MERGE-RESTORE.md",
         "docs/WORKSPACE-SCHEMA.md",
         "tests/test_project_structure.py",
         "tests/test_project_structure_export.py",
+        "tests/test_project_structure_merge_restore.py",
         "tests/test_project_structure_replacement.py",
         "tests/test_skeleton.py",
     } <= MODULE.PROJECT_STRUCTURE_SDIST_MEMBERS

@@ -43,6 +43,16 @@ from p2p_engine.core.project_structure_export import (
     PROJECT_STRUCTURE_EXPORT_PREVIEW_CONTRACT,
     PROJECT_STRUCTURE_EXPORT_RESULT_CONTRACT,
 )
+from p2p_engine.core.project_structure_merge_restore import (
+    STRUCTURE_COMPARISON_CONTRACT,
+    STRUCTURE_MERGE_PLAN_CONTRACT,
+    STRUCTURE_MERGE_PREVIEW_CONTRACT,
+    STRUCTURE_RESTORE_PLAN_CONTRACT,
+    STRUCTURE_RESTORE_PREVIEW_CONTRACT,
+    STRUCTURE_SNAPSHOT_CONTRACT,
+    STRUCTURE_SNAPSHOT_LEDGER_CONTRACT,
+    STRUCTURE_TRANSITION_RESULT_CONTRACT,
+)
 from p2p_engine.core.project_structure_replacement import (
     STRUCTURE_REPLACEMENT_IMPACT_CONTRACT,
     STRUCTURE_REPLACEMENT_PLAN_CONTRACT,
@@ -101,6 +111,14 @@ def current_contract_versions() -> dict[str, object]:
         "structure_replacement_impact_contract": STRUCTURE_REPLACEMENT_IMPACT_CONTRACT,
         "structure_replacement_plan_contract": STRUCTURE_REPLACEMENT_PLAN_CONTRACT,
         "structure_replacement_result_contract": STRUCTURE_REPLACEMENT_RESULT_CONTRACT,
+        "structure_comparison_contract": STRUCTURE_COMPARISON_CONTRACT,
+        "structure_merge_plan_contract": STRUCTURE_MERGE_PLAN_CONTRACT,
+        "structure_merge_preview_contract": STRUCTURE_MERGE_PREVIEW_CONTRACT,
+        "structure_restore_plan_contract": STRUCTURE_RESTORE_PLAN_CONTRACT,
+        "structure_restore_preview_contract": STRUCTURE_RESTORE_PREVIEW_CONTRACT,
+        "structure_snapshot_contract": STRUCTURE_SNAPSHOT_CONTRACT,
+        "structure_snapshot_ledger_contract": STRUCTURE_SNAPSHOT_LEDGER_CONTRACT,
+        "structure_transition_result_contract": STRUCTURE_TRANSITION_RESULT_CONTRACT,
         "project_memory_scope_contract": PROJECT_MEMORY_SCOPE_CONTRACT,
         "project_memory_scope_events_contract": PROJECT_MEMORY_SCOPE_EVENTS_CONTRACT,
         "project_memory_scope_mutation_contract": PROJECT_MEMORY_SCOPE_MUTATION_CONTRACT,

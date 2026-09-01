@@ -68,6 +68,10 @@ p2p proposal create "Title" --format json --operation-key wavekit:<uuid>
 p2p project domain set DOMAIN --name NAME --actor ACTOR --format json --operation-key wavekit:<uuid>
 p2p project vertical export apply --target build/vertical --output dist/vertical.p2pv --publisher PUBLISHER --id VERTICAL-ID --version VERSION --name NAME --license LICENSE --primary-domain-key DOMAIN --primary-domain-name NAME --lineage-mode independent --expected-structure-revision REV --expected-structure-checksum SHA256 --token TOKEN --idempotency-key wavekit:<uuid> --confirm --actor ACTOR --format json
 p2p project structure replace apply COORDINATE --expected-structure-revision REV --expected-memory-revision SHA256 --preview-token TOKEN --operation-key wavekit:<uuid> --plan replacement-plan.yml --actor ACTOR --confirm --format json
+p2p project structure merge compare COORDINATE --select section:SECTION-ID --format json
+p2p project structure merge apply COORDINATE --plan merge-plan.yml --preview-token TOKEN --operation-key wavekit:<uuid> --actor ACTOR --confirm --format json
+p2p project structure retained inspect REVISION --format json
+p2p project structure restore apply --plan restore-plan.yml --preview-token TOKEN --operation-key wavekit:<uuid> --actor ACTOR --confirm --format json
 p2p proposal update PROP-XXX --proposal "..." --format json --operation-key wavekit:<uuid>
 p2p proposal contribution add PROP-XXX "Text" --type suggestion --format json --operation-key wavekit:<uuid>
 p2p proposal contribution list PROP-XXX --type suggestion --format json
@@ -550,6 +554,17 @@ revisions, a complete `p2p-structure-replacement-plan/v1`, the preview token,
 `--confirm` and one stable operation key. Replacement requires
 `project.structure.replace`; it does not grant publisher ownership, publish
 remotely, acquire missing releases or subscribe the project to future updates.
+
+Selective structure merge and forward restore are also explicit CLI apply
+workflows. Agents must first use exact stable-ID comparison or retained
+revision inspection, create the complete versioned plan, preview it and apply
+only with the returned token, owner authority, confirmation and a stable
+operation key. Merge requires `project.structure.merge`; restore requires
+`project.structure.restore`. MCP exposes only
+`p2p_project_structure_merge_compare` and
+`p2p_project_structure_retained_inspect`, never transition apply. A restore
+creates `current+1` and does not rewind other project memory. Agents must not
+inspect or edit retained physical storage directly.
 
 To export the active project-owned structure as a reusable portable vertical,
 agents may call `p2p_project_structure_export_eligibility` and

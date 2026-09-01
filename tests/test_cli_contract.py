@@ -75,6 +75,17 @@ project.structure.reorder
 project.structure.replace.apply
 project.structure.replace.preview
 project.structure.replace.status
+project.structure.merge.apply
+project.structure.merge.compare
+project.structure.merge.preview
+project.structure.merge.recover
+project.structure.merge.status
+project.structure.retained.inspect
+project.structure.retained.list
+project.structure.restore.apply
+project.structure.restore.preview
+project.structure.restore.recover
+project.structure.restore.status
 project.structure.retire.apply
 project.structure.retire.preview
 project.structure.retire.status
@@ -241,7 +252,7 @@ def test_cli_json_operation_inventory_is_reviewed_and_guarded() -> None:
     inventory = json_command_inventory(get_command(app))
 
     assert frozenset(inventory) == EXPECTED_JSON_OPERATIONS
-    assert len(inventory) == 168
+    assert len(inventory) == 179
     assert inventory["status"] == "text"
     assert inventory["vertical.inspect"] == "json"
     assert inventory["workspace.schema.status"] == "text"

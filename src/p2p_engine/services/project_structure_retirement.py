@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
-from collections.abc import Callable, Mapping, Sequence
 
 from p2p_engine.core.authority import AuthorityContext, AuthorityEvidence
 from p2p_engine.core.mutation_preview import (
@@ -53,10 +53,12 @@ from p2p_engine.services.project_memory import (
     _memory_revision,
     scope_bytes,
     scope_events_bytes,
-    scope_events_from_bytes,
     validated_scope_pair_from_bytes,
 )
-from p2p_engine.services.project_questions import PROJECT_QUESTIONS_PATH, ProjectQuestionStateService
+from p2p_engine.services.project_questions import (
+    PROJECT_QUESTIONS_PATH,
+    ProjectQuestionStateService,
+)
 from p2p_engine.services.project_structure import (
     PROJECT_STRUCTURE_EVENT_LIMIT,
     PROJECT_STRUCTURE_EVENTS_PATH,
@@ -66,8 +68,11 @@ from p2p_engine.services.project_structure import (
     project_structure_events_from_bytes,
     project_structure_from_bytes,
 )
+from p2p_engine.services.project_structure_snapshots import (
+    PROJECT_STRUCTURE_SNAPSHOTS_PATH,
+    ProjectStructureSnapshotService,
+)
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter, utc_now_iso
-
 
 PROJECT_STRUCTURE_RETIREMENT_OPERATION = "project_structure_retirement"
 PROJECT_STRUCTURE_RETIREMENT_POLICY_VERSION = 1
@@ -133,6 +138,7 @@ class ProjectStructureRetirementService:
         self.atomic_writer = atomic_writer or AtomicMutationWriter(root=self.root, p2p_dir=self.p2p_dir)
         self.clock = clock
         self.codec = AuthorityContractCodec()
+        self.snapshots = ProjectStructureSnapshotService(root=self.root)
 
     def preview(
         self,
@@ -486,6 +492,12 @@ class ProjectStructureRetirementService:
                     PROJECT_STRUCTURE_EVENTS_PATH: project_structure_events_bytes(
                         structure_id=candidate_structure.structure_id,
                         events=(*current_events, event),
+                    ),
+                    PROJECT_STRUCTURE_SNAPSHOTS_PATH: self.snapshots.candidate_bytes(
+                        previous=previous,
+                        retained_at=timestamp,
+                        retained_by=evidence.subject.identity_id,
+                        reason="before-retirement",
                     ),
                 }
                 memory_candidates = self._memory_candidates(
@@ -1348,6 +1360,10 @@ class ProjectStructureRetirementService:
                 relative,
                 (self.root / relative).read_bytes(),
             )
+        sources[PROJECT_STRUCTURE_SNAPSHOTS_PATH] = source_precondition(
+            PROJECT_STRUCTURE_SNAPSHOTS_PATH,
+            self.snapshots.source_content(),
+        )
         return tuple(sources[path] for path in sorted(sources))
 
     def _candidate_semantics(

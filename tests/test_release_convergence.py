@@ -103,10 +103,21 @@ def test_convergence_inventory_maps_surfaces_capabilities_and_deferrals() -> Non
     assert operations["project.structure.replace"]["mcp_parity"] == (
         "cli_apply_mcp_read_only_deferral"
     )
-    assert operations["project.structure.merge_restore"]["deferred"] is True
-    assert operations["project.structure.merge_restore"]["mcp_parity"] == (
-        "deferred_after_0.5.0"
+    assert operations["project.structure.merge"]["capability"] == (
+        "project.structure.merge"
     )
+    assert operations["project.structure.merge"]["mcp_parity"] == (
+        "cli_apply_mcp_read_only_deferral"
+    )
+    assert operations["project.structure.restore"]["capability"] == (
+        "project.structure.restore"
+    )
+    assert operations["project.structure.restore"]["mcp_parity"] == (
+        "cli_apply_mcp_read_only_deferral"
+    )
+    assert operations["project.structure.merge"]["deferred"] is False
+    assert operations["project.structure.restore"]["deferred"] is False
+    assert payload["residual_risks"] == []
     assert operations["proposal.create"]["capability"] == "proposal.create"
     assert operations["proposal.update"]["capability"] == "proposal.update"
     assert operations["proposal.contribution.add"]["capability"] == (
@@ -158,6 +169,10 @@ def test_packaged_wavekit_cli_fixture_bundle_is_sanitized_and_current() -> None:
     }
     assert packaged["authority"]["wavekit_membership_role_required"] is False
     assert packaged["authority"]["mutable_owner_identity_is_project_authority"] is False
+    assert packaged["mcp_policy"]["merge_compare_available"] is True
+    assert packaged["mcp_policy"]["retained_inspect_available"] is True
+    assert packaged["mcp_policy"]["merge_apply_available"] is False
+    assert packaged["mcp_policy"]["restore_apply_available"] is False
     for forbidden in ("/home/", "/Users/", "/tmp/", "davide", "matteo"):
         assert forbidden not in serialized
     for forbidden in ("secret", "password", "token:"):
@@ -165,7 +180,7 @@ def test_packaged_wavekit_cli_fixture_bundle_is_sanitized_and_current() -> None:
 
 
 @pytest.mark.mcp
-def test_mcp_catalog_has_read_only_deferrals_for_export_and_replacement() -> None:
+def test_mcp_catalog_has_only_approved_read_surfaces_for_complex_structure_flows() -> None:
     names = {definition["name"] for definition in tool_definitions()}
 
     assert "p2p_project_structure_export_eligibility" in names
@@ -174,6 +189,10 @@ def test_mcp_catalog_has_read_only_deferrals_for_export_and_replacement() -> Non
     assert "p2p_project_structure_replacement_inspect" in names
     assert "p2p_project_structure_replacement_preview" in names
     assert "p2p_project_structure_replacement_apply" not in names
+    assert "p2p_project_structure_merge_compare" in names
+    assert "p2p_project_structure_retained_inspect" in names
+    assert "p2p_project_structure_merge_apply" not in names
+    assert "p2p_project_structure_restore_apply" not in names
 
 
 @pytest.mark.unit
@@ -194,11 +213,12 @@ def test_docs_release_notes_and_allowlist_record_clean_break() -> None:
     )
     assert "project.vertical.export" in convergence_doc
     assert "project.structure.replace" in convergence_doc
-    assert "project.structure.merge_restore" in convergence_doc
+    assert "project.structure.merge" in convergence_doc
+    assert "project.structure.restore" in convergence_doc
     assert "p2p-vertical-registry/v2" in convergence_doc
     assert "protocol-v1" in convergence_doc
     assert "WaveKit-facing CLI fixture bundle" in convergence_doc
-    assert "P2P Engine `0.5.1`" in convergence_doc
+    assert "P2P Engine `0.6.0`" in convergence_doc
     assert allowed["CHANGELOG.md"]
     assert set(allowed) == {
         "CHANGELOG.md",

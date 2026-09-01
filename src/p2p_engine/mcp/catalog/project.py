@@ -239,6 +239,46 @@ def tool_definitions() -> list[dict[str, object]]:
             ['target', 'expected_structure_revision', 'expected_memory_revision', 'actor_id'],
         ),
         _tool(
+            'p2p_project_structure_merge_compare',
+            (
+                'Byte-invariant read-only comparison of an exact release or portable '
+                'bundle with the current project structure. Computes strict stable-ID '
+                'dependency closure and collisions without applying or writing a receipt.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'source': {'type': 'string'},
+                'selected': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'kind': {'type': 'string', 'enum': ['section', 'field', 'question', 'criterion', 'artifact']},
+                            'id': {'type': 'string'},
+                            'section_id': {'type': 'string'},
+                        },
+                        'required': ['kind', 'id'],
+                        'additionalProperties': False,
+                    },
+                },
+                'limit': {'type': 'integer', 'minimum': 1, 'maximum': 1000},
+            },
+            ['source'],
+        ),
+        _tool(
+            'p2p_project_structure_retained_inspect',
+            (
+                'Read-only inspection of one retained canonical project-structure '
+                'revision and its retention evidence. Performs no restore or mutation.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'revision': {'type': 'integer', 'minimum': 1},
+                'include_structure': {'type': 'boolean'},
+            },
+            ['revision'],
+        ),
+        _tool(
             'p2p_project_structure_add_section',
             'Consent-gated receipt-backed addition of one project-owned section.',
             {

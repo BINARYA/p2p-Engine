@@ -52,6 +52,7 @@ _CANONICAL_PROJECT_FILES = frozenset(
         "rubrics.yml",
         "runtime.yml",
         "structure-events.yml",
+        "structure-snapshots.yml",
         "structure-source.yml",
         "structure.yml",
         "vertical.lock.yml",

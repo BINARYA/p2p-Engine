@@ -71,6 +71,14 @@ from p2p_engine.core.project_structure_export import (
     ProjectStructureExportPreview,
     ProjectStructureExportResult,
 )
+from p2p_engine.core.project_structure_merge_restore import (
+    StructureComparison,
+    StructureElementRef,
+    StructureMergePlan,
+    StructureRestorePlan,
+    StructureTransitionPreview,
+    StructureTransitionResult,
+)
 from p2p_engine.core.project_structure_replacement import (
     ProjectStructureReplacementInspection,
     ProjectStructureReplacementPreview,
@@ -247,6 +255,9 @@ from p2p_engine.services.project_assessment import ProjectAssessment, ProjectAss
 from p2p_engine.services.project_domain import ProjectDomainService
 from p2p_engine.services.project_structure import ProjectStructureService
 from p2p_engine.services.project_structure_export import ProjectStructureExportService
+from p2p_engine.services.project_structure_merge_restore import (
+    ProjectStructureMergeRestoreService,
+)
 from p2p_engine.services.project_structure_replacement import ProjectStructureReplacementService
 from p2p_engine.services.project_structure_retirement import ProjectStructureRetirementService
 from p2p_engine.services.project_memory import ProjectMemoryService
@@ -397,6 +408,9 @@ class FilesystemWorkspace:
         self._project_structure_replacement_service_instance: (
             ProjectStructureReplacementService | None
         ) = None
+        self._project_structure_merge_restore_service_instance: (
+            ProjectStructureMergeRestoreService | None
+        ) = None
         self._project_structure_retirement_service_instance: (
             ProjectStructureRetirementService | None
         ) = None
@@ -540,6 +554,25 @@ class FilesystemWorkspace:
                 )
             )
         return self._project_structure_replacement_service_instance
+
+    def _project_structure_merge_restore_service(
+        self,
+    ) -> ProjectStructureMergeRestoreService:
+        if self._project_structure_merge_restore_service_instance is None:
+            self._project_structure_merge_restore_service_instance = (
+                ProjectStructureMergeRestoreService(
+                    root=self.root,
+                    p2p_dir=self.p2p_dir,
+                    structure_service=self._project_structure_service(),
+                    memory_service=self._project_memory_service(),
+                    question_service=self._project_question_state_service(),
+                    replacement_service=self._project_structure_replacement_service(),
+                    readiness_result=lambda: self.project_readiness_result(),
+                    authority=self._project_authority_service(),
+                    receipts=self._mutation_receipt_service(),
+                )
+            )
+        return self._project_structure_merge_restore_service_instance
 
     def _project_structure_export_service(self) -> ProjectStructureExportService:
         if self._project_structure_export_service_instance is None:
@@ -2984,6 +3017,137 @@ class FilesystemWorkspace:
             consent_id=consent_id,
             consent_sha256=consent_sha256,
             limit=limit,
+        )
+
+    def compare_project_structure_merge(
+        self,
+        *,
+        source: str,
+        selected: Sequence[StructureElementRef | Mapping[str, object]] = (),
+        limit: int = 250,
+    ) -> StructureComparison:
+        return self._project_structure_merge_restore_service().compare(
+            source=source,
+            selected=selected,
+            limit=limit,
+        )
+
+    def retained_project_structure_revisions(
+        self,
+        *,
+        limit: int = 20,
+    ) -> dict[str, object]:
+        return self._project_structure_merge_restore_service().retained_list(limit=limit)
+
+    def inspect_retained_project_structure_revision(
+        self,
+        *,
+        revision: int,
+        include_structure: bool = False,
+    ) -> dict[str, object]:
+        return self._project_structure_merge_restore_service().retained_inspect(
+            revision=revision,
+            include_structure=include_structure,
+        )
+
+    def preview_project_structure_merge(
+        self,
+        *,
+        source: str,
+        plan: StructureMergePlan,
+        actor_id: str,
+        executor_id: str,
+        executor_kind: str,
+        authority_context: AuthorityContext | None = None,
+        channel: str = "cli",
+        limit: int = 250,
+    ) -> StructureTransitionPreview:
+        self._ensure_runtime_write_allowed("project_structure_merge")
+        return self._project_structure_merge_restore_service().merge_preview(
+            source=source,
+            plan=plan,
+            actor_id=actor_id,
+            executor_id=executor_id,
+            executor_kind=executor_kind,
+            authority_context=authority_context,
+            channel=channel,
+            limit=limit,
+        )
+
+    def apply_project_structure_merge(
+        self,
+        *,
+        source: str,
+        plan: StructureMergePlan,
+        preview_token: str,
+        operation_key: str,
+        confirm: bool,
+        actor_id: str,
+        executor_id: str,
+        executor_kind: str,
+        authority_context: AuthorityContext | None = None,
+        channel: str = "cli",
+    ) -> StructureTransitionResult:
+        self._ensure_runtime_write_allowed("project_structure_merge")
+        return self._project_structure_merge_restore_service().merge_apply(
+            source=source,
+            plan=plan,
+            preview_token=preview_token,
+            operation_key=operation_key,
+            confirm=confirm,
+            actor_id=actor_id,
+            executor_id=executor_id,
+            executor_kind=executor_kind,
+            authority_context=authority_context,
+            channel=channel,
+        )
+
+    def preview_project_structure_restore(
+        self,
+        *,
+        plan: StructureRestorePlan,
+        actor_id: str,
+        executor_id: str,
+        executor_kind: str,
+        authority_context: AuthorityContext | None = None,
+        channel: str = "cli",
+        limit: int = 250,
+    ) -> StructureTransitionPreview:
+        self._ensure_runtime_write_allowed("project_structure_restore")
+        return self._project_structure_merge_restore_service().restore_preview(
+            plan=plan,
+            actor_id=actor_id,
+            executor_id=executor_id,
+            executor_kind=executor_kind,
+            authority_context=authority_context,
+            channel=channel,
+            limit=limit,
+        )
+
+    def apply_project_structure_restore(
+        self,
+        *,
+        plan: StructureRestorePlan,
+        preview_token: str,
+        operation_key: str,
+        confirm: bool,
+        actor_id: str,
+        executor_id: str,
+        executor_kind: str,
+        authority_context: AuthorityContext | None = None,
+        channel: str = "cli",
+    ) -> StructureTransitionResult:
+        self._ensure_runtime_write_allowed("project_structure_restore")
+        return self._project_structure_merge_restore_service().restore_apply(
+            plan=plan,
+            preview_token=preview_token,
+            operation_key=operation_key,
+            confirm=confirm,
+            actor_id=actor_id,
+            executor_id=executor_id,
+            executor_kind=executor_kind,
+            authority_context=authority_context,
+            channel=channel,
         )
 
     def project_structure_export_eligibility(self) -> ProjectStructureExportEligibility:

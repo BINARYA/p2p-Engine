@@ -385,6 +385,9 @@ Stable:
 - [docs/CANONICAL-MEMORY-AND-BUNDLES.md](docs/CANONICAL-MEMORY-AND-BUNDLES.md)
   Storage-neutral logical memory, deterministic bundles, physical backups, and governed restore.
 
+- [docs/PROJECT-STRUCTURE-MERGE-RESTORE.md](docs/PROJECT-STRUCTURE-MERGE-RESTORE.md)
+  Exact stable-ID merge, retained structure history, and forward-only restore.
+
 Local demos:
 
 - [examples/README.md](examples/README.md)

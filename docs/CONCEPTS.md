@@ -207,6 +207,17 @@ schema-3 release with current structure and memory revisions, require an impact
 plan where needed, and govern every affected memory reference before applying
 a detached replacement copy.
 
+Selective merge is narrower than replacement. It imports an explicitly chosen
+stable-ID set plus its exact dependency closure from one verified release or
+canonical bundle. Placements and all ID collisions are decided in a typed
+plan; titles, textual similarity and storage locators never establish
+identity. Structure history is retained canonically under a newest-100 policy.
+A restore uses one listed retained snapshot as input to the same impact-aware
+transition machinery and creates `current+1`; it never rewinds project
+identity, decisions, evidence, receipts or other memory. Merge and restore have
+distinct capabilities and CLI apply workflows, while MCP offers comparison and
+retained-snapshot inspection only.
+
 `.p2p/project/definition.yml` stores durable owner answers, assumptions,
 missing required fields, blockers, open questions, section status, and
 provenance for project-definition work. Agents should inspect current project

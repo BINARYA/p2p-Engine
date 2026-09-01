@@ -4,7 +4,7 @@ import hashlib
 import json
 from dataclasses import asdict, dataclass
 
-AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v11"
+AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v12"
 
 
 @dataclass(frozen=True)
@@ -189,6 +189,34 @@ AGENT_CAPABILITIES = (
             "Replacement copies one exact schema-3 release into the project-owned "
             "structure with explicit dispositions; MCP can inspect and preview "
             "only, and never applies or acquires a release."
+        ),
+    ),
+    AgentCapability(
+        capability_id="project.structure.merge_restore",
+        cli_paths=(
+            "p2p project structure merge compare",
+            "p2p project structure merge preview",
+            "p2p project structure merge apply",
+            "p2p project structure merge status",
+            "p2p project structure merge recover",
+            "p2p project structure retained list",
+            "p2p project structure retained inspect",
+            "p2p project structure restore preview",
+            "p2p project structure restore apply",
+            "p2p project structure restore status",
+            "p2p project structure restore recover",
+        ),
+        mcp_tools=(
+            "p2p_project_structure_merge_compare",
+            "p2p_project_structure_retained_inspect",
+        ),
+        exposure="cli_apply_mcp_read_only",
+        authority="project.structure.merge_or_project.structure.restore",
+        reason=(
+            "Merge imports an explicit typed stable-ID closure from one exact release "
+            "or bundle; restore uses only a listed retained snapshot and creates a "
+            "forward revision. CLI apply is token- and receipt-gated, while MCP remains "
+            "strictly read-only."
         ),
     ),
     AgentCapability(
@@ -510,6 +538,29 @@ Authority is `project.structure.replace`; target-release visibility, publisher
 ownership, remote publication and moderation rights are separate concerns. MCP
 exposes `p2p_project_structure_replacement_inspect` and
 `p2p_project_structure_replacement_preview` only.
+
+Selectively merge or restore project structure only through the typed,
+backend-neutral workflow:
+
+```bash
+p2p project structure merge compare <release-or-bundle> --select section:ID --format json
+p2p project structure merge preview <release-or-bundle> --plan <merge-plan.yml> --format json
+p2p project structure merge apply <release-or-bundle> --plan <merge-plan.yml> --preview-token <token> --operation-key <operation-id> --confirm --format json
+p2p project structure retained list --format json
+p2p project structure retained inspect <revision> --format json
+p2p project structure restore preview --plan <restore-plan.yml> --format json
+p2p project structure restore apply --plan <restore-plan.yml> --preview-token <token> --operation-key <operation-id> --confirm --format json
+```
+
+Merge requires an exact verified release or `.p2pbundle`, an explicit stable-ID
+selection, exact dependency closure, placements and one decision for every ID
+collision. Restore accepts only a revision returned by retained inspection and
+always creates `current+1`; it never rewinds other project memory. The newest
+100 retained structure revisions are eligible, with deterministic pruning of
+older entries. Authority is distinct: `project.structure.merge` or
+`project.structure.restore`. MCP exposes only
+`p2p_project_structure_merge_compare` and
+`p2p_project_structure_retained_inspect`; transition apply is CLI-only.
 
 Remote registry configuration, authentication, pull, draft authoring,
 publication, and project install/adopt/migrate are CLI-only. MCP exposes

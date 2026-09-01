@@ -4,13 +4,13 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
-from p2p_engine.core.project_structure_retirement import (
-    structure_retirement_plan_from_mapping,
-)
+from p2p_engine.core.project_domain import ProjectDomainRef
 from p2p_engine.core.project_structure_replacement import (
     structure_replacement_plan_from_mapping,
 )
-from p2p_engine.core.project_domain import ProjectDomainRef
+from p2p_engine.core.project_structure_retirement import (
+    structure_retirement_plan_from_mapping,
+)
 from p2p_engine.core.release_contracts import current_contract_versions
 from p2p_engine.mcp.handlers.common import optional_string, required, to_jsonable
 from p2p_engine.services.project_application import ProjectApplicationService as P2PWorkspace
@@ -162,6 +162,30 @@ def handle_project_tool(
         )
         return {
             "project_structure_replacement_preview": result.to_dict(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_project_structure_merge_compare":
+        raw_selected = arguments.get("selected", [])
+        if not isinstance(raw_selected, list) or not all(
+            isinstance(item, dict) for item in raw_selected
+        ):
+            raise ValueError("P2P_STRUCTURE_SELECTION_INVALID: selected must be a list of objects")
+        result = workspace.compare_project_structure_merge(
+            source=required(arguments, "source"),
+            selected=raw_selected,
+            limit=int(arguments.get("limit", 250)),
+        )
+        return {
+            "project_structure_merge_comparison": result.to_dict(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_project_structure_retained_inspect":
+        result = workspace.inspect_retained_project_structure_revision(
+            revision=int(arguments.get("revision", 0)),
+            include_structure=bool(arguments.get("include_structure", False)),
+        )
+        return {
+            "retained_project_structure": result,
             "mutation_performed": False,
         }
     if name in {

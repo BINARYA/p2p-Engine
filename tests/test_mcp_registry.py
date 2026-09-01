@@ -32,6 +32,8 @@ EXPECTED_TOOL_NAMES = (
     "p2p_project_structure_export_preview",
     "p2p_project_structure_replacement_inspect",
     "p2p_project_structure_replacement_preview",
+    "p2p_project_structure_merge_compare",
+    "p2p_project_structure_retained_inspect",
     "p2p_project_structure_add_section",
     "p2p_project_structure_update_metadata",
     "p2p_project_structure_reorder_sections",

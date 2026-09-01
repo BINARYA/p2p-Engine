@@ -29,6 +29,9 @@ traceability references, which never prove implementation status.
 - Keep bundled and portable release state free of host-specific paths.
 - Add the narrowest source, subprocess and installed-wheel regressions that
   prove a public contract.
+- Keep retained structure history behind the selected storage adapter. Test
+  deterministic pruning, exact checksums and forward-only restore without
+  exposing physical locators in public contracts.
 - Do not reintroduce compatibility aliases or removed source-control surfaces.
 
 ## Required Checks

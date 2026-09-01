@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
-from collections.abc import Callable, Mapping, Sequence
 
 from p2p_engine.core.authority import AuthorityContext, AuthorityEvidence
 from p2p_engine.core.mutation_preview import (
@@ -67,10 +67,13 @@ from p2p_engine.services.project_structure_retirement import (
     ProjectStructureRetirementService,
     _classification_projection,
 )
+from p2p_engine.services.project_structure_snapshots import (
+    PROJECT_STRUCTURE_SNAPSHOTS_PATH,
+    ProjectStructureSnapshotService,
+)
 from p2p_engine.services.project_verticals import ProjectVerticalService
 from p2p_engine.services.vertical_packages import PortableVerticalPackageService
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter, utc_now_iso
-
 
 PROJECT_STRUCTURE_REPLACEMENT_POLICY_VERSION = 1
 
@@ -136,6 +139,7 @@ class ProjectStructureReplacementService:
         )
         self.clock = clock
         self.codec = AuthorityContractCodec()
+        self.snapshots = ProjectStructureSnapshotService(root=self.root)
         self.retirement = ProjectStructureRetirementService(
             root=self.root,
             p2p_dir=self.p2p_dir,
@@ -532,6 +536,12 @@ class ProjectStructureReplacementService:
                 PROJECT_STRUCTURE_EVENTS_PATH: project_structure_events_bytes(
                     structure_id=candidate_structure.structure_id,
                     events=(*current_events, event),
+                ),
+                PROJECT_STRUCTURE_SNAPSHOTS_PATH: self.snapshots.candidate_bytes(
+                    previous=previous,
+                    retained_at=timestamp,
+                    retained_by=evidence.subject.identity_id,
+                    reason="before-replacement",
                 ),
             }
             internal_plan = StructureRetirementPlan(

@@ -20,8 +20,8 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     snapshot = public_surface_snapshot()
 
     assert snapshot.contract_version == PUBLIC_SURFACE_CONTRACT_VERSION
-    assert len(snapshot.cli_paths) == 285
-    assert len(snapshot.mcp_tools) == 174
+    assert len(snapshot.cli_paths) == 296
+    assert len(snapshot.mcp_tools) == 176
     assert "p2p integration status" in snapshot.cli_paths
     assert "p2p integration install" in snapshot.cli_paths
     assert "p2p integration refresh" in snapshot.cli_paths
@@ -46,6 +46,12 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     assert "p2p project structure replace preview" in snapshot.cli_paths
     assert "p2p project structure replace apply" in snapshot.cli_paths
     assert "p2p project structure replace status" in snapshot.cli_paths
+    assert "p2p project structure merge compare" in snapshot.cli_paths
+    assert "p2p project structure merge apply" in snapshot.cli_paths
+    assert "p2p project structure merge recover" in snapshot.cli_paths
+    assert "p2p project structure retained inspect" in snapshot.cli_paths
+    assert "p2p project structure restore apply" in snapshot.cli_paths
+    assert "p2p project structure restore recover" in snapshot.cli_paths
     assert "p2p project memory classification" in snapshot.cli_paths
     assert "p2p project memory bundle-export" in snapshot.cli_paths
     assert "p2p project memory restore-apply" in snapshot.cli_paths
@@ -67,6 +73,10 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     assert "p2p_project_structure_replacement_inspect" in snapshot.mcp_tools
     assert "p2p_project_structure_replacement_preview" in snapshot.mcp_tools
     assert "p2p_project_structure_replacement_apply" not in snapshot.mcp_tools
+    assert "p2p_project_structure_merge_compare" in snapshot.mcp_tools
+    assert "p2p_project_structure_retained_inspect" in snapshot.mcp_tools
+    assert "p2p_project_structure_merge_apply" not in snapshot.mcp_tools
+    assert "p2p_project_structure_restore_apply" not in snapshot.mcp_tools
     assert "p2p_project_memory_classification" in snapshot.mcp_tools
     assert "p2p_canonical_memory_inspect" in snapshot.mcp_tools
     assert "p2p_canonical_memory_verify" in snapshot.mcp_tools

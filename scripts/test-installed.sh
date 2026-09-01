@@ -378,6 +378,10 @@ removed = {
 assert names.isdisjoint(removed)
 assert "p2p_project_structure_export_apply" not in names
 assert "p2p_project_structure_replacement_apply" not in names
+assert "p2p_project_structure_merge_compare" in names
+assert "p2p_project_structure_retained_inspect" in names
+assert "p2p_project_structure_merge_apply" not in names
+assert "p2p_project_structure_restore_apply" not in names
 PY
 
 "$venv_root/bin/python" -m pytest -m smoke "$script_root/tests" "${pytest_args[@]}"

@@ -1,6 +1,6 @@
 # Project Structure Surface Convergence
 
-This is the P2P Engine 0.5.0 release-gate note for converging the project-owned
+This is the P2P Engine 0.6.0 release-gate note for converging the project-owned
 structure surfaces after authority, domain, memory classification, readiness,
 registry-v2 discovery, structure export and structure replacement landed.
 
@@ -14,7 +14,7 @@ fixture bundle lives at
 `p2p version --format json`, `p2p status --format json` and
 `p2p_workspace_schema_status` expose the same contract tuple:
 
-- P2P Engine `0.5.1`
+- P2P Engine `0.6.0`
 - CLI envelope `p2p-cli/v1`
 - workspace schema 4
 - portable vertical schema 3 and package format 1
@@ -47,7 +47,8 @@ fixture bundle lives at
 | `project.vertical.install` | `project.vertical.install` | install preview/apply | CLI-only vertical lifecycle | schema-3 receipt | Install adds one exact release without making it authoritative structure. |
 | `project.vertical.adopt` | `project.vertical.adopt` | adopt preview/apply | CLI-only vertical lifecycle | schema-3 receipt | Adopt affects release metadata, not detached project structure. |
 | `project.vertical.migrate` | `project.vertical.migrate` | migrate preview/apply | CLI-only vertical lifecycle | schema-3 receipt | Migration preserves evidence by exact mapping and does not replace structure. |
-| `project.structure.merge_restore` | `project.structure.merge` | none | deferred | deferred | Explicit post-0.5.0 deferral; not an available operation in this release. |
+| `project.structure.merge` | `project.structure.merge` | merge compare/preview/apply/status/recover | MCP compare only | schema-3 receipt plus structure transition result | Merge imports an explicit stable-ID closure from one exact release or bundle without subscribing to it. |
+| `project.structure.restore` | `project.structure.restore` | retained list/inspect and restore preview/apply/status/recover | MCP retained inspect only | schema-3 receipt plus structure transition result | Restore creates a forward revision from retained canonical structure without rewinding other history. |
 
 ## WaveKit Fixture
 
@@ -98,7 +99,7 @@ fixture JSON. `scripts/verify-release-artifacts.py` verifies those resources
 inside both wheel and sdist. `scripts/verify-convergence-gate.py` verifies that
 the packaged fixture matches the installed runtime generator.
 
-## CI And Residual Risk
+## CI And Intentional MCP Boundary
 
 The release workflow runs the source public/full suites once on the canonical
 Python 3.12 runtime, then builds artifacts in one dedicated release job,
@@ -106,6 +107,7 @@ verifies archive contents and runs installed-wheel smoke tests. Cross-platform
 uv jobs share the one immutable candidate wheel; only Linux also exercises the
 historical 0.5.0 upgrade/rollback lifecycle.
 
-The only recorded non-blocking deferral is `project.structure.merge_restore`.
-It remains unavailable until its own feature adds domain behavior, surfaces,
-fixtures and a later convergence audit.
+Merge and restore are implemented on CLI with distinct capabilities, exact
+preview tokens and mutation receipts. MCP deliberately exposes only
+`p2p_project_structure_merge_compare` and
+`p2p_project_structure_retained_inspect`; there is no MCP apply operation.

@@ -72,3 +72,10 @@ receipts and explicit recovery behavior.
 Generated local agent instructions describe CLI/MCP operations only. They do
 not select an adapter or instruct agents to inspect YAML, database, journal or
 WAL internals.
+
+Retained structure history and merge/restore transitions follow the same
+boundary. Public callers address an exact release/bundle digest or retained
+structure revision/checksum. The selected adapter atomically stores the new
+forward structure revision, prior snapshot, event, affected memory and receipt;
+no public plan or result contains a physical path, SQL statement or backend
+name. The current product continues to select only the filesystem adapter.

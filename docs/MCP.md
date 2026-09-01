@@ -381,6 +381,8 @@ repository operations; they do not authorize P2P project-state mutations.
 | `p2p_project_structure_retirement_apply` | permission-gated | yes | yes | Apply a token-bound structure retirement with resolved dispositions and idempotent receipt. |
 | `p2p_project_structure_replacement_inspect` | read-only | no | no | Inspect one already resolvable exact replacement release and normalized candidate structure without pulling, writing cache, or mutating the project. |
 | `p2p_project_structure_replacement_preview` | read-only preview | no | no | Compare one exact replacement release against current structure and memory revisions, returning impacts and required dispositions without an apply tool. |
+| `p2p_project_structure_merge_compare` | read-only | no | no | Compare selected stable IDs from one exact release or canonical bundle, including dependency closure and collisions, without changing project state. |
+| `p2p_project_structure_retained_inspect` | read-only | no | no | Inspect one still-retained canonical structure revision and its checksum without exposing or reconstructing physical storage. |
 | `p2p_project_structure_export_eligibility` | read-only | no | no | Check whether the active project-owned structure can be exported as a portable vertical. |
 | `p2p_project_structure_export_preview` | read-only | no | no | Build a source-token-bound export preview without creating drafts, packages, destination paths or remote releases. |
 | `p2p_project_vertical_show` | read-only | no | no | Read one self-contained vertical release. |
@@ -448,6 +450,14 @@ updates. Confirmed replacement apply remains a CLI JSON workflow using
 `p2p project structure replace apply`, `project.structure.replace`, exact source
 revisions, a complete `p2p-structure-replacement-plan/v1`, a preview token,
 explicit confirmation and one operation key.
+
+Selective merge and forward restore keep that boundary. MCP exposes only
+`p2p_project_structure_merge_compare` and
+`p2p_project_structure_retained_inspect`. It has no merge or restore preview,
+apply, status or recovery mutation tool. Confirmed transitions remain CLI JSON
+workflows with an exact typed plan, current source/target and memory revisions,
+an unexpired preview token, the distinct `project.structure.merge` or
+`project.structure.restore` capability, confirmation and one operation key.
 
 MCP clients may inspect the canonical project structure and its history, plus
 transitional vertical/lock metadata, context, definition, readiness, proposals

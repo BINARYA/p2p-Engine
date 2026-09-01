@@ -182,6 +182,15 @@ p2p project structure retire status --operation-key wavekit:<uuid> --format json
 p2p project structure replace preview publisher/vertical_id@1.0.0 --expected-structure-revision REV --expected-memory-revision SHA256 --plan replacement-plan.yml --actor ACTOR --format json
 p2p project structure replace apply publisher/vertical_id@1.0.0 --expected-structure-revision REV --expected-memory-revision SHA256 --preview-token TOKEN --operation-key wavekit:<uuid> --plan replacement-plan.yml --actor ACTOR --confirm --format json
 p2p project structure replace status --operation-key wavekit:<uuid> --format json
+p2p project structure merge compare publisher/vertical_id@1.0.0 --select section:scope --format json
+p2p project structure merge preview publisher/vertical_id@1.0.0 --plan merge-plan.yml --actor ACTOR --format json
+p2p project structure merge apply publisher/vertical_id@1.0.0 --plan merge-plan.yml --preview-token TOKEN --operation-key wavekit:<uuid> --actor ACTOR --confirm --format json
+p2p project structure merge status --operation-key wavekit:<uuid> --format json
+p2p project structure retained list --format json
+p2p project structure retained inspect REVISION --format json
+p2p project structure restore preview --plan restore-plan.yml --actor ACTOR --format json
+p2p project structure restore apply --plan restore-plan.yml --preview-token TOKEN --operation-key wavekit:<uuid> --actor ACTOR --confirm --format json
+p2p project structure restore status --operation-key wavekit:<uuid> --format json
 p2p project vertical export eligibility --format json
 p2p project vertical export preview --publisher publisher --id vertical_id --version 1.0.0 --name "Vertical" --license MIT --primary-domain-key software --primary-domain-name "Software" --lineage-mode independent --format json
 p2p project vertical export apply --target build/vertical --output dist/vertical.p2pv --publisher publisher --id vertical_id --version 1.0.0 --name "Vertical" --license MIT --primary-domain-key software --primary-domain-name "Software" --lineage-mode independent --expected-structure-revision REV --expected-structure-checksum SHA256 --token TOKEN --idempotency-key wavekit:<uuid> --confirm --format json
@@ -350,3 +359,12 @@ coordinate/checksum, previous/current structure identity, memory revision,
 replacement event, applied dispositions and `project.structure.replace`
 capability. Receipt replay and mutation status preserve the same
 operation-specific field set.
+
+Merge postconditions contain one exact source identity/digest, previous and
+new structure identity, retained-history evidence, transition event and
+`project.structure.merge` capability. Restore uses the same forward-transition
+shape with a retained source revision/checksum and the distinct
+`project.structure.restore` capability. Public results expose logical changed
+entities only; physical receipt postconditions remain private. Exact retries
+return `already_applied`, while source, target, plan, memory or authority drift
+fails before activation.

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field, replace
 import re
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field, replace
 
 from p2p_engine.core.mutation_preview import semantic_sha256
-
 
 PROJECT_STRUCTURE_CONTRACT = "p2p-project-structure/v1"
 PROJECT_STRUCTURE_EVENTS_CONTRACT = "p2p-project-structure-events/v1"
@@ -457,7 +456,16 @@ class ProjectStructureEvent:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "event_id", normalize_structure_id(self.event_id, field_name="event.id"))
-        if self.event_type not in {"initialized", "section_added", "metadata_updated", "sections_reordered", "elements_retired", "structure_replaced"}:
+        if self.event_type not in {
+            "initialized",
+            "section_added",
+            "metadata_updated",
+            "sections_reordered",
+            "elements_retired",
+            "structure_replaced",
+            "structure_merged",
+            "structure_restored",
+        }:
             raise ValueError("P2P_PROJECT_STRUCTURE_INVALID: structure event type is unsupported")
         if isinstance(self.revision, bool) or not isinstance(self.revision, int) or self.revision < 1:
             raise ValueError("P2P_PROJECT_STRUCTURE_INVALID: structure event revision is invalid")

@@ -1,19 +1,23 @@
 from __future__ import annotations
 
-from dataclasses import replace
 import hashlib
 import re
-from pathlib import Path
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import replace
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from p2p_engine.core.authority import AuthorityContext, AuthorityEvidence
-from p2p_engine.core.mutation_preview import MutationPreviewService, semantic_sha256, source_precondition
+from p2p_engine.core.mutation_preview import (
+    MutationPreviewService,
+    semantic_sha256,
+    source_precondition,
+)
 from p2p_engine.core.project_domain import StructureSource
 from p2p_engine.core.project_structure import (
     PROJECT_STRUCTURE_CONTRACT,
-    PROJECT_STRUCTURE_EVENTS_CONTRACT,
     PROJECT_STRUCTURE_EVENT_LIMIT,
+    PROJECT_STRUCTURE_EVENTS_CONTRACT,
     PROJECT_STRUCTURE_MUTATION_CONTRACT,
     PROJECT_STRUCTURE_PUBLIC_HISTORY_LIMIT,
     ProjectStructure,
@@ -28,7 +32,6 @@ from p2p_engine.core.project_structure import (
     StructureQuestion,
     StructureSection,
     normalize_structure_id,
-    project_structure_checksum,
     project_structure_event_from_mapping,
     project_structure_from_mapping,
     validate_project_structure,
@@ -37,7 +40,15 @@ from p2p_engine.core.project_structure import (
 from p2p_engine.foundation.files import yaml_dump
 from p2p_engine.foundation.yaml_loaders import UNIQUE_LOADER_CONTRACT, load_yaml
 from p2p_engine.services.authority import AuthorityContractCodec, ProjectAuthorityService
-from p2p_engine.services.mutation_receipts import MutationReceiptService, idempotency_key_sha256, validate_idempotency_key
+from p2p_engine.services.mutation_receipts import (
+    MutationReceiptService,
+    idempotency_key_sha256,
+    validate_idempotency_key,
+)
+from p2p_engine.services.project_structure_snapshots import (
+    PROJECT_STRUCTURE_SNAPSHOTS_PATH,
+    ProjectStructureSnapshotService,
+)
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter, utc_now_iso
 
 if TYPE_CHECKING:
@@ -70,6 +81,7 @@ class ProjectStructureService:
         self.atomic_writer = atomic_writer or AtomicMutationWriter(root=self.root, p2p_dir=self.p2p_dir)
         self.clock = clock
         self.codec = AuthorityContractCodec()
+        self.snapshots = ProjectStructureSnapshotService(root=self.root)
 
     def show(self, *, include_retired: bool = False) -> ProjectStructure:
         # Keep the canonical aggregate checksum-valid. Public callers apply the
@@ -186,6 +198,12 @@ class ProjectStructureService:
         candidates = {
             PROJECT_STRUCTURE_PATH: structure_bytes,
             PROJECT_STRUCTURE_EVENTS_PATH: event_bytes,
+            PROJECT_STRUCTURE_SNAPSHOTS_PATH: self.snapshots.candidate_bytes(
+                previous=previous,
+                retained_at=event.occurred_at,
+                retained_by=evidence.subject.identity_id,
+                reason=f"before-{operation.replace('_', '-')}",
+            ),
         }
         request_fingerprint = semantic_sha256(
             {
@@ -200,6 +218,10 @@ class ProjectStructureService:
         sources = (
             source_precondition(PROJECT_STRUCTURE_PATH, self.path.read_bytes()),
             source_precondition(PROJECT_STRUCTURE_EVENTS_PATH, self.events_path.read_bytes()),
+            source_precondition(
+                PROJECT_STRUCTURE_SNAPSHOTS_PATH,
+                self.snapshots.source_content(),
+            ),
             source_precondition(receipt_path, None),
         )
         preview = MutationPreviewService.build(
