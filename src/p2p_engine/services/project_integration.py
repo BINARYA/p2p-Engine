@@ -479,7 +479,7 @@ class ProjectIntegrationService:
 
     def _artifact_records(self, registry: dict[str, object]) -> dict[str, dict[str, object]]:
         records = {
-            path: dict(record)
+            self._safe_relative(path).as_posix(): dict(record)
             for path, record in self.agent_instructions.registry_file_map(registry).items()
         }
         integration = registry.get("integration", {})
@@ -490,7 +490,7 @@ class ProjectIntegrationService:
             return records
         records.update(
             {
-                str(record.get("path")): record
+                self._safe_relative(str(record.get("path"))).as_posix(): record
                 for record in artifacts
                 if isinstance(record, dict) and record.get("path")
             }
@@ -667,8 +667,9 @@ class ProjectIntegrationService:
                 )
 
     def _safe_relative(self, value: str) -> Path:
-        relative = Path(str(value or ""))
-        if not value or relative.is_absolute() or ".." in relative.parts:
+        normalized = str(value or "").replace("\\", "/")
+        relative = Path(normalized)
+        if not normalized or relative.is_absolute() or ".." in relative.parts:
             raise ValueError(f"P2P_INTEGRATION_PATH_UNSAFE: {value}")
         resolved = (self.root / relative).resolve(strict=False)
         if not resolved.is_relative_to(self.root):

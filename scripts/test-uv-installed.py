@@ -478,7 +478,21 @@ print(json.dumps({'python': sys.version.split()[0], 'module': str(module_path)})
             ],
             expected_codes=(0, 1),
         )
-        if previous.version != candidate.version and incompatible["data"]["compatible"]:
+        incompatible_data = incompatible.get("data")
+        if incompatible.get("ok") is not True or not isinstance(incompatible_data, dict):
+            raise AssertionError(
+                {
+                    "message": (
+                        "candidate could not inspect the previous wheel project; "
+                        "cross-wheel lifecycle requires an explicitly compatible baseline"
+                    ),
+                    "payload": incompatible,
+                }
+            )
+        compatible = incompatible_data.get("compatible")
+        if not isinstance(compatible, bool):
+            raise AssertionError(incompatible)
+        if previous.version != candidate.version and compatible:
             raise AssertionError(incompatible)
         if project_digest(lifecycle_project) != stable_digest:
             raise AssertionError("candidate replacement mutated lifecycle project state")

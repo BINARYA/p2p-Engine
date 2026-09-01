@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Callable
 
 from p2p_engine.core.project_integration import (
@@ -315,7 +315,9 @@ class AgentInstructionService:
             force=force,
         )
         skipped.extend(obsolete_skipped)
-        preserved_paths = {str(path) for path in all_files if path not in writable_paths}
+        preserved_paths = {
+            _portable_path_key(path) for path in all_files if path not in writable_paths
+        }
         registry = self._with_preserved_file_records(old_registry, new_registry, preserved_paths)
         registry = self._with_skipped_file_records(old_registry, registry, skipped)
         self.write_registry(registry)
@@ -344,15 +346,16 @@ class AgentInstructionService:
             if not isinstance(record, dict):
                 continue
             relative = self._safe_relative_path(record.get("path", ""), label="Agent registry path")
+            relative_key = _portable_path_key(relative)
             if record.get("shared") is True:
-                skipped.append({"path": str(relative), "reason": "shared"})
+                skipped.append({"path": relative_key, "reason": "shared"})
                 continue
             path = self.root / relative
             if not path.exists():
-                skipped.append({"path": str(relative), "reason": "missing"})
+                skipped.append({"path": relative_key, "reason": "missing"})
                 continue
             if record.get("sha256") != _sha256_file(path):
-                skipped.append({"path": str(relative), "reason": "drifted"})
+                skipped.append({"path": relative_key, "reason": "drifted"})
                 continue
             path.unlink()
             removed.append(relative)
@@ -418,7 +421,7 @@ class AgentInstructionService:
                 continue
             for record in files:
                 if isinstance(record, dict) and "path" in record:
-                    records[str(record["path"])] = record
+                    records[_portable_path_key(record["path"])] = record
         return records
 
     def build_registry(
@@ -436,8 +439,9 @@ class AgentInstructionService:
             file_records = []
             for relative_path, template_id, shared, owner in files:
                 relative_path = self._safe_relative_path(relative_path, label="Agent adapter path")
+                path_key = _portable_path_key(relative_path)
                 path = self.root / relative_path
-                ownership = (artifact_ownership or {}).get(str(relative_path), {})
+                ownership = (artifact_ownership or {}).get(path_key, {})
                 candidate = (
                     candidate_contents.get(relative_path)
                     if candidate_contents is not None and relative_path in candidate_contents
@@ -453,14 +457,14 @@ class AgentInstructionService:
                     else (_sha256_file(path) if path.exists() else "")
                 )
                 file_record: dict[str, object] = {
-                        "path": str(relative_path),
-                        "shared": shared,
-                        "owner": owner,
-                        "managed": exists,
-                        "template_id": template_id,
-                        "template_generation_id": self.template_generation(template_id),
-                        "sha256": digest,
-                        "drift": "clean" if exists else "missing",
+                    "path": path_key,
+                    "shared": shared,
+                    "owner": owner,
+                    "managed": exists,
+                    "template_id": template_id,
+                    "template_generation_id": self.template_generation(template_id),
+                    "sha256": digest,
+                    "drift": "clean" if exists else "missing",
                 }
                 if ownership.get("kind") == "managed-section":
                     file_record["ownership"] = "managed-section"
@@ -519,7 +523,7 @@ class AgentInstructionService:
             )
             inventory.append(
                 {
-                    "path": str(setup_path),
+                    "path": _portable_path_key(setup_path),
                     "kind": "whole-file",
                     "owner": "p2p-engine-runtime",
                     "sha256": setup_digest,
@@ -588,18 +592,19 @@ class AgentInstructionService:
             relative_path = self._safe_relative_path(relative_path, label="Agent instruction path")
             path = self.root / relative_path
             relative = path.relative_to(self.root)
-            existing_record = current_files.get(str(relative))
+            relative_key = _portable_path_key(relative)
+            existing_record = current_files.get(relative_key)
             if path.exists():
                 existing_content = path.read_text(encoding="utf-8")
                 current_hash = _sha256_file(path)
                 if existing_record and existing_record.get("ownership") == "managed-section":
-                    skipped.append({"path": str(relative), "reason": "user_owned_container"})
+                    skipped.append({"path": relative_key, "reason": "user_owned_container"})
                     continue
                 if existing_record and existing_record.get("sha256") != current_hash and not force:
-                    skipped.append({"path": str(relative), "reason": "drifted"})
+                    skipped.append({"path": relative_key, "reason": "drifted"})
                     continue
                 if not existing_record and existing_content != content and not force:
-                    skipped.append({"path": str(relative), "reason": "unmanaged_exists"})
+                    skipped.append({"path": relative_key, "reason": "unmanaged_exists"})
                     continue
                 if existing_content == content:
                     continue
@@ -621,7 +626,7 @@ class AgentInstructionService:
         return self._with_preserved_file_records(
             old_registry,
             new_registry,
-            {str(item["path"]) for item in skipped},
+            {_portable_path_key(item["path"]) for item in skipped},
         )
 
     def _with_preserved_file_records(
@@ -630,6 +635,7 @@ class AgentInstructionService:
         new_registry: dict[str, object],
         preserved_paths: set[str],
     ) -> dict[str, object]:
+        preserved_paths = {_portable_path_key(path) for path in preserved_paths}
         if not preserved_paths:
             return new_registry
         old_records = self.registry_file_map(old_registry)
@@ -645,7 +651,7 @@ class AgentInstructionService:
             for index, record in enumerate(file_records):
                 if not isinstance(record, dict):
                     continue
-                path_key = str(record.get("path", ""))
+                path_key = _portable_path_key(record.get("path", ""))
                 if path_key not in preserved_paths:
                     continue
                 current_path = self.root / path_key
@@ -669,15 +675,15 @@ class AgentInstructionService:
             new_artifacts = new_integration.get("artifacts", [])
             if isinstance(old_artifacts, list) and isinstance(new_artifacts, list):
                 preserved_artifacts = {
-                    str(item.get("path")): dict(item)
+                    _portable_path_key(item.get("path")): dict(item)
                     for item in old_artifacts
                     if isinstance(item, dict)
-                    and str(item.get("path") or "") in preserved_paths
+                    and _portable_path_key(item.get("path")) in preserved_paths
                 }
                 for index, item in enumerate(new_artifacts):
                     if not isinstance(item, dict):
                         continue
-                    path_key = str(item.get("path") or "")
+                    path_key = _portable_path_key(item.get("path"))
                     if path_key in preserved_artifacts:
                         new_artifacts[index] = preserved_artifacts[path_key]
         return new_registry
@@ -685,7 +691,9 @@ class AgentInstructionService:
     def _expected_templates(self, adapter_id: str) -> dict[str, str]:
         project_name = self.project_name()
         return {
-            str(self._safe_relative_path(path, label="Agent adapter path")): template_id
+            _portable_path_key(
+                self._safe_relative_path(path, label="Agent adapter path")
+            ): template_id
             for path, template_id, _shared, _owner in self.adapter_files(
                 project_name,
                 adapter_id,
@@ -718,7 +726,9 @@ class AgentInstructionService:
             if not path.exists():
                 continue
             if not force and record.get("sha256") != _sha256_file(path):
-                skipped.append({"path": str(relative), "reason": "obsolete_drifted"})
+                skipped.append(
+                    {"path": _portable_path_key(relative), "reason": "obsolete_drifted"}
+                )
                 continue
             path.unlink()
             removed.append(relative)
@@ -740,7 +750,7 @@ class AgentInstructionService:
             for file_record in files:
                 if not isinstance(file_record, dict):
                     continue
-                path_key = str(file_record.get("path") or "")
+                path_key = _portable_path_key(file_record.get("path"))
                 expected_template = expected_templates.get(path_key)
                 content_status, generation_status, status_value = self.file_status(
                     file_record,
@@ -774,7 +784,10 @@ class AgentInstructionService:
         *,
         expected_template_id: str | None,
     ) -> tuple[str, str, str]:
-        path = self.root / str(file_record.get("path", ""))
+        path = self.root / self._safe_relative_path(
+            file_record.get("path", ""),
+            label="Agent registry path",
+        )
         registry_status = str(file_record.get("drift") or "clean")
         if not path.exists():
             content_status = "missing"
@@ -826,7 +839,7 @@ class AgentInstructionService:
         return "clean"
 
     def _safe_relative_path(self, value: object, *, label: str) -> Path:
-        raw_path = str(value or "").strip()
+        raw_path = str(value or "").strip().replace("\\", "/")
         if not raw_path:
             raise ValueError(f"{label} is required.")
         relative_path = Path(raw_path)
@@ -903,6 +916,11 @@ class AgentInstructionService:
                 suggested_command="p2p validate",
             )
         )
+
+
+def _portable_path_key(value: object) -> str:
+    raw = str(value or "").strip().replace("\\", "/")
+    return PurePosixPath(raw).as_posix() if raw else ""
 
 
 def _sha256_file(path: Path) -> str:

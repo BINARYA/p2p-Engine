@@ -119,6 +119,43 @@ def test_install_adopts_verified_preintegration_artifacts(tmp_path: Path) -> Non
     ).splitlines()[0]
 
 
+def test_refresh_normalizes_windows_manifest_paths_without_losing_ownership(
+    tmp_path: Path,
+) -> None:
+    workspace = _workspace(tmp_path, agent="codex")
+    manifest_path = tmp_path / ".p2p" / "agent-integrations.yml"
+    manifest = _manifest(tmp_path)
+    adapters = manifest["adapters"]
+    assert isinstance(adapters, dict)
+    for adapter in adapters.values():
+        assert isinstance(adapter, dict)
+        files = adapter["files"]
+        assert isinstance(files, list)
+        for item in files:
+            item["path"] = str(item["path"]).replace("/", "\\")
+    integration = manifest["integration"]
+    assert isinstance(integration, dict)
+    artifacts = integration["artifacts"]
+    assert isinstance(artifacts, list)
+    for item in artifacts:
+        item["path"] = str(item["path"]).replace("/", "\\")
+    manifest_path.write_text(yaml.safe_dump(manifest, sort_keys=False), encoding="utf-8")
+
+    assert workspace.project_integration_status()["state"] == "current"
+
+    refreshed = workspace.refresh_project_integration()
+    normalized = _manifest(tmp_path)
+    normalized_paths = {
+        str(item["path"])
+        for item in normalized["integration"]["artifacts"]
+    }
+
+    assert refreshed.status == "applied"
+    assert ".p2p/agent-policy.yml" in normalized_paths
+    assert all("\\" not in path for path in normalized_paths)
+    assert workspace.project_integration_status()["state"] == "current"
+
+
 def test_profile_matrix_rejects_future_profiles_without_writes(tmp_path: Path) -> None:
     workspace = _workspace(tmp_path)
     before = {

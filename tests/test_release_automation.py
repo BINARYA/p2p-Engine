@@ -48,14 +48,13 @@ def test_ci_is_pre_tag_and_reuses_one_wheel_across_supported_uv_matrix() -> None
         "windows-x86_64",
         "macos-arm64",
     ]
-    assert [
-        item["lifecycle"]
+    assert all(
+        "lifecycle" not in item
         for item in uv_installed["strategy"]["matrix"]["include"]
-    ] == [True, False, False, False]
+    )
     assert text.count("p2p-engine-uv-candidate-${{ github.sha }}") == 2
-    assert text.count("p2p-engine-uv-previous-0.5.0-${{ github.sha }}") == 2
-    assert "99c43fa51ba78a01dfdc153c9821d5f2bf6890156a03447eeeb159ee894a6768" in text
-    assert "--previous-wheel" in text
+    assert "previous-artifact" not in text
+    assert "--previous-wheel" not in text
     assert "version: \"0.12.6\"" in text
     assert "--managed-python" in (ROOT / "scripts" / "test-uv-installed.py").read_text(
         encoding="utf-8"
@@ -87,24 +86,8 @@ def test_runner_temp_is_bound_only_after_each_matrix_runner_exists() -> None:
             for step in job["steps"]
             if step.get("name") == "Qualify managed-Python uv installation"
         )
-        lifecycle = next(
-            step
-            for step in job["steps"]
-            if step.get("name")
-            == "Qualify managed-Python uv installation and 0.5.0 lifecycle"
-        )
-        baseline = next(
-            step
-            for step in job["steps"]
-            if step.get("name") == "Download the verified lifecycle baseline"
-        )
         assert qualification["env"]["P2P_UV_TEST_TMPDIR"] == "${{ runner.temp }}"
-        assert lifecycle["env"]["P2P_UV_TEST_TMPDIR"] == "${{ runner.temp }}"
-        assert qualification["if"] == "matrix.lifecycle == false"
-        assert lifecycle["if"] == "matrix.lifecycle"
-        assert baseline["if"] == "matrix.lifecycle"
         assert "--previous-wheel" not in qualification["run"]
-        assert "--previous-wheel" in lifecycle["run"]
 
 
 def test_staged_mypy_gate_is_import_bounded_and_cache_independent() -> None:
@@ -138,16 +121,13 @@ def test_candidate_is_exact_read_only_non_publishing_gate() -> None:
         "windows-x86_64",
         "macos-arm64",
     ]
-    assert [item["lifecycle"] for item in uv_matrix["strategy"]["matrix"]["include"]] == [
-        True,
-        False,
-        False,
-        False,
-    ]
+    assert all(
+        "lifecycle" not in item
+        for item in uv_matrix["strategy"]["matrix"]["include"]
+    )
     assert "test-uv-installed.py" in text
-    assert "--previous-wheel" in text
-    assert "p2p-engine-previous-0.5.0-${{ inputs.ref }}" in text
-    assert "99c43fa51ba78a01dfdc153c9821d5f2bf6890156a03447eeeb159ee894a6768" in text
+    assert "--previous-wheel" not in text
+    assert "previous-artifact" not in text
     assert "release create" not in text
     assert "publish-release.sh" not in text
     assert "coverage" not in text.lower()
