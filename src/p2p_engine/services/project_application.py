@@ -16,6 +16,7 @@ from p2p_engine.core.project_state_storage import (
 from p2p_engine.foundation.yaml_loaders import UNIQUE_LOADER_CONTRACT, load_yaml
 from p2p_engine.ports.project_state import ProjectStateAdapter, ProjectUnitOfWork
 from p2p_engine.services.authority_transfer import AuthorityTransferService
+from p2p_engine.services.linked_replica import LinkedReplicaService
 from p2p_engine.storage.filesystem_project_state import FilesystemProjectStateAdapter
 from p2p_engine.storage.project_storage import ProjectStorageResolver
 
@@ -105,6 +106,43 @@ class ProjectApplicationService:
 
     def recover_authority_transfer(self):
         result = self._authority_transfer_service().recover()
+        self._refresh_storage_binding()
+        return result
+
+    def linked_replica_status(self):
+        return self._linked_replica_service().status()
+
+    def linked_replica_catch_up(self):
+        result = self._linked_replica_service().catch_up()
+        self._refresh_storage_binding()
+        return result
+
+    def linked_replica_recover(self):
+        return self.linked_replica_catch_up()
+
+    def linked_replica_register_copy(self, *, operation_key: str, confirm: bool):
+        result = self._linked_replica_service().register_copy(
+            operation_key=operation_key,
+            confirm=confirm,
+        )
+        self._refresh_storage_binding()
+        return result
+
+    def linked_replica_move(self, *, operation_key: str, confirm: bool):
+        result = self._linked_replica_service().move(
+            operation_key=operation_key,
+            confirm=confirm,
+        )
+        self._refresh_storage_binding()
+        return result
+
+    def linked_replica_read_only(self):
+        result = self._linked_replica_service().mark_read_only()
+        self._refresh_storage_binding()
+        return result
+
+    def linked_replica_before_operation(self, *, mutation: bool):
+        result = self._linked_replica_service().before_operation(mutation=mutation)
         self._refresh_storage_binding()
         return result
 
@@ -261,6 +299,16 @@ class ProjectApplicationService:
         target = self.adapter.compatibility_target()
         return AuthorityTransferService(
             adapter=self.adapter,
+            integration_transition=lambda: getattr(
+                target, "activate_linked_project_integration"
+            )(),
+        )
+
+    def _linked_replica_service(self) -> LinkedReplicaService:
+        target = self.adapter.compatibility_target()
+        return LinkedReplicaService(
+            root=self.root,
+            store=self.adapter.linked_replicas,
             integration_transition=lambda: getattr(
                 target, "activate_linked_project_integration"
             )(),

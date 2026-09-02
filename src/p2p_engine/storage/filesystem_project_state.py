@@ -31,6 +31,7 @@ from p2p_engine.services.workspace_transactions import (
 )
 from p2p_engine.storage.canonical_memory import FilesystemCanonicalMemoryStore
 from p2p_engine.storage.filesystem_authority_transfer import FilesystemAuthorityTransferStore
+from p2p_engine.storage.filesystem_linked_replica import FilesystemLinkedReplicaStore
 
 
 def _record(entity: CanonicalEntity) -> ProjectEntityRecord:
@@ -521,6 +522,7 @@ class FilesystemProjectStateAdapter:
         self._backups = FilesystemBackupPort(self._repository)
         self._migrations = FilesystemMigrationPort()
         self._authority_transfers = FilesystemAuthorityTransferStore(self.root)
+        self._linked_replicas = FilesystemLinkedReplicaStore(self.root)
 
     @property
     def selection(self) -> ProjectStorageSelection:
@@ -556,6 +558,10 @@ class FilesystemProjectStateAdapter:
     @property
     def authority_transfers(self) -> FilesystemAuthorityTransferStore:
         return self._authority_transfers
+
+    @property
+    def linked_replicas(self) -> FilesystemLinkedReplicaStore:
+        return self._linked_replicas
 
     def unit_of_work(self) -> FilesystemProjectUnitOfWork:
         return FilesystemProjectUnitOfWork(self._repository)

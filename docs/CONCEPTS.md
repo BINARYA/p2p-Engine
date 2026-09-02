@@ -80,9 +80,12 @@ physical persistence; generated agent instructions remain identical. See
 A standalone project has one authoritative local writer. An owner-confirmed
 WaveKit transfer preserves `project_uuid`, uploads the canonical bundle and
 managed blobs, then changes local identity only after verifying a committed
-server receipt. The local copy becomes a read-only, potentially stale linked
-replica. A timeout is resolved from the original session; it never elects the
-local copy again. See [AUTHORITY-TRANSFER.md](AUTHORITY-TRANSFER.md).
+server receipt. The local copy becomes a linked replica. Clone/attach can create
+additional complete replicas with distinct `replica_id` values; each tracks a
+verified remote revision and cursor. Offline reads are explicitly stale and
+offline mutations are rejected without an outbox. A timeout never elects a
+local copy again. See [AUTHORITY-TRANSFER.md](AUTHORITY-TRANSFER.md) and
+[LINKED-PROJECT-REPLICAS.md](LINKED-PROJECT-REPLICAS.md).
 
 Generated registries should be refreshed from source artifacts with:
 

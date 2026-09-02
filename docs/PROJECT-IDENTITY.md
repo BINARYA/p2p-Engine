@@ -156,7 +156,9 @@ receipt validation and lost-response recovery rule.
 
 ## Deliberate Limits
 
-The current runtime implements the client/local half of WaveKit authority
-transfer. It does not implement replica catch-up, clone, detach, offline
-mutation, realtime collaboration, WaveKit server persistence, SQLite, or
-automatic merging of divergent copies.
+The current runtime implements the client/local halves of WaveKit authority
+transfer and complete linked-replica clone, attach, catch-up, rebuild, move and
+copy registration. It does not implement detach, offline mutation, realtime
+collaboration, WaveKit's internal persistence, SQLite in the selected product
+line, or automatic merging of divergent copies. See
+[`LINKED-PROJECT-REPLICAS.md`](LINKED-PROJECT-REPLICAS.md).

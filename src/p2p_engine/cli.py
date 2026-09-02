@@ -10,6 +10,7 @@ from p2p_engine.cli_commands.agents import register_agent_commands
 from p2p_engine.cli_commands.authority_transfer import register_authority_transfer_commands
 from p2p_engine.cli_commands.collaboration import register_collaboration_commands
 from p2p_engine.cli_commands.doctor import register_doctor_commands
+from p2p_engine.cli_commands.linked_replica import register_linked_replica_commands
 from p2p_engine.cli_commands.mutations import register_mutation_commands
 from p2p_engine.cli_commands.next_actions import register_next_commands
 from p2p_engine.cli_commands.project_authority import register_project_authority_commands
@@ -105,6 +106,7 @@ workspace_transaction_app = typer.Typer(help="Inspect and recover atomic workspa
 vertical_app = typer.Typer(help="Discover, obtain and author exact vertical releases")
 mutation_app = typer.Typer(help="Inspect durable idempotent mutation outcomes")
 auth_app = typer.Typer(help="Manage personal WaveKit authentication")
+wavekit_app = typer.Typer(help="Clone and operate WaveKit-linked local replicas")
 
 proposal_app.add_typer(proposal_readiness_app, name="readiness")
 proposal_app.add_typer(proposal_questions_app, name="questions")
@@ -144,6 +146,7 @@ app.add_typer(workspace_app, name="workspace")
 app.add_typer(vertical_app, name="vertical")
 app.add_typer(mutation_app, name="mutation")
 app.add_typer(auth_app, name="auth")
+app.add_typer(wavekit_app, name="wavekit")
 workspace_app.add_typer(workspace_schema_app, name="schema")
 workspace_app.add_typer(workspace_transaction_app, name="transaction")
 project_app.add_typer(project_brief_app, name="brief")
@@ -172,6 +175,7 @@ register_workspace_schema_commands(workspace_schema_app)
 register_workspace_transaction_commands(workspace_transaction_app)
 register_mutation_commands(mutation_app)
 register_authority_transfer_commands(auth_app, project_app)
+register_linked_replica_commands(wavekit_app)
 register_project_status_commands(app, assess_app, assess_maturity_app)
 register_project_identity_commands(project_app)
 register_proposal_commands(

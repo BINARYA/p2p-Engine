@@ -88,6 +88,31 @@
       ],
       "group": "recovery",
       "mutates_project": false
+    },
+    {
+      "commands": [
+        "p2p wavekit clone REMOTE-ID --server SERVER --account-profile PROFILE --operation-key OWNER-KEY --target WORKSPACE --confirm --format json",
+        "p2p wavekit attach REMOTE-ID --server SERVER --account-profile PROFILE --operation-key OWNER-KEY --root WORKSPACE --confirm --format json",
+        "p2p wavekit replica move --operation-key OWNER-KEY --confirm --root WORKSPACE --format json",
+        "p2p wavekit replica register-copy --operation-key OWNER-KEY --confirm --root WORKSPACE --format json"
+      ],
+      "group": "linked_replica_owner",
+      "mutates_project": true
+    },
+    {
+      "commands": [
+        "p2p wavekit status --root WORKSPACE --format json"
+      ],
+      "group": "linked_replica_status",
+      "mutates_project": false
+    },
+    {
+      "commands": [
+        "p2p wavekit sync catch-up --root WORKSPACE --format json",
+        "p2p wavekit sync recover --root WORKSPACE --format json"
+      ],
+      "group": "linked_replica_sync",
+      "mutates_project": true
     }
   ],
   "contract_version": "p2p-wavekit-cli-fixtures/v1",
@@ -104,6 +129,11 @@
       "contract": "p2p-domain/v1"
     },
     "engine_version": "0.6.1",
+    "linked_replica_binding_contract": "p2p-linked-replica-binding/v1",
+    "linked_replica_capability_contract": "p2p-linked-replica-capabilities/v1",
+    "linked_replica_change_contract": "p2p-linked-replica-change-batch/v1",
+    "linked_replica_protocol": "p2p-linked-replica/v1",
+    "linked_replica_snapshot_contract": "p2p-linked-replica-snapshot/v1",
     "local_authority_policy_version": "p2p-local-authority/v1",
     "local_memory_schema_version": {
       "compatibility": "exact-schema",
@@ -153,9 +183,9 @@
     "structure_source_contract": "p2p-structure-source/v1",
     "structure_transition_result_contract": "p2p-structure-transition-result/v1",
     "sync_protocol_version": {
-      "compatibility": "not-negotiated",
-      "protocol": null,
-      "status": "unavailable"
+      "compatibility": "exact-major",
+      "protocol": "p2p-linked-replica/v1",
+      "status": "client-implemented"
     },
     "vertical_draft_document_contract": "p2p-vertical-draft/v1",
     "vertical_draft_evidence_contract": "p2p-vertical-draft-evidence/v1",
@@ -178,7 +208,7 @@
     "restore_apply_available": false,
     "retained_inspect_available": true
   },
-  "operation_inventory_sha256": "055146299ecf445ab9b2d29fb1808df363f3ede5e20f0de60201f001beb73d9a",
+  "operation_inventory_sha256": "30d62bfc48554f19c3f9401252c81a2a70a90cadf466882fb14a001da69b41b6",
   "registry_v2": {
     "domain_filtering": "exact_external_id_only",
     "mutation_performed": false,
@@ -191,7 +221,7 @@
     "operation_key_placeholder": "wavekit:<uuid>",
     "root_placeholder": "<PROJECT_ROOT>"
   },
-  "semantic_sha256": "683f1686c0ed25f2f3b0ad4afbc645afaa5699f92b0db6bdc2fc9b67cc8865aa",
+  "semantic_sha256": "c906bd85b9dedbf26ebe470ffaecf70d5ecae57fd5f466624e86e36fd5570075",
   "transport": {
     "envelope": "p2p-cli/v1",
     "kind": "cli_json",

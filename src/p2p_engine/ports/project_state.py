@@ -19,6 +19,11 @@ from p2p_engine.core.canonical_memory import (
     MemoryRestoreResult,
     PhysicalBackupResult,
 )
+from p2p_engine.core.linked_replica import (
+    LinkedReplicaBinding,
+    ReplicaAccessState,
+    ReplicaSnapshotManifest,
+)
 from p2p_engine.core.project_identity import ProjectIdentity
 from p2p_engine.core.project_state_storage import (
     ProjectArchive,
@@ -147,6 +152,33 @@ class AuthorityTransferStatePort(Protocol):
     def set_link_suspended(self, suspended: bool) -> ProjectIdentity: ...
 
 
+class LinkedReplicaStatePort(Protocol):
+    def load(self) -> LinkedReplicaBinding | None: ...
+
+    def verify_active_identity(
+        self, binding: LinkedReplicaBinding | None = None
+    ) -> ProjectIdentity: ...
+
+    def save(self, binding: LinkedReplicaBinding) -> LinkedReplicaBinding: ...
+
+    def activate_snapshot(
+        self,
+        manifest: ReplicaSnapshotManifest,
+        *,
+        server_url: str,
+        account_profile_ref: str,
+        verified_at: int,
+        preserve_replica_id: bool = False,
+    ) -> LinkedReplicaBinding: ...
+
+    def mark_access(
+        self,
+        state: ReplicaAccessState,
+        *,
+        error_code: str = "",
+    ) -> LinkedReplicaBinding: ...
+
+
 class ProjectStateAdapter(Protocol):
     @property
     def selection(self) -> ProjectStorageSelection: ...
@@ -171,6 +203,9 @@ class ProjectStateAdapter(Protocol):
 
     @property
     def authority_transfers(self) -> AuthorityTransferStatePort: ...
+
+    @property
+    def linked_replicas(self) -> LinkedReplicaStatePort: ...
 
     def unit_of_work(self) -> ProjectUnitOfWork: ...
 

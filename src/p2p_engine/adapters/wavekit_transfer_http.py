@@ -35,6 +35,14 @@ class WaveKitTransferTransport(Protocol):
         max_response_bytes: int = 1_048_576,
     ) -> object: ...
 
+    def download_bytes(
+        self,
+        url: str,
+        *,
+        token: str,
+        max_bytes: int,
+    ) -> bytes: ...
+
 
 class HTTPSWaveKitTransferTransport:
     def __init__(self, *, connect_timeout: float = 5.0, read_timeout: float = 60.0) -> None:
@@ -101,6 +109,38 @@ class HTTPSWaveKitTransferTransport:
             max_bytes=max_response_bytes,
         )
 
+    def download_bytes(
+        self,
+        url: str,
+        *,
+        token: str,
+        max_bytes: int,
+    ) -> bytes:
+        headers = {
+            "Accept": "application/octet-stream",
+            "Authorization": f"Bearer {token}",
+        }
+        connection, path = self._connection(url)
+        try:
+            connection.request("GET", path, headers=headers)
+            response = connection.getresponse()
+            if connection.sock is not None:
+                connection.sock.settimeout(self.read_timeout)
+            payload = self._read_bounded(response, max_bytes=max_bytes)
+            if not 200 <= response.status < 300:
+                self._raise_provider_error(response.status, payload, token=token)
+            return payload
+        except ValueError:
+            raise
+        except (TimeoutError, socket.timeout) as exc:
+            raise ValueError(
+                "P2P_WAVEKIT_RESPONSE_UNKNOWN: download timed out; retry the same session"
+            ) from exc
+        except (ssl.SSLError, OSError, http.client.HTTPException) as exc:
+            raise ValueError("P2P_WAVEKIT_UNAVAILABLE: " + redact_secret(exc, token)) from exc
+        finally:
+            connection.close()
+
     def _request(
         self,
         method: str,
@@ -141,18 +181,24 @@ class HTTPSWaveKitTransferTransport:
 
     def _connection(self, url: str) -> tuple[http.client.HTTPConnection, str]:
         parsed = urlsplit(url)
-        if parsed.username is not None or parsed.password is not None or parsed.fragment:
+        if (
+            parsed.username is not None
+            or parsed.password is not None
+            or parsed.fragment
+            or parsed.hostname is None
+        ):
             raise ValueError("P2P_WAVEKIT_INVALID_URL: unsafe request URL")
+        hostname = parsed.hostname
         if parsed.scheme == "https":
             connection: http.client.HTTPConnection = http.client.HTTPSConnection(
-                parsed.hostname,
+                hostname,
                 parsed.port,
                 timeout=self.connect_timeout,
                 context=ssl.create_default_context(),
             )
         elif parsed.scheme == "http" and parsed.hostname in {"localhost", "127.0.0.1", "::1"}:
             connection = http.client.HTTPConnection(
-                parsed.hostname, parsed.port, timeout=self.connect_timeout
+                hostname, parsed.port, timeout=self.connect_timeout
             )
         else:
             raise ValueError("P2P_WAVEKIT_INVALID_URL: HTTPS is required outside loopback")

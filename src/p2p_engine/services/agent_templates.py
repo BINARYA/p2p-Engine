@@ -694,13 +694,19 @@ def project_integration_guide(profile: str = STANDALONE_PROFILE) -> str:
     else:
         authority_lines = """- Profile: `linked-local`
 - Authority: WaveKit is authoritative; local memory is a replica.
-- Supported agent surfaces: local CLI and local MCP over `stdio` for replica reads.
-- Offline reads: potentially stale.
-- Offline governed mutations: blocked."""
-        sync_line = "transfer binding only; catch-up is not implemented in this release"
+- Supported agent surfaces: local CLI and local MCP over `stdio` through the replica service.
+- Before using cached project state: run the documented catch-up command and
+  verify its WaveKit revision; automatic domain-command interception is not
+  advertised by this client checkpoint.
+- Offline reads: permitted only with explicit stale source/revision metadata.
+- Offline governed mutations: blocked.
+- Online authoritative mutations: unavailable until the paired WaveKit command
+  integration is installed."""
+        sync_line = "p2p wavekit sync catch-up --root . --format json"
         reservation = (
-            "Do not infer authority from local availability. Use `p2p project transfer status` "
-            "and `p2p project transfer recover`; replica catch-up is introduced separately."
+            "Do not infer authority or freshness from local availability. Use `p2p wavekit "
+            "status --root . --format json`; clone, attach, move and copy registration remain "
+            "owner-run CLI operations."
         )
     return f"""{managed_markdown_header("generic", "project-integration-guide-v1")}# P2P Project Integration
 
@@ -716,6 +722,7 @@ This file is a regenerable runtime projection. It is not canonical project memor
 p2p integration status --format json
 p2p runtime status --root . --format json
 p2p project identity status --root . --format json
+p2p wavekit status --root . --format json
 p2p-mcp-server --root .
 ```
 

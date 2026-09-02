@@ -9,12 +9,12 @@ digests, and do not expose the selected storage adapter.
 | Profile | Local memory | Agent surfaces | Authority | Current support |
 |---|---:|---|---|---|
 | `standalone` | yes | CLI and MCP `stdio` | local | implemented |
-| `linked-local` | replica | CLI and MCP `stdio` | WaveKit | activated after verified transfer; local writes blocked |
+| `linked-local` | replica | CLI and MCP `stdio` status/catch-up | WaveKit | verified clone/transfer plus explicit catch-up in this client checkpoint; offline writes blocked |
 | `remote-only` | no | web, API and MCP HTTP | WaveKit | reserved; rendering blocked |
 
-`linked-local` is rendered only after a transfer receipt establishes the remote
-binding. Its local reads are potentially stale; catch-up, freshness and online
-WaveKit-authoritative writes are later features. `remote-only` remains blocked until an
+`linked-local` is rendered only after a transfer receipt or clone snapshot
+establishes the remote binding. Catch-up records source, revision and freshness;
+offline reads are visibly stale and offline writes are rejected. `remote-only` remains blocked until an
 authenticated WaveKit actor plus web, API and MCP HTTP project capabilities
 exist. P2P does not advertise either future profile merely because its design
 has been specified.

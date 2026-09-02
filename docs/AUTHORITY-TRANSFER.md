@@ -131,9 +131,10 @@ binding, receipt and transfer state through the selected adapter.
 
 After cutover, P2P refreshes only proven P2P-owned integration artifacts to
 `linked-local`; user-owned content is preserved and reported. Agents are told
-that WaveKit is authoritative, local reads may be stale and governed local
-mutations are blocked. Replica catch-up and online WaveKit mutation routing are
-separate later features.
+that WaveKit is authoritative, offline reads are visibly stale and offline
+mutations are blocked. The linked-replica lifecycle now supplies clone, attach,
+catch-up, rebuild and physical copy handling; see
+[`LINKED-PROJECT-REPLICAS.md`](LINKED-PROJECT-REPLICAS.md).
 
 MCP exposes only:
 

@@ -377,6 +377,10 @@ Stable:
   Owner login, transfer preview/apply, resumable session, activation receipt,
   linked-local cutover and recovery boundary.
 
+- [docs/LINKED-PROJECT-REPLICAS.md](docs/LINKED-PROJECT-REPLICAS.md)
+  Complete linked clone/attach, verified catch-up, stale offline reads and
+  explicit physical move/copy handling.
+
 - [docs/AUTHORITY-CONTEXT.md](docs/AUTHORITY-CONTEXT.md)
   Project authority, subject/executor separation, capabilities, external attestations and rotation.
 
@@ -414,11 +418,10 @@ Work in progress:
 
 Short-term:
 
-- validate the 0.6.1 release across downstream integrations;
+- qualify the linked-replica candidate against WaveKit and release it only
+  after the paired cross-platform gate;
 - validate MCP behavior with more real clients;
 - continue hardening validation and recovery paths;
-- measure the filesystem adapter behind the new application/storage ports
-  against the frozen pre-port baseline.
 
 Later:
 

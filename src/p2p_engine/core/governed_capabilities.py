@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Final
 
-
 LOCAL_POLICY_OWNER = "project_owner"
 LOCAL_POLICY_PROJECT_ACTOR = "project_actor"
 LOCAL_POLICY_READ_ONLY = "read_only"
@@ -63,6 +62,14 @@ GOVERNED_CAPABILITIES: Final[tuple[GovernedCapability, ...]] = (
         _BOTH_MODES,
         True,
         "implemented",
+    ),
+    GovernedCapability(
+        "project.replica.manage",
+        "project_lifecycle",
+        LOCAL_POLICY_OWNER,
+        _BOTH_MODES,
+        True,
+        "implemented_cli_owner_mcp_status_and_catch_up",
     ),
     GovernedCapability(
         "project.vertical.install",

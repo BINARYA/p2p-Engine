@@ -17,6 +17,8 @@ EXPECTED_TOOL_NAMES = (
     "p2p_project_authority_transfer_eligibility",
     "p2p_project_authority_transfer_preview",
     "p2p_project_authority_transfer_status",
+    "p2p_linked_replica_status",
+    "p2p_linked_replica_catch_up",
     "p2p_integration_status",
     "p2p_agent_list",
     "p2p_agent_show",

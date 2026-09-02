@@ -20,8 +20,8 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     snapshot = public_surface_snapshot()
 
     assert snapshot.contract_version == PUBLIC_SURFACE_CONTRACT_VERSION
-    assert len(snapshot.cli_paths) == 304
-    assert len(snapshot.mcp_tools) == 179
+    assert len(snapshot.cli_paths) == 312
+    assert len(snapshot.mcp_tools) == 181
     assert "p2p auth login" in snapshot.cli_paths
     assert "p2p project transfer apply" in snapshot.cli_paths
     assert "p2p project transfer recover" in snapshot.cli_paths
@@ -29,6 +29,13 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     assert "p2p_project_authority_transfer_preview" in snapshot.mcp_tools
     assert "p2p_project_authority_transfer_status" in snapshot.mcp_tools
     assert "p2p_project_authority_transfer_apply" not in snapshot.mcp_tools
+    assert "p2p wavekit clone" in snapshot.cli_paths
+    assert "p2p wavekit attach" in snapshot.cli_paths
+    assert "p2p wavekit sync catch-up" in snapshot.cli_paths
+    assert "p2p wavekit replica register-copy" in snapshot.cli_paths
+    assert "p2p_linked_replica_status" in snapshot.mcp_tools
+    assert "p2p_linked_replica_catch_up" in snapshot.mcp_tools
+    assert "p2p_linked_replica_clone" not in snapshot.mcp_tools
     assert "p2p integration status" in snapshot.cli_paths
     assert "p2p integration install" in snapshot.cli_paths
     assert "p2p integration refresh" in snapshot.cli_paths

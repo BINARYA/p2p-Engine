@@ -12,6 +12,13 @@ from p2p_engine.core.authority_transfer import (
     AUTHORITY_TRANSFER_PROTOCOL,
     AUTHORITY_TRANSFER_RECEIPT_CONTRACT,
 )
+from p2p_engine.core.linked_replica import (
+    LINKED_REPLICA_BINDING_CONTRACT,
+    LINKED_REPLICA_CAPABILITY_CONTRACT,
+    LINKED_REPLICA_CHANGE_CONTRACT,
+    LINKED_REPLICA_PROTOCOL,
+    LINKED_REPLICA_SNAPSHOT_CONTRACT,
+)
 from p2p_engine.core.mutation_receipts import MUTATION_RECEIPT_SCHEMA_VERSION
 from p2p_engine.core.portable_verticals import (
     PORTABLE_VERTICAL_PACKAGE_VERSION,
@@ -141,6 +148,11 @@ def current_contract_versions() -> dict[str, object]:
         "mutation_receipt_schema_version": MUTATION_RECEIPT_SCHEMA_VERSION,
         "authority_transfer_protocol": AUTHORITY_TRANSFER_PROTOCOL,
         "authority_transfer_receipt_contract": AUTHORITY_TRANSFER_RECEIPT_CONTRACT,
+        "linked_replica_protocol": LINKED_REPLICA_PROTOCOL,
+        "linked_replica_capability_contract": LINKED_REPLICA_CAPABILITY_CONTRACT,
+        "linked_replica_binding_contract": LINKED_REPLICA_BINDING_CONTRACT,
+        "linked_replica_snapshot_contract": LINKED_REPLICA_SNAPSHOT_CONTRACT,
+        "linked_replica_change_contract": LINKED_REPLICA_CHANGE_CONTRACT,
         "local_memory_schema_version": integration_versions["local_memory"],
         "domain_memory_contract_version": integration_versions["domain"],
         "project_bundle_contract_version": integration_versions["bundle"],

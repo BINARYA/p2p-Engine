@@ -9,6 +9,7 @@ from p2p_engine.core.canonical_memory import (
     MEMORY_SCHEMA_VERSION,
     PROJECT_BUNDLE_SCHEMA,
 )
+from p2p_engine.core.linked_replica import LINKED_REPLICA_PROTOCOL
 
 PROJECT_INTEGRATION_CONTRACT = "p2p-project-integration/v1"
 PROJECT_INTEGRATION_MANIFEST_VERSION = 1
@@ -24,10 +25,7 @@ PROJECT_ACCESS_PROFILES = (
     REMOTE_ONLY_PROFILE,
 )
 
-# Transfer and replica synchronization are deliberately not implemented by
-# this feature.  Keeping an explicit, nullable dimension prevents callers from
-# confusing the integration-artifact contract with a future sync protocol.
-SYNC_PROTOCOL_VERSION: str | None = None
+SYNC_PROTOCOL_VERSION = LINKED_REPLICA_PROTOCOL
 
 
 @dataclass(frozen=True)
@@ -97,18 +95,19 @@ def access_profile(value: str) -> ProjectAccessProfile:
                 "wavekit-project-binding",
                 "local-replica-reads",
                 "authority-transfer-recovery",
+                "replica-catch-up",
+                "replica-freshness",
+                "stale-offline-reads",
                 "local-governed-mutations-blocked",
             ),
             unavailable_capabilities=(
-                "replica-catch-up",
-                "replica-freshness",
                 "online-authoritative-write",
             ),
-            offline_reads="potentially-stale",
+            offline_reads="explicitly-stale",
             offline_mutations="blocked",
             reason=(
-                "authority is remote; replica catch-up and online mutation arrive in later "
-                "linked-replica features"
+                "authority is remote; snapshots and freshness are supported, while an online "
+                "mutation becomes local only through the paired WaveKit authoritative result"
             ),
         )
     return ProjectAccessProfile(
@@ -160,8 +159,8 @@ def current_integration_versions() -> dict[str, object]:
         },
         "sync": {
             "protocol": SYNC_PROTOCOL_VERSION,
-            "status": "unavailable",
-            "compatibility": "not-negotiated",
+            "status": "client-implemented",
+            "compatibility": "exact-major",
         },
         "integration": {
             "contract": PROJECT_INTEGRATION_CONTRACT,

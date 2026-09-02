@@ -90,6 +90,34 @@ def operation_traceability_inventory() -> tuple[OperationTrace, ...]:
             tests=("tests/test_authority_rotation.py",),
         ),
         OperationTrace(
+            requirement_group="P1 linked replica",
+            operation="project.replica.manage",
+            cli_paths=(
+                "p2p wavekit clone",
+                "p2p wavekit attach",
+                "p2p wavekit status",
+                "p2p wavekit sync catch-up",
+                "p2p wavekit sync recover",
+                "p2p wavekit replica move",
+                "p2p wavekit replica register-copy",
+                "p2p wavekit replica read-only",
+            ),
+            mcp_tools=(
+                "p2p_linked_replica_status",
+                "p2p_linked_replica_catch_up",
+            ),
+            capability="project.replica.manage",
+            authority_context="wavekit_authenticated_owner_and_server_capability",
+            receipt_evidence="replica registration plus verified snapshot binding",
+            mcp_parity="stdio_status_and_catch_up_owner_identity_changes_cli_only",
+            hosted_boundary=(
+                "WaveKit authorizes replica registration and supplies logical snapshots; "
+                "P2P materializes only through its selected local adapter."
+            ),
+            fixture_group="linked_replica",
+            tests=("tests/test_linked_replica.py",),
+        ),
+        OperationTrace(
             requirement_group="P2 domain and source",
             operation="project.domain.change",
             cli_paths=(
@@ -615,6 +643,31 @@ def wavekit_cli_fixture_bundle() -> dict[str, object]:
             "group": "recovery",
             "mutates_project": False,
             "commands": [str(worker["status_command"])],
+        },
+        {
+            "group": "linked_replica_owner",
+            "mutates_project": True,
+            "commands": [
+                "p2p wavekit clone REMOTE-ID --server SERVER --account-profile PROFILE --operation-key OWNER-KEY --target WORKSPACE --confirm --format json",
+                "p2p wavekit attach REMOTE-ID --server SERVER --account-profile PROFILE --operation-key OWNER-KEY --root WORKSPACE --confirm --format json",
+                "p2p wavekit replica move --operation-key OWNER-KEY --confirm --root WORKSPACE --format json",
+                "p2p wavekit replica register-copy --operation-key OWNER-KEY --confirm --root WORKSPACE --format json",
+            ],
+        },
+        {
+            "group": "linked_replica_status",
+            "mutates_project": False,
+            "commands": [
+                "p2p wavekit status --root WORKSPACE --format json",
+            ],
+        },
+        {
+            "group": "linked_replica_sync",
+            "mutates_project": True,
+            "commands": [
+                "p2p wavekit sync catch-up --root WORKSPACE --format json",
+                "p2p wavekit sync recover --root WORKSPACE --format json",
+            ],
         },
     ]
     payload: dict[str, object] = {

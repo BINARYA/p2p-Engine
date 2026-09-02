@@ -109,6 +109,16 @@ def handle_project_tool(
             ),
             "mutation_performed": False,
         }
+    if name == "p2p_linked_replica_status":
+        return {
+            "linked_replica_status": workspace.linked_replica_status(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_linked_replica_catch_up":
+        return {
+            "linked_replica": workspace.linked_replica_catch_up().to_dict(),
+            "mutation_performed": True,
+        }
     if name in {
         "p2p_project_identity_adopt_apply",
         "p2p_project_identity_derive_apply",

@@ -131,6 +131,37 @@ Apply is intentionally absent from MCP. See
 [`AUTHORITY-TRANSFER.md`](AUTHORITY-TRANSFER.md) for the authority boundary,
 receipt fields and recovery states.
 
+### Clone And Maintain A Linked WaveKit Replica
+
+An authenticated owner can clone into a new workspace or attach to an existing
+workspace that has no `.p2p`:
+
+```bash
+p2p wavekit clone wk_PROJECT --server https://wavekit.example \
+  --account-profile wavekit:user:ACCOUNT_UUID \
+  --operation-key owner:clone-001 --target ./workspace --confirm --format json
+
+p2p wavekit attach wk_PROJECT --server https://wavekit.example \
+  --account-profile wavekit:user:ACCOUNT_UUID \
+  --operation-key owner:attach-001 --root ./workspace --confirm --format json
+```
+
+Both commands download a revision-bound canonical bundle and every managed
+blob, verify them in isolated staging, and publish `.p2p` atomically. Inspect or
+recover freshness with:
+
+```bash
+p2p wavekit status --root . --format json
+p2p wavekit sync catch-up --root . --format json
+p2p wavekit sync recover --root . --format json
+```
+
+Offline reads are explicitly stale and offline mutations are rejected without
+queuing. A physical directory copy must use `p2p wavekit replica
+register-copy`, a confirmed move must use `p2p wavekit replica move`, and
+forensic inspection can select `p2p wavekit replica read-only`. See
+[`LINKED-PROJECT-REPLICAS.md`](LINKED-PROJECT-REPLICAS.md).
+
 `--domain` records an optional free subject classification. It never chooses
 sections, criteria, questions or readiness requirements. Initialization resolves one
 independent structure source: `--starter generic`, `--starter empty`, or one

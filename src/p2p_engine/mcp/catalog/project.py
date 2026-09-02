@@ -131,6 +131,22 @@ def tool_definitions() -> list[dict[str, object]]:
             },
         ),
         _tool(
+            'p2p_linked_replica_status',
+            (
+                'Read the non-secret linked-local binding, access state, revision, cursor and '
+                'freshness without exposing credentials or storage internals.'
+            ),
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_linked_replica_catch_up',
+            (
+                'Catch up a linked-local replica from WaveKit through verified canonical '
+                'snapshots. Clone, attach, move and copy registration remain owner-run CLI.'
+            ),
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
             'p2p_project_domain_show',
             'Read the free project subject classification and its independent structure source.',
             {'root': {'type': 'string'}},
