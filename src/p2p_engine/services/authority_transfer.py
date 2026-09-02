@@ -78,13 +78,23 @@ class AuthorityTransferService:
             )
         endpoints = _mapping(payload.get("endpoints"), "endpoints")
         expected_endpoints = {
-            "eligibility", "sessions", "session", "manifest", "bundle", "blob", "commit", "cancel"
+            "eligibility",
+            "sessions",
+            "session",
+            "manifest",
+            "bundle",
+            "blob",
+            "commit",
+            "cancel",
         }
         if set(endpoints) != expected_endpoints:
             raise ValueError("P2P_WAVEKIT_RESPONSE_INVALID: transfer endpoints are not exact")
         oauth = _mapping(payload.get("oauth_device"), "oauth_device")
         if set(oauth) != {
-            "device_authorization_endpoint", "token_endpoint", "client_id", "scopes"
+            "device_authorization_endpoint",
+            "token_endpoint",
+            "client_id",
+            "scopes",
         } or not isinstance(oauth.get("scopes"), list):
             raise ValueError("P2P_WAVEKIT_RESPONSE_INVALID: OAuth device configuration is invalid")
         limits = _mapping(payload.get("limits"), "limits")
@@ -177,7 +187,9 @@ class AuthorityTransferService:
         return {
             "contract": "p2p-wavekit-auth-status/v1",
             "server_url": server,
-            "credential": credential.public_dict() if credential is not None else {
+            "credential": credential.public_dict()
+            if credential is not None
+            else {
                 "authenticated": False,
                 "token_type": None,
                 "expires_at": 0,
@@ -213,7 +225,9 @@ class AuthorityTransferService:
             )
         active = self.adapter.authority_transfers.load()
         if active is not None and active.state not in {
-            TransferState.rejected, TransferState.cancelled, TransferState.expired
+            TransferState.rejected,
+            TransferState.cancelled,
+            TransferState.expired,
         }:
             if active.project_uuid != identity.project_uuid:
                 raise ValueError("P2P_AUTHORITY_TRANSFER_ACTIVE: another transfer is active")
@@ -222,17 +236,25 @@ class AuthorityTransferService:
         snapshot = self.adapter.repository.snapshot()
         archive = self.adapter.snapshots.export_bundle()
         if len(archive.content) > capabilities.max_bundle_bytes:
-            raise ValueError("P2P_AUTHORITY_TRANSFER_PAYLOAD_TOO_LARGE: bundle exceeds server limit")
+            raise ValueError(
+                "P2P_AUTHORITY_TRANSFER_PAYLOAD_TOO_LARGE: bundle exceeds server limit"
+            )
         if len(snapshot.blobs) > capabilities.max_blobs:
-            raise ValueError("P2P_AUTHORITY_TRANSFER_PAYLOAD_TOO_LARGE: blob count exceeds server limit")
+            raise ValueError(
+                "P2P_AUTHORITY_TRANSFER_PAYLOAD_TOO_LARGE: blob count exceeds server limit"
+            )
         if any(item.size > capabilities.max_blob_bytes for item in snapshot.blobs):
-            raise ValueError("P2P_AUTHORITY_TRANSFER_PAYLOAD_TOO_LARGE: a blob exceeds server limit")
+            raise ValueError(
+                "P2P_AUTHORITY_TRANSFER_PAYLOAD_TOO_LARGE: a blob exceeds server limit"
+            )
         failed_blobs = self.adapter.blobs.verify(item.digest for item in snapshot.blobs)
         recovery = self.adapter.backups.recovery_status()
         blockers = list(f"managed blob failed verification: {item}" for item in failed_blobs)
         if recovery.state != "clean":
             blockers.append("canonical-memory recovery is pending")
-        transfer_id = transfer_id_for(identity.project_uuid, operation_key, capabilities.server_instance_id)
+        transfer_id = transfer_id_for(
+            identity.project_uuid, operation_key, capabilities.server_instance_id
+        )
         source_revision = self.adapter.repository.current_revision().sha256
         request_semantics = {
             "contract": AUTHORITY_TRANSFER_PROTOCOL,
@@ -327,7 +349,9 @@ class AuthorityTransferService:
         credential = self._access_credential(capabilities)
         snapshot = self.adapter.repository.snapshot()
         archive = self.adapter.snapshots.export_bundle()
-        required_blobs = tuple(sorted(item.digest.removeprefix("sha256:") for item in snapshot.blobs))
+        required_blobs = tuple(
+            sorted(item.digest.removeprefix("sha256:") for item in snapshot.blobs)
+        )
         session = AuthorityTransferSession(
             transfer_id=preview.transfer_id,
             request_fingerprint=preview.request_fingerprint,
@@ -417,6 +441,21 @@ class AuthorityTransferService:
             idempotency_key=session.transfer_id,
             max_bytes=AUTHORITY_TRANSFER_MAX_RESPONSE_BYTES,
         )
+        committed_session = _envelope(committed, "authority_transfer_session")
+        if str(committed_session.get("transfer_id") or "") != session.transfer_id:
+            raise ValueError("P2P_WAVEKIT_RESPONSE_INVALID: committed session ID differs")
+        remote_state = str(committed_session.get("state") or "")
+        if remote_state == "committing":
+            return AuthorityTransferResult(
+                status="pending",
+                session=session,
+                message=(
+                    "WaveKit accepted the transfer and is importing it; "
+                    "run p2p project transfer recover until it is committed."
+                ),
+            )
+        if remote_state != "committed":
+            raise ValueError("P2P_WAVEKIT_RESPONSE_INVALID: commit returned an invalid state")
         receipt = self._receipt(committed)
         session = self.adapter.authority_transfers.save(
             session.with_state(TransferState.remote_committed)
@@ -543,9 +582,7 @@ class AuthorityTransferService:
         if session is None or session.server_url != server_url:
             return False
         identity = self.adapter.repository.identity()
-        if (
-            identity.mode not in {ProjectMode.linked, ProjectMode.link_suspended}
-        ):
+        if identity.mode not in {ProjectMode.linked, ProjectMode.link_suspended}:
             return False
         self.adapter.authority_transfers.set_link_suspended(suspended)
         return suspended
@@ -558,13 +595,14 @@ class AuthorityTransferService:
         scopes = tuple(str(raw.get("scope") or "").split())
         return WaveKitCredential(
             access_token=access_token,
-            refresh_token=str(raw.get("refresh_token") or (previous.refresh_token if previous else "")),
+            refresh_token=str(
+                raw.get("refresh_token") or (previous.refresh_token if previous else "")
+            ),
             token_type=str(raw.get("token_type") or "Bearer"),
             expires_at=int(self.now()) + expires_in if expires_in else 0,
             scopes=scopes or (previous.scopes if previous else ()),
             account_profile_ref=str(
-                raw.get("account_profile_ref")
-                or (previous.account_profile_ref if previous else "")
+                raw.get("account_profile_ref") or (previous.account_profile_ref if previous else "")
             ),
         )
 
@@ -621,9 +659,7 @@ class AuthorityTransferService:
     ) -> str:
         return self._url(capabilities, endpoint.format(transfer_id=quote(transfer_id, safe="")))
 
-    def _blob_url(
-        self, capabilities: TransferCapabilities, transfer_id: str, digest: str
-    ) -> str:
+    def _blob_url(self, capabilities: TransferCapabilities, transfer_id: str, digest: str) -> str:
         endpoint = capabilities.endpoints.blob.format(
             transfer_id=quote(transfer_id, safe=""), digest=quote(digest, safe="")
         )
@@ -632,7 +668,12 @@ class AuthorityTransferService:
 
 def normalize_server_url(value: str) -> str:
     parsed = urlsplit(str(value or "").strip())
-    if parsed.username is not None or parsed.password is not None or parsed.query or parsed.fragment:
+    if (
+        parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+    ):
         raise ValueError("P2P_WAVEKIT_INVALID_URL: credentials, query and fragment are forbidden")
     if parsed.scheme == "https":
         pass

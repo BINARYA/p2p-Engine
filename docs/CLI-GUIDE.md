@@ -112,13 +112,15 @@ The owner then runs an exact two-phase handoff:
 
 ```bash
 p2p project transfer preview --server https://wavekit.example \
-  --owner-profile profile:owner-1 --operation-key owner:transfer-001 --format json
+  --owner-profile wavekit:user:ACCOUNT_UUID --operation-key owner:transfer-001 --format json
 p2p project transfer apply --server https://wavekit.example \
-  --owner-profile profile:owner-1 --operation-key owner:transfer-001 \
+  --owner-profile wavekit:user:ACCOUNT_UUID --operation-key owner:transfer-001 \
   --preview-token TOKEN --confirm --format json
 ```
 
-After any timeout, recover the same transfer instead of starting another:
+Apply may return `pending` while WaveKit's worker imports the bundle. After a
+pending response or timeout, recover the same transfer instead of starting
+another:
 
 ```bash
 p2p project transfer status --format json

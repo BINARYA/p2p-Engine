@@ -96,10 +96,14 @@ class FakeWaveKitTransport:
             assert self.session_request
             self.receipt = _receipt(self.session_request)
             if self.commit_timeout:
-                raise ValueError(
-                    "P2P_WAVEKIT_RESPONSE_UNKNOWN: query the same transfer session"
-                )
-            return {"authority_transfer_session": {"receipt": self.receipt}}
+                raise ValueError("P2P_WAVEKIT_RESPONSE_UNKNOWN: query the same transfer session")
+            return {
+                "authority_transfer_session": {
+                    "transfer_id": self.session_request["transfer_id"],
+                    "state": "committed",
+                    "receipt": self.receipt,
+                }
+            }
         if method == "GET" and "/authority-transfers/tr_" in url:
             transfer_id = url.rsplit("/", 1)[-1]
             if self.terminal_state:
@@ -207,6 +211,7 @@ def _service(
             account_profile_ref=OWNER_PROFILE,
         ),
     )
+
     def transition() -> object:
         if actual_integration:
             return application.adapter.compatibility_target().activate_linked_project_integration()
@@ -321,6 +326,45 @@ def test_lost_commit_response_keeps_fence_and_recovery_completes_cutover(
     assert recovered.status == "linked"
     assert application.adapter.repository.identity().mode == ProjectMode.linked
     assert application.adapter.authority_transfers.writes_fenced() is False
+
+
+def test_async_commit_returns_pending_and_recovery_finishes_link(
+    tmp_path: Path,
+) -> None:
+    class AsyncCommitTransport(FakeWaveKitTransport):
+        def request_json(self, method: str, url: str, **kwargs: object) -> object:
+            response = super().request_json(method, url, **kwargs)
+            if url.endswith("/commit"):
+                return {
+                    "authority_transfer_session": {
+                        "transfer_id": self.session_request["transfer_id"],
+                        "state": "committing",
+                        "receipt": None,
+                    }
+                }
+            return response
+
+    transport = AsyncCommitTransport()
+    application, service = _service(tmp_path, transport)
+    preview = _preview(service)
+
+    pending = service.apply(
+        server_url=SERVER,
+        owner_profile_ref=OWNER_PROFILE,
+        operation_key="transfer-once",
+        preview_token=preview.preview_token,
+        confirm=True,
+    )
+
+    assert pending.status == "pending"
+    assert pending.receipt is None
+    assert pending.session.state == TransferState.remote_staging
+    assert application.adapter.authority_transfers.writes_fenced() is True
+
+    recovered = service.recover()
+
+    assert recovered.status == "linked"
+    assert application.adapter.repository.identity().mode == ProjectMode.linked
 
 
 def test_rejected_remote_session_releases_fence_without_binding(tmp_path: Path) -> None:

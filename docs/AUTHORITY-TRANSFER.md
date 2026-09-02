@@ -41,7 +41,7 @@ deterministic transfer ID/fingerprint:
 ```bash
 p2p project transfer preview \
   --server https://wavekit.example \
-  --owner-profile profile:owner-1 \
+  --owner-profile wavekit:user:ACCOUNT_UUID \
   --operation-key owner:transfer-001 \
   --format json
 ```
@@ -53,14 +53,17 @@ the exact inputs and preview token:
 ```bash
 p2p project transfer apply \
   --server https://wavekit.example \
-  --owner-profile profile:owner-1 \
+  --owner-profile wavekit:user:ACCOUNT_UUID \
   --operation-key owner:transfer-001 \
   --preview-token TOKEN \
   --confirm --format json
 ```
 
-Do not start a second transfer after a timeout. Inspect or recover the same
-session:
+WaveKit imports through an asynchronous worker, so a successful apply can
+return `status=pending` while the remote state is `committing`. This is not a
+failed transfer: the local fence remains active until the final receipt. Do not
+start a second transfer after a pending response or timeout. Inspect or recover
+the same session:
 
 ```bash
 p2p project transfer status --format json
