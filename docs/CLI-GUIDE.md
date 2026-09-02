@@ -307,6 +307,13 @@ operation key and token with `restore-apply --confirm`; it validates in staging,
 creates a pre-restore backup and activates atomically. See
 [CANONICAL-MEMORY-AND-BUNDLES.md](CANONICAL-MEMORY-AND-BUNDLES.md).
 
+`bundle-materialize` is a lower-level installed-wheel boundary for a trusted
+server worker, not the normal owner restore workflow. It creates one new empty
+root from an exact bundle, preserves `project_uuid`, creates distinct
+replica-local identity, rejects non-empty targets and supports idempotent
+replay. WaveKit uses it so that server code never parses or copies `.p2p`
+documents directly.
+
 ### Runtime Contract
 
 Project runtime compatibility is declared in `.p2p/project/runtime.yml`.

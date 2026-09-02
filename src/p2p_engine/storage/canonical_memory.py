@@ -411,6 +411,12 @@ def classify_memory_path(relative: str) -> tuple[str, str, str]:
         return "replica_local", "export.receipt", "Local export idempotency marker."
     if normalized.startswith(".internal/bundle-restores/"):
         return "replica_local", "restore.receipt", "Local restore idempotency receipt."
+    if normalized.startswith(".internal/bundle-materializations/"):
+        return (
+            "replica_local",
+            "materialization.receipt",
+            "Server-root materialization idempotency receipt.",
+        )
     if normalized.startswith(".internal/"):
         return "unknown", "internal.unknown", "Unknown internal artifact requires classification."
     if normalized.startswith(_DERIVED_PREFIXES):

@@ -144,6 +144,7 @@ def current_contract_versions() -> dict[str, object]:
         "local_memory_schema_version": integration_versions["local_memory"],
         "domain_memory_contract_version": integration_versions["domain"],
         "project_bundle_contract_version": integration_versions["bundle"],
+        "bundle_materialization_contract": "p2p-bundle-materialization/v1",
         "sync_protocol_version": integration_versions["sync"],
         "project_integration_contract_version": integration_versions["integration"],
     }

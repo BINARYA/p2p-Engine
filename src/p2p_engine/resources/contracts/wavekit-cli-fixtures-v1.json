@@ -96,6 +96,7 @@
     "authority_evidence_schema": "p2p-authority-evidence/v1",
     "authority_transfer_protocol": "p2p-authority-transfer/v1",
     "authority_transfer_receipt_contract": "p2p-authority-transfer-receipt/v1",
+    "bundle_materialization_contract": "p2p-bundle-materialization/v1",
     "cli_contract_version": "p2p-cli/v1",
     "contract_inventory_version": "p2p-release-contracts/v1",
     "domain_memory_contract_version": {
@@ -190,7 +191,7 @@
     "operation_key_placeholder": "wavekit:<uuid>",
     "root_placeholder": "<PROJECT_ROOT>"
   },
-  "semantic_sha256": "17059ea02c889da3bd713c2061ac1e67646a9de22fed37d6dd9a8cb0c0adf877",
+  "semantic_sha256": "683f1686c0ed25f2f3b0ad4afbc645afaa5699f92b0db6bdc2fc9b67cc8865aa",
   "transport": {
     "envelope": "p2p-cli/v1",
     "kind": "cli_json",

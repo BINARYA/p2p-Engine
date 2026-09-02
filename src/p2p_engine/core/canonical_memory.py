@@ -360,6 +360,35 @@ class BundleExportResult:
 
 
 @dataclass(frozen=True)
+class BundleMaterializationResult:
+    status: str
+    operation_key: str
+    project_uuid: str
+    semantic_state_digest: str
+    blob_manifest_digest: str
+    archive_sha256: str
+    entity_count: int
+    relation_count: int
+    blob_count: int
+    replayed: bool = False
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "contract": "p2p-bundle-materialization/v1",
+            "status": self.status,
+            "operation_key": self.operation_key,
+            "project_uuid": self.project_uuid,
+            "semantic_state_digest": self.semantic_state_digest,
+            "blob_manifest_digest": self.blob_manifest_digest,
+            "archive_sha256": self.archive_sha256,
+            "entity_count": self.entity_count,
+            "relation_count": self.relation_count,
+            "blob_count": self.blob_count,
+            "replayed": self.replayed,
+        }
+
+
+@dataclass(frozen=True)
 class PhysicalBackupResult:
     status: str
     output: str

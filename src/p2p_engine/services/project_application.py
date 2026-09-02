@@ -162,6 +162,25 @@ class ProjectApplicationService:
     def canonical_archive_verify(self, source: Path):
         return self.adapter.snapshots.verify_archive(source)
 
+    def canonical_bundle_materialize(
+        self,
+        *,
+        source: Path,
+        operation_key: str,
+        actor: str,
+        expected_project_uuid: str,
+        expected_archive_sha256: str,
+        confirm: bool,
+    ):
+        return self.adapter.snapshots.materialize_bundle(
+            source=source,
+            operation_key=operation_key,
+            actor=actor,
+            expected_project_uuid=expected_project_uuid,
+            expected_archive_sha256=expected_archive_sha256,
+            confirm=confirm,
+        )
+
     def canonical_memory_backup(self, output: Path, *, coordinated: bool = True):
         return self.adapter.backups.backup_to(output, coordinated=coordinated)
 

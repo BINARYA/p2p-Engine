@@ -196,6 +196,25 @@ class FilesystemSnapshotPort:
     def verify_archive(self, source: Path):
         return self._service().verify_archive(source)
 
+    def materialize_bundle(
+        self,
+        *,
+        source: Path,
+        operation_key: str,
+        actor: str,
+        expected_project_uuid: str,
+        expected_archive_sha256: str,
+        confirm: bool,
+    ):
+        return self._service().materialize_bundle(
+            source=source,
+            operation_key=operation_key,
+            actor=actor,
+            expected_project_uuid=expected_project_uuid,
+            expected_archive_sha256=expected_archive_sha256,
+            confirm=confirm,
+        )
+
     def _service(self) -> CanonicalMemoryService:
         return CanonicalMemoryService(
             root=self.repository.root,

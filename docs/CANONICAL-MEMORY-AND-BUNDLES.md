@@ -77,6 +77,27 @@ it preserves target-local replica state and generated integrations. Physical
 restore recreates the exact backed-up local store. Never unzip either archive
 into `.p2p` manually.
 
+## New-Root Materialization
+
+A trusted server worker can create a separate physical replica of the same
+logical project in a new empty staging root:
+
+```bash
+p2p project memory bundle-materialize project.p2pbundle \
+  --root SERVER_STAGING_ROOT \
+  --operation-key wavekit:transfer:TRANSFER_ID \
+  --expected-project-uuid PROJECT_UUID \
+  --expected-bundle-digest SHA256 --actor wavekit-worker \
+  --confirm --format json
+```
+
+Unlike restore, materialization has no existing target state to preserve. It
+keeps the bundle's `project_uuid`, creates a distinct deterministic
+replica-local identity and filesystem storage manifest, validates the staged
+project and records an idempotency receipt. It fails closed if the target is
+not empty or the archive digest or identity differs. This is an installed-wheel
+boundary for server orchestration; it is not exposed through MCP.
+
 ## MCP Boundary
 
 MCP intentionally exposes only read-only operations:

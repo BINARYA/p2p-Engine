@@ -99,6 +99,24 @@ referenced managed blob requested by digest. It never sweeps source files or
 uploads storage manifests, credentials, generated agent files, physical
 backups, transaction journals, databases or WAL files.
 
+WaveKit does not decode or copy `.p2p` documents itself. Its worker invokes the
+installed-wheel boundary to create a new, empty server staging root:
+
+```bash
+p2p project memory bundle-materialize project.p2pbundle \
+  --root SERVER_STAGING_ROOT \
+  --operation-key wavekit:transfer:TRANSFER_ID \
+  --expected-project-uuid PROJECT_UUID \
+  --expected-bundle-digest SHA256 --actor wavekit-worker \
+  --confirm --format json
+```
+
+This worker-only primitive verifies the exact archive and identity, gives the
+server copy a distinct replica identity, validates the staged project and
+records an idempotency receipt. It refuses an existing or non-empty target;
+WaveKit remains responsible for authorization, upload staging, atomic publish
+and its PostgreSQL transaction.
+
 The strict `p2p-authority-transfer-receipt/v1` receipt binds the transfer ID,
 request fingerprint, project UUID, destination, remote project and replica IDs,
 incremented authority epoch, remote revision/cursor, bundle/blob digests, exact

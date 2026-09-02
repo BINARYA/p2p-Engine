@@ -20,7 +20,7 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     snapshot = public_surface_snapshot()
 
     assert snapshot.contract_version == PUBLIC_SURFACE_CONTRACT_VERSION
-    assert len(snapshot.cli_paths) == 303
+    assert len(snapshot.cli_paths) == 304
     assert len(snapshot.mcp_tools) == 179
     assert "p2p auth login" in snapshot.cli_paths
     assert "p2p project transfer apply" in snapshot.cli_paths
@@ -61,6 +61,7 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     assert "p2p project structure restore recover" in snapshot.cli_paths
     assert "p2p project memory classification" in snapshot.cli_paths
     assert "p2p project memory bundle-export" in snapshot.cli_paths
+    assert "p2p project memory bundle-materialize" in snapshot.cli_paths
     assert "p2p project memory restore-apply" in snapshot.cli_paths
     assert "p2p proposal scope set" in snapshot.cli_paths
     assert "p2p_project_vertical_list" in snapshot.mcp_tools
@@ -89,6 +90,7 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     assert "p2p_canonical_memory_verify" in snapshot.mcp_tools
     assert "p2p_project_bundle_export_metadata" in snapshot.mcp_tools
     assert "p2p_project_archive_verify" in snapshot.mcp_tools
+    assert "p2p_project_memory_bundle_materialize" not in snapshot.mcp_tools
     assert "p2p_project_memory_restore_apply" not in snapshot.mcp_tools
     assert "p2p_proposal_scope_show" in snapshot.mcp_tools
     assert "p2p_proposal_scope_set" in snapshot.mcp_tools

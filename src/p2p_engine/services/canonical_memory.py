@@ -21,6 +21,7 @@ from p2p_engine.core.canonical_memory import (
     PHYSICAL_BACKUP_SCHEMA,
     PROJECT_BUNDLE_SCHEMA,
     BundleExportResult,
+    BundleMaterializationResult,
     BundleValidationResult,
     CanonicalEntity,
     CanonicalMemoryInventory,
@@ -36,7 +37,13 @@ from p2p_engine.core.canonical_memory import (
     normalize_semantic_value,
     semantic_sha256,
 )
-from p2p_engine.core.project_identity import ProjectIdentity, ProjectUuid
+from p2p_engine.core.project_identity import (
+    PROJECT_REPLICA_CONTRACT,
+    ProjectIdentity,
+    ProjectMode,
+    ProjectUuid,
+    ReplicaId,
+)
 from p2p_engine.foundation.files import sync_directory, write_bytes_atomic, write_yaml_atomic
 from p2p_engine.services.mutation_receipts import idempotency_key_sha256, validate_idempotency_key
 from p2p_engine.services.permissions import PermissionsService
@@ -47,6 +54,7 @@ from p2p_engine.storage.canonical_memory import (
 )
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_MATERIALIZATION_ACTOR = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:@/+\-]{0,255}$")
 _BUNDLE_CORE_ENTRIES = frozenset(
     {
         f"{BUNDLE_ARCHIVE_ROOT}/manifest.json",
@@ -715,6 +723,139 @@ class CanonicalMemoryService:
             archive_size=len(archive),
         )
 
+    def materialize_bundle(
+        self,
+        *,
+        source: Path,
+        operation_key: str,
+        actor: str,
+        expected_project_uuid: str,
+        expected_archive_sha256: str,
+        confirm: bool,
+    ) -> BundleMaterializationResult:
+        """Create one new project root from a verified canonical bundle.
+
+        This is the server-side counterpart of bundle export.  The target root
+        must be new and is expected to be published atomically by the caller
+        after this command succeeds.  Existing projects must continue to use
+        the separate restore workflow.
+        """
+
+        if not confirm:
+            raise ValueError(
+                "P2P_CONFIRMATION_REQUIRED: bundle materialization requires --confirm"
+            )
+        validate_idempotency_key(operation_key)
+        if not _MATERIALIZATION_ACTOR.fullmatch(actor):
+            raise ValueError(
+                "P2P_BUNDLE_MATERIALIZATION_ACTOR_INVALID: actor must be a bounded opaque ID"
+            )
+        ProjectUuid(expected_project_uuid)
+        expected_digest = _require_sha256(
+            expected_archive_sha256.removeprefix("sha256:"),
+            "expected bundle digest",
+        )
+        source_path = source.expanduser().resolve()
+        decoded = self.codec.decode_bundle(source_path)
+        if decoded.archive_sha256 != expected_digest:
+            raise ValueError(
+                "P2P_BUNDLE_CHECKSUM_MISMATCH: archive differs from the expected digest"
+            )
+        if decoded.snapshot.project_uuid != expected_project_uuid:
+            raise ValueError(
+                "P2P_BUNDLE_IDENTITY_MISMATCH: bundle differs from the expected project UUID"
+            )
+
+        replay = self._materialization_replay(
+            operation_key,
+            actor=actor,
+            expected_project_uuid=expected_project_uuid,
+            expected_archive_sha256=expected_digest,
+        )
+        if replay is not None:
+            return replay
+        if self.p2p_dir.exists() or (self.root.exists() and any(self.root.iterdir())):
+            raise ValueError(
+                "P2P_BUNDLE_MATERIALIZATION_TARGET_NOT_EMPTY: use restore for an existing project"
+            )
+
+        self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        from p2p_engine.storage.filesystem import P2PWorkspace
+
+        P2PWorkspace(self.root).init_project(
+            "Transferred project",
+            starter_id="empty",
+            owner=actor,
+            storage_adapter="filesystem",
+        )
+        staging_root = self.root / ".p2p-bundle-materialization-staging"
+        staging_p2p = staging_root / ".p2p"
+        try:
+            self._stage_restore(source_path, "bundle", staging_p2p)
+            write_yaml_atomic(
+                staging_root / ".p2p" / "local" / "replica.yml",
+                {
+                    "project_replica": {
+                        "contract": PROJECT_REPLICA_CONTRACT,
+                        "project_uuid": expected_project_uuid,
+                        "mode": ProjectMode.standalone.value,
+                        "replica_id": ReplicaId.for_project_operation(
+                            ProjectUuid(expected_project_uuid), operation_key
+                        ).value,
+                        "remote_binding": None,
+                    }
+                },
+            )
+            from p2p_engine.core.project_state_storage import ProjectStorageManifest
+            from p2p_engine.storage.project_storage import ProjectStorageManifestStore
+
+            write_bytes_atomic(
+                staging_root / ".p2p" / "local" / "storage.yml",
+                ProjectStorageManifestStore.render(
+                    ProjectStorageManifest(project_uuid=expected_project_uuid)
+                ),
+                mode=0o600,
+            )
+            snapshot = self._validate_staging(
+                staging_root,
+                expected_project_uuid=expected_project_uuid,
+                expected_semantic_digest=decoded.snapshot.semantic_state_digest,
+            )
+            result = BundleMaterializationResult(
+                status="materialized",
+                operation_key=operation_key,
+                project_uuid=snapshot.project_uuid,
+                semantic_state_digest=snapshot.semantic_state_digest,
+                blob_manifest_digest=snapshot.blob_manifest_digest,
+                archive_sha256=decoded.archive_sha256,
+                entity_count=len(snapshot.entities),
+                relation_count=len(snapshot.relations),
+                blob_count=len(snapshot.blobs),
+            )
+            self._write_materialization_receipt(
+                staging_p2p,
+                result,
+                actor=actor,
+            )
+            shutil.rmtree(self.p2p_dir)
+            staging_p2p.replace(self.p2p_dir)
+            sync_directory(self.root)
+            shutil.rmtree(staging_root, ignore_errors=True)
+            current = self.codec.snapshot(
+                FilesystemCanonicalMemoryStore(root=self.root, p2p_dir=self.p2p_dir)
+            )
+            if (
+                current.project_uuid != result.project_uuid
+                or current.semantic_state_digest != result.semantic_state_digest
+            ):
+                raise ValueError(
+                    "P2P_BUNDLE_SEMANTIC_DIGEST_MISMATCH: activated project differs"
+                )
+            return result
+        except Exception:
+            shutil.rmtree(staging_root, ignore_errors=True)
+            raise
+
     def verify_archive(self, source: Path) -> BundleValidationResult:
         path = source.resolve()
         try:
@@ -1150,6 +1291,99 @@ class CanonicalMemoryService:
             return restored
         except (OSError, TypeError, ValueError) as exc:
             raise ValueError(f"P2P_RESTORE_RECEIPT_CORRUPT: {exc}") from exc
+
+    def _materialization_replay(
+        self,
+        operation_key: str,
+        *,
+        actor: str,
+        expected_project_uuid: str,
+        expected_archive_sha256: str,
+    ) -> BundleMaterializationResult | None:
+        path = self._materialization_receipt_path(self.p2p_dir, operation_key)
+        if not path.exists():
+            return None
+        try:
+            payload = _json_mapping(path.read_bytes(), "bundle materialization receipt")
+            if set(payload) != {"contract", "actor", "result"} or payload.get(
+                "contract"
+            ) != "p2p-bundle-materialization-receipt/v1":
+                raise ValueError("materialization receipt fields are not exact")
+            if payload.get("actor") != actor:
+                raise ValueError("materialization receipt actor does not match the request")
+            raw = _mapping(payload.get("result"), "bundle materialization result")
+            if set(raw) != {
+                "contract",
+                "status",
+                "operation_key",
+                "project_uuid",
+                "semantic_state_digest",
+                "blob_manifest_digest",
+                "archive_sha256",
+                "entity_count",
+                "relation_count",
+                "blob_count",
+                "replayed",
+            }:
+                raise ValueError("materialization result fields are not exact")
+            result = BundleMaterializationResult(
+                status="materialized",
+                operation_key=str(raw.get("operation_key") or ""),
+                project_uuid=str(raw.get("project_uuid") or ""),
+                semantic_state_digest=_require_sha256(
+                    raw.get("semantic_state_digest"), "materialization semantic digest"
+                ),
+                blob_manifest_digest=_require_sha256(
+                    raw.get("blob_manifest_digest"), "materialization blob digest"
+                ),
+                archive_sha256=_require_sha256(
+                    raw.get("archive_sha256"), "materialization archive digest"
+                ),
+                entity_count=_non_negative_int(raw.get("entity_count"), "entity count"),
+                relation_count=_non_negative_int(raw.get("relation_count"), "relation count"),
+                blob_count=_non_negative_int(raw.get("blob_count"), "blob count"),
+                replayed=True,
+            )
+            if (
+                result.operation_key != operation_key
+                or result.project_uuid != expected_project_uuid
+                or result.archive_sha256 != expected_archive_sha256
+            ):
+                raise ValueError("materialization receipt does not match the request")
+            current = self.snapshot()
+            if current.semantic_state_digest != result.semantic_state_digest:
+                raise ValueError("materialization receipt postcondition drift")
+            return result
+        except (OSError, TypeError, ValueError) as exc:
+            raise ValueError(f"P2P_BUNDLE_MATERIALIZATION_RECEIPT_CORRUPT: {exc}") from exc
+
+    def _write_materialization_receipt(
+        self,
+        p2p_dir: Path,
+        result: BundleMaterializationResult,
+        *,
+        actor: str,
+    ) -> None:
+        write_bytes_atomic(
+            self._materialization_receipt_path(p2p_dir, result.operation_key),
+            canonical_json_bytes(
+                {
+                    "contract": "p2p-bundle-materialization-receipt/v1",
+                    "actor": actor,
+                    "result": result.to_dict(),
+                }
+            ),
+            mode=0o600,
+        )
+
+    @staticmethod
+    def _materialization_receipt_path(p2p_dir: Path, operation_key: str) -> Path:
+        return (
+            p2p_dir
+            / ".internal"
+            / "bundle-materializations"
+            / f"{idempotency_key_sha256(operation_key)}.json"
+        )
 
     def _write_restore_receipt(
         self,

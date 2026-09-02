@@ -153,6 +153,36 @@ def register_project_memory_commands(
             "project.memory.archive_verify", {"archive_verification": result.to_dict()}, normalized
         )
 
+    @project_memory_app.command("bundle-materialize")
+    def bundle_materialize(
+        source: Path = typer.Argument(..., help="Canonical .p2pbundle to materialize"),
+        operation_key: str = typer.Option(..., "--operation-key", help="Opaque idempotency key"),
+        expected_project_uuid: str = typer.Option(..., "--expected-project-uuid"),
+        expected_bundle_digest: str = typer.Option(..., "--expected-bundle-digest"),
+        actor: str = typer.Option(..., "--actor", help="Authenticated server executor"),
+        confirm: bool = typer.Option(False, "--confirm"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+        root: Path = typer.Option(..., "--root", help="New empty server staging root"),
+    ) -> None:
+        """Materialize a new server-owned project root from a canonical bundle."""
+        normalized = _output_format(output_format)
+        try:
+            result = workspace_for(root).canonical_bundle_materialize(
+                source=source,
+                operation_key=operation_key,
+                actor=actor,
+                expected_project_uuid=expected_project_uuid,
+                expected_archive_sha256=expected_bundle_digest,
+                confirm=confirm,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        _emit(
+            "project.memory.bundle_materialize",
+            {"bundle_materialization": result.to_dict()},
+            normalized,
+        )
+
     @project_memory_app.command("backup")
     def backup(
         output: Path = typer.Option(..., "--output", help="New .p2pbackup output outside .p2p"),

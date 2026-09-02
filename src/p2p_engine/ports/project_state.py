@@ -11,6 +11,7 @@ from p2p_engine.core.authority_transfer import (
 )
 from p2p_engine.core.canonical_memory import (
     BundleExportResult,
+    BundleMaterializationResult,
     BundleValidationResult,
     CanonicalMemorySnapshot,
     MemoryRecoveryStatus,
@@ -77,6 +78,17 @@ class ProjectSnapshotPort(Protocol):
     def export_bundle_to(self, output: Path) -> BundleExportResult: ...
 
     def verify_archive(self, source: Path) -> BundleValidationResult: ...
+
+    def materialize_bundle(
+        self,
+        *,
+        source: Path,
+        operation_key: str,
+        actor: str,
+        expected_project_uuid: str,
+        expected_archive_sha256: str,
+        confirm: bool,
+    ) -> BundleMaterializationResult: ...
 
 
 class ProjectBackupPort(Protocol):
