@@ -100,6 +100,10 @@ External paths and URIs remain references unless explicitly imported as a
 managed blob. Source code, tests, docs, specs, Git metadata and arbitrary files
 outside `.p2p` are never swept into a bundle.
 
+Authority transfer uses this same deterministic bundle plus eager digest-based
+managed-blob upload. It never transfers a physical backup or replica-local
+state. See [`AUTHORITY-TRANSFER.md`](AUTHORITY-TRANSFER.md).
+
 ## Adapter Contract
 
 Storage adapters implement typed project-state queries, revision-checked Units

@@ -6,40 +6,41 @@ import typer
 from rich.markup import escape
 
 from p2p_engine import __version__
+from p2p_engine.cli_commands.agents import register_agent_commands
+from p2p_engine.cli_commands.authority_transfer import register_authority_transfer_commands
+from p2p_engine.cli_commands.collaboration import register_collaboration_commands
+from p2p_engine.cli_commands.doctor import register_doctor_commands
+from p2p_engine.cli_commands.mutations import register_mutation_commands
+from p2p_engine.cli_commands.next_actions import register_next_commands
+from p2p_engine.cli_commands.project_authority import register_project_authority_commands
+from p2p_engine.cli_commands.project_domain import register_project_domain_commands
+from p2p_engine.cli_commands.project_identity import register_project_identity_commands
+from p2p_engine.cli_commands.project_integration import register_project_integration_commands
+from p2p_engine.cli_commands.project_memory import register_project_memory_commands
+from p2p_engine.cli_commands.project_ops import register_project_ops_commands
+from p2p_engine.cli_commands.project_readiness import register_project_readiness_commands
+from p2p_engine.cli_commands.project_status import register_project_status_commands
+from p2p_engine.cli_commands.project_structure import register_project_structure_commands
+from p2p_engine.cli_commands.prompts import register_prompt_commands
+from p2p_engine.cli_commands.proposals import register_proposal_commands
+from p2p_engine.cli_commands.runtime import register_runtime_commands
+from p2p_engine.cli_commands.verticals import register_vertical_commands
+from p2p_engine.cli_commands.work_specs import register_work_spec_commands
+from p2p_engine.cli_commands.workspace_schema import register_workspace_schema_commands
+from p2p_engine.cli_commands.workspace_transactions import register_workspace_transaction_commands
 from p2p_engine.cli_contract import (
     VersionedJSONTyperGroup,
     print_json,
     success_envelope,
 )
-from p2p_engine.cli_commands.agents import register_agent_commands
-from p2p_engine.cli_commands.collaboration import register_collaboration_commands
-from p2p_engine.cli_commands.doctor import register_doctor_commands
-from p2p_engine.cli_commands.mutations import register_mutation_commands
-from p2p_engine.cli_commands.next_actions import register_next_commands
-from p2p_engine.cli_commands.project_ops import register_project_ops_commands
-from p2p_engine.cli_commands.project_authority import register_project_authority_commands
-from p2p_engine.cli_commands.project_domain import register_project_domain_commands
-from p2p_engine.cli_commands.project_identity import register_project_identity_commands
-from p2p_engine.cli_commands.project_integration import register_project_integration_commands
-from p2p_engine.cli_commands.project_structure import register_project_structure_commands
-from p2p_engine.cli_commands.project_memory import register_project_memory_commands
-from p2p_engine.cli_commands.project_readiness import register_project_readiness_commands
-from p2p_engine.cli_commands.project_status import register_project_status_commands
-from p2p_engine.cli_commands.prompts import register_prompt_commands
-from p2p_engine.cli_commands.proposals import register_proposal_commands
-from p2p_engine.cli_commands.runtime import register_runtime_commands
-from p2p_engine.cli_commands.work_specs import register_work_spec_commands
-from p2p_engine.cli_commands.workspace_schema import register_workspace_schema_commands
-from p2p_engine.cli_commands.workspace_transactions import register_workspace_transaction_commands
-from p2p_engine.cli_commands.verticals import register_vertical_commands
 from p2p_engine.cli_shared import console
 from p2p_engine.cli_shared import fail as _fail
 from p2p_engine.cli_shared import workspace as _workspace
-from p2p_engine.services.agent_selection import AgentProfileSelection, select_agent_profile
-from p2p_engine.services.mcp_hints import McpHint, render_shell_command
-from p2p_engine.services.authority import AuthorityContractCodec
 from p2p_engine.core.portable_verticals import VerticalCoordinate
 from p2p_engine.core.release_contracts import current_contract_versions
+from p2p_engine.services.agent_selection import AgentProfileSelection, select_agent_profile
+from p2p_engine.services.authority import AuthorityContractCodec
+from p2p_engine.services.mcp_hints import McpHint, render_shell_command
 
 _VERSION_TEXT_LABELS = {
     "workspace_schema_version": "workspace schema",
@@ -103,6 +104,7 @@ workspace_schema_app = typer.Typer(help="Inspect workspace schema state")
 workspace_transaction_app = typer.Typer(help="Inspect and recover atomic workspace transactions")
 vertical_app = typer.Typer(help="Discover, obtain and author exact vertical releases")
 mutation_app = typer.Typer(help="Inspect durable idempotent mutation outcomes")
+auth_app = typer.Typer(help="Manage personal WaveKit authentication")
 
 proposal_app.add_typer(proposal_readiness_app, name="readiness")
 proposal_app.add_typer(proposal_questions_app, name="questions")
@@ -141,6 +143,7 @@ app.add_typer(runtime_app, name="runtime")
 app.add_typer(workspace_app, name="workspace")
 app.add_typer(vertical_app, name="vertical")
 app.add_typer(mutation_app, name="mutation")
+app.add_typer(auth_app, name="auth")
 workspace_app.add_typer(workspace_schema_app, name="schema")
 workspace_app.add_typer(workspace_transaction_app, name="transaction")
 project_app.add_typer(project_brief_app, name="brief")
@@ -168,6 +171,7 @@ register_runtime_commands(runtime_app)
 register_workspace_schema_commands(workspace_schema_app)
 register_workspace_transaction_commands(workspace_transaction_app)
 register_mutation_commands(mutation_app)
+register_authority_transfer_commands(auth_app, project_app)
 register_project_status_commands(app, assess_app, assess_maturity_app)
 register_project_identity_commands(project_app)
 register_proposal_commands(

@@ -22,6 +22,8 @@ Future target: public package registry (not currently published/qualified).
 - A supported Linux, macOS or Windows user account
 - Network access for the first uv, Python, wheel and dependency download
 - Optional: an MCP-capable or CLI-capable agent client
+- For WaveKit login: a usable operating-system keyring backend and a browser or
+  second device for OAuth Device Flow
 
 The recommended path does not require an existing Python, administrator access,
 shell activation or a `.venv` in the target project. Package metadata permits
@@ -134,6 +136,11 @@ uvx --isolated --managed-python --python 3.12 --no-config \
 `--isolated` prevents an already-installed persistent tool from silently
 winning. This mode is version/source-pinned but cache-backed; it is not an
 automatic persistent multi-version installation.
+
+WaveKit access/refresh credentials are stored by the installed runtime in the
+user's operating-system keyring, never in the target project. If the keyring is
+unavailable, `p2p auth login` fails closed; do not work around it by placing
+tokens in `.p2p`, environment templates or generated agent configuration.
 
 ### Proxy, Certificates, Restricted Networks And Offline Use
 

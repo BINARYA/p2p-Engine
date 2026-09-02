@@ -339,12 +339,13 @@ must stop and report diagnostics instead of editing `.p2p/` directly.
 
 ## Project-Local Agent Integrations
 
-The access profile and the client adapter are independent. The current runtime
-implements `standalone`: local project authority with both CLI and MCP
-`stdio`. It records runtime, memory, domain, bundle, sync and integration
-versions separately in `.p2p/agent-integrations.yml` and generates
-`P2P-INTEGRATION.md`. Future `linked-local` and `remote-only` profiles are
-reported as unsupported until their WaveKit capabilities exist.
+The access profile and client adapter are independent. `standalone` has local
+project authority through CLI and MCP `stdio`. A verified authority transfer
+can render `linked-local`: WaveKit is authoritative, replica reads may be stale
+and local governed mutations are blocked. `remote-only` remains reserved. The
+runtime records memory, domain, bundle, sync and integration dimensions
+separately in `.p2p/agent-integrations.yml` and generates
+`P2P-INTEGRATION.md`.
 
 Inspect and manage the complete projection through the local CLI:
 
@@ -360,6 +361,10 @@ MCP exposes only read-only integration status. It never installs, refreshes or
 removes host/project integration files. See
 [`PROJECT-INTEGRATION-ARTIFACTS.md`](PROJECT-INTEGRATION-ARTIFACTS.md) for
 ownership markers, preservation, compatibility and recovery rules.
+
+Agents may inspect transfer eligibility, preview and status through read-only
+MCP tools. Login, upload, apply and recovery stay owner-run CLI operations. See
+[`AUTHORITY-TRANSFER.md`](AUTHORITY-TRANSFER.md).
 
 New projects use an adaptive agent bootstrap default:
 

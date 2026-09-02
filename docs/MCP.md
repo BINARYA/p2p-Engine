@@ -26,6 +26,11 @@ paths or provide raw storage operations. `p2p_init_project` accepts the
 currently available `filesystem` selection, while reopening uses the stored
 selection automatically.
 
+For a `linked-local` project, local stdio MCP reads the potentially stale
+replica while governed local writes remain blocked. WaveKit authority transfer
+exposes eligibility, preview and status only; login, upload, apply and recovery
+are deliberately owner CLI operations.
+
 For a future multi-agent setup that requires one long-running shared service,
 P2P Engine would need a Streamable HTTP MCP server. The current implementation
 is local `stdio`.
@@ -259,6 +264,9 @@ repository operations; they do not authorize P2P project-state mutations.
 | `p2p_project_identity_adopt_apply` | consent-gated | yes | yes | Apply the exact adoption preview with root authority and consent bound to `project-identity@preview-token`. |
 | `p2p_project_identity_derive_preview` | governed preview | no | yes | Preview a new independent UUID with optional typed lineage. |
 | `p2p_project_identity_derive_apply` | consent-gated | yes | yes | Apply the exact derivation preview with root authority and token-bound consent. |
+| `p2p_project_authority_transfer_eligibility` | read-only | no | no | Check local/server eligibility without creating a session, fencing writes or uploading content. |
+| `p2p_project_authority_transfer_preview` | read-only | no | no | Read the sanitized revision/destination-bound handoff preview; apply remains absent from MCP. |
+| `p2p_project_authority_transfer_status` | read-only | no | no | Inspect non-secret local transfer state and optionally query the authenticated remote session. |
 | `p2p_workspace_schema_status` | read-only | no | no | Inspect workspace layout, semantic alignment, recovery state and release contract versions. |
 | `p2p_project_progress` | read-only | no | no | Inspect the same weighted definition-completeness and declared-evidence axes used by project readiness. |
 | `p2p_project_freshness` | read-only | no | no | Inspect the full derived-state graph and ordered rebuild actions. |

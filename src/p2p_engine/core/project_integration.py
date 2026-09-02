@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from p2p_engine import __version__
+from p2p_engine.core.authority_transfer import AUTHORITY_TRANSFER_PROTOCOL
 from p2p_engine.core.canonical_memory import (
     DOMAIN_CONTRACT,
     MEMORY_SCHEMA_VERSION,
@@ -88,13 +89,17 @@ def access_profile(value: str) -> ProjectAccessProfile:
     if profile == LINKED_LOCAL_PROFILE:
         return ProjectAccessProfile(
             profile=profile,
-            supported=False,
+            supported=True,
             local_memory=True,
             authority="wavekit",
             surfaces=("cli", "mcp-stdio"),
-            capabilities=(),
+            capabilities=(
+                "wavekit-project-binding",
+                "local-replica-reads",
+                "authority-transfer-recovery",
+                "local-governed-mutations-blocked",
+            ),
             unavailable_capabilities=(
-                "wavekit-project-link",
                 "replica-catch-up",
                 "replica-freshness",
                 "online-authoritative-write",
@@ -102,8 +107,8 @@ def access_profile(value: str) -> ProjectAccessProfile:
             offline_reads="potentially-stale",
             offline_mutations="blocked",
             reason=(
-                "linked-local rendering is disabled until transfer, replica, freshness, "
-                "and WaveKit-authoritative mutation capabilities are implemented"
+                "authority is remote; replica catch-up and online mutation arrive in later "
+                "linked-replica features"
             ),
         )
     return ProjectAccessProfile(
@@ -148,6 +153,11 @@ def current_integration_versions() -> dict[str, object]:
         },
         "domain": {"contract": DOMAIN_CONTRACT, "compatibility": "same-major"},
         "bundle": {"contract": PROJECT_BUNDLE_SCHEMA, "compatibility": "same-major"},
+        "authority_transfer": {
+            "protocol": AUTHORITY_TRANSFER_PROTOCOL,
+            "status": "client-implemented",
+            "compatibility": "exact-major",
+        },
         "sync": {
             "protocol": SYNC_PROTOCOL_VERSION,
             "status": "unavailable",
@@ -180,4 +190,3 @@ def managed_section_markers(profile: str) -> tuple[str, str]:
     )
     end = f"<!-- P2P:END managed-section id={PROJECT_INTEGRATION_SECTION_ID} -->"
     return start, end
-

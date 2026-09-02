@@ -41,6 +41,8 @@ database; separately verified `.p2pbackup` archives support local recovery.
 - assigns a stable project UUID distinct from names, paths, local replicas and remote IDs;
 - resolves exactly one writable local storage adapter per project without
   exposing its layout to agents, CLI consumers or MCP clients;
+- transfers a standalone project to WaveKit with the same stable project UUID,
+  a resumable owner-confirmed session and a fail-closed linked-local cutover;
 - derives compact vertical-aware project memory for bounded retrieval;
 - keeps a detached project-owned structure that can be edited, retired,
   exported as a portable vertical, or replaced from one exact release;
@@ -263,8 +265,9 @@ p2p init "My Project" --agent codex --agent claude --domain software --vertical 
 The `generic` baseline is always created and cannot be uninstalled.
 Installed integrations are tracked in `.p2p/agent-integrations.yml`.
 Their runtime/access-profile lifecycle is versioned independently from the
-agent adapter choice. The current release implements the `standalone` profile;
-`linked-local` and `remote-only` are reported but cannot be rendered yet.
+agent adapter choice. The runtime implements `standalone` and activates
+`linked-local` only after a verified WaveKit authority-transfer receipt.
+`remote-only` remains reserved.
 
 Useful lifecycle commands:
 
@@ -369,6 +372,10 @@ Stable:
 
 - [docs/PROJECT-IDENTITY.md](docs/PROJECT-IDENTITY.md)
   Stable project UUID, local replica identity, copy intent, adoption, derivation and CLI/MCP contracts.
+
+- [docs/AUTHORITY-TRANSFER.md](docs/AUTHORITY-TRANSFER.md)
+  Owner login, transfer preview/apply, resumable session, activation receipt,
+  linked-local cutover and recovery boundary.
 
 - [docs/AUTHORITY-CONTEXT.md](docs/AUTHORITY-CONTEXT.md)
   Project authority, subject/executor separation, capabilities, external attestations and rotation.

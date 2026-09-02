@@ -62,9 +62,11 @@ After init, manage the footprint with `p2p agent list`,
 `p2p agent instructions refresh --profile <adapter>`.
 
 Manage the versioned access-profile projection separately with
-`p2p integration status|install|refresh|profile|remove`. Only `standalone` is
-currently renderable. These host-file mutation commands are local CLI
-operations and are not available through MCP.
+`p2p integration status|install|refresh|profile|remove`. `standalone` is the
+normal local profile. `linked-local` is activated by a verified WaveKit
+authority transfer, not selected manually on an unbound project. These
+host-file mutation commands are local CLI operations and are not available
+through MCP.
 
 When `--mcp-hint` is used, init prints a root-aware MCP setup section. The
 preferred server command uses the absolute running P2P interpreter reported by
@@ -95,6 +97,37 @@ use `p2p project identity derive preview` followed by its exact token-bound,
 root-authorized `apply --confirm`. An identity-less development fixture uses
 the separate backup-protected `adopt preview/apply` flow. See
 [`PROJECT-IDENTITY.md`](PROJECT-IDENTITY.md) for the full lifecycle and errors.
+
+### Transfer Local Authority To WaveKit
+
+Login uses WaveKit's advertised browser/device flow and stores credentials in
+the operating-system keyring:
+
+```bash
+p2p auth login https://wavekit.example --format json
+p2p auth status https://wavekit.example --format json
+```
+
+The owner then runs an exact two-phase handoff:
+
+```bash
+p2p project transfer preview --server https://wavekit.example \
+  --owner-profile profile:owner-1 --operation-key owner:transfer-001 --format json
+p2p project transfer apply --server https://wavekit.example \
+  --owner-profile profile:owner-1 --operation-key owner:transfer-001 \
+  --preview-token TOKEN --confirm --format json
+```
+
+After any timeout, recover the same transfer instead of starting another:
+
+```bash
+p2p project transfer status --format json
+p2p project transfer recover --format json
+```
+
+Apply is intentionally absent from MCP. See
+[`AUTHORITY-TRANSFER.md`](AUTHORITY-TRANSFER.md) for the authority boundary,
+receipt fields and recovery states.
 
 `--domain` records an optional free subject classification. It never chooses
 sections, criteria, questions or readiness requirements. Initialization resolves one

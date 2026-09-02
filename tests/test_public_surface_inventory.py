@@ -20,8 +20,15 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     snapshot = public_surface_snapshot()
 
     assert snapshot.contract_version == PUBLIC_SURFACE_CONTRACT_VERSION
-    assert len(snapshot.cli_paths) == 296
-    assert len(snapshot.mcp_tools) == 176
+    assert len(snapshot.cli_paths) == 303
+    assert len(snapshot.mcp_tools) == 179
+    assert "p2p auth login" in snapshot.cli_paths
+    assert "p2p project transfer apply" in snapshot.cli_paths
+    assert "p2p project transfer recover" in snapshot.cli_paths
+    assert "p2p_project_authority_transfer_eligibility" in snapshot.mcp_tools
+    assert "p2p_project_authority_transfer_preview" in snapshot.mcp_tools
+    assert "p2p_project_authority_transfer_status" in snapshot.mcp_tools
+    assert "p2p_project_authority_transfer_apply" not in snapshot.mcp_tools
     assert "p2p integration status" in snapshot.cli_paths
     assert "p2p integration install" in snapshot.cli_paths
     assert "p2p integration refresh" in snapshot.cli_paths

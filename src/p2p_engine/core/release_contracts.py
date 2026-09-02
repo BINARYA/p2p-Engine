@@ -8,6 +8,10 @@ from p2p_engine.core.authority import (
     LOCAL_AUTHORITY_POLICY_VERSION,
     PROJECT_AUTHORITY_SCHEMA,
 )
+from p2p_engine.core.authority_transfer import (
+    AUTHORITY_TRANSFER_PROTOCOL,
+    AUTHORITY_TRANSFER_RECEIPT_CONTRACT,
+)
 from p2p_engine.core.mutation_receipts import MUTATION_RECEIPT_SCHEMA_VERSION
 from p2p_engine.core.portable_verticals import (
     PORTABLE_VERTICAL_PACKAGE_VERSION,
@@ -135,6 +139,8 @@ def current_contract_versions() -> dict[str, object]:
         "authority_evidence_schema": AUTHORITY_EVIDENCE_SCHEMA,
         "local_authority_policy_version": LOCAL_AUTHORITY_POLICY_VERSION,
         "mutation_receipt_schema_version": MUTATION_RECEIPT_SCHEMA_VERSION,
+        "authority_transfer_protocol": AUTHORITY_TRANSFER_PROTOCOL,
+        "authority_transfer_receipt_contract": AUTHORITY_TRANSFER_RECEIPT_CONTRACT,
         "local_memory_schema_version": integration_versions["local_memory"],
         "domain_memory_contract_version": integration_versions["domain"],
         "project_bundle_contract_version": integration_versions["bundle"],

@@ -78,6 +78,38 @@ def handle_project_tool(
             "mutation_performed": False,
         }
     if name in {
+        "p2p_project_authority_transfer_eligibility",
+        "p2p_project_authority_transfer_preview",
+    }:
+        preview = workspace.preview_authority_transfer(
+            server_url=required(arguments, "server"),
+            owner_profile_ref=required(arguments, "owner_profile_ref"),
+            operation_key=required(arguments, "operation_key"),
+        )
+        key = (
+            "authority_transfer_eligibility"
+            if name.endswith("_eligibility")
+            else "authority_transfer_preview"
+        )
+        payload = preview.to_dict()
+        if name.endswith("_eligibility"):
+            payload = {
+                "contract": payload["contract"],
+                "eligible": payload["eligible"],
+                "transfer_id": payload["transfer_id"],
+                "project_uuid": payload["project_uuid"],
+                "destination": payload["destination"],
+                "blockers": payload["blockers"],
+            }
+        return {key: payload, "mutation_performed": False}
+    if name == "p2p_project_authority_transfer_status":
+        return {
+            "authority_transfer_status": workspace.authority_transfer_status(
+                server_url=str(arguments.get("server") or "")
+            ),
+            "mutation_performed": False,
+        }
+    if name in {
         "p2p_project_identity_adopt_apply",
         "p2p_project_identity_derive_apply",
     }:

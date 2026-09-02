@@ -2688,6 +2688,14 @@ class FilesystemWorkspace:
         self._ensure_runtime_write_allowed("project_integration_profile")
         return self._project_integration_service().transition(profile=profile)
 
+    def activate_linked_project_integration(self) -> IntegrationOperationResult:
+        identity = self._project_identity_service().show()
+        if identity.mode.value != "linked" or identity.remote_binding is None:
+            raise ValueError(
+                "P2P_INTEGRATION_PROFILE_INVALID: linked-local requires a verified remote binding"
+            )
+        return self._project_integration_service().transition(profile="linked-local")
+
     def remove_project_integration(self) -> IntegrationOperationResult:
         self._ensure_runtime_write_allowed("project_integration_remove")
         return self._project_integration_service().remove()
@@ -3540,6 +3548,15 @@ class FilesystemWorkspace:
 
     def _ensure_runtime_write_allowed(self, operation: str) -> RuntimeWritePreflight:
         self._workspace_transaction_lock_service().require_write_available(operation)
+        from p2p_engine.storage.filesystem_authority_transfer import (
+            FilesystemAuthorityTransferStore,
+        )
+
+        if FilesystemAuthorityTransferStore(self.root).writes_fenced():
+            raise ValueError(
+                "P2P_AUTHORITY_TRANSFER_FENCED: governed local mutation "
+                f"`{operation}` is blocked until transfer recovery completes"
+            )
         if not self.p2p_dir.exists() or not (self.p2p_dir / "project.yml").exists():
             return self._runtime_contract_service().write_preflight(operation)
         preflight = self._runtime_contract_service().write_preflight(operation)

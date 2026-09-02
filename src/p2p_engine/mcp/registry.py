@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-from p2p_engine.mcp.catalog import agents
-from p2p_engine.mcp.catalog import collaboration
-from p2p_engine.mcp.catalog import maintenance
-from p2p_engine.mcp.catalog import project
-from p2p_engine.mcp.catalog import project_readiness
-from p2p_engine.mcp.catalog import prompts
-from p2p_engine.mcp.catalog import proposals
-from p2p_engine.mcp.catalog import vertical_registry
-from p2p_engine.mcp.catalog import work_specs
-from p2p_engine.mcp.catalog.prompts import PROMPT_TOOL_KINDS
-
+from p2p_engine.mcp.catalog import (
+    agents,
+    collaboration,
+    maintenance,
+    project,
+    project_readiness,
+    prompts,
+    proposals,
+    vertical_registry,
+    work_specs,
+)
+from p2p_engine.mcp.catalog.prompts import PROMPT_TOOL_KINDS as PROMPT_TOOL_KINDS
 
 TOOL_NAMES = (
     'p2p_init_project',
@@ -22,6 +23,9 @@ TOOL_NAMES = (
     'p2p_project_identity_adopt_apply',
     'p2p_project_identity_derive_preview',
     'p2p_project_identity_derive_apply',
+    'p2p_project_authority_transfer_eligibility',
+    'p2p_project_authority_transfer_preview',
+    'p2p_project_authority_transfer_status',
     'p2p_integration_status',
     'p2p_agent_list',
     'p2p_agent_show',

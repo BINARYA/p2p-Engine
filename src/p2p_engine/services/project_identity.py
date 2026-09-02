@@ -154,6 +154,11 @@ class ProjectIdentityService:
                 "P2P_PROJECT_IDENTITY_INVALID: project identity blocks mutation "
                 f"`{operation}`: {detail}"
             )
+        if status.identity.mode != ProjectMode.standalone:
+            raise ValueError(
+                "P2P_LOCAL_AUTHORITY_TRANSFERRED: governed local mutation "
+                f"`{operation}` is blocked because WaveKit is authoritative"
+            )
         return status.identity
 
     @staticmethod

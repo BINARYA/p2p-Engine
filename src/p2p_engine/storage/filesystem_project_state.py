@@ -7,7 +7,7 @@ from pathlib import Path
 
 from p2p_engine.core.canonical_memory import CanonicalEntity, CanonicalMemorySnapshot
 from p2p_engine.core.mutation_preview import semantic_sha256, source_precondition
-from p2p_engine.core.project_identity import ProjectIdentity
+from p2p_engine.core.project_identity import ProjectIdentity, ProjectMode
 from p2p_engine.core.project_state_storage import (
     FILESYSTEM_ADAPTER,
     PROJECT_STORAGE_SCHEMA_VERSION,
@@ -30,6 +30,7 @@ from p2p_engine.services.workspace_transactions import (
     WorkspaceTransactionLockService,
 )
 from p2p_engine.storage.canonical_memory import FilesystemCanonicalMemoryStore
+from p2p_engine.storage.filesystem_authority_transfer import FilesystemAuthorityTransferStore
 
 
 def _record(entity: CanonicalEntity) -> ProjectEntityRecord:
@@ -338,6 +339,17 @@ class FilesystemProjectUnitOfWork:
                 ProjectStorageErrorCode.internal,
                 "unit of work already has a staged command",
             )
+        identity = self._repository.identity()
+        if identity.mode != ProjectMode.standalone:
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.unsupported_capability,
+                "local project-state mutations are blocked after authority transfer",
+            )
+        if FilesystemAuthorityTransferStore(self._repository.root).writes_fenced():
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.busy,
+                "local project-state mutations are fenced during authority transfer",
+            )
         current = self._repository.snapshot()
         if mutation.expected_revision.sha256 != current.semantic_state_digest:
             raise ProjectStorageError(
@@ -489,6 +501,7 @@ class FilesystemProjectStateAdapter:
         self._snapshots = FilesystemSnapshotPort(self._repository)
         self._backups = FilesystemBackupPort(self._repository)
         self._migrations = FilesystemMigrationPort()
+        self._authority_transfers = FilesystemAuthorityTransferStore(self.root)
 
     @property
     def selection(self) -> ProjectStorageSelection:
@@ -520,6 +533,10 @@ class FilesystemProjectStateAdapter:
     @property
     def migrations(self) -> FilesystemMigrationPort:
         return self._migrations
+
+    @property
+    def authority_transfers(self) -> FilesystemAuthorityTransferStore:
+        return self._authority_transfers
 
     def unit_of_work(self) -> FilesystemProjectUnitOfWork:
         return FilesystemProjectUnitOfWork(self._repository)

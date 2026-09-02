@@ -24,6 +24,7 @@ from p2p_engine.core.runtime_contract import (
 )
 from p2p_engine.foundation.files import read_yaml_mapping, yaml_dump
 from p2p_engine.services.agent_instructions import AgentInstructionService
+from p2p_engine.services.agent_templates import project_integration_guide
 from p2p_engine.services.runtime_contract import (
     RUNTIME_CONTRACT_SCHEMA_VERSION,
     RuntimeContractService,
@@ -258,6 +259,9 @@ class ProjectIntegrationService:
             project_name,
             profiles,
             interaction_style,
+        )
+        rendered[Path("P2P-INTEGRATION.md")] = project_integration_guide(
+            selected_profile.profile
         )
         rendered[Path("P2P-SETUP.md")] = self._render_setup_guide()
 
@@ -605,6 +609,19 @@ class ProjectIntegrationService:
     def _profile_section(self, profile: str) -> bytes:
         selected = require_supported_profile(profile)
         start, end = managed_section_markers(selected.profile)
+        if selected.profile == STANDALONE_PROFILE:
+            access_lines = [
+                "- Active profile: `standalone`; the local project is authoritative.",
+                "- Use the local CLI or MCP over `stdio` for supported reads and governed writes.",
+                "- Offline reads and governed local mutations are supported.",
+            ]
+        else:
+            access_lines = [
+                "- Active profile: `linked-local`; WaveKit is authoritative.",
+                "- Local CLI and MCP over `stdio` may read the local replica as potentially stale.",
+                "- Governed local mutations are blocked; never treat offline state as authoritative.",
+                "- Use `p2p project transfer status|recover` for an interrupted handoff.",
+            ]
         text = "\n".join(
             [
                 start,
@@ -612,9 +629,7 @@ class ProjectIntegrationService:
                 "## P2P Project Access",
                 "",
                 "- Read `P2P-INTEGRATION.md` before choosing CLI or MCP.",
-                "- Active profile: `standalone`; the local project is authoritative.",
-                "- Use the local CLI or MCP over `stdio` for supported reads and governed writes.",
-                "- Offline reads and governed local mutations are supported.",
+                *access_lines,
                 "- Never access `.p2p` internals or storage/database internals directly.",
                 "- Host integration files are changed only by explicit local CLI operations.",
                 "",

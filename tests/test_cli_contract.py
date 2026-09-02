@@ -27,6 +27,9 @@ runner = CliRunner()
 
 EXPECTED_JSON_OPERATIONS = frozenset(
     """
+auth.login
+auth.logout
+auth.status
 choice.governance-preflight
 conflict.preview-update
 conflict.show
@@ -114,6 +117,10 @@ project.memory.status
 project.metadata.apply
 project.metadata.preview
 project.metadata.show
+project.transfer.apply
+project.transfer.preview
+project.transfer.recover
+project.transfer.status
 project.progress
 project.publish.import
 project.publish.list
@@ -252,7 +259,7 @@ def test_cli_json_operation_inventory_is_reviewed_and_guarded() -> None:
     inventory = json_command_inventory(get_command(app))
 
     assert frozenset(inventory) == EXPECTED_JSON_OPERATIONS
-    assert len(inventory) == 179
+    assert len(inventory) == 186
     assert inventory["status"] == "text"
     assert inventory["vertical.inspect"] == "json"
     assert inventory["workspace.schema.status"] == "text"

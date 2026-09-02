@@ -95,6 +95,42 @@ def tool_definitions() -> list[dict[str, object]]:
             ['operation_key', 'preview_token', 'actor_id', 'consent_id'],
         ),
         _tool(
+            'p2p_project_authority_transfer_eligibility',
+            (
+                'Read-only eligibility for transferring the same project to WaveKit. '
+                'It never creates a session, fences writes, uploads content or changes authority.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'server': {'type': 'string'},
+                'owner_profile_ref': {'type': 'string'},
+                'operation_key': {'type': 'string'},
+            },
+            ['server', 'owner_profile_ref', 'operation_key'],
+        ),
+        _tool(
+            'p2p_project_authority_transfer_preview',
+            (
+                'Read-only sanitized authority-transfer preview. Apply is intentionally absent '
+                'from MCP and remains an explicitly confirmed owner CLI operation.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'server': {'type': 'string'},
+                'owner_profile_ref': {'type': 'string'},
+                'operation_key': {'type': 'string'},
+            },
+            ['server', 'owner_profile_ref', 'operation_key'],
+        ),
+        _tool(
+            'p2p_project_authority_transfer_status',
+            'Read local transfer state and optionally query the bound WaveKit session.',
+            {
+                'root': {'type': 'string'},
+                'server': {'type': 'string'},
+            },
+        ),
+        _tool(
             'p2p_project_domain_show',
             'Read the free project subject classification and its independent structure source.',
             {'root': {'type': 'string'}},

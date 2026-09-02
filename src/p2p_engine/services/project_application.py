@@ -15,6 +15,7 @@ from p2p_engine.core.project_state_storage import (
 )
 from p2p_engine.foundation.yaml_loaders import UNIQUE_LOADER_CONTRACT, load_yaml
 from p2p_engine.ports.project_state import ProjectStateAdapter, ProjectUnitOfWork
+from p2p_engine.services.authority_transfer import AuthorityTransferService
 from p2p_engine.storage.filesystem_project_state import FilesystemProjectStateAdapter
 from p2p_engine.storage.project_storage import ProjectStorageResolver
 
@@ -72,6 +73,40 @@ class ProjectApplicationService:
 
     def project_state_unit_of_work(self) -> ProjectUnitOfWork:
         return self.adapter.unit_of_work()
+
+    def wavekit_auth_start(self, server_url: str):
+        return self._authority_transfer_service().start_login(server_url)
+
+    def wavekit_auth_complete(self, capabilities: object, authorization: object):
+        return self._authority_transfer_service().complete_login(capabilities, authorization)
+
+    def wavekit_auth_status(self, server_url: str):
+        return self._authority_transfer_service().auth_status(server_url)
+
+    def wavekit_auth_logout(self, server_url: str):
+        return self._authority_transfer_service().logout(server_url)
+
+    def preview_authority_transfer(
+        self, *, server_url: str, owner_profile_ref: str, operation_key: str
+    ):
+        return self._authority_transfer_service().preview(
+            server_url=server_url,
+            owner_profile_ref=owner_profile_ref,
+            operation_key=operation_key,
+        )
+
+    def apply_authority_transfer(self, **kwargs: object):
+        result = self._authority_transfer_service().apply(**kwargs)
+        self._refresh_storage_binding()
+        return result
+
+    def authority_transfer_status(self, *, server_url: str = ""):
+        return self._authority_transfer_service().status(server_url=server_url)
+
+    def recover_authority_transfer(self):
+        result = self._authority_transfer_service().recover()
+        self._refresh_storage_binding()
+        return result
 
     def init_project(self, *args: Any, **kwargs: Any):
         result = getattr(self.adapter.compatibility_target(), "init_project")(
@@ -148,6 +183,7 @@ class ProjectApplicationService:
         preview_token: str,
         confirm: bool,
     ):
+        self._require_local_authority("canonical_memory_restore_apply")
         return self.adapter.backups.restore_apply(
             source=source,
             operation_key=operation_key,
@@ -201,6 +237,28 @@ class ProjectApplicationService:
         ).resolve()
         self.adapter.refresh_selection(selection)
         self.selection = selection
+
+    def _authority_transfer_service(self) -> AuthorityTransferService:
+        target = self.adapter.compatibility_target()
+        return AuthorityTransferService(
+            adapter=self.adapter,
+            integration_transition=lambda: getattr(
+                target, "activate_linked_project_integration"
+            )(),
+        )
+
+    def _require_local_authority(self, operation: str) -> None:
+        identity = self.adapter.repository.identity()
+        if identity.mode.value != "standalone":
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.unsupported_capability,
+                f"{operation} is blocked because WaveKit is authoritative",
+            )
+        if self.adapter.authority_transfers.writes_fenced():
+            raise ProjectStorageError(
+                ProjectStorageErrorCode.busy,
+                f"{operation} is fenced during authority transfer",
+            )
 
     def _safe_project_path(self, relative: str) -> Path:
         pure = PurePosixPath(relative)

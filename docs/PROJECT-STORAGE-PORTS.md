@@ -10,7 +10,7 @@ CLI / MCP / compatibility callers
                 |
        ProjectApplicationService
                 |
- repository | Unit of Work | snapshot | blob | backup | migration ports
+ repository | Unit of Work | snapshot | blob | backup | transfer-state ports
                 |
        selected filesystem adapter
 ```
@@ -56,6 +56,8 @@ unopenable.
   adapter manifest or live storage files.
 - physical backups retain the replica-local adapter manifest and exclude live
   transaction locks.
+- authority transfer persists its fence, session, receipt and linked binding
+  through the selected adapter; network/application contracts contain no path.
 
 Storage errors have stable categories such as unavailable adapter, identity
 mismatch, stale revision, busy, integrity failure and recovery required.
@@ -72,6 +74,11 @@ receipts and explicit recovery behavior.
 Generated local agent instructions describe CLI/MCP operations only. They do
 not select an adapter or instruct agents to inspect YAML, database, journal or
 WAL internals.
+
+The authority-transfer client consumes only snapshots, bundle/blob ports and
+the transfer-state port. After a verified server receipt, the adapter
+atomically changes identity/binding and blocks local Units of Work. See
+[`AUTHORITY-TRANSFER.md`](AUTHORITY-TRANSFER.md).
 
 Retained structure history and merge/restore transitions follow the same
 boundary. Public callers address an exact release/bundle digest or retained

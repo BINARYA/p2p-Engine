@@ -75,6 +75,15 @@ revision-checked Unit of Work per command separate application behavior from
 physical persistence; generated agent instructions remain identical. See
 [PROJECT-STORAGE-PORTS.md](PROJECT-STORAGE-PORTS.md).
 
+### Local And WaveKit Authority
+
+A standalone project has one authoritative local writer. An owner-confirmed
+WaveKit transfer preserves `project_uuid`, uploads the canonical bundle and
+managed blobs, then changes local identity only after verifying a committed
+server receipt. The local copy becomes a read-only, potentially stale linked
+replica. A timeout is resolved from the original session; it never elects the
+local copy again. See [AUTHORITY-TRANSFER.md](AUTHORITY-TRANSFER.md).
+
 Generated registries should be refreshed from source artifacts with:
 
 ```bash

@@ -49,10 +49,12 @@ def test_clean_init_versions_every_artifact_and_keeps_backend_invisible(tmp_path
         "local_memory",
         "domain",
         "bundle",
+        "authority_transfer",
         "sync",
         "integration",
     }
     assert integration["versions"]["sync"]["status"] == "unavailable"
+    assert integration["versions"]["authority_transfer"]["status"] == "client-implemented"
     assert integration["mcp_host_configuration"]["mutation_via_mcp"] is False
     paths = {item["path"] for item in integration["artifacts"]}
     assert {
@@ -165,8 +167,6 @@ def test_profile_matrix_rejects_future_profiles_without_writes(tmp_path: Path) -
     }
 
     with pytest.raises(ValueError, match="P2P_INTEGRATION_PROFILE_UNSUPPORTED"):
-        workspace.transition_project_integration(profile="linked-local")
-    with pytest.raises(ValueError, match="P2P_INTEGRATION_PROFILE_UNSUPPORTED"):
         workspace.transition_project_integration(profile="remote-only")
 
     after = {
@@ -177,7 +177,7 @@ def test_profile_matrix_rejects_future_profiles_without_writes(tmp_path: Path) -
     assert after == before
     profiles = {item["profile"]: item for item in workspace.project_integration_status()["profiles"]}
     assert profiles["standalone"]["supported"] is True
-    assert profiles["linked-local"]["supported"] is False
+    assert profiles["linked-local"]["supported"] is True
     assert profiles["remote-only"]["supported"] is False
 
 

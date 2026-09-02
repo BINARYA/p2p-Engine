@@ -31,6 +31,8 @@ Current method families include:
 - project initialization and agent instructions;
 - stable project identity/status, copy assessment, lifecycle DTOs, adoption and derivation;
 - canonical-memory inventory/snapshot ports, deterministic bundle codec, physical backup and staged restore;
+- authority-transfer preview/session/receipt services and adapter-local
+  fence/binding state;
 - status, validation, context, project-readiness v2, and maturity compatibility;
 - proposals and contributions;
 - decisions, votes, and precedents;
@@ -84,6 +86,12 @@ normalized errors live in `p2p_engine.core.project_state_storage`. These are
 internal contributor contracts, not a supported WaveKit integration API.
 WaveKit and other server consumers continue to use the versioned CLI JSON
 contract. See [`PROJECT-STORAGE-PORTS.md`](PROJECT-STORAGE-PORTS.md).
+
+`AuthorityTransferService` owns capability negotiation, OAuth credential use,
+preflight, upload and recovery. `AuthorityTransferStatePort` owns only
+non-secret local session/binding state. The HTTP adapter and filesystem state
+adapter remain replaceable; neither is a public cross-repository Python API.
+See [`AUTHORITY-TRANSFER.md`](AUTHORITY-TRANSFER.md).
 
 ## Documentation Plan
 

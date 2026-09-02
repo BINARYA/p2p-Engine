@@ -54,7 +54,8 @@ and is not enabled by this feature.
 - Rename, path move, same-project backup, and same-project restore preserve the
   project UUID.
 - Transfer to a server preserves the project UUID and may add a separate remote
-  project address.
+  project address. The implemented WaveKit handoff increments the authority
+  epoch and records the originating linked replica from a verified receipt.
 - A copied linked materialization requires a new replica ID if the old copy may
   remain operational. A true move may preserve it after the old copy is retired.
 - Copying bytes does not choose identity intent. A duplicate operational UUID
@@ -148,9 +149,14 @@ workspace transaction recovery flow blocks unrelated mutations until explicit
 owner recovery. Do not edit identity, replica, lineage, receipts, backups, or
 transaction files manually.
 
+The WaveKit transfer state, receipt and non-secret binding are replica-local.
+Secrets remain in the operating-system keyring. See
+[`AUTHORITY-TRANSFER.md`](AUTHORITY-TRANSFER.md) for the owner CLI, exact
+receipt validation and lost-response recovery rule.
+
 ## Deliberate Limits
 
-This foundation defines transfer, replica, copy/move, and detach DTOs for later
-features. It does not implement network transfer, remote registration,
-synchronization, realtime collaboration, WaveKit persistence, SQLite, or
+The current runtime implements the client/local half of WaveKit authority
+transfer. It does not implement replica catch-up, clone, detach, offline
+mutation, realtime collaboration, WaveKit server persistence, SQLite, or
 automatic merging of divergent copies.

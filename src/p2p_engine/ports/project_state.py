@@ -4,6 +4,11 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Protocol
 
+from p2p_engine.core.authority_transfer import (
+    AuthorityActivationReceipt,
+    AuthorityTransferSession,
+    TransferState,
+)
 from p2p_engine.core.canonical_memory import (
     BundleExportResult,
     BundleValidationResult,
@@ -104,6 +109,32 @@ class ProjectMigrationPort(Protocol):
     def can_migrate_from(self, schema_version: int) -> bool: ...
 
 
+class AuthorityTransferStatePort(Protocol):
+    def load(self) -> AuthorityTransferSession | None: ...
+
+    def receipt(self) -> AuthorityActivationReceipt | None: ...
+
+    def save(self, session: AuthorityTransferSession) -> AuthorityTransferSession: ...
+
+    def activate_linked(
+        self,
+        session: AuthorityTransferSession,
+        receipt: AuthorityActivationReceipt,
+    ) -> ProjectIdentity: ...
+
+    def release_fence(
+        self,
+        session: AuthorityTransferSession,
+        terminal_state: TransferState,
+        *,
+        error_code: str = "",
+    ) -> AuthorityTransferSession: ...
+
+    def writes_fenced(self) -> bool: ...
+
+    def set_link_suspended(self, suspended: bool) -> ProjectIdentity: ...
+
+
 class ProjectStateAdapter(Protocol):
     @property
     def selection(self) -> ProjectStorageSelection: ...
@@ -125,6 +156,9 @@ class ProjectStateAdapter(Protocol):
 
     @property
     def migrations(self) -> ProjectMigrationPort: ...
+
+    @property
+    def authority_transfers(self) -> AuthorityTransferStatePort: ...
 
     def unit_of_work(self) -> ProjectUnitOfWork: ...
 

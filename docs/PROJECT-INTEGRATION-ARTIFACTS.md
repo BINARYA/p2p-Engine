@@ -4,18 +4,17 @@ P2P-managed agent instructions are regenerable runtime projections. They are
 not canonical project memory, are excluded from canonical bundles and semantic
 digests, and do not expose the selected storage adapter.
 
-## Implemented Access Profile
-
-The current runtime implements only `standalone`:
+## Implemented Access Profiles
 
 | Profile | Local memory | Agent surfaces | Authority | Current support |
 |---|---:|---|---|---|
 | `standalone` | yes | CLI and MCP `stdio` | local | implemented |
-| `linked-local` | replica | CLI and MCP `stdio` | WaveKit | reserved; rendering blocked |
+| `linked-local` | replica | CLI and MCP `stdio` | WaveKit | activated after verified transfer; local writes blocked |
 | `remote-only` | no | web, API and MCP HTTP | WaveKit | reserved; rendering blocked |
 
-`linked-local` remains blocked until project linking, catch-up, freshness and
-WaveKit-authoritative writes exist. `remote-only` remains blocked until an
+`linked-local` is rendered only after a transfer receipt establishes the remote
+binding. Its local reads are potentially stale; catch-up, freshness and online
+WaveKit-authoritative writes are later features. `remote-only` remains blocked until an
 authenticated WaveKit actor plus web, API and MCP HTTP project capabilities
 exist. P2P does not advertise either future profile merely because its design
 has been specified.
@@ -60,7 +59,7 @@ P2P reports a root-aware MCP `stdio` command but does not generate or mutate a
 client's host configuration file. Such configuration remains user-owned.
 
 Every whole-file header or managed-section marker declares the generator
-version, integration contract, `standalone` profile and ownership boundary.
+version, integration contract, active profile and ownership boundary.
 The manifest records stable paths, ownership kind and SHA-256 digests. Output
 is deterministic; timestamps are not part of the manifest.
 
@@ -75,6 +74,10 @@ p2p integration refresh --profile standalone --format json
 p2p integration profile standalone --format json
 p2p integration remove --format json
 ```
+
+Do not manually select `linked-local` as a substitute for transfer. The
+authority-transfer service performs the profile transition only after atomic
+local binding. See [`AUTHORITY-TRANSFER.md`](AUTHORITY-TRANSFER.md).
 
 The operations are idempotent. Candidate files and the manifest are staged and
 committed by one atomic workspace transaction. Source hashes are checked again
@@ -106,4 +109,3 @@ evidence remains in the ignored local feature packages
 `add-sqlite-project-state-backend`; this lifecycle does not rerun or redefine
 that benchmark. The selected product line currently uses the filesystem
 backend, while the SQLite experiment is deferred on its separate branch.
-

@@ -16,6 +16,7 @@ from p2p_engine.core.project_integration import (
     PROJECT_INTEGRATION_CONTRACT,
     PROJECT_INTEGRATION_GUIDE_PATH,
     STANDALONE_PROFILE,
+    access_profile,
     current_integration_versions,
 )
 from p2p_engine.core.software_spec_lifecycle import SPEC_LIFECYCLE_INTENTS
@@ -676,19 +677,38 @@ p2p agent instructions refresh --profile <adapter>
 Keep `generic` as the shared baseline. Installing or updating one adapter must not remove previously installed adapters unless the owner explicitly requests uninstall."""
 
 
-def project_integration_guide() -> str:
+def project_integration_guide(profile: str = STANDALONE_PROFILE) -> str:
+    selected = access_profile(profile)
     versions = current_integration_versions()
+    if selected.profile == STANDALONE_PROFILE:
+        authority_lines = """- Profile: `standalone`
+- Authority: the local project is authoritative.
+- Supported agent surfaces: local CLI and local MCP over `stdio`.
+- Offline reads: authoritative.
+- Offline governed mutations: allowed through P2P application services."""
+        sync_line = "unavailable in this profile/release"
+        reservation = (
+            "`remote-only` is reserved. `linked-local` becomes available only after a verified "
+            "authority-transfer receipt and local cutover."
+        )
+    else:
+        authority_lines = """- Profile: `linked-local`
+- Authority: WaveKit is authoritative; local memory is a replica.
+- Supported agent surfaces: local CLI and local MCP over `stdio` for replica reads.
+- Offline reads: potentially stale.
+- Offline governed mutations: blocked."""
+        sync_line = "transfer binding only; catch-up is not implemented in this release"
+        reservation = (
+            "Do not infer authority from local availability. Use `p2p project transfer status` "
+            "and `p2p project transfer recover`; replica catch-up is introduced separately."
+        )
     return f"""{managed_markdown_header("generic", "project-integration-guide-v1")}# P2P Project Integration
 
 This file is a regenerable runtime projection. It is not canonical project memory.
 
 ## Active access profile
 
-- Profile: `{STANDALONE_PROFILE}`
-- Authority: the local project is authoritative.
-- Supported agent surfaces: local CLI and local MCP over `stdio`.
-- Offline reads: authoritative.
-- Offline governed mutations: allowed through P2P application services.
+{authority_lines}
 
 ## Supported entry points
 
@@ -714,12 +734,10 @@ credentials, tokens, passwords, private keys, or bearer headers.
 - Local-memory schema: `{versions['local_memory']['schema_version']}`
 - Domain contract: `{versions['domain']['contract']}`
 - Bundle contract: `{versions['bundle']['contract']}`
-- Sync protocol: unavailable in this profile/release
+- Sync protocol: {sync_line}
 - Integration contract: `{PROJECT_INTEGRATION_CONTRACT}`
 
-`linked-local` and `remote-only` are reserved profiles. They are not rendered
-until the required WaveKit authority, authentication, transfer, replica,
-freshness, and remote-transport capabilities exist.
+{reservation}
 """
 
 
