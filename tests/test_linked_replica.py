@@ -509,9 +509,18 @@ def test_clone_generates_backend_neutral_linked_local_agent_guidance(
     )
 
     guide = (target / "P2P-INTEGRATION.md").read_text(encoding="utf-8")
+    policy = yaml.safe_load(
+        (target / ".p2p" / "agent-policy.yml").read_text(encoding="utf-8")
+    )
     assert cloned.integration_status == "applied"
     assert "Profile: `linked-local`" in guide
-    assert "p2p wavekit sync catch-up" in guide
+    assert "p2p sync catch-up" in guide
+    assert policy["project_integration"]["access_profile"] == "linked-local"
+    assert policy["project_integration"]["sync_protocol"] == (
+        "p2p-durable-replication/v1"
+    )
+    assert policy["project_integration"]["linked_mcp_reads_auto_catch_up"] is True
+    assert policy["project_integration"]["offline_mutations"] == "blocked"
     assert "filesystem" not in guide.lower()
     assert "sqlite" not in guide.lower()
     assert "secret-access" not in guide

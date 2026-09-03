@@ -96,8 +96,10 @@ def operation_traceability_inventory() -> tuple[OperationTrace, ...]:
                 "p2p wavekit clone",
                 "p2p wavekit attach",
                 "p2p wavekit status",
-                "p2p wavekit sync catch-up",
-                "p2p wavekit sync recover",
+                "p2p sync status",
+                "p2p sync catch-up",
+                "p2p sync recover",
+                "p2p watch",
                 "p2p wavekit replica move",
                 "p2p wavekit replica register-copy",
                 "p2p wavekit replica read-only",
@@ -108,14 +110,19 @@ def operation_traceability_inventory() -> tuple[OperationTrace, ...]:
             ),
             capability="project.replica.manage",
             authority_context="wavekit_authenticated_owner_and_server_capability",
-            receipt_evidence="replica registration plus verified snapshot binding",
-            mcp_parity="stdio_status_and_catch_up_owner_identity_changes_cli_only",
+            receipt_evidence=(
+                "replica registration plus immutable operation receipt, change batch and cursor"
+            ),
+            mcp_parity="domain_reads_catch_up_domain_writes_route_status_and_catch_up_explicit",
             hosted_boundary=(
                 "WaveKit authorizes replica registration and supplies logical snapshots; "
                 "P2P materializes only through its selected local adapter."
             ),
             fixture_group="linked_replica",
-            tests=("tests/test_linked_replica.py",),
+            tests=(
+                "tests/test_linked_replica.py",
+                "tests/test_durable_project_replication.py",
+            ),
         ),
         OperationTrace(
             requirement_group="P2 domain and source",
@@ -659,14 +666,28 @@ def wavekit_cli_fixture_bundle() -> dict[str, object]:
             "mutates_project": False,
             "commands": [
                 "p2p wavekit status --root WORKSPACE --format json",
+                "p2p sync status --root WORKSPACE --format json",
+                "p2p watch --max-events COUNT --root WORKSPACE --format json",
             ],
         },
         {
             "group": "linked_replica_sync",
             "mutates_project": True,
             "commands": [
-                "p2p wavekit sync catch-up --root WORKSPACE --format json",
-                "p2p wavekit sync recover --root WORKSPACE --format json",
+                "p2p sync catch-up --root WORKSPACE --format json",
+                "p2p sync recover --root WORKSPACE --format json",
+            ],
+        },
+        {
+            "group": "project_replication_worker",
+            "mutates_project": True,
+            "commands": [
+                "p2p project replication initialize --authority-epoch EPOCH --project-revision REVISION --retention-batches COUNT --confirm --root WORKSPACE --format json",
+                "p2p project replication status --root WORKSPACE --format json",
+                "p2p project replication operation-status OPERATION-ID --root WORKSPACE --format json",
+                "p2p project replication feed --after-revision REVISION --replica-id REPLICA-ID --limit COUNT --root WORKSPACE --format json",
+                "p2p project replication compact --retain-after-revision REVISION --confirm --root WORKSPACE --format json",
+                "p2p --replication-command-envelope COMMAND.json project domain set DOMAIN --name NAME --actor ACTOR --operation-key wavekit:<uuid> --root WORKSPACE --format json",
             ],
         },
         {
@@ -865,6 +886,9 @@ def validate_wavekit_cli_fixture_bundle(
         "p2p vertical domain list --registry REGISTRY --format json",
         "p2p vertical search software --registry REGISTRY --domain DOMAIN-ID --format json",
         "p2p mutation status --operation-key wavekit:<uuid> --format json",
+        "p2p sync status --root WORKSPACE --format json",
+        "p2p sync catch-up --root WORKSPACE --format json",
+        "p2p project replication status --root WORKSPACE --format json",
     }
     missing = sorted(required - set(fixture_commands(payload)))
     for command in missing:

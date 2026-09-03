@@ -20,6 +20,7 @@ from p2p_engine.cli_commands.project_integration import register_project_integra
 from p2p_engine.cli_commands.project_memory import register_project_memory_commands
 from p2p_engine.cli_commands.project_ops import register_project_ops_commands
 from p2p_engine.cli_commands.project_readiness import register_project_readiness_commands
+from p2p_engine.cli_commands.project_replication import register_project_replication_commands
 from p2p_engine.cli_commands.project_status import register_project_status_commands
 from p2p_engine.cli_commands.project_structure import register_project_structure_commands
 from p2p_engine.cli_commands.prompts import register_prompt_commands
@@ -42,6 +43,10 @@ from p2p_engine.core.release_contracts import current_contract_versions
 from p2p_engine.services.agent_selection import AgentProfileSelection, select_agent_profile
 from p2p_engine.services.authority import AuthorityContractCodec
 from p2p_engine.services.mcp_hints import McpHint, render_shell_command
+from p2p_engine.services.project_replication import (
+    load_replication_command,
+    set_replication_command,
+)
 
 _VERSION_TEXT_LABELS = {
     "workspace_schema_version": "workspace schema",
@@ -107,6 +112,7 @@ vertical_app = typer.Typer(help="Discover, obtain and author exact vertical rele
 mutation_app = typer.Typer(help="Inspect durable idempotent mutation outcomes")
 auth_app = typer.Typer(help="Manage personal WaveKit authentication")
 wavekit_app = typer.Typer(help="Clone and operate WaveKit-linked local replicas")
+sync_app = typer.Typer(help="Inspect or recover linked-project synchronization")
 
 proposal_app.add_typer(proposal_readiness_app, name="readiness")
 proposal_app.add_typer(proposal_questions_app, name="questions")
@@ -147,6 +153,7 @@ app.add_typer(vertical_app, name="vertical")
 app.add_typer(mutation_app, name="mutation")
 app.add_typer(auth_app, name="auth")
 app.add_typer(wavekit_app, name="wavekit")
+app.add_typer(sync_app, name="sync")
 workspace_app.add_typer(workspace_schema_app, name="schema")
 workspace_app.add_typer(workspace_transaction_app, name="transaction")
 project_app.add_typer(project_brief_app, name="brief")
@@ -165,6 +172,21 @@ intake_app.add_typer(intake_apply_app, name="apply")
 agent_app.add_typer(agent_instructions_app, name="instructions")
 permissions_app.add_typer(permissions_actor_app, name="actor")
 
+
+@app.callback()
+def root_options(
+    replication_command_envelope: Path | None = typer.Option(
+        None,
+        "--replication-command-envelope",
+        hidden=True,
+        help="WaveKit worker-only typed command envelope",
+    ),
+) -> None:
+    """Configure process-scoped worker contracts before a leaf command runs."""
+    set_replication_command(None)
+    if replication_command_envelope is not None:
+        set_replication_command(load_replication_command(replication_command_envelope))
+
 register_doctor_commands(app, agent_app)
 register_vertical_commands(vertical_app)
 register_agent_commands(agent_app, agent_instructions_app)
@@ -175,7 +197,8 @@ register_workspace_schema_commands(workspace_schema_app)
 register_workspace_transaction_commands(workspace_transaction_app)
 register_mutation_commands(mutation_app)
 register_authority_transfer_commands(auth_app, project_app)
-register_linked_replica_commands(wavekit_app)
+register_linked_replica_commands(app, wavekit_app, sync_app)
+register_project_replication_commands(project_app)
 register_project_status_commands(app, assess_app, assess_maturity_app)
 register_project_identity_commands(project_app)
 register_proposal_commands(

@@ -10,11 +10,15 @@ from p2p_engine.cli_shared import workspace as workspace_for
 from p2p_engine.services.linked_replica import LinkedReplicaService
 
 
-def register_linked_replica_commands(wavekit_app: typer.Typer) -> None:
+def register_linked_replica_commands(
+    root_app: typer.Typer,
+    wavekit_app: typer.Typer,
+    sync_app: typer.Typer,
+) -> None:
     replica_app = typer.Typer(help="Manage the identity of a linked local replica")
-    sync_app = typer.Typer(help="Inspect or recover linked-replica freshness")
+    wavekit_sync_app = typer.Typer(help="Legacy alias for linked-replica synchronization")
     wavekit_app.add_typer(replica_app, name="replica")
-    wavekit_app.add_typer(sync_app, name="sync")
+    wavekit_app.add_typer(wavekit_sync_app, name="sync")
 
     @wavekit_app.command("clone")
     def clone(
@@ -85,6 +89,7 @@ def register_linked_replica_commands(wavekit_app: typer.Typer) -> None:
             f"Linked replica state: {payload['state']}",
         )
 
+    @wavekit_sync_app.command("catch-up")
     @sync_app.command("catch-up")
     def catch_up(
         root: Path = typer.Option(Path.cwd(), "--root", help="Linked project root"),
@@ -96,6 +101,7 @@ def register_linked_replica_commands(wavekit_app: typer.Typer) -> None:
             fail(str(exc))
         _emit("wavekit.sync.catch-up", {"linked_replica": result.to_dict()}, output_format, result.message)
 
+    @wavekit_sync_app.command("recover")
     @sync_app.command("recover")
     def recover(
         root: Path = typer.Option(Path.cwd(), "--root", help="Linked project root"),
@@ -106,6 +112,75 @@ def register_linked_replica_commands(wavekit_app: typer.Typer) -> None:
         except ValueError as exc:
             fail(str(exc))
         _emit("wavekit.sync.recover", {"linked_replica": result.to_dict()}, output_format, result.message)
+
+    @sync_app.command("status")
+    def sync_status(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Linked project root"),
+        output_format: str = typer.Option("text", "--format", help="text or json"),
+    ) -> None:
+        try:
+            payload = workspace_for(root).linked_replica_status()
+        except ValueError as exc:
+            fail(str(exc))
+        _emit(
+            "sync.status",
+            {"linked_replica_status": payload},
+            output_format,
+            f"Linked replica state: {payload['state']}",
+        )
+
+    @root_app.command("watch")
+    def watch(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Linked project root"),
+        max_events: int = typer.Option(
+            0,
+            "--max-events",
+            min=0,
+            help="Stop after N events; zero keeps watching",
+        ),
+        output_format: str = typer.Option("text", "--format", help="text or json"),
+    ) -> None:
+        normalized_format = output_format.strip().lower()
+        if normalized_format == "json" and max_events == 0:
+            fail(
+                "P2P_REPLICATION_WATCH_BOUND_REQUIRED: JSON watch requires "
+                "--max-events greater than zero"
+            )
+        if normalized_format not in {"text", "json"}:
+            fail("P2P_CLI_INVALID_REQUEST: format must be text or json")
+        service = LinkedReplicaService(root=root)
+        if normalized_format == "text":
+            observed = 0
+            try:
+                for event in service.iter_watch(max_events=max_events):
+                    observed += 1
+                    notification = event["notification"]
+                    freshness = event["freshness"]
+                    assert isinstance(notification, dict)
+                    assert isinstance(freshness, dict)
+                    console.print(
+                        "Project revision "
+                        f"{notification['project_revision']} is available; "
+                        "the local replica is confirmed at revision "
+                        f"{freshness['project_revision']}.",
+                        markup=False,
+                    )
+            except (KeyboardInterrupt, EOFError):
+                pass
+            except ValueError as exc:
+                fail(str(exc))
+            console.print(f"Stopped after {observed} project notification(s).")
+            return
+        try:
+            events = service.watch(max_events=max_events)
+        except ValueError as exc:
+            fail(str(exc))
+        _emit(
+            "watch",
+            {"events": list(events), "event_count": len(events)},
+            output_format,
+            f"Observed {len(events)} project notification(s).",
+        )
 
     @replica_app.command("move")
     def move(

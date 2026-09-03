@@ -26,15 +26,21 @@ paths or provide raw storage operations. `p2p_init_project` accepts the
 currently available `filesystem` selection, while reopening uses the stored
 selection automatically.
 
-For a `linked-local` project, local stdio MCP exposes the same replica status
-and catch-up service as the CLI. `p2p_linked_replica_catch_up` applies only a
-fully verified WaveKit snapshot and its result reports source, revision and
-staleness. Automatic wrapping of every domain tool and authoritative linked
-writes are not advertised by this client checkpoint; they remain fail-closed
-until the paired WaveKit command integration. Clone, attach, move and copy
-registration remain owner CLI operations. WaveKit authority transfer exposes
-eligibility, preview and status only; login, upload, apply and transfer
-recovery are deliberately owner CLI operations.
+For a `linked-local` project, local stdio MCP uses the same durable replica
+service as the CLI. Reads catch up first and report their confirmed WaveKit
+revision/freshness. Registered domain mutations are submitted to WaveKit as
+typed commands and require a stable `linked_operation_id`, the observed
+`linked_expected_project_revision` and any affected
+`linked_entity_preconditions`. Caller-supplied actor fields are never trusted;
+the authenticated WaveKit request establishes actor and capability. Confirmed
+state enters the local replica only from a verified change batch.
+
+MCP exposes no raw command-envelope, feed, cursor, blob, compaction or
+initialization primitive. `p2p_linked_replica_catch_up` remains a diagnostic
+domain-level operation. Clone, attach, move and copy registration remain owner
+CLI operations. WaveKit authority transfer exposes eligibility, preview and
+status only; login, upload, apply and transfer recovery remain owner CLI
+operations.
 
 For a future multi-agent setup that requires one long-running shared service,
 P2P Engine would need a Streamable HTTP MCP server. The current implementation

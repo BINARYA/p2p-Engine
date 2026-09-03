@@ -80,6 +80,14 @@ the transfer-state port. After a verified server receipt, the adapter
 atomically changes identity/binding and blocks local Units of Work. See
 [`AUTHORITY-TRANSFER.md`](AUTHORITY-TRANSFER.md).
 
+Durable replication follows the same separation. Server batches contain
+logical canonical after-states, tombstones and content-addressed blob
+references, never paths or filesystem documents. A local adapter verifies all
+referenced blobs first and commits entity changes, an inbox marker and the
+replica cursor in one Unit of Work. The P2P server root stores its revision
+head, immutable batches and operation receipts beside the filesystem-backed
+project; WaveKit does not duplicate those canonical payloads in PostgreSQL.
+
 Retained structure history and merge/restore transitions follow the same
 boundary. Public callers address an exact release/bundle digest or retained
 structure revision/checksum. The selected adapter atomically stores the new

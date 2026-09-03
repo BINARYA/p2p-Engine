@@ -186,28 +186,7 @@ class FilesystemCanonicalMemoryStore:
             relative = artifact.locator.removeprefix(".p2p/")
             path = self._safe_path(relative)
             content = path.read_bytes()
-            namespace, coordinates = _logical_coordinates(relative)
-            media_type = _media_type(path)
-            document = _parse_document(path, content)
-            if relative == "project/identity.yml":
-                document = _canonical_identity_document(document)
-            payload = {
-                "namespace": namespace,
-                "coordinates": coordinates,
-                "media_type": media_type,
-                "document": normalize_semantic_value(document),
-            }
-            technical_id = _technical_id(namespace, coordinates)
-            entities.append(
-                CanonicalEntity(
-                    entity_type=_entity_type(namespace, coordinates),
-                    technical_id=technical_id,
-                    human_key=_human_key(namespace, coordinates),
-                    entity_version=_entity_version(document),
-                    payload=payload,
-                    storage_locator=artifact.locator,
-                )
-            )
+            entities.append(canonical_entity_from_document(relative, content))
         return tuple(sorted(entities, key=lambda item: (item.entity_type, item.technical_id)))
 
     def read_relations(
@@ -460,6 +439,47 @@ def classify_memory_path(relative: str) -> tuple[str, str, str]:
             "External content is not imported implicitly.",
         )
     return "unknown", "unknown", "Artifact has no frozen memory classification rule."
+
+
+def canonical_entity_from_document(relative: str, content: bytes) -> CanonicalEntity:
+    """Decode one portable document without exposing its path in replication payloads."""
+    normalized = PurePosixPath(relative).as_posix()
+    classification, _, _ = classify_memory_path(normalized)
+    if classification != "canonical_project":
+        raise ValueError("P2P_CANONICAL_ENTITY_INVALID: document is not canonical project state")
+    path = Path(normalized)
+    namespace, coordinates = _logical_coordinates(normalized)
+    media_type = _media_type(path)
+    document = _parse_document(path, content)
+    if normalized == "project/identity.yml":
+        document = _canonical_identity_document(document)
+    payload = {
+        "namespace": namespace,
+        "coordinates": coordinates,
+        "media_type": media_type,
+        "document": normalize_semantic_value(document),
+    }
+    return CanonicalEntity(
+        entity_type=_entity_type(namespace, coordinates),
+        technical_id=_technical_id(namespace, coordinates),
+        human_key=_human_key(namespace, coordinates),
+        entity_version=_entity_version(document),
+        payload=payload,
+        storage_locator=f".p2p/{normalized}",
+    )
+
+
+def managed_blob_from_document(relative: str, content: bytes) -> ManagedBlob:
+    normalized = PurePosixPath(relative).as_posix()
+    match = _BLOB_PATH.fullmatch(normalized)
+    digest = hashlib.sha256(content).hexdigest()
+    if match is None or match.group(1) != match.group(2)[:2] or match.group(2) != digest:
+        raise ValueError("P2P_MANAGED_BLOB_DIGEST_MISMATCH: managed blob path or bytes differ")
+    return ManagedBlob(
+        digest=f"sha256:{digest}",
+        size=len(content),
+        storage_locator=f".p2p/{normalized}",
+    )
 
 
 def managed_blob_references(value: object) -> tuple[str, ...]:

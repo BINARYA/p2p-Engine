@@ -101,17 +101,31 @@
     },
     {
       "commands": [
-        "p2p wavekit status --root WORKSPACE --format json"
+        "p2p wavekit status --root WORKSPACE --format json",
+        "p2p sync status --root WORKSPACE --format json",
+        "p2p watch --max-events COUNT --root WORKSPACE --format json"
       ],
       "group": "linked_replica_status",
       "mutates_project": false
     },
     {
       "commands": [
-        "p2p wavekit sync catch-up --root WORKSPACE --format json",
-        "p2p wavekit sync recover --root WORKSPACE --format json"
+        "p2p sync catch-up --root WORKSPACE --format json",
+        "p2p sync recover --root WORKSPACE --format json"
       ],
       "group": "linked_replica_sync",
+      "mutates_project": true
+    },
+    {
+      "commands": [
+        "p2p project replication initialize --authority-epoch EPOCH --project-revision REVISION --retention-batches COUNT --confirm --root WORKSPACE --format json",
+        "p2p project replication status --root WORKSPACE --format json",
+        "p2p project replication operation-status OPERATION-ID --root WORKSPACE --format json",
+        "p2p project replication feed --after-revision REVISION --replica-id REPLICA-ID --limit COUNT --root WORKSPACE --format json",
+        "p2p project replication compact --retain-after-revision REVISION --confirm --root WORKSPACE --format json",
+        "p2p --replication-command-envelope COMMAND.json project domain set DOMAIN --name NAME --actor ACTOR --operation-key wavekit:<uuid> --root WORKSPACE --format json"
+      ],
+      "group": "project_replication_worker",
       "mutates_project": true
     },
     {
@@ -150,11 +164,15 @@
     "memory_classification_contract": "p2p-memory-classification/v1",
     "mutation_receipt_schema_version": 3,
     "portable_package_format_version": 1,
+    "project_activity_contract": "wavekit-project-activity/v1",
     "project_authority_schema": "p2p-project-authority/v1",
     "project_bundle_contract_version": {
       "compatibility": "same-major",
       "contract": "p2p-project-bundle/v1"
     },
+    "project_change_batch_contract": "p2p-project-change-batch/v1",
+    "project_change_feed_contract": "p2p-project-change-feed/v1",
+    "project_command_contract": "p2p-project-command/v1",
     "project_domain_contract": "p2p-project-domain/v1",
     "project_integration_contract_version": {
       "compatibility": "same-major",
@@ -164,11 +182,15 @@
     "project_memory_scope_contract": "p2p-project-memory-scope/v1",
     "project_memory_scope_events_contract": "p2p-project-memory-scope-events/v1",
     "project_memory_scope_mutation_contract": "p2p-project-memory-scope-mutation/v1",
+    "project_notification_contract": "wavekit-project-notification/v1",
+    "project_operation_receipt_contract": "p2p-project-operation-receipt/v1",
+    "project_presence_contract": "wavekit-project-presence/v1",
     "project_readiness_algorithm_version": "project-structure-readiness-v2.0",
     "project_readiness_contract": "p2p-project-readiness/v2",
     "project_readiness_convergence_policy_version": 1,
     "project_readiness_cursor_policy_version": 1,
     "project_readiness_gap_policy_version": 1,
+    "project_replication_protocol": "p2p-durable-replication/v1",
     "project_structure_contract": "p2p-project-structure/v1",
     "project_structure_events_contract": "p2p-project-structure-events/v1",
     "project_structure_export_marker_contract": "p2p-project-structure-export-marker/v1",
@@ -192,7 +214,7 @@
     "structure_transition_result_contract": "p2p-structure-transition-result/v1",
     "sync_protocol_version": {
       "compatibility": "exact-major",
-      "protocol": "p2p-linked-replica/v1",
+      "protocol": "p2p-durable-replication/v1",
       "status": "client-implemented"
     },
     "vertical_draft_document_contract": "p2p-vertical-draft/v1",
@@ -216,7 +238,7 @@
     "restore_apply_available": false,
     "retained_inspect_available": true
   },
-  "operation_inventory_sha256": "30d62bfc48554f19c3f9401252c81a2a70a90cadf466882fb14a001da69b41b6",
+  "operation_inventory_sha256": "fe0620035df90fcb814075f404c26ab323615cd4a686902673266fd83ea522b9",
   "registry_v2": {
     "domain_filtering": "exact_external_id_only",
     "mutation_performed": false,
@@ -229,7 +251,7 @@
     "operation_key_placeholder": "wavekit:<uuid>",
     "root_placeholder": "<PROJECT_ROOT>"
   },
-  "semantic_sha256": "9fc5b0edcff99fab5764f986b3f5786646965d65cb3ccf2959e2a5045a205fd5",
+  "semantic_sha256": "b2878c99c17505948e098f01dcaf2e7075c8e1ae4bac2967a9616b9f08bf4a03",
   "transport": {
     "envelope": "p2p-cli/v1",
     "kind": "cli_json",

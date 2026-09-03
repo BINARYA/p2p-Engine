@@ -25,6 +25,7 @@ from p2p_engine.core.linked_replica import (
     ReplicaSnapshotManifest,
 )
 from p2p_engine.core.project_identity import ProjectIdentity
+from p2p_engine.core.project_replication import ChangeBatch
 from p2p_engine.core.project_state_storage import (
     ProjectArchive,
     ProjectEntityRecord,
@@ -176,6 +177,14 @@ class LinkedReplicaStatePort(Protocol):
         state: ReplicaAccessState,
         *,
         error_code: str = "",
+    ) -> LinkedReplicaBinding: ...
+
+    def apply_change_batch(
+        self,
+        batch: ChangeBatch,
+        *,
+        blob_bytes: dict[str, bytes],
+        verified_at: int,
     ) -> LinkedReplicaBinding: ...
 
 

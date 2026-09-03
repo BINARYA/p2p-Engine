@@ -695,14 +695,15 @@ def project_integration_guide(profile: str = STANDALONE_PROFILE) -> str:
         authority_lines = """- Profile: `linked-local`
 - Authority: WaveKit is authoritative; local memory is a replica.
 - Supported agent surfaces: local CLI and local MCP over `stdio` through the replica service.
-- Before using cached project state: run the documented catch-up command and
-  verify its WaveKit revision; automatic domain-command interception is not
-  advertised by this client checkpoint.
+- Normal one-shot CLI reads perform the same catch-up preflight automatically;
+  verify its WaveKit revision. Linked MCP reads run this same catch-up path.
 - Offline reads: permitted only with explicit stale source/revision metadata.
 - Offline governed mutations: blocked.
-- Online authoritative mutations: unavailable until the paired WaveKit command
-  integration is installed."""
-        sync_line = "p2p wavekit sync catch-up --root . --format json"
+- Online linked MCP mutations: submit the required stable operation ID,
+  observed project revision and affected-entity preconditions. WaveKit
+  authenticates the actor; confirmed state is applied only from its durable
+  change feed."""
+        sync_line = "p2p sync status --root . --format json"
         reservation = (
             "Do not infer authority or freshness from local availability. Use `p2p wavekit "
             "status --root . --format json`; clone, attach, move and copy registration remain "
@@ -723,6 +724,9 @@ p2p integration status --format json
 p2p runtime status --root . --format json
 p2p project identity status --root . --format json
 p2p wavekit status --root . --format json
+p2p sync status --root . --format json
+p2p sync catch-up --root . --format json
+p2p watch --root . --format json
 p2p-mcp-server --root .
 ```
 
@@ -889,7 +893,11 @@ def agent_policy(
     project_name: str,
     profiles: list[str],
     interaction_style: Any = None,
+    *,
+    access_profile: str = STANDALONE_PROFILE,
 ) -> dict[str, object]:
+    selected = access_profile.strip().lower()
+    linked = selected == "linked-local"
     return {
         "p2p_agent_policy": {
             "version": "1.0",
@@ -901,12 +909,20 @@ def agent_policy(
         },
         "project_integration": {
             "contract": PROJECT_INTEGRATION_CONTRACT,
-            "access_profile": STANDALONE_PROFILE,
-            "authority": "local",
+            "access_profile": selected,
+            "authority": "wavekit" if linked else "local",
             "surfaces": ["cli", "mcp-stdio"],
             "backend_visible_to_agents": False,
             "host_configuration_mutation_via_mcp": False,
-            "sync_protocol": None,
+            "sync_protocol": (
+                "p2p-durable-replication/v1" if linked else None
+            ),
+            "sync_status_command": "p2p sync status --root . --format json",
+            "sync_catch_up_command": "p2p sync catch-up --root . --format json",
+            "realtime_watch_command": "p2p watch --root . --format json",
+            "linked_mcp_reads_auto_catch_up": linked,
+            "linked_mcp_writes_require_operation_and_revision": linked,
+            "offline_mutations": "blocked" if linked else "allowed",
         },
         "agent_profiles": profiles,
         "agent_capabilities": capability_catalog_payload(),

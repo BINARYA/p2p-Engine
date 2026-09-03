@@ -9,7 +9,7 @@ from p2p_engine.core.canonical_memory import (
     MEMORY_SCHEMA_VERSION,
     PROJECT_BUNDLE_SCHEMA,
 )
-from p2p_engine.core.linked_replica import LINKED_REPLICA_PROTOCOL
+from p2p_engine.core.project_replication import PROJECT_REPLICATION_PROTOCOL
 
 PROJECT_INTEGRATION_CONTRACT = "p2p-project-integration/v1"
 PROJECT_INTEGRATION_MANIFEST_VERSION = 1
@@ -25,7 +25,7 @@ PROJECT_ACCESS_PROFILES = (
     REMOTE_ONLY_PROFILE,
 )
 
-SYNC_PROTOCOL_VERSION = LINKED_REPLICA_PROTOCOL
+SYNC_PROTOCOL_VERSION = PROJECT_REPLICATION_PROTOCOL
 
 
 @dataclass(frozen=True)
@@ -97,17 +97,17 @@ def access_profile(value: str) -> ProjectAccessProfile:
                 "authority-transfer-recovery",
                 "replica-catch-up",
                 "replica-freshness",
+                "durable-change-feed",
+                "realtime-notification-watch",
+                "online-authoritative-write-via-wavekit",
                 "stale-offline-reads",
                 "local-governed-mutations-blocked",
-            ),
-            unavailable_capabilities=(
-                "online-authoritative-write",
             ),
             offline_reads="explicitly-stale",
             offline_mutations="blocked",
             reason=(
-                "authority is remote; snapshots and freshness are supported, while an online "
-                "mutation becomes local only through the paired WaveKit authoritative result"
+                "authority is remote; authenticated online domain commands commit in WaveKit "
+                "and become local only after their durable authoritative change batch"
             ),
         )
     return ProjectAccessProfile(

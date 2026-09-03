@@ -327,7 +327,6 @@ class AtomicMutationWriter:
         lock_wait_timeout: float = 0.0,
     ) -> MutationResult:
         transaction_id = f"mutation-{operation_id.replace(':', '-')}-{os.getpid()}-{hashlib.sha256(preview_token.encode()).hexdigest()[:10]}"
-        source_map = {item.path: item for item in sources}
         lock_deadline = time.monotonic() + max(0.0, lock_wait_timeout)
         while True:
             try:
@@ -344,6 +343,25 @@ class AtomicMutationWriter:
         transaction_dir: Path | None = None
         journal: dict[str, object] = {}
         try:
+            # A WaveKit worker can bind a typed command to this process.  The
+            # hook runs only after the short project lock is held and extends
+            # the same physical transaction with its immutable receipt, change
+            # batch and revision head.  Normal standalone mutations are left
+            # untouched.
+            from p2p_engine.services.project_replication import (
+                augment_replication_transaction,
+            )
+
+            candidates, sources, replay = augment_replication_transaction(
+                root=self.root,
+                candidates=candidates,
+                sources=sources,
+                mutation_operation_id=operation_id,
+            )
+            if replay is not None:
+                self.lock_service.release(transaction_id)
+                return replay
+            source_map = {item.path: item for item in sources}
             transaction_dir = self.filesystem.create_transaction(transaction_id)
             targets = sorted(candidates)
             preserved: dict[str, bytes | None] = {}

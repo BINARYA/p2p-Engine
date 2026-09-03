@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import shutil
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from pathlib import Path
 from urllib.parse import quote, urlencode, urljoin, urlsplit, urlunsplit
 
@@ -16,6 +16,7 @@ from p2p_engine.adapters.wavekit_transfer_http import (
     WaveKitTransferTransport,
 )
 from p2p_engine.core.authority_transfer import safe_profile_ref
+from p2p_engine.core.canonical_memory import canonical_json_bytes
 from p2p_engine.core.linked_replica import (
     LINKED_REPLICA_CAPABILITY_CONTRACT,
     LINKED_REPLICA_CAPABILITY_PATH,
@@ -29,9 +30,20 @@ from p2p_engine.core.linked_replica import (
     ReplicaFreshness,
     ReplicaOperationResult,
     ReplicaSnapshotManifest,
+    ReplicationCapabilities,
+    ReplicationEndpoints,
     snapshot_manifest_from_mapping,
 )
 from p2p_engine.core.project_identity import RemoteProjectId, ServerInstanceId
+from p2p_engine.core.project_replication import (
+    ChangeFeed,
+    EntityPrecondition,
+    OperationReceipt,
+    ProjectCommand,
+    feed_from_mapping,
+    notification_from_mapping,
+    receipt_from_mapping,
+)
 from p2p_engine.foundation.files import sync_directory, write_bytes_atomic
 from p2p_engine.ports.project_state import LinkedReplicaStatePort
 from p2p_engine.services.authority_transfer import normalize_server_url
@@ -95,6 +107,7 @@ class LinkedReplicaService:
         limits = _mapping(payload.get("limits"), "limits")
         if set(limits) != {"max_bundle_bytes", "max_blob_bytes", "max_blobs"}:
             raise ValueError("P2P_LINKED_REPLICA_RESPONSE_INVALID: limits are not exact")
+        replication = _replication_capabilities(payload.get("replication"))
         return ReplicaCapabilities(
             server_url=server,
             server_instance_id=ServerInstanceId(_required(payload, "server_instance_id")),
@@ -107,6 +120,7 @@ class LinkedReplicaService:
             retention_floor=_non_negative_int(
                 payload.get("retention_floor", 0), "retention_floor"
             ),
+            replication=replication,
         )
 
     def clone(
@@ -237,6 +251,12 @@ class LinkedReplicaService:
         capabilities = self.capabilities(binding.server_url)
         self._verify_server(binding, capabilities)
         credential = self._credential(capabilities.server_url)
+        if capabilities.replication is not None:
+            return self._durable_catch_up(
+                binding=binding,
+                capabilities=capabilities,
+                token=credential.access_token,
+            )
         url = self._url(
             capabilities,
             capabilities.endpoints.changes,
@@ -308,6 +328,318 @@ class LinkedReplicaService:
             diagnostic_path=diagnostic,
             message="A verified WaveKit snapshot was atomically applied to the local replica.",
         )
+
+    def submit_command(
+        self,
+        *,
+        operation_id: str,
+        idempotency_key: str,
+        command: str,
+        payload_contract: str,
+        payload: Mapping[str, object],
+        expected_project_revision: int | None = None,
+        entity_preconditions: tuple[EntityPrecondition, ...] = (),
+    ) -> dict[str, object]:
+        """Submit one authenticated linked mutation and converge before returning."""
+        binding = self._binding()
+        if not binding.writes_permitted:
+            raise ValueError("P2P_REPLICATION_READ_ONLY: linked replica cannot mutate")
+        # One-shot CLI/MCP operations always reconcile before submission.  An
+        # explicit observed revision is nevertheless preserved so WaveKit can
+        # decide whether the prepared work is still valid for its entities.
+        freshness = self.before_operation(mutation=True)
+        if freshness is None:
+            raise ValueError("P2P_LINKED_REPLICA_NOT_FOUND: local binding is absent")
+        current_binding = self._binding()
+        capabilities = self.capabilities(current_binding.server_url)
+        self._verify_server(current_binding, capabilities)
+        replication = capabilities.replication
+        if replication is None:
+            raise ValueError(
+                "P2P_REPLICATION_PROTOCOL_UNSUPPORTED: WaveKit has no durable command endpoint"
+            )
+        credential = self._credential(capabilities.server_url)
+        envelope = ProjectCommand(
+            operation_id=operation_id,
+            idempotency_key=idempotency_key,
+            project_uuid=current_binding.project_uuid,
+            remote_project_id=current_binding.remote_project_id,
+            replica_id=current_binding.replica_id,
+            authority_epoch=current_binding.authority_epoch,
+            expected_project_revision=(
+                current_binding.last_applied_revision
+                if expected_project_revision is None
+                else expected_project_revision
+            ),
+            entity_preconditions=entity_preconditions,
+            command=command,
+            payload_contract=payload_contract,
+            payload=payload,
+        )
+        if len(canonical_json_bytes(envelope.to_dict())) > replication.max_command_bytes:
+            raise ValueError(
+                "P2P_REPLICATION_PAYLOAD_TOO_LARGE: command exceeds negotiated limit"
+            )
+        try:
+            response = self.transport.request_json(
+                "POST",
+                self._url(
+                    capabilities,
+                    replication.endpoints.command,
+                    remote_project_id=current_binding.remote_project_id.value,
+                    replica_id=current_binding.replica_id.value,
+                ),
+                token=credential.access_token,
+                json_body=envelope.to_dict(),
+                idempotency_key=envelope.idempotency_key,
+                max_bytes=replication.max_batch_bytes,
+            )
+            receipt = receipt_from_mapping(_envelope(response, "operation_receipt"))
+        except ValueError as exc:
+            if not any(
+                marker in str(exc)
+                for marker in ("P2P_WAVEKIT_RESPONSE_UNKNOWN", "P2P_WAVEKIT_UNAVAILABLE")
+            ):
+                raise
+            receipt = self.operation_status(operation_id)
+            if receipt is None:
+                raise ValueError(
+                    "P2P_REPLICATION_OUTCOME_UNKNOWN: query the same operation_id before retry"
+                ) from exc
+        self._verify_receipt(receipt, envelope)
+        # Even a conflicted/rejected terminal result may have raced with a
+        # different successful commit.  Reconcile the durable feed before the
+        # caller decides whether prepared work is still valid.
+        freshness = self.catch_up().freshness
+        return {
+            "command": envelope.to_dict(),
+            "receipt": receipt.to_dict(),
+            "freshness": freshness.to_dict(),
+        }
+
+    def operation_status(self, operation_id: str) -> OperationReceipt | None:
+        binding = self._binding()
+        capabilities = self.capabilities(binding.server_url)
+        self._verify_server(binding, capabilities)
+        replication = capabilities.replication
+        if replication is None:
+            raise ValueError("P2P_REPLICATION_PROTOCOL_UNSUPPORTED: status endpoint absent")
+        credential = self._credential(capabilities.server_url)
+        response = self.transport.request_json(
+            "GET",
+            self._url(
+                capabilities,
+                replication.endpoints.operation,
+                remote_project_id=binding.remote_project_id.value,
+                replica_id=binding.replica_id.value,
+                operation_id=operation_id,
+            ),
+            token=credential.access_token,
+            max_bytes=LINKED_REPLICA_MAX_RESPONSE_BYTES,
+        )
+        payload = _envelope(response, "operation_status")
+        if set(payload) != {"contract", "operation_id", "receipt"}:
+            raise ValueError("P2P_REPLICATION_RESPONSE_INVALID: operation status fields differ")
+        if payload.get("contract") != "p2p-project-operation-status/v1":
+            raise ValueError("P2P_REPLICATION_PROTOCOL_UNSUPPORTED: status contract differs")
+        if str(payload["operation_id"]) != operation_id:
+            raise ValueError("P2P_REPLICATION_OPERATION_CONFLICT: status identity differs")
+        raw_receipt = payload.get("receipt")
+        if raw_receipt is None:
+            return None
+        return receipt_from_mapping(_mapping(raw_receipt, "operation receipt"))
+
+    def watch(self, *, max_events: int = 0) -> tuple[dict[str, object], ...]:
+        """Listen for wake-ups; every accepted event is confirmed through catch-up."""
+        return tuple(self.iter_watch(max_events=max_events))
+
+    def iter_watch(self, *, max_events: int = 0) -> Iterator[dict[str, object]]:
+        """Yield verified wake-ups after the durable feed has caught up."""
+        binding = self._binding()
+        capabilities = self.capabilities(binding.server_url)
+        self._verify_server(binding, capabilities)
+        replication = capabilities.replication
+        if replication is None:
+            raise ValueError("P2P_REPLICATION_PROTOCOL_UNSUPPORTED: realtime endpoint absent")
+        stream = getattr(self.transport, "iter_sse", None)
+        if stream is None:
+            raise ValueError("P2P_REPLICATION_TRANSPORT_UNAVAILABLE: SSE is unsupported")
+        credential = self._credential(capabilities.server_url)
+        url = self._url(
+            capabilities,
+            replication.endpoints.events,
+            remote_project_id=binding.remote_project_id.value,
+            replica_id=binding.replica_id.value,
+        )
+        observed = 0
+        last_event_id = ""
+        for raw in stream(
+            url,
+            token=credential.access_token,
+            last_event_id=last_event_id,
+            heartbeat_seconds=replication.heartbeat_seconds,
+        ):
+            if not isinstance(raw, Mapping):
+                raise ValueError("P2P_REPLICATION_RESPONSE_INVALID: SSE event must be a mapping")
+            notification = notification_from_mapping(raw)
+            if notification.project_uuid != binding.project_uuid:
+                raise ValueError("P2P_REPLICATION_IDENTITY_MISMATCH: event project differs")
+            last_event_id = notification.event_id
+            caught_up = self.catch_up()
+            yield {
+                "notification": notification.to_dict(),
+                "freshness": caught_up.freshness.to_dict(),
+            }
+            observed += 1
+            if max_events and observed >= max_events:
+                break
+
+    def _durable_catch_up(
+        self,
+        *,
+        binding: LinkedReplicaBinding,
+        capabilities: ReplicaCapabilities,
+        token: str,
+    ) -> ReplicaOperationResult:
+        replication = capabilities.replication
+        assert replication is not None
+        current = binding
+        applied = 0
+        for _page_number in range(10_000):
+            url = self._url(
+                capabilities,
+                replication.endpoints.feed,
+                remote_project_id=current.remote_project_id.value,
+                replica_id=current.replica_id.value,
+            )
+            separator = "&" if "?" in url else "?"
+            response = self.transport.request_json(
+                "GET",
+                f"{url}{separator}{urlencode({'after_revision': current.last_applied_revision, 'limit': replication.max_page_batches})}",
+                token=token,
+                max_bytes=max(LINKED_REPLICA_MAX_RESPONSE_BYTES, replication.max_batch_bytes),
+            )
+            feed = feed_from_mapping(_envelope(response, "project_change_feed"))
+            self._verify_feed(feed, current)
+            if feed.status == "retention-gap":
+                assert feed.snapshot is not None
+                manifest = snapshot_manifest_from_mapping(feed.snapshot)
+                return self._apply_snapshot_fallback(
+                    manifest=manifest,
+                    binding=current,
+                    capabilities=capabilities,
+                    token=token,
+                )
+            if feed.status == "up-to-date":
+                updated = current.with_progress(
+                    remote_revision=current.last_applied_revision,
+                    cursor=current.last_applied_revision,
+                    snapshot_digest=current.snapshot_digest,
+                    blob_manifest_digest=current.blob_manifest_digest,
+                    verified_at=int(self.now()),
+                )
+                self.store.save(updated)
+                return ReplicaOperationResult(
+                    status="caught-up" if applied else "up-to-date",
+                    binding=updated,
+                    freshness=_freshness(updated, source="remote", stale=False),
+                    message=(
+                        f"Applied {applied} durable project change batch(es)."
+                        if applied
+                        else "Linked replica is current at the verified WaveKit revision."
+                    ),
+                )
+            for batch in feed.batches:
+                downloaded: dict[str, bytes] = {}
+                for reference in batch.blob_references:
+                    digest = reference.digest
+                    local = self.root / ".p2p" / "blobs" / "sha256" / digest[:2] / digest
+                    if local.is_file() and not local.is_symlink():
+                        continue
+                    blob_url = self._url(
+                        capabilities,
+                        replication.endpoints.blob,
+                        remote_project_id=current.remote_project_id.value,
+                        replica_id=current.replica_id.value,
+                        digest=digest,
+                    )
+                    downloaded[f"sha256:{digest}"] = self.transport.download_bytes(
+                        blob_url,
+                        token=token,
+                        max_bytes=max(
+                            1,
+                            min(capabilities.max_blob_bytes, reference.size),
+                        ),
+                    )
+                current = self.store.apply_change_batch(
+                    batch,
+                    blob_bytes=downloaded,
+                    verified_at=int(self.now()),
+                )
+                applied += 1
+            if not feed.has_more:
+                continue
+        raise ValueError("P2P_REPLICATION_BACKPRESSURE: feed pagination did not converge")
+
+    def _apply_snapshot_fallback(
+        self,
+        *,
+        manifest: ReplicaSnapshotManifest,
+        binding: LinkedReplicaBinding,
+        capabilities: ReplicaCapabilities,
+        token: str,
+    ) -> ReplicaOperationResult:
+        self._verify_snapshot_binding(manifest, binding, capabilities)
+        stage_root = self._stage_root(manifest.session_id)
+        bundle = self._download_snapshot(capabilities, token, manifest, stage_root)
+        materialized = stage_root / "project"
+        self._materialize(
+            materialized,
+            bundle,
+            manifest,
+            operation_key=f"replica-retention-recovery:{binding.replica_id.value}:{manifest.cursor}",
+            account_profile_ref=binding.account_profile_ref,
+            server_url=capabilities.server_url,
+            preserve_read_only=binding.state == ReplicaAccessState.read_only,
+        )
+        diagnostic = self._replace_active(materialized, previous=binding)
+        rebuilt = FilesystemLinkedReplicaStore(self.root).load()
+        if rebuilt is None:
+            raise ValueError("P2P_LINKED_REPLICA_ACTIVATION_FAILED: rebuilt binding is absent")
+        integration = self._transition_integration()
+        shutil.rmtree(stage_root, ignore_errors=True)
+        return ReplicaOperationResult(
+            status="rebuilt",
+            binding=rebuilt,
+            freshness=_freshness(rebuilt, source="remote", stale=False),
+            integration_status=integration,
+            diagnostic_path=diagnostic,
+            message="Retention gap recovered from a verified WaveKit snapshot.",
+        )
+
+    @staticmethod
+    def _verify_feed(feed: ChangeFeed, binding: LinkedReplicaBinding) -> None:
+        if feed.project_uuid != binding.project_uuid or feed.replica_id != binding.replica_id:
+            raise ValueError("P2P_REPLICATION_IDENTITY_MISMATCH: feed binding differs")
+        if feed.authority_epoch != binding.authority_epoch:
+            raise ValueError("P2P_REPLICATION_AUTHORITY_CHANGED: feed authority epoch differs")
+        if feed.after_revision != binding.last_applied_revision:
+            raise ValueError("P2P_REPLICATION_CURSOR_GAP: feed starts at another revision")
+
+    @staticmethod
+    def _verify_receipt(receipt: OperationReceipt, command: ProjectCommand) -> None:
+        base_matches = receipt.base_project_revision == command.expected_project_revision
+        if command.entity_preconditions:
+            base_matches = receipt.base_project_revision >= command.expected_project_revision
+        if (
+            receipt.operation_id != command.operation_id
+            or receipt.idempotency_key != command.idempotency_key
+            or receipt.command_fingerprint != command.fingerprint
+            or receipt.project_uuid != command.project_uuid
+            or receipt.authority_epoch != command.authority_epoch
+            or not base_matches
+        ):
+            raise ValueError("P2P_REPLICATION_OPERATION_CONFLICT: receipt binding differs")
 
     def before_operation(self, *, mutation: bool) -> ReplicaFreshness | None:
         binding = self.store.load()
@@ -860,3 +1192,32 @@ def _safe_device_label(value: str) -> str:
     if not text or len(text.encode("utf-8")) > 128 or any(ord(char) < 32 for char in text):
         raise ValueError("P2P_LINKED_REPLICA_INVALID: device label is invalid")
     return text
+
+
+def _replication_capabilities(value: object) -> ReplicationCapabilities | None:
+    if value is None:
+        return None
+    payload = _mapping(value, "replication")
+    if set(payload) != {"protocol", "endpoints", "limits", "heartbeat_seconds"}:
+        raise ValueError("P2P_LINKED_REPLICA_RESPONSE_INVALID: replication fields differ")
+    endpoints = _mapping(payload["endpoints"], "replication endpoints")
+    names = {"command", "operation", "feed", "blob", "events"}
+    if set(endpoints) != names:
+        raise ValueError(
+            "P2P_LINKED_REPLICA_RESPONSE_INVALID: replication endpoints differ"
+        )
+    limits = _mapping(payload["limits"], "replication limits")
+    if set(limits) != {"max_command_bytes", "max_batch_bytes", "max_page_batches"}:
+        raise ValueError("P2P_LINKED_REPLICA_RESPONSE_INVALID: replication limits differ")
+    return ReplicationCapabilities(
+        protocol=str(payload["protocol"]),
+        endpoints=ReplicationEndpoints(
+            **{name: _endpoint(endpoints, name) for name in sorted(names)}
+        ),
+        max_command_bytes=_positive_int(limits["max_command_bytes"], "max_command_bytes"),
+        max_batch_bytes=_positive_int(limits["max_batch_bytes"], "max_batch_bytes"),
+        max_page_batches=_positive_int(
+            limits["max_page_batches"], "max_page_batches"
+        ),
+        heartbeat_seconds=_positive_int(payload["heartbeat_seconds"], "heartbeat_seconds"),
+    )

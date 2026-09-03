@@ -44,6 +44,16 @@ from p2p_engine.core.project_readiness import (
 from p2p_engine.core.project_readiness_convergence import (
     PROJECT_READINESS_CONVERGENCE_POLICY_VERSION,
 )
+from p2p_engine.core.project_replication import (
+    PROJECT_ACTIVITY_CONTRACT,
+    PROJECT_CHANGE_BATCH_CONTRACT,
+    PROJECT_CHANGE_FEED_CONTRACT,
+    PROJECT_COMMAND_CONTRACT,
+    PROJECT_NOTIFICATION_CONTRACT,
+    PROJECT_OPERATION_RECEIPT_CONTRACT,
+    PROJECT_PRESENCE_CONTRACT,
+    PROJECT_REPLICATION_PROTOCOL,
+)
 from p2p_engine.core.project_structure import (
     PROJECT_STRUCTURE_CONTRACT,
     PROJECT_STRUCTURE_EVENTS_CONTRACT,
@@ -153,6 +163,14 @@ def current_contract_versions() -> dict[str, object]:
         "linked_replica_binding_contract": LINKED_REPLICA_BINDING_CONTRACT,
         "linked_replica_snapshot_contract": LINKED_REPLICA_SNAPSHOT_CONTRACT,
         "linked_replica_change_contract": LINKED_REPLICA_CHANGE_CONTRACT,
+        "project_replication_protocol": PROJECT_REPLICATION_PROTOCOL,
+        "project_command_contract": PROJECT_COMMAND_CONTRACT,
+        "project_operation_receipt_contract": PROJECT_OPERATION_RECEIPT_CONTRACT,
+        "project_change_batch_contract": PROJECT_CHANGE_BATCH_CONTRACT,
+        "project_change_feed_contract": PROJECT_CHANGE_FEED_CONTRACT,
+        "project_notification_contract": PROJECT_NOTIFICATION_CONTRACT,
+        "project_activity_contract": PROJECT_ACTIVITY_CONTRACT,
+        "project_presence_contract": PROJECT_PRESENCE_CONTRACT,
         "linked_replica_server_snapshot_contract": (
             "p2p-linked-replica-server-snapshot/v1"
         ),

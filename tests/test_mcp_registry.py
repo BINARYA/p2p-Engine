@@ -225,6 +225,9 @@ def test_mcp_proposal_descriptions_preserve_wavekit_cli_boundary() -> None:
         "root",
         "proposal_id",
         "actor",
+        "linked_operation_id",
+        "linked_expected_project_revision",
+        "linked_entity_preconditions",
     }
     assert set(contribution_list["inputSchema"]["properties"]) == {
         "root",
@@ -308,7 +311,17 @@ def test_mcp_artifact_import_tool_schemas_are_stable() -> None:
     ):
         schema = definitions[name]["inputSchema"]
         assert schema["required"] == ["proposal_id"]
-        assert set(schema["properties"]) == {"root", "proposal_id", "source", "content", "artifacts", "actor"}
+        assert set(schema["properties"]) == {
+            "root",
+            "proposal_id",
+            "source",
+            "content",
+            "artifacts",
+            "actor",
+            "linked_operation_id",
+            "linked_expected_project_revision",
+            "linked_entity_preconditions",
+        }
         assert schema["properties"]["artifacts"]["additionalProperties"] == {"type": "string"}
         assert "Write-safe proposal artifact import tool" in definitions[name]["description"]
         assert "Does not update artifact coverage state" in definitions[name]["description"]
@@ -327,7 +340,14 @@ def test_mcp_logical_work_tool_schemas_are_stable() -> None:
     }
     plan = definitions["p2p_work_plan"]
     assert plan["inputSchema"]["required"] == ["change_id", "target"]
-    assert set(plan["inputSchema"]["properties"]) == {"root", "change_id", "target"}
+    assert set(plan["inputSchema"]["properties"]) == {
+        "root",
+        "change_id",
+        "target",
+        "linked_operation_id",
+        "linked_expected_project_revision",
+        "linked_entity_preconditions",
+    }
     assert "logical project state only" in plan["description"]
 
 

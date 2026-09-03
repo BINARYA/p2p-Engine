@@ -152,9 +152,20 @@ recover freshness with:
 
 ```bash
 p2p wavekit status --root . --format json
-p2p wavekit sync catch-up --root . --format json
-p2p wavekit sync recover --root . --format json
+p2p sync status --root . --format json
+p2p sync catch-up --root . --format json
+p2p sync recover --root . --format json
+p2p watch --root .
+p2p watch --max-events 10 --root . --format json
 ```
+
+Normal one-shot commands on a linked project catch up before reading local
+state and versioned JSON includes `linked_replica_freshness`. The older
+`p2p wavekit sync catch-up|recover` paths remain aliases. HTTP and
+the durable feed provide synchronization correctness; `p2p watch` listens for
+SSE wake-ups and confirms each notification by running the same feed catch-up.
+Missing, duplicate or reordered notifications therefore cannot advance a
+cursor or lose canonical changes.
 
 Offline reads are explicitly stale and offline mutations are rejected without
 queuing. A physical directory copy must use `p2p wavekit replica

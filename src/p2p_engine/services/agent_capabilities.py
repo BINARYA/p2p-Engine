@@ -4,7 +4,7 @@ import hashlib
 import json
 from dataclasses import asdict, dataclass
 
-AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v12"
+AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v13"
 
 
 @dataclass(frozen=True)
@@ -305,6 +305,11 @@ AGENT_CAPABILITIES = (
             "p2p proposal contribution add",
             "p2p proposal contribution list",
             "p2p mutation status",
+            "p2p project replication initialize",
+            "p2p project replication status",
+            "p2p project replication operation-status",
+            "p2p project replication feed",
+            "p2p project replication compact",
             "p2p vertical domain list",
             "p2p vertical domain search",
             "p2p vertical domain inspect",
@@ -317,6 +322,26 @@ AGENT_CAPABILITIES = (
         reason=(
             "WaveKit worker retries, receipts and recovery use allowlisted CLI "
             "JSON operations with --operation-key, not local MCP stdio."
+        ),
+    ),
+    AgentCapability(
+        capability_id="project.linked.replication",
+        cli_paths=(
+            "p2p sync status",
+            "p2p sync catch-up",
+            "p2p sync recover",
+            "p2p watch",
+        ),
+        mcp_tools=(
+            "p2p_linked_replica_status",
+            "p2p_linked_replica_catch_up",
+        ),
+        exposure="linked_local_cli_and_domain_mcp",
+        authority="wavekit_authenticated_command_and_durable_feed",
+        reason=(
+            "HTTP commands and the durable feed provide correctness; SSE only wakes "
+            "clients. Linked MCP reads catch up and linked domain mutations require "
+            "stable operation/revision evidence. Raw feed and cursor tools stay private."
         ),
     ),
     AgentCapability(

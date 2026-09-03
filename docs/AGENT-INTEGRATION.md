@@ -342,9 +342,11 @@ must stop and report diagnostics instead of editing `.p2p/` directly.
 The access profile and client adapter are independent. `standalone` has local
 project authority through CLI and MCP `stdio`. A verified authority transfer
 can render `linked-local`: WaveKit is authoritative, agents use the documented
-catch-up before cached reads, offline reads are marked stale and offline
-mutations are blocked. Automatic domain-command interception and authoritative
-online writes remain unavailable until paired WaveKit integration.
+CLI catch-up before cached reads, while linked MCP reads perform the same
+preflight automatically. Offline mutations remain blocked. Online linked MCP
+domain mutations carry a stable operation ID, observed revision and entity
+preconditions to WaveKit; the local replica changes only after the resulting
+durable batch is verified and committed.
 `remote-only` remains reserved. The
 runtime records memory, domain, bundle, sync and integration dimensions
 separately in `.p2p/agent-integrations.yml` and generates

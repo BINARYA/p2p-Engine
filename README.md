@@ -43,6 +43,8 @@ database; separately verified `.p2pbackup` archives support local recovery.
   exposing its layout to agents, CLI consumers or MCP clients;
 - transfers a standalone project to WaveKit with the same stable project UUID,
   a resumable owner-confirmed session and a fail-closed linked-local cutover;
+- keeps linked replicas current through typed HTTP commands, immutable
+  receipts, a durable backend-neutral change feed and optional SSE wake-ups;
 - derives compact vertical-aware project memory for bounded retrieval;
 - keeps a detached project-owned structure that can be edited, retired,
   exported as a portable vertical, or replaced from one exact release;
@@ -269,6 +271,13 @@ agent adapter choice. The runtime implements `standalone` and activates
 `linked-local` only after a verified WaveKit authority-transfer receipt.
 `remote-only` remains reserved.
 
+Linked replicas automatically catch up before normal CLI/MCP reads, use
+`p2p sync status|catch-up|recover` for diagnostics and recovery, and use
+`p2p watch` for SSE wake-ups. The authenticated HTTP feed remains the
+correctness mechanism: linked MCP reads catch up automatically, and online MCP
+domain writes become local only after their immutable WaveKit receipt and
+verified durable change batch.
+
 Useful lifecycle commands:
 
 ```bash
@@ -378,8 +387,8 @@ Stable:
   linked-local cutover and recovery boundary.
 
 - [docs/LINKED-PROJECT-REPLICAS.md](docs/LINKED-PROJECT-REPLICAS.md)
-  Complete linked clone/attach, verified catch-up, stale offline reads and
-  explicit physical move/copy handling.
+  Complete linked clone/attach, durable replication, verified catch-up, stale
+  offline reads and explicit physical move/copy handling.
 
 - [docs/AUTHORITY-CONTEXT.md](docs/AUTHORITY-CONTEXT.md)
   Project authority, subject/executor separation, capabilities, external attestations and rotation.

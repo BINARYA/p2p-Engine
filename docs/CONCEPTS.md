@@ -87,6 +87,13 @@ offline mutations are rejected without an outbox. A timeout never elects a
 local copy again. See [AUTHORITY-TRANSFER.md](AUTHORITY-TRANSFER.md) and
 [LINKED-PROJECT-REPLICAS.md](LINKED-PROJECT-REPLICAS.md).
 
+Online linked writes are typed commands authorized by WaveKit. One successful
+server commit produces an immutable receipt, one monotone project revision and
+one logical after-state change batch. Local replicas verify identity, authority
+epoch, order and digests, then commit the batch, inbox marker and cursor
+atomically. SSE only reduces notification latency; HTTP feed replay remains the
+source of synchronization correctness.
+
 Generated registries should be refreshed from source artifacts with:
 
 ```bash

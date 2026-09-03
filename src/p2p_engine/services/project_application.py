@@ -4,10 +4,12 @@ import hashlib
 import os
 import shutil
 import uuid
+from collections.abc import Mapping
 from pathlib import Path, PurePosixPath
 from typing import Any
 
 from p2p_engine.core.canonical_memory import ReplicaServerSnapshotExportResult
+from p2p_engine.core.project_replication import EntityPrecondition
 from p2p_engine.core.project_state_storage import (
     FILESYSTEM_ADAPTER,
     ProjectEntityRecord,
@@ -150,6 +152,27 @@ class ProjectApplicationService:
         result = self._linked_replica_service().before_operation(mutation=mutation)
         self._refresh_storage_binding()
         return result
+
+    def linked_replica_submit_command(
+        self,
+        *,
+        operation_id: str,
+        idempotency_key: str,
+        command: str,
+        payload_contract: str,
+        payload: Mapping[str, object],
+        expected_project_revision: int | None = None,
+        entity_preconditions: tuple[EntityPrecondition, ...] = (),
+    ):
+        return self._linked_replica_service().submit_command(
+            operation_id=operation_id,
+            idempotency_key=idempotency_key,
+            command=command,
+            payload_contract=payload_contract,
+            payload=payload,
+            expected_project_revision=expected_project_revision,
+            entity_preconditions=entity_preconditions,
+        )
 
     def init_project(self, *args: Any, **kwargs: Any):
         result = getattr(self.adapter.compatibility_target(), "init_project")(

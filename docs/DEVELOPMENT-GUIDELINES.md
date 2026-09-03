@@ -32,6 +32,12 @@ traceability references, which never prove implementation status.
 - Keep retained structure history behind the selected storage adapter. Test
   deterministic pruning, exact checksums and forward-only restore without
   exposing physical locators in public contracts.
+- Keep durable replication backend-neutral: typed domain commands in, logical
+  after-state batches out. Commit canonical state, batch, receipt and server
+  revision atomically; commit local batch effects, inbox and cursor atomically.
+- Treat SSE/WebSocket as notification transports only. Correctness must remain
+  provable through authenticated HTTP status/feed recovery when every realtime
+  event is lost.
 - Do not reintroduce compatibility aliases or removed source-control surfaces.
 
 ## Required Checks

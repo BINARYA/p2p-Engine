@@ -4,6 +4,8 @@ import http.client
 import json
 import socket
 import ssl
+import time
+from collections.abc import Iterator
 from typing import Mapping, Protocol
 from urllib.parse import urlencode, urlsplit
 
@@ -42,6 +44,15 @@ class WaveKitTransferTransport(Protocol):
         token: str,
         max_bytes: int,
     ) -> bytes: ...
+
+    def iter_sse(
+        self,
+        url: str,
+        *,
+        token: str,
+        last_event_id: str = "",
+        heartbeat_seconds: int = 30,
+    ) -> Iterator[Mapping[str, object]]: ...
 
 
 class HTTPSWaveKitTransferTransport:
@@ -140,6 +151,101 @@ class HTTPSWaveKitTransferTransport:
             raise ValueError("P2P_WAVEKIT_UNAVAILABLE: " + redact_secret(exc, token)) from exc
         finally:
             connection.close()
+
+    def iter_sse(
+        self,
+        url: str,
+        *,
+        token: str,
+        last_event_id: str = "",
+        heartbeat_seconds: int = 30,
+    ) -> Iterator[Mapping[str, object]]:
+        """Yield bounded JSON SSE notifications and reconnect after clean/lost streams."""
+        if not 1 <= heartbeat_seconds <= 300:
+            raise ValueError("P2P_REPLICATION_INVALID: heartbeat interval is unsafe")
+        event_id = last_event_id
+        reconnect_attempt = 0
+        while True:
+            connection, path = self._connection(url)
+            headers = {
+                "Accept": "text/event-stream",
+                "Authorization": f"Bearer {token}",
+                "Cache-Control": "no-cache",
+            }
+            if event_id:
+                headers["Last-Event-ID"] = event_id
+            try:
+                connection.request("GET", path, headers=headers)
+                response = connection.getresponse()
+                if not 200 <= response.status < 300:
+                    payload = self._read_bounded(response, max_bytes=1_048_576)
+                    self._raise_provider_error(response.status, payload, token=token)
+                if connection.sock is not None:
+                    connection.sock.settimeout(float(heartbeat_seconds * 2))
+                content_type = str(response.getheader("Content-Type") or "")
+                if "text/event-stream" not in content_type.lower():
+                    raise ValueError("P2P_REPLICATION_RESPONSE_INVALID: expected event stream")
+                data_lines: list[str] = []
+                wire_bytes = 0
+                while True:
+                    line = response.readline(65_537)
+                    if not line:
+                        break
+                    wire_bytes += len(line)
+                    if len(line) > 65_536 or wire_bytes > 16_777_216:
+                        raise ValueError(
+                            "P2P_REPLICATION_PAYLOAD_TOO_LARGE: SSE event exceeds its limit"
+                        )
+                    try:
+                        text = line.decode("utf-8").rstrip("\r\n")
+                    except UnicodeDecodeError as exc:
+                        raise ValueError(
+                            "P2P_REPLICATION_RESPONSE_INVALID: SSE is not UTF-8"
+                        ) from exc
+                    if not text:
+                        if data_lines:
+                            try:
+                                payload = json.loads("\n".join(data_lines))
+                            except json.JSONDecodeError as exc:
+                                raise ValueError(
+                                    "P2P_REPLICATION_RESPONSE_INVALID: SSE data is not JSON"
+                                ) from exc
+                            if not isinstance(payload, Mapping):
+                                raise ValueError(
+                                    "P2P_REPLICATION_RESPONSE_INVALID: SSE data must be a mapping"
+                                )
+                            received_id = payload.get("event_id")
+                            if isinstance(received_id, str) and received_id:
+                                event_id = received_id
+                            reconnect_attempt = 0
+                            yield payload
+                        data_lines = []
+                        wire_bytes = 0
+                        continue
+                    if text.startswith(":"):
+                        # A heartbeat is a complete comment frame, not part of
+                        # the following JSON event's byte budget.
+                        wire_bytes = 0
+                        continue
+                    field, _, value = text.partition(":")
+                    value = value[1:] if value.startswith(" ") else value
+                    if field == "id" and value:
+                        event_id = value
+                    elif field == "data":
+                        data_lines.append(value)
+            except ValueError as exc:
+                if "P2P_WAVEKIT_THROTTLED" not in str(exc):
+                    raise
+                # A throttled event stream is transient.  Reuse the same
+                # bounded reconnect path and Last-Event-ID cursor.
+            except (TimeoutError, socket.timeout, ssl.SSLError, OSError, http.client.HTTPException):
+                # SSE is only a wake-up channel.  Reconnection is bounded by
+                # exponential backoff; the caller confirms all state via HTTP.
+                pass
+            finally:
+                connection.close()
+            reconnect_attempt += 1
+            time.sleep(min(30.0, 0.25 * (2 ** min(reconnect_attempt, 7))))
 
     def _request(
         self,

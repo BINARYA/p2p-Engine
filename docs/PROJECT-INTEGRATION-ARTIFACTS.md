@@ -9,7 +9,7 @@ digests, and do not expose the selected storage adapter.
 | Profile | Local memory | Agent surfaces | Authority | Current support |
 |---|---:|---|---|---|
 | `standalone` | yes | CLI and MCP `stdio` | local | implemented |
-| `linked-local` | replica | CLI and MCP `stdio` status/catch-up | WaveKit | verified clone/transfer plus explicit catch-up in this client checkpoint; offline writes blocked |
+| `linked-local` | replica | CLI sync/watch and domain MCP `stdio` | WaveKit | durable feed, automatic MCP read catch-up and authenticated online MCP writes; offline writes blocked |
 | `remote-only` | no | web, API and MCP HTTP | WaveKit | reserved; rendering blocked |
 
 `linked-local` is rendered only after a transfer receipt or clone snapshot
@@ -27,7 +27,7 @@ The integration manifest records these dimensions separately:
 - local-memory schema version;
 - domain contract;
 - canonical-bundle contract;
-- synchronization protocol, currently explicitly unavailable;
+- durable synchronization protocol, negotiated independently;
 - `p2p-project-integration/v1` integration contract and manifest version.
 
 A refresh of agent artifacts is not a memory migration. A future sync-protocol

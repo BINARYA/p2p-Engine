@@ -24,7 +24,7 @@ from p2p_engine.core.runtime_contract import (
 )
 from p2p_engine.foundation.files import read_yaml_mapping, yaml_dump
 from p2p_engine.services.agent_instructions import AgentInstructionService
-from p2p_engine.services.agent_templates import project_integration_guide
+from p2p_engine.services.agent_templates import agent_policy, project_integration_guide
 from p2p_engine.services.runtime_contract import (
     RUNTIME_CONTRACT_SCHEMA_VERSION,
     RuntimeContractService,
@@ -262,6 +262,14 @@ class ProjectIntegrationService:
         )
         rendered[Path("P2P-INTEGRATION.md")] = project_integration_guide(
             selected_profile.profile
+        )
+        rendered[Path(".p2p/agent-policy.yml")] = yaml_dump(
+            agent_policy(
+                project_name,
+                profiles,
+                interaction_style,
+                access_profile=selected_profile.profile,
+            )
         )
         rendered[Path("P2P-SETUP.md")] = self._render_setup_guide()
 
@@ -618,8 +626,9 @@ class ProjectIntegrationService:
         else:
             access_lines = [
                 "- Active profile: `linked-local`; WaveKit is authoritative.",
-                "- Local CLI and MCP over `stdio` may read the local replica as potentially stale.",
-                "- Governed local mutations are blocked; never treat offline state as authoritative.",
+                "- Normal CLI and MCP reads perform durable catch-up automatically; use `p2p sync status` for diagnostics.",
+                "- Linked MCP domain mutations are submitted to WaveKit with operation/revision evidence.",
+                "- Offline mutations remain blocked; never treat unconfirmed local state as authoritative.",
                 "- Use `p2p project transfer status|recover` for an interrupted handoff.",
             ]
         text = "\n".join(

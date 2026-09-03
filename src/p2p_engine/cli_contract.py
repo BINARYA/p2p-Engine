@@ -28,6 +28,9 @@ EXIT_AUTHORIZATION = 4
 EXIT_UNAVAILABLE = 5
 
 _JSON_MODE: ContextVar[bool] = ContextVar("p2p_cli_json_mode", default=False)
+_LINKED_FRESHNESS: ContextVar[object | None] = ContextVar(
+    "p2p_cli_linked_freshness", default=None
+)
 _STABLE_CODE = re.compile(r"^\s*(P2P_[A-Z0-9_]+)\s*:")
 _ANSI_ESCAPE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 
@@ -61,20 +64,43 @@ class VersionedJSONTyperGroup(TyperGroup):
     ) -> Any:
         raw_args = list(args) if args is not None else list(sys.argv[1:])
         command_path, command = resolve_command(self, raw_args)
-        if not json_requested(raw_args, command):
-            return super().main(
-                args=args,
-                prog_name=prog_name,
-                complete_var=complete_var,
-                standalone_mode=standalone_mode,
-                windows_expand_args=windows_expand_args,
-                **extra,
+        freshness_token = _LINKED_FRESHNESS.set(None)
+        worker_envelope = any(
+            item == "--replication-command-envelope"
+            or item.startswith("--replication-command-envelope=")
+            for item in raw_args
+        )
+        if worker_envelope and not json_requested(raw_args, command):
+            payload = error_envelope(
+                ".".join(command_path) or "cli",
+                code="P2P_REPLICATION_WORKER_JSON_REQUIRED",
+                message=(
+                    "The worker-only replication envelope requires the versioned JSON boundary."
+                ),
             )
+            try:
+                return _emit_failure(payload, EXIT_INVALID_REQUEST, standalone_mode)
+            finally:
+                _LINKED_FRESHNESS.reset(freshness_token)
+        if not json_requested(raw_args, command):
+            try:
+                return super().main(
+                    args=args,
+                    prog_name=prog_name,
+                    complete_var=complete_var,
+                    standalone_mode=standalone_mode,
+                    windows_expand_args=windows_expand_args,
+                    **extra,
+                )
+            finally:
+                _LINKED_FRESHNESS.reset(freshness_token)
 
         operation = ".".join(command_path) or "cli"
         output = StringIO()
         token = _JSON_MODE.set(True)
         explicit_exit_code: int | None = None
+        replication_receipt = None
+        linked_freshness = None
         try:
             with redirect_stdout(output):
                 result = super().main(
@@ -121,7 +147,16 @@ class VersionedJSONTyperGroup(TyperGroup):
             )
             return _emit_failure(payload, EXIT_INTERNAL, standalone_mode)
         finally:
+            from p2p_engine.services.project_replication import (
+                current_replication_receipt,
+                set_replication_command,
+            )
+
+            replication_receipt = current_replication_receipt()
+            linked_freshness = _LINKED_FRESHNESS.get()
+            set_replication_command(None)
             _JSON_MODE.reset(token)
+            _LINKED_FRESHNESS.reset(freshness_token)
 
         if explicit_exit_code is not None:
             return _handle_explicit_exit(
@@ -144,6 +179,33 @@ class VersionedJSONTyperGroup(TyperGroup):
             normalized = normalize_envelope(payload, operation=operation)
         else:
             normalized = success_envelope(operation, payload)
+        # The receipt is produced by the same lock-protected filesystem commit
+        # as a WaveKit-bound domain mutation.  Attach it only at the outer JSON
+        # boundary; normal CLI payloads and agent-facing MCP remain unchanged.
+        if replication_receipt is not None and normalized.get("ok") is True:
+            data = normalized.get("data")
+            if isinstance(data, dict):
+                data = dict(data)
+                data["replication_receipt"] = replication_receipt.to_dict()
+            else:
+                data = {
+                    "result": data,
+                    "replication_receipt": replication_receipt.to_dict(),
+                }
+            normalized = {**normalized, "data": data}
+        if linked_freshness is not None and normalized.get("ok") is True:
+            to_dict = getattr(linked_freshness, "to_dict", None)
+            freshness_payload = to_dict() if callable(to_dict) else linked_freshness
+            data = normalized.get("data")
+            if isinstance(data, dict):
+                data = dict(data)
+                data.setdefault("linked_replica_freshness", freshness_payload)
+            else:
+                data = {
+                    "result": data,
+                    "linked_replica_freshness": freshness_payload,
+                }
+            normalized = {**normalized, "data": data}
         print_json(normalized)
         return result
 
@@ -196,6 +258,11 @@ def print_json(payload: object) -> None:
 
 def json_mode_active() -> bool:
     return _JSON_MODE.get()
+
+
+def set_linked_freshness(value: object | None) -> None:
+    """Attach one linked preflight result to the current CLI response."""
+    _LINKED_FRESHNESS.set(value)
 
 
 def contract_failure(

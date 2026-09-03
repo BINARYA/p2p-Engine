@@ -14,6 +14,7 @@ from p2p_engine.core.project_identity import (
     ReplicaId,
     ServerInstanceId,
 )
+from p2p_engine.core.project_replication import PROJECT_REPLICATION_PROTOCOL
 
 LINKED_REPLICA_PROTOCOL = "p2p-linked-replica/v1"
 LINKED_REPLICA_CAPABILITY_CONTRACT = "p2p-linked-replica-capabilities/v1"
@@ -87,6 +88,60 @@ class ReplicaEndpoints:
 
 
 @dataclass(frozen=True)
+class ReplicationEndpoints:
+    command: str
+    operation: str
+    feed: str
+    blob: str
+    events: str
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "command": self.command,
+            "operation": self.operation,
+            "feed": self.feed,
+            "blob": self.blob,
+            "events": self.events,
+        }
+
+
+@dataclass(frozen=True)
+class ReplicationCapabilities:
+    endpoints: ReplicationEndpoints
+    max_command_bytes: int
+    max_batch_bytes: int
+    max_page_batches: int
+    heartbeat_seconds: int
+    protocol: str = PROJECT_REPLICATION_PROTOCOL
+
+    def __post_init__(self) -> None:
+        if self.protocol != PROJECT_REPLICATION_PROTOCOL:
+            raise ValueError(
+                "P2P_REPLICATION_PROTOCOL_UNSUPPORTED: WaveKit replication protocol differs"
+            )
+        for value, name, maximum in (
+            (self.max_command_bytes, "max_command_bytes", 16_777_216),
+            (self.max_batch_bytes, "max_batch_bytes", 67_108_864),
+            (self.max_page_batches, "max_page_batches", 128),
+            (self.heartbeat_seconds, "heartbeat_seconds", 300),
+        ):
+            if not 1 <= value <= maximum:
+                raise ValueError(f"P2P_REPLICATION_INVALID: unsafe {name}")
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "protocol": self.protocol,
+            "endpoints": self.endpoints.to_dict(),
+            "limits": {
+                "max_command_bytes": self.max_command_bytes,
+                "max_batch_bytes": self.max_batch_bytes,
+                "max_page_batches": self.max_page_batches,
+            },
+            "heartbeat_seconds": self.heartbeat_seconds,
+        }
+
+
+@dataclass(frozen=True)
 class ReplicaCapabilities:
     server_url: str
     server_instance_id: ServerInstanceId
@@ -95,6 +150,7 @@ class ReplicaCapabilities:
     max_blob_bytes: int
     max_blobs: int
     retention_floor: int = 0
+    replication: ReplicationCapabilities | None = None
     protocol: str = LINKED_REPLICA_PROTOCOL
 
     def __post_init__(self) -> None:
@@ -111,7 +167,7 @@ class ReplicaCapabilities:
         _non_negative_int(self.retention_floor, "retention_floor")
 
     def to_dict(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "contract": LINKED_REPLICA_CAPABILITY_CONTRACT,
             "protocol": self.protocol,
             "server_instance_id": self.server_instance_id.value,
@@ -123,6 +179,10 @@ class ReplicaCapabilities:
             },
             "retention_floor": self.retention_floor,
         }
+        payload["replication"] = (
+            self.replication.to_dict() if self.replication is not None else None
+        )
+        return payload
 
 
 @dataclass(frozen=True, order=True)

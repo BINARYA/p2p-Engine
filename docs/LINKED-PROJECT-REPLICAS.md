@@ -80,20 +80,28 @@ The replica-local binding stores only:
 It never stores access tokens, refresh tokens, passwords, local absolute paths,
 backend database files, snapshot archives or remote project memory.
 
-The P2P client checkpoint exposes one shared replica service. Until the paired
-WaveKit domain-command interception is installed, catch up explicitly before
-using cached project state:
+P2P exposes one shared replica service. Normal one-shot CLI and linked MCP
+reads run the same catch-up automatically; users can also inspect or invoke it
+explicitly for diagnostics and recovery:
 
 ```bash
-p2p wavekit sync catch-up --root . --format json
-p2p wavekit sync recover --root . --format json
+p2p sync status --root . --format json
+p2p sync catch-up --root . --format json
+p2p sync recover --root . --format json
+p2p watch --root .
+p2p watch --max-events 10 --root . --format json
 ```
 
-Catch-up requests changes after the local cursor. The first protocol may return
-a complete replacement snapshot for a normal advance, retention gap or local
-corruption. P2P rebuilds it in staging and swaps it atomically. The previous
-`.p2p` is retained below `.p2p/local/replica-recovery/` as forensic evidence;
-it is not canonical memory and is not included in portable bundles.
+The legacy `p2p wavekit sync catch-up|recover` paths remain aliases. Catch-up
+requests contiguous logical change batches after the committed local cursor.
+P2P validates contract, project UUID, replica ID, authority epoch, revision
+order, batch digest, semantic state digest and every referenced blob before it
+atomically commits canonical effects, inbox marker and cursor. A duplicate is
+harmless; a gap is rejected. If retention removed the required batch, P2P
+downloads a complete replacement snapshot, validates it in staging and swaps
+it atomically. The previous `.p2p` is retained below
+`.p2p/local/replica-recovery/` as forensic evidence; it is neither canonical
+memory nor part of portable bundles.
 
 An offline read may use the last confirmed local state only with
 `source=local-cache`, `stale=true`, the last revision and verification time.
@@ -102,11 +110,20 @@ outbox or optimistic confirmed state is created. Expired login suspends the
 link, and revoked access remains `access-revoked` rather than reverting the
 project to standalone.
 
-The current capability matrix deliberately reports
-`online-authoritative-write` as unavailable. P2P does not turn that missing
-server integration into a local write: authoritative linked commands and
-automatic per-domain-operation freshness are completed only with their paired
-WaveKit contract and the durable-replication step.
+Online linked mutations never execute optimistically against local memory.
+Registered MCP domain tools send a typed command containing stable operation
+and idempotency identity, project/remote/replica identity, authority epoch,
+observed project revision, entity preconditions and a versioned domain payload.
+WaveKit derives actor and capability from authentication, serializes only the
+short final commit, and returns an immutable receipt. P2P then catches up the
+durable feed before returning confirmed freshness. Reusing an operation or
+idempotency key for different work fails explicitly.
+
+`p2p watch` consumes authenticated SSE notifications, but every notification is
+only a wake-up for HTTP feed catch-up. Lost, duplicate or reordered SSE events
+cannot lose data or advance the cursor. Heartbeats and ephemeral presence never
+enter P2P memory, bundles, batches or local inbox state. A later WebSocket
+transport can carry the same event references without a memory migration.
 
 ## Physical Move And Copy
 
@@ -130,23 +147,48 @@ old copy. Register-copy downloads and activates a fresh snapshot with a new
 ## CLI And MCP Boundary
 
 Clone, attach, move and copy registration remain explicitly confirmed owner CLI
-operations. MCP `stdio` exposes only:
+operations. MCP `stdio` exposes replica diagnostics only through:
 
 - `p2p_linked_replica_status`;
 - `p2p_linked_replica_catch_up`.
 
 There is no MCP clone, attach, replica move or copy-registration tool. Generated
 `linked-local` instructions use CLI and MCP `stdio` through P2P application
-services and never instruct an agent to inspect `.p2p`, YAML paths, SQL rows,
-journals or WAL files.
+services. Domain MCP writes remain semantic tools; no raw feed, cursor, blob,
+batch, command-envelope, initialization or compaction tool is registered. Agent
+instructions never expose `.p2p`, YAML paths, SQL rows, journals or WAL files.
 
-WaveKit supplies authorization, registration, immutable snapshots, blobs,
-cursor retention and revocation. It remains storage-implementation independent:
-the protocol transfers logical P2P contracts, not a server filesystem layout
-or database schema.
+WaveKit supplies authorization, the operation queue, notification outbox,
+registration, immutable snapshots, blobs, cursor delivery and revocation. The
+P2P project root remains canonical for project state, revision head, batches
+and receipts. PostgreSQL may retain WaveKit operations and delivery metadata,
+but not a second mutable copy of P2P project memory or batch payloads. The
+protocol transfers logical contracts, never a server filesystem layout or
+database schema.
 
-On the server, the trusted worker freezes those bytes with
-`p2p project memory snapshot-export`. This read-only installed-wheel boundary
-produces a bundle and managed blobs in isolated temporary storage and returns
-only relative artifact references. WaveKit serves the artifacts but never
-opens the project root or parses the bundle format itself.
+On the server, the trusted worker initializes and reads the P2P-owned feed
+through versioned JSON commands:
+
+```bash
+p2p project replication initialize --authority-epoch 2 \
+  --project-revision 0 --retention-batches 2048 --confirm --format json
+p2p project replication status --format json
+p2p project replication operation-status OPERATION-ID --format json
+p2p project replication feed --after-revision 10 \
+  --replica-id REPLICA-ID --limit 64 --format json
+p2p project replication compact --retain-after-revision 100 \
+  --confirm --format json
+```
+
+WaveKit passes a validated command document through the hidden worker-only
+`--replication-command-envelope` option and invokes only its reviewed CLI
+allowlist. That option requires the `p2p-cli/v1` JSON boundary and grants no
+authority by itself. The final filesystem lock rechecks identity, epoch and
+project/entity preconditions, then commits canonical state, head, batch,
+receipt and idempotency evidence together.
+
+Snapshot fallback still uses `p2p project memory snapshot-export`. It produces
+a bundle and managed blobs in isolated temporary storage and returns only
+relative artifact references. WaveKit serves those artifacts but never opens
+the project root or parses the bundle format itself. Change-feed compaction is
+explicit and does not delete immutable operation receipts or WaveKit audit.

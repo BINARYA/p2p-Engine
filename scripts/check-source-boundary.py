@@ -46,7 +46,7 @@ REMOVED_CONSENT_OPERATIONS = {
     "work_request_review", "work_accept", "work_finalize", "work_cleanup",
 }
 REMOVED_CLI_PATHS = {
-    "sync", "project remote", "change policy", "proposal branch",
+    "project remote", "change policy", "proposal branch",
     "proposal publish", "proposal request-review", "proposal accept-branch",
     "proposal reject-branch", "proposal merge", "proposal finalize",
     "proposal cleanup", "proposal retire-branch", "proposal scan",
@@ -133,7 +133,17 @@ def main() -> int:
     for token in sorted(REMOVED_MCP_TOOLS | REMOVED_CONSENT_OPERATIONS):
         if token in rendered:
             issues.append(f"removed source-control guidance remains generated: {token}")
-    for token in ("p2p sync ", "p2p proposal branch", "p2p work branch", "raw git"):
+    # The old sync surface meant Git fetch/pull/push.  Durable linked-project
+    # replication now legitimately owns ``p2p sync status|catch-up|recover``;
+    # keep rejecting only the removed source-control verbs.
+    for token in (
+        "p2p sync fetch",
+        "p2p sync pull",
+        "p2p sync push",
+        "p2p proposal branch",
+        "p2p work branch",
+        "raw git",
+    ):
         if token in rendered.lower():
             issues.append(f"removed source-control guidance remains generated: {token}")
 
@@ -151,4 +161,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

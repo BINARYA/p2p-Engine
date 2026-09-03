@@ -8,6 +8,19 @@ tagged releases.
 
 ## Unreleased
 
+- Added typed linked-project commands, immutable idempotent operation receipts,
+  monotone project revisions and backend-neutral after-state change batches.
+- Added cursor-based durable feed replay, retention-gap snapshot fallback,
+  verified blob prefetch and atomic local batch/inbox/cursor application.
+- Added `p2p sync status|catch-up|recover` and `p2p watch`, with SSE used only
+  as an optional wake-up over the authoritative HTTP recovery path.
+- Routed linked MCP reads through freshness catch-up and linked MCP domain
+  mutations through WaveKit with operation, revision and entity-precondition
+  evidence; raw feed/cursor/storage primitives remain private.
+- Updated generated `linked-local` agent instructions and capability policy;
+  offline mutations remain blocked and presence stays ephemeral and excluded
+  from project memory and portable bundles.
+
 ## 0.6.2 - 2026-09-03
 
 - Added governed transfer of a standalone project's canonical authority to a

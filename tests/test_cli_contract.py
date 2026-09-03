@@ -119,6 +119,11 @@ project.memory.status
 project.metadata.apply
 project.metadata.preview
 project.metadata.show
+project.replication.compact
+project.replication.feed
+project.replication.initialize
+project.replication.operation-status
+project.replication.status
 project.transfer.apply
 project.transfer.preview
 project.transfer.recover
@@ -131,6 +136,10 @@ wavekit.replica.register-copy
 wavekit.status
 wavekit.sync.catch-up
 wavekit.sync.recover
+sync.catch-up
+sync.recover
+sync.status
+watch
 project.progress
 project.publish.import
 project.publish.list
@@ -269,7 +278,7 @@ def test_cli_json_operation_inventory_is_reviewed_and_guarded() -> None:
     inventory = json_command_inventory(get_command(app))
 
     assert frozenset(inventory) == EXPECTED_JSON_OPERATIONS
-    assert len(inventory) == 196
+    assert len(inventory) == 205
     assert inventory["status"] == "text"
     assert inventory["vertical.inspect"] == "json"
     assert inventory["workspace.schema.status"] == "text"
