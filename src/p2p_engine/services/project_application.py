@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import hashlib
+import os
+import shutil
+import uuid
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from p2p_engine.core.canonical_memory import ReplicaServerSnapshotExportResult
 from p2p_engine.core.project_state_storage import (
     FILESYSTEM_ADAPTER,
     ProjectEntityRecord,
@@ -196,6 +201,82 @@ class ProjectApplicationService:
 
     def canonical_bundle_export(self, output: Path):
         return self.adapter.snapshots.export_bundle_to(output)
+
+    def linked_replica_server_snapshot_export(
+        self, output_directory: Path
+    ) -> ReplicaServerSnapshotExportResult:
+        """Export one immutable, HTTP-servable snapshot outside project state."""
+
+        supplied = output_directory.expanduser()
+        if not supplied.is_absolute():
+            supplied = Path.cwd() / supplied
+        target = Path(os.path.abspath(supplied))
+        if target.is_relative_to(self.root):
+            raise ValueError(
+                "P2P_LINKED_REPLICA_SNAPSHOT_OUTPUT_INVALID: output must be outside the project root"
+            )
+        if target.exists():
+            raise ValueError(
+                "P2P_LINKED_REPLICA_SNAPSHOT_OUTPUT_EXISTS: refusing to overwrite snapshot output"
+            )
+        if target.is_symlink() or any(
+            parent.is_symlink() for parent in target.parents if parent.exists()
+        ):
+            raise ValueError(
+                "P2P_LINKED_REPLICA_SNAPSHOT_OUTPUT_INVALID: output path contains a symlink"
+            )
+
+        target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        staging = target.parent / f".{target.name}.p2p-stage-{uuid.uuid4().hex}"
+        staging.mkdir(mode=0o700)
+        try:
+            archive = self.adapter.snapshots.export_bundle()
+            snapshot = self.adapter.snapshots.verify_bundle(archive)
+            if snapshot.semantic_state_digest != archive.semantic_state_digest:
+                raise ValueError(
+                    "P2P_LINKED_REPLICA_SNAPSHOT_INVALID: bundle semantic digest differs"
+                )
+            from p2p_engine.foundation.files import sync_directory, write_bytes_atomic
+
+            write_bytes_atomic(
+                staging / "project.p2pbundle",
+                archive.content,
+                mode=0o600,
+            )
+            for blob in snapshot.blobs:
+                digest = blob.digest.removeprefix("sha256:")
+                content = self.adapter.blobs.read(blob.digest)
+                if len(content) != blob.size or hashlib.sha256(content).hexdigest() != digest:
+                    raise ValueError(
+                        "P2P_LINKED_REPLICA_SNAPSHOT_INVALID: managed blob differs from manifest"
+                    )
+                write_bytes_atomic(
+                    staging / "blobs" / digest,
+                    content,
+                    mode=0o600,
+                )
+            if snapshot.blobs:
+                sync_directory(staging / "blobs")
+            sync_directory(staging)
+            if target.exists():
+                raise ValueError(
+                    "P2P_LINKED_REPLICA_SNAPSHOT_OUTPUT_EXISTS: snapshot output appeared concurrently"
+                )
+            os.replace(staging, target)
+            sync_directory(target.parent)
+            return ReplicaServerSnapshotExportResult(
+                status="exported",
+                project_uuid=snapshot.project_uuid,
+                source_revision=snapshot.source_revision,
+                semantic_state_digest=snapshot.semantic_state_digest,
+                blob_manifest_digest=snapshot.blob_manifest_digest,
+                bundle_digest=archive.sha256,
+                bundle_size=len(archive.content),
+                blobs=snapshot.blobs,
+            )
+        except Exception:
+            shutil.rmtree(staging, ignore_errors=True)
+            raise
 
     def canonical_archive_verify(self, source: Path):
         return self.adapter.snapshots.verify_archive(source)

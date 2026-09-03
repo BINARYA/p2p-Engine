@@ -108,6 +108,7 @@ project.memory.inspect
 project.memory.verify
 project.memory.bundle-export
 project.memory.bundle-materialize
+project.memory.snapshot-export
 project.memory.archive-verify
 project.memory.backup
 project.memory.restore-preview
@@ -268,7 +269,7 @@ def test_cli_json_operation_inventory_is_reviewed_and_guarded() -> None:
     inventory = json_command_inventory(get_command(app))
 
     assert frozenset(inventory) == EXPECTED_JSON_OPERATIONS
-    assert len(inventory) == 195
+    assert len(inventory) == 196
     assert inventory["status"] == "text"
     assert inventory["vertical.inspect"] == "json"
     assert inventory["workspace.schema.status"] == "text"

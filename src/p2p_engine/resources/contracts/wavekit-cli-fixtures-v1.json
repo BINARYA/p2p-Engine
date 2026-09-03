@@ -113,6 +113,13 @@
       ],
       "group": "linked_replica_sync",
       "mutates_project": true
+    },
+    {
+      "commands": [
+        "p2p project memory snapshot-export --output-directory SNAPSHOT-DIR --root WORKSPACE --format json"
+      ],
+      "group": "linked_replica_server_snapshot",
+      "mutates_project": false
     }
   ],
   "contract_version": "p2p-wavekit-cli-fixtures/v1",
@@ -133,6 +140,7 @@
     "linked_replica_capability_contract": "p2p-linked-replica-capabilities/v1",
     "linked_replica_change_contract": "p2p-linked-replica-change-batch/v1",
     "linked_replica_protocol": "p2p-linked-replica/v1",
+    "linked_replica_server_snapshot_contract": "p2p-linked-replica-server-snapshot/v1",
     "linked_replica_snapshot_contract": "p2p-linked-replica-snapshot/v1",
     "local_authority_policy_version": "p2p-local-authority/v1",
     "local_memory_schema_version": {
@@ -221,7 +229,7 @@
     "operation_key_placeholder": "wavekit:<uuid>",
     "root_placeholder": "<PROJECT_ROOT>"
   },
-  "semantic_sha256": "c906bd85b9dedbf26ebe470ffaecf70d5ecae57fd5f466624e86e36fd5570075",
+  "semantic_sha256": "cf2dc356e7afdb45d62a7a3d094210a4507ad5408989dd2de526c12a994b6166",
   "transport": {
     "envelope": "p2p-cli/v1",
     "kind": "cli_json",

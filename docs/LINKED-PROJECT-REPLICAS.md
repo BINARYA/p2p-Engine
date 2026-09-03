@@ -144,3 +144,9 @@ WaveKit supplies authorization, registration, immutable snapshots, blobs,
 cursor retention and revocation. It remains storage-implementation independent:
 the protocol transfers logical P2P contracts, not a server filesystem layout
 or database schema.
+
+On the server, the trusted worker freezes those bytes with
+`p2p project memory snapshot-export`. This read-only installed-wheel boundary
+produces a bundle and managed blobs in isolated temporary storage and returns
+only relative artifact references. WaveKit serves the artifacts but never
+opens the project root or parses the bundle format itself.

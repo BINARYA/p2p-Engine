@@ -140,6 +140,30 @@ def register_project_memory_commands(
             fail(str(exc))
         _emit("project.memory.bundle_export", {"bundle_export": result.to_dict()}, normalized)
 
+    @project_memory_app.command("snapshot-export")
+    def snapshot_export(
+        output_directory: Path = typer.Option(
+            ...,
+            "--output-directory",
+            help="New server snapshot directory outside the project root",
+        ),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    ) -> None:
+        """Export an immutable bundle plus HTTP-servable managed blobs."""
+        normalized = _output_format(output_format)
+        try:
+            result = workspace_for(root).linked_replica_server_snapshot_export(
+                output_directory
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        _emit(
+            "project.memory.snapshot_export",
+            {"replica_snapshot_export": result.to_dict()},
+            normalized,
+        )
+
     @project_memory_app.command("archive-verify")
     def archive_verify(
         source: Path = typer.Argument(..., help="Bundle or physical-backup archive"),

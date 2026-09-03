@@ -153,6 +153,9 @@ def current_contract_versions() -> dict[str, object]:
         "linked_replica_binding_contract": LINKED_REPLICA_BINDING_CONTRACT,
         "linked_replica_snapshot_contract": LINKED_REPLICA_SNAPSHOT_CONTRACT,
         "linked_replica_change_contract": LINKED_REPLICA_CHANGE_CONTRACT,
+        "linked_replica_server_snapshot_contract": (
+            "p2p-linked-replica-server-snapshot/v1"
+        ),
         "local_memory_schema_version": integration_versions["local_memory"],
         "domain_memory_contract_version": integration_versions["domain"],
         "project_bundle_contract_version": integration_versions["bundle"],

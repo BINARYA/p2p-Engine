@@ -360,6 +360,38 @@ class BundleExportResult:
 
 
 @dataclass(frozen=True)
+class ReplicaServerSnapshotExportResult:
+    status: str
+    project_uuid: str
+    source_revision: Mapping[str, str]
+    semantic_state_digest: str
+    blob_manifest_digest: str
+    bundle_digest: str
+    bundle_size: int
+    blobs: tuple[ManagedBlob, ...]
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "contract": "p2p-linked-replica-server-snapshot/v1",
+            "status": self.status,
+            "project_uuid": self.project_uuid,
+            "source_revision": dict(self.source_revision),
+            "semantic_state_digest": self.semantic_state_digest,
+            "blob_manifest_digest": self.blob_manifest_digest,
+            "bundle_digest": self.bundle_digest,
+            "bundle_size": self.bundle_size,
+            "bundle_artifact": "project.p2pbundle",
+            "blobs": [
+                {
+                    **blob.to_dict(),
+                    "artifact": f"blobs/{blob.digest.removeprefix('sha256:')}",
+                }
+                for blob in self.blobs
+            ],
+        }
+
+
+@dataclass(frozen=True)
 class BundleMaterializationResult:
     status: str
     operation_key: str

@@ -98,6 +98,26 @@ project and records an idempotency receipt. It fails closed if the target is
 not empty or the archive digest or identity differs. This is an installed-wheel
 boundary for server orchestration; it is not exposed through MCP.
 
+## Linked-Replica Server Snapshot
+
+A trusted server worker can freeze an HTTP-servable replica snapshot without
+exposing the project's physical storage to WaveKit:
+
+```bash
+p2p project memory snapshot-export \
+  --root SERVER_PROJECT_ROOT \
+  --output-directory NEW_SNAPSHOT_DIRECTORY \
+  --format json
+```
+
+The new directory contains the canonical bundle and an exact copy of every
+managed blob referenced by that bundle. The JSON contract
+`p2p-linked-replica-server-snapshot/v1` returns semantic and blob-manifest
+digests plus relative artifact references; it never reports the server root or
+absolute paths. The command is read-only with respect to project memory,
+backend-neutral, refuses existing or project-local targets and removes partial
+staging after failure.
+
 ## MCP Boundary
 
 MCP intentionally exposes only read-only operations:

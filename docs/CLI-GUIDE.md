@@ -347,6 +347,12 @@ replica-local identity, rejects non-empty targets and supports idempotent
 replay. WaveKit uses it so that server code never parses or copies `.p2p`
 documents directly.
 
+`snapshot-export` is the complementary read-only worker boundary used for
+linked-replica bootstrap. It writes one immutable canonical bundle and every
+managed blob to a new server staging directory, returning only versioned
+metadata and relative artifact references. WaveKit can therefore serve the
+frozen bytes without reading the project root or interpreting the bundle.
+
 ### Runtime Contract
 
 Project runtime compatibility is declared in `.p2p/project/runtime.yml`.

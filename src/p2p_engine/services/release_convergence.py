@@ -669,6 +669,13 @@ def wavekit_cli_fixture_bundle() -> dict[str, object]:
                 "p2p wavekit sync recover --root WORKSPACE --format json",
             ],
         },
+        {
+            "group": "linked_replica_server_snapshot",
+            "mutates_project": False,
+            "commands": [
+                "p2p project memory snapshot-export --output-directory SNAPSHOT-DIR --root WORKSPACE --format json",
+            ],
+        },
     ]
     payload: dict[str, object] = {
         "contract_version": WAVEKIT_CLI_FIXTURE_BUNDLE_CONTRACT,
