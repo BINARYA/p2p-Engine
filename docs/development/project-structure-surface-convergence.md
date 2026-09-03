@@ -1,6 +1,6 @@
 # Project Structure Surface Convergence
 
-This is the P2P Engine 0.6.1 release-gate note for converging the project-owned
+This is the P2P Engine 0.6.2 release-gate note for converging the project-owned
 structure surfaces after authority, domain, memory classification, readiness,
 registry-v2 discovery, structure export and structure replacement landed.
 
@@ -14,7 +14,7 @@ fixture bundle lives at
 `p2p version --format json`, `p2p status --format json` and
 `p2p_workspace_schema_status` expose the same contract tuple:
 
-- P2P Engine `0.6.1`
+- P2P Engine `0.6.2`
 - CLI envelope `p2p-cli/v1`
 - workspace schema 4
 - portable vertical schema 3 and package format 1
@@ -88,7 +88,7 @@ fallback in the runtime catalog client.
 
 ## Release Notes And Resources
 
-The release notes state that P2P Engine 0.5.1 preserves the clean boundary:
+The release notes state that P2P Engine 0.6.2 preserves the clean boundary:
 workspace schema 4 and portable vertical schema 3 only. It does not provide in-runtime
 migration, conversion or compatibility aliases for older workspace or vertical
 schemas.
@@ -104,8 +104,8 @@ the packaged fixture matches the installed runtime generator.
 The release workflow runs the source public/full suites once on the canonical
 Python 3.12 runtime, then builds artifacts in one dedicated release job,
 verifies archive contents and runs installed-wheel smoke tests. Cross-platform
-uv jobs share the one immutable candidate wheel; only Linux also exercises the
-historical 0.5.0 upgrade/rollback lifecycle.
+uv jobs share the one immutable candidate wheel and validate its current
+installed behavior without making an earlier release a prerequisite.
 
 Merge and restore are implemented on CLI with distinct capabilities, exact
 preview tokens and mutation receipts. MCP deliberately exposes only

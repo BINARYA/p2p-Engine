@@ -16,7 +16,7 @@ def test_source_package_and_mcp_versions_are_consistent(tmp_path: Path) -> None:
 
     assert package["project"]["version"] == __version__
     assert server.__version__ == __version__
-    assert __version__ == "0.6.1"
+    assert __version__ == "0.6.2"
     assert runtime.default_contract_payload()["runtime"]["p2p"] == {
         "requires": f"=={__version__}",
         "recommended": __version__,
@@ -43,7 +43,7 @@ def test_current_release_documentation_matches_publication_state() -> None:
     )
     heading = release_heading.search(changelog)
     assert heading is not None
-    assert heading.group("state") == "2026-09-01"
+    assert heading.group("state") == "2026-09-03"
     assert release_url in readme
     assert release_url in install
     assert release_url in release_note

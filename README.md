@@ -73,7 +73,7 @@ Humans do not need to operate P2P Engine manually for every step. The intended m
 
 ```text
 Status: Alpha / MVP+
-Source version: 0.6.1
+Source version: 0.6.2
 Install: uv-managed user tool from the exact GitHub Release wheel
 CLI: usable
 MCP: local stdio MVP
@@ -105,7 +105,7 @@ Agent client
 ```
 
 Install the pinned uv release using its official owner-run bootstrap (choose
-one command), then install the exact P2P Engine 0.6.1 wheel:
+one command), then install the exact P2P Engine 0.6.2 wheel:
 
 ```bash
 # Linux and macOS
@@ -115,7 +115,7 @@ curl -LsSf https://astral.sh/uv/0.12.6/install.sh | sh
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/0.12.6/install.ps1 | iex"
 
 uv tool install --managed-python --python 3.12 --no-config \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.1/p2p_engine-0.6.1-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.2/p2p_engine-0.6.2-py3-none-any.whl
 uv tool update-shell  # only if uv reports that its tool bin is not on PATH
 
 mkdir /tmp/my-project
@@ -418,8 +418,8 @@ Work in progress:
 
 Short-term:
 
-- qualify the linked-replica candidate against WaveKit and release it only
-  after the paired cross-platform gate;
+- qualify each linked-replica release against WaveKit and the supported
+  cross-platform installation matrix;
 - validate MCP behavior with more real clients;
 - continue hardening validation and recovery paths;
 

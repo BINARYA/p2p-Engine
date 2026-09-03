@@ -8,6 +8,30 @@ tagged releases.
 
 ## Unreleased
 
+## 0.6.2 - 2026-09-03
+
+- Added governed transfer of a standalone project's canonical authority to a
+  compatible WaveKit server while preserving `project_uuid`, using authenticated
+  preflight, deterministic bundle/blob upload, an authority fence and
+  idempotent recovery.
+- Added the worker-only, storage-neutral bundle materialization and snapshot
+  export boundaries required for WaveKit to host opaque filesystem-backed
+  projects without interpreting `.p2p` files.
+- Added linked-local clone and attach with a distinct `replica_id`, complete
+  bundle/blob verification, resumable staging and atomic publication.
+- Added explicit replica status, catch-up, recovery, move, register-copy and
+  read-only workflows, with matching read/status behavior through local MCP
+  `stdio` where safe.
+- Kept credentials in the operating-system keyring and persisted only
+  non-secret binding, authority epoch, remote revision and cursor state inside
+  the project.
+- Kept linked writes disabled and offline reads explicitly stale until the
+  subsequent durable-replication protocol is implemented; no optimistic local
+  mutation or dual-write path was introduced.
+- Preserved workspace schema 4, portable vertical schema 3, canonical bundle
+  v1, the `p2p-cli/v1` envelope and the filesystem adapter as the sole
+  supported product backend.
+
 ## 0.6.1 - 2026-09-01
 
 - Added deterministic project-structure comparison and selective merge from

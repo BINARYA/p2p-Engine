@@ -10,7 +10,7 @@ separate from the normal new-project setup.
 Current status:
 
 ```text
-Source checkout: 0.6.1.
+Source checkout: 0.6.2.
 Recommended local manager: uv 0.12.6 with uv-managed CPython 3.12.
 Supported distribution: exact .whl files attached to GitHub Releases.
 Qualified systems: Linux, macOS and Windows x86-64; macOS ARM64.
@@ -54,7 +54,7 @@ Install P2P Engine as an isolated user tool from the exact GitHub Release wheel:
 
 ```bash
 uv tool install --managed-python --python 3.12 --no-config \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.1/p2p_engine-0.6.1-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.2/p2p_engine-0.6.2-py3-none-any.whl
 ```
 
 The same command works in Windows PowerShell on one line. uv creates its tool
@@ -81,10 +81,10 @@ Attestation:
 
 ```bash
 sha256sum --check --ignore-missing SHA256SUMS
-gh attestation verify p2p_engine-0.6.1-py3-none-any.whl \
+gh attestation verify p2p_engine-0.6.2-py3-none-any.whl \
   --repo BINARYA/p2p-Engine
 uv tool install --managed-python --python 3.12 --no-config \
-  ./p2p_engine-0.6.1-py3-none-any.whl
+  ./p2p_engine-0.6.2-py3-none-any.whl
 ```
 
 TLS protects transport, SHA-256 detects changed bytes, and the attestation
@@ -98,9 +98,9 @@ One persistent uv tool exposes one active P2P Engine version for the `p2p`
 entry point. Name every target version and reuse the canonical URL form:
 
 ```bash
-# Idempotent replacement/reinstall of 0.6.1
+# Idempotent replacement/reinstall of 0.6.2
 uv tool install --managed-python --python 3.12 --no-config --force \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.1/p2p_engine-0.6.1-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.2/p2p_engine-0.6.2-py3-none-any.whl
 
 # Upgrade or downgrade: replace both occurrences with the exact published version
 uv tool install --managed-python --python 3.12 --no-config --force \
@@ -125,11 +125,11 @@ on-demand environment:
 
 ```bash
 uvx --isolated --managed-python --python 3.12 --no-config \
-  --from https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.1/p2p_engine-0.6.1-py3-none-any.whl \
+  --from https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.2/p2p_engine-0.6.2-py3-none-any.whl \
   p2p runtime status --root /path/to/project
 
 uvx --isolated --managed-python --python 3.12 --no-config \
-  --from https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.1/p2p_engine-0.6.1-py3-none-any.whl \
+  --from https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.2/p2p_engine-0.6.2-py3-none-any.whl \
   p2p-mcp-server --root /path/to/project
 ```
 
@@ -180,11 +180,11 @@ cd my-project
 python3 -m venv .venv
 ```
 
-Install the published 0.6.1 wheel from GitHub Releases:
+Install the published 0.6.2 wheel from GitHub Releases:
 
 ```bash
 .venv/bin/python -m pip install \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.1/p2p_engine-0.6.1-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.2/p2p_engine-0.6.2-py3-none-any.whl
 ```
 
 The wheel filename follows:
@@ -372,7 +372,7 @@ p2p validate
 This upgrades the installed engine runtime. It does not inspect, pull, merge or
 otherwise modify a source repository.
 
-P2P Engine 0.6.1 preserves the clean runtime boundary established in 0.5.0: it supports
+P2P Engine 0.6.2 preserves the clean runtime boundary established in 0.5.0: it supports
 workspace schema 4 and portable vertical schema 3 only. It does not provide
 in-runtime migration, conversion or compatibility aliases for older workspace
 or vertical schemas; recreate or externally convert older development
@@ -396,8 +396,8 @@ Only after that exact SHA is green may the owner create and push its matching
 version tag:
 
 ```bash
-git tag -a v0.6.1 <approved-40-character-commit-sha> -m "P2P Engine v0.6.1"
-git push origin v0.6.1
+git tag -a v0.6.2 <approved-40-character-commit-sha> -m "P2P Engine v0.6.2"
+git push origin v0.6.2
 ```
 
 The candidate workflow runs public/full tests across the supported Python
@@ -406,8 +406,8 @@ verifies archive contents, runs installed-wheel smoke tests, and retains the
 exact verified artifact set for seven days. The tag workflow downloads that
 same set, rechecks its checksums, generates GitHub Artifact Attestations and
 creates the matching GitHub Release exactly once. It does not rebuild a second
-unrelated upload set. The tag must match `pyproject.toml`: tag `v0.6.1`
-requires `version = "0.6.1"`. Do not reuse an existing version or tag for
+unrelated upload set. The tag must match `pyproject.toml`: tag `v0.6.2`
+requires `version = "0.6.2"`. Do not reuse an existing version or tag for
 different contents.
 
 Expected release assets:
@@ -448,7 +448,7 @@ This fallback is diagnostic only and does not authorize manual upload. A release
 must still pass the create-only tag workflow. For example, the candidate set is:
 
 ```text
-v0.6.1 -> p2p_engine-0.6.1-py3-none-any.whl, p2p_engine-0.6.1.tar.gz, SHA256SUMS
+v0.6.2 -> p2p_engine-0.6.2-py3-none-any.whl, p2p_engine-0.6.2.tar.gz, SHA256SUMS
 ```
 
 ## Connect An Agent
@@ -867,7 +867,7 @@ p2p assess refresh
 - P2P Engine is distributed as a Python wheel and source distribution; a
   standalone compiled executable and public package-registry publication are
   not available yet.
-- The current supported release is 0.6.1; normal users should install its
+- The current supported release is 0.6.2; normal users should install its
   published wheel rather than depend on a source checkout.
 - MCP support is local stdio. Privileged write operations are available only
   through explicit permission-gated tools.
