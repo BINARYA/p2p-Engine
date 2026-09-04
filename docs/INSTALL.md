@@ -383,32 +383,29 @@ workspaces before using this runtime for governed writes.
 This section is for P2P Engine maintainers publishing a GitHub Release artifact.
 Normal target projects should install the published wheel instead.
 
-The normal release path is automated by GitHub Actions. The owner first runs the
-non-publishing candidate workflow for one exact, already-approved commit SHA:
+The normal release path is a manual GitHub Actions workflow. Ordinary pushes to
+`main` run only the lightweight CI job; they never build release artifacts,
+create tags or publish releases. Once the version metadata, changelog and
+`docs/releases/<version>.md` are committed on `main`, the owner starts the
+release workflow and supplies the exact version:
 
 ```bash
-gh workflow run release-candidate.yml \
+gh workflow run release.yml \
   --ref main \
-  -f ref=<approved-40-character-commit-sha>
+  -f version=0.6.4
 ```
 
-Only after that exact SHA is green may the owner create and push its matching
-version tag:
-
-```bash
-git tag -a v0.6.3 <approved-40-character-commit-sha> -m "P2P Engine v0.6.3"
-git push origin v0.6.3
-```
-
-The candidate workflow runs public/full tests across the supported Python
-matrix, runs `p2p validate`, builds the source distribution and wheel twice,
-verifies archive contents, runs installed-wheel smoke tests, and retains the
-exact verified artifact set for seven days. The tag workflow downloads that
-same set, rechecks its checksums, generates GitHub Artifact Attestations and
-creates the matching GitHub Release exactly once. It does not rebuild a second
-unrelated upload set. The tag must match `pyproject.toml`: tag `v0.6.3`
-requires `version = "0.6.3"`. Do not reuse an existing version or tag for
-different contents.
+The workflow refuses execution from a branch other than `main`. It derives one
+immutable commit SHA from the selected run, verifies that the requested version
+matches `pyproject.toml`, and then runs the complete test suite once on the
+supported Python runtime. It builds the source distribution and wheel twice,
+verifies archive contents, runs dependency and installed-wheel checks, and
+qualifies the same wheel on every supported uv platform. Only after those gates
+pass does it generate GitHub Artifact Attestations, create the matching
+`v<version>` tag on that exact SHA, and publish the GitHub Release exactly once.
+A failed gate therefore leaves neither a tag nor a partial release. Do not
+create or push the release tag manually and do not reuse an existing version or
+tag for different contents.
 
 Expected release assets:
 
@@ -420,8 +417,8 @@ SHA256SUMS
 
 GitHub stores the signed attestation alongside the repository rather than as a
 fourth release asset. Maintainers do not manage signing keys or run a separate
-command: pushing the final version tag triggers attestation automatically after
-the complete candidate gate passes.
+command: the on-demand workflow creates the tag and attestation automatically
+after the complete candidate gate passes.
 
 ### Manual Build Fallback
 
@@ -445,7 +442,8 @@ dist/p2p_engine-<version>-py3-none-any.whl
 ```
 
 This fallback is diagnostic only and does not authorize manual upload. A release
-must still pass the create-only tag workflow. For example, the candidate set is:
+must still pass the create-only on-demand workflow. For example, the candidate
+set is:
 
 ```text
 v0.6.3 -> p2p_engine-0.6.3-py3-none-any.whl, p2p_engine-0.6.3.tar.gz, SHA256SUMS

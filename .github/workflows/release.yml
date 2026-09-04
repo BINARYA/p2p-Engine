@@ -1,24 +1,74 @@
-name: Release
+name: Release on demand
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to publish, for example 0.6.4
+        required: true
+        type: string
 
 permissions: {}
 
+concurrency:
+  group: p2p-engine-release
+  cancel-in-progress: false
+
 jobs:
+  prepare:
+    name: Validate manual release request
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      commit_sha: ${{ steps.release.outputs.commit_sha }}
+      release_tag: ${{ steps.release.outputs.release_tag }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - name: Check out the selected commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Validate main, version and release metadata
+        id: release
+        env:
+          REQUESTED_REF: ${{ github.ref }}
+          REQUESTED_SHA: ${{ github.sha }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          test "$REQUESTED_REF" = "refs/heads/main" || {
+            printf 'release workflow must be run from main, got %s\n' "$REQUESTED_REF" >&2
+            exit 2
+          }
+          [[ "$REQUESTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            printf 'release version must use X.Y.Z, got %s\n' "$REQUESTED_VERSION" >&2
+            exit 2
+          }
+          commit_sha="$(git rev-parse HEAD)"
+          test "$commit_sha" = "$REQUESTED_SHA"
+          release_tag="v$REQUESTED_VERSION"
+          python scripts/verify-release-metadata.py --tag "$release_tag"
+          test -f "docs/releases/$REQUESTED_VERSION.md"
+          printf 'commit_sha=%s\n' "$commit_sha" >> "$GITHUB_OUTPUT"
+          printf 'release_tag=%s\n' "$release_tag" >> "$GITHUB_OUTPUT"
+          printf 'version=%s\n' "$REQUESTED_VERSION" >> "$GITHUB_OUTPUT"
+
   candidate:
-    name: Verify tagged candidate
+    name: Qualify exact release candidate
+    needs: prepare
     permissions:
       contents: read
     uses: ./.github/workflows/release-candidate.yml
     with:
-      ref: ${{ github.sha }}
+      ref: ${{ needs.prepare.outputs.commit_sha }}
 
   attest:
     name: Attest exact candidate artifacts
-    needs: candidate
+    needs:
+      - prepare
+      - candidate
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -32,7 +82,7 @@ jobs:
       - name: Download the exact verified candidate artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: p2p-engine-release-candidate-${{ github.sha }}
+          name: p2p-engine-release-candidate-${{ needs.prepare.outputs.commit_sha }}
           path: dist
 
       - name: Recheck exact artifact identities
@@ -50,8 +100,10 @@ jobs:
             dist/SHA256SUMS
 
   publish:
-    name: Create immutable GitHub release
-    needs: attest
+    name: Create tag and immutable GitHub release
+    needs:
+      - prepare
+      - attest
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -59,32 +111,35 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     steps:
-      - name: Check out the exact tagged commit
+      - name: Check out the exact qualified commit
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ needs.prepare.outputs.commit_sha }}
           persist-credentials: false
 
       - name: Download the attested candidate artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: p2p-engine-release-candidate-${{ github.sha }}
+          name: p2p-engine-release-candidate-${{ needs.prepare.outputs.commit_sha }}
           path: dist
 
-      - name: Verify tag, final metadata and checksums
+      - name: Verify final metadata and checksums
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
         run: |
           python scripts/verify-release-metadata.py --tag "$RELEASE_TAG"
           cd dist
           sha256sum --check SHA256SUMS
 
-      - name: Publish exact artifacts once
+      - name: Create the tag and publish exact artifacts once
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_SHA: ${{ needs.prepare.outputs.commit_sha }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           ./scripts/publish-release.sh \
             --tag "$RELEASE_TAG" \
+            --target "$RELEASE_SHA" \
             --dist dist \
-            --notes "docs/releases/${RELEASE_TAG#v}.md"
+            --notes "docs/releases/$RELEASE_VERSION.md"

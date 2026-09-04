@@ -8,6 +8,11 @@ tagged releases.
 
 ## Unreleased
 
+- Replaced duplicate main/tag release qualification with a lightweight
+  single-job main CI and an explicit on-demand release workflow that creates
+  the tag only after the complete candidate, cross-platform and attestation
+  gates pass.
+
 ## 0.6.3 - 2026-09-04
 
 - Added typed linked-project commands, immutable idempotent operation receipts,

@@ -101,11 +101,14 @@ the packaged fixture matches the installed runtime generator.
 
 ## CI And Intentional MCP Boundary
 
-The release workflow runs the source public/full suites once on the canonical
-Python 3.12 runtime, then builds artifacts in one dedicated release job,
-verifies archive contents and runs installed-wheel smoke tests. Cross-platform
-uv jobs share the one immutable candidate wheel and validate its current
-installed behavior without making an earlier release a prerequisite.
+Ordinary `main` pushes run one lightweight Python 3.12 job covering generated
+contracts, documentation, static checks and smoke tests. The manually started
+release workflow runs the complete source suite once on the exact selected
+`main` commit, then builds artifacts in one dedicated release job, verifies
+archive contents and runs installed-wheel smoke tests. Cross-platform uv jobs
+share the one immutable candidate wheel and validate its current installed
+behavior without making an earlier release a prerequisite. The workflow creates
+the version tag and GitHub Release only after every qualification gate passes.
 
 Merge and restore are implemented on CLI with distinct capabilities, exact
 preview tokens and mutation receipts. MCP deliberately exposes only
