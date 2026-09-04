@@ -83,7 +83,7 @@ class FilesystemAuthorityTransferStore:
         receipt: AuthorityActivationReceipt,
     ) -> ProjectIdentity:
         current = self.identity_store.load()
-        if current.mode != ProjectMode.standalone or current.remote_binding is not None:
+        if current.mode not in {ProjectMode.standalone, ProjectMode.detached} or current.remote_binding is not None:
             if current.mode == ProjectMode.linked and self.receipt() == receipt:
                 return current
             raise ValueError(

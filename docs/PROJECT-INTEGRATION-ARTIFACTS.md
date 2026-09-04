@@ -28,6 +28,7 @@ The integration manifest records these dimensions separately:
 - domain contract;
 - canonical-bundle contract;
 - durable synchronization protocol, negotiated independently;
+- linked-project lifecycle protocol, negotiated independently;
 - `p2p-project-integration/v1` integration contract and manifest version.
 
 A refresh of agent artifacts is not a memory migration. A future sync-protocol
@@ -78,6 +79,12 @@ p2p integration remove --format json
 Do not manually select `linked-local` as a substitute for transfer. The
 authority-transfer service performs the profile transition only after atomic
 local binding. See [`AUTHORITY-TRANSFER.md`](AUTHORITY-TRANSFER.md).
+
+Generated linked-local guidance exposes lifecycle status/preview and
+publication inspection through read-only MCP only. Destructive or
+authority-affecting lifecycle apply remains owner-run CLI, and an unavailable
+WaveKit lifecycle capability is never bypassed with direct `.p2p` edits. See
+[`LINKED-PROJECT-LIFECYCLE.md`](LINKED-PROJECT-LIFECYCLE.md).
 
 The operations are idempotent. Candidate files and the manifest are staged and
 committed by one atomic workspace transaction. Source hashes are checked again

@@ -55,6 +55,9 @@ def _session_id(value: object) -> str:
 class ReplicaAccessState(str, Enum):
     active = "active"
     suspended = "suspended"
+    archived = "archived"
+    tombstoned = "tombstoned"
+    orphaned = "orphaned"
     access_revoked = "access-revoked"
     read_only = "read-only"
     rebuilding = "rebuilding"
@@ -334,9 +337,9 @@ class LinkedReplicaBinding:
         if remote_revision < self.last_applied_revision or cursor < self.cursor:
             raise ValueError("P2P_LINKED_REPLICA_CURSOR_REGRESSION: replica progress cannot regress")
         next_state = (
-            ReplicaAccessState.read_only
-            if self.state == ReplicaAccessState.read_only
-            else ReplicaAccessState.active
+            ReplicaAccessState.active
+            if self.state in {ReplicaAccessState.active, ReplicaAccessState.rebuilding}
+            else self.state
         )
         return LinkedReplicaBinding(
             server_url=self.server_url,

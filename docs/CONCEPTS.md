@@ -94,6 +94,14 @@ epoch, order and digests, then commit the batch, inbox marker and cursor
 atomically. SSE only reduces notification latency; HTTP feed replay remains the
 source of synchronization correctness.
 
+The linked-project lifecycle builds on the same authority boundary. Suspension
+and archive keep remote authority and the existing identity; detach instead
+materializes an exact verified remote snapshot as a new locally authoritative
+project UUID. Immutable project publication changes neither authority nor live
+sync. Remote delete with retained local state is allowed only after a matching
+verified detach receipt, and a tombstone or unreachable server never promotes
+cached bytes. See [LINKED-PROJECT-LIFECYCLE.md](LINKED-PROJECT-LIFECYCLE.md).
+
 Generated registries should be refreshed from source artifacts with:
 
 ```bash

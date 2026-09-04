@@ -9,6 +9,7 @@ from p2p_engine.core.canonical_memory import (
     MEMORY_SCHEMA_VERSION,
     PROJECT_BUNDLE_SCHEMA,
 )
+from p2p_engine.core.project_lifecycle import PROJECT_LIFECYCLE_PROTOCOL
 from p2p_engine.core.project_replication import PROJECT_REPLICATION_PROTOCOL
 
 PROJECT_INTEGRATION_CONTRACT = "p2p-project-integration/v1"
@@ -159,6 +160,11 @@ def current_integration_versions() -> dict[str, object]:
         },
         "sync": {
             "protocol": SYNC_PROTOCOL_VERSION,
+            "status": "client-implemented",
+            "compatibility": "exact-major",
+        },
+        "project_lifecycle": {
+            "protocol": PROJECT_LIFECYCLE_PROTOCOL,
             "status": "client-implemented",
             "compatibility": "exact-major",
         },

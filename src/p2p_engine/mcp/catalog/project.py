@@ -147,6 +147,50 @@ def tool_definitions() -> list[dict[str, object]]:
             {'root': {'type': 'string'}},
         ),
         _tool(
+            'p2p_project_lifecycle_status',
+            (
+                'Read local and remote linked-project lifecycle state, recovery evidence, '
+                'tombstones and policy-safe next actions without confirming a transition.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'offline': {'type': 'boolean'},
+            },
+        ),
+        _tool(
+            'p2p_project_lifecycle_preview',
+            (
+                'Read an owner-reviewable lifecycle preview. This tool cannot apply detach, '
+                'archive, deletion, replica removal, authority or identity changes.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'action': {
+                    'type': 'string',
+                    'enum': [
+                        'suspend', 'resume', 'detach', 'archive', 'restore',
+                        'delete-remote', 'publish-copy', 'remove-local-replica',
+                    ],
+                },
+                'operation_id': {'type': 'string'},
+                'target_kind': {
+                    'type': 'string',
+                    'enum': ['new-directory', 'same-directory'],
+                },
+                'lineage_mode': {
+                    'type': 'string',
+                    'enum': ['preserve-origin', 'private-origin', 'drop-origin'],
+                },
+                'keep_local': {'type': 'boolean'},
+            },
+            ['action', 'operation_id'],
+        ),
+        _tool(
+            'p2p_project_publication_list',
+            'Inspect immutable project-copy publication receipts without publishing or importing.',
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
             'p2p_project_domain_show',
             'Read the free project subject classification and its independent structure source.',
             {'root': {'type': 'string'}},

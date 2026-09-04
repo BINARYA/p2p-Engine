@@ -128,12 +128,25 @@ project.transfer.apply
 project.transfer.preview
 project.transfer.recover
 project.transfer.status
+wavekit.archive
 wavekit.attach
 wavekit.clone
+wavekit.create-from-local
+wavekit.delete-remote
+wavekit.detach
+wavekit.lifecycle.apply
+wavekit.lifecycle.preview
+wavekit.lifecycle.recover
+wavekit.lifecycle.status
+wavekit.publish-copy
+wavekit.remove-local-replica
 wavekit.replica.move
 wavekit.replica.read-only
 wavekit.replica.register-copy
+wavekit.restore
+wavekit.resume
 wavekit.status
+wavekit.suspend
 wavekit.sync.catch-up
 wavekit.sync.recover
 sync.catch-up
@@ -278,7 +291,7 @@ def test_cli_json_operation_inventory_is_reviewed_and_guarded() -> None:
     inventory = json_command_inventory(get_command(app))
 
     assert frozenset(inventory) == EXPECTED_JSON_OPERATIONS
-    assert len(inventory) == 205
+    assert len(inventory) == 218
     assert inventory["status"] == "text"
     assert inventory["vertical.inspect"] == "json"
     assert inventory["workspace.schema.status"] == "text"

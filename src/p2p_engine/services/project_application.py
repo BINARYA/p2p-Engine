@@ -9,6 +9,12 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from p2p_engine.core.canonical_memory import ReplicaServerSnapshotExportResult
+from p2p_engine.core.project_lifecycle import (
+    DetachLineageMode,
+    IntegrationDisposition,
+    LifecycleAction,
+    LocalReplicaDisposition,
+)
 from p2p_engine.core.project_replication import EntityPrecondition
 from p2p_engine.core.project_state_storage import (
     FILESYSTEM_ADAPTER,
@@ -24,6 +30,7 @@ from p2p_engine.foundation.yaml_loaders import UNIQUE_LOADER_CONTRACT, load_yaml
 from p2p_engine.ports.project_state import ProjectStateAdapter, ProjectUnitOfWork
 from p2p_engine.services.authority_transfer import AuthorityTransferService
 from p2p_engine.services.linked_replica import LinkedReplicaService
+from p2p_engine.services.project_lifecycle import ProjectLifecycleService
 from p2p_engine.storage.filesystem_project_state import FilesystemProjectStateAdapter
 from p2p_engine.storage.project_storage import ProjectStorageResolver
 
@@ -173,6 +180,109 @@ class ProjectApplicationService:
             expected_project_revision=expected_project_revision,
             entity_preconditions=entity_preconditions,
         )
+
+    def project_lifecycle_status(self, *, online: bool = True):
+        return self._project_lifecycle_service().status(online=online)
+
+    def preview_project_lifecycle(
+        self,
+        *,
+        action: str,
+        operation_id: str,
+        target: Path | None = None,
+        lineage_mode: str = "",
+        keep_local: bool = False,
+    ):
+        return self._project_lifecycle_service().preview(
+            action=LifecycleAction(action),
+            operation_id=operation_id,
+            target=target,
+            lineage_mode=(DetachLineageMode(lineage_mode) if lineage_mode else None),
+            keep_local=keep_local,
+        )
+
+    def apply_project_lifecycle(
+        self,
+        *,
+        action: str,
+        operation_id: str,
+        preview_token: str,
+        confirm: bool,
+        keep_local: bool = False,
+        detached_root: Path | None = None,
+    ):
+        result = self._project_lifecycle_service().apply_remote(
+            action=LifecycleAction(action),
+            operation_id=operation_id,
+            preview_token=preview_token,
+            confirm=confirm,
+            keep_local=keep_local,
+            detached_root=detached_root,
+        )
+        self._refresh_storage_binding()
+        return result
+
+    def detach_linked_project(
+        self,
+        *,
+        operation_id: str,
+        preview_token: str,
+        target: Path,
+        local_owner: str,
+        lineage_mode: str,
+        confirm: bool,
+    ):
+        result = self._project_lifecycle_service().detach(
+            operation_id=operation_id,
+            preview_token=preview_token,
+            target=target,
+            local_owner=local_owner,
+            lineage_mode=DetachLineageMode(lineage_mode),
+            confirm=confirm,
+        )
+        if target.expanduser().resolve() == self.root:
+            self._refresh_storage_binding()
+        return result
+
+    def publish_linked_project_copy(
+        self,
+        *,
+        operation_id: str,
+        preview_token: str,
+        confirm: bool,
+    ):
+        return self._project_lifecycle_service().publish_copy(
+            operation_id=operation_id,
+            preview_token=preview_token,
+            confirm=confirm,
+        )
+
+    def remove_local_linked_replica(
+        self,
+        *,
+        operation_id: str,
+        preview_token: str,
+        disposition: str,
+        integration: str,
+        archive_to: Path | None,
+        confirm: bool,
+    ):
+        return self._project_lifecycle_service().remove_local_replica(
+            operation_id=operation_id,
+            preview_token=preview_token,
+            disposition=LocalReplicaDisposition(disposition),
+            integration=IntegrationDisposition(integration),
+            archive_to=archive_to,
+            confirm=confirm,
+        )
+
+    def recover_project_lifecycle(self, *, operation_id: str):
+        result = self._project_lifecycle_service().recover(operation_id)
+        self._refresh_storage_binding()
+        return result
+
+    def project_lifecycle_publications(self):
+        return [item.to_dict() for item in self.adapter.lifecycles.publications()]
 
     def init_project(self, *args: Any, **kwargs: Any):
         result = getattr(self.adapter.compatibility_target(), "init_project")(
@@ -418,9 +528,23 @@ class ProjectApplicationService:
             )(),
         )
 
+    def _project_lifecycle_service(self) -> ProjectLifecycleService:
+        target = self.adapter.compatibility_target()
+        return ProjectLifecycleService(
+            root=self.root,
+            adapter=self.adapter,
+            store=self.adapter.lifecycles,
+            integration_transition=lambda profile: getattr(
+                target, "_project_integration_service"
+            )().transition(profile=profile),
+            integration_remove=lambda: getattr(
+                target, "_project_integration_service"
+            )().remove(),
+        )
+
     def _require_local_authority(self, operation: str) -> None:
         identity = self.adapter.repository.identity()
-        if identity.mode.value != "standalone":
+        if identity.mode.value not in {"standalone", "detached"}:
             raise ProjectStorageError(
                 ProjectStorageErrorCode.unsupported_capability,
                 f"{operation} is blocked because WaveKit is authoritative",

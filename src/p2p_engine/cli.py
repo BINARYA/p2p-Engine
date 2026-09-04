@@ -17,6 +17,7 @@ from p2p_engine.cli_commands.project_authority import register_project_authority
 from p2p_engine.cli_commands.project_domain import register_project_domain_commands
 from p2p_engine.cli_commands.project_identity import register_project_identity_commands
 from p2p_engine.cli_commands.project_integration import register_project_integration_commands
+from p2p_engine.cli_commands.project_lifecycle import register_project_lifecycle_commands
 from p2p_engine.cli_commands.project_memory import register_project_memory_commands
 from p2p_engine.cli_commands.project_ops import register_project_ops_commands
 from p2p_engine.cli_commands.project_readiness import register_project_readiness_commands
@@ -198,6 +199,7 @@ register_workspace_transaction_commands(workspace_transaction_app)
 register_mutation_commands(mutation_app)
 register_authority_transfer_commands(auth_app, project_app)
 register_linked_replica_commands(app, wavekit_app, sync_app)
+register_project_lifecycle_commands(wavekit_app)
 register_project_replication_commands(project_app)
 register_project_status_commands(app, assess_app, assess_maturity_app)
 register_project_identity_commands(project_app)

@@ -38,6 +38,12 @@ traceability references, which never prove implementation status.
 - Treat SSE/WebSocket as notification transports only. Correctness must remain
   provable through authenticated HTTP status/feed recovery when every realtime
   event is lost.
+- Keep linked lifecycle transitions authority-safe: exact preview, stable
+  operation ID, verified receipt and same-ID recovery. Never promote a cache
+  after suspension, tombstone, revocation or an unreachable remote.
+- Implement detach through verified logical bundle/blob staging and a new
+  project UUID. Remote deletion that retains local state must be gated by the
+  matching immutable detach receipt.
 - Do not reintroduce compatibility aliases or removed source-control surfaces.
 
 ## Required Checks

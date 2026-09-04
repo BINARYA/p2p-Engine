@@ -119,6 +119,36 @@ def handle_project_tool(
             "linked_replica": workspace.linked_replica_catch_up().to_dict(),
             "mutation_performed": True,
         }
+    if name == "p2p_project_lifecycle_status":
+        return {
+            "project_lifecycle": workspace.project_lifecycle_status(
+                online=not bool(arguments.get("offline", False))
+            ),
+            "mutation_performed": False,
+        }
+    if name == "p2p_project_lifecycle_preview":
+        target_kind = str(arguments.get("target_kind") or "new-directory")
+        target = (
+            workspace.root
+            if target_kind == "same-directory"
+            else workspace.root.parent / ".p2p-lifecycle-preview-target"
+        )
+        preview = workspace.preview_project_lifecycle(
+            action=required(arguments, "action"),
+            operation_id=required(arguments, "operation_id"),
+            target=target,
+            lineage_mode=str(arguments.get("lineage_mode") or ""),
+            keep_local=bool(arguments.get("keep_local", False)),
+        )
+        return {
+            "project_lifecycle_preview": preview.to_dict(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_project_publication_list":
+        return {
+            "project_publications": workspace.project_lifecycle_publications(),
+            "mutation_performed": False,
+        }
     if name in {
         "p2p_project_identity_adopt_apply",
         "p2p_project_identity_derive_apply",

@@ -32,6 +32,7 @@ from p2p_engine.services.workspace_transactions import (
 from p2p_engine.storage.canonical_memory import FilesystemCanonicalMemoryStore
 from p2p_engine.storage.filesystem_authority_transfer import FilesystemAuthorityTransferStore
 from p2p_engine.storage.filesystem_linked_replica import FilesystemLinkedReplicaStore
+from p2p_engine.storage.filesystem_project_lifecycle import FilesystemProjectLifecycleStore
 
 
 def _record(entity: CanonicalEntity) -> ProjectEntityRecord:
@@ -360,7 +361,7 @@ class FilesystemProjectUnitOfWork:
                 "unit of work already has a staged command",
             )
         identity = self._repository.identity()
-        if identity.mode != ProjectMode.standalone:
+        if identity.mode not in {ProjectMode.standalone, ProjectMode.detached}:
             raise ProjectStorageError(
                 ProjectStorageErrorCode.unsupported_capability,
                 "local project-state mutations are blocked after authority transfer",
@@ -523,6 +524,7 @@ class FilesystemProjectStateAdapter:
         self._migrations = FilesystemMigrationPort()
         self._authority_transfers = FilesystemAuthorityTransferStore(self.root)
         self._linked_replicas = FilesystemLinkedReplicaStore(self.root)
+        self._lifecycles = FilesystemProjectLifecycleStore(self.root)
 
     @property
     def selection(self) -> ProjectStorageSelection:
@@ -562,6 +564,10 @@ class FilesystemProjectStateAdapter:
     @property
     def linked_replicas(self) -> FilesystemLinkedReplicaStore:
         return self._linked_replicas
+
+    @property
+    def lifecycles(self) -> FilesystemProjectLifecycleStore:
+        return self._lifecycles
 
     def unit_of_work(self) -> FilesystemProjectUnitOfWork:
         return FilesystemProjectUnitOfWork(self._repository)

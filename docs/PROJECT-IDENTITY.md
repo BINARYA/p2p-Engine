@@ -157,8 +157,11 @@ receipt validation and lost-response recovery rule.
 ## Deliberate Limits
 
 The current runtime implements the client/local halves of WaveKit authority
-transfer and complete linked-replica clone, attach, catch-up, rebuild, move and
-copy registration. It does not implement detach, offline mutation, realtime
-collaboration, WaveKit's internal persistence, SQLite in the selected product
-line, or automatic merging of divergent copies. See
-[`LINKED-PROJECT-REPLICAS.md`](LINKED-PROJECT-REPLICAS.md).
+transfer, linked-replica clone/attach/catch-up, and the governed linked-project
+lifecycle. Verified detach creates a new identity and cannot reattach as the old
+replica; create-from-local is a separate authority transfer preserving the new
+UUID. It does not implement offline mutation, automatic emergency authority
+promotion, realtime collaboration, WaveKit's internal persistence, SQLite in
+the selected product line, or automatic merging of divergent projects. See
+[`LINKED-PROJECT-REPLICAS.md`](LINKED-PROJECT-REPLICAS.md) and
+[`LINKED-PROJECT-LIFECYCLE.md`](LINKED-PROJECT-LIFECYCLE.md).

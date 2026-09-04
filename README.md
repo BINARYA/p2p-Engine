@@ -45,6 +45,9 @@ database; separately verified `.p2pbackup` archives support local recovery.
   a resumable owner-confirmed session and a fail-closed linked-local cutover;
 - keeps linked replicas current through typed HTTP commands, immutable
   receipts, a durable backend-neutral change feed and optional SSE wake-ups;
+- governs linked-project suspend/resume, verified independent detach,
+  archive/restore, snapshot publication, local-replica removal and
+  receipt-gated remote deletion through an owner-run lifecycle client;
 - derives compact vertical-aware project memory for bounded retrieval;
 - keeps a detached project-owned structure that can be edited, retired,
   exported as a portable vertical, or replaced from one exact release;
@@ -389,6 +392,10 @@ Stable:
 - [docs/LINKED-PROJECT-REPLICAS.md](docs/LINKED-PROJECT-REPLICAS.md)
   Complete linked clone/attach, durable replication, verified catch-up, stale
   offline reads and explicit physical move/copy handling.
+
+- [docs/LINKED-PROJECT-LIFECYCLE.md](docs/LINKED-PROJECT-LIFECYCLE.md)
+  Owner-run suspend/resume, detach, create-as-new, publication, archive/restore,
+  local replica removal, soft deletion and same-operation recovery.
 
 - [docs/AUTHORITY-CONTEXT.md](docs/AUTHORITY-CONTEXT.md)
   Project authority, subject/executor separation, capabilities, external attestations and rotation.

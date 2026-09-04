@@ -244,10 +244,53 @@ class LinkedReplicaService:
             "mutation_performed": False,
         }
 
+    def download_verified_snapshot(
+        self,
+        *,
+        operation_key: str,
+        manifest: ReplicaSnapshotManifest | None = None,
+    ) -> tuple[ReplicaSnapshotManifest, Path]:
+        """Download one exact server snapshot into bounded sibling staging."""
+        _bounded_operation_key(operation_key)
+        binding = self._binding()
+        capabilities = self.capabilities(binding.server_url)
+        self._verify_server(binding, capabilities)
+        credential = self._credential(capabilities.server_url)
+        selected = manifest
+        if selected is None:
+            response = self.transport.request_json(
+                "GET",
+                self._url(
+                    capabilities,
+                    capabilities.endpoints.snapshot,
+                    replica_id=binding.replica_id.value,
+                ),
+                token=credential.access_token,
+                max_bytes=LINKED_REPLICA_MAX_RESPONSE_BYTES,
+            )
+            selected = snapshot_manifest_from_mapping(
+                _envelope(response, "linked_replica_snapshot")
+            )
+        self._verify_snapshot_binding(selected, binding, capabilities)
+        stage_root = self._stage_root(selected.session_id)
+        bundle = self._download_snapshot(
+            capabilities,
+            credential.access_token,
+            selected,
+            stage_root,
+        )
+        return selected, bundle
+
     def catch_up(self) -> ReplicaOperationResult:
         binding = self._binding()
-        if binding.state == ReplicaAccessState.access_revoked:
-            raise ValueError("P2P_LINKED_REPLICA_ACCESS_REVOKED: server access was revoked")
+        if binding.state in {
+            ReplicaAccessState.access_revoked,
+            ReplicaAccessState.tombstoned,
+            ReplicaAccessState.orphaned,
+        }:
+            raise ValueError(
+                "P2P_LINKED_REPLICA_ACCESS_REVOKED: remote lifecycle blocks synchronization"
+            )
         capabilities = self.capabilities(binding.server_url)
         self._verify_server(binding, capabilities)
         credential = self._credential(capabilities.server_url)

@@ -347,8 +347,12 @@ preflight automatically. Offline mutations remain blocked. Online linked MCP
 domain mutations carry a stable operation ID, observed revision and entity
 preconditions to WaveKit; the local replica changes only after the resulting
 durable batch is verified and committed.
+Linked lifecycle status, preview and publication metadata are read-only through
+MCP. Suspend/resume, detach, create-as-new, archive/restore, publish-copy,
+remote deletion and local-replica removal are owner-run CLI operations; an
+agent must never confirm them or edit the binding as a substitute.
 `remote-only` remains reserved. The
-runtime records memory, domain, bundle, sync and integration dimensions
+runtime records memory, domain, bundle, sync, project-lifecycle and integration dimensions
 separately in `.p2p/agent-integrations.yml` and generates
 `P2P-INTEGRATION.md`.
 

@@ -11,6 +11,7 @@ CLI / MCP / compatibility callers
        ProjectApplicationService
                 |
  repository | Unit of Work | snapshot | blob | backup | transfer-state ports
+             | lifecycle-state / receipt / publication ports
                 |
        selected filesystem adapter
 ```
@@ -58,6 +59,10 @@ unopenable.
   transaction locks.
 - authority transfer persists its fence, session, receipt and linked binding
   through the selected adapter; network/application contracts contain no path.
+- linked lifecycle persists replica-local operation state, immutable receipts,
+  detach evidence and publication metadata through a typed lifecycle port;
+  detach and publication exchange logical bundles and blobs, never storage
+  files or backend-specific paths.
 
 Storage errors have stable categories such as unavailable adapter, identity
 mismatch, stale revision, busy, integrity failure and recovery required.

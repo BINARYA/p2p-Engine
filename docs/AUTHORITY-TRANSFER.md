@@ -136,11 +136,20 @@ mutations are blocked. The linked-replica lifecycle now supplies clone, attach,
 catch-up, rebuild and physical copy handling; see
 [`LINKED-PROJECT-REPLICAS.md`](LINKED-PROJECT-REPLICAS.md).
 
+The governed project lifecycle additionally supports owner-run suspend/resume,
+verified independent detach, create-as-new, publication, archive/restore,
+local-replica removal and receipt-gated remote deletion. Detach is not a reverse
+transfer: it creates a new UUID and no source binding. See
+[`LINKED-PROJECT-LIFECYCLE.md`](LINKED-PROJECT-LIFECYCLE.md).
+
 MCP exposes only:
 
 - `p2p_project_authority_transfer_eligibility`;
 - `p2p_project_authority_transfer_preview`;
 - `p2p_project_authority_transfer_status`.
+
+Lifecycle MCP adds only read-only `p2p_project_lifecycle_status`,
+`p2p_project_lifecycle_preview` and `p2p_project_publication_list`.
 
 There is deliberately no MCP transfer apply, upload, recover, login or logout
 tool. Moving canonical authority remains an explicitly confirmed owner CLI

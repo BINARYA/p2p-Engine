@@ -49,13 +49,15 @@ def test_clean_init_versions_every_artifact_and_keeps_backend_invisible(tmp_path
         "local_memory",
         "domain",
         "bundle",
-        "authority_transfer",
-        "sync",
-        "integration",
+            "authority_transfer",
+            "sync",
+            "project_lifecycle",
+            "integration",
     }
     assert integration["versions"]["sync"]["status"] == "client-implemented"
     assert integration["versions"]["sync"]["protocol"] == "p2p-durable-replication/v1"
     assert integration["versions"]["authority_transfer"]["status"] == "client-implemented"
+    assert integration["versions"]["project_lifecycle"]["status"] == "client-implemented"
     assert integration["mcp_host_configuration"]["mutation_via_mcp"] is False
     paths = {item["path"] for item in integration["artifacts"]}
     assert {

@@ -29,6 +29,9 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, o
     if binding is not None and name not in {
         "p2p_linked_replica_status",
         "p2p_linked_replica_catch_up",
+        "p2p_project_lifecycle_status",
+        "p2p_project_lifecycle_preview",
+        "p2p_project_publication_list",
     }:
         description = str(definition.get("description") or "")
         if is_domain_mutation(name, description):

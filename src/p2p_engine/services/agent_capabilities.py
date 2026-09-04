@@ -4,7 +4,7 @@ import hashlib
 import json
 from dataclasses import asdict, dataclass
 
-AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v13"
+AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v14"
 
 
 @dataclass(frozen=True)
@@ -342,6 +342,36 @@ AGENT_CAPABILITIES = (
             "HTTP commands and the durable feed provide correctness; SSE only wakes "
             "clients. Linked MCP reads catch up and linked domain mutations require "
             "stable operation/revision evidence. Raw feed and cursor tools stay private."
+        ),
+    ),
+    AgentCapability(
+        capability_id="project.linked.lifecycle",
+        cli_paths=(
+            "p2p wavekit lifecycle status",
+            "p2p wavekit lifecycle preview",
+            "p2p wavekit lifecycle apply",
+            "p2p wavekit lifecycle recover",
+            "p2p wavekit suspend",
+            "p2p wavekit resume",
+            "p2p wavekit detach",
+            "p2p wavekit create-from-local",
+            "p2p wavekit archive",
+            "p2p wavekit restore",
+            "p2p wavekit delete-remote",
+            "p2p wavekit publish-copy",
+            "p2p wavekit remove-local-replica",
+        ),
+        mcp_tools=(
+            "p2p_project_lifecycle_status",
+            "p2p_project_lifecycle_preview",
+            "p2p_project_publication_list",
+        ),
+        exposure="owner_cli_apply_mcp_read_only",
+        authority="wavekit_authenticated_lifecycle_and_verified_receipts",
+        reason=(
+            "Status, previews and immutable-publication metadata are inspectable by "
+            "agents. Lifecycle apply, detach, deletion, publication and local replica "
+            "removal remain explicit owner CLI operations backed by remote receipts."
         ),
     ),
     AgentCapability(

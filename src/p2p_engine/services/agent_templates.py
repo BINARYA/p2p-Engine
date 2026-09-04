@@ -724,6 +724,7 @@ p2p integration status --format json
 p2p runtime status --root . --format json
 p2p project identity status --root . --format json
 p2p wavekit status --root . --format json
+p2p wavekit lifecycle status --root . --format json
 p2p sync status --root . --format json
 p2p sync catch-up --root . --format json
 p2p watch --root . --format json
@@ -746,9 +747,14 @@ credentials, tokens, passwords, private keys, or bearer headers.
 - Domain contract: `{versions['domain']['contract']}`
 - Bundle contract: `{versions['bundle']['contract']}`
 - Sync protocol: {sync_line}
+- Project lifecycle protocol: `{versions['project_lifecycle']['protocol']}`
 - Integration contract: `{PROJECT_INTEGRATION_CONTRACT}`
 
 {reservation}
+
+## Linked project lifecycle boundary
+
+{LINKED_PROJECT_LIFECYCLE_GUIDANCE_BLOCK}
 """
 
 
@@ -758,6 +764,34 @@ def governed_root_guidance_block() -> str:
 When the current working directory is different or ambiguous, pass `--root /path/to/project` to P2P CLI commands and MCP server commands.
 
 Prefer configured or explicit roots. Do not infer product topology from parent or adjacent directories."""
+
+
+LINKED_PROJECT_LIFECYCLE_GUIDANCE_BLOCK = """A linked project remains
+WaveKit-authoritative even when the server is suspended, archived, unreachable,
+deleted, or access has been revoked. Never promote cached local bytes to local
+authority, remove the binding manually, or treat a timeout as permission to
+write.
+
+Inspect lifecycle state with `p2p wavekit lifecycle status --format json` or
+MCP `p2p_project_lifecycle_status`. MCP may also call the read-only
+`p2p_project_lifecycle_preview` and `p2p_project_publication_list` tools. MCP
+does not expose lifecycle apply, detach, authority transfer, publication,
+remote deletion, or local-replica removal.
+
+All lifecycle changes are explicit owner-run CLI workflows. They use one
+stable operation ID, an exact preview token, `--confirm`, a server receipt, and
+same-ID recovery after an unknown response. Detach additionally requires a new
+project UUID, an explicit local owner and exactly one preserved/private/dropped
+lineage choice. Prefer a new target directory. Never simulate detach by copying
+or editing `.p2p`; delete-remote with retained local state requires the verified
+receipt of a completed independent detach.
+
+`publish-copy` creates immutable project-snapshot metadata without changing
+authority or binding. It is distinct from domain/vertical publication. Removing
+a local replica is distinct from deleting the WaveKit project and requires an
+explicit archive/remove choice plus integration cleanup. If the paired WaveKit
+lifecycle capability is unavailable, report that the server phase is not ready;
+do not bypass it."""
 
 
 def interaction_style_block(interaction_style: Any = None) -> str:
@@ -1353,6 +1387,10 @@ Do not satisfy the request by reverse-engineering `.p2p/` and writing files dire
 
 {CANONICAL_MEMORY_GUIDANCE_BLOCK}
 
+## Linked Project Lifecycle
+
+{LINKED_PROJECT_LIFECYCLE_GUIDANCE_BLOCK}
+
 If `p2p` is not available on `PATH`, try this discovery order before stopping:
 
 ```bash
@@ -1536,6 +1574,10 @@ Use P2P Engine as the source of truth for project governance and planning.
 ## Canonical Project Memory and Bundles
 
 {CANONICAL_MEMORY_GUIDANCE_BLOCK}
+
+## Linked Project Lifecycle
+
+{LINKED_PROJECT_LIFECYCLE_GUIDANCE_BLOCK}
 
 ## WaveKit CLI Worker Contract
 
@@ -1877,6 +1919,10 @@ Key rules:
 
 {CANONICAL_MEMORY_GUIDANCE_BLOCK}
 
+## Linked Project Lifecycle
+
+{LINKED_PROJECT_LIFECYCLE_GUIDANCE_BLOCK}
+
 ## WaveKit CLI Worker Contract
 
 {WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK}
@@ -1946,6 +1992,10 @@ alwaysApply: true
 
 {CANONICAL_MEMORY_GUIDANCE_BLOCK}
 
+## Linked Project Lifecycle
+
+{LINKED_PROJECT_LIFECYCLE_GUIDANCE_BLOCK}
+
 ## WaveKit CLI Worker Contract
 
 {WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK}
@@ -2009,6 +2059,10 @@ This project is managed with P2P Engine.
 
 {CANONICAL_MEMORY_GUIDANCE_BLOCK}
 
+## Linked Project Lifecycle
+
+{LINKED_PROJECT_LIFECYCLE_GUIDANCE_BLOCK}
+
 ## WaveKit CLI Worker Contract
 
 {WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK}
@@ -2070,6 +2124,10 @@ This project is managed with P2P Engine.
 ## Canonical Project Memory and Bundles
 
 {CANONICAL_MEMORY_GUIDANCE_BLOCK}
+
+## Linked Project Lifecycle
+
+{LINKED_PROJECT_LIFECYCLE_GUIDANCE_BLOCK}
 
 ## WaveKit CLI Worker Contract
 

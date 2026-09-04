@@ -25,6 +25,12 @@ from p2p_engine.core.linked_replica import (
     ReplicaSnapshotManifest,
 )
 from p2p_engine.core.project_identity import ProjectIdentity
+from p2p_engine.core.project_lifecycle import (
+    DetachReceipt,
+    LifecycleReceipt,
+    LocalLifecycleState,
+    ProjectPublication,
+)
 from p2p_engine.core.project_replication import ChangeBatch
 from p2p_engine.core.project_state_storage import (
     ProjectArchive,
@@ -188,6 +194,26 @@ class LinkedReplicaStatePort(Protocol):
     ) -> LinkedReplicaBinding: ...
 
 
+class ProjectLifecycleStatePort(Protocol):
+    def state(self) -> LocalLifecycleState | None: ...
+
+    def save_state(self, state: LocalLifecycleState) -> LocalLifecycleState: ...
+
+    def receipt(self, operation_id: str) -> LifecycleReceipt | None: ...
+
+    def save_receipt(self, receipt: LifecycleReceipt) -> LifecycleReceipt: ...
+
+    def detach_receipt(self) -> DetachReceipt | None: ...
+
+    def save_detach_receipt(self, receipt: DetachReceipt) -> DetachReceipt: ...
+
+    def publication(self, publication_id: str, version: int) -> ProjectPublication | None: ...
+
+    def save_publication(self, publication: ProjectPublication) -> ProjectPublication: ...
+
+    def publications(self) -> tuple[ProjectPublication, ...]: ...
+
+
 class ProjectStateAdapter(Protocol):
     @property
     def selection(self) -> ProjectStorageSelection: ...
@@ -215,6 +241,9 @@ class ProjectStateAdapter(Protocol):
 
     @property
     def linked_replicas(self) -> LinkedReplicaStatePort: ...
+
+    @property
+    def lifecycles(self) -> ProjectLifecycleStatePort: ...
 
     def unit_of_work(self) -> ProjectUnitOfWork: ...
 

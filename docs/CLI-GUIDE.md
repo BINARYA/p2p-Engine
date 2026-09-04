@@ -173,6 +173,31 @@ register-copy`, a confirmed move must use `p2p wavekit replica move`, and
 forensic inspection can select `p2p wavekit replica read-only`. See
 [`LINKED-PROJECT-REPLICAS.md`](LINKED-PROJECT-REPLICAS.md).
 
+### Govern The Linked Project Lifecycle
+
+The lifecycle client keeps authority changes distinct. Suspend/resume preserve
+the linked identity; detach creates a verified independent project with a new
+UUID; project publication is immutable and authority-neutral; local replica
+removal never deletes the remote project. Inspect or preview first:
+
+```bash
+p2p wavekit lifecycle status --root . --format json
+p2p wavekit lifecycle preview suspend \
+  --operation-id owner:suspend:001 --root . --format json
+p2p wavekit suspend \
+  --operation-id owner:suspend:001 --preview-token TOKEN \
+  --confirm --root . --format json
+```
+
+Detach, archive/restore, create-from-local, publish-copy and remote deletion use
+the same operation-ID/preview/confirmation discipline. Retaining local state
+across remote deletion requires a matching verified detach receipt. A lost
+response is recovered with `p2p wavekit lifecycle recover OPERATION_ID`, never
+with a new operation ID. These clients require the paired WaveKit lifecycle-v1
+capability; an older server fails closed. See
+[`LINKED-PROJECT-LIFECYCLE.md`](LINKED-PROJECT-LIFECYCLE.md) for full commands,
+lineage choices, backup behavior and the deliberately read-only MCP boundary.
+
 `--domain` records an optional free subject classification. It never chooses
 sections, criteria, questions or readiness requirements. Initialization resolves one
 independent structure source: `--starter generic`, `--starter empty`, or one

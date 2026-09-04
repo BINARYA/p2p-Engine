@@ -42,6 +42,13 @@ CLI operations. WaveKit authority transfer exposes eligibility, preview and
 status only; login, upload, apply and transfer recovery remain owner CLI
 operations.
 
+Linked-project lifecycle follows the same conservative boundary. MCP exposes
+status, preview and immutable-publication inspection only. Suspend/resume,
+detach, create-as-new, archive/restore, publication apply, remote deletion and
+local-replica removal remain explicitly confirmed owner CLI operations. An
+unreachable or tombstoned remote never turns a local MCP process into project
+authority. See [LINKED-PROJECT-LIFECYCLE.md](LINKED-PROJECT-LIFECYCLE.md).
+
 For a future multi-agent setup that requires one long-running shared service,
 P2P Engine would need a Streamable HTTP MCP server. The current implementation
 is local `stdio`.
@@ -278,6 +285,9 @@ repository operations; they do not authorize P2P project-state mutations.
 | `p2p_project_authority_transfer_eligibility` | read-only | no | no | Check local/server eligibility without creating a session, fencing writes or uploading content. |
 | `p2p_project_authority_transfer_preview` | read-only | no | no | Read the sanitized revision/destination-bound handoff preview; apply remains absent from MCP. |
 | `p2p_project_authority_transfer_status` | read-only | no | no | Inspect non-secret local transfer state and optionally query the authenticated remote session. |
+| `p2p_project_lifecycle_status` | read-only | no | no | Inspect local lifecycle evidence plus authenticated remote state without changing authority or freshness. |
+| `p2p_project_lifecycle_preview` | read-only | no | no | Preview a revision-bound lifecycle operation; confirmation and apply remain owner CLI-only. |
+| `p2p_project_publication_list` | read-only | no | no | List locally verified immutable project-publication metadata without downloading or publishing content. |
 | `p2p_linked_replica_status` | read-only | no | no | Inspect non-secret linked binding, access state, revision, cursor and freshness. |
 | `p2p_linked_replica_catch_up` | write-safe | yes | no | Download and atomically activate a fully verified WaveKit snapshot; clone and replica identity changes remain owner CLI operations. |
 | `p2p_workspace_schema_status` | read-only | no | no | Inspect workspace layout, semantic alignment, recovery state and release contract versions. |
@@ -604,7 +614,7 @@ separate. Legacy `p2p_proposal_accept`, `p2p_proposal_reject`, and
 `p2p_proposal_defer` tools are preview-only compatibility surfaces. Their old
 unbound consent receipts cannot write schema-4 events and are not consumed.
 It exposes neutral Work planning and read tools, but source-control and delivery
-lifecycle operations are outside P2P Engine. It still does not expose choice
+pipeline operations are outside P2P Engine. It still does not expose choice
 decisions, spec imports, conflict recording, voting, precedent recording,
 choice blocking, provider review creation, remote registry login/pull/publish,
 or a hosted IAM model. Remote vertical-registry MCP is limited to explicit

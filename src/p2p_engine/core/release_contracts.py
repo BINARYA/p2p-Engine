@@ -29,6 +29,16 @@ from p2p_engine.core.project_domain import (
     STRUCTURE_SOURCE_CONTRACT,
 )
 from p2p_engine.core.project_integration import current_integration_versions
+from p2p_engine.core.project_lifecycle import (
+    DETACH_RECEIPT_CONTRACT,
+    PROJECT_LIFECYCLE_CAPABILITY_CONTRACT,
+    PROJECT_LIFECYCLE_LOCAL_STATE_CONTRACT,
+    PROJECT_LIFECYCLE_PREVIEW_CONTRACT,
+    PROJECT_LIFECYCLE_PROTOCOL,
+    PROJECT_LIFECYCLE_RECEIPT_CONTRACT,
+    PROJECT_LIFECYCLE_STATUS_CONTRACT,
+    PROJECT_PUBLICATION_CONTRACT,
+)
 from p2p_engine.core.project_memory import (
     MEMORY_CLASSIFICATION_CONTRACT,
     PROJECT_MEMORY_SCOPE_CONTRACT,
@@ -163,6 +173,14 @@ def current_contract_versions() -> dict[str, object]:
         "linked_replica_binding_contract": LINKED_REPLICA_BINDING_CONTRACT,
         "linked_replica_snapshot_contract": LINKED_REPLICA_SNAPSHOT_CONTRACT,
         "linked_replica_change_contract": LINKED_REPLICA_CHANGE_CONTRACT,
+        "project_lifecycle_protocol": PROJECT_LIFECYCLE_PROTOCOL,
+        "project_lifecycle_capability_contract": PROJECT_LIFECYCLE_CAPABILITY_CONTRACT,
+        "project_lifecycle_preview_contract": PROJECT_LIFECYCLE_PREVIEW_CONTRACT,
+        "project_lifecycle_receipt_contract": PROJECT_LIFECYCLE_RECEIPT_CONTRACT,
+        "project_lifecycle_status_contract": PROJECT_LIFECYCLE_STATUS_CONTRACT,
+        "project_lifecycle_local_state_contract": PROJECT_LIFECYCLE_LOCAL_STATE_CONTRACT,
+        "project_detach_receipt_contract": DETACH_RECEIPT_CONTRACT,
+        "project_publication_contract": PROJECT_PUBLICATION_CONTRACT,
         "project_replication_protocol": PROJECT_REPLICATION_PROTOCOL,
         "project_command_contract": PROJECT_COMMAND_CONTRACT,
         "project_operation_receipt_contract": PROJECT_OPERATION_RECEIPT_CONTRACT,

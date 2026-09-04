@@ -219,9 +219,9 @@ class AuthorityTransferService:
     ) -> AuthorityTransferPreview:
         owner_profile_ref = safe_profile_ref(owner_profile_ref, field_name="owner_profile_ref")
         identity = self.adapter.repository.identity()
-        if identity.mode != ProjectMode.standalone or identity.remote_binding is not None:
+        if identity.mode not in {ProjectMode.standalone, ProjectMode.detached} or identity.remote_binding is not None:
             raise ValueError(
-                "P2P_AUTHORITY_TRANSFER_NOT_STANDALONE: transfer requires an unbound standalone project"
+                "P2P_AUTHORITY_TRANSFER_NOT_LOCAL: transfer requires an unbound locally authoritative project"
             )
         active = self.adapter.authority_transfers.load()
         if active is not None and active.state not in {

@@ -20,8 +20,8 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     snapshot = public_surface_snapshot()
 
     assert snapshot.contract_version == PUBLIC_SURFACE_CONTRACT_VERSION
-    assert len(snapshot.cli_paths) == 322
-    assert len(snapshot.mcp_tools) == 181
+    assert len(snapshot.cli_paths) == 335
+    assert len(snapshot.mcp_tools) == 184
     assert "p2p auth login" in snapshot.cli_paths
     assert "p2p project transfer apply" in snapshot.cli_paths
     assert "p2p project transfer recover" in snapshot.cli_paths
@@ -41,6 +41,17 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     assert "p2p wavekit replica register-copy" in snapshot.cli_paths
     assert "p2p_linked_replica_status" in snapshot.mcp_tools
     assert "p2p_linked_replica_catch_up" in snapshot.mcp_tools
+    assert "p2p wavekit lifecycle status" in snapshot.cli_paths
+    assert "p2p wavekit lifecycle preview" in snapshot.cli_paths
+    assert "p2p wavekit lifecycle apply" in snapshot.cli_paths
+    assert "p2p wavekit detach" in snapshot.cli_paths
+    assert "p2p wavekit delete-remote" in snapshot.cli_paths
+    assert "p2p wavekit remove-local-replica" in snapshot.cli_paths
+    assert "p2p_project_lifecycle_status" in snapshot.mcp_tools
+    assert "p2p_project_lifecycle_preview" in snapshot.mcp_tools
+    assert "p2p_project_publication_list" in snapshot.mcp_tools
+    assert "p2p_project_lifecycle_apply" not in snapshot.mcp_tools
+    assert "p2p_project_delete_remote" not in snapshot.mcp_tools
     assert all("feed" not in name and "cursor" not in name for name in snapshot.mcp_tools)
     assert "p2p_linked_replica_clone" not in snapshot.mcp_tools
     assert "p2p integration status" in snapshot.cli_paths
