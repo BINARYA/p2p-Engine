@@ -1,6 +1,6 @@
 # Current Workspace Schema Contract
 
-P2P Engine 0.6.2 supports workspace schema 4 only. Fresh `p2p init` operations
+P2P Engine 0.6.3 supports workspace schema 4 only. Fresh `p2p init` operations
 create that schema and its complete canonical layout.
 
 Inspect the contract without writing:

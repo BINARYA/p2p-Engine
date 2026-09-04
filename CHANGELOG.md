@@ -8,6 +8,8 @@ tagged releases.
 
 ## Unreleased
 
+## 0.6.3 - 2026-09-04
+
 - Added typed linked-project commands, immutable idempotent operation receipts,
   monotone project revisions and backend-neutral after-state change batches.
 - Added cursor-based durable feed replay, retention-gap snapshot fallback,
