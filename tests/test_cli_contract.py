@@ -47,6 +47,12 @@ decision.projection-repair-apply
 decision.projection-repair-preview
 decision.record
 decision.status
+drift.backup
+drift.diff
+drift.discard
+drift.report
+drift.status
+drift.verify
 governance.status
 governance.validate
 impact.apply
@@ -214,6 +220,8 @@ proposal.vertical-coverage.import
 proposal.vertical-coverage.preview
 proposal.vertical-coverage.show
 proposal.vertical-coverage.suggest
+reconcile.apply
+reconcile.preview
 runtime.contract.apply
 runtime.contract.preview
 runtime.status
@@ -291,7 +299,7 @@ def test_cli_json_operation_inventory_is_reviewed_and_guarded() -> None:
     inventory = json_command_inventory(get_command(app))
 
     assert frozenset(inventory) == EXPECTED_JSON_OPERATIONS
-    assert len(inventory) == 218
+    assert len(inventory) == 226
     assert inventory["status"] == "text"
     assert inventory["vertical.inspect"] == "json"
     assert inventory["workspace.schema.status"] == "text"

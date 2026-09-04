@@ -4,7 +4,7 @@ import hashlib
 import json
 from dataclasses import asdict, dataclass
 
-AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v14"
+AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v15"
 
 
 @dataclass(frozen=True)
@@ -342,6 +342,30 @@ AGENT_CAPABILITIES = (
             "HTTP commands and the durable feed provide correctness; SSE only wakes "
             "clients. Linked MCP reads catch up and linked domain mutations require "
             "stable operation/revision evidence. Raw feed and cursor tools stay private."
+        ),
+    ),
+    AgentCapability(
+        capability_id="project.linked.drift",
+        cli_paths=(
+            "p2p drift status",
+            "p2p drift verify",
+            "p2p drift diff",
+            "p2p drift backup",
+            "p2p drift report",
+            "p2p drift discard",
+            "p2p reconcile preview",
+            "p2p reconcile apply",
+        ),
+        mcp_tools=(
+            "p2p_replica_drift_status",
+            "p2p_replica_drift_diff",
+        ),
+        exposure="owner_cli_apply_mcp_read_only",
+        authority="wavekit_authoritative_rebuild_or_normal_domain_command",
+        reason=(
+            "Semantic drift fences linked writes. MCP may inspect sanitized status "
+            "and diff only; forensic backup, rebuild and reconciliation apply require "
+            "the explicitly confirmed owner CLI workflow."
         ),
     ),
     AgentCapability(

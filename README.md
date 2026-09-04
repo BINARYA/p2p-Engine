@@ -45,6 +45,9 @@ database; separately verified `.p2pbackup` archives support local recovery.
   a resumable owner-confirmed session and a fail-closed linked-local cutover;
 - keeps linked replicas current through typed HTTP commands, immutable
   receipts, a durable backend-neutral change feed and optional SSE wake-ups;
+- detects backend-neutral linked-replica drift before sync or mutation,
+  preserves forensic evidence, rebuilds from WaveKit authority, and can restate
+  one recognized domain intent through an owner-confirmed typed command plan;
 - governs linked-project suspend/resume, verified independent detach,
   archive/restore, snapshot publication, local-replica removal and
   receipt-gated remote deletion through an owner-run lifecycle client;
@@ -92,6 +95,9 @@ Current implementation includes proposal lifecycle, decisions, choices, Change S
 
 The internal storage architecture and compatibility boundary are documented in
 [`docs/PROJECT-STORAGE-PORTS.md`](docs/PROJECT-STORAGE-PORTS.md).
+Linked replica drift, quarantine, rebuild and governed reconciliation are
+documented in
+[`docs/LINKED-REPLICA-DRIFT.md`](docs/LINKED-REPLICA-DRIFT.md).
 
 ## 5-Minute Agent Setup
 

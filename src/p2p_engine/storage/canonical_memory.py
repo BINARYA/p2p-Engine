@@ -149,7 +149,12 @@ class FilesystemCanonicalMemoryStore:
                 reason = (
                     f"Artifact exceeds the {self.max_document_bytes}-byte canonical document limit."
                 )
-            if classification in {"canonical_project", "replica_local"}:
+            inspect_replica_document = (
+                classification == "replica_local"
+                and PurePosixPath(relative).suffix in _SUPPORTED_DOCUMENT_SUFFIXES
+                and not relative.startswith("local/replica-recovery/")
+            )
+            if classification == "canonical_project" or inspect_replica_document:
                 try:
                     parsed = _parse_document(path, content)
                     if _contains_secret_key(parsed):

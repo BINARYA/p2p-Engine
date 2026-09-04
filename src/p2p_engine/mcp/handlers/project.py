@@ -119,6 +119,18 @@ def handle_project_tool(
             "linked_replica": workspace.linked_replica_catch_up().to_dict(),
             "mutation_performed": True,
         }
+    if name == "p2p_replica_drift_status":
+        return {
+            "replica_drift_status": workspace.replica_drift_status().to_dict(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_replica_drift_diff":
+        return {
+            "replica_semantic_diff": workspace.replica_drift_diff(
+                limit=int(arguments.get("limit", 256))
+            ).to_dict(),
+            "mutation_performed": False,
+        }
     if name == "p2p_project_lifecycle_status":
         return {
             "project_lifecycle": workspace.project_lifecycle_status(

@@ -187,6 +187,21 @@ def _capabilities() -> dict[str, object]:
                 "max_blobs": 1_000,
             },
             "retention_floor": 0,
+            "drift": {
+                "protocol": "p2p-replica-drift/v1",
+                "endpoints": {
+                    "health": "/api/project-replicas/{replica_id}/drift",
+                    "report": "/api/project-replicas/{replica_id}/drift",
+                    "reconcile_preview": "/api/project-replicas/{replica_id}/reconciliation/preview",
+                    "reconcile_apply": "/api/project-replicas/{replica_id}/reconciliation/apply",
+                },
+                "limits": {
+                    "max_findings": 64,
+                    "max_diff_entries": 256,
+                    "max_commands": 1,
+                },
+                "apply_surface": "owner-cli",
+            },
         }
     }
 

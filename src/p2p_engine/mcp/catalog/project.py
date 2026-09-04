@@ -147,6 +147,25 @@ def tool_definitions() -> list[dict[str, object]]:
             {'root': {'type': 'string'}},
         ),
         _tool(
+            'p2p_replica_drift_status',
+            (
+                'Read sanitized backend-neutral linked-replica integrity and drift status. '
+                'This tool cannot back up, discard, rebuild, or reconcile state.'
+            ),
+            {'root': {'type': 'string'}},
+        ),
+        _tool(
+            'p2p_replica_drift_diff',
+            (
+                'Read a bounded semantic linked-replica diff without physical paths, raw '
+                'storage, credentials, or an apply capability.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'limit': {'type': 'integer', 'minimum': 1, 'maximum': 256},
+            },
+        ),
+        _tool(
             'p2p_project_lifecycle_status',
             (
                 'Read local and remote linked-project lifecycle state, recovery evidence, '

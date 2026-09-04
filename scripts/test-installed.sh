@@ -246,6 +246,14 @@ for args in (
     assert payload["ok"] is True
     assert payload["contract_version"] == "p2p-cli/v1"
 
+drift = run_json(
+    "drift", "status", "--format", "json", "--root", str(project)
+)
+assert drift["ok"] is True
+assert drift["operation"] == "drift.status"
+assert drift["data"]["replica_drift_status"]["status"] == "standalone"
+assert drift["data"]["replica_drift_status"]["mutation_performed"] is False
+
 bundled = run_json(
     "vertical",
     "inspect",
@@ -382,6 +390,10 @@ assert "p2p_project_structure_merge_compare" in names
 assert "p2p_project_structure_retained_inspect" in names
 assert "p2p_project_structure_merge_apply" not in names
 assert "p2p_project_structure_restore_apply" not in names
+assert "p2p_replica_drift_status" in names
+assert "p2p_replica_drift_diff" in names
+assert "p2p_replica_drift_discard" not in names
+assert "p2p_replica_reconciliation_apply" not in names
 PY
 
 "$venv_root/bin/python" -m pytest -m smoke "$script_root/tests" "${pytest_args[@]}"

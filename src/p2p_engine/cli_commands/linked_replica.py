@@ -16,9 +16,13 @@ def register_linked_replica_commands(
     sync_app: typer.Typer,
 ) -> None:
     replica_app = typer.Typer(help="Manage the identity of a linked local replica")
+    drift_app = typer.Typer(help="Inspect and recover linked local replica drift")
+    reconcile_app = typer.Typer(help="Restate recognized local drift as WaveKit commands")
     wavekit_sync_app = typer.Typer(help="Legacy alias for linked-replica synchronization")
     wavekit_app.add_typer(replica_app, name="replica")
     wavekit_app.add_typer(wavekit_sync_app, name="sync")
+    root_app.add_typer(drift_app, name="drift")
+    root_app.add_typer(reconcile_app, name="reconcile")
 
     @wavekit_app.command("clone")
     def clone(
@@ -227,6 +231,149 @@ def register_linked_replica_commands(
         except ValueError as exc:
             fail(str(exc))
         _emit("wavekit.replica.read-only", {"linked_replica": result.to_dict()}, output_format, result.message)
+
+    @drift_app.command("status")
+    def drift_status(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="text or json"),
+    ) -> None:
+        try:
+            result = workspace_for(root).replica_drift_status()
+        except ValueError as exc:
+            fail(str(exc))
+        payload = result.to_dict()
+        _emit(
+            "drift.status",
+            {"replica_drift_status": payload},
+            output_format,
+            f"Replica integrity: {payload['status']} ({payload['classification'] or 'not-linked'}).",
+        )
+
+    @drift_app.command("verify")
+    def drift_verify(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="text or json"),
+    ) -> None:
+        try:
+            result = workspace_for(root).replica_drift_verify()
+        except ValueError as exc:
+            fail(str(exc))
+        payload = result.to_dict()
+        _emit(
+            "drift.verify",
+            {"replica_drift_status": payload},
+            output_format,
+            "Local logical state matches its trusted evidence.",
+        )
+
+    @drift_app.command("diff")
+    def drift_diff(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Linked project root"),
+        limit: int = typer.Option(256, "--limit", min=1, max=256),
+        output_format: str = typer.Option("text", "--format", help="text or json"),
+    ) -> None:
+        try:
+            result = workspace_for(root).replica_drift_diff(limit=limit)
+        except ValueError as exc:
+            fail(str(exc))
+        payload = result.to_dict()
+        _emit(
+            "drift.diff",
+            {"replica_semantic_diff": payload},
+            output_format,
+            f"Found {payload['entry_count']} bounded logical difference(s).",
+        )
+
+    @drift_app.command("backup")
+    def drift_backup(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option("text", "--format", help="text or json"),
+    ) -> None:
+        try:
+            result = workspace_for(root).replica_drift_backup()
+        except ValueError as exc:
+            fail(str(exc))
+        payload = result.to_dict()
+        _emit(
+            "drift.backup",
+            {"forensic_backup": payload},
+            output_format,
+            f"Verified forensic backup created: {payload['backup_ref']}.",
+        )
+
+    @drift_app.command("report")
+    def drift_report(
+        include_diff: bool = typer.Option(True, "--include-diff/--no-include-diff"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Linked project root"),
+        output_format: str = typer.Option("text", "--format", help="text or json"),
+    ) -> None:
+        try:
+            payload = workspace_for(root).replica_drift_report(
+                include_diff=include_diff
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        _emit(
+            "drift.report",
+            {"replica_health": dict(payload)},
+            output_format,
+            "Sanitized replica health evidence was reported to WaveKit.",
+        )
+
+    @drift_app.command("discard")
+    def drift_discard(
+        confirm: bool = typer.Option(False, "--confirm"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Linked project root"),
+        output_format: str = typer.Option("text", "--format", help="text or json"),
+    ) -> None:
+        try:
+            payload = workspace_for(root).replica_drift_discard(confirm=confirm)
+        except ValueError as exc:
+            fail(str(exc))
+        _emit(
+            "drift.discard",
+            {"replica_drift_rebuild": payload},
+            output_format,
+            "Local drift was preserved and replaced from WaveKit authority.",
+        )
+
+    @reconcile_app.command("preview")
+    def reconcile_preview(
+        root: Path = typer.Option(Path.cwd(), "--root", help="Linked project root"),
+        output_format: str = typer.Option("text", "--format", help="text or json"),
+    ) -> None:
+        try:
+            result = workspace_for(root).replica_reconciliation_preview()
+        except ValueError as exc:
+            fail(str(exc))
+        payload = result.to_dict()
+        _emit(
+            "reconcile.preview",
+            {"reconciliation_plan": payload},
+            output_format,
+            f"Reconciliation plan {payload['plan_digest']} is {'complete' if payload['complete'] else 'blocked'}.",
+        )
+
+    @reconcile_app.command("apply")
+    def reconcile_apply(
+        plan_digest: str = typer.Option(..., "--plan-digest"),
+        confirm: bool = typer.Option(False, "--confirm"),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Linked project root"),
+        output_format: str = typer.Option("text", "--format", help="text or json"),
+    ) -> None:
+        try:
+            payload = workspace_for(root).replica_reconciliation_apply(
+                plan_digest=plan_digest,
+                confirm=confirm,
+            )
+        except ValueError as exc:
+            fail(str(exc))
+        _emit(
+            "reconcile.apply",
+            {"reconciliation_result": payload},
+            output_format,
+            "Recognized intent was applied through normal WaveKit commands.",
+        )
 
 
 def _require_filesystem(storage: str) -> None:

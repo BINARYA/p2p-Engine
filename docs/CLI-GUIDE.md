@@ -4,6 +4,16 @@ This guide covers the practical command-line workflows for P2P Engine. It is not
 an exhaustive generated reference; use `p2p --help` and `p2p <group> --help` for
 the complete command list in your installed version.
 
+## Linked Replica Drift
+
+Use `p2p drift status|verify|diff` for sanitized inspection. A blocked linked
+replica fences catch-up and writes before any remote command. The owner may run
+`p2p drift backup`, rebuild with `p2p drift discard --confirm`, or inspect an
+allowlisted command plan with `p2p reconcile preview` and apply that exact plan
+with `p2p reconcile apply --plan-digest <sha256> --confirm`. See
+[Linked Replica Drift And Recovery](LINKED-REPLICA-DRIFT.md) for the safety,
+privacy and retry contracts.
+
 ## Principles
 
 - Use CLI commands for P2P mutations.

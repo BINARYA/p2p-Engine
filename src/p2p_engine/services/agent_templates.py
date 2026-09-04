@@ -725,6 +725,8 @@ p2p runtime status --root . --format json
 p2p project identity status --root . --format json
 p2p wavekit status --root . --format json
 p2p wavekit lifecycle status --root . --format json
+p2p drift status --root . --format json
+p2p drift diff --root . --format json
 p2p sync status --root . --format json
 p2p sync catch-up --root . --format json
 p2p watch --root . --format json
@@ -755,6 +757,10 @@ credentials, tokens, passwords, private keys, or bearer headers.
 ## Linked project lifecycle boundary
 
 {LINKED_PROJECT_LIFECYCLE_GUIDANCE_BLOCK}
+
+## Linked replica drift boundary
+
+{LINKED_REPLICA_DRIFT_GUIDANCE_BLOCK}
 """
 
 
@@ -792,6 +798,29 @@ a local replica is distinct from deleting the WaveKit project and requires an
 explicit archive/remove choice plus integration cleanup. If the paired WaveKit
 lifecycle capability is unavailable, report that the server phase is not ready;
 do not bypass it."""
+
+
+LINKED_REPLICA_DRIFT_GUIDANCE_BLOCK = """A linked-local project is a replica,
+not a second authority. Inspect `p2p drift status --format json` before relying
+on it; `p2p drift verify --format json` is the fail-closed integrity check.
+Formatting changes, Git state and adapter-owned transient files are not
+semantic drift.
+
+If status is `blocked`, stop every project write and automatic catch-up. Agents
+may inspect the bounded, sanitized diff with `p2p drift diff --format json` or
+the read-only MCP tools `p2p_replica_drift_status` and
+`p2p_replica_drift_diff`. Never edit `.p2p`, upload suspect files/database
+pages, infer authority from local availability, or use Git merge as recovery.
+
+Backup, authoritative discard/rebuild and reconciliation apply are explicit
+owner-run CLI actions. The owner first creates `p2p drift backup`, then chooses
+either `p2p drift discard --confirm` to rebuild from a verified WaveKit
+snapshot, or `p2p reconcile preview` followed by the exact
+`p2p reconcile apply --plan-digest <sha256> --confirm`. Reconciliation supports
+only a complete allowlisted typed command plan, is reauthorized by WaveKit and
+returns through the normal durable feed. Unknown, corrupt, stale or
+unauthorized differences remain blocked. MCP and the web UI cannot apply a
+repair or reconciliation."""
 
 
 def interaction_style_block(interaction_style: Any = None) -> str:
@@ -954,6 +983,16 @@ def agent_policy(
             "sync_status_command": "p2p sync status --root . --format json",
             "sync_catch_up_command": "p2p sync catch-up --root . --format json",
             "realtime_watch_command": "p2p watch --root . --format json",
+            "drift_status_command": "p2p drift status --root . --format json",
+            "drift_diff_command": "p2p drift diff --root . --format json",
+            "drift_block_behavior": "stop_writes_and_request_owner_recovery",
+            "drift_mcp_surfaces": [
+                "p2p_replica_drift_status",
+                "p2p_replica_drift_diff",
+            ],
+            "drift_apply_surface": "owner_confirmed_cli_only",
+            "raw_drift_upload": False,
+            "git_reconciliation": False,
             "linked_mcp_reads_auto_catch_up": linked,
             "linked_mcp_writes_require_operation_and_revision": linked,
             "offline_mutations": "blocked" if linked else "allowed",
@@ -1391,6 +1430,10 @@ Do not satisfy the request by reverse-engineering `.p2p/` and writing files dire
 
 {LINKED_PROJECT_LIFECYCLE_GUIDANCE_BLOCK}
 
+## Linked Replica Drift And Recovery
+
+{LINKED_REPLICA_DRIFT_GUIDANCE_BLOCK}
+
 If `p2p` is not available on `PATH`, try this discovery order before stopping:
 
 ```bash
@@ -1578,6 +1621,10 @@ Use P2P Engine as the source of truth for project governance and planning.
 ## Linked Project Lifecycle
 
 {LINKED_PROJECT_LIFECYCLE_GUIDANCE_BLOCK}
+
+## Linked Replica Drift And Recovery
+
+{LINKED_REPLICA_DRIFT_GUIDANCE_BLOCK}
 
 ## WaveKit CLI Worker Contract
 
@@ -1923,6 +1970,10 @@ Key rules:
 
 {LINKED_PROJECT_LIFECYCLE_GUIDANCE_BLOCK}
 
+## Linked Replica Drift And Recovery
+
+{LINKED_REPLICA_DRIFT_GUIDANCE_BLOCK}
+
 ## WaveKit CLI Worker Contract
 
 {WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK}
@@ -1996,6 +2047,10 @@ alwaysApply: true
 
 {LINKED_PROJECT_LIFECYCLE_GUIDANCE_BLOCK}
 
+## Linked Replica Drift And Recovery
+
+{LINKED_REPLICA_DRIFT_GUIDANCE_BLOCK}
+
 ## WaveKit CLI Worker Contract
 
 {WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK}
@@ -2063,6 +2118,10 @@ This project is managed with P2P Engine.
 
 {LINKED_PROJECT_LIFECYCLE_GUIDANCE_BLOCK}
 
+## Linked Replica Drift And Recovery
+
+{LINKED_REPLICA_DRIFT_GUIDANCE_BLOCK}
+
 ## WaveKit CLI Worker Contract
 
 {WAVEKIT_CLI_WORKER_GUIDANCE_BLOCK}
@@ -2128,6 +2187,10 @@ This project is managed with P2P Engine.
 ## Linked Project Lifecycle
 
 {LINKED_PROJECT_LIFECYCLE_GUIDANCE_BLOCK}
+
+## Linked Replica Drift And Recovery
+
+{LINKED_REPLICA_DRIFT_GUIDANCE_BLOCK}
 
 ## WaveKit CLI Worker Contract
 

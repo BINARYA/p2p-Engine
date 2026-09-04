@@ -64,7 +64,7 @@ def _linked_preflight_required() -> bool:
     command = path[1:]
     if not command:
         return False
-    if command[0] in {"auth", "wavekit", "sync", "integration"}:
+    if command[0] in {"auth", "wavekit", "sync", "integration", "drift", "reconcile"}:
         return False
     if command[:2] in {("project", "replication"), ("project", "transfer")}:
         return False

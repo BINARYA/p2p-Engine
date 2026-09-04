@@ -16,13 +16,15 @@ from p2p_engine.adapters.wavekit_transfer_http import (
     WaveKitTransferTransport,
 )
 from p2p_engine.core.authority_transfer import safe_profile_ref
-from p2p_engine.core.canonical_memory import canonical_json_bytes
+from p2p_engine.core.canonical_memory import CanonicalMemorySnapshot, canonical_json_bytes
 from p2p_engine.core.linked_replica import (
     LINKED_REPLICA_CAPABILITY_CONTRACT,
     LINKED_REPLICA_CAPABILITY_PATH,
     LINKED_REPLICA_CHANGE_CONTRACT,
     LINKED_REPLICA_MAX_RESPONSE_BYTES,
     LINKED_REPLICA_PROTOCOL,
+    DriftCapabilities,
+    DriftEndpoints,
     LinkedReplicaBinding,
     ReplicaAccessState,
     ReplicaCapabilities,
@@ -48,6 +50,7 @@ from p2p_engine.foundation.files import sync_directory, write_bytes_atomic
 from p2p_engine.ports.project_state import LinkedReplicaStatePort
 from p2p_engine.services.authority_transfer import normalize_server_url
 from p2p_engine.services.canonical_memory import CanonicalBundleCodec, CanonicalMemoryService
+from p2p_engine.services.workspace_transactions import WorkspaceTransactionLockService
 from p2p_engine.storage.canonical_memory import FilesystemCanonicalMemoryStore
 from p2p_engine.storage.filesystem_linked_replica import FilesystemLinkedReplicaStore
 
@@ -63,6 +66,7 @@ class LinkedReplicaService:
         credentials: WaveKitCredentialStore | None = None,
         integration_transition: Callable[[], object] | None = None,
         store: LinkedReplicaStatePort | None = None,
+        snapshot_reader: Callable[[], CanonicalMemorySnapshot] | None = None,
         now: Callable[[], float] = time.time,
     ) -> None:
         # Keep the lexical root until workspace validation so a symlink target
@@ -73,6 +77,13 @@ class LinkedReplicaService:
         self.integration_transition = integration_transition
         self.now = now
         self.store = store or FilesystemLinkedReplicaStore(self.root)
+        self.snapshot_reader = snapshot_reader or (
+            lambda: CanonicalBundleCodec().snapshot(
+                FilesystemCanonicalMemoryStore(
+                    root=self.root, p2p_dir=self.root / ".p2p"
+                )
+            )
+        )
         self.codec = CanonicalBundleCodec()
 
     def capabilities(self, server_url: str) -> ReplicaCapabilities:
@@ -108,6 +119,7 @@ class LinkedReplicaService:
         if set(limits) != {"max_bundle_bytes", "max_blob_bytes", "max_blobs"}:
             raise ValueError("P2P_LINKED_REPLICA_RESPONSE_INVALID: limits are not exact")
         replication = _replication_capabilities(payload.get("replication"))
+        drift = _drift_capabilities(payload.get("drift"))
         return ReplicaCapabilities(
             server_url=server,
             server_instance_id=ServerInstanceId(_required(payload, "server_instance_id")),
@@ -121,6 +133,7 @@ class LinkedReplicaService:
                 payload.get("retention_floor", 0), "retention_floor"
             ),
             replication=replication,
+            drift=drift,
         )
 
     def clone(
@@ -283,6 +296,10 @@ class LinkedReplicaService:
 
     def catch_up(self) -> ReplicaOperationResult:
         binding = self._binding()
+        self.verify_local_integrity(binding)
+        return self._catch_up_verified(binding)
+
+    def _catch_up_verified(self, binding: LinkedReplicaBinding) -> ReplicaOperationResult:
         if binding.state in {
             ReplicaAccessState.access_revoked,
             ReplicaAccessState.tombstoned,
@@ -372,6 +389,86 @@ class LinkedReplicaService:
             message="A verified WaveKit snapshot was atomically applied to the local replica.",
         )
 
+    def verify_local_integrity(
+        self, binding: LinkedReplicaBinding | None = None
+    ) -> CanonicalMemorySnapshot:
+        """Verify local logical state against the last server-confirmed evidence."""
+        current_binding = binding or self._binding()
+        self.store.verify_active_identity(current_binding)
+        transaction = WorkspaceTransactionLockService(
+            root=self.root,
+            p2p_dir=self.root / ".p2p",
+        ).status()
+        if transaction.state != "absent":
+            raise ValueError(
+                "P2P_LINKED_REPLICA_INCOMPLETE_LOCAL_OPERATION: recover the interrupted "
+                "local transaction before synchronization"
+            )
+        try:
+            snapshot = self.snapshot_reader()
+        except Exception as exc:
+            raise ValueError(
+                "P2P_LINKED_REPLICA_STRUCTURAL_CORRUPTION: canonical state cannot be verified"
+            ) from exc
+        if snapshot.project_uuid != current_binding.project_uuid.value:
+            raise ValueError(
+                "P2P_LINKED_REPLICA_IDENTITY_MISMATCH: canonical project UUID differs"
+            )
+        if (
+            snapshot.semantic_state_digest != current_binding.snapshot_digest
+            or snapshot.blob_manifest_digest != current_binding.blob_manifest_digest
+        ):
+            raise ValueError(
+                "P2P_LINKED_REPLICA_SEMANTIC_DRIFT: local logical state differs from "
+                "the last confirmed WaveKit revision"
+            )
+        return snapshot
+
+    def rebuild_from_authority(
+        self,
+        *,
+        operation_key: str,
+        manifest: ReplicaSnapshotManifest | None = None,
+        bundle: Path | None = None,
+    ) -> ReplicaOperationResult:
+        """Replace untrusted local state from an already verified server snapshot."""
+        binding = self._binding()
+        selected = manifest
+        selected_bundle = bundle
+        if selected is None or selected_bundle is None:
+            selected, selected_bundle = self.download_verified_snapshot(
+                operation_key=operation_key,
+                manifest=selected,
+            )
+        capabilities = self.capabilities(binding.server_url)
+        self._verify_server(binding, capabilities)
+        self._verify_snapshot_binding(selected, binding, capabilities)
+        stage_root = self._stage_root(selected.session_id)
+        materialized = stage_root / "project"
+        self._materialize(
+            materialized,
+            selected_bundle,
+            selected,
+            operation_key=operation_key,
+            account_profile_ref=binding.account_profile_ref,
+            server_url=capabilities.server_url,
+            preserve_read_only=binding.state == ReplicaAccessState.read_only,
+        )
+        diagnostic = self._replace_active(materialized, previous=binding)
+        rebuilt = FilesystemLinkedReplicaStore(self.root).load()
+        if rebuilt is None:
+            raise ValueError("P2P_LINKED_REPLICA_ACTIVATION_FAILED: rebuilt binding is absent")
+        integration = self._transition_integration()
+        shutil.rmtree(stage_root, ignore_errors=True)
+        return ReplicaOperationResult(
+            status="rebuilt",
+            binding=rebuilt,
+            freshness=_freshness(rebuilt, source="remote", stale=False),
+            integration_status=integration,
+            diagnostic_path=diagnostic,
+            message="The drifted local replica was replaced from verified WaveKit authority.",
+        )
+
     def submit_command(
         self,
         *,
@@ -423,6 +520,7 @@ class LinkedReplicaService:
             raise ValueError(
                 "P2P_REPLICATION_PAYLOAD_TOO_LARGE: command exceeds negotiated limit"
             )
+        receipt: OperationReceipt | None
         try:
             response = self.transport.request_json(
                 "POST",
@@ -491,6 +589,85 @@ class LinkedReplicaService:
         if raw_receipt is None:
             return None
         return receipt_from_mapping(_mapping(raw_receipt, "operation receipt"))
+
+    def report_drift(
+        self,
+        *,
+        status: Mapping[str, object],
+        semantic_diff: Mapping[str, object] | None = None,
+    ) -> Mapping[str, object]:
+        binding = self._binding()
+        capabilities = self.capabilities(binding.server_url)
+        self._verify_server(binding, capabilities)
+        if capabilities.drift is None:
+            raise ValueError("P2P_DRIFT_PROTOCOL_UNSUPPORTED: WaveKit has no drift endpoint")
+        credential = self._credential(capabilities.server_url)
+        response = self.transport.request_json(
+            "POST",
+            self._url(
+                capabilities,
+                capabilities.drift.endpoints.report,
+                replica_id=binding.replica_id.value,
+            ),
+            token=credential.access_token,
+            json_body={
+                "contract": "wavekit-replica-drift-report/v1",
+                "status": dict(status),
+                "semantic_diff": None if semantic_diff is None else dict(semantic_diff),
+            },
+            max_bytes=LINKED_REPLICA_MAX_RESPONSE_BYTES,
+        )
+        return _envelope(response, "replica_health")
+
+    def preview_reconciliation(
+        self, plan: Mapping[str, object]
+    ) -> Mapping[str, object]:
+        binding = self._binding()
+        capabilities = self.capabilities(binding.server_url)
+        self._verify_server(binding, capabilities)
+        if capabilities.drift is None:
+            raise ValueError("P2P_DRIFT_PROTOCOL_UNSUPPORTED: WaveKit has no reconcile endpoint")
+        credential = self._credential(capabilities.server_url)
+        response = self.transport.request_json(
+            "POST",
+            self._url(
+                capabilities,
+                capabilities.drift.endpoints.reconcile_preview,
+                replica_id=binding.replica_id.value,
+            ),
+            token=credential.access_token,
+            json_body=dict(plan),
+            max_bytes=LINKED_REPLICA_MAX_RESPONSE_BYTES,
+        )
+        return _envelope(response, "reconciliation_preview")
+
+    def apply_reconciliation(
+        self, *, plan_digest: str, preview_token: str
+    ) -> Mapping[str, object]:
+        binding = self._binding()
+        capabilities = self.capabilities(binding.server_url)
+        self._verify_server(binding, capabilities)
+        if capabilities.drift is None:
+            raise ValueError("P2P_DRIFT_PROTOCOL_UNSUPPORTED: WaveKit has no reconcile endpoint")
+        credential = self._credential(capabilities.server_url)
+        response = self.transport.request_json(
+            "POST",
+            self._url(
+                capabilities,
+                capabilities.drift.endpoints.reconcile_apply,
+                replica_id=binding.replica_id.value,
+            ),
+            token=credential.access_token,
+            json_body={
+                "contract": "wavekit-replica-reconciliation-apply/v1",
+                "plan_digest": plan_digest,
+                "preview_token": preview_token,
+                "confirm": True,
+            },
+            idempotency_key=plan_digest,
+            max_bytes=LINKED_REPLICA_MAX_RESPONSE_BYTES,
+        )
+        return _envelope(response, "reconciliation_result")
 
     def watch(self, *, max_events: int = 0) -> tuple[dict[str, object], ...]:
         """Listen for wake-ups; every accepted event is confirmed through catch-up."""
@@ -1263,4 +1440,31 @@ def _replication_capabilities(value: object) -> ReplicationCapabilities | None:
             limits["max_page_batches"], "max_page_batches"
         ),
         heartbeat_seconds=_positive_int(payload["heartbeat_seconds"], "heartbeat_seconds"),
+    )
+
+
+def _drift_capabilities(value: object) -> DriftCapabilities | None:
+    if value is None:
+        return None
+    payload = _mapping(value, "drift")
+    if set(payload) != {"protocol", "endpoints", "limits", "apply_surface"}:
+        raise ValueError("P2P_LINKED_REPLICA_RESPONSE_INVALID: drift fields differ")
+    endpoints = _mapping(payload["endpoints"], "drift endpoints")
+    names = {"health", "report", "reconcile_preview", "reconcile_apply"}
+    if set(endpoints) != names:
+        raise ValueError("P2P_LINKED_REPLICA_RESPONSE_INVALID: drift endpoints differ")
+    limits = _mapping(payload["limits"], "drift limits")
+    if set(limits) != {"max_findings", "max_diff_entries", "max_commands"}:
+        raise ValueError("P2P_LINKED_REPLICA_RESPONSE_INVALID: drift limits differ")
+    return DriftCapabilities(
+        protocol=str(payload["protocol"]),
+        endpoints=DriftEndpoints(
+            **{name: _endpoint(endpoints, name) for name in sorted(names)}
+        ),
+        max_findings=_positive_int(limits["max_findings"], "max_findings"),
+        max_diff_entries=_positive_int(
+            limits["max_diff_entries"], "max_diff_entries"
+        ),
+        max_commands=_positive_int(limits["max_commands"], "max_commands"),
+        apply_surface=str(payload["apply_surface"]),
     )

@@ -35,6 +35,14 @@ typed commands and require a stable `linked_operation_id`, the observed
 the authenticated WaveKit request establishes actor and capability. Confirmed
 state enters the local replica only from a verified change batch.
 
+Linked drift inspection is deliberately read-only. MCP exposes
+`p2p_replica_drift_status` and `p2p_replica_drift_diff` as bounded,
+backend-neutral diagnostics. It does not expose forensic backup,
+discard/rebuild or reconciliation apply. When drift is blocked, the agent must
+stop writes and request the explicit owner CLI workflow documented in
+[Linked Replica Drift And Recovery](LINKED-REPLICA-DRIFT.md); it must never
+repair `.p2p` manually or upload suspect local storage.
+
 MCP exposes no raw command-envelope, feed, cursor, blob, compaction or
 initialization primitive. `p2p_linked_replica_catch_up` remains a diagnostic
 domain-level operation. Clone, attach, move and copy registration remain owner

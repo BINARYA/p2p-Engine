@@ -6,6 +6,13 @@ distinct `replica_id`, and tracks one verified WaveKit authority epoch,
 revision and cursor. It is not an independent copy and cannot silently become
 standalone while offline.
 
+Before every linked catch-up or mutation, P2P verifies the selected adapter's
+integrity and the canonical semantic/blob digests against the last confirmed
+WaveKit evidence. Divergence is quarantined rather than merged. See
+[Linked Replica Drift And Recovery](LINKED-REPLICA-DRIFT.md) for classification,
+forensic backup, authoritative rebuild and the bounded owner-confirmed command
+reconciliation workflow.
+
 This lifecycle is separate from authority transfer:
 
 - transfer moves authority for an existing standalone project to WaveKit;

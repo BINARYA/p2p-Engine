@@ -75,6 +75,21 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     assert policy["runtime_bootstrap"]["runtime_environment_location"] == "outside_project_root"
     assert policy["runtime_bootstrap"]["autonomous_installation"] == "forbidden"
     assert ".venv/Scripts/p2p.exe" in policy["runtime_bootstrap"]["discovery_order"]
+    integration = policy["project_integration"]
+    assert integration["drift_status_command"] == "p2p drift status --root . --format json"
+    assert integration["drift_diff_command"] == "p2p drift diff --root . --format json"
+    assert integration["drift_block_behavior"] == "stop_writes_and_request_owner_recovery"
+    assert integration["drift_apply_surface"] == "owner_confirmed_cli_only"
+    assert integration["raw_drift_upload"] is False
+    assert integration["git_reconciliation"] is False
+    assert integration["drift_mcp_surfaces"] == [
+        "p2p_replica_drift_status",
+        "p2p_replica_drift_diff",
+    ]
+    agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+    assert "Linked Replica Drift And Recovery" in agents
+    assert "stop every project write and automatic catch-up" in agents
+    assert "MCP and the web UI cannot apply" in agents
     assert policy["mcp"]["protocol_native_payloads"] is True
     assert policy["mcp"]["uses_p2p_cli_v1_envelope"] is False
     source_control = policy["source_control_boundary"]

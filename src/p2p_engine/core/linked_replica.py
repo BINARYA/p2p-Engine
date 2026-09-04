@@ -145,6 +145,54 @@ class ReplicationCapabilities:
 
 
 @dataclass(frozen=True)
+class DriftEndpoints:
+    health: str
+    report: str
+    reconcile_preview: str
+    reconcile_apply: str
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "health": self.health,
+            "report": self.report,
+            "reconcile_preview": self.reconcile_preview,
+            "reconcile_apply": self.reconcile_apply,
+        }
+
+
+@dataclass(frozen=True)
+class DriftCapabilities:
+    endpoints: DriftEndpoints
+    max_findings: int
+    max_diff_entries: int
+    max_commands: int
+    apply_surface: str
+    protocol: str = "p2p-replica-drift/v1"
+
+    def __post_init__(self) -> None:
+        if self.protocol != "p2p-replica-drift/v1":
+            raise ValueError("P2P_DRIFT_PROTOCOL_UNSUPPORTED: WaveKit drift protocol differs")
+        if not 1 <= self.max_findings <= 64:
+            raise ValueError("P2P_DRIFT_INVALID: unsafe finding limit")
+        if not 1 <= self.max_diff_entries <= 256:
+            raise ValueError("P2P_DRIFT_INVALID: unsafe semantic-diff limit")
+        if self.max_commands != 1 or self.apply_surface != "owner-cli":
+            raise ValueError("P2P_DRIFT_INVALID: unsafe reconciliation capability")
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "protocol": self.protocol,
+            "endpoints": self.endpoints.to_dict(),
+            "limits": {
+                "max_findings": self.max_findings,
+                "max_diff_entries": self.max_diff_entries,
+                "max_commands": self.max_commands,
+            },
+            "apply_surface": self.apply_surface,
+        }
+
+
+@dataclass(frozen=True)
 class ReplicaCapabilities:
     server_url: str
     server_instance_id: ServerInstanceId
@@ -154,6 +202,7 @@ class ReplicaCapabilities:
     max_blobs: int
     retention_floor: int = 0
     replication: ReplicationCapabilities | None = None
+    drift: DriftCapabilities | None = None
     protocol: str = LINKED_REPLICA_PROTOCOL
 
     def __post_init__(self) -> None:
@@ -185,6 +234,7 @@ class ReplicaCapabilities:
         payload["replication"] = (
             self.replication.to_dict() if self.replication is not None else None
         )
+        payload["drift"] = self.drift.to_dict() if self.drift is not None else None
         return payload
 
 

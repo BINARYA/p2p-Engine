@@ -31,6 +31,7 @@ from p2p_engine.ports.project_state import ProjectStateAdapter, ProjectUnitOfWor
 from p2p_engine.services.authority_transfer import AuthorityTransferService
 from p2p_engine.services.linked_replica import LinkedReplicaService
 from p2p_engine.services.project_lifecycle import ProjectLifecycleService
+from p2p_engine.services.replica_drift import ReplicaDriftService
 from p2p_engine.storage.filesystem_project_state import FilesystemProjectStateAdapter
 from p2p_engine.storage.project_storage import ProjectStorageResolver
 
@@ -157,6 +158,37 @@ class ProjectApplicationService:
 
     def linked_replica_before_operation(self, *, mutation: bool):
         result = self._linked_replica_service().before_operation(mutation=mutation)
+        self._refresh_storage_binding()
+        return result
+
+    def replica_drift_status(self):
+        return self._replica_drift_service().status()
+
+    def replica_drift_verify(self):
+        return self._replica_drift_service().verify()
+
+    def replica_drift_diff(self, *, limit: int = 256):
+        return self._replica_drift_service().semantic_diff(limit=limit)
+
+    def replica_drift_backup(self):
+        return self._replica_drift_service().forensic_backup()
+
+    def replica_drift_report(self, *, include_diff: bool = True):
+        return self._replica_drift_service().report(include_diff=include_diff)
+
+    def replica_drift_discard(self, *, confirm: bool):
+        result = self._replica_drift_service().discard_and_rebuild(confirm=confirm)
+        self._refresh_storage_binding()
+        return result
+
+    def replica_reconciliation_preview(self):
+        return self._replica_drift_service().reconciliation_preview()
+
+    def replica_reconciliation_apply(self, *, plan_digest: str, confirm: bool):
+        result = self._replica_drift_service().reconciliation_apply(
+            plan_digest=plan_digest,
+            confirm=confirm,
+        )
         self._refresh_storage_binding()
         return result
 
@@ -523,6 +555,7 @@ class ProjectApplicationService:
         return LinkedReplicaService(
             root=self.root,
             store=self.adapter.linked_replicas,
+            snapshot_reader=self.adapter.repository.snapshot,
             integration_transition=lambda: getattr(
                 target, "activate_linked_project_integration"
             )(),
@@ -540,6 +573,13 @@ class ProjectApplicationService:
             integration_remove=lambda: getattr(
                 target, "_project_integration_service"
             )().remove(),
+        )
+
+    def _replica_drift_service(self) -> ReplicaDriftService:
+        return ReplicaDriftService(
+            root=self.root,
+            adapter=self.adapter,
+            linked_replica=self._linked_replica_service(),
         )
 
     def _require_local_authority(self, operation: str) -> None:
