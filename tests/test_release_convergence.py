@@ -82,7 +82,7 @@ def test_convergence_inventory_maps_surfaces_capabilities_and_deferrals() -> Non
     snapshot = public_surface_snapshot()
 
     assert payload["contract_version"] == CONVERGENCE_GATE_CONTRACT
-    assert payload["release_line"] == RELEASE_LINE == __version__ == "0.6.4"
+    assert payload["release_line"] == RELEASE_LINE == __version__ == "0.6.5"
     assert issue_codes(validate_convergence_inventory()) == ()
     assert payload["issues"] == []
     assert payload["public_surface"]["semantic_sha256"] == snapshot.semantic_sha256
@@ -236,7 +236,7 @@ def test_docs_release_notes_and_allowlist_record_clean_break() -> None:
     assert "p2p-vertical-registry/v2" in convergence_doc
     assert "protocol-v1" in convergence_doc
     assert "WaveKit-facing CLI fixture bundle" in convergence_doc
-    assert "P2P Engine `0.6.4`" in convergence_doc
+    assert "P2P Engine `0.6.5`" in convergence_doc
     assert allowed["CHANGELOG.md"]
     assert set(allowed) == {
         "CHANGELOG.md",

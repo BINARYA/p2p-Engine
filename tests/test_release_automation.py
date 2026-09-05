@@ -157,7 +157,10 @@ def test_manual_release_qualifies_one_main_commit_then_creates_tag_and_release()
     assert "publish-release.sh" in text
     assert '--target "$RELEASE_SHA"' in text
     assert "coverage" not in text.lower()
-    release_notes = (ROOT / "docs" / "releases" / "0.6.4.md").read_text(
+    project_version = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))[
+        "project"
+    ]["version"]
+    release_notes = (ROOT / "docs" / "releases" / f"{project_version}.md").read_text(
         encoding="utf-8"
     )
     assert "create-only, attested GitHub Release" in release_notes

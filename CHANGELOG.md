@@ -8,13 +8,18 @@ tagged releases.
 
 ## Unreleased
 
+## 0.6.5 - 2026-09-06
+
 - Clarified that `remote-only` is a WaveKit-owned access mode with no
   client-local P2P root or generated integration artifacts, and made local
   renderers reject it fail-closed instead of falling through to local-profile
   assumptions.
-- Aligned the maintained WaveKit transition handoff with its current 0.6.4
+- Aligned the maintained WaveKit transition handoff with its current 0.6.5
   fixture manifest and described GitHub publication accurately as create-only,
   attested and checksum-pinned rather than GitHub-enforced immutable.
+- Made the installed-wheel interruption cleanup test wait for an explicit
+  ready signal, removing a race that could fail release qualification before
+  the cleanup signal handler was installed.
 
 ## 0.6.4 - 2026-09-05
 

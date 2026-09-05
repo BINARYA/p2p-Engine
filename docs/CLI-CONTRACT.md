@@ -1,6 +1,6 @@
 # CLI JSON Contract
 
-P2P Engine 0.6.4 exposes one machine-facing CLI transport contract:
+P2P Engine 0.6.5 exposes one machine-facing CLI transport contract:
 `p2p-cli/v1`. Every command that accepts `--format json`, including commands
 whose format defaults to JSON, emits exactly one JSON document to stdout.
 

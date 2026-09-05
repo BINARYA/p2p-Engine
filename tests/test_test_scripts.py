@@ -208,11 +208,16 @@ def test_installed_script_cleans_environment_when_interrupted(
         start_new_session=True,
     )
     deadline = time.monotonic() + 10
-    while time.monotonic() < deadline and not list(scratch.iterdir()):
+    ready = False
+    while time.monotonic() < deadline and not ready:
         if process.poll() is not None:
             break
+        ready = any(
+            (candidate / ".interrupt-handler-ready").is_file()
+            for candidate in scratch.iterdir()
+        )
         time.sleep(0.02)
-    assert list(scratch.iterdir()), "script did not create its temporary environment"
+    assert ready, "script did not install its temporary-environment cleanup handler"
 
     os.killpg(process.pid, signal.SIGTERM)
     process.communicate(timeout=10)

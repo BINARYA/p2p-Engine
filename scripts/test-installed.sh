@@ -73,6 +73,7 @@ trap cleanup EXIT
 trap abort INT TERM
 
 if [[ "$failure_mode" == "interrupted-smoke" ]]; then
+  : > "$installed_root/.interrupt-handler-ready"
   while true; do
     sleep 1
   done
