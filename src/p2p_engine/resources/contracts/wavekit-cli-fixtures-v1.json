@@ -130,6 +130,41 @@
     },
     {
       "commands": [
+        "p2p wavekit lifecycle status --root WORKSPACE --format json",
+        "p2p wavekit lifecycle preview ACTION --operation-id OPERATION-ID --root WORKSPACE --format json"
+      ],
+      "group": "linked_project_lifecycle_status",
+      "mutates_project": false
+    },
+    {
+      "commands": [
+        "p2p wavekit lifecycle apply ACTION --operation-id OPERATION-ID --preview-token PREVIEW --confirm --root WORKSPACE --format json",
+        "p2p wavekit lifecycle recover OPERATION-ID --root WORKSPACE --format json",
+        "p2p wavekit detach --operation-id OPERATION-ID --preview-token PREVIEW --target DETACHED-ROOT --local-owner OWNER --preserve-origin --as-independent --confirm --root WORKSPACE --format json",
+        "p2p wavekit remove-local-replica --operation-id OPERATION-ID --preview-token PREVIEW --disposition archive --integration remove --archive-to ARCHIVE --confirm --root WORKSPACE --format json"
+      ],
+      "group": "linked_project_lifecycle_owner",
+      "mutates_project": true
+    },
+    {
+      "commands": [
+        "p2p drift status --root WORKSPACE --format json",
+        "p2p drift diff --root WORKSPACE --format json",
+        "p2p reconcile preview --root WORKSPACE --format json"
+      ],
+      "group": "linked_replica_drift_status",
+      "mutates_project": false
+    },
+    {
+      "commands": [
+        "p2p drift discard --confirm --root WORKSPACE --format json",
+        "p2p reconcile apply --plan-digest SHA256 --confirm --root WORKSPACE --format json"
+      ],
+      "group": "linked_replica_drift_owner",
+      "mutates_project": true
+    },
+    {
+      "commands": [
         "p2p project memory snapshot-export --output-directory SNAPSHOT-DIR --root WORKSPACE --format json"
       ],
       "group": "linked_replica_server_snapshot",
@@ -149,7 +184,7 @@
       "compatibility": "same-major",
       "contract": "p2p-domain/v1"
     },
-    "engine_version": "0.6.3",
+    "engine_version": "0.6.4",
     "linked_replica_binding_contract": "p2p-linked-replica-binding/v1",
     "linked_replica_capability_contract": "p2p-linked-replica-capabilities/v1",
     "linked_replica_change_contract": "p2p-linked-replica-change-batch/v1",
@@ -235,9 +270,13 @@
     "workspace_schema_policy_version": 4,
     "workspace_schema_version": 4
   },
-  "engine_version": "0.6.3",
+  "engine_version": "0.6.4",
   "mcp_policy": {
     "export_apply_available": false,
+    "linked_drift_apply_available": false,
+    "linked_drift_reads_available": true,
+    "linked_lifecycle_apply_available": false,
+    "linked_lifecycle_reads_available": true,
     "merge_apply_available": false,
     "merge_compare_available": true,
     "registry_v2_reads_available": true,
@@ -246,7 +285,7 @@
     "restore_apply_available": false,
     "retained_inspect_available": true
   },
-  "operation_inventory_sha256": "fe0620035df90fcb814075f404c26ab323615cd4a686902673266fd83ea522b9",
+  "operation_inventory_sha256": "950aeb059731eef81c4df731927a0c17d1976f73accbf5eae56ea9e57949880e",
   "registry_v2": {
     "domain_filtering": "exact_external_id_only",
     "mutation_performed": false,
@@ -259,7 +298,7 @@
     "operation_key_placeholder": "wavekit:<uuid>",
     "root_placeholder": "<PROJECT_ROOT>"
   },
-  "semantic_sha256": "af1223fc01e81876f7d76daaaffd46a29e7ba2238009808fad433112cdb55c9a",
+  "semantic_sha256": "84e24db1a9a2d42c74318f053a91df641e651348ea8411e862b37b8db66c279a",
   "transport": {
     "envelope": "p2p-cli/v1",
     "kind": "cli_json",

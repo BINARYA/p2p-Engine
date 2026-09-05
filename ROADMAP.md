@@ -26,8 +26,8 @@ Implemented:
 
 ## Near Term
 
-- Qualify durable linked-project replication against the verified 0.6.3
-  release artifact and downstream WaveKit integration.
+- Qualify linked-project lifecycle and drift recovery against the verified
+  0.6.4 release artifact and downstream WaveKit integration.
 - Continue hardening validation and recovery paths.
 
 ## Later

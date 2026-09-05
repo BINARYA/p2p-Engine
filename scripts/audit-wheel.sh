@@ -26,7 +26,7 @@ runtime_requirements="$audit_env/runtime-requirements.txt"
 "$audit_env/venv/bin/python" -m pip freeze \
   --exclude p2p-engine > "$runtime_requirements"
 exception_arguments="$audit_env/audit-arguments.txt"
-"$python_bin" "$audit_root/scripts/verify-audit-exceptions.py" \
+"$audit_env/venv/bin/python" "$audit_root/scripts/verify-audit-exceptions.py" \
   --emit-arguments > "$exception_arguments"
 mapfile -t ignore_arguments < "$exception_arguments"
 "$python_bin" -m pip_audit \

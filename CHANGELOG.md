@@ -8,6 +8,25 @@ tagged releases.
 
 ## Unreleased
 
+## 0.6.4 - 2026-09-05
+
+- Completed linked-project lifecycle operations for suspend/resume, verified
+  detach with a new project identity and lineage policy, create-as-new,
+  immutable publication, local-replica removal, remote archive/restore and
+  receipt-gated remote deletion.
+- Added backend-neutral linked-replica drift detection using canonical identity,
+  revision and semantic/blob digests while ignoring formatting, Git state and
+  valid adapter-owned transient bytes.
+- Added fail-closed sync fencing, bounded sanitized semantic diff, verified
+  forensic backup and authoritative snapshot rebuild with atomic activation.
+- Added owner-confirmed reconciliation of a complete recognized domain intent
+  through ordinary WaveKit commands, with stale-plan protection and idempotent
+  recovery after a lost response.
+- Exposed lifecycle and drift inspection through approved read-only MCP tools
+  while keeping destructive recovery and reconciliation apply on the owner CLI.
+- Updated generated agent instructions so linked-local agents stop writes on
+  drift and direct the owner to governed recovery instead of editing `.p2p` or
+  using Git as a merge mechanism.
 - Replaced duplicate main/tag release qualification with a lightweight
   single-job main CI and an explicit on-demand release workflow that creates
   the tag only after the complete candidate, cross-platform and attestation

@@ -82,7 +82,7 @@ def test_convergence_inventory_maps_surfaces_capabilities_and_deferrals() -> Non
     snapshot = public_surface_snapshot()
 
     assert payload["contract_version"] == CONVERGENCE_GATE_CONTRACT
-    assert payload["release_line"] == RELEASE_LINE == __version__ == "0.6.3"
+    assert payload["release_line"] == RELEASE_LINE == __version__ == "0.6.4"
     assert issue_codes(validate_convergence_inventory()) == ()
     assert payload["issues"] == []
     assert payload["public_surface"]["semantic_sha256"] == snapshot.semantic_sha256
@@ -117,6 +117,12 @@ def test_convergence_inventory_maps_surfaces_capabilities_and_deferrals() -> Non
     )
     assert operations["project.structure.merge"]["deferred"] is False
     assert operations["project.structure.restore"]["deferred"] is False
+    assert operations["project.lifecycle.manage"]["capability"] == (
+        "project.replica.manage"
+    )
+    assert operations["project.replica.reconcile"]["mcp_parity"] == (
+        "sanitized_status_and_diff_only_rebuild_and_apply_cli"
+    )
     assert payload["residual_risks"] == []
     assert operations["proposal.create"]["capability"] == "proposal.create"
     assert operations["proposal.update"]["capability"] == "proposal.update"
@@ -155,6 +161,14 @@ def test_packaged_wavekit_cli_fixture_bundle_is_sanitized_and_current() -> None:
     assert "p2p version --format json" in commands
     assert "p2p status --format json" in commands
     assert "p2p project vertical export eligibility --format json" in commands
+    assert "p2p wavekit lifecycle status --root WORKSPACE --format json" in commands
+    assert (
+        "p2p wavekit lifecycle preview ACTION --operation-id OPERATION-ID "
+        "--root WORKSPACE --format json"
+    ) in commands
+    assert "p2p drift status --root WORKSPACE --format json" in commands
+    assert "p2p drift diff --root WORKSPACE --format json" in commands
+    assert "p2p reconcile preview --root WORKSPACE --format json" in commands
     assert "p2p project structure replace apply COORDINATE" in serialized
     assert "p2p vertical domain list --registry REGISTRY --format json" in commands
     assert (
@@ -173,6 +187,10 @@ def test_packaged_wavekit_cli_fixture_bundle_is_sanitized_and_current() -> None:
     assert packaged["mcp_policy"]["retained_inspect_available"] is True
     assert packaged["mcp_policy"]["merge_apply_available"] is False
     assert packaged["mcp_policy"]["restore_apply_available"] is False
+    assert packaged["mcp_policy"]["linked_lifecycle_reads_available"] is True
+    assert packaged["mcp_policy"]["linked_drift_reads_available"] is True
+    assert packaged["mcp_policy"]["linked_lifecycle_apply_available"] is False
+    assert packaged["mcp_policy"]["linked_drift_apply_available"] is False
     for forbidden in ("/home/", "/Users/", "/tmp/", "davide", "matteo"):
         assert forbidden not in serialized
     for forbidden in ("secret", "password", "token:"):
@@ -218,7 +236,7 @@ def test_docs_release_notes_and_allowlist_record_clean_break() -> None:
     assert "p2p-vertical-registry/v2" in convergence_doc
     assert "protocol-v1" in convergence_doc
     assert "WaveKit-facing CLI fixture bundle" in convergence_doc
-    assert "P2P Engine `0.6.3`" in convergence_doc
+    assert "P2P Engine `0.6.4`" in convergence_doc
     assert allowed["CHANGELOG.md"]
     assert set(allowed) == {
         "CHANGELOG.md",

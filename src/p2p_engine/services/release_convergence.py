@@ -14,10 +14,10 @@ from p2p_engine.core.vertical_registry import VERTICAL_REGISTRY_PROTOCOL_VERSION
 from p2p_engine.services.agent_templates import agent_policy
 from p2p_engine.services.public_surface_inventory import public_surface_snapshot
 
-CONVERGENCE_GATE_CONTRACT = "p2p-0.6.3-convergence-gate/v1"
+CONVERGENCE_GATE_CONTRACT = "p2p-0.6.4-convergence-gate/v1"
 WAVEKIT_CLI_FIXTURE_BUNDLE_CONTRACT = "p2p-wavekit-cli-fixtures/v1"
 WAVEKIT_CLI_FIXTURE_RESOURCE = "wavekit-cli-fixtures-v1.json"
-RELEASE_LINE = "0.6.3"
+RELEASE_LINE = "0.6.4"
 SUPPORTED_RELEASE_PYTHONS = ("3.12",)
 
 
@@ -123,6 +123,68 @@ def operation_traceability_inventory() -> tuple[OperationTrace, ...]:
                 "tests/test_linked_replica.py",
                 "tests/test_durable_project_replication.py",
             ),
+        ),
+        OperationTrace(
+            requirement_group="P1 linked lifecycle",
+            operation="project.lifecycle.manage",
+            cli_paths=(
+                "p2p wavekit lifecycle status",
+                "p2p wavekit lifecycle preview",
+                "p2p wavekit lifecycle apply",
+                "p2p wavekit lifecycle recover",
+                "p2p wavekit suspend",
+                "p2p wavekit resume",
+                "p2p wavekit detach",
+                "p2p wavekit create-from-local",
+                "p2p wavekit publish-copy",
+                "p2p wavekit remove-local-replica",
+                "p2p wavekit archive",
+                "p2p wavekit restore",
+                "p2p wavekit delete-remote",
+            ),
+            mcp_tools=(
+                "p2p_project_lifecycle_status",
+                "p2p_project_lifecycle_preview",
+                "p2p_project_publication_list",
+            ),
+            capability="project.replica.manage",
+            authority_context="wavekit_authenticated_owner_explicit_confirmation",
+            receipt_evidence="lifecycle operation receipt, detach receipt and tombstone evidence",
+            mcp_parity="status_preview_and_publication_reads_only_privileged_apply_cli",
+            hosted_boundary=(
+                "WaveKit authorizes lifecycle transitions; P2P stages and atomically "
+                "activates only verified snapshots through the selected local adapter."
+            ),
+            fixture_group="linked_project_lifecycle",
+            tests=("tests/test_project_lifecycle.py",),
+        ),
+        OperationTrace(
+            requirement_group="P1 linked replica drift",
+            operation="project.replica.reconcile",
+            cli_paths=(
+                "p2p drift status",
+                "p2p drift verify",
+                "p2p drift diff",
+                "p2p drift backup",
+                "p2p drift report",
+                "p2p drift discard",
+                "p2p reconcile preview",
+                "p2p reconcile apply",
+            ),
+            mcp_tools=(
+                "p2p_replica_drift_status",
+                "p2p_replica_drift_diff",
+            ),
+            capability="project.replica.manage",
+            authority_context="wavekit_authenticated_owner_current_plan_confirmation",
+            receipt_evidence="forensic reference, exact plan digest and ordinary command receipt",
+            mcp_parity="sanitized_status_and_diff_only_rebuild_and_apply_cli",
+            hosted_boundary=(
+                "WaveKit stores bounded logical health evidence only; suspect local "
+                "files, database pages and Git state never cross the boundary."
+            ),
+            fixture_group="linked_replica_drift",
+            tests=("tests/test_replica_drift.py",),
         ),
         OperationTrace(
             requirement_group="P2 domain and source",
@@ -691,6 +753,41 @@ def wavekit_cli_fixture_bundle() -> dict[str, object]:
             ],
         },
         {
+            "group": "linked_project_lifecycle_status",
+            "mutates_project": False,
+            "commands": [
+                "p2p wavekit lifecycle status --root WORKSPACE --format json",
+                "p2p wavekit lifecycle preview ACTION --operation-id OPERATION-ID --root WORKSPACE --format json",
+            ],
+        },
+        {
+            "group": "linked_project_lifecycle_owner",
+            "mutates_project": True,
+            "commands": [
+                "p2p wavekit lifecycle apply ACTION --operation-id OPERATION-ID --preview-token PREVIEW --confirm --root WORKSPACE --format json",
+                "p2p wavekit lifecycle recover OPERATION-ID --root WORKSPACE --format json",
+                "p2p wavekit detach --operation-id OPERATION-ID --preview-token PREVIEW --target DETACHED-ROOT --local-owner OWNER --preserve-origin --as-independent --confirm --root WORKSPACE --format json",
+                "p2p wavekit remove-local-replica --operation-id OPERATION-ID --preview-token PREVIEW --disposition archive --integration remove --archive-to ARCHIVE --confirm --root WORKSPACE --format json",
+            ],
+        },
+        {
+            "group": "linked_replica_drift_status",
+            "mutates_project": False,
+            "commands": [
+                "p2p drift status --root WORKSPACE --format json",
+                "p2p drift diff --root WORKSPACE --format json",
+                "p2p reconcile preview --root WORKSPACE --format json",
+            ],
+        },
+        {
+            "group": "linked_replica_drift_owner",
+            "mutates_project": True,
+            "commands": [
+                "p2p drift discard --confirm --root WORKSPACE --format json",
+                "p2p reconcile apply --plan-digest SHA256 --confirm --root WORKSPACE --format json",
+            ],
+        },
+        {
             "group": "linked_replica_server_snapshot",
             "mutates_project": False,
             "commands": [
@@ -735,6 +832,10 @@ def wavekit_cli_fixture_bundle() -> dict[str, object]:
             "merge_apply_available": False,
             "restore_apply_available": False,
             "registry_v2_reads_available": True,
+            "linked_lifecycle_reads_available": True,
+            "linked_drift_reads_available": True,
+            "linked_lifecycle_apply_available": False,
+            "linked_drift_apply_available": False,
         },
         "sanitization": {
             "root_placeholder": "<PROJECT_ROOT>",
@@ -854,13 +955,31 @@ def validate_wavekit_cli_fixture_bundle(
             )
         )
     else:
-        for key in ("export_apply_available", "replacement_apply_available"):
+        unavailable = (
+            "export_apply_available",
+            "replacement_apply_available",
+            "linked_lifecycle_apply_available",
+            "linked_drift_apply_available",
+        )
+        for key in unavailable:
             if mcp_policy.get(key) is not False:
                 issues.append(
                     ConvergenceIssue(
                         "P2P_CONVERGENCE_FIXTURE_MCP_APPLY",
                         f"mcp_policy.{key}",
-                        "Fixture must keep MCP export/replacement apply unavailable.",
+                        "Fixture must keep privileged MCP apply operations unavailable.",
+                    )
+                )
+        for key in (
+            "linked_lifecycle_reads_available",
+            "linked_drift_reads_available",
+        ):
+            if mcp_policy.get(key) is not True:
+                issues.append(
+                    ConvergenceIssue(
+                        "P2P_CONVERGENCE_FIXTURE_MCP_READ",
+                        f"mcp_policy.{key}",
+                        "Fixture must expose approved linked-project MCP reads.",
                     )
                 )
     expected_sha = _sha256(
@@ -889,6 +1008,11 @@ def validate_wavekit_cli_fixture_bundle(
         "p2p sync status --root WORKSPACE --format json",
         "p2p sync catch-up --root WORKSPACE --format json",
         "p2p project replication status --root WORKSPACE --format json",
+        "p2p wavekit lifecycle status --root WORKSPACE --format json",
+        "p2p wavekit lifecycle preview ACTION --operation-id OPERATION-ID --root WORKSPACE --format json",
+        "p2p drift status --root WORKSPACE --format json",
+        "p2p drift diff --root WORKSPACE --format json",
+        "p2p reconcile preview --root WORKSPACE --format json",
     }
     missing = sorted(required - set(fixture_commands(payload)))
     for command in missing:

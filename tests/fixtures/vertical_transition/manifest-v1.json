@@ -1,5 +1,5 @@
 {
-  "engine_version": "0.6.3",
+  "engine_version": "0.6.4",
   "cli_contract_version": "p2p-cli/v1",
   "impact_contract_version": "p2p-vertical-transition-impact/v1",
   "plan_contract_version": "p2p-vertical-transition-plan/v1",

@@ -216,6 +216,15 @@ def test_candidate_builder_requires_finalized_metadata_before_build() -> None:
     assert text.index("verify-release-metadata.py") < text.index('"$python_bin" -m build')
 
 
+def test_wheel_audit_validates_exceptions_with_the_installed_candidate() -> None:
+    text = (ROOT / "scripts" / "audit-wheel.sh").read_text(encoding="utf-8")
+
+    assert (
+        '"$audit_env/venv/bin/python" '
+        '"$audit_root/scripts/verify-audit-exceptions.py"' in text
+    )
+
+
 def test_security_audit_exception_schema_rejects_expired_or_incomplete_entries(
     tmp_path: Path,
 ) -> None:
