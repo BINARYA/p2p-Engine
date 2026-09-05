@@ -422,6 +422,15 @@ def test_wavekit_handoff_fixture_manifest_is_current_bounded_and_path_free() -> 
     root = Path(__file__).parent / "fixtures" / "vertical_transition"
     manifest = json.loads((root / "manifest-v1.json").read_text(encoding="utf-8"))
     assert manifest["engine_version"] == __version__
+    handoff = (
+        Path(__file__).parents[1]
+        / "docs"
+        / "development"
+        / "wavekit-vertical-transition-handoff.md"
+    ).read_text(encoding="utf-8")
+    assert f"P2P Engine {manifest['engine_version']} retains" in handoff
+    assert f"P2P Engine `{manifest['engine_version']}`;" in handoff
+    assert f"current {manifest['engine_version']} output" in handoff
     assert manifest["impact_contract_version"] == "p2p-vertical-transition-impact/v1"
     assert manifest["plan_contract_version"] == "p2p-vertical-transition-plan/v1"
     assert manifest["receipt_schema_version"] == 3

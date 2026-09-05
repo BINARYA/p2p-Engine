@@ -117,8 +117,7 @@ def access_profile(value: str) -> ProjectAccessProfile:
         local_memory=False,
         authority="wavekit",
         surfaces=("web", "api", "mcp-http"),
-        capabilities=(),
-        unavailable_capabilities=(
+        capabilities=(
             "wavekit-authenticated-actor",
             "wavekit-web-project",
             "wavekit-api-project",
@@ -127,8 +126,8 @@ def access_profile(value: str) -> ProjectAccessProfile:
         offline_reads="unavailable",
         offline_mutations="blocked",
         reason=(
-            "remote-only rendering is disabled until authenticated WaveKit web, API, "
-            "and MCP HTTP capabilities are implemented"
+            "remote-only access has no client-local P2P root or integration artifacts; "
+            "use authenticated WaveKit web, API, or MCP HTTP surfaces"
         ),
     )
 
@@ -136,11 +135,14 @@ def access_profile(value: str) -> ProjectAccessProfile:
 def require_supported_profile(value: str) -> ProjectAccessProfile:
     profile = access_profile(value)
     if not profile.supported:
-        missing = ", ".join(profile.unavailable_capabilities)
-        raise ValueError(
+        message = (
             f"P2P_INTEGRATION_PROFILE_UNSUPPORTED: {profile.profile}: "
-            f"{profile.reason}; missing capabilities: {missing}"
+            f"{profile.reason}"
         )
+        if profile.unavailable_capabilities:
+            missing = ", ".join(profile.unavailable_capabilities)
+            message += f"; missing capabilities: {missing}"
+        raise ValueError(message)
     return profile
 
 

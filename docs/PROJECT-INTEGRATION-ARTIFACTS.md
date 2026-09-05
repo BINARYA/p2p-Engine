@@ -10,14 +10,17 @@ digests, and do not expose the selected storage adapter.
 |---|---:|---|---|---|
 | `standalone` | yes | CLI and MCP `stdio` | local | implemented |
 | `linked-local` | replica | CLI sync/watch and domain MCP `stdio` | WaveKit | durable feed, automatic MCP read catch-up and authenticated online MCP writes; offline writes blocked |
-| `remote-only` | no | web, API and MCP HTTP | WaveKit | reserved; rendering blocked |
+| `remote-only` | no | web, API and MCP HTTP | WaveKit | WaveKit-owned; local P2P rendering is inapplicable |
 
 `linked-local` is rendered only after a transfer receipt or clone snapshot
 establishes the remote binding. Catch-up records source, revision and freshness;
-offline reads are visibly stale and offline writes are rejected. `remote-only` remains blocked until an
-authenticated WaveKit actor plus web, API and MCP HTTP project capabilities
-exist. P2P does not advertise either future profile merely because its design
-has been specified.
+offline reads are visibly stale and offline writes are rejected. `remote-only`
+is a real WaveKit access mode, but it has no client-local P2P project, CLI,
+MCP `stdio`, manifest or generated files. WaveKit owns its authenticated web,
+API and MCP HTTP instructions and tool discovery. Local P2P integration
+commands therefore report the profile boundary and reject rendering without
+writing. This does not constrain the private server-side storage used by the
+WaveKit worker.
 
 ## Independent Compatibility Dimensions
 

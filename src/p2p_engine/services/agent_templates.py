@@ -16,8 +16,8 @@ from p2p_engine.core.project_integration import (
     PROJECT_INTEGRATION_CONTRACT,
     PROJECT_INTEGRATION_GUIDE_PATH,
     STANDALONE_PROFILE,
-    access_profile,
     current_integration_versions,
+    require_supported_profile,
 )
 from p2p_engine.core.software_spec_lifecycle import SPEC_LIFECYCLE_INTENTS
 from p2p_engine.services.agent_capabilities import (
@@ -678,7 +678,7 @@ Keep `generic` as the shared baseline. Installing or updating one adapter must n
 
 
 def project_integration_guide(profile: str = STANDALONE_PROFILE) -> str:
-    selected = access_profile(profile)
+    selected = require_supported_profile(profile)
     versions = current_integration_versions()
     if selected.profile == STANDALONE_PROFILE:
         authority_lines = """- Profile: `standalone`
@@ -688,8 +688,10 @@ def project_integration_guide(profile: str = STANDALONE_PROFILE) -> str:
 - Offline governed mutations: allowed through P2P application services."""
         sync_line = "unavailable in this profile/release"
         reservation = (
-            "`remote-only` is reserved. `linked-local` becomes available only after a verified "
-            "authority-transfer receipt and local cutover."
+            "`remote-only` has no client-local P2P root or generated integration artifacts; "
+            "authenticated WaveKit web, API and MCP HTTP surfaces own that access mode. "
+            "`linked-local` becomes available only after a verified authority-transfer "
+            "receipt and local cutover."
         )
     else:
         authority_lines = """- Profile: `linked-local`
@@ -959,8 +961,8 @@ def agent_policy(
     *,
     access_profile: str = STANDALONE_PROFILE,
 ) -> dict[str, object]:
-    selected = access_profile.strip().lower()
-    linked = selected == "linked-local"
+    selected = require_supported_profile(access_profile)
+    linked = selected.profile == "linked-local"
     return {
         "p2p_agent_policy": {
             "version": "1.0",
@@ -972,7 +974,7 @@ def agent_policy(
         },
         "project_integration": {
             "contract": PROJECT_INTEGRATION_CONTRACT,
-            "access_profile": selected,
+            "access_profile": selected.profile,
             "authority": "wavekit" if linked else "local",
             "surfaces": ["cli", "mcp-stdio"],
             "backend_visible_to_agents": False,

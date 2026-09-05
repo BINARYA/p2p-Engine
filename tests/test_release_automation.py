@@ -149,6 +149,7 @@ def test_manual_release_qualifies_one_main_commit_then_creates_tag_and_release()
         "contents": "write",
     }
     assert jobs["publish"]["needs"] == ["prepare", "attest"]
+    assert jobs["publish"]["name"] == "Create tag and create-only attested GitHub release"
     assert "actions/attest@" + ATTEST_SHA in text
     assert text.count("actions/download-artifact@" + DOWNLOAD_ARTIFACT_SHA) == 2
     assert "build-release-candidate.sh" not in text
@@ -156,6 +157,11 @@ def test_manual_release_qualifies_one_main_commit_then_creates_tag_and_release()
     assert "publish-release.sh" in text
     assert '--target "$RELEASE_SHA"' in text
     assert "coverage" not in text.lower()
+    release_notes = (ROOT / "docs" / "releases" / "0.6.4.md").read_text(
+        encoding="utf-8"
+    )
+    assert "create-only, attested GitHub Release" in release_notes
+    assert "immutable GitHub Release" not in release_notes
 
 
 def test_third_party_actions_are_full_sha_pinned() -> None:

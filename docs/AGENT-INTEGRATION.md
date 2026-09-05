@@ -351,7 +351,9 @@ Linked lifecycle status, preview and publication metadata are read-only through
 MCP. Suspend/resume, detach, create-as-new, archive/restore, publish-copy,
 remote deletion and local-replica removal are owner-run CLI operations; an
 agent must never confirm them or edit the binding as a substitute.
-`remote-only` remains reserved. The
+`remote-only` is served by authenticated WaveKit web, API and MCP HTTP
+surfaces. It has no client-local P2P root, CLI, MCP `stdio` or generated
+integration files, so local integration commands reject that profile without writing. The
 runtime records memory, domain, bundle, sync, project-lifecycle and integration dimensions
 separately in `.p2p/agent-integrations.yml` and generates
 `P2P-INTEGRATION.md`.

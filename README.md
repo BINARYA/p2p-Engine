@@ -278,7 +278,8 @@ Installed integrations are tracked in `.p2p/agent-integrations.yml`.
 Their runtime/access-profile lifecycle is versioned independently from the
 agent adapter choice. The runtime implements `standalone` and activates
 `linked-local` only after a verified WaveKit authority-transfer receipt.
-`remote-only` remains reserved.
+`remote-only` has no client-local P2P root or generated integration artifacts: its
+authenticated web, API and MCP HTTP instructions are owned by WaveKit.
 
 Linked replicas automatically catch up before normal CLI/MCP reads, use
 `p2p sync status|catch-up|recover` for diagnostics and recovery, and use

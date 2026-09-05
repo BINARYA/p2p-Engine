@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -11,6 +12,7 @@ from p2p_engine.cli import app
 from p2p_engine.core.project_integration import PROJECT_INTEGRATION_CONTRACT
 from p2p_engine.mcp.registry import TOOL_NAMES
 from p2p_engine.mcp.tools import call_tool
+from p2p_engine.services.agent_templates import agent_policy, project_integration_guide
 from p2p_engine.services.project_application import ProjectApplicationService
 from p2p_engine.services.project_integration import ProjectIntegrationService
 from tests.cli_assertions import cli_data
@@ -161,7 +163,9 @@ def test_refresh_normalizes_windows_manifest_paths_without_losing_ownership(
     assert workspace.project_integration_status()["state"] == "current"
 
 
-def test_profile_matrix_rejects_future_profiles_without_writes(tmp_path: Path) -> None:
+def test_profile_matrix_rejects_wavekit_owned_profile_without_local_writes(
+    tmp_path: Path,
+) -> None:
     workspace = _workspace(tmp_path)
     before = {
         path.relative_to(tmp_path).as_posix(): path.read_bytes()
@@ -169,7 +173,7 @@ def test_profile_matrix_rejects_future_profiles_without_writes(tmp_path: Path) -
         if path.is_file()
     }
 
-    with pytest.raises(ValueError, match="P2P_INTEGRATION_PROFILE_UNSUPPORTED"):
+    with pytest.raises(ValueError) as raised:
         workspace.transition_project_integration(profile="remote-only")
 
     after = {
@@ -181,7 +185,52 @@ def test_profile_matrix_rejects_future_profiles_without_writes(tmp_path: Path) -
     profiles = {item["profile"]: item for item in workspace.project_integration_status()["profiles"]}
     assert profiles["standalone"]["supported"] is True
     assert profiles["linked-local"]["supported"] is True
-    assert profiles["remote-only"]["supported"] is False
+    remote_only = profiles["remote-only"]
+    assert remote_only == {
+        "profile": "remote-only",
+        "supported": False,
+        "local_memory": False,
+        "authority": "wavekit",
+        "surfaces": ["web", "api", "mcp-http"],
+        "capabilities": [
+            "wavekit-authenticated-actor",
+            "wavekit-web-project",
+            "wavekit-api-project",
+            "wavekit-mcp-http",
+        ],
+        "unavailable_capabilities": [],
+        "offline_reads": "unavailable",
+        "offline_mutations": "blocked",
+        "reason": (
+            "remote-only access has no client-local P2P root or integration artifacts; "
+            "use authenticated WaveKit web, API, or MCP HTTP surfaces"
+        ),
+    }
+    message = str(raised.value)
+    assert message.startswith("P2P_INTEGRATION_PROFILE_UNSUPPORTED: remote-only:")
+    assert "no client-local P2P root or integration artifacts" in message
+    assert "missing capabilities" not in message
+    assert "until" not in message
+
+
+@pytest.mark.parametrize(
+    "renderer",
+    (
+        lambda: project_integration_guide("remote-only"),
+        lambda: agent_policy("Remote", ["generic"], access_profile="remote-only"),
+    ),
+)
+def test_local_renderers_reject_wavekit_owned_remote_only_profile(
+    renderer: Callable[[], object],
+) -> None:
+    with pytest.raises(
+        ValueError,
+        match=(
+            "P2P_INTEGRATION_PROFILE_UNSUPPORTED: remote-only: remote-only access "
+            "has no client-local P2P root or integration artifacts"
+        ),
+    ):
+        renderer()
 
 
 def test_managed_section_round_trip_preserves_user_bytes_exactly(tmp_path: Path) -> None:

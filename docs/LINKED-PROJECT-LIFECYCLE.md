@@ -210,9 +210,10 @@ p2p wavekit remove-local-replica \
 
 `--disposition remove` permanently removes `.p2p`; archive moves it to a new,
 external path. `--integration remove` removes only unchanged P2P-owned host
-integration artifacts and blocks on user-modified content. The `remote-only`
-profile remains reserved until its authenticated WaveKit web/API/MCP surface is
-available, so selecting it currently fails before local memory is removed.
+integration artifacts and blocks on user-modified content. A project that is
+then accessed as `remote-only` uses authenticated WaveKit web, API or MCP HTTP
+instructions. That access mode has no local P2P profile or generated files, so
+it is not selected through the local integration CLI.
 
 ## Recovery And MCP Boundary
 

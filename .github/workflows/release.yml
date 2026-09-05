@@ -100,7 +100,7 @@ jobs:
             dist/SHA256SUMS
 
   publish:
-    name: Create tag and immutable GitHub release
+    name: Create tag and create-only attested GitHub release
     needs:
       - prepare
       - attest
