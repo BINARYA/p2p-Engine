@@ -394,8 +394,29 @@ def test_publish_script_creates_a_missing_tag_only_at_the_qualified_target(
     ]
 
 
+@pytest.mark.parametrize(
+    ("repository", "expected_commands"),
+    (
+        (
+            None,
+            [
+                "release view v0.5.0",
+                "api repos/{owner}/{repo}/git/ref/tags/v0.5.0",
+            ],
+        ),
+        (
+            "BINARYA/p2p-Engine",
+            [
+                "release view v0.5.0 --repo BINARYA/p2p-Engine",
+                "api repos/BINARYA/p2p-Engine/git/ref/tags/v0.5.0",
+            ],
+        ),
+    ),
+)
 def test_publish_script_refuses_an_existing_tag_without_a_release(
     tmp_path: Path,
+    repository: str | None,
+    expected_commands: list[str],
 ) -> None:
     dist = tmp_path / "dist"
     dist.mkdir()
@@ -420,6 +441,10 @@ def test_publish_script_refuses_an_existing_tag_without_a_release(
     fake.chmod(0o755)
     env = os.environ.copy()
     env.update({"GH_BIN": str(fake), "FAKE_GH_LOG": str(log)})
+    if repository is None:
+        env.pop("GITHUB_REPOSITORY", None)
+    else:
+        env["GITHUB_REPOSITORY"] = repository
 
     result = subprocess.run(
         [
@@ -442,7 +467,4 @@ def test_publish_script_refuses_an_existing_tag_without_a_release(
 
     assert result.returncode == 1
     assert "tag already exists; create-only publication refused" in result.stderr
-    assert log.read_text(encoding="utf-8").splitlines() == [
-        "release view v0.5.0",
-        "api repos/{owner}/{repo}/git/ref/tags/v0.5.0",
-    ]
+    assert log.read_text(encoding="utf-8").splitlines() == expected_commands
