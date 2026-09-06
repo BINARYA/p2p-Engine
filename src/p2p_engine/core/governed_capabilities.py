@@ -208,6 +208,14 @@ GOVERNED_CAPABILITIES: Final[tuple[GovernedCapability, ...]] = (
         "existing_unintegrated",
     ),
     GovernedCapability(
+        "choice.lifecycle.transition",
+        "choice_lifecycle",
+        LOCAL_POLICY_OWNER,
+        _BOTH_MODES,
+        False,
+        "implemented",
+    ),
+    GovernedCapability(
         "proposal.readiness.override",
         "proposal_decision",
         LOCAL_POLICY_OWNER,

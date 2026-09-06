@@ -123,7 +123,7 @@ def test_v3_catalog_uses_ledger_as_canonical_and_projection_as_derived(
         if item.owner_id == proposal_id
     }
 
-    assert index.source_catalog_version == "decision-context-sources-v3"
+    assert index.source_catalog_version == "decision-context-sources-v4"
     assert (
         proposal_sources[SourceKind.PROPOSAL_DECISION_LEDGER].classification
         == SourceClassification.CANONICAL_SEMANTIC

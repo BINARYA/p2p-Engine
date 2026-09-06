@@ -31,6 +31,11 @@ auth.login
 auth.logout
 auth.status
 choice.governance-preflight
+choice.decide
+choice.supersede
+choice.transition-apply
+choice.transition-preview
+choice.withdraw
 conflict.preview-update
 conflict.show
 conflict.update
@@ -299,7 +304,7 @@ def test_cli_json_operation_inventory_is_reviewed_and_guarded() -> None:
     inventory = json_command_inventory(get_command(app))
 
     assert frozenset(inventory) == EXPECTED_JSON_OPERATIONS
-    assert len(inventory) == 226
+    assert len(inventory) == 231
     assert inventory["status"] == "text"
     assert inventory["vertical.inspect"] == "json"
     assert inventory["workspace.schema.status"] == "text"

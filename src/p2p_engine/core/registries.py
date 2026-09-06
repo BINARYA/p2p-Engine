@@ -7,8 +7,8 @@ from typing import Mapping
 
 
 REGISTRY_MANIFEST_VERSION = 1
-REGISTRY_GENERATOR_CONTRACT_VERSION = "registry-bundle-v1"
-REGISTRY_SOURCE_CATALOG_POLICY_VERSION = "registry-sources-v1"
+REGISTRY_GENERATOR_CONTRACT_VERSION = "registry-bundle-v2"
+REGISTRY_SOURCE_CATALOG_POLICY_VERSION = "registry-sources-v2"
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 

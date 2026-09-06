@@ -12,16 +12,13 @@ from typing import Callable, Mapping, Protocol
 
 import yaml
 
-from p2p_engine.foundation.yaml_loaders import DuplicateYamlKeyError, load_yaml
-from p2p_engine.services.workspace_reads import WorkspaceReadContext
-
 from p2p_engine.core.decision_context import (
+    SOURCE_CATALOG_VERSION,
     Completeness,
     DecisionContextDiagnostic,
     DiagnosticSeverity,
     ExtractionSession,
     ParsedFragment,
-    SOURCE_CATALOG_VERSION,
     SourceAccessStats,
     SourceClassification,
     SourceDocument,
@@ -29,7 +26,8 @@ from p2p_engine.core.decision_context import (
     SourcePresence,
     SourceSpan,
 )
-
+from p2p_engine.foundation.yaml_loaders import DuplicateYamlKeyError, load_yaml
+from p2p_engine.services.workspace_reads import WorkspaceReadContext
 
 _PROPOSAL_ID_RE = re.compile(r"^(PROP-[0-9]+)(?:-|$)", re.IGNORECASE)
 _CHOICE_ID_RE = re.compile(r"^(CHOICE-[0-9]+)(?:-|$)", re.IGNORECASE)
@@ -695,6 +693,14 @@ def _choice_source_descriptors(choice_dir: Path, owner_id: str) -> tuple[SourceD
             choice_dir / "links.yml",
             owner_id,
             SourceKind.PROJECT_CHOICE_LINKS,
+            SourceClassification.CANONICAL_SEMANTIC,
+            False,
+            "yaml",
+        ),
+        SourceDescriptor(
+            choice_dir / "lifecycle.yml",
+            owner_id,
+            SourceKind.PROJECT_CHOICE_LIFECYCLE,
             SourceClassification.CANONICAL_SEMANTIC,
             False,
             "yaml",

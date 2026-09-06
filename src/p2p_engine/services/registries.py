@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-import hashlib
 from pathlib import Path
 
 from p2p_engine.core.mutation_preview import semantic_sha256, source_precondition
@@ -16,10 +16,12 @@ from p2p_engine.core.registries import (
 )
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
+)
+from p2p_engine.foundation.files import (
     yaml_dump as _yaml_dump,
 )
-from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 from p2p_engine.services.workspace_reads import WorkspaceReadContext
+from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 
 
 @dataclass(frozen=True)
@@ -83,6 +85,8 @@ _CHOICE_CONTENT_FILES = {
     "choice.md": ("choices",),
     "options.yml": ("choices",),
     "decision.md": ("choices",),
+    "links.yml": ("choices", "relations"),
+    "lifecycle.yml": ("choices", "relations"),
 }
 
 

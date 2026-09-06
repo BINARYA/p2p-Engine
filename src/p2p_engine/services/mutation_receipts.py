@@ -307,8 +307,11 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "project_structure_replacement",
         "project_structure_restore",
         "project_structure_retirement",
-        "project_structure_export",
-    }:
+            "project_structure_export",
+            "choice_decide",
+            "choice_withdraw",
+            "choice_supersede",
+        }:
         raise ValueError(f"unsupported receipt operation: {operation}")
     actor = _required_text(data, "actor")
     completion_status = _required_text(data, "completion_status")
@@ -340,8 +343,11 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "project_structure_restore",
         "project_structure_retirement",
         "project_structure_export",
-        "proposal_decision_apply",
-    } and authority is None:
+            "proposal_decision_apply",
+            "choice_decide",
+            "choice_withdraw",
+            "choice_supersede",
+        } and authority is None:
         raise ValueError(f"receipt operation {operation} requires authority evidence")
     raw_postconditions = data.get("postconditions")
     if not isinstance(raw_postconditions, list) or not raw_postconditions:
@@ -419,6 +425,9 @@ def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
         return
     if operation == "proposal_decision_apply":
         _validate_proposal_decision_result(result)
+        return
+    if operation in {"choice_decide", "choice_withdraw", "choice_supersede"}:
+        _validate_choice_transition_result(result, operation=operation)
         return
     allowed = {
         "impact_contract",
@@ -510,6 +519,59 @@ def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
     ]
     if normalized != sorted(set(normalized)):
         raise ValueError("receipt result changed_paths must be unique and sorted")
+
+
+def _validate_choice_transition_result(
+    result: Mapping[str, object], *, operation: str
+) -> None:
+    allowed = {
+        "contract",
+        "choice_id",
+        "transition",
+        "target_state",
+        "selected_option",
+        "replacement_choice_id",
+        "definition_digest",
+        "blockers_cleared",
+        "replay_request_sha256",
+        "changed_paths",
+    }
+    if set(result) != allowed:
+        raise ValueError("Choice transition receipt result has invalid fields")
+    if result.get("contract") != "p2p-choice-transition-result/v1":
+        raise ValueError("Choice transition receipt result has an unsupported contract")
+    choice_id = _required_text(result, "choice_id")
+    if not re.fullmatch(r"CHOICE-[0-9]{3,}", choice_id):
+        raise ValueError("Choice transition receipt has an invalid Choice ID")
+    transition = operation.removeprefix("choice_")
+    if result.get("transition") != transition:
+        raise ValueError("Choice transition receipt operation does not match its transition")
+    target = {"decide": "decided", "withdraw": "withdrawn", "supersede": "superseded"}[transition]
+    if result.get("target_state") != target:
+        raise ValueError("Choice transition receipt target state is invalid")
+    selected = result.get("selected_option")
+    replacement = result.get("replacement_choice_id")
+    if transition == "decide":
+        if not isinstance(selected, str) or not selected.strip() or replacement is not None:
+            raise ValueError("Choice decision receipt requires one selection and no replacement")
+    elif transition == "supersede":
+        if selected is not None or not isinstance(replacement, str) or not replacement.strip():
+            raise ValueError("Choice supersession receipt requires one replacement and no selection")
+    elif selected is not None or replacement is not None:
+        raise ValueError("Choice withdrawal receipt cannot select or replace")
+    digest = result.get("definition_digest")
+    if digest is not None:
+        if not isinstance(digest, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+            raise ValueError("Choice transition receipt definition digest is invalid")
+    cleared = result.get("blockers_cleared")
+    if isinstance(cleared, bool) or not isinstance(cleared, int) or cleared < 0:
+        raise ValueError("Choice transition receipt blocker count is invalid")
+    replay_digest = result.get("replay_request_sha256")
+    if not isinstance(replay_digest, str) or not _SHA256.fullmatch(replay_digest):
+        raise ValueError("Choice transition receipt replay request digest is invalid")
+    changed_paths = result.get("changed_paths")
+    if not isinstance(changed_paths, list) or changed_paths != sorted(set(changed_paths)):
+        raise ValueError("Choice transition receipt changed_paths must be unique and sorted")
 
 
 def _validate_init_result(result: Mapping[str, object]) -> None:

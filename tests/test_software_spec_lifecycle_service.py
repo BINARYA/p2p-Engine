@@ -92,7 +92,12 @@ def test_lifecycle_preflight_blocks_non_accepted_source_and_choice_blocker(tmp_p
     assert draft_source.blockers[0].code == "source_decision_inactive"
 
     _replace_change_source(tmp_path, {"accepted_proposals": ["PROP-001"]})
-    choice = workspace.create_choice("Architecture Choice", ["A", "B"])
+    choice = workspace.create_choice(
+        "Architecture Choice",
+        ["A", "B"],
+        problem="Choose the architecture.",
+        context="The implementation specification depends on this decision.",
+    )
     workspace.block_choice(choice.choice_id, "CHANGE-001", "change", "Architecture must be decided first.")
 
     blocked = workspace.software_spec_lifecycle("implementation_spec", change_id="CHANGE-001")

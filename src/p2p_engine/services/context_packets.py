@@ -1,24 +1,24 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
 import inspect
 import json
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol, TypeVar
 
+from p2p_engine.core.choices import is_active_choice_state
 from p2p_engine.core.decision_context import (
     ContextBudget,
     DecisionContextIndex,
     DecisionContextPacket,
     RetrievalRequest,
 )
+from p2p_engine.core.vertical_memory import VerticalProjectMemoryView
 from p2p_engine.services.changes import CHANGE_TERMINAL_STATUSES
 from p2p_engine.services.decision_context_retrieval import DecisionContextRetrievalService
 from p2p_engine.services.lifecycle_authority import is_active_project_projection
-from p2p_engine.core.vertical_memory import VerticalProjectMemoryView
 from p2p_engine.services.workspace_reads import WorkspaceReadContext
-
 
 _T = TypeVar("_T")
 
@@ -498,7 +498,7 @@ class ContextPacketService:
                 [
                     choice
                     for choice in choices
-                    if choice.status in {"open", "draft", "pending"} and not choice.selected_option
+                    if is_active_choice_state(choice.status) and not choice.selected_option
                 ]
             ),
             "changes": len(changes),

@@ -20,8 +20,12 @@ def test_public_surface_inventory_derives_registered_cli_and_mcp_surfaces() -> N
     snapshot = public_surface_snapshot()
 
     assert snapshot.contract_version == PUBLIC_SURFACE_CONTRACT_VERSION
-    assert len(snapshot.cli_paths) == 343
-    assert len(snapshot.mcp_tools) == 186
+    assert len(snapshot.cli_paths) == 347
+    assert len(snapshot.mcp_tools) == 188
+    assert "p2p choice transition-preview" in snapshot.cli_paths
+    assert "p2p choice transition-apply" in snapshot.cli_paths
+    assert "p2p_choice_transition_preview" in snapshot.mcp_tools
+    assert "p2p_choice_transition_apply" in snapshot.mcp_tools
     assert "p2p auth login" in snapshot.cli_paths
     assert "p2p project transfer apply" in snapshot.cli_paths
     assert "p2p project transfer recover" in snapshot.cli_paths

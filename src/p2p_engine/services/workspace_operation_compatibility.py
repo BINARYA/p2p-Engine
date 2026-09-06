@@ -119,6 +119,8 @@ _CURRENT_SCHEMA_OPERATIONS = frozenset(
         "choice_block",
         "choice_create",
         "choice_decide",
+        "choice_withdraw",
+        "choice_supersede",
         "choice_unblock",
         "conflict_record",
         "conflict_update",

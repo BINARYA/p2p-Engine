@@ -136,6 +136,15 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
         command.startswith("p2p project structure add-section")
         for command in worker_contract["write_commands"]
     )
+    assert "p2p choice list --format json" in worker_contract["read_commands"]
+    assert any(
+        command.startswith("p2p choice transition-preview")
+        for command in worker_contract["write_commands"]
+    )
+    assert any(
+        command.startswith("p2p choice transition-apply")
+        for command in worker_contract["write_commands"]
+    )
     assert policy["proposal_readiness"]["freshness_states"] == [
         "not_assessed",
         "current",
@@ -385,6 +394,9 @@ def test_agent_instruction_service_generates_persistence_boundary_for_supported_
         assert "Unknown durable destinations require preview and owner confirmation" in content
         assert "P2P Engine does not create branches, commits, tags, pull requests" in content
         assert "do not prove implementation" in content
+        assert "Choice definitions are immutable after creation" in content
+        assert "decided, withdrawn, or superseded" in content
+        assert "create a new Choice" in content
 
     registry = yaml.safe_load((tmp_path / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
     assert registry["adapters"]["opencode"]["files"][0]["path"] == "AGENTS.md"

@@ -442,7 +442,8 @@ Memory Classification
   Revision-bound organization status kept separate from project readiness.
 
 Choice
-  Explicit set of alternatives that needs a decision.
+  Immutable decision frame with one open state and one optional terminal event:
+  decided, withdrawn, or superseded by a new Choice.
 
 Change Set
   Operational package derived from accepted project intent.

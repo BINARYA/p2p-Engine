@@ -16,7 +16,13 @@ def _workspace_with_context_items(root: Path) -> P2PWorkspace:
         problem="This problem should appear in medium context.",
         proposal="This proposal should appear in medium context.",
     )
-    workspace._choice_lifecycle_service().create("Context Choice", ["A", "B"], related=[proposal.proposal_id])
+    workspace._choice_lifecycle_service().create(
+        "Context Choice",
+        ["A", "B"],
+        related=[proposal.proposal_id],
+        problem="Choose the context direction.",
+        context="Context packet tests require a complete Choice frame.",
+    )
     record_decision(workspace, proposal.proposal_id, DecisionOutcome.accepted, "Ready.", "owner")
     change = workspace.create_change_set(proposal.proposal_id)
     workspace.refresh_software_spec(change.change_id)

@@ -121,6 +121,8 @@ def test_next_action_service_prioritizes_active_choice_blockers(tmp_path: Path) 
         "Governance Scope",
         ["Minimal governance", "Full governance"],
         related=["PROP-001"],
+        problem="Choose the governance scope.",
+        context="The accepted change is waiting for this project-level decision.",
     )
     workspace.block_choice(
         "CHOICE-001",
@@ -189,7 +191,12 @@ def test_next_actions_use_concrete_project_question_and_apply_operations(tmp_pat
 
 def test_next_actions_resolve_only_open_normalized_project_choices(tmp_path: Path) -> None:
     workspace = _workspace(tmp_path)
-    choice = workspace.create_choice("Project Choice", ["A", "B"])
+    choice = workspace.create_choice(
+        "Project Choice",
+        ["A", "B"],
+        problem="Choose the project direction.",
+        context="Next actions must surface this open decision.",
+    )
 
     open_actions = workspace._next_action_service().list()
     workspace.decide_choice(choice.choice_id, "A", "A is selected.", "owner")
@@ -207,7 +214,12 @@ def test_next_actions_resolve_only_open_normalized_project_choices(tmp_path: Pat
 
 def test_decided_choice_with_missing_target_has_no_active_edge_or_action(tmp_path: Path) -> None:
     workspace = _workspace(tmp_path)
-    choice = workspace.create_choice("Missing Target Choice", ["A", "B"])
+    choice = workspace.create_choice(
+        "Missing Target Choice",
+        ["A", "B"],
+        problem="Choose despite a later missing relation target.",
+        context="The decision-context test needs a complete Choice.",
+    )
     workspace.decide_choice(choice.choice_id, "A", "A is selected.", "owner")
     choice_dir = tmp_path / choice.path
     (choice_dir / "links.yml").write_text(

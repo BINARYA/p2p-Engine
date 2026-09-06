@@ -162,6 +162,18 @@ Hosted web app first
 Choices are better than burying tradeoffs in prose when the project needs a
 clear selected option and rationale.
 
+The definition of a Choice—ID, title, Problem, Context, Governance Boundary and
+ordered option IDs/titles—is sealed at creation. Its only lifecycle is:
+
+```text
+open -> decided | withdrawn | superseded
+```
+
+Every target state is terminal. New evidence does not justify editing the old
+Choice: manage the related proposal as appropriate, create a new complete
+Choice, and use `superseded` lineage when the replacement should be explicit.
+Only a coherent `decided` terminal event creates decision authority.
+
 ## Change Set
 
 A Change Set turns accepted intent into operational work metadata. It connects

@@ -1,28 +1,32 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
-from dataclasses import replace
 import base64
 import hashlib
 import json
-from pathlib import Path
 import re
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import replace
+from pathlib import Path
 
-from p2p_engine.core.mutation_preview import MutationPreviewService, semantic_sha256, source_precondition
+from p2p_engine.core.mutation_preview import (
+    MutationPreviewService,
+    semantic_sha256,
+    source_precondition,
+)
 from p2p_engine.core.project_questions import ProjectQuestionArtifact
 from p2p_engine.core.proposal_decision_events import ProposalDecisionLifecycleView
 from p2p_engine.core.vertical_memory import (
-    VERTICAL_MEMORY_GENERATOR_CONTRACT,
     VERTICAL_MEMORY_CURSOR_POLICY_VERSION,
+    VERTICAL_MEMORY_GENERATOR_CONTRACT,
     VERTICAL_MEMORY_IDENTITY_POLICY,
     VERTICAL_MEMORY_MANIFEST_VERSION,
     VERTICAL_MEMORY_PROJECT_VERSION,
     VERTICAL_MEMORY_ROOT,
     VERTICAL_MEMORY_SECTION_VERSION,
     VERTICAL_MEMORY_SOURCE_POLICY,
-    VerticalMemoryCandidate,
-    VerticalMemoryAggregate,
     DerivedUpdateResult,
+    VerticalMemoryAggregate,
+    VerticalMemoryCandidate,
     VerticalMemoryContribution,
     VerticalMemoryEvidence,
     VerticalMemoryImpact,
@@ -36,13 +40,12 @@ from p2p_engine.core.vertical_memory import (
     validate_vertical_memory_view,
     vertical_memory_section_path,
 )
-from p2p_engine.foundation.files import read_yaml_mapping, yaml_dump
+from p2p_engine.foundation.files import yaml_dump
 from p2p_engine.foundation.markdown import read_frontmatter, read_markdown_section, read_title
 from p2p_engine.foundation.yaml_loaders import load_yaml_mapping
 from p2p_engine.services.project_verticals import _section_fields
 from p2p_engine.services.workspace_reads import WorkspaceReadContext
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
-
 
 _FRAGMENT_LIMIT = 4000
 _MANIFEST_PATH = f"{VERTICAL_MEMORY_ROOT}/manifest.yml"
@@ -990,6 +993,7 @@ class VerticalProjectMemoryBuilder:
             choice_path = choice_dir / "choice.md"
             links_path = choice_dir / "links.yml"
             decision_path = choice_dir / "decision.md"
+            lifecycle_path = choice_dir / "lifecycle.yml"
             choice_text = context.documents.text(choice_path) if choice_path.is_file() else ""
             frontmatter = read_frontmatter(choice_text)
             links = (
@@ -1013,6 +1017,21 @@ class VerticalProjectMemoryBuilder:
                 context.documents.text(decision_path) if decision_path.is_file() else ""
             )
             selected = read_markdown_section(decision_text, "Selected Option")
+            if selected in {None, "Pending.", "No option selected."}:
+                selected = None
+            lifecycle_payload = (
+                context.documents.yaml(lifecycle_path, loader_contract="unique-v1")
+                if lifecycle_path.is_file()
+                else {}
+            )
+            lifecycle = (
+                lifecycle_payload.get("choice_lifecycle", {})
+                if isinstance(lifecycle_payload, Mapping)
+                else {}
+            )
+            lifecycle = lifecycle if isinstance(lifecycle, Mapping) else {}
+            terminal_event = lifecycle.get("terminal_event")
+            terminal_event = terminal_event if isinstance(terminal_event, Mapping) else {}
             choice_id = str(
                 frontmatter.get("choice_id") or "-".join(choice_dir.name.split("-", 2)[:2])
             )
@@ -1020,8 +1039,9 @@ class VerticalProjectMemoryBuilder:
                 "kind": "choice",
                 "id": choice_id,
                 "title": str(frontmatter.get("title") or read_title(choice_text) or choice_id),
-                "status": "decided" if selected else str(frontmatter.get("status") or "open"),
+                "status": str(lifecycle.get("state") or frontmatter.get("status") or "open"),
                 "selected_option": selected,
+                "replacement_choice_id": terminal_event.get("replacement_choice_id"),
                 "proposals": list(related),
                 "source_path": choice_path.relative_to(self.root).as_posix(),
             }
@@ -1707,7 +1727,13 @@ class VerticalProjectMemoryService:
 
 def _is_vertical_memory_source(path: Path, domain: str) -> bool:
     if domain == "choices":
-        return path.name in {"choice.md", "options.yml", "decision.md", "links.yml"}
+        return path.name in {
+            "choice.md",
+            "options.yml",
+            "decision.md",
+            "links.yml",
+            "lifecycle.yml",
+        }
     return path.name in {
         "proposal.md",
         "decision.md",

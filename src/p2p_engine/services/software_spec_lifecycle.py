@@ -4,6 +4,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from p2p_engine.core.choices import is_terminal_choice_state
 from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionAuthorityResolution,
     ProposalDecisionBindingStatus,
@@ -16,7 +17,6 @@ from p2p_engine.core.software_spec_lifecycle import (
     SpecLifecycleView,
 )
 from p2p_engine.foundation.markdown import read_frontmatter
-
 
 ROUTES: dict[str, SpecLifecycleRoute] = {
     "chat_exploration": SpecLifecycleRoute(
@@ -332,7 +332,7 @@ class SoftwareSpecLifecycleService:
     def _choice_blockers(self, change_id: str) -> list[SpecLifecycleDiagnostic]:
         blockers: list[SpecLifecycleDiagnostic] = []
         for choice in self.choice_statuses():
-            if getattr(choice, "status", "") == "decided":
+            if is_terminal_choice_state(getattr(choice, "status", "")):
                 continue
             detail = self.show_choice(getattr(choice, "choice_id"))
             for block in getattr(detail, "blocks", []):

@@ -14,6 +14,20 @@ def _workspace(root: Path) -> P2PWorkspace:
     return workspace
 
 
+def _create_choice(
+    workspace: P2PWorkspace,
+    *,
+    related: list[str] | None = None,
+) -> None:
+    workspace.create_choice(
+        "Deployment Strategy",
+        ["Blue", "Green"],
+        related=related,
+        problem="Choose the deployment strategy.",
+        context="Deployment needs one stable governed direction.",
+    )
+
+
 def _write_yaml(path: Path, data: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
@@ -42,7 +56,7 @@ def _jsonable(value: object) -> object:
 
 def test_choice_governance_preflight_returns_versioned_contract_without_writes(tmp_path: Path) -> None:
     workspace = _workspace(tmp_path)
-    workspace.create_choice("Deployment Strategy", ["Blue", "Green"])
+    _create_choice(workspace)
     before = _snapshot_files(tmp_path)
 
     result = workspace.choice_governance_preflight("CHOICE-001", option="A", actor="owner")
@@ -70,7 +84,7 @@ def test_choice_governance_preflight_returns_versioned_contract_without_writes(t
 def test_choice_governance_preflight_warns_on_advisory_vote_conflict(tmp_path: Path) -> None:
     workspace = _workspace(tmp_path)
     proposal = workspace.create_proposal("Vote Target")
-    workspace.create_choice("Deployment Strategy", ["Blue", "Green"], related=[proposal.proposal_id])
+    _create_choice(workspace, related=[proposal.proposal_id])
     workspace.record_vote(proposal.proposal_id, choice="A", reason="Prefer blue", voter="owner", role="owner")
 
     result = workspace.choice_governance_preflight("CHOICE-001", option="B", actor="owner")
@@ -83,7 +97,7 @@ def test_choice_governance_preflight_warns_on_advisory_vote_conflict(tmp_path: P
 
 def test_choice_governance_preflight_blocks_non_owner_actor(tmp_path: Path) -> None:
     workspace = _workspace(tmp_path)
-    workspace.create_choice("Deployment Strategy", ["Blue", "Green"])
+    _create_choice(workspace)
 
     result = workspace.choice_governance_preflight("CHOICE-001", option="A", actor="contributor")
 
@@ -95,7 +109,7 @@ def test_choice_governance_preflight_blocks_non_owner_actor(tmp_path: Path) -> N
 def test_choice_governance_preflight_reports_active_blocker_as_override_required(tmp_path: Path) -> None:
     workspace = _workspace(tmp_path)
     proposal = workspace.create_proposal("Blocked Target")
-    workspace.create_choice("Deployment Strategy", ["Blue", "Green"], related=[proposal.proposal_id])
+    _create_choice(workspace, related=[proposal.proposal_id])
     workspace.block_choice("CHOICE-001", target=proposal.proposal_id, target_type="proposal", reason="Resolve first.")
 
     result = workspace.choice_governance_preflight("CHOICE-001", option="A", actor="owner")
@@ -146,7 +160,7 @@ def test_precedent_search_matches_only_explicit_fields(tmp_path: Path) -> None:
 def test_choice_governance_preflight_warns_when_related_precedents_are_found(tmp_path: Path) -> None:
     workspace = _workspace(tmp_path)
     proposal = workspace.create_proposal("Precedent Target")
-    workspace.create_choice("Deployment Strategy", ["Blue", "Green"], related=[proposal.proposal_id])
+    _create_choice(workspace, related=[proposal.proposal_id])
     _write_yaml(
         tmp_path / ".p2p" / "governance" / "decision-precedents.yml",
         {"precedents": [{"id": "DP001", "related_choices": ["CHOICE-001"]}]},
@@ -161,7 +175,7 @@ def test_choice_governance_preflight_warns_when_related_precedents_are_found(tmp
 
 def test_choice_governance_preflight_reports_malformed_precedents_without_crashing(tmp_path: Path) -> None:
     workspace = _workspace(tmp_path)
-    workspace.create_choice("Deployment Strategy", ["Blue", "Green"])
+    _create_choice(workspace)
     _write_yaml(tmp_path / ".p2p" / "governance" / "decision-precedents.yml", {"precedents": {}})
 
     result = workspace.choice_governance_preflight("CHOICE-001", option="A", actor="owner")
@@ -175,7 +189,7 @@ def test_choice_governance_preflight_reports_malformed_present_governance_withou
     tmp_path: Path,
 ) -> None:
     workspace = _workspace(tmp_path)
-    workspace.create_choice("Deployment Strategy", ["Blue", "Green"])
+    _create_choice(workspace)
     _write_yaml(tmp_path / ".p2p" / "governance" / "governance.yml", {"governance": []})
 
     result = workspace.choice_governance_preflight("CHOICE-001", option="A", actor="owner")
@@ -204,7 +218,7 @@ def test_governance_only_validation_reports_invalid_artifacts(tmp_path: Path) ->
 
 def test_choice_governance_preflight_uses_permissions_as_sole_actor_authority(tmp_path: Path) -> None:
     workspace = _workspace(tmp_path)
-    workspace.create_choice("Deployment Strategy", ["Blue", "Green"])
+    _create_choice(workspace)
     _write_yaml(
         tmp_path / ".p2p" / "governance" / "roles.yml",
         {"roles": [{"id": "owner", "role": "contributor"}]},
@@ -219,7 +233,7 @@ def test_choice_governance_preflight_uses_permissions_as_sole_actor_authority(tm
 
 def test_choice_governance_preflight_does_not_consult_governance_roles(tmp_path: Path) -> None:
     workspace = _workspace(tmp_path)
-    workspace.create_choice("Deployment Strategy", ["Blue", "Green"])
+    _create_choice(workspace)
     _write_yaml(
         tmp_path / ".p2p" / "governance" / "roles.yml",
         {"roles": [{"description": "missing id"}]},
@@ -235,7 +249,7 @@ def test_choice_governance_preflight_rejects_missing_permissions_without_role_fa
     tmp_path: Path,
 ) -> None:
     workspace = _workspace(tmp_path)
-    workspace.create_choice("Deployment Strategy", ["Blue", "Green"])
+    _create_choice(workspace)
     (tmp_path / ".p2p" / "project" / "permissions.yml").unlink()
     _write_yaml(
         tmp_path / ".p2p" / "governance" / "roles.yml",

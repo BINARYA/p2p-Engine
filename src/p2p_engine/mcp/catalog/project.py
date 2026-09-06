@@ -690,6 +690,53 @@ def tool_definitions() -> list[dict[str, object]]:
             ['choice_id', 'option', 'actor'],
         ),
         _tool(
+            'p2p_choice_transition_preview',
+            (
+                'Read-only governed preview for the one terminal Choice transition: '
+                'decide, withdraw, or supersede. It never changes project state.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'choice_id': {'type': 'string'},
+                'transition': {'type': 'string', 'enum': ['decide', 'withdraw', 'supersede']},
+                'reason': {'type': 'string'},
+                'option': {'type': ['string', 'null']},
+                'replacement_choice_id': {'type': ['string', 'null']},
+                'actor_id': {'type': 'string'},
+                'executor_id': {'type': 'string'},
+                'executor_kind': {'type': 'string', 'enum': ['person', 'user', 'agent', 'mcp_client', 'client']},
+                'operation_key': {'type': 'string'},
+                'effective_on': {'type': ['string', 'null']},
+                'blocker_override': {'type': 'boolean'},
+            },
+            ['choice_id', 'transition', 'reason', 'actor_id', 'operation_key'],
+        ),
+        _tool(
+            'p2p_choice_transition_apply',
+            (
+                'Consent-gated receipt-backed terminal Choice apply. It preserves the '
+                'immutable definition and can commit only the exact reviewed preview.'
+            ),
+            {
+                'root': {'type': 'string'},
+                'choice_id': {'type': 'string'},
+                'transition': {'type': 'string', 'enum': ['decide', 'withdraw', 'supersede']},
+                'reason': {'type': 'string'},
+                'option': {'type': ['string', 'null']},
+                'replacement_choice_id': {'type': ['string', 'null']},
+                'actor_id': {'type': 'string'},
+                'executor_id': {'type': 'string'},
+                'executor_kind': {'type': 'string', 'enum': ['person', 'user', 'agent', 'mcp_client', 'client']},
+                'operation_key': {'type': 'string'},
+                'effective_on': {'type': ['string', 'null']},
+                'blocker_override': {'type': 'boolean'},
+                'preview_token': {'type': 'string'},
+                'confirm': {'type': 'boolean'},
+                'consent_id': {'type': 'string'},
+            },
+            ['choice_id', 'transition', 'reason', 'actor_id', 'operation_key', 'preview_token', 'confirm', 'consent_id'],
+        ),
+        _tool(
             'p2p_vote_status',
             'Read proposal-local governance vote counts without recording votes.',
             {'root': {'type': 'string'}, 'proposal_id': {'type': 'string'}},

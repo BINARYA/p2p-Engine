@@ -337,6 +337,43 @@ class ProjectApplicationService:
         self._refresh_storage_binding()
         return result
 
+    def choice_statuses(self):
+        target = self.adapter.compatibility_target()
+        return getattr(target, "_choice_lifecycle_service")().statuses()
+
+    def show_choice(self, choice_id: str):
+        target = self.adapter.compatibility_target()
+        return getattr(target, "_choice_lifecycle_service")().show(choice_id)
+
+    def discover_choices(self):
+        target = self.adapter.compatibility_target()
+        return getattr(target, "_choice_lifecycle_service")().discover()
+
+    def preview_choice_transition(self, choice_id: str, **request: object):
+        target = self.adapter.compatibility_target()
+        return getattr(target, "_choice_lifecycle_service")().transition_preview(
+            choice_id, **request
+        )
+
+    def apply_choice_transition(
+        self,
+        choice_id: str,
+        *,
+        preview_token: str,
+        confirm: bool,
+        **request: object,
+    ):
+        target = self.adapter.compatibility_target()
+        getattr(target, "_ensure_runtime_write_allowed")(
+            f"choice_{request.get('transition', 'transition')}"
+        )
+        return getattr(target, "_choice_lifecycle_service")().transition_apply(
+            choice_id,
+            preview_token=preview_token,
+            confirm=confirm,
+            **request,
+        )
+
     def apply_project_identity_adoption(self, *args: Any, **kwargs: Any):
         result = getattr(
             self.adapter.compatibility_target(), "apply_project_identity_adoption"

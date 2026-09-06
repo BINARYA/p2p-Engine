@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 import sys
@@ -8,14 +9,13 @@ from pathlib import Path
 import yaml
 from typer.testing import CliRunner
 
-from p2p_engine import __version__ as P2P_ENGINE_VERSION
 from p2p_engine.cli import app
 from p2p_engine.foundation.markdown import read_frontmatter, replace_frontmatter
 from p2p_engine.storage.filesystem import P2PWorkspace
 from tests.cli_assertions import cli_data
 from tests.filesystem_assertions import assert_no_workspace_mutation
-from tests.publication_fixtures import write_publication_candidates
 from tests.proposal_decision_fixtures import ensure_global_scope
+from tests.publication_fixtures import write_publication_candidates
 
 runner = CliRunner()
 
@@ -825,6 +825,10 @@ def test_cli_governance_policy_read_only_surfaces(tmp_path: Path) -> None:
             "create",
             "--title",
             "Deployment Strategy",
+            "--problem",
+            "Choose the deployment strategy.",
+            "--context",
+            "The project needs one stable governed deployment direction.",
             "--option",
             "Blue",
             "--option",
@@ -2113,6 +2117,10 @@ def test_cli_proposal_list_show_and_choice_registry_output(tmp_path: Path) -> No
             "create",
             "--title",
             "Inspection Strategy",
+            "--problem",
+            "Choose the inspection strategy.",
+            "--context",
+            "The CLI inspection test needs a complete Choice.",
             "--option",
             "A",
             "--option",
@@ -2121,7 +2129,7 @@ def test_cli_proposal_list_show_and_choice_registry_output(tmp_path: Path) -> No
             str(tmp_path),
         ],
     )
-    runner.invoke(
+    preview = runner.invoke(
         app,
         [
             "choice",
@@ -2131,10 +2139,35 @@ def test_cli_proposal_list_show_and_choice_registry_output(tmp_path: Path) -> No
             "A",
             "--reason",
             "Pick A.",
+            "--operation-key",
+            "cli-inspection-choice-001",
             "--root",
             str(tmp_path),
         ],
     )
+    token = re.search(r"preview token:\s*((?:[0-9a-f]\s*){64})", preview.output)
+    assert token is not None
+    preview_token = "".join(token.group(1).split())
+    applied = runner.invoke(
+        app,
+        [
+            "choice",
+            "decide",
+            "CHOICE-001",
+            "--option",
+            "A",
+            "--reason",
+            "Pick A.",
+            "--operation-key",
+            "cli-inspection-choice-001",
+            "--preview-token",
+            preview_token,
+            "--confirm",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert applied.exit_code == 0
     runner.invoke(app, ["registry", "refresh", "--root", str(tmp_path)])
     result = runner.invoke(app, ["registry", "show", "choices", "--root", str(tmp_path)])
     assert result.exit_code == 0
@@ -3020,6 +3053,10 @@ def test_cli_choice_create_list_and_decide(tmp_path: Path) -> None:
             "create",
             "--title",
             "Initial AI Strategy",
+            "--problem",
+            "Choose the initial AI integration strategy.",
+            "--context",
+            "The project needs a stable initial implementation direction.",
             "--option",
             "Prompt-only first",
             "--option",
@@ -3058,13 +3095,40 @@ def test_cli_choice_create_list_and_decide(tmp_path: Path) -> None:
             "Keep MVP stable while planning adapters.",
             "--decider",
             "owner",
+            "--operation-key",
+            "cli-choice-decision-001",
             "--root",
             str(tmp_path),
         ],
     )
     assert result.exit_code == 0
-    assert "Choice decided" in result.output
-    assert "selected: C - Prompt-only first, AI adapter later" in result.output
+    assert "Choice transition preview" in result.output
+    token = re.search(r"preview token:\s*((?:[0-9a-f]\s*){64})", result.output)
+    assert token is not None
+    preview_token = "".join(token.group(1).split())
+    result = runner.invoke(
+        app,
+        [
+            "choice",
+            "decide",
+            "CHOICE-001",
+            "--option",
+            "C",
+            "--reason",
+            "Keep MVP stable while planning adapters.",
+            "--decider",
+            "owner",
+            "--operation-key",
+            "cli-choice-decision-001",
+            "--preview-token",
+            preview_token,
+            "--confirm",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Choice transition applied" in result.output
 
     result = runner.invoke(app, ["choice", "list", "--root", str(tmp_path)])
     assert result.exit_code == 0
@@ -3081,6 +3145,102 @@ def test_cli_choice_create_list_and_decide(tmp_path: Path) -> None:
     assert "CHOICE-001" in result.output
 
 
+def test_cli_choice_withdraw_and_supersede_use_the_same_preview_apply_contract(
+    tmp_path: Path,
+) -> None:
+    runner.invoke(app, ["init", "Demo Project", "--root", str(tmp_path)])
+    for title in ("Withdrawn frame", "Historical frame", "Replacement frame"):
+        created = runner.invoke(
+            app,
+            [
+                "choice",
+                "create",
+                "--title",
+                title,
+                "--problem",
+                f"Choose a direction for {title}.",
+                "--context",
+                "The project needs a complete immutable decision frame.",
+                "--option",
+                "Continue",
+                "--option",
+                "Stop",
+                "--root",
+                str(tmp_path),
+            ],
+        )
+        assert created.exit_code == 0, created.output
+
+    cases = (
+        (
+            ["withdraw", "CHOICE-001"],
+            ["--reason", "The frame is obsolete."],
+            "cli-choice-withdraw-001",
+            "withdrawn",
+        ),
+        (
+            ["supersede", "CHOICE-002"],
+            [
+                "--replacement",
+                "CHOICE-003",
+                "--reason",
+                "A new frame captures the revised question.",
+            ],
+            "cli-choice-supersede-002",
+            "superseded",
+        ),
+    )
+    for command, arguments, operation_key, expected_state in cases:
+        base = ["choice", *command, *arguments, "--operation-key", operation_key]
+        preview = runner.invoke(app, [*base, "--root", str(tmp_path)])
+        assert preview.exit_code == 0, preview.output
+        match = re.search(r"preview token:\s*((?:[0-9a-f]\s*){64})", preview.output)
+        assert match is not None
+        token = "".join(match.group(1).split())
+
+        applied = runner.invoke(
+            app,
+            [
+                *base,
+                "--preview-token",
+                token,
+                "--confirm",
+                "--root",
+                str(tmp_path),
+            ],
+        )
+        assert applied.exit_code == 0, applied.output
+        shown = runner.invoke(
+            app,
+            ["choice", "show", command[1], "--root", str(tmp_path)],
+        )
+        assert f"status: {expected_state}" in shown.output
+
+    structured = runner.invoke(
+        app,
+        [
+            "choice",
+            "transition-preview",
+            "CHOICE-003",
+            "--transition",
+            "decide",
+            "--option",
+            "A",
+            "--reason",
+            "Select the replacement direction.",
+            "--operation-key",
+            "cli-choice-json-preview",
+            "--format",
+            "json",
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert structured.exit_code == 0, structured.output
+    assert cli_data(structured)["contract"] == "p2p-choice-transition-preview/v1"
+    assert "candidates" not in cli_data(structured)
+
+
 def test_cli_choice_discovery_blocking_and_next_integration(tmp_path: Path) -> None:
     runner.invoke(app, ["init", "Demo Project", "--domain", "software", "--root", str(tmp_path)])
     runner.invoke(app, ["proposal", "create", "Governance Model", "--root", str(tmp_path)])
@@ -3095,6 +3255,10 @@ def test_cli_choice_discovery_blocking_and_next_integration(tmp_path: Path) -> N
             "create",
             "--title",
             "Governance Scope",
+            "--problem",
+            "Choose the governance scope.",
+            "--context",
+            "The accepted change requires a project-level governance decision.",
             "--option",
             "Minimal governance",
             "--option",

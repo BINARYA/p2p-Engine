@@ -12,7 +12,6 @@ from p2p_engine.core.decision_context import (
     Activation,
     Authority,
     Canonicality,
-    Completeness,
     Confidence,
     DecisionContextDiagnostic,
     DecisionContextEvidence,
@@ -30,7 +29,6 @@ from p2p_engine.core.decision_context import (
 )
 from p2p_engine.services.decision_context_authority import AuthorityPolicy, SourceMetadataResolver
 from p2p_engine.services.decision_context_sources import fragments_for_label
-
 
 _RELATION_TYPES: Mapping[str, RelationType] = {
     item.value: item for item in RelationType
@@ -336,6 +334,29 @@ class DecisionContextTopologyService:
                             activation=Activation.ACTIVE,
                         )
                     )
+            elif document.source_kind == SourceKind.PROJECT_CHOICE_LIFECYCLE:
+                lifecycle = document.frontmatter.get("choice_lifecycle")
+                if not isinstance(lifecycle, Mapping):
+                    continue
+                state = str(lifecycle.get("state") or "").strip().casefold()
+                if state not in {"open", "decided", "withdrawn", "superseded"}:
+                    continue
+                item_evidence = source_evidence(document, "yaml:/choice_lifecycle/state")
+                records.append(
+                    _record(
+                        document,
+                        "yaml:/choice_lifecycle/state",
+                        RecordKind.DECISION_STATE,
+                        NodeType.CHOICE,
+                        document.owner_id,
+                        state,
+                        item_evidence,
+                        authority=Authority.SYSTEM_STATE,
+                        activation=(
+                            Activation.ACTIVE if state == "open" else Activation.HISTORICAL
+                        ),
+                    )
+                )
 
     @staticmethod
     def _extract_quality_and_execution_records(
@@ -671,7 +692,36 @@ class DecisionContextTopologyService:
         source_evidence: object,
     ) -> None:
         for document in documents:
-            if document.source_kind not in {SourceKind.PROJECT_CHOICE, SourceKind.PROJECT_CHOICE_LINKS}:
+            if document.source_kind not in {
+                SourceKind.PROJECT_CHOICE,
+                SourceKind.PROJECT_CHOICE_LINKS,
+                SourceKind.PROJECT_CHOICE_LIFECYCLE,
+            }:
+                continue
+            if document.source_kind == SourceKind.PROJECT_CHOICE_LIFECYCLE:
+                lifecycle = document.frontmatter.get("choice_lifecycle")
+                event = lifecycle.get("terminal_event") if isinstance(lifecycle, Mapping) else None
+                replacement = (
+                    str(event.get("replacement_choice_id") or "").strip()
+                    if isinstance(event, Mapping)
+                    else ""
+                )
+                if replacement:
+                    _append_relation(
+                        assertions,
+                        diagnostics,
+                        source_id=replacement,
+                        source_type=NodeType.CHOICE,
+                        target_id=document.owner_id,
+                        target_type=NodeType.CHOICE,
+                        relation_type=RelationType.SUPERSEDES,
+                        scope="choice_replacement",
+                        item_evidence=source_evidence(
+                            document,
+                            "yaml:/choice_lifecycle/terminal_event/replacement_choice_id",
+                        ),
+                        known_nodes=known_nodes,
+                    )
                 continue
             if document.source_kind == SourceKind.PROJECT_CHOICE:
                 related = document.frontmatter.get("related")

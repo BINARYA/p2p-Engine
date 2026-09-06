@@ -275,12 +275,31 @@ class RegistryRecordBuilderService:
             options = options_data.get("options", [])
             decision_text = _read_optional(path / "decision.md")
             selected = read_markdown_section(decision_text, "Selected Option")
-            selected_option = None if selected in {None, "Pending."} else selected
+            selected_option = None if selected in {None, "Pending.", "No option selected."} else selected
+            lifecycle = _read_yaml_mapping(path / "lifecycle.yml", default={}).get(
+                "choice_lifecycle", {}
+            )
+            lifecycle = lifecycle if isinstance(lifecycle, dict) else {}
+            terminal_event = lifecycle.get("terminal_event")
+            terminal_event = terminal_event if isinstance(terminal_event, dict) else {}
+            normalized_status = str(
+                lifecycle.get("state") or frontmatter.get("status") or "unknown"
+            )
             records.append(
                 {
                     "id": str(frontmatter.get("choice_id") or "-".join(path.name.split("-", 2)[:2])),
                     "title": str(frontmatter.get("title") or read_title(choice_text) or path.name),
-                    "status": str(frontmatter.get("status") or "unknown"),
+                    "status": normalized_status,
+                    "terminal": normalized_status in {"decided", "withdrawn", "superseded"},
+                    "seal_status": (
+                        "sealed"
+                        if lifecycle.get("definition_completeness") == "complete"
+                        and lifecycle.get("definition_digest")
+                        else "incomplete_unsealed"
+                        if lifecycle.get("definition_completeness") == "incomplete"
+                        else "legacy_unsealed"
+                    ),
+                    "definition_digest": lifecycle.get("definition_digest"),
                     "options": [
                         option.get("id")
                         for option in options
@@ -289,9 +308,21 @@ class RegistryRecordBuilderService:
                     if isinstance(options, list)
                     else [],
                     "selected_option": selected_option,
+                    "replacement_choice_id": terminal_event.get("replacement_choice_id"),
+                    "supersedes": [],
                     "path": str(path.relative_to(self.root)),
                 }
             )
+
+        by_id = {str(item.get("id") or ""): item for item in records}
+        for item in records:
+            replacement = str(item.get("replacement_choice_id") or "")
+            target = by_id.get(replacement)
+            if target is not None:
+                inverse = target.get("supersedes")
+                if isinstance(inverse, list):
+                    inverse.append(str(item.get("id") or ""))
+                    inverse.sort()
 
         proposals_dir = self.p2p_dir / "proposals"
         for path in sorted(proposals_dir.iterdir()) if proposals_dir.exists() else []:

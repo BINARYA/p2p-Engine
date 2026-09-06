@@ -1405,20 +1405,47 @@ Use choices when the project needs an explicit selection between alternatives.
 ```bash
 p2p choice create \
   --title "MCP write boundary" \
+  --problem "Choose which MCP write boundary the project will support." \
+  --context "The alternatives have been explored and now require a stable frame." \
   --option "Read-only tools only" \
   --option "Write-safe draft tools" \
   --option "Full governance tools"
 ```
 
-Inspect and decide:
+The definition is immutable after creation. Inspect it, then preview a terminal
+decision using a stable operation key:
 
 ```bash
 p2p choice list
 p2p choice show CHOICE-001
 p2p choice decide CHOICE-001 \
   --option "Write-safe draft tools" \
-  --reason "Draft mutations are useful, while owner decisions remain outside MCP."
+  --reason "Draft mutations are useful, while owner decisions remain outside MCP." \
+  --operation-key local-choice-001
 ```
+
+The preview prints a token. Apply the exact reviewed request by repeating it
+with `--preview-token <token> --confirm`. The same two-phase contract is
+available explicitly as `choice transition-preview` and
+`choice transition-apply`.
+
+An obsolete open frame can be closed without inventing a decision:
+
+```bash
+p2p choice withdraw CHOICE-001 \
+  --reason "The question is no longer relevant." \
+  --operation-key local-choice-withdraw-001
+
+p2p choice supersede CHOICE-001 \
+  --replacement CHOICE-002 \
+  --reason "New evidence requires a different decision frame." \
+  --operation-key local-choice-supersede-001
+```
+
+Repeat either command with its printed preview token and `--confirm` to apply.
+All three outcomes are terminal; there is no edit, reopen or re-decide command.
+`options.yml` remains definition-only and the selected option is stored in the
+write-once terminal event in `lifecycle.yml`.
 
 Advisory discovery does not modify project state:
 

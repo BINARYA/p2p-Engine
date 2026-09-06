@@ -381,6 +381,28 @@ def handle_project_tool(
             "decision_made": False,
             "mutation_performed": False,
         }
+    if name == "p2p_choice_transition_preview":
+        actor_id = required(arguments, "actor_id")
+        result = workspace.preview_choice_transition(
+            required(arguments, "choice_id"),
+            transition=required(arguments, "transition"),
+            reason=required(arguments, "reason"),
+            option=optional_string(arguments, "option"),
+            replacement_choice_id=optional_string(arguments, "replacement_choice_id"),
+            actor_id=actor_id,
+            executor_id=str(arguments.get("executor_id") or actor_id),
+            executor_kind=str(arguments.get("executor_kind") or "person"),
+            operation_key=required(arguments, "operation_key"),
+            effective_on=optional_string(arguments, "effective_on"),
+            blocker_override=bool(arguments.get("blocker_override", False)),
+            channel="mcp",
+        )
+        return {
+            "choice_transition": result.to_dict(),
+            "mutation_performed": False,
+        }
+    if name == "p2p_choice_transition_apply":
+        return _choice_transition_mutation(workspace, arguments)
     if name == "p2p_vote_status":
         return {
             "vote_status": to_jsonable(workspace.vote_status(required(arguments, "proposal_id"))),
@@ -587,6 +609,67 @@ def handle_project_tool(
         section = required(arguments, "section")
         return {"section": section, "content": workspace.show_project_state(section)}
     return None
+
+
+def _choice_transition_mutation(
+    workspace: P2PWorkspace,
+    arguments: dict[str, Any],
+) -> dict[str, object]:
+    actor_id = required(arguments, "actor_id")
+    choice_id = required(arguments, "choice_id")
+    preview_token = required(arguments, "preview_token")
+    consent_id = required(arguments, "consent_id")
+    consent = workspace.consent_show(consent_id)
+    target = f"{choice_id}@{preview_token}"
+    consent_sha256: str | None = None
+    if consent.status == "granted":
+        workspace.consent_validate(
+            consent_id,
+            operation="choice_transition_apply",
+            target=target,
+            actor_id=actor_id,
+        )
+        consent_sha256 = hashlib.sha256(
+            workspace.read_governed_bytes(consent.path.as_posix())
+        ).hexdigest()
+    elif consent.status != "consumed":
+        raise ValueError(f"Consent receipt is not granted: {consent_id}")
+    result = workspace.apply_choice_transition(
+        choice_id,
+        transition=required(arguments, "transition"),
+        reason=required(arguments, "reason"),
+        option=optional_string(arguments, "option"),
+        replacement_choice_id=optional_string(arguments, "replacement_choice_id"),
+        actor_id=actor_id,
+        executor_id=str(arguments.get("executor_id") or actor_id),
+        executor_kind=str(arguments.get("executor_kind") or "person"),
+        operation_key=required(arguments, "operation_key"),
+        effective_on=optional_string(arguments, "effective_on"),
+        blocker_override=bool(arguments.get("blocker_override", False)),
+        channel="mcp",
+        consent_id=consent_id,
+        consent_sha256=consent_sha256,
+        preview_token=preview_token,
+        confirm=bool(arguments.get("confirm", False)),
+    )
+    consumed = consent
+    if consent.status == "granted" and result.status in {"applied", "already_applied"}:
+        consumed = workspace.consent_consume(
+            consent_id,
+            result={
+                "operation": "choice_transition_apply",
+                "target": target,
+                "actor_id": actor_id,
+                "choice_id": choice_id,
+                "transition": result.transition,
+                "mutation_status": result.status,
+            },
+        )
+    return {
+        "choice_transition": result.to_dict(),
+        "consent": to_jsonable(consumed),
+        "mutation_performed": result.status == "applied",
+    }
 
 
 def _project_identity_mutation(

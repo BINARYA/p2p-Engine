@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import hashlib
+import shutil
+import tempfile
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
 from datetime import date
-import hashlib
 from pathlib import Path
-import shutil
-import tempfile
 from typing import TypeVar
 
 from p2p_engine.core.authority import (
@@ -31,6 +31,7 @@ from p2p_engine.core.contribution import Contribution, ContributionType
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.core.decision_context import DecisionContextIndex
 from p2p_engine.core.derived_freshness import DerivedFreshnessStatus
+from p2p_engine.core.interaction_style import InteractionStyleView
 from p2p_engine.core.mutation_preview import (
     MutationPreview,
     MutationResult,
@@ -44,7 +45,12 @@ from p2p_engine.core.portable_verticals import (
     VerticalLifecyclePreview,
     VerticalLifecycleResult,
 )
-from p2p_engine.core.project_metadata import ProjectMetadataView
+from p2p_engine.core.project_domain import (
+    ProjectDomainMutationResult,
+    ProjectDomainRef,
+    ProjectDomainState,
+    StructureSource,
+)
 from p2p_engine.core.project_identity import (
     CopyCollisionAssessment,
     DetachIdentityContract,
@@ -55,11 +61,28 @@ from p2p_engine.core.project_identity import (
     ReplicaIdentityContract,
     TransferIdentityContract,
 )
-from p2p_engine.core.project_domain import (
-    ProjectDomainMutationResult,
-    ProjectDomainRef,
-    ProjectDomainState,
-    StructureSource,
+from p2p_engine.core.project_memory import (
+    MemoryClassificationSnapshot,
+    ProjectMemoryScope,
+    ProjectMemoryScopeMutationResult,
+)
+from p2p_engine.core.project_metadata import ProjectMetadataView
+from p2p_engine.core.project_progress import ProjectProgress
+from p2p_engine.core.project_questions import (
+    ProjectQuestion,
+    ProjectQuestionArtifact,
+    ProjectQuestionOperationResult,
+)
+from p2p_engine.core.project_readiness import (
+    PROJECT_READINESS_REVIEW_DETAIL_LIMIT,
+    ProjectReadinessPage,
+    ProjectReadinessResult,
+    ProjectReadinessSnapshot,
+)
+from p2p_engine.core.project_readiness_convergence import (
+    ProjectQuestionReconciliationPreview,
+    ProjectReadinessConvergencePreview,
+    ProjectReadinessConvergenceResult,
 )
 from p2p_engine.core.project_structure import (
     ProjectStructure,
@@ -91,28 +114,24 @@ from p2p_engine.core.project_structure_retirement import (
     StructureRetirementPlan,
     StructureRetirementTarget,
 )
-from p2p_engine.core.project_memory import (
-    MemoryClassificationSnapshot,
-    ProjectMemoryScope,
-    ProjectMemoryScopeMutationResult,
+from p2p_engine.core.project_verticals import (
+    ActiveProjectVertical,
+    ProjectDefinitionPatchResult,
+    ProjectDefinitionView,
+    ProjectReadinessReview,
+    ProjectVerticalContext,
+    ProposalVerticalCoverageStatus,
+    ProposalVerticalCoverageSuggestion,
+    VerticalField,
+    VerticalListItem,
+    VerticalLock,
+    VerticalLockStatus,
+    VerticalPack,
+    VerticalSection,
+    VerticalSectionReview,
+    VerticalValidationResult,
 )
-from p2p_engine.core.project_progress import ProjectProgress
-from p2p_engine.core.project_questions import (
-    ProjectQuestion,
-    ProjectQuestionArtifact,
-    ProjectQuestionOperationResult,
-)
-from p2p_engine.core.project_readiness import (
-    PROJECT_READINESS_REVIEW_DETAIL_LIMIT,
-    ProjectReadinessResult,
-    ProjectReadinessSnapshot,
-)
-from p2p_engine.core.project_readiness import ProjectReadinessPage
-from p2p_engine.core.project_readiness_convergence import (
-    ProjectQuestionReconciliationPreview,
-    ProjectReadinessConvergencePreview,
-    ProjectReadinessConvergenceResult,
-)
+from p2p_engine.core.proposal import Proposal
 from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionApplyResult,
     ProposalDecisionEventType,
@@ -123,71 +142,70 @@ from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionPreview,
     ProposalDecisionRequest,
 )
-from p2p_engine.core.proposal import Proposal
-from p2p_engine.core.project_verticals import (
-    ActiveProjectVertical,
-    ProjectDefinitionPatchResult,
-    ProjectDefinitionView,
-    ProposalVerticalCoverageStatus,
-    ProposalVerticalCoverageSuggestion,
-    ProjectReadinessReview,
-    ProjectVerticalContext,
-    VerticalListItem,
-    VerticalLock,
-    VerticalLockStatus,
-    VerticalPack,
-    VerticalField,
-    VerticalSection,
-    VerticalSectionReview,
-    VerticalValidationResult,
-)
 from p2p_engine.core.runtime_contract import (
     RuntimeContractUpdatePreview,
     RuntimeContractUpdateResult,
     RuntimeStatus,
     RuntimeWritePreflight,
 )
-from p2p_engine.core.workspace_schema import (
-    WorkspaceSchemaStatus,
-    WorkspaceSchemaPreflight,
-    WorkspaceTransactionRecoveryResult,
-    WorkspaceTransactionRecoveryStatus,
-)
+from p2p_engine.core.software_spec_lifecycle import SpecLifecycleView
 from p2p_engine.core.vertical_memory import (
     DerivedUpdateResult,
-    VerticalMemoryOperationResult,
     VerticalMemoryAggregate,
+    VerticalMemoryOperationResult,
     VerticalMemoryPage,
     VerticalMemoryStatus,
     VerticalProjectMemoryView,
     vertical_memory_derived_updates,
 )
-from p2p_engine.core.interaction_style import InteractionStyleView
+from p2p_engine.core.workspace_schema import (
+    WorkspaceSchemaPreflight,
+    WorkspaceSchemaStatus,
+    WorkspaceTransactionRecoveryResult,
+    WorkspaceTransactionRecoveryStatus,
+)
 from p2p_engine.foundation.files import (
-    identity_slug as _identity_slug,
     read_yaml_mapping as _read_yaml_mapping,
+)
+from p2p_engine.foundation.files import (
     relative_to_root as _relative_to_root,
+)
+from p2p_engine.foundation.files import (
     yaml_dump as _yaml_dump,
 )
 from p2p_engine.foundation.validators import validate_yaml_key as _validate_yaml_key
 from p2p_engine.services.agent_instructions import (
+    AgentDoctorResult,
     AgentInstructionService,
     AgentInstructionsResult,
-    AgentDoctorResult,
     AgentIntegrationResult,
+)
+from p2p_engine.services.agent_templates import (
+    BUILT_IN_AGENT_ADAPTERS,
+)
+from p2p_engine.services.agent_templates import (
+    agent_adapter_capabilities as _agent_adapter_capabilities,
+)
+from p2p_engine.services.agent_templates import (
+    agent_adapter_files as _agent_adapter_files,
+)
+from p2p_engine.services.agent_templates import (
+    agent_instruction_files as _agent_instruction_files,
+)
+from p2p_engine.services.agent_templates import (
+    agent_policy as _agent_policy,
+)
+from p2p_engine.services.agent_templates import (
+    expanded_agent_profiles as _expanded_agent_profiles,
+)
+from p2p_engine.services.agent_templates import (
+    normalize_agent_profile as _normalize_agent_profile,
+)
+from p2p_engine.services.agent_templates import (
+    template_generation_id as _template_generation_id,
 )
 from p2p_engine.services.authority import ProjectAuthorityService
 from p2p_engine.services.authority_rotation import ProjectAuthorityRotationService
-from p2p_engine.services.agent_templates import (
-    BUILT_IN_AGENT_ADAPTERS,
-    agent_adapter_capabilities as _agent_adapter_capabilities,
-    agent_adapter_files as _agent_adapter_files,
-    agent_instruction_files as _agent_instruction_files,
-    agent_policy as _agent_policy,
-    expanded_agent_profiles as _expanded_agent_profiles,
-    normalize_agent_profile as _normalize_agent_profile,
-    template_generation_id as _template_generation_id,
-)
 from p2p_engine.services.canonical_memory import CanonicalMemoryService
 from p2p_engine.services.changes import (
     ChangeSetDetail,
@@ -195,9 +213,19 @@ from p2p_engine.services.changes import (
     ChangeSetStatus,
     ChangeSetTaskView,
 )
-from p2p_engine.services.choices import ChoiceDetail, ChoiceDiscoveryFinding, ChoiceLifecycleService, ChoiceStatus
-from p2p_engine.services.consent import ConsentReceipt, ConsentService
+from p2p_engine.services.choices import (
+    ChoiceDetail,
+    ChoiceDiscoveryFinding,
+    ChoiceLifecycleService,
+    ChoiceStatus,
+    ChoiceTransitionPlan,
+    ChoiceTransitionResult,
+)
 from p2p_engine.services.conflicts import ConflictMemoryService, ConflictStatus
+from p2p_engine.services.consent import ConsentReceipt, ConsentService
+from p2p_engine.services.context_packets import ContextPacket, ContextPacketService
+from p2p_engine.services.decision_context import ProjectDecisionContextService
+from p2p_engine.services.derived_freshness import DerivedFreshnessService
 from p2p_engine.services.governance import GovernanceService, GovernanceStatus, VoteStatus
 from p2p_engine.services.governance_policy import (
     GovernancePolicyService,
@@ -205,33 +233,91 @@ from p2p_engine.services.governance_policy import (
     GovernanceValidationResult,
     PrecedentMatch,
 )
-from p2p_engine.services.intake import IntakeAppliedAction, IntakeApplyPlan, IntakeLifecycleService, IntakePrompt, IntakeStatus
+from p2p_engine.services.intake import (
+    IntakeAppliedAction,
+    IntakeApplyPlan,
+    IntakeLifecycleService,
+    IntakePrompt,
+    IntakeStatus,
+)
 from p2p_engine.services.lifecycle_authority import ProposalLifecycleAuthorityService
 from p2p_engine.services.mcp_hints import McpHint, build_mcp_hint
 from p2p_engine.services.mutation_receipts import MutationReceiptService
 from p2p_engine.services.next_actions import NextAction, NextActionService
 from p2p_engine.services.permissions import PermissionActor, PermissionsService
-from p2p_engine.services.context_packets import ContextPacket, ContextPacketService
-from p2p_engine.services.decision_context import ProjectDecisionContextService
-from p2p_engine.services.derived_freshness import DerivedFreshnessService
+from p2p_engine.services.project_assessment import ProjectAssessment, ProjectAssessmentService
+from p2p_engine.services.project_contexts import ProjectContextRendererService
+from p2p_engine.services.project_domain import ProjectDomainService
+from p2p_engine.services.project_identity import ProjectIdentityService
+from p2p_engine.services.project_initialization import (
+    ProjectInitializationResult,
+    ProjectInitializationService,
+)
+from p2p_engine.services.project_integration import (
+    IntegrationOperationResult,
+    ProjectIntegrationService,
+)
+from p2p_engine.services.project_interaction_style import ProjectInteractionStyleService
+from p2p_engine.services.project_maturity import (
+    ProjectDefinitionMaturity,
+    ProjectMaturityService,
+    ProjectRubrics,
+    definition_maturity_payload,
+)
+from p2p_engine.services.project_memory import ProjectMemoryService
+from p2p_engine.services.project_metadata import ProjectMetadataService
+from p2p_engine.services.project_progress import (
+    ProjectProgressService,
+    progress_from_project_readiness,
+)
+from p2p_engine.services.project_publication import (
+    ProjectPublicationImportResult,
+    ProjectPublicationPrepareResult,
+    ProjectPublicationReviewResult,
+    ProjectPublicationService,
+    ProjectPublicationStatus,
+    PublicationCatalogResult,
+)
+from p2p_engine.services.project_publication_rendering import PublicationRenderResult
+from p2p_engine.services.project_publication_validation import PublicationValidationResult
+from p2p_engine.services.project_questions import ProjectQuestionStateService
+from p2p_engine.services.project_readiness import (
+    ProjectReadinessCompositionService,
+    ProjectReadinessGapService,
+    ProjectReadinessPaginationService,
+)
+from p2p_engine.services.project_readiness_convergence import ProjectReadinessConvergenceService
+from p2p_engine.services.project_snapshot import ProjectSnapshotPayload, ProjectSnapshotService
+from p2p_engine.services.project_state import (
+    ProjectBriefPrompt,
+    ProjectStateService,
+    ProjectStateStatus,
+)
+from p2p_engine.services.project_structure import ProjectStructureService
+from p2p_engine.services.project_structure_export import ProjectStructureExportService
+from p2p_engine.services.project_structure_merge_restore import (
+    ProjectStructureMergeRestoreService,
+)
+from p2p_engine.services.project_structure_replacement import ProjectStructureReplacementService
+from p2p_engine.services.project_structure_retirement import ProjectStructureRetirementService
+from p2p_engine.services.project_verticals import ProjectVerticalService
+from p2p_engine.services.proposal_artifact_state import ProposalArtifactStateService
 from p2p_engine.services.proposal_artifacts import (
     ArtifactImportKind,
     ArtifactImportResult,
-    ExplorationArtifactStatus,
     ExplorationStatus,
     ImportKind,
     PromptKind,
     ProposalArtifactService,
 )
-from p2p_engine.services.proposal_artifact_state import ProposalArtifactStateService
-from p2p_engine.services.proposal_decisions import ProposalDecisionService
-from p2p_engine.services.proposal_decision_impact import ProposalDecisionImpactService
 from p2p_engine.services.proposal_contribution_contract import (
     CONTRIBUTION_REVIEW_CAPABILITY,
     ProposalContributionContractService,
     ProposalContributionListPayload,
     contribution_payload,
 )
+from p2p_engine.services.proposal_decision_impact import ProposalDecisionImpactService
+from p2p_engine.services.proposal_decisions import ProposalDecisionService
 from p2p_engine.services.proposal_questions import ProposalQuestionService
 from p2p_engine.services.proposal_read_contract import (
     ProposalDetailPayload,
@@ -251,60 +337,6 @@ from p2p_engine.services.proposals import (
     ProposalDocumentService,
     ProposalUpdatePlan,
 )
-from p2p_engine.services.project_assessment import ProjectAssessment, ProjectAssessmentService
-from p2p_engine.services.project_domain import ProjectDomainService
-from p2p_engine.services.project_structure import ProjectStructureService
-from p2p_engine.services.project_structure_export import ProjectStructureExportService
-from p2p_engine.services.project_structure_merge_restore import (
-    ProjectStructureMergeRestoreService,
-)
-from p2p_engine.services.project_structure_replacement import ProjectStructureReplacementService
-from p2p_engine.services.project_structure_retirement import ProjectStructureRetirementService
-from p2p_engine.services.project_memory import ProjectMemoryService
-from p2p_engine.services.project_contexts import ProjectContextRendererService
-from p2p_engine.services.project_maturity import (
-    ProjectDefinitionMaturity,
-    ProjectMaturityService,
-    ProjectRubrics,
-    definition_maturity_payload,
-)
-from p2p_engine.services.project_interaction_style import ProjectInteractionStyleService
-from p2p_engine.services.project_metadata import ProjectMetadataService
-from p2p_engine.services.project_progress import (
-    ProjectProgressService,
-    progress_from_project_readiness,
-)
-from p2p_engine.services.project_snapshot import ProjectSnapshotPayload, ProjectSnapshotService
-from p2p_engine.services.project_questions import ProjectQuestionStateService
-from p2p_engine.services.project_readiness import (
-    ProjectReadinessCompositionService,
-    ProjectReadinessGapService,
-    ProjectReadinessPaginationService,
-)
-from p2p_engine.services.project_readiness_convergence import ProjectReadinessConvergenceService
-from p2p_engine.services.project_verticals import ProjectVerticalService
-from p2p_engine.services.vertical_lifecycle import VerticalLifecycleService
-from p2p_engine.services.vertical_packages import PortableVerticalPackageService
-from p2p_engine.services.project_initialization import (
-    ProjectInitializationResult,
-    ProjectInitializationService,
-)
-from p2p_engine.services.project_integration import (
-    IntegrationOperationResult,
-    ProjectIntegrationService,
-)
-from p2p_engine.services.project_identity import ProjectIdentityService
-from p2p_engine.services.project_publication import (
-    PublicationCatalogResult,
-    ProjectPublicationImportResult,
-    ProjectPublicationPrepareResult,
-    ProjectPublicationReviewResult,
-    ProjectPublicationService,
-    ProjectPublicationStatus,
-)
-from p2p_engine.services.project_publication_rendering import PublicationRenderResult
-from p2p_engine.services.project_publication_validation import PublicationValidationResult
-from p2p_engine.services.project_state import ProjectBriefPrompt, ProjectStateService, ProjectStateStatus
 from p2p_engine.services.readiness import (
     PROPOSAL_READINESS_ASSESSMENT_POLICY_VERSION,
     ProposalReadiness,
@@ -316,32 +348,41 @@ from p2p_engine.services.readiness import (
 from p2p_engine.services.registries import RegistryService, RegistryStatus, RegistryView
 from p2p_engine.services.registry_records import RegistryRecordBuilderService
 from p2p_engine.services.runtime_contract import RuntimeContractService
+from p2p_engine.services.software_spec import (
+    SoftwareSpecPrompt,
+    SoftwareSpecService,
+    SoftwareSpecStatus,
+)
+from p2p_engine.services.software_spec_lifecycle import SoftwareSpecLifecycleService
 from p2p_engine.services.spec_export import (
     SoftwareSpecExportStatus,
     SoftwareSpecExportValidation,
     SpecExportService,
 )
-from p2p_engine.services.validation import ValidationFinding, ValidationResult, ValidationService
-from p2p_engine.services.workspace_schema import WorkspaceSchemaService
-from p2p_engine.services.workspace_reads import WorkspaceReadContext
+from p2p_engine.services.validation import ValidationResult, ValidationService
+from p2p_engine.services.vertical_lifecycle import VerticalLifecycleService
 from p2p_engine.services.vertical_memory import (
     VerticalProjectMemoryBuilder,
     VerticalProjectMemoryService,
 )
-from p2p_engine.services.workspace_transactions import (
-    AtomicMutationWriter,
-    WorkspaceTransactionLockService,
-    WorkspaceTransactionRecoveryService,
-)
+from p2p_engine.services.vertical_packages import PortableVerticalPackageService
 from p2p_engine.services.visible_project_export import (
     VisibleProjectExportResult,
     VisibleProjectExportService,
     VisibleProjectExportStatus,
 )
-from p2p_engine.services.software_spec import SoftwareSpecPrompt, SoftwareSpecService, SoftwareSpecStatus
-from p2p_engine.services.software_spec_lifecycle import SoftwareSpecLifecycleService
-from p2p_engine.core.software_spec_lifecycle import SpecLifecycleView
-from p2p_engine.services.work_planning import WorkDetail, WorkPlanningService, WorkRetire, WorkStatus, WorkSummary
+from p2p_engine.services.work_planning import (
+    WorkDetail,
+    WorkPlanningService,
+    WorkRetire,
+    WorkStatus,
+    WorkSummary,
+)
+from p2p_engine.services.workspace_operation_compatibility import (
+    WorkspaceOperationCompatibilityService,
+)
+from p2p_engine.services.workspace_reads import WorkspaceReadContext
+from p2p_engine.services.workspace_schema import WorkspaceSchemaService
 from p2p_engine.services.workspace_status import (
     FastFreshnessService,
     ProposalSummary,
@@ -349,8 +390,10 @@ from p2p_engine.services.workspace_status import (
     WorkspaceStatus,
     WorkspaceStatusService,
 )
-from p2p_engine.services.workspace_operation_compatibility import (
-    WorkspaceOperationCompatibilityService,
+from p2p_engine.services.workspace_transactions import (
+    AtomicMutationWriter,
+    WorkspaceTransactionLockService,
+    WorkspaceTransactionRecoveryService,
 )
 
 DEFAULT_READINESS_PROFILE_ID = "default-readiness-v0.1"
@@ -658,6 +701,9 @@ class FilesystemWorkspace:
                 project_identity_status=self.project_identity_status,
                 proposal_lifecycle_status=(
                     self._proposal_lifecycle_authority_service().status
+                ),
+                choice_validation_findings=(
+                    self._choice_lifecycle_service().validation_findings
                 ),
             )
         return self._validation_service_instance
@@ -1253,6 +1299,7 @@ class FilesystemWorkspace:
                 find_proposal_dir=self._proposal_document_service().find_dir,
                 find_change_dir=self._change_set_lifecycle_service().find_dir,
                 choice_registry_records=self._registry_record_builder_service().choice_records,
+                governance_preflight=self._governance_policy_service().choice_preflight,
             )
         return self._choice_lifecycle_service_instance
 
@@ -5959,9 +6006,21 @@ class FilesystemWorkspace:
         options: list[str],
         related: list[str] | None = None,
         source: str | None = None,
+        *,
+        problem: str,
+        context: str,
+        governance_boundary: str = "This choice is advisory until decided through P2P governance.",
     ) -> ChoiceStatus:
         self._ensure_runtime_write_allowed("choice_create")
-        return self._choice_lifecycle_service().create(title, options, related=related, source=source)
+        return self._choice_lifecycle_service().create(
+            title,
+            options,
+            related=related,
+            source=source,
+            problem=problem,
+            context=context,
+            governance_boundary=governance_boundary,
+        )
 
     def choice_statuses(self) -> list[ChoiceStatus]:
         return self._choice_lifecycle_service().statuses()
@@ -5995,6 +6054,29 @@ class FilesystemWorkspace:
     ) -> ChoiceStatus:
         self._ensure_runtime_write_allowed("choice_decide")
         return self._choice_lifecycle_service().decide(choice_id, option, reason, decider)
+
+    def preview_choice_transition(
+        self,
+        choice_id: str,
+        **request: object,
+    ) -> ChoiceTransitionPlan:
+        return self._choice_lifecycle_service().transition_preview(choice_id, **request)
+
+    def apply_choice_transition(
+        self,
+        choice_id: str,
+        *,
+        preview_token: str,
+        confirm: bool,
+        **request: object,
+    ) -> ChoiceTransitionResult:
+        self._ensure_runtime_write_allowed(f"choice_{request.get('transition', 'transition')}")
+        return self._choice_lifecycle_service().transition_apply(
+            choice_id,
+            preview_token=preview_token,
+            confirm=confirm,
+            **request,
+        )
 
 
 class P2PWorkspace:

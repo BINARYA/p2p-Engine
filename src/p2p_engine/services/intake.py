@@ -17,10 +17,12 @@ from p2p_engine.core.decision_context import (
 )
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
+)
+from p2p_engine.foundation.files import (
     yaml_dump as _yaml_dump,
 )
-from p2p_engine.foundation.validators import validate_yaml_key
 from p2p_engine.foundation.markdown import read_title
+from p2p_engine.foundation.validators import validate_yaml_key
 from p2p_engine.services.decision_context_retrieval import DecisionContextRetrievalService
 
 
@@ -327,15 +329,23 @@ class IntakeLifecycleService:
             if len(cleaned_options) < 2:
                 raise ValueError("open_choice apply action requires at least two --option values.")
             related = [target] if target.startswith("PROP-") else []
+            choice_problem = reason or f"Resolve the decision identified by {intake_id}."
+            choice_context = (
+                f"Derived from intake {intake_id} for {target or 'the project'}; "
+                "review the complete frame before applying a terminal transition."
+            )
             choice = self.create_choice(
                 title=f"Intake {intake_id} choice for {target or 'project'}",
                 options=cleaned_options,
                 related=related,
                 source=intake_id,
+                problem=choice_problem,
+                context=choice_context,
             )
             command = (
                 "p2p choice create "
                 f'--title "Intake {intake_id} choice for {target or "project"}" '
+                f'--problem "{choice_problem}" --context "{choice_context}" '
                 + " ".join(f'--option "{option}"' for option in cleaned_options)
             )
             if related:
@@ -394,6 +404,8 @@ class IntakeLifecycleService:
             command = (
                 "p2p choice create "
                 f'--title "Intake {intake_id} choice for {target or "project"}" '
+                f'--problem "{rationale or "Review the intake decision."}" '
+                f'--context "Derived from intake {intake_id}." '
                 '--option "..." --option "..."'
             )
             if target:

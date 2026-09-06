@@ -5,11 +5,10 @@ import yaml
 
 from p2p_engine.core.decision import DecisionOutcome
 from p2p_engine.core.proposal_decision_events import ProposalDecisionEventType
-from p2p_engine.storage.filesystem import P2PWorkspace
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter
+from p2p_engine.storage.filesystem import P2PWorkspace
 from tests.decision_context_fixtures import project_files
 from tests.proposal_decision_fixtures import record_decision
-
 
 NARRATIVE_ARTIFACTS = (
     "exploration.md",
@@ -188,6 +187,8 @@ def test_phase_prompts_use_bounded_nearby_context_without_writeback(tmp_path: Pa
         ["Keep files", "Replace files"],
         related=[target.proposal_id],
         source=target.proposal_id,
+        problem="Choose how topology should be persisted.",
+        context="Proposal artifact context must retain the decided project Choice.",
     )
     workspace.decide_choice(choice.choice_id, "Keep files", "Preserve canonical sources.", "owner")
     before = project_files(tmp_path)

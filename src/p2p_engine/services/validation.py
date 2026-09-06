@@ -14,18 +14,20 @@ from p2p_engine.core.proposal_decision_diagnostics import (
 from p2p_engine.core.proposal_decision_events import ProposalDecisionLifecycleView
 from p2p_engine.foundation.markdown import (
     markdown_has_section as _markdown_has_section,
+)
+from p2p_engine.foundation.markdown import (
     read_markdown_section as _read_markdown_section,
 )
+from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.services.consent import CONSENT_OPERATIONS
 from p2p_engine.services.permissions import ACTOR_KINDS, PERMISSION_ROLES
+from p2p_engine.services.proposal_artifact_state import validate_proposal_artifact_state_payload
+from p2p_engine.services.proposal_questions import validate_proposal_questions_payload
 from p2p_engine.services.readiness import (
     validate_readiness_assessment_payload,
     validate_readiness_profile_payload,
 )
-from p2p_engine.services.proposal_questions import validate_proposal_questions_payload
-from p2p_engine.services.proposal_artifact_state import validate_proposal_artifact_state_payload
 from p2p_engine.services.runtime_contract import RuntimeContractService
-from p2p_engine.foundation.yaml_loaders import load_yaml
 
 BUILT_IN_AGENT_ADAPTERS = ("generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode")
 
@@ -67,6 +69,9 @@ class ValidationService:
         proposal_lifecycle_status: (
             Callable[[str], ProposalDecisionLifecycleView] | None
         ) = None,
+        choice_validation_findings: (
+            Callable[[], list[tuple[str, str, Path, str, str]]] | None
+        ) = None,
     ) -> None:
         self.root = root
         self.p2p_dir = p2p_dir
@@ -81,6 +86,7 @@ class ValidationService:
         self.workspace_schema_validation_findings = workspace_schema_validation_findings
         self.project_identity_status = project_identity_status
         self.proposal_lifecycle_status = proposal_lifecycle_status
+        self.choice_validation_findings = choice_validation_findings
 
     def validate(self, *, registry_status_snapshot: Any | None = None) -> ValidationResult:
         findings: list[ValidationFinding] = []
@@ -112,6 +118,7 @@ class ValidationService:
         self._validate_permissions(add)
         self._validate_consents(add)
         self._validate_proposals(add)
+        self._validate_choices(add)
         self._validate_project_interaction_style(add)
         self._validate_governance_policy(add)
         self._validate_runtime_contract(add)
@@ -130,6 +137,15 @@ class ValidationService:
             infos=infos,
             findings=findings,
         )
+
+    def _validate_choices(
+        self,
+        add: Callable[[str, str, Path, str, str], None],
+    ) -> None:
+        if self.choice_validation_findings is None:
+            return
+        for code, severity, path, message, suggested_command in self.choice_validation_findings():
+            add(code, severity, self.root / path, message, suggested_command)
 
     def _validate_project_identity(
         self,

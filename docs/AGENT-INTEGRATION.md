@@ -42,6 +42,13 @@ authority, consent, preview/apply, persistence and direct-edit protections.
 Governance scope is independent of the `standalone`, `linked-local` and
 `remote-only` access profiles.
 
+Choice definitions are immutable after creation. Agents must never edit
+`.p2p/choices/**` directly or attempt to rewrite a selected alternative. Use
+the governed preview/apply lifecycle commands for `decide`, `withdraw`, or
+`supersede`; if the frame changed, create a new Choice and preserve the old one
+as terminal history. Proposal lifecycle is independent and must be managed
+explicitly.
+
 ## Post-Decision Routing
 
 An accepted P2P proposal records an owner decision. It does not automatically

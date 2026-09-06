@@ -16,8 +16,14 @@ def _workspace_with_records(root: Path) -> P2PWorkspace:
         proposal="Proposal text.",
     )
     record_decision(workspace, proposal.proposal_id, DecisionOutcome.accepted, "Approved.", "owner")
-    change = workspace.create_change_set(proposal.proposal_id)
-    workspace._choice_lifecycle_service().create("Registry Choice", ["A", "B"], related=[proposal.proposal_id])
+    workspace.create_change_set(proposal.proposal_id)
+    workspace._choice_lifecycle_service().create(
+        "Registry Choice",
+        ["A", "B"],
+        related=[proposal.proposal_id],
+        problem="Choose the registry direction.",
+        context="Registry tests require a complete Choice frame.",
+    )
     workspace.record_vote(proposal.proposal_id, choice="A", reason="A wins", voter="owner", role="owner")
     workspace.refresh_proposal_readiness(proposal.proposal_id)
     change_dir = root / ".p2p" / "changes" / "CHANGE-001-registry-proposal"

@@ -5,8 +5,11 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from p2p_engine.core.choices import is_active_choice_state
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
+)
+from p2p_engine.foundation.files import (
     yaml_dump as _yaml_dump,
 )
 from p2p_engine.services.changes import CHANGE_TERMINAL_STATUSES
@@ -117,7 +120,7 @@ class ProjectAssessmentService:
         open_choices = [
             choice
             for choice in choices
-            if getattr(choice, "status", None) in {"open", "draft", "pending"} and not getattr(choice, "selected_option", None)
+            if is_active_choice_state(getattr(choice, "status", None)) and not getattr(choice, "selected_option", None)
         ]
         active_changes = [
             change

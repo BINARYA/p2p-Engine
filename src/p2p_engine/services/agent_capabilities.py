@@ -4,7 +4,7 @@ import hashlib
 import json
 from dataclasses import asdict, dataclass
 
-AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v15"
+AGENT_CAPABILITY_CATALOG_VERSION = "agent-capabilities-v16"
 
 
 @dataclass(frozen=True)
@@ -19,6 +19,35 @@ class AgentCapability:
 
 
 AGENT_CAPABILITIES = (
+    AgentCapability(
+        capability_id="choice.lifecycle",
+        cli_paths=(
+            "p2p choice list",
+            "p2p choice show",
+            "p2p choice discover",
+            "p2p choice governance-preflight",
+            "p2p choice decide",
+            "p2p choice withdraw",
+            "p2p choice supersede",
+            "p2p choice transition-preview",
+            "p2p choice transition-apply",
+        ),
+        mcp_tools=(
+            "p2p_choice_list",
+            "p2p_choice_show",
+            "p2p_choice_discover",
+            "p2p_choice_governance_preflight",
+            "p2p_choice_transition_preview",
+            "p2p_choice_transition_apply",
+        ),
+        exposure="owner_governed",
+        authority="choice.lifecycle.transition",
+        reason=(
+            "Choice definitions are immutable; reads are open, while the single "
+            "terminal transition is previewed, owner-authorized, receipt-backed, "
+            "and consent-gated for MCP apply."
+        ),
+    ),
     AgentCapability(
         capability_id="project.identity",
         cli_paths=(

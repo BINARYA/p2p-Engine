@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+import inspect
 import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date
-import inspect
 from pathlib import Path
 from typing import Any, Mapping, TypeVar
 
+from p2p_engine.core.choices import is_active_choice_state
 from p2p_engine.core.decision_context import (
     Activation,
     Authority,
@@ -18,7 +19,6 @@ from p2p_engine.core.decision_context import (
 )
 from p2p_engine.core.mutation_preview import semantic_sha256
 from p2p_engine.core.project_readiness import ProjectReadinessGapKind, ProjectReadinessResult
-from p2p_engine.core.vertical_memory import VerticalProjectMemoryView
 from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionDependencyKind,
     ProposalDecisionDependencyStatus,
@@ -27,8 +27,11 @@ from p2p_engine.core.proposal_decision_events import (
     ProposalDecisionImpactSnapshot,
     ProposalDecisionLifecycleView,
 )
+from p2p_engine.core.vertical_memory import VerticalProjectMemoryView
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
+)
+from p2p_engine.foundation.files import (
     yaml_dump as _yaml_dump,
 )
 from p2p_engine.services.changes import (
@@ -36,7 +39,6 @@ from p2p_engine.services.changes import (
     change_next_action_status_rank,
 )
 from p2p_engine.services.workspace_reads import WorkspaceReadContext
-
 
 _T = TypeVar("_T")
 
@@ -938,7 +940,7 @@ class NextActionService:
                     for item in statuses
                     if str(_field(item, "choice_id") or "")
                     and not _field(item, "selected_option")
-                    and str(_field(item, "status") or "") in {"open", "draft", "pending"}
+                    and is_active_choice_state(_field(item, "status"))
                 )
             )
         for choice_id in open_choice_ids:
@@ -1043,7 +1045,7 @@ class NextActionService:
             for status in sorted(statuses, key=lambda item: str(_field(item, "choice_id") or "")):
                 choice_id = str(_field(status, "choice_id") or "")
                 selected = _field(status, "selected_option")
-                if not choice_id or selected or str(_field(status, "status") or "") not in {"open", "draft", "pending"}:
+                if not choice_id or selected or not is_active_choice_state(_field(status, "status")):
                     continue
                 detail = self.show_choice(choice_id)
                 for block in getattr(detail, "blocks", ()):
@@ -1189,7 +1191,15 @@ def _open_project_choice_ids(index: DecisionContextIndex) -> tuple[str, ...]:
         and record.authority == Authority.DECIDED_PROJECT_CHOICE
         and record.activation == Activation.ACTIVE
     }
-    return tuple(choice_id for choice_id in choices if choice_id not in decided)
+    terminal = {
+        record.owner_id
+        for record in index.records
+        if record.owner_type == NodeType.CHOICE
+        and record.kind == RecordKind.DECISION_STATE
+        and str(record.text).strip().casefold()
+        in {"decided", "withdrawn", "superseded"}
+    }
+    return tuple(choice_id for choice_id in choices if choice_id not in decided | terminal)
 
 
 def _active_change_proposals(

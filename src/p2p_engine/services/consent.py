@@ -7,6 +7,8 @@ from pathlib import Path
 
 from p2p_engine.foundation.files import (
     read_yaml_mapping_or_default as _read_yaml_mapping,
+)
+from p2p_engine.foundation.files import (
     yaml_dump as _yaml_dump,
 )
 from p2p_engine.services.permissions import PermissionsService
@@ -22,6 +24,7 @@ CONSENT_OPERATIONS = {
     "project_structure_retire_apply",
     "project_memory_scope_set",
     "proposal_decision_apply",
+    "choice_transition_apply",
     "proposal_accept",
     "proposal_reject",
     "proposal_defer",

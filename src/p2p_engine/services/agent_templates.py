@@ -531,7 +531,7 @@ def routing_playbook_payload() -> dict[str, str]:
         "chat_only_exploration": "Analyze, compare, critique, or suggest in chat without writing persistent state.",
         "project_definition_work": "Use project structure/context/definition primitives before creating durable artifacts.",
         "proposal_authoring": "Use proposal, contribution, questions, artifact, or import primitives; never edit .p2p directly.",
-        "choices": "Use choice discovery/show/decision primitives and leave owner-controlled decisions to the owner.",
+        "choices": "Treat Choice definitions as immutable. Use governed decide/withdraw/supersede preview/apply primitives; create a new Choice when the frame changes and leave terminal transitions to the owner.",
         "vertical_specific_primitives": "Use applicable release-specific primitives without treating source identity as live project structure.",
         "implementation_work": "For implementation work outside `.p2p/`, follow the repository's maintained source, test, and documentation layout.",
         "exact_file_requests": "Write the requested repository path only when the owner specified the exact operation and artifact.",
@@ -797,7 +797,13 @@ def governed_root_guidance_block() -> str:
 
 When the current working directory is different or ambiguous, pass `--root /path/to/project` to P2P CLI commands and MCP server commands.
 
-Prefer configured or explicit roots. Do not infer product topology from parent or adjacent directories."""
+Prefer configured or explicit roots. Do not infer product topology from parent or adjacent directories.
+
+Choice definitions are immutable after creation. Never edit `.p2p/choices/**`
+or rewrite a selected option. An open Choice may receive exactly one governed
+terminal transition: decided, withdrawn, or superseded. If new evidence changes
+the frame, create a new Choice and optionally supersede the old one. Proposal
+lifecycle remains separate."""
 
 
 LINKED_PROJECT_LIFECYCLE_GUIDANCE_BLOCK = """A linked project remains
@@ -1142,6 +1148,8 @@ def agent_policy(
                 "p2p proposal show PROP-XXX --format json",
                 "p2p proposal scope show PROP-XXX --format json",
                 "p2p proposal contribution list PROP-XXX --format json",
+                "p2p choice list --format json",
+                "p2p choice show CHOICE-XXX --format json",
             ],
             "registry_v2_read_commands": [
                 "p2p vertical domain list --registry REGISTRY --format json",
@@ -1177,6 +1185,8 @@ def agent_policy(
                 "p2p proposal update PROP-XXX --proposal TEXT --format json --operation-key wavekit:<uuid>",
                 "p2p proposal contribution add PROP-XXX TEXT --type suggestion --format json --operation-key wavekit:<uuid>",
                 "p2p proposal readiness assess PROP-XXX --actor ACTOR --format json --operation-key wavekit:<uuid>",
+                "p2p choice transition-preview CHOICE-XXX --transition decide|withdraw|supersede --reason REASON --actor ACTOR --operation-key wavekit:<uuid> --format json",
+                "p2p choice transition-apply CHOICE-XXX --transition decide|withdraw|supersede --reason REASON --actor ACTOR --operation-key wavekit:<uuid> --preview-token TOKEN --confirm --format json",
             ],
             "status_command": "p2p mutation status --operation-key wavekit:<uuid> --format json",
             "parse_human_text": False,
@@ -1191,6 +1201,8 @@ def agent_policy(
             "proposal_replace",
             "proposal_reinstate",
             "choice_decide",
+            "choice_withdraw",
+            "choice_supersede",
         ],
         "write_policy": write_policy_payload(),
         "placement_policy": placement_policy_payload(),

@@ -127,6 +127,10 @@ def test_mcp_governance_policy_read_only_tools(tmp_path: Path) -> None:
             "create",
             "--title",
             "Deployment Strategy",
+            "--problem",
+            "Choose a deployment strategy.",
+            "--context",
+            "The project needs a governed deployment decision.",
             "--option",
             "Blue",
             "--option",
@@ -207,6 +211,10 @@ def test_mcp_governance_preflight_reports_malformed_precedents(tmp_path: Path) -
             "create",
             "--title",
             "Deployment Strategy",
+            "--problem",
+            "Choose the deployment strategy.",
+            "--context",
+            "The governance preflight needs a complete immutable Choice.",
             "--option",
             "Blue",
             "--option",
@@ -1384,6 +1392,10 @@ def test_mcp_choice_discover_is_advisory(tmp_path: Path) -> None:
             "create",
             "--title",
             "Open direction",
+            "--problem",
+            "Choose a stable direction.",
+            "--context",
+            "The project needs an explicit decision frame.",
             "--option",
             "A",
             "--option",
@@ -1399,6 +1411,83 @@ def test_mcp_choice_discover_is_advisory(tmp_path: Path) -> None:
     assert result["choice_discovery"][0]["target"] == "CHOICE-001"
     detail = call_tool("p2p_choice_show", {"root": str(tmp_path), "choice_id": "CHOICE-001"})
     assert detail["choice"]["status"] == "open"
+
+
+@pytest.mark.parametrize(
+    ("transition", "option", "replacement_choice_id", "expected_state"),
+    (
+        ("decide", "A", None, "decided"),
+        ("withdraw", None, None, "withdrawn"),
+        ("supersede", None, "CHOICE-002", "superseded"),
+    ),
+)
+def test_mcp_choice_terminal_transition_has_preview_apply_parity(
+    tmp_path: Path,
+    transition: str,
+    option: str | None,
+    replacement_choice_id: str | None,
+    expected_state: str,
+) -> None:
+    workspace = P2PWorkspace(tmp_path)
+    workspace.init_project("Demo Project", project_domain="software")
+    workspace.create_choice(
+        "Runtime direction",
+        ["Keep", "Replace"],
+        problem="Choose the runtime direction.",
+        context="The project requires a stable governed answer.",
+    )
+    if replacement_choice_id is not None:
+        workspace.create_choice(
+            "Replacement runtime direction",
+            ["Adopt replacement", "Delay replacement"],
+            problem="Choose the replacement runtime direction.",
+            context="New evidence requires a distinct sealed decision frame.",
+        )
+    request = {
+        "root": str(tmp_path),
+        "choice_id": "CHOICE-001",
+        "transition": transition,
+        "reason": "Apply the reviewed terminal Choice transition.",
+        "actor_id": "owner",
+        "operation_key": f"mcp-choice-{transition}-001",
+        "option": option,
+        "replacement_choice_id": replacement_choice_id,
+    }
+
+    preview = call_tool("p2p_choice_transition_preview", request)
+    token = preview["choice_transition"]["mutation"]["preview_token"]
+    consent = workspace.consent_grant(
+        "choice_transition_apply",
+        f"CHOICE-001@{token}",
+        "owner",
+        approved_by="owner",
+    )
+    result = call_tool(
+        "p2p_choice_transition_apply",
+        {
+            **request,
+            "preview_token": token,
+            "confirm": True,
+            "consent_id": consent.consent_id,
+        },
+    )
+
+    assert preview["mutation_performed"] is False
+    assert result["choice_transition"]["choice"]["state"] == expected_state
+    assert result["mutation_performed"] is True
+    assert result["consent"]["status"] == "consumed"
+
+    replay = call_tool(
+        "p2p_choice_transition_apply",
+        {
+            **request,
+            "preview_token": token,
+            "confirm": True,
+            "consent_id": consent.consent_id,
+        },
+    )
+    assert replay["choice_transition"]["status"] == "already_applied"
+    assert replay["mutation_performed"] is False
 
 
 def test_mcp_conflict_status_reads_without_recording(tmp_path: Path) -> None:

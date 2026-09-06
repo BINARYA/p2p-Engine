@@ -37,9 +37,12 @@ control, tests, CI, releases or implementation evidence.
 
 ## Choice
 
-An explicit decision point with two or more alternatives. Choices are useful when
-the project needs to compare options rather than simply accept or reject one
-proposal.
+An immutable, integrity-checked decision frame containing a problem, context and
+two or more stable alternatives. A Choice starts `open` and can become exactly
+one of `decided`, `withdrawn`, or `superseded`. Terminal Choices are never
+rewritten or reopened. If evidence changes the decision frame, create a new
+Choice and optionally supersede the old one with typed lineage. Proposal
+lifecycle remains separate.
 
 ## Context Packet
 

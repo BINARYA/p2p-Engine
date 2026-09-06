@@ -82,6 +82,8 @@ TOOL_NAMES = (
     'p2p_governance_status',
     'p2p_governance_validate',
     'p2p_choice_governance_preflight',
+    'p2p_choice_transition_preview',
+    'p2p_choice_transition_apply',
     'p2p_vote_status',
     'p2p_precedent_search',
     'p2p_impact_prompt',

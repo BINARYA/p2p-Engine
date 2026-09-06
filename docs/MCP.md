@@ -335,6 +335,8 @@ repository operations; they do not authorize P2P project-state mutations.
 | `p2p_governance_status` | read-only | no | no | Read governance mode and audit artifact counts. |
 | `p2p_governance_validate` | read-only | no | no | Validate governance artifacts without changing them. |
 | `p2p_choice_governance_preflight` | read-only | no | no | Preview owner-decision readiness for a choice without deciding it. |
+| `p2p_choice_transition_preview` | read-only | no | yes | Preview the one terminal `decide`, `withdraw`, or `supersede` transition. |
+| `p2p_choice_transition_apply` | consent-gated | yes | yes | Apply the exact preview using `choice_transition_apply` consent bound to `CHOICE-XXX@preview-token`. |
 | `p2p_vote_status` | read-only | no | no | Read proposal-local advisory vote counts. |
 | `p2p_precedent_search` | read-only | no | no | Search deterministic explicit precedent matches without recording precedents. |
 | `p2p_change_status` | read-only | no | no | List Change Set statuses. |
@@ -621,12 +623,17 @@ granted `proposal_decision_apply` receipt whose target is exactly
 separate. Legacy `p2p_proposal_accept`, `p2p_proposal_reject`, and
 `p2p_proposal_defer` tools are preview-only compatibility surfaces. Their old
 unbound consent receipts cannot write schema-4 events and are not consumed.
+Choice terminal transitions use the same immutable application contract as the
+CLI. MCP preview is read-only; apply requires owner-authorized evidence and a
+single-use consent bound to the Choice and exact preview token. There is no
+Choice edit, reopen or re-decide tool.
+
 It exposes neutral Work planning and read tools, but source-control and delivery
-pipeline operations are outside P2P Engine. It still does not expose choice
-decisions, spec imports, conflict recording, voting, precedent recording,
-choice blocking, provider review creation, remote registry login/pull/publish,
-or a hosted IAM model. Remote vertical-registry MCP is limited to explicit
-read-only domain and release discovery.
+pipeline operations are outside P2P Engine. It still does not expose spec
+imports, conflict recording, voting, precedent recording, choice blocking,
+provider review creation, remote registry login/pull/publish, or a hosted IAM
+model. Remote vertical-registry MCP is limited to explicit read-only domain and
+release discovery.
 
 P2P performs no provider network verification. A hosted MCP gateway must
 authenticate and authorize before constructing the context and must protect

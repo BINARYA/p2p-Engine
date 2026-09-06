@@ -8,6 +8,16 @@ tagged releases.
 
 ## Unreleased
 
+- Made Choice definitions immutable and integrity-checked, with definition-only
+  options and one write-once terminal lifecycle event.
+- Added governed, previewed, receipt-backed and atomic `decide`, `withdraw` and
+  `supersede` transitions with typed replacement lineage and deterministic
+  blocker retirement.
+- Added CLI/MCP lifecycle parity and aligned discovery, next actions,
+  registries, decision-context, vertical memory and generated agent guidance so
+  withdrawn and superseded Choices remain readable history rather than active
+  decision debt.
+
 ## 0.6.5 - 2026-09-06
 
 - Clarified that `remote-only` is a WaveKit-owned access mode with no

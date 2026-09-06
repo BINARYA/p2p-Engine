@@ -7,12 +7,11 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Mapping, Sequence
 
-
-SOURCE_CATALOG_VERSION = "decision-context-sources-v3"
+SOURCE_CATALOG_VERSION = "decision-context-sources-v4"
 SCHEMA_VERSION = "decision-context-v1"
-EXTRACTOR_VERSION = "decision-context-extractors-v4"
+EXTRACTOR_VERSION = "decision-context-extractors-v5"
 AUTHORITY_POLICY_VERSION = "decision-context-authority-v3"
-RELATION_POLICY_VERSION = "decision-context-relations-v3"
+RELATION_POLICY_VERSION = "decision-context-relations-v4"
 LEXICAL_POLICY_VERSION = "decision-context-lexical-v1"
 RETRIEVAL_POLICY_VERSION = "decision-context-retrieval-v2"
 BUDGET_POLICY_VERSION = "decision-context-budget-v1"
@@ -49,6 +48,7 @@ class SourceKind(StrEnum):
     PROJECT_CHOICE = "project_choice"
     PROJECT_CHOICE_DECISION = "project_choice_decision"
     PROJECT_CHOICE_LINKS = "project_choice_links"
+    PROJECT_CHOICE_LIFECYCLE = "project_choice_lifecycle"
     PROJECT_CONFLICTS = "project_conflicts"
     CHANGE_SET = "change_set"
     CHANGE_RELATIONS = "change_relations"

@@ -12,6 +12,13 @@ from p2p_engine.core.authority_transfer import (
     AUTHORITY_TRANSFER_PROTOCOL,
     AUTHORITY_TRANSFER_RECEIPT_CONTRACT,
 )
+from p2p_engine.core.choices import (
+    CHOICE_DEFINITION_CONTRACT,
+    CHOICE_LIFECYCLE_CONTRACT,
+    CHOICE_TERMINAL_EVENT_CONTRACT,
+    CHOICE_TRANSITION_PREVIEW_CONTRACT,
+    CHOICE_TRANSITION_RESULT_CONTRACT,
+)
 from p2p_engine.core.linked_replica import (
     LINKED_REPLICA_BINDING_CONTRACT,
     LINKED_REPLICA_CAPABILITY_CONTRACT,
@@ -118,6 +125,11 @@ def current_contract_versions() -> dict[str, object]:
         "contract_inventory_version": RELEASE_CONTRACT_INVENTORY_VERSION,
         "engine_version": __version__,
         "cli_contract_version": CLI_CONTRACT_VERSION,
+        "choice_definition_contract": CHOICE_DEFINITION_CONTRACT,
+        "choice_lifecycle_contract": CHOICE_LIFECYCLE_CONTRACT,
+        "choice_terminal_event_contract": CHOICE_TERMINAL_EVENT_CONTRACT,
+        "choice_transition_preview_contract": CHOICE_TRANSITION_PREVIEW_CONTRACT,
+        "choice_transition_result_contract": CHOICE_TRANSITION_RESULT_CONTRACT,
         "workspace_schema_version": CURRENT_WORKSPACE_SCHEMA_VERSION,
         "workspace_schema_contract_version": WORKSPACE_SCHEMA_CONTRACT_VERSION,
         "workspace_schema_policy_version": WORKSPACE_SCHEMA_POLICY_VERSION,
