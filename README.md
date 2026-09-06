@@ -2,102 +2,112 @@
 
 Turn messy project intent into versioned proposals, decisions, specs, and agent-ready context.
 
-P2P Engine is a local CLI/core/MCP toolkit for preserving structured project
-intent. It helps humans and AI agents move from rough ideas to explicit
-proposals, owner decisions, Change Sets, project rubrics, and downstream
-specification artifacts.
+P2P Engine is a local CLI/core/MCP toolkit that lets humans and AI agents
+preserve structured project intent while the owner retains decision authority.
 
-P2P Engine is an operating substrate for coding and planning agents, not a traditional developer productivity CLI. Humans remain in charge of supervision and decisions; agents use P2P to structure project intent, memory, and execution context.
+## Choose how P2P participates
 
-## Why
+Choose the governance scope before initializing the target project:
 
-Project intent is easy to lose.
+| Governance scope | Use it when | P2P authority |
+|---|---|---|
+| `primary project-definition` | The repository is dedicated to project definition, or P2P owns its complete project memory | Intent, proposals, questions, choices, decisions, constraints, readiness and project memory |
+| `bounded decision-memory` | An existing repository already has its own Development OS, ADRs, OpenSpec or delivery workflow | Only work explicitly routed to P2P by root instructions or the owner |
 
-- Discussions spread across chats, issues, branches, and notes.
-- AI agents need bounded context, not a full repository dump.
-- Decisions need traceability: who decided what, why, and what changed.
-- Downstream tools need structured project definition, not only prose.
+### Dedicated project-definition repository
 
-P2P Engine keeps the working memory of a project inside `.p2p/`. The current
-filesystem adapter is selected by a replica-local storage manifest, while CLI,
-MCP and the logical project model use a storage-neutral application boundary.
-Source-control and delivery systems may version or reference project state, but
-remain external integrations rather than P2P runtime lifecycle primitives.
+Use `primary project-definition` when the repository exists to define and
+govern a project. It may contain `.p2p/` and human-facing project documents
+without containing the implementation source. The implementation repository
+and its Git, tests, CI and releases remain separate evidence systems.
 
-That memory also has a storage-neutral canonical contract. Deterministic
-`.p2pbundle` archives move logical project state and managed blobs without
-copying replica-local state, credentials, generated integrations, or a live
-database; separately verified `.p2pbackup` archives support local recovery.
+A clean `p2p init` generates the complete P2P safety boundary. If you maintain
+the root instructions yourself, create `AGENTS.md` before initialization with a
+boundary like this; P2P will preserve it and manage only its own section after
+the explicit integration-install step.
 
-## What It Does
+<details>
+<summary>Copy-ready AGENTS.md boundary for a project-definition repository</summary>
 
-- captures rough ideas and proposal drafts;
-- creates structured proposals with goals, non-goals, acceptance criteria, and context;
-- compares alternatives through choices, conflicts, and impact prompts;
-- records owner decisions;
-- derives Change Sets from accepted proposals;
-- manages logical Work planning and handoff metadata;
-- generates compact context packets for agents;
-- assigns a stable project UUID distinct from names, paths, local replicas and remote IDs;
-- resolves exactly one writable local storage adapter per project without
-  exposing its layout to agents, CLI consumers or MCP clients;
-- transfers a standalone project to WaveKit with the same stable project UUID,
-  a resumable owner-confirmed session and a fail-closed linked-local cutover;
-- keeps linked replicas current through typed HTTP commands, immutable
-  receipts, a durable backend-neutral change feed and optional SSE wake-ups;
-- detects backend-neutral linked-replica drift before sync or mutation,
-  preserves forensic evidence, rebuilds from WaveKit authority, and can restate
-  one recognized domain intent through an owner-confirmed typed command plan;
-- governs linked-project suspend/resume, verified independent detach,
-  archive/restore, snapshot publication, local-replica removal and
-  receipt-gated remote deletion through an owner-run lifecycle client;
-- derives compact vertical-aware project memory for bounded retrieval;
-- keeps a detached project-owned structure that can be edited, retired,
-  exported as a portable vertical, or replaced from one exact release;
-- discovers portable verticals through provider-neutral registry-v2 domain
-  metadata;
-- validates P2P project state;
-- assesses project readiness and definition maturity;
-- converges owner-answered project questions into definition state through an
-  atomic preview/apply workflow;
-- prepares complete vertical-aware evidence for autonomous, multilingual human
-  project publications;
-- generates and exports project specs for downstream tools.
+```markdown
+## P2P Engine project-definition boundary
 
-## Who It Is For
+This repository is dedicated to the definition and governance of `<PROJECT>`.
+P2P Engine is the primary source of truth in this root for project intent,
+proposals, questions, choices, decisions, constraints, readiness and project
+memory.
 
-- AI coding and planning agents that need structured project memory;
-- humans supervising agent-driven project workflows;
-- solo developers using Codex, Claude, or other AI agents;
-- small technical teams that want structured project intent and decision history;
-- maintainers who want decisions and tradeoffs to remain auditable;
-- people experimenting with proposal-to-plan workflows.
+Use P2P for work that creates, changes or interprets that project definition.
+When P2P work is required, follow the generated `p2p-project` skill and
+`.p2p/agent-policy.yml`; use supported CLI or MCP primitives and never edit
+`.p2p/` directly.
 
-## Human / Agent Model
-
-Humans do not need to operate P2P Engine manually for every step. The intended model is agent-mediated: AI agents use the CLI or MCP server as a structured project cognition layer, while humans supervise outputs and make governance decisions.
-
-## Status
-
-```text
-Status: Alpha / MVP+
-Source version: 0.6.5
-Install: uv-managed user tool from the exact GitHub Release wheel
-CLI: usable
-MCP: local stdio MVP
-Hosted product: not included in this repository
-Python wheel and sdist: reproducible release automation implemented
-Standalone compiled binary: not available
-Future package target: public package registry, e.g. PyPI
+An accepted proposal records a project decision. It does not prove that source
+code was changed, tested, merged or released. Implementation source, Git, CI,
+tests and releases belong to `<IMPLEMENTATION REPOSITORY OR DELIVERY SYSTEM>`
+and require their own evidence and authorization.
 ```
 
-Current implementation includes proposal lifecycle, decisions, choices, Change Sets, Work metadata, registries, validation, compact context, rubrics, maturity assessment, spec/export MVP, and a guided init wizard.
+</details>
 
-The internal storage architecture and compatibility boundary are documented in
-[`docs/PROJECT-STORAGE-PORTS.md`](docs/PROJECT-STORAGE-PORTS.md).
-Linked replica drift, quarantine, rebuild and governed reconciliation are
-documented in
-[`docs/LINKED-REPLICA-DRIFT.md`](docs/LINKED-REPLICA-DRIFT.md).
+### Bounded service in an existing repository
+
+Use `bounded decision-memory` when P2P provides selected exploration,
+proposals, alternatives and decision history inside a repository governed by
+other root instructions. Create or update the owner-controlled `AGENTS.md`
+before running `p2p init`, then run the explicit integration-install command so
+P2P adds its delimited managed section without taking ownership of the rest.
+
+<details>
+<summary>Copy-ready AGENTS.md boundary for bounded decision memory</summary>
+
+```markdown
+## P2P Engine boundary
+
+P2P Engine is a bounded decision-memory service in this repository.
+
+Use P2P only for explicitly routed exploration, proposals, alternatives,
+questions and owner decisions. Do not start a P2P workflow merely because
+`.p2p/` or a generated P2P skill exists.
+
+These root instructions decide **when** P2P is used. When work is routed to
+P2P, the generated `p2p-project` skill and `.p2p/agent-policy.yml` define
+**how** it is performed safely. Use supported CLI or MCP primitives and never
+edit `.p2p/` directly.
+
+An accepted P2P proposal records a decision; it does not automatically require
+a P2P Change Set, P2P Work or implementation. Route accepted consequences to
+`<ADR / OPENSPEC / ISSUE TRACKER / OTHER AUTHORITY>` according to the rest of
+this repository's instructions. Do not duplicate one implementation plan in
+P2P and another specification system unless their responsibilities are
+explicitly distinct and linked.
+```
+
+</details>
+
+For a bounded local project, the complete ordering is:
+
+```text
+create the owner-controlled AGENTS.md boundary
+-> p2p init ...
+-> p2p integration install --profile standalone --agent <adapter>
+-> inspect the inserted P2P managed section
+```
+
+After an owner accepts a proposal, repository rules decide whether the result
+stays only in decision memory or is routed to an ADR, OpenSpec, an issue
+tracker, another delivery system, or a P2P Change Set. Acceptance does not
+automatically prove or initiate implementation. Do not duplicate one
+implementation plan across P2P and another specification system unless their
+responsibilities are explicitly different and linked.
+
+### Access and authority are separate
+
+Governance scope answers **what P2P governs**;
+access profile answers **where authority and access live**. Both governance
+scopes remain independent of `standalone`, `linked-local`, and `remote-only`. See
+[project integration artifacts](docs/PROJECT-INTEGRATION-ARTIFACTS.md) for the
+implemented access profiles.
 
 ## 5-Minute Agent Setup
 
@@ -242,6 +252,102 @@ Prepare emits a bounded curator packet plus exact Markdown, project-model, and
 evidence-accounting candidate paths. Import validates and atomically commits all
 three before validation, optional PDF rendering, and separate owner review. See
 [the publication workflow](docs/CLI-GUIDE.md#10-publish-human-project-editions).
+
+## Detailed capabilities
+
+### Why
+
+Project intent is easy to lose.
+
+- Discussions spread across chats, issues, branches, and notes.
+- AI agents need bounded context, not a full repository dump.
+- Decisions need traceability: who decided what, why, and what changed.
+- Downstream tools need structured project definition, not only prose.
+
+P2P Engine keeps the working memory of a project inside `.p2p/`. The current
+filesystem adapter is selected by a replica-local storage manifest, while CLI,
+MCP and the logical project model use a storage-neutral application boundary.
+Source-control and delivery systems may version or reference project state, but
+remain external integrations rather than P2P runtime lifecycle primitives.
+
+That memory also has a storage-neutral canonical contract. Deterministic
+`.p2pbundle` archives move logical project state and managed blobs without
+copying replica-local state, credentials, generated integrations, or a live
+database; separately verified `.p2pbackup` archives support local recovery.
+
+### What it does
+
+- captures rough ideas and proposal drafts;
+- creates structured proposals with goals, non-goals, acceptance criteria, and context;
+- compares alternatives through choices, conflicts, and impact prompts;
+- records owner decisions;
+- derives Change Sets from accepted proposals when that downstream lifecycle is selected;
+- manages logical Work planning and handoff metadata;
+- generates compact context packets for agents;
+- assigns a stable project UUID distinct from names, paths, local replicas and remote IDs;
+- resolves exactly one writable local storage adapter per project without
+  exposing its layout to agents, CLI consumers or MCP clients;
+- transfers a standalone project to WaveKit with the same stable project UUID,
+  a resumable owner-confirmed session and a fail-closed linked-local cutover;
+- keeps linked replicas current through typed HTTP commands, immutable
+  receipts, a durable backend-neutral change feed and optional SSE wake-ups;
+- detects backend-neutral linked-replica drift before sync or mutation,
+  preserves forensic evidence, rebuilds from WaveKit authority, and can restate
+  one recognized domain intent through an owner-confirmed typed command plan;
+- governs linked-project suspend/resume, verified independent detach,
+  archive/restore, snapshot publication, local-replica removal and
+  receipt-gated remote deletion through an owner-run lifecycle client;
+- derives compact vertical-aware project memory for bounded retrieval;
+- keeps a detached project-owned structure that can be edited, retired,
+  exported as a portable vertical, or replaced from one exact release;
+- discovers portable verticals through provider-neutral registry-v2 domain
+  metadata;
+- validates P2P project state;
+- assesses project readiness and definition maturity;
+- converges owner-answered project questions into definition state through an
+  atomic preview/apply workflow;
+- prepares complete vertical-aware evidence for autonomous, multilingual human
+  project publications;
+- generates and exports project specs for downstream tools.
+
+### Who it is for
+
+- AI coding and planning agents that need structured project memory;
+- humans supervising agent-driven project workflows;
+- solo developers using Codex, Claude, or other AI agents;
+- small technical teams that want structured project intent and decision history;
+- maintainers who want decisions and tradeoffs to remain auditable;
+- people experimenting with proposal-to-plan workflows.
+
+### Human and agent model
+
+Humans do not need to operate P2P Engine manually for every step. The intended
+model is agent-mediated: AI agents use the CLI or MCP server as a structured
+project cognition layer, while humans supervise outputs and make governance
+decisions.
+
+### Status
+
+```text
+Status: Alpha / MVP+
+Source version: 0.6.5
+Install: uv-managed user tool from the exact GitHub Release wheel
+CLI: usable
+MCP: local stdio MVP
+Hosted product: not included in this repository
+Python wheel and sdist: reproducible release automation implemented
+Standalone compiled binary: not available
+Future package target: public package registry, e.g. PyPI
+```
+
+Current implementation includes proposal lifecycle, decisions, choices,
+Change Sets, Work metadata, registries, validation, compact context, rubrics,
+maturity assessment, spec/export MVP, and a guided init wizard.
+
+The internal storage architecture and compatibility boundary are documented in
+[`docs/PROJECT-STORAGE-PORTS.md`](docs/PROJECT-STORAGE-PORTS.md). Linked replica
+drift, quarantine, rebuild and governed reconciliation are documented in
+[`docs/LINKED-REPLICA-DRIFT.md`](docs/LINKED-REPLICA-DRIFT.md).
 
 ## Install
 

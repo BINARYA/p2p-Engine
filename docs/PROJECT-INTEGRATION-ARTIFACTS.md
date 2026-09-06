@@ -4,6 +4,28 @@ P2P-managed agent instructions are regenerable runtime projections. They are
 not canonical project memory, are excluded from canonical bundles and semantic
 digests, and do not expose the selected storage adapter.
 
+## Governance Scope Is Separate From Access Profile
+
+Governance scope answers what P2P governs. `primary project-definition` makes
+P2P authoritative for project-definition state in the selected root;
+`bounded decision-memory` invokes P2P only for intents routed by
+owner-controlled root instructions or an explicit owner request.
+
+Access profile instead answers where project authority and agent access live.
+The implemented `standalone`, `linked-local` and `remote-only` profiles do not
+select, persist or imply a governance scope.
+
+For bounded use, create or update the user-owned root `AGENTS.md` boundary
+before `p2p init`. Initialization preserves the existing file. Then run
+`p2p integration install --profile standalone --agent <adapter>` so P2P adds
+its delimited managed section. Later refreshes replace only that section and
+preserve user bytes outside it. Do not edit a P2P-owned whole-file artifact and
+silently ignore the resulting drift.
+
+Generated policy and skills define how routed P2P work is performed safely.
+They do not override root instructions that decide when P2P is used, and the
+presence of `.p2p/` or a generated skill does not activate a P2P workflow.
+
 ## Implemented Access Profiles
 
 | Profile | Local memory | Agent surfaces | Authority | Current support |

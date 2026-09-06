@@ -9,11 +9,31 @@ An AI or automation actor that reads project context and may perform bounded
 work. Agents should use CLI or MCP primitives and must not edit `.p2p/` internals
 by hand.
 
+## Bounded Decision-Memory
+
+A governance scope in which root project instructions or an explicit owner
+request decide when work is routed to P2P. Generated P2P policy and skills
+define how that routed work is performed safely, but `.p2p/` does not make P2P
+the global repository governance system.
+
 ## Change Set
 
 An operational package derived from accepted project intent. A Change Set
 connects governance state to implementation planning, tasks, specs, and managed
 work metadata.
+
+## Governance Scope
+
+The owner-controlled boundary describing what P2P governs in a repository. It
+is either `primary project-definition` or `bounded decision-memory` and is
+independent of access profiles such as `standalone` and `linked-local`.
+
+## Primary Project-Definition
+
+A governance scope in which P2P is the primary authority for project intent,
+proposals, questions, choices, decisions, constraints, readiness and project
+memory in the selected root. It does not make P2P authoritative for source
+control, tests, CI, releases or implementation evidence.
 
 ## Choice
 

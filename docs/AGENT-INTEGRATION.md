@@ -17,6 +17,46 @@ Owner decides.
 Agents work in bounded sessions.
 ```
 
+## Governance Scope And Invocation
+
+P2P supports two governance scopes. `primary project-definition` makes P2P the
+primary authority for intent, proposals, questions, choices, decisions,
+constraints, readiness and project memory in the selected root. This is the
+normal choice for a repository dedicated to defining a project, even when its
+implementation lives in another repository.
+
+`bounded decision-memory` makes P2P one service inside a wider repository
+governed by root agent instructions, ADRs, OpenSpec or another Development OS.
+In this scope, finding `.p2p/` or a generated P2P skill is not enough to start a
+P2P workflow.
+
+The common rule is:
+
+```text
+Owner-controlled root instructions decide WHEN P2P is used.
+Generated P2P policy and skills define HOW P2P is used safely.
+```
+
+Once work is routed to P2P, both scopes retain the same public CLI/MCP,
+authority, consent, preview/apply, persistence and direct-edit protections.
+Governance scope is independent of the `standalone`, `linked-local` and
+`remote-only` access profiles.
+
+## Post-Decision Routing
+
+An accepted P2P proposal records an owner decision. It does not automatically
+create a P2P Change Set or Work record and does not prove implementation.
+
+After acceptance, follow the repository's root instructions to classify the
+consequence. It may remain only in decision memory or be routed to an ADR,
+current architecture, OpenSpec or another implementation specification, an
+external issue/delivery system, repository process documentation, or a P2P
+Change Set when P2P explicitly owns that downstream lifecycle.
+
+Do not represent the same implementation plan simultaneously as a P2P Change
+Set and an OpenSpec/external change unless their responsibilities are
+deliberately distinct and linked with traceability metadata.
+
 ## Start With Compact Context
 
 CLI:
@@ -603,7 +643,8 @@ structure, or write `.p2p`.
 
 ## Codex
 
-For a P2P-managed project, use the generated agent instructions:
+When root instructions or the owner route work to P2P, use the generated agent
+instructions:
 
 ```text
 AGENTS.md

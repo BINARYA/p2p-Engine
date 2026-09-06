@@ -29,7 +29,7 @@ from p2p_engine.services.agent_capabilities import (
 
 BUILT_IN_AGENT_ADAPTERS = ("generic", "codex", "claude", "cursor", "copilot", "gemini", "opencode")
 AGENT_PROFILES = {*BUILT_IN_AGENT_ADAPTERS, "all"}
-AGENT_TEMPLATE_GENERATION_ID = f"agent-template-generation-v6:{AGENT_CAPABILITY_CATALOG_VERSION}"
+AGENT_TEMPLATE_GENERATION_ID = f"agent-template-generation-v7:{AGENT_CAPABILITY_CATALOG_VERSION}"
 
 
 def normalize_agent_profile(profile: str) -> str:
@@ -585,6 +585,21 @@ def source_control_boundary_payload() -> dict[str, object]:
     }
 
 
+def invocation_policy_payload() -> dict[str, object]:
+    return {
+        "when_owner": "owner_controlled_root_instructions_or_explicit_owner_request",
+        "how_owner": "generated_p2p_policy_and_skill",
+        "p2p_presence_implies_invocation": False,
+        "governance_scope_persisted": False,
+    }
+
+
+def invocation_boundary_block() -> str:
+    return """Root project instructions or an explicit owner request decide when P2P is used.
+Generated P2P policy and skills define how routed P2P work is performed safely.
+The presence of `.p2p/` or a P2P skill does not by itself activate a P2P workflow."""
+
+
 def persistent_write_policy_block() -> str:
     write_classes = "\n".join(
         "- `{name}`: {description}; surface: `{surface}`.".format(
@@ -645,7 +660,9 @@ Routing playbook:
 
 
 def persistent_write_boundary_block() -> str:
-    return """Read `AGENTS.md` and `.p2p/agent-policy.yml` for the full write policy.
+    return f"""{invocation_boundary_block()}
+
+Read `AGENTS.md` and `.p2p/agent-policy.yml` for the full write policy.
 
 - Analyze freely when no persistent write or external side effect is performed.
 - Preview meaningful persistent writes unless the owner requested the exact operation, target, artifact kind, and durable destination.
@@ -718,6 +735,15 @@ This file is a regenerable runtime projection. It is not canonical project memor
 ## Active access profile
 
 {authority_lines}
+
+## Governance scope
+
+Governance scope is owner-controlled and independent of this access profile.
+`primary project-definition` makes P2P authoritative for project-definition
+state in this root. `bounded decision-memory` invokes P2P only for work routed
+by root project instructions or an explicit owner request. This generated guide
+defines how P2P is used safely; it does not choose or persist either governance
+scope.
 
 ## Supported entry points
 
@@ -972,6 +998,7 @@ def agent_policy(
             "direct_p2p_file_edits": "forbidden",
             "owner_controls_governance": True,
         },
+        "invocation_policy": invocation_policy_payload(),
         "project_integration": {
             "contract": PROJECT_INTEGRATION_CONTRACT,
             "access_profile": selected.profile,
@@ -1391,6 +1418,10 @@ def agents_markdown(
 
 This project uses P2P Engine.
 
+## Invocation Boundary
+
+{invocation_boundary_block()}
+
 ## Source Of Truth
 
 - Use the `p2p` CLI as the public write interface.
@@ -1578,13 +1609,14 @@ def shared_p2p_project_skill(
 ) -> str:
     return f"""---
 name: p2p-project
-description: Use when working in this P2P-managed project. Enforces P2P Engine boundaries for any compatible project skill loader.
+description: Use when root project instructions or the owner route work to P2P Engine. Enforces P2P Engine boundaries for any compatible project skill loader.
 ---
 
 {managed_markdown_header("codex", "codex-p2p-skill-v2")}\
 # P2P Project Skill - {project_name}
 
-Use P2P Engine as the source of truth for project governance and planning.
+For work routed to P2P, use P2P public primitives as the source of truth for
+P2P-governed project state.
 
 ## Required Behavior
 

@@ -3,6 +3,13 @@
 This tutorial shows the smallest useful P2P Engine loop. The goal is not to
 learn every command; it is to see why P2P Engine exists.
 
+This walkthrough intentionally uses `primary project-definition` and selects a
+P2P Change Set as its downstream planning route. In a `bounded decision-memory`
+repository, root instructions may instead stop after recording the decision or
+route it to an ADR, OpenSpec, an issue tracker or another delivery system.
+Acceptance alone never requires a P2P Change Set and never proves
+implementation. See the [README usage choice](../README.md#choose-how-p2p-participates).
+
 1. initialize a project;
 2. capture rough intent;
 3. create a proposal;

@@ -8,6 +8,20 @@ For definitions, see [GLOSSARY.md](GLOSSARY.md). Current implementation
 boundaries are documented in
 [DEVELOPMENT-GUIDELINES.md](DEVELOPMENT-GUIDELINES.md).
 
+## Governance Scope
+
+`primary project-definition` means P2P is the primary authority for project
+intent and decision memory in the selected root. A dedicated project-definition
+repository may use this scope while implementation source remains elsewhere.
+
+`bounded decision-memory` means P2P is invoked only for intents selected by the
+repository's owner-controlled root instructions or an explicit owner request.
+Generated P2P instructions remain authoritative for how those routed operations
+are performed, but do not decide when to start them.
+
+Governance scope is a repository instruction boundary, not an access profile.
+It is independent of `standalone`, `linked-local` and `remote-only`.
+
 ## The Core Loop
 
 P2P Engine preserves a project intent chain:
@@ -16,9 +30,10 @@ P2P Engine preserves a project intent chain:
 rough idea
   -> proposal
   -> owner decision
-  -> Change Set
-  -> generated registries
-  -> compact agent context
+  -> repository-controlled consequence routing
+     -> decision memory only, ADR, external specification/delivery system
+     -> or P2P Change Set when that lifecycle is explicitly selected
+  -> refreshed registries and compact agent context
 ```
 
 The engine is useful when project direction starts as conversation, notes,
@@ -120,6 +135,8 @@ A proposal is a structured candidate direction. It usually records:
 - acceptance criteria.
 
 Proposals start as drafts. The owner can accept, reject, or defer them.
+Acceptance records a decision; it does not automatically create a Change Set,
+Work, implementation or release.
 
 ## Decision
 

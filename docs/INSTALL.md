@@ -250,6 +250,15 @@ The target project is the project where `.p2p/` state, generated agent
 instructions, proposals, decisions, Change Sets, and exports live. It does not
 need to contain the P2P runtime or a `.venv`.
 
+Before initialization, choose the governance scope described in the
+[README](../README.md#choose-how-p2p-participates). A clean repository dedicated
+to project definition can use the generated full instruction boundary. For
+`bounded decision-memory` inside an existing repository, create the
+owner-controlled root `AGENTS.md` boundary before `p2p init`, then run
+`p2p integration install --profile standalone --agent <adapter>` to add P2P's
+managed section. Root instructions decide when P2P is used; generated policy
+and skills define how routed P2P work is performed safely.
+
 Run the guided wizard:
 
 ```bash
