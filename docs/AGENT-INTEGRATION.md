@@ -343,7 +343,7 @@ and can be prepared by an agent or collaborator:
 ```bash
 p2p runtime contract preview \
   --requires ">=0.6.0,<0.7.0" \
-  --recommended "0.6.5" \
+  --recommended "0.6.6" \
   --reason "Allow compatible 0.6 releases." \
   --format json
 ```

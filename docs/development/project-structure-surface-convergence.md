@@ -1,6 +1,6 @@
 # Project Structure Surface Convergence
 
-This is the P2P Engine 0.6.5 release-gate note for converging the project-owned
+This is the P2P Engine 0.6.6 release-gate note for converging the project-owned
 structure surfaces after authority, domain, memory classification, readiness,
 registry-v2 discovery, structure export and structure replacement landed.
 
@@ -14,7 +14,7 @@ fixture bundle lives at
 `p2p version --format json`, `p2p status --format json` and
 `p2p_workspace_schema_status` expose the same contract tuple:
 
-- P2P Engine `0.6.5`
+- P2P Engine `0.6.6`
 - CLI envelope `p2p-cli/v1`
 - workspace schema 4
 - portable vertical schema 3 and package format 1
@@ -88,7 +88,7 @@ fallback in the runtime catalog client.
 
 ## Release Notes And Resources
 
-The release notes state that P2P Engine 0.6.5 preserves the clean boundary:
+The release notes state that P2P Engine 0.6.6 preserves the clean boundary:
 workspace schema 4 and portable vertical schema 3 only. It does not provide in-runtime
 migration, conversion or compatibility aliases for older workspace or vertical
 schemas.

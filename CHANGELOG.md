@@ -8,6 +8,8 @@ tagged releases.
 
 ## Unreleased
 
+## 0.6.6 - 2026-09-06
+
 - Made Choice definitions immutable and integrity-checked, with definition-only
   options and one write-once terminal lifecycle event.
 - Added governed, previewed, receipt-backed and atomic `decide`, `withdraw` and

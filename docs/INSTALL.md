@@ -10,7 +10,7 @@ separate from the normal new-project setup.
 Current status:
 
 ```text
-Source checkout: 0.6.5.
+Source checkout: 0.6.6.
 Recommended local manager: uv 0.12.6 with uv-managed CPython 3.12.
 Supported distribution: exact .whl files attached to GitHub Releases.
 Qualified systems: Linux, macOS and Windows x86-64; macOS ARM64.
@@ -54,7 +54,7 @@ Install P2P Engine as an isolated user tool from the exact GitHub Release wheel:
 
 ```bash
 uv tool install --managed-python --python 3.12 --no-config \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.5/p2p_engine-0.6.5-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.6/p2p_engine-0.6.6-py3-none-any.whl
 ```
 
 The same command works in Windows PowerShell on one line. uv creates its tool
@@ -81,10 +81,10 @@ Attestation:
 
 ```bash
 sha256sum --check --ignore-missing SHA256SUMS
-gh attestation verify p2p_engine-0.6.5-py3-none-any.whl \
+gh attestation verify p2p_engine-0.6.6-py3-none-any.whl \
   --repo BINARYA/p2p-Engine
 uv tool install --managed-python --python 3.12 --no-config \
-  ./p2p_engine-0.6.5-py3-none-any.whl
+  ./p2p_engine-0.6.6-py3-none-any.whl
 ```
 
 TLS protects transport, SHA-256 detects changed bytes, and the attestation
@@ -98,9 +98,9 @@ One persistent uv tool exposes one active P2P Engine version for the `p2p`
 entry point. Name every target version and reuse the canonical URL form:
 
 ```bash
-# Idempotent replacement/reinstall of 0.6.5
+# Idempotent replacement/reinstall of 0.6.6
 uv tool install --managed-python --python 3.12 --no-config --force \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.5/p2p_engine-0.6.5-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.6/p2p_engine-0.6.6-py3-none-any.whl
 
 # Upgrade or downgrade: replace both occurrences with the exact published version
 uv tool install --managed-python --python 3.12 --no-config --force \
@@ -125,11 +125,11 @@ on-demand environment:
 
 ```bash
 uvx --isolated --managed-python --python 3.12 --no-config \
-  --from https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.5/p2p_engine-0.6.5-py3-none-any.whl \
+  --from https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.6/p2p_engine-0.6.6-py3-none-any.whl \
   p2p runtime status --root /path/to/project
 
 uvx --isolated --managed-python --python 3.12 --no-config \
-  --from https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.5/p2p_engine-0.6.5-py3-none-any.whl \
+  --from https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.6/p2p_engine-0.6.6-py3-none-any.whl \
   p2p-mcp-server --root /path/to/project
 ```
 
@@ -180,11 +180,11 @@ cd my-project
 python3 -m venv .venv
 ```
 
-Install the published 0.6.5 wheel from GitHub Releases:
+Install the published 0.6.6 wheel from GitHub Releases:
 
 ```bash
 .venv/bin/python -m pip install \
-  https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.5/p2p_engine-0.6.5-py3-none-any.whl
+  https://github.com/BINARYA/p2p-Engine/releases/download/v0.6.6/p2p_engine-0.6.6-py3-none-any.whl
 ```
 
 The wheel filename follows:
@@ -381,7 +381,7 @@ p2p validate
 This upgrades the installed engine runtime. It does not inspect, pull, merge or
 otherwise modify a source repository.
 
-P2P Engine 0.6.5 preserves the clean runtime boundary established in 0.5.0: it supports
+P2P Engine 0.6.6 preserves the clean runtime boundary established in 0.5.0: it supports
 workspace schema 4 and portable vertical schema 3 only. It does not provide
 in-runtime migration, conversion or compatibility aliases for older workspace
 or vertical schemas; recreate or externally convert older development
@@ -401,7 +401,7 @@ release workflow and supplies the exact version:
 ```bash
 gh workflow run release.yml \
   --ref main \
-  -f version=0.6.5
+  -f version=0.6.6
 ```
 
 The workflow refuses execution from a branch other than `main`. It derives one
@@ -455,7 +455,7 @@ must still pass the create-only on-demand workflow. For example, the candidate
 set is:
 
 ```text
-v0.6.5 -> p2p_engine-0.6.5-py3-none-any.whl, p2p_engine-0.6.5.tar.gz, SHA256SUMS
+v0.6.6 -> p2p_engine-0.6.6-py3-none-any.whl, p2p_engine-0.6.6.tar.gz, SHA256SUMS
 ```
 
 ## Connect An Agent
@@ -874,7 +874,7 @@ p2p assess refresh
 - P2P Engine is distributed as a Python wheel and source distribution; a
   standalone compiled executable and public package-registry publication are
   not available yet.
-- The current supported release is 0.6.5; normal users should install its
+- The current supported release is 0.6.6; normal users should install its
   published wheel rather than depend on a source checkout.
 - MCP support is local stdio. Privileged write operations are available only
   through explicit permission-gated tools.
