@@ -330,8 +330,8 @@ repository operations; they do not authorize P2P project-state mutations.
 | `p2p_proposal_decision_projection_repair_apply` | consent-gated | yes | yes | Restore projections from a valid ledger and matching preview. |
 | `p2p_proposal_decision_ledger_repair_preview` | read-only | no | yes | Preview a reviewed ledger candidate that preserves the valid prefix. |
 | `p2p_proposal_decision_ledger_repair_apply` | consent-gated | yes | yes | Apply the reviewed ledger candidate and matching preview. |
-| `p2p_choice_list` | read-only | no | no | List project choices. |
-| `p2p_choice_show` | read-only | no | no | Inspect one choice. |
+| `p2p_choice_list` | read-only | no | no | Read a bounded `p2p-choice-list/v1` page. |
+| `p2p_choice_show` | read-only | no | no | Read one `p2p-choice-detail/v1` projection with bounded relations. |
 | `p2p_governance_status` | read-only | no | no | Read governance mode and audit artifact counts. |
 | `p2p_governance_validate` | read-only | no | no | Validate governance artifacts without changing them. |
 | `p2p_choice_governance_preflight` | read-only | no | no | Preview owner-decision readiness for a choice without deciding it. |
@@ -627,6 +627,17 @@ Choice terminal transitions use the same immutable application contract as the
 CLI. MCP preview is read-only; apply requires owner-authorized evidence and a
 single-use consent bound to the Choice and exact preview token. There is no
 Choice edit, reopen or re-decide tool.
+
+`p2p_choice_list` and `p2p_choice_show` accept `limit` (`1..100`, default `50`)
+and non-negative `offset`. Their normative results are `choice_list` with
+contract `p2p-choice-list/v1` and `choice_detail` with contract
+`p2p-choice-detail/v1`. These projections share the application read model
+used by CLI JSON, contain no physical path and never mutate project state.
+The old `choices` and `choice` result keys remain deprecated compatibility
+aliases for existing MCP clients; new integrations must use the versioned
+keys. Do not parse `.p2p/choices/**` as a fallback. Proposal decisions remain
+a separate lifecycle, and a WaveKit release must independently qualify and
+authorize any product integration of these reads.
 
 It exposes neutral Work planning and read tools, but source-control and delivery
 pipeline operations are outside P2P Engine. It still does not expose spec

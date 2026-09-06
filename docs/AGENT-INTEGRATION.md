@@ -49,6 +49,14 @@ the governed preview/apply lifecycle commands for `decide`, `withdraw`, or
 as terminal history. Proposal lifecycle is independent and must be managed
 explicitly.
 
+Read Choice state with `p2p choice list --format json` and
+`p2p choice show CHOICE-XXX --format json`, or the equivalent MCP tools. The
+versioned `p2p-choice-list/v1` and `p2p-choice-detail/v1` projections default
+to 50 items, accept at most 100, and expose continuation metadata. They are the
+semantic integration surface and contain no physical path. Agents must never
+parse `.p2p/choices/**` as a fallback. Enabling the same reads in WaveKit still
+requires that product to qualify and authorize its own integration.
+
 ## Post-Decision Routing
 
 An accepted P2P proposal records an owner decision. It does not automatically

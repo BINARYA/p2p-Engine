@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 import signal
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 import pytest
 
 from p2p_engine import __version__
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -120,11 +119,15 @@ def test_installed_test_script_owns_isolation_and_removes_pythonpath() -> None:
         "install-failure",
         "missing-dependency",
         "malformed-cli-json",
+        "invalid-choice-read",
         "mcp-timeout",
         "git-invocation",
         "interrupted-smoke",
     ):
         assert failure_mode in script
+    assert '"--invalid-choice-read-option"' in script
+    assert 'data_contract="p2p-choice-list/v1"' in script
+    assert 'data_contract="p2p-choice-detail/v1"' in script
 
 
 @pytest.mark.adapter

@@ -4,6 +4,12 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from p2p_engine.core.choice_reads import (
+    CHOICE_DETAIL_CONTRACT,
+    CHOICE_LIST_CONTRACT,
+    CHOICE_READ_DEFAULT_LIMIT,
+    CHOICE_READ_MAX_LIMIT,
+)
 from p2p_engine.core.interaction_style import (
     ASSERTIVENESS,
     FORMALITY,
@@ -803,7 +809,12 @@ Choice definitions are immutable after creation. Never edit `.p2p/choices/**`
 or rewrite a selected option. An open Choice may receive exactly one governed
 terminal transition: decided, withdrawn, or superseded. If new evidence changes
 the frame, create a new Choice and optionally supersede the old one. Proposal
-lifecycle remains separate."""
+lifecycle remains separate.
+
+Read Choices through `p2p choice list --format json` and
+`p2p choice show CHOICE-XXX --format json`, or the equivalent MCP tools. These
+are bounded semantic contracts; never parse `.p2p/choices/**` as an integration
+fallback."""
 
 
 LINKED_PROJECT_LIFECYCLE_GUIDANCE_BLOCK = """A linked project remains
@@ -1119,10 +1130,28 @@ def agent_policy(
             "uses_p2p_cli_v1_envelope": False,
             "wavekit_worker_retry_boundary": "cli_json_operation_key",
         },
+        "choice_read_contracts": {
+            "list_contract": CHOICE_LIST_CONTRACT,
+            "detail_contract": CHOICE_DETAIL_CONTRACT,
+            "list_command": "p2p choice list --format json",
+            "detail_command": "p2p choice show CHOICE-XXX --format json",
+            "mcp_list_tool": "p2p_choice_list",
+            "mcp_detail_tool": "p2p_choice_show",
+            "default_limit": CHOICE_READ_DEFAULT_LIMIT,
+            "maximum_limit": CHOICE_READ_MAX_LIMIT,
+            "minimum_limit": 1,
+            "minimum_offset": 0,
+            "semantic_payload_exposes_physical_path": False,
+            "direct_choice_file_fallback": "forbidden",
+            "proposal_lifecycle_is_separate": True,
+            "definition_mutability": "immutable",
+        },
         "source_control_boundary": source_control_boundary_payload(),
         "wavekit_cli_worker_contract": {
             "transport": "cli_json",
             "contract_version": "p2p-cli/v1",
+            "choice_list_contract": CHOICE_LIST_CONTRACT,
+            "choice_detail_contract": CHOICE_DETAIL_CONTRACT,
             "mcp_stdio_transport": "agent_tool_surface_not_worker_retry_boundary",
             "operation_key_format": "wavekit:<uuid>",
             "raw_operation_key_in_status_output": False,

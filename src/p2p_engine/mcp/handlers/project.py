@@ -581,9 +581,24 @@ def handle_project_tool(
         limit = int(top) if top is not None else None
         return {"next_actions": to_jsonable(workspace.next_actions(limit=limit))}
     if name == "p2p_choice_list":
-        return {"choices": to_jsonable(workspace.choice_statuses())}
+        bundle = workspace.choice_list_read_bundle(
+            limit=int(arguments.get("limit", 50)),
+            offset=int(arguments.get("offset", 0)),
+        )
+        return {
+            "choice_list": bundle.semantic.to_dict(),
+            "choices": to_jsonable(bundle.compatibility),
+        }
     if name == "p2p_choice_show":
-        return {"choice": to_jsonable(workspace.show_choice(required(arguments, "choice_id")))}
+        bundle = workspace.choice_detail_read_bundle(
+            required(arguments, "choice_id"),
+            limit=int(arguments.get("limit", 50)),
+            offset=int(arguments.get("offset", 0)),
+        )
+        return {
+            "choice_detail": bundle.semantic.to_dict(),
+            "choice": to_jsonable(bundle.compatibility),
+        }
     if name == "p2p_registry_status":
         return {"registry_status": to_jsonable(workspace.registry_status())}
     if name == "p2p_registry_show":

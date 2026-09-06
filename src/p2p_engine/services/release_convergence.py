@@ -19,6 +19,8 @@ WAVEKIT_CLI_FIXTURE_BUNDLE_CONTRACT = "p2p-wavekit-cli-fixtures/v1"
 WAVEKIT_CLI_FIXTURE_RESOURCE = "wavekit-cli-fixtures-v1.json"
 RELEASE_LINE = "0.6.6"
 SUPPORTED_RELEASE_PYTHONS = ("3.12",)
+CHOICE_LIST_JSON_COMMAND = "p2p choice list --format json"
+CHOICE_SHOW_JSON_COMMAND = "p2p choice show CHOICE-XXX --format json"
 
 
 @dataclass(frozen=True)
@@ -448,6 +450,28 @@ def operation_traceability_inventory() -> tuple[OperationTrace, ...]:
         ),
         OperationTrace(
             requirement_group="P1 decisions",
+            operation="choice.read",
+            cli_paths=(
+                "p2p choice list",
+                "p2p choice show",
+            ),
+            mcp_tools=(
+                "p2p_choice_list",
+                "p2p_choice_show",
+            ),
+            capability="read_only",
+            authority_context="not_required_read_only",
+            receipt_evidence="not_applicable",
+            mcp_parity="same_versioned_semantic_projection_with_deprecated_aliases",
+            hosted_boundary=(
+                "Choice reads expose project-domain memory only; WaveKit must "
+                "independently qualify and authorize its product integration."
+            ),
+            fixture_group="choice_reads",
+            tests=("tests/test_choice_read_contracts.py",),
+        ),
+        OperationTrace(
+            requirement_group="P1 decisions",
             operation="proposal.decide",
             cli_paths=(
                 "p2p decision preview",
@@ -795,6 +819,7 @@ def wavekit_cli_fixture_bundle() -> dict[str, object]:
             ],
         },
     ]
+    qualification_cases = _choice_read_qualification_cases()
     payload: dict[str, object] = {
         "contract_version": WAVEKIT_CLI_FIXTURE_BUNDLE_CONTRACT,
         "engine_version": __version__,
@@ -844,6 +869,19 @@ def wavekit_cli_fixture_bundle() -> dict[str, object]:
             "no_secrets_or_tokens": True,
         },
         "command_groups": command_groups,
+        "qualification_policy": {
+            "contract": "p2p-command-qualification/v1",
+            "inventory_alone_authorizes_execution": False,
+            "argv_arrays_only": True,
+            "shell_execution": False,
+            "unknown_placeholders_rejected": True,
+            "downstream_independent_qualification_required": True,
+        },
+        "command_qualifications": _command_qualification_inventory(
+            command_groups,
+            qualification_cases,
+        ),
+        "qualification_cases": qualification_cases,
         "operation_inventory_sha256": _sha256(
             [trace.to_dict() for trace in operation_traceability_inventory()]
         ),
@@ -878,6 +916,146 @@ def fixture_commands(payload: dict[str, object]) -> tuple[str, ...]:
         if isinstance(entries, list):
             commands.extend(str(item) for item in entries)
     return tuple(commands)
+
+
+def _choice_read_qualification_cases() -> list[dict[str, object]]:
+    return [
+        _qualification_case(
+            "choice-list-empty-v1",
+            CHOICE_LIST_JSON_COMMAND,
+            "choice-empty",
+            [
+                "choice", "list", "--limit", "50", "--offset", "0",
+                "--format", "json", "--root", "{project}",
+            ],
+            operation="choice.list",
+            data_key="choice_list",
+            data_contract="p2p-choice-list/v1",
+        ),
+        _qualification_case(
+            "choice-list-populated-v1",
+            CHOICE_LIST_JSON_COMMAND,
+            "choice-lifecycle-representative",
+            [
+                "choice", "list", "--limit", "50", "--offset", "0",
+                "--format", "json", "--root", "{project}",
+            ],
+            operation="choice.list",
+            data_key="choice_list",
+            data_contract="p2p-choice-list/v1",
+        ),
+        _qualification_case(
+            "choice-list-page-v1",
+            CHOICE_LIST_JSON_COMMAND,
+            "choice-lifecycle-representative",
+            [
+                "choice", "list", "--limit", "1", "--offset", "1",
+                "--format", "json", "--root", "{project}",
+            ],
+            operation="choice.list",
+            data_key="choice_list",
+            data_contract="p2p-choice-list/v1",
+        ),
+        *[
+            _qualification_case(
+                f"choice-show-{state}-v1",
+                CHOICE_SHOW_JSON_COMMAND,
+                "choice-lifecycle-representative",
+                [
+                    "choice", "show", choice_id, "--limit", "50", "--offset", "0",
+                    "--format", "json", "--root", "{project}",
+                ],
+                operation="choice.show",
+                data_key="choice_detail",
+                data_contract="p2p-choice-detail/v1",
+            )
+            for state, choice_id in (
+                ("open", "CHOICE-001"),
+                ("decided", "CHOICE-002"),
+                ("withdrawn", "CHOICE-003"),
+                ("superseded", "CHOICE-004"),
+            )
+        ],
+        _qualification_case(
+            "choice-show-missing-v1",
+            CHOICE_SHOW_JSON_COMMAND,
+            "choice-lifecycle-representative",
+            [
+                "choice", "show", "CHOICE-999", "--format", "json",
+                "--root", "{project}",
+            ],
+            operation="choice.show",
+            data_key=None,
+            data_contract=None,
+            expected_codes=[2],
+            expected_ok=False,
+            error_code="P2P_CHOICE_NOT_FOUND",
+        ),
+    ]
+
+
+def _qualification_case(
+    case_id: str,
+    command_signature: str,
+    fixture: str,
+    argv: list[str],
+    *,
+    operation: str,
+    data_key: str | None,
+    data_contract: str | None,
+    expected_codes: list[int] | None = None,
+    expected_ok: bool = True,
+    error_code: str | None = None,
+) -> dict[str, object]:
+    return {
+        "id": case_id,
+        "command_signature": command_signature,
+        "qualification": "installed_execution",
+        "fixture": fixture,
+        "argv": argv,
+        "expected": {
+            "exit_codes": list(expected_codes or [0]),
+            "cli_contract": "p2p-cli/v1",
+            "operation": operation,
+            "ok": expected_ok,
+            "data_key": data_key,
+            "data_contract": data_contract,
+            "error_code": error_code,
+        },
+    }
+
+
+def _command_qualification_inventory(
+    command_groups: list[dict[str, object]],
+    qualification_cases: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    cases_by_command: dict[str, list[str]] = {}
+    for case in qualification_cases:
+        signature = str(case["command_signature"])
+        cases_by_command.setdefault(signature, []).append(str(case["id"]))
+    result: list[dict[str, object]] = []
+    for group in command_groups:
+        group_name = str(group["group"])
+        commands = group.get("commands", [])
+        if not isinstance(commands, list):
+            continue
+        for raw_command in commands:
+            command = str(raw_command)
+            evidence = cases_by_command.get(command, [])
+            result.append(
+                {
+                    "command": command,
+                    "group": group_name,
+                    "classification": (
+                        "installed_execution"
+                        if evidence
+                        else "downstream_independent_qualification"
+                    ),
+                    "evidence_case_ids": evidence,
+                    "authorizes_downstream_execution": False,
+                }
+            )
+    return result
 
 
 def validate_wavekit_cli_fixture_bundle(
@@ -995,6 +1173,7 @@ def validate_wavekit_cli_fixture_bundle(
         )
     for command in fixture_commands(payload):
         issues.extend(_fixture_sanitization_issues(command))
+    issues.extend(_fixture_qualification_issues(payload))
     required = {
         "p2p version --format json",
         "p2p status --format json",
@@ -1013,6 +1192,8 @@ def validate_wavekit_cli_fixture_bundle(
         "p2p drift status --root WORKSPACE --format json",
         "p2p drift diff --root WORKSPACE --format json",
         "p2p reconcile preview --root WORKSPACE --format json",
+        CHOICE_LIST_JSON_COMMAND,
+        CHOICE_SHOW_JSON_COMMAND,
     }
     missing = sorted(required - set(fixture_commands(payload)))
     for command in missing:
@@ -1021,6 +1202,184 @@ def validate_wavekit_cli_fixture_bundle(
                 "P2P_CONVERGENCE_FIXTURE_COMMAND_MISSING",
                 command,
                 "Fixture bundle is missing a required worker command.",
+            )
+        )
+    return tuple(issues)
+
+
+def _fixture_qualification_issues(
+    payload: dict[str, object],
+) -> tuple[ConvergenceIssue, ...]:
+    issues: list[ConvergenceIssue] = []
+    policy = payload.get("qualification_policy")
+    if not isinstance(policy, dict) or policy != {
+        "contract": "p2p-command-qualification/v1",
+        "inventory_alone_authorizes_execution": False,
+        "argv_arrays_only": True,
+        "shell_execution": False,
+        "unknown_placeholders_rejected": True,
+        "downstream_independent_qualification_required": True,
+    }:
+        issues.append(
+            ConvergenceIssue(
+                "P2P_CONVERGENCE_QUALIFICATION_POLICY",
+                "qualification_policy",
+                "Fixture qualification policy is missing or unsafe.",
+            )
+        )
+    commands = fixture_commands(payload)
+    qualifications = payload.get("command_qualifications")
+    if not isinstance(qualifications, list):
+        return tuple(
+            [
+                *issues,
+                ConvergenceIssue(
+                    "P2P_CONVERGENCE_COMMAND_QUALIFICATION_MISSING",
+                    "command_qualifications",
+                    "Every advertised command requires an explicit qualification classification.",
+                ),
+            ]
+        )
+    qualified_commands: list[str] = []
+    referenced_cases: set[str] = set()
+    for item in qualifications:
+        if not isinstance(item, dict):
+            issues.append(
+                ConvergenceIssue(
+                    "P2P_CONVERGENCE_COMMAND_QUALIFICATION_INVALID",
+                    "command_qualifications",
+                    "Command qualification entries must be objects.",
+                )
+            )
+            continue
+        command = str(item.get("command") or "")
+        classification = str(item.get("classification") or "")
+        qualified_commands.append(command)
+        if classification not in {
+            "installed_execution",
+            "downstream_independent_qualification",
+        }:
+            issues.append(
+                ConvergenceIssue(
+                    "P2P_CONVERGENCE_COMMAND_QUALIFICATION_INVALID",
+                    command,
+                    "Command qualification classification is unsupported.",
+                )
+            )
+        if item.get("authorizes_downstream_execution") is not False:
+            issues.append(
+                ConvergenceIssue(
+                    "P2P_CONVERGENCE_COMMAND_AUTHORITY_INVALID",
+                    command,
+                    "Packaged inventory must never authorize downstream execution by itself.",
+                )
+            )
+        evidence = item.get("evidence_case_ids")
+        if not isinstance(evidence, list):
+            issues.append(
+                ConvergenceIssue(
+                    "P2P_CONVERGENCE_COMMAND_EVIDENCE_INVALID",
+                    command,
+                    "Command evidence_case_ids must be an array.",
+                )
+            )
+            continue
+        referenced_cases.update(str(case_id) for case_id in evidence)
+        if classification == "installed_execution" and not evidence:
+            issues.append(
+                ConvergenceIssue(
+                    "P2P_CONVERGENCE_COMMAND_EVIDENCE_MISSING",
+                    command,
+                    "Installed-execution classification requires at least one case.",
+                )
+            )
+    if tuple(qualified_commands) != commands:
+        issues.append(
+            ConvergenceIssue(
+                "P2P_CONVERGENCE_COMMAND_QUALIFICATION_COVERAGE",
+                "command_qualifications",
+                "Qualification inventory must cover every command exactly once and in order.",
+            )
+        )
+
+    cases = payload.get("qualification_cases")
+    if not isinstance(cases, list):
+        issues.append(
+            ConvergenceIssue(
+                "P2P_CONVERGENCE_QUALIFICATION_CASES_MISSING",
+                "qualification_cases",
+                "Fixture qualification cases are missing.",
+            )
+        )
+        return tuple(issues)
+    case_ids: set[str] = set()
+    allowed_placeholder = "{project}"
+    for case in cases:
+        if not isinstance(case, dict):
+            issues.append(
+                ConvergenceIssue(
+                    "P2P_CONVERGENCE_QUALIFICATION_CASE_INVALID",
+                    "qualification_cases",
+                    "Qualification cases must be objects.",
+                )
+            )
+            continue
+        case_id = str(case.get("id") or "")
+        if not case_id or case_id in case_ids:
+            issues.append(
+                ConvergenceIssue(
+                    "P2P_CONVERGENCE_QUALIFICATION_CASE_ID",
+                    case_id or "qualification_cases",
+                    "Qualification case IDs must be non-empty and unique.",
+                )
+            )
+        case_ids.add(case_id)
+        argv = case.get("argv")
+        if not isinstance(argv, list) or not argv or not all(
+            isinstance(argument, str) and argument for argument in argv
+        ):
+            issues.append(
+                ConvergenceIssue(
+                    "P2P_CONVERGENCE_QUALIFICATION_ARGV",
+                    case_id,
+                    "Qualification argv must be a non-empty string array.",
+                )
+            )
+            continue
+        for argument in argv:
+            if "{" in argument or "}" in argument:
+                if argument != allowed_placeholder:
+                    issues.append(
+                        ConvergenceIssue(
+                            "P2P_CONVERGENCE_QUALIFICATION_PLACEHOLDER",
+                            case_id,
+                            "Qualification argv contains an unknown placeholder.",
+                        )
+                    )
+    if not referenced_cases.issubset(case_ids):
+        issues.append(
+            ConvergenceIssue(
+                "P2P_CONVERGENCE_COMMAND_EVIDENCE_UNKNOWN",
+                "command_qualifications",
+                "Command qualification references an unknown case ID.",
+            )
+        )
+    required_cases = {
+        "choice-list-empty-v1",
+        "choice-list-populated-v1",
+        "choice-list-page-v1",
+        "choice-show-open-v1",
+        "choice-show-decided-v1",
+        "choice-show-withdrawn-v1",
+        "choice-show-superseded-v1",
+        "choice-show-missing-v1",
+    }
+    for case_id in sorted(required_cases - case_ids):
+        issues.append(
+            ConvergenceIssue(
+                "P2P_CONVERGENCE_CHOICE_QUALIFICATION_MISSING",
+                case_id,
+                "Choice read qualification case is missing.",
             )
         )
     return tuple(issues)

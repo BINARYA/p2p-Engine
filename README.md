@@ -344,6 +344,14 @@ Current implementation includes proposal lifecycle, decisions, choices,
 Change Sets, Work metadata, registries, validation, compact context, rubrics,
 maturity assessment, spec/export MVP, and a guided init wizard.
 
+Choice browsing has two bounded, machine-readable contracts:
+`p2p choice list --format json` returns `p2p-choice-list/v1`, and
+`p2p choice show CHOICE-XXX --format json` returns
+`p2p-choice-detail/v1`. Both default to a limit of 50 (maximum 100), expose no
+physical storage path, and are also available through the corresponding MCP
+read tools. Choice definitions remain immutable; proposal decisions are a
+separate lifecycle.
+
 The internal storage architecture and compatibility boundary are documented in
 [`docs/PROJECT-STORAGE-PORTS.md`](docs/PROJECT-STORAGE-PORTS.md). Linked replica
 drift, quarantine, rebuild and governed reconciliation are documented in

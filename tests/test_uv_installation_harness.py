@@ -82,6 +82,110 @@ def test_harness_project_digest_tracks_names_and_bytes(tmp_path: Path) -> None:
     assert MODULE.project_digest(project) != initial
 
 
+def test_choice_qualification_rejects_wrong_nested_contract() -> None:
+    payload = {
+        "contract_version": "p2p-cli/v1",
+        "ok": True,
+        "operation": "choice.list",
+        "data": {
+            "choice_list": {
+                "contract": "p2p-choice-list/broken",
+                "items": [],
+                "page": {},
+            }
+        },
+    }
+
+    with pytest.raises(AssertionError):
+        MODULE.assert_choice_read_payload(
+            payload,
+            operation="choice.list",
+            data_key="choice_list",
+            data_contract="p2p-choice-list/v1",
+        )
+
+
+def test_choice_qualification_substitution_is_argv_only_and_confined(
+    tmp_path: Path,
+) -> None:
+    isolated = tmp_path / "isolated"
+    project = isolated / "project"
+    project.mkdir(parents=True)
+
+    assert MODULE.qualification_argv(
+        {"argv": ["choice", "list", "--root", "{project}"]},
+        project=project,
+        isolated_root=isolated,
+    ) == ["choice", "list", "--root", str(project.resolve())]
+    with pytest.raises(ValueError, match="unknown qualification placeholder"):
+        MODULE.qualification_argv(
+            {"argv": ["choice", "show", "{choice_id}"]},
+            project=project,
+            isolated_root=isolated,
+        )
+    with pytest.raises(ValueError, match="embedded absolute paths"):
+        MODULE.qualification_argv(
+            {"argv": ["choice", "list", "/untrusted/root"]},
+            project=project,
+            isolated_root=isolated,
+        )
+    with pytest.raises(ValueError, match="inside the isolated root"):
+        MODULE.qualification_argv(
+            {"argv": ["choice", "list"]},
+            project=tmp_path / "outside",
+            isolated_root=isolated,
+        )
+
+
+def test_choice_qualification_fails_on_an_unadvertised_option(tmp_path: Path) -> None:
+    isolated = tmp_path / "isolated"
+    isolated.mkdir()
+    layout = MODULE.make_layout(isolated)
+    fake_p2p = isolated / "fake_p2p.py"
+    fake_p2p.write_text(
+        "import json, sys\n"
+        "assert '--invalid-choice-read-option' in sys.argv\n"
+        "print(json.dumps({'contract_version': 'p2p-cli/v1', 'ok': False, "
+        "'operation': 'choice.list', 'data': None, 'warnings': [], "
+        "'error': {'code': 'P2P_CLI_INVALID_REQUEST', 'message': 'bad', "
+        "'details': {}}}))\n"
+        "raise SystemExit(2)\n",
+        encoding="utf-8",
+    )
+    harness = MODULE.Harness(
+        uv="uv",
+        python_request="3.12",
+        layout=layout,
+        source_root=tmp_path,
+    )
+    case = {
+        "qualification": "installed_execution",
+        "argv": [
+            "choice",
+            "list",
+            "--invalid-choice-read-option",
+            "--root",
+            "{project}",
+        ],
+        "expected": {
+            "exit_codes": [0],
+            "cli_contract": "p2p-cli/v1",
+            "operation": "choice.list",
+            "ok": True,
+            "data_key": "choice_list",
+            "data_contract": "p2p-choice-list/v1",
+            "error_code": None,
+        },
+    }
+
+    with pytest.raises(AssertionError, match='"returncode": 2'):
+        harness.run_choice_qualification_case(
+            p2p=[sys.executable, str(fake_p2p)],
+            project=layout.project,
+            case=case,
+        )
+
+
 def test_github_failure_annotation_is_multiline_safe(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

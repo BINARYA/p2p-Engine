@@ -29,7 +29,7 @@ done
 python_bin="${PYTHON_BIN:-python3}"
 failure_mode="${P2P_TEST_FAILURE_MODE:-none}"
 case "$failure_mode" in
-  none|install-failure|missing-dependency|malformed-cli-json|mcp-timeout|git-invocation|interrupted-smoke) ;;
+  none|install-failure|missing-dependency|malformed-cli-json|invalid-choice-read|mcp-timeout|git-invocation|interrupted-smoke) ;;
   *)
     printf 'unsupported P2P_TEST_FAILURE_MODE: %s\n' "$failure_mode" >&2
     exit 2
@@ -214,6 +214,49 @@ def run_text(*args: str) -> str:
         raise AssertionError((args, completed.returncode, completed.stdout, completed.stderr))
     return completed.stdout
 
+def assert_choice_read(
+    payload: dict[str, object],
+    *,
+    operation: str,
+    data_key: str,
+    data_contract: str,
+) -> dict[str, object]:
+    assert payload["contract_version"] == "p2p-cli/v1", payload
+    assert payload["ok"] is True, payload
+    assert payload["operation"] == operation, payload
+    data = payload["data"]
+    assert isinstance(data, dict), payload
+    result = data.get(data_key)
+    assert isinstance(result, dict), payload
+    assert result.get("contract") == data_contract, payload
+    return result
+
+def apply_choice_transition(
+    project: Path,
+    choice_id: str,
+    transition: str,
+    operation_key: str,
+    *extra: str,
+) -> None:
+    common = (
+        choice_id,
+        "--transition", transition,
+        "--reason", f"Qualify installed {transition} Choice read.",
+        "--actor", "owner",
+        "--operation-key", operation_key,
+        *extra,
+        "--format", "json",
+        "--root", str(project),
+    )
+    preview = run_json("choice", "transition-preview", *common)
+    token = preview["data"]["mutation"]["preview_token"]
+    applied = run_json(
+        "choice", "transition-apply", *common,
+        "--preview-token", token,
+        "--confirm",
+    )
+    assert applied["data"]["status"] == "applied", applied
+
 version = run_json("version", "--format", "json")
 assert version["ok"] is True
 assert version["data"]["engine_version"] == expected_version
@@ -236,6 +279,108 @@ initialized = run_json(
 assert initialized["ok"] is True
 assert not (project / ".git").exists()
 assert not (project / ".gitignore").exists()
+
+empty_choices = run_json(
+    "choice", "list", "--limit", "50", "--offset", "0",
+    "--format", "json", "--root", str(project),
+)
+empty_list = assert_choice_read(
+    empty_choices,
+    operation="choice.list",
+    data_key="choice_list",
+    data_contract="p2p-choice-list/v1",
+)
+assert empty_list["items"] == [], empty_choices
+
+for title in ("Open frame", "Decided frame", "Withdrawn frame", "Historical frame"):
+    run_text(
+        "choice", "create",
+        "--title", title,
+        "--problem", f"Choose the installed-wheel direction for {title}.",
+        "--context", "The candidate wheel must expose complete Choice reads.",
+        "--governance-boundary", "The project owner decides after review.",
+        "--option", "Keep current",
+        "--option", "Adopt replacement",
+        "--root", str(project),
+    )
+
+apply_choice_transition(
+    project, "CHOICE-002", "decide", "installed-choice-read-decide",
+    "--option", "B",
+)
+apply_choice_transition(
+    project, "CHOICE-003", "withdraw", "installed-choice-read-withdraw",
+)
+apply_choice_transition(
+    project, "CHOICE-004", "supersede", "installed-choice-read-supersede",
+    "--replacement", "CHOICE-001",
+)
+
+format_option = (
+    "--invalid-choice-read-option"
+    if os.environ.get("P2P_TEST_FAILURE_MODE") == "invalid-choice-read"
+    else "--format"
+)
+populated_choices = run_json(
+    "choice", "list", "--limit", "50", "--offset", "0",
+    "--format", "json", "--root", str(project),
+)
+populated_list = assert_choice_read(
+    populated_choices,
+    operation="choice.list",
+    data_key="choice_list",
+    data_contract="p2p-choice-list/v1",
+)
+assert len(populated_list["items"]) == 4, populated_choices
+
+choice_list_payload = run_json(
+    "choice", "list", "--limit", "1", "--offset", "1",
+    format_option, "json", "--root", str(project),
+)
+choice_list = assert_choice_read(
+    choice_list_payload,
+    operation="choice.list",
+    data_key="choice_list",
+    data_contract="p2p-choice-list/v1",
+)
+assert choice_list["page"] == {
+    "limit": 1,
+    "offset": 1,
+    "returned": 1,
+    "has_more": True,
+    "next_offset": 2,
+}, choice_list_payload
+
+for choice_id, state in (
+    ("CHOICE-001", "open"),
+    ("CHOICE-002", "decided"),
+    ("CHOICE-003", "withdrawn"),
+    ("CHOICE-004", "superseded"),
+):
+    choice_detail_payload = run_json(
+        "choice", "show", choice_id, "--format", "json", "--root", str(project),
+    )
+    choice_detail = assert_choice_read(
+        choice_detail_payload,
+        operation="choice.show",
+        data_key="choice_detail",
+        data_contract="p2p-choice-detail/v1",
+    )
+    assert choice_detail["lifecycle"]["state"] == state, choice_detail_payload
+    assert all(
+        choice_detail["definition"].get(field)
+        for field in ("problem", "context", "governance_boundary")
+    ), choice_detail_payload
+    assert ".p2p" not in json.dumps(choice_detail, sort_keys=True), choice_detail_payload
+
+missing_choice = run_json(
+    "choice", "show", "CHOICE-999", "--format", "json", "--root", str(project),
+    expected_codes=(2,),
+)
+assert missing_choice["ok"] is False, missing_choice
+assert missing_choice["operation"] == "choice.show", missing_choice
+assert missing_choice["error"]["code"] == "P2P_CHOICE_NOT_FOUND", missing_choice
+
 assert "Registries refreshed" in run_text("registry", "refresh", "--root", str(project))
 
 for args in (

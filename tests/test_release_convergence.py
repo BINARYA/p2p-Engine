@@ -160,6 +160,8 @@ def test_packaged_wavekit_cli_fixture_bundle_is_sanitized_and_current() -> None:
     assert validate_wavekit_cli_fixture_bundle(packaged) == ()
     assert "p2p version --format json" in commands
     assert "p2p status --format json" in commands
+    assert "p2p choice list --format json" in commands
+    assert "p2p choice show CHOICE-XXX --format json" in commands
     assert "p2p project vertical export eligibility --format json" in commands
     assert "p2p wavekit lifecycle status --root WORKSPACE --format json" in commands
     assert (
@@ -191,10 +193,61 @@ def test_packaged_wavekit_cli_fixture_bundle_is_sanitized_and_current() -> None:
     assert packaged["mcp_policy"]["linked_drift_reads_available"] is True
     assert packaged["mcp_policy"]["linked_lifecycle_apply_available"] is False
     assert packaged["mcp_policy"]["linked_drift_apply_available"] is False
+    assert packaged["qualification_policy"] == {
+        "contract": "p2p-command-qualification/v1",
+        "inventory_alone_authorizes_execution": False,
+        "argv_arrays_only": True,
+        "shell_execution": False,
+        "unknown_placeholders_rejected": True,
+        "downstream_independent_qualification_required": True,
+    }
+    qualifications = {
+        item["command"]: item for item in packaged["command_qualifications"]
+    }
+    assert set(qualifications) == commands
+    assert qualifications["p2p choice list --format json"]["classification"] == (
+        "installed_execution"
+    )
+    assert qualifications["p2p choice show CHOICE-XXX --format json"][
+        "classification"
+    ] == "installed_execution"
+    assert all(
+        item["authorizes_downstream_execution"] is False
+        for item in qualifications.values()
+    )
+    case_ids = {item["id"] for item in packaged["qualification_cases"]}
+    assert case_ids == {
+        "choice-list-empty-v1",
+        "choice-list-populated-v1",
+        "choice-list-page-v1",
+        "choice-show-open-v1",
+        "choice-show-decided-v1",
+        "choice-show-withdrawn-v1",
+        "choice-show-superseded-v1",
+        "choice-show-missing-v1",
+    }
     for forbidden in ("/home/", "/Users/", "/tmp/", "davide", "matteo"):
         assert forbidden not in serialized
     for forbidden in ("secret", "password", "token:"):
         assert forbidden not in command_text
+
+
+@pytest.mark.unit
+def test_wavekit_fixture_rejects_unsafe_or_incomplete_command_qualification() -> None:
+    missing_case = json.loads(json.dumps(wavekit_cli_fixture_bundle()))
+    missing_case["qualification_cases"] = [
+        case
+        for case in missing_case["qualification_cases"]
+        if case["id"] != "choice-show-open-v1"
+    ]
+    codes = {issue.code for issue in validate_wavekit_cli_fixture_bundle(missing_case)}
+    assert "P2P_CONVERGENCE_COMMAND_EVIDENCE_UNKNOWN" in codes
+    assert "P2P_CONVERGENCE_CHOICE_QUALIFICATION_MISSING" in codes
+
+    unsafe_argv = json.loads(json.dumps(wavekit_cli_fixture_bundle()))
+    unsafe_argv["qualification_cases"][0]["argv"].append("{arbitrary-shell-value}")
+    codes = {issue.code for issue in validate_wavekit_cli_fixture_bundle(unsafe_argv)}
+    assert "P2P_CONVERGENCE_QUALIFICATION_PLACEHOLDER" in codes
 
 
 @pytest.mark.mcp

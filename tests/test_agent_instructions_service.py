@@ -100,6 +100,8 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
     worker_contract = policy["wavekit_cli_worker_contract"]
     assert worker_contract["transport"] == "cli_json"
     assert worker_contract["contract_version"] == "p2p-cli/v1"
+    assert worker_contract["choice_list_contract"] == "p2p-choice-list/v1"
+    assert worker_contract["choice_detail_contract"] == "p2p-choice-detail/v1"
     assert worker_contract["operation_key_format"] == "wavekit:<uuid>"
     assert worker_contract["status_command"] == (
         "p2p mutation status --operation-key wavekit:<uuid> --format json"
@@ -137,6 +139,14 @@ def test_agent_instruction_service_refreshes_codex_and_merges_profiles(tmp_path:
         for command in worker_contract["write_commands"]
     )
     assert "p2p choice list --format json" in worker_contract["read_commands"]
+    choice_reads = policy["choice_read_contracts"]
+    assert choice_reads["list_contract"] == "p2p-choice-list/v1"
+    assert choice_reads["detail_contract"] == "p2p-choice-detail/v1"
+    assert choice_reads["default_limit"] == 50
+    assert choice_reads["maximum_limit"] == 100
+    assert choice_reads["semantic_payload_exposes_physical_path"] is False
+    assert choice_reads["direct_choice_file_fallback"] == "forbidden"
+    assert choice_reads["proposal_lifecycle_is_separate"] is True
     assert any(
         command.startswith("p2p choice transition-preview")
         for command in worker_contract["write_commands"]
@@ -397,6 +407,9 @@ def test_agent_instruction_service_generates_persistence_boundary_for_supported_
         assert "Choice definitions are immutable after creation" in content
         assert "decided, withdrawn, or superseded" in content
         assert "create a new Choice" in content
+        assert "p2p choice list --format json" in content
+        assert "p2p choice show CHOICE-XXX --format json" in content
+        assert "never parse `.p2p/choices/**`" in content
 
     registry = yaml.safe_load((tmp_path / ".p2p" / "agent-integrations.yml").read_text(encoding="utf-8"))
     assert registry["adapters"]["opencode"]["files"][0]["path"] == "AGENTS.md"

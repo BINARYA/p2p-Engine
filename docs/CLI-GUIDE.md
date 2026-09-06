@@ -1424,6 +1424,22 @@ p2p choice decide CHOICE-001 \
   --operation-key local-choice-001
 ```
 
+For integrations, request the versioned, bounded read models explicitly:
+
+```bash
+p2p choice list --limit 50 --offset 0 --format json
+p2p choice show CHOICE-001 --limit 50 --offset 0 --format json
+```
+
+The outer response is `p2p-cli/v1`. Successful list and detail data live under
+`choice_list` (`p2p-choice-list/v1`) and `choice_detail`
+(`p2p-choice-detail/v1`). Limits are `1..100`, default to `50`, and offsets are
+non-negative. List items and detail relations contain continuation metadata.
+The semantic JSON excludes local paths; integrations must not read
+`.p2p/choices/**` as a fallback. The detail includes the complete immutable
+Problem, Context, Governance Boundary, ordered options, lifecycle, integrity,
+terminal evidence and typed relations. Proposal decisions remain independent.
+
 The preview prints a token. Apply the exact reviewed request by repeating it
 with `--preview-token <token> --confirm`. The same two-phase contract is
 available explicitly as `choice transition-preview` and

@@ -94,7 +94,9 @@ MCP responses are protocol-native and are not wrapped in `p2p-cli/v1`.
 includes engine, CLI envelope, workspace schema, portable vertical schema,
 portable package format, registry protocol, registry config, vertical draft,
 project-domain, project-structure, project-memory, readiness, AuthorityContext
-and mutation-receipt contract versions.
+and mutation-receipt contract versions. It also reports the immutable Choice
+definition/lifecycle/terminal-event contracts and the distinct
+`choice_list_contract` and `choice_detail_contract` read dimensions.
 
 ## Governed Authority Input
 
@@ -152,7 +154,17 @@ p2p proposal list --format json
 p2p proposal show PROP-001 --format json
 p2p proposal scope show PROP-001 --format json
 p2p proposal contribution list PROP-001 --type suggestion --format json
+p2p choice list --limit 50 --offset 0 --format json
+p2p choice show CHOICE-001 --limit 50 --offset 0 --format json
 ```
+
+The two Choice reads use dedicated nested contracts. `choice.list` returns
+`data.choice_list` with `p2p-choice-list/v1`; `choice.show` returns
+`data.choice_detail` with `p2p-choice-detail/v1`. Limits default to `50`, accept
+`1..100`, and offsets must be non-negative. List items and the detail relation
+stream are deterministic and expose continuation metadata. The semantic
+contracts never include a physical path. Choice definitions remain immutable,
+and proposal decision lifecycle remains separate.
 
 Registry-v2 reads are provider-neutral and advisory. They can perform explicit
 remote network reads, but they do not prove compatibility, pull artifacts,
@@ -252,7 +264,11 @@ does not implement the WaveKit CLI receipt envelope.
 The deterministic worker fixture for this release is packaged as
 `p2p_engine/resources/contracts/wavekit-cli-fixtures-v1.json`. It is generated
 from the current agent policy and validated by the convergence gate; workers
-can compare it with the installed runtime without reading P2P internals.
+can compare it with the installed runtime without reading P2P internals. Its
+command inventory is not authorization by itself: every advertised command is
+classified, newly changed Choice reads have installed-execution cases using
+argv arrays with `shell=false`, and downstream enablement remains independently
+required.
 
 Overall project definition completeness is a separate derived, read-only
 surface. Use `project snapshot`, `project progress` or `project readiness`

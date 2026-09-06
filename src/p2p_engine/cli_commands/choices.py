@@ -46,12 +46,25 @@ def register_choice_commands(choice_app: typer.Typer) -> None:
         console.print(f"  path: {choice.path}")
 
     @choice_app.command("list")
-    def choice_list(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
+    def choice_list(
+        limit: int = typer.Option(50, "--limit", min=1, max=100),
+        offset: int = typer.Option(0, "--offset", min=0),
+        root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option(
+            "text", "--format", help="Output format: text or json"
+        ),
+    ) -> None:
         """List project choices."""
         try:
-            choices = workspace_for(root).choice_statuses()
+            bundle = workspace_for(root).choice_list_read_bundle(
+                limit=limit,
+                offset=offset,
+            )
         except ValueError as exc:
             fail(str(exc))
+        if _emit_choice_read({"choice_list": bundle.semantic.to_dict()}, output_format):
+            return
+        choices = bundle.compatibility
         console.print("Choices")
         if not choices:
             console.print("  none")
@@ -59,6 +72,8 @@ def register_choice_commands(choice_app: typer.Typer) -> None:
         for choice in choices:
             selected = f" -> {choice.selected_option}" if choice.selected_option else ""
             console.print(f"  {choice.choice_id}  {choice.status}  {choice.title}{selected}")
+        if bundle.semantic.page.has_more:
+            console.print(f"  more: use --offset {bundle.semantic.page.next_offset}")
 
     @choice_app.command("status")
     def choice_status(root: Path = typer.Option(Path.cwd(), "--root", help="Project root")) -> None:
@@ -88,13 +103,25 @@ def register_choice_commands(choice_app: typer.Typer) -> None:
     @choice_app.command("show")
     def choice_show(
         choice_id: str = typer.Argument(..., help="Choice ID, e.g. CHOICE-001"),
+        limit: int = typer.Option(50, "--limit", min=1, max=100, help="Relation page size"),
+        offset: int = typer.Option(0, "--offset", min=0, help="Relation page offset"),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+        output_format: str = typer.Option(
+            "text", "--format", help="Output format: text or json"
+        ),
     ) -> None:
         """Show project choice details."""
         try:
-            choice = workspace_for(root).show_choice(choice_id)
+            bundle = workspace_for(root).choice_detail_read_bundle(
+                choice_id,
+                limit=limit,
+                offset=offset,
+            )
         except ValueError as exc:
             fail(str(exc))
+        if _emit_choice_read({"choice_detail": bundle.semantic.to_dict()}, output_format):
+            return
+        choice = bundle.compatibility
         console.print(f"{choice.choice_id} - [bold]{choice.title}[/bold]")
         console.print(f"  status: {choice.status}")
         console.print(f"  path: {choice.path}")
@@ -433,6 +460,13 @@ def _authority_context(path: Path | None):
         return AuthorityContractCodec().context_from_path(path)
     except ValueError as exc:
         fail(str(exc))
+
+
+def _emit_choice_read(value: object, output_format: str) -> bool:
+    normalized = output_format.strip().lower()
+    if normalized not in {"text", "json"}:
+        raise typer.BadParameter("Output format must be text or json.")
+    return emit_structured(value, normalized)
 
 
 def _print_transition(

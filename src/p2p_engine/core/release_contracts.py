@@ -12,6 +12,7 @@ from p2p_engine.core.authority_transfer import (
     AUTHORITY_TRANSFER_PROTOCOL,
     AUTHORITY_TRANSFER_RECEIPT_CONTRACT,
 )
+from p2p_engine.core.choice_reads import CHOICE_DETAIL_CONTRACT, CHOICE_LIST_CONTRACT
 from p2p_engine.core.choices import (
     CHOICE_DEFINITION_CONTRACT,
     CHOICE_LIFECYCLE_CONTRACT,
@@ -126,6 +127,8 @@ def current_contract_versions() -> dict[str, object]:
         "engine_version": __version__,
         "cli_contract_version": CLI_CONTRACT_VERSION,
         "choice_definition_contract": CHOICE_DEFINITION_CONTRACT,
+        "choice_list_contract": CHOICE_LIST_CONTRACT,
+        "choice_detail_contract": CHOICE_DETAIL_CONTRACT,
         "choice_lifecycle_contract": CHOICE_LIFECYCLE_CONTRACT,
         "choice_terminal_event_contract": CHOICE_TERMINAL_EVENT_CONTRACT,
         "choice_transition_preview_contract": CHOICE_TRANSITION_PREVIEW_CONTRACT,

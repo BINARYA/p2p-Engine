@@ -13,7 +13,7 @@ import traceback
 import zipfile
 from dataclasses import dataclass
 from email.parser import Parser
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 
@@ -139,6 +139,89 @@ def project_digest(root: Path) -> str:
     return digest.hexdigest()
 
 
+def assert_choice_read_payload(
+    payload: dict[str, Any],
+    *,
+    operation: str,
+    data_key: str,
+    data_contract: str,
+) -> dict[str, Any]:
+    if payload.get("contract_version") != "p2p-cli/v1":
+        raise AssertionError(payload)
+    if payload.get("ok") is not True or payload.get("operation") != operation:
+        raise AssertionError(payload)
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        raise AssertionError(payload)
+    result = data.get(data_key)
+    if not isinstance(result, dict) or result.get("contract") != data_contract:
+        raise AssertionError(payload)
+    return result
+
+
+def choice_qualification_cases_from_wheel(
+    wheel: WheelIdentity,
+) -> dict[str, dict[str, Any]]:
+    resource = "p2p_engine/resources/contracts/wavekit-cli-fixtures-v1.json"
+    with zipfile.ZipFile(wheel.path) as archive:
+        try:
+            payload = json.loads(archive.read(resource).decode("utf-8", errors="strict"))
+        except KeyError as exc:
+            raise AssertionError(f"candidate wheel lacks {resource}") from exc
+    policy = payload.get("qualification_policy") if isinstance(payload, dict) else None
+    if policy != {
+        "contract": "p2p-command-qualification/v1",
+        "inventory_alone_authorizes_execution": False,
+        "argv_arrays_only": True,
+        "shell_execution": False,
+        "unknown_placeholders_rejected": True,
+        "downstream_independent_qualification_required": True,
+    }:
+        raise AssertionError("candidate wheel has an unsafe qualification policy")
+    cases = payload.get("qualification_cases")
+    if not isinstance(cases, list):
+        raise AssertionError("candidate wheel lacks qualification cases")
+    result: dict[str, dict[str, Any]] = {}
+    for raw_case in cases:
+        if not isinstance(raw_case, dict):
+            raise AssertionError("candidate wheel has a malformed qualification case")
+        case_id = raw_case.get("id")
+        if not isinstance(case_id, str) or not case_id or case_id in result:
+            raise AssertionError("candidate wheel has an invalid qualification case ID")
+        result[case_id] = raw_case
+    return result
+
+
+def qualification_argv(
+    case: dict[str, Any],
+    *,
+    project: Path,
+    isolated_root: Path,
+) -> list[str]:
+    project = project.resolve()
+    isolated_root = isolated_root.resolve()
+    if not project.is_relative_to(isolated_root):
+        raise ValueError("qualification project must stay inside the isolated root")
+    raw_argv = case.get("argv")
+    if not isinstance(raw_argv, list) or not raw_argv:
+        raise ValueError("qualification argv must be a non-empty array")
+    result: list[str] = []
+    for raw_argument in raw_argv:
+        if not isinstance(raw_argument, str) or not raw_argument:
+            raise ValueError("qualification argv entries must be non-empty strings")
+        if raw_argument == "{project}":
+            result.append(str(project))
+            continue
+        if "{" in raw_argument or "}" in raw_argument:
+            raise ValueError(f"unknown qualification placeholder: {raw_argument}")
+        if PurePosixPath(raw_argument).is_absolute() or PureWindowsPath(
+            raw_argument
+        ).is_absolute():
+            raise ValueError("qualification argv cannot contain embedded absolute paths")
+        result.append(raw_argument)
+    return result
+
+
 class Harness:
     def __init__(
         self,
@@ -257,6 +340,8 @@ class Harness:
         if (project / ".venv").exists():
             raise AssertionError("uv qualification project unexpectedly contains .venv")
 
+        self.assert_choice_reads(p2p=p2p, project=project, wheel=wheel)
+
         self.run([str(p2p), "doctor", "--root", str(project)])
         runtime = self.run_json(
             [str(p2p), "runtime", "status", "--format", "json", "--root", str(project)]
@@ -321,6 +406,239 @@ class Harness:
         self.assert_import_provenance(wheel)
         self.assert_mcp_stdio([str(_entry_point(self.layout.binaries, "p2p-mcp-server"))])
         return project_digest(project)
+
+    def run_choice_qualification_case(
+        self,
+        *,
+        p2p: Path | list[str],
+        project: Path,
+        case: dict[str, Any],
+    ) -> dict[str, Any]:
+        if case.get("qualification") != "installed_execution":
+            raise AssertionError("Choice case is not classified for installed execution")
+        expected = case.get("expected")
+        if not isinstance(expected, dict):
+            raise AssertionError("Choice case lacks expected result")
+        raw_codes = expected.get("exit_codes")
+        if not isinstance(raw_codes, list) or not raw_codes or not all(
+            isinstance(code, int) and not isinstance(code, bool) for code in raw_codes
+        ):
+            raise AssertionError("Choice case has invalid expected exit codes")
+        executable = [str(p2p)] if isinstance(p2p, Path) else list(p2p)
+        if not executable or not all(executable):
+            raise AssertionError("Choice qualification entry point is invalid")
+        payload = self.run_json(
+            [
+                *executable,
+                *qualification_argv(
+                    case,
+                    project=project,
+                    isolated_root=self.layout.root,
+                ),
+            ],
+            expected_codes=tuple(raw_codes),
+        )
+        if payload.get("contract_version") != expected.get("cli_contract"):
+            raise AssertionError(payload)
+        if payload.get("operation") != expected.get("operation"):
+            raise AssertionError(payload)
+        if payload.get("ok") is not expected.get("ok"):
+            raise AssertionError(payload)
+        if expected.get("ok") is True:
+            data_key = expected.get("data_key")
+            data_contract = expected.get("data_contract")
+            if not isinstance(data_key, str) or not isinstance(data_contract, str):
+                raise AssertionError("successful Choice case lacks a data contract")
+            assert_choice_read_payload(
+                payload,
+                operation=str(expected["operation"]),
+                data_key=data_key,
+                data_contract=data_contract,
+            )
+        elif payload.get("error", {}).get("code") != expected.get("error_code"):
+            raise AssertionError(payload)
+        return payload
+
+    def assert_choice_reads(
+        self,
+        *,
+        p2p: Path,
+        project: Path,
+        wheel: WheelIdentity,
+    ) -> None:
+        cases = choice_qualification_cases_from_wheel(wheel)
+        required_case_ids = (
+            "choice-list-empty-v1",
+            "choice-list-populated-v1",
+            "choice-list-page-v1",
+            "choice-show-open-v1",
+            "choice-show-decided-v1",
+            "choice-show-withdrawn-v1",
+            "choice-show-superseded-v1",
+            "choice-show-missing-v1",
+        )
+        if any(case_id not in cases for case_id in required_case_ids):
+            raise AssertionError("candidate wheel lacks a required Choice qualification case")
+
+        empty = self.run_choice_qualification_case(
+            p2p=p2p,
+            project=project,
+            case=cases["choice-list-empty-v1"],
+        )
+        empty_list = assert_choice_read_payload(
+            empty,
+            operation="choice.list",
+            data_key="choice_list",
+            data_contract="p2p-choice-list/v1",
+        )
+        if empty_list.get("items") != []:
+            raise AssertionError(empty)
+
+        for index, title in enumerate(
+            ("Open frame", "Decided frame", "Withdrawn frame", "Historical frame"),
+            start=1,
+        ):
+            self.run(
+                [
+                    str(p2p), "choice", "create",
+                    "--title", title,
+                    "--problem", f"Choose the installed-wheel direction for {title}.",
+                    "--context", "The candidate wheel must expose complete Choice reads.",
+                    "--governance-boundary", "The project owner decides after review.",
+                    "--option", "Keep current",
+                    "--option", "Adopt replacement",
+                    "--root", str(project),
+                ]
+            )
+            expected = f"CHOICE-{index:03d}"
+            if not any(path.name.startswith(expected) for path in (project / ".p2p" / "choices").iterdir()):
+                raise AssertionError(f"installed Choice create did not materialize {expected}")
+
+        self._apply_choice_transition(
+            p2p=p2p,
+            project=project,
+            choice_id="CHOICE-002",
+            transition="decide",
+            operation_key="uv-choice-read-decide",
+            extra=["--option", "B"],
+        )
+        self._apply_choice_transition(
+            p2p=p2p,
+            project=project,
+            choice_id="CHOICE-003",
+            transition="withdraw",
+            operation_key="uv-choice-read-withdraw",
+        )
+        self._apply_choice_transition(
+            p2p=p2p,
+            project=project,
+            choice_id="CHOICE-004",
+            transition="supersede",
+            operation_key="uv-choice-read-supersede",
+            extra=["--replacement", "CHOICE-001"],
+        )
+
+        qualified = {
+            case_id: self.run_choice_qualification_case(
+                p2p=p2p,
+                project=project,
+                case=cases[case_id],
+            )
+            for case_id in required_case_ids[1:]
+        }
+        populated_payload = qualified["choice-list-populated-v1"]
+        populated = assert_choice_read_payload(
+            populated_payload,
+            operation="choice.list",
+            data_key="choice_list",
+            data_contract="p2p-choice-list/v1",
+        )
+        if len(populated.get("items", [])) != 4:
+            raise AssertionError(populated_payload)
+
+        listed_payload = qualified["choice-list-page-v1"]
+        listed = assert_choice_read_payload(
+            listed_payload,
+            operation="choice.list",
+            data_key="choice_list",
+            data_contract="p2p-choice-list/v1",
+        )
+        if listed.get("page") != {
+            "limit": 1,
+            "offset": 1,
+            "returned": 1,
+            "has_more": True,
+            "next_offset": 2,
+        }:
+            raise AssertionError(listed_payload)
+
+        for case_id, state in (
+            ("choice-show-open-v1", "open"),
+            ("choice-show-decided-v1", "decided"),
+            ("choice-show-withdrawn-v1", "withdrawn"),
+            ("choice-show-superseded-v1", "superseded"),
+        ):
+            detail_payload = qualified[case_id]
+            detail = assert_choice_read_payload(
+                detail_payload,
+                operation="choice.show",
+                data_key="choice_detail",
+                data_contract="p2p-choice-detail/v1",
+            )
+            lifecycle = detail.get("lifecycle")
+            definition = detail.get("definition")
+            if not isinstance(lifecycle, dict) or lifecycle.get("state") != state:
+                raise AssertionError(detail_payload)
+            if not isinstance(definition, dict) or not all(
+                definition.get(field)
+                for field in ("problem", "context", "governance_boundary")
+            ):
+                raise AssertionError(detail_payload)
+            if ".p2p" in json.dumps(detail, sort_keys=True):
+                raise AssertionError("semantic Choice detail leaked a filesystem path")
+
+        missing = qualified["choice-show-missing-v1"]
+        if (
+            missing.get("ok") is not False
+            or missing.get("operation") != "choice.show"
+            or missing.get("error", {}).get("code") != "P2P_CHOICE_NOT_FOUND"
+        ):
+            raise AssertionError(missing)
+
+    def _apply_choice_transition(
+        self,
+        *,
+        p2p: Path,
+        project: Path,
+        choice_id: str,
+        transition: str,
+        operation_key: str,
+        extra: list[str] | None = None,
+    ) -> None:
+        common = [
+            choice_id,
+            "--transition", transition,
+            "--reason", f"Qualify installed {transition} Choice read.",
+            "--actor", "owner",
+            "--operation-key", operation_key,
+            *(extra or []),
+            "--format", "json",
+            "--root", str(project),
+        ]
+        preview = self.run_json([str(p2p), "choice", "transition-preview", *common])
+        mutation = preview.get("data", {}).get("mutation", {})
+        preview_token = mutation.get("preview_token")
+        if not isinstance(preview_token, str) or not preview_token:
+            raise AssertionError(preview)
+        applied = self.run_json(
+            [
+                str(p2p), "choice", "transition-apply", *common,
+                "--preview-token", preview_token,
+                "--confirm",
+            ]
+        )
+        if applied.get("data", {}).get("status") != "applied":
+            raise AssertionError(applied)
 
     def assert_import_provenance(self, wheel: WheelIdentity) -> None:
         tool_python = _tool_python(self.layout.tools)

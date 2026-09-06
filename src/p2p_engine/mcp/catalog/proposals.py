@@ -3,7 +3,6 @@ from __future__ import annotations
 from p2p_engine.core.contribution import ContributionType
 from p2p_engine.mcp.catalog.common import tool as _tool
 
-
 ARTIFACT_IMPORT_TOOLS = {
     'p2p_explore_import': 'exploration',
     'p2p_impact_import': 'impact',
@@ -580,13 +579,18 @@ def tool_definitions() -> list[dict[str, object]]:
         ),
         _tool(
             'p2p_choice_list',
-            'List project choices.',
-            {'root': {'type': 'string'}},
+            'List a bounded page of project choices using p2p-choice-list/v1.',
+            {'root': {'type': 'string'},
+             'limit': {'type': 'integer', 'minimum': 1, 'maximum': 100, 'default': 50},
+             'offset': {'type': 'integer', 'minimum': 0, 'default': 0}},
         ),
         _tool(
             'p2p_choice_show',
-            'Show one project choice.',
-            {'root': {'type': 'string'}, 'choice_id': {'type': 'string'}},
+            'Show one project choice using p2p-choice-detail/v1 with bounded relations.',
+            {'root': {'type': 'string'},
+             'choice_id': {'type': 'string'},
+             'limit': {'type': 'integer', 'minimum': 1, 'maximum': 100, 'default': 50},
+             'offset': {'type': 'integer', 'minimum': 0, 'default': 0}},
             ['choice_id'],
         ),
     ]

@@ -175,6 +175,592 @@
       "mutates_project": false
     }
   ],
+  "command_qualifications": [
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p version --format json",
+      "evidence_case_ids": [],
+      "group": "preflight"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p status --format json",
+      "evidence_case_ids": [],
+      "group": "preflight"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p runtime status --format json",
+      "evidence_case_ids": [],
+      "group": "preflight"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p workspace schema status --format json",
+      "evidence_case_ids": [],
+      "group": "preflight"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p workspace transaction status --format json",
+      "evidence_case_ids": [],
+      "group": "preflight"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project identity status --format json",
+      "evidence_case_ids": [],
+      "group": "read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project identity show --format json",
+      "evidence_case_ids": [],
+      "group": "read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project memory inspect --format json",
+      "evidence_case_ids": [],
+      "group": "read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project memory verify --format json",
+      "evidence_case_ids": [],
+      "group": "read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project snapshot --format json",
+      "evidence_case_ids": [],
+      "group": "read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project domain show --format json",
+      "evidence_case_ids": [],
+      "group": "read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project structure show --format json",
+      "evidence_case_ids": [],
+      "group": "read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project structure history --limit 20 --format json",
+      "evidence_case_ids": [],
+      "group": "read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project vertical export eligibility --format json",
+      "evidence_case_ids": [],
+      "group": "read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project memory classification --format json",
+      "evidence_case_ids": [],
+      "group": "read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p proposal list --format json",
+      "evidence_case_ids": [],
+      "group": "read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p proposal show PROP-XXX --format json",
+      "evidence_case_ids": [],
+      "group": "read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p proposal scope show PROP-XXX --format json",
+      "evidence_case_ids": [],
+      "group": "read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p proposal contribution list PROP-XXX --format json",
+      "evidence_case_ids": [],
+      "group": "read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "installed_execution",
+      "command": "p2p choice list --format json",
+      "evidence_case_ids": [
+        "choice-list-empty-v1",
+        "choice-list-populated-v1",
+        "choice-list-page-v1"
+      ],
+      "group": "read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "installed_execution",
+      "command": "p2p choice show CHOICE-XXX --format json",
+      "evidence_case_ids": [
+        "choice-show-open-v1",
+        "choice-show-decided-v1",
+        "choice-show-withdrawn-v1",
+        "choice-show-superseded-v1",
+        "choice-show-missing-v1"
+      ],
+      "group": "read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p vertical domain list --registry REGISTRY --format json",
+      "evidence_case_ids": [],
+      "group": "registry_v2_read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p vertical domain search software --registry REGISTRY --format json",
+      "evidence_case_ids": [],
+      "group": "registry_v2_read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p vertical domain inspect DOMAIN-ID --registry REGISTRY --format json",
+      "evidence_case_ids": [],
+      "group": "registry_v2_read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p vertical search software --registry REGISTRY --domain DOMAIN-ID --format json",
+      "evidence_case_ids": [],
+      "group": "registry_v2_read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p vertical list --source remote --registry REGISTRY --domain DOMAIN-ID --format json",
+      "evidence_case_ids": [],
+      "group": "registry_v2_read"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p init NAME --format json --operation-key wavekit:<uuid>",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project domain set DOMAIN --name NAME --actor ACTOR --format json --operation-key wavekit:<uuid>",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project domain clear --actor ACTOR --format json --operation-key wavekit:<uuid>",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project structure add-section TITLE --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project structure update-metadata KIND ID --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project structure reorder --section-id ID --expected-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project structure retire preview --target section:SECTION-ID --expected-structure-revision REV --expected-memory-revision SHA256 --plan retirement-plan.yml --actor ACTOR --format json",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project structure retire apply --target section:SECTION-ID --expected-structure-revision REV --expected-memory-revision SHA256 --preview-token TOKEN --operation-key wavekit:<uuid> --plan retirement-plan.yml --actor ACTOR --confirm --format json",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project structure retire status --operation-key wavekit:<uuid> --format json",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project structure replace preview COORDINATE --expected-structure-revision REV --expected-memory-revision SHA256 --plan replacement-plan.yml --actor ACTOR --format json",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project structure replace apply COORDINATE --expected-structure-revision REV --expected-memory-revision SHA256 --preview-token TOKEN --operation-key wavekit:<uuid> --plan replacement-plan.yml --actor ACTOR --confirm --format json",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project structure replace status --operation-key wavekit:<uuid> --format json",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project structure merge compare SOURCE --select section:ID --format json",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project structure merge preview SOURCE --plan merge-plan.yml --actor ACTOR --format json",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project structure merge apply SOURCE --plan merge-plan.yml --preview-token TOKEN --operation-key wavekit:<uuid> --actor ACTOR --confirm --format json",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project structure retained list --format json",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project structure retained inspect REVISION --format json",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project structure restore preview --plan restore-plan.yml --actor ACTOR --format json",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project structure restore apply --plan restore-plan.yml --preview-token TOKEN --operation-key wavekit:<uuid> --actor ACTOR --confirm --format json",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project vertical export preview --publisher PUBLISHER --id VERTICAL-ID --version VERSION --name NAME --license LICENSE --primary-domain-key DOMAIN --primary-domain-name NAME --lineage-mode independent --format json",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project vertical export apply --target build/vertical --output dist/vertical.p2pv --publisher PUBLISHER --id VERTICAL-ID --version VERSION --name NAME --license LICENSE --primary-domain-key DOMAIN --primary-domain-name NAME --lineage-mode independent --expected-structure-revision REV --expected-structure-checksum SHA256 --token TOKEN --idempotency-key wavekit:<uuid> --confirm --actor ACTOR --format json",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p proposal scope set PROP-XXX --kind sections --section-id ID --expected-memory-revision SHA256 --expected-structure-revision REV --actor ACTOR --format json --operation-key wavekit:<uuid>",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p proposal create TITLE --format json --operation-key wavekit:<uuid>",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p proposal update PROP-XXX --proposal TEXT --format json --operation-key wavekit:<uuid>",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p proposal contribution add PROP-XXX TEXT --type suggestion --format json --operation-key wavekit:<uuid>",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p proposal readiness assess PROP-XXX --actor ACTOR --format json --operation-key wavekit:<uuid>",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p choice transition-preview CHOICE-XXX --transition decide|withdraw|supersede --reason REASON --actor ACTOR --operation-key wavekit:<uuid> --format json",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p choice transition-apply CHOICE-XXX --transition decide|withdraw|supersede --reason REASON --actor ACTOR --operation-key wavekit:<uuid> --preview-token TOKEN --confirm --format json",
+      "evidence_case_ids": [],
+      "group": "write"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p mutation status --operation-key wavekit:<uuid> --format json",
+      "evidence_case_ids": [],
+      "group": "recovery"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p wavekit clone REMOTE-ID --server SERVER --account-profile PROFILE --operation-key OWNER-KEY --target WORKSPACE --confirm --format json",
+      "evidence_case_ids": [],
+      "group": "linked_replica_owner"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p wavekit attach REMOTE-ID --server SERVER --account-profile PROFILE --operation-key OWNER-KEY --root WORKSPACE --confirm --format json",
+      "evidence_case_ids": [],
+      "group": "linked_replica_owner"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p wavekit replica move --operation-key OWNER-KEY --confirm --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_replica_owner"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p wavekit replica register-copy --operation-key OWNER-KEY --confirm --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_replica_owner"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p wavekit status --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_replica_status"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p sync status --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_replica_status"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p watch --max-events COUNT --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_replica_status"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p sync catch-up --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_replica_sync"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p sync recover --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_replica_sync"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project replication initialize --authority-epoch EPOCH --project-revision REVISION --retention-batches COUNT --confirm --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "project_replication_worker"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project replication status --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "project_replication_worker"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project replication operation-status OPERATION-ID --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "project_replication_worker"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project replication feed --after-revision REVISION --replica-id REPLICA-ID --limit COUNT --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "project_replication_worker"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project replication compact --retain-after-revision REVISION --confirm --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "project_replication_worker"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p --replication-command-envelope COMMAND.json project domain set DOMAIN --name NAME --actor ACTOR --operation-key wavekit:<uuid> --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "project_replication_worker"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p wavekit lifecycle status --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_project_lifecycle_status"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p wavekit lifecycle preview ACTION --operation-id OPERATION-ID --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_project_lifecycle_status"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p wavekit lifecycle apply ACTION --operation-id OPERATION-ID --preview-token PREVIEW --confirm --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_project_lifecycle_owner"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p wavekit lifecycle recover OPERATION-ID --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_project_lifecycle_owner"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p wavekit detach --operation-id OPERATION-ID --preview-token PREVIEW --target DETACHED-ROOT --local-owner OWNER --preserve-origin --as-independent --confirm --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_project_lifecycle_owner"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p wavekit remove-local-replica --operation-id OPERATION-ID --preview-token PREVIEW --disposition archive --integration remove --archive-to ARCHIVE --confirm --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_project_lifecycle_owner"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p drift status --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_replica_drift_status"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p drift diff --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_replica_drift_status"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p reconcile preview --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_replica_drift_status"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p drift discard --confirm --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_replica_drift_owner"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p reconcile apply --plan-digest SHA256 --confirm --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_replica_drift_owner"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project memory snapshot-export --output-directory SNAPSHOT-DIR --root WORKSPACE --format json",
+      "evidence_case_ids": [],
+      "group": "linked_replica_server_snapshot"
+    }
+  ],
   "contract_version": "p2p-wavekit-cli-fixtures/v1",
   "contract_versions": {
     "authority_context_schema": "p2p-authority-context/v1",
@@ -183,7 +769,9 @@
     "authority_transfer_receipt_contract": "p2p-authority-transfer-receipt/v1",
     "bundle_materialization_contract": "p2p-bundle-materialization/v1",
     "choice_definition_contract": "p2p-choice-definition/v1",
+    "choice_detail_contract": "p2p-choice-detail/v1",
     "choice_lifecycle_contract": "p2p-choice-lifecycle/v1",
+    "choice_list_contract": "p2p-choice-list/v1",
     "choice_terminal_event_contract": "p2p-choice-terminal-event/v1",
     "choice_transition_preview_contract": "p2p-choice-transition-preview/v1",
     "choice_transition_result_contract": "p2p-choice-transition-result/v1",
@@ -294,7 +882,250 @@
     "restore_apply_available": false,
     "retained_inspect_available": true
   },
-  "operation_inventory_sha256": "950aeb059731eef81c4df731927a0c17d1976f73accbf5eae56ea9e57949880e",
+  "operation_inventory_sha256": "b8b5eca2704b111f81dd5548fe287a02bbd6f455a13544dce422c618a22fde40",
+  "qualification_cases": [
+    {
+      "argv": [
+        "choice",
+        "list",
+        "--limit",
+        "50",
+        "--offset",
+        "0",
+        "--format",
+        "json",
+        "--root",
+        "{project}"
+      ],
+      "command_signature": "p2p choice list --format json",
+      "expected": {
+        "cli_contract": "p2p-cli/v1",
+        "data_contract": "p2p-choice-list/v1",
+        "data_key": "choice_list",
+        "error_code": null,
+        "exit_codes": [
+          0
+        ],
+        "ok": true,
+        "operation": "choice.list"
+      },
+      "fixture": "choice-empty",
+      "id": "choice-list-empty-v1",
+      "qualification": "installed_execution"
+    },
+    {
+      "argv": [
+        "choice",
+        "list",
+        "--limit",
+        "50",
+        "--offset",
+        "0",
+        "--format",
+        "json",
+        "--root",
+        "{project}"
+      ],
+      "command_signature": "p2p choice list --format json",
+      "expected": {
+        "cli_contract": "p2p-cli/v1",
+        "data_contract": "p2p-choice-list/v1",
+        "data_key": "choice_list",
+        "error_code": null,
+        "exit_codes": [
+          0
+        ],
+        "ok": true,
+        "operation": "choice.list"
+      },
+      "fixture": "choice-lifecycle-representative",
+      "id": "choice-list-populated-v1",
+      "qualification": "installed_execution"
+    },
+    {
+      "argv": [
+        "choice",
+        "list",
+        "--limit",
+        "1",
+        "--offset",
+        "1",
+        "--format",
+        "json",
+        "--root",
+        "{project}"
+      ],
+      "command_signature": "p2p choice list --format json",
+      "expected": {
+        "cli_contract": "p2p-cli/v1",
+        "data_contract": "p2p-choice-list/v1",
+        "data_key": "choice_list",
+        "error_code": null,
+        "exit_codes": [
+          0
+        ],
+        "ok": true,
+        "operation": "choice.list"
+      },
+      "fixture": "choice-lifecycle-representative",
+      "id": "choice-list-page-v1",
+      "qualification": "installed_execution"
+    },
+    {
+      "argv": [
+        "choice",
+        "show",
+        "CHOICE-001",
+        "--limit",
+        "50",
+        "--offset",
+        "0",
+        "--format",
+        "json",
+        "--root",
+        "{project}"
+      ],
+      "command_signature": "p2p choice show CHOICE-XXX --format json",
+      "expected": {
+        "cli_contract": "p2p-cli/v1",
+        "data_contract": "p2p-choice-detail/v1",
+        "data_key": "choice_detail",
+        "error_code": null,
+        "exit_codes": [
+          0
+        ],
+        "ok": true,
+        "operation": "choice.show"
+      },
+      "fixture": "choice-lifecycle-representative",
+      "id": "choice-show-open-v1",
+      "qualification": "installed_execution"
+    },
+    {
+      "argv": [
+        "choice",
+        "show",
+        "CHOICE-002",
+        "--limit",
+        "50",
+        "--offset",
+        "0",
+        "--format",
+        "json",
+        "--root",
+        "{project}"
+      ],
+      "command_signature": "p2p choice show CHOICE-XXX --format json",
+      "expected": {
+        "cli_contract": "p2p-cli/v1",
+        "data_contract": "p2p-choice-detail/v1",
+        "data_key": "choice_detail",
+        "error_code": null,
+        "exit_codes": [
+          0
+        ],
+        "ok": true,
+        "operation": "choice.show"
+      },
+      "fixture": "choice-lifecycle-representative",
+      "id": "choice-show-decided-v1",
+      "qualification": "installed_execution"
+    },
+    {
+      "argv": [
+        "choice",
+        "show",
+        "CHOICE-003",
+        "--limit",
+        "50",
+        "--offset",
+        "0",
+        "--format",
+        "json",
+        "--root",
+        "{project}"
+      ],
+      "command_signature": "p2p choice show CHOICE-XXX --format json",
+      "expected": {
+        "cli_contract": "p2p-cli/v1",
+        "data_contract": "p2p-choice-detail/v1",
+        "data_key": "choice_detail",
+        "error_code": null,
+        "exit_codes": [
+          0
+        ],
+        "ok": true,
+        "operation": "choice.show"
+      },
+      "fixture": "choice-lifecycle-representative",
+      "id": "choice-show-withdrawn-v1",
+      "qualification": "installed_execution"
+    },
+    {
+      "argv": [
+        "choice",
+        "show",
+        "CHOICE-004",
+        "--limit",
+        "50",
+        "--offset",
+        "0",
+        "--format",
+        "json",
+        "--root",
+        "{project}"
+      ],
+      "command_signature": "p2p choice show CHOICE-XXX --format json",
+      "expected": {
+        "cli_contract": "p2p-cli/v1",
+        "data_contract": "p2p-choice-detail/v1",
+        "data_key": "choice_detail",
+        "error_code": null,
+        "exit_codes": [
+          0
+        ],
+        "ok": true,
+        "operation": "choice.show"
+      },
+      "fixture": "choice-lifecycle-representative",
+      "id": "choice-show-superseded-v1",
+      "qualification": "installed_execution"
+    },
+    {
+      "argv": [
+        "choice",
+        "show",
+        "CHOICE-999",
+        "--format",
+        "json",
+        "--root",
+        "{project}"
+      ],
+      "command_signature": "p2p choice show CHOICE-XXX --format json",
+      "expected": {
+        "cli_contract": "p2p-cli/v1",
+        "data_contract": null,
+        "data_key": null,
+        "error_code": "P2P_CHOICE_NOT_FOUND",
+        "exit_codes": [
+          2
+        ],
+        "ok": false,
+        "operation": "choice.show"
+      },
+      "fixture": "choice-lifecycle-representative",
+      "id": "choice-show-missing-v1",
+      "qualification": "installed_execution"
+    }
+  ],
+  "qualification_policy": {
+    "argv_arrays_only": true,
+    "contract": "p2p-command-qualification/v1",
+    "downstream_independent_qualification_required": true,
+    "inventory_alone_authorizes_execution": false,
+    "shell_execution": false,
+    "unknown_placeholders_rejected": true
+  },
   "registry_v2": {
     "domain_filtering": "exact_external_id_only",
     "mutation_performed": false,
@@ -307,7 +1138,7 @@
     "operation_key_placeholder": "wavekit:<uuid>",
     "root_placeholder": "<PROJECT_ROOT>"
   },
-  "semantic_sha256": "82d698dae3ee3833a96b437c43b0fd228c7d729e6d749042b3555f15ea3823fd",
+  "semantic_sha256": "a75b0aa348b1a1f005f5095dfe0322877075f605e752e392e9a8caaff69341d2",
   "transport": {
     "envelope": "p2p-cli/v1",
     "kind": "cli_json",

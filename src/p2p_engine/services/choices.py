@@ -8,6 +8,21 @@ from datetime import date
 from pathlib import Path
 
 from p2p_engine.core.authority import AuthorityContext, AuthorityEvidence
+from p2p_engine.core.choice_reads import (
+    CHOICE_READ_DEFAULT_LIMIT,
+    ChoiceDefinitionRead,
+    ChoiceDetailRead,
+    ChoiceIntegrityRead,
+    ChoiceLifecycleRead,
+    ChoiceListRead,
+    ChoiceOptionRead,
+    ChoicePageMetadata,
+    ChoiceRelationPageRead,
+    ChoiceRelationRead,
+    ChoiceSelectionRead,
+    ChoiceSummaryRead,
+    validate_choice_read_page,
+)
 from p2p_engine.core.choices import (
     CHOICE_DEFINITION_CONTRACT,
     CHOICE_LIFECYCLE_CONTRACT,
@@ -87,6 +102,18 @@ class ChoiceDetail:
     terminal_event: dict[str, object] | None = None
     replacement_choice_id: str | None = None
     supersedes: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ChoiceListReadBundle:
+    semantic: ChoiceListRead
+    compatibility: tuple[ChoiceStatus, ...]
+
+
+@dataclass(frozen=True)
+class ChoiceDetailReadBundle:
+    semantic: ChoiceDetailRead
+    compatibility: ChoiceDetail
 
 
 @dataclass(frozen=True)
@@ -288,10 +315,131 @@ class ChoiceLifecycleService:
     def statuses(self) -> list[ChoiceStatus]:
         return [self._status(self._load_dir(path)) for path in self._choice_dirs()]
 
+    def list_read_bundle(
+        self,
+        *,
+        limit: int = CHOICE_READ_DEFAULT_LIMIT,
+        offset: int = 0,
+    ) -> ChoiceListReadBundle:
+        validate_choice_read_page(limit=limit, offset=offset)
+        loaded = [self._load_dir(path) for path in self._choice_dirs()]
+        loaded.sort(key=self._choice_id)
+        selected = loaded[offset : offset + limit + 1]
+        has_more = len(selected) > limit
+        page_items = selected[:limit]
+        compatibility = tuple(self._status(item) for item in page_items)
+        semantic = ChoiceListRead(
+            items=tuple(self._summary_read(item) for item in page_items),
+            page=ChoicePageMetadata.build(
+                limit=limit,
+                offset=offset,
+                returned=len(page_items),
+                has_more=has_more,
+            ),
+        )
+        return ChoiceListReadBundle(semantic=semantic, compatibility=compatibility)
+
+    def list_read(
+        self,
+        *,
+        limit: int = CHOICE_READ_DEFAULT_LIMIT,
+        offset: int = 0,
+    ) -> ChoiceListRead:
+        return self.list_read_bundle(limit=limit, offset=offset).semantic
+
     def show(self, choice_id: str) -> ChoiceDetail:
+        return self._detail(self._load(choice_id))
+
+    def detail_read_bundle(
+        self,
+        choice_id: str,
+        *,
+        limit: int = CHOICE_READ_DEFAULT_LIMIT,
+        offset: int = 0,
+    ) -> ChoiceDetailReadBundle:
+        validate_choice_read_page(limit=limit, offset=offset)
         loaded = self._load(choice_id)
+        compatibility = self._detail(loaded)
+        relations = self._relations_read(loaded, supersedes=compatibility.supersedes)
+        selected = relations[offset : offset + limit + 1]
+        has_more = len(selected) > limit
+        page_items = selected[:limit]
         definition = loaded.definition
         frontmatter = read_frontmatter(loaded.choice_text)
+        normalized_choice_id = self._choice_id(loaded)
+        options = (
+            tuple(
+                ChoiceOptionRead(option.option_id, option.title)
+                for option in definition.options
+            )
+            if definition is not None
+            else tuple(
+                ChoiceOptionRead(str(item.get("id") or ""), str(item.get("title") or ""))
+                for item in self._definition_options(loaded.options_payload, strict=False)
+                if str(item.get("id") or "") and str(item.get("title") or "")
+            )
+        )
+        selection = self._selection_read(loaded)
+        semantic = ChoiceDetailRead(
+            choice_id=normalized_choice_id,
+            definition=ChoiceDefinitionRead(
+                source_contract=(
+                    CHOICE_DEFINITION_CONTRACT if loaded.seal_status == "sealed" else "legacy"
+                ),
+                completeness="complete" if definition is not None else "incomplete",
+                digest=loaded.stored_digest,
+                choice_id=normalized_choice_id,
+                title=str(
+                    frontmatter.get("title")
+                    or read_title(loaded.choice_text)
+                    or normalized_choice_id
+                ),
+                problem=definition.problem if definition is not None else None,
+                context=definition.context if definition is not None else None,
+                governance_boundary=(
+                    definition.governance_boundary if definition is not None else None
+                ),
+                options=options,
+            ),
+            lifecycle=ChoiceLifecycleRead(
+                source_contract=(
+                    CHOICE_LIFECYCLE_CONTRACT if loaded.lifecycle_bytes is not None else "legacy"
+                ),
+                state=loaded.status.value,
+                terminal=is_terminal_choice_state(loaded.status),
+                selected_option=selection,
+                terminal_event=loaded.terminal_event,
+                replacement_choice_id=loaded.replacement_choice_id,
+            ),
+            integrity=ChoiceIntegrityRead(
+                seal_status=loaded.seal_status,
+                integrity_status=loaded.integrity_status,
+            ),
+            relations=ChoiceRelationPageRead(
+                items=tuple(page_items),
+                page=ChoicePageMetadata.build(
+                    limit=limit,
+                    offset=offset,
+                    returned=len(page_items),
+                    has_more=has_more,
+                ),
+            ),
+        )
+        return ChoiceDetailReadBundle(semantic=semantic, compatibility=compatibility)
+
+    def detail_read(
+        self,
+        choice_id: str,
+        *,
+        limit: int = CHOICE_READ_DEFAULT_LIMIT,
+        offset: int = 0,
+    ) -> ChoiceDetailRead:
+        return self.detail_read_bundle(choice_id, limit=limit, offset=offset).semantic
+
+    def _detail(self, loaded: _LoadedChoice) -> ChoiceDetail:
+        definition = loaded.definition
+        frontmatter = read_frontmatter(loaded.choice_text)
+        choice_id = self._choice_id(loaded)
         supersedes = tuple(
             self._choice_id(item)
             for item in (self._load_dir(path) for path in self._choice_dirs())
@@ -318,6 +466,125 @@ class ChoiceLifecycleService:
             terminal_event=loaded.terminal_event,
             replacement_choice_id=loaded.replacement_choice_id,
             supersedes=supersedes,
+        )
+
+    def _summary_read(self, loaded: _LoadedChoice) -> ChoiceSummaryRead:
+        status = self._status(loaded)
+        return ChoiceSummaryRead(
+            choice_id=status.choice_id,
+            title=status.title,
+            state=status.status,
+            terminal=status.terminal,
+            definition_contract=(
+                CHOICE_DEFINITION_CONTRACT if loaded.seal_status == "sealed" else "legacy"
+            ),
+            definition_completeness=(
+                "complete" if loaded.definition is not None else "incomplete"
+            ),
+            definition_digest=status.definition_digest,
+            seal_status=status.seal_status,
+            integrity_status=status.integrity_status,
+            selected_option=self._selection_read(loaded),
+            replacement_choice_id=status.replacement_choice_id,
+        )
+
+    def _selection_read(self, loaded: _LoadedChoice) -> ChoiceSelectionRead | None:
+        option_id = loaded.selected_option_id
+        if option_id is None:
+            return None
+        if loaded.definition is not None:
+            option = loaded.definition.option(option_id)
+            return ChoiceSelectionRead(option.option_id, option.title)
+        selected = read_markdown_section(loaded.decision_text, "Selected Option") or ""
+        prefix, separator, title = selected.partition(" - ")
+        return ChoiceSelectionRead(
+            option_id=prefix.strip().upper() or option_id,
+            title=title.strip() if separator and title.strip() else None,
+        )
+
+    def _relations_read(
+        self,
+        loaded: _LoadedChoice,
+        *,
+        supersedes: tuple[str, ...],
+    ) -> list[ChoiceRelationRead]:
+        relations: list[ChoiceRelationRead] = []
+        for item in self._mapping_list(loaded.links_payload, "related_proposals"):
+            target = str(item.get("proposal") or item.get("target") or "").strip()
+            if target:
+                relations.append(
+                    self._relation_read(
+                        "related_proposal", "proposal", target, item
+                    )
+                )
+        for item in self._mapping_list(loaded.links_payload, "related_changes"):
+            target = str(item.get("change") or item.get("target") or "").strip()
+            if target:
+                relations.append(
+                    self._relation_read("related_change", "change", target, item)
+                )
+        for item in self._mapping_list(loaded.links_payload, "blocks"):
+            target = str(item.get("target") or "").strip()
+            if target:
+                relations.append(
+                    self._relation_read(
+                        "blocks",
+                        str(item.get("target_type") or "target"),
+                        target,
+                        item,
+                    )
+                )
+        if loaded.replacement_choice_id:
+            relations.append(
+                ChoiceRelationRead(
+                    kind="superseded_by",
+                    target_type="choice",
+                    target_id=loaded.replacement_choice_id,
+                )
+            )
+        relations.extend(
+            ChoiceRelationRead(
+                kind="supersedes",
+                target_type="choice",
+                target_id=choice_id,
+                derived=True,
+            )
+            for choice_id in supersedes
+        )
+        relations.sort(
+            key=lambda item: (
+                item.kind,
+                item.target_type,
+                item.target_id,
+                item.relationship or "",
+                item.status or "",
+            )
+        )
+        return relations
+
+    @staticmethod
+    def _relation_read(
+        kind: str,
+        target_type: str,
+        target_id: str,
+        item: Mapping[str, object],
+    ) -> ChoiceRelationRead:
+        def optional(name: str) -> str | None:
+            value = str(item.get(name) or "").strip()
+            return value or None
+
+        return ChoiceRelationRead(
+            kind=kind,
+            target_type=target_type,
+            target_id=target_id,
+            relationship=optional("relationship"),
+            rationale=optional("rationale"),
+            status=optional("status"),
+            reason=optional("reason"),
+            recorded_on=optional("recorded_on"),
+            cleared_on=optional("cleared_on"),
+            cleared_by=optional("cleared_by"),
+            clearing_reason=optional("clearing_reason"),
         )
 
     def discover(self) -> list[ChoiceDiscoveryFinding]:
@@ -1169,4 +1436,4 @@ class ChoiceLifecycleService:
         for path in self._choice_dirs():
             if path.name.startswith(f"{choice_id}-"):
                 return path
-        raise ValueError(f"Choice not found: {choice_id}")
+        raise ValueError(f"P2P_CHOICE_NOT_FOUND: Choice not found: {choice_id}")

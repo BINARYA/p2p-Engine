@@ -341,9 +341,45 @@ class ProjectApplicationService:
         target = self.adapter.compatibility_target()
         return getattr(target, "_choice_lifecycle_service")().statuses()
 
+    def choice_list_read(self, *, limit: int = 50, offset: int = 0):
+        target = self.adapter.compatibility_target()
+        return getattr(target, "_choice_lifecycle_service")().list_read(
+            limit=limit,
+            offset=offset,
+        )
+
+    def choice_list_read_bundle(self, *, limit: int = 50, offset: int = 0):
+        target = self.adapter.compatibility_target()
+        return getattr(target, "_choice_lifecycle_service")().list_read_bundle(
+            limit=limit,
+            offset=offset,
+        )
+
     def show_choice(self, choice_id: str):
         target = self.adapter.compatibility_target()
         return getattr(target, "_choice_lifecycle_service")().show(choice_id)
+
+    def choice_detail_read(self, choice_id: str, *, limit: int = 50, offset: int = 0):
+        target = self.adapter.compatibility_target()
+        return getattr(target, "_choice_lifecycle_service")().detail_read(
+            choice_id,
+            limit=limit,
+            offset=offset,
+        )
+
+    def choice_detail_read_bundle(
+        self,
+        choice_id: str,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+    ):
+        target = self.adapter.compatibility_target()
+        return getattr(target, "_choice_lifecycle_service")().detail_read_bundle(
+            choice_id,
+            limit=limit,
+            offset=offset,
+        )
 
     def discover_choices(self):
         target = self.adapter.compatibility_target()
