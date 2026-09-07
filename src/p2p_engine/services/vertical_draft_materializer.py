@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from pathlib import Path, PurePosixPath
 import shutil
 import tempfile
+from pathlib import Path, PurePosixPath
 
 from p2p_engine.core.portable_verticals import PortableVerticalInspection, VerticalCoordinate
 from p2p_engine.foundation.files import write_yaml_atomic
@@ -108,6 +108,11 @@ class VerticalDraftMaterializer:
                     {
                         "coordinate": item["coordinate"],
                         "checksum": f"sha256:{item['semantic_checksum']}",
+                        **(
+                            {"semantic_identity": item["semantic_identity"]}
+                            if item.get("semantic_identity") is not None
+                            else {}
+                        ),
                     }
                     for item in dependencies
                 ],
@@ -220,7 +225,10 @@ def vertical_draft_roundtrip_shape(document: dict[str, object]) -> dict[str, obj
     lineage = dict(result["lineage"])
     for field, reference in lineage.items():
         if isinstance(reference, dict):
-            lineage[field] = {**reference, "semantic_checksum": ""}
+            lineage[field] = {
+                "coordinate": reference.get("coordinate", ""),
+                "semantic_checksum": "",
+            }
     result["lineage"] = lineage
     sections: list[dict[str, object]] = []
     for raw_section in result["sections"]:

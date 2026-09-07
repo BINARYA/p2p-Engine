@@ -1,0 +1,5 @@
+artifact:
+  id: evidence_bundle
+  title: Evidence Bundle
+  section_ids: [intent, optional_context]
+  required: false

@@ -39,6 +39,7 @@ from p2p_engine.core.project_structure_retirement import (
     StructureRetirementImpact,
     StructureRetirementPlan,
 )
+from p2p_engine.core.vertical_semantic_identity import VerticalSemanticIdentity
 from p2p_engine.services.authority import AuthorityContractCodec, ProjectAuthorityService
 from p2p_engine.services.canonical_memory import CanonicalBundleCodec
 from p2p_engine.services.mutation_receipts import (
@@ -939,6 +940,7 @@ class ProjectStructureMergeRestoreService:
                 identity=resolved.release.coordinate,
                 digest=resolved.release.semantic_checksum,
                 schema_version=resolved.release.schema_version,
+                semantic_identity=resolved.release.semantic_identity,
             ),
             structure=resolved.active_structure,
             external_reference=value,
@@ -1054,6 +1056,11 @@ class ProjectStructureMergeRestoreService:
             identity=str(source_raw.get("identity") or ""),
             digest=str(source_raw.get("digest") or ""),
             schema_version=int(source_raw.get("schema_version") or 0),
+            semantic_identity=(
+                VerticalSemanticIdentity.from_mapping(source_raw["semantic_identity"])
+                if source_raw.get("semantic_identity") is not None
+                else None
+            ),
         )
         event = result.get("event")
         if not isinstance(event, Mapping):

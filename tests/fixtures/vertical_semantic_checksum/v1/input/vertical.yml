@@ -1,0 +1,30 @@
+vertical:
+  schema_version: 3
+  id: semantic_contract_fixture
+  name: Semantic Contract Fixture
+  version: 1.2.3
+  description: "Contratto semantico: città, qualità e Ω."
+  extends: null
+  questions:
+    - id: intent_question
+      section_id: intent
+      priority: high
+      question: What intent must be preserved?
+      rationale: It exercises the complete question projection.
+      target:
+        kind: field
+        id: summary
+      answer_contract:
+        kind: field_value
+        required_fields: [value]
+        allowed_definition_operations: [set_field]
+      fallback_key: intent.summary
+      aliases: [goal, objective]
+  artifacts:
+    - id: decision_record
+      title: Decision Record
+      section_ids: [intent]
+      required: true
+  profiles: [compact]
+  modules: [governance]
+  examples: [declared-example.md]

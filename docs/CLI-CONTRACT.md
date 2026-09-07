@@ -59,6 +59,12 @@ human-readable message or payload fields.
 Consumers must branch on `ok`, `error.code` and the exit class. They must not
 infer behavior from `error.message`.
 
+Vertical inspect, validate, package, registry, draft and structure-transition
+results retain `semantic_checksum` and also expose `semantic_identity` with
+`contract`, `algorithm` and `digest`. The scalar is a compatibility alias, not
+the `.p2pv` `artifact_checksum`. See
+[Vertical Semantic Identity V1](VERTICAL-SEMANTIC-IDENTITY.md).
+
 When JSON is requested, missing arguments, unknown options and conversion
 errors use the same envelope with `P2P_CLI_INVALID_REQUEST`. Text mode retains
 Typer/Rich help and error rendering.

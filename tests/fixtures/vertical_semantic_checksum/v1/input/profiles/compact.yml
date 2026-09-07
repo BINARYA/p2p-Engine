@@ -1,0 +1,5 @@
+profile:
+  id: compact
+  title: Compact Profile
+  description: Minimal but complete.
+  enabled_modules: [governance]

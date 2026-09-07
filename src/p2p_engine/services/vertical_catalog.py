@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from contextlib import AbstractContextManager
 import hashlib
 import os
-from pathlib import Path
 import shutil
 import tempfile
-import uuid
+from contextlib import AbstractContextManager
+from pathlib import Path
 
 from p2p_engine.core.portable_verticals import (
     PORTABLE_VERTICAL_MAX_TOTAL_BYTES,
@@ -21,16 +20,20 @@ from p2p_engine.core.vertical_registry import (
     VerticalRelease,
     VerticalUserPaths,
 )
+from p2p_engine.core.vertical_semantic_identity import (
+    VerticalSemanticComparison,
+    VerticalSemanticIdentity,
+    compare_vertical_semantic_identities,
+)
 from p2p_engine.foundation.files import write_yaml_atomic
 from p2p_engine.foundation.yaml_loaders import load_yaml
+from p2p_engine.services.project_verticals import ProjectVerticalService
 from p2p_engine.services.vertical_registry import (
     VerticalRegistryClient,
     parse_vertical_release,
     vertical_user_paths,
 )
-from p2p_engine.services.project_verticals import ProjectVerticalService
 from p2p_engine.storage.filesystem import P2PWorkspace
-
 
 _CACHE_SCHEMA_VERSION = 1
 _SUPPORTED_CACHE_PROTOCOLS = {
@@ -75,7 +78,7 @@ class VerticalCacheService:
         visited: set[str] = set()
         visiting: set[str] = set()
 
-        def visit(current: str, expected_checksum: str = "") -> None:
+        def visit(current: str, expected_identity: VerticalSemanticIdentity | None = None) -> None:
             if current in visiting:
                 raise ValueError("P2P_REGISTRY_CACHE_INVALID: cached dependency cycle detected")
             if current in visited:
@@ -86,12 +89,14 @@ class VerticalCacheService:
                 raise ValueError(
                     f"P2P_REGISTRY_CACHE_INCOMPLETE: dependency `{current}` is not cached"
                 )
-            if expected_checksum and cached.release.semantic_checksum != expected_checksum:
-                raise ValueError(
-                    "P2P_REGISTRY_CACHE_INVALID: dependency semantic checksum mismatch"
+            if expected_identity is not None:
+                _require_semantic_equal(
+                    cached.release.semantic_identity,
+                    expected_identity,
+                    context="P2P_REGISTRY_CACHE_INVALID: dependency semantic identity",
                 )
             for dependency in cached.release.dependencies:
-                visit(dependency.coordinate, dependency.semantic_checksum)
+                visit(dependency.coordinate, dependency.semantic_identity)
             visiting.remove(current)
             visited.add(current)
             ordered.append(cached)
@@ -298,25 +303,29 @@ class VerticalPullService:
         by_coordinate: dict[str, VerticalRelease] = {}
         visiting: set[str] = set()
 
-        def visit(current: str, expected_checksum: str = "") -> None:
+        def visit(current: str, expected_identity: VerticalSemanticIdentity | None = None) -> None:
             if current in visiting:
                 raise ValueError("P2P_REGISTRY_DEPENDENCY_CYCLE: vertical dependency cycle detected")
             known = by_coordinate.get(current)
             if known is not None:
-                if expected_checksum and known.semantic_checksum != expected_checksum:
-                    raise ValueError(
-                        "P2P_REGISTRY_METADATA_MISMATCH: dependency semantic checksum conflict"
+                if expected_identity is not None:
+                    _require_semantic_equal(
+                        known.semantic_identity,
+                        expected_identity,
+                        context="P2P_REGISTRY_METADATA_MISMATCH: dependency semantic identity",
                     )
                 return
             visiting.add(current)
             release = self.client.release(current, registry)
-            if expected_checksum and release.semantic_checksum != expected_checksum:
-                raise ValueError(
-                    "P2P_REGISTRY_METADATA_MISMATCH: dependency semantic checksum mismatch"
+            if expected_identity is not None:
+                _require_semantic_equal(
+                    release.semantic_identity,
+                    expected_identity,
+                    context="P2P_REGISTRY_METADATA_MISMATCH: dependency semantic identity",
                 )
             by_coordinate[current] = release
             for dependency in release.dependencies:
-                visit(dependency.coordinate, dependency.semantic_checksum)
+                visit(dependency.coordinate, dependency.semantic_identity)
             visiting.remove(current)
             ordered.append(release)
 
@@ -380,7 +389,10 @@ class VerticalPullService:
                 inspection = workspace.inspect_portable_vertical(artifact, view="effective")
                 if (
                     inspection.pack.coordinate != release.coordinate
-                    or inspection.semantic_checksum != release.semantic_checksum
+                    or compare_vertical_semantic_identities(
+                        inspection.semantic_identity, release.semantic_identity
+                    )
+                    is not VerticalSemanticComparison.EQUAL
                     or inspection.pack.schema_version != release.schema_version
                 ):
                     raise ValueError(
@@ -418,12 +430,14 @@ class VerticalCatalogService:
         items: list[VerticalCatalogItem] = []
         for item in self.workspace.project_verticals():
             pack = self.workspace.show_project_vertical(item.coordinate or item.vertical_id)
+            semantic_identity = ProjectVerticalService.semantic_pack_identity(pack)
             items.append(
                 VerticalCatalogItem(
                     coordinate=item.coordinate or item.vertical_id,
                     name=item.name,
                     source=item.source,
-                    semantic_checksum=ProjectVerticalService.semantic_pack_checksum(pack),
+                    semantic_checksum=semantic_identity.digest,
+                    semantic_identity=semantic_identity,
                 )
             )
         for cached in self.cache.list():
@@ -437,6 +451,7 @@ class VerticalCatalogService:
                     visibility=release.visibility,
                     registry=release.registry,
                     semantic_checksum=release.semantic_checksum,
+                    semantic_identity=release.semantic_identity,
                     artifact_checksum=release.artifact.sha256,
                     artifact_path=cached.artifact_path,
                 )
@@ -449,6 +464,7 @@ class VerticalCatalogService:
                     name=inspection.pack.name,
                     source="explicit",
                     semantic_checksum=inspection.semantic_checksum,
+                    semantic_identity=inspection.semantic_identity,
                     artifact_checksum=inspection.artifact_checksum,
                     artifact_path=path.resolve(),
                 )
@@ -498,6 +514,7 @@ class VerticalCatalogService:
                 visibility=release.visibility,
                 registry=release.registry,
                 semantic_checksum=release.semantic_checksum,
+                semantic_identity=release.semantic_identity,
                 artifact_checksum=release.artifact.sha256,
                 local_available=release.coordinate in local_coordinates,
                 primary_domain=release.primary_domain,
@@ -559,16 +576,21 @@ class VerticalCatalogService:
         visited: set[str] = set()
         visiting: set[str] = set()
 
-        def visit(current: VerticalCatalogItem, expected_checksum: str = "") -> None:
+        def visit(
+            current: VerticalCatalogItem,
+            expected_identity: VerticalSemanticIdentity | None = None,
+        ) -> None:
             if current.coordinate in visiting:
                 raise ValueError(
                     "P2P_REGISTRY_CACHE_INVALID: cached dependency cycle detected"
                 )
             if current.coordinate in visited:
                 return
-            if expected_checksum and current.semantic_checksum != expected_checksum:
-                raise ValueError(
-                    "P2P_REGISTRY_CACHE_INVALID: dependency semantic checksum mismatch"
+            if expected_identity is not None and current.semantic_identity is not None:
+                _require_semantic_equal(
+                    current.semantic_identity,
+                    expected_identity,
+                    context="P2P_REGISTRY_CACHE_INVALID: dependency semantic identity",
                 )
             if current.artifact_path is None or not current.registry:
                 visited.add(current.coordinate)
@@ -594,7 +616,7 @@ class VerticalCatalogService:
                     (candidate for candidate in matches if candidate.artifact_path is not None),
                     matches[0],
                 )
-                visit(dependency_item, dependency.semantic_checksum)
+                visit(dependency_item, dependency.semantic_identity)
             visiting.remove(current.coordinate)
             visited.add(current.coordinate)
             ordered.append(cached)
@@ -664,12 +686,19 @@ def _file_digest(path: Path) -> tuple[str, int]:
 def _immutable_identity(release: VerticalRelease) -> tuple[object, ...]:
     return (
         release.coordinate,
-        release.semantic_checksum,
+        release.semantic_identity.contract,
+        release.semantic_identity.algorithm,
+        release.semantic_identity.digest,
         release.schema_version,
         release.artifact.sha256,
         release.artifact.size,
         tuple(
-            (item.coordinate, item.semantic_checksum)
+            (
+                item.coordinate,
+                item.semantic_identity.contract,
+                item.semantic_identity.algorithm,
+                item.semantic_identity.digest,
+            )
             for item in release.dependencies
         ),
     )
@@ -682,11 +711,17 @@ def _assert_no_conflicts(items: list[VerticalCatalogItem] | tuple[VerticalCatalo
         if previous is None:
             seen[item.coordinate] = item
             continue
-        semantic_conflict = (
-            previous.semantic_checksum
-            and item.semantic_checksum
-            and previous.semantic_checksum != item.semantic_checksum
+        semantic_comparison = (
+            compare_vertical_semantic_identities(
+                previous.semantic_identity, item.semantic_identity
+            )
+            if previous.semantic_identity is not None and item.semantic_identity is not None
+            else None
         )
+        semantic_conflict = semantic_comparison in {
+            VerticalSemanticComparison.DIFFERENT,
+            VerticalSemanticComparison.INCOMPARABLE,
+        }
         artifact_conflict = (
             previous.artifact_checksum
             and item.artifact_checksum
@@ -696,3 +731,17 @@ def _assert_no_conflicts(items: list[VerticalCatalogItem] | tuple[VerticalCatalo
             raise ValueError(
                 f"P2P_VERTICAL_CATALOG_CONFLICT: sources disagree for `{item.coordinate}`"
             )
+
+
+def _require_semantic_equal(
+    actual: VerticalSemanticIdentity,
+    expected: VerticalSemanticIdentity,
+    *,
+    context: str,
+) -> None:
+    comparison = compare_vertical_semantic_identities(actual, expected)
+    if comparison is VerticalSemanticComparison.EQUAL:
+        return
+    if comparison is VerticalSemanticComparison.INCOMPARABLE:
+        raise ValueError(f"{context} is incomparable")
+    raise ValueError(f"{context} mismatch")

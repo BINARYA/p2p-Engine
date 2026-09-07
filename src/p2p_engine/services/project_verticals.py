@@ -79,6 +79,12 @@ from p2p_engine.core.project_verticals import (
     VerticalValidationIssue,
     VerticalValidationResult,
 )
+from p2p_engine.core.vertical_semantic_identity import (
+    VERTICAL_SEMANTIC_CHECKSUM_CONTRACT,
+    VerticalSemanticIdentity,
+    calculate_vertical_semantic_identity,
+    verify_vertical_semantic_identity,
+)
 from p2p_engine.foundation.files import (
     relative_to_root,
     slugify,
@@ -2103,6 +2109,27 @@ class ProjectVerticalService:
     def semantic_pack_checksum(pack: VerticalPack) -> str:
         return _pack_checksum(pack)
 
+    @staticmethod
+    def semantic_pack_identity(
+        pack: VerticalPack,
+        contract: str = VERTICAL_SEMANTIC_CHECKSUM_CONTRACT,
+    ) -> VerticalSemanticIdentity:
+        return calculate_vertical_semantic_identity(
+            pack,
+            contract=contract,
+            v1_calculator=vertical_semantic_identity_v1,
+        )
+
+    @staticmethod
+    def verify_semantic_pack_identity(
+        pack: VerticalPack,
+        expected: VerticalSemanticIdentity,
+    ) -> None:
+        actual = ProjectVerticalService.semantic_pack_identity(
+            pack, contract=expected.contract
+        )
+        verify_vertical_semantic_identity(actual, expected)
+
     def _load_target_for_validation(self, target: str) -> tuple[VerticalPack, dict[str, object]]:
         path = Path(target)
         if path.exists():
@@ -3023,6 +3050,11 @@ def _pack_from_payload(payload: dict[str, object], *, source: str, path: Path | 
                 VerticalDependency(
                     coordinate=str(item.get("coordinate") or ""),
                     checksum=str(item.get("checksum") or ""),
+                    semantic_identity=(
+                        VerticalSemanticIdentity.from_mapping(item["semantic_identity"])
+                        if item.get("semantic_identity") is not None
+                        else None
+                    ),
                 )
                 for item in dependency_payloads
             ],
@@ -3041,7 +3073,7 @@ def _pack_from_payload(payload: dict[str, object], *, source: str, path: Path | 
     )
 
 
-def _vertical_rubric_payload(rubric: VerticalRubric) -> dict[str, object]:
+def _vertical_rubric_payload_v1(rubric: VerticalRubric) -> dict[str, object]:
     payload: dict[str, object] = {
         "id": rubric.rubric_id,
         "title": rubric.title,
@@ -3056,7 +3088,12 @@ def _vertical_rubric_payload(rubric: VerticalRubric) -> dict[str, object]:
     return payload
 
 
-def _pack_payload(pack: VerticalPack) -> dict[str, object]:
+def _vertical_rubric_payload(rubric: VerticalRubric) -> dict[str, object]:
+    return _vertical_rubric_payload_v1(rubric)
+
+
+def vertical_semantic_projection_v1(pack: VerticalPack) -> dict[str, object]:
+    """Return the frozen semantic projection used by P2P Engine 0.6.7."""
     vertical_payload: dict[str, object] = {
             "schema_version": pack.schema_version,
             "id": pack.vertical_id,
@@ -3094,8 +3131,8 @@ def _pack_payload(pack: VerticalPack) -> dict[str, object]:
                 }
                 for section in pack.sections
             ],
-            "rubrics": [_vertical_rubric_payload(rubric) for rubric in pack.rubrics],
-            "questions": [_vertical_question_payload(question) for question in pack.questions],
+            "rubrics": [_vertical_rubric_payload_v1(rubric) for rubric in pack.rubrics],
+            "questions": [_vertical_question_payload_v1(question) for question in pack.questions],
             "artifacts": [
                 {
                     "id": artifact.artifact_id,
@@ -3157,7 +3194,12 @@ def _pack_payload(pack: VerticalPack) -> dict[str, object]:
     }
 
 
-def _vertical_question_payload(question: VerticalQuestion) -> dict[str, object]:
+def _pack_payload(pack: VerticalPack) -> dict[str, object]:
+    """Compatibility projection; semantic v1 has its own frozen boundary."""
+    return vertical_semantic_projection_v1(pack)
+
+
+def _vertical_question_payload_v1(question: VerticalQuestion) -> dict[str, object]:
     payload: dict[str, object] = {
         "id": question.question_id,
         "section_id": question.section_id,
@@ -3249,9 +3291,18 @@ def _project_relative_source_path(path: Path | None, root: Path) -> Path | None:
 
 
 def _pack_checksum(pack: VerticalPack) -> str:
-    payload = _pack_payload(pack)
+    return vertical_semantic_identity_v1(pack).digest
+
+
+def vertical_semantic_canonical_bytes_v1(pack: VerticalPack) -> bytes:
+    payload = vertical_semantic_projection_v1(pack)
     text = yaml.safe_dump(payload, sort_keys=True, allow_unicode=False)
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return text.encode("utf-8")
+
+
+def vertical_semantic_identity_v1(pack: VerticalPack) -> VerticalSemanticIdentity:
+    digest = hashlib.sha256(vertical_semantic_canonical_bytes_v1(pack)).hexdigest()
+    return VerticalSemanticIdentity.v1(digest)
 
 
 def _vertical_lock_payload(lock: VerticalLock) -> dict[str, object]:
@@ -3268,7 +3319,11 @@ def _vertical_lock_payload(lock: VerticalLock) -> dict[str, object]:
                 "path": lock.source.path.as_posix() if lock.source.path else "",
                 "package": lock.source.package,
             },
-            "checksum": {"algorithm": "sha256", "value": lock.checksum},
+            "checksum": {
+                "contract": lock.semantic_identity.contract,
+                "algorithm": lock.semantic_identity.algorithm,
+                "value": lock.semantic_identity.digest,
+            },
             "compatibility": lock.compatibility,
             "selected": {"at": lock.selected_at, "by": lock.selected_by},
             "trust": lock.trust,
@@ -3285,7 +3340,11 @@ def _vertical_lock_payload(lock: VerticalLock) -> dict[str, object]:
         }
     if lock.dependencies:
         lock_payload["dependencies"] = [
-            {"coordinate": item.coordinate, "checksum": item.checksum}
+            {
+                "coordinate": item.coordinate,
+                "checksum": item.checksum,
+                "semantic_identity": item.semantic_identity.to_dict(),
+            }
             for item in lock.dependencies
         ]
     return payload
@@ -3313,6 +3372,15 @@ def _vertical_lock_from_payload(path: Path, payload: dict[str, object], root: Pa
         raise ValueError(f"Invalid project vertical lock: missing vertical_id in {path}")
     if not checksum:
         raise ValueError(f"Invalid project vertical lock: missing checksum.value in {path}")
+    semantic_identity = VerticalSemanticIdentity.from_mapping(
+        {
+            "contract": checksum_payload.get("contract")
+            or VERTICAL_SEMANTIC_CHECKSUM_CONTRACT,
+            "algorithm": checksum_payload.get("algorithm") or "sha256",
+            "digest": checksum,
+        }
+    )
+    semantic_identity.require_supported()
     pack_schema_version = lock.get("pack_schema_version")
     if pack_schema_version != VERTICAL_SCHEMA_VERSION:
         display = "missing" if pack_schema_version is None else repr(pack_schema_version)
@@ -3357,9 +3425,15 @@ def _vertical_lock_from_payload(path: Path, payload: dict[str, object], root: Pa
             VerticalDependency(
                 coordinate=str(item.get("coordinate") or ""),
                 checksum=str(item.get("checksum") or ""),
+                semantic_identity=(
+                    VerticalSemanticIdentity.from_mapping(item["semantic_identity"])
+                    if item.get("semantic_identity") is not None
+                    else None
+                ),
             )
             for item in _mapping_list(lock.get("dependencies"))
         ],
+        semantic_identity=semantic_identity,
     )
 
 
@@ -3806,6 +3880,14 @@ def _vertical_pack_issues(payload: dict[str, object]) -> list[VerticalValidation
                     continue
                 coordinate = str(dependency.get("coordinate") or "")
                 checksum = str(dependency.get("checksum") or "")
+                unknown_dependency_fields = sorted(
+                    set(dependency) - {"coordinate", "checksum", "semantic_identity"}
+                )
+                if unknown_dependency_fields:
+                    error(
+                        f"vertical.manifest.dependencies[{index}]",
+                        f"unknown fields {unknown_dependency_fields}",
+                    )
                 try:
                     VerticalCoordinate.parse(coordinate)
                 except ValueError as exc:
@@ -3821,6 +3903,23 @@ def _vertical_pack_issues(payload: dict[str, object]) -> list[VerticalValidation
                         f"vertical.manifest.dependencies[{index}].checksum",
                         "must be sha256 followed by 64 lowercase hexadecimal characters",
                     )
+                elif dependency.get("semantic_identity") is not None:
+                    try:
+                        structured = VerticalSemanticIdentity.from_mapping(
+                            dependency["semantic_identity"]
+                        )
+                        structured.require_supported()
+                        if structured != VerticalSemanticIdentity.v1(
+                            checksum.removeprefix("sha256:")
+                        ):
+                            raise ValueError(
+                                "P2P_VERTICAL_SEMANTIC_IDENTITY_CONFLICT: dependency checksum fields disagree"
+                            )
+                    except ValueError as exc:
+                        error(
+                            f"vertical.manifest.dependencies[{index}].semantic_identity",
+                            str(exc),
+                        )
             primary_domain = manifest.get("primary_domain")
             if primary_domain is not None:
                 try:

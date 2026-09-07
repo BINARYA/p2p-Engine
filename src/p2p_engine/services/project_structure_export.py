@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import replace
 import hashlib
-from pathlib import Path
 import re
 import shutil
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import replace
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 from p2p_engine.core.authority import AuthorityContext, AuthorityEvidence
 from p2p_engine.core.mutation_preview import (
@@ -36,6 +37,11 @@ from p2p_engine.core.project_structure_export import (
     ProjectStructureExportResult,
     ProjectStructureExportSource,
 )
+from p2p_engine.core.vertical_semantic_identity import (
+    VerticalSemanticComparison,
+    VerticalSemanticIdentity,
+    compare_vertical_semantic_identities,
+)
 from p2p_engine.foundation.files import yaml_dump
 from p2p_engine.services.authority import AuthorityContractCodec, ProjectAuthorityService
 from p2p_engine.services.mutation_receipts import (
@@ -49,6 +55,12 @@ from p2p_engine.services.project_structure import (
 )
 from p2p_engine.services.project_verticals import ProjectVerticalService
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter, utc_now_iso
+
+if TYPE_CHECKING:
+    from p2p_engine.services.vertical_draft_lifecycle import (
+        VerticalDraftLifecycleService,
+    )
+    from p2p_engine.services.vertical_drafts import VerticalDraftService
 
 
 PROJECT_STRUCTURE_EXPORT_POLICY_VERSION = 1
@@ -132,6 +144,7 @@ class ProjectStructureExportService:
         lineage_mode: str,
         parent_coordinate: str = "",
         parent_semantic_checksum: str = "",
+        parent_semantic_identity: Mapping[str, object] | None = None,
         description: str = "",
         actor_id: str = "owner",
         executor_id: str = "",
@@ -147,6 +160,7 @@ class ProjectStructureExportService:
             lineage_mode=lineage_mode,
             parent_coordinate=parent_coordinate,
             parent_semantic_checksum=parent_semantic_checksum,
+            parent_semantic_identity=parent_semantic_identity,
             description=description,
         )
         structure = self.structure_service.show(include_retired=True)
@@ -177,6 +191,7 @@ class ProjectStructureExportService:
         confirm: bool,
         parent_coordinate: str = "",
         parent_semantic_checksum: str = "",
+        parent_semantic_identity: Mapping[str, object] | None = None,
         description: str = "",
         actor_id: str = "owner",
         executor_id: str = "",
@@ -200,6 +215,7 @@ class ProjectStructureExportService:
             lineage_mode=lineage_mode,
             parent_coordinate=parent_coordinate,
             parent_semantic_checksum=parent_semantic_checksum,
+            parent_semantic_identity=parent_semantic_identity,
             description=description,
         )
         expected_checksum = _checksum(expected_structure_checksum, "expected_structure_checksum")
@@ -555,6 +571,7 @@ class ProjectStructureExportService:
         lineage_mode: str,
         parent_coordinate: str,
         parent_semantic_checksum: str,
+        parent_semantic_identity: Mapping[str, object] | None,
         description: str,
     ) -> dict[str, object]:
         coordinate = VerticalCoordinate.parse(f"{publisher}/{vertical_id}@{version}")
@@ -582,6 +599,17 @@ class ProjectStructureExportService:
             if parent_semantic_checksum
             else ""
         )
+        semantic_identity = (
+            VerticalSemanticIdentity.from_mapping(parent_semantic_identity)
+            if parent_semantic_identity is not None
+            else (VerticalSemanticIdentity.v1(checksum) if checksum else None)
+        )
+        if semantic_identity is not None:
+            semantic_identity.require_supported()
+            if not checksum or semantic_identity != VerticalSemanticIdentity.v1(checksum):
+                raise ValueError(
+                    "P2P_VERTICAL_SEMANTIC_IDENTITY_CONFLICT: parent checksum fields disagree"
+                )
         parent = str(VerticalCoordinate.parse(parent_coordinate)) if parent_coordinate else ""
         if (parent and not checksum) or (checksum and not parent):
             raise ValueError(
@@ -599,7 +627,11 @@ class ProjectStructureExportService:
             "description": description_text,
             "lineage_mode": mode,
             "parent": (
-                {"coordinate": parent, "semantic_checksum": checksum}
+                {
+                    "coordinate": parent,
+                    "semantic_checksum": checksum,
+                    "semantic_identity": semantic_identity.to_dict(),
+                }
                 if parent and checksum
                 else None
             ),
@@ -644,9 +676,14 @@ class ProjectStructureExportService:
             )
         try:
             resolved = self.vertical_service.resolve_pack(parent_ref["coordinate"])
-            if resolved.checksum != parent_ref["semantic_checksum"]:
+            resolved_identity = VerticalSemanticIdentity.v1(resolved.checksum)
+            comparison = compare_vertical_semantic_identities(
+                resolved_identity,
+                VerticalSemanticIdentity.from_mapping(parent_ref["semantic_identity"]),
+            )
+            if comparison is not VerticalSemanticComparison.EQUAL:
                 blockers.append(
-                    "P2P_STRUCTURE_EXPORT_PARENT_CHECKSUM_MISMATCH: parent checksum does not match the installed release"
+                    "P2P_STRUCTURE_EXPORT_PARENT_CHECKSUM_MISMATCH: parent semantic identity does not match the installed release"
                 )
             license_id = (
                 resolved.pack.manifest.license_id
@@ -1118,22 +1155,35 @@ def _active_structure_payload(structure: ProjectStructure) -> dict[str, object]:
     }
 
 
-def _eligible_parent(structure: ProjectStructure) -> dict[str, str] | None:
+def _eligible_parent(structure: ProjectStructure) -> dict[str, object] | None:
     origin = structure.origin
     if origin.kind != "vertical_release" or not origin.checksum:
         return None
     return {
         "coordinate": str(VerticalCoordinate.parse(origin.identity)),
         "semantic_checksum": _checksum(origin.checksum, "origin.checksum"),
+        "semantic_identity": origin.semantic_identity.to_dict(),
     }
 
 
-def _reference(value: object) -> dict[str, str]:
+def _reference(value: object) -> dict[str, object]:
     if not isinstance(value, Mapping):
         raise ValueError("P2P_STRUCTURE_EXPORT_INVALID_LINEAGE: parent must be a mapping")
+    checksum = _checksum(value.get("semantic_checksum"), "parent.semantic_checksum")
+    identity = (
+        VerticalSemanticIdentity.from_mapping(value["semantic_identity"])
+        if value.get("semantic_identity") is not None
+        else VerticalSemanticIdentity.v1(checksum)
+    )
+    identity.require_supported()
+    if identity != VerticalSemanticIdentity.v1(checksum):
+        raise ValueError(
+            "P2P_VERTICAL_SEMANTIC_IDENTITY_CONFLICT: parent checksum fields disagree"
+        )
     return {
         "coordinate": str(VerticalCoordinate.parse(str(value.get("coordinate") or ""))),
-        "semantic_checksum": _checksum(value.get("semantic_checksum"), "parent.semantic_checksum"),
+        "semantic_checksum": checksum,
+        "semantic_identity": identity.to_dict(),
     }
 
 

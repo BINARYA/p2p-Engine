@@ -545,6 +545,10 @@ Local demos:
 
 Work in progress:
 
+- [docs/VERTICAL-SEMANTIC-IDENTITY.md](docs/VERTICAL-SEMANTIC-IDENTITY.md)
+  Defines the versioned semantic identity of effective verticals and keeps it
+  separate from the checksum of portable archive bytes.
+
 - [docs/AGENT-INTEGRATION.md](docs/AGENT-INTEGRATION.md)  
 - [docs/PROJECT-INTEGRATION-ARTIFACTS.md](docs/PROJECT-INTEGRATION-ARTIFACTS.md)
   How Codex, Claude, and other agents should use P2P Engine safely and efficiently.

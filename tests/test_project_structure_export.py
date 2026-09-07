@@ -27,7 +27,6 @@ from p2p_engine.services.vertical_drafts import VerticalDraftService
 from p2p_engine.storage.filesystem import P2PWorkspace
 from tests.cli_assertions import cli_data
 
-
 runner = CliRunner()
 
 
@@ -205,6 +204,7 @@ def test_derived_export_records_exact_parent_lineage(
     assert preview.lineage["forked_from"] == {
         "coordinate": origin.identity,
         "semantic_checksum": origin.checksum,
+        "semantic_identity": origin.semantic_identity.to_dict(),
     }
     assert preview.draft_document["lineage"]["forked_from"] == preview.lineage["forked_from"]
 

@@ -863,6 +863,7 @@
     "vertical_pack_schema_version": 3,
     "vertical_registry_config_schema_version": 1,
     "vertical_registry_protocol_version": "p2p-vertical-registry/v2",
+    "vertical_semantic_checksum_contract": "p2p-vertical-semantic-checksum/v1",
     "workspace_schema_contract_version": 1,
     "workspace_schema_policy_version": 4,
     "workspace_schema_version": 4
@@ -1138,7 +1139,7 @@
     "operation_key_placeholder": "wavekit:<uuid>",
     "root_placeholder": "<PROJECT_ROOT>"
   },
-  "semantic_sha256": "ea293c30590a611afd0c0947b2147272d5991d106fb90b494ccd435cb4afbca3",
+  "semantic_sha256": "a56a9eaf3a757f0bafca0c0ea058c5765fad95b952ae07e4cd43045a8f12b093",
   "transport": {
     "envelope": "p2p-cli/v1",
     "kind": "cli_json",

@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 
 from p2p_engine.core.mutation_preview import semantic_sha256
+from p2p_engine.core.vertical_semantic_identity import VerticalSemanticIdentity
 
 PROJECT_STRUCTURE_CONTRACT = "p2p-project-structure/v1"
 PROJECT_STRUCTURE_EVENTS_CONTRACT = "p2p-project-structure-events/v1"
@@ -79,6 +80,7 @@ class StructureOrigin:
     applied_at: str
     applied_by: str
     external_ref: str | None = None
+    semantic_identity: VerticalSemanticIdentity | None = None
 
     def __post_init__(self) -> None:
         kind = str(self.kind).strip().lower()
@@ -99,6 +101,19 @@ class StructureOrigin:
         if kind == "vertical_release" and checksum is None:
             raise ValueError(
                 "P2P_PROJECT_STRUCTURE_INVALID: vertical release origin requires checksum"
+            )
+        if kind == "starter" and self.semantic_identity is not None:
+            raise ValueError(
+                "P2P_PROJECT_STRUCTURE_INVALID: starter origin cannot carry a vertical semantic identity"
+            )
+        if kind == "vertical_release":
+            legacy_identity = VerticalSemanticIdentity.v1(checksum or "")
+            if self.semantic_identity is not None and self.semantic_identity != legacy_identity:
+                raise ValueError(
+                    "P2P_VERTICAL_SEMANTIC_IDENTITY_CONFLICT: structure origin checksum fields disagree"
+                )
+            object.__setattr__(
+                self, "semantic_identity", self.semantic_identity or legacy_identity
             )
         object.__setattr__(self, "kind", kind)
         object.__setattr__(self, "identity", identity)
@@ -137,6 +152,9 @@ class StructureOrigin:
             "kind": self.kind,
             "identity": self.identity,
             "checksum": self.checksum,
+            "semantic_identity": (
+                self.semantic_identity.to_dict() if self.semantic_identity else None
+            ),
             "external_ref": self.external_ref,
             "applied_at": self.applied_at,
             "applied_by": self.applied_by,
@@ -147,12 +165,17 @@ class StructureOrigin:
         raw = _strict_mapping(
             value,
             name="origin",
-            allowed={"kind", "identity", "checksum", "external_ref", "applied_at", "applied_by"},
+            allowed={"kind", "identity", "checksum", "semantic_identity", "external_ref", "applied_at", "applied_by"},
         )
         return cls(
             kind=raw.get("kind"),  # type: ignore[arg-type]
             identity=raw.get("identity"),  # type: ignore[arg-type]
             checksum=raw.get("checksum"),  # type: ignore[arg-type]
+            semantic_identity=(
+                VerticalSemanticIdentity.from_mapping(raw["semantic_identity"])
+                if raw.get("semantic_identity") is not None
+                else None
+            ),
             external_ref=raw.get("external_ref"),  # type: ignore[arg-type]
             applied_at=raw.get("applied_at"),  # type: ignore[arg-type]
             applied_by=raw.get("applied_by"),  # type: ignore[arg-type]

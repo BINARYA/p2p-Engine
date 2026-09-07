@@ -1,0 +1,11 @@
+section:
+  id: optional_context
+  title: Optional Context
+  purpose: Exercise defaults and booleans.
+  required: false
+  priority: 20
+  fields:
+    - id: notes
+      label: Notes
+      required: false
+      question: What else matters?

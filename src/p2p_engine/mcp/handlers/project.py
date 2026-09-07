@@ -198,6 +198,13 @@ def handle_project_tool(
         primary_domain = arguments.get("primary_domain")
         if not isinstance(primary_domain, dict):
             primary_domain = {}
+        parent_semantic_identity = arguments.get("parent_semantic_identity")
+        if parent_semantic_identity is not None and not isinstance(
+            parent_semantic_identity, dict
+        ):
+            raise ValueError(
+                "P2P_VERTICAL_SEMANTIC_IDENTITY_INVALID: parent_semantic_identity must be a mapping"
+            )
         result = workspace.preview_project_structure_export(
             publisher=required(arguments, "publisher"),
             vertical_id=required(arguments, "vertical_id"),
@@ -215,6 +222,7 @@ def handle_project_tool(
             lineage_mode=required(arguments, "lineage_mode"),
             parent_coordinate=optional_string(arguments, "parent_coordinate"),
             parent_semantic_checksum=optional_string(arguments, "parent_semantic_checksum"),
+            parent_semantic_identity=parent_semantic_identity,
             description=optional_string(arguments, "description"),
             actor_id=str(arguments.get("actor_id") or "owner"),
             executor_id=str(arguments.get("executor_id") or arguments.get("actor_id") or "owner"),

@@ -253,6 +253,15 @@ Portable schema-version-3 verticals use exact
 artifacts. P2P Engine validates and installs those artifacts offline; catalog
 discovery, user policy, moderation, download and popularity counters belong to
 an external system such as WaveKit. Multiple exact versions may coexist.
+
+Two integrity values apply to a portable vertical. The artifact SHA-256 hashes
+the exact `.p2pv` bytes. The vertical semantic identity hashes the interpreted
+effective pack under the independently versioned
+`p2p-vertical-semantic-checksum/v1` contract. They are not interchangeable.
+Existing schema-3 dependency checksums and registry-v2 `semantic_checksum`
+values are interpreted as v1 only in those known legacy fields; new projections
+also expose `semantic_identity`. See
+[Vertical Semantic Identity](VERTICAL-SEMANTIC-IDENTITY.md).
 Remote registry v2 catalog domains and release `primary_domain` values are
 advisory discovery metadata only. They do not change the project's free domain
 classification, prove compatibility, or select a detached structure source.

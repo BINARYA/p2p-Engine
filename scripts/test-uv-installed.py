@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import platform
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -301,6 +302,44 @@ class Harness:
         self.run([str(mcp), "--help"], cwd=self.layout.root)
         payload = self.run_json([str(p2p), "version", "--format", "json"])
         if payload["data"]["engine_version"] != expected_version:
+            raise AssertionError(payload)
+
+    def assert_vertical_semantic_v1_golden(self) -> None:
+        fixture_root = (
+            self.source_root
+            / "tests"
+            / "fixtures"
+            / "vertical_semantic_checksum"
+            / "v1"
+        )
+        expected = json.loads(
+            (fixture_root / "expected.json").read_text(encoding="utf-8")
+        )
+        target = self.layout.root / "fixtures" / "vertical-semantic-v1"
+        shutil.copytree(fixture_root / "input", target)
+        p2p = _entry_point(self.layout.binaries, "p2p")
+        payload = self.run_json(
+            [
+                str(p2p),
+                "vertical",
+                "inspect",
+                str(target),
+                "--root",
+                str(self.layout.project),
+                "--format",
+                "json",
+            ]
+        )
+        data = payload.get("data")
+        if not isinstance(data, dict):
+            raise AssertionError(payload)
+        if data.get("semantic_checksum") != expected["expected_sha256"]:
+            raise AssertionError(payload)
+        if data.get("semantic_identity") != {
+            "contract": "p2p-vertical-semantic-checksum/v1",
+            "algorithm": "sha256",
+            "digest": expected["expected_sha256"],
+        }:
             raise AssertionError(payload)
 
     def run_json(
@@ -932,6 +971,7 @@ def main() -> int:
             if previous is not None:
                 harness.lifecycle(previous, candidate)
             harness.install(candidate, force=True)
+            harness.assert_vertical_semantic_v1_golden()
             before_uninstall = harness.initialize_and_smoke(candidate)
             harness.assert_exact_and_cache_modes(candidate)
             harness.uninstall()

@@ -1471,6 +1471,7 @@ def _validate_project_structure_transition_result(
         structure_merge_plan_from_mapping,
         structure_restore_plan_from_mapping,
     )
+    from p2p_engine.core.vertical_semantic_identity import VerticalSemanticIdentity
 
     expected = {
         "contract",
@@ -1512,11 +1513,17 @@ def _validate_project_structure_transition_result(
     else:
         structure_restore_plan_from_mapping(request.get("plan"))
     source = result.get("source")
-    if not isinstance(source, Mapping) or set(source) != {
+    if not isinstance(source, Mapping) or not {
         "kind",
         "identity",
         "digest",
         "schema_version",
+    }.issubset(source) or set(source) - {
+        "kind",
+        "identity",
+        "digest",
+        "schema_version",
+        "semantic_identity",
     }:
         raise ValueError("receipt project-structure-transition source is invalid")
     StructureSourceIdentity(
@@ -1524,6 +1531,11 @@ def _validate_project_structure_transition_result(
         identity=str(source.get("identity") or ""),
         digest=str(source.get("digest") or ""),
         schema_version=int(source.get("schema_version") or 0),
+        semantic_identity=(
+            VerticalSemanticIdentity.from_mapping(source["semantic_identity"])
+            if source.get("semantic_identity") is not None
+            else None
+        ),
     )
     summaries: dict[str, Mapping[str, object]] = {}
     for field in ("previous", "current"):

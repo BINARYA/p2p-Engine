@@ -468,6 +468,13 @@ repository operations; they do not authorize P2P project-state mutations.
 
 ## Project Vertical Transition Boundary
 
+MCP vertical payloads use the same versioned `semantic_identity` as the CLI.
+The project-structure export preview additionally accepts
+`parent_semantic_identity`; the legacy `parent_semantic_checksum` remains the
+v1 shorthand and both values must agree when supplied. Unknown contracts fail
+closed rather than falling back to v1. See
+[Vertical Semantic Identity V1](VERTICAL-SEMANTIC-IDENTITY.md).
+
 The MCP catalog intentionally has no install, adopt or migrate preview/apply
 tool. Those owner-governed mutations remain CLI-only because they require the
 typed `p2p-vertical-transition-impact/v1` review, an optional exact

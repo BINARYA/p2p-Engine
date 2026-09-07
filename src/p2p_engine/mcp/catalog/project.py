@@ -307,6 +307,16 @@ def tool_definitions() -> list[dict[str, object]]:
                 'lineage_mode': {'type': 'string', 'enum': ['derived', 'independent']},
                 'parent_coordinate': {'type': 'string'},
                 'parent_semantic_checksum': {'type': 'string'},
+                'parent_semantic_identity': {
+                    'type': 'object',
+                    'properties': {
+                        'contract': {'type': 'string'},
+                        'algorithm': {'type': 'string'},
+                        'digest': {'type': 'string'},
+                    },
+                    'required': ['contract', 'algorithm', 'digest'],
+                    'additionalProperties': False,
+                },
                 'actor_id': {'type': 'string'},
                 'executor_id': {'type': 'string'},
             },

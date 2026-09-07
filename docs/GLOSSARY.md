@@ -294,6 +294,20 @@ Nullable remote discovery metadata on a `VerticalRelease`. It helps filter or
 display catalog results but does not change checksum identity, dependency
 closure, project domain or detached project structure.
 
+## Vertical Semantic Identity
+
+The contract-qualified identity of an interpreted effective vertical pack. Its
+public mapping contains `contract`, `algorithm`, and `digest`. The current
+contract is `p2p-vertical-semantic-checksum/v1`, which freezes the P2P Engine
+0.6.7 projection and canonical bytes with SHA-256. A vertical release version
+and a semantic-checksum contract version are independent.
+
+## Vertical Artifact SHA-256
+
+The SHA-256 of the exact deterministic `.p2pv` archive bytes. It verifies
+transported bytes and is distinct from both vertical semantic identity and the
+checksum of a detached project structure.
+
 ## Vertical Lock
 
 The deterministic `.p2p/project/vertical.lock.yml` record of the selected

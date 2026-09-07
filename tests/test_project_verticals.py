@@ -5,8 +5,8 @@ from dataclasses import replace
 from importlib import resources
 from pathlib import Path
 
-import yaml
 import pytest
+import yaml
 from typer.testing import CliRunner
 
 from p2p_engine.cli import app
@@ -864,8 +864,8 @@ def test_project_vertical_lock_repair_and_checksum_mismatch_fail_closed(tmp_path
     (project_dir / "vertical.lock.yml").write_text(yaml.safe_dump(lock_payload, sort_keys=False), encoding="utf-8")
 
     status = workspace.project_vertical_lock_status()
-    assert status.status == "checksum_mismatch"
-    with pytest.raises(ValueError, match="checksum_mismatch"):
+    assert status.status == "invalid"
+    with pytest.raises(ValueError, match="SEMANTIC_IDENTITY_INVALID"):
         workspace.active_project_vertical()
 
 

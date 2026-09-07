@@ -626,11 +626,18 @@ silently chooses one. Schema-1, schema-2 and single-file packs are unsupported.
 
 ### Portable Versioned Packs
 
-Schema-version-2 packs add a publisher, exact semantic version, license,
+Schema-version-3 packs add a publisher, exact semantic version, license,
 optional social lineage, and exact dependency checksums. Their identity is the
 coordinate `publisher/vertical-id@version`. Structural `extends`, social
 `lineage.forked_from` and release-history `lineage.previous_release` are
 separate declarations.
+
+Integrity has two distinct values. `artifact_checksum` is the SHA-256 of the
+exact `.p2pv` bytes. `semantic_identity` identifies the interpreted effective
+pack with contract `p2p-vertical-semantic-checksum/v1`, algorithm `sha256` and
+digest; the retained `semantic_checksum` is its v1 compatibility alias. Do not
+substitute either checksum for the other. See
+[VERTICAL-SEMANTIC-IDENTITY.md](VERTICAL-SEMANTIC-IDENTITY.md).
 
 P2P Engine 0.5 provides a local catalog and a provider-neutral v2 remote
 registry client. These commands perform no remote request unless `--refresh`

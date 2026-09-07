@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-from pathlib import Path
 import zipfile
+from pathlib import Path
 
 import typer
 import yaml
 
-from p2p_engine.cli_shared import console
-from p2p_engine.cli_shared import fail
-from p2p_engine.cli_shared import workspace as workspace_for
-from p2p_engine.cli_shared import yaml_dump_for_cli
 from p2p_engine.cli_contract import error_envelope, print_json, success_envelope
+from p2p_engine.cli_shared import console, fail, yaml_dump_for_cli
+from p2p_engine.cli_shared import workspace as workspace_for
 from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.services.authority import AuthorityContractCodec
 
@@ -718,6 +716,7 @@ def register_project_ops_commands(
                 "coordinate": result.pack.coordinate,
                 "artifact_checksum": result.artifact_checksum,
                 "semantic_checksum": result.semantic_checksum,
+                "semantic_identity": result.semantic_identity.to_dict(),
                 "issues": result.issues,
             }
             if _wants_json(output_format):
@@ -881,6 +880,8 @@ def register_project_ops_commands(
         lineage_mode: str = typer.Option(..., "--lineage-mode", help="Lineage mode: derived or independent"),
         parent_coordinate: str = typer.Option("", "--parent-coordinate", help="Exact parent release for derived export"),
         parent_semantic_checksum: str = typer.Option("", "--parent-semantic-checksum", help="Parent semantic checksum"),
+        parent_semantic_contract: str = typer.Option("", "--parent-semantic-contract", help="Parent semantic checksum contract"),
+        parent_semantic_algorithm: str = typer.Option("", "--parent-semantic-algorithm", help="Parent semantic checksum algorithm"),
         description: str = typer.Option("", "--description", help="Optional exported vertical description"),
         actor: str = typer.Option("owner", "--actor", help="Requesting actor"),
         executor: str = typer.Option("", "--executor", help="Executing identity; defaults to actor"),
@@ -905,6 +906,15 @@ def register_project_ops_commands(
                 lineage_mode=lineage_mode,
                 parent_coordinate=parent_coordinate,
                 parent_semantic_checksum=parent_semantic_checksum,
+                parent_semantic_identity=(
+                    {
+                        "contract": parent_semantic_contract,
+                        "algorithm": parent_semantic_algorithm,
+                        "digest": parent_semantic_checksum,
+                    }
+                    if parent_semantic_contract or parent_semantic_algorithm
+                    else None
+                ),
                 description=description,
                 actor_id=actor,
                 executor_id=executor or actor,
@@ -944,6 +954,8 @@ def register_project_ops_commands(
         idempotency_key: str = typer.Option(..., "--idempotency-key", help="Opaque operation key"),
         parent_coordinate: str = typer.Option("", "--parent-coordinate", help="Exact parent release for derived export"),
         parent_semantic_checksum: str = typer.Option("", "--parent-semantic-checksum", help="Parent semantic checksum"),
+        parent_semantic_contract: str = typer.Option("", "--parent-semantic-contract", help="Parent semantic checksum contract"),
+        parent_semantic_algorithm: str = typer.Option("", "--parent-semantic-algorithm", help="Parent semantic checksum algorithm"),
         description: str = typer.Option("", "--description", help="Optional exported vertical description"),
         confirm: bool = typer.Option(False, "--confirm", help="Confirm local export artifact creation"),
         actor: str = typer.Option("owner", "--actor", help="Authorized project subject"),
@@ -982,6 +994,15 @@ def register_project_ops_commands(
                 confirm=confirm,
                 parent_coordinate=parent_coordinate,
                 parent_semantic_checksum=parent_semantic_checksum,
+                parent_semantic_identity=(
+                    {
+                        "contract": parent_semantic_contract,
+                        "algorithm": parent_semantic_algorithm,
+                        "digest": parent_semantic_checksum,
+                    }
+                    if parent_semantic_contract or parent_semantic_algorithm
+                    else None
+                ),
                 description=description,
                 actor_id=actor,
                 executor_id=executor or actor,
@@ -1630,6 +1651,7 @@ def _portable_inspection_payload(result: object, *, view: str) -> dict[str, obje
         "coordinate": getattr(getattr(result, "pack"), "coordinate"),
         "artifact_checksum": getattr(result, "artifact_checksum"),
         "semantic_checksum": getattr(result, "semantic_checksum"),
+        "semantic_identity": getattr(result, "semantic_identity").to_dict(),
         "entries": list(getattr(result, "entries")),
         "pack": (
             getattr(result, "declared_payload")

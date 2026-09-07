@@ -1,16 +1,16 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
-import re
 
 from p2p_engine.core.mutation_preview import MutationPreview, MutationResult
 from p2p_engine.core.project_verticals import VerticalPack, VerticalValidationIssue
+from p2p_engine.core.vertical_semantic_identity import VerticalSemanticIdentity
 from p2p_engine.core.vertical_transition_impact import (
     VERTICAL_TRANSITION_IMPACT_CONTRACT,
     VerticalTransitionImpact,
 )
-
 
 PORTABLE_VERTICAL_SCHEMA_VERSION = 3
 PORTABLE_VERTICAL_PACKAGE_VERSION = 1
@@ -69,8 +69,22 @@ class PortableVerticalInspection:
     effective_payload: dict[str, object]
     artifact_checksum: str = ""
     semantic_checksum: str = ""
+    semantic_identity: VerticalSemanticIdentity | None = None
     entries: tuple[str, ...] = ()
     issues: tuple[VerticalValidationIssue, ...] = ()
+
+    def __post_init__(self) -> None:
+        identity = self.semantic_identity
+        checksum = str(self.semantic_checksum or "").strip()
+        if identity is None and checksum:
+            identity = VerticalSemanticIdentity.v1(checksum)
+            object.__setattr__(self, "semantic_identity", identity)
+        elif identity is not None and checksum and identity != VerticalSemanticIdentity.v1(checksum):
+            raise ValueError(
+                "P2P_VERTICAL_SEMANTIC_IDENTITY_CONFLICT: portable inspection checksum fields disagree"
+            )
+        elif identity is not None and not checksum:
+            object.__setattr__(self, "semantic_checksum", identity.digest)
 
     @property
     def valid(self) -> bool:
@@ -85,6 +99,17 @@ class PortableVerticalPackageResult:
     semantic_checksum: str
     size: int
     entries: tuple[str, ...]
+    semantic_identity: VerticalSemanticIdentity | None = None
+
+    def __post_init__(self) -> None:
+        identity = self.semantic_identity or VerticalSemanticIdentity.v1(
+            self.semantic_checksum
+        )
+        if identity != VerticalSemanticIdentity.v1(self.semantic_checksum):
+            raise ValueError(
+                "P2P_VERTICAL_SEMANTIC_IDENTITY_CONFLICT: package checksum fields disagree"
+            )
+        object.__setattr__(self, "semantic_identity", identity)
 
 
 @dataclass(frozen=True)

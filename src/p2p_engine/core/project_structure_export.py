@@ -6,7 +6,7 @@ from typing import Mapping
 
 from p2p_engine.core.authority import AuthorityEvidence
 from p2p_engine.core.mutation_preview import MutationPreview, MutationResult
-
+from p2p_engine.core.vertical_semantic_identity import VerticalSemanticIdentity
 
 PROJECT_STRUCTURE_EXPORT_PREVIEW_CONTRACT = "p2p-project-structure-export-preview/v1"
 PROJECT_STRUCTURE_EXPORT_RESULT_CONTRACT = "p2p-project-structure-export-result/v1"
@@ -119,6 +119,17 @@ class ProjectStructureExportResult:
     authority: AuthorityEvidence
     materialization_target: Path | None = None
     package_output: Path | None = None
+    semantic_identity: VerticalSemanticIdentity | None = None
+
+    def __post_init__(self) -> None:
+        identity = self.semantic_identity or VerticalSemanticIdentity.v1(
+            self.semantic_checksum
+        )
+        if identity != VerticalSemanticIdentity.v1(self.semantic_checksum):
+            raise ValueError(
+                "P2P_VERTICAL_SEMANTIC_IDENTITY_CONFLICT: export result checksum fields disagree"
+            )
+        object.__setattr__(self, "semantic_identity", identity)
 
     def to_dict(self, *, include_local_paths: bool = False) -> dict[str, object]:
         payload: dict[str, object] = {
@@ -138,6 +149,7 @@ class ProjectStructureExportResult:
             "package": {
                 "coordinate": self.coordinate,
                 "semantic_checksum": self.semantic_checksum,
+                "semantic_identity": self.semantic_identity.to_dict(),
                 "artifact_checksum": self.artifact_checksum,
                 "size": self.artifact_size,
                 "entries": list(self.artifact_entries),

@@ -3,6 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from p2p_engine.core.vertical_semantic_identity import (
+    VERTICAL_SEMANTIC_CHECKSUM_CONTRACT,
+    VerticalSemanticIdentity,
+)
 
 VERTICAL_REGISTRY_CONFIG_SCHEMA_VERSION = 1
 VERTICAL_REGISTRY_PROTOCOL_VERSION = "p2p-vertical-registry/v2"
@@ -92,6 +96,9 @@ class RegistryCapabilities:
     endpoints: RegistryEndpoints
     oauth_device: OAuthDeviceConfiguration | None = None
     supports_uncategorized_filter: bool = False
+    semantic_checksum_contracts: tuple[str, ...] = (
+        VERTICAL_SEMANTIC_CHECKSUM_CONTRACT,
+    )
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -101,6 +108,7 @@ class RegistryCapabilities:
             "endpoints": self.endpoints.to_dict(),
             "oauth_device": self.oauth_device.to_dict() if self.oauth_device else None,
             "supports_uncategorized_filter": self.supports_uncategorized_filter,
+            "semantic_checksum_contracts": list(self.semantic_checksum_contracts),
         }
 
 
@@ -159,12 +167,21 @@ class RecommendedVerticalRelease:
     coordinate: str
     semantic_checksum: str
     artifact_sha256: str = ""
+    semantic_identity: VerticalSemanticIdentity | None = None
 
-    def to_dict(self) -> dict[str, str]:
+    def __post_init__(self) -> None:
+        identity = _reconcile_v1_semantic_identity(
+            self.semantic_checksum, self.semantic_identity
+        )
+        object.__setattr__(self, "semantic_checksum", identity.digest)
+        object.__setattr__(self, "semantic_identity", identity)
+
+    def to_dict(self) -> dict[str, object]:
         return {
             "coordinate": self.coordinate,
             "semantic_checksum": self.semantic_checksum,
             "artifact_sha256": self.artifact_sha256,
+            "semantic_identity": self.semantic_identity.to_dict(),
         }
 
 
@@ -214,11 +231,20 @@ class RegistryDomain:
 class VerticalReleaseDependency:
     coordinate: str
     semantic_checksum: str
+    semantic_identity: VerticalSemanticIdentity | None = None
 
-    def to_dict(self) -> dict[str, str]:
+    def __post_init__(self) -> None:
+        identity = _reconcile_v1_semantic_identity(
+            self.semantic_checksum, self.semantic_identity
+        )
+        object.__setattr__(self, "semantic_checksum", identity.digest)
+        object.__setattr__(self, "semantic_identity", identity)
+
+    def to_dict(self) -> dict[str, object]:
         return {
             "coordinate": self.coordinate,
             "semantic_checksum": self.semantic_checksum,
+            "semantic_identity": self.semantic_identity.to_dict(),
         }
 
 
@@ -244,6 +270,14 @@ class VerticalRelease:
     dependencies: tuple[VerticalReleaseDependency, ...] = ()
     primary_domain: RegistryDomainReference | None = None
     registry: str = ""
+    semantic_identity: VerticalSemanticIdentity | None = None
+
+    def __post_init__(self) -> None:
+        identity = _reconcile_v1_semantic_identity(
+            self.semantic_checksum, self.semantic_identity
+        )
+        object.__setattr__(self, "semantic_checksum", identity.digest)
+        object.__setattr__(self, "semantic_identity", identity)
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -252,6 +286,7 @@ class VerticalRelease:
             "description": self.description,
             "visibility": self.visibility,
             "semantic_checksum": self.semantic_checksum,
+            "semantic_identity": self.semantic_identity.to_dict(),
             "schema_version": self.schema_version,
             "artifact": self.artifact.to_dict(),
             "dependencies": [item.to_dict() for item in self.dependencies],
@@ -284,6 +319,16 @@ class VerticalCatalogItem:
     artifact_path: Path | None = None
     local_available: bool = True
     primary_domain: RegistryDomainReference | None = None
+    semantic_identity: VerticalSemanticIdentity | None = None
+
+    def __post_init__(self) -> None:
+        if not self.semantic_checksum and self.semantic_identity is None:
+            return
+        identity = _reconcile_v1_semantic_identity(
+            self.semantic_checksum, self.semantic_identity
+        )
+        object.__setattr__(self, "semantic_checksum", identity.digest)
+        object.__setattr__(self, "semantic_identity", identity)
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -294,6 +339,9 @@ class VerticalCatalogItem:
             "visibility": self.visibility,
             "registry": self.registry,
             "semantic_checksum": self.semantic_checksum,
+            "semantic_identity": (
+                self.semantic_identity.to_dict() if self.semantic_identity else None
+            ),
             "artifact_checksum": self.artifact_checksum,
             "artifact_path": str(self.artifact_path) if self.artifact_path else None,
             "local_available": self.local_available,
@@ -317,6 +365,18 @@ class CachedVerticalRelease:
             "artifact_path": str(self.artifact_path),
             "metadata_path": str(self.metadata_path),
         }
+
+
+def _reconcile_v1_semantic_identity(
+    semantic_checksum: str,
+    semantic_identity: VerticalSemanticIdentity | None,
+) -> VerticalSemanticIdentity:
+    legacy = VerticalSemanticIdentity.v1(semantic_checksum)
+    if semantic_identity is not None and semantic_identity != legacy:
+        raise ValueError(
+            "P2P_VERTICAL_SEMANTIC_IDENTITY_CONFLICT: scalar and structured semantic identities disagree"
+        )
+    return semantic_identity or legacy
 
 
 @dataclass(frozen=True)
@@ -343,8 +403,19 @@ class VerticalPublicationReceipt:
     coordinate: str
     artifact_checksum: str
     visibility: str
+    semantic_checksum: str = ""
+    semantic_identity: VerticalSemanticIdentity | None = None
 
-    def to_dict(self) -> dict[str, str]:
+    def __post_init__(self) -> None:
+        if not self.semantic_checksum and self.semantic_identity is None:
+            return
+        identity = _reconcile_v1_semantic_identity(
+            self.semantic_checksum, self.semantic_identity
+        )
+        object.__setattr__(self, "semantic_checksum", identity.digest)
+        object.__setattr__(self, "semantic_identity", identity)
+
+    def to_dict(self) -> dict[str, object]:
         return {
             "registry": self.registry,
             "receipt_id": self.receipt_id,
@@ -352,4 +423,8 @@ class VerticalPublicationReceipt:
             "coordinate": self.coordinate,
             "artifact_checksum": self.artifact_checksum,
             "visibility": self.visibility,
+            "semantic_checksum": self.semantic_checksum,
+            "semantic_identity": (
+                self.semantic_identity.to_dict() if self.semantic_identity else None
+            ),
         }

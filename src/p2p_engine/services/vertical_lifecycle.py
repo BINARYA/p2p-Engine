@@ -41,6 +41,10 @@ from p2p_engine.core.vertical_transition_plan import (
     VerticalTransitionPlan,
     parse_transition_plan,
 )
+from p2p_engine.core.vertical_semantic_identity import (
+    VerticalSemanticComparison,
+    compare_vertical_semantic_identities,
+)
 from p2p_engine.foundation.files import yaml_dump
 from p2p_engine.services.project_verticals import ProjectVerticalService
 from p2p_engine.services.mutation_receipts import MutationReceiptService
@@ -104,16 +108,28 @@ class VerticalLifecycleService:
             existing_resolution = self.vertical_service.resolve_pack(coordinate)
         except ValueError:
             existing_resolution = None
-        if existing_resolution is not None and existing_resolution.checksum != inspection.semantic_checksum:
-            blockers.append(
-                TransitionIssue(
-                    code="P2P_VERTICAL_INSTALL_CONFLICT",
-                    severity=IssueSeverity.BLOCKER,
-                    category="install_conflict",
-                    reference=coordinate,
-                    recovery_action="Choose a different coordinate or remove the conflicting local pack.",
-                )
+        if existing_resolution is not None:
+            existing_identity = self.vertical_service.semantic_pack_identity(
+                existing_resolution.pack
             )
+            comparison = compare_vertical_semantic_identities(
+                existing_identity,
+                inspection.semantic_identity,
+            )
+            if comparison is not VerticalSemanticComparison.EQUAL:
+                blockers.append(
+                    TransitionIssue(
+                        code=(
+                            "P2P_VERTICAL_SEMANTIC_IDENTITY_INCOMPARABLE"
+                            if comparison is VerticalSemanticComparison.INCOMPARABLE
+                            else "P2P_VERTICAL_INSTALL_CONFLICT"
+                        ),
+                        severity=IssueSeverity.BLOCKER,
+                        category="install_conflict",
+                        reference=coordinate,
+                        recovery_action="Choose a different coordinate or remove the conflicting local pack.",
+                    )
+                )
         target_root = self.root / prefix
         existing = self._installed_files(target_root)
         expected_existing = {

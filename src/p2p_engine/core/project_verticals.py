@@ -6,6 +6,7 @@ from typing import Mapping
 
 from p2p_engine.core.project_domain import ProjectDomainRef
 from p2p_engine.core.project_readiness import ProjectReadinessDiagnostic, ProjectReadinessGap
+from p2p_engine.core.vertical_semantic_identity import VerticalSemanticIdentity
 
 
 @dataclass(frozen=True)
@@ -98,6 +99,17 @@ class VerticalManifest:
 class VerticalDependency:
     coordinate: str
     checksum: str
+    semantic_identity: VerticalSemanticIdentity | None = None
+
+    def __post_init__(self) -> None:
+        legacy = VerticalSemanticIdentity.v1(
+            str(self.checksum or "").removeprefix("sha256:")
+        )
+        if self.semantic_identity is not None and self.semantic_identity != legacy:
+            raise ValueError(
+                "P2P_VERTICAL_SEMANTIC_IDENTITY_CONFLICT: dependency checksum fields disagree"
+            )
+        object.__setattr__(self, "semantic_identity", self.semantic_identity or legacy)
 
 
 @dataclass(frozen=True)
@@ -210,6 +222,15 @@ class VerticalLock:
     coordinate: str = ""
     artifact_checksum: str = ""
     dependencies: list[VerticalDependency] = field(default_factory=list)
+    semantic_identity: VerticalSemanticIdentity | None = None
+
+    def __post_init__(self) -> None:
+        legacy = VerticalSemanticIdentity.v1(self.checksum)
+        if self.semantic_identity is not None and self.semantic_identity != legacy:
+            raise ValueError(
+                "P2P_VERTICAL_SEMANTIC_IDENTITY_CONFLICT: lock checksum fields disagree"
+            )
+        object.__setattr__(self, "semantic_identity", self.semantic_identity or legacy)
 
 
 @dataclass(frozen=True)

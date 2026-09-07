@@ -89,20 +89,20 @@ DATASET_PROFILES: dict[str, DatasetProfile] = {
 
 FROZEN_DATASET_DIGESTS: dict[str, dict[str, str]] = {
     "small": {
-        "logical_fixture_digest": "acd4e0dee1ce1cf98d7f5977bcf27dcb614e8f2cb1c1d1c13f427c1dc56ad329",
-        "semantic_state_digest": "1b2f765ba65484ec365b691765e081a641e82066e615f1261f7fdd0c06353d02",
+        "logical_fixture_digest": "f38e7eeaa64fd827def49662e3babe38eb6a2d50272b34ede0a83de4602842ed",
+        "semantic_state_digest": "adbb9ec82efbf6cea8f1f6649eb752a820347bb9d4ada9f0018bf8709c38214b",
     },
     "medium": {
-        "logical_fixture_digest": "0b3b2360ab29fd8b8c2d379cee914e9f1b17d7db5858faae7e97959fdc207536",
-        "semantic_state_digest": "38b6745a36c41ecd55bf210cc60d72eee44b07b4dfedc5f7cc1f0b37bd1771a4",
+        "logical_fixture_digest": "4ceb8c4c0a9ebbd7fb9322172ed3996cf9eb749cceb2b85fa4b09d8d5a6fb905",
+        "semantic_state_digest": "a7cdc86e1575cc2351910a6de00b3a3d6180a8de0f9be06d9b377322636d2ee5",
     },
     "large": {
-        "logical_fixture_digest": "e08bcaa5db40c46368b447e523a0d33512f99d6255e6a1f9da6e1de4cd4f32b4",
-        "semantic_state_digest": "6aabd9d46deedbc9c1ff8a6cbbabeeee7861613e3764e6c7841b299ecb9517b6",
+        "logical_fixture_digest": "dee6df0e8290fea9c614c859d27bcb402b55a8d536e8f93893a2dbe1d63d9b51",
+        "semantic_state_digest": "8c8ae8bc0bb0138ebab0d4ac60b181431a29476c69812128fc48955f36f208cd",
     },
     "stress": {
-        "logical_fixture_digest": "1fc9da6a33f7e3606535db478b31b00ea40cb2574988ee9bab3406561f728586",
-        "semantic_state_digest": "8ca7ce176bf3cd0be09c8c8c4bad774bf3771de7ea4e1e43c766849b5bcebe8a",
+        "logical_fixture_digest": "ae19b3b862af611f485c011e7ba7beacb19c8cdca5a39e8ea620bb6574906142",
+        "semantic_state_digest": "f1037f6be0c9f689ac6daea54fcbf53f35a9ff5c8b69f81b5283dee8de8af657",
     },
 }
 

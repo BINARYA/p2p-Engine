@@ -1,5 +1,11 @@
 # Vertical Draft Authoring V1
 
+Release, parent and dependency references carry the complete versioned
+vertical semantic identity described in
+[Vertical Semantic Identity V1](VERTICAL-SEMANTIC-IDENTITY.md). Existing naked
+checksums remain a v1 compatibility form and are never guessed outside their
+known draft fields.
+
 P2P Engine separates mutable vertical authoring from immutable vertical
 releases. WaveKit and other callers edit one normalized document; P2P Engine
 alone compiles canonical `manifest.yml`, `vertical.yml`, `sections/*.yml` and

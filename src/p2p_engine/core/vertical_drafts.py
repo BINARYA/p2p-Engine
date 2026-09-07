@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from p2p_engine.core.vertical_semantic_identity import VerticalSemanticIdentity
 
 VERTICAL_DRAFT_DOCUMENT_VERSION = "p2p-vertical-draft/v1"
 VERTICAL_DRAFT_STATE_VERSION = "p2p-vertical-draft-state/v1"
@@ -18,12 +19,27 @@ class VerticalDraftOrigin:
     kind: str
     coordinate: str = ""
     semantic_checksum: str = ""
+    semantic_identity: VerticalSemanticIdentity | None = None
 
-    def to_dict(self) -> dict[str, str]:
+    def __post_init__(self) -> None:
+        if not self.semantic_checksum and self.semantic_identity is None:
+            return
+        legacy = VerticalSemanticIdentity.v1(self.semantic_checksum)
+        if self.semantic_identity is not None and self.semantic_identity != legacy:
+            raise ValueError(
+                "P2P_VERTICAL_SEMANTIC_IDENTITY_CONFLICT: draft origin checksum fields disagree"
+            )
+        object.__setattr__(self, "semantic_checksum", legacy.digest)
+        object.__setattr__(self, "semantic_identity", self.semantic_identity or legacy)
+
+    def to_dict(self) -> dict[str, object]:
         return {
             "kind": self.kind,
             "coordinate": self.coordinate,
             "semantic_checksum": self.semantic_checksum,
+            "semantic_identity": (
+                self.semantic_identity.to_dict() if self.semantic_identity else None
+            ),
         }
 
 

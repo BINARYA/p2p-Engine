@@ -16,12 +16,12 @@ from p2p_engine.services.vertical_catalog import (
     VerticalCatalogService,
     VerticalPullService,
 )
+from p2p_engine.services.vertical_draft_lifecycle import VerticalDraftLifecycleService
+from p2p_engine.services.vertical_drafts import VerticalDraftService
 from p2p_engine.services.vertical_registry import (
     VerticalRegistryClient,
     VerticalRegistryConfigurationService,
 )
-from p2p_engine.services.vertical_draft_lifecycle import VerticalDraftLifecycleService
-from p2p_engine.services.vertical_drafts import VerticalDraftService
 
 
 def register_vertical_commands(vertical_app: typer.Typer) -> None:
@@ -461,6 +461,7 @@ def register_vertical_commands(vertical_app: typer.Typer) -> None:
                     "coordinate": inspection.pack.coordinate,
                     "artifact_checksum": inspection.artifact_checksum,
                     "semantic_checksum": inspection.semantic_checksum,
+                    "semantic_identity": inspection.semantic_identity.to_dict(),
                     "pack": inspection.effective_payload,
                 }
             else:
@@ -472,6 +473,7 @@ def register_vertical_commands(vertical_app: typer.Typer) -> None:
                         "coordinate": inspection.pack.coordinate,
                         "artifact_checksum": inspection.artifact_checksum,
                         "semantic_checksum": inspection.semantic_checksum,
+                        "semantic_identity": inspection.semantic_identity.to_dict(),
                         "source": item.source,
                         "registry": item.registry,
                         "pack": inspection.effective_payload,

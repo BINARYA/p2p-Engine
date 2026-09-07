@@ -3,17 +3,16 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from pathlib import Path
 import re
 import shutil
 import tempfile
-from typing import Callable
 import uuid
+from pathlib import Path
+from typing import Callable
 
 from p2p_engine.core.portable_verticals import VerticalCoordinate, is_semantic_version
 from p2p_engine.core.project_domain import ProjectDomainRef, normalize_domain_tags
 from p2p_engine.core.project_verticals import VerticalPack
-from p2p_engine.core.vertical_registry import VerticalCatalogItem
 from p2p_engine.core.vertical_drafts import (
     VERTICAL_DRAFT_DOCUMENT_VERSION,
     VERTICAL_DRAFT_EVIDENCE_VERSION,
@@ -30,11 +29,12 @@ from p2p_engine.core.vertical_drafts import (
     VerticalDraftState,
     VerticalDraftView,
 )
+from p2p_engine.core.vertical_registry import VerticalCatalogItem
+from p2p_engine.core.vertical_semantic_identity import VerticalSemanticIdentity
 from p2p_engine.foundation.files import write_bytes_atomic, write_yaml_atomic
 from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.services.vertical_catalog import VerticalCatalogService
 from p2p_engine.services.vertical_registry import vertical_user_paths
-
 
 _DRAFT_ID = re.compile(r"^VDRAFT-[0-9A-F]{16,32}$")
 _CONTENT_ID = re.compile(r"^[a-z0-9](?:[a-z0-9_-]{0,62}[a-z0-9])?$")
@@ -163,6 +163,7 @@ class VerticalDraftService:
         document["source_attribution"] = {
             "origin_coordinate": exact,
             "origin_semantic_checksum": item.semantic_checksum,
+            "origin_semantic_identity": item.semantic_identity.to_dict(),
         }
         return self._create(
             document,
@@ -170,6 +171,7 @@ class VerticalDraftService:
                 kind="clone",
                 coordinate=exact,
                 semantic_checksum=item.semantic_checksum,
+                semantic_identity=item.semantic_identity,
             ),
         )
 
@@ -331,17 +333,25 @@ class VerticalDraftService:
             {
                 "coordinate": item.coordinate,
                 "semantic_checksum": item.checksum.removeprefix("sha256:"),
+                "semantic_identity": item.semantic_identity.to_dict(),
             }
             for item in manifest.dependencies
         ]
         dependency_by_coordinate = {
-            str(item["coordinate"]): str(item["semantic_checksum"])
+            str(item["coordinate"]): item
             for item in dependencies
         }
         extends = (
             {
                 "coordinate": pack.extends,
-                "semantic_checksum": dependency_by_coordinate.get(pack.extends, ""),
+                "semantic_checksum": str(
+                    dependency_by_coordinate.get(pack.extends, {}).get(
+                        "semantic_checksum", ""
+                    )
+                ),
+                "semantic_identity": dependency_by_coordinate.get(pack.extends, {}).get(
+                    "semantic_identity"
+                ),
             }
             if pack.extends
             else None
@@ -540,12 +550,13 @@ class VerticalDraftService:
             write_bytes_atomic(evidence_path, evidence_before)
             raise
 
-    def _resolved_reference(self, coordinate: str) -> dict[str, str]:
+    def _resolved_reference(self, coordinate: str) -> dict[str, object]:
         exact = str(VerticalCoordinate.parse(coordinate))
         item = self.catalog.resolve(exact)
         return {
             "coordinate": exact,
             "semantic_checksum": item.semantic_checksum,
+            "semantic_identity": item.semantic_identity.to_dict(),
         }
 
     def _pack_examples(self, pack: VerticalPack) -> list[dict[str, str]]:
@@ -921,7 +932,7 @@ def _validate_draft_id(value: str) -> str:
 
 
 def _parse_origin(value: dict[str, object]) -> VerticalDraftOrigin:
-    _reject_unknown(value, {"kind", "coordinate", "semantic_checksum"}, "origin")
+    _reject_unknown(value, {"kind", "coordinate", "semantic_checksum", "semantic_identity"}, "origin")
     kind = _text(value.get("kind"))
     coordinate = _text(value.get("coordinate"))
     semantic_checksum = _text(value.get("semantic_checksum")).lower().removeprefix(
@@ -956,6 +967,11 @@ def _parse_origin(value: dict[str, object]) -> VerticalDraftOrigin:
         kind=kind,
         coordinate=coordinate,
         semantic_checksum=semantic_checksum,
+        semantic_identity=(
+            VerticalSemanticIdentity.from_mapping(value["semantic_identity"])
+            if value.get("semantic_identity") is not None
+            else None
+        ),
     )
 
 
@@ -1025,17 +1041,22 @@ def _collection(value: object, field: str) -> dict[str, object]:
     return {"enabled": enabled, "definitions": definitions}
 
 
-def _reference(value: object, field: str) -> dict[str, str] | None:
+def _reference(value: object, field: str) -> dict[str, object] | None:
     if value is None or value == {}:
         return None
     reference = _mapping(value, field)
-    _reject_unknown(reference, {"coordinate", "semantic_checksum"}, field)
-    return {
+    _reject_unknown(reference, {"coordinate", "semantic_checksum", "semantic_identity"}, field)
+    result: dict[str, object] = {
         "coordinate": _text(reference.get("coordinate")),
         "semantic_checksum": _text(reference.get("semantic_checksum")).lower().removeprefix(
             "sha256:"
         ),
     }
+    if reference.get("semantic_identity") is not None:
+        result["semantic_identity"] = VerticalSemanticIdentity.from_mapping(
+            reference["semantic_identity"]
+        ).to_dict()
+    return result
 
 
 def _coordinate_reference(value: str) -> dict[str, str] | None:
@@ -1099,6 +1120,24 @@ def _reference_diagnostics(
                 message="semantic checksum must be SHA-256",
             )
         )
+    elif value.get("semantic_identity") is not None:
+        try:
+            identity = VerticalSemanticIdentity.from_mapping(value["semantic_identity"])
+            identity.require_supported()
+            if identity != VerticalSemanticIdentity.v1(
+                _text(value.get("semantic_checksum"))
+            ):
+                raise ValueError(
+                    "P2P_VERTICAL_SEMANTIC_IDENTITY_CONFLICT: reference checksum fields disagree"
+                )
+        except ValueError as exc:
+            issues.append(
+                VerticalDraftDiagnostic(
+                    code="P2P_VERTICAL_DRAFT_INVALID_REFERENCE",
+                    field=f"{field}.semantic_identity",
+                    message=str(exc),
+                )
+            )
 
 
 def _section_document(section) -> dict[str, object]:

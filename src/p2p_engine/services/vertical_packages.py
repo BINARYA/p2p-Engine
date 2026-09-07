@@ -77,14 +77,16 @@ class PortableVerticalPackageService:
         target = target if target.is_absolute() else self.root / target
         if target.exists():
             raise ValueError(f"P2P_VERTICAL_TARGET_EXISTS: scaffold target already exists: {target}")
-        dependencies: list[dict[str, str]] = []
+        dependencies: list[dict[str, object]] = []
         if extends:
             base_reference = str(VerticalCoordinate.parse(extends))
             base = self.vertical_service.resolve_pack(base_reference)
+            base_identity = self.vertical_service.semantic_pack_identity(base.pack)
             dependencies.append(
                 {
                     "coordinate": base_reference,
                     "checksum": f"sha256:{base.checksum}",
+                    "semantic_identity": base_identity.to_dict(),
                 }
             )
         manifest = {
@@ -186,13 +188,15 @@ class PortableVerticalPackageService:
             declared = self.vertical_service.load_explicit_pack(pack_root)
             effective = self.vertical_service.compose_explicit_pack(pack_root)
         selected = declared if view == "declared" else effective
+        semantic_identity = self.vertical_service.semantic_pack_identity(effective)
         return PortableVerticalInspection(
             target=str(target),
             pack=selected,
             declared_payload=self.vertical_service.serialized_pack(declared),
             effective_payload=self.vertical_service.serialized_pack(effective),
             artifact_checksum=artifact_checksum,
-            semantic_checksum=self.vertical_service.semantic_pack_checksum(effective),
+            semantic_checksum=semantic_identity.digest,
+            semantic_identity=semantic_identity,
             entries=tuple(sorted(entries)),
         )
 
@@ -238,6 +242,7 @@ class PortableVerticalPackageService:
             semantic_checksum=inspection.semantic_checksum,
             size=len(package_bytes),
             entries=tuple(sorted(entries)),
+            semantic_identity=inspection.semantic_identity,
         )
 
     @staticmethod

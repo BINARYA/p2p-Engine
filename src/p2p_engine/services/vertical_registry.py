@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import os
-from pathlib import Path
 import re
 import time
+from pathlib import Path
 from typing import Callable
 from urllib.parse import quote, urlencode, urljoin, urlsplit, urlunsplit
 
@@ -14,36 +14,38 @@ from p2p_engine.adapters.vertical_registry_http import (
     VerticalRegistryTransport,
 )
 from p2p_engine.core.portable_verticals import PORTABLE_VERTICAL_SCHEMA_VERSION, VerticalCoordinate
-
 from p2p_engine.core.vertical_registry import (
     VERTICAL_REGISTRY_CAPABILITY_PATH,
     VERTICAL_REGISTRY_CONFIG_SCHEMA_VERSION,
-    VERTICAL_REGISTRY_MAX_DOCUMENT_BYTES,
     VERTICAL_REGISTRY_MAX_CURSOR_LENGTH,
-    VERTICAL_REGISTRY_MAX_PAGES,
+    VERTICAL_REGISTRY_MAX_DOCUMENT_BYTES,
     VERTICAL_REGISTRY_MAX_PAGE_SIZE,
+    VERTICAL_REGISTRY_MAX_PAGES,
     VERTICAL_REGISTRY_PROTOCOL_VERSION,
     VERTICAL_REGISTRY_UNCATEGORIZED_DOMAIN,
     DeviceAuthorization,
     OAuthDeviceConfiguration,
+    RecommendedVerticalRelease,
     RegistryCapabilities,
     RegistryCredential,
     RegistryDomain,
     RegistryDomainReference,
     RegistryEndpoints,
     RegistryPage,
-    RecommendedVerticalRelease,
+    VerticalPublicationReceipt,
     VerticalRegistryConfiguration,
     VerticalRegistryRecord,
-    VerticalPublicationReceipt,
     VerticalRelease,
     VerticalReleaseArtifact,
     VerticalReleaseDependency,
     VerticalUserPaths,
 )
+from p2p_engine.core.vertical_semantic_identity import (
+    VERTICAL_SEMANTIC_CHECKSUM_CONTRACT,
+    registry_v2_semantic_identity,
+)
 from p2p_engine.foundation.files import write_yaml_atomic
 from p2p_engine.foundation.yaml_loaders import load_yaml
-
 
 _REGISTRY_NAME = re.compile(r"^[a-z0-9](?:[a-z0-9_-]{0,62}[a-z0-9])?$")
 _REGISTRY_DOMAIN_KEY = re.compile(r"^[a-z0-9](?:[a-z0-9_-]{0,126}[a-z0-9])?$")
@@ -544,6 +546,24 @@ class VerticalRegistryClient:
             raise ValueError(
                 "P2P_REGISTRY_METADATA_MISMATCH: publication receipt differs from submitted release"
             )
+        receipt_semantic_checksum = receipt.get("semantic_checksum")
+        if receipt_semantic_checksum is not None:
+            returned_identity = registry_v2_semantic_identity(
+                _checksum(
+                    receipt_semantic_checksum,
+                    field="receipt semantic_checksum",
+                ),
+                receipt.get("semantic_identity"),
+                field="receipt semantic_checksum",
+            )
+            if returned_identity != release.semantic_identity:
+                raise ValueError(
+                    "P2P_REGISTRY_METADATA_MISMATCH: publication receipt semantic identity differs from submitted release"
+                )
+        elif receipt.get("semantic_identity") is not None:
+            raise ValueError(
+                "P2P_REGISTRY_RESPONSE_INVALID: publication receipt semantic_identity requires semantic_checksum"
+            )
         return VerticalPublicationReceipt(
             registry=record.name,
             receipt_id=_required_text(receipt, "receipt_id"),
@@ -551,6 +571,8 @@ class VerticalRegistryClient:
             coordinate=coordinate,
             artifact_checksum=artifact_checksum,
             visibility=visibility,
+            semantic_checksum=release.semantic_checksum,
+            semantic_identity=release.semantic_identity,
         )
 
     def access_token(self, registry: str, *, required: bool = False) -> str:
@@ -872,6 +894,22 @@ def _parse_capabilities(value: object) -> RegistryCapabilities:
         raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: incomplete capabilities") from exc
     if max_artifact_bytes <= 0:
         raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: max_artifact_bytes must be positive")
+    semantic_contracts_payload = value.get("semantic_checksum_contracts")
+    if semantic_contracts_payload is None:
+        semantic_contracts = (VERTICAL_SEMANTIC_CHECKSUM_CONTRACT,)
+    else:
+        if not isinstance(semantic_contracts_payload, list) or not all(
+            isinstance(item, str) and item.strip()
+            for item in semantic_contracts_payload
+        ):
+            raise ValueError(
+                "P2P_REGISTRY_RESPONSE_INVALID: semantic_checksum_contracts must be a list of contract identifiers"
+            )
+        semantic_contracts = tuple(dict.fromkeys(semantic_contracts_payload))
+        if VERTICAL_SEMANTIC_CHECKSUM_CONTRACT not in semantic_contracts:
+            raise ValueError(
+                "P2P_REGISTRY_SEMANTIC_CONTRACT_UNSUPPORTED: registry does not advertise the v1 semantic checksum contract"
+            )
     for field, endpoint in (
         ("domains", parsed_endpoints.domains),
         ("search", parsed_endpoints.search),
@@ -915,6 +953,7 @@ def _parse_capabilities(value: object) -> RegistryCapabilities:
         endpoints=parsed_endpoints,
         oauth_device=oauth,
         supports_uncategorized_filter=bool(value.get("supports_uncategorized_filter") or False),
+        semantic_checksum_contracts=semantic_contracts,
     )
 
 
@@ -963,14 +1002,15 @@ def _parse_domain(value: object) -> RegistryDomain:
     if recommended_payload is not None:
         if not isinstance(recommended_payload, dict):
             raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: recommended_release must be a mapping")
+        recommended_checksum = _checksum(
+            recommended_payload.get("semantic_checksum"),
+            field="recommended semantic_checksum",
+        )
         recommended = RecommendedVerticalRelease(
             coordinate=str(
                 VerticalCoordinate.parse(_required_text(recommended_payload, "coordinate"))
             ),
-            semantic_checksum=_checksum(
-                recommended_payload.get("semantic_checksum"),
-                field="recommended semantic_checksum",
-            ),
+            semantic_checksum=recommended_checksum,
             artifact_sha256=(
                 _checksum(
                     recommended_payload.get("artifact_sha256"),
@@ -978,6 +1018,11 @@ def _parse_domain(value: object) -> RegistryDomain:
                 )
                 if recommended_payload.get("artifact_sha256")
                 else ""
+            ),
+            semantic_identity=registry_v2_semantic_identity(
+                recommended_checksum,
+                recommended_payload.get("semantic_identity"),
+                field="recommended semantic_checksum",
             ),
         )
     return RegistryDomain(
@@ -1015,6 +1060,9 @@ def _parse_release(value: object, *, registry: str) -> VerticalRelease:
     if visibility not in _RELEASE_VISIBILITIES:
         raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: visibility must be public or private")
     semantic_checksum = _checksum(value.get("semantic_checksum"), field="semantic_checksum")
+    semantic_identity = registry_v2_semantic_identity(
+        semantic_checksum, value.get("semantic_identity")
+    )
     try:
         schema_version = int(value.get("schema_version") or 0)
     except (TypeError, ValueError) as exc:
@@ -1046,12 +1094,18 @@ def _parse_release(value: object, *, registry: str) -> VerticalRelease:
         if dependency_coordinate in seen:
             raise ValueError("P2P_REGISTRY_RESPONSE_INVALID: duplicate release dependency")
         seen.add(dependency_coordinate)
+        dependency_checksum = _checksum(
+            dependency.get("semantic_checksum"),
+            field="dependency semantic_checksum",
+        )
         dependencies.append(
             VerticalReleaseDependency(
                 coordinate=dependency_coordinate,
-                semantic_checksum=_checksum(
-                    dependency.get("semantic_checksum"),
-                    field="dependency semantic_checksum",
+                semantic_checksum=dependency_checksum,
+                semantic_identity=registry_v2_semantic_identity(
+                    dependency_checksum,
+                    dependency.get("semantic_identity"),
+                    field="dependency semantic checksum",
                 ),
             )
         )
@@ -1070,6 +1124,7 @@ def _parse_release(value: object, *, registry: str) -> VerticalRelease:
         dependencies=tuple(dependencies),
         primary_domain=_parse_domain_reference(value.get("primary_domain")),
         registry=registry,
+        semantic_identity=semantic_identity,
     )
 
 
@@ -1166,7 +1221,9 @@ def _domain_fingerprint(value: object) -> tuple[object, ...]:
         value.publisher,
         (
             recommendation.coordinate,
-            recommendation.semantic_checksum,
+            recommendation.semantic_identity.contract,
+            recommendation.semantic_identity.algorithm,
+            recommendation.semantic_identity.digest,
             recommendation.artifact_sha256,
         )
         if recommendation is not None
@@ -1182,11 +1239,21 @@ def _release_fingerprint(value: object) -> tuple[object, ...]:
         value.name,
         value.description,
         value.visibility,
-        value.semantic_checksum,
+        value.semantic_identity.contract,
+        value.semantic_identity.algorithm,
+        value.semantic_identity.digest,
         value.schema_version,
         value.artifact.sha256,
         value.artifact.size,
-        tuple((item.coordinate, item.semantic_checksum) for item in value.dependencies),
+        tuple(
+            (
+                item.coordinate,
+                item.semantic_identity.contract,
+                item.semantic_identity.algorithm,
+                item.semantic_identity.digest,
+            )
+            for item in value.dependencies
+        ),
         (
             value.primary_domain.external_id,
             value.primary_domain.key,

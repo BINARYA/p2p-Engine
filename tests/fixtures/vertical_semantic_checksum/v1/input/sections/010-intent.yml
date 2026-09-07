@@ -1,0 +1,19 @@
+section:
+  id: intent
+  title: Intent
+  purpose: Preserve semantic intent.
+  required: true
+  priority: 10
+  fields:
+    - id: summary
+      label: Summary
+      required: true
+      question: What is the intent?
+      assisted_answer: "Use evidence, not guesses."
+      completion_criteria: [clear, bounded]
+      common_mistakes: [ambiguity]
+      suggested_artifacts: [decision_record]
+      maturity_gates: [ready]
+  completion_policy:
+    allow_assumed_completion: false
+    required_fields: [summary]

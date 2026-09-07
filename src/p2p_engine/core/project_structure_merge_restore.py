@@ -14,6 +14,7 @@ from p2p_engine.core.project_structure_retirement import (
     StructureRetirementDisposition,
     structure_retirement_disposition_from_mapping,
 )
+from p2p_engine.core.vertical_semantic_identity import VerticalSemanticIdentity
 
 STRUCTURE_SNAPSHOT_CONTRACT = "p2p-project-structure-snapshot/v1"
 STRUCTURE_SNAPSHOT_LEDGER_CONTRACT = "p2p-project-structure-snapshots/v1"
@@ -150,6 +151,7 @@ class StructureSourceIdentity:
     identity: str
     digest: str
     schema_version: int
+    semantic_identity: VerticalSemanticIdentity | None = None
 
     def __post_init__(self) -> None:
         kind = str(self.kind).strip().lower()
@@ -169,6 +171,17 @@ class StructureSourceIdentity:
         if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
             raise ValueError("P2P_STRUCTURE_SOURCE_INVALID: digest must be SHA-256")
         object.__setattr__(self, "digest", digest)
+        if kind == "release":
+            identity = self.semantic_identity or VerticalSemanticIdentity.v1(digest)
+            if identity != VerticalSemanticIdentity.v1(digest):
+                raise ValueError(
+                    "P2P_VERTICAL_SEMANTIC_IDENTITY_CONFLICT: structure source checksum fields disagree"
+                )
+            object.__setattr__(self, "semantic_identity", identity)
+        elif self.semantic_identity is not None:
+            raise ValueError(
+                "P2P_STRUCTURE_SOURCE_INVALID: only release sources carry vertical semantic identity"
+            )
         if (
             isinstance(self.schema_version, bool)
             or not isinstance(self.schema_version, int)
@@ -182,6 +195,9 @@ class StructureSourceIdentity:
             "identity": self.identity,
             "digest": self.digest,
             "schema_version": self.schema_version,
+            "semantic_identity": (
+                self.semantic_identity.to_dict() if self.semantic_identity else None
+            ),
         }
 
 
@@ -546,7 +562,7 @@ def structure_merge_plan_from_mapping(value: object) -> StructureMergePlan:
         "merge plan",
     )
     source = _mapping(raw.get("source"), "source")
-    _closed(source, {"kind", "identity", "digest", "schema_version"}, "source")
+    _closed(source, {"kind", "identity", "digest", "schema_version", "semantic_identity"}, "source")
     target = _mapping(raw.get("target"), "target")
     _closed(target, {"revision", "checksum", "memory_revision"}, "target")
     return StructureMergePlan(
@@ -555,6 +571,11 @@ def structure_merge_plan_from_mapping(value: object) -> StructureMergePlan:
             identity=str(source.get("identity") or ""),
             digest=str(source.get("digest") or ""),
             schema_version=_integer(source.get("schema_version"), "source.schema_version"),
+            semantic_identity=(
+                VerticalSemanticIdentity.from_mapping(source["semantic_identity"])
+                if source.get("semantic_identity") is not None
+                else None
+            ),
         ),
         expected_target_revision=_integer(target.get("revision"), "target.revision"),
         expected_target_checksum=str(target.get("checksum") or ""),

@@ -44,6 +44,11 @@ from p2p_engine.core.project_structure_retirement import (
     StructureRetirementTarget,
 )
 from p2p_engine.core.project_verticals import VerticalPack
+from p2p_engine.core.vertical_semantic_identity import (
+    VerticalSemanticComparison,
+    VerticalSemanticIdentity,
+    compare_vertical_semantic_identities,
+)
 from p2p_engine.services.authority import AuthorityContractCodec, ProjectAuthorityService
 from p2p_engine.services.mutation_receipts import (
     MutationReceiptService,
@@ -1264,12 +1269,21 @@ class ProjectStructureReplacementService:
         plan: StructureReplacementPlan,
         release: StructureReplacementRelease,
     ) -> None:
+        comparison = compare_vertical_semantic_identities(
+            plan.target_semantic_identity,
+            release.semantic_identity,
+        )
         if (
             plan.target_coordinate != release.coordinate
-            or plan.target_semantic_checksum != release.semantic_checksum
+            or comparison is not VerticalSemanticComparison.EQUAL
         ):
+            reason = (
+                "semantic identities are incomparable"
+                if comparison is VerticalSemanticComparison.INCOMPARABLE
+                else "plan target must match the resolved release coordinate and checksum"
+            )
             raise ValueError(
-                "P2P_STRUCTURE_REPLACEMENT_PLAN_TARGET_MISMATCH: plan target must match the resolved release coordinate and checksum"
+                f"P2P_STRUCTURE_REPLACEMENT_PLAN_TARGET_MISMATCH: {reason}"
             )
 
 
@@ -1481,6 +1495,11 @@ def _release_from_mapping(value: object) -> StructureReplacementRelease:
         source_type=str(value.get("source_type") or ""),
         resolved_from=str(value.get("resolved_from") or ""),
         artifact_checksum=str(value.get("artifact_checksum") or ""),
+        semantic_identity=(
+            VerticalSemanticIdentity.from_mapping(value["semantic_identity"])
+            if value.get("semantic_identity") is not None
+            else None
+        ),
     )
 
 

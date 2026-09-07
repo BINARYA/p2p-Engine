@@ -1,0 +1,13 @@
+rubrics:
+  - id: intent_quality
+    title: Intent Quality
+    section_id: intent
+    required: true
+    keywords: [intent, evidence]
+    weight: 1.5
+    evaluation: keyword
+  - id: context_quality
+    title: Context Quality
+    section_id: optional_context
+    required: false
+    keywords: [context]

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from enum import Enum
-import re
 from typing import Generic, Iterable, TypeVar
 
 from p2p_engine.core.mutation_preview import semantic_sha256
-
+from p2p_engine.core.vertical_semantic_identity import VerticalSemanticIdentity
 
 VERTICAL_TRANSITION_IMPACT_CONTRACT = "p2p-vertical-transition-impact/v1"
 VERTICAL_TRANSITION_COLLECTION_LIMIT = 128
@@ -86,11 +86,23 @@ class VerticalIdentity:
     artifact_checksum: str = ""
     profile: str = "default"
     modules: tuple[str, ...] = ()
+    semantic_identity: VerticalSemanticIdentity | None = None
+
+    def __post_init__(self) -> None:
+        identity = self.semantic_identity or VerticalSemanticIdentity.v1(
+            self.semantic_checksum
+        )
+        if identity != VerticalSemanticIdentity.v1(self.semantic_checksum):
+            raise ValueError(
+                "P2P_VERTICAL_SEMANTIC_IDENTITY_CONFLICT: transition checksum fields disagree"
+            )
+        object.__setattr__(self, "semantic_identity", identity)
 
     def to_dict(self) -> dict[str, object]:
         return {
             "coordinate": self.coordinate,
             "semantic_checksum": self.semantic_checksum,
+            "semantic_identity": self.semantic_identity.to_dict(),
             "artifact_checksum": self.artifact_checksum or None,
             "profile": self.profile,
             "modules": list(self.modules),

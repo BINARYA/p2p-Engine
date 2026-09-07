@@ -1,5 +1,14 @@
 # Vertical Registry Protocol V2
 
+Vertical release integrity uses the complete
+[`p2p-vertical-semantic-checksum/v1`](VERTICAL-SEMANTIC-IDENTITY.md) identity.
+Registry v2 keeps `semantic_checksum` required and accepts legacy scalar-only
+documents as v1/SHA-256. `semantic_identity` and the capability list
+`semantic_checksum_contracts` are optional additive fields. If both scalar and
+structured forms are present they must agree exactly; a contradiction or an
+unsupported contract fails before download or cache commit. Neither additive
+field may be advertised in registry-v2 `required_fields`.
+
 P2P Engine can discover advisory catalog domains and exact portable vertical
 releases from a provider-neutral HTTP registry. Remote discovery returns
 metadata only. Pulling still requires one explicit release coordinate and

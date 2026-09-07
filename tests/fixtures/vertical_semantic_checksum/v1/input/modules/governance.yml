@@ -1,0 +1,5 @@
+module:
+  id: governance
+  title: Governance Module
+  description: Decisions and evidence.
+  section_ids: [intent, optional_context]

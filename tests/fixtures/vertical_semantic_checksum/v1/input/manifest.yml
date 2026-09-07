@@ -1,0 +1,25 @@
+manifest:
+  schema_version: 3
+  publisher: baseline
+  id: semantic_contract_fixture
+  name: Semantic Contract Fixture
+  version: 1.2.3
+  license: GPL-3.0-or-later
+  source: baseline-v0.6.7
+  extends: null
+  lineage:
+    previous_release: baseline/semantic_contract_fixture@1.2.2
+  dependencies:
+    - coordinate: baseline/foundation@2.0.0
+      checksum: sha256:1111111111111111111111111111111111111111111111111111111111111111
+  compatibility:
+    offline: true
+    note: null
+  primary_domain:
+    key: software
+    name: Software
+    source: local
+    external_ref: null
+  domain_tags:
+    - unicode
+    - testing

@@ -1,0 +1,218 @@
+{
+  "baseline": {
+    "commit": "5cfe0c821f8cc40b71f6a7828204b7fdfca7d6ef",
+    "python_version": "3.14.4",
+    "pyyaml_version": "6.0.3",
+    "version": "0.6.7",
+    "wheel_sha256": "65763e89dc8b15b09d4fadcaff0fb45cdd5b60d2335d01c5b9bc65a727553580"
+  },
+  "expected_artifact_sha256": "f92f78418cdd680b7fa991451d536a125705ad0018a2418439e44f51471053df",
+  "expected_artifact_size": 3978,
+  "expected_canonical_base64": "dmVydGljYWw6CiAgYXJ0aWZhY3RzOgogIC0gaWQ6IGRlY2lzaW9uX3JlY29yZAogICAgcmVxdWlyZWQ6IHRydWUKICAgIHNlY3Rpb25faWRzOgogICAgLSBpbnRlbnQKICAgIHRpdGxlOiBEZWNpc2lvbiBSZWNvcmQKICAtIGlkOiBldmlkZW5jZV9idW5kbGUKICAgIHJlcXVpcmVkOiBmYWxzZQogICAgc2VjdGlvbl9pZHM6CiAgICAtIGludGVudAogICAgLSBvcHRpb25hbF9jb250ZXh0CiAgICB0aXRsZTogRXZpZGVuY2UgQnVuZGxlCiAgY29tcGF0aWJpbGl0eTogJmlkMDAxCiAgICBub3RlOiBudWxsCiAgICBvZmZsaW5lOiB0cnVlCiAgZGVzY3JpcHRpb246ICJDb250cmF0dG8gc2VtYW50aWNvOiBjaXR0XHhFMCwgcXVhbGl0XHhFMCBlIFx1MDNBOS4iCiAgZXhhbXBsZXM6CiAgLSBkZWNsYXJlZC1leGFtcGxlLm1kCiAgLSBleGFtcGxlLm1kCiAgZXh0ZW5kczogbnVsbAogIGlkOiBzZW1hbnRpY19jb250cmFjdF9maXh0dXJlCiAgbWFuaWZlc3Q6CiAgICBjb21wYXRpYmlsaXR5OiAqaWQwMDEKICAgIGRlcGVuZGVuY2llczoKICAgIC0gY2hlY2tzdW06IHNoYTI1NjoxMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExCiAgICAgIGNvb3JkaW5hdGU6IGJhc2VsaW5lL2ZvdW5kYXRpb25AMi4wLjAKICAgIGRvbWFpbl90YWdzOgogICAgLSB0ZXN0aW5nCiAgICAtIHVuaWNvZGUKICAgIGV4dGVuZHM6IG51bGwKICAgIGlkOiBzZW1hbnRpY19jb250cmFjdF9maXh0dXJlCiAgICBsaWNlbnNlOiBHUEwtMy4wLW9yLWxhdGVyCiAgICBsaW5lYWdlOgogICAgICBwcmV2aW91c19yZWxlYXNlOiBiYXNlbGluZS9zZW1hbnRpY19jb250cmFjdF9maXh0dXJlQDEuMi4yCiAgICBuYW1lOiBTZW1hbnRpYyBDb250cmFjdCBGaXh0dXJlCiAgICBwcmltYXJ5X2RvbWFpbjoKICAgICAgZXh0ZXJuYWxfcmVmOiBudWxsCiAgICAgIGtleTogc29mdHdhcmUKICAgICAgbmFtZTogU29mdHdhcmUKICAgICAgc291cmNlOiBsb2NhbAogICAgcHVibGlzaGVyOiBiYXNlbGluZQogICAgc2NoZW1hX3ZlcnNpb246IDMKICAgIHNvdXJjZTogYmFzZWxpbmUtdjAuNi43CiAgICB2ZXJzaW9uOiAxLjIuMwogIG1vZHVsZV9zcGVjczoKICAtIGRlc2NyaXB0aW9uOiBEZWNpc2lvbnMgYW5kIGV2aWRlbmNlLgogICAgaWQ6IGdvdmVybmFuY2UKICAgIHNlY3Rpb25faWRzOgogICAgLSBpbnRlbnQKICAgIC0gb3B0aW9uYWxfY29udGV4dAogICAgdGl0bGU6IEdvdmVybmFuY2UgTW9kdWxlCiAgbW9kdWxlczoKICAtIGdvdmVybmFuY2UKICBuYW1lOiBTZW1hbnRpYyBDb250cmFjdCBGaXh0dXJlCiAgcHJvZmlsZV9zcGVjczoKICAtIGRlc2NyaXB0aW9uOiBNaW5pbWFsIGJ1dCBjb21wbGV0ZS4KICAgIGVuYWJsZWRfbW9kdWxlczoKICAgIC0gZ292ZXJuYW5jZQogICAgaWQ6IGNvbXBhY3QKICAgIHRpdGxlOiBDb21wYWN0IFByb2ZpbGUKICBwcm9maWxlczoKICAtIGNvbXBhY3QKICBxdWVzdGlvbnM6CiAgLSBhbGlhc2VzOgogICAgLSBnb2FsCiAgICAtIG9iamVjdGl2ZQogICAgYW5zd2VyX2NvbnRyYWN0OgogICAgICBhbGxvd2VkX2RlZmluaXRpb25fb3BlcmF0aW9uczoKICAgICAgLSBzZXRfZmllbGQKICAgICAga2luZDogZmllbGRfdmFsdWUKICAgICAgcmVxdWlyZWRfZmllbGRzOgogICAgICAtIHZhbHVlCiAgICBmYWxsYmFja19rZXk6IGludGVudC5zdW1tYXJ5CiAgICBpZDogaW50ZW50X3F1ZXN0aW9uCiAgICBwcmlvcml0eTogaGlnaAogICAgcXVlc3Rpb246IFdoYXQgaW50ZW50IG11c3QgYmUgcHJlc2VydmVkPwogICAgcmF0aW9uYWxlOiBJdCBleGVyY2lzZXMgdGhlIGNvbXBsZXRlIHF1ZXN0aW9uIHByb2plY3Rpb24uCiAgICBzZWN0aW9uX2lkOiBpbnRlbnQKICAgIHRhcmdldDoKICAgICAgaWQ6IHN1bW1hcnkKICAgICAga2luZDogZmllbGQKICBydWJyaWNzOgogIC0gZXZhbHVhdGlvbjoga2V5d29yZAogICAgaWQ6IGludGVudF9xdWFsaXR5CiAgICBrZXl3b3JkczoKICAgIC0gaW50ZW50CiAgICAtIGV2aWRlbmNlCiAgICByZXF1aXJlZDogdHJ1ZQogICAgc2VjdGlvbl9pZDogaW50ZW50CiAgICB0aXRsZTogSW50ZW50IFF1YWxpdHkKICAgIHdlaWdodDogMS41CiAgLSBpZDogY29udGV4dF9xdWFsaXR5CiAgICBrZXl3b3JkczoKICAgIC0gY29udGV4dAogICAgcmVxdWlyZWQ6IGZhbHNlCiAgICBzZWN0aW9uX2lkOiBvcHRpb25hbF9jb250ZXh0CiAgICB0aXRsZTogQ29udGV4dCBRdWFsaXR5CiAgc2NoZW1hX3ZlcnNpb246IDMKICBzZWN0aW9uczoKICAtIGNvbXBsZXRpb25fcG9saWN5OgogICAgICBhbGxvd19hc3N1bWVkX2NvbXBsZXRpb246IGZhbHNlCiAgICAgIHJlcXVpcmVkX2ZpZWxkczoKICAgICAgLSBzdW1tYXJ5CiAgICBmaWVsZHM6CiAgICAtIGFzc2lzdGVkX2Fuc3dlcjogVXNlIGV2aWRlbmNlLCBub3QgZ3Vlc3Nlcy4KICAgICAgY29tbW9uX21pc3Rha2VzOgogICAgICAtIGFtYmlndWl0eQogICAgICBjb21wbGV0aW9uX2NyaXRlcmlhOgogICAgICAtIGNsZWFyCiAgICAgIC0gYm91bmRlZAogICAgICBpZDogc3VtbWFyeQogICAgICBsYWJlbDogU3VtbWFyeQogICAgICBtYXR1cml0eV9nYXRlczoKICAgICAgLSByZWFkeQogICAgICBxdWVzdGlvbjogV2hhdCBpcyB0aGUgaW50ZW50PwogICAgICByZXF1aXJlZDogdHJ1ZQogICAgICBzdWdnZXN0ZWRfYXJ0aWZhY3RzOgogICAgICAtIGRlY2lzaW9uX3JlY29yZAogICAgaWQ6IGludGVudAogICAgcHJpb3JpdHk6IDEwCiAgICBwdXJwb3NlOiBQcmVzZXJ2ZSBzZW1hbnRpYyBpbnRlbnQuCiAgICByZXF1aXJlZDogdHJ1ZQogICAgdGl0bGU6IEludGVudAogIC0gY29tcGxldGlvbl9wb2xpY3k6IHt9CiAgICBmaWVsZHM6CiAgICAtIGFzc2lzdGVkX2Fuc3dlcjogJycKICAgICAgY29tbW9uX21pc3Rha2VzOiBbXQogICAgICBjb21wbGV0aW9uX2NyaXRlcmlhOiBbXQogICAgICBpZDogbm90ZXMKICAgICAgbGFiZWw6IE5vdGVzCiAgICAgIG1hdHVyaXR5X2dhdGVzOiBbXQogICAgICBxdWVzdGlvbjogV2hhdCBlbHNlIG1hdHRlcnM/CiAgICAgIHJlcXVpcmVkOiBmYWxzZQogICAgICBzdWdnZXN0ZWRfYXJ0aWZhY3RzOiBbXQogICAgaWQ6IG9wdGlvbmFsX2NvbnRleHQKICAgIHByaW9yaXR5OiAyMAogICAgcHVycG9zZTogRXhlcmNpc2UgZGVmYXVsdHMgYW5kIGJvb2xlYW5zLgogICAgcmVxdWlyZWQ6IGZhbHNlCiAgICB0aXRsZTogT3B0aW9uYWwgQ29udGV4dAogIHZlcnNpb246IDEuMi4zCg==",
+  "expected_projection": {
+    "vertical": {
+      "artifacts": [
+        {
+          "id": "decision_record",
+          "required": true,
+          "section_ids": [
+            "intent"
+          ],
+          "title": "Decision Record"
+        },
+        {
+          "id": "evidence_bundle",
+          "required": false,
+          "section_ids": [
+            "intent",
+            "optional_context"
+          ],
+          "title": "Evidence Bundle"
+        }
+      ],
+      "compatibility": {
+        "note": null,
+        "offline": true
+      },
+      "description": "Contratto semantico: citt\u00e0, qualit\u00e0 e \u03a9.",
+      "examples": [
+        "declared-example.md",
+        "example.md"
+      ],
+      "extends": null,
+      "id": "semantic_contract_fixture",
+      "manifest": {
+        "compatibility": {
+          "note": null,
+          "offline": true
+        },
+        "dependencies": [
+          {
+            "checksum": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "coordinate": "baseline/foundation@2.0.0"
+          }
+        ],
+        "domain_tags": [
+          "testing",
+          "unicode"
+        ],
+        "extends": null,
+        "id": "semantic_contract_fixture",
+        "license": "GPL-3.0-or-later",
+        "lineage": {
+          "previous_release": "baseline/semantic_contract_fixture@1.2.2"
+        },
+        "name": "Semantic Contract Fixture",
+        "primary_domain": {
+          "external_ref": null,
+          "key": "software",
+          "name": "Software",
+          "source": "local"
+        },
+        "publisher": "baseline",
+        "schema_version": 3,
+        "source": "baseline-v0.6.7",
+        "version": "1.2.3"
+      },
+      "module_specs": [
+        {
+          "description": "Decisions and evidence.",
+          "id": "governance",
+          "section_ids": [
+            "intent",
+            "optional_context"
+          ],
+          "title": "Governance Module"
+        }
+      ],
+      "modules": [
+        "governance"
+      ],
+      "name": "Semantic Contract Fixture",
+      "profile_specs": [
+        {
+          "description": "Minimal but complete.",
+          "enabled_modules": [
+            "governance"
+          ],
+          "id": "compact",
+          "title": "Compact Profile"
+        }
+      ],
+      "profiles": [
+        "compact"
+      ],
+      "questions": [
+        {
+          "aliases": [
+            "goal",
+            "objective"
+          ],
+          "answer_contract": {
+            "allowed_definition_operations": [
+              "set_field"
+            ],
+            "kind": "field_value",
+            "required_fields": [
+              "value"
+            ]
+          },
+          "fallback_key": "intent.summary",
+          "id": "intent_question",
+          "priority": "high",
+          "question": "What intent must be preserved?",
+          "rationale": "It exercises the complete question projection.",
+          "section_id": "intent",
+          "target": {
+            "id": "summary",
+            "kind": "field"
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "evaluation": "keyword",
+          "id": "intent_quality",
+          "keywords": [
+            "intent",
+            "evidence"
+          ],
+          "required": true,
+          "section_id": "intent",
+          "title": "Intent Quality",
+          "weight": 1.5
+        },
+        {
+          "id": "context_quality",
+          "keywords": [
+            "context"
+          ],
+          "required": false,
+          "section_id": "optional_context",
+          "title": "Context Quality"
+        }
+      ],
+      "schema_version": 3,
+      "sections": [
+        {
+          "completion_policy": {
+            "allow_assumed_completion": false,
+            "required_fields": [
+              "summary"
+            ]
+          },
+          "fields": [
+            {
+              "assisted_answer": "Use evidence, not guesses.",
+              "common_mistakes": [
+                "ambiguity"
+              ],
+              "completion_criteria": [
+                "clear",
+                "bounded"
+              ],
+              "id": "summary",
+              "label": "Summary",
+              "maturity_gates": [
+                "ready"
+              ],
+              "question": "What is the intent?",
+              "required": true,
+              "suggested_artifacts": [
+                "decision_record"
+              ]
+            }
+          ],
+          "id": "intent",
+          "priority": 10,
+          "purpose": "Preserve semantic intent.",
+          "required": true,
+          "title": "Intent"
+        },
+        {
+          "completion_policy": {},
+          "fields": [
+            {
+              "assisted_answer": "",
+              "common_mistakes": [],
+              "completion_criteria": [],
+              "id": "notes",
+              "label": "Notes",
+              "maturity_gates": [],
+              "question": "What else matters?",
+              "required": false,
+              "suggested_artifacts": []
+            }
+          ],
+          "id": "optional_context",
+          "priority": 20,
+          "purpose": "Exercise defaults and booleans.",
+          "required": false,
+          "title": "Optional Context"
+        }
+      ],
+      "version": "1.2.3"
+    }
+  },
+  "expected_sha256": "b78ad848e0130eb9825b832608ab845a887e16fe331b3a02443bd2bf48b73f74"
+}

@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 
 from p2p_engine.core.mutation_preview import MutationPreview
 from p2p_engine.core.project_structure import (
     PROJECT_STRUCTURE_ELEMENT_KINDS,
     ProjectStructure,
     ProjectStructureEvent,
-    normalize_structure_id,
     normalize_structure_text,
 )
 from p2p_engine.core.project_structure_retirement import (
@@ -16,7 +15,7 @@ from p2p_engine.core.project_structure_retirement import (
     StructureRetirementImpact,
     structure_retirement_disposition_from_mapping,
 )
-
+from p2p_engine.core.vertical_semantic_identity import VerticalSemanticIdentity
 
 STRUCTURE_REPLACEMENT_IMPACT_CONTRACT = "p2p-structure-replacement-impact/v1"
 STRUCTURE_REPLACEMENT_PLAN_CONTRACT = "p2p-structure-replacement-plan/v1"
@@ -35,6 +34,7 @@ class StructureReplacementRelease:
     source_type: str
     resolved_from: str
     artifact_checksum: str = ""
+    semantic_identity: VerticalSemanticIdentity | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -59,6 +59,12 @@ class StructureReplacementRelease:
         if len(checksum) != 64 or any(char not in "0123456789abcdef" for char in checksum):
             raise ValueError("P2P_STRUCTURE_REPLACEMENT_TARGET_INVALID: semantic checksum must be SHA-256")
         object.__setattr__(self, "semantic_checksum", checksum)
+        identity = self.semantic_identity or VerticalSemanticIdentity.v1(checksum)
+        if identity != VerticalSemanticIdentity.v1(checksum):
+            raise ValueError(
+                "P2P_VERTICAL_SEMANTIC_IDENTITY_CONFLICT: replacement target checksum fields disagree"
+            )
+        object.__setattr__(self, "semantic_identity", identity)
         if isinstance(self.schema_version, bool) or not isinstance(self.schema_version, int):
             raise ValueError("P2P_STRUCTURE_REPLACEMENT_TARGET_INVALID: schema_version is invalid")
         object.__setattr__(
@@ -94,6 +100,7 @@ class StructureReplacementRelease:
             "reference": self.reference,
             "coordinate": self.coordinate,
             "semantic_checksum": self.semantic_checksum,
+            "semantic_identity": self.semantic_identity.to_dict(),
             "schema_version": self.schema_version,
             "source_type": self.source_type,
             "resolved_from": self.resolved_from,
@@ -166,6 +173,7 @@ class StructureReplacementPlan:
     target_semantic_checksum: str
     dispositions: tuple[StructureRetirementDisposition, ...] = ()
     contract: str = STRUCTURE_REPLACEMENT_PLAN_CONTRACT
+    target_semantic_identity: VerticalSemanticIdentity | None = None
 
     def __post_init__(self) -> None:
         if self.contract != STRUCTURE_REPLACEMENT_PLAN_CONTRACT:
@@ -183,6 +191,12 @@ class StructureReplacementPlan:
         if len(checksum) != 64 or any(char not in "0123456789abcdef" for char in checksum):
             raise ValueError("P2P_STRUCTURE_REPLACEMENT_PLAN_INVALID: target semantic checksum must be SHA-256")
         object.__setattr__(self, "target_semantic_checksum", checksum)
+        identity = self.target_semantic_identity or VerticalSemanticIdentity.v1(checksum)
+        if identity != VerticalSemanticIdentity.v1(checksum):
+            raise ValueError(
+                "P2P_VERTICAL_SEMANTIC_IDENTITY_CONFLICT: replacement plan checksum fields disagree"
+            )
+        object.__setattr__(self, "target_semantic_identity", identity)
         ids = [item.disposition_id for item in self.dispositions]
         if len(ids) != len(set(ids)):
             raise ValueError("P2P_STRUCTURE_REPLACEMENT_DISPOSITION_INVALID: duplicate disposition id")
@@ -197,6 +211,7 @@ class StructureReplacementPlan:
             "target": {
                 "coordinate": self.target_coordinate,
                 "semantic_checksum": self.target_semantic_checksum,
+                "semantic_identity": self.target_semantic_identity.to_dict(),
             },
             "dispositions": [item.to_dict() for item in self.dispositions],
         }
@@ -356,7 +371,9 @@ def structure_replacement_plan_from_mapping(value: object | None) -> StructureRe
     target = raw.get("target")
     if not isinstance(target, Mapping):
         raise ValueError("P2P_STRUCTURE_REPLACEMENT_PLAN_INVALID: target must be a mapping")
-    target_unknown = sorted(set(target) - {"coordinate", "semantic_checksum"})
+    target_unknown = sorted(
+        set(target) - {"coordinate", "semantic_checksum", "semantic_identity"}
+    )
     if target_unknown:
         raise ValueError(
             "P2P_STRUCTURE_REPLACEMENT_PLAN_INVALID: unsupported target fields: "
@@ -370,6 +387,11 @@ def structure_replacement_plan_from_mapping(value: object | None) -> StructureRe
     return StructureReplacementPlan(
         target_coordinate=str(target.get("coordinate") or ""),
         target_semantic_checksum=str(target.get("semantic_checksum") or ""),
+        target_semantic_identity=(
+            VerticalSemanticIdentity.from_mapping(target["semantic_identity"])
+            if target.get("semantic_identity") is not None
+            else None
+        ),
         dispositions=tuple(
             structure_retirement_disposition_from_mapping(item)
             for item in dispositions

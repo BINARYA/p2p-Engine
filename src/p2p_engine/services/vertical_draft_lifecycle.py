@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import re
 from dataclasses import replace
 from pathlib import Path
-import re
 
 from p2p_engine.core.portable_verticals import PORTABLE_VERTICAL_SCHEMA_VERSION
 from p2p_engine.core.vertical_drafts import (
@@ -13,6 +13,11 @@ from p2p_engine.core.vertical_registry import (
     VerticalRelease,
     VerticalReleaseArtifact,
     VerticalReleaseDependency,
+)
+from p2p_engine.core.vertical_semantic_identity import (
+    VerticalSemanticComparison,
+    VerticalSemanticIdentity,
+    compare_vertical_semantic_identities,
 )
 from p2p_engine.services.vertical_catalog import VerticalCacheService, _file_digest
 from p2p_engine.services.vertical_draft_materializer import (
@@ -63,6 +68,7 @@ class VerticalDraftLifecycleService:
                     "target": str(resolved_target),
                     "coordinate": inspection.pack.coordinate,
                     "semantic_checksum": inspection.semantic_checksum,
+                    "semantic_identity": inspection.semantic_identity.to_dict(),
                     "entries": list(inspection.entries),
                 },
                 validation=None,
@@ -117,11 +123,17 @@ class VerticalDraftLifecycleService:
                                 "materialized content differs from the current normalized document",
                             )
                         )
+                    materialized_identity = _evidence_semantic_identity(
+                        materialization
+                    )
                     if (
                         inspection.pack.coordinate
                         != str(materialization.get("coordinate") or "")
-                        or inspection.semantic_checksum
-                        != str(materialization.get("semantic_checksum") or "")
+                        or compare_vertical_semantic_identities(
+                            inspection.semantic_identity,
+                            materialized_identity,
+                        )
+                        is not VerticalSemanticComparison.EQUAL
                     ):
                         diagnostics.append(
                             _diagnostic(
@@ -147,6 +159,9 @@ class VerticalDraftLifecycleService:
                 "publishable": False,
                 "coordinate": inspection.pack.coordinate if inspection else "",
                 "semantic_checksum": inspection.semantic_checksum if inspection else "",
+                "semantic_identity": (
+                    inspection.semantic_identity.to_dict() if inspection else None
+                ),
                 "materialization_target": str(target) if materialization else "",
                 "diagnostics": diagnostics,
             }
@@ -182,9 +197,13 @@ class VerticalDraftLifecycleService:
                 )
             target = Path(str(materialization.get("target") or ""))
             inspection = self.workspace.inspect_portable_vertical(target, view="effective")
+            validated_identity = _evidence_semantic_identity(validation)
             if (
-                inspection.semantic_checksum
-                != str(validation.get("semantic_checksum") or "")
+                compare_vertical_semantic_identities(
+                    inspection.semantic_identity,
+                    validated_identity,
+                )
+                is not VerticalSemanticComparison.EQUAL
             ):
                 raise ValueError(
                     "P2P_VERTICAL_DRAFT_MATERIALIZATION_DRIFT: validate the materialized pack again"
@@ -200,6 +219,7 @@ class VerticalDraftLifecycleService:
                     "coordinate": result.coordinate,
                     "artifact_checksum": result.artifact_checksum,
                     "semantic_checksum": result.semantic_checksum,
+                    "semantic_identity": result.semantic_identity.to_dict(),
                     "size": result.size,
                     "entries": list(result.entries),
                 },
@@ -233,6 +253,7 @@ class VerticalDraftLifecycleService:
                 "status": status,
                 "coordinate": release.coordinate,
                 "semantic_checksum": release.semantic_checksum,
+                "semantic_identity": release.semantic_identity.to_dict(),
                 "artifact_checksum": release.artifact.sha256,
                 "artifact_path": str(cached.artifact_path),
             }
@@ -353,6 +374,11 @@ class VerticalDraftLifecycleService:
             VerticalReleaseDependency(
                 coordinate=str(item["coordinate"]),
                 semantic_checksum=str(item["semantic_checksum"]),
+                semantic_identity=(
+                    VerticalSemanticIdentity.from_mapping(item["semantic_identity"])
+                    if item.get("semantic_identity") is not None
+                    else None
+                ),
             )
             for item in document.get("dependencies", [])
             if isinstance(item, dict)
@@ -363,6 +389,7 @@ class VerticalDraftLifecycleService:
             description=str(document.get("description") or ""),
             visibility=str(document.get("visibility") or "private"),
             semantic_checksum=str(package.get("semantic_checksum") or ""),
+            semantic_identity=_evidence_semantic_identity(package),
             schema_version=PORTABLE_VERTICAL_SCHEMA_VERSION,
             artifact=VerticalReleaseArtifact(
                 url=artifact.name,
@@ -377,6 +404,23 @@ class VerticalDraftLifecycleService:
 
 def _diagnostic(code: str, field: str, message: str) -> dict[str, str]:
     return {"code": code, "field": field, "message": message, "severity": "error"}
+
+
+def _evidence_semantic_identity(
+    evidence: dict[str, object],
+) -> VerticalSemanticIdentity:
+    checksum = str(evidence.get("semantic_checksum") or "").removeprefix("sha256:")
+    legacy = VerticalSemanticIdentity.v1(checksum)
+    structured = evidence.get("semantic_identity")
+    if structured is None:
+        return legacy
+    identity = VerticalSemanticIdentity.from_mapping(structured)
+    identity.require_supported()
+    if identity != legacy:
+        raise ValueError(
+            "P2P_VERTICAL_SEMANTIC_IDENTITY_CONFLICT: evidence checksum fields disagree"
+        )
+    return identity
 
 
 def _error_code(exc: ValueError, fallback: str) -> str:
