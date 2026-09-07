@@ -27,7 +27,7 @@ Implemented:
 ## Near Term
 
 - Qualify linked-project lifecycle and drift recovery against the verified
-  0.6.6 release artifact and downstream WaveKit integration.
+  0.6.7 release artifact and downstream WaveKit integration.
 - Continue hardening validation and recovery paths.
 
 ## Later

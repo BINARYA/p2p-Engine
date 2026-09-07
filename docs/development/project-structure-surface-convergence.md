@@ -1,6 +1,6 @@
 # Project Structure Surface Convergence
 
-This is the P2P Engine 0.6.6 release-gate note for converging the project-owned
+This is the P2P Engine 0.6.7 release-gate note for converging the project-owned
 structure surfaces after authority, domain, memory classification, readiness,
 registry-v2 discovery, structure export and structure replacement landed.
 
@@ -14,7 +14,7 @@ fixture bundle lives at
 `p2p version --format json`, `p2p status --format json` and
 `p2p_workspace_schema_status` expose the same contract tuple:
 
-- P2P Engine `0.6.6`
+- P2P Engine `0.6.7`
 - CLI envelope `p2p-cli/v1`
 - workspace schema 4
 - portable vertical schema 3 and package format 1
@@ -22,6 +22,8 @@ fixture bundle lives at
 - vertical draft document/state/evidence v1
 - project domain, structure, memory classification, readiness and receipt
   contract versions
+- Choice definition/lifecycle contracts plus the distinct bounded
+  `p2p-choice-list/v1` and `p2p-choice-detail/v1` read contracts
 - project authority and AuthorityContext schemas
 
 ## Convergence Matrix
@@ -43,6 +45,7 @@ fixture bundle lives at
 | `proposal.create` | `proposal.create` | proposal create/list/show | same proposal service | schema-3 receipt for keyed CLI worker writes | Creation records explicit unassigned scope and no decision authority. |
 | `proposal.update` | `proposal.update` | proposal update/show | same proposal service | schema-3 receipt for keyed CLI worker writes | Updates do not decide or change implementation state. |
 | `proposal.contribution.add` | `proposal.contribution.add` | contribution add/list | same contribution service | schema-3 receipt for keyed CLI worker writes | Proposal memory does not imply implementation, membership or governance decision. |
+| `choice.read` | read-only | choice list/show JSON | same versioned semantic projection with deprecated aliases | not applicable | WaveKit must independently qualify and authorize its Choice product integration. |
 | `proposal.decide` | `proposal.decide` | decision preview/apply/status/history/impact | same consent-gated decision service | append-only event plus typed AuthorityContext | Decision and readiness override are separate grants. |
 | `project.vertical.install` | `project.vertical.install` | install preview/apply | CLI-only vertical lifecycle | schema-3 receipt | Install adds one exact release without making it authoritative structure. |
 | `project.vertical.adopt` | `project.vertical.adopt` | adopt preview/apply | CLI-only vertical lifecycle | schema-3 receipt | Adopt affects release metadata, not detached project structure. |
@@ -61,6 +64,8 @@ startup probes, read commands, registry-v2 reads, retryable writes and recovery:
 - `p2p project vertical export eligibility --format json`
 - `p2p project vertical export apply ... --idempotency-key wavekit:<uuid>`
 - `p2p project structure replace apply ... --operation-key wavekit:<uuid>`
+- `p2p choice list --format json`
+- `p2p choice show CHOICE-XXX --format json`
 - `p2p vertical domain list/search/inspect --registry REGISTRY --format json`
 - `p2p vertical search/list ... --domain DOMAIN-ID --format json`
 - `p2p mutation status --operation-key wavekit:<uuid> --format json`
@@ -88,7 +93,7 @@ fallback in the runtime catalog client.
 
 ## Release Notes And Resources
 
-The release notes state that P2P Engine 0.6.6 preserves the clean boundary:
+The release notes state that P2P Engine 0.6.7 preserves the clean boundary:
 workspace schema 4 and portable vertical schema 3 only. It does not provide in-runtime
 migration, conversion or compatibility aliases for older workspace or vertical
 schemas.
@@ -109,6 +114,12 @@ archive contents and runs installed-wheel smoke tests. Cross-platform uv jobs
 share the one immutable candidate wheel and validate its current installed
 behavior without making an earlier release a prerequisite. The workflow creates
 the version tag and GitHub Release only after every qualification gate passes.
+
+Choice list/show qualification is executable rather than declarative: the uv
+harness reads structured argv cases from the candidate wheel, substitutes only
+the isolated project root, uses `shell=false` and validates the outer CLI and
+nested Choice contract versions. Command inventory alone never authorizes a
+WaveKit allowlist.
 
 Merge and restore are implemented on CLI with distinct capabilities, exact
 preview tokens and mutation receipts. MCP deliberately exposes only

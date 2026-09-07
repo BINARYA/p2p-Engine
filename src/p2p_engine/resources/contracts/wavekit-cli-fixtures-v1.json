@@ -781,7 +781,7 @@
       "compatibility": "same-major",
       "contract": "p2p-domain/v1"
     },
-    "engine_version": "0.6.6",
+    "engine_version": "0.6.7",
     "linked_replica_binding_contract": "p2p-linked-replica-binding/v1",
     "linked_replica_capability_contract": "p2p-linked-replica-capabilities/v1",
     "linked_replica_change_contract": "p2p-linked-replica-change-batch/v1",
@@ -867,7 +867,7 @@
     "workspace_schema_policy_version": 4,
     "workspace_schema_version": 4
   },
-  "engine_version": "0.6.6",
+  "engine_version": "0.6.7",
   "mcp_policy": {
     "export_apply_available": false,
     "linked_drift_apply_available": false,
@@ -1138,7 +1138,7 @@
     "operation_key_placeholder": "wavekit:<uuid>",
     "root_placeholder": "<PROJECT_ROOT>"
   },
-  "semantic_sha256": "a75b0aa348b1a1f005f5095dfe0322877075f605e752e392e9a8caaff69341d2",
+  "semantic_sha256": "ea293c30590a611afd0c0947b2147272d5991d106fb90b494ccd435cb4afbca3",
   "transport": {
     "envelope": "p2p-cli/v1",
     "kind": "cli_json",

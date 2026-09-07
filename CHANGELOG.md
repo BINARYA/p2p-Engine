@@ -8,6 +8,21 @@ tagged releases.
 
 ## Unreleased
 
+## 0.6.7 - 2026-09-07
+
+- Added explicit `p2p-choice-list/v1` and `p2p-choice-detail/v1` contracts with
+  deterministic bounded pagination, complete immutable definition/lifecycle
+  projections and no physical storage paths.
+- Added working `p2p choice list|show --format json` CLI reads and matching MCP
+  semantic projections while preserving the prior MCP `choices` and `choice`
+  keys as documented deprecated compatibility aliases.
+- Hardened release qualification with structured argv-only command cases read
+  from the installed candidate wheel, representative Choice lifecycle fixtures
+  and negative checks that reject unsupported advertised options.
+- Aligned generated agent policy, packaged WaveKit fixtures and maintained
+  documentation with the executable Choice read surface while keeping WaveKit
+  activation an independent downstream decision.
+
 ## 0.6.6 - 2026-09-06
 
 - Made Choice definitions immutable and integrity-checked, with definition-only
