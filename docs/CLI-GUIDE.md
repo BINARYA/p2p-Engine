@@ -719,6 +719,11 @@ p2p vertical draft publish VDRAFT-... --registry wavekit \
   --idempotency-key <operation-id> --format json
 ```
 
+`vertical draft create --from` means clone/derive into a fresh editable draft.
+It is not a lossless artifact import or restore. To retain an immutable release
+identity, inspect, pull/cache, install or use the `.p2pv` directly. See
+[Vertical Artifact Lifecycles](VERTICAL-ARTIFACT-LIFECYCLES.md).
+
 Draft state lives outside `.p2p`; edits invalidate all materialization and
 publication evidence. See [VERTICAL-DRAFTS.md](VERTICAL-DRAFTS.md).
 

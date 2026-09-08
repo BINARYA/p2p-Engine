@@ -11,6 +11,11 @@ releases. WaveKit and other callers edit one normalized document; P2P Engine
 alone compiles canonical `manifest.yml`, `vertical.yml`, `sections/*.yml` and
 the other schema-3 files.
 
+An existing `.p2pv` is already the lossless representation of its immutable
+artifact layer. It should be inspected, cached, installed or used directly.
+Creating a draft from it is a separate editable derivation; see
+[Vertical Artifact Lifecycles](VERTICAL-ARTIFACT-LIFECYCLES.md).
+
 ```text
 normalized draft -> materialized pack -> validation -> .p2pv package
                  -> immutable local add -> optional registry publication
@@ -119,6 +124,13 @@ p2p vertical draft create \
   --previous-release binarya/software_project@2.0.0 \
   --format json
 ```
+
+This command creates fresh mutable draft identity, origin, revision and
+evidence. It is not artifact deserialization or restore and does not promise a
+byte-identical artifact round trip. Host-side source attribution and audit that
+are absent from the package cannot be reconstructed. Portable lineage remains
+explicit through `--forked-from` or `--previous-release`; clone origin alone
+does not create it.
 
 Inspect and replace the complete normalized document:
 

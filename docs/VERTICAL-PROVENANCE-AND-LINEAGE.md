@@ -97,6 +97,13 @@ An exact-byte transfer through a local project, registry, WaveKit instance or
 peer preserves artifact SHA-256, semantic identity and portable declarations.
 Each host may retain different external context without changing the `.p2pv`.
 
+This is lossless only at the artifact and intrinsic portable-declaration
+layers. It does not restore draft revisions/evidence, project state, registry
+records, authenticated publication context or host audit. P2P therefore uses
+the artifact directly for immutable workflows and requires an explicit clone/
+derive transition for editing; see
+[Vertical Artifact Lifecycles](VERTICAL-ARTIFACT-LIFECYCLES.md).
+
 ## Core Boundary And Future Evolution
 
 Portable provenance core contains only declarations, deterministic identity

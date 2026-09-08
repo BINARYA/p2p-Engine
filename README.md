@@ -528,6 +528,10 @@ Stable:
 - [docs/VERTICAL-DRAFTS.md](docs/VERTICAL-DRAFTS.md)
   Normalized draft contract, materialization, validation, local add, publication, and WaveKit boundary.
 
+- [docs/VERTICAL-ARTIFACT-LIFECYCLES.md](docs/VERTICAL-ARTIFACT-LIFECYCLES.md)
+  Immutable artifact use versus explicit editable clone/derivation, including
+  exact-preservation and recovery boundaries.
+
 - [docs/MCP.md](docs/MCP.md)  
   Local MCP server setup, tool matrix, safety boundaries, and example calls.
 

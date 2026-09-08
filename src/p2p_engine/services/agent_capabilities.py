@@ -600,7 +600,9 @@ advisory metadata, not project domains, not project structure, and not evidence
 of semantic compatibility. A recommended release is still only an exact
 coordinate plus digest; it never triggers pull or initialization by itself.
 Pulled releases are checksum-verified and cached as immutable exact
-coordinates.
+coordinates. An immutable `.p2pv` is already the lossless portable release:
+inspect or use it directly, or pull it into the managed cache. Cache and
+installation do not create editable authoring state.
 
 Author or derive a local draft:
 
@@ -615,6 +617,12 @@ p2p vertical draft package <draft-id> <pack.p2pv>
 p2p vertical draft add-local <draft-id>
 p2p vertical draft publish <draft-id> --registry <name> --idempotency-key <operation-id>
 ```
+
+`vertical draft create --from` is an explicit clone/derivation into fresh
+mutable draft state. It is not a lossless import or restore, and a later
+package is not required to be byte-identical to the source release. Edit a
+release only through this explicit derivation and a subsequent new immutable
+release.
 
 Export the active project-owned structure into the same draft/package lifecycle:
 

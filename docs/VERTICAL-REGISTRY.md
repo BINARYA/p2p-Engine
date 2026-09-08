@@ -259,6 +259,12 @@ Only a fully valid closure is moved into cache paths. A matching repeated pull
 returns `already_present`; changed immutable identity returns
 `P2P_REGISTRY_IMMUTABILITY_VIOLATION`.
 
+The cache is immutable managed release storage, not an imported authoring
+model. Pull does not create a vertical draft. Conversely, `vertical draft
+create --from` creates an editable derivation and is not a lossless cache or
+artifact restore. See
+[Vertical Artifact Lifecycles](VERTICAL-ARTIFACT-LIFECYCLES.md).
+
 ## Initialization
 
 Initialization is offline by default:
@@ -279,6 +285,9 @@ p2p init "My Project" \
 Cached dependencies are installed before their dependent pack through the
 existing portable-pack lifecycle. `--vertical-pack PATH` remains the offline
 single-artifact input and is mutually exclusive with `--pull` and `--registry`.
+Direct path initialization consumes the artifact into project-owned structure;
+it does not add the release to the user cache or reconstruct vertical draft
+state.
 
 ## Integration Boundary
 

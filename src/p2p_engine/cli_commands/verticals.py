@@ -38,7 +38,7 @@ def register_vertical_commands(vertical_app: typer.Typer) -> None:
         source_coordinate: str = typer.Option(
             "",
             "--from",
-            help="Clone one exact local release",
+            help="Clone/derive one exact local release; this is not a lossless import or restore",
         ),
         publisher: str = typer.Option("", "--publisher"),
         vertical_id: str = typer.Option("", "--vertical-id"),
@@ -53,7 +53,7 @@ def register_vertical_commands(vertical_app: typer.Typer) -> None:
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root for local pack lookup"),
         output_format: str = typer.Option("json", "--format", help="Output format: text or json"),
     ) -> None:
-        """Create an empty draft or clone one exact local release."""
+        """Create an empty draft or an editable clone/derivation of one release."""
         try:
             if empty == bool(source_coordinate):
                 raise ValueError(
