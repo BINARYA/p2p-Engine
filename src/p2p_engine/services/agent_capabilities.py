@@ -600,9 +600,13 @@ advisory metadata, not project domains, not project structure, and not evidence
 of semantic compatibility. A recommended release is still only an exact
 coordinate plus digest; it never triggers pull or initialization by itself.
 Pulled releases are checksum-verified and cached as immutable exact
-coordinates. An immutable `.p2pv` is already the lossless portable release:
-inspect or use it directly, or pull it into the managed cache. Cache and
-installation do not create editable authoring state.
+coordinates. An immutable `.p2pv` is the lossless representation of the
+portable artifact layer: a byte-identical copy preserves its bytes and portable
+declarations and lets P2P recalculate artifact and semantic identity. It does
+not reconstruct draft state, host-side source attribution, registry state,
+audit, review, uploader, timestamps or WaveKit context. Inspect or use it
+directly, or pull it into the managed cache. Cache and installation do not
+create editable authoring state.
 
 Author or derive a local draft:
 

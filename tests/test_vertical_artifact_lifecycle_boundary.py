@@ -173,8 +173,12 @@ def test_public_guidance_names_clone_and_does_not_advertise_exact_import() -> No
     assert "clone/derive one exact local release" in help_result.stdout.lower()
     assert "exact-import" not in help_result.stdout.lower()
 
-    guidance = standalone_vertical_guidance().lower()
-    assert "lossless portable release" in guidance
+    guidance = " ".join(standalone_vertical_guidance().lower().split())
+    assert "lossless representation of the portable artifact layer" in guidance
+    assert "recalculate artifact and semantic identity" in guidance
+    assert "does not reconstruct draft state" in guidance
+    assert "host-side source attribution" in guidance
+    assert "wavekit context" in guidance
     assert "clone/derivation" in guidance
     assert "not a lossless import or restore" in guidance
     assert "exact-import" not in guidance

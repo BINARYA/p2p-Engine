@@ -11,8 +11,10 @@ releases. WaveKit and other callers edit one normalized document; P2P Engine
 alone compiles canonical `manifest.yml`, `vertical.yml`, `sections/*.yml` and
 the other schema-3 files.
 
-An existing `.p2pv` is already the lossless representation of its immutable
-artifact layer. It should be inspected, cached, installed or used directly.
+An existing `.p2pv` is the lossless representation of the portable artifact
+layer only: byte-identical copies preserve its bytes and portable declarations
+and permit identity recalculation. It does not reconstruct draft or host state.
+The artifact should be inspected, cached, installed or used directly.
 Creating a draft from it is a separate editable derivation; see
 [Vertical Artifact Lifecycles](VERTICAL-ARTIFACT-LIFECYCLES.md).
 

@@ -3,6 +3,11 @@
 P2P Engine has two vertical lifecycles. It does not have a third `exact import`
 lifecycle.
 
+An immutable `.p2pv` is the lossless representation of the portable artifact
+layer only. A byte-identical copy preserves the artifact bytes and portable
+declarations and allows P2P to recalculate artifact and semantic identity. It
+does not reconstruct draft, host attribution, registry, audit or WaveKit state.
+
 ```text
 immutable release: .p2pv -> inspect / verify / pull / cache / install / use
 editable release:  .p2pv -> explicit clone/derive -> draft -> new release
@@ -10,7 +15,7 @@ editable release:  .p2pv -> explicit clone/derive -> draft -> new release
 
 ## What Exact Preservation Means
 
-`Lossless` must name the state being preserved:
+`Lossless` must always name the layer being preserved:
 
 | Layer | Preserved by copying one `.p2pv`? |
 |---|---:|
