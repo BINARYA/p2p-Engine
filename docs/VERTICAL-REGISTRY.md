@@ -221,6 +221,14 @@ Coordinate and artifact checksum must match the submitted release exactly.
 Publication is available through `p2p vertical draft publish`; see
 [VERTICAL-DRAFTS.md](VERTICAL-DRAFTS.md).
 
+Example contents are protected by the submitted artifact checksum but are not
+part of semantic checksum v1. A registry must still reject different example
+bytes for an existing coordinate: semantic equality is not permission to
+replace an immutable artifact. Publish a correction at a new coordinate,
+normally a patch version. Since release version participates in v1, the new
+release's semantic identity also changes through that metadata even though the
+example prose itself remains non-semantic.
+
 ## Pull And Cache
 
 ```bash

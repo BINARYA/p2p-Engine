@@ -21,8 +21,15 @@ not silently change v1 and does not by itself force a new vertical release.
 V1 hashes the validated effective vertical after inheritance composition. Its
 projection includes manifest metadata, dependencies, compatibility and domain
 metadata together with sections, fields, completion policies, questions,
-rubrics, artifacts, profiles, modules and examples. It excludes host paths,
-registry/cache state, archive metadata and the P2P runtime version.
+rubrics, artifacts, profiles, modules and the normalized **paths** of examples.
+It excludes example file contents, host paths, registry/cache state, archive
+metadata and the P2P runtime version.
+
+Ordinary `examples/` files are documentary/reference resources. Changing only
+their content at the same path leaves semantic v1 unchanged but changes the
+artifact SHA-256. Renaming an example changes both because its path belongs to
+the frozen v1 resource inventory. This historical asymmetry is compatibility
+behaviour; neither side may be changed without a new checksum contract.
 
 The projection is serialized exactly as the 0.6.7 implementation did: PyYAML
 safe dump, sorted mapping keys, significant list ordering, escaped Unicode,
@@ -67,6 +74,19 @@ but does not claim that the content is different. A future v2 must add a new
 calculator and static vectors while retaining v1 verification for immutable
 releases already published. Existing releases and cache entries are never
 rewritten merely to adopt the new contract.
+
+Release version is itself part of the v1 projection. Correcting only example
+prose in an unpublished working pack leaves v1 unchanged, but publishing that
+correction after the prior coordinate exists requires a new coordinate
+(normally a patch version), and that version change produces a new v1 digest.
+Semantic equality never authorizes replacing different `.p2pv` bytes at one
+immutable coordinate.
+
+If examples later become executable or normative, they must be modeled as a
+separate resource class with explicit consumers and safety rules. Ordinary
+documentary examples must not silently acquire authority. Including a new
+normative resource in semantic identity requires a separately specified
+contract such as a future v2.
 
 The `.p2pv` file does not embed its own semantic digest, avoiding a
 self-reference. Offline inspection computes the identity from its existing

@@ -1,0 +1,7 @@
+rubrics:
+  - id: overview_quality
+    title: Overview Quality
+    section_id: overview
+    required: true
+    keywords: [project]
+

@@ -1,0 +1,30 @@
+vertical:
+  schema_version: 3
+  id: documentary_examples
+  name: Documentary Examples
+  version: 1.0.0
+  description: A minimal vertical with one documentary example.
+  extends: null
+  questions:
+    - id: overview_question
+      section_id: overview
+      priority: high
+      question: What project should be defined?
+      rationale: Establish the project overview.
+      target:
+        kind: field
+        id: summary
+      answer_contract:
+        kind: field_value
+        required_fields: [value]
+        allowed_definition_operations: [set_field]
+      fallback_key: overview.summary
+      aliases: [project]
+  artifacts:
+    - id: project_note
+      title: Project Note
+      section_ids: [overview]
+      required: true
+  profiles: []
+  modules: []
+  examples: [guide.md]

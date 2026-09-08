@@ -308,6 +308,13 @@ The SHA-256 of the exact deterministic `.p2pv` archive bytes. It verifies
 transported bytes and is distinct from both vertical semantic identity and the
 checksum of a detached project structure.
 
+## Vertical Example
+
+A documentary/reference resource distributed inside `examples/` in a portable
+vertical. Semantic-checksum v1 includes its normalized path but excludes its
+content; artifact SHA-256 protects the canonical bytes. Example prose is not
+executable, does not affect readiness and is not authority for local agents.
+
 ## Vertical Lock
 
 The deterministic `.p2p/project/vertical.lock.yml` record of the selected

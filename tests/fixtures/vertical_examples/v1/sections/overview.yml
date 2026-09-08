@@ -1,0 +1,20 @@
+section:
+  id: overview
+  title: Overview
+  purpose: Define the project overview.
+  required: true
+  priority: 10
+  fields:
+    - id: summary
+      label: Summary
+      required: true
+      question: What is the project summary?
+      assisted_answer: Describe the project.
+      completion_criteria: [clear]
+      common_mistakes: []
+      suggested_artifacts: [project_note]
+      maturity_gates: []
+  completion_policy:
+    allow_assumed_completion: false
+    required_fields: [summary]
+

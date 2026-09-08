@@ -1,0 +1,13 @@
+manifest:
+  schema_version: 3
+  publisher: fixture
+  id: documentary_examples
+  name: Documentary Examples
+  version: 1.0.0
+  license: GPL-3.0-or-later
+  source: issue-9
+  extends: null
+  lineage: {}
+  dependencies: []
+  compatibility: {}
+

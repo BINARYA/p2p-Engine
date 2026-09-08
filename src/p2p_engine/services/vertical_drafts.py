@@ -563,22 +563,25 @@ class VerticalDraftService:
         assets: dict[str, str] = {}
         current: VerticalPack | None = pack
         visited: set[str] = set()
+        inheritance_chain: list[VerticalPack] = []
         while current is not None:
             identity = current.coordinate or current.vertical_id
             if identity in visited:
                 break
             visited.add(identity)
+            inheritance_chain.append(current)
+            current = (
+                self.catalog.workspace.show_project_vertical(current.extends)
+                if current.extends
+                else None
+            )
+        for current in reversed(inheritance_chain):
             if current.path is not None:
                 root = current.path.parent
                 for name in current.examples:
                     path = root / "examples" / name
                     if path.is_file() and not path.is_symlink():
                         assets[name] = path.read_text(encoding="utf-8")
-            current = (
-                self.catalog.workspace.show_project_vertical(current.extends)
-                if current.extends
-                else None
-            )
         return [
             {"path": name, "content": assets[name]}
             for name in sorted(assets)

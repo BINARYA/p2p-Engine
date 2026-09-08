@@ -618,6 +618,14 @@ module, artifact and example content live in their canonical split paths.
 `manifest.yml` may add advisory `primary_domain` and `domain_tags` metadata;
 these values never select structure or change the project's domain.
 
+Files under `examples/` are portable documentary/reference resources. Their
+normalized paths participate in vertical semantic identity v1; their contents
+do not. The exact canonical contents are protected by the `.p2pv`
+`artifact_checksum`. Example prose is not executed, does not satisfy readiness
+and is not injected into generated agent instructions. Editing an example in a
+published release requires a new exact coordinate rather than replacing the
+artifact already bound to the old coordinate.
+
 The bundled releases use exact `binarya/<vertical-id>@2.0.0` coordinates.
 Bare IDs work only when they resolve to one coordinate. Multiple releases make
 a bare ID ambiguous, while semantically different packs claiming the same

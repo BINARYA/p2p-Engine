@@ -71,6 +71,13 @@ source_attribution: {}
 compatibility: {}
 ```
 
+Each example draft entry is `{path, content}`. Clone, update, materialize and
+round-trip preserve both values as authoring data, with the derived/child
+resource overriding the same inherited path. The materialized vertical
+semantic identity v1 observes only the resulting path inventory; the packaged
+artifact SHA-256 observes the canonical content bytes as well. Draft document
+hashes protect mutable authoring state and are not release semantic identities.
+
 References use an exact coordinate and semantic checksum. `extends` describes
 structural composition. `lineage.forked_from` records a social derivation.
 `lineage.previous_release` connects immutable versions of the same authored
@@ -133,6 +140,11 @@ p2p vertical draft publish VDRAFT-... \
 `add-local` is idempotent for identical bytes and fails if the coordinate
 already identifies different immutable content. `publish` never repackages;
 it uploads the exact artifact recorded in current evidence.
+
+A content-only example correction changes the package artifact even when the
+working pack's semantic v1 digest is unchanged. Once the old coordinate is
+published, select a new release version (normally a patch); because version is
+part of v1, that new coordinate also has a new semantic v1 digest.
 
 ## Project Structure Export
 
