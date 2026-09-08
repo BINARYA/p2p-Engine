@@ -43,6 +43,12 @@ an exact archive-byte change; `semantic_identity` detects a change to the
 interpreted effective vertical. Project-structure, bundle and blob checksums
 are separate contracts as well.
 
+During artifact inspection both values are **calculated** from supplied
+content. Calculation alone is not verification against an external expected
+value and says nothing about publisher authenticity or lineage. The separate
+[portable provenance contract](VERTICAL-PROVENANCE-AND-LINEAGE.md) exposes this
+status explicitly.
+
 ## Compatibility
 
 Known legacy schema-3, lock, draft, transition, cache and registry-v2 fields

@@ -262,6 +262,14 @@ Existing schema-3 dependency checksums and registry-v2 `semantic_checksum`
 values are interpreted as v1 only in those known legacy fields; new projections
 also expose `semantic_identity`. See
 [Vertical Semantic Identity](VERTICAL-SEMANTIC-IDENTITY.md).
+
+Portable provenance classifies what an artifact declares versus what P2P can
+calculate from supplied content. Publisher, license, construction source,
+lineage and dependency edges are declarations. Artifact and semantic
+identities are calculated, while a supplied dependency target can be compared
+with its declared semantic identity without making the dependency relationship
+itself verified. Host trust and audit remain outside P2P core. See
+[Portable Vertical Provenance And Lineage](VERTICAL-PROVENANCE-AND-LINEAGE.md).
 Remote registry v2 catalog domains and release `primary_domain` values are
 advisory discovery metadata only. They do not change the project's free domain
 classification, prove compatibility, or select a detached structure source.

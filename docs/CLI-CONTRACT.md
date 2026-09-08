@@ -219,6 +219,17 @@ p2p proposal contribution add PROP-001 "Text" --type finding --format json --ope
 p2p proposal readiness assess PROP-001 --actor ACTOR --format json --operation-key wavekit:<uuid>
 ```
 
+Successful local artifact inspection adds
+`data.provenance.contract_version = p2p-vertical-portable-provenance/v1`.
+This object is additive: existing checksum and pack fields retain their current
+meaning. Artifact and semantic identities are `calculated`; publisher,
+license, lineage and dependency edges are `declarative_unverified`. A separate
+dependency target identity is `verifiable_when_available` and may become
+`verified_against_reference` only in ephemeral comparison output when target
+content is explicitly supplied. The relationship itself never becomes
+verified. Host audit, trust, uploader, moderation, registry and WaveKit
+provenance are excluded.
+
 An exact retry with the same operation key and the same semantic request returns
 `already_applied`. Reusing the same key for different semantic inputs fails with
 `P2P_IDEMPOTENCY_CONFLICT`.

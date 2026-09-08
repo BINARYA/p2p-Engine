@@ -71,6 +71,15 @@ source_attribution: {}
 compatibility: {}
 ```
 
+`source_attribution` and the separate draft origin/evidence records are local
+authoring context. They are not copied into `manifest.yml` and do not survive a
+materialize/package round trip. Clone origin never becomes portable lineage
+implicitly: authors must explicitly select `forked_from` or
+`previous_release`. Project-structure export likewise makes no generic
+`legal_attribution_preserved` promise; only the publisher, license and explicit
+lineage actually written to the pack are portable declarations. See
+[Portable Vertical Provenance And Lineage](VERTICAL-PROVENANCE-AND-LINEAGE.md).
+
 Each example draft entry is `{path, content}`. Clone, update, materialize and
 round-trip preserve both values as authoring data, with the derived/child
 resource overriding the same inherited path. The materialized vertical
@@ -81,7 +90,9 @@ hashes protect mutable authoring state and are not release semantic identities.
 References use an exact coordinate and semantic checksum. `extends` describes
 structural composition. `lineage.forked_from` records a social derivation.
 `lineage.previous_release` connects immutable versions of the same authored
-vertical. None is inferred from another.
+vertical. None is inferred from another. Lineage relations remain declarative
+and unverified; dependency target identities can be checked separately when
+their content is explicitly available.
 
 `domain_metadata.primary_domain` and `domain_metadata.domain_tags` are optional
 advisory catalog metadata. They do not select structure or change the domain of

@@ -462,6 +462,7 @@ def register_vertical_commands(vertical_app: typer.Typer) -> None:
                     "artifact_checksum": inspection.artifact_checksum,
                     "semantic_checksum": inspection.semantic_checksum,
                     "semantic_identity": inspection.semantic_identity.to_dict(),
+                    "provenance": inspection.provenance.to_dict(),
                     "pack": inspection.effective_payload,
                 }
             else:
@@ -474,6 +475,7 @@ def register_vertical_commands(vertical_app: typer.Typer) -> None:
                         "artifact_checksum": inspection.artifact_checksum,
                         "semantic_checksum": inspection.semantic_checksum,
                         "semantic_identity": inspection.semantic_identity.to_dict(),
+                        "provenance": inspection.provenance.to_dict(),
                         "source": item.source,
                         "registry": item.registry,
                         "pack": inspection.effective_payload,
@@ -492,6 +494,15 @@ def register_vertical_commands(vertical_app: typer.Typer) -> None:
             print_json(success_envelope("vertical.inspect", data))
             return
         console.print(f"Vertical release: {data['coordinate']}")
+        if isinstance(data, dict) and isinstance(data.get("provenance"), dict):
+            subject = data["provenance"].get("subject", {})
+            if isinstance(subject, dict):
+                artifact = subject.get("artifact", {})
+                semantic = subject.get("semantic", {})
+                if isinstance(artifact, dict):
+                    console.print(f"  artifact identity: {artifact.get('status')}")
+                if isinstance(semantic, dict):
+                    console.print(f"  semantic identity: {semantic.get('status')}")
 
     @registry_app.command("list")
     def registry_list(

@@ -6,6 +6,10 @@ from pathlib import Path
 
 from p2p_engine.core.mutation_preview import MutationPreview, MutationResult
 from p2p_engine.core.project_verticals import VerticalPack, VerticalValidationIssue
+from p2p_engine.core.vertical_provenance import (
+    PortableVerticalProvenance,
+    build_portable_vertical_provenance,
+)
 from p2p_engine.core.vertical_semantic_identity import VerticalSemanticIdentity
 from p2p_engine.core.vertical_transition_impact import (
     VERTICAL_TRANSITION_IMPACT_CONTRACT,
@@ -72,6 +76,7 @@ class PortableVerticalInspection:
     semantic_identity: VerticalSemanticIdentity | None = None
     entries: tuple[str, ...] = ()
     issues: tuple[VerticalValidationIssue, ...] = ()
+    provenance: PortableVerticalProvenance | None = None
 
     def __post_init__(self) -> None:
         identity = self.semantic_identity
@@ -85,6 +90,24 @@ class PortableVerticalInspection:
             )
         elif identity is not None and not checksum:
             object.__setattr__(self, "semantic_checksum", identity.digest)
+        if self.provenance is None and identity is not None and self.pack.manifest is not None:
+            manifest = self.pack.manifest
+            object.__setattr__(
+                self,
+                "provenance",
+                build_portable_vertical_provenance(
+                    coordinate=self.pack.coordinate,
+                    schema_version=self.pack.schema_version,
+                    package_version=PORTABLE_VERTICAL_PACKAGE_VERSION,
+                    artifact_checksum=self.artifact_checksum,
+                    semantic_identity=identity,
+                    publisher=manifest.publisher,
+                    license_id=manifest.license_id,
+                    construction_source=manifest.source,
+                    lineage=manifest.lineage,
+                    dependencies=manifest.dependencies,
+                ),
+            )
 
     @property
     def valid(self) -> bool:

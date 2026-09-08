@@ -832,7 +832,6 @@ class ProjectStructureExportService:
                 },
                 "project_structure_origin": structure.origin.to_dict(),
                 "lineage_mode": lineage["mode"],
-                "legal_attribution_preserved": True,
             },
             "compatibility": {
                 "generated_from": "project_structure_export",

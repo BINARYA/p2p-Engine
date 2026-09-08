@@ -9,6 +9,14 @@ structured forms are present they must agree exactly; a contradiction or an
 unsupported contract fails before download or cache commit. Neither additive
 field may be advertised in registry-v2 `required_fields`.
 
+Registry release and publication records are host context. Their URL,
+authenticated uploader, review, moderation, timestamps and receipts do not
+enter the generic `.p2pv`. The artifact carries declarative lineage coordinates
+and dependency target semantic identities. A dependency edge remains
+declarative even after supplied target content verifies against its expected
+identity. See
+[Portable Vertical Provenance And Lineage](VERTICAL-PROVENANCE-AND-LINEAGE.md).
+
 P2P Engine can discover advisory catalog domains and exact portable vertical
 releases from a provider-neutral HTTP registry. Remote discovery returns
 metadata only. Pulling still requires one explicit release coordinate and

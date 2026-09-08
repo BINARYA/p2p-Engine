@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
-from dataclasses import replace
 import hashlib
 import json
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from pathlib import Path
 from typing import Mapping
 
@@ -17,6 +17,7 @@ from p2p_engine.core.vertical_registry import (
     VerticalReleaseArtifact,
     VerticalUserPaths,
 )
+from p2p_engine.mcp.handlers.proposals import handle_proposal_tool
 from p2p_engine.services.vertical_catalog import VerticalCacheService, VerticalCatalogService
 from p2p_engine.services.vertical_draft_lifecycle import VerticalDraftLifecycleService
 from p2p_engine.services.vertical_draft_materializer import (
@@ -27,14 +28,12 @@ from p2p_engine.services.vertical_drafts import (
     VerticalDraftService,
     normalize_vertical_draft_document,
 )
+from p2p_engine.services.vertical_packages import PortableVerticalPackageService
 from p2p_engine.services.vertical_registry import (
     VerticalRegistryClient,
     VerticalRegistryConfigurationService,
 )
-from p2p_engine.services.vertical_packages import PortableVerticalPackageService
-from p2p_engine.mcp.handlers.proposals import handle_proposal_tool
 from p2p_engine.storage.filesystem import P2PWorkspace
-
 
 runner = CliRunner()
 PROTOCOL = "p2p-vertical-registry/v2"
@@ -212,6 +211,15 @@ def test_materialize_package_and_local_add_are_roundtrippable_and_idempotent(
         P2PWorkspace(tmp_path / "project"),
         tmp_path / "materialized",
     )
+    assert second.draft.state.document["source_attribution"]["origin_coordinate"] == (
+        "binarya/software_project@2.0.0"
+    )
+    assert materialized["source_attribution"] == {"pack_source": "draft"}
+    assert "origin_coordinate" not in materialized["source_attribution"]
+    materialized_manifest = (
+        tmp_path / "materialized" / "manifest.yml"
+    ).read_text(encoding="utf-8")
+    assert "source_attribution" not in materialized_manifest
     assert vertical_draft_roundtrip_shape(materialized) == vertical_draft_roundtrip_shape(
         second.draft.state.document
     )

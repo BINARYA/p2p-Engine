@@ -796,6 +796,7 @@
     "memory_classification_contract": "p2p-memory-classification/v1",
     "mutation_receipt_schema_version": 3,
     "portable_package_format_version": 1,
+    "portable_vertical_provenance_contract": "p2p-vertical-portable-provenance/v1",
     "project_activity_contract": "wavekit-project-activity/v1",
     "project_authority_schema": "p2p-project-authority/v1",
     "project_bundle_contract_version": {
@@ -1139,7 +1140,7 @@
     "operation_key_placeholder": "wavekit:<uuid>",
     "root_placeholder": "<PROJECT_ROOT>"
   },
-  "semantic_sha256": "a56a9eaf3a757f0bafca0c0ea058c5765fad95b952ae07e4cd43045a8f12b093",
+  "semantic_sha256": "ac5faaaf9b26c002a8ec0edccb6612689100018997c4f13f078361da732b482b",
   "transport": {
     "envelope": "p2p-cli/v1",
     "kind": "cli_json",

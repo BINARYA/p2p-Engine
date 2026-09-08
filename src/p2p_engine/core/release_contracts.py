@@ -107,6 +107,7 @@ from p2p_engine.core.vertical_drafts import (
     VERTICAL_DRAFT_EVIDENCE_VERSION,
     VERTICAL_DRAFT_STATE_VERSION,
 )
+from p2p_engine.core.vertical_provenance import PORTABLE_VERTICAL_PROVENANCE_CONTRACT
 from p2p_engine.core.vertical_registry import (
     VERTICAL_REGISTRY_CONFIG_SCHEMA_VERSION,
     VERTICAL_REGISTRY_PROTOCOL_VERSION,
@@ -143,6 +144,7 @@ def current_contract_versions() -> dict[str, object]:
         "portable_package_format_version": PORTABLE_VERTICAL_PACKAGE_VERSION,
         "vertical_registry_protocol_version": VERTICAL_REGISTRY_PROTOCOL_VERSION,
         "vertical_semantic_checksum_contract": VERTICAL_SEMANTIC_CHECKSUM_CONTRACT,
+        "portable_vertical_provenance_contract": PORTABLE_VERTICAL_PROVENANCE_CONTRACT,
         "vertical_registry_config_schema_version": VERTICAL_REGISTRY_CONFIG_SCHEMA_VERSION,
         "vertical_draft_document_contract": VERTICAL_DRAFT_DOCUMENT_VERSION,
         "vertical_draft_state_contract": VERTICAL_DRAFT_STATE_VERSION,

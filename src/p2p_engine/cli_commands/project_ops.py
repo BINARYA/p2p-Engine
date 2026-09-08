@@ -822,6 +822,13 @@ def register_project_ops_commands(
         console.print(f"  semantic_checksum: {result.semantic_checksum}")
         if result.artifact_checksum:
             console.print(f"  artifact_checksum: {result.artifact_checksum}")
+        if result.provenance is not None:
+            console.print(
+                f"  artifact identity: {result.provenance.subject.artifact.status}"
+            )
+            console.print(
+                f"  semantic identity: {result.provenance.subject.semantic.status}"
+            )
 
     @project_vertical_app.command("package")
     def project_vertical_package(
@@ -1652,6 +1659,7 @@ def _portable_inspection_payload(result: object, *, view: str) -> dict[str, obje
         "artifact_checksum": getattr(result, "artifact_checksum"),
         "semantic_checksum": getattr(result, "semantic_checksum"),
         "semantic_identity": getattr(result, "semantic_identity").to_dict(),
+        "provenance": getattr(result, "provenance").to_dict(),
         "entries": list(getattr(result, "entries")),
         "pack": (
             getattr(result, "declared_payload")

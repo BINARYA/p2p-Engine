@@ -304,9 +304,21 @@ and a semantic-checksum contract version are independent.
 
 ## Vertical Artifact SHA-256
 
-The SHA-256 of the exact deterministic `.p2pv` archive bytes. It verifies
-transported bytes and is distinct from both vertical semantic identity and the
-checksum of a detached project structure.
+The SHA-256 calculated from the exact deterministic `.p2pv` archive bytes. By
+itself it identifies those bytes; verification requires comparison with a
+separately supplied expected digest. It is distinct from both vertical semantic
+identity and the checksum of a detached project structure.
+
+## Portable Vertical Provenance
+
+The versioned inspection view
+`p2p-vertical-portable-provenance/v1`. It distinguishes identities calculated
+from supplied content, target identities checked against declared references,
+and portable but unverified publisher, license, lineage and dependency claims.
+It excludes trust, registry audit, uploader identity, moderation and
+WaveKit-specific provenance. A dependency target may verify against its
+declared semantic identity while the dependency relationship remains
+declarative.
 
 ## Vertical Example
 

@@ -167,7 +167,7 @@ def test_active_structure_exports_offline_without_changing_source_project(
 
 
 @pytest.mark.service
-def test_independent_export_preserves_attribution_without_social_parent(
+def test_independent_export_records_context_without_claiming_legal_attribution_preservation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -183,7 +183,9 @@ def test_independent_export_preserves_attribution_without_social_parent(
     assert preview.draft_document["lineage"]["forked_from"] is None
     attribution = preview.draft_document["source_attribution"]
     assert attribution["project_structure_origin"]["kind"] == "vertical_release"
-    assert attribution["legal_attribution_preserved"] is True
+    assert "legal_attribution_preserved" not in attribution
+    assert preview.draft_document["identity"]["publisher"] == "acme"
+    assert preview.draft_document["identity"]["license"] == "MIT"
 
 
 @pytest.mark.service

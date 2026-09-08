@@ -647,6 +647,14 @@ digest; the retained `semantic_checksum` is its v1 compatibility alias. Do not
 substitute either checksum for the other. See
 [VERTICAL-SEMANTIC-IDENTITY.md](VERTICAL-SEMANTIC-IDENTITY.md).
 
+Inspection classifies both identities as `calculated`: P2P derives them from
+the supplied artifact but does not compare them with an external authority.
+The additive `p2p-vertical-portable-provenance/v1` object also distinguishes
+portable declarations, dependency target checks and unavailable evidence.
+Lineage and dependency relationships remain declarative. Registry, uploader,
+moderation, audit and WaveKit context are not part of this core contract. See
+[VERTICAL-PROVENANCE-AND-LINEAGE.md](VERTICAL-PROVENANCE-AND-LINEAGE.md).
+
 P2P Engine 0.5 provides a local catalog and a provider-neutral v2 remote
 registry client. These commands perform no remote request unless `--refresh`
 is passed to `registry list` or a remote discovery source is explicitly
