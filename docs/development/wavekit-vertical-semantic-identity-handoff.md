@@ -2,7 +2,8 @@
 
 This document is an implementation inventory, not evidence that WaveKit has
 adopted the contract. WaveKit requires a separate OpenSpec change after the
-P2P Engine release containing `p2p-vertical-semantic-checksum/v1` is published.
+P2P Engine 0.6.8 release containing `p2p-vertical-semantic-checksum/v1` and
+`p2p-vertical-portable-provenance/v1` is published.
 
 The downstream change must cover:
 

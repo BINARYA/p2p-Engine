@@ -8,6 +8,22 @@ tagged releases.
 
 ## Unreleased
 
+## 0.6.8 - 2026-09-08
+
+- Added the frozen `p2p-vertical-semantic-checksum/v1` identity contract,
+  derived from static P2P Engine 0.6.7 golden vectors, while keeping registry
+  protocol v2 additive and backward-compatible with legacy scalar checksums.
+- Documented and regression-tested the semantic-v1 example policy: example
+  paths remain semantic, example contents remain documentary, and immutable
+  artifact identity continues to protect every packaged byte.
+- Added `p2p-vertical-portable-provenance/v1` with explicit distinctions among
+  calculated artifact/semantic identities, declarative lineage and dependency
+  relations, and dependency-target verification when content is available.
+- Clarified the immutable-artifact lifecycle: `.p2pv` is lossless only for the
+  portable artifact layer; editing starts through explicit clone/derivation,
+  and no redundant exact-import capability or host-specific trust model was
+  introduced.
+
 ## 0.6.7 - 2026-09-07
 
 - Added explicit `p2p-choice-list/v1` and `p2p-choice-detail/v1` contracts with

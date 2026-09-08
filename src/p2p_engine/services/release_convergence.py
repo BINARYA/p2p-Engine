@@ -14,10 +14,10 @@ from p2p_engine.core.vertical_registry import VERTICAL_REGISTRY_PROTOCOL_VERSION
 from p2p_engine.services.agent_templates import agent_policy
 from p2p_engine.services.public_surface_inventory import public_surface_snapshot
 
-CONVERGENCE_GATE_CONTRACT = "p2p-0.6.7-convergence-gate/v1"
+CONVERGENCE_GATE_CONTRACT = "p2p-0.6.8-convergence-gate/v1"
 WAVEKIT_CLI_FIXTURE_BUNDLE_CONTRACT = "p2p-wavekit-cli-fixtures/v1"
 WAVEKIT_CLI_FIXTURE_RESOURCE = "wavekit-cli-fixtures-v1.json"
-RELEASE_LINE = "0.6.7"
+RELEASE_LINE = "0.6.8"
 SUPPORTED_RELEASE_PYTHONS = ("3.12",)
 CHOICE_LIST_JSON_COMMAND = "p2p choice list --format json"
 CHOICE_SHOW_JSON_COMMAND = "p2p choice show CHOICE-XXX --format json"
