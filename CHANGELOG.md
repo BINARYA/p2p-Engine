@@ -8,6 +8,19 @@ tagged releases.
 
 ## Unreleased
 
+## 0.6.9 - 2026-09-09
+
+- Removed the unconditional `legal_attribution_preserved` boolean from every
+  project-structure export lineage projection; portable attribution is now
+  represented only by the concrete publisher, license and explicit lineage
+  fields actually written to the vertical artifact.
+- Kept idempotent replay compatible with existing 0.6.8 project-structure
+  export receipts by omitting the obsolete claim from returned results without
+  rewriting stored receipts, project state or sealed `.p2pv` artifacts.
+- Preserved workspace schema 4, portable vertical schema 3, package format 1,
+  registry protocol v2 and all established identity/provenance contracts; no
+  project migration is required.
+
 ## 0.6.8 - 2026-09-08
 
 - Added the frozen `p2p-vertical-semantic-checksum/v1` identity contract,

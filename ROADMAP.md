@@ -26,8 +26,8 @@ Implemented:
 
 ## Near Term
 
-- Qualify vertical semantic identity and portable provenance against the
-  verified 0.6.8 release artifact and downstream WaveKit integration.
+- Qualify the corrected portable lineage contract against the verified 0.6.9
+  release artifact and downstream WaveKit integration.
 - Continue hardening validation and recovery paths.
 
 ## Later
