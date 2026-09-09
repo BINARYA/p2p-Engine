@@ -655,7 +655,6 @@ class ProjectStructureExportService:
                 "mode": "independent",
                 "forked_from": None,
                 "previous_release": None,
-                "legal_attribution_preserved": True,
             }, blockers
         if parent is None:
             parent = eligible
@@ -667,7 +666,6 @@ class ProjectStructureExportService:
                 "mode": "derived",
                 "forked_from": None,
                 "previous_release": None,
-                "legal_attribution_preserved": True,
             }, blockers
         parent_ref = _reference(parent)
         if eligible is None or parent_ref != eligible:
@@ -702,7 +700,6 @@ class ProjectStructureExportService:
             "mode": "derived",
             "forked_from": parent_ref,
             "previous_release": None,
-            "legal_attribution_preserved": True,
         }, blockers
 
     def _document(
@@ -1038,6 +1035,16 @@ class ProjectStructureExportService:
         if not isinstance(source, Mapping) or not isinstance(draft, Mapping) or not isinstance(package, Mapping) or not isinstance(receipt, Mapping):
             raise ValueError("P2P_IDEMPOTENCY_RECEIPT_CORRUPT: export result is invalid")
         marker_path = str(receipt.get("marker_path") or "")
+        stored_lineage = result.get("lineage")
+        lineage = (
+            {
+                key: value
+                for key, value in stored_lineage.items()
+                if key != "legal_attribution_preserved"
+            }
+            if isinstance(stored_lineage, Mapping)
+            else {}
+        )
         return ProjectStructureExportResult(
             status=status,
             coordinate=str(package.get("coordinate") or ""),
@@ -1048,7 +1055,7 @@ class ProjectStructureExportService:
                 active_semantic_hash=str(source.get("active_semantic_hash") or ""),
                 origin=source.get("origin") if isinstance(source.get("origin"), Mapping) else {},
             ),
-            lineage=result.get("lineage") if isinstance(result.get("lineage"), Mapping) else {},
+            lineage=lineage,
             domain_metadata=(
                 result.get("domain_metadata")
                 if isinstance(result.get("domain_metadata"), Mapping)

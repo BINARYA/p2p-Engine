@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+import yaml
 from typer.testing import CliRunner
 
 from p2p_engine.cli import app
@@ -15,6 +16,7 @@ from p2p_engine.core.authority import (
     AuthorityMode,
     AuthorityProjectBinding,
 )
+from p2p_engine.core.mutation_receipts import MUTATION_RECEIPT_ROOT
 from p2p_engine.core.project_structure_export import (
     PROJECT_STRUCTURE_EXPORT_CAPABILITY,
     PROJECT_STRUCTURE_EXPORT_OPERATION,
@@ -22,6 +24,7 @@ from p2p_engine.core.project_structure_export import (
 )
 from p2p_engine.mcp.registry import TOOL_NAMES
 from p2p_engine.mcp.tools import call_tool
+from p2p_engine.services.mutation_receipts import idempotency_key_sha256
 from p2p_engine.services.project_structure_export import _draft_id_for_operation
 from p2p_engine.services.vertical_drafts import VerticalDraftService
 from p2p_engine.storage.filesystem import P2PWorkspace
@@ -110,6 +113,12 @@ def _snapshot(root: Path) -> dict[str, bytes]:
     }
 
 
+def _assert_preview_omits_legal_attribution(preview) -> None:
+    assert "legal_attribution_preserved" not in preview.lineage
+    assert "legal_attribution_preserved" not in preview.draft_document["lineage"]
+    assert "legal_attribution_preserved" not in preview.preview.semantic_diff["lineage"]
+
+
 def _external_context(capability: str = PROJECT_STRUCTURE_EXPORT_CAPABILITY) -> AuthorityContext:
     return AuthorityContext(
         mode=AuthorityMode.external_attestation,
@@ -164,6 +173,8 @@ def test_active_structure_exports_offline_without_changing_source_project(
     assert inspection.valid is True
     assert inspection.pack.coordinate == "acme/exported_structure@1.0.0"
     assert inspection.semantic_checksum == result.semantic_checksum
+    assert "legal_attribution_preserved" not in result.lineage
+    assert "legal_attribution_preserved" not in result.to_dict()["lineage"]
 
 
 @pytest.mark.service
@@ -180,6 +191,8 @@ def test_independent_export_records_context_without_claiming_legal_attribution_p
     preview = _preview(workspace, lineage_mode="independent")
 
     assert preview.lineage["mode"] == "independent"
+    assert set(preview.lineage) == {"mode", "forked_from", "previous_release"}
+    _assert_preview_omits_legal_attribution(preview)
     assert preview.draft_document["lineage"]["forked_from"] is None
     attribution = preview.draft_document["source_attribution"]
     assert attribution["project_structure_origin"]["kind"] == "vertical_release"
@@ -208,7 +221,31 @@ def test_derived_export_records_exact_parent_lineage(
         "semantic_checksum": origin.checksum,
         "semantic_identity": origin.semantic_identity.to_dict(),
     }
+    assert set(preview.lineage) == {"mode", "forked_from", "previous_release"}
+    _assert_preview_omits_legal_attribution(preview)
     assert preview.draft_document["lineage"]["forked_from"] == preview.lineage["forked_from"]
+
+
+@pytest.mark.service
+def test_derived_export_without_parent_omits_legal_claim_from_blocked_preview(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = _workspace(tmp_path, monkeypatch)
+
+    preview = _preview(workspace, lineage_mode="derived")
+
+    assert preview.apply_allowed is False
+    assert any(
+        "P2P_STRUCTURE_EXPORT_PARENT_REQUIRED" in item
+        for item in preview.blockers
+    )
+    assert preview.lineage == {
+        "mode": "derived",
+        "forked_from": None,
+        "previous_release": None,
+    }
+    _assert_preview_omits_legal_attribution(preview)
 
 
 @pytest.mark.service
@@ -282,12 +319,30 @@ def test_export_replay_is_idempotent_and_does_not_duplicate_drafts(
     workspace = _workspace(tmp_path, monkeypatch)
     preview = _preview(workspace)
 
-    first = _apply(workspace, preview, tmp_path, operation_key="export-replay-key")
-    second = _apply(workspace, preview, tmp_path, operation_key="export-replay-key")
+    operation_key = "export-replay-key"
+    first = _apply(workspace, preview, tmp_path, operation_key=operation_key)
+    receipt_path = (
+        workspace.root
+        / MUTATION_RECEIPT_ROOT
+        / f"{idempotency_key_sha256(operation_key)}.yml"
+    )
+    receipt_payload = yaml.safe_load(receipt_path.read_text(encoding="utf-8"))
+    receipt_payload["mutation_receipt"]["result"]["lineage"][
+        "legal_attribution_preserved"
+    ] = True
+    receipt_path.write_text(
+        yaml.safe_dump(receipt_payload, sort_keys=True),
+        encoding="utf-8",
+    )
+    second = _apply(workspace, preview, tmp_path, operation_key=operation_key)
 
     assert second.status == "already_applied"
     assert second.draft_id == first.draft_id
     assert second.artifact_checksum == first.artifact_checksum
+    assert "legal_attribution_preserved" not in first.lineage
+    assert "legal_attribution_preserved" not in second.lineage
+    assert "legal_attribution_preserved" not in first.to_dict()["lineage"]
+    assert "legal_attribution_preserved" not in second.to_dict()["lineage"]
     drafts = list((tmp_path / "p2p-home" / "vertical-drafts").iterdir())
     assert [path.name for path in drafts] == [first.draft_id]
 
@@ -375,6 +430,16 @@ def test_mcp_export_eligibility_preview_are_read_only_and_apply_absent(
 
     assert eligibility["mutation_performed"] is False
     assert preview["mutation_performed"] is False
+    preview_payload = preview["project_structure_export_preview"]
+    assert "legal_attribution_preserved" not in preview_payload["lineage"]
+    assert (
+        "legal_attribution_preserved"
+        not in preview_payload["draft_document"]["lineage"]
+    )
+    assert (
+        "legal_attribution_preserved"
+        not in preview_payload["preview"]["semantic_diff"]["lineage"]
+    )
     assert _snapshot(workspace.root) == before
     assert "p2p_project_structure_export_apply" not in TOOL_NAMES
     assert "p2p_project_structure_export_package" not in TOOL_NAMES
@@ -420,6 +485,12 @@ def test_cli_export_preview_and_apply_use_versioned_contract(
     preview = cli_data(preview_result, operation="project.vertical.export.preview")[
         "project_structure_export_preview"
     ]
+    assert "legal_attribution_preserved" not in preview["lineage"]
+    assert "legal_attribution_preserved" not in preview["draft_document"]["lineage"]
+    assert (
+        "legal_attribution_preserved"
+        not in preview["preview"]["semantic_diff"]["lineage"]
+    )
 
     apply_result = runner.invoke(
         app,
@@ -469,4 +540,5 @@ def test_cli_export_preview_and_apply_use_versioned_contract(
     ]
     assert payload["operation"] == PROJECT_STRUCTURE_EXPORT_OPERATION
     assert payload["package"]["coordinate"] == "acme/cli_export@1.0.0"
+    assert "legal_attribution_preserved" not in payload["lineage"]
     assert "local_paths" not in payload
