@@ -199,7 +199,7 @@ class MutationReceiptService:
             operation=receipt.operation,
             actor=receipt.actor,
             completion_status=receipt.completion_status,
-            result=_public_result(receipt.result),
+            result=_public_result(receipt.result, authority=receipt.authority),
             authority=receipt.authority,
             postconditions_match=postconditions_match,
             message=(
@@ -1601,6 +1601,7 @@ def _validate_project_structure_export_result(result: Mapping[str, object]) -> N
         "status",
         "operation",
         "operation_id",
+        "coordinate",
         "request",
         "source",
         "lineage",
@@ -1667,7 +1668,22 @@ def _validate_project_structure_export_result(result: Mapping[str, object]) -> N
     coordinate = _required_text(package, "coordinate")
     if coordinate != request.get("coordinate"):
         raise ValueError("receipt project-structure-export coordinate mismatch")
-    _required_sha256(package, "semantic_checksum")
+    result_coordinate = result.get("coordinate")
+    if result_coordinate is not None and result_coordinate != coordinate:
+        raise ValueError("receipt project-structure-export result coordinate mismatch")
+    semantic_checksum = _required_sha256(package, "semantic_checksum")
+    raw_semantic_identity = package.get("semantic_identity")
+    if raw_semantic_identity is not None:
+        from p2p_engine.core.vertical_semantic_identity import VerticalSemanticIdentity
+
+        semantic_identity = VerticalSemanticIdentity.from_mapping(
+            raw_semantic_identity
+        )
+        semantic_identity.require_supported()
+        if semantic_identity != VerticalSemanticIdentity.v1(semantic_checksum):
+            raise ValueError(
+                "receipt project-structure-export semantic identity conflicts with checksum"
+            )
     _required_sha256(package, "artifact_checksum")
     size = package.get("size")
     if isinstance(size, bool) or not isinstance(size, int) or size <= 0:
@@ -1681,6 +1697,8 @@ def _validate_project_structure_export_result(result: Mapping[str, object]) -> N
     if receipt.get("capability") != PROJECT_STRUCTURE_EXPORT_CAPABILITY:
         raise ValueError("receipt project-structure-export capability is invalid")
     _required_sha256(receipt, "operation_key_sha256")
+    if receipt.get("authority_context_sha256") is not None:
+        _required_sha256(receipt, "authority_context_sha256")
     marker_path = _required_text(receipt, "marker_path")
     changed_paths = result.get("changed_paths")
     if not isinstance(changed_paths, list) or changed_paths != [marker_path]:
@@ -1868,7 +1886,11 @@ def _validate_bounded_receipt_value(
     raise ValueError(f"receipt readiness {field} contains unsupported data")
 
 
-def _public_result(result: Mapping[str, object]) -> dict[str, object]:
+def _public_result(
+    result: Mapping[str, object],
+    *,
+    authority: Mapping[str, object] | None = None,
+) -> dict[str, object]:
     if result.get("operation") == "init":
         return {
             "operation": result.get("operation"),
@@ -2137,29 +2159,55 @@ def _public_result(result: Mapping[str, object]) -> dict[str, object]:
             "second_authority_created": result.get("second_authority_created"),
         }
     if result.get("operation") == "project_structure_export":
+        package = (
+            dict(result.get("package", {}))
+            if isinstance(result.get("package"), Mapping)
+            else {}
+        )
+        if "semantic_identity" not in package:
+            from p2p_engine.core.vertical_semantic_identity import (
+                VerticalSemanticIdentity,
+            )
+
+            package["semantic_identity"] = VerticalSemanticIdentity.v1(
+                str(package.get("semantic_checksum") or "")
+            ).to_dict()
+        lineage = (
+            {
+                key: value
+                for key, value in result.get("lineage", {}).items()
+                if key != "legal_attribution_preserved"
+            }
+            if isinstance(result.get("lineage"), Mapping)
+            else {}
+        )
+        receipt = (
+            dict(result.get("receipt", {}))
+            if isinstance(result.get("receipt"), Mapping)
+            else {}
+        )
+        if "authority_context_sha256" not in receipt and authority is not None:
+            receipt["authority_context_sha256"] = authority.get(
+                "authority_context_sha256"
+            )
         return {
             "contract": result.get("contract"),
             "operation": result.get("operation"),
             "operation_id": result.get("operation_id"),
             "status": result.get("status"),
+            "coordinate": result.get("coordinate") or package.get("coordinate"),
             "source": dict(result.get("source", {}))
             if isinstance(result.get("source"), Mapping)
             else {},
-            "lineage": dict(result.get("lineage", {}))
-            if isinstance(result.get("lineage"), Mapping)
-            else {},
+            "lineage": lineage,
             "domain_metadata": dict(result.get("domain_metadata", {}))
             if isinstance(result.get("domain_metadata"), Mapping)
             else {},
             "draft": dict(result.get("draft", {}))
             if isinstance(result.get("draft"), Mapping)
             else {},
-            "package": dict(result.get("package", {}))
-            if isinstance(result.get("package"), Mapping)
-            else {},
-            "receipt": dict(result.get("receipt", {}))
-            if isinstance(result.get("receipt"), Mapping)
-            else {},
+            "package": package,
+            "receipt": receipt,
             "remote_publication": result.get("remote_publication"),
             "publisher_ownership_granted": result.get("publisher_ownership_granted"),
         }

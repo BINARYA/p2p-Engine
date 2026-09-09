@@ -8,6 +8,15 @@ tagged releases.
 
 ## Unreleased
 
+- Restored convergence for `p2p-project-structure-export-result/v1`: new export
+  markers and mutation receipts persist structured semantic identity, while
+  status and idempotent replay derive the same v1/SHA-256 identity in memory
+  for legacy 0.6.8/0.6.9 receipts without rewriting them.
+- Kept project-structure export recovery fail-closed when scalar and structured
+  semantic identities disagree, and removed the obsolete
+  `legal_attribution_preserved` projection from generic mutation-status output
+  for legacy export receipts.
+
 ## 0.6.9 - 2026-09-09
 
 - Removed the unconditional `legal_attribution_preserved` boolean from every

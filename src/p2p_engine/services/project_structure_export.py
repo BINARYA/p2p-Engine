@@ -64,6 +64,7 @@ if TYPE_CHECKING:
 
 
 PROJECT_STRUCTURE_EXPORT_POLICY_VERSION = 1
+_PROJECT_STRUCTURE_EXPORT_MUTATION_OPERATION_ID = "project-structure-export-apply"
 _LICENSE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9._+-]{0,62}[A-Za-z0-9])?$")
 _TEXT_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 _DISALLOW_DERIVATION_LICENSES = frozenset(
@@ -330,6 +331,7 @@ class ProjectStructureExportService:
                 artifact_entries=tuple(str(item) for item in package.get("entries", ())),
                 marker_path=self._marker_path(operation_key),
                 operation_key_sha256=idempotency_key_sha256(operation_key),
+                authority_context_sha256=evidence.authority_context_sha256,
             )
             marker = self._marker_bytes(
                 result_summary,
@@ -356,7 +358,7 @@ class ProjectStructureExportService:
                 source_precondition(receipt_path, None),
             )
             mutation = self.atomic_writer.apply(
-                operation_id="project-structure-export-apply",
+                operation_id=_PROJECT_STRUCTURE_EXPORT_MUTATION_OPERATION_ID,
                 candidates={marker_path: marker, receipt_path: receipt_content},
                 sources=sources,
                 preview_token=preview_token,
@@ -936,12 +938,14 @@ class ProjectStructureExportService:
         artifact_entries: tuple[str, ...],
         marker_path: str,
         operation_key_sha256: str,
+        authority_context_sha256: str,
     ) -> dict[str, object]:
         return {
             "contract": PROJECT_STRUCTURE_EXPORT_RESULT_CONTRACT,
             "status": status,
             "operation": PROJECT_STRUCTURE_EXPORT_OPERATION,
             "operation_id": PROJECT_STRUCTURE_EXPORT_OPERATION_ID,
+            "coordinate": request["coordinate"],
             "request": dict(request),
             "source": source.to_dict(),
             "lineage": dict(lineage),
@@ -954,6 +958,9 @@ class ProjectStructureExportService:
             "package": {
                 "coordinate": request["coordinate"],
                 "semantic_checksum": semantic_checksum,
+                "semantic_identity": VerticalSemanticIdentity.v1(
+                    semantic_checksum
+                ).to_dict(),
                 "artifact_checksum": artifact_checksum,
                 "size": artifact_size,
                 "entries": sorted(artifact_entries),
@@ -962,6 +969,7 @@ class ProjectStructureExportService:
                 "operation_key_sha256": operation_key_sha256,
                 "marker_path": marker_path,
                 "capability": PROJECT_STRUCTURE_EXPORT_CAPABILITY,
+                "authority_context_sha256": authority_context_sha256,
             },
             "remote_publication": False,
             "publisher_ownership_granted": False,
@@ -1035,6 +1043,12 @@ class ProjectStructureExportService:
         if not isinstance(source, Mapping) or not isinstance(draft, Mapping) or not isinstance(package, Mapping) or not isinstance(receipt, Mapping):
             raise ValueError("P2P_IDEMPOTENCY_RECEIPT_CORRUPT: export result is invalid")
         marker_path = str(receipt.get("marker_path") or "")
+        raw_semantic_identity = package.get("semantic_identity")
+        semantic_identity = (
+            VerticalSemanticIdentity.from_mapping(raw_semantic_identity)
+            if raw_semantic_identity is not None
+            else None
+        )
         stored_lineage = result.get("lineage")
         lineage = (
             {
@@ -1065,6 +1079,7 @@ class ProjectStructureExportService:
             draft_revision=int(draft.get("revision") or 0),
             draft_document_hash=str(draft.get("document_hash") or ""),
             semantic_checksum=str(package.get("semantic_checksum") or ""),
+            semantic_identity=semantic_identity,
             artifact_checksum=str(package.get("artifact_checksum") or ""),
             artifact_size=int(package.get("size") or 0),
             artifact_entries=tuple(str(item) for item in package.get("entries", ())),
@@ -1072,7 +1087,7 @@ class ProjectStructureExportService:
             operation_key_sha256=str(receipt.get("operation_key_sha256") or ""),
             mutation=MutationResult(
                 status=status,
-                operation_id=PROJECT_STRUCTURE_EXPORT_OPERATION_ID,
+                operation_id=_PROJECT_STRUCTURE_EXPORT_MUTATION_OPERATION_ID,
                 changed_paths=(marker_path,),
                 preview_token=preview_token,
                 actor=actor,

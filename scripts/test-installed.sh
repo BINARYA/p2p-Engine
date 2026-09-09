@@ -470,6 +470,69 @@ portable = run_json(
 assert portable["ok"] is True
 assert portable["operation"] == "project.vertical.export.preview"
 assert "project_structure_export_preview" in portable["data"]
+export_preview = portable["data"]["project_structure_export_preview"]
+export_operation_key = "installed-project-structure-export-v1"
+export_args = (
+    "project",
+    "vertical",
+    "export",
+    "apply",
+    "--target",
+    str(project.parent / "installed-export"),
+    "--output",
+    str(project.parent / "installed-export.p2pv"),
+    "--publisher",
+    "example",
+    "--id",
+    "installed-smoke",
+    "--version",
+    "1.0.0",
+    "--name",
+    "Installed smoke",
+    "--license",
+    "MIT",
+    "--primary-domain-key",
+    "software",
+    "--primary-domain-name",
+    "Software",
+    "--lineage-mode",
+    "independent",
+    "--expected-structure-revision",
+    str(export_preview["source"]["revision"]),
+    "--expected-structure-checksum",
+    export_preview["source"]["checksum"],
+    "--token",
+    export_preview["preview"]["preview_token"],
+    "--idempotency-key",
+    export_operation_key,
+    "--confirm",
+    "--format",
+    "json",
+    "--root",
+    str(project),
+)
+export_apply = run_json(*export_args)
+export_result = export_apply["data"]["project_structure_export"]
+export_status = run_json(
+    "mutation",
+    "status",
+    "--operation-key",
+    export_operation_key,
+    "--format",
+    "json",
+    "--root",
+    str(project),
+)["data"]["result"]
+export_replay = run_json(*export_args)["data"]["project_structure_export"]
+expected_semantic_identity = export_result["package"]["semantic_identity"]
+assert export_status["package"]["semantic_identity"] == expected_semantic_identity
+assert export_replay["package"]["semantic_identity"] == expected_semantic_identity
+assert expected_semantic_identity["digest"] == export_result["package"][
+    "semantic_checksum"
+]
+assert "legal_attribution_preserved" not in json.dumps(export_result)
+assert "legal_attribution_preserved" not in json.dumps(export_status)
+assert "legal_attribution_preserved" not in json.dumps(export_replay)
 PY
 
 "$venv_root/bin/python" - "$smoke_root" <<'PY'

@@ -20,8 +20,10 @@ from p2p_engine.core.mutation_receipts import MUTATION_RECEIPT_ROOT
 from p2p_engine.core.project_structure_export import (
     PROJECT_STRUCTURE_EXPORT_CAPABILITY,
     PROJECT_STRUCTURE_EXPORT_OPERATION,
+    PROJECT_STRUCTURE_EXPORT_OPERATION_ID,
     PROJECT_STRUCTURE_EXPORT_RESULT_CONTRACT,
 )
+from p2p_engine.core.vertical_semantic_identity import VerticalSemanticIdentity
 from p2p_engine.mcp.registry import TOOL_NAMES
 from p2p_engine.mcp.tools import call_tool
 from p2p_engine.services.mutation_receipts import idempotency_key_sha256
@@ -117,6 +119,55 @@ def _assert_preview_omits_legal_attribution(preview) -> None:
     assert "legal_attribution_preserved" not in preview.lineage
     assert "legal_attribution_preserved" not in preview.draft_document["lineage"]
     assert "legal_attribution_preserved" not in preview.preview.semantic_diff["lineage"]
+
+
+def _receipt_path(workspace: P2PWorkspace, operation_key: str) -> Path:
+    return (
+        workspace.root
+        / MUTATION_RECEIPT_ROOT
+        / f"{idempotency_key_sha256(operation_key)}.yml"
+    )
+
+
+def _assert_export_result_projection(
+    payload: dict[str, object],
+    *,
+    semantic_checksum: str,
+) -> None:
+    assert payload["contract"] == PROJECT_STRUCTURE_EXPORT_RESULT_CONTRACT
+    assert payload["operation"] == PROJECT_STRUCTURE_EXPORT_OPERATION
+    assert payload["operation_id"] == PROJECT_STRUCTURE_EXPORT_OPERATION_ID
+    for field in (
+        "status",
+        "source",
+        "lineage",
+        "domain_metadata",
+        "draft",
+        "package",
+        "receipt",
+        "remote_publication",
+        "publisher_ownership_granted",
+    ):
+        assert field in payload
+    package = payload["package"]
+    assert isinstance(package, dict)
+    assert set(package) == {
+        "coordinate",
+        "semantic_checksum",
+        "semantic_identity",
+        "artifact_checksum",
+        "size",
+        "entries",
+    }
+    assert package["semantic_checksum"] == semantic_checksum
+    assert package["semantic_identity"] == VerticalSemanticIdentity.v1(
+        semantic_checksum
+    ).to_dict()
+    assert payload["coordinate"] == package["coordinate"]
+    receipt = payload["receipt"]
+    assert isinstance(receipt, dict)
+    assert receipt["authority_context_sha256"]
+    assert "legal_attribution_preserved" not in payload["lineage"]
 
 
 def _external_context(capability: str = PROJECT_STRUCTURE_EXPORT_CAPABILITY) -> AuthorityContext:
@@ -321,11 +372,7 @@ def test_export_replay_is_idempotent_and_does_not_duplicate_drafts(
 
     operation_key = "export-replay-key"
     first = _apply(workspace, preview, tmp_path, operation_key=operation_key)
-    receipt_path = (
-        workspace.root
-        / MUTATION_RECEIPT_ROOT
-        / f"{idempotency_key_sha256(operation_key)}.yml"
-    )
+    receipt_path = _receipt_path(workspace, operation_key)
     receipt_payload = yaml.safe_load(receipt_path.read_text(encoding="utf-8"))
     receipt_payload["mutation_receipt"]["result"]["lineage"][
         "legal_attribution_preserved"
@@ -345,6 +392,124 @@ def test_export_replay_is_idempotent_and_does_not_duplicate_drafts(
     assert "legal_attribution_preserved" not in second.to_dict()["lineage"]
     drafts = list((tmp_path / "p2p-home" / "vertical-drafts").iterdir())
     assert [path.name for path in drafts] == [first.draft_id]
+
+
+@pytest.mark.service
+def test_export_result_contract_converges_across_apply_durable_status_and_replay(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = _workspace(tmp_path, monkeypatch)
+    preview = _preview(workspace)
+    operation_key = "export-convergence-key"
+
+    applied = _apply(workspace, preview, tmp_path, operation_key=operation_key)
+    applied_payload = applied.to_dict()
+    marker_payload = yaml.safe_load(
+        (workspace.root / applied.marker_path).read_text(encoding="utf-8")
+    )["project_structure_export"]["result"]
+    receipt_payload = yaml.safe_load(
+        _receipt_path(workspace, operation_key).read_text(encoding="utf-8")
+    )["mutation_receipt"]["result"]
+    status_payload = workspace.mutation_status(
+        idempotency_key=operation_key
+    ).to_dict()
+    replay_payload = _apply(
+        workspace,
+        preview,
+        tmp_path,
+        operation_key=operation_key,
+    ).to_dict()
+
+    for payload in (
+        applied_payload,
+        marker_payload,
+        receipt_payload,
+        status_payload["result"],
+        replay_payload,
+    ):
+        _assert_export_result_projection(
+            payload,
+            semantic_checksum=applied.semantic_checksum,
+        )
+    assert status_payload["authority"] == applied_payload["authority"]
+    assert (
+        replay_payload["mutation"]["operation_id"]
+        == applied_payload["mutation"]["operation_id"]
+    )
+    assert marker_payload == receipt_payload
+    assert "request" in marker_payload
+    assert "changed_paths" in marker_payload
+    assert "request" not in status_payload["result"]
+    assert "changed_paths" not in status_payload["result"]
+    assert "local_paths" not in applied_payload
+    assert "local_paths" not in replay_payload
+
+
+@pytest.mark.service
+def test_legacy_export_receipt_derives_identity_without_rewriting_history(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = _workspace(tmp_path, monkeypatch)
+    preview = _preview(workspace)
+    operation_key = "legacy-export-receipt-key"
+    applied = _apply(workspace, preview, tmp_path, operation_key=operation_key)
+    receipt_path = _receipt_path(workspace, operation_key)
+    receipt_payload = yaml.safe_load(receipt_path.read_text(encoding="utf-8"))
+    stored_result = receipt_payload["mutation_receipt"]["result"]
+    stored_result["package"].pop("semantic_identity")
+    stored_result.pop("coordinate")
+    stored_result["receipt"].pop("authority_context_sha256")
+    stored_result["lineage"]["legal_attribution_preserved"] = True
+    receipt_path.write_text(
+        yaml.safe_dump(receipt_payload, sort_keys=True),
+        encoding="utf-8",
+    )
+    legacy_bytes = receipt_path.read_bytes()
+
+    status = workspace.mutation_status(idempotency_key=operation_key).to_dict()
+    replay = _apply(
+        workspace,
+        preview,
+        tmp_path,
+        operation_key=operation_key,
+    ).to_dict()
+
+    expected_identity = VerticalSemanticIdentity.v1(
+        applied.semantic_checksum
+    ).to_dict()
+    assert status["result"]["package"]["semantic_identity"] == expected_identity
+    assert replay["package"]["semantic_identity"] == expected_identity
+    assert "legal_attribution_preserved" not in status["result"]["lineage"]
+    assert "legal_attribution_preserved" not in replay["lineage"]
+    assert receipt_path.read_bytes() == legacy_bytes
+
+
+@pytest.mark.service
+def test_export_receipt_rejects_conflicting_structured_semantic_identity(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = _workspace(tmp_path, monkeypatch)
+    preview = _preview(workspace)
+    operation_key = "conflicting-export-identity-key"
+    _apply(workspace, preview, tmp_path, operation_key=operation_key)
+    receipt_path = _receipt_path(workspace, operation_key)
+    receipt_payload = yaml.safe_load(receipt_path.read_text(encoding="utf-8"))
+    receipt_payload["mutation_receipt"]["result"]["package"][
+        "semantic_identity"
+    ]["digest"] = "f" * 64
+    receipt_path.write_text(
+        yaml.safe_dump(receipt_payload, sort_keys=True),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="P2P_IDEMPOTENCY_RECEIPT_CORRUPT:.*semantic identity conflicts",
+    ):
+        workspace.mutation_status(idempotency_key=operation_key)
 
 
 @pytest.mark.service
@@ -540,5 +705,24 @@ def test_cli_export_preview_and_apply_use_versioned_contract(
     ]
     assert payload["operation"] == PROJECT_STRUCTURE_EXPORT_OPERATION
     assert payload["package"]["coordinate"] == "acme/cli_export@1.0.0"
+    expected_identity = payload["package"]["semantic_identity"]
     assert "legal_attribution_preserved" not in payload["lineage"]
     assert "local_paths" not in payload
+
+    status_result = runner.invoke(
+        app,
+        [
+            "mutation",
+            "status",
+            "--operation-key",
+            "cli-export-key",
+            "--root",
+            str(workspace.root),
+            "--format",
+            "json",
+        ],
+    )
+    assert status_result.exit_code == 0, status_result.stdout
+    status_payload = cli_data(status_result, operation="mutation.status")
+    assert status_payload["result"]["package"]["semantic_identity"] == expected_identity
+    assert "legal_attribution_preserved" not in status_payload["result"]["lineage"]
