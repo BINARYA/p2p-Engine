@@ -26,7 +26,7 @@ Implemented:
 
 ## Near Term
 
-- Qualify the corrected portable lineage contract against the verified 0.6.9
+- Qualify the corrected export recovery contract against the verified 0.6.10
   release artifact and downstream WaveKit integration.
 - Continue hardening validation and recovery paths.
 

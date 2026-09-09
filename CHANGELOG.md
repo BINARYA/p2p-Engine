@@ -8,6 +8,8 @@ tagged releases.
 
 ## Unreleased
 
+## 0.6.10 - 2026-09-09
+
 - Restored convergence for `p2p-project-structure-export-result/v1`: new export
   markers and mutation receipts persist structured semantic identity, while
   status and idempotent replay derive the same v1/SHA-256 identity in memory
