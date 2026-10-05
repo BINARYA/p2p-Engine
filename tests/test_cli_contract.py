@@ -30,6 +30,7 @@ EXPECTED_JSON_OPERATIONS = frozenset(
 auth.login
 auth.logout
 auth.status
+choice.create
 choice.governance-preflight
 choice.decide
 choice.list
@@ -178,6 +179,8 @@ project.readiness.apply
 project.readiness.gap
 project.readiness.gaps
 project.readiness.preview
+project.readiness.status
+project.readiness.next
 project.readiness.questions.answer
 project.readiness.questions.defer
 project.readiness.questions.mute
@@ -217,6 +220,14 @@ proposal.contributions
 proposal.create
 proposal.defer
 proposal.list
+proposal.questions.status
+proposal.questions.list
+proposal.questions.next
+proposal.questions.answer
+proposal.questions.defer
+proposal.questions.mute
+proposal.questions.reopen
+proposal.questions.apply
 proposal.readiness.assess
 proposal.reject
 proposal.scope.set
@@ -306,7 +317,7 @@ def test_cli_json_operation_inventory_is_reviewed_and_guarded() -> None:
     inventory = json_command_inventory(get_command(app))
 
     assert frozenset(inventory) == EXPECTED_JSON_OPERATIONS
-    assert len(inventory) == 233
+    assert len(inventory) == 244
     assert inventory["status"] == "text"
     assert inventory["vertical.inspect"] == "json"
     assert inventory["workspace.schema.status"] == "text"

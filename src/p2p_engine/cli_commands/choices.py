@@ -6,6 +6,7 @@ from pathlib import Path
 import typer
 
 from p2p_engine.cli_commands.formatting import emit_structured
+from p2p_engine.cli_contract import contract_failure, print_json
 from p2p_engine.cli_shared import console, fail
 from p2p_engine.cli_shared import workspace as workspace_for
 from p2p_engine.services.authority import AuthorityContractCodec
@@ -25,10 +26,33 @@ def register_choice_commands(choice_app: typer.Typer) -> None:
         option: list[str] = typer.Option(..., "--option", help="Choice option. Can be repeated."),
         related: list[str] | None = typer.Option(None, "--related", help="Related proposal ID. Can be repeated."),
         source: str | None = typer.Option(None, "--source", help="Source artifact, e.g. INTAKE-001"),
+        operation_key: str = typer.Option("", "--operation-key", help="Durable creation key for JSON mode"),
+        actor: str = typer.Option("owner", "--actor", help="Owner subject authorizing creation"),
+        executor: str = typer.Option("", "--executor", help="Executor identity (defaults to actor)"),
+        executor_kind: str = typer.Option("person", "--executor-kind"),
+        authority_context: Path | None = typer.Option(None, "--authority-context"),
+        output_format: str = typer.Option("text", "--format", help="Output format: text or json"),
         root: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
     ) -> None:
         """Create a project choice with multiple options."""
+        normalized_format = output_format.strip().lower()
+        if normalized_format not in {"text", "json"}:
+            raise typer.BadParameter("Output format must be text or json.")
+        json_output = normalized_format == "json"
+        if json_output and not operation_key.strip():
+            contract_failure("P2P_IDEMPOTENCY_KEY_REQUIRED: JSON Choice creation requires --operation-key")
+        if not json_output and (operation_key or authority_context or executor):
+            fail("P2P_CHOICE_CREATE_REQUIRES_JSON: operation key and typed authority require --format json")
         try:
+            if json_output:
+                supplied_context = AuthorityContractCodec().context_from_path(authority_context) if authority_context else None
+                print_json(workspace_for(root).create_choice_with_operation_key(
+                    title=title, options=option, related=related, source=source,
+                    problem=problem, context=context, governance_boundary=governance_boundary,
+                    operation_key=operation_key, actor_id=actor, executor_id=executor or actor,
+                    executor_kind=executor_kind, authority_context=supplied_context, channel="cli",
+                ))
+                return
             choice = workspace_for(root).create_choice(
                 title=title,
                 options=option,
@@ -39,6 +63,8 @@ def register_choice_commands(choice_app: typer.Typer) -> None:
                 governance_boundary=governance_boundary,
             )
         except ValueError as exc:
+            if json_output:
+                contract_failure(str(exc))
             fail(str(exc))
         console.print("[green]Choice created.[/green]")
         console.print(f"  id: {choice.choice_id}")

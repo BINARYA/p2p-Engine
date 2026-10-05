@@ -16,7 +16,7 @@ def test_source_package_and_mcp_versions_are_consistent(tmp_path: Path) -> None:
 
     assert package["project"]["version"] == __version__
     assert server.__version__ == __version__
-    assert __version__ == "0.6.10"
+    assert __version__ == "0.6.11"
     assert runtime.default_contract_payload()["runtime"]["p2p"] == {
         "requires": f"=={__version__}",
         "recommended": __version__,
@@ -43,10 +43,17 @@ def test_current_release_documentation_matches_publication_state() -> None:
     )
     heading = release_heading.search(changelog)
     assert heading is not None
-    assert heading.group("state") == "2026-09-09"
-    assert release_url in readme
-    assert release_url in install
-    assert release_url in release_note
-    assert "Install the exact release wheel" in release_note
+    assert heading.group("state") == "2026-10-05"
+    assert release_url not in readme
+    assert release_url not in install
+    assert release_url not in release_note
+    assert "not published" in readme
+    assert "not published" in install
+    for text in (readme, install, changelog, release_note):
+        assert "prepared for publication" in " ".join(text.split())
+    assert f"`v{__version__}`" in release_note
+    assert "local candidate" in release_note
+    assert "published 0.6.10" in release_note
+    assert "Install the local candidate only" in release_note
     assert f"P2P Engine {__version__} exposes" in cli_contract
     assert f"P2P Engine {__version__} supports workspace schema 4 only" in workspace_contract

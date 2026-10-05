@@ -70,10 +70,25 @@ def transition_target(kind: ChoiceTransitionKind | str) -> ChoiceState:
 def require_transition_allowed(state: ChoiceState | str, kind: ChoiceTransitionKind | str) -> None:
     current = normalize_choice_state(state)
     selected = ChoiceTransitionKind(str(kind))
+    if current == ChoiceState.decided and selected == ChoiceTransitionKind.supersede:
+        return
     if current != ChoiceState.open:
         raise ValueError(
             "P2P_CHOICE_TERMINAL: terminal Choices cannot be reopened, "
             f"re-decided or rewritten (state={current.value}, transition={selected.value})"
+        )
+
+
+def require_supersession_replacement_state(
+    source_state: ChoiceState | str, replacement_state: ChoiceState | str
+) -> None:
+    source = normalize_choice_state(source_state)
+    replacement = normalize_choice_state(replacement_state)
+    require_transition_allowed(source, ChoiceTransitionKind.supersede)
+    if replacement != source:
+        raise ValueError(
+            "P2P_CHOICE_REPLACEMENT_INVALID: replacement must be "
+            f"{source.value} for a {source.value} source Choice"
         )
 
 

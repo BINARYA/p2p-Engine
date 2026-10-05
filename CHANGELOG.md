@@ -8,6 +8,21 @@ tagged releases.
 
 ## Unreleased
 
+## 0.6.11 - 2026-10-05
+
+Release metadata and notes prepared for publication with intended tag `v0.6.11`.
+Preparation does not publish, tag, attest or deploy artifacts; publication
+remains a separate owner-controlled action.
+
+- Added bounded JSON Choice creation with exact `choice.create` authority,
+  atomic canonical/worker receipts and immutable operation-key replay.
+- Allowed decided Choice supersession only by a decided replacement, preserving
+  terminal lineage, no-decision projection and canonical feed replay.
+- Added bounded versioned project/proposal question reads and exact-capability,
+  revision-checked keyed mutations, convergence/reconciliation and recovery.
+- Proposal question apply reports `plan_registered` without changing proposal.md.
+  Hosted MCP parity for the new typed question/create surfaces is deferred to MS3.
+
 ## 0.6.10 - 2026-09-09
 
 - Restored convergence for `p2p-project-structure-export-result/v1`: new export

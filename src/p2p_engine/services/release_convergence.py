@@ -9,15 +9,16 @@ from typing import Iterable
 
 from p2p_engine import __version__
 from p2p_engine.core.governed_capabilities import GOVERNED_CAPABILITIES
+from p2p_engine.core.question_contracts import QUESTION_OPERATIONS
 from p2p_engine.core.release_contracts import current_contract_versions
 from p2p_engine.core.vertical_registry import VERTICAL_REGISTRY_PROTOCOL_VERSION
 from p2p_engine.services.agent_templates import agent_policy
 from p2p_engine.services.public_surface_inventory import public_surface_snapshot
 
-CONVERGENCE_GATE_CONTRACT = "p2p-0.6.10-convergence-gate/v1"
+CONVERGENCE_GATE_CONTRACT = "p2p-0.6.11-convergence-gate/v1"
 WAVEKIT_CLI_FIXTURE_BUNDLE_CONTRACT = "p2p-wavekit-cli-fixtures/v1"
 WAVEKIT_CLI_FIXTURE_RESOURCE = "wavekit-cli-fixtures-v1.json"
-RELEASE_LINE = "0.6.10"
+RELEASE_LINE = "0.6.11"
 SUPPORTED_RELEASE_PYTHONS = ("3.12",)
 CHOICE_LIST_JSON_COMMAND = "p2p choice list --format json"
 CHOICE_SHOW_JSON_COMMAND = "p2p choice show CHOICE-XXX --format json"
@@ -58,6 +59,26 @@ class ConvergenceIssue:
 
 def operation_traceability_inventory() -> tuple[OperationTrace, ...]:
     return (
+        OperationTrace(
+            requirement_group="MS2 Choice creation",
+            operation="choice.create",
+            cli_paths=("p2p choice create",), mcp_tools=(), capability="choice.create",
+            authority_context="local_owner_or_external_root_authority",
+            receipt_evidence="schema-3 immutable creation outcome and atomic worker receipt/batch",
+            mcp_parity="hosted_typed_deferred_ms3",
+            hosted_boundary="WaveKit independently authorizes and qualifies exact Choice creation CLI bytes.",
+            fixture_group="ms2_choice_create", tests=("tests/test_choice_creation.py",),
+        ),
+        *(OperationTrace(
+            requirement_group="MS2 bounded questions", operation=command,
+            cli_paths=("p2p " + command.replace(".", " "),), mcp_tools=(),
+            capability=f"{scope}.question.{leaf}",
+            authority_context="local_owner_or_external_root_or_exact_capability_grant",
+            receipt_evidence="schema-3 immutable question outcome and atomic worker receipt/batch",
+            mcp_parity="hosted_typed_deferred_ms3",
+            hosted_boundary="WaveKit owns grants and hosted access; proposal apply only registers a plan.",
+            fixture_group="ms2_questions", tests=("tests/test_question_contracts.py",),
+        ) for scope, leaf, command in QUESTION_OPERATIONS.values()),
         OperationTrace(
             requirement_group="P1 authority",
             operation="project.initialize",
@@ -712,6 +733,36 @@ def wavekit_cli_fixture_bundle() -> dict[str, object]:
     )["wavekit_cli_worker_contract"]
     assert isinstance(worker, dict)
     command_groups = [
+        {
+            "group": "ms2_question_reads", "mutates_project": False,
+            "commands": [
+                "p2p project readiness questions status --limit 20 --format json",
+                "p2p project readiness questions next --format json",
+                "p2p project readiness status --limit 20 --format json",
+                "p2p project readiness next --format json",
+                "p2p proposal questions status PROP-XXX --limit 20 --offset 0 --format json",
+                "p2p proposal questions list PROP-XXX --limit 20 --offset 0 --format json",
+                "p2p proposal questions next PROP-XXX --format json",
+            ],
+        },
+        {
+            "group": "ms2_choice_create", "mutates_project": True,
+            "commands": ["p2p choice create --title TITLE --problem PROBLEM --context CONTEXT --governance-boundary BOUNDARY --option OPTION-A --option OPTION-B --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json"],
+        },
+        {
+            "group": "ms2_questions", "mutates_project": True,
+            "commands": [
+                "p2p project readiness questions answer PRQ-ID --expected-revision REV --input ANSWER.json --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+                *[f"p2p project readiness questions {leaf} PRQ-ID --expected-revision REV --reason REASON --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json" for leaf in ("defer", "mute", "reopen")],
+                "p2p project readiness preview --question PRQ-ID --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+                "p2p project readiness apply --question PRQ-ID --preview-token TOKEN --confirm --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+                "p2p project readiness questions reconcile-preview --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+                "p2p project readiness questions reconcile-apply --preview-token TOKEN --confirm --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+                "p2p proposal questions answer PROP-XXX Q001 ANSWER --expected-revision REV --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+                *[f"p2p proposal questions {leaf} PROP-XXX Q001 --expected-revision REV --reason REASON --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json" for leaf in ("defer", "mute", "reopen")],
+                "p2p proposal questions apply PROP-XXX --question Q001 --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+            ],
+        },
         {
             "group": "preflight",
             "mutates_project": False,

@@ -6,12 +6,10 @@ from pathlib import Path
 from typing import Callable, Mapping, Sequence
 
 import yaml
-from p2p_engine.foundation.yaml_loaders import load_yaml
 
 from p2p_engine.core.mutation_preview import (
     MutationPreviewService,
     MutationResult,
-    semantic_sha256,
     source_precondition,
 )
 from p2p_engine.core.project_questions import (
@@ -52,12 +50,21 @@ from p2p_engine.core.project_verticals import (
     VerticalSection,
 )
 from p2p_engine.foundation.files import read_yaml_mapping, yaml_dump
+from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.services.permissions import PermissionsService
 from p2p_engine.services.project_readiness import ProjectReadinessPaginationService
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter, utc_now_iso
 
-
 PROJECT_QUESTIONS_PATH = Path(".p2p/project/questions.yml")
+
+
+@dataclass(frozen=True)
+class ProjectQuestionUpdatePlan:
+    artifact: ProjectQuestionArtifact
+    source_content: bytes
+    updated: ProjectQuestion
+    operation_id: str
+    actor: str
 
 _ROOT_KEYS = frozenset({"project_questions"})
 _ARTIFACT_KEYS = frozenset(
@@ -457,6 +464,20 @@ class ProjectQuestionStateService:
     ) -> ProjectQuestionOperationResult:
         operation_id = "project_questions_answer"
         permission_actor = self.permissions.require_role(actor, "owner", operation=operation_id)
+        plan = self.answer_candidate(
+            question_id, values=values, actor=permission_actor.actor_id,
+            executor=permission_actor.actor_id, expected_revision=expected_revision,
+            replace_answer=replace_answer, evidence_refs=evidence_refs,
+        )
+        return self._commit_question_update(**vars(plan))
+
+    def answer_candidate(
+        self, question_id: str, *, values: Mapping[str, object], actor: str,
+        executor: str, expected_revision: int, replace_answer: bool = False,
+        evidence_refs: Sequence[str] = (),
+    ) -> ProjectQuestionUpdatePlan:
+        """Render a pure candidate after the application boundary authorizes the owner."""
+        operation_id = "project_questions_answer"
         content = self.path.read_bytes()
         artifact = self.parse_bytes(content, target=str(self.path))
         question = self._find_question(artifact, question_id)
@@ -472,8 +493,8 @@ class ProjectQuestionStateService:
             revision=len(question.answers) + 1,
             values=normalized_values,
             evidence_refs=tuple(sorted({str(item).strip() for item in evidence_refs if str(item).strip()})),
-            provided_by=permission_actor.actor_id,
-            recorded_by=permission_actor.actor_id,
+            provided_by=actor,
+            recorded_by=executor,
             answered_at=timestamp,
         )
         updated = replace(
@@ -487,22 +508,22 @@ class ProjectQuestionStateService:
                     question,
                     operation="replace_answer" if replace_answer else "answer",
                     to_state=ProjectQuestionState.ANSWERED,
-                    actor=permission_actor.actor_id,
-                    role=permission_actor.role,
+                    actor=actor,
+                    role="owner",
                     reason="Owner answer recorded." if not replace_answer else "Owner answer replaced explicitly.",
                     at=timestamp,
                     provenance={"answer_revision": answer.revision},
                 ),
             ),
             updated_at=timestamp,
-            updated_by=permission_actor.actor_id,
+            updated_by=executor,
         )
-        return self._commit_question_update(
+        return ProjectQuestionUpdatePlan(
             artifact=artifact,
             source_content=content,
             updated=updated,
             operation_id=operation_id,
-            actor=permission_actor.actor_id,
+            actor=executor,
         )
 
     def defer(
@@ -695,6 +716,25 @@ class ProjectQuestionStateService:
     ) -> ProjectQuestionOperationResult:
         operation_id = f"project_questions_{operation}"
         permission_actor = self.permissions.require_role(actor, "owner", operation=operation_id)
+        plan = self.lifecycle_candidate(
+            question_id, actor=permission_actor.actor_id, executor=permission_actor.actor_id,
+            expected_revision=expected_revision, reason=reason, operation=operation,
+        )
+        return self._commit_question_update(**vars(plan))
+
+    def lifecycle_candidate(
+        self, question_id: str, *, actor: str, executor: str,
+        expected_revision: int, reason: str, operation: str,
+    ) -> ProjectQuestionUpdatePlan:
+        transitions = {
+            "defer": (ProjectQuestionState.DEFERRED, {ProjectQuestionState.TO_ANSWER, ProjectQuestionState.ANSWERED}),
+            "mute": (ProjectQuestionState.MUTED, {ProjectQuestionState.TO_ANSWER, ProjectQuestionState.ANSWERED}),
+            "reopen": (ProjectQuestionState.TO_ANSWER, {ProjectQuestionState.DEFERRED, ProjectQuestionState.MUTED}),
+        }
+        if operation not in transitions:
+            raise ValueError("P2P_QUESTION_OPERATION_INVALID: unsupported question transition")
+        to_state, allowed_from = transitions[operation]
+        operation_id = f"project_questions_{operation}"
         normalized_reason = reason.strip()
         if not normalized_reason:
             raise ValueError(
@@ -717,22 +757,30 @@ class ProjectQuestionStateService:
                     question,
                     operation=operation,
                     to_state=to_state,
-                    actor=permission_actor.actor_id,
-                    role=permission_actor.role,
+                    actor=actor,
+                    role="owner",
                     reason=normalized_reason,
                     at=timestamp,
                 ),
             ),
             updated_at=timestamp,
-            updated_by=permission_actor.actor_id,
+            updated_by=executor,
         )
-        return self._commit_question_update(
+        return ProjectQuestionUpdatePlan(
             artifact=artifact,
             source_content=content,
             updated=updated,
             operation_id=operation_id,
-            actor=permission_actor.actor_id,
+            actor=executor,
         )
+
+    def render_update_candidate(self, plan: ProjectQuestionUpdatePlan) -> bytes:
+        candidate = replace(
+            plan.artifact,
+            questions=tuple(plan.updated if item.question_id == plan.updated.question_id else item for item in plan.artifact.questions),
+            updated_at=plan.updated.updated_at, updated_by=plan.actor,
+        )
+        return self.candidate_bytes(candidate)
 
     def _commit_question_update(
         self,

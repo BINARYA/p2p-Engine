@@ -330,7 +330,9 @@ decisions.
 
 ```text
 Status: Alpha / MVP+
-Source version: 0.6.10
+Source version: 0.6.11 (prepared for publication; not published)
+Intended release tag: v0.6.11 (created only after the release workflow gates)
+Published install version: 0.6.10
 Install: uv-managed user tool from the exact GitHub Release wheel
 CLI: usable
 MCP: local stdio MVP
@@ -339,6 +341,11 @@ Python wheel and sdist: reproducible release automation implemented
 Standalone compiled binary: not available
 Future package target: public package registry, e.g. PyPI
 ```
+
+Release notes and package metadata for `0.6.11` are finalized in
+[the release notes](docs/releases/0.6.11.md). This preparation does not create a
+commit/tag, run the publication workflow or supply a new download asset.
+Published installation examples remain pinned to `0.6.10` until publication.
 
 Current implementation includes proposal lifecycle, decisions, choices,
 Change Sets, Work metadata, registries, validation, compact context, rubrics,

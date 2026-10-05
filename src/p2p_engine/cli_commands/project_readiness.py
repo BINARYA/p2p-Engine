@@ -9,11 +9,16 @@ from typing import Mapping
 import typer
 import yaml
 
-from p2p_engine.cli_contract import print_json
+from p2p_engine.cli_commands.question_contracts import (
+    emit_question_mutation,
+    emit_question_preview,
+    keyed_question_mode,
+    question_error_message,
+)
+from p2p_engine.cli_contract import contract_failure, print_json
 from p2p_engine.cli_shared import console, fail
 from p2p_engine.cli_shared import workspace as workspace_for
-from p2p_engine.foundation.yaml_loaders import load_yaml
-
+from p2p_engine.foundation.yaml_loaders import UNIQUE_LOADER_CONTRACT, load_yaml
 
 PROJECT_QUESTION_ANSWER_MAX_BYTES = 64 * 1024
 
@@ -158,6 +163,7 @@ def register_project_readiness_commands(
         console.print(f"  rationale: {gap.rationale}")
         console.print(f"  next: {gap.next_operation}")
 
+    @readiness_app.command("status")
     @questions_app.command("status")
     def question_status(
         state: str = typer.Option("", "--state"),
@@ -167,6 +173,15 @@ def register_project_readiness_commands(
         root: Path = typer.Option(Path.cwd(), "--root"),
     ) -> None:
         """List project questions without changing lifecycle state."""
+        if output_format == "json":
+            try:
+                payload = workspace_for(root).question_contract_service().page(scope="project", state=state, limit=limit, cursor=cursor)
+                page = payload["question_page"]
+                payload["project_questions"] = {"mutation_performed": False, "items": page["items"], **page["page"]}
+                print_json(payload)
+            except ValueError as exc:
+                _fail_operation(exc, output_format, "project_questions_status")
+            return
         try:
             page = workspace_for(root).project_questions_page(
                 state=state,
@@ -187,12 +202,21 @@ def register_project_readiness_commands(
         if page.next_cursor:
             console.print(f"next_cursor: {page.next_cursor}")
 
+    @readiness_app.command("next")
     @questions_app.command("next")
     def question_next(
         output_format: str = typer.Option("text", "--format", help="text or json"),
         root: Path = typer.Option(Path.cwd(), "--root"),
     ) -> None:
         """Show the next applicable unanswered project question."""
+        if output_format == "json":
+            try:
+                payload = workspace_for(root).question_contract_service().next(scope="project")
+                payload["project_question"] = {"mutation_performed": False, "question": payload["question_next"]["question"]}
+                print_json(payload)
+            except ValueError as exc:
+                _fail_operation(exc, output_format, "project_questions_next")
+            return
         try:
             question = workspace_for(root).next_project_question()
         except ValueError as exc:
@@ -222,6 +246,10 @@ def register_project_readiness_commands(
         actor: str = typer.Option(..., "--actor"),
         expected_revision: int = typer.Option(..., "--expected-revision", min=1),
         replace_answer: bool = typer.Option(False, "--replace"),
+        operation_key: str = typer.Option("", "--operation-key"),
+        executor: str = typer.Option("", "--executor"),
+        executor_kind: str = typer.Option("person", "--executor-kind"),
+        authority_context: Path | None = typer.Option(None, "--authority-context"),
         output_format: str = typer.Option("text", "--format", help="text or json"),
         root: Path = typer.Option(Path.cwd(), "--root"),
     ) -> None:
@@ -229,15 +257,25 @@ def register_project_readiness_commands(
         if (value is None) == (input_path is None):
             fail("Provide exactly one of --value or --input.")
         try:
+            keyed = keyed_question_mode(output_format=output_format, operation_key=operation_key,
+                authority_context=authority_context, executor=executor, root=root, executor_kind=executor_kind)
             if input_path is not None:
                 values, evidence_refs = _load_answer_file(
                     root,
                     input_path,
                     question_id=question_id,
                     expected_revision=expected_revision,
+                    allow_external=keyed and authority_context is not None,
+                    strict=keyed,
                 )
             else:
                 values, evidence_refs = {"value": value}, ()
+            if keyed:
+                emit_question_mutation(root=root, scope="project", leaf="answer", actor=actor,
+                    operation_key=operation_key, executor=executor, executor_kind=executor_kind,
+                    authority_context=authority_context, question_id=question_id, values=values,
+                    evidence_refs=evidence_refs, expected_revision=expected_revision, replace_answer=replace_answer)
+                return
             result = workspace_for(root).answer_project_question(
                 question_id,
                 values=values,
@@ -247,6 +285,11 @@ def register_project_readiness_commands(
                 evidence_refs=evidence_refs,
             )
         except ValueError as exc:
+            if operation_key or authority_context or executor:
+                message = question_error_message(exc)
+                if not message.startswith("P2P_"):
+                    message = f"P2P_QUESTION_INPUT_INVALID: {message}"
+                contract_failure(message)
             _fail_operation(exc, output_format, "project_questions_answer")
         _emit_mutation("project_question", result, output_format)
 
@@ -256,9 +299,17 @@ def register_project_readiness_commands(
     @questions_app.command("reconcile-preview")
     def reconcile_preview(
         actor: str = typer.Option(..., "--actor"),
+        operation_key: str = typer.Option("", "--operation-key"),
+        executor: str = typer.Option("", "--executor"),
+        executor_kind: str = typer.Option("person", "--executor-kind"),
+        authority_context: Path | None = typer.Option(None, "--authority-context"),
         output_format: str = typer.Option("text", "--format", help="text or json"),
         root: Path = typer.Option(Path.cwd(), "--root"),
     ) -> None:
+        if keyed_question_mode(output_format=output_format, operation_key=operation_key, authority_context=authority_context, executor=executor, root=root, executor_kind=executor_kind):
+            emit_question_preview(root=root, leaf="reconcile", actor=actor, operation_key=operation_key,
+                executor=executor, executor_kind=executor_kind, authority_context=authority_context)
+            return
         try:
             result = workspace_for(root).preview_project_question_reconciliation(actor=actor)
         except ValueError as exc:
@@ -270,9 +321,18 @@ def register_project_readiness_commands(
         preview_token: str = typer.Option(..., "--preview-token"),
         actor: str = typer.Option(..., "--actor"),
         confirm: bool = typer.Option(False, "--confirm"),
+        operation_key: str = typer.Option("", "--operation-key"),
+        executor: str = typer.Option("", "--executor"),
+        executor_kind: str = typer.Option("person", "--executor-kind"),
+        authority_context: Path | None = typer.Option(None, "--authority-context"),
         output_format: str = typer.Option("text", "--format", help="text or json"),
         root: Path = typer.Option(Path.cwd(), "--root"),
     ) -> None:
+        if keyed_question_mode(output_format=output_format, operation_key=operation_key, authority_context=authority_context, executor=executor, root=root, executor_kind=executor_kind):
+            emit_question_mutation(root=root, scope="project", leaf="reconcile", actor=actor, operation_key=operation_key,
+                executor=executor, executor_kind=executor_kind, authority_context=authority_context,
+                preview_token=preview_token, confirm=confirm)
+            return
         try:
             result = workspace_for(root).apply_project_question_reconciliation(
                 actor=actor,
@@ -287,9 +347,17 @@ def register_project_readiness_commands(
     def convergence_preview(
         question: list[str] = typer.Option(..., "--question"),
         actor: str = typer.Option(..., "--actor"),
+        operation_key: str = typer.Option("", "--operation-key"),
+        executor: str = typer.Option("", "--executor"),
+        executor_kind: str = typer.Option("person", "--executor-kind"),
+        authority_context: Path | None = typer.Option(None, "--authority-context"),
         output_format: str = typer.Option("text", "--format", help="text or json"),
         root: Path = typer.Option(Path.cwd(), "--root"),
     ) -> None:
+        if keyed_question_mode(output_format=output_format, operation_key=operation_key, authority_context=authority_context, executor=executor, root=root, executor_kind=executor_kind):
+            emit_question_preview(root=root, leaf="apply", actor=actor, operation_key=operation_key,
+                executor=executor, executor_kind=executor_kind, authority_context=authority_context, question_ids=question)
+            return
         try:
             result = workspace_for(root).preview_project_readiness_convergence(question, actor=actor)
         except ValueError as exc:
@@ -302,9 +370,18 @@ def register_project_readiness_commands(
         preview_token: str = typer.Option(..., "--preview-token"),
         actor: str = typer.Option(..., "--actor"),
         confirm: bool = typer.Option(False, "--confirm"),
+        operation_key: str = typer.Option("", "--operation-key"),
+        executor: str = typer.Option("", "--executor"),
+        executor_kind: str = typer.Option("person", "--executor-kind"),
+        authority_context: Path | None = typer.Option(None, "--authority-context"),
         output_format: str = typer.Option("text", "--format", help="text or json"),
         root: Path = typer.Option(Path.cwd(), "--root"),
     ) -> None:
+        if keyed_question_mode(output_format=output_format, operation_key=operation_key, authority_context=authority_context, executor=executor, root=root, executor_kind=executor_kind):
+            emit_question_mutation(root=root, scope="project", leaf="apply", actor=actor, operation_key=operation_key,
+                executor=executor, executor_kind=executor_kind, authority_context=authority_context,
+                question_ids=question, preview_token=preview_token, confirm=confirm)
+            return
         try:
             result = workspace_for(root).apply_project_readiness_convergence(
                 question,
@@ -324,9 +401,18 @@ def _register_reason_transition(app: typer.Typer, operation: str) -> None:
         reason: str = typer.Option(..., "--reason"),
         actor: str = typer.Option(..., "--actor"),
         expected_revision: int = typer.Option(..., "--expected-revision", min=1),
+        operation_key: str = typer.Option("", "--operation-key"),
+        executor: str = typer.Option("", "--executor"),
+        executor_kind: str = typer.Option("person", "--executor-kind"),
+        authority_context: Path | None = typer.Option(None, "--authority-context"),
         output_format: str = typer.Option("text", "--format", help="text or json"),
         root: Path = typer.Option(Path.cwd(), "--root"),
     ) -> None:
+        if keyed_question_mode(output_format=output_format, operation_key=operation_key, authority_context=authority_context, executor=executor, root=root, executor_kind=executor_kind):
+            emit_question_mutation(root=root, scope="project", leaf=operation, actor=actor, operation_key=operation_key,
+                executor=executor, executor_kind=executor_kind, authority_context=authority_context,
+                question_id=question_id, expected_revision=expected_revision, reason=reason)
+            return
         try:
             workspace = workspace_for(root)
             method = {
@@ -351,28 +437,35 @@ def _load_answer_file(
     *,
     question_id: str,
     expected_revision: int,
+    allow_external: bool = False,
+    strict: bool = False,
 ) -> tuple[dict[str, object], tuple[str, ...]]:
     resolved_root = root.resolve()
     if ".." in source.parts:
         raise ValueError("Answer input path cannot contain parent traversal.")
     candidate = source if source.is_absolute() else resolved_root / source
     lexical = candidate.absolute()
-    if not lexical.is_relative_to(resolved_root):
+    if not allow_external and not lexical.is_relative_to(resolved_root):
         raise ValueError("Answer input must be inside the project root.")
-    current = resolved_root
-    for part in lexical.relative_to(resolved_root).parts:
+    boundary = Path(lexical.anchor) if allow_external else resolved_root
+    current = boundary
+    for part in lexical.relative_to(boundary).parts:
         current = current / part
         if current.is_symlink():
             raise ValueError("Answer input path cannot contain symlinks.")
     resolved = lexical.resolve()
-    if not resolved.is_relative_to(resolved_root) or not resolved.is_file():
+    if (not allow_external and not resolved.is_relative_to(resolved_root)) or not resolved.is_file():
         raise ValueError("Answer input must be a regular non-symlink file inside the project root.")
     if resolved.stat().st_size > PROJECT_QUESTION_ANSWER_MAX_BYTES:
         raise ValueError(
             "P2P353_READINESS_PAYLOAD_LIMIT: answer input exceeds 64 KiB."
         )
     try:
-        payload = load_yaml(resolved.read_bytes())
+        with resolved.open("rb") as stream:
+            content = stream.read(PROJECT_QUESTION_ANSWER_MAX_BYTES + 1)
+        if len(content) > PROJECT_QUESTION_ANSWER_MAX_BYTES:
+            raise ValueError("P2P353_READINESS_PAYLOAD_LIMIT: answer input exceeds 64 KiB.")
+        payload = load_yaml(content, loader_contract=UNIQUE_LOADER_CONTRACT) if strict else load_yaml(content)
     except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
         raise ValueError(f"Invalid project question answer input: {exc}") from exc
     if not isinstance(payload, Mapping) or set(payload) != {"project_question_answer"}:
@@ -384,6 +477,9 @@ def _load_answer_file(
     unknown = set(answer) - allowed
     if unknown:
         raise ValueError(f"Unknown project question answer fields: {sorted(unknown)}")
+    if strict and any(isinstance(answer.get(field), bool) or not isinstance(answer.get(field), int)
+        for field in ("schema_version", "expected_revision")):
+        raise ValueError("P2P_QUESTION_INPUT_INVALID: schema_version and expected_revision must be integers")
     if _safe_int(answer.get("schema_version"), field="schema_version") != 1:
         raise ValueError("Unsupported project question answer schema_version.")
     if str(answer.get("question_id") or "") != question_id:

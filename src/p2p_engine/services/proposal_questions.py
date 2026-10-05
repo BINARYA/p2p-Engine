@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -17,6 +17,8 @@ from p2p_engine.core.proposal_questions import (
 )
 from p2p_engine.foundation.files import (
     read_yaml_mapping as _read_yaml_mapping,
+)
+from p2p_engine.foundation.files import (
     yaml_dump as _yaml_dump,
 )
 
@@ -325,6 +327,73 @@ class ProposalQuestionService:
         self._touch_and_write(path, payload, actor=actor)
         return self.read(proposal_id)
 
+    def mutation_candidate(
+        self, proposal_id: str, *, operation: str, actor: str, executor: str,
+        question_id: str = "", expected_revision: int | None = None,
+        answer: str = "", source: str = "owner", reason: str = "",
+        replace_answer: bool = False, question_ids: Sequence[str] = (),
+    ) -> tuple[Path, bytes, bytes, list[ProposalQuestion]]:
+        """Pure bounded mutation plan; authorization belongs to the caller service."""
+        path = self.find_proposal_dir(proposal_id) / QUESTION_STATE_FILENAME
+        content = path.read_bytes() if path.exists() else None
+        if content is None:
+            raise ValueError("P2P_QUESTION_NOT_FOUND: proposal question state is not initialized")
+        from p2p_engine.foundation.yaml_loaders import UNIQUE_LOADER_CONTRACT, load_yaml
+
+        payload = load_yaml(content, loader_contract=UNIQUE_LOADER_CONTRACT)
+        if not isinstance(payload, dict):
+            raise ValueError("P2P_QUESTION_INVALID: proposal question state must be a mapping")
+        validate_proposal_questions_payload(payload)
+        state = payload["proposal_questions"]
+        if state.get("proposal_id") != proposal_id:
+            raise ValueError("P2P_QUESTION_INVALID: proposal question identity mismatch")
+        items = _question_payloads(state)
+        selected: list[dict[str, Any]] = []
+        if operation == "apply":
+            requested = set(question_ids)
+            selected = [item for item in items if (not requested or item["id"] in requested)
+                and item["state"] == "answered" and str(item.get("answer") or "").strip()
+                and not item.get("applied_to_proposal")]
+            if requested != {item["id"] for item in selected} and requested:
+                raise ValueError("P2P_QUESTION_TRANSITION_INVALID: selected questions must be answered and unapplied")
+        else:
+            item = next((item for item in items if item["id"] == question_id), None)
+            if item is None:
+                raise ValueError(f"P2P_QUESTION_NOT_FOUND: proposal question {question_id} does not exist")
+            if expected_revision is None or isinstance(expected_revision, bool) or expected_revision < 1:
+                raise ValueError("P2P_QUESTION_REVISION_REQUIRED: expected revision must be positive")
+            if int(item.get("revision", 1)) != expected_revision:
+                raise ValueError("P2P_QUESTION_REVISION_CONFLICT: question changed after it was read")
+            selected = [item]
+        if len(selected) > 32:
+            raise ValueError("P2P_QUESTION_LIMIT_INVALID: at most 32 questions may be applied")
+        today = date.today().isoformat()
+        for item in selected:
+            current = str(item["state"])
+            if operation == "answer":
+                if current != ("answered" if replace_answer else "to_answer"):
+                    raise ValueError("P2P_QUESTION_TRANSITION_INVALID: answer requires an eligible question or explicit replacement")
+                item.update(answer=_required_text(answer, "answer"), answer_source=source,
+                    answered_at=today, state="answered", provided_by=actor, recorded_by=executor)
+            elif operation in {"defer", "mute", "reopen"}:
+                allowed = {"defer", "muted"} if operation == "reopen" else {"to_answer", "answered"}
+                if current not in allowed:
+                    raise ValueError("P2P_QUESTION_TRANSITION_INVALID: question state does not permit this transition")
+                item["state"] = {"defer": "defer", "mute": "muted", "reopen": "to_answer"}[operation]
+                if operation != "reopen":
+                    item["deferred_reason" if operation == "defer" else "muted_reason"] = _required_text(reason, "reason")
+            elif operation == "apply":
+                plan = _apply_plan_for_question(_question_from_payload(item))
+                item["apply_plan"] = [vars(entry) for entry in plan]
+                item.update(state="applied", applied_to_proposal=True, applied_at=today)
+            else:
+                raise ValueError("P2P_QUESTION_OPERATION_INVALID: unsupported proposal question operation")
+            _touch_item(item, actor=executor, today=today)
+        state["updated_at"] = today
+        state["updated_by"] = executor
+        validate_proposal_questions_payload(payload)
+        return path, content, _yaml_dump(payload).encode("utf-8"), [_question_from_payload(item) for item in selected]
+
     def _payload_or_initialized(self, proposal_id: str, *, actor: str) -> dict[str, Any]:
         proposal_dir = self.find_proposal_dir(proposal_id)
         path = proposal_dir / QUESTION_STATE_FILENAME
@@ -422,6 +491,9 @@ def validate_proposal_questions_payload(data: dict[str, object]) -> None:
         if question_id in question_ids:
             raise ValueError(f"Duplicate proposal question id: {question_id}")
         question_ids.add(question_id)
+        revision = question.get("revision", 1)
+        if isinstance(revision, bool) or not isinstance(revision, int) or revision < 1:
+            raise ValueError(f"Invalid proposal question revision: {question_id}")
         group_id = str(question.get("group_id") or "").strip()
         if group_id and group_id not in group_ids:
             raise ValueError(f"Proposal question {question_id} references unknown group: {group_id}")
@@ -507,10 +579,14 @@ def _question_from_payload(item: dict[str, Any]) -> ProposalQuestion:
         created_at=str(audit.get("created_at") or ""),
         updated_by=str(audit.get("updated_by") or ""),
         updated_at=str(audit.get("updated_at") or ""),
+        revision=int(item.get("revision", 1)),
+        provided_by=str(item.get("provided_by") or ""),
+        recorded_by=str(item.get("recorded_by") or ""),
     )
 
 
 def _touch_item(item: dict[str, Any], *, actor: str, today: str) -> None:
+    item["revision"] = int(item.get("revision", 1)) + 1
     audit = item.setdefault("audit", {})
     if isinstance(audit, dict):
         audit["updated_by"] = actor

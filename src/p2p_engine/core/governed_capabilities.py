@@ -31,6 +31,13 @@ class GovernedCapability:
 _BOTH_MODES = ("local_policy", "external_attestation")
 
 GOVERNED_CAPABILITIES: Final[tuple[GovernedCapability, ...]] = (
+    *(GovernedCapability(
+        f"{scope}.question.{leaf}", "question_lifecycle", LOCAL_POLICY_OWNER,
+        _BOTH_MODES, False, "implemented",
+    ) for scope, leaves in (
+        ("project", ("answer", "defer", "mute", "reopen", "reconcile", "apply")),
+        ("proposal", ("answer", "defer", "mute", "reopen", "apply")),
+    ) for leaf in leaves),
     GovernedCapability(
         "project.initialize",
         "project_lifecycle",
@@ -206,6 +213,14 @@ GOVERNED_CAPABILITIES: Final[tuple[GovernedCapability, ...]] = (
         ("local_policy",),
         False,
         "existing_unintegrated",
+    ),
+    GovernedCapability(
+        "choice.create",
+        "choice_lifecycle",
+        LOCAL_POLICY_OWNER,
+        _BOTH_MODES,
+        True,
+        "implemented",
     ),
     GovernedCapability(
         "choice.lifecycle.transition",

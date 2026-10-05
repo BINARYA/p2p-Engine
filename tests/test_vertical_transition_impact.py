@@ -1,25 +1,27 @@
 from __future__ import annotations
 
-from dataclasses import replace
-from pathlib import Path
 import hashlib
 import json
+from dataclasses import replace
+from pathlib import Path
 
 import pytest
 import yaml
 
+from p2p_engine import __version__
+from p2p_engine.core.project_verticals import ProjectDefinitionOrphan
 from p2p_engine.core.vertical_transition_impact import (
     BoundedCollection,
     EvidenceKind,
     QuestionImpact,
     TransitionOperation,
 )
-from p2p_engine.core.vertical_transition_plan import parse_transition_plan
-from p2p_engine.core.vertical_transition_plan import VERTICAL_TRANSITION_PLAN_MAX_DECISIONS
-from p2p_engine.core.project_verticals import ProjectDefinitionOrphan
-from p2p_engine import __version__
-from p2p_engine.services.vertical_evidence_classifier import VerticalEvidenceClassifier
+from p2p_engine.core.vertical_transition_plan import (
+    VERTICAL_TRANSITION_PLAN_MAX_DECISIONS,
+    parse_transition_plan,
+)
 from p2p_engine.services.project_verticals import project_definition_state_payload
+from p2p_engine.services.vertical_evidence_classifier import VerticalEvidenceClassifier
 from p2p_engine.services.vertical_transition_analysis import (
     _transition_material_exceeds_limit,
 )
@@ -428,8 +430,8 @@ def test_wavekit_handoff_fixture_manifest_is_current_bounded_and_path_free() -> 
         / "development"
         / "wavekit-vertical-transition-handoff.md"
     ).read_text(encoding="utf-8")
-    assert f"P2P Engine {manifest['engine_version']} retains" in handoff
-    assert f"P2P Engine `{manifest['engine_version']}`;" in handoff
+    assert f"P2P Engine {manifest['engine_version']} local candidate retains" in handoff
+    assert f"P2P Engine `{manifest['engine_version']}` (local candidate, not published);" in handoff
     assert f"current {manifest['engine_version']} output" in handoff
     assert manifest["impact_contract_version"] == "p2p-vertical-transition-impact/v1"
     assert manifest["plan_contract_version"] == "p2p-vertical-transition-plan/v1"

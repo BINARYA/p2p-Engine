@@ -12,6 +12,7 @@ from p2p_engine.core.authority_transfer import (
     AUTHORITY_TRANSFER_PROTOCOL,
     AUTHORITY_TRANSFER_RECEIPT_CONTRACT,
 )
+from p2p_engine.core.choice_creation import CHOICE_CREATE_RESULT_CONTRACT
 from p2p_engine.core.choice_reads import CHOICE_DETAIL_CONTRACT, CHOICE_LIST_CONTRACT
 from p2p_engine.core.choices import (
     CHOICE_DEFINITION_CONTRACT,
@@ -102,6 +103,12 @@ from p2p_engine.core.project_structure_retirement import (
     STRUCTURE_RETIREMENT_PLAN_CONTRACT,
     STRUCTURE_RETIREMENT_RESULT_CONTRACT,
 )
+from p2p_engine.core.question_contracts import (
+    QUESTION_MUTATION_CONTRACT,
+    QUESTION_NEXT_CONTRACT,
+    QUESTION_PAGE_CONTRACT,
+    QUESTION_PREVIEW_CONTRACT,
+)
 from p2p_engine.core.vertical_drafts import (
     VERTICAL_DRAFT_DOCUMENT_VERSION,
     VERTICAL_DRAFT_EVIDENCE_VERSION,
@@ -130,6 +137,11 @@ def current_contract_versions() -> dict[str, object]:
         "contract_inventory_version": RELEASE_CONTRACT_INVENTORY_VERSION,
         "engine_version": __version__,
         "cli_contract_version": CLI_CONTRACT_VERSION,
+        "question_page_contract": QUESTION_PAGE_CONTRACT,
+        "question_next_contract": QUESTION_NEXT_CONTRACT,
+        "question_preview_contract": QUESTION_PREVIEW_CONTRACT,
+        "question_mutation_contract": QUESTION_MUTATION_CONTRACT,
+        "choice_create_result_contract": CHOICE_CREATE_RESULT_CONTRACT,
         "choice_definition_contract": CHOICE_DEFINITION_CONTRACT,
         "choice_list_contract": CHOICE_LIST_CONTRACT,
         "choice_detail_contract": CHOICE_DETAIL_CONTRACT,

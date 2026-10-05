@@ -64,6 +64,9 @@ class ProposalQuestion:
     created_at: str
     updated_by: str
     updated_at: str
+    revision: int = 1
+    provided_by: str = ""
+    recorded_by: str = ""
 
 
 @dataclass(frozen=True)

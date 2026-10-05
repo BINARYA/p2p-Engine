@@ -10,6 +10,45 @@
   "command_groups": [
     {
       "commands": [
+        "p2p project readiness questions status --limit 20 --format json",
+        "p2p project readiness questions next --format json",
+        "p2p project readiness status --limit 20 --format json",
+        "p2p project readiness next --format json",
+        "p2p proposal questions status PROP-XXX --limit 20 --offset 0 --format json",
+        "p2p proposal questions list PROP-XXX --limit 20 --offset 0 --format json",
+        "p2p proposal questions next PROP-XXX --format json"
+      ],
+      "group": "ms2_question_reads",
+      "mutates_project": false
+    },
+    {
+      "commands": [
+        "p2p choice create --title TITLE --problem PROBLEM --context CONTEXT --governance-boundary BOUNDARY --option OPTION-A --option OPTION-B --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json"
+      ],
+      "group": "ms2_choice_create",
+      "mutates_project": true
+    },
+    {
+      "commands": [
+        "p2p project readiness questions answer PRQ-ID --expected-revision REV --input ANSWER.json --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+        "p2p project readiness questions defer PRQ-ID --expected-revision REV --reason REASON --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+        "p2p project readiness questions mute PRQ-ID --expected-revision REV --reason REASON --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+        "p2p project readiness questions reopen PRQ-ID --expected-revision REV --reason REASON --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+        "p2p project readiness preview --question PRQ-ID --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+        "p2p project readiness apply --question PRQ-ID --preview-token TOKEN --confirm --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+        "p2p project readiness questions reconcile-preview --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+        "p2p project readiness questions reconcile-apply --preview-token TOKEN --confirm --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+        "p2p proposal questions answer PROP-XXX Q001 ANSWER --expected-revision REV --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+        "p2p proposal questions defer PROP-XXX Q001 --expected-revision REV --reason REASON --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+        "p2p proposal questions mute PROP-XXX Q001 --expected-revision REV --reason REASON --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+        "p2p proposal questions reopen PROP-XXX Q001 --expected-revision REV --reason REASON --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+        "p2p proposal questions apply PROP-XXX --question Q001 --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json"
+      ],
+      "group": "ms2_questions",
+      "mutates_project": true
+    },
+    {
+      "commands": [
         "p2p version --format json",
         "p2p status --format json",
         "p2p runtime status --format json",
@@ -176,6 +215,153 @@
     }
   ],
   "command_qualifications": [
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project readiness questions status --limit 20 --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_question_reads"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project readiness questions next --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_question_reads"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project readiness status --limit 20 --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_question_reads"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project readiness next --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_question_reads"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p proposal questions status PROP-XXX --limit 20 --offset 0 --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_question_reads"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p proposal questions list PROP-XXX --limit 20 --offset 0 --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_question_reads"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p proposal questions next PROP-XXX --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_question_reads"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p choice create --title TITLE --problem PROBLEM --context CONTEXT --governance-boundary BOUNDARY --option OPTION-A --option OPTION-B --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_choice_create"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project readiness questions answer PRQ-ID --expected-revision REV --input ANSWER.json --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_questions"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project readiness questions defer PRQ-ID --expected-revision REV --reason REASON --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_questions"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project readiness questions mute PRQ-ID --expected-revision REV --reason REASON --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_questions"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project readiness questions reopen PRQ-ID --expected-revision REV --reason REASON --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_questions"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project readiness preview --question PRQ-ID --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_questions"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project readiness apply --question PRQ-ID --preview-token TOKEN --confirm --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_questions"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project readiness questions reconcile-preview --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_questions"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p project readiness questions reconcile-apply --preview-token TOKEN --confirm --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_questions"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p proposal questions answer PROP-XXX Q001 ANSWER --expected-revision REV --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_questions"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p proposal questions defer PROP-XXX Q001 --expected-revision REV --reason REASON --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_questions"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p proposal questions mute PROP-XXX Q001 --expected-revision REV --reason REASON --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_questions"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p proposal questions reopen PROP-XXX Q001 --expected-revision REV --reason REASON --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_questions"
+    },
+    {
+      "authorizes_downstream_execution": false,
+      "classification": "downstream_independent_qualification",
+      "command": "p2p proposal questions apply PROP-XXX --question Q001 --actor ACTOR --executor EXECUTOR --executor-kind KIND --authority-context AUTHORITY.json --operation-key wavekit:<uuid> --format json",
+      "evidence_case_ids": [],
+      "group": "ms2_questions"
+    },
     {
       "authorizes_downstream_execution": false,
       "classification": "downstream_independent_qualification",
@@ -768,6 +954,7 @@
     "authority_transfer_protocol": "p2p-authority-transfer/v1",
     "authority_transfer_receipt_contract": "p2p-authority-transfer-receipt/v1",
     "bundle_materialization_contract": "p2p-bundle-materialization/v1",
+    "choice_create_result_contract": "p2p-choice-create-result/v1",
     "choice_definition_contract": "p2p-choice-definition/v1",
     "choice_detail_contract": "p2p-choice-detail/v1",
     "choice_lifecycle_contract": "p2p-choice-lifecycle/v1",
@@ -781,7 +968,7 @@
       "compatibility": "same-major",
       "contract": "p2p-domain/v1"
     },
-    "engine_version": "0.6.10",
+    "engine_version": "0.6.11",
     "linked_replica_binding_contract": "p2p-linked-replica-binding/v1",
     "linked_replica_capability_contract": "p2p-linked-replica-capabilities/v1",
     "linked_replica_change_contract": "p2p-linked-replica-change-batch/v1",
@@ -838,6 +1025,10 @@
     "project_structure_export_preview_contract": "p2p-project-structure-export-preview/v1",
     "project_structure_export_result_contract": "p2p-project-structure-export-result/v1",
     "project_structure_mutation_contract": "p2p-project-structure-mutation/v1",
+    "question_mutation_contract": "p2p-question-mutation-result/v1",
+    "question_next_contract": "p2p-question-next/v1",
+    "question_page_contract": "p2p-question-page/v1",
+    "question_preview_contract": "p2p-question-preview/v1",
     "structure_comparison_contract": "p2p-structure-comparison/v1",
     "structure_merge_plan_contract": "p2p-structure-merge-plan/v1",
     "structure_merge_preview_contract": "p2p-structure-merge-preview/v1",
@@ -869,7 +1060,7 @@
     "workspace_schema_policy_version": 4,
     "workspace_schema_version": 4
   },
-  "engine_version": "0.6.10",
+  "engine_version": "0.6.11",
   "mcp_policy": {
     "export_apply_available": false,
     "linked_drift_apply_available": false,
@@ -884,7 +1075,7 @@
     "restore_apply_available": false,
     "retained_inspect_available": true
   },
-  "operation_inventory_sha256": "b8b5eca2704b111f81dd5548fe287a02bbd6f455a13544dce422c618a22fde40",
+  "operation_inventory_sha256": "d0f5ee77fdf230ce4c919988a1033bdb279c4f8421d939ac711a77ee0addae0a",
   "qualification_cases": [
     {
       "argv": [
@@ -1140,7 +1331,7 @@
     "operation_key_placeholder": "wavekit:<uuid>",
     "root_placeholder": "<PROJECT_ROOT>"
   },
-  "semantic_sha256": "66b099b3d77bf4f71e4877083393a1a3f54b101287313cefa29a5869e34f01ff",
+  "semantic_sha256": "e58f8063de22252a21cc56796df2bb026a6fb963eb2687d941e20356d87ea77f",
   "transport": {
     "envelope": "p2p-cli/v1",
     "kind": "cli_json",

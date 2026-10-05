@@ -100,6 +100,36 @@ def current_replication_receipt() -> OperationReceipt | None:
     return None if context is None else context.receipt
 
 
+def require_replication_operation_key(operation_key: str, *, command_name: str) -> None:
+    """Require one durable key across the domain and worker receipt boundaries."""
+    context = _COMMAND_CONTEXT.get()
+    if context is not None and context.command.idempotency_key != operation_key:
+        raise ValueError("P2P_REPLICATION_IDEMPOTENCY_CONFLICT: worker and domain operation keys differ")
+    if context is not None and context.command.command != command_name:
+        raise ValueError("P2P_REPLICATION_COMMAND_CONFLICT: worker command does not match the domain operation")
+
+
+def replay_replication_outcome(root: Path, *, mutation_operation_id: str) -> None:
+    """Attach an existing exact worker outcome without another transaction."""
+    context = _COMMAND_CONTEXT.get()
+    if context is None:
+        return
+    command = context.command
+    receipt = FilesystemProjectReplicationStore(root).receipt(command.operation_id)
+    if receipt is None:
+        raise ValueError("P2P_REPLICATION_STATE_INVALID: domain replay has no durable worker receipt")
+    if (
+        receipt.project_uuid != command.project_uuid
+        or receipt.command_fingerprint != command.fingerprint
+        or receipt.idempotency_key != command.idempotency_key
+    ):
+        raise ValueError("P2P_REPLICATION_OPERATION_CONFLICT: worker replay envelope differs from the recorded command")
+    if receipt.status != "completed" or receipt.result is None or receipt.result.get("mutation_operation") != mutation_operation_id:
+        raise ValueError("P2P_REPLICATION_STATE_INVALID: domain replay worker outcome is incomplete or inconsistent")
+    context.receipt = receipt
+    context.replayed = True
+
+
 class FilesystemProjectReplicationStore:
     """Durable server feed and receipt state stored beside one project root."""
 

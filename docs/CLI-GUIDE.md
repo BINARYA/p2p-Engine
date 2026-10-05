@@ -467,7 +467,7 @@ effect of a contract update.
 ### Current Workspace Schema
 
 Workspace layout versioning is independent from the runtime contract. P2P
-Engine 0.6.10 accepts schema 4 only. Inspect schema alignment and interrupted
+Engine 0.6.11 accepts schema 4 only. Inspect schema alignment and interrupted
 transaction state without writing:
 
 ```bash
@@ -936,7 +936,7 @@ vertical_transition_plan:
         ref: definition_field:new_section.new_field
 ```
 
-The 0.6.10 JSON transport contract is `p2p-cli/v1`. Every command supporting
+The 0.6.11 local candidate JSON transport contract is `p2p-cli/v1`. Every command supporting
 `--format json` returns exactly `contract_version`, `ok`, `operation`, `data`,
 `warnings`, and `error`. Domain payloads remain operation-specific under
 `data`. Parser errors use the same envelope. See
@@ -1048,6 +1048,14 @@ Convergence commits definition and question state in one transaction. If the
 vertical changes while question evidence exists, use `questions
 reconcile-preview` and `reconcile-apply`; reconciliation never copies an answer
 to a semantically different target.
+
+The 0.6.11 candidate adds bounded `question_page`/`question_next` JSON and a
+keyed machine path with `--operation-key`, `--executor`, `--executor-kind` and
+`--authority-context`. Hosted writes require the exact question leaf capability;
+external root or capability-grant attestations are accepted. Local unkeyed JSON
+remains compatible. Proposal apply reports only `plan_registered`, not a write
+to proposal.md. Full schemas, staging and replay are documented in
+[Question machine contract](QUESTION-MACHINE-CONTRACT.md).
 
 The pre-0.5 vertical-coverage commands remain a transitional derived-memory
 surface. They are not memory classification and do not satisfy readiness
@@ -1443,6 +1451,12 @@ p2p choice create \
 The definition is immutable after creation. Inspect it, then preview a terminal
 decision using a stable operation key:
 
+The 0.6.11 candidate also supports durable JSON creation with `--format json
+--operation-key KEY --actor OWNER`, and optional distinct executor/context flags.
+`data.choice_create` uses `p2p-choice-create-result/v1` and exact replay returns
+the same created ID without retry writes. The exact `choice.create` capability
+requires local owner or external root authority. Inputs are explicitly bounded.
+
 ```bash
 p2p choice list
 p2p choice show CHOICE-001
@@ -1488,6 +1502,10 @@ p2p choice supersede CHOICE-001 \
 
 Repeat either command with its printed preview token and `--confirm` to apply.
 All three outcomes are terminal; there is no edit, reopen or re-decide command.
+The scoped exception is superseding a decided source with an explicitly
+identified decided replacement. Open sources still require open replacements.
+The source becomes superseded without a selected-option projection; immutable
+decision evidence and replacement lineage remain readable history.
 `options.yml` remains definition-only and the selected option is stored in the
 write-once terminal event in `lifecycle.yml`.
 

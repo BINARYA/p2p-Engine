@@ -1,6 +1,6 @@
 # Project Structure Surface Convergence
 
-This is the P2P Engine 0.6.10 release-gate note for converging the project-owned
+This is the P2P Engine 0.6.11 local-candidate gate note for converging the project-owned
 structure surfaces after authority, domain, memory classification, readiness,
 registry-v2 discovery, structure export and structure replacement landed.
 
@@ -14,7 +14,7 @@ fixture bundle lives at
 `p2p version --format json`, `p2p status --format json` and
 `p2p_workspace_schema_status` expose the same contract tuple:
 
-- P2P Engine `0.6.10`
+- P2P Engine `0.6.11` (local candidate, not published)
 - CLI envelope `p2p-cli/v1`
 - workspace schema 4
 - portable vertical schema 3 and package format 1
@@ -95,7 +95,7 @@ fallback in the runtime catalog client.
 
 ## Release Notes And Resources
 
-The release notes state that P2P Engine 0.6.10 preserves the clean boundary:
+The candidate notes state that P2P Engine 0.6.11 preserves the clean boundary:
 workspace schema 4 and portable vertical schema 3 only. It does not provide in-runtime
 migration, conversion or compatibility aliases for older workspace or vertical
 schemas.
@@ -122,6 +122,12 @@ harness reads structured argv cases from the candidate wheel, substitutes only
 the isolated project root, uses `shell=false` and validates the outer CLI and
 nested Choice contract versions. Command inventory alone never authorizes a
 WaveKit allowlist.
+
+The MS2 candidate additionally records Choice create and exact question leaves
+with explicit hosted MCP parity deferral to MS3. New command inventory is still
+downstream-independent qualification, not permission to execute in WaveKit.
+The isolated installed candidate selection includes creation, decided
+supersession and bounded question service/CLI/replay tests.
 
 Merge and restore are implemented on CLI with distinct capabilities, exact
 preview tokens and mutation receipts. MCP deliberately exposes only

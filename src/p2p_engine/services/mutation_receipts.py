@@ -19,6 +19,10 @@ from p2p_engine.core.mutation_receipts import (
     MutationReceipt,
     MutationReceiptStatus,
 )
+from p2p_engine.core.question_contracts import (
+    QUESTION_OPERATIONS,
+    validate_question_mutation_result,
+)
 from p2p_engine.core.vertical_transition_impact import VERTICAL_TRANSITION_IMPACT_CONTRACT
 from p2p_engine.foundation.files import yaml_dump
 from p2p_engine.foundation.yaml_loaders import UNIQUE_LOADER_CONTRACT, load_yaml
@@ -288,6 +292,7 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
     token_hash = _required_sha256(data, "preview_token_sha256")
     operation = _required_text(data, "operation")
     if operation not in {
+        *QUESTION_OPERATIONS,
         "init",
         "install",
         "adopt",
@@ -297,6 +302,7 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "proposal_readiness_assess",
         "proposal_update",
         "proposal_decision_apply",
+        "choice_create",
         "project_authority_rotate",
         "project_identity_adopt",
         "project_identity_derive",
@@ -331,6 +337,7 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
 
         authority = AuthorityContractCodec().evidence_from_mapping(raw_authority).to_dict()
     if operation in {
+        *QUESTION_OPERATIONS,
         "init",
         "project_authority_rotate",
         "project_identity_adopt",
@@ -344,11 +351,39 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
         "project_structure_retirement",
         "project_structure_export",
             "proposal_decision_apply",
+            "choice_create",
             "choice_decide",
             "choice_withdraw",
             "choice_supersede",
         } and authority is None:
         raise ValueError(f"receipt operation {operation} requires authority evidence")
+    if operation in QUESTION_OPERATIONS:
+        assert authority is not None
+        scope, leaf, _ = QUESTION_OPERATIONS[operation]
+        claims = authority.get("claims")
+        if not isinstance(claims, list) or len(claims) != 1 or claims[0].get("capability") != f"{scope}.question.{leaf}":
+            raise ValueError("Question receipt requires the exact question operation capability")
+        executor = authority.get("executor")
+        if not isinstance(executor, Mapping) or executor.get("id") != actor:
+            raise ValueError("Question receipt actor must match authority executor")
+        if leaf == "answer":
+            subject = authority.get("subject")
+            questions = result.get("questions")
+            if not isinstance(subject, Mapping) or not isinstance(questions, list) or len(questions) != 1:
+                raise ValueError("Question answer receipt requires subject and answer evidence")
+            answer = questions[0].get("answer") if scope == "project" else questions[0]
+            if not isinstance(answer, Mapping) or answer.get("provided_by") != subject.get("id") or answer.get("recorded_by") != executor.get("id"):
+                raise ValueError("Question answer provenance must match authority subject and executor")
+    if operation == "choice_create":
+        assert authority is not None
+        claims = authority.get("claims")
+        if not isinstance(claims, list) or len(claims) != 1 or claims[0].get("capability") != "choice.create":
+            raise ValueError("Choice creation receipt requires choice.create authority")
+        if claims[0].get("basis") != "root_authority":
+            raise ValueError("Choice creation receipt requires root-authority basis")
+        executor = authority.get("executor")
+        if not isinstance(executor, Mapping) or executor.get("id") != actor:
+            raise ValueError("Choice creation receipt actor does not match authority executor")
     raw_postconditions = data.get("postconditions")
     if not isinstance(raw_postconditions, list) or not raw_postconditions:
         raise ValueError("receipt postconditions must be a non-empty sequence")
@@ -387,6 +422,9 @@ def _receipt_from_payload(payload: object) -> MutationReceipt:
 
 
 def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
+    if operation in QUESTION_OPERATIONS:
+        validate_question_mutation_result(result, operation=operation)
+        return
     if operation == "init":
         _validate_init_result(result)
         return
@@ -395,6 +433,9 @@ def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
         return
     if operation == "proposal_readiness_assess":
         _validate_proposal_readiness_result(result)
+        return
+    if operation == "choice_create":
+        _validate_choice_create_result(result)
         return
     if operation == "project_authority_rotate":
         _validate_authority_rotation_result(result)
@@ -519,6 +560,48 @@ def _validate_result(result: Mapping[str, object], *, operation: str) -> None:
     ]
     if normalized != sorted(set(normalized)):
         raise ValueError("receipt result changed_paths must be unique and sorted")
+
+
+def _validate_choice_create_result(result: Mapping[str, object]) -> None:
+    if set(result) != {"contract", "operation", "operation_id", "choice", "changed_paths"}:
+        raise ValueError("Choice creation receipt result has invalid fields")
+    if result.get("contract") != "p2p-choice-create-result/v1":
+        raise ValueError("Choice creation receipt result has an unsupported contract")
+    if result.get("operation") != "choice_create" or result.get("operation_id") != "choice.create":
+        raise ValueError("Choice creation receipt operation is invalid")
+    choice = result.get("choice")
+    expected = {
+        "choice_id", "title", "state", "terminal", "definition_contract",
+        "definition_completeness", "definition_digest", "seal_status",
+        "integrity_status", "selected_option", "replacement_choice_id",
+    }
+    if not isinstance(choice, Mapping) or set(choice) != expected:
+        raise ValueError("Choice creation receipt summary has invalid fields")
+    choice_id = _required_text(choice, "choice_id")
+    if not re.fullmatch(r"CHOICE-[0-9]{3,}", choice_id):
+        raise ValueError("Choice creation receipt has an invalid Choice ID")
+    _required_text(choice, "title")
+    if (
+        choice.get("state") != "open" or choice.get("terminal") is not False
+        or choice.get("definition_contract") != "p2p-choice-definition/v1"
+        or choice.get("definition_completeness") != "complete"
+        or choice.get("seal_status") != "sealed" or choice.get("integrity_status") != "valid"
+        or choice.get("selected_option") is not None or choice.get("replacement_choice_id") is not None
+    ):
+        raise ValueError("Choice creation receipt must describe a complete sealed open Choice")
+    if not re.fullmatch(r"sha256:[0-9a-f]{64}", str(choice.get("definition_digest") or "")):
+        raise ValueError("Choice creation receipt definition digest is invalid")
+    paths = result.get("changed_paths")
+    if not isinstance(paths, list) or len(paths) != 5 or any(not isinstance(path, str) for path in paths):
+        raise ValueError("Choice creation receipt requires five canonical artifacts")
+    directory = PurePosixPath(paths[0]).parent.as_posix()
+    if not re.fullmatch(rf"\.p2p/choices/{re.escape(choice_id)}-[a-z0-9-]+", directory):
+        raise ValueError("Choice creation receipt artifact directory is invalid")
+    expected_paths = sorted(f"{directory}/{name}" for name in (
+        "choice.md", "decision.md", "lifecycle.yml", "links.yml", "options.yml",
+    ))
+    if paths != expected_paths:
+        raise ValueError("Choice creation receipt paths must match its Choice artifacts")
 
 
 def _validate_choice_transition_result(
@@ -1891,6 +1974,12 @@ def _public_result(
     *,
     authority: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
+    if result.get("contract") == "p2p-choice-transition-result/v1":
+        return {key: value for key, value in result.items() if key != "changed_paths"}
+    if result.get("operation") in QUESTION_OPERATIONS:
+        return {key: value for key, value in result.items() if key != "changed_paths"}
+    if result.get("operation") == "choice_create":
+        return {key: value for key, value in result.items() if key != "changed_paths"}
     if result.get("operation") == "init":
         return {
             "operation": result.get("operation"),

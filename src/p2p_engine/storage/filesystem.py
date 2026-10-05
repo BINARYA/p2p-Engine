@@ -816,6 +816,15 @@ class FilesystemWorkspace:
             )
         return self._proposal_question_service_instance
 
+    def question_contract_service(self):
+        from p2p_engine.services.question_contracts import QuestionContractService
+
+        return QuestionContractService(
+            root=self.root, project=self._project_question_state_service(),
+            proposal=self._proposal_question_service(), convergence=self._project_readiness_convergence_service(),
+            preflight=self._ensure_runtime_write_allowed,
+        )
+
     def _proposal_artifact_state_service(self) -> ProposalArtifactStateService:
         if self._proposal_artifact_state_service_instance is None:
             self._proposal_artifact_state_service_instance = ProposalArtifactStateService(
@@ -1300,6 +1309,7 @@ class FilesystemWorkspace:
                 find_change_dir=self._change_set_lifecycle_service().find_dir,
                 choice_registry_records=self._registry_record_builder_service().choice_records,
                 governance_preflight=self._governance_policy_service().choice_preflight,
+                write_preflight=self._ensure_runtime_write_allowed,
             )
         return self._choice_lifecycle_service_instance
 
@@ -6025,6 +6035,9 @@ class FilesystemWorkspace:
             context=context,
             governance_boundary=governance_boundary,
         )
+
+    def create_choice_with_operation_key(self, **request: object) -> dict[str, object]:
+        return self._choice_lifecycle_service().create_with_operation_key(**request)  # type: ignore[arg-type]
 
     def choice_statuses(self) -> list[ChoiceStatus]:
         return self._choice_lifecycle_service().statuses()

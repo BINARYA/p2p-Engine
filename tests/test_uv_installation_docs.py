@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import tomllib
 from pathlib import Path
 
@@ -17,12 +18,17 @@ def _read(relative: str) -> str:
 def test_primary_installation_docs_are_uv_first_and_version_pinned() -> None:
     readme = _read("README.md")
     install = _read("docs/INSTALL.md")
+    published = re.search(r"^Published install version: (\d+\.\d+\.\d+)$", readme, re.MULTILINE)
+    assert published is not None
+    published_version = published.group(1)
 
     for text in (readme, install):
         assert "uv tool install --managed-python --python 3.12 --no-config" in text
-        assert f"p2p_engine-{P2P_ENGINE_VERSION}-py3-none-any.whl" in text
+        assert f"p2p_engine-{published_version}-py3-none-any.whl" in text
         assert "project-local install from the GitHub Release wheel" not in text
         assert "normal workflow is to install P2P Engine into the target project's own" not in text
+        if published_version != P2P_ENGINE_VERSION:
+            assert "not published" in text
     assert "pip/Virtualenv Fallback" in install
     assert "not yet qualified on a public Python index" in install
     assert "uv tool install p2p-engine==<VERSION>" in install

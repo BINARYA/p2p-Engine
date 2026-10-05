@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Callable, Mapping, Sequence
 
 import yaml
-from p2p_engine.foundation.yaml_loaders import load_yaml
 
 from p2p_engine.core.mutation_preview import (
     MutationPreviewService,
@@ -18,9 +17,9 @@ from p2p_engine.core.mutation_preview import (
 from p2p_engine.core.project_questions import (
     ProjectQuestion,
     ProjectQuestionAnswerKind,
+    ProjectQuestionApplicability,
     ProjectQuestionApplication,
     ProjectQuestionArtifact,
-    ProjectQuestionApplicability,
     ProjectQuestionState,
     ProjectQuestionTransition,
 )
@@ -31,13 +30,20 @@ from p2p_engine.core.project_readiness_convergence import (
     ProjectReadinessConvergencePreview,
     ProjectReadinessConvergenceResult,
 )
-from p2p_engine.core.project_verticals import ProjectDefinitionPatch, ProjectDefinitionState, VerticalPack
+from p2p_engine.core.project_verticals import (
+    ProjectDefinitionPatch,
+    ProjectDefinitionState,
+    VerticalPack,
+)
+from p2p_engine.foundation.yaml_loaders import load_yaml
 from p2p_engine.services.candidate_workspace import CandidateWorkspaceView
 from p2p_engine.services.permissions import PermissionActor, PermissionsService
-from p2p_engine.services.project_questions import PROJECT_QUESTIONS_PATH, ProjectQuestionStateService
+from p2p_engine.services.project_questions import (
+    PROJECT_QUESTIONS_PATH,
+    ProjectQuestionStateService,
+)
 from p2p_engine.services.project_verticals import ProjectVerticalService
 from p2p_engine.services.workspace_transactions import AtomicMutationWriter, utc_now_iso
-
 
 DEFINITION_PATH = ".p2p/project/definition.yml"
 PERMISSIONS_PATH = ".p2p/project/permissions.yml"
@@ -319,9 +325,16 @@ class ProjectReadinessConvergenceService:
             message=mutation.message,
         )
 
-    def _render_bundle(self, question_ids: Sequence[str], *, actor: str) -> _ConvergenceBundle:
+    def render_authorized_plan(self, question_ids: Sequence[str], *, actor: PermissionActor):
+        """Pure candidate assembly for a typed owner authorized by the shared resolver."""
+        return self._render_bundle(question_ids, actor=actor.actor_id, authorized_actor=actor)
+
+    def render_authorized_reconciliation(self, *, actor: PermissionActor):
+        return self._render_reconciliation(actor=actor.actor_id, authorized_actor=actor)
+
+    def _render_bundle(self, question_ids: Sequence[str], *, actor: str, authorized_actor: PermissionActor | None = None) -> _ConvergenceBundle:
         normalized_ids = self._normalize_question_ids(question_ids)
-        snapshot = self._capture(actor)
+        snapshot = self._capture(actor, authorized_actor=authorized_actor)
         questions_by_id = {item.question_id: item for item in snapshot.questions.questions}
         selected: list[ProjectQuestion] = []
         for question_id in normalized_ids:
@@ -460,8 +473,8 @@ class ProjectReadinessConvergenceService:
             question_candidate_bytes=self.question_service.candidate_bytes(candidate),
         )
 
-    def _render_reconciliation(self, *, actor: str) -> _ReconciliationBundle:
-        snapshot = self._capture(actor, require_question_alignment=False)
+    def _render_reconciliation(self, *, actor: str, authorized_actor: PermissionActor | None = None) -> _ReconciliationBundle:
+        snapshot = self._capture(actor, require_question_alignment=False, authorized_actor=authorized_actor)
         candidate = self.question_service.reconcile_candidate(
             current=snapshot.questions,
             project_id=snapshot.questions.project_id,
@@ -526,7 +539,7 @@ class ProjectReadinessConvergenceService:
             candidate_bytes=self.question_service.candidate_bytes(candidate.artifact),
         )
 
-    def _capture(self, actor: str, *, require_question_alignment: bool = True) -> _ConvergenceSnapshot:
+    def _capture(self, actor: str, *, require_question_alignment: bool = True, authorized_actor: PermissionActor | None = None) -> _ConvergenceSnapshot:
         paths = {
             DEFINITION_PATH: self.root / DEFINITION_PATH,
             PROJECT_QUESTIONS_PATH.as_posix(): self.root / PROJECT_QUESTIONS_PATH,
@@ -561,7 +574,9 @@ class ProjectReadinessConvergenceService:
             target=PROJECT_QUESTIONS_PATH.as_posix(),
         )
         permissions_payload = self._yaml_mapping(source_bytes[PERMISSIONS_PATH], PERMISSIONS_PATH)
-        permission_actor = self.permissions.resolve_actor_payload(actor, permissions_payload)
+        permission_actor = authorized_actor or self.permissions.resolve_actor_payload(actor, permissions_payload)
+        if authorized_actor is not None and (authorized_actor.actor_id != actor or authorized_actor.role != "owner"):
+            raise ValueError("P2P_AUTHORIZATION_DENIED: convergence requires the authorized owner subject")
         lock = self.vertical_service.parse_vertical_lock_bytes(
             source_bytes[VERTICAL_LOCK_PATH],
             path=paths[VERTICAL_LOCK_PATH],

@@ -8,6 +8,10 @@ from datetime import date
 from pathlib import Path
 
 from p2p_engine.core.authority import AuthorityContext, AuthorityEvidence
+from p2p_engine.core.choice_creation import (
+    CHOICE_CREATE_RESULT_CONTRACT,
+    validate_choice_creation_bounds,
+)
 from p2p_engine.core.choice_reads import (
     CHOICE_READ_DEFAULT_LIMIT,
     ChoiceDefinitionRead,
@@ -38,6 +42,7 @@ from p2p_engine.core.choices import (
     is_terminal_choice_state,
     normalize_choice_state,
     normalize_definition_text,
+    require_supersession_replacement_state,
     require_transition_allowed,
     transition_target,
     validate_supersession_graph,
@@ -68,6 +73,7 @@ from p2p_engine.services.workspace_transactions import AtomicMutationWriter
 
 CHOICE_TRANSITION_CAPABILITY = "choice.lifecycle.transition"
 CHOICE_TRANSITION_POLICY_VERSION = 1
+CHOICE_CREATE_CAPABILITY = "choice.create"
 
 
 @dataclass(frozen=True)
@@ -225,6 +231,7 @@ class ChoiceLifecycleService:
         authority: ProjectAuthorityService | None = None,
         receipts: MutationReceiptService | None = None,
         atomic_writer: AtomicMutationWriter | None = None,
+        write_preflight: Callable[[str], object] | None = None,
     ) -> None:
         self.root = root.resolve()
         self.p2p_dir = p2p_dir.resolve()
@@ -235,6 +242,7 @@ class ChoiceLifecycleService:
         self.authority = authority or ProjectAuthorityService(root=self.root, p2p_dir=self.p2p_dir)
         self.receipts = receipts or MutationReceiptService(root=self.root, p2p_dir=self.p2p_dir)
         self.atomic_writer = atomic_writer or AtomicMutationWriter(root=self.root, p2p_dir=self.p2p_dir)
+        self.write_preflight = write_preflight
 
     def create(
         self,
@@ -261,6 +269,27 @@ class ChoiceLifecycleService:
             governance_boundary=governance_boundary,
             option_titles=options,
         )
+        candidates = self._create_candidates(definition, related=related, source=source, created_by="local")
+        result = self.atomic_writer.apply(
+            operation_id="choice_create",
+            candidates=candidates,
+            sources=tuple(source_precondition(path, None) for path in sorted(candidates)),
+            preview_token=semantic_sha256({"operation": "choice_create", "definition": definition.to_dict()}),
+            actor="local",
+        )
+        if result.status != "applied":
+            raise ValueError(f"P2P_CHOICE_CREATE_FAILED: {result.message}")
+        return self._status(self._load(choice_id))
+
+    def _create_candidates(
+        self,
+        definition: ChoiceDefinition,
+        *,
+        related: list[str],
+        source: str | None,
+        created_by: str,
+    ) -> dict[str, bytes]:
+        choice_id = definition.choice_id
         choice_dir = self.p2p_dir / "choices" / f"{choice_id}-{_foundation_slugify(definition.title, fallback='item')}"
         today = date.today().isoformat()
         frontmatter = _yaml_dump(
@@ -269,7 +298,7 @@ class ChoiceLifecycleService:
                 "title": definition.title,
                 "status": ChoiceState.open.value,
                 "created_at": today,
-                "created_by": "local",
+                "created_by": created_by,
                 "source": {"intake": source} if source else {},
                 "related": {"proposals": related},
             }
@@ -300,17 +329,170 @@ class ChoiceLifecycleService:
                 choice_id, definition.digest, "complete", ChoiceState.open, None
             ),
         }
-        candidates = {_relative(self.root, path): content for path, content in artifacts.items()}
-        result = self.atomic_writer.apply(
-            operation_id="choice_create",
-            candidates=candidates,
-            sources=tuple(source_precondition(path, None) for path in sorted(candidates)),
-            preview_token=semantic_sha256({"operation": "choice_create", "definition": definition.to_dict()}),
-            actor="local",
+        return {_relative(self.root, path): content for path, content in artifacts.items()}
+
+    def create_with_operation_key(
+        self,
+        *,
+        title: str,
+        options: list[str],
+        problem: str,
+        context: str,
+        operation_key: str,
+        actor_id: str = "owner",
+        executor_id: str | None = None,
+        executor_kind: str = "person",
+        related: list[str] | None = None,
+        source: str | None = None,
+        governance_boundary: str = DEFAULT_GOVERNANCE_BOUNDARY,
+        authority_context: AuthorityContext | None = None,
+        channel: str = "cli",
+    ) -> dict[str, object]:
+        """Create once, or read the immutable recorded creation outcome on retry."""
+        validate_idempotency_key(operation_key)
+        # Allocation is an outcome, not part of the caller's semantic request.
+        requested = ChoiceDefinition.build(
+            choice_id="CHOICE-000",
+            title=title,
+            problem=problem,
+            context=context,
+            governance_boundary=governance_boundary,
+            option_titles=options,
         )
-        if result.status != "applied":
-            raise ValueError(f"P2P_CHOICE_CREATE_FAILED: {result.message}")
-        return self._status(self._load(choice_id))
+        relations = sorted(set(item.strip() for item in (related or [])))
+        if any(not re.fullmatch(r"PROP-[0-9]{3,}", item) for item in relations):
+            raise ValueError("P2P_CHOICE_RELATION_INVALID: related targets must be proposal IDs")
+        source = (source.strip() or None) if source is not None else None
+        validate_choice_creation_bounds(requested, related_count=len(related or []), source=source)
+        actor_id = actor_id.strip()
+        executor_id = (executor_id or actor_id).strip()
+        semantic = {
+            "creation_policy_version": 1,
+            "title": requested.title,
+            "problem": requested.problem,
+            "context": requested.context,
+            "governance_boundary": requested.governance_boundary,
+            "options": [item.to_dict() for item in requested.options],
+            "related_proposals": relations,
+            "source": source,
+            "subject_id": actor_id,
+            "executor_id": executor_id,
+            "executor_kind": executor_kind,
+            "channel": channel,
+            "authority_context_sha256": authority_context.digest_sha256 if authority_context else None,
+        }
+        token = semantic_sha256({"operation": "choice.create", "request": semantic})
+        fingerprint = self.receipts.fingerprint(
+            operation="choice_create", actor=executor_id,
+            preview_token=token, semantic_inputs=semantic,
+        )
+        from p2p_engine.services.project_replication import require_replication_operation_key
+
+        require_replication_operation_key(operation_key, command_name="choice.create")
+        replay = self._creation_replay(operation_key, fingerprint)
+        if replay is not None:
+            return replay
+        if self.write_preflight is not None:
+            self.write_preflight("choice_create")
+        dependencies = [self.authority.path, self.authority.permissions.path()]
+        dependencies.extend(self.find_proposal_dir(item) / "proposal.md" for item in relations)
+        sources = tuple(
+            source_precondition(_relative(self.root, path), path.read_bytes() if path.exists() else None)
+            for path in dependencies
+        )
+        _, evidence = self.authority.resolve(
+            supplied_context=authority_context,
+            subject_id=actor_id,
+            executor_id=executor_id,
+            executor_kind=executor_kind,
+            required_capabilities=(CHOICE_CREATE_CAPABILITY,),
+            channel=channel,
+        )
+        definition = ChoiceDefinition.build(
+            choice_id=self._next_id(),
+            title=requested.title,
+            problem=requested.problem,
+            context=requested.context,
+            governance_boundary=requested.governance_boundary,
+            option_titles=[item.title for item in requested.options],
+        )
+        candidates = self._create_candidates(
+            definition, related=relations, source=source, created_by=evidence.executor.identity_id,
+        )
+        summary = ChoiceSummaryRead(
+            choice_id=definition.choice_id, title=definition.title, state="open", terminal=False,
+            definition_contract=CHOICE_DEFINITION_CONTRACT, definition_completeness="complete",
+            definition_digest=definition.digest, seal_status="sealed", integrity_status="valid",
+            selected_option=None, replacement_choice_id=None,
+        ).to_dict()
+        result = {
+            "contract": CHOICE_CREATE_RESULT_CONTRACT,
+            "operation": "choice_create",
+            "operation_id": "choice.create",
+            "choice": summary,
+            "changed_paths": sorted(candidates),
+        }
+        receipt_path, receipt_bytes, _ = self.receipts.prepare(
+            idempotency_key=operation_key, operation="choice_create",
+            actor=evidence.executor.identity_id, request_fingerprint_sha256=fingerprint,
+            preview_token=token, result=result, candidates=candidates, authority=evidence,
+        )
+
+        def validate_allocation(_view: object) -> None:
+            if self._next_id() != definition.choice_id:
+                raise ValueError("P2P_CHOICE_CREATE_PRECONDITION_CHANGED: retry creation with the same operation key")
+
+        mutation = self.atomic_writer.apply(
+            operation_id="choice_create",
+            candidates={**candidates, receipt_path: receipt_bytes},
+            sources=sources + tuple(
+                source_precondition(path, None) for path in sorted((*candidates, receipt_path))
+            ),
+            preview_token=token, actor=evidence.executor.identity_id,
+            candidate_validator=validate_allocation,
+        )
+        if mutation.status != "applied":
+            replay = self._creation_replay(operation_key, fingerprint)
+            if replay is not None:
+                return replay
+            if mutation.message.startswith("P2P_CHOICE_CREATE_PRECONDITION_CHANGED:"):
+                raise ValueError(mutation.message)
+            code = "P2P_CHOICE_CREATE_LOCKED" if mutation.status == "blocked" else "P2P_CHOICE_CREATE_FAILED"
+            raise ValueError(f"{code}: {mutation.message}")
+        committed = self.receipts.read(idempotency_key=operation_key)
+        if committed is None or committed.operation != "choice_create" or committed.request_fingerprint_sha256 != fingerprint:
+            raise ValueError("P2P_REPLICATION_STATE_INVALID: committed creation receipt is missing or inconsistent")
+        return self._creation_payload(result, actor=evidence.executor.identity_id, authority=evidence.to_dict(), replayed=False)
+
+    def _creation_replay(self, operation_key: str, fingerprint: str) -> dict[str, object] | None:
+        receipt = self.receipts.read(idempotency_key=operation_key)
+        if receipt is None:
+            return None
+        if receipt.operation != "choice_create" or receipt.request_fingerprint_sha256 != fingerprint:
+            raise ValueError("P2P_IDEMPOTENCY_CONFLICT: idempotency key was already used for a different request")
+        from p2p_engine.services.project_replication import replay_replication_outcome
+
+        replay_replication_outcome(self.root, mutation_operation_id="choice_create")
+        return self._creation_payload(
+            receipt.result, actor=receipt.actor, authority=receipt.authority, replayed=True,
+        )
+
+    @staticmethod
+    def _creation_payload(
+        result: Mapping[str, object], *, actor: str,
+        authority: Mapping[str, object] | None, replayed: bool,
+    ) -> dict[str, object]:
+        return {
+            "choice_create": {key: value for key, value in result.items() if key != "changed_paths"},
+            "authority": dict(authority) if authority is not None else None,
+            "mutation": {
+                "status": "already_applied" if replayed else "applied",
+                "operation_id": "choice.create",
+                "actor": actor,
+                "replayed": replayed,
+                "message": "Original Choice creation outcome replayed." if replayed else "Choice created atomically.",
+            },
+        }
 
     def statuses(self) -> list[ChoiceStatus]:
         return [self._status(self._load_dir(path)) for path in self._choice_dirs()]
@@ -773,6 +955,8 @@ class ChoiceLifecycleService:
         reason = normalize_definition_text(reason, "terminal reason")
         loaded = self._load(choice_id)
         require_transition_allowed(loaded.status, kind)
+        if loaded.status == ChoiceState.decided and kind == ChoiceTransitionKind.supersede:
+            self._require_decided_supersession_identity(loaded, choice_id)
         if kind == ChoiceTransitionKind.decide and loaded.definition is None:
             raise ValueError("P2P_CHOICE_DEFINITION_INCOMPLETE: an incomplete legacy Choice cannot be decided")
         context, evidence = self.authority.resolve(
@@ -924,6 +1108,12 @@ class ChoiceLifecycleService:
         operation_key = str(request.get("operation_key") or "")
         transition = str(request.get("transition") or "")
         validate_idempotency_key(operation_key)
+        from p2p_engine.services.project_replication import (
+            replay_replication_outcome,
+            require_replication_operation_key,
+        )
+
+        require_replication_operation_key(operation_key, command_name="choice.transition-apply")
         receipt = self.receipts.read(idempotency_key=operation_key)
         if receipt is not None:
             if receipt.preview_token_sha256 != hashlib.sha256(preview_token.encode()).hexdigest():
@@ -940,6 +1130,7 @@ class ChoiceLifecycleService:
                 raise ValueError(
                     "P2P_IDEMPOTENCY_POSTCONDITION_DRIFT: recorded Choice transition no longer matches project state"
                 )
+            replay_replication_outcome(self.root, mutation_operation_id=f"choice_{transition}")
             return ChoiceTransitionResult(
                 status="already_applied",
                 choice=self._status(self._load(choice_id)),
@@ -1208,8 +1399,7 @@ class ChoiceLifecycleService:
         if replacement_id == self._choice_id(source):
             raise ValueError("P2P_CHOICE_REPLACEMENT_INVALID: a Choice cannot supersede itself")
         replacement = self._load(replacement_id)
-        if not is_active_choice_state(replacement.status):
-            raise ValueError("P2P_CHOICE_REPLACEMENT_INVALID: replacement must be open")
+        require_supersession_replacement_state(source.status, replacement.status)
         if replacement.seal_status != "sealed" or replacement.definition is None:
             raise ValueError("P2P_CHOICE_REPLACEMENT_INVALID: replacement must be a sealed current Choice")
         source_digest = source.stored_digest or (source.definition.digest if source.definition else None)
@@ -1224,6 +1414,20 @@ class ChoiceLifecycleService:
         validate_supersession_graph(edges)  # type: ignore[arg-type]
         return replacement
 
+    @staticmethod
+    def _require_decided_supersession_identity(loaded: _LoadedChoice, choice_id: str) -> None:
+        """Do not turn a legacy directory-name fallback into canonical identity."""
+        explicit_id = read_frontmatter(loaded.choice_text).get("choice_id")
+        if explicit_id != choice_id or re.fullmatch(r"CHOICE-[0-9]{3,}", choice_id) is None:
+            raise ValueError("P2P_CHOICE_IDENTITY_INVALID: decided supersession requires an explicit safe Choice ID")
+        if loaded.lifecycle_bytes is not None:
+            return
+        projected_status = (read_markdown_section(loaded.decision_text, "Status") or "").strip("`").strip()
+        options = loaded.options_payload.get("options", [])
+        option_ids = {item.get("id") for item in options if isinstance(item, Mapping)} if isinstance(options, list) else set()
+        if projected_status != "decided" or loaded.selected_option_id not in option_ids:
+            raise ValueError("P2P_CHOICE_PROJECTION_INVALID: legacy decision does not select an existing option")
+
     def _transition_sources(
         self, loaded: _LoadedChoice, receipt_path: str, replacement: _LoadedChoice | None
     ) -> tuple[object, ...]:
@@ -1234,7 +1438,13 @@ class ChoiceLifecycleService:
             self.authority.permissions.path(),
         ]
         if replacement is not None:
-            paths.extend([replacement.choice_dir / "choice.md", replacement.choice_dir / "options.yml", replacement.choice_dir / "lifecycle.yml"])
+            # Validation consults the complete lineage graph, including each
+            # decision projection. Bind it through apply, not just the target.
+            for choice_dir in self._choice_dirs():
+                paths.extend(choice_dir / name for name in (
+                    "choice.md", "options.yml", "decision.md", "links.yml", "lifecycle.yml",
+                ))
+        paths = sorted(set(paths))
         result = [
             source_precondition(_relative(self.root, path), path.read_bytes() if path.exists() else None)
             for path in paths

@@ -10,7 +10,9 @@ separate from the normal new-project setup.
 Current status:
 
 ```text
-Source checkout: 0.6.10.
+Source checkout: 0.6.11 prepared for publication (not published).
+Intended release tag: v0.6.11; no tag is created by metadata preparation.
+Current published install version: 0.6.10.
 Recommended local manager: uv 0.12.6 with uv-managed CPython 3.12.
 Supported distribution: exact .whl files attached to GitHub Releases.
 Qualified systems: Linux, macOS and Windows x86-64; macOS ARM64.
@@ -401,8 +403,13 @@ release workflow and supplies the exact version:
 ```bash
 gh workflow run release.yml \
   --ref main \
-  -f version=0.6.10
+  -f version=0.6.11
 ```
+
+This is a maintainer action for the prepared `0.6.11` release, only after its
+reviewed commit has been pushed to `main`. Preparing
+[the release notes](releases/0.6.11.md) does not execute this command or publish
+artifacts. Normal installation examples above remain on published `0.6.10`.
 
 The workflow refuses execution from a branch other than `main`. It derives one
 immutable commit SHA from the selected run, verifies that the requested version
@@ -455,8 +462,14 @@ must still pass the create-only on-demand workflow. For example, the candidate
 set is:
 
 ```text
-v0.6.10 -> p2p_engine-0.6.10-py3-none-any.whl, p2p_engine-0.6.10.tar.gz, SHA256SUMS
+v0.6.11 -> p2p_engine-0.6.11-py3-none-any.whl, p2p_engine-0.6.11.tar.gz, SHA256SUMS
 ```
+
+These are intended filenames, not evidence that the release or its assets
+exist. The publication build uses the selected commit timestamp and final
+source metadata; its checksum need not equal the earlier local MS2 candidate.
+Consumers, including WaveKit, must qualify the exact official bytes rather
+than relabel a previously qualified local candidate as the published artifact.
 
 ## Connect An Agent
 

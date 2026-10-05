@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from p2p_engine import __version__
@@ -104,16 +105,29 @@ def test_acceptance_walkthroughs_assign_scope_before_decision_preview() -> None:
         assert "--kind project_global" in text[scope:decision]
 
 
-def test_current_install_guides_reference_the_current_release_asset() -> None:
+def test_current_install_guides_reference_the_published_release_asset() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    install = (ROOT / "docs" / "INSTALL.md").read_text(encoding="utf-8")
+    published = re.search(r"^Published install version: (\d+\.\d+\.\d+)$", readme, re.MULTILINE)
+    assert published is not None
+    published_version = published.group(1)
     release_asset = (
         "https://github.com/BINARYA/p2p-Engine/releases/download/"
-        f"v{__version__}/p2p_engine-{__version__}-py3-none-any.whl"
+        f"v{published_version}/p2p_engine-{published_version}-py3-none-any.whl"
     )
 
-    assert release_asset in (ROOT / "README.md").read_text(encoding="utf-8")
-    assert release_asset in (ROOT / "docs" / "INSTALL.md").read_text(
-        encoding="utf-8"
-    )
+    assert release_asset in readme
+    assert release_asset in install
+    assert f"Current published install version: {published_version}." in install
+    if published_version != __version__:
+        candidate_asset = (
+            "https://github.com/BINARYA/p2p-Engine/releases/download/"
+            f"v{__version__}/p2p_engine-{__version__}-py3-none-any.whl"
+        )
+        assert "not published" in readme
+        assert "not published" in install
+        assert candidate_asset not in readme
+        assert candidate_asset not in install
 
 
 def test_current_cli_examples_match_non_git_runtime_contracts() -> None:

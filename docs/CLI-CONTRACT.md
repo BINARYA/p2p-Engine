@@ -1,8 +1,17 @@
 # CLI JSON Contract
 
-P2P Engine 0.6.10 exposes one machine-facing CLI transport contract:
+P2P Engine 0.6.11 exposes one machine-facing CLI transport contract:
 `p2p-cli/v1`. Every command that accepts `--format json`, including commands
 whose format defaults to JSON, emits exactly one JSON document to stdout.
+
+Version0.6.11 is a local MS2 candidate, not published. New dimensions are
+`choice_create_result_contract` and `question_page_contract`,
+`question_next_contract`, `question_preview_contract`, `question_mutation_contract`.
+The bounded keyed question argv/result/recovery contract is documented in
+[Question machine contract](QUESTION-MACHINE-CONTRACT.md). JSON Choice creation
+returns `data.choice_create` (`p2p-choice-create-result/v1`) and requires a key
+with exact `choice.create` authority. New hosted create/question MCP parity is
+explicitly deferred to MS3; existing local tools remain unchanged.
 
 ## Envelope
 
